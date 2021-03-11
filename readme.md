@@ -9,9 +9,9 @@ LODA has proved to be remarkable good at making programs that correspond to OEIS
 
 # Usage - Basics
 
-### Print 100 terms
+### Print 10 terms
 
-Evaluate program for the A000079 oeis sequence, printing 100 terms.
+Evaluate program for the A000079 oeis sequence, printing 10 terms.
 
 ```
 PROMPT> cargo run -- eval 79 -t 10
