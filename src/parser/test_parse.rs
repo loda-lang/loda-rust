@@ -24,6 +24,21 @@ mod tests {
     pow $1,$0
     "#;
 
+    const INPUT_A000196: &str = r#"
+    ; A000196: Integer part of square root of n.
+    ; 0,1,1,1,2,2,2,2,2,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,5
+    
+    add $0,1
+    mov $3,$0
+    mul $3,-1
+    lpb $0
+      sub $3,1
+      add $1,2
+      sub $0,$1
+    lpe
+    div $1,2
+    "#;
+
     #[test]
     fn test_10000_fibonacci() {
         let result = parse(INPUT_A000045);
@@ -59,6 +74,7 @@ mod tests {
         let mut pm = ProgramRunnerManager::new();
         pm.register(79, runner0);
 
+        // Program that calls the A000079 program, and subtracts 1.
         let input = r#"
         cal $0,79
         sub $0,1
@@ -84,6 +100,18 @@ mod tests {
         let runner = ProgramRunner::new(program);
         let actual: Vec<i64> = runner.run_terms(10);
         let expected: Vec<i64> = [0, 1, 3, 7, 15, 31, 63, 127, 255, 511].to_vec();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10003_loop_restoring_previous_state() {
+        let result = parse(INPUT_A000196);
+        assert_eq!(result.is_ok(), true);
+        let parse = result.unwrap();
+        let program = parse.created_program.program;
+        let runner = ProgramRunner::new(program);
+        let actual: Vec<i64> = runner.run_terms(20);
+        let expected: Vec<i64> = [0, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4].to_vec();
         assert_eq!(actual, expected);
     }
 }

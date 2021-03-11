@@ -41,7 +41,10 @@ impl Program {
             let before = state.register_vec_to_string();
             node.eval(state);
             let after = state.register_vec_to_string();
-            println!("{:12} {} => {}", node.formatted_instruction(), before, after);
+            let instruction: String = node.formatted_instruction();
+            if !instruction.is_empty() {
+                println!("{:12} {} => {}", instruction, before, after);
+            }
             state.increment_eval_count();
         }
     }

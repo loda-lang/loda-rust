@@ -1,5 +1,6 @@
 use super::{RegisterIndex, RegisterValue, RunMode};
 
+#[derive(Clone)]
 pub struct ProgramState {
     register_vec: Vec<RegisterValue>,
     eval_count: u64,

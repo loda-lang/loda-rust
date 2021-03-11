@@ -22,7 +22,7 @@ impl Node for NodeLoopRegister {
     }
 
     fn formatted_instruction(&self) -> String {
-        format!("lpe")
+        String::from("")
     }
 
     fn eval(&self, state: &mut ProgramState) {
@@ -32,23 +32,53 @@ impl Node for NodeLoopRegister {
             println!("{:12} {} => {}", instruction, snapshot, snapshot);
         }
 
+        {
+            let value: RegisterValue = state.get_register_value(self.register.clone());
+
+            let value_inner: &BigInt = &value.0;
+            if value_inner.is_negative() {
+                println!("immediately exit loop");
+                return;
+            }
+
+        }
+
         let mut cycles = 0;
         loop {
+
+            let old_state: ProgramState = state.clone();
+            let old_value: RegisterValue = old_state.get_register_value(self.register.clone());
+            let old_value_inner: &BigInt = &old_value.0;
+
+            self.program.run(state);
+
             let value: RegisterValue = state.get_register_value(self.register.clone());
+
             let value_inner: &BigInt = &value.0;
-            if value_inner.is_zero() || value_inner.is_negative() {
-                // TODO: only print in verbose mode
-                // println!("reached end");
+
+            let old_abs: BigInt = old_value_inner.abs();
+            let new_abs: BigInt = value_inner.abs();
+
+            if new_abs >= old_abs {
+
+                if state.run_mode() == RunMode::Verbose {
+                    println!("LOOP CYCLE EXIT");
+                }
+
+                // When the loop reaches its end, the previous state is restored.
+                *state = old_state.clone();
                 break;
             }
 
-            self.program.run(state);
 
             cycles += 1;
             if cycles > 1000 {
                 panic!("looped too many times");
                 // TODO: propagate info about problematic loops all the way
                 // to caller and their caller, and let them decide what to do about it.
+            }
+            if state.run_mode() == RunMode::Verbose {
+                println!("lpe");
             }
         }
     }
