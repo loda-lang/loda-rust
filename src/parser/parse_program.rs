@@ -1,0 +1,134 @@
+use std::fmt;
+use super::extract_row_re::EXTRACT_ROW_RE;
+use super::instruction_id::{InstructionId,ParseInstructionIdError,parse_instruction_id};
+use super::instruction::{Instruction,InstructionParameter};
+use super::parse_parameters::*;
+use super::remove_comment::remove_comment;
+
+pub struct ParsedProgram {
+    pub instruction_vec: Vec<Instruction>,
+}
+
+impl fmt::Display for ParsedProgram {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let instructions: Vec<String> = self.instruction_vec.iter().map(|instruction| {
+            instruction.to_string()
+        }).collect();
+        let instructions_joined: String = instructions.join("\n");
+        write!(f, "{}", instructions_joined)
+    }
+}
+
+#[derive(Debug)]
+pub enum ParseProgramError {
+    SyntaxError(usize),
+    ParseInstructionId(ParseInstructionIdError),
+    ParseParameters(ParseParametersError),
+}
+
+impl fmt::Display for ParseProgramError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Self::SyntaxError(line_number) => write!(f, "Syntax error in line {}", line_number),
+            Self::ParseInstructionId(ref err) => write!(f, "ParseInstructionId error: {}", err),
+            Self::ParseParameters(ref err) => write!(f, "ParseParameters error: {}", err),
+        }
+    }
+}
+
+impl From<ParseInstructionIdError> for ParseProgramError {
+    fn from(err: ParseInstructionIdError) -> ParseProgramError {
+        ParseProgramError::ParseInstructionId(err)
+    }
+}
+
+impl From<ParseParametersError> for ParseProgramError {
+    fn from(err: ParseParametersError) -> ParseProgramError {
+        ParseProgramError::ParseParameters(err)
+    }
+}
+
+pub fn parse_program(raw_input: &str) -> Result<ParsedProgram, ParseProgramError> {
+    let re = &EXTRACT_ROW_RE;
+    let mut instruction_vec: Vec<Instruction> = vec!();
+    for (index, raw_input_line) in raw_input.split("\n").enumerate() {
+        let line_number: usize = index + 1;
+
+        let line0 = remove_comment(raw_input_line);
+        let line1: &str = line0.trim_end();
+        if line1.is_empty() {
+            // skip lines without code
+            // if it's a line with just a comment, then skip the line.
+            // if it's a line with just blank spaces, then skip the line.
+            continue;
+        }
+
+        let captures = match re.captures(line1) {
+            Some(value) => value,
+            None => {
+                return Err(ParseProgramError::SyntaxError(line_number));
+            }
+        };
+        let instruction_raw: &str = captures.get(1).map_or("", |m| m.as_str());
+        let parameter_string: &str = captures.get(2).map_or("", |m| m.as_str());
+
+        let instruction_id: InstructionId = 
+            parse_instruction_id(instruction_raw, line_number)?;
+
+        let parameter_vec: Vec<InstructionParameter> = 
+            parse_parameters(parameter_string, line_number)?;
+
+        let instruction = Instruction {
+            instruction_id: instruction_id,
+            parameter_vec: parameter_vec,
+            line_number: line_number,
+        };
+        instruction_vec.push(instruction);
+    }
+
+    let parsed_program = ParsedProgram {
+        instruction_vec: instruction_vec
+    };
+    Ok(parsed_program)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn process(input: &str) -> String {
+        let result = parse_program(input);
+        let parsed_program: ParsedProgram = match result {
+            Ok(value) => value,
+            Err(error) => {
+                return format!("{:?}", error);
+            }
+        };
+        parsed_program.to_string()
+    }
+
+    #[test]
+    fn test_10000_empty() {
+        assert_eq!(process(""), "");
+        assert_eq!(process("\n  \n\t  \t"), "");
+        assert_eq!(process(" ; comment 1\n;; comment 2"), "");
+    }
+
+    #[test]
+    fn test_10001_simple() {
+        assert_eq!(process("lpb $0\nlpe"), "lpb $0\nlpe");
+        assert_eq!(process("lpb $0\n\n\nlpe"), "lpb $0\nlpe");
+        assert_eq!(process("lpb $0\n \nlpe"), "lpb $0\nlpe");
+        assert_eq!(process("mov $1,2\nmov $3,$4"), "mov $1,2\nmov $3,$4");
+        assert_eq!(process("  mov  $1, -2\n\tmov $3\t, $44"), "mov $1,-2\nmov $3,$44");
+        assert_eq!(process("\tmov $1,2 ; comment"), "mov $1,2");
+    }
+
+    #[test]
+    fn test_10002_junk() {
+        assert_eq!(process("mov0"), "SyntaxError(1)");
+        assert_eq!(process("mov$0"), "SyntaxError(1)");
+        assert_eq!(process("boom $1"), "ParseInstructionId(UnrecognizedInstructionId(1))");
+        assert_eq!(process("mov $x"), "ParseParameters(UnrecognizedParameter(1))");
+    }
+}

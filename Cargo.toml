@@ -1,0 +1,16 @@
+[package]
+name = "loda_lab"
+version = "0.0.1"
+authors = ["Simon Strandgaard <neoneye@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+regex = "1.4.2"
+lazy_static = "1.4.0"
+clap = "2.33.3"
+dotenv = "0.15.0"
+num-integer = "0.1.44"
+num-bigint = "0.4"
+num-traits = "0.2"
