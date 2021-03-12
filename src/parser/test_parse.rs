@@ -57,6 +57,36 @@ mod tests {
     sub $1,1
     "#;
 
+    const INPUT_A002624: &str = r#"
+    ; A002624: Expansion of (1-x)^(-3) * (1-x^2)^(-2).
+    ; 1,3,8,16,30,50,80,120,175,245,336,448,588,756,960
+    
+    mov $12,$0
+    mov $14,$0
+    add $14,1
+    lpb $14
+      clr $0,12
+      mov $0,$12
+      sub $14,1
+      sub $0,$14
+      mov $9,$0
+      mov $11,$0
+      add $11,1
+      lpb $11
+        mov $0,$9
+        sub $11,1
+        sub $0,$11
+        mov $6,$0
+        add $6,4
+        div $6,2
+        bin $6,2
+        add $10,$6
+      lpe
+      add $13,$10
+    lpe
+    mov $1,$13
+    "#;
+
     #[test]
     fn test_10000_fibonacci() {
         let result = parse(INPUT_A000045);
@@ -142,6 +172,18 @@ mod tests {
         let runner = ProgramRunner::new(program);
         let actual: Vec<i64> = runner.run_terms(20);
         let expected: Vec<i64> = [1, 0, 1, 1, 2, 1, 1, 4, 1, 1, 6, 1, 1, 8, 1, 1, 10, 1, 1, 12].to_vec();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10005_clear_memory_range() {
+        let result = parse(INPUT_A002624);
+        assert_eq!(result.is_ok(), true);
+        let parse = result.unwrap();
+        let program = parse.created_program.program;
+        let runner = ProgramRunner::new(program);
+        let actual: Vec<i64> = runner.run_terms(10);
+        let expected: Vec<i64> = [1, 3, 8, 16, 30, 50, 80, 120, 175, 245].to_vec();
         assert_eq!(actual, expected);
     }
 }
