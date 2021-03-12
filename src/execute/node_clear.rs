@@ -1,4 +1,4 @@
-use super::{Node,RegisterIndex,RegisterValue,ProgramState};
+use super::{Node,RegisterIndex,ProgramState};
 
 pub struct NodeClearConstant {
     target: RegisterIndex,
@@ -24,27 +24,12 @@ impl Node for NodeClearConstant {
     }
 
     fn eval(&self, state: &mut ProgramState) {
-        let value = RegisterValue::zero();
-        let mut register_index_inner: u16 = self.target.0 as u16;
-        for _ in 0..self.clear_count {
-            if register_index_inner >= 256 {
-                panic!("attempting to clear a register that is out of bounds");
-            }
-            let register_index = RegisterIndex(register_index_inner as u8);
-            state.set_register_value(register_index, value.clone());
-            register_index_inner += 1;
-        }
+        state.set_register_range_to_zero(self.target.clone(), self.clear_count);
     }
 
-    fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
-        let mut register_index_inner: u16 = self.target.0 as u16;
-        for _ in 0..self.clear_count {
-            if register_index_inner >= 256 {
-                panic!("attempting to clear a register that is out of bounds");
-            }
-            let register_index = RegisterIndex(register_index_inner as u8);
-            register_vec.push(register_index);
-            register_index_inner += 1;
-        }
+    fn accumulate_register_indexes(&self, _register_vec: &mut Vec<RegisterIndex>) {
+        // This operation does not affect the number of registers to be allocated.
+        // The default value of an uninitialized register is zero.
+        // And accessing a register outside the allocated registers just yields zero.
     }
 }

@@ -2,7 +2,7 @@ use std::fmt;
 use num_bigint::{BigInt, ToBigInt};
 use num_traits::{ToPrimitive, One, Zero};
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RegisterValue(pub BigInt);
 
 impl RegisterValue {
