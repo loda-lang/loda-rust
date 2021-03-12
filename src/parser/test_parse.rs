@@ -39,6 +39,24 @@ mod tests {
     div $1,2
     "#;
 
+    const INPUT_A005131: &str = r#"
+    ; A005131: A generalized continued fraction for Euler's number e.
+    ; 1,0,1,1,2,1,1,4,1,1,6,1,1,8,1,1,10,1,1,12,1,1,14,1,1,16,1,1,18
+    
+    sub $0,1
+    mov $1,$0
+    lpb $0
+      sub $0,3
+      sub $1,1
+    lpe
+    add $1,1
+    lpb $0
+      div $0,2
+      mov $1,2
+    lpe
+    sub $1,1
+    "#;
+
     #[test]
     fn test_10000_fibonacci() {
         let result = parse(INPUT_A000045);
@@ -104,7 +122,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10003_loop_restoring_previous_state() {
+    fn test_10003_loop_restoring_previous_state_a000196() {
         let result = parse(INPUT_A000196);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
@@ -112,6 +130,18 @@ mod tests {
         let runner = ProgramRunner::new(program);
         let actual: Vec<i64> = runner.run_terms(20);
         let expected: Vec<i64> = [0, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4].to_vec();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10004_loop_restoring_previous_state_a005131() {
+        let result = parse(INPUT_A005131);
+        assert_eq!(result.is_ok(), true);
+        let parse = result.unwrap();
+        let program = parse.created_program.program;
+        let runner = ProgramRunner::new(program);
+        let actual: Vec<i64> = runner.run_terms(20);
+        let expected: Vec<i64> = [1, 0, 1, 1, 2, 1, 1, 4, 1, 1, 6, 1, 1, 8, 1, 1, 10, 1, 1, 12].to_vec();
         assert_eq!(actual, expected);
     }
 }

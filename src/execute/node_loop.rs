@@ -1,6 +1,6 @@
 use super::{Node,RegisterIndex,RegisterValue,Program,ProgramState,ProgramRunnerManager,RunMode};
 use num_bigint::BigInt;
-use num_traits::{Zero, Signed};
+use num_traits::Signed;
 
 pub struct NodeLoopRegister {
     register: RegisterIndex,
@@ -30,17 +30,6 @@ impl Node for NodeLoopRegister {
             let snapshot = state.register_vec_to_string();
             let instruction = format!("lpb {}", self.register);
             println!("{:12} {} => {}", instruction, snapshot, snapshot);
-        }
-
-        {
-            let value: RegisterValue = state.get_register_value(self.register.clone());
-
-            let value_inner: &BigInt = &value.0;
-            if value_inner.is_negative() {
-                println!("immediately exit loop");
-                return;
-            }
-
         }
 
         let mut cycles = 0;
