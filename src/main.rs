@@ -1,3 +1,8 @@
+#[macro_use]
+extern crate log;
+
+extern crate env_logger;
+
 use std::str::FromStr;
 use dotenv::dotenv;
 
@@ -13,10 +18,16 @@ extern crate num_traits;
 use clap::{App, AppSettings, Arg, SubCommand};
 
 fn main() {
+    // Prepare environment variables from the `.env` file.
     dotenv().expect("Failed to read .env file");
+
+    // Initialize logging from the `RUST_LOG` environment variable.
+    env_logger::init();
+
+    // Load settings from various environment variables.
     let settings = Settings::new();
 
-    let matches = App::new("loda-lab")
+    let matches = App::new("loda_lab")
         .version("0.0.1")
         .about("Experimental tool")
         .setting(AppSettings::SubcommandRequiredElseHelp)

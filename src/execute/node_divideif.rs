@@ -8,7 +8,7 @@ fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
     // TODO: deal with infinity
     if yy.is_zero() {
         // TODO: indicate division by zero
-        // println!("division by zero");
+        error!("division by zero");
         return RegisterValue::from_i64(0xfffffff)
     }
     let remain: BigInt = xx % yy;

@@ -25,11 +25,10 @@ impl DependencyManager {
         self.programid_dependencies.push(program_id);
 
         if self.programids_currently_loading.contains(&program_id) {
-            panic!("detected cyclic dependency");
+            panic!("detected cyclic dependency. program_id: {}", program_id);
         }
-
         if self.program_run_manager.contains(program_id) {
-            println!("program is already loaded. {}", program_id);
+            debug!("program is already loaded. program_id: {}", program_id);
             return;
         }
         self.programids_currently_loading.insert(program_id);
@@ -41,7 +40,7 @@ impl DependencyManager {
         let parsed = match parse(&contents) {
             Ok(value) => value,
             Err(err) => {
-                println!("ERROR: {}, file: {:?}", err, path);
+                error!("error: {}, file: {:?}", err, path);
                 panic!();
             }
         };
@@ -52,8 +51,7 @@ impl DependencyManager {
         let mut dependent_program_id_vec: Vec<u64> = vec!();
         program.accumulate_call_dependencies(&mut dependent_program_id_vec);
         if !dependent_program_id_vec.is_empty() {
-            // TODO: only print in verbose mode
-            // println!("program {} dependencies: {:?}", program_id, dependent_program_id_vec);
+            debug!("program_id: {}  depends on other programs: {:?}", program_id, dependent_program_id_vec);
         }
         for dependent_program_id in dependent_program_id_vec {
             self.load(dependent_program_id);

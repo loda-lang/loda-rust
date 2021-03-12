@@ -50,7 +50,7 @@ fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
         }
     };
     if exponent > 1000000 {
-        println!("WARNING: NodePower exponent is higher than 1000000. This is a HUGE number.");
+        warn!("WARNING: NodePower exponent is higher than 1000000. This is a HUGE number.");
     }
     let result: BigInt = xx.pow(exponent);
     RegisterValue(result)

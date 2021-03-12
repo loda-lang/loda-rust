@@ -48,13 +48,12 @@ impl Node for NodeCallConstant {
         let program_runner: Rc::<ProgramRunner> = match program_manager.get(program_id) {
             Some(value) => value,
             None => {
-                println!("NodeCall. Unable to find program_id: {}", program_id);
-                panic!("NodeCall. Unable to get program");
+                panic!("NodeCall. Unable to get program_id: {}", program_id);
             }
         };
 
         self.program_runner_rc = program_runner;
-        // println!("NodeCall: update_call. program_id: {}", program_id);
+        debug!("NodeCall: update_call. program_id: {}", program_id);
     }
 
     fn accumulate_call_dependencies(&self, program_id_vec: &mut Vec<u64>) {

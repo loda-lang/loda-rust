@@ -166,8 +166,7 @@ impl Instruction {
                 return node_wrapped;
             },
             _ => {
-                println!("Unhandled instruction: {:?}", self.instruction_id);
-                panic!("unhandled instruction");
+                panic!("unhandled instruction: {:?}", self.instruction_id);
             }
         }
     }
@@ -243,8 +242,7 @@ impl Instruction {
                 panic!("No support for 'clr' instruction where source=register.");
             },
             _ => {
-                println!("Unhandled instruction: {:?}", self.instruction_id);
-                panic!("unhandled instruction");
+                panic!("unhandled instruction: {:?}", self.instruction_id);
             }
         }
     }
