@@ -19,6 +19,7 @@ pub use register_value::RegisterValue;
 pub mod node_add;
 pub mod node_binomial;
 pub mod node_call;
+pub mod node_clear;
 pub mod node_compare;
 pub mod node_divide;
 pub mod node_divideif;

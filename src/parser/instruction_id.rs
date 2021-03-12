@@ -18,6 +18,7 @@ pub enum InstructionId {
     Binomial,
     Compare,
     Logarithm,
+    Clear,
 }
 
 #[derive(Debug)]
@@ -54,6 +55,7 @@ pub fn parse_instruction_id(input: &str, line_number: usize)
         "bin" => Ok(InstructionId::Binomial),
         "cmp" => Ok(InstructionId::Compare),
         "log" => Ok(InstructionId::Logarithm),
+        "clr" => Ok(InstructionId::Clear),
         _     => Err(ParseInstructionIdError::UnrecognizedInstructionId(line_number)),
     }
 }
@@ -77,6 +79,7 @@ impl InstructionId {
             Self::Binomial  => "bin",
             Self::Compare   => "cmp",
             Self::Logarithm => "log",
+            Self::Clear     => "clr",
         }
     }
 }

@@ -1,10 +1,11 @@
 use std::fmt;
-use super::{Instruction,InstructionId,InstructionParameter,ParameterType};
+use super::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use super::validate_loops::*;
-use crate::execute::{BoxNode,RegisterIndex,RegisterValue,Program};
+use crate::execute::{BoxNode, RegisterIndex, RegisterValue, Program};
 use crate::execute::node_add::*;
 use crate::execute::node_binomial::*;
 use crate::execute::node_call::*;
+use crate::execute::node_clear::*;
 use crate::execute::node_compare::*;
 use crate::execute::node_divide::*;
 use crate::execute::node_divideif::*;
@@ -17,6 +18,8 @@ use crate::execute::node_multiply::*;
 use crate::execute::node_power::*;
 use crate::execute::node_subtract::*;
 use crate::execute::node_truncate::*;
+use num_bigint::{BigInt, ToBigInt};
+use num_traits::{One, Zero, Signed, ToPrimitive};
 
 #[derive(Debug)]
 pub enum CreateInstructionErrorType {
@@ -140,6 +143,25 @@ impl Instruction {
             },
             InstructionId::Logarithm => {
                 let node = NodeLogarithmConstant::new(target, source);
+                let node_wrapped = Box::new(node);
+                return node_wrapped;
+            },
+            InstructionId::Clear => {
+                if source.0.is_negative() {
+                    panic!("clear instruction with source being a negative number. Makes no sense.");
+                }
+                if source.0.is_zero() {
+                    panic!("clear instruction with source=0. Makes no sense.");
+                }
+                if source.0.is_one() {
+                    panic!("clear instruction with source=1. Same as setting the register to zero.");
+                }
+                let limit_bigint: BigInt = 256.to_bigint().unwrap();
+                if source.0 >= limit_bigint {
+                    panic!("clear instruction with source being an unusual high value.");
+                }
+                let clear_count: u8 = source.0.to_u8().unwrap();
+                let node = NodeClearConstant::new(target, clear_count);
                 let node_wrapped = Box::new(node);
                 return node_wrapped;
             },
@@ -497,6 +519,10 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 program.push_boxed(node);
             },
             InstructionId::Logarithm => {
+                let node = create_two_parameter_node(&instruction)?;
+                program.push_boxed(node);
+            },
+            InstructionId::Clear => {
                 let node = create_two_parameter_node(&instruction)?;
                 program.push_boxed(node);
             },
