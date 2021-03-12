@@ -166,7 +166,8 @@ impl Instruction {
                 return node_wrapped;
             },
             _ => {
-                panic!("unhandled");
+                println!("Unhandled instruction: {:?}", self.instruction_id);
+                panic!("unhandled instruction");
             }
         }
     }
@@ -238,8 +239,12 @@ impl Instruction {
                 let node_wrapped = Box::new(node);
                 return node_wrapped;
             },
+            InstructionId::Clear => {
+                panic!("No support for 'clr' instruction where source=register.");
+            },
             _ => {
-                panic!("unhandled");
+                println!("Unhandled instruction: {:?}", self.instruction_id);
+                panic!("unhandled instruction");
             }
         }
     }
