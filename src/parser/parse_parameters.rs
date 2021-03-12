@@ -1,8 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 use super::extract_parameter_re::EXTRACT_PARAMETER_RE;
-use super::parameter_type::ParameterType;
-use super::instruction::InstructionParameter;
+use super::{InstructionParameter, ParameterType};
 
 #[derive(Debug)]
 pub enum ParseParametersError {

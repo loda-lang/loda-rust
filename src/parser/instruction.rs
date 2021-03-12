@@ -1,6 +1,5 @@
 use std::fmt;
-use super::instruction_id::InstructionId;
-use super::parameter_type::ParameterType;
+use super::{InstructionId, ParameterType};
 
 #[derive(Debug)]
 pub struct InstructionParameter {

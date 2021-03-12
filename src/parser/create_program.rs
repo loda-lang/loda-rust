@@ -1,7 +1,5 @@
 use std::fmt;
-use super::instruction_id::InstructionId;
-use super::instruction::{Instruction,InstructionParameter};
-use super::parameter_type::ParameterType;
+use super::{Instruction,InstructionId,InstructionParameter,ParameterType};
 use super::validate_loops::*;
 use crate::execute::{BoxNode,RegisterIndex,RegisterValue,Program};
 use crate::execute::node_add::*;
