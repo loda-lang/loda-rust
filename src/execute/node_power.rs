@@ -203,4 +203,17 @@ mod tests {
         assert_eq!(process(2, -3), "0");
         assert_eq!(process(3, -3), "0");
     }
+
+    #[test]
+    fn test_10003_minus1_plus1_alternation() {
+        // TODO: alternation doesn't work correctly for negative exponents
+        // assert_eq!(process(-1, -4), "1");
+        // assert_eq!(process(-1, -3), "-1");
+        // assert_eq!(process(-1, -2), "1");
+        // assert_eq!(process(-1, -1), "-1");
+        assert_eq!(process(-1,  0), "1");
+        assert_eq!(process(-1,  1), "-1");
+        assert_eq!(process(-1,  2), "1");
+        assert_eq!(process(-1,  3), "-1");
+    }
 }
