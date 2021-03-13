@@ -45,6 +45,39 @@ impl fmt::Display for CreateInstructionError {
     }
 }
 
+fn register_index_from_parameter(instruction: &Instruction, parameter: &InstructionParameter) 
+    -> Result<RegisterIndex, CreateInstructionError> 
+{
+    if parameter.parameter_type != ParameterType::Register {
+        let err = CreateInstructionError {
+            line_number: instruction.line_number,
+            error_type: CreateInstructionErrorType::ParameterMustBeRegister,
+        };
+        return Err(err);
+    }
+    let parameter_value: i64 = parameter.parameter_value;
+    if parameter_value < 0 {
+        if parameter_value < 0 {
+            let err = CreateInstructionError {
+                line_number: instruction.line_number,
+                error_type: CreateInstructionErrorType::RegisterIndexMustBeNonNegative,
+            };
+            return Err(err);
+        }
+    }
+    if parameter_value > 255 {
+        if parameter_value > 255 {
+            let err = CreateInstructionError {
+                line_number: instruction.line_number,
+                error_type: CreateInstructionErrorType::RegisterIndexTooHigh,
+            };
+            return Err(err);
+        }
+    }
+    let register_index_value: u8 = parameter_value as u8;
+    Ok(RegisterIndex(register_index_value))
+}
+
 impl Instruction {
     fn expect_zero_parameters(&self) -> Result<(), CreateInstructionError> {
         if self.parameter_vec.len() != 0 {
@@ -252,61 +285,22 @@ fn create_two_parameter_node(instruction: &Instruction) -> Result<BoxNode, Creat
     instruction.expect_two_parameters()?;
 
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
-    if parameter0.parameter_type != ParameterType::Register {
-        let err = CreateInstructionError {
-            line_number: instruction.line_number,
-            error_type: CreateInstructionErrorType::ParameterMustBeRegister,
-        };
-        return Err(err);
-    }
-    if parameter0.parameter_value < 0 {
-        if parameter0.parameter_value < 0 {
-            let err = CreateInstructionError {
-                line_number: instruction.line_number,
-                error_type: CreateInstructionErrorType::RegisterIndexMustBeNonNegative,
-            };
-            return Err(err);
-        }
-    }
-    if parameter0.parameter_value > 255 {
-        if parameter0.parameter_value > 255 {
-            let err = CreateInstructionError {
-                line_number: instruction.line_number,
-                error_type: CreateInstructionErrorType::RegisterIndexTooHigh,
-            };
-            return Err(err);
-        }
-    }
-    let value0: u8 = parameter0.parameter_value as u8;
+    let register_index0 = register_index_from_parameter(instruction, parameter0)?;
 
     let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
     match parameter1.parameter_type {
         ParameterType::Constant => {
             let node_wrapped = instruction.create_node_with_register_and_constant(
-                RegisterIndex(value0),
+                register_index0,
                 RegisterValue::from_i64(parameter1.parameter_value)
             );
             return Ok(node_wrapped);
         },
         ParameterType::Register => {
-            if parameter1.parameter_value < 0 {
-                let err = CreateInstructionError {
-                    line_number: instruction.line_number,
-                    error_type: CreateInstructionErrorType::RegisterIndexMustBeNonNegative,
-                };
-                return Err(err);
-            }
-            if parameter1.parameter_value > 255 {
-                let err = CreateInstructionError {
-                    line_number: instruction.line_number,
-                    error_type: CreateInstructionErrorType::RegisterIndexTooHigh,
-                };
-                return Err(err);
-            }
-            let value1: u8 = parameter1.parameter_value as u8;
+            let register_index1 = register_index_from_parameter(instruction, parameter1)?;
             let node_wrapped = instruction.create_node_with_register_and_register(
-                RegisterIndex(value0),
-                RegisterIndex(value1),
+                register_index0,
+                register_index1,
             );
             return Ok(node_wrapped);
         }
@@ -317,32 +311,7 @@ fn create_call_node(instruction: &Instruction) -> Result<BoxNode, CreateInstruct
     instruction.expect_two_parameters()?;
 
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
-    if parameter0.parameter_type != ParameterType::Register {
-        let err = CreateInstructionError {
-            line_number: instruction.line_number,
-            error_type: CreateInstructionErrorType::ParameterMustBeRegister,
-        };
-        return Err(err);
-    }
-    if parameter0.parameter_value < 0 {
-        if parameter0.parameter_value < 0 {
-            let err = CreateInstructionError {
-                line_number: instruction.line_number,
-                error_type: CreateInstructionErrorType::RegisterIndexMustBeNonNegative,
-            };
-            return Err(err);
-        }
-    }
-    if parameter0.parameter_value > 255 {
-        if parameter0.parameter_value > 255 {
-            let err = CreateInstructionError {
-                line_number: instruction.line_number,
-                error_type: CreateInstructionErrorType::RegisterIndexTooHigh,
-            };
-            return Err(err);
-        }
-    }
-    let value0: u8 = parameter0.parameter_value as u8;
+    let register_index0 = register_index_from_parameter(instruction, parameter0)?;
 
     let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
     if parameter1.parameter_type != ParameterType::Constant {
@@ -362,7 +331,7 @@ fn create_call_node(instruction: &Instruction) -> Result<BoxNode, CreateInstruct
     let program_id = parameter1.parameter_value as u64;
 
     let node = NodeCallConstant::new(
-        RegisterIndex(value0),
+        register_index0,
         program_id,
     );
     let node_wrapped = Box::new(node);
@@ -382,31 +351,10 @@ fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstr
     // IDEA: support two or more parameters. How does this work in LODA?
 
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
-    if parameter0.parameter_type != ParameterType::Register {
-        let err = CreateInstructionError {
-            line_number: instruction.line_number,
-            error_type: CreateInstructionErrorType::ParameterMustBeRegister,
-        };
-        return Err(err);
-    }
-    if parameter0.parameter_value < 0 {
-        let err = CreateInstructionError {
-            line_number: instruction.line_number,
-            error_type: CreateInstructionErrorType::RegisterIndexMustBeNonNegative,
-        };
-        return Err(err);
-    }
-    if parameter0.parameter_value > 255 {
-        let err = CreateInstructionError {
-            line_number: instruction.line_number,
-            error_type: CreateInstructionErrorType::RegisterIndexTooHigh,
-        };
-        return Err(err);
-    }
-    let value0: u8 = parameter0.parameter_value as u8;
+    let register_index0 = register_index_from_parameter(instruction, parameter0)?;
 
     let ls = LoopScope {
-        register: RegisterIndex(value0),
+        register: register_index0,
     };
     Ok(ls)
 }
