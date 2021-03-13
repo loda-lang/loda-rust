@@ -374,6 +374,10 @@ struct LoopScope {
 }
 
 fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstructionError> {
+    if instruction.parameter_vec.len() == 2 {
+        let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
+        panic!("loop begin 2nd parameter with type {:?}", parameter1.parameter_type);
+    }
     instruction.expect_one_parameter()?;
     // IDEA: support two or more parameters. How does this work in LODA?
 
