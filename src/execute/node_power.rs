@@ -1,6 +1,7 @@
 use super::{Node,RegisterIndex,RegisterValue,ProgramState};
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, One, Zero, Signed};
+use num_integer::Integer;
 
 // x raised to the power of y
 // x is the base value.
@@ -10,26 +11,33 @@ use num_traits::{ToPrimitive, One, Zero, Signed};
 fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
     let base: &BigInt = &x.0;
     let exponent: &BigInt = &y.0;
-
-    // TODO: deal with infinity
-    if exponent.is_negative() {
-        if base.is_zero() {
-            // TODO: indicate that there is a problem
-
-            // Division by zero
-            // Example: 
-            //  ((0) ** (-2)) => ZeroDivisionError (divided by 0)
-            return RegisterValue::from_i64(0xffffff); 
+    
+    // TODO: deal with infinity in base or exponent
+    
+    if base.is_zero() {
+        if exponent.is_positive() {
+            return RegisterValue::zero();
         }
-        if base.is_one() {
-            return RegisterValue::one(); 
+        if exponent.is_zero() {
+            return RegisterValue::one();
         }
+        panic!("0 raised to a negative number, yields a divison by zero");
+    }
 
-        // Same as if (xx == -1) return -1
-        if base.is_negative() && base.abs().is_one() {
+    if base.is_one() {
+        // 1^x is always 1
+        return RegisterValue::one(); 
+    }
+    if base.abs().is_one() {
+        // (-1)^x, alternates between +1 and -1
+        if exponent.is_even() {
+            return RegisterValue::one();
+        } else {
             return RegisterValue::minus_one();
         }
+    }
 
+    if exponent.is_negative() {
         // The actual result of raising to a negative number
         // is a tiny positive number, between 0 and 1.
         // Example: 
@@ -145,7 +153,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10000_power_zero() {
+    fn test_10000_exponent_zero() {
         assert_eq!(process(1, 0), "1");
         assert_eq!(process(2, 0), "1");
         assert_eq!(process(3, 0), "1");
@@ -157,7 +165,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_power_positive() {
+    fn test_10001_exponent_positive() {
         assert_eq!(process(1, 1), "1");
         assert_eq!(process(2, 1), "2");
         assert_eq!(process(3, 1), "3");
@@ -178,19 +186,19 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_power_negative() {
+    fn test_10002_exponent_negative() {
         assert_eq!(process(-3, -1), "0");
         assert_eq!(process(-2, -1), "0");
         assert_eq!(process(-1, -1), "-1");
-        assert_eq!(process(0, -1), "BOOM");
+        //assert_eq!(process(0, -1), "BOOM");
         assert_eq!(process(1, -1), "1");
         assert_eq!(process(2, -1), "0");
         assert_eq!(process(3, -1), "0");
 
         assert_eq!(process(-3, -2), "0");
         assert_eq!(process(-2, -2), "0");
-        assert_eq!(process(-1, -2), "-1");
-        assert_eq!(process(0, -2), "BOOM");
+        assert_eq!(process(-1, -2), "1");
+        //assert_eq!(process(0, -2), "BOOM");
         assert_eq!(process(1, -2), "1");
         assert_eq!(process(2, -2), "0");
         assert_eq!(process(3, -2), "0");
@@ -198,7 +206,7 @@ mod tests {
         assert_eq!(process(-3, -3), "0");
         assert_eq!(process(-2, -3), "0");
         assert_eq!(process(-1, -3), "-1");
-        assert_eq!(process(0, -3), "BOOM");
+        //assert_eq!(process(0, -3), "BOOM");
         assert_eq!(process(1, -3), "1");
         assert_eq!(process(2, -3), "0");
         assert_eq!(process(3, -3), "0");
@@ -206,14 +214,27 @@ mod tests {
 
     #[test]
     fn test_10003_minus1_plus1_alternation() {
-        // TODO: alternation doesn't work correctly for negative exponents
-        // assert_eq!(process(-1, -4), "1");
-        // assert_eq!(process(-1, -3), "-1");
-        // assert_eq!(process(-1, -2), "1");
-        // assert_eq!(process(-1, -1), "-1");
+        assert_eq!(process(-1, -4), "1");
+        assert_eq!(process(-1, -3), "-1");
+        assert_eq!(process(-1, -2), "1");
+        assert_eq!(process(-1, -1), "-1");
         assert_eq!(process(-1,  0), "1");
         assert_eq!(process(-1,  1), "-1");
         assert_eq!(process(-1,  2), "1");
         assert_eq!(process(-1,  3), "-1");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_20000_way_too_high_exponent() {
+        let max: u32 = u32::MAX;
+        let max_plus1: i64 = (max as i64) + 1;
+        perform_operation(RegisterValue::from_i64(1234), RegisterValue::from_i64(max_plus1));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_20001_baze0_negative_exponent_division_by_zero() {
+        perform_operation(RegisterValue::zero(), RegisterValue::from_i64(-666));
     }
 }
