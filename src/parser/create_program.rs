@@ -57,22 +57,18 @@ fn register_index_from_parameter(instruction: &Instruction, parameter: &Instruct
     }
     let parameter_value: i64 = parameter.parameter_value;
     if parameter_value < 0 {
-        if parameter_value < 0 {
-            let err = CreateInstructionError {
-                line_number: instruction.line_number,
-                error_type: CreateInstructionErrorType::RegisterIndexMustBeNonNegative,
-            };
-            return Err(err);
-        }
+        let err = CreateInstructionError {
+            line_number: instruction.line_number,
+            error_type: CreateInstructionErrorType::RegisterIndexMustBeNonNegative,
+        };
+        return Err(err);
     }
     if parameter_value > 255 {
-        if parameter_value > 255 {
-            let err = CreateInstructionError {
-                line_number: instruction.line_number,
-                error_type: CreateInstructionErrorType::RegisterIndexTooHigh,
-            };
-            return Err(err);
-        }
+        let err = CreateInstructionError {
+            line_number: instruction.line_number,
+            error_type: CreateInstructionErrorType::RegisterIndexTooHigh,
+        };
+        return Err(err);
     }
     let register_index_value: u8 = parameter_value as u8;
     Ok(RegisterIndex(register_index_value))
