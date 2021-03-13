@@ -140,88 +140,84 @@ impl Node for NodePowerConstant {
 mod tests {
     use super::*;
 
-    fn process(left: i64, right: i64) -> String {
+    fn process(left: i64, right: i64) -> i64 {
         let value: RegisterValue = perform_operation(
             RegisterValue::from_i64(left),
             RegisterValue::from_i64(right)
         );
-        let v = value.to_i64();
-        if v >= 0xffffff {
-            return "BOOM".to_string();
-        }
-        v.to_string()
+        value.to_i64()
     }
 
     #[test]
     fn test_10000_exponent_zero() {
-        assert_eq!(process(1, 0), "1");
-        assert_eq!(process(2, 0), "1");
-        assert_eq!(process(3, 0), "1");
-        assert_eq!(process(4, 0), "1");
-        assert_eq!(process(-1, 0), "1");
-        assert_eq!(process(-2, 0), "1");
-        assert_eq!(process(-3, 0), "1");
-        assert_eq!(process(-4, 0), "1");
+        assert_eq!(process(1, 0), 1);
+        assert_eq!(process(2, 0), 1);
+        assert_eq!(process(3, 0), 1);
+        assert_eq!(process(4, 0), 1);
+        assert_eq!(process(-1, 0), 1);
+        assert_eq!(process(-2, 0), 1);
+        assert_eq!(process(-3, 0), 1);
+        assert_eq!(process(-4, 0), 1);
     }
 
     #[test]
     fn test_10001_exponent_positive() {
-        assert_eq!(process(1, 1), "1");
-        assert_eq!(process(2, 1), "2");
-        assert_eq!(process(3, 1), "3");
-        assert_eq!(process(4, 1), "4");
-        assert_eq!(process(-1, 1), "-1");
-        assert_eq!(process(-2, 1), "-2");
-        assert_eq!(process(-3, 1), "-3");
-        assert_eq!(process(-4, 1), "-4");
+        assert_eq!(process(1, 1), 1);
+        assert_eq!(process(2, 1), 2);
+        assert_eq!(process(3, 1), 3);
+        assert_eq!(process(4, 1), 4);
+        assert_eq!(process(-1, 1), -1);
+        assert_eq!(process(-2, 1), -2);
+        assert_eq!(process(-3, 1), -3);
+        assert_eq!(process(-4, 1), -4);
 
-        assert_eq!(process(1, 2), "1");
-        assert_eq!(process(2, 2), "4");
-        assert_eq!(process(3, 2), "9");
-        assert_eq!(process(4, 2), "16");
-        assert_eq!(process(-1, 2), "1");
-        assert_eq!(process(-2, 2), "4");
-        assert_eq!(process(-3, 2), "9");
-        assert_eq!(process(-4, 2), "16");
+        assert_eq!(process(1, 2), 1);
+        assert_eq!(process(2, 2), 4);
+        assert_eq!(process(3, 2), 9);
+        assert_eq!(process(4, 2), 16);
+        assert_eq!(process(-1, 2), 1);
+        assert_eq!(process(-2, 2), 4);
+        assert_eq!(process(-3, 2), 9);
+        assert_eq!(process(-4, 2), 16);
     }
 
     #[test]
     fn test_10002_exponent_negative() {
-        assert_eq!(process(-3, -1), "0");
-        assert_eq!(process(-2, -1), "0");
-        assert_eq!(process(-1, -1), "-1");
-        //assert_eq!(process(0, -1), "BOOM");
-        assert_eq!(process(1, -1), "1");
-        assert_eq!(process(2, -1), "0");
-        assert_eq!(process(3, -1), "0");
+        assert_eq!(process(-3, -1), 0);
+        assert_eq!(process(-2, -1), 0);
+        assert_eq!(process(-1, -1), -1);
+        // process(0, -1), see test_20001_baze0_negative_exponent_division_by_zero()
+        assert_eq!(process(1, -1), 1);
+        assert_eq!(process(2, -1), 0);
+        assert_eq!(process(3, -1), 0);
 
-        assert_eq!(process(-3, -2), "0");
-        assert_eq!(process(-2, -2), "0");
-        assert_eq!(process(-1, -2), "1");
-        //assert_eq!(process(0, -2), "BOOM");
-        assert_eq!(process(1, -2), "1");
-        assert_eq!(process(2, -2), "0");
-        assert_eq!(process(3, -2), "0");
+        assert_eq!(process(-3, -2), 0);
+        assert_eq!(process(-2, -2), 0);
+        assert_eq!(process(-1, -2), 1);
+        // process(0, -2), see test_20001_baze0_negative_exponent_division_by_zero()
+        assert_eq!(process(1, -2), 1);
+        assert_eq!(process(2, -2), 0);
+        assert_eq!(process(3, -2), 0);
 
-        assert_eq!(process(-3, -3), "0");
-        assert_eq!(process(-2, -3), "0");
-        assert_eq!(process(-1, -3), "-1");
-        //assert_eq!(process(0, -3), "BOOM");
-        assert_eq!(process(1, -3), "1");
-        assert_eq!(process(2, -3), "0");
-        assert_eq!(process(3, -3), "0");
+        assert_eq!(process(-3, -3), 0);
+        assert_eq!(process(-2, -3), 0);
+        assert_eq!(process(-1, -3), -1);
+        // process(0, -3), see test_20001_baze0_negative_exponent_division_by_zero()
+        assert_eq!(process(1, -3), 1);
+        assert_eq!(process(2, -3), 0);
+        assert_eq!(process(3, -3), 0);
     }
 
     #[test]
     fn test_10003_minus1_plus1_alternation() {
-        assert_eq!(process(-1, -4), "1");
-        assert_eq!(process(-1, -3), "-1");
-        assert_eq!(process(-1, -2), "1");
-        assert_eq!(process(-1, -1), "-1");
-        assert_eq!(process(-1,  0), "1");
-        assert_eq!(process(-1,  1), "-1");
-        assert_eq!(process(-1,  2), "1");
-        assert_eq!(process(-1,  3), "-1");
+        assert_eq!(process(-1, -4), 1);
+        assert_eq!(process(-1, -3), -1);
+        assert_eq!(process(-1, -2), 1);
+        assert_eq!(process(-1, -1), -1);
+        assert_eq!(process(-1,  0), 1);
+        assert_eq!(process(-1,  1), -1);
+        assert_eq!(process(-1,  2), 1);
+        assert_eq!(process(-1,  3), -1);
     }
 
     #[test]
