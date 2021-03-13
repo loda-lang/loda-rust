@@ -25,7 +25,7 @@ pub mod node_divide;
 pub mod node_divideif;
 pub mod node_gcd;
 pub mod node_logarithm;
-pub mod node_loop;
+pub mod node_loop_simple;
 pub mod node_move;
 pub mod node_modulo;
 pub mod node_multiply;

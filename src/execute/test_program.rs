@@ -3,7 +3,7 @@
 mod tests {
     use super::super::{RegisterIndex,RegisterValue,Program,ProgramRunner};
     use super::super::node_add::*;
-    use super::super::node_loop::*;
+    use super::super::node_loop_simple::*;
     use super::super::node_move::*;
     use super::super::node_subtract::*;
 
@@ -18,7 +18,7 @@ mod tests {
     
         let mut program = Program::new();
         program.push(NodeMoveConstant::new(RegisterIndex(3), RegisterValue::one()));
-        program.push(NodeLoopRegister::new(RegisterIndex(0), program_inner));
+        program.push(NodeLoopSimple::new(RegisterIndex(0), program_inner));
         program
     }
 

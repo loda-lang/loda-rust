@@ -2,23 +2,23 @@ use super::{Node,RegisterIndex,RegisterValue,Program,ProgramState,ProgramRunnerM
 use num_bigint::BigInt;
 use num_traits::Signed;
 
-pub struct NodeLoopRegister {
+pub struct NodeLoopSimple {
     register: RegisterIndex,
     program: Program,
 }
 
-impl NodeLoopRegister {
+impl NodeLoopSimple {
     pub fn new(register: RegisterIndex, program: Program) -> Self {
-        Self {
+        NodeLoopSimple {
             register: register,
             program: program,
         }
     }
 }
 
-impl Node for NodeLoopRegister {
+impl Node for NodeLoopSimple {
     fn shorthand(&self) -> &str {
-        "loop register"
+        "loop simple"
     }
 
     fn formatted_instruction(&self) -> String {

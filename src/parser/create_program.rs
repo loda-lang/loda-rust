@@ -11,7 +11,7 @@ use crate::execute::node_divide::*;
 use crate::execute::node_divideif::*;
 use crate::execute::node_gcd::*;
 use crate::execute::node_logarithm::*;
-use crate::execute::node_loop::*;
+use crate::execute::node_loop_simple::*;
 use crate::execute::node_move::*;
 use crate::execute::node_modulo::*;
 use crate::execute::node_multiply::*;
@@ -371,6 +371,7 @@ fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstr
         debug!("loop begin with 2nd parameter. constant: {}", parameter.parameter_value);
         optional_count_parameter = parameter.clone();
     } else {
+        // No 2nd parameter supplied
         optional_count_parameter = InstructionParameter {
             parameter_type: ParameterType::Constant,
             parameter_value: 1,
@@ -451,7 +452,7 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 let loop_register: RegisterIndex = loopscope.register;
                 let program_child: Program = program;
                 program = program_parent;
-                program.push(NodeLoopRegister::new(loop_register, program_child));
+                program.push(NodeLoopSimple::new(loop_register, program_child));
             },
             InstructionId::Move => {
                 let node = create_two_parameter_node(&instruction)?;
