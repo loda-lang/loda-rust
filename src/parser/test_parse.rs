@@ -87,6 +87,30 @@ mod tests {
     mov $1,$13
     "#;
 
+    const INPUT_A284429: &str = r#"
+    ; A284429: A quasilinear solution to Hofstadter's Q recurrence.
+    ; 2,1,3,5,1,3,8,1,3,11,1,3,14,1,3,17,1,3,20,1,3,23,1,3,26,1
+    
+    mov $1,$0
+    mov $2,$0
+    mod $2,3
+    sub $2,4
+    mov $0,$2
+    div $0,2
+    add $0,2
+    add $1,3
+    mov $3,4
+    mov $4,-1
+    pow $4,$2
+    lpb $0
+      sub $0,$0
+      mov $1,$3
+    lpe
+    sub $0,$4
+    sub $1,$0
+    sub $1,2
+    "#;
+
     #[test]
     fn test_10000_fibonacci() {
         let result = parse(INPUT_A000045);
@@ -184,6 +208,18 @@ mod tests {
         let runner = ProgramRunner::new(program);
         let actual: Vec<i64> = runner.run_terms(10);
         let expected: Vec<i64> = [1, 3, 8, 16, 30, 50, 80, 120, 175, 245].to_vec();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10006_use_of_power_instruction() {
+        let result = parse(INPUT_A284429);
+        assert_eq!(result.is_ok(), true);
+        let parse = result.unwrap();
+        let program = parse.created_program.program;
+        let runner = ProgramRunner::new(program);
+        let actual: Vec<i64> = runner.run_terms(10);
+        let expected: Vec<i64> = [2, 1, 3, 5, 1, 3, 8, 1, 3, 11].to_vec();
         assert_eq!(actual, expected);
     }
 }
