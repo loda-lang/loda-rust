@@ -484,7 +484,6 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
         }
     }
 
-    // TODO: determine how many registers to allocate
     let created_program = CreatedProgram {
         program: program,
     };
