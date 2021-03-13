@@ -24,7 +24,7 @@ use num_traits::{One, Zero, Signed, ToPrimitive};
 #[derive(Debug)]
 pub enum CreateInstructionErrorType {
     ExpectZeroParameters,
-    ExpectOneParameter,
+    ExpectOneOrTwoParameters,
     ExpectTwoParameters,
     ParameterMustBeRegister,
     ParameterMustBeConstant,
@@ -75,6 +75,7 @@ fn register_index_from_parameter(instruction: &Instruction, parameter: &Instruct
 }
 
 impl Instruction {
+    // Loop end (lpe) takes zero parameters.
     fn expect_zero_parameters(&self) -> Result<(), CreateInstructionError> {
         if self.parameter_vec.len() != 0 {
             let err = CreateInstructionError {
@@ -86,17 +87,20 @@ impl Instruction {
         Ok(())
     }
 
-    fn expect_one_parameter(&self) -> Result<(), CreateInstructionError> {
-        if self.parameter_vec.len() != 1 {
+    // Loop begin (lpb) takes a required parameter and a 2nd optional parameter.
+    fn expect_one_or_two_parameters(&self) -> Result<(), CreateInstructionError> {
+        let len = self.parameter_vec.len();
+        if len < 1 || len > 2 {
             let err = CreateInstructionError {
                 line_number: self.line_number,
-                error_type: CreateInstructionErrorType::ExpectOneParameter,
+                error_type: CreateInstructionErrorType::ExpectOneOrTwoParameters,
             };
             return Err(err);
         }
         Ok(())
     }
 
+    // The instruction `add $1,1` takes 2 parameters.
     fn expect_two_parameters(&self) -> Result<(), CreateInstructionError> {
         if self.parameter_vec.len() != 2 {
             let err = CreateInstructionError {
@@ -335,22 +339,50 @@ fn create_call_node(instruction: &Instruction) -> Result<BoxNode, CreateInstruct
 }
 
 struct LoopScope {
-    register: RegisterIndex
+    register: RegisterIndex,
+    optional_count_parameter: InstructionParameter,
 }
 
 fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstructionError> {
+    instruction.expect_one_or_two_parameters()?;
+
+    let mut optional_count_parameter: InstructionParameter;
     if instruction.parameter_vec.len() == 2 {
-        let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
-        panic!("loop begin 2nd parameter with type {:?}", parameter1.parameter_type);
+        let parameter: &InstructionParameter = instruction.parameter_vec.last().unwrap();
+        let disable_2nd_parameter = true;
+        // let disable_2nd_parameter = false;
+        if disable_2nd_parameter {
+            panic!("not yet supported. loop begin 2nd parameter with type {:?}", parameter.parameter_type);
+        }
+        // TODO: add support for ParameterType::Constant
+        // TODO: add support for ParameterType::Register
+        if parameter.parameter_type != ParameterType::Constant {
+            panic!("Loop begin with 2nd parameter, only works with constants for now. Register is not supported");
+        }
+        if parameter.parameter_value < 0 {
+            panic!("Loop begin with negative constant is invalid");
+        }
+        if parameter.parameter_value > 256 {
+            panic!("Loop begin with huge constant encountered. Cannot be handled");
+        }
+        if parameter.parameter_value == 1 {
+            debug!("Loop begin with constant=1. This is redundant.");
+        }
+        debug!("loop begin with 2nd parameter. constant: {}", parameter.parameter_value);
+        optional_count_parameter = parameter.clone();
+    } else {
+        optional_count_parameter = InstructionParameter {
+            parameter_type: ParameterType::Constant,
+            parameter_value: 1,
+        };
     }
-    instruction.expect_one_parameter()?;
-    // IDEA: support two or more parameters. How does this work in LODA?
 
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
     let register_index0 = register_index_from_parameter(instruction, parameter0)?;
 
     let ls = LoopScope {
         register: register_index0,
+        optional_count_parameter: optional_count_parameter,
     };
     Ok(ls)
 }
