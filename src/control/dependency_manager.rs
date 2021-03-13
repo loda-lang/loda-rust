@@ -40,8 +40,7 @@ impl DependencyManager {
         let parsed = match parse(&contents) {
             Ok(value) => value,
             Err(err) => {
-                error!("error: {}, file: {:?}", err, path);
-                panic!();
+                panic!("error: {}, file: {:?}", err, path);
             }
         };
     
