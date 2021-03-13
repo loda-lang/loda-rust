@@ -73,7 +73,7 @@ impl Node for NodeLoopRegister {
     }
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
-        register_vec.push(self.register.clone());
+        // Loop doesn't modify any registers
         self.program.accumulate_register_indexes(register_vec);
     }
 
