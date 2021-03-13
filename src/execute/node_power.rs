@@ -8,12 +8,12 @@ use num_traits::{ToPrimitive, One, Zero, Signed};
 // Ruby: x ** y
 // Math syntax: x ^ y.
 fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
-    let xx: &BigInt = &x.0;
-    let yy: &BigInt = &y.0;
+    let base: &BigInt = &x.0;
+    let exponent: &BigInt = &y.0;
 
     // TODO: deal with infinity
-    if yy.is_negative() {
-        if xx.is_zero() {
+    if exponent.is_negative() {
+        if base.is_zero() {
             // TODO: indicate that there is a problem
 
             // Division by zero
@@ -21,12 +21,12 @@ fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
             //  ((0) ** (-2)) => ZeroDivisionError (divided by 0)
             return RegisterValue::from_i64(0xffffff); 
         }
-        if xx.is_one() {
+        if base.is_one() {
             return RegisterValue::one(); 
         }
 
         // Same as if (xx == -1) return -1
-        if xx.is_negative() && xx.abs().is_one() {
+        if base.is_negative() && base.abs().is_one() {
             return RegisterValue::minus_one();
         }
 
@@ -38,21 +38,21 @@ fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
         //  (( 2) ** (-3))  => (1/8)
         return RegisterValue::zero();
     }
-    if yy.is_one() {
+    if exponent.is_one() {
         return x.clone();
     }
 
     // Prevent invoking pow, if the exponent is higher than an u32.
-    let exponent: u32 = match y.0.to_u32() {
+    let exponent_u32: u32 = match exponent.to_u32() {
         Some(value) => value,
         None => {
             panic!("NodePower exponent is higher than a 32bit unsigned integer. This is a max that the pow() function can handle. Aborting.");
         }
     };
-    if exponent > 1000000 {
+    if exponent_u32 > 1000000 {
         warn!("WARNING: NodePower exponent is higher than 1000000. This is a HUGE number.");
     }
-    let result: BigInt = xx.pow(exponent);
+    let result: BigInt = base.pow(exponent_u32);
     RegisterValue(result)
 }
 
