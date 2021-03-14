@@ -36,6 +36,25 @@ impl Node for NodeLoopRegister {
 
         let max_range_length_bigint: BigInt = 255.to_bigint().unwrap();
 
+        let initial_value: RegisterValue = state.get_register_value(self.register_with_range_length.clone());
+        let initial_value_inner: &BigInt = &initial_value.0;
+        let initial_range_length: u8;
+        if initial_value_inner.is_positive() {
+            if initial_value_inner > &max_range_length_bigint {
+                error!("Range length is beyond the ProgramState max length. Clamping range to 255.");
+                initial_range_length = 255;
+            } else {
+                // Value is between 0 and 255, so it can be casted to an unsigned byte.
+                initial_range_length = initial_value_inner.to_u8().unwrap();
+            }
+        } else {
+            // Value is negative. Clamp to 0 length.
+            initial_range_length = 0;
+        }
+        debug!("initial_range_length: {}", initial_range_length);
+
+        let mut currently_smallest_range_length: u8 = initial_range_length;
+
         let mut cycles = 0;
         loop {
             let old_state: ProgramState = state.clone();
@@ -57,12 +76,19 @@ impl Node for NodeLoopRegister {
                 // Value is negative. Clamp to 0 length.
                 range_length = 0;
             }
+            debug!("range_length: {}", range_length);
+
+            currently_smallest_range_length = u8::min(
+                range_length, 
+                currently_smallest_range_length
+            );
 
             let is_less: bool = state.is_less(
                 &old_state, 
-                self.register_start.clone(), 
-                range_length
+                self.register_start.clone(),
+                currently_smallest_range_length
             );
+            debug!("is_less: {}  currently_smallest_range_length: {}", is_less, currently_smallest_range_length);
 
             if !is_less {
 

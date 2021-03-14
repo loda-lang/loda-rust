@@ -116,6 +116,20 @@ mod tests {
     lpe
     "#;
 
+    const INPUT_A253472: &str = r#"
+    ; A253472: Square Pairs
+    ; 4,7,8,9,12,13,14,15,16,17,18,19,20
+    
+    mov $2,$0
+    lpb $2,$0
+      add $0,2
+      mov $5,$2
+      sub $2,$5
+    lpe
+    add $0,4
+    mov $1,$0
+    "#;
+
     const INPUT_A284429: &str = r#"
     ; A284429: A quasilinear solution to Hofstadter's Q recurrence.
     ; 2,1,3,5,1,3,8,1,3,11,1,3,14,1,3,17,1,3,20,1,3,23,1,3,26,1
@@ -261,6 +275,18 @@ mod tests {
         let runner = ProgramRunner::new(program);
         let actual: Vec<i64> = runner.run_terms(15);
         let expected: Vec<i64> = [10, 12, 14, 16, 18, 30, 32, 34, 36, 38, 50, 52, 54, 56, 58].to_vec();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10008_use_of_loop_with_range_length_from_register() {
+        let result = parse(INPUT_A253472);
+        assert_eq!(result.is_ok(), true);
+        let parse = result.unwrap();
+        let program = parse.created_program.program;
+        let runner = ProgramRunner::new(program);
+        let actual: Vec<i64> = runner.run_terms(15);
+        let expected: Vec<i64> = [4, 7, 8, 9, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].to_vec();
         assert_eq!(actual, expected);
     }
 }
