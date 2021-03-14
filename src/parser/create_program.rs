@@ -12,6 +12,7 @@ use crate::execute::node_divideif::*;
 use crate::execute::node_gcd::*;
 use crate::execute::node_logarithm::*;
 use crate::execute::node_loop_constant::*;
+use crate::execute::node_loop_register::*;
 use crate::execute::node_loop_simple::*;
 use crate::execute::node_move::*;
 use crate::execute::node_modulo::*;
@@ -30,6 +31,7 @@ pub enum CreateInstructionErrorType {
     ParameterMustBeRegister,
     ParameterMustBeConstant,
     ConstantMustBeNonNegative,
+    LoopWithConstantRangeIsTooHigh,
     RegisterIndexMustBeNonNegative,
     RegisterIndexTooHigh,
 }
@@ -339,9 +341,58 @@ fn create_call_node(instruction: &Instruction) -> Result<BoxNode, CreateInstruct
     Ok(node_wrapped)
 }
 
+enum LoopType {
+    Simple,
+    RangeLengthWithConstant(u8),
+    RangeLengthFromRegister(RegisterIndex),
+}
+
+fn node_loop_range_parameter_constant(instruction: &Instruction, parameter: &InstructionParameter) -> Result<LoopType, CreateInstructionError> {
+    if parameter.parameter_value < 0 {
+        let err = CreateInstructionError {
+            line_number: instruction.line_number,
+            error_type: CreateInstructionErrorType::ConstantMustBeNonNegative,
+        };
+        return Err(err);
+    }
+    if parameter.parameter_value > 255 {
+        let err = CreateInstructionError {
+            line_number: instruction.line_number,
+            error_type: CreateInstructionErrorType::LoopWithConstantRangeIsTooHigh,
+        };
+        return Err(err);
+    }
+    let range_length: u8 = parameter.parameter_value as u8;
+    if range_length == 0 {
+        debug!("Loop begin with constant=0. Same as a NOP, does nothing.");
+    }
+    if range_length == 1 {
+        debug!("Loop begin with constant=1. This is redundant.");
+    }
+    let loop_type = LoopType::RangeLengthWithConstant(range_length);
+    return Ok(loop_type);
+}
+
+fn node_loop_range_parameter_register(instruction: &Instruction, parameter: &InstructionParameter) -> Result<LoopType, CreateInstructionError> {
+    let register_index: RegisterIndex = register_index_from_parameter(instruction, parameter)?;
+    let loop_type = LoopType::RangeLengthFromRegister(register_index);
+    return Ok(loop_type);
+}
+
+fn node_loop_range_parameter(instruction: &Instruction, parameter: &InstructionParameter) -> Result<LoopType, CreateInstructionError> {
+    match parameter.parameter_type {
+        ParameterType::Constant => {
+            return node_loop_range_parameter_constant(instruction, parameter);
+        },
+        ParameterType::Register => {
+            return node_loop_range_parameter_register(instruction, parameter);
+        }
+    }
+}
+
 struct LoopScope {
     register: RegisterIndex,
-    optional_count_parameter: InstructionParameter,
+    loop_type: LoopType,
 }
 
 fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstructionError> {
@@ -350,44 +401,19 @@ fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstr
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
     let register_index0 = register_index_from_parameter(instruction, parameter0)?;
 
-    let optional_count_parameter: InstructionParameter;
+    let loop_type: LoopType;
     if instruction.parameter_vec.len() == 2 {
         let parameter: &InstructionParameter = instruction.parameter_vec.last().unwrap();
-        // let disable_2nd_parameter = true;
-        let disable_2nd_parameter = false;
-        if disable_2nd_parameter {
-            panic!("not yet supported. loop begin 2nd parameter with type {:?}", parameter.parameter_type);
-        }
-        // TODO: add support for ParameterType::Constant
-        // TODO: add support for ParameterType::Register
-        if parameter.parameter_type != ParameterType::Constant {
-            panic!("Loop begin with 2nd parameter, only works with constants for now. Register is not supported");
-        }
-        if parameter.parameter_value < 0 {
-            panic!("Loop begin with negative constant is invalid");
-        }
-        if parameter.parameter_value > 255 {
-            panic!("Loop begin with huge constant encountered. Cannot be handled");
-        }
-        if parameter.parameter_value == 0 {
-            debug!("Loop begin with constant=0. Same as a NOP, does nothing.");
-        }
-        if parameter.parameter_value == 1 {
-            debug!("Loop begin with constant=1. This is redundant.");
-        }
-        debug!("loop begin with 2nd parameter. constant: {}", parameter.parameter_value);
-        optional_count_parameter = parameter.clone();
+        debug!("loop begin with 2nd parameter: {}", parameter.parameter_value);
+        loop_type = node_loop_range_parameter(instruction, parameter)?;
     } else {
         // No 2nd parameter supplied
-        optional_count_parameter = InstructionParameter {
-            parameter_type: ParameterType::Constant,
-            parameter_value: 1,
-        };
+        loop_type = LoopType::Simple;
     }
 
     let ls = LoopScope {
         register: register_index0,
-        optional_count_parameter: optional_count_parameter,
+        loop_type: loop_type,
     };
     Ok(ls)
 }
@@ -456,18 +482,17 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 let loop_register: RegisterIndex = loopscope.register;
                 let program_child: Program = program;
                 program = program_parent;
-                if loopscope.optional_count_parameter.parameter_type != ParameterType::Constant {
-                    panic!("only loop with constant value are currently supported");
-                }
-                let range_length_raw: i64 = loopscope.optional_count_parameter.parameter_value;
-                if range_length_raw > 1 {
-                    if range_length_raw > 255 {
-                        panic!("Way too high range length parameter for loop begin");
+
+                match loopscope.loop_type {
+                    LoopType::Simple => {
+                        program.push(NodeLoopSimple::new(loop_register, program_child));
+                    },
+                    LoopType::RangeLengthWithConstant(range_length) => {
+                        program.push(NodeLoopConstant::new(loop_register, range_length, program_child));
+                    },
+                    LoopType::RangeLengthFromRegister(register_with_range_length) => {
+                        program.push(NodeLoopRegister::new(loop_register, register_with_range_length, program_child));
                     }
-                    let range_length: u8 = range_length_raw as u8;
-                    program.push(NodeLoopConstant::new(loop_register, range_length, program_child));
-                } else {
-                    program.push(NodeLoopSimple::new(loop_register, program_child));
                 }
             },
             InstructionId::Move => {
