@@ -9,7 +9,7 @@ pub struct NodeLoopSimple {
 
 impl NodeLoopSimple {
     pub fn new(register: RegisterIndex, program: Program) -> Self {
-        NodeLoopSimple {
+        Self {
             register: register,
             program: program,
         }

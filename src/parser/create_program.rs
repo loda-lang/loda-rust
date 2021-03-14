@@ -11,7 +11,7 @@ use crate::execute::node_divide::*;
 use crate::execute::node_divideif::*;
 use crate::execute::node_gcd::*;
 use crate::execute::node_logarithm::*;
-use crate::execute::node_loop_advanced::*;
+use crate::execute::node_loop_constant::*;
 use crate::execute::node_loop_simple::*;
 use crate::execute::node_move::*;
 use crate::execute::node_modulo::*;
@@ -347,6 +347,9 @@ struct LoopScope {
 fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstructionError> {
     instruction.expect_one_or_two_parameters()?;
 
+    let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
+    let register_index0 = register_index_from_parameter(instruction, parameter0)?;
+
     let optional_count_parameter: InstructionParameter;
     if instruction.parameter_vec.len() == 2 {
         let parameter: &InstructionParameter = instruction.parameter_vec.last().unwrap();
@@ -363,8 +366,11 @@ fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstr
         if parameter.parameter_value < 0 {
             panic!("Loop begin with negative constant is invalid");
         }
-        if parameter.parameter_value > 256 {
+        if parameter.parameter_value > 255 {
             panic!("Loop begin with huge constant encountered. Cannot be handled");
+        }
+        if parameter.parameter_value == 0 {
+            debug!("Loop begin with constant=0. Same as a NOP, does nothing.");
         }
         if parameter.parameter_value == 1 {
             debug!("Loop begin with constant=1. This is redundant.");
@@ -378,9 +384,6 @@ fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstr
             parameter_value: 1,
         };
     }
-
-    let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
-    let register_index0 = register_index_from_parameter(instruction, parameter0)?;
 
     let ls = LoopScope {
         register: register_index0,

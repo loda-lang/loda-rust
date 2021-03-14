@@ -1,15 +1,15 @@
 use super::{Node, Program, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode};
 
 pub struct NodeLoopConstant {
-    register: RegisterIndex,
+    register_start: RegisterIndex,
     range_length: u8,
     program: Program,
 }
 
 impl NodeLoopConstant {
-    pub fn new(register: RegisterIndex, range_length: u8, program: Program) -> Self {
-        NodeLoopConstant {
-            register: register,
+    pub fn new(register_start: RegisterIndex, range_length: u8, program: Program) -> Self {
+        Self {
+            register_start: register_start,
             range_length: range_length,
             program: program,
         }
@@ -28,7 +28,7 @@ impl Node for NodeLoopConstant {
     fn eval(&self, state: &mut ProgramState) {
         if state.run_mode() == RunMode::Verbose {
             let snapshot = state.register_vec_to_string();
-            let instruction = format!("lpb {},{}", self.register, self.range_length);
+            let instruction = format!("lpb {},{}", self.register_start, self.range_length);
             println!("{:12} {} => {}", instruction, snapshot, snapshot);
         }
 
@@ -40,7 +40,7 @@ impl Node for NodeLoopConstant {
 
             let is_less: bool = state.is_less(
                 &old_state, 
-                self.register.clone(), 
+                self.register_start.clone(), 
                 self.range_length
             );
 
