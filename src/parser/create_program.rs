@@ -11,6 +11,7 @@ use crate::execute::node_divide::*;
 use crate::execute::node_divideif::*;
 use crate::execute::node_gcd::*;
 use crate::execute::node_logarithm::*;
+use crate::execute::node_loop_advanced::*;
 use crate::execute::node_loop_simple::*;
 use crate::execute::node_move::*;
 use crate::execute::node_modulo::*;
@@ -346,11 +347,11 @@ struct LoopScope {
 fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstructionError> {
     instruction.expect_one_or_two_parameters()?;
 
-    let mut optional_count_parameter: InstructionParameter;
+    let optional_count_parameter: InstructionParameter;
     if instruction.parameter_vec.len() == 2 {
         let parameter: &InstructionParameter = instruction.parameter_vec.last().unwrap();
-        let disable_2nd_parameter = true;
-        // let disable_2nd_parameter = false;
+        // let disable_2nd_parameter = true;
+        let disable_2nd_parameter = false;
         if disable_2nd_parameter {
             panic!("not yet supported. loop begin 2nd parameter with type {:?}", parameter.parameter_type);
         }
@@ -452,7 +453,19 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 let loop_register: RegisterIndex = loopscope.register;
                 let program_child: Program = program;
                 program = program_parent;
-                program.push(NodeLoopSimple::new(loop_register, program_child));
+                if loopscope.optional_count_parameter.parameter_type != ParameterType::Constant {
+                    panic!("only loop with constant value are currently supported");
+                }
+                let range_length_raw: i64 = loopscope.optional_count_parameter.parameter_value;
+                if range_length_raw > 1 {
+                    if range_length_raw > 255 {
+                        panic!("Way too high range length parameter for loop begin");
+                    }
+                    let range_length: u8 = range_length_raw as u8;
+                    program.push(NodeLoopConstant::new(loop_register, range_length, program_child));
+                } else {
+                    program.push(NodeLoopSimple::new(loop_register, program_child));
+                }
             },
             InstructionId::Move => {
                 let node = create_two_parameter_node(&instruction)?;

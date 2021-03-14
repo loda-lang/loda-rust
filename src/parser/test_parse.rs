@@ -87,6 +87,35 @@ mod tests {
     mov $1,$13
     "#;
 
+    const INPUT_A007958: &str = r#"
+    ; A007958: Even numbers with at least one odd digit.
+    ; 10,12,14,16,18,30,32,34,36,38,50,52,54,56,58,70,72
+    
+    mov $1,1
+    mov $2,6
+    mov $6,$0
+    lpb $1
+      add $2,6
+      add $6,1
+      lpb $1
+        sub $1,1
+        add $2,2
+      lpe
+      add $2,2
+    lpe
+    lpb $5,5
+      add $0,5
+      trn $6,5
+      lpb $5,3
+        mov $6,$2
+      lpe
+    lpe
+    lpb $0
+      sub $0,1
+      add $1,2
+    lpe
+    "#;
+
     const INPUT_A284429: &str = r#"
     ; A284429: A quasilinear solution to Hofstadter's Q recurrence.
     ; 2,1,3,5,1,3,8,1,3,11,1,3,14,1,3,17,1,3,20,1,3,23,1,3,26,1
@@ -220,6 +249,18 @@ mod tests {
         let runner = ProgramRunner::new(program);
         let actual: Vec<i64> = runner.run_terms(10);
         let expected: Vec<i64> = [2, 1, 3, 5, 1, 3, 8, 1, 3, 11].to_vec();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10007_use_of_loop_with_contant_greater_than_one() {
+        let result = parse(INPUT_A007958);
+        assert_eq!(result.is_ok(), true);
+        let parse = result.unwrap();
+        let program = parse.created_program.program;
+        let runner = ProgramRunner::new(program);
+        let actual: Vec<i64> = runner.run_terms(15);
+        let expected: Vec<i64> = [10, 12, 14, 16, 18, 30, 32, 34, 36, 38, 50, 52, 54, 56, 58].to_vec();
         assert_eq!(actual, expected);
     }
 }
