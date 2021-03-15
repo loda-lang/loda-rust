@@ -116,6 +116,19 @@ mod tests {
     lpe
     "#;
 
+    const INPUT_A206735: &str = r#"
+    ; A206735: Triangle T(n,k), read by rows
+    ; 1,0,1,0,2,1,0,3,3,1,0,4,6,4,1,0,5,10,10,5
+    
+    mov $4,$0
+    lpb $4,$4
+      add $3,1
+      sub $4,$3
+    lpe
+    bin $3,$4
+    mov $1,$3
+    "#;
+
     const INPUT_A253472: &str = r#"
     ; A253472: Square Pairs
     ; 4,7,8,9,12,13,14,15,16,17,18,19,20
@@ -279,7 +292,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10008_use_of_loop_with_range_length_from_register() {
+    fn test_10008_use_of_loop_with_range_length_from_register1() {
         let result = parse(INPUT_A253472);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
@@ -287,6 +300,18 @@ mod tests {
         let runner = ProgramRunner::new(program);
         let actual: Vec<i64> = runner.run_terms(15);
         let expected: Vec<i64> = [4, 7, 8, 9, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].to_vec();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10009_use_of_loop_with_range_length_from_register2() {
+        let result = parse(INPUT_A206735);
+        assert_eq!(result.is_ok(), true);
+        let parse = result.unwrap();
+        let program = parse.created_program.program;
+        let runner = ProgramRunner::new(program);
+        let actual: Vec<i64> = runner.run_terms(15);
+        let expected: Vec<i64> = [1, 0, 1, 0, 2, 1, 0, 3, 3, 1, 0, 4, 6, 4, 1].to_vec();
         assert_eq!(actual, expected);
     }
 }

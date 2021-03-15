@@ -61,7 +61,7 @@ impl Node for NodeLoopRegister {
 
             self.program.run(state);
 
-            let value: RegisterValue = old_state.get_register_value(self.register_with_range_length.clone());
+            let value: RegisterValue = state.get_register_value(self.register_with_range_length.clone());
             let value_inner: &BigInt = &value.0;
             let range_length: u8;
             if value_inner.is_positive() {
@@ -93,7 +93,9 @@ impl Node for NodeLoopRegister {
             if !is_less {
 
                 if state.run_mode() == RunMode::Verbose {
-                    println!("LOOP CYCLE EXIT");
+                    let before = state.register_vec_to_string();
+                    let after = old_state.register_vec_to_string();
+                    println!("{:12} {} => {}  break", "lpe", before, after);
                 }
 
                 // When the loop reaches its end, the previous state is restored.
@@ -109,7 +111,9 @@ impl Node for NodeLoopRegister {
                 // to caller and their caller, and let them decide what to do about it.
             }
             if state.run_mode() == RunMode::Verbose {
-                println!("lpe");
+                let before = state.register_vec_to_string();
+                let after = old_state.register_vec_to_string();
+                println!("{:12} {} => {}  continue", "lpe", before, after);
             }
         }
     }
