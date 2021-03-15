@@ -26,7 +26,7 @@ Dotenv.load('../.env')
 
 LODA_PROGRAM_ROOTDIR = ENV['LODA_PROGRAM_ROOTDIR']
 
-output_filename = 'program_ids.csv'
+output_filename = 'data/program_ids.csv'
 
 def obtain_files(path)
     Dir.chdir(path) do

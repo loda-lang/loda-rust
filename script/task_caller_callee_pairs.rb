@@ -14,21 +14,22 @@ This script takes input from a `program_ids.csv` file, with this format:
 This script traverses all the programs inside the LODA program rootdir.
 Each program is a line in the CSV file, with it's dependencies listed.
 
-This script outputs a `dependenies.csv` file, with this format:
+This script outputs a `caller_callee_pairs.csv` file, with this format:
 
-    program id;dependency count;program ids
-    4;1;4
-    5;1;5
-    7;1;7
-    8;2;8,165190
-    10;1;10
+    caller program id;callee program id
+    73;232508
+    73;301657
+    134;22844
+    134;121381
+    134;246388
+    134;4082
 
 =end
 
 require 'csv'
 
-input_filename = 'program_ids.csv'
-output_filename = 'dependencies.csv'
+input_filename = 'data/program_ids.csv'
+output_filename = 'data/caller_callee_pairs.csv'
 
 # Build the newest version
 `cargo build --release`
@@ -54,15 +55,17 @@ end
 
 # Generate output file
 CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
-    csv << ["program id", "dependency count", "program ids"]
+    csv << ["caller program id", "callee program id"]
     program_ids.each_with_index do |program_id, index|
         output = `../target/release/loda_lab dependencies #{program_id}`
         output = output.strip
-        dependency_count = output.split(',').count
         success = $?.success?
         if success
             count_success += 1
-            csv << [program_id.to_s, dependency_count.to_s, output]
+            dependency_array = output.split(',')
+            dependency_array.drop(1).each do |callee_program_id|
+                csv << [program_id.to_s, callee_program_id]
+            end
         else
             count_failure += 1
         end

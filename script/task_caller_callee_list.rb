@@ -12,27 +12,23 @@ This script takes input from a `program_ids.csv` file, with this format:
     10
 
 This script traverses all the programs inside the LODA program rootdir.
-Each program is evaluated and the outputs is stored in the CSV file.
+Each program is a line in the CSV file, with it's dependencies listed.
 
-This script outputs a `terms.csv` file, with this format:
+This script outputs a `caller_callee_list.csv` file, with this format:
 
-    program id;terms
-    4;0,0,0,0,0,0,0,0,0,0
-    5;1,2,2,3,2,4,2,4,3,4
-    7;1,0,0,0,0,0,0,0,0,0
-    8;1,1,2,2,3,4,5,6,7,8
-    10;1,1,2,2,4,2,6,4,6,4
-    12;1,1,1,1,1,1,1,1,1,1
-    27;1,2,3,4,5,6,7,8,9,10
-    30;BOOM
-    32;2,1,3,4,7,11,18,29,47,76
+    program id;dependency count;program ids
+    4;1;4
+    5;1;5
+    7;1;7
+    8;2;8,165190
+    10;1;10
 
 =end
 
 require 'csv'
 
-input_filename = 'program_ids.csv'
-output_filename = 'terms.csv'
+input_filename = 'data/program_ids.csv'
+output_filename = 'data/caller_callee_list.csv'
 
 # Build the newest version
 `cargo build --release`
@@ -58,17 +54,17 @@ end
 
 # Generate output file
 CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
-    csv << ["program id", "terms"]
+    csv << ["program id", "dependency count", "program ids"]
     program_ids.each_with_index do |program_id, index|
-        output = `../target/release/loda_lab evaluate #{program_id} -t 10`
+        output = `../target/release/loda_lab dependencies #{program_id}`
         output = output.strip
+        dependency_count = output.split(',').count
         success = $?.success?
         if success
             count_success += 1
-            csv << [program_id.to_s, output]
+            csv << [program_id.to_s, dependency_count.to_s, output]
         else
             count_failure += 1
-            csv << [program_id.to_s, "BOOM"]
         end
         if (index % 1000) == 0
             percent = (100 * index) / program_ids_count_minus1

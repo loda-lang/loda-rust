@@ -2,7 +2,7 @@
 
 =begin
 
-This script takes input from a `dependencies.csv` file, with this format:
+This script takes input from a `caller_callee_list.csv` file, with this format:
 
     program id;dependency count;program ids
     4;1;4
@@ -26,8 +26,8 @@ This script outputs a `most_called_programs.csv` file, with this format:
 require 'csv'
 require 'set'
 
-input_filename = 'dependencies.csv'
-output_filename = 'most_called_programs.csv'
+input_filename = 'data/caller_callee_list.csv'
+output_filename = 'data/most_called_programs.csv'
 
 dict = {}
 

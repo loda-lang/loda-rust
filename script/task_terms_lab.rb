@@ -14,7 +14,7 @@ This script takes input from a `program_ids.csv` file, with this format:
 This script traverses all the programs inside the LODA program rootdir.
 Each program is evaluated and the outputs is stored in the CSV file.
 
-This script outputs a `loda_terms.csv` file, with this format:
+This script outputs a `terms_lab.csv` file, with this format:
 
     program id;terms
     4;0,0,0,0,0,0,0,0,0,0
@@ -24,17 +24,19 @@ This script outputs a `loda_terms.csv` file, with this format:
     10;1,1,2,2,4,2,6,4,6,4
     12;1,1,1,1,1,1,1,1,1,1
     27;1,2,3,4,5,6,7,8,9,10
-    30;0,1,2,3,4,5,6,7,8,9
+    30;BOOM
     32;2,1,3,4,7,11,18,29,47,76
 
 =end
 
 require 'csv'
 
-LODA_EXECUTABLE_DIR = '/Users/neoneye/git/oeis-loda'
+input_filename = 'data/program_ids.csv'
+output_filename = 'data/terms_lab.csv'
 
-input_filename = 'program_ids.csv'
-output_filename = 'loda_terms.csv'
+# Build the newest version
+`cargo build --release`
+
 time_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
 # Obtain all the program_ids to be processed
@@ -55,27 +57,24 @@ if program_ids_count_minus1 == 0
 end
 
 # Generate output file
-absolute_path_to_output_file = File.join(Dir.pwd, output_filename)
-Dir.chdir(LODA_EXECUTABLE_DIR) do
-    CSV.open(absolute_path_to_output_file, "wb", {:col_sep => ";"}) do |csv|
-        csv << ["program id", "terms"]
-        program_ids.each_with_index do |program_id, index|
-            output = `./loda eval A#{program_id} -t 10`
-            output = output.strip
-            success = $?.success?
-            if success
-                count_success += 1
-                csv << [program_id.to_s, output]
-            else
-                count_failure += 1
-                csv << [program_id.to_s, "BOOM"]
-            end
-            if (index % 1000) == 0
-                percent = (100 * index) / program_ids_count_minus1
-                puts "PROGRESS: #{index} / #{program_ids.count}  percent: #{percent}"
-            end
-            # break if index == 10
+CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
+    csv << ["program id", "terms"]
+    program_ids.each_with_index do |program_id, index|
+        output = `../target/release/loda_lab evaluate #{program_id} -t 10`
+        output = output.strip
+        success = $?.success?
+        if success
+            count_success += 1
+            csv << [program_id.to_s, output]
+        else
+            count_failure += 1
+            csv << [program_id.to_s, "BOOM"]
         end
+        if (index % 1000) == 0
+            percent = (100 * index) / program_ids_count_minus1
+            puts "PROGRESS: #{index} / #{program_ids.count}  percent: #{percent}"
+        end
+        # break if index == 10
     end
 end
 
