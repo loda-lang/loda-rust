@@ -116,6 +116,24 @@ mod tests {
     lpe
     "#;
 
+    const INPUT_A117452: &str = r#"
+    ; A117452: Periodic {2, -1, 1, 0, 0} - 0^n.
+    ; 1,-1,1,0,0,2,-1,1,0,0,2,-1,1,0,0,2,-1,1,0
+    
+    mul $0,2
+    add $0,1
+    lpb $0
+      sub $0,4
+      mov $3,1
+      mov $1,$3
+      mov $4,$1
+      sub $0,$4
+    lpe
+    mov $2,$0
+    add $1,$2
+    clr $0,$2
+    "#;
+
     const INPUT_A206735: &str = r#"
     ; A206735: Triangle T(n,k), read by rows
     ; 1,0,1,0,2,1,0,3,3,1,0,4,6,4,1,0,5,10,10,5
@@ -256,7 +274,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10005_clear_memory_range() {
+    fn test_10005_clear_memory_range_with_constant() {
         let result = parse(INPUT_A002624);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
@@ -268,7 +286,19 @@ mod tests {
     }
 
     #[test]
-    fn test_10006_use_of_power_instruction() {
+    fn test_10006_clear_memory_range_with_register() {
+        let result = parse(INPUT_A117452);
+        assert_eq!(result.is_ok(), true);
+        let parse = result.unwrap();
+        let program = parse.created_program.program;
+        let runner = ProgramRunner::new(program);
+        let actual: Vec<i64> = runner.run_terms(15);
+        let expected: Vec<i64> = [1, -1, 1, 0, 0, 2, -1, 1, 0, 0, 2, -1, 1, 0, 0].to_vec();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10007_use_of_power_instruction() {
         let result = parse(INPUT_A284429);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
@@ -280,7 +310,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10007_use_of_loop_with_contant_greater_than_one() {
+    fn test_10008_use_of_loop_with_contant_greater_than_one() {
         let result = parse(INPUT_A007958);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
@@ -292,7 +322,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10008_use_of_loop_with_range_length_from_register1() {
+    fn test_10009_use_of_loop_with_range_length_from_register1() {
         let result = parse(INPUT_A253472);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
@@ -304,7 +334,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10009_use_of_loop_with_range_length_from_register2() {
+    fn test_10010_use_of_loop_with_range_length_from_register2() {
         let result = parse(INPUT_A206735);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
