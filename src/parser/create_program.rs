@@ -187,10 +187,10 @@ impl Instruction {
                     panic!("clear instruction with source being a negative number. Makes no sense.");
                 }
                 if source.0.is_zero() {
-                    panic!("clear instruction with source=0. Makes no sense.");
+                    debug!("clear instruction with source=0. Makes no sense.");
                 }
                 if source.0.is_one() {
-                    panic!("clear instruction with source=1. Same as setting the register to zero.");
+                    debug!("clear instruction with source=1. Same as setting the register to zero.");
                 }
                 let limit_bigint: BigInt = 256.to_bigint().unwrap();
                 if source.0 >= limit_bigint {
@@ -275,7 +275,9 @@ impl Instruction {
                 return node_wrapped;
             },
             InstructionId::Clear => {
-                panic!("No support for 'clr' instruction where source=register.");
+                let node = NodeClearRegister::new(target, source);
+                let node_wrapped = Box::new(node);
+                return node_wrapped;
             },
             _ => {
                 panic!("unhandled instruction: {:?}", self.instruction_id);
