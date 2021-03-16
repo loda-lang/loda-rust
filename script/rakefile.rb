@@ -38,6 +38,11 @@ file 'data/pagerank.csv' => ['data/program_ids.csv', 'data/caller_callee_pairs.c
     ruby 'task_pagerank.rb'
 end
 
+desc 'generate a bigram'
+file 'data/bigram.csv' do
+    ruby 'task_bigram.rb'
+end
+
 task :default do
     system 'rake -T'
 end

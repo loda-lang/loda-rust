@@ -9,6 +9,7 @@ These scripts for automation uses the [Ruby programming_language](https://www.ru
 
 ```
 PROMPT> rake
+rake data/bigram.csv                # generate a bigram
 rake data/caller_callee_list.csv    # obtain all the dependencies between programs, comma separated list
 rake data/caller_callee_pairs.csv   # obtain all the dependencies between programs, for use as input to PageRank algorithm
 rake data/compare_loda_vs_lab.csv   # compare terms between "LODA official" and "LODA Lab"
