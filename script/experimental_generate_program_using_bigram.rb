@@ -69,10 +69,10 @@ instruction_to_parameters = {
     "max" => ['a', 'b'], 
     "min" => ['a', 'b'], 
     "mod" => ['a', 'b-mod'], 
-    "mov" => ['a', 'b'], 
+    "mov" => ['a', 'b-mov'], 
     "mul" => ['a', 'b-mul'], 
     "pow" => ['a', 'b'], 
-    "sub" => ['a', 'b'], 
+    "sub" => ['a', 'b-sub'], 
     "trn" => ['a', 'b'],
 }
 
@@ -136,12 +136,28 @@ def pick_random_parameter_data(parameter_spec, program_ids, random_generator)
             x = random_generator.rand(9) + 1
             return x.to_s
         end
+    when 'b-mov'
+        if random_generator.rand(2) == 0
+            x = random_generator.rand(3)
+            return '$' + x.to_s
+        else
+            x = random_generator.rand(9) + 1
+            return x.to_s
+        end
     when 'b-mul'
         if random_generator.rand(2) == 0
             x = random_generator.rand(3)
             return '$' + x.to_s
         else
             x = random_generator.rand(8) + 2
+            return x.to_s
+        end
+    when 'b-sub'
+        if random_generator.rand(2) == 0
+            x = random_generator.rand(3)
+            return '$' + x.to_s
+        else
+            x = random_generator.rand(9) + 1
             return x.to_s
         end
     else
