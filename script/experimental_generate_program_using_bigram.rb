@@ -55,14 +55,14 @@ def pick_random_index(weights_array, weights_total, random_generator)
 end
 
 instruction_to_parameters = {
-    "add" => ['a', 'b'], 
+    "add" => ['a', 'b-add'], 
     "bin" => ['a', 'b'], 
     "cal" => ['a', 'b-cal'], 
     "clr" => ['a', 'b-clr'], 
     "cmp" => ['a', 'b'], 
     "dif" => ['a', 'b-dif'], 
     "div" => ['a', 'b-div'], 
-    "gcd" => ['a', 'b'], 
+    "gcd" => ['a', 'b-gcd'], 
     "log" => ['a', 'b-log'], 
     "lpb" => ['a', 'b-lpb'], 
     "lpe" => [], 
@@ -89,6 +89,14 @@ def pick_random_parameter_data(parameter_spec, program_ids, random_generator)
             prefix = '$'
         end
         return prefix + x.to_s
+    when 'b-add'
+        if random_generator.rand(2) == 0
+            x = random_generator.rand(3)
+            return '$' + x.to_s
+        else
+            x = random_generator.rand(4) + 1
+            return x.to_s
+        end
     when 'b-cal'
         x = random_generator.rand(program_ids.count)
         y = program_ids[x]
@@ -106,7 +114,7 @@ def pick_random_parameter_data(parameter_spec, program_ids, random_generator)
             x = random_generator.rand(3)
             return '$' + x.to_s
         else
-            x = random_generator.rand(9) + 1
+            x = random_generator.rand(8) + 2
             return x.to_s
         end
     when 'b-div'
@@ -114,7 +122,15 @@ def pick_random_parameter_data(parameter_spec, program_ids, random_generator)
             x = random_generator.rand(3)
             return '$' + x.to_s
         else
-            x = random_generator.rand(9) + 1
+            x = random_generator.rand(8) + 2
+            return x.to_s
+        end
+    when 'b-gcd'
+        if random_generator.rand(2) == 0
+            x = random_generator.rand(3)
+            return '$' + x.to_s
+        else
+            x = random_generator.rand(8) + 2
             return x.to_s
         end
     when 'b-log'
@@ -145,12 +161,16 @@ def pick_random_parameter_data(parameter_spec, program_ids, random_generator)
             return x.to_s
         end
     when 'b-mul'
-        if random_generator.rand(2) == 0
+        y = random_generator.rand(3)
+        case y
+        when 0
             x = random_generator.rand(3)
             return '$' + x.to_s
-        else
+        when 1
             x = random_generator.rand(8) + 2
             return x.to_s
+        else
+            return '-1'
         end
     when 'b-sub'
         if random_generator.rand(2) == 0
