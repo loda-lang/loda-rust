@@ -3,12 +3,12 @@ file 'data/program_ids.csv' do
     ruby 'task_program_ids.rb'
 end
 
-desc 'obtain all the dependencies between program, for use as input to PageRank algorithm'
+desc 'obtain all the dependencies between programs, for use as input to PageRank algorithm'
 file 'data/caller_callee_pairs.csv' => 'data/program_ids.csv' do
     ruby 'task_caller_callee_pairs.rb'
 end
 
-desc 'obtain all the dependencies between program, comma separated list'
+desc 'obtain all the dependencies between programs, comma separated list'
 file 'data/caller_callee_list.csv' => 'data/program_ids.csv' do
     ruby 'task_caller_callee_list.rb'
 end
@@ -31,6 +31,11 @@ end
 desc 'compare terms between "LODA official" and "LODA Lab"'
 file 'data/compare_loda_vs_lab.csv' => ['data/program_ids.csv', 'data/terms_loda.csv'] do
     ruby 'task_compare_loda_vs_lab.rb'
+end
+
+desc 'run the PageRank algorithm and ranking the most influential programs'
+file 'data/pagerank.csv' => ['data/program_ids.csv', 'data/caller_callee_pairs.csv'] do
+    ruby 'task_pagerank.rb'
 end
 
 task :default do
