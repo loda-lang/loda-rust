@@ -16,6 +16,7 @@ rake data/compare_loda_vs_lab.csv   # compare terms between "LODA official" and 
 rake data/most_called_programs.csv  # determine the most called programs
 rake data/pagerank.csv              # run the PageRank algorithm and ranking the most influential programs
 rake data/program_ids.csv           # obtain all the program ids
+rake data/skipgram.csv              # generate a skipgram
 rake data/terms_lab.csv             # compute terms with "LODA Lab"
 rake data/terms_loda.csv            # compute terms with "LODA Official"
 rake data/trigram.csv               # generate a trigram

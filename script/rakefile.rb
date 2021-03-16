@@ -48,6 +48,11 @@ file 'data/trigram.csv' do
     ruby 'task_trigram.rb'
 end
 
+desc 'generate a skipgram'
+file 'data/skipgram.csv' do
+    ruby 'task_skipgram.rb'
+end
+
 task :default do
     system 'rake -T'
 end
