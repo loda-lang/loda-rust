@@ -18,6 +18,7 @@ rake data/pagerank.csv              # run the PageRank algorithm and ranking the
 rake data/program_ids.csv           # obtain all the program ids
 rake data/terms_lab.csv             # compute terms with "LODA Lab"
 rake data/terms_loda.csv            # compute terms with "LODA Official"
+rake data/trigram.csv               # generate a trigram
 PROMPT>
 ```
 

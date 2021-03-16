@@ -43,6 +43,11 @@ file 'data/bigram.csv' do
     ruby 'task_bigram.rb'
 end
 
+desc 'generate a trigram'
+file 'data/trigram.csv' do
+    ruby 'task_trigram.rb'
+end
+
 task :default do
     system 'rake -T'
 end
