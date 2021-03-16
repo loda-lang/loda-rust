@@ -9,7 +9,7 @@ Probably: You may have to install this tool yourself.
 Get the repository.
 Compile what's inside the `cpp` dir, by typing `make`.
 https://github.com/louridas/pagerank/tree/master/cpp
-Tis outputs an executable file named `pagerank`.
+This outputs an executable file named `pagerank`.
 Move it to "~/bin/pagerank".
 
 Check if you have the `pagerank` executable in the PATH, by running:
