@@ -29,7 +29,7 @@ file 'data/terms_loda.csv' => 'data/program_ids.csv' do
 end
 
 desc 'compare terms between "LODA official" and "LODA Lab"'
-file 'data/compare_loda_vs_lab.csv' => ['data/program_ids.csv', 'data/terms_loda.csv'] do
+file 'data/compare_loda_vs_lab.csv' => ['data/terms_lab.csv', 'data/terms_loda.csv'] do
     ruby 'task_compare_loda_vs_lab.rb'
 end
 
