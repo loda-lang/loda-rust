@@ -8,11 +8,13 @@ This script takes input from a `bigram.csv` file, with this format:
 
     count;word0;word1
     18066;mov;mov
+    16888;START;mov
     14712;mov;lpb
-    13387;mov;sub
+    13386;mov;sub
     13132;mov;add
     11776;add;mov
     10522;add;add
+    9840;mul;add
 
 This script takes input from a `program_ids.csv` file, with this format:
 
@@ -25,11 +27,15 @@ This script takes input from a `program_ids.csv` file, with this format:
 
 This script prints something ala:
 
-    mov $1,0
-    sub $1,0
-    add $0,0
-    mov $1,$0
-    mul $0,$0
+    START
+    mov $1,$1
+    pow $0,$0
+    add $0,$1
+    cal $0,35008
+    mul $0,$1
+    add $0,$0
+    add $1,1
+    STOP
 
 =end
 
@@ -39,7 +45,7 @@ input_filename0 = 'data/bigram.csv'
 input_filename1 = 'data/program_ids.csv'
 
 random_seed = 1049
-program_length = 5
+max_program_length = 10
 
 # Weighted random sampling
 def pick_random_index(weights_array, weights_total, random_generator)
@@ -74,6 +80,8 @@ instruction_to_parameters = {
     "pow" => ['a', 'b'], 
     "sub" => ['a', 'b-sub'], 
     "trn" => ['a', 'b'],
+    "START" => [],
+    "STOP"  => [],
 }
 
 def pick_random_parameter_data(parameter_spec, program_ids, random_generator)
@@ -235,7 +243,8 @@ end
 # p dict_weighttotal
 
 # Convert the dictionary to an array, so that we can use integers as keys
-word0_array = (dict_word.keys.to_a + dict_weight.keys.to_a + dict_weighttotal.keys.to_a).uniq
+reserved_words = ['START', 'STOP']
+word0_array = (reserved_words + dict_word.keys.to_a + dict_weight.keys.to_a + dict_weighttotal.keys.to_a).uniq
 word0_to_word_array = []
 word0_to_weight_array = []
 word0_weight = []
@@ -252,27 +261,17 @@ end
 
 random = Random.new(random_seed)
 
-program_instructions = []
-
-# Randomly pick two initial instructions
-begin
-    weights_array = bigram_rows.map do |row|
-        row.first
-    end
-    weights_sum = weights_array.sum
-
-    index = pick_random_index(weights_array, weights_sum, random)
-    bigram_row = bigram_rows[index]
-    weight, word0, word1 = bigram_row
-    program_instructions << word0
-    program_instructions << word1
-end
-# p program_instructions
+program_instructions = ['START']
 
 # Append random instructions
-(program_length-2).times do |i|
+(max_program_length-1).times do |i|
     word0 = program_instructions.last
     index = word0_array.index(word0)
+
+    # stop when reaching the STOP token
+    if word0 == 'STOP'
+        break
+    end
 
     word_array = word0_to_word_array[index]
     weight_array = word0_to_weight_array[index]

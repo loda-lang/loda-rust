@@ -16,16 +16,19 @@ This script outputs a `bigram.csv` file, with this format:
 
     count;word0;word1
     18066;mov;mov
+    16888;START;mov
     14712;mov;lpb
-    13387;mov;sub
+    13386;mov;sub
     13132;mov;add
     11776;add;mov
     10522;add;add
+    9840;mul;add
 
 Learnings from this bigram with LODA programs:
 Learning A: The `mov` instruction is most likely to be followed by another `mov` instruction.
-Learning B: The `mul` instruction is most likely to be followed by an `add` instruction.
-Learning C: The `lpb` instruction is most likely to be followed by a `mov` instruction.
+Learning B: The program is most likely to start with a `mov` instruction.
+Learning C: The `mul` instruction is most likely to be followed by an `add` instruction.
+Learning D: The `lpb` instruction is most likely to be followed by a `mov` instruction.
 =end
 
 require 'csv'
@@ -45,7 +48,7 @@ end
 def bigrams_from_file(path)
     content = IO.read(path)
     matches = content.scan(/^\s*(\w{2,4})\b/)
-    words = matches.flatten
+    words = ['START'] + matches.flatten + ['STOP']
     combos = []
     words.each_cons(2) do |word0, word1|
         combos << "#{word0};#{word1}"
