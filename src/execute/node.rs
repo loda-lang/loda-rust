@@ -2,12 +2,21 @@ use super::{ProgramState, ProgramRunnerManager, RegisterIndex};
 
 pub struct ValidateCallError {}
 
+#[derive(Debug)]
+pub enum EvalError {
+}
+
 pub trait Node {
     fn shorthand(&self) -> &str;
 
     fn formatted_instruction(&self) -> String;
 
     fn eval(&self, state: &mut ProgramState);
+
+    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+        self.eval(state);
+        Ok(())
+    }
 
     // Determine the number of registers required by this program.
     fn accumulate_register_indexes(&self, _register_vec: &mut Vec<RegisterIndex>) {}
