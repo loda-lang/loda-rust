@@ -28,6 +28,7 @@ pub mod node_logarithm;
 pub mod node_loop_constant;
 pub mod node_loop_register;
 pub mod node_loop_simple;
+pub mod node_max;
 pub mod node_move;
 pub mod node_modulo;
 pub mod node_multiply;

@@ -14,8 +14,9 @@ use crate::execute::node_logarithm::*;
 use crate::execute::node_loop_constant::*;
 use crate::execute::node_loop_register::*;
 use crate::execute::node_loop_simple::*;
-use crate::execute::node_move::*;
+use crate::execute::node_max::*;
 use crate::execute::node_modulo::*;
+use crate::execute::node_move::*;
 use crate::execute::node_multiply::*;
 use crate::execute::node_power::*;
 use crate::execute::node_subtract::*;
@@ -182,6 +183,11 @@ impl Instruction {
                 let node_wrapped = Box::new(node);
                 return node_wrapped;
             },
+            InstructionId::Max => {
+                let node = NodeMaxConstant::new(target, source);
+                let node_wrapped = Box::new(node);
+                return node_wrapped;
+            },
             InstructionId::Clear => {
                 if source.0.is_negative() {
                     panic!("clear instruction with source being a negative number. Makes no sense.");
@@ -271,6 +277,11 @@ impl Instruction {
             },
             InstructionId::Logarithm => {
                 let node = NodeLogarithmRegister::new(target, source);
+                let node_wrapped = Box::new(node);
+                return node_wrapped;
+            },
+            InstructionId::Max => {
+                let node = NodeMaxRegister::new(target, source);
                 let node_wrapped = Box::new(node);
                 return node_wrapped;
             },
@@ -550,6 +561,10 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 program.push_boxed(node);
             },
             InstructionId::Clear => {
+                let node = create_two_parameter_node(&instruction)?;
+                program.push_boxed(node);
+            },
+            InstructionId::Max => {
                 let node = create_two_parameter_node(&instruction)?;
                 program.push_boxed(node);
             },
