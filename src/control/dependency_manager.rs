@@ -56,6 +56,9 @@ impl DependencyManager {
             self.load(dependent_program_id);
         }
         program.update_call(&mut self.program_run_manager);
+        if program.validate_call_nodes().is_err() {
+            panic!("program_id: {}  failed to assign all dependencies", program_id);
+        }
 
         let runner = ProgramRunner::new(program);
         self.program_run_manager.register(program_id, runner);

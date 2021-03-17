@@ -1,4 +1,4 @@
-use super::{Node, Program, ProgramState, ProgramRunnerManager, RegisterIndex, RegisterValue, RunMode};
+use super::{Node, Program, ProgramState, ProgramRunnerManager, RegisterIndex, RegisterValue, RunMode, ValidateCallError};
 use num_bigint::{BigInt, ToBigInt};
 use num_traits::{ToPrimitive, Signed};
 
@@ -129,5 +129,9 @@ impl Node for NodeLoopRegister {
 
     fn accumulate_call_dependencies(&self, program_id_vec: &mut Vec<u64>) {
         self.program.accumulate_call_dependencies(program_id_vec);
+    }
+
+    fn validate_call_nodes(&self) -> Result<(), ValidateCallError> {
+        self.program.validate_call_nodes()
     }
 }

@@ -1,10 +1,11 @@
 use std::rc::Rc;
-use super::{Node,RegisterIndex,RegisterValue,Program,ProgramState,ProgramRunner,ProgramRunnerManager};
+use super::{Node, RegisterIndex, RegisterValue, Program, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
 
 pub struct NodeCallConstant {
     target: RegisterIndex,
     program_id: u64,
     program_runner_rc: Rc::<ProgramRunner>,
+    link_established: bool,
 }
 
 impl NodeCallConstant {
@@ -17,6 +18,7 @@ impl NodeCallConstant {
             target: target,
             program_id: program_id,
             program_runner_rc: program_runner_rc,
+            link_established: false,
         }
     }
 }
@@ -31,8 +33,9 @@ impl Node for NodeCallConstant {
     }
 
     fn eval(&self, state: &mut ProgramState) {
-        // TODO: warn if no program have been installed.
-
+        if !self.link_established {
+            panic!("No link have been establish. This node cannot do its job.");
+        }
         let input: RegisterValue = state.get_register_value(self.target.clone());
         let output: RegisterValue = self.program_runner_rc.run(input, state.run_mode());
         state.set_register_value(self.target.clone(), output);
@@ -43,6 +46,9 @@ impl Node for NodeCallConstant {
     }
 
     fn update_call(&mut self, program_manager: &mut ProgramRunnerManager) {
+        if self.link_established {
+            panic!("The link have already been establish. Double assigning a link should not happen.");
+        }
         let program_id: u64 = self.program_id;
 
         let program_runner: Rc::<ProgramRunner> = match program_manager.get(program_id) {
@@ -53,10 +59,20 @@ impl Node for NodeCallConstant {
         };
 
         self.program_runner_rc = program_runner;
+        self.link_established = true;
         debug!("NodeCall: update_call. program_id: {}", program_id);
     }
 
     fn accumulate_call_dependencies(&self, program_id_vec: &mut Vec<u64>) {
         program_id_vec.push(self.program_id);
+    }
+
+    fn validate_call_nodes(&self) -> Result<(), ValidateCallError> {
+        if !self.link_established {
+            // There is no connection with the program that we depend on.
+            // Without the working dependency, this node cannot do its job correctly.
+            return Err(ValidateCallError {});
+        }
+        Ok(())
     }
 }

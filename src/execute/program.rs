@@ -1,4 +1,4 @@
-use super::{Node, BoxNode, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode};
+use super::{Node, BoxNode, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError};
 
 type BoxNodeVec = Vec<BoxNode>;
 
@@ -65,6 +65,13 @@ impl Program {
         for node in &self.node_vec {
             node.accumulate_call_dependencies(program_id_vec);
         }
+    }
+
+    pub fn validate_call_nodes(&self) -> Result<(), ValidateCallError> {
+        for node in &self.node_vec {
+            node.validate_call_nodes()?;
+        }
+        Ok(())
     }
 
     // This helps determining the number of registers to allocate.

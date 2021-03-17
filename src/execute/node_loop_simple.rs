@@ -1,4 +1,4 @@
-use super::{Node, Program, ProgramRunnerManager, ProgramState, RegisterIndex, RunMode};
+use super::{Node, Program, ProgramRunnerManager, ProgramState, RegisterIndex, RunMode, ValidateCallError};
 
 pub struct NodeLoopSimple {
     register: RegisterIndex,
@@ -75,5 +75,9 @@ impl Node for NodeLoopSimple {
 
     fn accumulate_call_dependencies(&self, program_id_vec: &mut Vec<u64>) {
         self.program.accumulate_call_dependencies(program_id_vec);
+    }
+
+    fn validate_call_nodes(&self) -> Result<(), ValidateCallError> {
+        self.program.validate_call_nodes()
     }
 }
