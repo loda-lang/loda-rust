@@ -15,6 +15,7 @@ use crate::execute::node_loop_constant::*;
 use crate::execute::node_loop_register::*;
 use crate::execute::node_loop_simple::*;
 use crate::execute::node_max::*;
+use crate::execute::node_min::*;
 use crate::execute::node_modulo::*;
 use crate::execute::node_move::*;
 use crate::execute::node_multiply::*;
@@ -188,6 +189,11 @@ impl Instruction {
                 let node_wrapped = Box::new(node);
                 return node_wrapped;
             },
+            InstructionId::Min => {
+                let node = NodeMinConstant::new(target, source);
+                let node_wrapped = Box::new(node);
+                return node_wrapped;
+            },
             InstructionId::Clear => {
                 if source.0.is_negative() {
                     panic!("clear instruction with source being a negative number. Makes no sense.");
@@ -282,6 +288,11 @@ impl Instruction {
             },
             InstructionId::Max => {
                 let node = NodeMaxRegister::new(target, source);
+                let node_wrapped = Box::new(node);
+                return node_wrapped;
+            },
+            InstructionId::Min => {
+                let node = NodeMinRegister::new(target, source);
                 let node_wrapped = Box::new(node);
                 return node_wrapped;
             },
@@ -565,6 +576,10 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 program.push_boxed(node);
             },
             InstructionId::Max => {
+                let node = create_two_parameter_node(&instruction)?;
+                program.push_boxed(node);
+            },
+            InstructionId::Min => {
                 let node = create_two_parameter_node(&instruction)?;
                 program.push_boxed(node);
             },
