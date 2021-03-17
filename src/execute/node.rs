@@ -4,6 +4,7 @@ pub struct ValidateCallError {}
 
 #[derive(Debug)]
 pub enum EvalError {
+    DivisionByZero
 }
 
 pub trait Node {
