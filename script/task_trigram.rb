@@ -17,15 +17,16 @@ This script outputs a `trigram.csv` file, with this format:
     count;word0;word1;word2
     8776;mov;mov;lpb
     6709;lpb;mov;sub
+    5717;START;mov;mov
     5386;mov;lpb;mov
     4321;mov;lpb;sub
-    3567;mov;sub;sub
-    3511;mov;mul;add
+    4310;mul;add;STOP
 
 Learnings from this trigram with LODA programs:
 Learning A: The `mov` and `mov` is usually followed by a `lpb` instruction.
 Learning B: The `lpb` and `mov` is usually followed by a `sub` instruction.
 Learning C: The `mov` and `lpb` is usually followed by a `mov` instruction.
+Learning D: The `mul` and `add` is usually the last of the program.
 =end
 
 require 'csv'
@@ -45,7 +46,7 @@ end
 def trigrams_from_file(path)
     content = IO.read(path)
     matches = content.scan(/^\s*(\w{2,4})\b/)
-    words = matches.flatten
+    words = ['START'] + matches.flatten + ['STOP']
     combos = []
     words.each_cons(3) do |word0, word1, word2|
         combos << "#{word0};#{word1};#{word2}"
