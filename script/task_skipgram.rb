@@ -45,7 +45,7 @@ end
 def skipgrams_from_file(path)
     content = IO.read(path)
     matches = content.scan(/^\s*(\w{2,4})\b/)
-    words = matches.flatten
+    words = ['START'] + matches.flatten + ['STOP']
     combos = []
     words.each_cons(3) do |word0, word1, word2|
         combos << "#{word0};skip;#{word2}"
