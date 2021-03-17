@@ -1,6 +1,4 @@
-use super::{Node,RegisterIndex,RegisterValue,Program,ProgramState,ProgramRunnerManager,RunMode};
-use num_bigint::BigInt;
-use num_traits::Signed;
+use super::{Node, Program, ProgramRunnerManager, ProgramState, RegisterIndex, RunMode};
 
 pub struct NodeLoopSimple {
     register: RegisterIndex,
@@ -34,22 +32,16 @@ impl Node for NodeLoopSimple {
 
         let mut cycles = 0;
         loop {
-
             let old_state: ProgramState = state.clone();
-            let old_value: RegisterValue = old_state.get_register_value(self.register.clone());
-            let old_value_inner: &BigInt = &old_value.0;
 
             self.program.run(state);
 
-            let value: RegisterValue = state.get_register_value(self.register.clone());
+            let is_less: bool = state.is_less_single(
+                &old_state, 
+                self.register.clone()
+            );
 
-            let value_inner: &BigInt = &value.0;
-
-            let old_abs: BigInt = old_value_inner.abs();
-            let new_abs: BigInt = value_inner.abs();
-
-            if new_abs >= old_abs {
-
+            if !is_less {
                 if state.run_mode() == RunMode::Verbose {
                     println!("LOOP CYCLE EXIT");
                 }

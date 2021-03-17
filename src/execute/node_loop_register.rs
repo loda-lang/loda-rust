@@ -83,7 +83,7 @@ impl Node for NodeLoopRegister {
                 currently_smallest_range_length
             );
 
-            let is_less: bool = state.is_less(
+            let is_less: bool = state.is_less_range(
                 &old_state, 
                 self.register_start.clone(),
                 currently_smallest_range_length
