@@ -5,7 +5,6 @@ use num_integer::Integer;
 fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
     let xx: &BigInt = &x.0;
     let yy: &BigInt = &y.0;
-    // TODO: deal with infinity
     // https://en.wikipedia.org/wiki/Binary_GCD_algorithm
     let zz = xx.gcd(yy);
     RegisterValue(zz)
@@ -91,11 +90,7 @@ mod tests {
             RegisterValue::from_i64(left),
             RegisterValue::from_i64(right)
         );
-        let v = value.to_i64();
-        if v >= 0xffffff {
-            return "BOOM".to_string();
-        }
-        v.to_string()
+        value.to_string()
     }
 
     #[test]

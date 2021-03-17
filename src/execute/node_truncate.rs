@@ -3,7 +3,6 @@ use num_bigint::BigInt;
 use num_traits::Signed;
 
 fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
-    // TODO: deal with infinity
     let a: &BigInt = &x.0;
     let b: &BigInt = &y.0;
     let value: BigInt = a - b;
@@ -94,11 +93,7 @@ mod tests {
             RegisterValue::from_i64(left),
             RegisterValue::from_i64(right)
         );
-        let v = value.to_i64();
-        if v >= 0xffffff {
-            return "BOOM".to_string();
-        }
-        v.to_string()
+        value.to_string()
     }
 
     #[test]

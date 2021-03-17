@@ -2,7 +2,6 @@ use super::{Node,RegisterIndex,RegisterValue,ProgramState};
 use num_bigint::BigInt;
 
 fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
-    // TODO: deal with infinity
     let xx: &BigInt = &x.0;
     let yy: &BigInt = &y.0;
     if xx == yy {
@@ -92,11 +91,7 @@ mod tests {
             RegisterValue::from_i64(left),
             RegisterValue::from_i64(right)
         );
-        let v = value.to_i64();
-        if v >= 0xffffff {
-            return "BOOM".to_string();
-        }
-        v.to_string()
+        value.to_string()
     }
 
     #[test]
