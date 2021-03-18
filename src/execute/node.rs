@@ -21,6 +21,10 @@ pub trait Node {
 
     fn formatted_instruction(&self) -> String;
 
+    // Execute the primary operation of this node.
+    // If it's an "add" node, then it computes 1 + 3 = 4, and Ok is the result.
+    // The are several ways eval can go wrong, in which case an Error is the result. 
+    // If it's a "div" node and it attempts to do division by zero, then it triggers an Error result.
     fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError>;
 
     // Determine the number of registers required by this program.
