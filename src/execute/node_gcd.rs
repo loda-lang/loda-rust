@@ -1,13 +1,18 @@
-use super::{Node,RegisterIndex,RegisterValue,ProgramState};
+use super::{EvalError, Node, ProgramState, RegisterIndex, RegisterValue};
 use num_bigint::BigInt;
 use num_integer::Integer;
+use num_traits::Zero;
 
-fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
+fn perform_operation(x: RegisterValue, y: RegisterValue) -> Result<RegisterValue,EvalError> {
     let xx: &BigInt = &x.0;
     let yy: &BigInt = &y.0;
+    if xx.is_zero() && yy.is_zero() {
+        debug!("NodeGCD, both parameters must not be zero at the same time");
+        return Err(EvalError::GCDDomainError);
+    }
     // https://en.wikipedia.org/wiki/Binary_GCD_algorithm
     let zz = xx.gcd(yy);
-    RegisterValue(zz)
+    Ok(RegisterValue(zz))
 }
 
 pub struct NodeGCDRegister {
@@ -34,10 +39,20 @@ impl Node for NodeGCDRegister {
     }
 
     fn eval(&self, state: &mut ProgramState) {
+        match self.eval_advanced(state) {
+            Ok(_) => {},
+            Err(err) => {
+                panic!("Unable to perform operation. error: {:?}", err);
+            }
+        }
+    }
+
+    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         let lhs: RegisterValue = state.get_register_value(self.target.clone());
         let rhs: RegisterValue = state.get_register_value(self.source.clone());
-        let value = perform_operation(lhs, rhs);
+        let value: RegisterValue = perform_operation(lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
+        Ok(())
     }
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
@@ -70,10 +85,20 @@ impl Node for NodeGCDConstant {
     }
 
     fn eval(&self, state: &mut ProgramState) {
+        match self.eval_advanced(state) {
+            Ok(_) => {},
+            Err(err) => {
+                panic!("Unable to perform operation. error: {:?}", err);
+            }
+        }
+    }
+
+    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         let lhs: RegisterValue = state.get_register_value(self.target.clone());
         let rhs: RegisterValue = self.source.clone();
-        let value = perform_operation(lhs, rhs);
+        let value: RegisterValue = perform_operation(lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
+        Ok(())
     }
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
@@ -86,16 +111,19 @@ mod tests {
     use super::*;
 
     fn process(left: i64, right: i64) -> String {
-        let value: RegisterValue = perform_operation(
+        let result = perform_operation(
             RegisterValue::from_i64(left),
             RegisterValue::from_i64(right)
         );
-        value.to_string()
+        match result {
+            Ok(value) => value.to_string(),
+            Err(_) => "BOOM".to_string()
+        }
     }
 
     #[test]
     fn test_10000() {
-        assert_eq!(process(0, 0), "0");
+        assert_eq!(process(0, 0), "BOOM");
         assert_eq!(process(0, 1), "1");
         assert_eq!(process(1, 0), "1");
         assert_eq!(process(1, 1), "1");

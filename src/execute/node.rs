@@ -8,6 +8,8 @@ pub enum EvalError {
 
     // When a mathematical function is evaluated outside of its domain of definition.
     LogDomainError,
+
+    GCDDomainError,
 }
 
 pub trait Node {
