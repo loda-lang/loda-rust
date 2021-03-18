@@ -21,15 +21,6 @@ pub trait Node {
 
     fn formatted_instruction(&self) -> String;
 
-    fn eval(&self, state: &mut ProgramState) {
-        match self.eval_advanced(state) {
-            Ok(_) => {},
-            Err(err) => {
-                panic!("Unable to perform operation. error: {:?}", err);
-            }
-        }
-    }
-
     fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError>;
 
     // Determine the number of registers required by this program.

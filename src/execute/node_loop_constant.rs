@@ -36,7 +36,7 @@ impl Node for NodeLoopConstant {
         loop {
             let old_state: ProgramState = state.clone();
 
-            self.program.run(state);
+            self.program.run(state)?;
 
             let is_less: bool = state.is_less_range(
                 &old_state, 

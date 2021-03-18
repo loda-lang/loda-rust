@@ -59,7 +59,7 @@ impl Node for NodeLoopRegister {
         loop {
             let old_state: ProgramState = state.clone();
 
-            self.program.run(state);
+            self.program.run(state)?;
 
             let value: RegisterValue = state.get_register_value(self.register_with_range_length.clone());
             let value_inner: &BigInt = &value.0;

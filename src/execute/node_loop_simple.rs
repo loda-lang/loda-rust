@@ -34,7 +34,7 @@ impl Node for NodeLoopSimple {
         loop {
             let old_state: ProgramState = state.clone();
 
-            self.program.run(state);
+            self.program.run(state)?;
 
             let is_less: bool = state.is_less_single(
                 &old_state, 
