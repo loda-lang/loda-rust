@@ -1,4 +1,4 @@
-use super::{Node, ProgramState, RegisterIndex, RegisterValue};
+use super::{EvalError, Node, ProgramState, RegisterIndex, RegisterValue};
 use num_bigint::{BigInt, ToBigInt};
 use num_traits::{ToPrimitive, Signed};
 
@@ -25,8 +25,9 @@ impl Node for NodeClearConstant {
         format!("clr {},{}", self.target, self.clear_count)
     }
 
-    fn eval(&self, state: &mut ProgramState) {
+    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         state.set_register_range_to_zero(self.target.clone(), self.clear_count);
+        Ok(())
     }
 
     fn accumulate_register_indexes(&self, _register_vec: &mut Vec<RegisterIndex>) {
@@ -35,6 +36,7 @@ impl Node for NodeClearConstant {
         // And accessing a register outside the allocated registers just yields zero.
     }
 }
+
 pub struct NodeClearRegister {
     target: RegisterIndex,
     register_with_clear_count: RegisterIndex,
@@ -58,7 +60,7 @@ impl Node for NodeClearRegister {
         format!("clr {},{}", self.target, self.register_with_clear_count)
     }
 
-    fn eval(&self, state: &mut ProgramState) {
+    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         let value: RegisterValue = state.get_register_value(self.register_with_clear_count.clone());
         let value_inner: &BigInt = &value.0;
         let clear_count: u8;
@@ -76,10 +78,11 @@ impl Node for NodeClearRegister {
             clear_count = 0;
         }
         debug!("clear_count: {}", clear_count);
-
+        
         state.set_register_range_to_zero(self.target.clone(), clear_count);
+        Ok(())
     }
-
+    
     fn accumulate_register_indexes(&self, _register_vec: &mut Vec<RegisterIndex>) {
         // This operation does not affect the number of registers to be allocated.
         // The default value of an uninitialized register is zero.

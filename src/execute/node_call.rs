@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use super::{Node, RegisterIndex, RegisterValue, Program, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
+use super::{EvalError, Node, RegisterIndex, RegisterValue, Program, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
 
 pub struct NodeCallConstant {
     target: RegisterIndex,
@@ -32,13 +32,14 @@ impl Node for NodeCallConstant {
         format!("cal {},{}", self.target, self.program_id)
     }
 
-    fn eval(&self, state: &mut ProgramState) {
+    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         if !self.link_established {
             panic!("No link have been establish. This node cannot do its job.");
         }
         let input: RegisterValue = state.get_register_value(self.target.clone());
         let output: RegisterValue = self.program_runner_rc.run(input, state.run_mode());
         state.set_register_value(self.target.clone(), output);
+        Ok(())
     }
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {

@@ -38,15 +38,6 @@ impl Node for NodeGCDRegister {
         format!("gcd {},{}", self.target, self.source)
     }
 
-    fn eval(&self, state: &mut ProgramState) {
-        match self.eval_advanced(state) {
-            Ok(_) => {},
-            Err(err) => {
-                panic!("Unable to perform operation. error: {:?}", err);
-            }
-        }
-    }
-
     fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         let lhs: RegisterValue = state.get_register_value(self.target.clone());
         let rhs: RegisterValue = state.get_register_value(self.source.clone());
@@ -82,15 +73,6 @@ impl Node for NodeGCDConstant {
 
     fn formatted_instruction(&self) -> String {
         format!("gcd {},{}", self.target, self.source)
-    }
-
-    fn eval(&self, state: &mut ProgramState) {
-        match self.eval_advanced(state) {
-            Ok(_) => {},
-            Err(err) => {
-                panic!("Unable to perform operation. error: {:?}", err);
-            }
-        }
     }
 
     fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {

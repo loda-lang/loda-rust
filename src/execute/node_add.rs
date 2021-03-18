@@ -1,4 +1,4 @@
-use super::{Node,RegisterIndex,RegisterValue,ProgramState};
+use super::{EvalError, Node, ProgramState, RegisterIndex, RegisterValue};
 use num_bigint::BigInt;
 
 fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
@@ -30,11 +30,12 @@ impl Node for NodeAddRegister {
         format!("add {},{}", self.target, self.source)
     }
 
-    fn eval(&self, state: &mut ProgramState) {
+    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         let lhs: RegisterValue = state.get_register_value(self.target.clone());
         let rhs: RegisterValue = state.get_register_value(self.source.clone());
         let value = perform_operation(lhs, rhs);
         state.set_register_value(self.target.clone(), value);
+        Ok(())
     }
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
@@ -66,11 +67,12 @@ impl Node for NodeAddConstant {
         format!("add {},{}", self.target, self.source)
     }
 
-    fn eval(&self, state: &mut ProgramState) {
+    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         let lhs: RegisterValue = state.get_register_value(self.target.clone());
         let rhs: RegisterValue = self.source.clone();
         let value = perform_operation(lhs, rhs);
         state.set_register_value(self.target.clone(), value);
+        Ok(())
     }
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {

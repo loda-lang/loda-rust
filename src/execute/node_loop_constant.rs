@@ -1,4 +1,4 @@
-use super::{Node, Program, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError};
+use super::{EvalError, Node, Program, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError};
 
 pub struct NodeLoopConstant {
     register_start: RegisterIndex,
@@ -25,7 +25,7 @@ impl Node for NodeLoopConstant {
         String::from("")
     }
 
-    fn eval(&self, state: &mut ProgramState) {
+    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         if state.run_mode() == RunMode::Verbose {
             let snapshot = state.register_vec_to_string();
             let instruction = format!("lpb {},{}", self.register_start, self.range_length);
@@ -66,6 +66,7 @@ impl Node for NodeLoopConstant {
                 println!("lpe");
             }
         }
+        Ok(())
     }
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
