@@ -9,6 +9,7 @@ use dotenv::dotenv;
 mod parser;
 mod execute;
 mod control;
+mod validate;
 use control::{Settings, subcommand_dependencies, subcommand_evaluate};
 
 extern crate clap;
