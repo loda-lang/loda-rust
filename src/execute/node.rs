@@ -9,7 +9,11 @@ pub enum EvalError {
     // When a mathematical function is evaluated outside of its domain of definition.
     LogDomainError,
 
+    // When a mathematical function is evaluated outside of its domain of definition.
     GCDDomainError,
+
+    PowerZeroDivision,
+    PowerExponentTooHigh,
 }
 
 pub trait Node {
