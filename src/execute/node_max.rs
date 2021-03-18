@@ -1,10 +1,9 @@
-use super::{Node, ProgramState, RegisterIndex, RegisterValue};
+use super::{EvalError, Node, ProgramState, RegisterIndex, RegisterValue};
 use num_bigint::BigInt;
 
 fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
     let xx: &BigInt = &x.0;
     let yy: &BigInt = &y.0;
-    // TODO: deal with infinity
     let result: &BigInt = xx.max(yy);
     RegisterValue(result.clone())
 }
@@ -32,11 +31,12 @@ impl Node for NodeMaxRegister {
         format!("max {},{}", self.target, self.source)
     }
 
-    fn eval(&self, state: &mut ProgramState) {
+    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         let lhs: RegisterValue = state.get_register_value(self.target.clone());
         let rhs: RegisterValue = state.get_register_value(self.source.clone());
         let value = perform_operation(lhs, rhs);
         state.set_register_value(self.target.clone(), value);
+        Ok(())
     }
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
@@ -68,11 +68,12 @@ impl Node for NodeMaxConstant {
         format!("max {},{}", self.target, self.source)
     }
 
-    fn eval(&self, state: &mut ProgramState) {
+    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         let lhs: RegisterValue = state.get_register_value(self.target.clone());
         let rhs: RegisterValue = self.source.clone();
         let value = perform_operation(lhs, rhs);
         state.set_register_value(self.target.clone(), value);
+        Ok(())
     }
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
@@ -89,11 +90,7 @@ mod tests {
             RegisterValue::from_i64(left),
             RegisterValue::from_i64(right)
         );
-        let v: i64 = value.to_i64();
-        if v >= 0xffffff {
-            return "BOOM".to_string();
-        }
-        v.to_string()
+        value.to_string()
     }
 
     #[test]

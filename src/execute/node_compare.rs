@@ -1,8 +1,7 @@
-use super::{Node,RegisterIndex,RegisterValue,ProgramState};
+use super::{EvalError, Node, ProgramState, RegisterIndex, RegisterValue};
 use num_bigint::BigInt;
 
 fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
-    // TODO: deal with infinity
     let xx: &BigInt = &x.0;
     let yy: &BigInt = &y.0;
     if xx == yy {
@@ -35,11 +34,12 @@ impl Node for NodeCompareRegister {
         format!("cmp {},{}", self.target, self.source)
     }
 
-    fn eval(&self, state: &mut ProgramState) {
+    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         let lhs: RegisterValue = state.get_register_value(self.target.clone());
         let rhs: RegisterValue = state.get_register_value(self.source.clone());
         let value = perform_operation(lhs, rhs);
         state.set_register_value(self.target.clone(), value);
+        Ok(())
     }
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
@@ -71,11 +71,12 @@ impl Node for NodeCompareConstant {
         format!("cmp {},{}", self.target, self.source)
     }
 
-    fn eval(&self, state: &mut ProgramState) {
+    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         let lhs: RegisterValue = state.get_register_value(self.target.clone());
         let rhs: RegisterValue = self.source.clone();
         let value = perform_operation(lhs, rhs);
         state.set_register_value(self.target.clone(), value);
+        Ok(())
     }
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
@@ -92,11 +93,7 @@ mod tests {
             RegisterValue::from_i64(left),
             RegisterValue::from_i64(right)
         );
-        let v = value.to_i64();
-        if v >= 0xffffff {
-            return "BOOM".to_string();
-        }
-        v.to_string()
+        value.to_string()
     }
 
     #[test]

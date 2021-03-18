@@ -20,7 +20,10 @@ impl ProgramRunner {
     pub fn run(&self, input: RegisterValue, run_mode: RunMode) -> RegisterValue {
         let mut state = ProgramState::new(self.register_count, run_mode);
         state.set_register_value(RegisterIndex(0), input);
-        self.program.run(&mut state);
+        let result = self.program.run(&mut state);
+        if let Err(error) = result {
+            panic!("Unable to run program. error: {:?}", error);
+        }
         state.get_register_value(RegisterIndex(1))
     }
 

@@ -1,4 +1,4 @@
-use super::{Node, BoxNode, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError};
+use super::{EvalError, Node, BoxNode, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError};
 
 type BoxNodeVec = Vec<BoxNode>;
 
@@ -22,24 +22,25 @@ impl Program {
         self.node_vec.push(node_wrapped);
     }
 
-    pub fn run(&self, state: &mut ProgramState) {
+    pub fn run(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         match state.run_mode() {
             RunMode::Verbose => self.run_verbose(state),
             RunMode::Silent => self.run_silent(state),
         }
     }
 
-    pub fn run_silent(&self, state: &mut ProgramState) {
+    pub fn run_silent(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         for node in &self.node_vec {
-            node.eval(state);
+            node.eval(state)?;
             state.increment_eval_count();
         }
+        Ok(())
     }
 
-    pub fn run_verbose(&self, state: &mut ProgramState) {
+    pub fn run_verbose(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         for node in &self.node_vec {
             let before = state.register_vec_to_string();
-            node.eval(state);
+            node.eval(state)?;
             let after = state.register_vec_to_string();
             let instruction: String = node.formatted_instruction();
             if !instruction.is_empty() {
@@ -47,6 +48,7 @@ impl Program {
             }
             state.increment_eval_count();
         }
+        Ok(())
     }
 
     pub fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {

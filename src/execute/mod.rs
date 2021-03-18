@@ -12,7 +12,7 @@ pub use program_runner::ProgramRunner;
 pub use program_runner_manager::ProgramRunnerManager;
 pub use program_state::ProgramState;
 pub use run_mode::RunMode;
-pub use node::{Node, BoxNode, ValidateCallError};
+pub use node::{BoxNode, EvalError, Node, ValidateCallError};
 pub use register_index::RegisterIndex;
 pub use register_value::RegisterValue;
 

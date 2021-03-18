@@ -2,12 +2,30 @@ use super::{ProgramState, ProgramRunnerManager, RegisterIndex};
 
 pub struct ValidateCallError {}
 
+#[derive(Debug)]
+pub enum EvalError {
+    DivisionByZero,
+
+    // When a mathematical function is evaluated outside of its domain of definition.
+    LogDomainError,
+
+    // When a mathematical function is evaluated outside of its domain of definition.
+    GCDDomainError,
+
+    PowerZeroDivision,
+    PowerExponentTooHigh,
+}
+
 pub trait Node {
     fn shorthand(&self) -> &str;
 
     fn formatted_instruction(&self) -> String;
 
-    fn eval(&self, state: &mut ProgramState);
+    // Execute the primary operation of this node.
+    // If it's an "add" node, then it computes 1 + 3 = 4, and Ok is the result.
+    // The are several ways eval can go wrong, in which case an Error is the result. 
+    // If it's a "div" node and it attempts to do division by zero, then it triggers an Error result.
+    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError>;
 
     // Determine the number of registers required by this program.
     fn accumulate_register_indexes(&self, _register_vec: &mut Vec<RegisterIndex>) {}

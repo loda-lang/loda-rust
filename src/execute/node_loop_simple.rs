@@ -1,4 +1,4 @@
-use super::{Node, Program, ProgramRunnerManager, ProgramState, RegisterIndex, RunMode, ValidateCallError};
+use super::{EvalError, Node, Program, ProgramRunnerManager, ProgramState, RegisterIndex, RunMode, ValidateCallError};
 
 pub struct NodeLoopSimple {
     register: RegisterIndex,
@@ -23,7 +23,7 @@ impl Node for NodeLoopSimple {
         String::from("")
     }
 
-    fn eval(&self, state: &mut ProgramState) {
+    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         if state.run_mode() == RunMode::Verbose {
             let snapshot = state.register_vec_to_string();
             let instruction = format!("lpb {}", self.register);
@@ -34,7 +34,7 @@ impl Node for NodeLoopSimple {
         loop {
             let old_state: ProgramState = state.clone();
 
-            self.program.run(state);
+            self.program.run(state)?;
 
             let is_less: bool = state.is_less_single(
                 &old_state, 
@@ -62,6 +62,7 @@ impl Node for NodeLoopSimple {
                 println!("lpe");
             }
         }
+        Ok(())
     }
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
