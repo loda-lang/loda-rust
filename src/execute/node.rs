@@ -4,7 +4,10 @@ pub struct ValidateCallError {}
 
 #[derive(Debug)]
 pub enum EvalError {
-    DivisionByZero
+    DivisionByZero,
+
+    // When a mathematical function is evaluated outside of its domain of definition.
+    LogDomainError,
 }
 
 pub trait Node {
