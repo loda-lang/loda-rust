@@ -31,7 +31,7 @@ impl Program {
 
     pub fn run_silent(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         for node in &self.node_vec {
-            node.eval_advanced(state)?;
+            node.eval(state)?;
             state.increment_eval_count();
         }
         Ok(())
@@ -40,7 +40,7 @@ impl Program {
     pub fn run_verbose(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         for node in &self.node_vec {
             let before = state.register_vec_to_string();
-            node.eval_advanced(state)?;
+            node.eval(state)?;
             let after = state.register_vec_to_string();
             let instruction: String = node.formatted_instruction();
             if !instruction.is_empty() {

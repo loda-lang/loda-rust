@@ -87,7 +87,7 @@ impl Node for NodePowerRegister {
         format!("pow {},{}", self.target, self.source)
     }
 
-    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         let lhs: RegisterValue = state.get_register_value(self.target.clone());
         let rhs: RegisterValue = state.get_register_value(self.source.clone());
         let value: RegisterValue = perform_operation(lhs, rhs)?;
@@ -124,7 +124,7 @@ impl Node for NodePowerConstant {
         format!("pow {},{}", self.target, self.source)
     }
 
-    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         let lhs: RegisterValue = state.get_register_value(self.target.clone());
         let rhs: RegisterValue = self.source.clone();
         let value: RegisterValue = perform_operation(lhs, rhs)?;

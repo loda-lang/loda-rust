@@ -25,7 +25,7 @@ impl Node for NodeClearConstant {
         format!("clr {},{}", self.target, self.clear_count)
     }
 
-    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         state.set_register_range_to_zero(self.target.clone(), self.clear_count);
         Ok(())
     }
@@ -60,7 +60,7 @@ impl Node for NodeClearRegister {
         format!("clr {},{}", self.target, self.register_with_clear_count)
     }
 
-    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         let value: RegisterValue = state.get_register_value(self.register_with_clear_count.clone());
         let value_inner: &BigInt = &value.0;
         let clear_count: u8;

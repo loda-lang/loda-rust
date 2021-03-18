@@ -27,7 +27,7 @@ impl Node for NodeLoopRegister {
         String::from("")
     }
 
-    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         if state.run_mode() == RunMode::Verbose {
             let snapshot = state.register_vec_to_string();
             let instruction = format!("lpb {},{}", self.register_start, self.register_with_range_length);

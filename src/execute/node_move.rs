@@ -23,7 +23,7 @@ impl Node for NodeMoveRegister {
         format!("mov {},{}", self.target, self.source)
     }
 
-    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         let value: RegisterValue = state.get_register_value(self.source.clone());
         state.set_register_value(self.target.clone(), value);
         Ok(())
@@ -58,7 +58,7 @@ impl Node for NodeMoveConstant {
         format!("mov {},{}", self.target, self.source)
     }
 
-    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         let value: RegisterValue = self.source.clone();
         state.set_register_value(self.target.clone(), value);
         Ok(())

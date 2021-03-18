@@ -32,7 +32,7 @@ impl Node for NodeCallConstant {
         format!("cal {},{}", self.target, self.program_id)
     }
 
-    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
         if !self.link_established {
             panic!("No link have been establish. This node cannot do its job.");
         }

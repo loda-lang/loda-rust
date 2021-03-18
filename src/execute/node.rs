@@ -21,7 +21,7 @@ pub trait Node {
 
     fn formatted_instruction(&self) -> String;
 
-    fn eval_advanced(&self, state: &mut ProgramState) -> Result<(), EvalError>;
+    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError>;
 
     // Determine the number of registers required by this program.
     fn accumulate_register_indexes(&self, _register_vec: &mut Vec<RegisterIndex>) {}
