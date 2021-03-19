@@ -6,11 +6,11 @@ extern crate env_logger;
 use std::str::FromStr;
 use dotenv::dotenv;
 
-mod parser;
-mod execute;
 mod control;
+mod execute;
+mod mine;
+mod parser;
 mod oeis;
-mod validate;
 use control::{Settings, subcommand_dependencies, subcommand_evaluate};
 
 extern crate clap;
