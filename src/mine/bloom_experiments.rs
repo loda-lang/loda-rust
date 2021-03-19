@@ -6,20 +6,26 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use num_bigint::ToBigInt;
 
-struct CheckFixedLengthSequence {
+pub struct CheckFixedLengthSequence {
     bloom: Bloom::<BigIntVec>,
     term_count: usize,
 }
 
 impl CheckFixedLengthSequence {
-    fn new(bloom: Bloom::<BigIntVec>, term_count: usize) -> Self {
+    pub fn new(bloom: Bloom::<BigIntVec>, term_count: usize) -> Self {
         Self {
             bloom: bloom,
             term_count: term_count,
         }
     }
 
-    fn check(&self, bigint_vec_ref: &BigIntVec) -> bool {
+    // Returns `false` if the integer sequence is unknown.
+    // The caller doesn't have to do any more checks.
+    //
+    // Returns `true` if the integer sequence is known or unknown.
+    // The caller will have to do more time consuming checks in order to determine 
+    // if the integer sequences is known or unknown.
+    pub fn check(&self, bigint_vec_ref: &BigIntVec) -> bool {
         self.bloom.check(bigint_vec_ref)
     }
 }
