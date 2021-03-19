@@ -9,6 +9,7 @@ use dotenv::dotenv;
 mod parser;
 mod execute;
 mod control;
+mod oeis;
 mod validate;
 use control::{Settings, subcommand_dependencies, subcommand_evaluate};
 
