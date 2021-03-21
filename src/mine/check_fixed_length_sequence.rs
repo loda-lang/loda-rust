@@ -189,7 +189,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
     }
 
     fn save_json(json: &String) -> std::io::Result<()> {
-        let mut file = File::create("cache_checkfixedlengthsequence_5terms.json")?;
+        let mut file = File::create("cache/checkfixedlengthsequence_5terms.json")?;
         file.write_all(json.as_bytes())?;
         Ok(())
     }
@@ -218,7 +218,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
 
         // read from disk
         let mut data = String::new();
-        let mut f = File::open("cache_checkfixedlengthsequence_5terms.json")
+        let mut f = File::open("cache/checkfixedlengthsequence_5terms.json")
             .expect("Unable to open file");
         f.read_to_string(&mut data).expect("Unable to read string");
 
