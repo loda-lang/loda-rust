@@ -5,7 +5,6 @@ use std::io;
 use std::path::Path;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use num_bigint::ToBigInt;
 use std::io::prelude::*;
 
 pub struct CheckFixedLengthSequence {
@@ -147,6 +146,7 @@ mod tests {
     use rand::thread_rng;
     use rand::prelude::*;
     use std::path::PathBuf;
+    use num_bigint::ToBigInt;
     
     #[test]
     fn test_10000_bloomfilter_basic() {
