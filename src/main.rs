@@ -11,7 +11,7 @@ mod execute;
 mod mine;
 mod parser;
 mod oeis;
-use control::{Settings, subcommand_update, subcommand_dependencies, subcommand_evaluate};
+use control::{Settings, subcommand_dependencies, subcommand_evaluate, subcommand_mine, subcommand_update};
 
 extern crate clap;
 extern crate num_bigint;
@@ -67,6 +67,10 @@ fn main() {
             SubCommand::with_name("update")
                 .about("Prepare caching files used by validation")
         )
+        .subcommand(
+            SubCommand::with_name("mine")
+                .about("Experimental: Come up with new programs")
+        )
         .get_matches();
 
     if let Some(sub_m) = matches.subcommand_matches("evaluate") {
@@ -94,6 +98,11 @@ fn main() {
 
     if let Some(_sub_m) = matches.subcommand_matches("update") {
         subcommand_update(&settings);
+        return;
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("mine") {
+        subcommand_mine(&settings);
         return;
     }
 
