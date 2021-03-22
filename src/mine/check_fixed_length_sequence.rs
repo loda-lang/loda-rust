@@ -183,41 +183,68 @@ A000040 ,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,
 A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
 "#;
 
+    impl CheckFixedLengthSequence {
+        fn check_i64(&self, ary: &Vec<i64>) -> bool {
+            let ary2: BigIntVec = ary.iter().map(|value| {
+                value.to_bigint().unwrap()
+            }).collect();
+            self.check(&ary2)
+        }
+    }
+
     #[test]
     fn test_10003_populate_with_oeis_mockdata() {
         let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
         let checker: CheckFixedLengthSequence = create_bloom_inner(&mut input);
         {
-            let ary: Vec<i64> = vec!(2,3,5,7,11);
-            let ary2: BigIntVec = ary.iter().map(|value| {
-                value.to_bigint().unwrap()
-            }).collect();
-            assert_eq!(checker.check(&ary2), true);
-        }
-        {
-            let ary: Vec<i64> = vec!(0,1,1,2,3);
-            let ary2: BigIntVec = ary.iter().map(|value| {
-                value.to_bigint().unwrap()
-            }).collect();
-            assert_eq!(checker.check(&ary2), true);
+            assert_eq!(checker.check_i64(&vec!(2,3,5,7,11)), true);
+            assert_eq!(checker.check_i64(&vec!(0,1,1,2,3)), true);
         }
 
-
-        {
-            let ary: Vec<i64> = vec!(1,2,3,4,5);
-            let ary2: BigIntVec = ary.iter().map(|value| {
-                value.to_bigint().unwrap()
-            }).collect();
-            assert_eq!(checker.check(&ary2), false);
+        let sequence_array: Vec<Vec<i64>> = vec!(
+            vec!(1,2,3,4,5),
+            vec!(0,0,0,0,0),
+            vec!(0,1,0,1,0),
+            vec!(0,1,10,11,100),
+            vec!(0,2,4,8,10),
+        );
+        let mut count: usize = 0;
+        for seq in sequence_array {
+            if checker.check_i64(&seq) {
+                count += 1;
+            }
         }
+        assert_eq!(count, 0);
     }
 
     #[test]
     fn test_10004_save_load() {
-        let filename: String = "cache/checkfixedlengthsequence_5terms.json".to_string();
-        let checker1: CheckFixedLengthSequence = create_bloom_from_file();
-        checker1.save(&filename);
+        let filename: String = "cache/tmp_test_10004_save_load.json".to_string();
+        {
+            let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
+            let checker_original: CheckFixedLengthSequence = create_bloom_inner(&mut input);    
+            checker_original.save(&filename);
+        }
 
-        let checker2: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&filename);
+        let checker: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&filename);
+        {
+            assert_eq!(checker.check_i64(&vec!(2,3,5,7,11)), true);
+            assert_eq!(checker.check_i64(&vec!(0,1,1,2,3)), true);
+        }
+
+        let sequence_array: Vec<Vec<i64>> = vec!(
+            vec!(1,2,3,4,5),
+            vec!(0,0,0,0,0),
+            vec!(0,1,0,1,0),
+            vec!(0,1,10,11,100),
+            vec!(0,2,4,8,10),
+        );
+        let mut count: usize = 0;
+        for seq in sequence_array {
+            if checker.check_i64(&seq) {
+                count += 1;
+            }
+        }
+        assert_eq!(count, 0);
     }
 }
