@@ -65,6 +65,31 @@ impl DependencyManager {
         self.programids_currently_loading.remove(&program_id);
     }
 
+    pub fn parse(&mut self, contents: &String) -> Program {
+        let parsed = match parse(&contents) {
+            Ok(value) => value,
+            Err(err) => {
+                panic!("error: {}", err);
+            }
+        };
+        let mut program: Program = parsed.created_program.program;
+    
+        // Obtain a list of dependencies.
+        let mut dependent_program_id_vec: Vec<u64> = vec!();
+        program.accumulate_call_dependencies(&mut dependent_program_id_vec);
+        if !dependent_program_id_vec.is_empty() {
+            debug!("program depends on other programs: {:?}", dependent_program_id_vec);
+        }
+        for dependent_program_id in dependent_program_id_vec {
+            self.load(dependent_program_id);
+        }
+        program.update_call(&mut self.program_run_manager);
+        if program.validate_call_nodes().is_err() {
+            panic!("failed to assign all dependencies");
+        }
+        program
+    }
+
     // Construct a path: "/absolute/path/123/a123456.asm"
     fn path_to_program(&self, program_id: u64) -> PathBuf {
         let dir_index: u64 = program_id / 1000;
@@ -82,5 +107,31 @@ impl DependencyManager {
         }).collect();
         let program_id_pretty: String = strings.join(",");
         println!("{}", program_id_pretty);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const INPUT_A000079: &str = r#"
+    ; A000079: Powers of 2: a(n) = 2^n.
+    ; 1,2,4,8,16,32,64,128,256,512
+    
+    mov $1,2
+    pow $1,$0
+    "#;
+
+    #[test]
+    fn test_10000_powers_of_2() {
+        let mut dm = DependencyManager::new(
+            PathBuf::from("non-existing-dir"),
+        );
+        let source_code: String = INPUT_A000079.to_string();
+        let program: Program = dm.parse(&source_code);
+        let runner = ProgramRunner::new(program);
+        let actual: Vec<i64> = runner.run_terms(10);
+        let expected: Vec<i64> = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512].to_vec();
+        assert_eq!(actual, expected);
     }
 }
