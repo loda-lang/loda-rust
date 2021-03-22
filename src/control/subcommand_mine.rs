@@ -1,16 +1,17 @@
-use super::Settings;
+use super::{DependencyManager, Settings};
 use crate::mine::check_fixed_length_sequence::CheckFixedLengthSequence;
 use std::path::Path;
 use crate::parser::{InstructionId, ParameterType};
+use crate::execute::{Program, ProgramRunner, ProgramRunnerManager, RegisterValue, RunMode};
 
-pub fn subcommand_mine(_settings: &Settings) {
+pub fn subcommand_mine(settings: &Settings) {
     println!("step1");
     let cache_file = Path::new("cache/fixed_length_sequence_5terms.json");
     let checker: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&cache_file);
     println!("step2");
 
     // TODO: mining
-    run_experiment0();
+    run_experiment0(settings);
 }
 
 
@@ -84,17 +85,42 @@ impl Genome {
         }
     }
 
-    fn print_program(&self) {
-        let mut program_rows: Vec<String> = vec!();
-        for item in &self.genome_vec {
-            program_rows.push(item.to_program_row());
-        }
-        let program: String = program_rows.join("\n");
-        println!("program:\n{}", program);
+    fn to_program_string(&self) -> String {
+        let program_rows: Vec<String> = self.genome_vec.iter().map(|genome_item| {
+            genome_item.to_program_row()
+        }).collect();
+        program_rows.join("\n")
+    }
+
+    fn print(&self) {
+        println!("program:\n{}", self.to_program_string());
     }
 }
 
-fn run_experiment0() {
+impl ProgramRunner {
+    fn compute_terms(&self, count: u64) {
+        for index in 0..(count as i64) {
+            let input = RegisterValue::from_i64(index);
+            let output: RegisterValue = self.run(input, RunMode::Silent);
+            if index == 0 {
+                print!("{}", output.0);
+                continue;
+            }
+            print!(",{}", output.0);
+        }
+        print!("\n");
+    }
+}
+
+fn run_experiment0(settings: &Settings) {
+    let mut dm = DependencyManager::new(
+        settings.loda_program_rootdir.clone(),
+    );
     let mut genome = Genome::new();
-    genome.print_program();
+    genome.print();
+
+    let program: Program = dm.parse(&genome.to_program_string());
+    let runner = ProgramRunner::new(program);
+    let number_of_terms: u64 = 5;
+    runner.compute_terms(number_of_terms);
 }
