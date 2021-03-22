@@ -8,36 +8,8 @@ use std::io::{BufRead, BufReader};
 use num_bigint::ToBigInt;
 use std::io::prelude::*;
 
-#[derive(Serialize, Deserialize)]
-struct CheckFixedLengthSequenceInternalRepresentation {
-    term_count: usize,
-    bloom_bitmap: Vec<u8>,
-    bloom_bitmap_bits: u64,
-    bloom_k_num: u32,
-    bloom_sip_keys: [(u64, u64); 2],
-}
-
-impl CheckFixedLengthSequenceInternalRepresentation {
-    fn create_instance(&self) -> CheckFixedLengthSequence {
-        let bloom = Bloom::<BigIntVec>::from_existing(
-            &self.bloom_bitmap,
-            self.bloom_bitmap_bits,
-            self.bloom_k_num,
-            self.bloom_sip_keys
-        );
-        CheckFixedLengthSequence {
-            bloom: bloom,
-            term_count: self.term_count,
-        }
-    }
-}
-
 pub struct CheckFixedLengthSequence {
-    // I cannot compile the dependency "bloomfilter" with "serde" feature enabled.
-    // My kludgy workaround, is a wrapper that can serialize/deserialize 
-    // all the fields of the bloomfilter.
     bloom: Bloom::<BigIntVec>,
-
     term_count: usize,
 }
 
@@ -92,6 +64,33 @@ impl CheckFixedLengthSequence {
         file.read_to_string(&mut data).expect("Unable to read string");
         let representation: CheckFixedLengthSequenceInternalRepresentation = serde_json::from_str(&data).unwrap();
         representation.create_instance()
+    }
+}
+
+// I cannot compile the dependency "bloomfilter" with "serde" feature enabled.
+// This is my kludgy workaround that can serialize/deserialize 
+// all the fields of the bloomfilter.
+#[derive(Serialize, Deserialize)]
+struct CheckFixedLengthSequenceInternalRepresentation {
+    term_count: usize,
+    bloom_bitmap: Vec<u8>,
+    bloom_bitmap_bits: u64,
+    bloom_k_num: u32,
+    bloom_sip_keys: [(u64, u64); 2],
+}
+
+impl CheckFixedLengthSequenceInternalRepresentation {
+    fn create_instance(&self) -> CheckFixedLengthSequence {
+        let bloom = Bloom::<BigIntVec>::from_existing(
+            &self.bloom_bitmap,
+            self.bloom_bitmap_bits,
+            self.bloom_k_num,
+            self.bloom_sip_keys
+        );
+        CheckFixedLengthSequence {
+            bloom: bloom,
+            term_count: self.term_count,
+        }
     }
 }
 
