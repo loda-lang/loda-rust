@@ -1,8 +1,10 @@
 use super::{DependencyManager, Settings};
 use crate::mine::check_fixed_length_sequence::CheckFixedLengthSequence;
-use std::path::Path;
 use crate::parser::{InstructionId, ParameterType};
-use crate::execute::{Program, ProgramRunner, ProgramRunnerManager, RegisterValue, RunMode};
+use crate::execute::{Program, ProgramRunner, RegisterValue, RunMode};
+use crate::oeis::stripped_sequence::BigIntVec;
+use std::path::Path;
+use num_bigint::BigInt;
 
 pub fn subcommand_mine(settings: &Settings) {
     println!("step1");
@@ -11,7 +13,7 @@ pub fn subcommand_mine(settings: &Settings) {
     println!("step2");
 
     // TODO: mining
-    run_experiment0(settings);
+    run_experiment0(settings, &checker);
 }
 
 
@@ -34,7 +36,7 @@ impl GenomeItem {
 
     fn to_program_row(&self) -> String {
         match &self.instruction_id {
-            LoopBegin => {
+            InstructionId::LoopBegin => {
                 if self.source_type == ParameterType::Register {
                     return format!("{} ${},${}",
                         self.instruction_id.shortname(), 
@@ -55,7 +57,7 @@ impl GenomeItem {
                     );
                 }
             },
-            LoopEnd => {
+            InstructionId::LoopEnd => {
                 return self.instruction_id.shortname().to_string();
             },
             _ => {
@@ -98,10 +100,12 @@ impl Genome {
 }
 
 impl ProgramRunner {
-    fn compute_terms(&self, count: u64) {
+    fn compute_terms(&self, count: u64) -> BigIntVec {
+        let mut terms: BigIntVec = vec!();
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
             let output: RegisterValue = self.run(input, RunMode::Silent);
+            terms.push(output.0.clone());
             if index == 0 {
                 print!("{}", output.0);
                 continue;
@@ -109,10 +113,11 @@ impl ProgramRunner {
             print!(",{}", output.0);
         }
         print!("\n");
+        terms
     }
 }
 
-fn run_experiment0(settings: &Settings) {
+fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
     let mut dm = DependencyManager::new(
         settings.loda_program_rootdir.clone(),
     );
@@ -122,5 +127,8 @@ fn run_experiment0(settings: &Settings) {
     let program: Program = dm.parse(&genome.to_program_string());
     let runner = ProgramRunner::new(program);
     let number_of_terms: u64 = 5;
-    runner.compute_terms(number_of_terms);
+    let terms: BigIntVec = runner.compute_terms(number_of_terms);
+
+    let check_result: bool = checker.check(&terms);
+    println!("check_result: {:?}", check_result);
 }
