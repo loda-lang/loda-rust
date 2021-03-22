@@ -1,8 +1,23 @@
+use std::fmt;
 use std::fs;
 use std::path::{Path,PathBuf};
 use std::collections::HashSet;
 use crate::parser::parse::*;
 use crate::execute::{Program,ProgramRunner,ProgramRunnerManager};
+
+#[derive(Debug)]
+pub enum DependencyManagerError {
+    Parse(ParseError)
+}
+
+impl fmt::Display for DependencyManagerError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Parse(error) => 
+                write!(f, "Failed to parse program. error: {}", error),
+        }
+    }
+}
 
 pub struct DependencyManager {
     loda_program_dir: PathBuf,
@@ -65,11 +80,11 @@ impl DependencyManager {
         self.programids_currently_loading.remove(&program_id);
     }
 
-    pub fn parse(&mut self, contents: &String) -> Program {
+    pub fn parse(&mut self, contents: &String) -> Result<Program, DependencyManagerError> {
         let parsed = match parse(&contents) {
             Ok(value) => value,
-            Err(err) => {
-                panic!("error: {}", err);
+            Err(error) => {
+                return Err(DependencyManagerError::Parse(error));
             }
         };
         let mut program: Program = parsed.created_program.program;
@@ -87,7 +102,7 @@ impl DependencyManager {
         if program.validate_call_nodes().is_err() {
             panic!("failed to assign all dependencies");
         }
-        program
+        Ok(program)
     }
 
     // Construct a path: "/absolute/path/123/a123456.asm"
@@ -128,7 +143,7 @@ mod tests {
             PathBuf::from("non-existing-dir"),
         );
         let source_code: String = INPUT_A000079.to_string();
-        let program: Program = dm.parse(&source_code);
+        let program: Program = dm.parse(&source_code).unwrap();
         let runner = ProgramRunner::new(program);
         let actual: Vec<i64> = runner.run_terms(10);
         let expected: Vec<i64> = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512].to_vec();

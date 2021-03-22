@@ -131,7 +131,7 @@ fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
     let mut genome = Genome::new();
     genome.print();
 
-    let program: Program = dm.parse(&genome.to_program_string());
+    let program: Program = dm.parse(&genome.to_program_string()).unwrap();
     let runner = ProgramRunner::new(program);
     let number_of_terms: u64 = 5;
     let terms: BigIntVec = runner.compute_terms(number_of_terms);
