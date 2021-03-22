@@ -201,7 +201,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
     }
 
     #[test]
-    fn test_10003_populate_with_oeis_mockdata() {
+    fn test_20000_populate_with_oeis_mockdata() {
         let checker = CheckFixedLengthSequence::new_mock();
         {
             assert_eq!(checker.check_i64(&vec!(2,3,5,7,11)), true);
@@ -225,7 +225,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
     }
 
     #[test]
-    fn test_10004_save_load() {
+    fn test_20001_save_load() {
         let filename = "test_10004_save_load.json";
         let tempdir = tempfile::tempdir().unwrap();
         let mut path = PathBuf::from(&tempdir.path());
