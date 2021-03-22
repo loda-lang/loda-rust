@@ -94,22 +94,24 @@ impl CheckFixedLengthSequenceInternalRepresentation {
     }
 }
 
-fn create_bloom_from_file() -> CheckFixedLengthSequence {
-    let oeis_stripped_file = Path::new("/Users/neoneye/.loda/oeis/stripped");
+pub fn create_cache_file(oeis_stripped_file: &Path, destination_file: &Path, term_count: usize) {
     assert!(oeis_stripped_file.is_absolute());
     assert!(oeis_stripped_file.is_file());
 
     let file = File::open(oeis_stripped_file).unwrap();
     let mut reader = BufReader::new(file);
-    create_bloom_inner(&mut reader)
+    let instance: CheckFixedLengthSequence = create_inner(&mut reader, term_count, true);
+
+    instance.save(destination_file);
 }
 
-fn create_bloom_inner(reader: &mut dyn io::BufRead) -> CheckFixedLengthSequence {
+fn create_inner(reader: &mut dyn io::BufRead, term_count: usize, print_progress: bool) -> CheckFixedLengthSequence {
+    assert!(term_count >= 1);
+    assert!(term_count <= 100);
     let items_count: usize = 400000;
     let false_positive_rate: f64 = 0.01;
     let mut bloom = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
 
-    let term_count: usize = 5;
     let mut line_count_sequences: usize = 0;
     let mut line_count_junk: usize = 0;
     for line in reader.lines() {
@@ -128,8 +130,8 @@ fn create_bloom_inner(reader: &mut dyn io::BufRead) -> CheckFixedLengthSequence 
                 line_count_junk += 1;
             }
         }
-        if line_count_sequences > 100 {
-            break;
+        if print_progress && ((line_count_sequences % 10000) == 0) {
+            println!("progress: {}", line_count_sequences);
         }
     }
     debug!("line_count_sequences: {}", line_count_sequences);
@@ -185,6 +187,11 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
 "#;
 
     impl CheckFixedLengthSequence {
+        fn new_mock() -> CheckFixedLengthSequence {
+            let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
+            create_inner(&mut input, 5, false)
+        }
+
         fn check_i64(&self, ary: &Vec<i64>) -> bool {
             let ary2: BigIntVec = ary.iter().map(|value| {
                 value.to_bigint().unwrap()
@@ -195,8 +202,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
 
     #[test]
     fn test_10003_populate_with_oeis_mockdata() {
-        let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
-        let checker: CheckFixedLengthSequence = create_bloom_inner(&mut input);
+        let checker = CheckFixedLengthSequence::new_mock();
         {
             assert_eq!(checker.check_i64(&vec!(2,3,5,7,11)), true);
             assert_eq!(checker.check_i64(&vec!(0,1,1,2,3)), true);
@@ -226,8 +232,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
         path.push(filename);
 
         {
-            let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
-            let checker_original: CheckFixedLengthSequence = create_bloom_inner(&mut input);    
+            let checker_original = CheckFixedLengthSequence::new_mock();
             checker_original.save(&path);
         }
 
