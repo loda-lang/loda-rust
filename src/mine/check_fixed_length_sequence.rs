@@ -41,25 +41,25 @@ impl CheckFixedLengthSequence {
         }
     }
 
-    pub fn save(&self, filename: &String) {
-        let file = match File::create(&filename) {
+    pub fn save(&self, path: &Path) {
+        let file = match File::create(&path) {
             Ok(value) => value,
             Err(error) => {
-                panic!("Unable to create file at path: {}, error: {:?}", filename, error);
+                panic!("Unable to create file at path: {:?}, error: {:?}", path, error);
             }
         };
         let representation = self.to_representation();
         match ::serde_json::to_writer(&file, &representation) {
             Ok(_value) => {},
             Err(error) => {
-                panic!("Unable to save representation to path: {}, error: {:?}", filename, error);
+                panic!("Unable to save representation to path: {:?}, error: {:?}", path, error);
             }
         };
     }
 
-    pub fn load(filename: &String) -> Self {
+    pub fn load(path: &Path) -> Self {
         let mut data = String::new();
-        let mut file = File::open(filename)
+        let mut file = File::open(path)
             .expect("Unable to open file");
         file.read_to_string(&mut data).expect("Unable to read string");
         let representation: CheckFixedLengthSequenceInternalRepresentation = serde_json::from_str(&data).unwrap();
@@ -144,6 +144,7 @@ mod tests {
     use super::*;
     use rand::thread_rng;
     use rand::prelude::*;
+    use std::path::PathBuf;
     
     #[test]
     fn test_10000_bloomfilter_basic() {
@@ -219,14 +220,18 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
 
     #[test]
     fn test_10004_save_load() {
-        let filename: String = "cache/tmp_test_10004_save_load.json".to_string();
+        let filename = "test_10004_save_load.json";
+        let tempdir = tempfile::tempdir().unwrap();
+        let mut path = PathBuf::from(&tempdir.path());
+        path.push(filename);
+
         {
             let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
             let checker_original: CheckFixedLengthSequence = create_bloom_inner(&mut input);    
-            checker_original.save(&filename);
+            checker_original.save(&path);
         }
 
-        let checker: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&filename);
+        let checker: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path);
         {
             assert_eq!(checker.check_i64(&vec!(2,3,5,7,11)), true);
             assert_eq!(checker.check_i64(&vec!(0,1,1,2,3)), true);
