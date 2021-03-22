@@ -11,7 +11,7 @@ mod execute;
 mod mine;
 mod parser;
 mod oeis;
-use control::{Settings, subcommand_dependencies, subcommand_evaluate};
+use control::{Settings, subcommand_update, subcommand_dependencies, subcommand_evaluate};
 
 extern crate clap;
 extern crate num_bigint;
@@ -63,6 +63,10 @@ fn main() {
                         .required(true)
                 )
         )
+        .subcommand(
+            SubCommand::with_name("update")
+                .about("Prepare caching files used by validation")
+        )
         .get_matches();
 
     if let Some(sub_m) = matches.subcommand_matches("evaluate") {
@@ -85,6 +89,11 @@ fn main() {
         let program_id: u64 = u64::from_str(program_id_raw)
             .expect("Unable to parse program_id.");
         subcommand_dependencies(&settings, program_id);
+        return;
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("update") {
+        subcommand_update(&settings);
         return;
     }
 
