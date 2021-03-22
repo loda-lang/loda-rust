@@ -34,6 +34,12 @@ impl GenomeItem {
         }
     }
 
+    fn mutate_trigger_division_by_zero(&mut self) {
+        self.instruction_id = InstructionId::Divide;
+        self.source_type = ParameterType::Constant;
+        self.source_value = 0;
+    }
+
     fn to_program_row(&self) -> String {
         match &self.instruction_id {
             InstructionId::LoopBegin => {
@@ -82,6 +88,7 @@ impl Genome {
         for _ in 0..3 {
             genome_vec.push(GenomeItem::new());
         }
+        // genome_vec[2].mutate_trigger_division_by_zero();
         Self {
             genome_vec: genome_vec,
         }
