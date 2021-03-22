@@ -68,6 +68,31 @@ impl CheckFixedLengthSequence {
             bloom_sip_keys: self.bloom.sip_keys()
         }
     }
+
+    pub fn save(&self, filename: &String) {
+        let file = match File::create(&filename) {
+            Ok(value) => value,
+            Err(error) => {
+                panic!("Unable to create file at path: {}, error: {:?}", filename, error);
+            }
+        };
+        let representation = self.to_representation();
+        match ::serde_json::to_writer(&file, &representation) {
+            Ok(_value) => {},
+            Err(error) => {
+                panic!("Unable to save representation to path: {}, error: {:?}", filename, error);
+            }
+        };
+    }
+
+    pub fn load(filename: &String) -> Self {
+        let mut data = String::new();
+        let mut file = File::open(filename)
+            .expect("Unable to open file");
+        file.read_to_string(&mut data).expect("Unable to read string");
+        let representation: CheckFixedLengthSequenceInternalRepresentation = serde_json::from_str(&data).unwrap();
+        representation.create_instance()
+    }
 }
 
 fn create_bloom_from_file() -> CheckFixedLengthSequence {
@@ -188,44 +213,12 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
         }
     }
 
-    fn save_json(json: &String) -> std::io::Result<()> {
-        let mut file = File::create("cache/checkfixedlengthsequence_5terms.json")?;
-        file.write_all(json.as_bytes())?;
-        Ok(())
-    }
-
     #[test]
-    fn test_10004_regenerate_cache_file() {
-        let checker: CheckFixedLengthSequence = create_bloom_from_file();
+    fn test_10004_save_load() {
+        let filename: String = "cache/checkfixedlengthsequence_5terms.json".to_string();
+        let checker1: CheckFixedLengthSequence = create_bloom_from_file();
+        checker1.save(&filename);
 
-        let rep1: CheckFixedLengthSequenceInternalRepresentation = checker.to_representation();
-
-        let instance1: CheckFixedLengthSequence = rep1.create_instance();
-
-
-        // let plain_json: String = match serde_json::to_string(&checker) {
-        let plain_json: String = match serde_json::to_string(&rep1) {
-            Ok(value) => value,
-            Err(error) => {
-                panic!("unable to serialize: {:?}", error);
-            }
-        };
-        // let xplain_json: String = serde_json::to_string(&checker).unwrap();
-        println!("byte_count: {}", plain_json.len());
-
-        // write to disk
-        save_json(&plain_json);
-
-        // read from disk
-        let mut data = String::new();
-        let mut f = File::open("cache/checkfixedlengthsequence_5terms.json")
-            .expect("Unable to open file");
-        f.read_to_string(&mut data).expect("Unable to read string");
-
-        // deserialize
-        let rep2: CheckFixedLengthSequenceInternalRepresentation = serde_json::from_str(&data).unwrap();
-        let instance2: CheckFixedLengthSequence = rep2.create_instance();
-
-        // verify that it's the same
+        let checker2: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&filename);
     }
 }
