@@ -145,7 +145,7 @@ mod tests {
         let source_code: String = INPUT_A000079.to_string();
         let program: Program = dm.parse(&source_code).unwrap();
         let runner = ProgramRunner::new(program);
-        let actual: Vec<i64> = runner.run_terms(10);
+        let actual: Vec<i64> = runner.run_terms(10).unwrap();
         let expected: Vec<i64> = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512].to_vec();
         assert_eq!(actual, expected);
     }

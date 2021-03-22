@@ -37,7 +37,7 @@ impl Node for NodeCallConstant {
             panic!("No link have been establish. This node cannot do its job.");
         }
         let input: RegisterValue = state.get_register_value(self.target.clone());
-        let output: RegisterValue = self.program_runner_rc.run(input, state.run_mode());
+        let output: RegisterValue = self.program_runner_rc.run(input, state.run_mode())?;
         state.set_register_value(self.target.clone(), output);
         Ok(())
     }
