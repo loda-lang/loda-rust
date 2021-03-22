@@ -63,14 +63,15 @@ fn main() {
                         .required(true)
                 )
         )
-        .subcommand(
-            SubCommand::with_name("update")
-                .about("Prepare caching files used by validation")
-        )
-        .subcommand(
-            SubCommand::with_name("mine")
-                .about("Experimental: Come up with new programs")
-        )
+        // Experiments with mining new programs
+        // .subcommand(
+        //     SubCommand::with_name("update")
+        //         .about("Prepare caching files used by validation")
+        // )
+        // .subcommand(
+        //     SubCommand::with_name("mine")
+        //         .about("Experimental: Come up with new programs")
+        // )
         .get_matches();
 
     if let Some(sub_m) = matches.subcommand_matches("evaluate") {
