@@ -5,15 +5,16 @@ use crate::execute::{EvalError, Program, ProgramRunner, RegisterValue, RunMode};
 use crate::oeis::stripped_sequence::BigIntVec;
 use std::path::Path;
 use num_bigint::BigInt;
+use num_traits::Zero;
 use rand::{Rng,SeedableRng};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 
 pub fn subcommand_mine(settings: &Settings) {
-    println!("step1");
+    debug!("step1");
     let cache_file = Path::new("cache/fixed_length_sequence_5terms.json");
     let checker: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&cache_file);
-    println!("step2");
+    debug!("step2");
 
     // TODO: mining
     run_experiment0(settings, &checker);
@@ -25,6 +26,7 @@ enum MutateValue {
 }
 
 struct GenomeItem {
+    enabled: bool,
     instruction_id: InstructionId,
     target_value: u16,
     source_type: ParameterType,
@@ -34,6 +36,7 @@ struct GenomeItem {
 impl GenomeItem {
     fn new() -> Self {
         Self {
+            enabled: true,
             instruction_id: InstructionId::Move,
             target_value: 1,
             source_type: ParameterType::Register,
@@ -112,6 +115,10 @@ impl GenomeItem {
         }
     }
 
+    fn mutate_enabled(&mut self) {
+        self.enabled = !self.enabled;
+    }
+
     fn mutate_swap_source_target_value(&mut self) {
         let tmp = self.source_value;
         self.source_value = self.target_value;
@@ -127,10 +134,200 @@ impl GenomeItem {
         // too huge constants
         // too huge register indexes
         // call to a non-existing program
-        true
+        let mut status = true;
+
+        // Prevent too extreme register index for target
+        {
+            let new_register = self.target_value % 5;
+            if self.target_value != new_register {
+                self.target_value = new_register;
+                status = false;
+            }
+        }
+
+        // Prevent too extreme register index for source
+        if self.source_type == ParameterType::Register {
+            let new_register = self.source_value % 5;
+            if self.source_value != new_register {
+                self.source_value = new_register;
+                status = false;
+            }
+        }
+
+        match self.instruction_id {
+            InstructionId::Divide => {
+                match self.source_type {
+                    ParameterType::Constant => {
+                        if self.source_value < 2 {
+                            self.source_value = 2;
+                            return false;
+                        }
+                        if self.source_value > 16 {
+                            self.source_value = 16;
+                            return false;
+                        }
+                    },
+                    ParameterType::Register => {
+                        if self.source_value == self.target_value {
+                            self.source_value = (self.target_value + 1) % 5;
+                            return false;
+                        }
+                    }
+                }
+            },
+            InstructionId::DivideIf => {
+                match self.source_type {
+                    ParameterType::Constant => {
+                        if self.source_value < 2 {
+                            self.source_value = 2;
+                            return false;
+                        }
+                        if self.source_value > 16 {
+                            self.source_value = 16;
+                            return false;
+                        }
+                    },
+                    ParameterType::Register => {
+                        if self.source_value == self.target_value {
+                            self.source_value = (self.target_value + 1) % 5;
+                            return false;
+                        }
+                    }
+                }
+            },
+            InstructionId::Modulo => {
+                match self.source_type {
+                    ParameterType::Constant => {
+                        if self.source_value < 2 {
+                            self.source_value = 2;
+                            return false;
+                        }
+                        if self.source_value > 16 {
+                            self.source_value = 16;
+                            return false;
+                        }
+                    },
+                    ParameterType::Register => {
+                        if self.source_value == self.target_value {
+                            self.source_value = (self.target_value + 1) % 5;
+                            return false;
+                        }
+                    }
+                }
+            },
+            InstructionId::Multiply => {
+                if self.source_type == ParameterType::Constant {
+                    if self.source_value < 2 {
+                        self.source_value = 2;
+                        return false;
+                    }
+                    if self.source_value > 16 {
+                        self.source_value = 16;
+                        return false;
+                    }
+                }
+            },
+            InstructionId::Logarithm => {
+                match self.source_type {
+                    ParameterType::Constant => {
+                        if self.source_value < 2 {
+                            self.source_value = 2;
+                            return false;
+                        }
+                        if self.source_value > 16 {
+                            self.source_value = 16;
+                            return false;
+                        }
+                    },
+                    ParameterType::Register => {
+                        if self.source_value == self.target_value {
+                            self.source_value = (self.target_value + 1) % 5;
+                            return false;
+                        }
+                    }
+                }
+            },
+            InstructionId::Subtract => {
+                match self.source_type {
+                    ParameterType::Constant => {
+                        if self.source_value == 0 {
+                            self.source_value = 1;
+                            return false;
+                        }
+                        if self.source_value > 16 {
+                            self.source_value = 16;
+                            return false;
+                        }
+                    },
+                    ParameterType::Register => {
+                        if self.source_value == self.target_value {
+                            self.source_value = (self.target_value + 1) % 5;
+                            return false;
+                        }
+                    }
+                }
+            },
+            InstructionId::Add => {
+                if self.source_type == ParameterType::Constant {
+                    if self.source_value == 0 {
+                        self.source_value = 1;
+                        return false;
+                    }
+                    if self.source_value > 16 {
+                        self.source_value = 16;
+                        return false;
+                    }
+                }
+            },
+            InstructionId::Move => {
+                match self.source_type {
+                    ParameterType::Constant => {
+                        if self.source_value == 0 {
+                            self.source_value = 1;
+                            return false;
+                        }
+                        if self.source_value > 16 {
+                            self.source_value = 16;
+                            return false;
+                        }
+                    },
+                    ParameterType::Register => {
+                        if self.source_value == self.target_value {
+                            self.source_value = (self.target_value + 1) % 5;
+                            return false;
+                        }
+                    }
+                }
+            },
+            InstructionId::Power => {
+                match self.source_type {
+                    ParameterType::Constant => {
+                        if self.source_value < 2 {
+                            self.source_value = 2;
+                            return false;
+                        }
+                        if self.source_value > 4 {
+                            self.source_value = 4;
+                            return false;
+                        }
+                    },
+                    ParameterType::Register => {}
+                }
+            },
+            _ => {}
+        }
+        return status;
     }
 
     fn to_program_row(&self) -> String {
+        if self.enabled {
+            self.to_program_row_inner()
+        } else {
+            format!("; {}", self.to_program_row_inner())
+        }
+    }
+
+    fn to_program_row_inner(&self) -> String {
         match &self.instruction_id {
             InstructionId::LoopBegin => {
                 if self.source_type == ParameterType::Register {
@@ -169,8 +366,8 @@ impl GenomeItem {
 }
 
 // Ideas for more mutations
-// insert random row
-// swap 2 rows
+// append random row
+// insert loop begin/end at a random place
 enum MutateGenome {
     Instruction,
     SourceConstant,
@@ -178,6 +375,8 @@ enum MutateGenome {
     SwapRegisters,
     SourceRegister,
     TargetRegister,
+    ToggleEnabled,
+    SwapRows,
 }
 
 struct Genome {
@@ -335,6 +534,35 @@ impl Genome {
     }
 
     // Return `true` when the mutation was successful.
+    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    fn mutate_enabled<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        let length: usize = self.genome_vec.len();
+        assert!(length > 0);
+        let index: usize = rng.gen_range(0..length);
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
+
+        genome_item.mutate_enabled();
+        genome_item.mutate_sanitize_program_row()
+    }
+
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    fn mutate_swap_rows<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        let length: usize = self.genome_vec.len();
+        if length == 0 {
+            return false;
+        }
+        let index0: usize = rng.gen_range(0..length);
+        let index1: usize = rng.gen_range(0..length);
+        if index0 == index1 {
+            return false;
+        }
+        self.genome_vec.swap(index0, index1);
+        // IDEA: sanitize loop instructions. Prevent loop begin getting swapped with loop end.
+        true
+    }
+
+    // Return `true` when the mutation was successful.
     // Return `false` in case of failure.
     fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mutation_vec: Vec<MutateGenome> = vec![
@@ -344,6 +572,8 @@ impl Genome {
             MutateGenome::SwapRegisters,
             MutateGenome::SourceRegister,
             MutateGenome::TargetRegister,
+            MutateGenome::ToggleEnabled,
+            MutateGenome::SwapRows,
         ];
         let mutation: &MutateGenome = mutation_vec.choose(rng).unwrap();
         match mutation {
@@ -358,12 +588,18 @@ impl Genome {
             },
             MutateGenome::SwapRegisters => {
                 return self.mutate_swap_registers(rng);
-            }
+            },
             MutateGenome::SourceRegister => {
                 return self.mutate_source_register(rng);
-            }
+            },
             MutateGenome::TargetRegister => {
                 return self.mutate_target_register(rng);
+            },
+            MutateGenome::ToggleEnabled => {
+                return self.mutate_enabled(rng);
+            },
+            MutateGenome::SwapRows => {
+                return self.mutate_swap_rows(rng);
             }
         }
     }
@@ -387,8 +623,27 @@ impl ProgramRunner {
     }
 }
 
+impl CheckFixedLengthSequence {
+    fn is_possible_candidate(&self, terms: &BigIntVec) -> bool {
+        let first: &BigInt = terms.first().unwrap();
+        let mut is_same = true;
+        for term in terms {
+            if term != first {
+                is_same = false;
+                break;
+            }
+        }
+        if is_same {
+            debug!("all terms are the same");
+            return false;
+        }
+
+        self.check(&terms)
+    }
+}
+
 fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
-    let seed: u64 = 248;
+    let seed: u64 = 255;
     debug!("random seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
 
@@ -407,6 +662,6 @@ fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
     let number_of_terms: u64 = 5;
     let terms: BigIntVec = runner.compute_terms(number_of_terms).unwrap();
 
-    let check_result: bool = checker.check(&terms);
+    let check_result: bool = checker.is_possible_candidate(&terms);
     println!("check_result: {:?}", check_result);
 }
