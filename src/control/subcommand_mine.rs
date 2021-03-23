@@ -5,6 +5,9 @@ use crate::execute::{EvalError, Program, ProgramRunner, RegisterValue, RunMode};
 use crate::oeis::stripped_sequence::BigIntVec;
 use std::path::Path;
 use num_bigint::BigInt;
+use rand::{Rng,SeedableRng};
+use rand::rngs::StdRng;
+use rand::seq::SliceRandom;
 
 pub fn subcommand_mine(settings: &Settings) {
     println!("step1");
@@ -16,6 +19,10 @@ pub fn subcommand_mine(settings: &Settings) {
     run_experiment0(settings, &checker);
 }
 
+enum MutateSourceValue {
+    Increment,
+    Decrement,
+}
 
 struct GenomeItem {
     instruction_id: InstructionId,
@@ -38,6 +45,49 @@ impl GenomeItem {
         self.instruction_id = InstructionId::Divide;
         self.source_type = ParameterType::Constant;
         self.source_value = 0;
+    }
+
+    fn mutate_randomize_instruction<R: Rng + ?Sized>(&mut self, rng: &mut R) {
+        let instructions: Vec<InstructionId> = vec![
+            InstructionId::Add,
+            InstructionId::Binomial,
+            InstructionId::Compare,
+            InstructionId::Divide,
+            InstructionId::DivideIf,
+            InstructionId::GCD,
+            InstructionId::Logarithm,
+            InstructionId::Max,
+            InstructionId::Min,
+            InstructionId::Modulo,
+            InstructionId::Move,
+            InstructionId::Multiply,
+            InstructionId::Power,
+            InstructionId::Subtract,
+            InstructionId::Truncate,
+        ];
+        let instruction: &InstructionId = instructions.choose(rng).unwrap();
+        self.instruction_id = instruction.clone();
+    }
+
+    fn mutate_source_value(&mut self, mutation: MutateSourceValue) {
+        match mutation {
+            MutateSourceValue::Increment => {
+                self.source_value += 1;
+            },
+            MutateSourceValue::Decrement => {
+                self.source_value -= 1;
+            },
+        }
+    }
+
+    fn mutate_sanitize_program_row(&mut self) {
+        // Things to prevent 
+        // division by zero
+        // multiply by zero
+        // raise to power 0
+        // move from/to same register
+        // too huge constants
+        // too huge register indexes
     }
 
     fn to_program_row(&self) -> String {
@@ -104,7 +154,34 @@ impl Genome {
     fn print(&self) {
         println!("program:\n{}", self.to_program_string());
     }
+
+    fn mutate_increment_constant<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.source_type == ParameterType::Constant {
+                indexes.push(index);
+            }
+        }
+        if indexes.is_empty() {
+            return false;
+        }
+        let index: &usize = indexes.choose(rng).unwrap();
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
+        genome_item.mutate_source_value(MutateSourceValue::Increment);
+        true
+    }
+
+    fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R) {
+        let length: usize = self.genome_vec.len();
+        assert!(length > 0);
+        let index: usize = rng.gen_range(0..length);
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
+
+        genome_item.mutate_randomize_instruction(rng);
+        genome_item.mutate_sanitize_program_row();
+    }
 }
+
 
 impl ProgramRunner {
     fn compute_terms(&self, count: u64) -> Result<BigIntVec, EvalError> {
@@ -125,10 +202,16 @@ impl ProgramRunner {
 }
 
 fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
+    let seed: u64 = 225;
+    debug!("random seed: {}", seed);
+    let mut rng = StdRng::seed_from_u64(seed);
+
     let mut dm = DependencyManager::new(
         settings.loda_program_rootdir.clone(),
     );
     let mut genome = Genome::new();
+    genome.print();
+    genome.mutate(&mut rng);
     genome.print();
 
     let program: Program = dm.parse(&genome.to_program_string()).unwrap();
