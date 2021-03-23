@@ -19,7 +19,7 @@ pub fn subcommand_mine(settings: &Settings) {
     run_experiment0(settings, &checker);
 }
 
-enum MutateSourceValue {
+enum MutateValue {
     Increment,
     Decrement,
 }
@@ -69,25 +69,65 @@ impl GenomeItem {
         self.instruction_id = instruction.clone();
     }
 
-    fn mutate_source_value(&mut self, mutation: MutateSourceValue) {
+    fn mutate_source_value(&mut self, mutation: &MutateValue) -> bool {
+        let (status, new_value) = self.mutate_value(mutation, self.source_value);
+        self.source_value = new_value;
+        status
+    }
+
+    fn mutate_target_value(&mut self, mutation: &MutateValue) -> bool {
+        let (status, new_value) = self.mutate_value(mutation, self.target_value);
+        self.target_value = new_value;
+        status
+    }
+
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure, such as underflow, overflow.
+    fn mutate_value(&mut self, mutation: &MutateValue, mut value: u16) -> (bool, u16) {
         match mutation {
-            MutateSourceValue::Increment => {
-                self.source_value += 1;
+            MutateValue::Increment => {
+                if value >= 255 {
+                    return (false, value);
+                }
+                value += 1;
             },
-            MutateSourceValue::Decrement => {
-                self.source_value -= 1;
+            MutateValue::Decrement => {
+                if value == 0 {
+                    return (false, value);
+                }
+                value -= 1;
+            },
+        }
+        (true, value)
+    }
+
+    fn mutate_source_type(&mut self) {
+        match self.source_type {
+            ParameterType::Constant => {
+                self.source_type = ParameterType::Register;
+            },
+            ParameterType::Register => {
+                self.source_type = ParameterType::Constant;
             },
         }
     }
 
-    fn mutate_sanitize_program_row(&mut self) {
+    fn mutate_swap_source_target_value(&mut self) {
+        let tmp = self.source_value;
+        self.source_value = self.target_value;
+        self.target_value = tmp;
+    }
+
+    fn mutate_sanitize_program_row(&mut self) -> bool {
         // Things to prevent 
         // division by zero
         // multiply by zero
         // raise to power 0
-        // move from/to same register
+        // move/max/min/sub/mod/div/dif with same register
         // too huge constants
         // too huge register indexes
+        // call to a non-existing program
+        true
     }
 
     fn to_program_row(&self) -> String {
@@ -128,6 +168,18 @@ impl GenomeItem {
     }
 }
 
+// Ideas for more mutations
+// insert random row
+// swap 2 rows
+enum MutateGenome {
+    Instruction,
+    SourceConstant,
+    SourceType,
+    SwapRegisters,
+    SourceRegister,
+    TargetRegister,
+}
+
 struct Genome {
     genome_vec: Vec<GenomeItem>
 }
@@ -135,7 +187,7 @@ struct Genome {
 impl Genome {
     fn new() -> Self {
         let mut genome_vec: Vec<GenomeItem> = vec!();
-        for _ in 0..3 {
+        for _ in 0..5 {
             genome_vec.push(GenomeItem::new());
         }
         // genome_vec[2].mutate_trigger_division_by_zero();
@@ -155,7 +207,10 @@ impl Genome {
         println!("program:\n{}", self.to_program_string());
     }
 
-    fn mutate_increment_constant<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
+    fn mutate_source_value_constant<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        // Identify all the instructions that use constants
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
             if genome_item.source_type == ParameterType::Constant {
@@ -165,23 +220,154 @@ impl Genome {
         if indexes.is_empty() {
             return false;
         }
+
+        // Pick a random mutation
+        let mutation_vec: Vec<MutateValue> = vec![
+            MutateValue::Increment,
+            MutateValue::Decrement,
+        ];
+        let mutation: &MutateValue = mutation_vec.choose(rng).unwrap();
+
+        // Mutate one of the instructions that use a constant
         let index: &usize = indexes.choose(rng).unwrap();
         let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
-        genome_item.mutate_source_value(MutateSourceValue::Increment);
-        true
+        if !genome_item.mutate_source_value(mutation) {
+            return false;
+        }
+        genome_item.mutate_sanitize_program_row()
     }
 
-    fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R) {
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure, such as no instructions that use a source_type=register, underflow, overflow.
+    fn mutate_source_register<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        // Identify all the instructions that use source_type=register
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.source_type == ParameterType::Register {
+                indexes.push(index);
+            }
+        }
+        if indexes.is_empty() {
+            return false;
+        }
+
+        // Pick a random mutation
+        let mutation_vec: Vec<MutateValue> = vec![
+            MutateValue::Increment,
+            MutateValue::Decrement,
+        ];
+        let mutation: &MutateValue = mutation_vec.choose(rng).unwrap();
+
+        // Mutate one of the instructions that use a constant
+        let index: &usize = indexes.choose(rng).unwrap();
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
+        if !genome_item.mutate_source_value(mutation) {
+            return false;
+        }
+        genome_item.mutate_sanitize_program_row()
+    }
+
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    fn mutate_target_register<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        let length: usize = self.genome_vec.len();
+        assert!(length > 0);
+        let index: usize = rng.gen_range(0..length);
+
+        // Pick a random mutation
+        let mutation_vec: Vec<MutateValue> = vec![
+            MutateValue::Increment,
+            MutateValue::Decrement,
+        ];
+        let mutation: &MutateValue = mutation_vec.choose(rng).unwrap();
+
+        // Mutate one of the instructions
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
+        if !genome_item.mutate_target_value(mutation) {
+            return false;
+        }
+        genome_item.mutate_sanitize_program_row()
+    }
+
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    fn mutate_instruction<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         assert!(length > 0);
         let index: usize = rng.gen_range(0..length);
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
 
         genome_item.mutate_randomize_instruction(rng);
-        genome_item.mutate_sanitize_program_row();
+        genome_item.mutate_sanitize_program_row()
+    }
+
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    fn mutate_source_type<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        let length: usize = self.genome_vec.len();
+        assert!(length > 0);
+        let index: usize = rng.gen_range(0..length);
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
+
+        genome_item.mutate_source_type();
+        genome_item.mutate_sanitize_program_row()
+    }
+
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    fn mutate_swap_registers<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        // Identify all the instructions that use two registers
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.source_type == ParameterType::Register {
+                indexes.push(index);
+            }
+        }
+        if indexes.is_empty() {
+            return false;
+        }
+
+        // Mutate one of the instructions that use two registers
+        let index: &usize = indexes.choose(rng).unwrap();
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
+        genome_item.mutate_swap_source_target_value();
+        genome_item.mutate_sanitize_program_row()
+    }
+
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure.
+    fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        let mutation_vec: Vec<MutateGenome> = vec![
+            MutateGenome::Instruction,
+            MutateGenome::SourceConstant,
+            MutateGenome::SourceType,
+            MutateGenome::SwapRegisters,
+            MutateGenome::SourceRegister,
+            MutateGenome::TargetRegister,
+        ];
+        let mutation: &MutateGenome = mutation_vec.choose(rng).unwrap();
+        match mutation {
+            MutateGenome::Instruction => {
+                return self.mutate_instruction(rng);
+            },
+            MutateGenome::SourceConstant => {
+                return self.mutate_source_value_constant(rng);
+            },
+            MutateGenome::SourceType => {
+                return self.mutate_source_type(rng);
+            },
+            MutateGenome::SwapRegisters => {
+                return self.mutate_swap_registers(rng);
+            }
+            MutateGenome::SourceRegister => {
+                return self.mutate_source_register(rng);
+            }
+            MutateGenome::TargetRegister => {
+                return self.mutate_target_register(rng);
+            }
+        }
     }
 }
-
 
 impl ProgramRunner {
     fn compute_terms(&self, count: u64) -> Result<BigIntVec, EvalError> {
@@ -202,7 +388,7 @@ impl ProgramRunner {
 }
 
 fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
-    let seed: u64 = 225;
+    let seed: u64 = 248;
     debug!("random seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
 
@@ -211,7 +397,9 @@ fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
     );
     let mut genome = Genome::new();
     genome.print();
-    genome.mutate(&mut rng);
+    for _ in 0..4 {
+        genome.mutate(&mut rng);
+    }
     genome.print();
 
     let program: Program = dm.parse(&genome.to_program_string()).unwrap();
