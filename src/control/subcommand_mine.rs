@@ -406,8 +406,6 @@ impl GenomeItem {
 
 // Ideas for more mutations
 // append random row
-// insert loop begin/end at a random place
-// Swap adjacent rows
 enum MutateGenome {
     Instruction,
     SourceConstant,
@@ -417,6 +415,7 @@ enum MutateGenome {
     TargetRegister,
     ToggleEnabled,
     SwapRows,
+    SwapAdjacentRows,
     InsertLoopBeginEnd,
 }
 
@@ -640,11 +639,33 @@ impl Genome {
         }
         let instruction0: &InstructionId = &self.genome_vec[index0].instruction_id;
         let instruction1: &InstructionId = &self.genome_vec[index1].instruction_id;
-        // Prevent loop begin getting swapped with loop end.
+        // Prevent messing with loop begin/end instructions.
         let is_loop = 
             *instruction0 == InstructionId::LoopBegin || 
             *instruction0 == InstructionId::LoopEnd ||
             *instruction1 == InstructionId::LoopBegin || 
+            *instruction1 == InstructionId::LoopEnd;
+        if is_loop {
+            return false;
+        }
+        self.genome_vec.swap(index0, index1);
+        true
+    }
+
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    fn mutate_swap_adjacent_rows<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        let length: usize = self.genome_vec.len();
+        if length < 3 {
+            return false;
+        }
+        let index0: usize = rng.gen_range(0..length-1);
+        let index1: usize = index0 + 1;
+        let instruction0: &InstructionId = &self.genome_vec[index0].instruction_id;
+        let instruction1: &InstructionId = &self.genome_vec[index1].instruction_id;
+        // Prevent reversing the order of the loop begin/end instructions.
+        let is_loop = 
+            *instruction0 == InstructionId::LoopBegin && 
             *instruction1 == InstructionId::LoopEnd;
         if is_loop {
             return false;
@@ -704,7 +725,8 @@ impl Genome {
             MutateGenome::SourceRegister,
             MutateGenome::TargetRegister,
             MutateGenome::ToggleEnabled,
-            MutateGenome::SwapRows,
+            // MutateGenome::SwapRows,
+            MutateGenome::SwapAdjacentRows,
             // MutateGenome::InsertLoopBeginEnd,
         ];
         let mutation: &MutateGenome = mutation_vec.choose(rng).unwrap();
@@ -732,6 +754,9 @@ impl Genome {
             },
             MutateGenome::SwapRows => {
                 return self.mutate_swap_rows(rng);
+            },
+            MutateGenome::SwapAdjacentRows => {
+                return self.mutate_swap_adjacent_rows(rng);
             },
             MutateGenome::InsertLoopBeginEnd => {
                 return self.mutate_insert_loop(rng);
