@@ -455,16 +455,16 @@ impl Genome {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Divide, 1, 2);
             genome_vec.push(item);
         }
-        for _ in 0..4 {
-            {
-                let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
-                genome_vec.push(item);
-            }
-            {
-                let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
-                genome_vec.push(item);
-            }
-        }
+        // for _ in 0..4 {
+        //     {
+        //         let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
+        //         genome_vec.push(item);
+        //     }
+        //     {
+        //         let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
+        //         genome_vec.push(item);
+        //     }
+        // }
         // genome_vec[2].mutate_trigger_division_by_zero();
         Self {
             genome_vec: genome_vec,
@@ -785,6 +785,22 @@ impl ProgramRunner {
 
 impl CheckFixedLengthSequence {
     fn is_possible_candidate(&self, terms: &BigIntVec) -> bool {
+        if Analyze::count_unique(&terms) < 4 {
+            // there are many results where all terms are just zeros.
+            // there are many results where all terms are a constant value.
+            // there are many results where most of the terms is a constant value.
+            // there are many results where the terms alternates between 2 values.
+            debug!("too few unique terms");
+            return false;
+        }
+        if Analyze::is_almost_natural_numbers(&terms) {
+            // there are many result that are like these
+            // [0, 0, 1, 2, 3, 4, 5, 6, 7, 8]
+            // [1, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+            // it's the natural numbers with 1 term different
+            debug!("too close to being the natural numbers");
+            return false;
+        }
         if Analyze::count_zero(&terms) >= 7 {
             debug!("there are too many zero terms");
             return false;
@@ -802,7 +818,7 @@ impl CheckFixedLengthSequence {
 }
 
 fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
-    let seed: u64 = 267;
+    let seed: u64 = 270;
     debug!("random seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
 
@@ -813,12 +829,12 @@ fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
     genome.mutate_insert_loop(&mut rng);
     genome.print();
     // return;
-    for iteration in 0..10000 {
+    for iteration in 0..100000 {
         if (iteration % 1000) == 0 {
             println!("iteration: {}", iteration);
         }
 
-        for _ in 0..50 {
+        for _ in 0..5 {
             genome.mutate(&mut rng);
         }
     
