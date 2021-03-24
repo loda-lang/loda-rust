@@ -35,13 +35,33 @@ struct GenomeItem {
 }
 
 impl GenomeItem {
-    fn new() -> Self {
+    fn new(instruction_id: InstructionId, target_value: u16, source_type: ParameterType, source_value: u16) -> Self {
+        Self {
+            enabled: true,
+            instruction_id: instruction_id,
+            target_value: target_value,
+            source_type: source_type,
+            source_value: source_value,
+        }
+    }
+
+    fn new_move_register(target_value: u16, source_value: u16) -> Self {
         Self {
             enabled: true,
             instruction_id: InstructionId::Move,
-            target_value: 1,
+            target_value: target_value,
             source_type: ParameterType::Register,
-            source_value: 0,
+            source_value: source_value,
+        }
+    }
+
+    fn new_instruction_with_const(instruction_id: InstructionId, target_value: u16, source_value: u16) -> Self {
+        Self {
+            enabled: true,
+            instruction_id: instruction_id,
+            target_value: target_value,
+            source_type: ParameterType::Constant,
+            source_value: source_value,
         }
     }
 
@@ -51,7 +71,15 @@ impl GenomeItem {
         self.source_value = 0;
     }
 
-    fn mutate_randomize_instruction<R: Rng + ?Sized>(&mut self, rng: &mut R) {
+    fn mutate_randomize_instruction<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        // Prevent messing up loop begin/end.
+        let is_loop = 
+            self.instruction_id == InstructionId::LoopBegin || 
+            self.instruction_id == InstructionId::LoopEnd;
+        if is_loop {
+            return false;
+        }
+
         let instructions: Vec<InstructionId> = vec![
             InstructionId::Add,
             InstructionId::Binomial,
@@ -71,6 +99,7 @@ impl GenomeItem {
         ];
         let instruction: &InstructionId = instructions.choose(rng).unwrap();
         self.instruction_id = instruction.clone();
+        true
     }
 
     fn mutate_source_value(&mut self, mutation: &MutateValue) -> bool {
@@ -116,8 +145,17 @@ impl GenomeItem {
         }
     }
 
-    fn mutate_enabled(&mut self) {
+    fn mutate_enabled(&mut self) -> bool {
+        // Prevent messing up loop begin/end.
+        let is_loop = 
+            self.instruction_id == InstructionId::LoopBegin || 
+            self.instruction_id == InstructionId::LoopEnd;
+        if is_loop {
+            return false;
+        }
+
         self.enabled = !self.enabled;
+        true
     }
 
     fn mutate_swap_source_target_value(&mut self) {
@@ -338,7 +376,7 @@ impl GenomeItem {
                         self.source_value
                     );
                 }
-                if self.target_value >= 2 {
+                if self.source_value >= 2 {
                     return format!("{} ${},{}", 
                         self.instruction_id.shortname(), 
                         self.target_value, 
@@ -369,6 +407,7 @@ impl GenomeItem {
 // Ideas for more mutations
 // append random row
 // insert loop begin/end at a random place
+// Swap adjacent rows
 enum MutateGenome {
     Instruction,
     SourceConstant,
@@ -378,6 +417,7 @@ enum MutateGenome {
     TargetRegister,
     ToggleEnabled,
     SwapRows,
+    InsertLoopBeginEnd,
 }
 
 struct Genome {
@@ -387,8 +427,44 @@ struct Genome {
 impl Genome {
     fn new() -> Self {
         let mut genome_vec: Vec<GenomeItem> = vec!();
-        for _ in 0..8 {
-            genome_vec.push(GenomeItem::new());
+        {
+            let item = GenomeItem::new_move_register(1, 0);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_move_register(2, 0);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_move_register(3, 0);
+            genome_vec.push(item);
+        }
+        // append instructions that doesn't do anything.
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 1, 2);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Divide, 1, 2);
+            genome_vec.push(item);
+        }
+        for _ in 0..4 {
+            {
+                let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
+                genome_vec.push(item);
+            }
+            {
+                let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
+                genome_vec.push(item);
+            }
         }
         // genome_vec[2].mutate_trigger_division_by_zero();
         Self {
@@ -497,7 +573,9 @@ impl Genome {
         let index: usize = rng.gen_range(0..length);
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
 
-        genome_item.mutate_randomize_instruction(rng);
+        if !genome_item.mutate_randomize_instruction(rng) {
+            return false;
+        }
         genome_item.mutate_sanitize_program_row()
     }
 
@@ -542,7 +620,9 @@ impl Genome {
         let index: usize = rng.gen_range(0..length);
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
 
-        genome_item.mutate_enabled();
+        if !genome_item.mutate_enabled() {
+            return false;
+        }
         genome_item.mutate_sanitize_program_row()
     }
 
@@ -550,7 +630,7 @@ impl Genome {
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     fn mutate_swap_rows<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
-        if length == 0 {
+        if length < 2 {
             return false;
         }
         let index0: usize = rng.gen_range(0..length);
@@ -558,8 +638,58 @@ impl Genome {
         if index0 == index1 {
             return false;
         }
+        let instruction0: &InstructionId = &self.genome_vec[index0].instruction_id;
+        let instruction1: &InstructionId = &self.genome_vec[index1].instruction_id;
+        // Prevent loop begin getting swapped with loop end.
+        let is_loop = 
+            *instruction0 == InstructionId::LoopBegin || 
+            *instruction0 == InstructionId::LoopEnd ||
+            *instruction1 == InstructionId::LoopBegin || 
+            *instruction1 == InstructionId::LoopEnd;
+        if is_loop {
+            return false;
+        }
         self.genome_vec.swap(index0, index1);
-        // IDEA: sanitize loop instructions. Prevent loop begin getting swapped with loop end.
+        true
+    }
+
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    fn mutate_insert_loop<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        let length: usize = self.genome_vec.len();
+        if length < 2 {
+            return false;
+        }
+        let index0: usize = rng.gen_range(0..length);
+        let index1: usize = rng.gen_range(0..length);
+        if index0 == index1 {
+            return false;
+        }
+
+        // first insert loop-end
+        {
+            let index: usize = index0.max(index1);
+            let item = GenomeItem::new(
+                InstructionId::LoopEnd, 
+                0, 
+                ParameterType::Constant, 
+                0
+            );
+            self.genome_vec.insert(index, item);
+        }
+
+        // last insert loop-begin
+        {
+            let index: usize = index0.min(index1);
+            let item = GenomeItem::new(
+                InstructionId::LoopBegin,
+                rng.gen_range(0..5) as u16,
+                ParameterType::Constant,
+                1
+            );
+            self.genome_vec.insert(index, item);
+        }
+
         true
     }
 
@@ -575,6 +705,7 @@ impl Genome {
             MutateGenome::TargetRegister,
             MutateGenome::ToggleEnabled,
             MutateGenome::SwapRows,
+            // MutateGenome::InsertLoopBeginEnd,
         ];
         let mutation: &MutateGenome = mutation_vec.choose(rng).unwrap();
         match mutation {
@@ -601,6 +732,9 @@ impl Genome {
             },
             MutateGenome::SwapRows => {
                 return self.mutate_swap_rows(rng);
+            },
+            MutateGenome::InsertLoopBeginEnd => {
+                return self.mutate_insert_loop(rng);
             }
         }
     }
@@ -643,7 +777,7 @@ impl CheckFixedLengthSequence {
 }
 
 fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
-    let seed: u64 = 264;
+    let seed: u64 = 267;
     debug!("random seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
 
@@ -651,8 +785,10 @@ fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
         settings.loda_program_rootdir.clone(),
     );
     let mut genome = Genome::new();
+    genome.mutate_insert_loop(&mut rng);
     genome.print();
-    for iteration in 0..100000 {
+    // return;
+    for iteration in 0..10000 {
         if (iteration % 1000) == 0 {
             println!("iteration: {}", iteration);
         }
