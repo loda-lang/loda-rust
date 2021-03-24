@@ -13,7 +13,7 @@ use rand::seq::SliceRandom;
 
 pub fn subcommand_mine(settings: &Settings) {
     debug!("step1");
-    let cache_file = Path::new("cache/fixed_length_sequence_5terms.json");
+    let cache_file = Path::new("cache/fixed_length_sequence_10terms.json");
     let checker: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&cache_file);
     debug!("step2");
 
@@ -626,7 +626,7 @@ impl ProgramRunner {
 
 impl CheckFixedLengthSequence {
     fn is_possible_candidate(&self, terms: &BigIntVec) -> bool {
-        if Analyze::count_zero(&terms) >= 3 {
+        if Analyze::count_zero(&terms) >= 7 {
             debug!("there are too many zero terms");
             return false;
         }
@@ -643,7 +643,7 @@ impl CheckFixedLengthSequence {
 }
 
 fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
-    let seed: u64 = 262;
+    let seed: u64 = 264;
     debug!("random seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
 
@@ -652,7 +652,7 @@ fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
     );
     let mut genome = Genome::new();
     genome.print();
-    for iteration in 0..20000 {
+    for iteration in 0..100000 {
         if (iteration % 1000) == 0 {
             println!("iteration: {}", iteration);
         }
@@ -669,7 +669,7 @@ fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
             }
         };
         let runner = ProgramRunner::new(program);
-        let number_of_terms: u64 = 5;
+        let number_of_terms: u64 = 10;
         let terms: BigIntVec = match runner.compute_terms(number_of_terms) {
             Ok(value) => value,
             Err(error) => {
