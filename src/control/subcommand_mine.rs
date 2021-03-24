@@ -387,7 +387,7 @@ struct Genome {
 impl Genome {
     fn new() -> Self {
         let mut genome_vec: Vec<GenomeItem> = vec!();
-        for _ in 0..5 {
+        for _ in 0..8 {
             genome_vec.push(GenomeItem::new());
         }
         // genome_vec[2].mutate_trigger_division_by_zero();
@@ -626,7 +626,7 @@ impl ProgramRunner {
 
 impl CheckFixedLengthSequence {
     fn is_possible_candidate(&self, terms: &BigIntVec) -> bool {
-        if Analyze::count_zero(&terms) >= 4 {
+        if Analyze::count_zero(&terms) >= 3 {
             debug!("there are too many zero terms");
             return false;
         }
@@ -643,7 +643,7 @@ impl CheckFixedLengthSequence {
 }
 
 fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
-    let seed: u64 = 257;
+    let seed: u64 = 262;
     debug!("random seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
 
@@ -652,16 +652,19 @@ fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
     );
     let mut genome = Genome::new();
     genome.print();
-    for iteration in 0..2000 {
-        for _ in 0..40 {
+    for iteration in 0..20000 {
+        if (iteration % 1000) == 0 {
+            println!("iteration: {}", iteration);
+        }
+
+        for _ in 0..50 {
             genome.mutate(&mut rng);
         }
-        // genome.print();
     
         let program: Program = match dm.parse(&genome.to_program_string()) {
             Ok(value) => value,
             Err(error) => {
-                println!("iteration: {} cannot be parsed. {}", iteration, error);
+                debug!("iteration: {} cannot be parsed. {}", iteration, error);
                 continue;
             }
         };
@@ -670,18 +673,19 @@ fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
         let terms: BigIntVec = match runner.compute_terms(number_of_terms) {
             Ok(value) => value,
             Err(error) => {
-                println!("iteration: {} cannot be run. {:?}", iteration, error);
+                debug!("iteration: {} cannot be run. {:?}", iteration, error);
                 continue;
             }
         };
     
         let check_result: bool = checker.is_possible_candidate(&terms);
         // println!("check_result: {:?}", check_result);
-        if check_result {
-            println!("iteration: {} GOOD. terms: {:?}", iteration, terms);
-            genome.print();
-        } else {
-            println!("iteration: {} skip", iteration);
+        if !check_result {
+            debug!("iteration: {} no match in oeis", iteration);
+            continue;
         }
+
+        println!("iteration: {} candidate. terms: {:?}", iteration, terms);
+        genome.print();
     }
 }
