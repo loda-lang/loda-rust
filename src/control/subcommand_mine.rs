@@ -3,6 +3,7 @@ use crate::mine::check_fixed_length_sequence::CheckFixedLengthSequence;
 use crate::parser::{InstructionId, ParameterType};
 use crate::execute::{EvalError, Program, ProgramRunner, RegisterValue, RunMode};
 use crate::oeis::stripped_sequence::BigIntVec;
+use crate::util::Analyze;
 use std::path::Path;
 use num_bigint::BigInt;
 use num_traits::Zero;
@@ -625,25 +626,24 @@ impl ProgramRunner {
 
 impl CheckFixedLengthSequence {
     fn is_possible_candidate(&self, terms: &BigIntVec) -> bool {
-        let first: &BigInt = terms.first().unwrap();
-        let mut is_same = true;
-        for term in terms {
-            if term != first {
-                is_same = false;
-                break;
-            }
+        if Analyze::count_zero(&terms) >= 4 {
+            debug!("there are too many zero terms");
+            return false;
         }
-        if is_same {
+        if Analyze::is_all_the_same_value(&terms) {
             debug!("all terms are the same");
             return false;
         }
-
+        if Analyze::is_constant_step(&terms) {
+            debug!("the terms use constant step");
+            return false;
+        }
         self.check(&terms)
     }
 }
 
 fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
-    let seed: u64 = 255;
+    let seed: u64 = 257;
     debug!("random seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
 

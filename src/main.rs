@@ -11,6 +11,7 @@ mod execute;
 mod mine;
 mod parser;
 mod oeis;
+mod util;
 use control::{Settings, subcommand_dependencies, subcommand_evaluate, subcommand_mine, subcommand_update};
 
 extern crate clap;
