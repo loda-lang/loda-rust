@@ -53,6 +53,11 @@ file 'data/skipgram.csv' do
     ruby 'task_skipgram.rb'
 end
 
+desc 'extract program ids from the LODA denylist file'
+file 'data/denylist.csv' do
+    ruby 'task_denylist.rb'
+end
+
 task :default do
     system 'rake -T'
 end

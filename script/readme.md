@@ -13,6 +13,7 @@ rake data/bigram.csv                # generate a bigram
 rake data/caller_callee_list.csv    # obtain all the dependencies between programs, comma separated list
 rake data/caller_callee_pairs.csv   # obtain all the dependencies between programs, for use as input to PageRank algorithm
 rake data/compare_loda_vs_lab.csv   # compare terms between "LODA official" and "LODA Lab"
+rake data/denylist.csv              # extract program ids from the LODA denylist file
 rake data/most_called_programs.csv  # determine the most called programs
 rake data/pagerank.csv              # run the PageRank algorithm and ranking the most influential programs
 rake data/program_ids.csv           # obtain all the program ids
