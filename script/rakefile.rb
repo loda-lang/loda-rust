@@ -58,6 +58,11 @@ file 'data/denylist.csv' do
     ruby 'task_denylist.rb'
 end
 
+desc "determine which program ids that shouldn't be attempted mined"
+file 'data/dont_mine.csv' => ['data/program_ids.csv', 'data/denylist.csv'] do
+    ruby 'task_dont_mine.rb'
+end
+
 task :default do
     system 'rake -T'
 end
