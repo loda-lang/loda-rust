@@ -65,11 +65,15 @@ CSV.foreach(input_filename1, {:col_sep => ";"}) do |row|
     program_id_set << program_id
 end
 
+# These are causing most of the false positives
 additional_ignore = [
-    109811,  # majority of false positives
-    221222,  # majority of false positives
-    105360,  # some false positives
-    183140,  # some false positives
+    38126,  # a(n) = floor( sqrt(2*Pi)*n ) (a Beatty sequence).
+    105360, # Records in A105358.
+    109811, # Triangular numbers (A000217) at Levenshtein distance 1 from another triangular number when considered as a decimal string.
+    172337, # Floor(n*(sqrt(11)+sqrt(7))).
+    172338, # a(n) = floor(n*(sqrt(5)+sqrt(3))).
+    183140, # a(n) = [1/s]+[2/s]+...+[n/s], where s=2+sqrt(2) and []=floor.
+    221222, # Threshold for the P(n)-avoidance vertex-coloring game
 ]
 program_id_set += additional_ignore
 
