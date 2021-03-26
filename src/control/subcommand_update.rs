@@ -22,8 +22,14 @@ pub fn subcommand_update(_settings: &Settings) {
     let program_ids_to_ignore: HashSet<u32> = obtain_dontmine_program_ids();
 
     let oeis_stripped_file = Path::new("/Users/neoneye/.loda/oeis/stripped");
-    let destination_file = Path::new("cache/fixed_length_sequence_10terms.json");
-    create_cache_file(oeis_stripped_file, destination_file, 10, &program_ids_to_ignore);
+    {
+        let destination_file = Path::new("cache/fixed_length_sequence_10terms.json");
+        create_cache_file(oeis_stripped_file, destination_file, 10, &program_ids_to_ignore);
+    }
+    {
+        let destination_file = Path::new("cache/fixed_length_sequence_20terms.json");
+        create_cache_file(oeis_stripped_file, destination_file, 20, &program_ids_to_ignore);
+    }
 
     println!("update end");
 }
