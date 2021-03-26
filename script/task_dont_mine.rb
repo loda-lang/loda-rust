@@ -68,6 +68,7 @@ end
 # These are causing most of the false positives
 additional_ignore = [
     38126,  # a(n) = floor( sqrt(2*Pi)*n ) (a Beatty sequence).
+    68670,  # Number of digits in the concatenation of first n primes.
     105360, # Records in A105358.
     109811, # Triangular numbers (A000217) at Levenshtein distance 1 from another triangular number when considered as a decimal string.
     172337, # Floor(n*(sqrt(11)+sqrt(7))).
