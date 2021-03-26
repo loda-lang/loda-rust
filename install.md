@@ -46,7 +46,7 @@ Manually edit the configuration file `$HOME/.loda-lab/config.toml`.
 
 Here you must update the paths, so they refer to where LODA is installed on your computer.
 
-Manually modify this parameter, so it points to the dir that contains all the LODA programs. 
+Manually modify this parameter, so it points to the dir that contains all the LODA programs.
 ```
 loda_program_rootdir = "/Users/JOHNDOE/git/loda/programs/oeis"
 ```

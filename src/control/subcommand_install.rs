@@ -36,6 +36,11 @@ pub fn subcommand_install(_settings: &Settings) {
         error!("Unable to create 'readme.txt' file, error: {:?}", error);
     }
 
+    // Create config.toml if needed.
+    if let Err(error) = create_config_in_basedir(&basedir) {
+        error!("Unable to create 'config.toml' file, error: {:?}", error);
+    }
+
     println!("install success");
 }
 
@@ -46,9 +51,27 @@ fn create_readme_in_basedir(basedir: &Path) -> std::io::Result<()> {
     }
 
     let content = 
-r#"The directory `.loda-lab` holds the config+data for Loda Lab.
+r#"The directory `.loda-lab` holds the config+data for LODA Lab.
 
 https://github.com/neoneye/loda-lab
+"#;
+
+    let mut file = File::create(path)?;
+    file.write_all(content.as_bytes())?;
+    Ok(())
+}
+
+fn create_config_in_basedir(basedir: &Path) -> std::io::Result<()> {
+    let path: PathBuf = basedir.join(Path::new("config.toml"));
+    if path.is_file() {
+        return Ok(());
+    }
+
+    let content = 
+r#"# Configuration for LODA Lab
+
+# Absolute path to the dir that contains all the LODA programs.
+loda_program_rootdir = "/Users/JOHNDOE/git/loda/programs/oeis"
 "#;
 
     let mut file = File::create(path)?;
