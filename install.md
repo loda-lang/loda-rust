@@ -10,7 +10,7 @@ The `LODA Lab` project depends on the `LODA` project. So first install LODA.
 
 Check out [Christian Krause's LODA repository](https://github.com/ckrause/loda) on your computer.
 
-A good place checking it out locally in the `$HOME/git/loda` dir.
+A good place for this repository, is the `$HOME/git/loda` dir.
 
 #### Step 1 B
 
@@ -30,7 +30,7 @@ So far so good. LODA is installed.
 
 Check out [Simon Strandgaard's LODA Lab repository](https://github.com/neoneye/loda-lab) on your computer.
 
-A good place checking it out locally in the `$HOME/git/loda-lab` dir.
+A good place for this repository, is the `$HOME/git/loda-lab` dir.
 
 #### Step 2 B
 
