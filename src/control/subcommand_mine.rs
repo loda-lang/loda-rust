@@ -85,14 +85,14 @@ impl GenomeItem {
 
         let instructions: Vec<InstructionId> = vec![
             InstructionId::Add,
-            InstructionId::Binomial,
-            InstructionId::Compare,
+            // InstructionId::Binomial,
+            // InstructionId::Compare,
             InstructionId::Divide,
             InstructionId::DivideIf,
             InstructionId::GCD,
             InstructionId::Logarithm,
-            InstructionId::Max,
-            InstructionId::Min,
+            // InstructionId::Max,
+            // InstructionId::Min,
             InstructionId::Modulo,
             InstructionId::Move,
             InstructionId::Multiply,
@@ -452,19 +452,19 @@ impl Genome {
             genome_vec.push(item);
         }
         {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 1, 2);
-            genome_vec.push(item);
-        }
-        {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Divide, 1, 2);
-            genome_vec.push(item);
-        }
-        {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 1, 10);
             genome_vec.push(item);
         }
+        // {
+        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Divide, 1, 2);
+        //     genome_vec.push(item);
+        // }
         {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Divide, 1, 10);
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 2, 10);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::DivideIf, 1, 10);
             genome_vec.push(item);
         }
         {
@@ -481,6 +481,10 @@ impl Genome {
         }
         {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 1, 6);
             genome_vec.push(item);
         }
         // for _ in 0..4 {
@@ -861,7 +865,7 @@ fn run_experiment0(
     checker10: &CheckFixedLengthSequence, 
     checker20: &CheckFixedLengthSequence
 ) {
-    let seed: u64 = 332;
+    let seed: u64 = 350;
     debug!("random seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
 
@@ -872,12 +876,12 @@ fn run_experiment0(
     // genome.mutate_insert_loop(&mut rng);
     genome.print();
     // return;
-    for iteration in 0..100000 {
+    for iteration in 0..1000000 {
         if (iteration % 1000) == 0 {
             println!("iteration: {}", iteration);
         }
 
-        for _ in 0..40 {
+        for _ in 0..20 {
             genome.mutate(&mut rng);
         }
     
