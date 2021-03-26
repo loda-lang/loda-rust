@@ -54,9 +54,7 @@ impl Node for NodeLoopSimple {
 
             cycles += 1;
             if cycles > 1000 {
-                panic!("looped too many times");
-                // TODO: propagate info about problematic loops all the way
-                // to caller and their caller, and let them decide what to do about it.
+                return Err(EvalError::LoopCountExceededLimit);
             }
             if state.run_mode() == RunMode::Verbose {
                 println!("lpe");
