@@ -26,6 +26,7 @@ pub fn subcommand_mine(settings: &Settings) {
 enum MutateValue {
     Increment,
     Decrement,
+    Assign(u16),
 }
 
 struct GenomeItem {
@@ -131,6 +132,9 @@ impl GenomeItem {
                     return (false, value);
                 }
                 value -= 1;
+            },
+            MutateValue::Assign(v) => {
+                value = *v;
             },
         }
         (true, value)
@@ -257,14 +261,22 @@ impl GenomeItem {
                 }
             },
             InstructionId::Multiply => {
-                if self.source_type == ParameterType::Constant {
-                    if self.source_value < 2 {
-                        self.source_value = 2;
-                        return false;
-                    }
-                    if self.source_value > 16 {
-                        self.source_value = 16;
-                        return false;
+                match self.source_type {
+                    ParameterType::Constant => {
+                        if self.source_value < 2 {
+                            self.source_value = 2;
+                            return false;
+                        }
+                        if self.source_value > 16 {
+                            self.source_value = 16;
+                            return false;
+                        }
+                    },
+                    ParameterType::Register => {
+                        if self.source_value == self.target_value {
+                            self.source_value = (self.target_value + 1) % 5;
+                            return false;
+                        }
                     }
                 }
             },
@@ -352,7 +364,10 @@ impl GenomeItem {
                             return false;
                         }
                     },
-                    ParameterType::Register => {}
+                    ParameterType::Register => {
+                        self.source_type = ParameterType::Constant;
+                        return false;
+                    }
                 }
             },
             _ => {}
@@ -513,6 +528,11 @@ impl Genome {
         let mutation_vec: Vec<MutateValue> = vec![
             MutateValue::Increment,
             MutateValue::Decrement,
+            MutateValue::Assign(2),
+            MutateValue::Assign(6),
+            MutateValue::Assign(10),
+            // MutateValue::Assign(100),
+            // MutateValue::Assign(1000),
         ];
         let mutation: &MutateValue = mutation_vec.choose(rng).unwrap();
 
@@ -841,7 +861,7 @@ fn run_experiment0(
     checker10: &CheckFixedLengthSequence, 
     checker20: &CheckFixedLengthSequence
 ) {
-    let seed: u64 = 299;
+    let seed: u64 = 332;
     debug!("random seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
 
@@ -849,7 +869,7 @@ fn run_experiment0(
         settings.loda_program_rootdir.clone(),
     );
     let mut genome = Genome::new();
-    genome.mutate_insert_loop(&mut rng);
+    // genome.mutate_insert_loop(&mut rng);
     genome.print();
     // return;
     for iteration in 0..100000 {
