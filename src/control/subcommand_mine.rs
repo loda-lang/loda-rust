@@ -785,7 +785,7 @@ impl ProgramRunner {
 
 impl CheckFixedLengthSequence {
     fn is_possible_candidate(&self, terms: &BigIntVec) -> bool {
-        if Analyze::count_unique(&terms) < 4 {
+        if Analyze::count_unique(&terms) < 8 {
             // there are many results where all terms are just zeros.
             // there are many results where all terms are a constant value.
             // there are many results where most of the terms is a constant value.
@@ -813,7 +813,13 @@ impl CheckFixedLengthSequence {
             debug!("the terms use constant step");
             return false;
         }
-        self.check(&terms)
+        if !self.check(&terms) {
+            debug!("not found in bloom filter");
+            return false;
+        }
+        println!("contained in bloom filter: {:?}", terms);
+        true
+        // self.check(&terms)
     }
 }
 
@@ -861,8 +867,16 @@ fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
             debug!("iteration: {} no match in oeis", iteration);
             continue;
         }
+        // println!("iteration: {} candidate. terms: {:?}", iteration, terms);
 
-        println!("iteration: {} candidate. terms: {:?}", iteration, terms);
+        let more_terms: BigIntVec = match runner.compute_terms(20) {
+            Ok(value) => value,
+            Err(error) => {
+                debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                continue;
+            }
+        };
+        println!("iteration: {} candidate. more terms: {:?}", iteration, more_terms);
         genome.print();
     }
 }
