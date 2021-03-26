@@ -65,6 +65,12 @@ CSV.foreach(input_filename1, {:col_sep => ";"}) do |row|
     program_id_set << program_id
 end
 
+additional_ignore = [
+    109811,  # majority of false positives
+    105360,  # some false positives
+]
+program_id_set += additional_ignore
+
 program_ids = program_id_set.to_a.sort
 puts "number of program ids: #{program_ids.count}"
 
