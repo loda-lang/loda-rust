@@ -13,12 +13,14 @@ use rand::seq::SliceRandom;
 
 pub fn subcommand_mine(settings: &Settings) {
     debug!("step1");
-    let cache_file = Path::new("cache/fixed_length_sequence_10terms.json");
-    let checker: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&cache_file);
+    let file10 = Path::new("cache/fixed_length_sequence_10terms.json");
+    let checker10: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file10);
+    let file20 = Path::new("cache/fixed_length_sequence_20terms.json");
+    let checker20: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file20);
     debug!("step2");
 
     // TODO: mining
-    run_experiment0(settings, &checker);
+    run_experiment0(settings, &checker10, &checker20);
 }
 
 enum MutateValue {
@@ -810,7 +812,11 @@ impl CheckFixedLengthSequence {
     }
 }
 
-fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
+fn run_experiment0(
+    settings: &Settings, 
+    checker10: &CheckFixedLengthSequence, 
+    checker20: &CheckFixedLengthSequence
+) {
     let seed: u64 = 270;
     debug!("random seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
@@ -840,7 +846,7 @@ fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
         };
         let runner = ProgramRunner::new(program);
         let number_of_terms: u64 = 10;
-        let terms: BigIntVec = match runner.compute_terms(number_of_terms) {
+        let terms10: BigIntVec = match runner.compute_terms(number_of_terms) {
             Ok(value) => value,
             Err(error) => {
                 debug!("iteration: {} cannot be run. {:?}", iteration, error);
@@ -848,22 +854,27 @@ fn run_experiment0(settings: &Settings, checker: &CheckFixedLengthSequence) {
             }
         };
     
-        let check_result: bool = checker.is_possible_candidate(&terms);
-        // println!("check_result: {:?}", check_result);
-        if !check_result {
+        let check10_result: bool = checker10.is_possible_candidate(&terms10);
+        if !check10_result {
             debug!("iteration: {} no match in oeis", iteration);
             continue;
         }
-        // println!("iteration: {} candidate. terms: {:?}", iteration, terms);
+        // println!("iteration: {} candidate. terms10: {:?}", iteration, terms10);
 
-        let more_terms: BigIntVec = match runner.compute_terms(20) {
+        let terms20: BigIntVec = match runner.compute_terms(20) {
             Ok(value) => value,
             Err(error) => {
                 debug!("iteration: {} cannot be run. {:?}", iteration, error);
                 continue;
             }
         };
-        println!("iteration: {} candidate. more terms: {:?}", iteration, more_terms);
+        let check20_result: bool = checker20.is_possible_candidate(&terms20);
+        if !check20_result {
+            debug!("iteration: {} no match in oeis", iteration);
+            continue;
+        }
+
+        println!("iteration: {} candidate. more terms: {:?}", iteration, terms20);
         genome.print();
     }
 }
