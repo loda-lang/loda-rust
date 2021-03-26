@@ -6,6 +6,15 @@ pub enum ParameterType {
     Register,
 }
 
+impl ParameterType {
+    pub fn prefix(&self) -> &str {
+        match self {
+            ParameterType::Constant => "",
+            ParameterType::Register => "$",
+        }
+    }
+}
+
 impl FromStr for ParameterType {
     type Err = ();
 

@@ -1,4 +1,4 @@
-use super::{Program, ProgramState, RegisterIndex, RegisterValue, RunMode};
+use super::{EvalError, Program, ProgramState, RegisterIndex, RegisterValue, RunMode};
 
 pub struct ProgramRunner {
     program: Program,
@@ -17,27 +17,25 @@ impl ProgramRunner {
         }
     }
 
-    pub fn run(&self, input: RegisterValue, run_mode: RunMode) -> RegisterValue {
+    pub fn run(&self, input: RegisterValue, run_mode: RunMode) -> Result<RegisterValue, EvalError> {
         let mut state = ProgramState::new(self.register_count, run_mode);
         state.set_register_value(RegisterIndex(0), input);
-        let result = self.program.run(&mut state);
-        if let Err(error) = result {
-            panic!("Unable to run program. error: {:?}", error);
-        }
-        state.get_register_value(RegisterIndex(1))
+        self.program.run(&mut state)?;
+        let value: RegisterValue = state.get_register_value(RegisterIndex(1));
+        Ok(value)
     }
 
-    pub fn run_terms(&self, count: u64) -> Vec<i64> {
+    pub fn run_terms(&self, count: u64) -> Result<Vec<i64>, EvalError> {
         if count >= 0x7fff_ffff_ffff_ffff {
             panic!("Value is too high. Cannot be converted to 64bit signed integer.");
         }
         let mut sequence: Vec<i64> = vec!();
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
-            let output: RegisterValue = self.run(input, RunMode::Silent);
+            let output: RegisterValue = self.run(input, RunMode::Silent)?;
             let value: i64 = output.to_i64();
             sequence.push(value);
         }
-        sequence
+        Ok(sequence)
     }
 }

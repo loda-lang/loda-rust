@@ -35,7 +35,12 @@ impl ProgramRunner {
         }
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
-            let output: RegisterValue = self.run(input, RunMode::Silent);
+            let output: RegisterValue = match self.run(input, RunMode::Silent) {
+                Ok(value) => value,
+                Err(error) => {
+                    panic!("Failure while computing term {}, error: {:?}", index, error);
+                }
+            };
             if index == 0 {
                 print!("{}", output.0);
                 continue;
@@ -55,7 +60,12 @@ impl ProgramRunner {
         for index in 0..(count as i64) {
             println!("INPUT: a({})", index);
             let input = RegisterValue::from_i64(index);
-            let output: RegisterValue = self.run(input, RunMode::Verbose);
+            let output: RegisterValue = match self.run(input, RunMode::Verbose) {
+                Ok(value) => value,
+                Err(error) => {
+                    panic!("Failure while computing term {}, error: {:?}", index, error);
+                }
+            };
             println!("OUTPUT: a({}) = {}", index, output.0);
         }
     }

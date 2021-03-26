@@ -14,6 +14,9 @@ pub enum EvalError {
 
     PowerZeroDivision,
     PowerExponentTooHigh,
+
+    // Stuck in a loop that takes way too long time to compute
+    LoopCountExceededLimit,
 }
 
 pub trait Node {

@@ -6,6 +6,7 @@ use std::path::Path;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::io::prelude::*;
+use std::collections::HashSet;
 
 pub struct CheckFixedLengthSequence {
     bloom: Bloom::<BigIntVec>,
@@ -93,48 +94,61 @@ impl CheckFixedLengthSequenceInternalRepresentation {
     }
 }
 
-pub fn create_cache_file(oeis_stripped_file: &Path, destination_file: &Path, term_count: usize) {
+pub fn create_cache_file(oeis_stripped_file: &Path, destination_file: &Path, term_count: usize, program_ids_to_ignore: &HashSet<u32>) {
     assert!(oeis_stripped_file.is_absolute());
     assert!(oeis_stripped_file.is_file());
 
     let file = File::open(oeis_stripped_file).unwrap();
     let mut reader = BufReader::new(file);
-    let instance: CheckFixedLengthSequence = create_inner(&mut reader, term_count, true);
+    let instance: CheckFixedLengthSequence = create_inner(&mut reader, term_count, program_ids_to_ignore, true);
 
+    println!("saving cache file: {:?}", destination_file);
     instance.save(destination_file);
 }
 
-fn create_inner(reader: &mut dyn io::BufRead, term_count: usize, print_progress: bool) -> CheckFixedLengthSequence {
+fn create_inner(reader: &mut dyn io::BufRead, term_count: usize, program_ids_to_ignore: &HashSet<u32>, print_progress: bool) -> CheckFixedLengthSequence {
     assert!(term_count >= 1);
     assert!(term_count <= 100);
     let items_count: usize = 400000;
     let false_positive_rate: f64 = 0.01;
     let mut bloom = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
 
-    let mut line_count_sequences: usize = 0;
-    let mut line_count_junk: usize = 0;
+    let mut count: usize = 0;
+    let mut count_sequences: usize = 0;
+    let mut count_junk: usize = 0;
+    let mut count_tooshort: usize = 0;
+    let mut count_ignore: usize = 0;
     for line in reader.lines() {
+        count += 1;
+        if print_progress && ((count % 10000) == 0) {
+            println!("progress: {}", count);
+        }
+
         let line: String = line.unwrap();
-        match parse_stripped_sequence_line(&line, Some(term_count)) {
-            Some(line) => { 
-                let vec: &BigIntVec = line.bigint_vec_ref();
-                if vec.len() != term_count {
-                    line_count_junk += 1;
-                } else {
-                    bloom.set(vec);
-                    line_count_sequences += 1;
-                }
-            },
+        let stripped_sequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
+            Some(value) => value,
             None => {
-                line_count_junk += 1;
+                count_junk += 1;
+                continue;
             }
+        };
+        if program_ids_to_ignore.contains(&stripped_sequence.sequence_number) {
+            count_ignore += 1;
+            continue;
         }
-        if print_progress && ((line_count_sequences % 10000) == 0) {
-            println!("progress: {}", line_count_sequences);
+        let vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
+        if vec.len() != term_count {
+            count_tooshort += 1;
+            continue;
         }
+
+        bloom.set(vec);
+        count_sequences += 1;
     }
-    debug!("line_count_sequences: {}", line_count_sequences);
-    debug!("line_count_junk: {}", line_count_junk);
+    debug!("count_sequences: {}", count_sequences);
+    debug!("count_ignore: {}", count_ignore);
+    debug!("count_tooshort: {}", count_tooshort);
+    debug!("count_junk: {}", count_junk);
 
     CheckFixedLengthSequence::new(bloom, term_count)
 }
@@ -189,7 +203,8 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
     impl CheckFixedLengthSequence {
         fn new_mock() -> CheckFixedLengthSequence {
             let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
-            create_inner(&mut input, 5, false)
+            let hashset = HashSet::<u32>::new();
+            create_inner(&mut input, 5, &hashset, false)
         }
 
         fn check_i64(&self, ary: &Vec<i64>) -> bool {
