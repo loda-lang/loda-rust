@@ -102,6 +102,7 @@ pub fn create_cache_file(oeis_stripped_file: &Path, destination_file: &Path, ter
     let mut reader = BufReader::new(file);
     let instance: CheckFixedLengthSequence = create_inner(&mut reader, term_count, program_ids_to_ignore, true);
 
+    println!("saving cache file: {:?}", destination_file);
     instance.save(destination_file);
 }
 
@@ -115,13 +116,14 @@ fn create_inner(reader: &mut dyn io::BufRead, term_count: usize, program_ids_to_
     let mut count: usize = 0;
     let mut count_sequences: usize = 0;
     let mut count_junk: usize = 0;
+    let mut count_tooshort: usize = 0;
     let mut count_ignore: usize = 0;
     for line in reader.lines() {
         count += 1;
         if print_progress && ((count % 10000) == 0) {
             println!("progress: {}", count);
         }
-        
+
         let line: String = line.unwrap();
         let stripped_sequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
             Some(value) => value,
@@ -136,7 +138,7 @@ fn create_inner(reader: &mut dyn io::BufRead, term_count: usize, program_ids_to_
         }
         let vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
         if vec.len() != term_count {
-            count_junk += 1;
+            count_tooshort += 1;
             continue;
         }
 
@@ -145,6 +147,7 @@ fn create_inner(reader: &mut dyn io::BufRead, term_count: usize, program_ids_to_
     }
     debug!("count_sequences: {}", count_sequences);
     debug!("count_ignore: {}", count_ignore);
+    debug!("count_tooshort: {}", count_tooshort);
     debug!("count_junk: {}", count_junk);
 
     CheckFixedLengthSequence::new(bloom, term_count)
