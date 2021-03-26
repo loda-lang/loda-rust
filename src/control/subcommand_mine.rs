@@ -369,25 +369,12 @@ impl GenomeItem {
     fn to_program_row_inner(&self) -> String {
         match &self.instruction_id {
             InstructionId::LoopBegin => {
-                if self.source_type == ParameterType::Register {
-                    return format!("{} ${},${}",
-                        self.instruction_id.shortname(), 
-                        self.target_value, 
-                        self.source_value
-                    );
-                }
-                if self.source_value >= 2 {
-                    return format!("{} ${},{}", 
-                        self.instruction_id.shortname(), 
-                        self.target_value, 
-                        self.source_value
-                    );
-                } else {
-                    return format!("{} ${}", 
-                        self.instruction_id.shortname(), 
-                        self.target_value 
-                    );
-                }
+                // For now don't care about the source type/value.
+                // Maybe in the future support source type/value.
+                return format!("{} ${}", 
+                    self.instruction_id.shortname(), 
+                    self.target_value 
+                );
             },
             InstructionId::LoopEnd => {
                 return self.instruction_id.shortname().to_string();
