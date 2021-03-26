@@ -427,7 +427,7 @@ impl Genome {
             let item = GenomeItem::new_move_register(3, 0);
             genome_vec.push(item);
         }
-        // append instructions that doesn't do anything.
+        // append instructions that doesn't do anything to the output register
         {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
             genome_vec.push(item);
@@ -442,6 +442,30 @@ impl Genome {
         }
         {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Divide, 1, 2);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 1, 10);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Divide, 1, 10);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 2, 10);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 3, 2);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
             genome_vec.push(item);
         }
         // for _ in 0..4 {
@@ -806,7 +830,7 @@ impl CheckFixedLengthSequence {
             debug!("not found in bloom filter");
             return false;
         }
-        println!("contained in bloom filter: {:?}", terms);
+        // println!("contained in bloom filter: {:?}", terms);
         true
         // self.check(&terms)
     }
@@ -817,7 +841,7 @@ fn run_experiment0(
     checker10: &CheckFixedLengthSequence, 
     checker20: &CheckFixedLengthSequence
 ) {
-    let seed: u64 = 270;
+    let seed: u64 = 299;
     debug!("random seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
 
@@ -833,7 +857,7 @@ fn run_experiment0(
             println!("iteration: {}", iteration);
         }
 
-        for _ in 0..5 {
+        for _ in 0..40 {
             genome.mutate(&mut rng);
         }
     
@@ -859,7 +883,7 @@ fn run_experiment0(
             debug!("iteration: {} no match in oeis", iteration);
             continue;
         }
-        // println!("iteration: {} candidate. terms10: {:?}", iteration, terms10);
+        // println!("iteration: {} candidate. terms: {:?}", iteration, terms10);
 
         let terms20: BigIntVec = match runner.compute_terms(20) {
             Ok(value) => value,
@@ -874,7 +898,7 @@ fn run_experiment0(
             continue;
         }
 
-        println!("iteration: {} candidate. more terms: {:?}", iteration, terms20);
+        println!("iteration: {} candidate. terms: {:?}", iteration, terms20);
         genome.print();
     }
 }
