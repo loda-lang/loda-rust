@@ -12,7 +12,7 @@ mod mine;
 mod parser;
 mod oeis;
 mod util;
-use control::{Settings, subcommand_dependencies, subcommand_evaluate, subcommand_mine, subcommand_update};
+use control::{Settings, subcommand_dependencies, subcommand_evaluate, subcommand_install, subcommand_mine, subcommand_update};
 
 extern crate clap;
 extern crate num_bigint;
@@ -64,6 +64,10 @@ fn main() {
                         .required(true)
                 )
         )
+        .subcommand(
+            SubCommand::with_name("install")
+                .about("Create the $HOME/.loda-lab directory")
+        )
         // Experiments with mining new programs
         .subcommand(
             SubCommand::with_name("update")
@@ -95,6 +99,11 @@ fn main() {
         let program_id: u64 = u64::from_str(program_id_raw)
             .expect("Unable to parse program_id.");
         subcommand_dependencies(&settings, program_id);
+        return;
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("install") {
+        subcommand_install(&settings);
         return;
     }
 
