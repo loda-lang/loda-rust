@@ -1,15 +1,17 @@
 use num_bigint::BigInt;
 use std::fmt;
+use regex::Regex;
+use lazy_static::lazy_static;
 
 pub type BigIntVec = Vec<BigInt>;
 
 pub struct StrippedSequence {
-    sequence_number: String,
+    pub sequence_number: u32,
     bigint_vec: BigIntVec,
 }
 
 impl StrippedSequence {
-    pub fn new(sequence_number: String, bigint_vec: BigIntVec) -> Self {
+    pub fn new(sequence_number: u32, bigint_vec: BigIntVec) -> Self {
         Self {
             sequence_number: sequence_number,
             bigint_vec: bigint_vec,
@@ -35,21 +37,48 @@ impl fmt::Display for StrippedSequence {
     }
 }
 
+lazy_static! {
+    // Extract the sequence number "123456" from a string like this "A123456 ".
+    static ref EXTRACT_SEQUENCE_NUMBER: Regex = Regex::new(
+        "^A(\\d+)"
+    ).unwrap();
+}
+
 pub fn parse_stripped_sequence_line(line: &String, max_term_count: Option<usize>) -> Option<StrippedSequence> {
     if !line.starts_with("A") {
         return None;            
     }
     let mut iter = line.split(",");
-    let sequence_number: String = match iter.next() {
-        Some(value) => {
-            let sequence_number_raw: &str = value.trim_end();
-            sequence_number_raw.to_string()
-        },
+
+    // Process the first column
+    // The first column is like this "A123456 "
+    // This code extracts the sequence number, 123456
+    let sequence_number_raw: &str = match iter.next() {
+        Some(value) => value,
         None => {
+            debug!("Unable to pattern match row");
+            return None;
+        }
+    };
+    let re = &EXTRACT_SEQUENCE_NUMBER;
+    let captures = match re.captures(&sequence_number_raw) {
+        Some(value) => value,
+        None => {
+            debug!("Unable to extract sequence number");
+            return None;
+        }
+    };
+    let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
+    let sequence_number_string: String = capture1.to_string();
+    let sequence_number: u32 = match sequence_number_string.parse() {
+        Ok(value) => value,
+        _ => {
+            debug!("Unable to parse sequence number as u32");
             return None;
         }
     };
 
+    // Process the following columns
     let max_term_count_inner: usize = match max_term_count {
         Some(value) => value,
         None => usize::MAX
@@ -105,10 +134,12 @@ mod tests {
     fn test_10000_parse() {
         assert_eq!(parse(""), "NONE");
         assert_eq!(parse("# comment"), "NONE");
-        assert_eq!(parse("A000040 ,2,3,5,7,11,13,17,19,23,"), "A000040 2,3,5,7,11,13,17,19,23");
-        assert_eq!(parse_with_limit("A000040 ,2,3,5,7,11,13,17,19,23,", 0), "A000040");
-        assert_eq!(parse_with_limit("A000040 ,2,3,5,7,11,13,17,19,23,", 2), "A000040 2,3");
-        assert_eq!(parse_with_limit("A000040 ,2,3,5,", 8), "A000040 2,3,5");
+        assert_eq!(parse("Ajunk"), "NONE");
+        assert_eq!(parse("A junk"), "NONE");
+        assert_eq!(parse("A000040 ,2,3,5,7,11,13,17,19,23,"), "40 2,3,5,7,11,13,17,19,23");
+        assert_eq!(parse_with_limit("A000040 ,2,3,5,7,11,13,17,19,23,", 0), "40");
+        assert_eq!(parse_with_limit("A000040 ,2,3,5,7,11,13,17,19,23,", 2), "40 2,3");
+        assert_eq!(parse_with_limit("A000040 ,2,3,5,", 8), "40 2,3,5");
     }
 
     const INPUT_STRIPPED_SEQUENCE_DATA: &str = r#"
