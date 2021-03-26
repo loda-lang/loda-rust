@@ -1,10 +1,10 @@
-# Installation guide for Loda Lab
+# Installation guide for LODA Lab
 
 
 ---
 ## Step 1 - Install dependency
 
-The `Loda Lab` project depends on the `LODA` project. So first install LODA.
+The `LODA Lab` project depends on the `LODA` project. So first install LODA.
 
 #### Step 1 A
 
@@ -24,11 +24,11 @@ So far so good. LODA is installed.
 
 ---
 
-## Step 2 - Install Loda Lab
+## Step 2 - Install LODA Lab
 
 #### Step 2 A
 
-Check out [Simon Strandgaard's Loda Lab repository](https://github.com/neoneye/loda-lab) on your computer.
+Check out [Simon Strandgaard's LODA Lab repository](https://github.com/neoneye/loda-lab) on your computer.
 
 A good place checking it out locally in the `$HOME/git/loda-lab` dir.
 
@@ -53,7 +53,7 @@ loda_program_rootdir = "/Users/JOHNDOE/git/loda/programs/oeis"
 
 #### Step 2 D
 
-Verify that Loda Lab really works, by computing [A000040, The prime numbers](https://oeis.org/A000040).
+Verify that LODA Lab really works, by computing [A000040, The prime numbers](https://oeis.org/A000040).
 
 ```
 PROMPT> cargo run -- eval 40
@@ -63,5 +63,5 @@ PROMPT>
 
 #### Step 2 Complete
 
-Finally `Loda Lab` is fully installed.
+Finally `LODA Lab` is fully installed.
 
