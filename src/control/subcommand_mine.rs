@@ -16,6 +16,18 @@ use rand::seq::SliceRandom;
 use chrono::{DateTime, Utc};
 
 pub fn subcommand_mine() {
+
+    // Print info about start conditions
+    let build_mode: &str;
+    if cfg!(debug_assertions) {
+        error!("Debugging enabled. Wasting cpu cycles. Not good for mining!");
+        build_mode = "'DEBUG'  # Terrible inefficient for mining!";
+    } else {
+        build_mode = "'RELEASE'  # Good";
+    }
+    println!("[mining info]");
+    println!("build_mode = {}\n", build_mode);
+
     let config = Config::load();
     let loda_program_rootdir: PathBuf = config.loda_program_rootdir();
     let cache_dir: PathBuf = config.cache_dir();
