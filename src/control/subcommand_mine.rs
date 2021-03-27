@@ -10,9 +10,10 @@ use std::fs::File;
 use std::io::prelude::*;
 use num_bigint::BigInt;
 use num_traits::Zero;
-use rand::{Rng,SeedableRng};
+use rand::{Rng,RngCore,SeedableRng};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
+use rand::thread_rng;
 use chrono::{DateTime, Utc};
 
 pub fn subcommand_mine() {
@@ -26,13 +27,15 @@ pub fn subcommand_mine() {
         build_mode = "'RELEASE'  # Good";
     }
     println!("[mining info]");
-    println!("build_mode = {}\n", build_mode);
+    println!("build_mode = {}", build_mode);
 
+    // Load config file
     let config = Config::load();
     let loda_program_rootdir: PathBuf = config.loda_program_rootdir();
     let cache_dir: PathBuf = config.cache_dir();
     let mine_output_dir: PathBuf = config.mine_output_dir();
 
+    // Load cached data
     debug!("step1");
     let file10 = cache_dir.join(Path::new("fixed_length_sequence_10terms.json"));
     let checker10: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file10);
@@ -40,11 +43,18 @@ pub fn subcommand_mine() {
     let checker20: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file20);
     debug!("step2");
 
+    // Pick a random seed
+    let mut rng = thread_rng();
+    let initial_random_seed: u64 = rng.next_u64();
+    println!("random_seed = {}", initial_random_seed);
+
+    // Launch the miner
     run_experiment0(
         &loda_program_rootdir, 
         &checker10, 
         &checker20,
         &mine_output_dir,
+        initial_random_seed,
     );
 }
 
@@ -521,16 +531,16 @@ impl Genome {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 2, 10);
             genome_vec.push(item);
         }
-        {
-            let item = GenomeItem {
-                enabled: true,
-                instruction_id: InstructionId::Call,
-                target_value: 0,
-                source_type: ParameterType::Constant,
-                source_value: 244049,
-            };
-            genome_vec.push(item);
-        }
+        // {
+        //     let item = GenomeItem {
+        //         enabled: true,
+        //         instruction_id: InstructionId::Call,
+        //         target_value: 1,
+        //         source_type: ParameterType::Constant,
+        //         source_value: 230980,
+        //     };
+        //     genome_vec.push(item);
+        // }
         {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 3, 2);
             genome_vec.push(item);
@@ -962,10 +972,9 @@ fn run_experiment0(
     checker10: &CheckFixedLengthSequence, 
     checker20: &CheckFixedLengthSequence,
     mine_output_dir: &Path,
+    initial_random_seed: u64,
 ) {
-    let seed: u64 = 356;
-    debug!("random seed: {}", seed);
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = StdRng::seed_from_u64(initial_random_seed);
 
     let mut dm = DependencyManager::new(
         loda_program_rootdir.clone(),
@@ -974,7 +983,7 @@ fn run_experiment0(
     // genome.mutate_insert_loop(&mut rng);
     // genome.print();
 
-    println!("Press CTRL-C to stop the miner.");
+    println!("\nPress CTRL-C to stop the miner.");
     let mut iteration: usize = 0;
     loop {
         if (iteration % 1000) == 0 {
