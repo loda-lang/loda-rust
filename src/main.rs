@@ -4,7 +4,6 @@ extern crate log;
 extern crate env_logger;
 
 use std::str::FromStr;
-use dotenv::dotenv;
 
 mod config;
 mod control;
@@ -22,9 +21,6 @@ extern crate num_traits;
 use clap::{App, AppSettings, Arg, SubCommand};
 
 fn main() {
-    // Prepare environment variables from the `.env` file.
-    dotenv().expect("Failed to read .env file");
-
     // Initialize logging from the `RUST_LOG` environment variable.
     env_logger::init();
 
