@@ -1,15 +1,19 @@
 use std::rc::Rc;
-use super::{DependencyManager, Settings};
+use std::path::PathBuf;
+use super::DependencyManager;
 use crate::execute::{ProgramRunner, RegisterValue, RunMode};
+use crate::config::Config;
 
 pub fn subcommand_evaluate(
-    settings: &Settings, 
     program_id: u64, 
     number_of_terms: u64,
     show_instructions: bool,
 ) {
+    let config = Config::load();
+    let loda_program_rootdir: PathBuf = config.loda_program_rootdir();
+
     let mut dm = DependencyManager::new(
-        settings.loda_program_rootdir.clone(),
+        loda_program_rootdir,
     );
     dm.load(program_id);
     let program_runner: Rc::<ProgramRunner> = match dm.program_run_manager.get(program_id) {

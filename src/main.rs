@@ -6,6 +6,7 @@ extern crate env_logger;
 use std::str::FromStr;
 use dotenv::dotenv;
 
+mod config;
 mod control;
 mod execute;
 mod mine;
@@ -90,7 +91,7 @@ fn main() {
                 .expect("Unable to parse number of terms.");
         }
         let show_instructions: bool = sub_m.is_present("instructions");
-        subcommand_evaluate(&settings, program_id, number_of_terms, show_instructions);
+        subcommand_evaluate(program_id, number_of_terms, show_instructions);
         return;
     }
 
