@@ -13,7 +13,7 @@ mod mine;
 mod parser;
 mod oeis;
 mod util;
-use control::{Settings, subcommand_dependencies, subcommand_evaluate, subcommand_install, subcommand_mine, subcommand_update};
+use control::{subcommand_dependencies, subcommand_evaluate, subcommand_install, subcommand_mine, subcommand_update};
 
 extern crate clap;
 extern crate num_bigint;
@@ -27,9 +27,6 @@ fn main() {
 
     // Initialize logging from the `RUST_LOG` environment variable.
     env_logger::init();
-
-    // Load settings from various environment variables.
-    let settings = Settings::new();
 
     let matches = App::new("loda_lab")
         .version("0.0.1")
