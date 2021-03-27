@@ -1,9 +1,6 @@
 #!/usr/bin/env ruby
 
 =begin
-Prerequisits:
-The 'dotenv' gem. Install it using `$ gem install dotenv`
-https://github.com/bkeepers/dotenv
 
 This script traverses all the programs inside the LODA program rootdir.
 It does search-and-replace through all the LODA assembly programs there are.
@@ -12,10 +9,9 @@ When encountering a program that contains a `lpb $x,1` instruction, then it's be
 =end
 
 require 'csv'
-require 'dotenv'
-Dotenv.load('../.env')
+require_relative 'config'
 
-LODA_PROGRAM_ROOTDIR = ENV['LODA_PROGRAM_ROOTDIR']
+LODA_PROGRAM_ROOTDIR = Config.instance.loda_program_rootdir
 
 def absolute_paths_for_all_programs(rootdir)
     relative_paths = Dir.glob(File.join("**", "*.asm"), base: rootdir).sort

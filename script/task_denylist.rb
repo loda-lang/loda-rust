@@ -20,10 +20,9 @@ This script outputs a `denylist.csv` file, with this format:
 =end
 
 require 'csv'
-require 'dotenv'
-Dotenv.load('../.env')
+require_relative 'config'
 
-LODA_PROGRAM_ROOTDIR = ENV['LODA_PROGRAM_ROOTDIR']
+LODA_PROGRAM_ROOTDIR = Config.instance.loda_program_rootdir
 
 input_filename = File.join(LODA_PROGRAM_ROOTDIR, 'denylist.txt')
 output_filename = 'data/denylist.csv'

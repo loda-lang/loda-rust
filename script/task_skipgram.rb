@@ -4,10 +4,6 @@
 Creates a skipgram with LODA instructions.
 https://en.wikipedia.org/wiki/N-gram
 
-Prerequisits:
-The 'dotenv' gem. Install it using `$ gem install dotenv`
-https://github.com/bkeepers/dotenv
-
 This script traverses all the programs inside the LODA program rootdir.
 It looks for all the LODA assembly programs there are.
 This script determines the most frequent combinations of instructions.
@@ -29,10 +25,9 @@ Learning C: The `sub` and some junk is usually followed by the `mov` instruction
 =end
 
 require 'csv'
-require 'dotenv'
-Dotenv.load('../.env')
+require_relative 'config'
 
-LODA_PROGRAM_ROOTDIR = ENV['LODA_PROGRAM_ROOTDIR']
+LODA_PROGRAM_ROOTDIR = Config.instance.loda_program_rootdir
 
 output_filename = 'data/skipgram.csv'
 
