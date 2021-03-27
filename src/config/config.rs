@@ -20,6 +20,11 @@ impl Config {
         self.basedir.join(path)
     }
 
+    pub fn mine_output_dir(&self) -> PathBuf {
+        let path = Path::new("mine-output");
+        self.basedir.join(path)
+    }
+
     pub fn loda_program_rootdir(&self) -> PathBuf {
         let path = Path::new(&self.loda_program_rootdir);
         assert!(path.is_absolute());

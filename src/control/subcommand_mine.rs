@@ -6,16 +6,20 @@ use crate::execute::{EvalError, Program, ProgramRunner, RegisterValue, RunMode};
 use crate::oeis::stripped_sequence::BigIntVec;
 use crate::util::Analyze;
 use std::path::{Path, PathBuf};
+use std::fs::File;
+use std::io::prelude::*;
 use num_bigint::BigInt;
 use num_traits::Zero;
 use rand::{Rng,SeedableRng};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
+use chrono::{Datelike, DateTime, Timelike, Utc};
 
 pub fn subcommand_mine() {
     let config = Config::load();
     let loda_program_rootdir: PathBuf = config.loda_program_rootdir();
     let cache_dir: PathBuf = config.cache_dir();
+    let mine_output_dir: PathBuf = config.mine_output_dir();
 
     debug!("step1");
     let file10 = cache_dir.join(Path::new("fixed_length_sequence_10terms.json"));
@@ -27,7 +31,8 @@ pub fn subcommand_mine() {
     run_experiment0(
         &loda_program_rootdir, 
         &checker10, 
-        &checker20
+        &checker20,
+        &mine_output_dir,
     );
 }
 
@@ -511,15 +516,29 @@ impl Genome {
         }
     }
 
-    fn to_program_string(&self) -> String {
+    fn to_program_string_vec(&self) -> Vec<String> {
         let program_rows: Vec<String> = self.genome_vec.iter().map(|genome_item| {
             genome_item.to_program_row()
         }).collect();
-        program_rows.join("\n")
+        program_rows
+    }
+
+    fn to_program_string(&self) -> String {
+        self.to_program_string_vec().join("\n")
     }
 
     fn print(&self) {
         println!("program:\n{}", self.to_program_string());
+    }
+
+    fn program_string_with_terms(&self, terms: &BigIntVec) -> String {
+        let term_strings: Vec<String> = terms.iter().map(|term| {
+            term.to_string()
+        }).collect();
+        let term_strings_joined: String = term_strings.join(",");
+        let prefix_rows = format!("; {}\n\n", term_strings_joined);
+        let program_rows = self.to_program_string();
+        prefix_rows + &program_rows
     }
 
     // Return `true` when the mutation was successful.
@@ -868,12 +887,32 @@ impl CheckFixedLengthSequence {
     }
 }
 
+fn save_candidate_program(
+    mine_output_dir: &Path,
+    iteration: usize,
+    content: &String,
+) -> std::io::Result<()> 
+{
+    // Format filename as "19841231-235959-1234.asm"
+    let now: DateTime<Utc> = Utc::now();
+    let filename: String = format!("{}-{}.asm", now.format("%Y%m%d-%H%M%S"), iteration);
+
+    // Write the file to the output dir
+    let path = mine_output_dir.join(Path::new(&filename));
+    let mut file = File::create(&path)?;
+    file.write_all(content.as_bytes())?;
+
+    println!("candidate: {:?}", filename);
+    Ok(())
+}
+
 fn run_experiment0(
     loda_program_rootdir: &PathBuf, 
     checker10: &CheckFixedLengthSequence, 
-    checker20: &CheckFixedLengthSequence
+    checker20: &CheckFixedLengthSequence,
+    mine_output_dir: &Path,
 ) {
-    let seed: u64 = 350;
+    let seed: u64 = 351;
     debug!("random seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
 
@@ -930,7 +969,20 @@ fn run_experiment0(
             continue;
         }
 
-        println!("iteration: {} candidate. terms: {:?}", iteration, terms20);
-        genome.print();
+        let terms40: BigIntVec = match runner.compute_terms(40) {
+            Ok(value) => value,
+            Err(error) => {
+                debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                continue;
+            }
+        };
+        // println!("iteration: {} candidate. terms: {:?}", iteration, terms40);
+        // genome.print();
+
+        let candidate_program: String = genome.program_string_with_terms(&terms40);
+        if let Err(error) = save_candidate_program(mine_output_dir, iteration, &candidate_program) {
+            genome.print();
+            error!("Unable to save candidate program: {:?}", error);
+        }
     }
 }

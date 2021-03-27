@@ -19,6 +19,7 @@ bloomfilter = "1.0.4"
 rand = "0.8"
 csv = "1.1"
 toml = "0.5.8"
+chrono = "0.4.19"
 
 [dev-dependencies]
 tempfile = "3.2.0"
