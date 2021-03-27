@@ -15,11 +15,12 @@ use rand::seq::SliceRandom;
 pub fn subcommand_mine() {
     let config = Config::load();
     let loda_program_rootdir: PathBuf = config.loda_program_rootdir();
+    let cache_dir: PathBuf = config.cache_dir();
 
     debug!("step1");
-    let file10 = Path::new("cache/fixed_length_sequence_10terms.json");
+    let file10 = cache_dir.join(Path::new("fixed_length_sequence_10terms.json"));
     let checker10: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file10);
-    let file20 = Path::new("cache/fixed_length_sequence_20terms.json");
+    let file20 = cache_dir.join(Path::new("fixed_length_sequence_10terms.json"));
     let checker20: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file20);
     debug!("step2");
 

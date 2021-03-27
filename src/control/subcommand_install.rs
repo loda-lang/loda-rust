@@ -30,16 +30,30 @@ pub fn subcommand_install() {
         panic!("Cannot install. Expected a directory, but got something else. {:?}, Possible solution, remove the thing that uses the same name.", basedir);
     }
 
+    let mut number_of_issues = 0;
     // Create readme.txt if needed.
     if let Err(error) = create_readme_in_basedir(&basedir) {
         error!("Unable to create 'readme.txt' file, error: {:?}", error);
+        number_of_issues += 1;
     }
 
     // Create config.toml if needed.
     if let Err(error) = create_config_in_basedir(&basedir) {
         error!("Unable to create 'config.toml' file, error: {:?}", error);
+        number_of_issues += 1;
     }
 
+    // Create `cache/` dir if needed.
+    if let Err(error) = create_cache_dir_in_basedir(&basedir) {
+        error!("Unable to create 'cache' dir, error: {:?}", error);
+        number_of_issues += 1;
+    }
+
+    if number_of_issues > 0 {
+        error!("Installation problems occurred. Try delete the '$HOME/.loda-lab' and try again.");
+        return;
+    }
+    
     println!("install success");
 }
 
@@ -81,3 +95,10 @@ oeis_stripped_file = "/Users/JOHNDOE/.loda/oeis/stripped"
     Ok(())
 }
 
+fn create_cache_dir_in_basedir(basedir: &Path) -> std::io::Result<()> {
+    let path: PathBuf = basedir.join(Path::new("cache"));
+    if path.is_dir() {
+        return Ok(());
+    }
+    fs::create_dir(path)
+}
