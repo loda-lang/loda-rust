@@ -23,6 +23,7 @@ rake data/program_ids.csv           # obtain all the program ids
 rake data/skipgram.csv              # generate a skipgram
 rake data/terms_lab.csv             # compute terms with "LODA Lab"
 rake data/terms_loda.csv            # compute terms with "LODA Official"
+rake data/top100.md                 # create a markdown document with the 100 most popular LODA programs
 rake data/trigram.csv               # generate a trigram
 PROMPT>
 ```
