@@ -20,11 +20,10 @@ pub fn subcommand_mine() {
     debug!("step1");
     let file10 = cache_dir.join(Path::new("fixed_length_sequence_10terms.json"));
     let checker10: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file10);
-    let file20 = cache_dir.join(Path::new("fixed_length_sequence_10terms.json"));
+    let file20 = cache_dir.join(Path::new("fixed_length_sequence_20terms.json"));
     let checker20: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file20);
     debug!("step2");
 
-    // TODO: mining
     run_experiment0(
         &loda_program_rootdir, 
         &checker10, 
