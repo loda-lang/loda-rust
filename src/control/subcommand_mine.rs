@@ -13,7 +13,7 @@ use num_traits::Zero;
 use rand::{Rng,SeedableRng};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
-use chrono::{Datelike, DateTime, Timelike, Utc};
+use chrono::{DateTime, Utc};
 
 pub fn subcommand_mine() {
     let config = Config::load();
