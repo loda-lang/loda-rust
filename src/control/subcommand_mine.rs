@@ -88,6 +88,12 @@ impl GenomeItem {
     }
 
     fn mutate_randomize_instruction<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        // If there is a Call instruction then don't touch it.
+        let is_call = self.instruction_id == InstructionId::Call;
+        if is_call {
+            return false;
+        }
+
         // Prevent messing up loop begin/end.
         let is_loop = 
             self.instruction_id == InstructionId::LoopBegin || 
@@ -119,6 +125,10 @@ impl GenomeItem {
     }
 
     fn mutate_source_value(&mut self, mutation: &MutateValue) -> bool {
+        let is_call = self.instruction_id == InstructionId::Call;
+        if is_call {
+            return false;
+        }
         let (status, new_value) = self.mutate_value(mutation, self.source_value);
         self.source_value = new_value;
         status
@@ -153,7 +163,11 @@ impl GenomeItem {
         (true, value)
     }
 
-    fn mutate_source_type(&mut self) {
+    fn mutate_source_type(&mut self) -> bool {
+        let is_call = self.instruction_id == InstructionId::Call;
+        if is_call {
+            return false;
+        }
         match self.source_type {
             ParameterType::Constant => {
                 self.source_type = ParameterType::Register;
@@ -162,9 +176,15 @@ impl GenomeItem {
                 self.source_type = ParameterType::Constant;
             },
         }
+        true
     }
 
     fn mutate_enabled(&mut self) -> bool {
+        let is_call = self.instruction_id == InstructionId::Call;
+        if is_call {
+            return false;
+        }
+
         // Prevent messing up loop begin/end.
         let is_loop = 
             self.instruction_id == InstructionId::LoopBegin || 
@@ -177,10 +197,15 @@ impl GenomeItem {
         true
     }
 
-    fn mutate_swap_source_target_value(&mut self) {
+    fn mutate_swap_source_target_value(&mut self) -> bool {
+        let is_call = self.instruction_id == InstructionId::Call;
+        if is_call {
+            return false;
+        }
         let tmp = self.source_value;
         self.source_value = self.target_value;
         self.target_value = tmp;
+        true
     }
 
     fn mutate_sanitize_program_row(&mut self) -> bool {
@@ -485,6 +510,16 @@ impl Genome {
             genome_vec.push(item);
         }
         {
+            let item = GenomeItem {
+                enabled: true,
+                instruction_id: InstructionId::Call,
+                target_value: 0,
+                source_type: ParameterType::Constant,
+                source_value: 10,
+            };
+            genome_vec.push(item);
+        }
+        {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 3, 2);
             genome_vec.push(item);
         }
@@ -650,7 +685,9 @@ impl Genome {
         let index: usize = rng.gen_range(0..length);
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
 
-        genome_item.mutate_source_type();
+        if !genome_item.mutate_source_type() {
+            return false;
+        }
         genome_item.mutate_sanitize_program_row()
     }
 
@@ -671,7 +708,9 @@ impl Genome {
         // Mutate one of the instructions that use two registers
         let index: &usize = indexes.choose(rng).unwrap();
         let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
-        genome_item.mutate_swap_source_target_value();
+        if !genome_item.mutate_swap_source_target_value() {
+            return false;
+        }
         genome_item.mutate_sanitize_program_row()
     }
 
@@ -912,7 +951,7 @@ fn run_experiment0(
     checker20: &CheckFixedLengthSequence,
     mine_output_dir: &Path,
 ) {
-    let seed: u64 = 352;
+    let seed: u64 = 354;
     debug!("random seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
 
