@@ -912,7 +912,7 @@ fn run_experiment0(
     checker20: &CheckFixedLengthSequence,
     mine_output_dir: &Path,
 ) {
-    let seed: u64 = 351;
+    let seed: u64 = 352;
     debug!("random seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
 
@@ -921,13 +921,16 @@ fn run_experiment0(
     );
     let mut genome = Genome::new();
     // genome.mutate_insert_loop(&mut rng);
-    genome.print();
-    // return;
-    for iteration in 0..1000000 {
+    // genome.print();
+
+    println!("Press CTRL-C to stop the miner.");
+    let mut iteration: usize = 0;
+    loop {
         if (iteration % 1000) == 0 {
             println!("iteration: {}", iteration);
         }
-
+        iteration += 1;
+        
         for _ in 0..20 {
             genome.mutate(&mut rng);
         }
