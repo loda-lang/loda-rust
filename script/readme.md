@@ -2,6 +2,8 @@
 
 These scripts for automation uses the [Ruby programming_language](https://www.ruby-lang.org/en/).
 
+Run `bundle install` to install the dependencies listed in the `Gemfile`.
+
 
 # Usage - Basics
 

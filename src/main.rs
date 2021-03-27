@@ -4,15 +4,15 @@ extern crate log;
 extern crate env_logger;
 
 use std::str::FromStr;
-use dotenv::dotenv;
 
+mod config;
 mod control;
 mod execute;
 mod mine;
 mod parser;
 mod oeis;
 mod util;
-use control::{Settings, subcommand_dependencies, subcommand_evaluate, subcommand_mine, subcommand_update};
+use control::{subcommand_dependencies, subcommand_evaluate, subcommand_install, subcommand_mine, subcommand_update};
 
 extern crate clap;
 extern crate num_bigint;
@@ -21,14 +21,8 @@ extern crate num_traits;
 use clap::{App, AppSettings, Arg, SubCommand};
 
 fn main() {
-    // Prepare environment variables from the `.env` file.
-    dotenv().expect("Failed to read .env file");
-
     // Initialize logging from the `RUST_LOG` environment variable.
     env_logger::init();
-
-    // Load settings from various environment variables.
-    let settings = Settings::new();
 
     let matches = App::new("loda_lab")
         .version("0.0.1")
@@ -64,6 +58,10 @@ fn main() {
                         .required(true)
                 )
         )
+        .subcommand(
+            SubCommand::with_name("install")
+                .about("Create the $HOME/.loda-lab directory")
+        )
         // Experiments with mining new programs
         // .subcommand(
         //     SubCommand::with_name("update")
@@ -86,7 +84,7 @@ fn main() {
                 .expect("Unable to parse number of terms.");
         }
         let show_instructions: bool = sub_m.is_present("instructions");
-        subcommand_evaluate(&settings, program_id, number_of_terms, show_instructions);
+        subcommand_evaluate(program_id, number_of_terms, show_instructions);
         return;
     }
 
@@ -94,17 +92,22 @@ fn main() {
         let program_id_raw: &str = sub_m.value_of("programid").unwrap();
         let program_id: u64 = u64::from_str(program_id_raw)
             .expect("Unable to parse program_id.");
-        subcommand_dependencies(&settings, program_id);
+        subcommand_dependencies(program_id);
+        return;
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("install") {
+        subcommand_install();
         return;
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("update") {
-        subcommand_update(&settings);
+        subcommand_update();
         return;
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("mine") {
-        subcommand_mine(&settings);
+        subcommand_mine();
         return;
     }
 

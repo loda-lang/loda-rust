@@ -1,9 +1,6 @@
 #!/usr/bin/env ruby
 
 =begin
-Prerequisits:
-The 'dotenv' gem. Install it using `$ gem install dotenv`
-https://github.com/bkeepers/dotenv
 
 This script traverses all the programs inside the LODA program rootdir.
 It looks for all the LODA assembly programs there are.
@@ -21,10 +18,9 @@ This script outputs a `programs_using_clear_instruction_with_variable_length.csv
 =end
 
 require 'csv'
-require 'dotenv'
-Dotenv.load('../.env')
+require_relative 'config'
 
-LODA_PROGRAM_ROOTDIR = ENV['LODA_PROGRAM_ROOTDIR']
+LODA_PROGRAM_ROOTDIR = Config.instance.loda_program_rootdir
 
 output_filename = 'programs_using_clear_instruction_with_variable_length.csv'
 
