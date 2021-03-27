@@ -99,22 +99,22 @@ fn main() {
         let program_id_raw: &str = sub_m.value_of("programid").unwrap();
         let program_id: u64 = u64::from_str(program_id_raw)
             .expect("Unable to parse program_id.");
-        subcommand_dependencies(&settings, program_id);
+        subcommand_dependencies(program_id);
         return;
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("install") {
-        subcommand_install(&settings);
+        subcommand_install();
         return;
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("update") {
-        subcommand_update(&settings);
+        subcommand_update();
         return;
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("mine") {
-        subcommand_mine(&settings);
+        subcommand_mine();
         return;
     }
 

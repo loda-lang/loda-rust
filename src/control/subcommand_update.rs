@@ -1,4 +1,3 @@
-use super::Settings;
 use crate::mine::check_fixed_length_sequence::create_cache_file;
 use crate::mine::dont_mine::load_dontmine_file;
 use std::path::Path;
@@ -16,7 +15,7 @@ fn obtain_dontmine_program_ids() -> HashSet<u32> {
     hashset
 }
 
-pub fn subcommand_update(_settings: &Settings) {
+pub fn subcommand_update() {
     println!("update begin");
     
     let program_ids_to_ignore: HashSet<u32> = obtain_dontmine_program_ids();

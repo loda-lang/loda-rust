@@ -1,8 +1,12 @@
-use super::{DependencyManager, Settings};
+use super::DependencyManager;
+use crate::config::Config;
+use std::path::PathBuf;
 
-pub fn subcommand_dependencies(settings: &Settings, program_id: u64) {
+pub fn subcommand_dependencies(program_id: u64) {
+    let config = Config::load();
+    let loda_program_rootdir: PathBuf = config.loda_program_rootdir();
     let mut dm = DependencyManager::new(
-        settings.loda_program_rootdir.clone(),
+        loda_program_rootdir,
     );
     dm.load(program_id);
     dm.print_dependencies();

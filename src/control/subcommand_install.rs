@@ -1,10 +1,9 @@
-use super::Settings;
 use std::path::{Path,PathBuf};
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 
-pub fn subcommand_install(_settings: &Settings) {
+pub fn subcommand_install() {
     // Obtain $HOME environment variable
     let homedir: PathBuf = match std::env::home_dir() {
         Some(value) => value,

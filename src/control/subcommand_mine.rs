@@ -1,17 +1,21 @@
-use super::{DependencyManager, Settings};
+use super::DependencyManager;
+use crate::config::Config;
 use crate::mine::check_fixed_length_sequence::CheckFixedLengthSequence;
 use crate::parser::{InstructionId, ParameterType};
 use crate::execute::{EvalError, Program, ProgramRunner, RegisterValue, RunMode};
 use crate::oeis::stripped_sequence::BigIntVec;
 use crate::util::Analyze;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use num_bigint::BigInt;
 use num_traits::Zero;
 use rand::{Rng,SeedableRng};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 
-pub fn subcommand_mine(settings: &Settings) {
+pub fn subcommand_mine() {
+    let config = Config::load();
+    let loda_program_rootdir: PathBuf = config.loda_program_rootdir();
+
     debug!("step1");
     let file10 = Path::new("cache/fixed_length_sequence_10terms.json");
     let checker10: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file10);
@@ -20,7 +24,11 @@ pub fn subcommand_mine(settings: &Settings) {
     debug!("step2");
 
     // TODO: mining
-    run_experiment0(settings, &checker10, &checker20);
+    run_experiment0(
+        &loda_program_rootdir, 
+        &checker10, 
+        &checker20
+    );
 }
 
 enum MutateValue {
@@ -861,7 +869,7 @@ impl CheckFixedLengthSequence {
 }
 
 fn run_experiment0(
-    settings: &Settings, 
+    loda_program_rootdir: &PathBuf, 
     checker10: &CheckFixedLengthSequence, 
     checker20: &CheckFixedLengthSequence
 ) {
@@ -870,7 +878,7 @@ fn run_experiment0(
     let mut rng = StdRng::seed_from_u64(seed);
 
     let mut dm = DependencyManager::new(
-        settings.loda_program_rootdir.clone(),
+        loda_program_rootdir.clone(),
     );
     let mut genome = Genome::new();
     // genome.mutate_insert_loop(&mut rng);
