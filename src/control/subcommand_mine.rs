@@ -39,19 +39,19 @@ pub fn subcommand_mine() {
 enum MutateValue {
     Increment,
     Decrement,
-    Assign(u16),
+    Assign(u32),
 }
 
 struct GenomeItem {
     enabled: bool,
     instruction_id: InstructionId,
-    target_value: u16,
+    target_value: u32,
     source_type: ParameterType,
-    source_value: u16,
+    source_value: u32,
 }
 
 impl GenomeItem {
-    fn new(instruction_id: InstructionId, target_value: u16, source_type: ParameterType, source_value: u16) -> Self {
+    fn new(instruction_id: InstructionId, target_value: u32, source_type: ParameterType, source_value: u32) -> Self {
         Self {
             enabled: true,
             instruction_id: instruction_id,
@@ -61,7 +61,7 @@ impl GenomeItem {
         }
     }
 
-    fn new_move_register(target_value: u16, source_value: u16) -> Self {
+    fn new_move_register(target_value: u32, source_value: u32) -> Self {
         Self {
             enabled: true,
             instruction_id: InstructionId::Move,
@@ -71,7 +71,7 @@ impl GenomeItem {
         }
     }
 
-    fn new_instruction_with_const(instruction_id: InstructionId, target_value: u16, source_value: u16) -> Self {
+    fn new_instruction_with_const(instruction_id: InstructionId, target_value: u32, source_value: u32) -> Self {
         Self {
             enabled: true,
             instruction_id: instruction_id,
@@ -142,7 +142,7 @@ impl GenomeItem {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as underflow, overflow.
-    fn mutate_value(&mut self, mutation: &MutateValue, mut value: u16) -> (bool, u16) {
+    fn mutate_value(&mut self, mutation: &MutateValue, mut value: u32) -> (bool, u32) {
         match mutation {
             MutateValue::Increment => {
                 if value >= 255 {
@@ -515,7 +515,7 @@ impl Genome {
                 instruction_id: InstructionId::Call,
                 target_value: 0,
                 source_type: ParameterType::Constant,
-                source_value: 10,
+                source_value: 244049,
             };
             genome_vec.push(item);
         }
@@ -807,7 +807,7 @@ impl Genome {
             let index: usize = index0.min(index1);
             let item = GenomeItem::new(
                 InstructionId::LoopBegin,
-                rng.gen_range(0..5) as u16,
+                rng.gen_range(0..5) as u32,
                 ParameterType::Constant,
                 1
             );
@@ -951,7 +951,7 @@ fn run_experiment0(
     checker20: &CheckFixedLengthSequence,
     mine_output_dir: &Path,
 ) {
-    let seed: u64 = 354;
+    let seed: u64 = 356;
     debug!("random seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
 
