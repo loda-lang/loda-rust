@@ -184,7 +184,7 @@ end
 
 comments = {
     244049 => 'Popular in LODA, underappreciated in OEIS. Why?',
-    230980 => 'Popular in LODA, underappreciated in OEIS. Why?',
+    230980 => "Same as " + oeis_link(720) + ", starting at n=0.",
     206735 => 'Popular in LODA, underappreciated in OEIS. Why?',
 }
 
