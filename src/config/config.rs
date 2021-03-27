@@ -6,6 +6,7 @@ use std::fs;
 #[derive(Debug)]
 pub struct Config {
     loda_program_rootdir: String,
+    oeis_stripped_file: String,
 }
 
 impl Config {
@@ -20,11 +21,19 @@ impl Config {
         assert!(path.is_dir());
         PathBuf::from(path)
     }
+
+    pub fn oeis_stripped_file(&self) -> PathBuf {
+        let path = Path::new(&self.oeis_stripped_file);
+        assert!(path.is_absolute());
+        assert!(path.is_file());
+        PathBuf::from(path)
+    }
 }
 
 #[derive(Debug, Deserialize)]
 struct ConfigInner {
     loda_program_rootdir: String,
+    oeis_stripped_file: String,
 }
 
 impl ConfigInner {
@@ -57,6 +66,7 @@ impl ConfigInner {
     fn to_config(&self) -> Config {
         Config {
             loda_program_rootdir: self.loda_program_rootdir.clone(),
+            oeis_stripped_file: self.oeis_stripped_file.clone(),
         }
     }
 }

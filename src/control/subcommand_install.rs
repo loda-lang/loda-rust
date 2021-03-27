@@ -71,6 +71,9 @@ r#"# Configuration for LODA Lab
 
 # Absolute path to the dir that contains all the LODA programs.
 loda_program_rootdir = "/Users/JOHNDOE/git/loda/programs/oeis"
+
+# Absolute path to the unzipped OEIS stripped file.
+oeis_stripped_file = "/Users/JOHNDOE/.loda/oeis/stripped"
 "#;
 
     let mut file = File::create(path)?;
