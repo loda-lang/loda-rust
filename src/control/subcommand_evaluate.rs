@@ -37,10 +37,12 @@ impl ProgramRunner {
         if count < 1 {
             panic!("Expected number of terms to be 1 or greater.");
         }
+        let eval_count_limit: u64 = 10000000;
         let mut eval_count: u64 = 0;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
-            let output: RegisterValue = match self.run(input, RunMode::Silent, &mut eval_count) {
+            let result_run = self.run(input, RunMode::Silent, &mut eval_count, eval_count_limit);
+            let output: RegisterValue = match result_run {
                 Ok(value) => value,
                 Err(error) => {
                     panic!("Failure while computing term {}, error: {:?}", index, error);
@@ -63,11 +65,13 @@ impl ProgramRunner {
         if count < 1 {
             panic!("Expected number of terms to be 1 or greater.");
         }
+        let eval_count_limit: u64 = 10000000;
         let mut eval_count: u64 = 0;
         for index in 0..(count as i64) {
             println!("INPUT: a({})", index);
             let input = RegisterValue::from_i64(index);
-            let output: RegisterValue = match self.run(input, RunMode::Verbose, &mut eval_count) {
+            let result_run = self.run(input, RunMode::Verbose, &mut eval_count, eval_count_limit);
+            let output: RegisterValue = match result_run {
                 Ok(value) => value,
                 Err(error) => {
                     panic!("Failure while computing term {}, error: {:?}", index, error);

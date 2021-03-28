@@ -8,10 +8,11 @@ pub struct ProgramState {
     register_vec: Vec<RegisterValue>,
     eval_count: u64,
     run_mode: RunMode,
+    eval_count_limit: u64,
 }
 
 impl ProgramState {
-    pub fn new(register_count: u8, run_mode: RunMode) -> Self {
+    pub fn new(register_count: u8, run_mode: RunMode, eval_count_limit: u64) -> Self {
         let mut register_vec: Vec<RegisterValue> = vec!();
         for _ in 0..register_count {
             register_vec.push(RegisterValue::zero());
@@ -20,6 +21,7 @@ impl ProgramState {
             register_vec: register_vec,
             eval_count: 0,
             run_mode: run_mode,
+            eval_count_limit: eval_count_limit,
         }
     }
 
@@ -121,6 +123,10 @@ impl ProgramState {
 }
 
 impl ProgramState {
+    pub fn eval_count_limit(&self) -> u64 {
+        self.eval_count_limit
+    }
+    
     pub fn eval_count(&self) -> u64 {
         self.eval_count
     }
@@ -129,7 +135,7 @@ impl ProgramState {
         let count: u64 = self.eval_count + 1;
         self.eval_count = count;
 
-        if count >= 10000000 {
+        if count >= self.eval_count_limit {
             error!("eval_count exceeded limit");
             return Err(EvalError::EvalCountExceededLimit);
         }
@@ -147,7 +153,7 @@ mod tests {
     use super::*;
 
     fn mock_program_state() -> ProgramState {
-        let mut state = ProgramState::new(4, RunMode::Silent);
+        let mut state = ProgramState::new(4, RunMode::Silent, 1000);
         state.set_register_value(RegisterIndex(0), RegisterValue::from_i64(100));
         state.set_register_value(RegisterIndex(1), RegisterValue::from_i64(101));
         state.set_register_value(RegisterIndex(2), RegisterValue::from_i64(102));
@@ -200,17 +206,17 @@ mod tests {
         {
             // compare 0 registers
             let zero_length: u8 = 0;
-            let state = ProgramState::new(4, RunMode::Silent);
+            let state = ProgramState::new(4, RunMode::Silent, 1000);
             assert_eq!(state.is_less_range(&state, RegisterIndex(0), zero_length), false);
         }
         {
             // compare 1 register
-            let state = ProgramState::new(4, RunMode::Silent);
+            let state = ProgramState::new(4, RunMode::Silent, 1000);
             assert_eq!(state.is_less_range(&state, RegisterIndex(0), 1), false);
         }
         {
             // compare 4 registers
-            let state = ProgramState::new(4, RunMode::Silent);
+            let state = ProgramState::new(4, RunMode::Silent, 1000);
             assert_eq!(state.is_less_range(&state, RegisterIndex(0), 4), false);
         }
         {
@@ -259,22 +265,22 @@ mod tests {
     fn test_20001_is_less_range_returns_true() {
         {
             // compare 1 register
-            let state0 = ProgramState::new(4, RunMode::Silent);
-            let mut state1 = ProgramState::new(4, RunMode::Silent);
+            let state0 = ProgramState::new(4, RunMode::Silent, 1000);
+            let mut state1 = ProgramState::new(4, RunMode::Silent, 1000);
             state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(1));
             assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), true);
         }
         {
             // compare 2 registers
-            let state0 = ProgramState::new(4, RunMode::Silent);
-            let mut state1 = ProgramState::new(4, RunMode::Silent);
+            let state0 = ProgramState::new(4, RunMode::Silent, 1000);
+            let mut state1 = ProgramState::new(4, RunMode::Silent, 1000);
             state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(1));
             assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 2), true);
         }
         {
             // compare 2 registers
-            let state0 = ProgramState::new(4, RunMode::Silent);
-            let mut state1 = ProgramState::new(4, RunMode::Silent);
+            let state0 = ProgramState::new(4, RunMode::Silent, 1000);
+            let mut state1 = ProgramState::new(4, RunMode::Silent, 1000);
             state1.set_register_value(RegisterIndex(1), RegisterValue::from_i64(1));
             assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 2), true);
         }
@@ -313,7 +319,7 @@ mod tests {
     #[test]
     fn test_20002_is_less_single_returns_false() {
         {
-            let state = ProgramState::new(4, RunMode::Silent);
+            let state = ProgramState::new(4, RunMode::Silent, 1000);
             assert_eq!(state.is_less_single(&state, RegisterIndex(0)), false);
         }
         {
@@ -346,8 +352,8 @@ mod tests {
     #[test]
     fn test_20003_is_less_single_returns_true() {
         {
-            let state0 = ProgramState::new(4, RunMode::Silent);
-            let mut state1 = ProgramState::new(4, RunMode::Silent);
+            let state0 = ProgramState::new(4, RunMode::Silent, 1000);
+            let mut state1 = ProgramState::new(4, RunMode::Silent, 1000);
             state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(1));
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
         }
