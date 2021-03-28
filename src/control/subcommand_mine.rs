@@ -893,9 +893,10 @@ impl Genome {
 impl ProgramRunner {
     fn compute_terms(&self, count: u64) -> Result<BigIntVec, EvalError> {
         let mut terms: BigIntVec = vec!();
+        let mut _eval_count: u64 = 0;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
-            let output: RegisterValue = self.run(input, RunMode::Silent)?;
+            let output: RegisterValue = self.run(input, RunMode::Silent, &mut _eval_count)?;
             terms.push(output.0.clone());
             if index == 0 {
                 // print!("{}", output.0);
@@ -904,6 +905,7 @@ impl ProgramRunner {
             // print!(",{}", output.0);
         }
         // print!("\n");
+        // print!("stats: eval_count: {}", eval_count);
         Ok(terms)
     }
 }

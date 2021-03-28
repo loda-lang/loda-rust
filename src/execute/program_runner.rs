@@ -17,10 +17,24 @@ impl ProgramRunner {
         }
     }
 
-    pub fn run(&self, input: RegisterValue, run_mode: RunMode) -> Result<RegisterValue, EvalError> {
+    pub fn run(&self, input: RegisterValue, run_mode: RunMode, eval_count: &mut u64) -> Result<RegisterValue, EvalError> {
+        // Initial state
         let mut state = ProgramState::new(self.register_count, run_mode);
+        state.replace_eval_count(*eval_count);
         state.set_register_value(RegisterIndex(0), input);
-        self.program.run(&mut state)?;
+
+        // Invoke the actual run() function
+        let run_result = self.program.run(&mut state);
+
+        // Update statistics, no matter if run succeeded or failed
+        *eval_count = state.eval_count();
+
+        // In case run failed, then return the error
+        if let Err(error) = run_result {
+            return Err(error);
+        }
+
+        // In case run succeeded, then return register 1.
         let value: RegisterValue = state.get_register_value(RegisterIndex(1));
         Ok(value)
     }
@@ -30,9 +44,10 @@ impl ProgramRunner {
             panic!("Value is too high. Cannot be converted to 64bit signed integer.");
         }
         let mut sequence: Vec<i64> = vec!();
+        let mut eval_count: u64 = 0;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
-            let output: RegisterValue = self.run(input, RunMode::Silent)?;
+            let output: RegisterValue = self.run(input, RunMode::Silent, &mut eval_count)?;
             let value: i64 = output.to_i64();
             sequence.push(value);
         }
