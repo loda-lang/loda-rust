@@ -128,11 +128,11 @@ impl ProgramState {
     pub fn increment_eval_count(&mut self) -> Result<(), EvalError> {
         let count: u64 = self.eval_count + 1;
         self.eval_count = count;
-        // println!("eval_count: {}", count);
-        // if count >= 10 {
-        //     error!("Exceeded max");
-        //     return Err(EvalError::EvalCountExceededLimit);
-        // }
+
+        if count >= 10000000 {
+            error!("eval_count exceeded limit");
+            return Err(EvalError::EvalCountExceededLimit);
+        }
         Ok(())
     }
 
