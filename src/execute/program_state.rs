@@ -1,4 +1,4 @@
-use super::{RegisterIndex, RegisterValue, RunMode};
+use super::{EvalError, RegisterIndex, RegisterValue, RunMode};
 use num_bigint::BigInt;
 use num_traits::Signed;
 use std::cmp::Ordering;
@@ -21,10 +21,6 @@ impl ProgramState {
             eval_count: 0,
             run_mode: run_mode,
         }
-    }
-
-    pub fn increment_eval_count(&mut self) {
-        self.eval_count += 1;
     }
 
     pub fn run_mode(&self) -> RunMode {
@@ -121,6 +117,28 @@ impl ProgramState {
             Ordering::Greater => return false,
             Ordering::Equal => return false,
         }
+    }
+}
+
+impl ProgramState {
+    pub fn eval_count(&self) -> u64 {
+        self.eval_count
+    }
+
+    pub fn increment_eval_count(&mut self) -> Result<(), EvalError> {
+        let count: u64 = self.eval_count + 1;
+        self.eval_count = count;
+        // println!("eval_count: {}", count);
+        // if count >= 10 {
+        //     error!("Exceeded max");
+        //     return Err(EvalError::EvalCountExceededLimit);
+        // }
+        Ok(())
+    }
+
+    pub fn replace_eval_count(&mut self, count: u64) {
+        // debug!("replacing eval count: {} -> {}", self.eval_count, count);
+        self.eval_count = count;
     }
 }
 
