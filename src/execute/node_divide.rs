@@ -104,9 +104,13 @@ mod tests {
     fn test_10000() {
         assert_eq!(process(50, 10), "5");
         assert_eq!(process(100, 1), "100");
+        assert_eq!(process(10, 2), "5");
+        assert_eq!(process(9, 2), "4");
         assert_eq!(process(-1, -1), "1");
         assert_eq!(process(3, -3), "-1");
         assert_eq!(process(-3, 3), "-1");
+        assert_eq!(process(-9, 2), "-4");
+        assert_eq!(process(-10, 2), "-5");
         assert_eq!(process(100, 0), "BOOM");
         assert_eq!(process(-100, 0), "BOOM");
     }

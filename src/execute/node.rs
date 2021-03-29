@@ -17,6 +17,9 @@ pub enum EvalError {
 
     // Stuck in a loop that takes way too long time to compute
     LoopCountExceededLimit,
+
+    // Using way too many cpu cycles
+    StepCountExceededLimit,
 }
 
 pub trait Node {

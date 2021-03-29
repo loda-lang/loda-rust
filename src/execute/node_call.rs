@@ -37,7 +37,29 @@ impl Node for NodeCallConstant {
             panic!("No link have been establish. This node cannot do its job.");
         }
         let input: RegisterValue = state.get_register_value(self.target.clone());
-        let output: RegisterValue = self.program_runner_rc.run(input, state.run_mode())?;
+        let step_count_limit: u64 = state.step_count_limit();
+        let mut step_count: u64 = state.step_count();
+
+        // Invoke the actual run() function
+        let run_result = self.program_runner_rc.run(
+            input, 
+            state.run_mode(), 
+            &mut step_count, 
+            step_count_limit
+        );
+
+        // Update statistics, no matter if run succeeded or failed
+        state.set_step_count(step_count);
+
+        let output: RegisterValue = match run_result {
+            Ok(value) => value,
+            Err(error) => {
+                // In case run failed, then return the error
+                return Err(error);
+            }
+        };
+
+        // In case run succeeded, then pass on the outputted value.
         state.set_register_value(self.target.clone(), output);
         Ok(())
     }

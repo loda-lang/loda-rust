@@ -10,17 +10,32 @@ use std::fs::File;
 use std::io::prelude::*;
 use num_bigint::BigInt;
 use num_traits::Zero;
-use rand::{Rng,SeedableRng};
+use rand::{Rng,RngCore,SeedableRng};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
+use rand::thread_rng;
 use chrono::{DateTime, Utc};
 
 pub fn subcommand_mine() {
+
+    // Print info about start conditions
+    let build_mode: &str;
+    if cfg!(debug_assertions) {
+        error!("Debugging enabled. Wasting cpu cycles. Not good for mining!");
+        build_mode = "'DEBUG'  # Terrible inefficient for mining!";
+    } else {
+        build_mode = "'RELEASE'  # Good";
+    }
+    println!("[mining info]");
+    println!("build_mode = {}", build_mode);
+
+    // Load config file
     let config = Config::load();
     let loda_program_rootdir: PathBuf = config.loda_program_rootdir();
     let cache_dir: PathBuf = config.cache_dir();
     let mine_output_dir: PathBuf = config.mine_output_dir();
 
+    // Load cached data
     debug!("step1");
     let file10 = cache_dir.join(Path::new("fixed_length_sequence_10terms.json"));
     let checker10: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file10);
@@ -28,30 +43,37 @@ pub fn subcommand_mine() {
     let checker20: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file20);
     debug!("step2");
 
+    // Pick a random seed
+    let mut rng = thread_rng();
+    let initial_random_seed: u64 = rng.next_u64();
+    println!("random_seed = {}", initial_random_seed);
+
+    // Launch the miner
     run_experiment0(
         &loda_program_rootdir, 
         &checker10, 
         &checker20,
         &mine_output_dir,
+        initial_random_seed,
     );
 }
 
 enum MutateValue {
     Increment,
     Decrement,
-    Assign(u16),
+    Assign(u32),
 }
 
 struct GenomeItem {
     enabled: bool,
     instruction_id: InstructionId,
-    target_value: u16,
+    target_value: u32,
     source_type: ParameterType,
-    source_value: u16,
+    source_value: u32,
 }
 
 impl GenomeItem {
-    fn new(instruction_id: InstructionId, target_value: u16, source_type: ParameterType, source_value: u16) -> Self {
+    fn new(instruction_id: InstructionId, target_value: u32, source_type: ParameterType, source_value: u32) -> Self {
         Self {
             enabled: true,
             instruction_id: instruction_id,
@@ -61,7 +83,7 @@ impl GenomeItem {
         }
     }
 
-    fn new_move_register(target_value: u16, source_value: u16) -> Self {
+    fn new_move_register(target_value: u32, source_value: u32) -> Self {
         Self {
             enabled: true,
             instruction_id: InstructionId::Move,
@@ -71,7 +93,7 @@ impl GenomeItem {
         }
     }
 
-    fn new_instruction_with_const(instruction_id: InstructionId, target_value: u16, source_value: u16) -> Self {
+    fn new_instruction_with_const(instruction_id: InstructionId, target_value: u32, source_value: u32) -> Self {
         Self {
             enabled: true,
             instruction_id: instruction_id,
@@ -88,6 +110,12 @@ impl GenomeItem {
     }
 
     fn mutate_randomize_instruction<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        // If there is a Call instruction then don't touch it.
+        let is_call = self.instruction_id == InstructionId::Call;
+        if is_call {
+            return false;
+        }
+
         // Prevent messing up loop begin/end.
         let is_loop = 
             self.instruction_id == InstructionId::LoopBegin || 
@@ -119,6 +147,10 @@ impl GenomeItem {
     }
 
     fn mutate_source_value(&mut self, mutation: &MutateValue) -> bool {
+        let is_call = self.instruction_id == InstructionId::Call;
+        if is_call {
+            return false;
+        }
         let (status, new_value) = self.mutate_value(mutation, self.source_value);
         self.source_value = new_value;
         status
@@ -132,7 +164,7 @@ impl GenomeItem {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as underflow, overflow.
-    fn mutate_value(&mut self, mutation: &MutateValue, mut value: u16) -> (bool, u16) {
+    fn mutate_value(&mut self, mutation: &MutateValue, mut value: u32) -> (bool, u32) {
         match mutation {
             MutateValue::Increment => {
                 if value >= 255 {
@@ -153,7 +185,11 @@ impl GenomeItem {
         (true, value)
     }
 
-    fn mutate_source_type(&mut self) {
+    fn mutate_source_type(&mut self) -> bool {
+        let is_call = self.instruction_id == InstructionId::Call;
+        if is_call {
+            return false;
+        }
         match self.source_type {
             ParameterType::Constant => {
                 self.source_type = ParameterType::Register;
@@ -162,9 +198,15 @@ impl GenomeItem {
                 self.source_type = ParameterType::Constant;
             },
         }
+        true
     }
 
     fn mutate_enabled(&mut self) -> bool {
+        let is_call = self.instruction_id == InstructionId::Call;
+        if is_call {
+            return false;
+        }
+
         // Prevent messing up loop begin/end.
         let is_loop = 
             self.instruction_id == InstructionId::LoopBegin || 
@@ -177,10 +219,15 @@ impl GenomeItem {
         true
     }
 
-    fn mutate_swap_source_target_value(&mut self) {
+    fn mutate_swap_source_target_value(&mut self) -> bool {
+        let is_call = self.instruction_id == InstructionId::Call;
+        if is_call {
+            return false;
+        }
         let tmp = self.source_value;
         self.source_value = self.target_value;
         self.target_value = tmp;
+        true
     }
 
     fn mutate_sanitize_program_row(&mut self) -> bool {
@@ -484,6 +531,16 @@ impl Genome {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 2, 10);
             genome_vec.push(item);
         }
+        // {
+        //     let item = GenomeItem {
+        //         enabled: true,
+        //         instruction_id: InstructionId::Call,
+        //         target_value: 1,
+        //         source_type: ParameterType::Constant,
+        //         source_value: 230980,
+        //     };
+        //     genome_vec.push(item);
+        // }
         {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 3, 2);
             genome_vec.push(item);
@@ -650,7 +707,9 @@ impl Genome {
         let index: usize = rng.gen_range(0..length);
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
 
-        genome_item.mutate_source_type();
+        if !genome_item.mutate_source_type() {
+            return false;
+        }
         genome_item.mutate_sanitize_program_row()
     }
 
@@ -671,7 +730,9 @@ impl Genome {
         // Mutate one of the instructions that use two registers
         let index: &usize = indexes.choose(rng).unwrap();
         let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
-        genome_item.mutate_swap_source_target_value();
+        if !genome_item.mutate_swap_source_target_value() {
+            return false;
+        }
         genome_item.mutate_sanitize_program_row()
     }
 
@@ -768,7 +829,7 @@ impl Genome {
             let index: usize = index0.min(index1);
             let item = GenomeItem::new(
                 InstructionId::LoopBegin,
-                rng.gen_range(0..5) as u16,
+                rng.gen_range(0..5) as u32,
                 ParameterType::Constant,
                 1
             );
@@ -832,9 +893,11 @@ impl Genome {
 impl ProgramRunner {
     fn compute_terms(&self, count: u64) -> Result<BigIntVec, EvalError> {
         let mut terms: BigIntVec = vec!();
+        let step_count_limit: u64 = 10000;
+        let mut _step_count: u64 = 0;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
-            let output: RegisterValue = self.run(input, RunMode::Silent)?;
+            let output: RegisterValue = self.run(input, RunMode::Silent, &mut _step_count, step_count_limit)?;
             terms.push(output.0.clone());
             if index == 0 {
                 // print!("{}", output.0);
@@ -843,6 +906,7 @@ impl ProgramRunner {
             // print!(",{}", output.0);
         }
         // print!("\n");
+        // print!("stats: step_count: {}", step_count);
         Ok(terms)
     }
 }
@@ -911,10 +975,9 @@ fn run_experiment0(
     checker10: &CheckFixedLengthSequence, 
     checker20: &CheckFixedLengthSequence,
     mine_output_dir: &Path,
+    initial_random_seed: u64,
 ) {
-    let seed: u64 = 352;
-    debug!("random seed: {}", seed);
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = StdRng::seed_from_u64(initial_random_seed);
 
     let mut dm = DependencyManager::new(
         loda_program_rootdir.clone(),
@@ -923,7 +986,7 @@ fn run_experiment0(
     // genome.mutate_insert_loop(&mut rng);
     // genome.print();
 
-    println!("Press CTRL-C to stop the miner.");
+    println!("\nPress CTRL-C to stop the miner.");
     let mut iteration: usize = 0;
     loop {
         if (iteration % 1000) == 0 {

@@ -99,7 +99,9 @@ impl Node for NodeLoopRegister {
                 }
 
                 // When the loop reaches its end, the previous state is restored.
-                *state = old_state.clone();
+                let mut new_state: ProgramState = old_state.clone();
+                new_state.set_step_count(state.step_count());
+                *state = new_state;
                 break;
             }
 
