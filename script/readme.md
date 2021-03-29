@@ -17,6 +17,7 @@ rake data/caller_callee_pairs.csv   # obtain all the dependencies between progra
 rake data/compare_loda_vs_lab.csv   # compare terms between "LODA official" and "LODA Lab"
 rake data/denylist.csv              # extract program ids from the LODA denylist file
 rake data/dont_mine.csv             # determine which program ids that shouldn't be attempted mined
+rake data/loda-lab                  # compiles the loda-lab executable
 rake data/most_called_programs.csv  # determine the most called programs
 rake data/pagerank.csv              # run the PageRank algorithm and ranking the most influential programs
 rake data/program_ids.csv           # obtain all the program ids
@@ -38,8 +39,6 @@ PROMPT>
 
 On successful completion there should be the file: `data/most_called_programs.csv`.
 
-
-# Usage - Advanced
 
 ### Generate a CSV file with PageRank
 
