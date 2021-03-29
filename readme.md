@@ -12,7 +12,7 @@ LODA Lab is a commandline tool.
 
 It can be installed on macOS, Linux.
 
-See [Installation Guide](document/install.md).
+See [Installation Guide](documents/install.md).
 
 
 # Usage
