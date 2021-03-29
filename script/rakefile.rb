@@ -4,12 +4,12 @@ file 'data/program_ids.csv' do
 end
 
 desc 'obtain all the dependencies between programs, for use as input to PageRank algorithm'
-file 'data/caller_callee_pairs.csv' => 'data/program_ids.csv' do
+file 'data/caller_callee_pairs.csv' => ['data/loda-lab', 'data/program_ids.csv'] do
     ruby 'task_caller_callee_pairs.rb'
 end
 
 desc 'obtain all the dependencies between programs, comma separated list'
-file 'data/caller_callee_list.csv' => 'data/program_ids.csv' do
+file 'data/caller_callee_list.csv' => ['data/loda-lab', 'data/program_ids.csv'] do
     ruby 'task_caller_callee_list.rb'
 end
 
@@ -19,7 +19,7 @@ file 'data/most_called_programs.csv' => 'data/caller_callee_list.csv' do
 end
 
 desc 'compute terms with "LODA Lab"'
-file 'data/terms_lab.csv' => 'data/program_ids.csv' do
+file 'data/terms_lab.csv' => ['data/loda-lab', 'data/program_ids.csv'] do
     ruby 'task_terms_lab.rb'
 end
 
@@ -66,6 +66,11 @@ end
 desc "create a markdown document with the 100 most popular LODA programs"
 file 'data/top100.md' => ['data/pagerank.csv', 'data/caller_callee_pairs.csv'] do
     ruby 'task_top100.rb'
+end
+
+desc "compiles the loda-lab executable"
+file 'data/loda-lab' do
+    ruby 'task_lodalab_executable.rb'
 end
 
 task :default do
