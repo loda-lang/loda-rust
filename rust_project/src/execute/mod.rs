@@ -14,7 +14,7 @@ pub use program_id::ProgramId;
 pub use program_runner::ProgramRunner;
 pub use program_runner_manager::ProgramRunnerManager;
 pub use program_state::ProgramState;
-pub use mycache::MyCache;
+pub use mycache::{CacheValue, MyCache};
 pub use run_mode::RunMode;
 pub use node::{BoxNode, EvalError, Node, ValidateCallError};
 pub use register_index::RegisterIndex;

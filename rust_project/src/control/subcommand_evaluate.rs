@@ -1,3 +1,4 @@
+use std::time::Instant;
 use std::rc::Rc;
 use std::path::PathBuf;
 use super::DependencyManager;
@@ -52,6 +53,7 @@ impl ProgramRunner {
         let mut cache = MyCache::new();
         let step_count_limit: u64 = 10000000;
         let mut step_count: u64 = 0;
+        let start_time = Instant::now();
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
             let result_run = self.run(
@@ -75,6 +77,8 @@ impl ProgramRunner {
         }
         print!("\n");
         debug!("stats: step_count: {}", step_count);
+        println!("elapsed: {:?} ms", start_time.elapsed().as_millis());
+        cache.print_statistics();
     }
 
     fn print_steps(&self, count: u64) {
