@@ -1,4 +1,4 @@
-use super::{EvalError, Node, BoxNode, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError};
+use super::{EvalError, MyCache, Node, BoxNode, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError};
 
 type BoxNodeVec = Vec<BoxNode>;
 
@@ -22,25 +22,25 @@ impl Program {
         self.node_vec.push(node_wrapped);
     }
 
-    pub fn run(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    pub fn run(&self, state: &mut ProgramState, cache: &mut MyCache) -> Result<(), EvalError> {
         match state.run_mode() {
-            RunMode::Verbose => self.run_verbose(state),
-            RunMode::Silent => self.run_silent(state),
+            RunMode::Verbose => self.run_verbose(state, cache),
+            RunMode::Silent => self.run_silent(state, cache),
         }
     }
 
-    pub fn run_silent(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    pub fn run_silent(&self, state: &mut ProgramState, cache: &mut MyCache) -> Result<(), EvalError> {
         for node in &self.node_vec {
-            node.eval(state)?;
+            node.eval(state, cache)?;
             state.increment_step_count()?;
         }
         Ok(())
     }
 
-    pub fn run_verbose(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    pub fn run_verbose(&self, state: &mut ProgramState, cache: &mut MyCache) -> Result<(), EvalError> {
         for node in &self.node_vec {
             let before = state.register_vec_to_string();
-            node.eval(state)?;
+            node.eval(state, cache)?;
             let after = state.register_vec_to_string();
             let instruction: String = node.formatted_instruction();
             if !instruction.is_empty() {

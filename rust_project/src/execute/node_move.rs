@@ -1,4 +1,4 @@
-use super::{EvalError, Node, ProgramState, RegisterIndex, RegisterValue};
+use super::{EvalError, MyCache, Node, ProgramState, RegisterIndex, RegisterValue};
 
 pub struct NodeMoveRegister {
     target: RegisterIndex,
@@ -23,7 +23,7 @@ impl Node for NodeMoveRegister {
         format!("mov {},{}", self.target, self.source)
     }
 
-    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, _cache: &mut MyCache) -> Result<(), EvalError> {
         let value: RegisterValue = state.get_register_value(self.source.clone());
         state.set_register_value(self.target.clone(), value);
         Ok(())
@@ -58,7 +58,7 @@ impl Node for NodeMoveConstant {
         format!("mov {},{}", self.target, self.source)
     }
 
-    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, _cache: &mut MyCache) -> Result<(), EvalError> {
         let value: RegisterValue = self.source.clone();
         state.set_register_value(self.target.clone(), value);
         Ok(())

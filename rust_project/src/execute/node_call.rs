@@ -35,7 +35,7 @@ impl Node for NodeCallConstant {
         format!("cal {},{}", self.target, self.program_id)
     }
 
-    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, cache: &mut MyCache) -> Result<(), EvalError> {
         if !self.link_established {
             panic!("No link have been establish. This node cannot do its job.");
         }
@@ -44,14 +44,12 @@ impl Node for NodeCallConstant {
         let mut step_count: u64 = state.step_count();
 
         // Invoke the actual run() function
-        let mut cache = MyCache::new();
-        // TODO: use the shared cache
         let run_result = self.program_runner_rc.run(
             input, 
             state.run_mode(), 
             &mut step_count, 
             step_count_limit,
-            &mut cache,
+            cache,
         );
 
         // Update statistics, no matter if run succeeded or failed

@@ -30,7 +30,7 @@ impl ProgramRunner {
         state.set_register_value(RegisterIndex(0), input);
 
         // Invoke the actual run() function
-        let run_result = self.program.run(&mut state);
+        let run_result = self.program.run(&mut state, cache);
 
         // Update statistics, no matter if run succeeded or failed
         *step_count = state.step_count();
