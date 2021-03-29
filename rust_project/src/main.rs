@@ -24,7 +24,7 @@ fn main() {
     // Initialize logging from the `RUST_LOG` environment variable.
     env_logger::init();
 
-    let matches = App::new("loda_lab")
+    let matches = App::new("loda-lab")
         .version("0.0.1")
         .about("Experimental tool")
         .setting(AppSettings::SubcommandRequiredElseHelp)
