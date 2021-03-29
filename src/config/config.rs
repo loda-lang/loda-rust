@@ -16,13 +16,17 @@ impl Config {
     }
 
     pub fn cache_dir(&self) -> PathBuf {
-        let path = Path::new("cache");
-        self.basedir.join(path)
+        let name = Path::new("cache");
+        let path = self.basedir.join(name);
+        assert!(path.is_dir());
+        path
     }
 
-    pub fn mine_output_dir(&self) -> PathBuf {
-        let path = Path::new("mine-output");
-        self.basedir.join(path)
+    pub fn mine_event_dir(&self) -> PathBuf {
+        let name = Path::new("mine-event");
+        let path = self.basedir.join(name);
+        assert!(path.is_dir());
+        path
     }
 
     pub fn loda_program_rootdir(&self) -> PathBuf {
