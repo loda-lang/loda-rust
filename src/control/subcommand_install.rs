@@ -1,3 +1,4 @@
+use crate::config::Config;
 use std::path::{Path,PathBuf};
 use std::fs;
 use std::fs::File;
@@ -85,17 +86,7 @@ fn create_config_in_basedir(basedir: &Path) -> std::io::Result<()> {
     if path.is_file() {
         return Ok(());
     }
-
-    let content = 
-r#"# Configuration for LODA Lab
-
-# Absolute path to the dir that contains all the LODA programs.
-loda_program_rootdir = "/Users/JOHNDOE/git/loda/programs/oeis"
-
-# Absolute path to the unzipped OEIS stripped file.
-oeis_stripped_file = "/Users/JOHNDOE/.loda/oeis/stripped"
-"#;
-
+    let content = Config::default_config();
     let mut file = File::create(path)?;
     file.write_all(content.as_bytes())?;
     Ok(())
