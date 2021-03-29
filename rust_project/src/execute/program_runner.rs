@@ -3,6 +3,7 @@ use super::{EvalError, Program, ProgramState, RegisterIndex, RegisterValue, RunM
 pub struct ProgramRunner {
     program: Program,
     register_count: u8,
+    // TODO: reference to cache
 }
 
 impl ProgramRunner {

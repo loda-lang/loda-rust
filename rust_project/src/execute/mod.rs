@@ -1,4 +1,5 @@
 mod node;
+mod mycache;
 mod program;
 mod program_runner;
 mod program_runner_manager;
@@ -11,6 +12,7 @@ pub use program::Program;
 pub use program_runner::ProgramRunner;
 pub use program_runner_manager::ProgramRunnerManager;
 pub use program_state::ProgramState;
+pub use mycache::MyCache;
 pub use run_mode::RunMode;
 pub use node::{BoxNode, EvalError, Node, ValidateCallError};
 pub use register_index::RegisterIndex;
