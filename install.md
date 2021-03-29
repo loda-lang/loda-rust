@@ -51,6 +51,16 @@ Manually modify this parameter, so it points to the dir that contains all the LO
 loda_program_rootdir = "/Users/JOHNDOE/git/loda/programs/oeis"
 ```
 
+Manually modify this parameter, so it points to the unzipped OEIS stripped file.
+```
+oeis_stripped_file = "/Users/JOHNDOE/.loda/oeis/stripped"
+```
+
+Manually modify this parameter, so it points to the LODA Lab repository dir.
+```
+loda_lab_repository = "/Users/JOHNDOE/git/loda-lab"
+```
+
 #### Step 2 D
 
 Verify that LODA Lab really works, by computing [A000040, The prime numbers](https://oeis.org/A000040).

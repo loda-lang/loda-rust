@@ -33,7 +33,7 @@ pub fn subcommand_mine() {
     let config = Config::load();
     let loda_program_rootdir: PathBuf = config.loda_program_rootdir();
     let cache_dir: PathBuf = config.cache_dir();
-    let mine_output_dir: PathBuf = config.mine_output_dir();
+    let mine_event_dir: PathBuf = config.mine_event_dir();
 
     // Load cached data
     debug!("step1");
@@ -53,7 +53,7 @@ pub fn subcommand_mine() {
         &loda_program_rootdir, 
         &checker10, 
         &checker20,
-        &mine_output_dir,
+        &mine_event_dir,
         initial_random_seed,
     );
 }
@@ -952,7 +952,7 @@ impl CheckFixedLengthSequence {
 }
 
 fn save_candidate_program(
-    mine_output_dir: &Path,
+    mine_event_dir: &Path,
     iteration: usize,
     content: &String,
 ) -> std::io::Result<()> 
@@ -962,7 +962,7 @@ fn save_candidate_program(
     let filename: String = format!("{}-{}.asm", now.format("%Y%m%d-%H%M%S"), iteration);
 
     // Write the file to the output dir
-    let path = mine_output_dir.join(Path::new(&filename));
+    let path = mine_event_dir.join(Path::new(&filename));
     let mut file = File::create(&path)?;
     file.write_all(content.as_bytes())?;
 
@@ -974,7 +974,7 @@ fn run_experiment0(
     loda_program_rootdir: &PathBuf, 
     checker10: &CheckFixedLengthSequence, 
     checker20: &CheckFixedLengthSequence,
-    mine_output_dir: &Path,
+    mine_event_dir: &Path,
     initial_random_seed: u64,
 ) {
     let mut rng = StdRng::seed_from_u64(initial_random_seed);
@@ -1046,7 +1046,7 @@ fn run_experiment0(
         // genome.print();
 
         let candidate_program: String = genome.program_string_with_terms(&terms40);
-        if let Err(error) = save_candidate_program(mine_output_dir, iteration, &candidate_program) {
+        if let Err(error) = save_candidate_program(mine_event_dir, iteration, &candidate_program) {
             genome.print();
             error!("Unable to save candidate program: {:?}", error);
         }

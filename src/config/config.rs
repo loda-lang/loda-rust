@@ -3,26 +3,49 @@ use serde::Deserialize;
 use toml::de::Error;
 use std::fs;
 
+const DEFAULT_CONFIG: &'static str =
+r#"# Configuration for LODA Lab
+
+# Absolute path to the dir that contains all the LODA programs.
+loda_program_rootdir = "/Users/JOHNDOE/git/loda/programs/oeis"
+
+# Absolute path to the unzipped OEIS stripped file.
+oeis_stripped_file = "/Users/JOHNDOE/.loda/oeis/stripped"
+
+# Absolute path to the LODA Lab repository dir.
+loda_lab_repository = "/Users/JOHNDOE/git/loda-lab"
+"#;
+
+
 #[derive(Debug)]
 pub struct Config {
     basedir: PathBuf,
     loda_program_rootdir: String,
     oeis_stripped_file: String,
+    loda_lab_repository: String,
 }
 
 impl Config {
+    pub fn default_config() -> String {
+        DEFAULT_CONFIG.to_string()
+    }
+
     pub fn load() -> Self {
         load_config_from_home_dir()
     }
 
     pub fn cache_dir(&self) -> PathBuf {
-        let path = Path::new("cache");
-        self.basedir.join(path)
+        let name = Path::new("cache");
+        let path = self.basedir.join(name);
+        assert!(path.is_dir());
+        path
     }
 
-    pub fn mine_output_dir(&self) -> PathBuf {
-        let path = Path::new("mine-output");
-        self.basedir.join(path)
+    pub fn mine_event_dir(&self) -> PathBuf {
+        let name = Path::new("mine-event");
+        let path = self.basedir.join(name);
+        assert!(path.is_dir());
+        path
     }
 
     pub fn loda_program_rootdir(&self) -> PathBuf {
@@ -38,12 +61,20 @@ impl Config {
         assert!(path.is_file());
         PathBuf::from(path)
     }
+
+    pub fn loda_lab_repository(&self) -> PathBuf {
+        let path = Path::new(&self.loda_lab_repository);
+        assert!(path.is_absolute());
+        assert!(path.is_dir());
+        PathBuf::from(path)
+    }
 }
 
 #[derive(Debug, Deserialize)]
 struct ConfigInner {
     loda_program_rootdir: String,
     oeis_stripped_file: String,
+    loda_lab_repository: String,
 }
 
 fn load_config_from_home_dir() -> Config {
@@ -67,11 +98,30 @@ fn load_config_from_home_dir() -> Config {
     }
 
     let toml_content: String = fs::read_to_string(path_to_config).unwrap();
-    let inner: ConfigInner = toml::from_str(&toml_content).unwrap();
+    config_from_toml_content(toml_content, basedir)
+}
 
+fn config_from_toml_content(toml_content: String, basedir: PathBuf) -> Config {
+    let inner: ConfigInner = toml::from_str(&toml_content).unwrap();
     Config {
         basedir: basedir,
         loda_program_rootdir: inner.loda_program_rootdir.clone(),
         oeis_stripped_file: inner.oeis_stripped_file.clone(),
+        loda_lab_repository: inner.loda_lab_repository.clone(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_10000() {
+        let basedir = PathBuf::from(Path::new("non-existing-basedir"));
+        let config: Config = config_from_toml_content(Config::default_config(), basedir);
+        assert_eq!(config.basedir.to_str().unwrap(), "non-existing-basedir");
+        assert_eq!(config.loda_program_rootdir, "/Users/JOHNDOE/git/loda/programs/oeis");
+        assert_eq!(config.oeis_stripped_file, "/Users/JOHNDOE/.loda/oeis/stripped");
+        assert_eq!(config.loda_lab_repository, "/Users/JOHNDOE/git/loda-lab");
     }
 }
