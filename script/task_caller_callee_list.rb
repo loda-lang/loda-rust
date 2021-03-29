@@ -30,9 +30,6 @@ require 'csv'
 input_filename = 'data/program_ids.csv'
 output_filename = 'data/caller_callee_list.csv'
 
-# Build the newest version
-`cargo build --release`
-
 time_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
 # Obtain all the program_ids to be processed
@@ -56,7 +53,7 @@ end
 CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
     csv << ["program id", "dependency count", "program ids"]
     program_ids.each_with_index do |program_id, index|
-        output = `../target/release/loda_lab dependencies #{program_id}`
+        output = `data/loda-lab dependencies #{program_id}`
         output = output.strip
         dependency_count = output.split(',').count
         success = $?.success?

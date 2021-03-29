@@ -6,15 +6,23 @@ This is my attempt at doing a crossover of both. This is experimental stuff.
 This repo is inspired by [Christian Krause's LODA project](https://github.com/ckrause/loda) for mining integer sequences.
 LODA has proved to be remarkable good at making programs that correspond to OEIS integer sequences.
 
+# Installation
 
-# Usage - Basics
+LODA Lab is a commandline tool.
+
+It can be installed on macOS, Linux.
+
+See [Installation Guide](documents/install.md).
+
+
+# Usage
 
 ### Print 10 terms
 
 Evaluate program for the A000079 oeis sequence, printing 10 terms.
 
 ```
-PROMPT> cargo run -- eval 79 -t 10
+PROMPT> loda-lab eval 79 -t 10
 1,2,4,8,16,32,64,128,256,512
 PROMPT>
 ```
@@ -24,34 +32,17 @@ PROMPT>
 Print dependencies of a program for the A000073 oeis sequence.
 
 ```
-PROMPT> cargo run -- deps 73
+PROMPT> loda-lab deps 73
 73,232508,301657
 PROMPT>
 ```
 
-# Usage - Advanced
+### Print internal state
 
-### Run tests
-
-```
-PROMPT> cargo test
-```
-
-
-### Run with backtrace enabled
-
-This is useful if there is a crash.
+Evaluate program for the A000079 oeis sequence, processing 2 terms and printing the internal state.
 
 ```
-PROMPT> RUST_BACKTRACE=1 cargo run -- eval 79 -t 64
-```
-
-### Run and print instructions
-
-Evaluate program for the A000079 oeis sequence, processing 2 terms and printing the instructions.
-
-```
-PROMPT> cargo run -- eval 79 -t 2 --instructions
+PROMPT> loda-lab eval 79 -t 2 --debug
 INPUT: a(0)
 mov $1,2     [0,0] => [0,2]
 pow $1,$0    [0,2] => [0,1]
