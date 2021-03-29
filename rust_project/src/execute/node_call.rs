@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use super::{EvalError, Node, RegisterIndex, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
+use super::{EvalError, MyCache, Node, RegisterIndex, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
 
 pub struct NodeCallConstant {
     target: RegisterIndex,
@@ -44,11 +44,14 @@ impl Node for NodeCallConstant {
         let mut step_count: u64 = state.step_count();
 
         // Invoke the actual run() function
+        let mut cache = MyCache::new();
+        // TODO: use the shared cache
         let run_result = self.program_runner_rc.run(
             input, 
             state.run_mode(), 
             &mut step_count, 
-            step_count_limit
+            step_count_limit,
+            &mut cache,
         );
 
         // Update statistics, no matter if run succeeded or failed

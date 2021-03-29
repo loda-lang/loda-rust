@@ -19,19 +19,7 @@ impl ProgramRunner {
         }
     }
 
-    pub fn run(&self, input: RegisterValue, run_mode: RunMode, step_count: &mut u64, step_count_limit: u64) -> Result<RegisterValue, EvalError> {
-        let mut cache = MyCache::new();
-
-        self.run_inner(
-            input,
-            run_mode,
-            step_count,
-            step_count_limit,
-            &mut cache,
-        )
-    }
-
-    fn run_inner(&self, input: RegisterValue, run_mode: RunMode, step_count: &mut u64, step_count_limit: u64, cache: &mut MyCache) -> Result<RegisterValue, EvalError> {
+    pub fn run(&self, input: RegisterValue, run_mode: RunMode, step_count: &mut u64, step_count_limit: u64, cache: &mut MyCache) -> Result<RegisterValue, EvalError> {
         // TODO: lookup (programid+index) in cache
 
         cache.increment_hit();
@@ -67,11 +55,18 @@ impl ProgramRunner {
             panic!("Value is too high. Cannot be converted to 64bit signed integer.");
         }
         let mut sequence: Vec<i64> = vec!();
+        let mut cache = MyCache::new();
         let step_count_limit: u64 = 10000;
         let mut step_count: u64 = 0;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
-            let output: RegisterValue = self.run(input, RunMode::Silent, &mut step_count, step_count_limit)?;
+            let output: RegisterValue = self.run(
+                input, 
+                RunMode::Silent, 
+                &mut step_count, 
+                step_count_limit,
+                &mut cache,
+            )?;
             let value: i64 = output.to_i64();
             sequence.push(value);
         }
