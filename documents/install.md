@@ -34,13 +34,24 @@ A good place for this repository, is the `$HOME/git/loda-lab` dir.
 
 #### Step 2 B
 
+Compile the `rust_project` into an executable named `loda-lab`.
+
 ```
-PROMPT> cargo run -- install
+PROMPT> pwd
+/Users/JOHNDOE/git/loda-lab/rust_project
+PROMPT> cargo build --release
+PROMPT> cp target/release/loda-lab ..
+```
+
+#### Step 2 C
+
+```
+PROMPT> loda-lab install
 ```
 
 This creates a `$HOME/.loda-lab` dir.
 
-#### Step 2 C
+#### Step 2 D
 
 Manually edit the configuration file `$HOME/.loda-lab/config.toml`.
 
@@ -61,12 +72,12 @@ Manually modify this parameter, so it points to the LODA Lab repository dir.
 loda_lab_repository = "/Users/JOHNDOE/git/loda-lab"
 ```
 
-#### Step 2 D
+#### Step 2 E
 
 Verify that LODA Lab really works, by computing [A000040, The prime numbers](https://oeis.org/A000040).
 
 ```
-PROMPT> cargo run -- eval 40
+PROMPT> loda-lab eval 40
 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71
 PROMPT>
 ```
