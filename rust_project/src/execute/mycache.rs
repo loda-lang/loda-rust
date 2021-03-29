@@ -2,7 +2,25 @@ extern crate lru;
 use lru::LruCache;
 
 pub struct MyCache {
+    count_hit: u64,
+    count_miss: u64,
+}
 
+impl MyCache {
+    pub fn new() -> Self {
+        Self {
+            count_hit: 0,
+            count_miss: 0,
+        }
+    }
+
+    pub fn increment_hit(&mut self) {
+        self.count_hit += 1;
+    }
+
+    pub fn increment_miss(&mut self) {
+        self.count_miss += 1;
+    }
 }
 
 

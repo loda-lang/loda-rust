@@ -1,9 +1,8 @@
-use super::{EvalError, Program, ProgramState, RegisterIndex, RegisterValue, RunMode};
+use super::{EvalError, MyCache, Program, ProgramState, RegisterIndex, RegisterValue, RunMode};
 
 pub struct ProgramRunner {
     program: Program,
     register_count: u8,
-    // TODO: reference to cache
 }
 
 impl ProgramRunner {
@@ -19,6 +18,22 @@ impl ProgramRunner {
     }
 
     pub fn run(&self, input: RegisterValue, run_mode: RunMode, step_count: &mut u64, step_count_limit: u64) -> Result<RegisterValue, EvalError> {
+        let mut cache = MyCache::new();
+
+        self.run_inner(
+            input,
+            run_mode,
+            step_count,
+            step_count_limit,
+            &mut cache,
+        )
+    }
+
+    fn run_inner(&self, input: RegisterValue, run_mode: RunMode, step_count: &mut u64, step_count_limit: u64, cache: &mut MyCache) -> Result<RegisterValue, EvalError> {
+        // TODO: lookup (programid+index) in cache
+
+        cache.increment_hit();
+
         // Initial state
         let mut state = ProgramState::new(self.register_count, run_mode, step_count_limit);
         state.set_step_count(*step_count);
@@ -34,9 +49,14 @@ impl ProgramRunner {
         if let Err(error) = run_result {
             return Err(error);
         }
-
+        
         // In case run succeeded, then return register 1.
         let value: RegisterValue = state.get_register_value(RegisterIndex(1));
+
+        // TODO: if this is an existing+verified program, then save result in cache
+        // TODO: if this is an mining-candidate program, then don't save result in cache
+        cache.increment_miss();
+
         Ok(value)
     }
 
