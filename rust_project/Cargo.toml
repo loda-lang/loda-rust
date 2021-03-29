@@ -1,5 +1,5 @@
 [package]
-name = "loda_lab"
+name = "loda-lab"
 version = "0.0.1"
 authors = ["Simon Strandgaard <neoneye@gmail.com>"]
 edition = "2018"
