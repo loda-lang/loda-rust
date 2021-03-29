@@ -6,22 +6,22 @@ use std::cmp::Ordering;
 #[derive(Clone)]
 pub struct ProgramState {
     register_vec: Vec<RegisterValue>,
-    eval_count: u64,
+    step_count: u64,
     run_mode: RunMode,
-    eval_count_limit: u64,
+    step_count_limit: u64,
 }
 
 impl ProgramState {
-    pub fn new(register_count: u8, run_mode: RunMode, eval_count_limit: u64) -> Self {
+    pub fn new(register_count: u8, run_mode: RunMode, step_count_limit: u64) -> Self {
         let mut register_vec: Vec<RegisterValue> = vec!();
         for _ in 0..register_count {
             register_vec.push(RegisterValue::zero());
         }
         Self {
             register_vec: register_vec,
-            eval_count: 0,
+            step_count: 0,
             run_mode: run_mode,
-            eval_count_limit: eval_count_limit,
+            step_count_limit: step_count_limit,
         }
     }
 
@@ -123,26 +123,26 @@ impl ProgramState {
 }
 
 impl ProgramState {
-    pub fn eval_count_limit(&self) -> u64 {
-        self.eval_count_limit
+    pub fn step_count_limit(&self) -> u64 {
+        self.step_count_limit
     }
 
-    pub fn eval_count(&self) -> u64 {
-        self.eval_count
+    pub fn step_count(&self) -> u64 {
+        self.step_count
     }
 
-    pub fn increment_eval_count(&mut self) -> Result<(), EvalError> {
-        let count: u64 = self.eval_count + 1;
-        self.eval_count = count;
+    pub fn increment_step_count(&mut self) -> Result<(), EvalError> {
+        let count: u64 = self.step_count + 1;
+        self.step_count = count;
 
-        if count >= self.eval_count_limit {
-            return Err(EvalError::EvalCountExceededLimit);
+        if count >= self.step_count_limit {
+            return Err(EvalError::StepCountExceededLimit);
         }
         Ok(())
     }
 
-    pub fn set_eval_count(&mut self, count: u64) {
-        self.eval_count = count;
+    pub fn set_step_count(&mut self, count: u64) {
+        self.step_count = count;
     }
 }
 

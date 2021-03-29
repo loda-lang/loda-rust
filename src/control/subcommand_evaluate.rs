@@ -49,11 +49,11 @@ impl ProgramRunner {
         if count < 1 {
             panic!("Expected number of terms to be 1 or greater.");
         }
-        let eval_count_limit: u64 = 10000000;
-        let mut eval_count: u64 = 0;
+        let step_count_limit: u64 = 10000000;
+        let mut step_count: u64 = 0;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
-            let result_run = self.run(input, RunMode::Silent, &mut eval_count, eval_count_limit);
+            let result_run = self.run(input, RunMode::Silent, &mut step_count, step_count_limit);
             let output: RegisterValue = match result_run {
                 Ok(value) => value,
                 Err(error) => {
@@ -67,7 +67,7 @@ impl ProgramRunner {
             print!(",{}", output.0);
         }
         print!("\n");
-        debug!("stats: eval_count: {}", eval_count);
+        debug!("stats: step_count: {}", step_count);
     }
 
     fn print_steps(&self, count: u64) {
@@ -77,19 +77,19 @@ impl ProgramRunner {
         if count < 1 {
             panic!("Expected number of terms to be 1 or greater.");
         }
-        let eval_count_limit: u64 = 10000000;
+        let step_count_limit: u64 = 10000000;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
-            let mut eval_count: u64 = 0;
-            let result_run = self.run(input, RunMode::Silent, &mut eval_count, eval_count_limit);
+            let mut step_count: u64 = 0;
+            let result_run = self.run(input, RunMode::Silent, &mut step_count, step_count_limit);
             if let Err(error) = result_run {
                 panic!("Failure while computing term {}, error: {:?}", index, error);
             }
             if index == 0 {
-                print!("{}", eval_count);
+                print!("{}", step_count);
                 continue;
             }
-            print!(",{}", eval_count);
+            print!(",{}", step_count);
         }
         print!("\n");
     }
@@ -101,12 +101,12 @@ impl ProgramRunner {
         if count < 1 {
             panic!("Expected number of terms to be 1 or greater.");
         }
-        let eval_count_limit: u64 = 10000000;
-        let mut eval_count: u64 = 0;
+        let step_count_limit: u64 = 10000000;
+        let mut step_count: u64 = 0;
         for index in 0..(count as i64) {
             println!("INPUT: a({})", index);
             let input = RegisterValue::from_i64(index);
-            let result_run = self.run(input, RunMode::Verbose, &mut eval_count, eval_count_limit);
+            let result_run = self.run(input, RunMode::Verbose, &mut step_count, step_count_limit);
             let output: RegisterValue = match result_run {
                 Ok(value) => value,
                 Err(error) => {
@@ -115,6 +115,6 @@ impl ProgramRunner {
             };
             println!("OUTPUT: a({}) = {}", index, output.0);
         }
-        debug!("stats: eval_count: {}", eval_count);
+        debug!("stats: step_count: {}", step_count);
     }
 }
