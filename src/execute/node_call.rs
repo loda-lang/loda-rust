@@ -49,7 +49,7 @@ impl Node for NodeCallConstant {
         );
 
         // Update statistics, no matter if run succeeded or failed
-        state.replace_eval_count(eval_count);
+        state.set_eval_count(eval_count);
 
         let output: RegisterValue = match run_result {
             Ok(value) => value,

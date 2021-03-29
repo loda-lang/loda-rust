@@ -12,7 +12,7 @@ mod mine;
 mod parser;
 mod oeis;
 mod util;
-use control::{subcommand_dependencies, subcommand_evaluate, subcommand_install, subcommand_mine, subcommand_update};
+use control::*;
 
 extern crate clap;
 extern crate num_bigint;
@@ -44,9 +44,14 @@ fn main() {
                         .long("terms")
                 )
                 .arg(
-                    Arg::with_name("instructions")
-                        .help("Show the assembler instructions as they are being executed")
-                        .long("instructions")
+                    Arg::with_name("steps")
+                        .help("Show the number of steps used for computing a term")
+                        .long("steps")
+                )
+                .arg(
+                    Arg::with_name("debug")
+                        .help("Inspect the internal state during execute")
+                        .long("debug")
                 )
         )
         .subcommand(
@@ -83,8 +88,17 @@ fn main() {
             number_of_terms = u64::from_str(number_of_terms_raw)
                 .expect("Unable to parse number of terms.");
         }
-        let show_instructions: bool = sub_m.is_present("instructions");
-        subcommand_evaluate(program_id, number_of_terms, show_instructions);
+        let show_steps: bool = sub_m.is_present("steps");
+        let show_debug: bool = sub_m.is_present("debug");
+        let mode: SubcommandEvaluateMode = match (show_debug, show_steps) {
+            (false,false) => SubcommandEvaluateMode::PrintTerms,
+            (false,true) => SubcommandEvaluateMode::PrintSteps,
+            (true,false) => SubcommandEvaluateMode::PrintDebug,
+            (true,true) => {
+                panic!("Invalid combo of parameters");
+            }
+        };
+        subcommand_evaluate(program_id, number_of_terms, mode);
         return;
     }
 

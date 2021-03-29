@@ -20,7 +20,7 @@ impl ProgramRunner {
     pub fn run(&self, input: RegisterValue, run_mode: RunMode, eval_count: &mut u64, eval_count_limit: u64) -> Result<RegisterValue, EvalError> {
         // Initial state
         let mut state = ProgramState::new(self.register_count, run_mode, eval_count_limit);
-        state.replace_eval_count(*eval_count);
+        state.set_eval_count(*eval_count);
         state.set_register_value(RegisterIndex(0), input);
 
         // Invoke the actual run() function

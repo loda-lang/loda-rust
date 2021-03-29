@@ -136,14 +136,12 @@ impl ProgramState {
         self.eval_count = count;
 
         if count >= self.eval_count_limit {
-            error!("eval_count exceeded limit");
             return Err(EvalError::EvalCountExceededLimit);
         }
         Ok(())
     }
 
-    pub fn replace_eval_count(&mut self, count: u64) {
-        // debug!("replacing eval count: {} -> {}", self.eval_count, count);
+    pub fn set_eval_count(&mut self, count: u64) {
         self.eval_count = count;
     }
 }

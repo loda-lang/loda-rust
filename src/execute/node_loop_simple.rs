@@ -48,7 +48,7 @@ impl Node for NodeLoopSimple {
 
                 // When the loop reaches its end, the previous state is restored.
                 let mut new_state: ProgramState = old_state.clone();
-                new_state.replace_eval_count(state.eval_count());
+                new_state.set_eval_count(state.eval_count());
                 *state = new_state;
                 break;
             }
