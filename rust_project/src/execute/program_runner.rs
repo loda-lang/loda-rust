@@ -1,17 +1,19 @@
-use super::{EvalError, MyCache, Program, ProgramState, RegisterIndex, RegisterValue, RunMode};
+use super::{EvalError, MyCache, Program, ProgramId, ProgramState, RegisterIndex, RegisterValue, RunMode};
 
 pub struct ProgramRunner {
+    program_id: ProgramId,
     program: Program,
     register_count: u8,
 }
 
 impl ProgramRunner {
-    pub fn new(program: Program) -> Self {
+    pub fn new(program_id: ProgramId, program: Program) -> Self {
         // Determine the number of registeres to allocate before running the program
         let max_register_index: u8 = program.max_register_index();
         let register_count: u8 = max_register_index + 1;
 
         Self {
+            program_id: program_id,
             program: program,
             register_count: register_count,
         }

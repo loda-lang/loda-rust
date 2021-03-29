@@ -1,7 +1,7 @@
 
 #[cfg(test)]
 mod tests {
-    use super::super::{Program, ProgramRunner, ProgramRunnerManager, RegisterIndex, RegisterValue};
+    use super::super::{Program, ProgramId, ProgramRunner, ProgramRunnerManager, RegisterIndex, RegisterValue};
     use super::super::node_add::*;
     use super::super::node_call::*;
     use super::super::node_loop_simple::*;
@@ -48,7 +48,10 @@ mod tests {
     #[test]
     fn test_10002_run() {
         let program = program_a000045();
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
         let actual: Vec<i64> = runner.run_terms(10).unwrap();
         let expected: Vec<i64> = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34].to_vec();
         assert_eq!(actual, expected);
@@ -74,7 +77,10 @@ mod tests {
             assert_eq!(this_program.validate_call_nodes().is_ok(), false);
 
             // Glue this program together with the A000045 program
-            let runner0 = ProgramRunner::new(program_a000045());
+            let runner0 = ProgramRunner::new(
+                ProgramId::ProgramOEIS(45),
+                program_a000045()
+            );
             let mut pm = ProgramRunnerManager::new();
             pm.register(45, runner0);
             this_program.update_call(&mut pm);

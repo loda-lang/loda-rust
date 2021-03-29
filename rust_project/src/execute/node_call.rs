@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use super::{EvalError, Node, RegisterIndex, RegisterValue, Program, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
+use super::{EvalError, Node, RegisterIndex, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
 
 pub struct NodeCallConstant {
     target: RegisterIndex,
@@ -11,7 +11,10 @@ pub struct NodeCallConstant {
 impl NodeCallConstant {
     pub fn new(target: RegisterIndex, program_id: u64) -> Self {
         let dummy_program = Program::new();
-        let program_runner = ProgramRunner::new(dummy_program);
+        let program_runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            dummy_program
+        );
         let program_runner_rc = Rc::new(program_runner);
 
         Self {

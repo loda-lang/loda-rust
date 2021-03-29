@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::execute::{ProgramRunner,ProgramRunnerManager};
+    use crate::execute::{ProgramId, ProgramRunner, ProgramRunnerManager};
     use super::super::parse::*;
     
     const INPUT_A000045: &str = r#"
@@ -191,7 +191,10 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
         let program = parse.created_program.program;
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+          ProgramId::ProgramOEIS(45),
+          program
+        );
         let actual: Vec<i64> = runner.run_terms(10).unwrap();
         let expected: Vec<i64> = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34].to_vec();
         assert_eq!(actual, expected);
@@ -203,7 +206,10 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
         let program = parse.created_program.program;
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+          ProgramId::ProgramOEIS(79),
+          program
+        );
         let actual: Vec<i64> = runner.run_terms(10).unwrap();
         let expected: Vec<i64> = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512].to_vec();
         assert_eq!(actual, expected);
@@ -215,7 +221,10 @@ mod tests {
         assert_eq!(result0.is_ok(), true);
         let parse0 = result0.unwrap();
         let program0 = parse0.created_program.program;
-        let runner0 = ProgramRunner::new(program0);
+        let runner0 = ProgramRunner::new(
+          ProgramId::ProgramOEIS(79),
+          program0
+        );
 
         let mut pm = ProgramRunnerManager::new();
         pm.register(79, runner0);
@@ -243,7 +252,10 @@ mod tests {
         // Glue A000079 together with this program.
         program.update_call(&mut pm);
 
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+          ProgramId::ProgramWithoutId,
+          program
+        );
         let actual: Vec<i64> = runner.run_terms(10).unwrap();
         let expected: Vec<i64> = [0, 1, 3, 7, 15, 31, 63, 127, 255, 511].to_vec();
         assert_eq!(actual, expected);
@@ -255,7 +267,10 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
         let program = parse.created_program.program;
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+          ProgramId::ProgramOEIS(196),
+          program
+        );
         let actual: Vec<i64> = runner.run_terms(20).unwrap();
         let expected: Vec<i64> = [0, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4].to_vec();
         assert_eq!(actual, expected);
@@ -267,7 +282,10 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
         let program = parse.created_program.program;
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+          ProgramId::ProgramOEIS(5131),
+          program
+        );
         let actual: Vec<i64> = runner.run_terms(20).unwrap();
         let expected: Vec<i64> = [1, 0, 1, 1, 2, 1, 1, 4, 1, 1, 6, 1, 1, 8, 1, 1, 10, 1, 1, 12].to_vec();
         assert_eq!(actual, expected);
@@ -279,7 +297,10 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
         let program = parse.created_program.program;
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+          ProgramId::ProgramOEIS(2624),
+          program
+        );
         let actual: Vec<i64> = runner.run_terms(10).unwrap();
         let expected: Vec<i64> = [1, 3, 8, 16, 30, 50, 80, 120, 175, 245].to_vec();
         assert_eq!(actual, expected);
@@ -291,7 +312,10 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
         let program = parse.created_program.program;
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+          ProgramId::ProgramOEIS(117452),
+          program
+        );
         let actual: Vec<i64> = runner.run_terms(15).unwrap();
         let expected: Vec<i64> = [1, -1, 1, 0, 0, 2, -1, 1, 0, 0, 2, -1, 1, 0, 0].to_vec();
         assert_eq!(actual, expected);
@@ -303,7 +327,10 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
         let program = parse.created_program.program;
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+          ProgramId::ProgramOEIS(284429),
+          program
+        );
         let actual: Vec<i64> = runner.run_terms(10).unwrap();
         let expected: Vec<i64> = [2, 1, 3, 5, 1, 3, 8, 1, 3, 11].to_vec();
         assert_eq!(actual, expected);
@@ -315,7 +342,10 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
         let program = parse.created_program.program;
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+          ProgramId::ProgramOEIS(7958),
+          program
+        );
         let actual: Vec<i64> = runner.run_terms(15).unwrap();
         let expected: Vec<i64> = [10, 12, 14, 16, 18, 30, 32, 34, 36, 38, 50, 52, 54, 56, 58].to_vec();
         assert_eq!(actual, expected);
@@ -327,7 +357,10 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
         let program = parse.created_program.program;
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+          ProgramId::ProgramOEIS(253472),
+          program
+        );
         let actual: Vec<i64> = runner.run_terms(15).unwrap();
         let expected: Vec<i64> = [4, 7, 8, 9, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].to_vec();
         assert_eq!(actual, expected);
@@ -339,7 +372,10 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
         let program = parse.created_program.program;
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+          ProgramId::ProgramOEIS(206735),
+          program
+        );
         let actual: Vec<i64> = runner.run_terms(15).unwrap();
         let expected: Vec<i64> = [1, 0, 1, 0, 2, 1, 0, 3, 3, 1, 0, 4, 6, 4, 1].to_vec();
         assert_eq!(actual, expected);

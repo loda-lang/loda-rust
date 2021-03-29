@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path,PathBuf};
 use std::collections::HashSet;
 use crate::parser::parse::*;
-use crate::execute::{Program,ProgramRunner,ProgramRunnerManager};
+use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 
 #[derive(Debug)]
 pub enum DependencyManagerError {
@@ -75,7 +75,10 @@ impl DependencyManager {
             panic!("program_id: {}  failed to assign all dependencies", program_id);
         }
 
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramOEIS(program_id),
+            program
+        );
         self.program_run_manager.register(program_id, runner);
         self.programids_currently_loading.remove(&program_id);
     }
@@ -144,7 +147,10 @@ mod tests {
         );
         let source_code: String = INPUT_A000079.to_string();
         let program: Program = dm.parse(&source_code).unwrap();
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramOEIS(79),
+            program
+        );
         let actual: Vec<i64> = runner.run_terms(10).unwrap();
         let expected: Vec<i64> = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512].to_vec();
         assert_eq!(actual, expected);

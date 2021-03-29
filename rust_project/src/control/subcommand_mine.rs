@@ -2,7 +2,7 @@ use super::DependencyManager;
 use crate::config::Config;
 use crate::mine::check_fixed_length_sequence::CheckFixedLengthSequence;
 use crate::parser::{InstructionId, ParameterType};
-use crate::execute::{EvalError, Program, ProgramRunner, RegisterValue, RunMode};
+use crate::execute::{EvalError, Program, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use crate::oeis::stripped_sequence::BigIntVec;
 use crate::util::Analyze;
 use std::path::{Path, PathBuf};
@@ -1005,7 +1005,10 @@ fn run_experiment0(
                 continue;
             }
         };
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
         let number_of_terms: u64 = 10;
         let terms10: BigIntVec = match runner.compute_terms(number_of_terms) {
             Ok(value) => value,
