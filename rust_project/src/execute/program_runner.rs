@@ -51,18 +51,19 @@ impl ProgramRunner {
         }
         
         // In case run succeeded, then return register 1.
-        let value: RegisterValue = state.get_register_value(RegisterIndex(1));
+        let output: RegisterValue = state.get_register_value(RegisterIndex(1));
 
         // Update cache
         match self.program_id {
             ProgramId::ProgramOEIS(program_oeis) => {
                 // If this is an existing+verified program, then save the result in cache.
 
-                // Compute the number of steps used
+                // Compute the number of steps used.
                 assert!(step_count_after >= step_count_before);
                 let computed_step_count: u64 = step_count_after - step_count_before;
 
-                cache.set(program_oeis, &(input.0), &(value.0), computed_step_count);
+                // Cache the computed value.
+                cache.set(program_oeis, &(input.0), &(output.0), computed_step_count);
                 cache.register_cache_miss_for_program_oeis();
             },
             ProgramId::ProgramWithoutId => {
@@ -74,7 +75,7 @@ impl ProgramRunner {
             }
         }
 
-        Ok(value)
+        Ok(output)
     }
 
     pub fn run_terms(&self, count: u64) -> Result<Vec<i64>, EvalError> {
