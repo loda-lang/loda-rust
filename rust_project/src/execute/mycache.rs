@@ -58,14 +58,14 @@ impl MyCache {
         self.cache.get(&key)
     }
 
-    pub fn set(&mut self, program_id: u64, index: &BigInt, value: &BigInt) {
+    pub fn set(&mut self, program_id: u64, index: &BigInt, value: &BigInt, step_count: u64) {
         let key = CacheKey {
             program_id: program_id,
             index: index.clone(),
         };
         let value = CacheValue {
             value: value.clone(),
-            step_count: 0, // TODO: deal with the step_count
+            step_count: step_count,
         };
         self.cache.put(key, value);
     }

@@ -20,39 +20,30 @@ impl ProgramRunner {
     }
 
     pub fn run(&self, input: RegisterValue, run_mode: RunMode, step_count: &mut u64, step_count_limit: u64, cache: &mut MyCache) -> Result<RegisterValue, EvalError> {
+        let step_count_before: u64 = *step_count;
 
         // Lookup (programid+input) in cache
         // No need to compute anything if it has been computed recently
         if let ProgramId::ProgramOEIS(program_oeis) = self.program_id {
             if let Some(cache_value) = cache.get(program_oeis, &(input.0)) {
                 let value = RegisterValue(cache_value.value.clone());
+                *step_count = step_count_before + cache_value.step_count;
                 cache.register_cache_hit();
-
-                // TODO: how to update the step counter?
-                // *step_count += cache_value.step_count  
-                // The first time there is a cache miss, then its `step_count`
-                // gets stored in the cache. However this `step_count` will
-                // vary depending on from where the function call happened.
-                // If it's deeply nested, then the step_count will be high.
-                // If it's invoked from the root scope, then the `step_count` will be low.
-                // So `step_count` is misleading.
-                // Come up with a new way of keeping track of the step_count.
-                // Use a stack with step_counts.
-
                 return Ok(value);
             }
         }
 
         // Initial state
         let mut state = ProgramState::new(self.register_count, run_mode, step_count_limit);
-        state.set_step_count(*step_count);
+        state.set_step_count(step_count_before);
         state.set_register_value(RegisterIndex(0), input.clone());
 
         // Invoke the actual run() function
         let run_result = self.program.run(&mut state, cache);
 
         // Update statistics, no matter if run succeeded or failed
-        *step_count = state.step_count();
+        let step_count_after: u64 = state.step_count();
+        *step_count = step_count_after;
 
         // In case run failed, then return the error
         if let Err(error) = run_result {
@@ -66,7 +57,12 @@ impl ProgramRunner {
         match self.program_id {
             ProgramId::ProgramOEIS(program_oeis) => {
                 // If this is an existing+verified program, then save the result in cache.
-                cache.set(program_oeis, &(input.0), &(value.0));
+
+                // Compute the number of steps used
+                assert!(step_count_after >= step_count_before);
+                let computed_step_count: u64 = step_count_after - step_count_before;
+
+                cache.set(program_oeis, &(input.0), &(value.0), computed_step_count);
                 cache.register_cache_miss_for_program_oeis();
             },
             ProgramId::ProgramWithoutId => {
