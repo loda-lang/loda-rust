@@ -5,6 +5,7 @@ use crate::parser::{InstructionId, ParameterType};
 use crate::execute::{EvalError, ProgramCache, Program, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use crate::oeis::stripped_sequence::BigIntVec;
 use crate::util::Analyze;
+use std::time::Instant;
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::prelude::*;
@@ -995,9 +996,13 @@ fn run_experiment0(
     println!("\nPress CTRL-C to stop the miner.");
     let mut cache = ProgramCache::new();
     let mut iteration: usize = 0;
+    let mut time = Instant::now();
     loop {
         if (iteration % 1000) == 0 {
-            println!("iteration: {}", iteration);
+            if time.elapsed().as_secs() >= 5 {
+                println!("iteration: {} cache: {}", iteration, cache.hit_miss_info());
+                time = Instant::now();
+            }
         }
         iteration += 1;
         
