@@ -3,7 +3,7 @@ use num_bigint::BigInt;
 extern crate lru;
 use lru::LruCache;
 
-const CACHE_CAPACITY: usize = 1000;
+const CACHE_CAPACITY: usize = 3000;
 
 #[derive(PartialEq, Eq, Hash)]
 struct CacheKey {
