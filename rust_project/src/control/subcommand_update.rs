@@ -36,6 +36,14 @@ pub fn subcommand_update() {
         let destination_file = cache_dir.join(Path::new("fixed_length_sequence_20terms.json"));
         create_cache_file(&oeis_stripped_file, &destination_file, 20, &program_ids_to_ignore);
     }
+    {
+        let destination_file = cache_dir.join(Path::new("fixed_length_sequence_30terms.json"));
+        create_cache_file(&oeis_stripped_file, &destination_file, 30, &program_ids_to_ignore);
+    }
+    {
+        let destination_file = cache_dir.join(Path::new("fixed_length_sequence_40terms.json"));
+        create_cache_file(&oeis_stripped_file, &destination_file, 40, &program_ids_to_ignore);
+    }
 
     println!("update end");
 }

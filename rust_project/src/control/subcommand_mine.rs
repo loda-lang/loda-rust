@@ -42,6 +42,10 @@ pub fn subcommand_mine() {
     let checker10: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file10);
     let file20 = cache_dir.join(Path::new("fixed_length_sequence_20terms.json"));
     let checker20: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file20);
+    let file30 = cache_dir.join(Path::new("fixed_length_sequence_30terms.json"));
+    let checker30: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file30);
+    let file40 = cache_dir.join(Path::new("fixed_length_sequence_40terms.json"));
+    let checker40: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file40);
     debug!("step2");
 
     // Pick a random seed
@@ -54,6 +58,8 @@ pub fn subcommand_mine() {
         &loda_program_rootdir, 
         &checker10, 
         &checker20,
+        &checker30,
+        &checker40,
         &mine_event_dir,
         initial_random_seed,
     );
@@ -532,16 +538,16 @@ impl Genome {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 2, 10);
             genome_vec.push(item);
         }
-        // {
-        //     let item = GenomeItem {
-        //         enabled: true,
-        //         instruction_id: InstructionId::Call,
-        //         target_value: 1,
-        //         source_type: ParameterType::Constant,
-        //         source_value: 230980,
-        //     };
-        //     genome_vec.push(item);
-        // }
+        {
+            let item = GenomeItem {
+                enabled: true,
+                instruction_id: InstructionId::Call,
+                target_value: 1,
+                source_type: ParameterType::Constant,
+                source_value: 73093,
+            };
+            genome_vec.push(item);
+        }
         {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 3, 2);
             genome_vec.push(item);
@@ -850,9 +856,9 @@ impl Genome {
             MutateGenome::SwapRegisters,
             MutateGenome::SourceRegister,
             MutateGenome::TargetRegister,
-            MutateGenome::ToggleEnabled,
+            // MutateGenome::ToggleEnabled,
             // MutateGenome::SwapRows,
-            MutateGenome::SwapAdjacentRows,
+            // MutateGenome::SwapAdjacentRows,
             // MutateGenome::InsertLoopBeginEnd,
         ];
         let mutation: &MutateGenome = mutation_vec.choose(rng).unwrap();
@@ -981,6 +987,8 @@ fn run_experiment0(
     loda_program_rootdir: &PathBuf, 
     checker10: &CheckFixedLengthSequence, 
     checker20: &CheckFixedLengthSequence,
+    checker30: &CheckFixedLengthSequence,
+    checker40: &CheckFixedLengthSequence,
     mine_event_dir: &Path,
     initial_random_seed: u64,
 ) {
@@ -997,10 +1005,22 @@ fn run_experiment0(
     let mut cache = ProgramCache::new();
     let mut iteration: usize = 0;
     let mut time = Instant::now();
+    let mut number_of_candidates_with_10terms: u64 = 0;
+    let mut number_of_candidates_with_20terms: u64 = 0;
+    let mut number_of_candidates_with_30terms: u64 = 0;
+    let mut number_of_candidates_with_40terms: u64 = 0;
     loop {
         if (iteration % 1000) == 0 {
             if time.elapsed().as_secs() >= 5 {
-                println!("iteration: {} cache: {}", iteration, cache.hit_miss_info());
+                let term_info = format!(
+                    "[{},{},{},{}]",
+                    number_of_candidates_with_10terms,
+                    number_of_candidates_with_20terms,
+                    number_of_candidates_with_30terms,
+                    number_of_candidates_with_40terms,
+                );
+                println!("iteration: {} cache: {} terms: {}", iteration, cache.hit_miss_info(), term_info);
+                // println!("iteration: {} terms: {}", iteration, term_info);
                 time = Instant::now();
             }
         }
@@ -1032,10 +1052,11 @@ fn run_experiment0(
     
         let check10_result: bool = checker10.is_possible_candidate(&terms10);
         if !check10_result {
-            debug!("iteration: {} no match in oeis", iteration);
+            //debug!("iteration: {} no match in oeis", iteration);
             continue;
         }
         // println!("iteration: {} candidate. terms: {:?}", iteration, terms10);
+        number_of_candidates_with_10terms += 1;
 
         let terms20: BigIntVec = match runner.compute_terms(20, &mut cache) {
             Ok(value) => value,
@@ -1046,9 +1067,24 @@ fn run_experiment0(
         };
         let check20_result: bool = checker20.is_possible_candidate(&terms20);
         if !check20_result {
-            debug!("iteration: {} no match in oeis", iteration);
+            // debug!("iteration: {} no match in oeis", iteration);
             continue;
         }
+        number_of_candidates_with_20terms += 1;
+
+        let terms30: BigIntVec = match runner.compute_terms(30, &mut cache) {
+            Ok(value) => value,
+            Err(error) => {
+                debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                continue;
+            }
+        };
+        let check30_result: bool = checker30.is_possible_candidate(&terms30);
+        if !check30_result {
+            // debug!("iteration: {} no match in oeis", iteration);
+            continue;
+        }
+        number_of_candidates_with_30terms += 1;
 
         let terms40: BigIntVec = match runner.compute_terms(40, &mut cache) {
             Ok(value) => value,
@@ -1057,6 +1093,13 @@ fn run_experiment0(
                 continue;
             }
         };
+        let check40_result: bool = checker40.is_possible_candidate(&terms40);
+        if !check40_result {
+            // debug!("iteration: {} no match in oeis", iteration);
+            continue;
+        }
+        number_of_candidates_with_40terms += 1;
+
         // println!("iteration: {} candidate. terms: {:?}", iteration, terms40);
         // genome.print();
 
