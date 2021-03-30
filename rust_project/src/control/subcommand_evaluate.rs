@@ -78,7 +78,7 @@ impl ProgramRunner {
         print!("\n");
         debug!("stats: step_count: {}", step_count);
         println!("elapsed: {:?} ms", start_time.elapsed().as_millis());
-        cache.print_statistics();
+        println!("cache: {}", cache.hit_miss_info());
     }
 
     fn print_steps(&self, count: u64) {

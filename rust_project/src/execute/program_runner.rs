@@ -80,9 +80,14 @@ impl ProgramRunner {
 
     #[cfg(test)]
     pub fn inspect(&self, count: u64) -> String {
+        let mut cache = MyCache::new();
+        self.inspect_advanced(count, &mut cache)
+    }
+
+    #[cfg(test)]
+    pub fn inspect_advanced(&self, count: u64, cache: &mut MyCache) -> String {
         assert!(count < 0x7fff_ffff_ffff_ffff);
         let mut string_vec: Vec<String> = vec!();
-        let mut cache = MyCache::new();
         let step_count_limit: u64 = 10000;
         let mut step_count: u64 = 0;
         for index in 0..(count as i64) {
@@ -92,7 +97,7 @@ impl ProgramRunner {
                 RunMode::Silent, 
                 &mut step_count, 
                 step_count_limit,
-                &mut cache,
+                cache,
             );
             match result {
                 Ok(output) => {

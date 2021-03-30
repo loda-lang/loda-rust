@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::execute::{ProgramId, ProgramRunner, ProgramRunnerManager};
+    use crate::execute::{MyCache, ProgramId, ProgramRunner, ProgramRunnerManager};
     use super::super::parse::*;
     
     const INPUT_A000045: &str = r#"
@@ -211,8 +211,7 @@ mod tests {
         assert_eq!(runner.inspect(10), "1,2,4,8,16,32,64,128,256,512");
     }
 
-    #[test]
-    fn test_10002_call_other_programs() {
+    fn program_that_calls_another_program() -> ProgramRunner {
         let result0 = parse(INPUT_A000079);
         assert_eq!(result0.is_ok(), true);
         let parse0 = result0.unwrap();
@@ -248,15 +247,40 @@ mod tests {
         // Glue A000079 together with this program.
         program.update_call(&mut pm);
 
-        let runner = ProgramRunner::new(
+        ProgramRunner::new(
           ProgramId::ProgramWithoutId,
           program
-        );
+        )
+    }
+
+    #[test]
+    fn test_10002_call_other_programs() {
+        let runner: ProgramRunner = program_that_calls_another_program();
         assert_eq!(runner.inspect(10), "0,1,3,7,15,31,63,127,255,511");
     }
 
     #[test]
-    fn test_10003_loop_restoring_previous_state_a000196() {
+    fn test_10003_caching_of_computed_results() {
+        let runner: ProgramRunner = program_that_calls_another_program();
+
+        let mut cache = MyCache::new();
+        assert_eq!(cache.hit_miss_info(), "hit:0 miss:0,0");
+
+        let actual0: String = runner.inspect_advanced(10, &mut cache);
+        assert_eq!(actual0, "0,1,3,7,15,31,63,127,255,511");
+        assert_eq!(cache.hit_miss_info(), "hit:0 miss:10,10");
+
+        let actual1: String = runner.inspect_advanced(10, &mut cache);
+        assert_eq!(actual1, "0,1,3,7,15,31,63,127,255,511");
+        assert_eq!(cache.hit_miss_info(), "hit:10 miss:10,20");
+
+        let actual2: String = runner.inspect_advanced(10, &mut cache);
+        assert_eq!(actual2, "0,1,3,7,15,31,63,127,255,511");
+        assert_eq!(cache.hit_miss_info(), "hit:20 miss:10,30");
+    }
+
+    #[test]
+    fn test_10004_loop_restoring_previous_state_a000196() {
         let result = parse(INPUT_A000196);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
@@ -269,7 +293,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10004_loop_restoring_previous_state_a005131() {
+    fn test_10005_loop_restoring_previous_state_a005131() {
         let result = parse(INPUT_A005131);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
@@ -282,7 +306,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10005_clear_memory_range_with_constant() {
+    fn test_10006_clear_memory_range_with_constant() {
         let result = parse(INPUT_A002624);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
@@ -295,7 +319,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10006_clear_memory_range_with_register() {
+    fn test_10007_clear_memory_range_with_register() {
         let result = parse(INPUT_A117452);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
@@ -308,7 +332,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10007_use_of_power_instruction() {
+    fn test_10008_use_of_power_instruction() {
         let result = parse(INPUT_A284429);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
@@ -321,7 +345,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10008_use_of_loop_with_contant_greater_than_one() {
+    fn test_10009_use_of_loop_with_contant_greater_than_one() {
         let result = parse(INPUT_A007958);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
@@ -334,7 +358,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10009_use_of_loop_with_range_length_from_register1() {
+    fn test_10010_use_of_loop_with_range_length_from_register1() {
         let result = parse(INPUT_A253472);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
@@ -347,7 +371,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10010_use_of_loop_with_range_length_from_register2() {
+    fn test_10011_use_of_loop_with_range_length_from_register2() {
         let result = parse(INPUT_A206735);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();

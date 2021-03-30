@@ -46,8 +46,8 @@ impl MyCache {
         self.count_miss_for_program_without_id += 1;
     }
 
-    pub fn print_statistics(&self) {
-        println!("hits: {}, miss0: {}, miss1: {}", self.count_hit, self.count_miss_for_program_oeis, self.count_miss_for_program_without_id)
+    pub fn hit_miss_info(&self) -> String {
+        format!("hit:{} miss:{},{}", self.count_hit, self.count_miss_for_program_oeis, self.count_miss_for_program_without_id)
     }
 
     pub fn get(&mut self, program_id: u64, index: &BigInt) -> Option<&CacheValue> {
