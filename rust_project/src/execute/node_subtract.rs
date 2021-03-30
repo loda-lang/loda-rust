@@ -1,4 +1,4 @@
-use super::{EvalError, Node, ProgramState, RegisterIndex, RegisterValue};
+use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
 use num_bigint::BigInt;
 
 fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
@@ -30,7 +30,7 @@ impl Node for NodeSubtractRegister {
         format!("sub {},{}", self.target, self.source)
     }
 
-    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: RegisterValue = state.get_register_value(self.target.clone());
         let rhs: RegisterValue = state.get_register_value(self.source.clone());
         let value = perform_operation(lhs, rhs);
@@ -67,7 +67,7 @@ impl Node for NodeSubtractConstant {
         format!("sub {},{}", self.target, self.source)
     }
 
-    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: RegisterValue = state.get_register_value(self.target.clone());
         let rhs: RegisterValue = self.source.clone();
         let value = perform_operation(lhs, rhs);

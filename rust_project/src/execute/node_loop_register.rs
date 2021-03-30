@@ -1,4 +1,4 @@
-use super::{EvalError, Node, Program, ProgramState, ProgramRunnerManager, RegisterIndex, RegisterValue, RunMode, ValidateCallError};
+use super::{EvalError, ProgramCache, Node, Program, ProgramState, ProgramRunnerManager, RegisterIndex, RegisterValue, RunMode, ValidateCallError};
 use num_bigint::{BigInt, ToBigInt};
 use num_traits::{ToPrimitive, Signed};
 
@@ -27,7 +27,7 @@ impl Node for NodeLoopRegister {
         String::from("")
     }
 
-    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
         if state.run_mode() == RunMode::Verbose {
             let snapshot = state.register_vec_to_string();
             let instruction = format!("lpb {},{}", self.register_start, self.register_with_range_length);
@@ -59,7 +59,7 @@ impl Node for NodeLoopRegister {
         loop {
             let old_state: ProgramState = state.clone();
 
-            self.program.run(state)?;
+            self.program.run(state, cache)?;
 
             let value: RegisterValue = state.get_register_value(self.register_with_range_length.clone());
             let value_inner: &BigInt = &value.0;

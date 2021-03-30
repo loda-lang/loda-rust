@@ -2,7 +2,7 @@ use super::DependencyManager;
 use crate::config::Config;
 use crate::mine::check_fixed_length_sequence::CheckFixedLengthSequence;
 use crate::parser::{InstructionId, ParameterType};
-use crate::execute::{EvalError, Program, ProgramRunner, RegisterValue, RunMode};
+use crate::execute::{EvalError, ProgramCache, Program, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use crate::oeis::stripped_sequence::BigIntVec;
 use crate::util::Analyze;
 use std::path::{Path, PathBuf};
@@ -891,13 +891,19 @@ impl Genome {
 }
 
 impl ProgramRunner {
-    fn compute_terms(&self, count: u64) -> Result<BigIntVec, EvalError> {
+    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError> {
         let mut terms: BigIntVec = vec!();
         let step_count_limit: u64 = 10000;
         let mut _step_count: u64 = 0;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
-            let output: RegisterValue = self.run(input, RunMode::Silent, &mut _step_count, step_count_limit)?;
+            let output: RegisterValue = self.run(
+                input, 
+                RunMode::Silent, 
+                &mut _step_count, 
+                step_count_limit, 
+                cache
+            )?;
             terms.push(output.0.clone());
             if index == 0 {
                 // print!("{}", output.0);
@@ -987,6 +993,7 @@ fn run_experiment0(
     // genome.print();
 
     println!("\nPress CTRL-C to stop the miner.");
+    let mut cache = ProgramCache::new();
     let mut iteration: usize = 0;
     loop {
         if (iteration % 1000) == 0 {
@@ -1005,9 +1012,12 @@ fn run_experiment0(
                 continue;
             }
         };
-        let runner = ProgramRunner::new(program);
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
         let number_of_terms: u64 = 10;
-        let terms10: BigIntVec = match runner.compute_terms(number_of_terms) {
+        let terms10: BigIntVec = match runner.compute_terms(number_of_terms, &mut cache) {
             Ok(value) => value,
             Err(error) => {
                 debug!("iteration: {} cannot be run. {:?}", iteration, error);
@@ -1022,7 +1032,7 @@ fn run_experiment0(
         }
         // println!("iteration: {} candidate. terms: {:?}", iteration, terms10);
 
-        let terms20: BigIntVec = match runner.compute_terms(20) {
+        let terms20: BigIntVec = match runner.compute_terms(20, &mut cache) {
             Ok(value) => value,
             Err(error) => {
                 debug!("iteration: {} cannot be run. {:?}", iteration, error);
@@ -1035,7 +1045,7 @@ fn run_experiment0(
             continue;
         }
 
-        let terms40: BigIntVec = match runner.compute_terms(40) {
+        let terms40: BigIntVec = match runner.compute_terms(40, &mut cache) {
             Ok(value) => value,
             Err(error) => {
                 debug!("iteration: {} cannot be run. {:?}", iteration, error);

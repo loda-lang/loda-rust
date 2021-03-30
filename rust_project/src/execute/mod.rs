@@ -1,5 +1,7 @@
 mod node;
 mod program;
+mod program_cache;
+mod program_id;
 mod program_runner;
 mod program_runner_manager;
 mod program_state;
@@ -8,9 +10,11 @@ mod register_value;
 mod run_mode;
 
 pub use program::Program;
+pub use program_id::ProgramId;
 pub use program_runner::ProgramRunner;
 pub use program_runner_manager::ProgramRunnerManager;
 pub use program_state::ProgramState;
+pub use program_cache::{CacheValue, ProgramCache};
 pub use run_mode::RunMode;
 pub use node::{BoxNode, EvalError, Node, ValidateCallError};
 pub use register_index::RegisterIndex;

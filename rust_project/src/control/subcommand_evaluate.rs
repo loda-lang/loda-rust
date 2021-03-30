@@ -1,7 +1,8 @@
+use std::time::Instant;
 use std::rc::Rc;
 use std::path::PathBuf;
 use super::DependencyManager;
-use crate::execute::{ProgramRunner, RegisterValue, RunMode};
+use crate::execute::{ProgramCache, ProgramRunner, RegisterValue, RunMode};
 use crate::config::Config;
 
 pub enum SubcommandEvaluateMode {
@@ -49,11 +50,19 @@ impl ProgramRunner {
         if count < 1 {
             panic!("Expected number of terms to be 1 or greater.");
         }
+        let mut cache = ProgramCache::new();
         let step_count_limit: u64 = 10000000;
         let mut step_count: u64 = 0;
+        let start_time = Instant::now();
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
-            let result_run = self.run(input, RunMode::Silent, &mut step_count, step_count_limit);
+            let result_run = self.run(
+                input, 
+                RunMode::Silent, 
+                &mut step_count, 
+                step_count_limit, 
+                &mut cache
+            );
             let output: RegisterValue = match result_run {
                 Ok(value) => value,
                 Err(error) => {
@@ -67,7 +76,9 @@ impl ProgramRunner {
             print!(",{}", output.0);
         }
         print!("\n");
-        debug!("stats: step_count: {}", step_count);
+        debug!("steps: {}", step_count);
+        debug!("cache: {}", cache.hit_miss_info());
+        debug!("elapsed: {:?} ms", start_time.elapsed().as_millis());
     }
 
     fn print_steps(&self, count: u64) {
@@ -77,11 +88,18 @@ impl ProgramRunner {
         if count < 1 {
             panic!("Expected number of terms to be 1 or greater.");
         }
+        let mut cache = ProgramCache::new();
         let step_count_limit: u64 = 10000000;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
             let mut step_count: u64 = 0;
-            let result_run = self.run(input, RunMode::Silent, &mut step_count, step_count_limit);
+            let result_run = self.run(
+                input, 
+                RunMode::Silent, 
+                &mut step_count, 
+                step_count_limit,
+                &mut cache,
+            );
             if let Err(error) = result_run {
                 panic!("Failure while computing term {}, error: {:?}", index, error);
             }
@@ -101,12 +119,19 @@ impl ProgramRunner {
         if count < 1 {
             panic!("Expected number of terms to be 1 or greater.");
         }
+        let mut cache = ProgramCache::new();
         let step_count_limit: u64 = 10000000;
         let mut step_count: u64 = 0;
         for index in 0..(count as i64) {
             println!("INPUT: a({})", index);
             let input = RegisterValue::from_i64(index);
-            let result_run = self.run(input, RunMode::Verbose, &mut step_count, step_count_limit);
+            let result_run = self.run(
+                input, 
+                RunMode::Verbose, 
+                &mut step_count, 
+                step_count_limit,
+                &mut cache,
+            );
             let output: RegisterValue = match result_run {
                 Ok(value) => value,
                 Err(error) => {

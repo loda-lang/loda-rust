@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use super::{EvalError, Node, RegisterIndex, RegisterValue, Program, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
+use super::{EvalError, ProgramCache, Node, RegisterIndex, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
 
 pub struct NodeCallConstant {
     target: RegisterIndex,
@@ -11,7 +11,10 @@ pub struct NodeCallConstant {
 impl NodeCallConstant {
     pub fn new(target: RegisterIndex, program_id: u64) -> Self {
         let dummy_program = Program::new();
-        let program_runner = ProgramRunner::new(dummy_program);
+        let program_runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            dummy_program
+        );
         let program_runner_rc = Rc::new(program_runner);
 
         Self {
@@ -32,7 +35,7 @@ impl Node for NodeCallConstant {
         format!("cal {},{}", self.target, self.program_id)
     }
 
-    fn eval(&self, state: &mut ProgramState) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
         if !self.link_established {
             panic!("No link have been establish. This node cannot do its job.");
         }
@@ -45,7 +48,8 @@ impl Node for NodeCallConstant {
             input, 
             state.run_mode(), 
             &mut step_count, 
-            step_count_limit
+            step_count_limit,
+            cache,
         );
 
         // Update statistics, no matter if run succeeded or failed
