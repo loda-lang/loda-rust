@@ -195,9 +195,7 @@ mod tests {
           ProgramId::ProgramOEIS(45),
           program
         );
-        let actual: Vec<i64> = runner.run_terms(10).unwrap();
-        let expected: Vec<i64> = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34].to_vec();
-        assert_eq!(actual, expected);
+        assert_eq!(runner.inspect(10), "0,1,1,2,3,5,8,13,21,34");
     }
 
     #[test]
@@ -210,9 +208,7 @@ mod tests {
           ProgramId::ProgramOEIS(79),
           program
         );
-        let actual: Vec<i64> = runner.run_terms(10).unwrap();
-        let expected: Vec<i64> = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512].to_vec();
-        assert_eq!(actual, expected);
+        assert_eq!(runner.inspect(10), "1,2,4,8,16,32,64,128,256,512");
     }
 
     #[test]
@@ -256,9 +252,7 @@ mod tests {
           ProgramId::ProgramWithoutId,
           program
         );
-        let actual: Vec<i64> = runner.run_terms(10).unwrap();
-        let expected: Vec<i64> = [0, 1, 3, 7, 15, 31, 63, 127, 255, 511].to_vec();
-        assert_eq!(actual, expected);
+        assert_eq!(runner.inspect(10), "0,1,3,7,15,31,63,127,255,511");
     }
 
     #[test]
@@ -271,9 +265,7 @@ mod tests {
           ProgramId::ProgramOEIS(196),
           program
         );
-        let actual: Vec<i64> = runner.run_terms(20).unwrap();
-        let expected: Vec<i64> = [0, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4].to_vec();
-        assert_eq!(actual, expected);
+        assert_eq!(runner.inspect(20), "0,1,1,1,2,2,2,2,2,3,3,3,3,3,3,3,4,4,4,4");
     }
 
     #[test]
@@ -286,9 +278,7 @@ mod tests {
           ProgramId::ProgramOEIS(5131),
           program
         );
-        let actual: Vec<i64> = runner.run_terms(20).unwrap();
-        let expected: Vec<i64> = [1, 0, 1, 1, 2, 1, 1, 4, 1, 1, 6, 1, 1, 8, 1, 1, 10, 1, 1, 12].to_vec();
-        assert_eq!(actual, expected);
+        assert_eq!(runner.inspect(20), "1,0,1,1,2,1,1,4,1,1,6,1,1,8,1,1,10,1,1,12");
     }
 
     #[test]
@@ -301,9 +291,7 @@ mod tests {
           ProgramId::ProgramOEIS(2624),
           program
         );
-        let actual: Vec<i64> = runner.run_terms(10).unwrap();
-        let expected: Vec<i64> = [1, 3, 8, 16, 30, 50, 80, 120, 175, 245].to_vec();
-        assert_eq!(actual, expected);
+        assert_eq!(runner.inspect(10), "1,3,8,16,30,50,80,120,175,245");
     }
 
     #[test]
@@ -316,9 +304,7 @@ mod tests {
           ProgramId::ProgramOEIS(117452),
           program
         );
-        let actual: Vec<i64> = runner.run_terms(15).unwrap();
-        let expected: Vec<i64> = [1, -1, 1, 0, 0, 2, -1, 1, 0, 0, 2, -1, 1, 0, 0].to_vec();
-        assert_eq!(actual, expected);
+        assert_eq!(runner.inspect(15), "1,-1,1,0,0,2,-1,1,0,0,2,-1,1,0,0");
     }
 
     #[test]
@@ -331,9 +317,7 @@ mod tests {
           ProgramId::ProgramOEIS(284429),
           program
         );
-        let actual: Vec<i64> = runner.run_terms(10).unwrap();
-        let expected: Vec<i64> = [2, 1, 3, 5, 1, 3, 8, 1, 3, 11].to_vec();
-        assert_eq!(actual, expected);
+        assert_eq!(runner.inspect(10), "2,1,3,5,1,3,8,1,3,11");
     }
 
     #[test]
@@ -346,9 +330,7 @@ mod tests {
           ProgramId::ProgramOEIS(7958),
           program
         );
-        let actual: Vec<i64> = runner.run_terms(15).unwrap();
-        let expected: Vec<i64> = [10, 12, 14, 16, 18, 30, 32, 34, 36, 38, 50, 52, 54, 56, 58].to_vec();
-        assert_eq!(actual, expected);
+        assert_eq!(runner.inspect(15), "10,12,14,16,18,30,32,34,36,38,50,52,54,56,58");
     }
 
     #[test]
@@ -361,9 +343,7 @@ mod tests {
           ProgramId::ProgramOEIS(253472),
           program
         );
-        let actual: Vec<i64> = runner.run_terms(15).unwrap();
-        let expected: Vec<i64> = [4, 7, 8, 9, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].to_vec();
-        assert_eq!(actual, expected);
+        assert_eq!(runner.inspect(15), "4,7,8,9,12,13,14,15,16,17,18,19,20,21,22");
     }
 
     #[test]
@@ -376,8 +356,6 @@ mod tests {
           ProgramId::ProgramOEIS(206735),
           program
         );
-        let actual: Vec<i64> = runner.run_terms(15).unwrap();
-        let expected: Vec<i64> = [1, 0, 1, 0, 2, 1, 0, 3, 3, 1, 0, 4, 6, 4, 1].to_vec();
-        assert_eq!(actual, expected);
+        assert_eq!(runner.inspect(15), "1,0,1,0,2,1,0,3,3,1,0,4,6,4,1");
     }
 }

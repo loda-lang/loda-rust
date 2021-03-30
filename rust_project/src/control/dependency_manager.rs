@@ -151,8 +151,6 @@ mod tests {
             ProgramId::ProgramOEIS(79),
             program
         );
-        let actual: Vec<i64> = runner.run_terms(10).unwrap();
-        let expected: Vec<i64> = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512].to_vec();
-        assert_eq!(actual, expected);
+        assert_eq!(runner.inspect(10), "1,2,4,8,16,32,64,128,256,512");
     }
 }

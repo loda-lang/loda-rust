@@ -52,9 +52,7 @@ mod tests {
             ProgramId::ProgramWithoutId,
             program
         );
-        let actual: Vec<i64> = runner.run_terms(10).unwrap();
-        let expected: Vec<i64> = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34].to_vec();
-        assert_eq!(actual, expected);
+        assert_eq!(runner.inspect(10), "0,1,1,2,3,5,8,13,21,34");
     }
 
     #[test]

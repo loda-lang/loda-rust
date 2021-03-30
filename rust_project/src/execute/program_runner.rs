@@ -78,26 +78,31 @@ impl ProgramRunner {
         Ok(output)
     }
 
-    pub fn run_terms(&self, count: u64) -> Result<Vec<i64>, EvalError> {
-        if count >= 0x7fff_ffff_ffff_ffff {
-            panic!("Value is too high. Cannot be converted to 64bit signed integer.");
-        }
-        let mut sequence: Vec<i64> = vec!();
+    #[cfg(test)]
+    pub fn inspect(&self, count: u64) -> String {
+        assert!(count < 0x7fff_ffff_ffff_ffff);
+        let mut string_vec: Vec<String> = vec!();
         let mut cache = MyCache::new();
         let step_count_limit: u64 = 10000;
         let mut step_count: u64 = 0;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
-            let output: RegisterValue = self.run(
+            let result = self.run(
                 input, 
                 RunMode::Silent, 
                 &mut step_count, 
                 step_count_limit,
                 &mut cache,
-            )?;
-            let value: i64 = output.to_i64();
-            sequence.push(value);
+            );
+            match result {
+                Ok(output) => {
+                    string_vec.push(output.to_string());
+                },
+                Err(_) => {
+                    string_vec.push("BOOM".to_string());
+                }
+            }
         }
-        Ok(sequence)
+        string_vec.join(",")
     }
 }
