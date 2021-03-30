@@ -1,4 +1,4 @@
-use super::{CacheValue, EvalError, MyCache, Program, ProgramId, ProgramState, RegisterIndex, RegisterValue, RunMode};
+use super::{CacheValue, EvalError, ProgramCache, Program, ProgramId, ProgramState, RegisterIndex, RegisterValue, RunMode};
 
 pub struct ProgramRunner {
     program_id: ProgramId,
@@ -19,7 +19,7 @@ impl ProgramRunner {
         }
     }
 
-    pub fn run(&self, input: RegisterValue, run_mode: RunMode, step_count: &mut u64, step_count_limit: u64, cache: &mut MyCache) -> Result<RegisterValue, EvalError> {
+    pub fn run(&self, input: RegisterValue, run_mode: RunMode, step_count: &mut u64, step_count_limit: u64, cache: &mut ProgramCache) -> Result<RegisterValue, EvalError> {
         let step_count_before: u64 = *step_count;
 
         // Lookup (programid+input) in cache
@@ -80,12 +80,12 @@ impl ProgramRunner {
 
     #[cfg(test)]
     pub fn inspect(&self, count: u64) -> String {
-        let mut cache = MyCache::new();
+        let mut cache = ProgramCache::new();
         self.inspect_advanced(count, &mut cache)
     }
 
     #[cfg(test)]
-    pub fn inspect_advanced(&self, count: u64, cache: &mut MyCache) -> String {
+    pub fn inspect_advanced(&self, count: u64, cache: &mut ProgramCache) -> String {
         assert!(count < 0x7fff_ffff_ffff_ffff);
         let mut string_vec: Vec<String> = vec!();
         let step_count_limit: u64 = 10000;

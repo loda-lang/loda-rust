@@ -2,7 +2,7 @@ use std::time::Instant;
 use std::rc::Rc;
 use std::path::PathBuf;
 use super::DependencyManager;
-use crate::execute::{MyCache, ProgramRunner, RegisterValue, RunMode};
+use crate::execute::{ProgramCache, ProgramRunner, RegisterValue, RunMode};
 use crate::config::Config;
 
 pub enum SubcommandEvaluateMode {
@@ -50,7 +50,7 @@ impl ProgramRunner {
         if count < 1 {
             panic!("Expected number of terms to be 1 or greater.");
         }
-        let mut cache = MyCache::new();
+        let mut cache = ProgramCache::new();
         let step_count_limit: u64 = 10000000;
         let mut step_count: u64 = 0;
         let start_time = Instant::now();
@@ -88,7 +88,7 @@ impl ProgramRunner {
         if count < 1 {
             panic!("Expected number of terms to be 1 or greater.");
         }
-        let mut cache = MyCache::new();
+        let mut cache = ProgramCache::new();
         let step_count_limit: u64 = 10000000;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
@@ -119,7 +119,7 @@ impl ProgramRunner {
         if count < 1 {
             panic!("Expected number of terms to be 1 or greater.");
         }
-        let mut cache = MyCache::new();
+        let mut cache = ProgramCache::new();
         let step_count_limit: u64 = 10000000;
         let mut step_count: u64 = 0;
         for index in 0..(count as i64) {

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::execute::{MyCache, ProgramId, ProgramRunner, ProgramRunnerManager};
+    use crate::execute::{ProgramCache, ProgramId, ProgramRunner, ProgramRunnerManager};
     use super::super::parse::*;
     
     const INPUT_A000045: &str = r#"
@@ -263,7 +263,7 @@ mod tests {
     fn test_10003_caching_of_computed_results() {
         let runner: ProgramRunner = program_that_calls_another_program();
 
-        let mut cache = MyCache::new();
+        let mut cache = ProgramCache::new();
         assert_eq!(cache.hit_miss_info(), "hit:0 miss:0,0");
 
         let actual0: String = runner.inspect_advanced(10, &mut cache);

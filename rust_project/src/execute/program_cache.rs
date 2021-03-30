@@ -16,14 +16,14 @@ pub struct CacheValue {
     pub step_count: u64,
 }
 
-pub struct MyCache {
+pub struct ProgramCache {
     cache: LruCache<CacheKey, CacheValue>,
     count_hit: u64,
     count_miss_for_program_oeis: u64,
     count_miss_for_program_without_id: u64,
 }
 
-impl MyCache {
+impl ProgramCache {
     pub fn new() -> Self {
         let cache: LruCache<CacheKey, CacheValue> = LruCache::new(CACHE_CAPACITY);
         Self {

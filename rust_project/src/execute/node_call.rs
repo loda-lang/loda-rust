@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use super::{EvalError, MyCache, Node, RegisterIndex, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
+use super::{EvalError, ProgramCache, Node, RegisterIndex, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
 
 pub struct NodeCallConstant {
     target: RegisterIndex,
@@ -35,7 +35,7 @@ impl Node for NodeCallConstant {
         format!("cal {},{}", self.target, self.program_id)
     }
 
-    fn eval(&self, state: &mut ProgramState, cache: &mut MyCache) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
         if !self.link_established {
             panic!("No link have been establish. This node cannot do its job.");
         }

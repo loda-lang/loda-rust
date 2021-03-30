@@ -2,7 +2,7 @@ use super::DependencyManager;
 use crate::config::Config;
 use crate::mine::check_fixed_length_sequence::CheckFixedLengthSequence;
 use crate::parser::{InstructionId, ParameterType};
-use crate::execute::{EvalError, MyCache, Program, ProgramId, ProgramRunner, RegisterValue, RunMode};
+use crate::execute::{EvalError, ProgramCache, Program, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use crate::oeis::stripped_sequence::BigIntVec;
 use crate::util::Analyze;
 use std::path::{Path, PathBuf};
@@ -891,7 +891,7 @@ impl Genome {
 }
 
 impl ProgramRunner {
-    fn compute_terms(&self, count: u64, cache: &mut MyCache) -> Result<BigIntVec, EvalError> {
+    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError> {
         let mut terms: BigIntVec = vec!();
         let step_count_limit: u64 = 10000;
         let mut _step_count: u64 = 0;
@@ -993,7 +993,7 @@ fn run_experiment0(
     // genome.print();
 
     println!("\nPress CTRL-C to stop the miner.");
-    let mut cache = MyCache::new();
+    let mut cache = ProgramCache::new();
     let mut iteration: usize = 0;
     loop {
         if (iteration % 1000) == 0 {

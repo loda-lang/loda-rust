@@ -1,4 +1,4 @@
-use super::{EvalError, MyCache, Node, Program, ProgramRunnerManager, ProgramState, RegisterIndex, RunMode, ValidateCallError};
+use super::{EvalError, ProgramCache, Node, Program, ProgramRunnerManager, ProgramState, RegisterIndex, RunMode, ValidateCallError};
 
 pub struct NodeLoopSimple {
     register: RegisterIndex,
@@ -23,7 +23,7 @@ impl Node for NodeLoopSimple {
         String::from("")
     }
 
-    fn eval(&self, state: &mut ProgramState, cache: &mut MyCache) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
         if state.run_mode() == RunMode::Verbose {
             let snapshot = state.register_vec_to_string();
             let instruction = format!("lpb {}", self.register);

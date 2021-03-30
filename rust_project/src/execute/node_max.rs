@@ -1,4 +1,4 @@
-use super::{EvalError, MyCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
 use num_bigint::BigInt;
 
 fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
@@ -31,7 +31,7 @@ impl Node for NodeMaxRegister {
         format!("max {},{}", self.target, self.source)
     }
 
-    fn eval(&self, state: &mut ProgramState, _cache: &mut MyCache) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: RegisterValue = state.get_register_value(self.target.clone());
         let rhs: RegisterValue = state.get_register_value(self.source.clone());
         let value = perform_operation(lhs, rhs);
@@ -68,7 +68,7 @@ impl Node for NodeMaxConstant {
         format!("max {},{}", self.target, self.source)
     }
 
-    fn eval(&self, state: &mut ProgramState, _cache: &mut MyCache) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: RegisterValue = state.get_register_value(self.target.clone());
         let rhs: RegisterValue = self.source.clone();
         let value = perform_operation(lhs, rhs);
