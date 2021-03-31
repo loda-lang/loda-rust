@@ -8,6 +8,7 @@ mod program_state;
 mod register_index;
 mod register_value;
 mod run_mode;
+mod program_serializer;
 
 pub use program::Program;
 pub use program_id::ProgramId;
