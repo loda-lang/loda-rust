@@ -73,6 +73,7 @@ additional_ignore = [
     68670,  # Number of digits in the concatenation of first n primes.
     105360, # Records in A105358.
     109811, # Triangular numbers (A000217) at Levenshtein distance 1 from another triangular number when considered as a decimal string.
+    172334, # Floor(n*(sqrt(13)+sqrt(3))).
     172337, # Floor(n*(sqrt(11)+sqrt(7))).
     172338, # a(n) = floor(n*(sqrt(5)+sqrt(3))).
     183140, # a(n) = [1/s]+[2/s]+...+[n/s], where s=2+sqrt(2) and []=floor.
