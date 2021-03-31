@@ -21,8 +21,8 @@ impl ProgramSerializer {
     }
 
     pub fn append<S>(&mut self, content: S) where S: Into<String> {
-        const indent_size: usize = 2;
-        let prefix: String = " ".repeat(self.indentation * indent_size);
+        const INDENT_SIZE: usize = 2;
+        let prefix: String = " ".repeat(self.indentation * INDENT_SIZE);
         let row = format!("{}{}", prefix, content.into());
         self.rows.push(row);
     }
