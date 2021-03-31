@@ -67,7 +67,9 @@ end
 
 # These are causing most of the false positives
 additional_ignore = [
+    39199,  # Numbers n such that representation in base 11 has same number of 5's and 10's.
     38126,  # a(n) = floor( sqrt(2*Pi)*n ) (a Beatty sequence).
+    66344,  # Beatty sequence for log_5(10).
     68670,  # Number of digits in the concatenation of first n primes.
     105360, # Records in A105358.
     109811, # Triangular numbers (A000217) at Levenshtein distance 1 from another triangular number when considered as a decimal string.
