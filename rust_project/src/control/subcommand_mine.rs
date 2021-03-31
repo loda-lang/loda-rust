@@ -544,7 +544,7 @@ impl Genome {
                 instruction_id: InstructionId::Call,
                 target_value: 1,
                 source_type: ParameterType::Constant,
-                source_value: 244049,
+                source_value: 88580,
             };
             genome_vec.push(item);
         }
@@ -857,8 +857,8 @@ impl Genome {
             MutateGenome::SourceRegister,
             MutateGenome::TargetRegister,
             MutateGenome::ToggleEnabled,
-            MutateGenome::SwapRows,
-            // MutateGenome::SwapAdjacentRows,
+            // MutateGenome::SwapRows,
+            MutateGenome::SwapAdjacentRows,
             // MutateGenome::InsertLoopBeginEnd,
         ];
         let mutation: &MutateGenome = mutation_vec.choose(rng).unwrap();
