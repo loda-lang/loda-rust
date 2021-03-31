@@ -1,4 +1,4 @@
-use super::{ProgramCache, ProgramState, ProgramRunnerManager, RegisterIndex};
+use super::{ProgramCache, ProgramRunnerManager, ProgramSerializer, ProgramState, RegisterIndex};
 
 pub struct ValidateCallError {}
 
@@ -26,6 +26,14 @@ pub trait Node {
     fn shorthand(&self) -> &str;
 
     fn formatted_instruction(&self) -> String;
+
+    // Generate a human readable version of the program
+    // Append the instruction to the program.
+    // For most nodes, this is irrelevant, so this does nothing by default.
+    // However for loop instructions, there is indentation to deal with.
+    fn serialize(&self, serializer: &mut ProgramSerializer) {
+        serializer.append(self.formatted_instruction());
+    }
 
     // Execute the primary operation of this node.
     // If it's an "add" node, then it computes 1 + 3 = 4, and Ok is the result.
