@@ -1,7 +1,7 @@
 use super::DependencyManager;
 use crate::config::Config;
 use crate::mine::check_fixed_length_sequence::CheckFixedLengthSequence;
-use crate::parser::{InstructionId, ParameterType};
+use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
 use crate::execute::{EvalError, ProgramCache, Program, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use crate::oeis::stripped_sequence::BigIntVec;
 use crate::util::Analyze;
@@ -473,6 +473,34 @@ impl GenomeItem {
             }
         }
     }
+
+    fn to_parameter_vec(&self) -> Vec<InstructionParameter> {
+        match &self.instruction_id {
+            InstructionId::LoopBegin => {
+                // For now don't care about the source type/value.
+                // Maybe in the future support source type/value.
+                let parameter = InstructionParameter {
+                    parameter_type: ParameterType::Register,
+                    parameter_value: self.target_value as i64,
+                };
+                return vec![parameter];
+            },
+            InstructionId::LoopEnd => {
+                return vec!();
+            },
+            _ => {
+                let parameter0 = InstructionParameter {
+                    parameter_type: ParameterType::Register,
+                    parameter_value: self.target_value as i64,
+                };
+                let parameter1 = InstructionParameter {
+                    parameter_type: self.source_type.clone(),
+                    parameter_value: self.source_value as i64,
+                };
+                return vec![parameter0, parameter1];
+            }
+        }
+    }
 }
 
 // Ideas for more mutations
@@ -577,6 +605,35 @@ impl Genome {
         // genome_vec[2].mutate_trigger_division_by_zero();
         Self {
             genome_vec: genome_vec,
+        }
+    }
+
+    fn to_parsed_program(&self) -> ParsedProgram {
+        let mut instruction_vec: Vec<Instruction> = vec!();
+
+        let mut line_number: usize = 0;
+        for genome_item in self.genome_vec.iter() {
+            if !genome_item.enabled {
+                continue;
+            }
+
+            let instruction_id: InstructionId = 
+                genome_item.instruction_id.clone();
+    
+            let parameter_vec: Vec<InstructionParameter> = 
+                genome_item.to_parameter_vec();
+    
+            let instruction = Instruction {
+                instruction_id: instruction_id,
+                parameter_vec: parameter_vec,
+                line_number: line_number,
+            };
+            instruction_vec.push(instruction);
+            line_number += 1;
+        }
+
+        ParsedProgram {
+            instruction_vec: instruction_vec
         }
     }
 
@@ -1039,6 +1096,7 @@ fn run_experiment0(
             genome.mutate(&mut rng);
         }
     
+        // TODO: run the genome.to_parsed_program() to bypass the parser
         let program: Program = match dm.parse(&genome.to_program_string()) {
             Ok(value) => value,
             Err(error) => {
