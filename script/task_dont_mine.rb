@@ -75,6 +75,7 @@ additional_ignore = [
     172338, # a(n) = floor(n*(sqrt(5)+sqrt(3))).
     183140, # a(n) = [1/s]+[2/s]+...+[n/s], where s=2+sqrt(2) and []=floor.
     221222, # Threshold for the P(n)-avoidance vertex-coloring game
+    328588, # Numbers n for which A257993(A276086(A276086(n))) is larger than A257993(n)
 ]
 program_id_set += additional_ignore
 
