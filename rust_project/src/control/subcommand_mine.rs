@@ -544,7 +544,7 @@ impl Genome {
                 instruction_id: InstructionId::Call,
                 target_value: 1,
                 source_type: ParameterType::Constant,
-                source_value: 73093,
+                source_value: 244049,
             };
             genome_vec.push(item);
         }
@@ -856,8 +856,8 @@ impl Genome {
             MutateGenome::SwapRegisters,
             MutateGenome::SourceRegister,
             MutateGenome::TargetRegister,
-            // MutateGenome::ToggleEnabled,
-            // MutateGenome::SwapRows,
+            MutateGenome::ToggleEnabled,
+            MutateGenome::SwapRows,
             // MutateGenome::SwapAdjacentRows,
             // MutateGenome::InsertLoopBeginEnd,
         ];
@@ -1004,14 +1004,22 @@ fn run_experiment0(
     println!("\nPress CTRL-C to stop the miner.");
     let mut cache = ProgramCache::new();
     let mut iteration: usize = 0;
-    let mut time = Instant::now();
+    let mut progress_time = Instant::now();
+    let mut progress_iteration: usize = 0;
     let mut number_of_candidates_with_10terms: u64 = 0;
     let mut number_of_candidates_with_20terms: u64 = 0;
     let mut number_of_candidates_with_30terms: u64 = 0;
     let mut number_of_candidates_with_40terms: u64 = 0;
     loop {
-        if (iteration % 1000) == 0 {
-            if time.elapsed().as_secs() >= 5 {
+        if (iteration % 10000) == 0 {
+            let elapsed: u128 = progress_time.elapsed().as_millis();
+            if elapsed >= 5000 {
+                let iterations_diff: usize = iteration - progress_iteration;
+                let iterations_per_second: f32 = ((1000 * iterations_diff) as f32) / (elapsed as f32);
+                let iteration_info = format!(
+                    "{:.0} iter/sec", iterations_per_second
+                );
+
                 let term_info = format!(
                     "[{},{},{},{}]",
                     number_of_candidates_with_10terms,
@@ -1019,9 +1027,10 @@ fn run_experiment0(
                     number_of_candidates_with_30terms,
                     number_of_candidates_with_40terms,
                 );
-                println!("iteration: {} cache: {} terms: {}", iteration, cache.hit_miss_info(), term_info);
+                println!("#{} cache: {}  terms: {}   {}", iteration, cache.hit_miss_info(), term_info, iteration_info);
                 // println!("iteration: {} terms: {}", iteration, term_info);
-                time = Instant::now();
+                progress_time = Instant::now();
+                progress_iteration = iteration;
             }
         }
         iteration += 1;
