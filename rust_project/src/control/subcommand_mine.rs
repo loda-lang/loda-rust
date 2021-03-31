@@ -1096,8 +1096,7 @@ fn run_experiment0(
             genome.mutate(&mut rng);
         }
     
-        // TODO: run the genome.to_parsed_program() to bypass the parser
-        let program: Program = match dm.parse(&genome.to_program_string()) {
+        let program: Program = match dm.parse2(&genome.to_parsed_program()) {
             Ok(value) => value,
             Err(error) => {
                 debug!("iteration: {} cannot be parsed. {}", iteration, error);

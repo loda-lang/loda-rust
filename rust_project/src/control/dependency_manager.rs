@@ -2,7 +2,7 @@ use std::fmt;
 use std::fs;
 use std::path::{Path,PathBuf};
 use std::collections::HashSet;
-use crate::parser::parse::*;
+use crate::parser::{ParsedProgram, ParseResult, ParseError, parse, parse2};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 
 #[derive(Debug)]
@@ -85,6 +85,31 @@ impl DependencyManager {
 
     pub fn parse(&mut self, contents: &String) -> Result<Program, DependencyManagerError> {
         let parsed = match parse(&contents) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(DependencyManagerError::Parse(error));
+            }
+        };
+        let mut program: Program = parsed.created_program.program;
+    
+        // Obtain a list of dependencies.
+        let mut dependent_program_id_vec: Vec<u64> = vec!();
+        program.accumulate_call_dependencies(&mut dependent_program_id_vec);
+        if !dependent_program_id_vec.is_empty() {
+            debug!("program depends on other programs: {:?}", dependent_program_id_vec);
+        }
+        for dependent_program_id in dependent_program_id_vec {
+            self.load(dependent_program_id);
+        }
+        program.update_call(&mut self.program_run_manager);
+        if program.validate_call_nodes().is_err() {
+            panic!("failed to assign all dependencies");
+        }
+        Ok(program)
+    }
+
+    pub fn parse2(&mut self, parsed_program: &ParsedProgram) -> Result<Program, DependencyManagerError> {
+        let parsed = match parse2(parsed_program) {
             Ok(value) => value,
             Err(error) => {
                 return Err(DependencyManagerError::Parse(error));

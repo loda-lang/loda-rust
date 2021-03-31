@@ -45,3 +45,11 @@ pub fn parse(input: &str) -> Result<ParseResult, ParseError> {
         created_program: created_program,
     })
 }
+
+pub fn parse2(parsed_program: &ParsedProgram) -> Result<ParseResult, ParseError> {
+    let created_program: CreatedProgram = create_program(&parsed_program.instruction_vec)?;
+
+    Ok(ParseResult {
+        created_program: created_program,
+    })
+}
