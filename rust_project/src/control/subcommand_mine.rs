@@ -1148,6 +1148,8 @@ fn run_experiment0(
     let mut iteration: usize = 0;
     let mut progress_time = Instant::now();
     let mut progress_iteration: usize = 0;
+    let mut number_of_errors_parse: usize = 0;
+    let mut number_of_errors_run: usize = 0;
     loop {
         if (iteration % 10000) == 0 {
             let elapsed: u128 = progress_time.elapsed().as_millis();
@@ -1158,9 +1160,16 @@ fn run_experiment0(
                     "{:.0} iter/sec", iterations_per_second
                 );
 
-                println!("#{} cache: {}  funnel: {}   {}", 
+                let error_info = format!(
+                    "[{},{}]",
+                    number_of_errors_parse,
+                    number_of_errors_run
+                );
+
+                println!("#{} cache: {}   error: {}   funnel: {}   {}", 
                     iteration, 
                     cache.hit_miss_info(), 
+                    error_info,
                     funnel.funnel_info(), 
                     iteration_info
                 );
@@ -1178,7 +1187,8 @@ fn run_experiment0(
         let program: Program = match dm.parse2(&genome.to_parsed_program()) {
             Ok(value) => value,
             Err(error) => {
-                debug!("iteration: {} cannot be parsed. {}", iteration, error);
+                // debug!("iteration: {} cannot be parsed. {}", iteration, error);
+                number_of_errors_parse += 1;
                 continue;
             }
         };
@@ -1190,7 +1200,8 @@ fn run_experiment0(
         let terms10: BigIntVec = match runner.compute_terms(number_of_terms, &mut cache) {
             Ok(value) => value,
             Err(error) => {
-                debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                // debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                number_of_errors_run += 1;
                 continue;
             }
         };
@@ -1204,7 +1215,8 @@ fn run_experiment0(
         let terms20: BigIntVec = match runner.compute_terms(20, &mut cache) {
             Ok(value) => value,
             Err(error) => {
-                debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                // debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                number_of_errors_run += 1;
                 continue;
             }
         };
@@ -1215,7 +1227,8 @@ fn run_experiment0(
         let terms30: BigIntVec = match runner.compute_terms(30, &mut cache) {
             Ok(value) => value,
             Err(error) => {
-                debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                // debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                number_of_errors_run += 1;
                 continue;
             }
         };
@@ -1226,7 +1239,8 @@ fn run_experiment0(
         let terms40: BigIntVec = match runner.compute_terms(40, &mut cache) {
             Ok(value) => value,
             Err(error) => {
-                debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                // debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                number_of_errors_run += 1;
                 continue;
             }
         };
