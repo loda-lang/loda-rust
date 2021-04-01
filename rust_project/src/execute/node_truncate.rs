@@ -47,6 +47,11 @@ impl Node for NodeTruncateRegister {
     }
 
     fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if self.target == self.source {
+            // Truncating itself with itself, always result in 0
+            register_set.remove(&self.target);
+            return;
+        }
         if register_set.contains(&self.source) {
             register_set.insert(self.target.clone());
         } else {

@@ -45,6 +45,11 @@ impl Node for NodeCompareRegister {
     }
 
     fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if self.target == self.source {
+            // Comparing itself from itself, always result in 1
+            register_set.remove(&self.target);
+            return;
+        }
         if register_set.contains(&self.source) {
             register_set.insert(self.target.clone());
         } else {

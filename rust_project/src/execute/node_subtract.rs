@@ -41,6 +41,11 @@ impl Node for NodeSubtractRegister {
     }
 
     fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if self.target == self.source {
+            // Subtracting itself from itself, always result in 0
+            register_set.remove(&self.target);
+            return;
+        }
         if register_set.contains(&self.source) {
             register_set.insert(self.target.clone());
         } else {

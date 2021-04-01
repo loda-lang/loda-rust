@@ -136,6 +136,14 @@ impl Node for NodePowerConstant {
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
         register_vec.push(self.target.clone());
     }
+
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if self.source.0.is_zero() {
+            // n^0, always result in 1
+            register_set.remove(&self.target);
+            return;
+        }
+    }
 }
 
 #[cfg(test)]
