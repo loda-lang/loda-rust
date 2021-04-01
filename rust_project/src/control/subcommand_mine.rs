@@ -2,15 +2,14 @@ use super::DependencyManager;
 use crate::config::Config;
 use crate::mine::check_fixed_length_sequence::CheckFixedLengthSequence;
 use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
-use crate::execute::{EvalError, ProgramCache, Program, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
+use crate::execute::{EvalError, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use crate::oeis::stripped_sequence::BigIntVec;
 use crate::util::Analyze;
+use std::fmt;
 use std::time::Instant;
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::prelude::*;
-use num_bigint::BigInt;
-use num_traits::Zero;
 use rand::{Rng,RngCore,SeedableRng};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
@@ -450,38 +449,6 @@ impl GenomeItem {
         return status;
     }
 
-    fn to_program_row(&self) -> String {
-        if self.enabled {
-            self.to_program_row_inner()
-        } else {
-            format!("; {}", self.to_program_row_inner())
-        }
-    }
-
-    fn to_program_row_inner(&self) -> String {
-        match &self.instruction_id {
-            InstructionId::LoopBegin => {
-                // For now don't care about the source type/value.
-                // Maybe in the future support source type/value.
-                return format!("{} ${}", 
-                    self.instruction_id.shortname(), 
-                    self.target_value 
-                );
-            },
-            InstructionId::LoopEnd => {
-                return self.instruction_id.shortname().to_string();
-            },
-            _ => {
-                return format!("{} ${},{}{}", 
-                    self.instruction_id.shortname(), 
-                    self.target_value, 
-                    self.source_type.prefix(), 
-                    self.source_value
-                );
-            }
-        }
-    }
-
     fn to_parameter_vec(&self) -> Vec<InstructionParameter> {
         match &self.instruction_id {
             InstructionId::LoopBegin => {
@@ -510,6 +477,25 @@ impl GenomeItem {
         }
     }
 }
+
+impl fmt::Display for GenomeItem {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let line_prefix: &str;
+        if self.enabled {
+            line_prefix = "";
+        } else {
+            line_prefix = "; ";
+        }
+        write!(f, "{}{} ${},{}{}", 
+            line_prefix,
+            self.instruction_id.shortname(), 
+            self.target_value, 
+            self.source_type.prefix(), 
+            self.source_value
+        )
+    }
+}
+
 
 // Ideas for more mutations
 // append random row
@@ -643,21 +629,6 @@ impl Genome {
         ParsedProgram {
             instruction_vec: instruction_vec
         }
-    }
-
-    fn to_program_string_vec(&self) -> Vec<String> {
-        let program_rows: Vec<String> = self.genome_vec.iter().map(|genome_item| {
-            genome_item.to_program_row()
-        }).collect();
-        program_rows
-    }
-
-    fn to_program_string(&self) -> String {
-        self.to_program_string_vec().join("\n")
-    }
-
-    fn print(&self) {
-        println!("program:\n{}", self.to_program_string());
     }
 
     // Return `true` when the mutation was successful.
@@ -952,6 +923,17 @@ impl Genome {
     }
 }
 
+impl fmt::Display for Genome {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let rows: Vec<String> = self.genome_vec.iter().map(|genome_item| {
+            genome_item.to_string()
+        }).collect();
+        let joined_rows: String = rows.join("\n");
+        write!(f, "{}", joined_rows)
+    }
+}
+
+
 impl ProgramRunner {
     fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError> {
         let mut terms: BigIntVec = vec!();
@@ -1132,7 +1114,7 @@ fn run_experiment0(
     );
     let mut genome = Genome::new();
     // genome.mutate_insert_loop(&mut rng);
-    // genome.print();
+    debug!("Initial genome\n{}", genome);
 
     let mut funnel = Funnel::new(
         checker10,
@@ -1249,18 +1231,16 @@ fn run_experiment0(
             continue;
         }
 
-        // println!("iteration: {} candidate. terms: {:?}", iteration, terms40);
-        // genome.print();
-
+        // Yay, this candidate program has 40 terms that are good.
+        // Save a snapshot of this program to `$HOME/.loda-lab/mine-even/`
         let mut serializer = ProgramSerializer::new();
         serializer.append(format!("; {}", terms_to_string(&terms40)));
         serializer.append("");
         runner.serialize(&mut serializer);
         let candidate_program: String = serializer.to_string();
 
-        // let candidate_program: String = genome.program_string_with_terms(&terms40);
         if let Err(error) = save_candidate_program(mine_event_dir, iteration, &candidate_program) {
-            genome.print();
+            println!("; GENOME\n{}", genome);
             error!("Unable to save candidate program: {:?}", error);
         }
     }
