@@ -88,10 +88,6 @@ impl NodeBinomialRegister {
 }
 
 impl Node for NodeBinomialRegister {
-    fn shorthand(&self) -> &str {
-        "binomial register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("bin {},{}", self.target, self.source)
     }
@@ -125,10 +121,6 @@ impl NodeBinomialConstant {
 }
 
 impl Node for NodeBinomialConstant {
-    fn shorthand(&self) -> &str {
-        "binomial constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("bin {},{}", self.target, self.source)
     }

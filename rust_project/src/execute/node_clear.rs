@@ -17,10 +17,6 @@ impl NodeClearConstant {
 }
 
 impl Node for NodeClearConstant {
-    fn shorthand(&self) -> &str {
-        "clear constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("clr {},{}", self.target, self.clear_count)
     }
@@ -52,10 +48,6 @@ impl NodeClearRegister {
 }
 
 impl Node for NodeClearRegister {
-    fn shorthand(&self) -> &str {
-        "clear register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("clr {},{}", self.target, self.register_with_clear_count)
     }

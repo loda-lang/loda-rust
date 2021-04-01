@@ -27,10 +27,6 @@ impl NodeDivideRegister {
 }
 
 impl Node for NodeDivideRegister {
-    fn shorthand(&self) -> &str {
-        "divide register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("div {},{}", self.target, self.source)
     }
@@ -64,10 +60,6 @@ impl NodeDivideConstant {
 }
 
 impl Node for NodeDivideConstant {
-    fn shorthand(&self) -> &str {
-        "divide constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("div {},{}", self.target, self.source)
     }

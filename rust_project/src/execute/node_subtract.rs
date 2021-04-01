@@ -22,10 +22,6 @@ impl NodeSubtractRegister {
 }
 
 impl Node for NodeSubtractRegister {
-    fn shorthand(&self) -> &str {
-        "subtract register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("sub {},{}", self.target, self.source)
     }
@@ -59,10 +55,6 @@ impl NodeSubtractConstant {
 }
 
 impl Node for NodeSubtractConstant {
-    fn shorthand(&self) -> &str {
-        "subtract constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("sub {},{}", self.target, self.source)
     }

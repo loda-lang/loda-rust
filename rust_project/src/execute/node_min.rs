@@ -23,10 +23,6 @@ impl NodeMinRegister {
 }
 
 impl Node for NodeMinRegister {
-    fn shorthand(&self) -> &str {
-        "min register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("min {},{}", self.target, self.source)
     }
@@ -60,10 +56,6 @@ impl NodeMinConstant {
 }
 
 impl Node for NodeMinConstant {
-    fn shorthand(&self) -> &str {
-        "min constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("min {},{}", self.target, self.source)
     }

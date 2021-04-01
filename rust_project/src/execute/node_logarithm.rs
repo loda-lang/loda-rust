@@ -45,10 +45,6 @@ impl NodeLogarithmRegister {
 }
 
 impl Node for NodeLogarithmRegister {
-    fn shorthand(&self) -> &str {
-        "logarithm register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("log {},{}", self.target, self.source)
     }
@@ -82,10 +78,6 @@ impl NodeLogarithmConstant {
 }
 
 impl Node for NodeLogarithmConstant {
-    fn shorthand(&self) -> &str {
-        "logarithm constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("log {},{}", self.target, self.source)
     }

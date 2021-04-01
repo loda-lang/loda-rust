@@ -27,10 +27,6 @@ impl NodeModuloRegister {
 }
 
 impl Node for NodeModuloRegister {
-    fn shorthand(&self) -> &str {
-        "modulo register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("mod {},{}", self.target, self.source)
     }
@@ -64,10 +60,6 @@ impl NodeModuloConstant {
 }
 
 impl Node for NodeModuloConstant {
-    fn shorthand(&self) -> &str {
-        "modulo constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("mod {},{}", self.target, self.source)
     }

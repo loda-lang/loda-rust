@@ -22,10 +22,6 @@ impl NodeAddRegister {
 }
 
 impl Node for NodeAddRegister {
-    fn shorthand(&self) -> &str {
-        "add register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("add {},{}", self.target, self.source)
     }
@@ -59,10 +55,6 @@ impl NodeAddConstant {
 }
 
 impl Node for NodeAddConstant {
-    fn shorthand(&self) -> &str {
-        "add constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("add {},{}", self.target, self.source)
     }

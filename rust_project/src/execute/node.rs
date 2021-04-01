@@ -23,8 +23,6 @@ pub enum EvalError {
 }
 
 pub trait Node {
-    fn shorthand(&self) -> &str;
-
     fn formatted_instruction(&self) -> String;
 
     // Generate a human readable version of the program

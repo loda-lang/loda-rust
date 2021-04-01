@@ -32,10 +32,6 @@ impl NodeDivideIfRegister {
 }
 
 impl Node for NodeDivideIfRegister {
-    fn shorthand(&self) -> &str {
-        "divide-if register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("dif {},{}", self.target, self.source)
     }
@@ -69,10 +65,6 @@ impl NodeDivideIfConstant {
 }
 
 impl Node for NodeDivideIfConstant {
-    fn shorthand(&self) -> &str {
-        "divide-if constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("dif {},{}", self.target, self.source)
     }

@@ -22,10 +22,6 @@ impl NodeMultiplyRegister {
 }
 
 impl Node for NodeMultiplyRegister {
-    fn shorthand(&self) -> &str {
-        "multiply register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("mul {},{}", self.target, self.source)
     }
@@ -59,10 +55,6 @@ impl NodeMultiplyConstant {
 }
 
 impl Node for NodeMultiplyConstant {
-    fn shorthand(&self) -> &str {
-        "multiply constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("mul {},{}", self.target, self.source)
     }

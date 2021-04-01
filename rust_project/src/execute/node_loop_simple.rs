@@ -15,10 +15,6 @@ impl NodeLoopSimple {
 }
 
 impl Node for NodeLoopSimple {
-    fn shorthand(&self) -> &str {
-        "loop simple"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("lpb {}", self.register)
     }

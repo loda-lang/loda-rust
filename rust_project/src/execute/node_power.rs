@@ -79,10 +79,6 @@ impl NodePowerRegister {
 }
 
 impl Node for NodePowerRegister {
-    fn shorthand(&self) -> &str {
-        "power register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("pow {},{}", self.target, self.source)
     }
@@ -116,10 +112,6 @@ impl NodePowerConstant {
 }
 
 impl Node for NodePowerConstant {
-    fn shorthand(&self) -> &str {
-        "power constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("pow {},{}", self.target, self.source)
     }

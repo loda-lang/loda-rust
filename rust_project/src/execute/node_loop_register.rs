@@ -19,10 +19,6 @@ impl NodeLoopRegister {
 }
 
 impl Node for NodeLoopRegister {
-    fn shorthand(&self) -> &str {
-        "loop register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("lpb {},{}", self.register_start, self.register_with_range_length)
     }

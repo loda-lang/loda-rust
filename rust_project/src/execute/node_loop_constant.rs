@@ -17,10 +17,6 @@ impl NodeLoopConstant {
 }
 
 impl Node for NodeLoopConstant {
-    fn shorthand(&self) -> &str {
-        "loop constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("lpb {},{}", self.register_start, self.range_length)
     }

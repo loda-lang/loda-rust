@@ -15,10 +15,6 @@ impl NodeMoveRegister {
 }
 
 impl Node for NodeMoveRegister {
-    fn shorthand(&self) -> &str {
-        "mov register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("mov {},{}", self.target, self.source)
     }
@@ -50,10 +46,6 @@ impl NodeMoveConstant {
 }
 
 impl Node for NodeMoveConstant {
-    fn shorthand(&self) -> &str {
-        "mov constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("mov {},{}", self.target, self.source)
     }

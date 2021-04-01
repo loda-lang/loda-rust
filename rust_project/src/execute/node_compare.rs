@@ -26,10 +26,6 @@ impl NodeCompareRegister {
 }
 
 impl Node for NodeCompareRegister {
-    fn shorthand(&self) -> &str {
-        "compare register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("cmp {},{}", self.target, self.source)
     }
@@ -63,10 +59,6 @@ impl NodeCompareConstant {
 }
 
 impl Node for NodeCompareConstant {
-    fn shorthand(&self) -> &str {
-        "compare constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("cmp {},{}", self.target, self.source)
     }

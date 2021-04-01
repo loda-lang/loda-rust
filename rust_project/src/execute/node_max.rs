@@ -23,10 +23,6 @@ impl NodeMaxRegister {
 }
 
 impl Node for NodeMaxRegister {
-    fn shorthand(&self) -> &str {
-        "max register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("max {},{}", self.target, self.source)
     }
@@ -60,10 +56,6 @@ impl NodeMaxConstant {
 }
 
 impl Node for NodeMaxConstant {
-    fn shorthand(&self) -> &str {
-        "max constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("max {},{}", self.target, self.source)
     }

@@ -28,10 +28,6 @@ impl NodeTruncateRegister {
 }
 
 impl Node for NodeTruncateRegister {
-    fn shorthand(&self) -> &str {
-        "truncate register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("trn {},{}", self.target, self.source)
     }
@@ -65,10 +61,6 @@ impl NodeTruncateConstant {
 }
 
 impl Node for NodeTruncateConstant {
-    fn shorthand(&self) -> &str {
-        "truncate constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("trn {},{}", self.target, self.source)
     }
