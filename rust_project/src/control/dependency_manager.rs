@@ -2,12 +2,13 @@ use std::fmt;
 use std::fs;
 use std::path::{Path,PathBuf};
 use std::collections::HashSet;
-use crate::parser::{ParsedProgram, ParseResult, ParseError, parse, parse2};
+use crate::parser::{ParsedProgram, ParseResult, ParseError, parse, parse_program, create_program, CreatedProgram, CreateProgramError};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 
 #[derive(Debug)]
 pub enum DependencyManagerError {
-    Parse(ParseError)
+    Parse(ParseError),
+    CreateProgram(CreateProgramError),
 }
 
 impl fmt::Display for DependencyManagerError {
@@ -15,6 +16,8 @@ impl fmt::Display for DependencyManagerError {
         match self {
             Self::Parse(error) => 
                 write!(f, "Failed to parse program. error: {}", error),
+            Self::CreateProgram(error) => 
+                write!(f, "Failed to create program. error: {}", error),
         }
     }
 }
@@ -86,44 +89,27 @@ impl DependencyManager {
     pub fn parse(&mut self, program_id: ProgramId, contents: &String) -> 
         Result<ProgramRunner, DependencyManagerError> 
     {
-        let parsed = match parse(&contents) {
+        let parsed_program: ParsedProgram = match parse_program(contents) {
             Ok(value) => value,
-            Err(error) => {
-                return Err(DependencyManagerError::Parse(error));
+            Err(error0) => {
+                let error1 = ParseError::ParseProgram(error0);
+                let error2 = DependencyManagerError::Parse(error1);
+                return Err(error2);
             }
         };
-        let mut program: Program = parsed.created_program.program;
-    
-        // Obtain a list of dependencies.
-        let mut dependent_program_id_vec: Vec<u64> = vec!();
-        program.accumulate_call_dependencies(&mut dependent_program_id_vec);
-        if !dependent_program_id_vec.is_empty() {
-            debug!("program depends on other programs: {:?}", dependent_program_id_vec);
-        }
-        for dependent_program_id in dependent_program_id_vec {
-            self.load(dependent_program_id);
-        }
-        program.update_call(&mut self.program_run_manager);
-        if program.validate_call_nodes().is_err() {
-            panic!("failed to assign all dependencies");
-        }
-        let runner = ProgramRunner::new(
-            program_id,
-            program
-        );
-        Ok(runner)
+        self.parse_stage2(program_id, &parsed_program)
     }
 
     pub fn parse_stage2(&mut self, program_id: ProgramId, parsed_program: &ParsedProgram) -> 
         Result<ProgramRunner, DependencyManagerError> 
     {
-        let parsed = match parse2(parsed_program) {
+        let created_program: CreatedProgram = match create_program(&parsed_program.instruction_vec) {
             Ok(value) => value,
             Err(error) => {
-                return Err(DependencyManagerError::Parse(error));
+                return Err(DependencyManagerError::CreateProgram(error));
             }
         };
-        let mut program: Program = parsed.created_program.program;
+        let mut program: Program = created_program.program;
     
         // Obtain a list of dependencies.
         let mut dependent_program_id_vec: Vec<u64> = vec!();
