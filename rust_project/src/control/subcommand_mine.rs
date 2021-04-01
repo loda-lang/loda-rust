@@ -1013,18 +1013,6 @@ fn is_possible_candidate_basic_checks(terms: &BigIntVec) -> bool {
     true
 }
 
-impl CheckFixedLengthSequence {
-    fn is_possible_candidate(&self, terms: &BigIntVec) -> bool {
-        if !self.check(&terms) {
-            debug!("not found in bloom filter");
-            return false;
-        }
-        // println!("contained in bloom filter: {:?}", terms);
-        true
-        // self.check(&terms)
-    }
-}
-
 fn save_candidate_program(
     mine_event_dir: &Path,
     iteration: usize,
@@ -1044,6 +1032,92 @@ fn save_candidate_program(
     Ok(())
 }
 
+struct Funnel<'a> {
+    checker10: &'a CheckFixedLengthSequence,
+    checker20: &'a CheckFixedLengthSequence,
+    checker30: &'a CheckFixedLengthSequence,
+    checker40: &'a CheckFixedLengthSequence,
+
+    number_of_candidates_with_basiccheck: u64,
+    number_of_candidates_with_10terms: u64,
+    number_of_candidates_with_20terms: u64,
+    number_of_candidates_with_30terms: u64,
+    number_of_candidates_with_40terms: u64,
+}
+
+impl<'a> Funnel<'a> {
+    fn new(
+        checker10: &'a CheckFixedLengthSequence, 
+        checker20: &'a CheckFixedLengthSequence,
+        checker30: &'a CheckFixedLengthSequence,
+        checker40: &'a CheckFixedLengthSequence,
+    ) -> Self {
+        Self {
+            checker10: checker10, 
+            checker20: checker20,
+            checker30: checker30,
+            checker40: checker40,
+            number_of_candidates_with_basiccheck: 0,
+            number_of_candidates_with_10terms: 0,
+            number_of_candidates_with_20terms: 0,
+            number_of_candidates_with_30terms: 0,
+            number_of_candidates_with_40terms: 0,
+        }
+    }
+
+    fn funnel_info(&self) -> String {
+        format!(
+            "[{},{},{},{},{}]",
+            self.number_of_candidates_with_basiccheck,
+            self.number_of_candidates_with_10terms,
+            self.number_of_candidates_with_20terms,
+            self.number_of_candidates_with_30terms,
+            self.number_of_candidates_with_40terms,
+        )
+    }
+
+    fn check_basic(&mut self, terms: &BigIntVec) -> bool {
+        if !is_possible_candidate_basic_checks(terms) {
+            return false;
+        }
+        self.number_of_candidates_with_basiccheck += 1;
+        true
+    }
+
+    fn check10(&mut self, terms: &BigIntVec) -> bool {
+        if !self.checker10.check(terms) {
+            return false;
+        }
+        self.number_of_candidates_with_10terms += 1;
+        true
+    }
+
+    fn check20(&mut self, terms: &BigIntVec) -> bool {
+        if !self.checker20.check(terms) {
+            return false;
+        }
+        self.number_of_candidates_with_20terms += 1;
+        true
+    }
+
+    fn check30(&mut self, terms: &BigIntVec) -> bool {
+        if !self.checker30.check(terms) {
+            return false;
+        }
+        self.number_of_candidates_with_30terms += 1;
+        true
+    }
+
+    fn check40(&mut self, terms: &BigIntVec) -> bool {
+        if !self.checker40.check(terms) {
+            return false;
+        }
+        self.number_of_candidates_with_40terms += 1;
+        true
+    }
+}
+
+
 fn run_experiment0(
     loda_program_rootdir: &PathBuf, 
     checker10: &CheckFixedLengthSequence, 
@@ -1062,16 +1136,18 @@ fn run_experiment0(
     // genome.mutate_insert_loop(&mut rng);
     // genome.print();
 
+    let mut funnel = Funnel::new(
+        checker10,
+        checker20,
+        checker30,
+        checker40,
+    );
+
     println!("\nPress CTRL-C to stop the miner.");
     let mut cache = ProgramCache::new();
     let mut iteration: usize = 0;
     let mut progress_time = Instant::now();
     let mut progress_iteration: usize = 0;
-    let mut number_of_candidates_with_basiccheck: u64 = 0;
-    let mut number_of_candidates_with_10terms: u64 = 0;
-    let mut number_of_candidates_with_20terms: u64 = 0;
-    let mut number_of_candidates_with_30terms: u64 = 0;
-    let mut number_of_candidates_with_40terms: u64 = 0;
     loop {
         if (iteration % 10000) == 0 {
             let elapsed: u128 = progress_time.elapsed().as_millis();
@@ -1082,16 +1158,13 @@ fn run_experiment0(
                     "{:.0} iter/sec", iterations_per_second
                 );
 
-                let funnel_info = format!(
-                    "[{},{},{},{},{}]",
-                    number_of_candidates_with_basiccheck,
-                    number_of_candidates_with_10terms,
-                    number_of_candidates_with_20terms,
-                    number_of_candidates_with_30terms,
-                    number_of_candidates_with_40terms,
+                println!("#{} cache: {}  funnel: {}   {}", 
+                    iteration, 
+                    cache.hit_miss_info(), 
+                    funnel.funnel_info(), 
+                    iteration_info
                 );
-                println!("#{} cache: {}  funnel: {}   {}", iteration, cache.hit_miss_info(), funnel_info, iteration_info);
-                // println!("iteration: {} terms: {}", iteration, term_info);
+
                 progress_time = Instant::now();
                 progress_iteration = iteration;
             }
@@ -1121,22 +1194,12 @@ fn run_experiment0(
                 continue;
             }
         };
-
-        let basiccheck_result: bool = is_possible_candidate_basic_checks(&terms10);
-        if !basiccheck_result {
-            //debug!("iteration: {} no match in oeis", iteration);
+        if !funnel.check_basic(&terms10) {
             continue;
         }
-        // println!("iteration: {} candidate. terms: {:?}", iteration, terms10);
-        number_of_candidates_with_basiccheck += 1;
-    
-        let check10_result: bool = checker10.is_possible_candidate(&terms10);
-        if !check10_result {
-            //debug!("iteration: {} no match in oeis", iteration);
+        if !funnel.check10(&terms10) {
             continue;
         }
-        // println!("iteration: {} candidate. terms: {:?}", iteration, terms10);
-        number_of_candidates_with_10terms += 1;
 
         let terms20: BigIntVec = match runner.compute_terms(20, &mut cache) {
             Ok(value) => value,
@@ -1145,12 +1208,9 @@ fn run_experiment0(
                 continue;
             }
         };
-        let check20_result: bool = checker20.is_possible_candidate(&terms20);
-        if !check20_result {
-            // debug!("iteration: {} no match in oeis", iteration);
+        if !funnel.check20(&terms20) {
             continue;
         }
-        number_of_candidates_with_20terms += 1;
 
         let terms30: BigIntVec = match runner.compute_terms(30, &mut cache) {
             Ok(value) => value,
@@ -1159,12 +1219,9 @@ fn run_experiment0(
                 continue;
             }
         };
-        let check30_result: bool = checker30.is_possible_candidate(&terms30);
-        if !check30_result {
-            // debug!("iteration: {} no match in oeis", iteration);
+        if !funnel.check30(&terms30) {
             continue;
         }
-        number_of_candidates_with_30terms += 1;
 
         let terms40: BigIntVec = match runner.compute_terms(40, &mut cache) {
             Ok(value) => value,
@@ -1173,12 +1230,9 @@ fn run_experiment0(
                 continue;
             }
         };
-        let check40_result: bool = checker40.is_possible_candidate(&terms40);
-        if !check40_result {
-            // debug!("iteration: {} no match in oeis", iteration);
+        if !funnel.check40(&terms40) {
             continue;
         }
-        number_of_candidates_with_40terms += 1;
 
         // println!("iteration: {} candidate. terms: {:?}", iteration, terms40);
         // genome.print();
