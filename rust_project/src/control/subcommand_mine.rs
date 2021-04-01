@@ -1143,8 +1143,8 @@ fn run_experiment0(
 
                 let error_info = format!(
                     "[{},{},{}]",
-                    number_of_errors_live,
                     number_of_errors_parse,
+                    number_of_errors_live,
                     number_of_errors_run
                 );
 
