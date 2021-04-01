@@ -63,23 +63,11 @@ impl DependencyManager {
         };
     
         let mut program: Program = parsed.created_program.program;
-    
-        // Obtain a list of dependencies.
-        let mut dependent_program_id_vec: Vec<u64> = vec!();
-        program.accumulate_call_dependencies(&mut dependent_program_id_vec);
-        if !dependent_program_id_vec.is_empty() {
-            debug!("program_id: {}  depends on other programs: {:?}", program_id, dependent_program_id_vec);
-        }
-        for dependent_program_id in dependent_program_id_vec {
-            self.load(dependent_program_id);
-        }
-        program.update_call(&mut self.program_run_manager);
-        if program.validate_call_nodes().is_err() {
-            panic!("program_id: {}  failed to assign all dependencies", program_id);
-        }
+        let program_id_inner = ProgramId::ProgramOEIS(program_id);
+        self.load_dependencies(&mut program, &program_id_inner);
 
         let runner = ProgramRunner::new(
-            ProgramId::ProgramOEIS(program_id),
+            program_id_inner,
             program
         );
         self.program_run_manager.register(program_id, runner);
@@ -111,24 +99,28 @@ impl DependencyManager {
         };
         let mut program: Program = created_program.program;
     
-        // Obtain a list of dependencies.
+        self.load_dependencies(&mut program, &program_id);
+
+        let runner = ProgramRunner::new(
+            program_id,
+            program
+        );
+        Ok(runner)
+    }
+
+    fn load_dependencies(&mut self, program: &mut Program, program_id: &ProgramId) {
         let mut dependent_program_id_vec: Vec<u64> = vec!();
         program.accumulate_call_dependencies(&mut dependent_program_id_vec);
         if !dependent_program_id_vec.is_empty() {
-            debug!("program depends on other programs: {:?}", dependent_program_id_vec);
+            debug!("program_id: {:?}  depends on other programs: {:?}", program_id, dependent_program_id_vec);
         }
         for dependent_program_id in dependent_program_id_vec {
             self.load(dependent_program_id);
         }
         program.update_call(&mut self.program_run_manager);
         if program.validate_call_nodes().is_err() {
-            panic!("failed to assign all dependencies");
+            panic!("program_id: {:?}  failed to assign all dependencies", program_id);
         }
-        let runner = ProgramRunner::new(
-            program_id,
-            program
-        );
-        Ok(runner)
     }
 
     // Construct a path: "/absolute/path/123/a123456.asm"
