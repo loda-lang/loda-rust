@@ -46,6 +46,11 @@ impl Node for NodeModuloRegister {
     }
 
     fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if self.target == self.source {
+            // Modulo itself with itself, always result in 0
+            register_set.remove(&self.target);
+            return;
+        }
         if register_set.contains(&self.source) {
             register_set.insert(self.target.clone());
         } else {
@@ -111,6 +116,11 @@ mod tests {
         assert_eq!(process(-1, -1), "0");
         assert_eq!(process(3, -3), "0");
         assert_eq!(process(-3, 3), "0");
+
+        assert_eq!(process(99, 99), "0");
+        assert_eq!(process(99, -99), "0");
+        assert_eq!(process(-99, 99), "0");
+        assert_eq!(process(-99, -99), "0");
 
         assert_eq!(process(10, 3), "1");
         assert_eq!(process(99, 10), "9");
