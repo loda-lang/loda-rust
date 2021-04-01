@@ -981,36 +981,40 @@ impl ProgramRunner {
     }
 }
 
+fn is_possible_candidate_basic_checks(terms: &BigIntVec) -> bool {
+    if Analyze::count_unique(&terms) < 8 {
+        // there are many results where all terms are just zeros.
+        // there are many results where all terms are a constant value.
+        // there are many results where most of the terms is a constant value.
+        // there are many results where the terms alternates between 2 values.
+        // debug!("too few unique terms");
+        return false;
+    }
+    if Analyze::is_almost_natural_numbers(&terms) {
+        // there are many result that are like these
+        // [0, 0, 1, 2, 3, 4, 5, 6, 7, 8]
+        // [1, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        // it's the natural numbers with 1 term different
+        // debug!("too close to being the natural numbers");
+        return false;
+    }
+    if Analyze::count_zero(&terms) >= 7 {
+        // debug!("there are too many zero terms");
+        return false;
+    }
+    if Analyze::is_all_the_same_value(&terms) {
+        // debug!("all terms are the same");
+        return false;
+    }
+    if Analyze::is_constant_step(&terms) {
+        // debug!("the terms use constant step");
+        return false;
+    }
+    true
+}
+
 impl CheckFixedLengthSequence {
     fn is_possible_candidate(&self, terms: &BigIntVec) -> bool {
-        if Analyze::count_unique(&terms) < 8 {
-            // there are many results where all terms are just zeros.
-            // there are many results where all terms are a constant value.
-            // there are many results where most of the terms is a constant value.
-            // there are many results where the terms alternates between 2 values.
-            debug!("too few unique terms");
-            return false;
-        }
-        if Analyze::is_almost_natural_numbers(&terms) {
-            // there are many result that are like these
-            // [0, 0, 1, 2, 3, 4, 5, 6, 7, 8]
-            // [1, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-            // it's the natural numbers with 1 term different
-            debug!("too close to being the natural numbers");
-            return false;
-        }
-        if Analyze::count_zero(&terms) >= 7 {
-            debug!("there are too many zero terms");
-            return false;
-        }
-        if Analyze::is_all_the_same_value(&terms) {
-            debug!("all terms are the same");
-            return false;
-        }
-        if Analyze::is_constant_step(&terms) {
-            debug!("the terms use constant step");
-            return false;
-        }
         if !self.check(&terms) {
             debug!("not found in bloom filter");
             return false;
@@ -1063,6 +1067,7 @@ fn run_experiment0(
     let mut iteration: usize = 0;
     let mut progress_time = Instant::now();
     let mut progress_iteration: usize = 0;
+    let mut number_of_candidates_with_basiccheck: u64 = 0;
     let mut number_of_candidates_with_10terms: u64 = 0;
     let mut number_of_candidates_with_20terms: u64 = 0;
     let mut number_of_candidates_with_30terms: u64 = 0;
@@ -1077,14 +1082,15 @@ fn run_experiment0(
                     "{:.0} iter/sec", iterations_per_second
                 );
 
-                let term_info = format!(
-                    "[{},{},{},{}]",
+                let funnel_info = format!(
+                    "[{},{},{},{},{}]",
+                    number_of_candidates_with_basiccheck,
                     number_of_candidates_with_10terms,
                     number_of_candidates_with_20terms,
                     number_of_candidates_with_30terms,
                     number_of_candidates_with_40terms,
                 );
-                println!("#{} cache: {}  terms: {}   {}", iteration, cache.hit_miss_info(), term_info, iteration_info);
+                println!("#{} cache: {}  funnel: {}   {}", iteration, cache.hit_miss_info(), funnel_info, iteration_info);
                 // println!("iteration: {} terms: {}", iteration, term_info);
                 progress_time = Instant::now();
                 progress_iteration = iteration;
@@ -1115,6 +1121,14 @@ fn run_experiment0(
                 continue;
             }
         };
+
+        let basiccheck_result: bool = is_possible_candidate_basic_checks(&terms10);
+        if !basiccheck_result {
+            //debug!("iteration: {} no match in oeis", iteration);
+            continue;
+        }
+        // println!("iteration: {} candidate. terms: {:?}", iteration, terms10);
+        number_of_candidates_with_basiccheck += 1;
     
         let check10_result: bool = checker10.is_possible_candidate(&terms10);
         if !check10_result {
