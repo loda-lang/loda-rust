@@ -2,7 +2,7 @@ use super::DependencyManager;
 use crate::config::Config;
 use crate::mine::check_fixed_length_sequence::CheckFixedLengthSequence;
 use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
-use crate::execute::{EvalError, ProgramCache, Program, ProgramId, ProgramRunner, RegisterValue, RunMode};
+use crate::execute::{EvalError, ProgramCache, Program, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use crate::oeis::stripped_sequence::BigIntVec;
 use crate::util::Analyze;
 use std::time::Instant;
@@ -63,6 +63,14 @@ pub fn subcommand_mine() {
         &mine_event_dir,
         initial_random_seed,
     );
+}
+
+fn terms_to_string(terms: &BigIntVec) -> String {
+    let term_strings: Vec<String> = terms.iter().map(|term| {
+        term.to_string()
+    }).collect();
+    let term_strings_joined: String = term_strings.join(",");
+    term_strings_joined
 }
 
 enum MutateValue {
@@ -650,16 +658,6 @@ impl Genome {
 
     fn print(&self) {
         println!("program:\n{}", self.to_program_string());
-    }
-
-    fn program_string_with_terms(&self, terms: &BigIntVec) -> String {
-        let term_strings: Vec<String> = terms.iter().map(|term| {
-            term.to_string()
-        }).collect();
-        let term_strings_joined: String = term_strings.join(",");
-        let prefix_rows = format!("; {}\n\n", term_strings_joined);
-        let program_rows = self.to_program_string();
-        prefix_rows + &program_rows
     }
 
     // Return `true` when the mutation was successful.
@@ -1254,7 +1252,13 @@ fn run_experiment0(
         // println!("iteration: {} candidate. terms: {:?}", iteration, terms40);
         // genome.print();
 
-        let candidate_program: String = genome.program_string_with_terms(&terms40);
+        let mut serializer = ProgramSerializer::new();
+        serializer.append(format!("; {}", terms_to_string(&terms40)));
+        serializer.append("");
+        runner.serialize(&mut serializer);
+        let candidate_program: String = serializer.to_string();
+
+        // let candidate_program: String = genome.program_string_with_terms(&terms40);
         if let Err(error) = save_candidate_program(mine_event_dir, iteration, &candidate_program) {
             genome.print();
             error!("Unable to save candidate program: {:?}", error);
