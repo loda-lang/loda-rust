@@ -137,6 +137,10 @@ oeis_number_of_refs = {
     40329 => 2,
     137319 => 11,
     77445 => 7,
+    70939 => 499,
+    336551 => 5,
+    1223 => 598,
+    10055 => 76,
 }
 
 # Obtain all the ranked program_ids
