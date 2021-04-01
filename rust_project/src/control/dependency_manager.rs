@@ -83,7 +83,9 @@ impl DependencyManager {
         self.programids_currently_loading.remove(&program_id);
     }
 
-    pub fn parse(&mut self, contents: &String) -> Result<Program, DependencyManagerError> {
+    pub fn parse(&mut self, program_id: ProgramId, contents: &String) -> 
+        Result<ProgramRunner, DependencyManagerError> 
+    {
         let parsed = match parse(&contents) {
             Ok(value) => value,
             Err(error) => {
@@ -105,10 +107,16 @@ impl DependencyManager {
         if program.validate_call_nodes().is_err() {
             panic!("failed to assign all dependencies");
         }
-        Ok(program)
+        let runner = ProgramRunner::new(
+            program_id,
+            program
+        );
+        Ok(runner)
     }
 
-    pub fn parse2(&mut self, parsed_program: &ParsedProgram) -> Result<Program, DependencyManagerError> {
+    pub fn parse_stage2(&mut self, program_id: ProgramId, parsed_program: &ParsedProgram) -> 
+        Result<ProgramRunner, DependencyManagerError> 
+    {
         let parsed = match parse2(parsed_program) {
             Ok(value) => value,
             Err(error) => {
@@ -130,7 +138,11 @@ impl DependencyManager {
         if program.validate_call_nodes().is_err() {
             panic!("failed to assign all dependencies");
         }
-        Ok(program)
+        let runner = ProgramRunner::new(
+            program_id,
+            program
+        );
+        Ok(runner)
     }
 
     // Construct a path: "/absolute/path/123/a123456.asm"
@@ -171,11 +183,7 @@ mod tests {
             PathBuf::from("non-existing-dir"),
         );
         let source_code: String = INPUT_A000079.to_string();
-        let program: Program = dm.parse(&source_code).unwrap();
-        let runner = ProgramRunner::new(
-            ProgramId::ProgramOEIS(79),
-            program
-        );
+        let runner: ProgramRunner = dm.parse(ProgramId::ProgramOEIS(79), &source_code).unwrap();
         assert_eq!(runner.inspect(10), "1,2,4,8,16,32,64,128,256,512");
     }
 }

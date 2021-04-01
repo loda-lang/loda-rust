@@ -572,7 +572,7 @@ impl Genome {
                 instruction_id: InstructionId::Call,
                 target_value: 1,
                 source_type: ParameterType::Constant,
-                source_value: 88580,
+                source_value: 80578,
             };
             genome_vec.push(item);
         }
@@ -1184,7 +1184,12 @@ fn run_experiment0(
             genome.mutate(&mut rng);
         }
     
-        let program: Program = match dm.parse2(&genome.to_parsed_program()) {
+        // Create program from genome
+        let result_parse = dm.parse_stage2(
+            ProgramId::ProgramWithoutId, 
+            &genome.to_parsed_program()
+        );
+        let runner: ProgramRunner = match result_parse {
             Ok(value) => value,
             Err(error) => {
                 // debug!("iteration: {} cannot be parsed. {}", iteration, error);
@@ -1192,10 +1197,8 @@ fn run_experiment0(
                 continue;
             }
         };
-        let runner = ProgramRunner::new(
-            ProgramId::ProgramWithoutId,
-            program
-        );
+
+        // Execute program
         let number_of_terms: u64 = 10;
         let terms10: BigIntVec = match runner.compute_terms(number_of_terms, &mut cache) {
             Ok(value) => value,
