@@ -67,8 +67,9 @@ end
 
 # These are causing most of the false positives
 additional_ignore = [
-    39199,  # Numbers n such that representation in base 11 has same number of 5's and 10's.
     38126,  # a(n) = floor( sqrt(2*Pi)*n ) (a Beatty sequence).
+    39199,  # Numbers n such that representation in base 11 has same number of 5's and 10's.
+    39252,  # Numbers n such that representation in base 12 has same number of 4's and 10's.
     66344,  # Beatty sequence for log_5(10).
     68670,  # Number of digits in the concatenation of first n primes.
     105360, # Records in A105358.
