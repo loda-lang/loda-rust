@@ -1,4 +1,5 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use std::collections::HashSet;
 
 pub struct NodeMoveRegister {
     target: RegisterIndex,
@@ -29,6 +30,14 @@ impl Node for NodeMoveRegister {
         register_vec.push(self.target.clone());
         register_vec.push(self.source.clone());
     }
+    
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if register_set.contains(&self.source) {
+            register_set.insert(self.target.clone());
+        } else {
+            register_set.remove(&self.target);
+        }
+    }
 }
 
 pub struct NodeMoveConstant {
@@ -58,5 +67,9 @@ impl Node for NodeMoveConstant {
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
         register_vec.push(self.target.clone());
+    }
+    
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        register_set.remove(&self.target);
     }
 }

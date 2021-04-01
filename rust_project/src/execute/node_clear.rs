@@ -1,4 +1,5 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use std::collections::HashSet;
 use num_bigint::{BigInt, ToBigInt};
 use num_traits::{ToPrimitive, Signed};
 
@@ -31,6 +32,18 @@ impl Node for NodeClearConstant {
         // The default value of an uninitialized register is zero.
         // And accessing a register outside the allocated registers just yields zero.
     }
+
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        let initial_register = self.target.0 as usize;
+        for i in 0..(self.clear_count as usize) {
+            let register = initial_register + i;
+            if register > 255 {
+                continue;
+            }
+            let register_index = RegisterIndex(register as u8);
+            register_set.remove(&register_index);
+        }
+    }    
 }
 
 pub struct NodeClearRegister {
@@ -79,5 +92,11 @@ impl Node for NodeClearRegister {
         // This operation does not affect the number of registers to be allocated.
         // The default value of an uninitialized register is zero.
         // And accessing a register outside the allocated registers just yields zero.
+    }
+
+    fn live_register_indexes(&self, _register_set: &mut HashSet<RegisterIndex>) {
+        // It cannot be determined if this clears the live registers
+        // Registers lower than the target register is unaffected by clear.
+        // Registers greater than or equal to the target register may be cleared.
     }
 }
