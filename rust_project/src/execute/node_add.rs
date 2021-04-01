@@ -1,4 +1,4 @@
-use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use super::{EvalError, Node, ProgramCache, ProgramState, RegisterIndex, RegisterValue};
 use num_bigint::BigInt;
 
 fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {

@@ -1,7 +1,7 @@
 
 #[cfg(test)]
 mod tests {
-    use super::super::{Program, ProgramId, ProgramRunner, ProgramRunnerManager, RegisterIndex, RegisterValue};
+    use super::super::{Program, ProgramId, ProgramRunner, ProgramRunnerManager, ProgramSerializer, RegisterIndex, RegisterValue};
     use super::super::node_add::*;
     use super::super::node_call::*;
     use super::super::node_loop_simple::*;
@@ -23,8 +23,26 @@ mod tests {
         program
     }
 
+    const PROGRAM_A000045_SERIALIZED: &'static str =
+r#"mov $3,1
+lpb $0
+  sub $0,1
+  mov $2,$1
+  add $1,$3
+  mov $3,$2
+lpe"#;
+
+
     #[test]
-    fn test_10000_accumulate_register_indexes() {
+    fn test_10000_serialize() {
+        let program = program_a000045();
+        let mut pr = ProgramSerializer::new();
+        program.serialize(&mut pr);
+        assert_eq!(pr.to_string(), PROGRAM_A000045_SERIALIZED);
+    }
+
+    #[test]
+    fn test_10001_accumulate_register_indexes() {
         let program = program_a000045();
         let mut register_vec: Vec<RegisterIndex> = vec!();
         program.accumulate_register_indexes(&mut register_vec);
@@ -39,14 +57,14 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_max_register_index() {
+    fn test_10002_max_register_index() {
         let program = program_a000045();
         let actual: u8 = program.max_register_index();
         assert_eq!(actual, 3);
     }
 
     #[test]
-    fn test_10002_run() {
+    fn test_10003_run() {
         let program = program_a000045();
         let runner = ProgramRunner::new(
             ProgramId::ProgramWithoutId,
@@ -56,7 +74,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10003_validate_call_nodes() {
+    fn test_10004_validate_call_nodes() {
         {
             // This program makes no calls to other programs
             let mut this_program = Program::new();

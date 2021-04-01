@@ -1,4 +1,4 @@
-use super::{EvalError, ProgramCache, Node, Program, ProgramState, ProgramRunnerManager, RegisterIndex, RegisterValue, RunMode, ValidateCallError};
+use super::{EvalError, Node, Program, ProgramCache, ProgramSerializer, ProgramState, ProgramRunnerManager, RegisterIndex, RegisterValue, RunMode, ValidateCallError};
 use num_bigint::{BigInt, ToBigInt};
 use num_traits::{ToPrimitive, Signed};
 
@@ -24,13 +24,21 @@ impl Node for NodeLoopRegister {
     }
 
     fn formatted_instruction(&self) -> String {
-        String::from("")
+        format!("lpb {},{}", self.register_start, self.register_with_range_length)
+    }
+
+    fn serialize(&self, serializer: &mut ProgramSerializer) {
+        serializer.append(self.formatted_instruction());
+        serializer.indent_increment();
+        self.program.serialize(serializer);
+        serializer.indent_decrement();
+        serializer.append("lpe");
     }
 
     fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
         if state.run_mode() == RunMode::Verbose {
             let snapshot = state.register_vec_to_string();
-            let instruction = format!("lpb {},{}", self.register_start, self.register_with_range_length);
+            let instruction = self.formatted_instruction();
             println!("{:12} {} => {}", instruction, snapshot, snapshot);
         }
 

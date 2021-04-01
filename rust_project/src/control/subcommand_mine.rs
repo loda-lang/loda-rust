@@ -1,16 +1,15 @@
 use super::DependencyManager;
 use crate::config::Config;
 use crate::mine::check_fixed_length_sequence::CheckFixedLengthSequence;
-use crate::parser::{InstructionId, ParameterType};
-use crate::execute::{EvalError, ProgramCache, Program, ProgramId, ProgramRunner, RegisterValue, RunMode};
+use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
+use crate::execute::{EvalError, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use crate::oeis::stripped_sequence::BigIntVec;
 use crate::util::Analyze;
+use std::fmt;
 use std::time::Instant;
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::prelude::*;
-use num_bigint::BigInt;
-use num_traits::Zero;
 use rand::{Rng,RngCore,SeedableRng};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
@@ -42,6 +41,10 @@ pub fn subcommand_mine() {
     let checker10: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file10);
     let file20 = cache_dir.join(Path::new("fixed_length_sequence_20terms.json"));
     let checker20: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file20);
+    let file30 = cache_dir.join(Path::new("fixed_length_sequence_30terms.json"));
+    let checker30: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file30);
+    let file40 = cache_dir.join(Path::new("fixed_length_sequence_40terms.json"));
+    let checker40: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file40);
     debug!("step2");
 
     // Pick a random seed
@@ -54,9 +57,19 @@ pub fn subcommand_mine() {
         &loda_program_rootdir, 
         &checker10, 
         &checker20,
+        &checker30,
+        &checker40,
         &mine_event_dir,
         initial_random_seed,
     );
+}
+
+fn terms_to_string(terms: &BigIntVec) -> String {
+    let term_strings: Vec<String> = terms.iter().map(|term| {
+        term.to_string()
+    }).collect();
+    let term_strings_joined: String = term_strings.join(",");
+    term_strings_joined
 }
 
 enum MutateValue {
@@ -436,38 +449,53 @@ impl GenomeItem {
         return status;
     }
 
-    fn to_program_row(&self) -> String {
-        if self.enabled {
-            self.to_program_row_inner()
-        } else {
-            format!("; {}", self.to_program_row_inner())
-        }
-    }
-
-    fn to_program_row_inner(&self) -> String {
+    fn to_parameter_vec(&self) -> Vec<InstructionParameter> {
         match &self.instruction_id {
             InstructionId::LoopBegin => {
                 // For now don't care about the source type/value.
                 // Maybe in the future support source type/value.
-                return format!("{} ${}", 
-                    self.instruction_id.shortname(), 
-                    self.target_value 
-                );
+                let parameter = InstructionParameter {
+                    parameter_type: ParameterType::Register,
+                    parameter_value: self.target_value as i64,
+                };
+                return vec![parameter];
             },
             InstructionId::LoopEnd => {
-                return self.instruction_id.shortname().to_string();
+                return vec!();
             },
             _ => {
-                return format!("{} ${},{}{}", 
-                    self.instruction_id.shortname(), 
-                    self.target_value, 
-                    self.source_type.prefix(), 
-                    self.source_value
-                );
+                let parameter0 = InstructionParameter {
+                    parameter_type: ParameterType::Register,
+                    parameter_value: self.target_value as i64,
+                };
+                let parameter1 = InstructionParameter {
+                    parameter_type: self.source_type.clone(),
+                    parameter_value: self.source_value as i64,
+                };
+                return vec![parameter0, parameter1];
             }
         }
     }
 }
+
+impl fmt::Display for GenomeItem {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let line_prefix: &str;
+        if self.enabled {
+            line_prefix = "";
+        } else {
+            line_prefix = "; ";
+        }
+        write!(f, "{}{} ${},{}{}", 
+            line_prefix,
+            self.instruction_id.shortname(), 
+            self.target_value, 
+            self.source_type.prefix(), 
+            self.source_value
+        )
+    }
+}
+
 
 // Ideas for more mutations
 // append random row
@@ -532,16 +560,16 @@ impl Genome {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 2, 10);
             genome_vec.push(item);
         }
-        // {
-        //     let item = GenomeItem {
-        //         enabled: true,
-        //         instruction_id: InstructionId::Call,
-        //         target_value: 1,
-        //         source_type: ParameterType::Constant,
-        //         source_value: 230980,
-        //     };
-        //     genome_vec.push(item);
-        // }
+        {
+            let item = GenomeItem {
+                enabled: true,
+                instruction_id: InstructionId::Call,
+                target_value: 1,
+                source_type: ParameterType::Constant,
+                source_value: 80578,
+            };
+            genome_vec.push(item);
+        }
         {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 3, 2);
             genome_vec.push(item);
@@ -574,29 +602,33 @@ impl Genome {
         }
     }
 
-    fn to_program_string_vec(&self) -> Vec<String> {
-        let program_rows: Vec<String> = self.genome_vec.iter().map(|genome_item| {
-            genome_item.to_program_row()
-        }).collect();
-        program_rows
-    }
+    fn to_parsed_program(&self) -> ParsedProgram {
+        let mut instruction_vec: Vec<Instruction> = vec!();
 
-    fn to_program_string(&self) -> String {
-        self.to_program_string_vec().join("\n")
-    }
+        let mut line_number: usize = 0;
+        for genome_item in self.genome_vec.iter() {
+            if !genome_item.enabled {
+                continue;
+            }
 
-    fn print(&self) {
-        println!("program:\n{}", self.to_program_string());
-    }
+            let instruction_id: InstructionId = 
+                genome_item.instruction_id.clone();
+    
+            let parameter_vec: Vec<InstructionParameter> = 
+                genome_item.to_parameter_vec();
+    
+            let instruction = Instruction {
+                instruction_id: instruction_id,
+                parameter_vec: parameter_vec,
+                line_number: line_number,
+            };
+            instruction_vec.push(instruction);
+            line_number += 1;
+        }
 
-    fn program_string_with_terms(&self, terms: &BigIntVec) -> String {
-        let term_strings: Vec<String> = terms.iter().map(|term| {
-            term.to_string()
-        }).collect();
-        let term_strings_joined: String = term_strings.join(",");
-        let prefix_rows = format!("; {}\n\n", term_strings_joined);
-        let program_rows = self.to_program_string();
-        prefix_rows + &program_rows
+        ParsedProgram {
+            instruction_vec: instruction_vec
+        }
     }
 
     // Return `true` when the mutation was successful.
@@ -891,6 +923,17 @@ impl Genome {
     }
 }
 
+impl fmt::Display for Genome {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let rows: Vec<String> = self.genome_vec.iter().map(|genome_item| {
+            genome_item.to_string()
+        }).collect();
+        let joined_rows: String = rows.join("\n");
+        write!(f, "{}", joined_rows)
+    }
+}
+
+
 impl ProgramRunner {
     fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError> {
         let mut terms: BigIntVec = vec!();
@@ -918,44 +961,36 @@ impl ProgramRunner {
     }
 }
 
-impl CheckFixedLengthSequence {
-    fn is_possible_candidate(&self, terms: &BigIntVec) -> bool {
-        if Analyze::count_unique(&terms) < 8 {
-            // there are many results where all terms are just zeros.
-            // there are many results where all terms are a constant value.
-            // there are many results where most of the terms is a constant value.
-            // there are many results where the terms alternates between 2 values.
-            debug!("too few unique terms");
-            return false;
-        }
-        if Analyze::is_almost_natural_numbers(&terms) {
-            // there are many result that are like these
-            // [0, 0, 1, 2, 3, 4, 5, 6, 7, 8]
-            // [1, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-            // it's the natural numbers with 1 term different
-            debug!("too close to being the natural numbers");
-            return false;
-        }
-        if Analyze::count_zero(&terms) >= 7 {
-            debug!("there are too many zero terms");
-            return false;
-        }
-        if Analyze::is_all_the_same_value(&terms) {
-            debug!("all terms are the same");
-            return false;
-        }
-        if Analyze::is_constant_step(&terms) {
-            debug!("the terms use constant step");
-            return false;
-        }
-        if !self.check(&terms) {
-            debug!("not found in bloom filter");
-            return false;
-        }
-        // println!("contained in bloom filter: {:?}", terms);
-        true
-        // self.check(&terms)
+fn is_possible_candidate_basic_checks(terms: &BigIntVec) -> bool {
+    if Analyze::count_unique(&terms) < 8 {
+        // there are many results where all terms are just zeros.
+        // there are many results where all terms are a constant value.
+        // there are many results where most of the terms is a constant value.
+        // there are many results where the terms alternates between 2 values.
+        // debug!("too few unique terms");
+        return false;
     }
+    if Analyze::is_almost_natural_numbers(&terms) {
+        // there are many result that are like these
+        // [0, 0, 1, 2, 3, 4, 5, 6, 7, 8]
+        // [1, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        // it's the natural numbers with 1 term different
+        // debug!("too close to being the natural numbers");
+        return false;
+    }
+    if Analyze::count_zero(&terms) >= 7 {
+        // debug!("there are too many zero terms");
+        return false;
+    }
+    if Analyze::is_all_the_same_value(&terms) {
+        // debug!("all terms are the same");
+        return false;
+    }
+    if Analyze::is_constant_step(&terms) {
+        // debug!("the terms use constant step");
+        return false;
+    }
+    true
 }
 
 fn save_candidate_program(
@@ -977,10 +1012,98 @@ fn save_candidate_program(
     Ok(())
 }
 
+struct Funnel<'a> {
+    checker10: &'a CheckFixedLengthSequence,
+    checker20: &'a CheckFixedLengthSequence,
+    checker30: &'a CheckFixedLengthSequence,
+    checker40: &'a CheckFixedLengthSequence,
+
+    number_of_candidates_with_basiccheck: u64,
+    number_of_candidates_with_10terms: u64,
+    number_of_candidates_with_20terms: u64,
+    number_of_candidates_with_30terms: u64,
+    number_of_candidates_with_40terms: u64,
+}
+
+impl<'a> Funnel<'a> {
+    fn new(
+        checker10: &'a CheckFixedLengthSequence, 
+        checker20: &'a CheckFixedLengthSequence,
+        checker30: &'a CheckFixedLengthSequence,
+        checker40: &'a CheckFixedLengthSequence,
+    ) -> Self {
+        Self {
+            checker10: checker10, 
+            checker20: checker20,
+            checker30: checker30,
+            checker40: checker40,
+            number_of_candidates_with_basiccheck: 0,
+            number_of_candidates_with_10terms: 0,
+            number_of_candidates_with_20terms: 0,
+            number_of_candidates_with_30terms: 0,
+            number_of_candidates_with_40terms: 0,
+        }
+    }
+
+    fn funnel_info(&self) -> String {
+        format!(
+            "[{},{},{},{},{}]",
+            self.number_of_candidates_with_basiccheck,
+            self.number_of_candidates_with_10terms,
+            self.number_of_candidates_with_20terms,
+            self.number_of_candidates_with_30terms,
+            self.number_of_candidates_with_40terms,
+        )
+    }
+
+    fn check_basic(&mut self, terms: &BigIntVec) -> bool {
+        if !is_possible_candidate_basic_checks(terms) {
+            return false;
+        }
+        self.number_of_candidates_with_basiccheck += 1;
+        true
+    }
+
+    fn check10(&mut self, terms: &BigIntVec) -> bool {
+        if !self.checker10.check(terms) {
+            return false;
+        }
+        self.number_of_candidates_with_10terms += 1;
+        true
+    }
+
+    fn check20(&mut self, terms: &BigIntVec) -> bool {
+        if !self.checker20.check(terms) {
+            return false;
+        }
+        self.number_of_candidates_with_20terms += 1;
+        true
+    }
+
+    fn check30(&mut self, terms: &BigIntVec) -> bool {
+        if !self.checker30.check(terms) {
+            return false;
+        }
+        self.number_of_candidates_with_30terms += 1;
+        true
+    }
+
+    fn check40(&mut self, terms: &BigIntVec) -> bool {
+        if !self.checker40.check(terms) {
+            return false;
+        }
+        self.number_of_candidates_with_40terms += 1;
+        true
+    }
+}
+
+
 fn run_experiment0(
     loda_program_rootdir: &PathBuf, 
     checker10: &CheckFixedLengthSequence, 
     checker20: &CheckFixedLengthSequence,
+    checker30: &CheckFixedLengthSequence,
+    checker40: &CheckFixedLengthSequence,
     mine_event_dir: &Path,
     initial_random_seed: u64,
 ) {
@@ -991,17 +1114,48 @@ fn run_experiment0(
     );
     let mut genome = Genome::new();
     // genome.mutate_insert_loop(&mut rng);
-    // genome.print();
+    debug!("Initial genome\n{}", genome);
+
+    let mut funnel = Funnel::new(
+        checker10,
+        checker20,
+        checker30,
+        checker40,
+    );
 
     println!("\nPress CTRL-C to stop the miner.");
     let mut cache = ProgramCache::new();
     let mut iteration: usize = 0;
-    let mut time = Instant::now();
+    let mut progress_time = Instant::now();
+    let mut progress_iteration: usize = 0;
+    let mut number_of_errors_parse: usize = 0;
+    let mut number_of_errors_run: usize = 0;
     loop {
-        if (iteration % 1000) == 0 {
-            if time.elapsed().as_secs() >= 5 {
-                println!("iteration: {} cache: {}", iteration, cache.hit_miss_info());
-                time = Instant::now();
+        if (iteration % 10000) == 0 {
+            let elapsed: u128 = progress_time.elapsed().as_millis();
+            if elapsed >= 5000 {
+                let iterations_diff: usize = iteration - progress_iteration;
+                let iterations_per_second: f32 = ((1000 * iterations_diff) as f32) / (elapsed as f32);
+                let iteration_info = format!(
+                    "{:.0} iter/sec", iterations_per_second
+                );
+
+                let error_info = format!(
+                    "[{},{}]",
+                    number_of_errors_parse,
+                    number_of_errors_run
+                );
+
+                println!("#{} cache: {}   error: {}   funnel: {}   {}", 
+                    iteration, 
+                    cache.hit_miss_info(), 
+                    error_info,
+                    funnel.funnel_info(), 
+                    iteration_info
+                );
+
+                progress_time = Instant::now();
+                progress_iteration = iteration;
             }
         }
         iteration += 1;
@@ -1010,59 +1164,83 @@ fn run_experiment0(
             genome.mutate(&mut rng);
         }
     
-        let program: Program = match dm.parse(&genome.to_program_string()) {
+        // Create program from genome
+        let result_parse = dm.parse_stage2(
+            ProgramId::ProgramWithoutId, 
+            &genome.to_parsed_program()
+        );
+        let runner: ProgramRunner = match result_parse {
             Ok(value) => value,
             Err(error) => {
-                debug!("iteration: {} cannot be parsed. {}", iteration, error);
+                // debug!("iteration: {} cannot be parsed. {}", iteration, error);
+                number_of_errors_parse += 1;
                 continue;
             }
         };
-        let runner = ProgramRunner::new(
-            ProgramId::ProgramWithoutId,
-            program
-        );
+
+        // Execute program
         let number_of_terms: u64 = 10;
         let terms10: BigIntVec = match runner.compute_terms(number_of_terms, &mut cache) {
             Ok(value) => value,
             Err(error) => {
-                debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                // debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                number_of_errors_run += 1;
                 continue;
             }
         };
-    
-        let check10_result: bool = checker10.is_possible_candidate(&terms10);
-        if !check10_result {
-            debug!("iteration: {} no match in oeis", iteration);
+        if !funnel.check_basic(&terms10) {
             continue;
         }
-        // println!("iteration: {} candidate. terms: {:?}", iteration, terms10);
+        if !funnel.check10(&terms10) {
+            continue;
+        }
 
         let terms20: BigIntVec = match runner.compute_terms(20, &mut cache) {
             Ok(value) => value,
             Err(error) => {
-                debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                // debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                number_of_errors_run += 1;
                 continue;
             }
         };
-        let check20_result: bool = checker20.is_possible_candidate(&terms20);
-        if !check20_result {
-            debug!("iteration: {} no match in oeis", iteration);
+        if !funnel.check20(&terms20) {
+            continue;
+        }
+
+        let terms30: BigIntVec = match runner.compute_terms(30, &mut cache) {
+            Ok(value) => value,
+            Err(error) => {
+                // debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                number_of_errors_run += 1;
+                continue;
+            }
+        };
+        if !funnel.check30(&terms30) {
             continue;
         }
 
         let terms40: BigIntVec = match runner.compute_terms(40, &mut cache) {
             Ok(value) => value,
             Err(error) => {
-                debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                // debug!("iteration: {} cannot be run. {:?}", iteration, error);
+                number_of_errors_run += 1;
                 continue;
             }
         };
-        // println!("iteration: {} candidate. terms: {:?}", iteration, terms40);
-        // genome.print();
+        if !funnel.check40(&terms40) {
+            continue;
+        }
 
-        let candidate_program: String = genome.program_string_with_terms(&terms40);
+        // Yay, this candidate program has 40 terms that are good.
+        // Save a snapshot of this program to `$HOME/.loda-lab/mine-even/`
+        let mut serializer = ProgramSerializer::new();
+        serializer.append(format!("; {}", terms_to_string(&terms40)));
+        serializer.append("");
+        runner.serialize(&mut serializer);
+        let candidate_program: String = serializer.to_string();
+
         if let Err(error) = save_candidate_program(mine_event_dir, iteration, &candidate_program) {
-            genome.print();
+            println!("; GENOME\n{}", genome);
             error!("Unable to save candidate program: {:?}", error);
         }
     }

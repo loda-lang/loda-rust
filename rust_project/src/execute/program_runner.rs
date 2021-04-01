@@ -1,4 +1,4 @@
-use super::{CacheValue, EvalError, ProgramCache, Program, ProgramId, ProgramState, RegisterIndex, RegisterValue, RunMode};
+use super::{CacheValue, EvalError, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterIndex, RegisterValue, RunMode};
 
 pub struct ProgramRunner {
     program_id: ProgramId,
@@ -76,6 +76,10 @@ impl ProgramRunner {
         }
 
         Ok(output)
+    }
+
+    pub fn serialize(&self, serializer: &mut ProgramSerializer) {
+        self.program.serialize(serializer);
     }
 
     #[cfg(test)]

@@ -67,14 +67,18 @@ end
 
 # These are causing most of the false positives
 additional_ignore = [
+    39199,  # Numbers n such that representation in base 11 has same number of 5's and 10's.
     38126,  # a(n) = floor( sqrt(2*Pi)*n ) (a Beatty sequence).
+    66344,  # Beatty sequence for log_5(10).
     68670,  # Number of digits in the concatenation of first n primes.
     105360, # Records in A105358.
     109811, # Triangular numbers (A000217) at Levenshtein distance 1 from another triangular number when considered as a decimal string.
+    172334, # Floor(n*(sqrt(13)+sqrt(3))).
     172337, # Floor(n*(sqrt(11)+sqrt(7))).
     172338, # a(n) = floor(n*(sqrt(5)+sqrt(3))).
     183140, # a(n) = [1/s]+[2/s]+...+[n/s], where s=2+sqrt(2) and []=floor.
     221222, # Threshold for the P(n)-avoidance vertex-coloring game
+    328588, # Numbers n for which A257993(A276086(A276086(n))) is larger than A257993(n)
 ]
 program_id_set += additional_ignore
 

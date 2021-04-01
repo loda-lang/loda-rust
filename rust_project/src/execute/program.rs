@@ -1,4 +1,4 @@
-use super::{EvalError, ProgramCache, Node, BoxNode, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError};
+use super::{BoxNode, EvalError, Node, ProgramCache, ProgramRunnerManager, ProgramSerializer, ProgramState, RegisterIndex, RunMode, ValidateCallError};
 
 type BoxNodeVec = Vec<BoxNode>;
 
@@ -20,6 +20,12 @@ impl Program {
 
     pub fn push_boxed(&mut self, node_wrapped: BoxNode) {
         self.node_vec.push(node_wrapped);
+    }
+
+    pub fn serialize(&self, serializer: &mut ProgramSerializer) {
+        for node in &self.node_vec {
+            node.serialize(serializer);
+        }
     }
 
     pub fn run(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {

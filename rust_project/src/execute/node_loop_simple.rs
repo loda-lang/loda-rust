@@ -1,4 +1,4 @@
-use super::{EvalError, ProgramCache, Node, Program, ProgramRunnerManager, ProgramState, RegisterIndex, RunMode, ValidateCallError};
+use super::{EvalError, Node, ProgramCache, Program, ProgramRunnerManager, ProgramSerializer, ProgramState, RegisterIndex, RunMode, ValidateCallError};
 
 pub struct NodeLoopSimple {
     register: RegisterIndex,
@@ -20,13 +20,21 @@ impl Node for NodeLoopSimple {
     }
 
     fn formatted_instruction(&self) -> String {
-        String::from("")
+        format!("lpb {}", self.register)
+    }
+
+    fn serialize(&self, serializer: &mut ProgramSerializer) {
+        serializer.append(self.formatted_instruction());
+        serializer.indent_increment();
+        self.program.serialize(serializer);
+        serializer.indent_decrement();
+        serializer.append("lpe");
     }
 
     fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
         if state.run_mode() == RunMode::Verbose {
             let snapshot = state.register_vec_to_string();
-            let instruction = format!("lpb {}", self.register);
+            let instruction = self.formatted_instruction();
             println!("{:12} {} => {}", instruction, snapshot, snapshot);
         }
 
