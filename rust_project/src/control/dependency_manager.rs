@@ -146,6 +146,7 @@ impl DependencyManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::rc::Rc;
 
     const INPUT_A000079: &str = r#"
     ; A000079: Powers of 2: a(n) = 2^n.
@@ -156,12 +157,55 @@ mod tests {
     "#;
 
     #[test]
-    fn test_10000_powers_of_2() {
+    fn test_10000_parse_string() {
         let mut dm = DependencyManager::new(
             PathBuf::from("non-existing-dir"),
         );
         let source_code: String = INPUT_A000079.to_string();
         let runner: ProgramRunner = dm.parse(ProgramId::ProgramOEIS(79), &source_code).unwrap();
         assert_eq!(runner.inspect(10), "1,2,4,8,16,32,64,128,256,512");
+    }
+
+    fn dependency_manager_mock(relative_path_to_testdir: &str) -> DependencyManager {
+        let e = env!("CARGO_MANIFEST_DIR");
+        let path = PathBuf::from(e).join(relative_path_to_testdir);
+        DependencyManager::new(path)
+    }
+
+    #[test]
+    fn test_10100_load_simple() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_simple");
+        let program_id: u64 = 79;
+        dm.load(program_id);
+        let runner: Rc::<ProgramRunner> = dm.program_run_manager.get(program_id).unwrap();
+        assert_eq!(runner.inspect(10), "1,2,4,8,16,32,64,128,256,512");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_10101_load_detect_cycle1() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_cycle1");
+        dm.load(666);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_10102_load_detect_cycle2() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_cycle2");
+        dm.load(666);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_10103_load_detect_cycle3() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_cycle3");
+        dm.load(666);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_10201_load_detect_missing1() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_missing1");
+        dm.load(666);
     }
 }
