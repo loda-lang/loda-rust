@@ -7,6 +7,8 @@ use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 
 #[derive(Debug)]
 pub enum DependencyManagerError {
+    CannotLoadFile,
+    CyclicDependency,
     Parse(ParseError),
     CreateProgram(CreateProgramError),
 }
@@ -14,6 +16,10 @@ pub enum DependencyManagerError {
 impl fmt::Display for DependencyManagerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Self::CannotLoadFile =>
+                write!(f, "Failed to load the assembler file"),
+            Self::CyclicDependency =>
+                write!(f, "Detected a cyclic dependency"),
             Self::Parse(error) => 
                 write!(f, "Failed to parse program. error: {}", error),
             Self::CreateProgram(error) => 
@@ -39,21 +45,27 @@ impl DependencyManager {
         }        
     }
 
-    pub fn load(&mut self, program_id: u64) {
+    pub fn load(&mut self, program_id: u64) -> Result<(), DependencyManagerError> {
         self.programid_dependencies.push(program_id);
 
         if self.programids_currently_loading.contains(&program_id) {
-            panic!("detected cyclic dependency. program_id: {}", program_id);
+            error!("detected cyclic dependency. program_id: {}", program_id);
+            return Err(DependencyManagerError::CyclicDependency);
         }
         if self.program_run_manager.contains(program_id) {
             debug!("program is already loaded. program_id: {}", program_id);
-            return;
+            return Ok(());
         }
         self.programids_currently_loading.insert(program_id);
         let path = self.path_to_program(program_id);
 
-        let contents: String = fs::read_to_string(&path)
-            .expect("Something went wrong reading the file");
+        let contents: String = match fs::read_to_string(&path) {
+            Ok(value) => value,
+            Err(error) => {
+                error!("Something went wrong reading the file: {:?}", error);
+                return Err(DependencyManagerError::CannotLoadFile);
+            }
+        };
     
         let parsed = match parse(&contents) {
             Ok(value) => value,
@@ -64,7 +76,7 @@ impl DependencyManager {
     
         let mut program: Program = parsed.created_program.program;
         let program_id_inner = ProgramId::ProgramOEIS(program_id);
-        self.load_dependencies(&mut program, &program_id_inner);
+        self.load_dependencies(&mut program, &program_id_inner)?;
 
         let runner = ProgramRunner::new(
             program_id_inner,
@@ -72,6 +84,7 @@ impl DependencyManager {
         );
         self.program_run_manager.register(program_id, runner);
         self.programids_currently_loading.remove(&program_id);
+        Ok(())
     }
 
     pub fn parse(&mut self, program_id: ProgramId, contents: &String) -> 
@@ -99,7 +112,7 @@ impl DependencyManager {
         };
         let mut program: Program = created_program.program;
     
-        self.load_dependencies(&mut program, &program_id);
+        self.load_dependencies(&mut program, &program_id)?;
 
         let runner = ProgramRunner::new(
             program_id,
@@ -108,19 +121,20 @@ impl DependencyManager {
         Ok(runner)
     }
 
-    fn load_dependencies(&mut self, program: &mut Program, program_id: &ProgramId) {
+    fn load_dependencies(&mut self, program: &mut Program, program_id: &ProgramId) -> Result<(), DependencyManagerError> {
         let mut dependent_program_id_vec: Vec<u64> = vec!();
         program.accumulate_call_dependencies(&mut dependent_program_id_vec);
         if !dependent_program_id_vec.is_empty() {
             debug!("program_id: {:?}  depends on other programs: {:?}", program_id, dependent_program_id_vec);
         }
         for dependent_program_id in dependent_program_id_vec {
-            self.load(dependent_program_id);
+            self.load(dependent_program_id)?;
         }
         program.update_call(&mut self.program_run_manager);
         if program.validate_call_nodes().is_err() {
             panic!("program_id: {:?}  failed to assign all dependencies", program_id);
         }
+        Ok(())
     }
 
     // Construct a path: "/absolute/path/123/a123456.asm"
@@ -176,36 +190,32 @@ mod tests {
     fn test_10100_load_simple() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_simple");
         let program_id: u64 = 79;
-        dm.load(program_id);
+        dm.load(program_id).unwrap();
         let runner: Rc::<ProgramRunner> = dm.program_run_manager.get(program_id).unwrap();
         assert_eq!(runner.inspect(10), "1,2,4,8,16,32,64,128,256,512");
     }
 
     #[test]
-    #[should_panic]
     fn test_10101_load_detect_cycle1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_cycle1");
-        dm.load(666);
+        assert!(dm.load(666).is_err());
     }
 
     #[test]
-    #[should_panic]
     fn test_10102_load_detect_cycle2() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_cycle2");
-        dm.load(666);
+        assert!(dm.load(666).is_err());
     }
 
     #[test]
-    #[should_panic]
     fn test_10103_load_detect_cycle3() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_cycle3");
-        dm.load(666);
+        assert!(dm.load(666).is_err());
     }
 
     #[test]
-    #[should_panic]
     fn test_10201_load_detect_missing1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_missing1");
-        dm.load(666);
+        assert!(dm.load(666).is_err());
     }
 }
