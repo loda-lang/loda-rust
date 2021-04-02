@@ -27,10 +27,6 @@ impl NodeCallConstant {
 }
 
 impl Node for NodeCallConstant {
-    fn shorthand(&self) -> &str {
-        "call constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("cal {},{}", self.target, self.program_id)
     }

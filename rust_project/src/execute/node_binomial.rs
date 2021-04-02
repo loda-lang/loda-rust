@@ -1,4 +1,5 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use std::collections::HashSet;
 use num_integer::{binomial, Integer};
 use num_bigint::BigInt;
 use num_traits::{Zero, One, Signed};
@@ -88,10 +89,6 @@ impl NodeBinomialRegister {
 }
 
 impl Node for NodeBinomialRegister {
-    fn shorthand(&self) -> &str {
-        "binomial register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("bin {},{}", self.target, self.source)
     }
@@ -107,6 +104,14 @@ impl Node for NodeBinomialRegister {
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
         register_vec.push(self.target.clone());
         register_vec.push(self.source.clone());
+    }
+
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if register_set.contains(&self.source) {
+            register_set.insert(self.target.clone());
+        } else {
+            register_set.remove(&self.target);
+        }
     }
 }
 
@@ -125,10 +130,6 @@ impl NodeBinomialConstant {
 }
 
 impl Node for NodeBinomialConstant {
-    fn shorthand(&self) -> &str {
-        "binomial constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("bin {},{}", self.target, self.source)
     }

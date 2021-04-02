@@ -1,4 +1,5 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use std::collections::HashSet;
 use num_bigint::BigInt;
 
 fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
@@ -23,10 +24,6 @@ impl NodeMinRegister {
 }
 
 impl Node for NodeMinRegister {
-    fn shorthand(&self) -> &str {
-        "min register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("min {},{}", self.target, self.source)
     }
@@ -43,6 +40,14 @@ impl Node for NodeMinRegister {
         register_vec.push(self.target.clone());
         register_vec.push(self.source.clone());
     }
+
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if register_set.contains(&self.source) {
+            register_set.insert(self.target.clone());
+        } else {
+            register_set.remove(&self.target);
+        }
+    }    
 }
 
 pub struct NodeMinConstant {
@@ -60,10 +65,6 @@ impl NodeMinConstant {
 }
 
 impl Node for NodeMinConstant {
-    fn shorthand(&self) -> &str {
-        "min constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("min {},{}", self.target, self.source)
     }

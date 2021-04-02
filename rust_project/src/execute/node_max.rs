@@ -1,4 +1,5 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use std::collections::HashSet;
 use num_bigint::BigInt;
 
 fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
@@ -23,10 +24,6 @@ impl NodeMaxRegister {
 }
 
 impl Node for NodeMaxRegister {
-    fn shorthand(&self) -> &str {
-        "max register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("max {},{}", self.target, self.source)
     }
@@ -42,6 +39,14 @@ impl Node for NodeMaxRegister {
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
         register_vec.push(self.target.clone());
         register_vec.push(self.source.clone());
+    }
+
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if register_set.contains(&self.source) {
+            register_set.insert(self.target.clone());
+        } else {
+            register_set.remove(&self.target);
+        }
     }
 }
 
@@ -60,10 +65,6 @@ impl NodeMaxConstant {
 }
 
 impl Node for NodeMaxConstant {
-    fn shorthand(&self) -> &str {
-        "max constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("max {},{}", self.target, self.source)
     }

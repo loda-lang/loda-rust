@@ -1,4 +1,5 @@
 use super::{EvalError, Node, Program, ProgramCache, ProgramSerializer, ProgramState, ProgramRunnerManager, RegisterIndex, RegisterValue, RunMode, ValidateCallError};
+use std::collections::HashSet;
 use num_bigint::{BigInt, ToBigInt};
 use num_traits::{ToPrimitive, Signed};
 
@@ -19,10 +20,6 @@ impl NodeLoopRegister {
 }
 
 impl Node for NodeLoopRegister {
-    fn shorthand(&self) -> &str {
-        "loop register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("lpb {},{}", self.register_start, self.register_with_range_length)
     }
@@ -130,6 +127,10 @@ impl Node for NodeLoopRegister {
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
         // Loop doesn't modify any registers
         self.program.accumulate_register_indexes(register_vec);
+    }
+
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        self.program.live_register_indexes(register_set);
     }
 
     fn update_call(&mut self, program_manager: &mut ProgramRunnerManager) {

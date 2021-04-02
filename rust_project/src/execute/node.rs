@@ -1,4 +1,5 @@
 use super::{ProgramCache, ProgramRunnerManager, ProgramSerializer, ProgramState, RegisterIndex};
+use std::collections::HashSet;
 
 pub struct ValidateCallError {}
 
@@ -23,8 +24,6 @@ pub enum EvalError {
 }
 
 pub trait Node {
-    fn shorthand(&self) -> &str;
-
     fn formatted_instruction(&self) -> String;
 
     // Generate a human readable version of the program
@@ -43,6 +42,9 @@ pub trait Node {
 
     // Determine the number of registers required by this program.
     fn accumulate_register_indexes(&self, _register_vec: &mut Vec<RegisterIndex>) {}
+
+    // Determine what registers convey info based on the input data
+    fn live_register_indexes(&self, _register_set: &mut HashSet<RegisterIndex>) {}
     
     // Gather a list of dependencies on other programs.
     // Every CallNode depends on another program_id. These program_id's gets appended to the result.

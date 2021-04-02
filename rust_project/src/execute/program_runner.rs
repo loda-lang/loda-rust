@@ -1,4 +1,5 @@
 use super::{CacheValue, EvalError, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterIndex, RegisterValue, RunMode};
+use std::collections::HashSet;
 
 pub struct ProgramRunner {
     program_id: ProgramId,
@@ -80,6 +81,13 @@ impl ProgramRunner {
 
     pub fn serialize(&self, serializer: &mut ProgramSerializer) {
         self.program.serialize(serializer);
+    }
+
+    pub fn has_live_registers(&self) -> bool {
+        let mut register_set: HashSet<RegisterIndex> = HashSet::new();
+        register_set.insert(RegisterIndex(0));
+        self.program.live_register_indexes(&mut register_set);
+        register_set.contains(&RegisterIndex(1))
     }
 
     #[cfg(test)]

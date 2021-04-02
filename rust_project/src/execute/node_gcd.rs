@@ -1,4 +1,5 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use std::collections::HashSet;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
@@ -30,10 +31,6 @@ impl NodeGCDRegister {
 }
 
 impl Node for NodeGCDRegister {
-    fn shorthand(&self) -> &str {
-        "gcd register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("gcd {},{}", self.target, self.source)
     }
@@ -50,6 +47,14 @@ impl Node for NodeGCDRegister {
         register_vec.push(self.target.clone());
         register_vec.push(self.source.clone());
     }
+
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if register_set.contains(&self.source) {
+            register_set.insert(self.target.clone());
+        } else {
+            register_set.remove(&self.target);
+        }
+    }    
 }
 
 pub struct NodeGCDConstant {
@@ -67,10 +72,6 @@ impl NodeGCDConstant {
 }
 
 impl Node for NodeGCDConstant {
-    fn shorthand(&self) -> &str {
-        "gcd constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("gcd {},{}", self.target, self.source)
     }

@@ -1,5 +1,7 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use std::collections::HashSet;
 use num_bigint::BigInt;
+use num_traits::Zero;
 
 fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
     let xx: &BigInt = &x.0;
@@ -22,10 +24,6 @@ impl NodeMultiplyRegister {
 }
 
 impl Node for NodeMultiplyRegister {
-    fn shorthand(&self) -> &str {
-        "multiply register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("mul {},{}", self.target, self.source)
     }
@@ -41,6 +39,14 @@ impl Node for NodeMultiplyRegister {
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
         register_vec.push(self.target.clone());
         register_vec.push(self.source.clone());
+    }
+    
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if register_set.contains(&self.source) {
+            register_set.insert(self.target.clone());
+        } else {
+            register_set.remove(&self.target);
+        }
     }
 }
 
@@ -59,10 +65,6 @@ impl NodeMultiplyConstant {
 }
 
 impl Node for NodeMultiplyConstant {
-    fn shorthand(&self) -> &str {
-        "multiply constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("mul {},{}", self.target, self.source)
     }
@@ -77,6 +79,12 @@ impl Node for NodeMultiplyConstant {
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
         register_vec.push(self.target.clone());
+    }
+
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if self.source.0.is_zero() {
+            register_set.remove(&self.target);
+        }
     }
 }
 

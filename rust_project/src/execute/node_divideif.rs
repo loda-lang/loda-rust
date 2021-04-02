@@ -1,4 +1,5 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use std::collections::HashSet;
 use num_bigint::BigInt;
 use num_traits::Zero;
 
@@ -32,10 +33,6 @@ impl NodeDivideIfRegister {
 }
 
 impl Node for NodeDivideIfRegister {
-    fn shorthand(&self) -> &str {
-        "divide-if register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("dif {},{}", self.target, self.source)
     }
@@ -52,6 +49,14 @@ impl Node for NodeDivideIfRegister {
         register_vec.push(self.target.clone());
         register_vec.push(self.source.clone());
     }
+
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if register_set.contains(&self.source) {
+            register_set.insert(self.target.clone());
+        } else {
+            register_set.remove(&self.target);
+        }
+    }    
 }
 
 pub struct NodeDivideIfConstant {
@@ -69,10 +74,6 @@ impl NodeDivideIfConstant {
 }
 
 impl Node for NodeDivideIfConstant {
-    fn shorthand(&self) -> &str {
-        "divide-if constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("dif {},{}", self.target, self.source)
     }

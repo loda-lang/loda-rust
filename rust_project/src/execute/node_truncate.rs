@@ -1,4 +1,5 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use std::collections::HashSet;
 use num_bigint::BigInt;
 use num_traits::Signed;
 
@@ -28,10 +29,6 @@ impl NodeTruncateRegister {
 }
 
 impl Node for NodeTruncateRegister {
-    fn shorthand(&self) -> &str {
-        "truncate register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("trn {},{}", self.target, self.source)
     }
@@ -48,6 +45,19 @@ impl Node for NodeTruncateRegister {
         register_vec.push(self.target.clone());
         register_vec.push(self.source.clone());
     }
+
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if self.target == self.source {
+            // Truncating itself with itself, always result in 0
+            register_set.remove(&self.target);
+            return;
+        }
+        if register_set.contains(&self.source) {
+            register_set.insert(self.target.clone());
+        } else {
+            register_set.remove(&self.target);
+        }
+    }    
 }
 
 pub struct NodeTruncateConstant {
@@ -65,10 +75,6 @@ impl NodeTruncateConstant {
 }
 
 impl Node for NodeTruncateConstant {
-    fn shorthand(&self) -> &str {
-        "truncate constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("trn {},{}", self.target, self.source)
     }

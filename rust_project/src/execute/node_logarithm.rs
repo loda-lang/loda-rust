@@ -1,4 +1,5 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use std::collections::HashSet;
 use num_bigint::BigInt;
 use num_traits::{Zero, One, Signed};
 
@@ -45,10 +46,6 @@ impl NodeLogarithmRegister {
 }
 
 impl Node for NodeLogarithmRegister {
-    fn shorthand(&self) -> &str {
-        "logarithm register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("log {},{}", self.target, self.source)
     }
@@ -65,6 +62,14 @@ impl Node for NodeLogarithmRegister {
         register_vec.push(self.target.clone());
         register_vec.push(self.source.clone());
     }
+
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if register_set.contains(&self.source) {
+            register_set.insert(self.target.clone());
+        } else {
+            register_set.remove(&self.target);
+        }
+    }    
 }
 
 pub struct NodeLogarithmConstant {
@@ -82,10 +87,6 @@ impl NodeLogarithmConstant {
 }
 
 impl Node for NodeLogarithmConstant {
-    fn shorthand(&self) -> &str {
-        "logarithm constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("log {},{}", self.target, self.source)
     }

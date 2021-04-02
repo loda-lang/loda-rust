@@ -1128,6 +1128,7 @@ fn run_experiment0(
     let mut iteration: usize = 0;
     let mut progress_time = Instant::now();
     let mut progress_iteration: usize = 0;
+    let mut number_of_errors_live: usize = 0;
     let mut number_of_errors_parse: usize = 0;
     let mut number_of_errors_run: usize = 0;
     loop {
@@ -1141,8 +1142,9 @@ fn run_experiment0(
                 );
 
                 let error_info = format!(
-                    "[{},{}]",
+                    "[{},{},{}]",
                     number_of_errors_parse,
+                    number_of_errors_live,
                     number_of_errors_run
                 );
 
@@ -1165,6 +1167,7 @@ fn run_experiment0(
         }
     
         // Create program from genome
+        dm.reset();
         let result_parse = dm.parse_stage2(
             ProgramId::ProgramWithoutId, 
             &genome.to_parsed_program()
@@ -1177,6 +1180,11 @@ fn run_experiment0(
                 continue;
             }
         };
+
+        if !runner.has_live_registers() {
+            number_of_errors_live += 1;
+            continue;
+        }
 
         // Execute program
         let number_of_terms: u64 = 10;

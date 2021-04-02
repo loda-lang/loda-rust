@@ -1,4 +1,5 @@
 use super::{BoxNode, EvalError, Node, ProgramCache, ProgramRunnerManager, ProgramSerializer, ProgramState, RegisterIndex, RunMode, ValidateCallError};
+use std::collections::HashSet;
 
 type BoxNodeVec = Vec<BoxNode>;
 
@@ -63,6 +64,12 @@ impl Program {
         }
     }
 
+    pub fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        for node in &self.node_vec {
+            node.live_register_indexes(register_set);
+        }
+    }
+    
     pub fn update_call(&mut self, program_manager: &mut ProgramRunnerManager) {
         for node in &mut self.node_vec {
             node.update_call(program_manager);

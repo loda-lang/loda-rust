@@ -1,4 +1,5 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use std::collections::HashSet;
 use num_bigint::BigInt;
 
 fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
@@ -22,10 +23,6 @@ impl NodeSubtractRegister {
 }
 
 impl Node for NodeSubtractRegister {
-    fn shorthand(&self) -> &str {
-        "subtract register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("sub {},{}", self.target, self.source)
     }
@@ -42,6 +39,19 @@ impl Node for NodeSubtractRegister {
         register_vec.push(self.target.clone());
         register_vec.push(self.source.clone());
     }
+
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if self.target == self.source {
+            // Subtracting itself from itself, always result in 0
+            register_set.remove(&self.target);
+            return;
+        }
+        if register_set.contains(&self.source) {
+            register_set.insert(self.target.clone());
+        } else {
+            register_set.remove(&self.target);
+        }
+    }    
 }
 
 pub struct NodeSubtractConstant {
@@ -59,10 +69,6 @@ impl NodeSubtractConstant {
 }
 
 impl Node for NodeSubtractConstant {
-    fn shorthand(&self) -> &str {
-        "subtract constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("sub {},{}", self.target, self.source)
     }

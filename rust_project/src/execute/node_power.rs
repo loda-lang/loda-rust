@@ -1,4 +1,5 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use std::collections::HashSet;
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, One, Zero, Signed};
 use num_integer::Integer;
@@ -79,10 +80,6 @@ impl NodePowerRegister {
 }
 
 impl Node for NodePowerRegister {
-    fn shorthand(&self) -> &str {
-        "power register"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("pow {},{}", self.target, self.source)
     }
@@ -99,6 +96,14 @@ impl Node for NodePowerRegister {
         register_vec.push(self.target.clone());
         register_vec.push(self.source.clone());
     }
+
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if register_set.contains(&self.source) {
+            register_set.insert(self.target.clone());
+        } else {
+            register_set.remove(&self.target);
+        }
+    }    
 }
 
 pub struct NodePowerConstant {
@@ -116,10 +121,6 @@ impl NodePowerConstant {
 }
 
 impl Node for NodePowerConstant {
-    fn shorthand(&self) -> &str {
-        "power constant"
-    }
-
     fn formatted_instruction(&self) -> String {
         format!("pow {},{}", self.target, self.source)
     }
@@ -134,6 +135,14 @@ impl Node for NodePowerConstant {
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
         register_vec.push(self.target.clone());
+    }
+
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        if self.source.0.is_zero() {
+            // n^0, always result in 1
+            register_set.remove(&self.target);
+            return;
+        }
     }
 }
 
