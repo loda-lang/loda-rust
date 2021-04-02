@@ -211,63 +211,63 @@ mod tests {
 
     #[test]
     fn test_10101_load_simple1() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_simple1");
+        let mut dm: DependencyManager = dependency_manager_mock("tests/load_simple1");
         let runner: Rc::<ProgramRunner> = dm.load(79).unwrap();
         assert_eq!(runner.inspect(10), "1,2,4,8,16,32,64,128,256,512");
     }
 
     #[test]
     fn test_10102_load_simple2() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_simple2");
+        let mut dm: DependencyManager = dependency_manager_mock("tests/load_simple2");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.inspect(10), "1,2,1,2,1,2,1,2,1,2");
     }
 
     #[test]
     fn test_10201_load_detect_cycle1() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_cycle1");
+        let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle1");
         let error: DependencyManagerError = dm.load(666).err().unwrap();
         assert_eq!(error, DependencyManagerError::CyclicDependency);
     }
 
     #[test]
     fn test_10202_load_detect_cycle2() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_cycle2");
+        let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle2");
         let error: DependencyManagerError = dm.load(666).err().unwrap();
         assert_eq!(error, DependencyManagerError::CyclicDependency);
     }
 
     #[test]
     fn test_10203_load_detect_cycle3() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_cycle3");
+        let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle3");
         let error: DependencyManagerError = dm.load(666).err().unwrap();
         assert_eq!(error, DependencyManagerError::CyclicDependency);
     }
 
     #[test]
     fn test_10301_load_detect_missing1() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_missing1");
+        let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_missing1");
         let error: DependencyManagerError = dm.load(666).err().unwrap();
         assert_eq!(error, DependencyManagerError::CannotLoadFile);
     }
 
     #[test]
     fn test_20001_call_with_negative_parameter1() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_call_with_negative_parameter1");
+        let mut dm: DependencyManager = dependency_manager_mock("tests/call_with_negative_parameter1");
         let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
         assert_eq!(runner.inspect(10), "BOOM");
     }
 
     #[test]
     fn test_20002_call_with_negative_parameter2() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_call_with_negative_parameter2");
+        let mut dm: DependencyManager = dependency_manager_mock("tests/call_with_negative_parameter2");
         let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
         assert_eq!(runner.inspect(10), "BOOM");
     }
 
     #[test]
     fn test_30001_live_register1() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_live_register1");
+        let mut dm: DependencyManager = dependency_manager_mock("tests/live_register1");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.live_registers().len(), 1);
         assert_eq!(runner.has_live_registers(), true);
@@ -275,7 +275,7 @@ mod tests {
 
     #[test]
     fn test_30002_live_register2() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_live_register2");
+        let mut dm: DependencyManager = dependency_manager_mock("tests/live_register2");
         let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
         assert_eq!(runner.live_registers().len(), 0);
         assert_eq!(runner.has_live_registers(), false);
@@ -283,7 +283,7 @@ mod tests {
 
     #[test]
     fn test_30003_live_register3() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_live_register3");
+        let mut dm: DependencyManager = dependency_manager_mock("tests/live_register3");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.live_registers().len(), 3);
         assert_eq!(runner.has_live_registers(), true);
@@ -291,7 +291,7 @@ mod tests {
 
     #[test]
     fn test_30004_live_register4() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_live_register4");
+        let mut dm: DependencyManager = dependency_manager_mock("tests/live_register4");
         let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
         assert_eq!(runner.live_registers().len(), 0);
         assert_eq!(runner.has_live_registers(), false);
@@ -299,7 +299,7 @@ mod tests {
 
     #[test]
     fn test_30005_live_register5() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_live_register5");
+        let mut dm: DependencyManager = dependency_manager_mock("tests/live_register5");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.live_registers().len(), 2);
         assert_eq!(runner.has_live_registers(), true);
@@ -307,7 +307,7 @@ mod tests {
 
     #[test]
     fn test_30006_live_register6() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_live_register6");
+        let mut dm: DependencyManager = dependency_manager_mock("tests/live_register6");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.live_registers().len(), 1);
         assert_eq!(runner.has_live_registers(), false);
