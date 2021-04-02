@@ -2,14 +2,14 @@ use std::fmt;
 use std::fs;
 use std::path::{Path,PathBuf};
 use std::collections::HashSet;
-use crate::parser::{ParsedProgram, ParseError, parse, parse_program, create_program, CreatedProgram, CreateProgramError};
+use crate::parser::{ParsedProgram, ParseError, ParseProgramError, parse_program, create_program, CreatedProgram, CreateProgramError};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 
 #[derive(Debug)]
 pub enum DependencyManagerError {
     CannotLoadFile,
     CyclicDependency,
-    Parse(ParseError),
+    ParseProgram(ParseProgramError),
     CreateProgram(CreateProgramError),
 }
 
@@ -20,7 +20,7 @@ impl fmt::Display for DependencyManagerError {
                 write!(f, "Failed to load the assembler file"),
             Self::CyclicDependency =>
                 write!(f, "Detected a cyclic dependency"),
-            Self::Parse(error) => 
+            Self::ParseProgram(error) => 
                 write!(f, "Failed to parse program. error: {}", error),
             Self::CreateProgram(error) => 
                 write!(f, "Failed to create program. error: {}", error),
@@ -43,6 +43,11 @@ impl DependencyManager {
             programids_currently_loading: HashSet::new(),
             programid_dependencies: vec!(),
         }        
+    }
+
+    pub fn reset(&mut self) {
+        self.programid_dependencies.clear();
+        self.programids_currently_loading.clear();
     }
 
     pub fn load(&mut self, program_id: u64) -> Result<(), DependencyManagerError> {
@@ -79,10 +84,8 @@ impl DependencyManager {
     {
         let parsed_program: ParsedProgram = match parse_program(contents) {
             Ok(value) => value,
-            Err(error0) => {
-                let error1 = ParseError::ParseProgram(error0);
-                let error2 = DependencyManagerError::Parse(error1);
-                return Err(error2);
+            Err(error) => {
+                return Err(DependencyManagerError::ParseProgram(error));
             }
         };
         self.parse_stage2(program_id, &parsed_program)

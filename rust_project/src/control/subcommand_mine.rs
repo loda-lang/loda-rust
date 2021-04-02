@@ -1167,6 +1167,7 @@ fn run_experiment0(
         }
     
         // Create program from genome
+        dm.reset();
         let result_parse = dm.parse_stage2(
             ProgramId::ProgramWithoutId, 
             &genome.to_parsed_program()
