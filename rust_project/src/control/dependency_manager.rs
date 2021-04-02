@@ -66,22 +66,9 @@ impl DependencyManager {
                 return Err(DependencyManagerError::CannotLoadFile);
             }
         };
-    
-        let parsed = match parse(&contents) {
-            Ok(value) => value,
-            Err(err) => {
-                panic!("error: {}, file: {:?}", err, path);
-            }
-        };
-    
-        let mut program: Program = parsed.created_program.program;
-        let program_id_inner = ProgramId::ProgramOEIS(program_id);
-        self.load_dependencies(&mut program, &program_id_inner)?;
 
-        let runner = ProgramRunner::new(
-            program_id_inner,
-            program
-        );
+        let program_id_inner = ProgramId::ProgramOEIS(program_id);
+        let runner: ProgramRunner = self.parse(program_id_inner, &contents)?;    
         self.program_run_manager.register(program_id, runner);
         self.programids_currently_loading.remove(&program_id);
         Ok(())
@@ -187,8 +174,8 @@ mod tests {
     }
 
     #[test]
-    fn test_10100_load_simple() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_simple");
+    fn test_10101_load_simple1() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_simple1");
         let program_id: u64 = 79;
         dm.load(program_id).unwrap();
         let runner: Rc::<ProgramRunner> = dm.program_run_manager.get(program_id).unwrap();
@@ -196,25 +183,34 @@ mod tests {
     }
 
     #[test]
-    fn test_10101_load_detect_cycle1() {
+    fn test_10102_load_simple2() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_simple2");
+        let program_id: u64 = 1;
+        dm.load(program_id).unwrap();
+        let runner: Rc::<ProgramRunner> = dm.program_run_manager.get(program_id).unwrap();
+        assert_eq!(runner.inspect(10), "1,2,1,2,1,2,1,2,1,2");
+    }
+
+    #[test]
+    fn test_10201_load_detect_cycle1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_cycle1");
         assert!(dm.load(666).is_err());
     }
 
     #[test]
-    fn test_10102_load_detect_cycle2() {
+    fn test_10202_load_detect_cycle2() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_cycle2");
         assert!(dm.load(666).is_err());
     }
 
     #[test]
-    fn test_10103_load_detect_cycle3() {
+    fn test_10203_load_detect_cycle3() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_cycle3");
         assert!(dm.load(666).is_err());
     }
 
     #[test]
-    fn test_10201_load_detect_missing1() {
+    fn test_10301_load_detect_missing1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_missing1");
         assert!(dm.load(666).is_err());
     }
