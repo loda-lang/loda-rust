@@ -66,6 +66,11 @@ impl Program {
 
     pub fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
         for node in &self.node_vec {
+            if register_set.is_empty() {
+                // No registers with meaningful data
+                // It's junk from now on, so it's wasteful doing more checking.
+                return;
+            }
             node.live_register_indexes(register_set);
         }
     }
