@@ -44,7 +44,7 @@ impl Node for NodeAddRegister {
         if register_set.contains(&self.source) {
             register_set.insert(self.target.clone());
         } else {
-            register_set.remove(&self.target);
+            // register_set.remove(&self.target);
         }
     }
 }
