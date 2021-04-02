@@ -252,8 +252,15 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_call_with_negative_parameter() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_call_with_negative_parameter");
+    fn test_20001_call_with_negative_parameter1() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_call_with_negative_parameter1");
+        let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
+        assert_eq!(runner.inspect(10), "BOOM");
+    }
+
+    #[test]
+    fn test_20002_call_with_negative_parameter2() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_call_with_negative_parameter2");
         let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
         assert_eq!(runner.inspect(10), "BOOM");
     }
