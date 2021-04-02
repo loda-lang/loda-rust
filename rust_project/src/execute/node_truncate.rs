@@ -54,8 +54,6 @@ impl Node for NodeTruncateRegister {
         }
         if register_set.contains(&self.source) {
             register_set.insert(self.target.clone());
-        } else {
-            register_set.remove(&self.target);
         }
     }    
 }

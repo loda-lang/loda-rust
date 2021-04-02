@@ -48,8 +48,6 @@ impl Node for NodeDivideRegister {
     fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
         if register_set.contains(&self.source) {
             register_set.insert(self.target.clone());
-        } else {
-            register_set.remove(&self.target);
         }
     }
 }
