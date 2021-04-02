@@ -144,11 +144,11 @@ impl DependencyManager {
         Ok(())
     }
 
-    // Construct a path: "/absolute/path/123/a123456.asm"
-    fn path_to_program(&self, program_id: u64) -> PathBuf {
+    // Construct a path: "/absolute/path/123/A123456.asm"
+    pub fn path_to_program(&self, program_id: u64) -> PathBuf {
         let dir_index: u64 = program_id / 1000;
         let dir_index_string: String = format!("{:0>3}", dir_index);
-        let filename_string: String = format!("a{:0>6}.asm", program_id);
+        let filename_string: String = format!("A{:0>6}.asm", program_id);
         let dirname = Path::new(&dir_index_string);
         let filename = Path::new(&filename_string);
         let pathbuf: PathBuf = self.loda_program_dir.join(dirname).join(filename);
@@ -185,6 +185,22 @@ mod tests {
         let source_code: String = INPUT_A000079.to_string();
         let runner: ProgramRunner = dm.parse(ProgramId::ProgramOEIS(79), &source_code).unwrap();
         assert_eq!(runner.inspect(10), "1,2,4,8,16,32,64,128,256,512");
+    }
+
+    #[test]
+    fn test_10001_path_to_program() {
+        let basedir = PathBuf::from("non-existing-dir");
+        let dm = DependencyManager::new(basedir.clone());
+        {
+            let actual: PathBuf = dm.path_to_program(79);
+            let expected: PathBuf = basedir.join("000/A000079.asm");
+            assert_eq!(expected, actual);
+        }
+        {
+            let actual: PathBuf = dm.path_to_program(123456);
+            let expected: PathBuf = basedir.join("123/A123456.asm");
+            assert_eq!(expected, actual);
+        }
     }
 
     fn dependency_manager_mock(relative_path_to_testdir: &str) -> DependencyManager {
