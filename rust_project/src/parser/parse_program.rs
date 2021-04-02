@@ -19,7 +19,7 @@ impl fmt::Display for ParsedProgram {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ParseProgramError {
     SyntaxError(usize),
     ParseInstructionId(ParseInstructionIdError),

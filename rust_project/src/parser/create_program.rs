@@ -25,7 +25,7 @@ use crate::execute::node_truncate::*;
 use num_bigint::{BigInt, ToBigInt};
 use num_traits::{One, Zero, Signed, ToPrimitive};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CreateInstructionErrorType {
     ExpectZeroParameters,
     ExpectOneOrTwoParameters,
@@ -38,7 +38,7 @@ pub enum CreateInstructionErrorType {
     RegisterIndexTooHigh,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct CreateInstructionError {
     line_number: usize,
     error_type: CreateInstructionErrorType,
@@ -446,7 +446,7 @@ pub struct CreatedProgram {
     pub program: Program,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CreateProgramError {
     ValidateLoops(ValidateLoopError),
     CreateInstruction(CreateInstructionError),

@@ -3,7 +3,7 @@ use std::str::FromStr;
 use super::extract_parameter_re::EXTRACT_PARAMETER_RE;
 use super::{InstructionParameter, ParameterType};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ParseParametersError {
     EmptyParameter(usize),
     UnrecognizedParameter(usize),

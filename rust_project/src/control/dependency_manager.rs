@@ -6,7 +6,7 @@ use std::rc::Rc;
 use crate::parser::{ParsedProgram, ParseProgramError, parse_program, create_program, CreatedProgram, CreateProgramError};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DependencyManagerError {
     CannotLoadFile,
     CyclicDependency,
@@ -210,24 +210,28 @@ mod tests {
     #[test]
     fn test_10201_load_detect_cycle1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_cycle1");
-        assert!(dm.load(666).is_err());
+        let error: DependencyManagerError = dm.load(666).err().unwrap();
+        assert_eq!(error, DependencyManagerError::CyclicDependency);
     }
 
     #[test]
     fn test_10202_load_detect_cycle2() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_cycle2");
-        assert!(dm.load(666).is_err());
+        let error: DependencyManagerError = dm.load(666).err().unwrap();
+        assert_eq!(error, DependencyManagerError::CyclicDependency);
     }
 
     #[test]
     fn test_10203_load_detect_cycle3() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_cycle3");
-        assert!(dm.load(666).is_err());
+        let error: DependencyManagerError = dm.load(666).err().unwrap();
+        assert_eq!(error, DependencyManagerError::CyclicDependency);
     }
 
     #[test]
     fn test_10301_load_detect_missing1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_detect_missing1");
-        assert!(dm.load(666).is_err());
+        let error: DependencyManagerError = dm.load(666).err().unwrap();
+        assert_eq!(error, DependencyManagerError::CannotLoadFile);
     }
 }

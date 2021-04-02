@@ -23,7 +23,7 @@ pub enum InstructionId {
     Truncate,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ParseInstructionIdError {
     UnrecognizedInstructionId(usize),
 }
