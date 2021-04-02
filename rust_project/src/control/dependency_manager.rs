@@ -234,4 +234,11 @@ mod tests {
         let error: DependencyManagerError = dm.load(666).err().unwrap();
         assert_eq!(error, DependencyManagerError::CannotLoadFile);
     }
+
+    #[test]
+    fn test_20001_call_with_negative_parameter() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_call_with_negative_parameter");
+        let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
+        assert_eq!(runner.inspect(10), "BOOM");
+    }
 }

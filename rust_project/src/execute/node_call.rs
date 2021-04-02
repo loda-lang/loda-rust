@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use super::{EvalError, ProgramCache, Node, RegisterIndex, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
+use num_traits::Signed;
 
 pub struct NodeCallConstant {
     target: RegisterIndex,
@@ -36,6 +37,10 @@ impl Node for NodeCallConstant {
             panic!("No link have been establish. This node cannot do its job.");
         }
         let input: RegisterValue = state.get_register_value(self.target.clone());
+        if input.0.is_negative() {
+            // Prevent calling other programs with a negative parameter.
+            return Err(EvalError::CallWithNegativeParameter);
+        }
         let step_count_limit: u64 = state.step_count_limit();
         let mut step_count: u64 = state.step_count();
 

@@ -117,6 +117,7 @@ impl ProgramRunner {
                 },
                 Err(_) => {
                     string_vec.push("BOOM".to_string());
+                    break;
                 }
             }
         }

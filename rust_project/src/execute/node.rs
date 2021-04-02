@@ -5,6 +5,10 @@ pub struct ValidateCallError {}
 
 #[derive(Debug)]
 pub enum EvalError {
+    // Programs are usually well behaved for 0 and greater values.
+    // However for negative values the behavior is undefined.
+    CallWithNegativeParameter,
+
     DivisionByZero,
 
     // When a mathematical function is evaluated outside of its domain of definition.
