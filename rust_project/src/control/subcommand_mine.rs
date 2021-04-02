@@ -1,10 +1,11 @@
 use super::DependencyManager;
 use crate::config::Config;
 use crate::mine::check_fixed_length_sequence::CheckFixedLengthSequence;
-use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
+use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, parse_program, ParseProgramError, ParsedProgram};
 use crate::execute::{EvalError, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use crate::oeis::stripped_sequence::BigIntVec;
 use crate::util::Analyze;
+use std::fs;
 use std::fmt;
 use std::time::Instant;
 use std::path::{Path, PathBuf};
@@ -75,19 +76,19 @@ fn terms_to_string(terms: &BigIntVec) -> String {
 enum MutateValue {
     Increment,
     Decrement,
-    Assign(u32),
+    Assign(i32),
 }
 
 struct GenomeItem {
     enabled: bool,
     instruction_id: InstructionId,
-    target_value: u32,
+    target_value: i32,
     source_type: ParameterType,
-    source_value: u32,
+    source_value: i32,
 }
 
 impl GenomeItem {
-    fn new(instruction_id: InstructionId, target_value: u32, source_type: ParameterType, source_value: u32) -> Self {
+    fn new(instruction_id: InstructionId, target_value: i32, source_type: ParameterType, source_value: i32) -> Self {
         Self {
             enabled: true,
             instruction_id: instruction_id,
@@ -97,7 +98,7 @@ impl GenomeItem {
         }
     }
 
-    fn new_move_register(target_value: u32, source_value: u32) -> Self {
+    fn new_move_register(target_value: i32, source_value: i32) -> Self {
         Self {
             enabled: true,
             instruction_id: InstructionId::Move,
@@ -107,7 +108,7 @@ impl GenomeItem {
         }
     }
 
-    fn new_instruction_with_const(instruction_id: InstructionId, target_value: u32, source_value: u32) -> Self {
+    fn new_instruction_with_const(instruction_id: InstructionId, target_value: i32, source_value: i32) -> Self {
         Self {
             enabled: true,
             instruction_id: instruction_id,
@@ -178,7 +179,7 @@ impl GenomeItem {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as underflow, overflow.
-    fn mutate_value(&mut self, mutation: &MutateValue, mut value: u32) -> (bool, u32) {
+    fn mutate_value(&mut self, mutation: &MutateValue, mut value: i32) -> (bool, i32) {
         match mutation {
             MutateValue::Increment => {
                 if value >= 255 {
@@ -187,7 +188,7 @@ impl GenomeItem {
                 value += 1;
             },
             MutateValue::Decrement => {
-                if value == 0 {
+                if value <= 0 {
                     return (false, value);
                 }
                 value -= 1;
@@ -456,7 +457,7 @@ impl GenomeItem {
                 // Maybe in the future support source type/value.
                 let parameter = InstructionParameter {
                     parameter_type: ParameterType::Register,
-                    parameter_value: self.target_value as i64,
+                    parameter_value: self.target_value.abs() as i64,
                 };
                 return vec![parameter];
             },
@@ -466,12 +467,24 @@ impl GenomeItem {
             _ => {
                 let parameter0 = InstructionParameter {
                     parameter_type: ParameterType::Register,
-                    parameter_value: self.target_value as i64,
+                    parameter_value: self.target_value.abs() as i64,
                 };
-                let parameter1 = InstructionParameter {
-                    parameter_type: self.source_type.clone(),
-                    parameter_value: self.source_value as i64,
-                };
+
+                let parameter1: InstructionParameter;
+                match self.source_type {
+                    ParameterType::Constant => {
+                        parameter1 = InstructionParameter {
+                            parameter_type: ParameterType::Constant,
+                            parameter_value: self.source_value as i64,
+                        };
+                    },
+                    ParameterType::Register => {
+                        parameter1 = InstructionParameter {
+                            parameter_type: ParameterType::Register,
+                            parameter_value: (self.source_value.abs()) as i64,
+                        };
+                    }
+                }
                 return vec![parameter0, parameter1];
             }
         }
@@ -517,6 +530,38 @@ struct Genome {
 }
 
 impl Genome {
+    fn new_from_parsed_program(parsed_program: &ParsedProgram) -> Self {
+        let mut genome_vec: Vec<GenomeItem> = vec!();
+
+        for instruction in &parsed_program.instruction_vec {
+
+            let mut target_parameter_value: i32 = 0;
+            let mut source_parameter_type: ParameterType = ParameterType::Constant;
+            let mut source_parameter_value: i32 = 0;
+            for (index, parameter) in instruction.parameter_vec.iter().enumerate() {
+                if index == 0 {
+                    target_parameter_value = parameter.parameter_value as i32;
+                }
+                if index == 1 {
+                    source_parameter_value = parameter.parameter_value as i32;
+                    source_parameter_type = parameter.parameter_type.clone();
+                }
+            }
+        
+            let genome_item = GenomeItem::new(
+                instruction.instruction_id.clone(),
+                target_parameter_value,
+                source_parameter_type,
+                source_parameter_value,
+            );
+            genome_vec.push(genome_item);
+        }
+
+        Self {
+            genome_vec: genome_vec,
+        }
+    }
+
     fn new() -> Self {
         let mut genome_vec: Vec<GenomeItem> = vec!();
         {
@@ -862,7 +907,7 @@ impl Genome {
             let index: usize = index0.min(index1);
             let item = GenomeItem::new(
                 InstructionId::LoopBegin,
-                rng.gen_range(0..5) as u32,
+                rng.gen_range(0..5) as i32,
                 ParameterType::Constant,
                 1
             );
@@ -1112,9 +1157,29 @@ fn run_experiment0(
     let mut dm = DependencyManager::new(
         loda_program_rootdir.clone(),
     );
-    let mut genome = Genome::new();
+
+    let path_to_program: PathBuf = dm.path_to_program(112456);
+    let contents: String = match fs::read_to_string(&path_to_program) {
+        Ok(value) => value,
+        Err(error) => {
+            panic!("Something went wrong reading the file: {:?}", error);
+        }
+    };
+
+    let parsed_program: ParsedProgram = match parse_program(&contents) {
+        Ok(value) => value,
+        Err(error) => {
+            panic!("Something went wrong parsing the program: {:?}", error);
+        }
+    };
+    
+    let mut genome = Genome::new_from_parsed_program(&parsed_program);
+    // let mut genome = Genome::new();
     // genome.mutate_insert_loop(&mut rng);
-    debug!("Initial genome\n{}", genome);
+    // debug!("Initial genome\n{}", genome);
+    println!("Initial genome\n{}", genome);
+
+    // return;
 
     let mut funnel = Funnel::new(
         checker10,
@@ -1162,7 +1227,7 @@ fn run_experiment0(
         }
         iteration += 1;
         
-        for _ in 0..20 {
+        for _ in 0..5 {
             genome.mutate(&mut rng);
         }
     
