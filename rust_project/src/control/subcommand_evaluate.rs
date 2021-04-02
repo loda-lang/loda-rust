@@ -22,11 +22,10 @@ pub fn subcommand_evaluate(
     let mut dm = DependencyManager::new(
         loda_program_rootdir,
     );
-    dm.load(program_id);
-    let program_runner: Rc::<ProgramRunner> = match dm.program_run_manager.get(program_id) {
-        Some(value) => value,
-        None => {
-            panic!("Failed to load program");
+    let program_runner: Rc::<ProgramRunner> = match dm.load(program_id) {
+        Ok(value) => value,
+        Err(error) => {
+            panic!("Failed to load program: {:?}", error);
         }
     };
     match mode {

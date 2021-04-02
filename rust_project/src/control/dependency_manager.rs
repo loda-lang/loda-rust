@@ -2,7 +2,8 @@ use std::fmt;
 use std::fs;
 use std::path::{Path,PathBuf};
 use std::collections::HashSet;
-use crate::parser::{ParsedProgram, ParseError, ParseProgramError, parse_program, create_program, CreatedProgram, CreateProgramError};
+use std::rc::Rc;
+use crate::parser::{ParsedProgram, ParseProgramError, parse_program, create_program, CreatedProgram, CreateProgramError};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 
 #[derive(Debug)]
@@ -11,6 +12,7 @@ pub enum DependencyManagerError {
     CyclicDependency,
     ParseProgram(ParseProgramError),
     CreateProgram(CreateProgramError),
+    LookupProgramId,
 }
 
 impl fmt::Display for DependencyManagerError {
@@ -24,13 +26,15 @@ impl fmt::Display for DependencyManagerError {
                 write!(f, "Failed to parse program. error: {}", error),
             Self::CreateProgram(error) => 
                 write!(f, "Failed to create program. error: {}", error),
+            Self::LookupProgramId =>
+                write!(f, "Failed to lookup the program id"),
         }
     }
 }
 
 pub struct DependencyManager {
     loda_program_dir: PathBuf,
-    pub program_run_manager: ProgramRunnerManager,
+    program_run_manager: ProgramRunnerManager,
     programids_currently_loading: HashSet<u64>,
     programid_dependencies: Vec<u64>,
 }
@@ -50,16 +54,29 @@ impl DependencyManager {
         self.programids_currently_loading.clear();
     }
 
-    pub fn load(&mut self, program_id: u64) -> Result<(), DependencyManagerError> {
+    pub fn load(&mut self, program_id: u64) ->
+        Result<Rc::<ProgramRunner>, DependencyManagerError> 
+    {
+        self.load_inner(program_id)?;
+        let runner: Rc::<ProgramRunner> = match self.program_run_manager.get(program_id) {
+            Some(value) => value,
+            None => {
+                return Err(DependencyManagerError::LookupProgramId);
+            }
+        };
+        Ok(runner)
+    }
+
+    fn load_inner(&mut self, program_id: u64) -> Result<(), DependencyManagerError> {
         self.programid_dependencies.push(program_id);
 
+        if self.program_run_manager.contains(program_id) {
+            // program is already loaded. No need to load it again.
+            return Ok(());
+        }
         if self.programids_currently_loading.contains(&program_id) {
             error!("detected cyclic dependency. program_id: {}", program_id);
             return Err(DependencyManagerError::CyclicDependency);
-        }
-        if self.program_run_manager.contains(program_id) {
-            debug!("program is already loaded. program_id: {}", program_id);
-            return Ok(());
         }
         self.programids_currently_loading.insert(program_id);
         let path = self.path_to_program(program_id);
@@ -118,7 +135,7 @@ impl DependencyManager {
             debug!("program_id: {:?}  depends on other programs: {:?}", program_id, dependent_program_id_vec);
         }
         for dependent_program_id in dependent_program_id_vec {
-            self.load(dependent_program_id)?;
+            self.load_inner(dependent_program_id)?;
         }
         program.update_call(&mut self.program_run_manager);
         if program.validate_call_nodes().is_err() {
@@ -179,18 +196,14 @@ mod tests {
     #[test]
     fn test_10101_load_simple1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_simple1");
-        let program_id: u64 = 79;
-        dm.load(program_id).unwrap();
-        let runner: Rc::<ProgramRunner> = dm.program_run_manager.get(program_id).unwrap();
+        let runner: Rc::<ProgramRunner> = dm.load(79).unwrap();
         assert_eq!(runner.inspect(10), "1,2,4,8,16,32,64,128,256,512");
     }
 
     #[test]
     fn test_10102_load_simple2() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_load_simple2");
-        let program_id: u64 = 1;
-        dm.load(program_id).unwrap();
-        let runner: Rc::<ProgramRunner> = dm.program_run_manager.get(program_id).unwrap();
+        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.inspect(10), "1,2,1,2,1,2,1,2,1,2");
     }
 

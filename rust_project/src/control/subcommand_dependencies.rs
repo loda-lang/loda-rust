@@ -8,6 +8,8 @@ pub fn subcommand_dependencies(program_id: u64) {
     let mut dm = DependencyManager::new(
         loda_program_rootdir,
     );
-    dm.load(program_id);
+    if let Err(error) = dm.load(program_id) {
+        panic!("Failure during loadin of program. error: {:?}", error);
+    }
     dm.print_dependencies();
 }
