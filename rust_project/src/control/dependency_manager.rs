@@ -264,4 +264,28 @@ mod tests {
         let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
         assert_eq!(runner.inspect(10), "BOOM");
     }
+
+    #[test]
+    fn test_30001_live_register1() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_live_register1");
+        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
+        assert_eq!(runner.live_registers().len(), 1);
+        assert_eq!(runner.has_live_registers(), true);
+    }
+
+    #[test]
+    fn test_30002_live_register2() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_live_register2");
+        let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
+        assert_eq!(runner.live_registers().len(), 0);
+        assert_eq!(runner.has_live_registers(), false);
+    }
+
+    #[test]
+    fn test_30003_live_register1() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/dependency_manager_live_register3");
+        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
+        assert_eq!(runner.live_registers().len(), 3);
+        assert_eq!(runner.has_live_registers(), true);
+    }
 }

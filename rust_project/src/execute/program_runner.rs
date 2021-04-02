@@ -83,11 +83,15 @@ impl ProgramRunner {
         self.program.serialize(serializer);
     }
 
-    pub fn has_live_registers(&self) -> bool {
+    pub fn live_registers(&self) -> HashSet<RegisterIndex> {
         let mut register_set: HashSet<RegisterIndex> = HashSet::new();
         register_set.insert(RegisterIndex(0));
         self.program.live_register_indexes(&mut register_set);
-        register_set.contains(&RegisterIndex(1))
+        register_set
+    }
+
+    pub fn has_live_registers(&self) -> bool {
+        self.live_registers().contains(&RegisterIndex(1))
     }
 
     #[cfg(test)]
