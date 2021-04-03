@@ -1,4 +1,5 @@
 use super::{CacheValue, EvalError, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterIndex, RegisterValue, RunMode};
+use super::node_move::NodeMoveRegister;
 use std::collections::HashSet;
 
 pub struct ProgramRunner {
@@ -92,6 +93,50 @@ impl ProgramRunner {
 
     pub fn has_live_registers(&self) -> bool {
         self.live_registers().contains(&RegisterIndex(1))
+    }
+
+    // While mining. Many programs gets rejected, because there is no connection from the 
+    // input register to the output register. These defunct programs can be turned into 
+    // working programs, by doing this trick:
+    //
+    // When detecting there no live output register, then append a move instruction 
+    // that takes data from a random live register, and places it in the output register.
+    // There may still be something meaningful in one of the other live registers.
+    //
+    // When there is zero live registers, then there is no way to get to the output register, 
+    // and this program is truely defunct.
+    pub fn mining_trick_attempt_fixing_the_output_register(&mut self) -> bool {
+        let live_registers: HashSet<RegisterIndex> = self.live_registers();
+        if live_registers.is_empty() {
+            // There is no live registers to pick from.
+            return false;
+        }
+        let target: RegisterIndex = RegisterIndex(1);
+        if live_registers.contains(&target) {
+            // There is live data in the output register.
+            // No need to apply the trick.
+            return true;
+        }
+
+        // There is no live data in the output register.
+        // Append a `mov` instruction to the program that moves 
+        // data to the output register.
+
+        // Pick whatever random register that comes first from the hash.
+        let mut source: RegisterIndex = RegisterIndex(0);
+        for live_register in live_registers {
+            source = live_register;
+            break;
+        }
+        let node = NodeMoveRegister::new(target, source);
+        let node_wrapped = Box::new(node);
+        self.program.push_boxed(node_wrapped);
+
+        // Determine the number of registeres to allocate before running the program
+        let max_register_index: u8 = self.program.max_register_index();
+        self.register_count = max_register_index + 1;
+
+        true
     }
 
     #[cfg(test)]

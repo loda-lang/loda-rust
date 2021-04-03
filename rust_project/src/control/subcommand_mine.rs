@@ -1193,8 +1193,8 @@ fn run_experiment0(
     let mut iteration: usize = 0;
     let mut progress_time = Instant::now();
     let mut progress_iteration: usize = 0;
-    let mut number_of_errors_live: usize = 0;
     let mut number_of_errors_parse: usize = 0;
+    let mut number_of_errors_nooutput: usize = 0;
     let mut number_of_errors_run: usize = 0;
     loop {
         if (iteration % 10000) == 0 {
@@ -1209,7 +1209,7 @@ fn run_experiment0(
                 let error_info = format!(
                     "[{},{},{}]",
                     number_of_errors_parse,
-                    number_of_errors_live,
+                    number_of_errors_nooutput,
                     number_of_errors_run
                 );
 
@@ -1237,7 +1237,7 @@ fn run_experiment0(
             ProgramId::ProgramWithoutId, 
             &genome.to_parsed_program()
         );
-        let runner: ProgramRunner = match result_parse {
+        let mut runner: ProgramRunner = match result_parse {
             Ok(value) => value,
             Err(error) => {
                 // debug!("iteration: {} cannot be parsed. {}", iteration, error);
@@ -1246,8 +1246,9 @@ fn run_experiment0(
             }
         };
 
-        if !runner.has_live_registers() {
-            number_of_errors_live += 1;
+        // If the program has no live output register, then pick a random register.
+        if !runner.mining_trick_attempt_fixing_the_output_register() {
+            number_of_errors_nooutput += 1;
             continue;
         }
 
