@@ -1,6 +1,7 @@
 use super::DependencyManager;
 use crate::config::Config;
 use crate::mine::check_fixed_length_sequence::CheckFixedLengthSequence;
+use crate::mine::load_program_ids_csv_file;
 use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, parse_program, ParseProgramError, ParsedProgram};
 use crate::execute::{EvalError, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use crate::oeis::stripped_sequence::BigIntVec;
@@ -35,6 +36,7 @@ pub fn subcommand_mine() {
     let loda_program_rootdir: PathBuf = config.loda_program_rootdir();
     let cache_dir: PathBuf = config.cache_dir();
     let mine_event_dir: PathBuf = config.mine_event_dir();
+    let loda_lab_repository: PathBuf = config.loda_lab_repository();
 
     // Load cached data
     debug!("step1");
@@ -47,6 +49,16 @@ pub fn subcommand_mine() {
     let file40 = cache_dir.join(Path::new("fixed_length_sequence_40terms.json"));
     let checker40: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file40);
     debug!("step2");
+
+    // Load the program_ids to cycle through
+    let available_program_ids_file = loda_lab_repository.join(Path::new("resources/mine_program_ids.csv"));
+    let available_program_ids: Vec<u32> = match load_program_ids_csv_file(&available_program_ids_file) {
+        Ok(value) => value,
+        Err(error) => {
+            panic!("Unable to load file. path: {:?} error: {:?}", available_program_ids_file, error);
+        }
+    };
+    println!("number_of_available_programs = {}", available_program_ids.len());
 
     // Pick a random seed
     let mut rng = thread_rng();
@@ -61,6 +73,7 @@ pub fn subcommand_mine() {
         &checker30,
         &checker40,
         &mine_event_dir,
+        &available_program_ids,
         initial_random_seed,
     );
 }
@@ -1150,6 +1163,7 @@ fn run_experiment0(
     checker30: &CheckFixedLengthSequence,
     checker40: &CheckFixedLengthSequence,
     mine_event_dir: &Path,
+    available_program_ids: &Vec<u32>,
     initial_random_seed: u64,
 ) {
     let mut rng = StdRng::seed_from_u64(initial_random_seed);
