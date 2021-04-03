@@ -1246,7 +1246,7 @@ fn run_experiment0(
             }
         };
 
-        // If the program has no live output register, then pick a random register.
+        // If the program has no live output register, then pick the lowest live register.
         if !runner.mining_trick_attempt_fixing_the_output_register() {
             number_of_errors_nooutput += 1;
             continue;

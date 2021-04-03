@@ -100,7 +100,7 @@ impl ProgramRunner {
     // working programs, by doing this trick:
     //
     // When detecting there no live output register, then append a move instruction 
-    // that takes data from a random live register, and places it in the output register.
+    // that takes data from the lowest live register, and places it in the output register.
     // There may still be something meaningful in one of the other live registers.
     //
     // When there is zero live registers, then there is no way to get to the output register, 
@@ -122,12 +122,11 @@ impl ProgramRunner {
         // Append a `mov` instruction to the program that moves 
         // data to the output register.
 
-        // Pick whatever random register that comes first from the hash.
-        let mut source: RegisterIndex = RegisterIndex(0);
-        for live_register in live_registers {
-            source = live_register;
-            break;
-        }
+        // Pick the lowest register index from the hash.
+        let source: RegisterIndex = live_registers.into_iter()
+            .min_by(|a, b| a.partial_cmp(&b).expect("Found a NaN"))
+            .expect("There was no minimum");
+
         let node = NodeMoveRegister::new(target, source);
         let node_wrapped = Box::new(node);
         self.program.push_boxed(node_wrapped);

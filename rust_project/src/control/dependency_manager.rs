@@ -169,21 +169,17 @@ mod tests {
     use super::*;
     use std::rc::Rc;
 
-    const INPUT_A000079: &str = r#"
-    ; A000079: Powers of 2: a(n) = 2^n.
-    ; 1,2,4,8,16,32,64,128,256,512
-    
-    mov $1,2
-    pow $1,$0
-    "#;
-
     #[test]
     fn test_10000_parse_string() {
+        const PROGRAM: &str = r#"        
+        mov $1,2
+        pow $1,$0
+        "#;
         let mut dm = DependencyManager::new(
             PathBuf::from("non-existing-dir"),
         );
-        let source_code: String = INPUT_A000079.to_string();
-        let runner: ProgramRunner = dm.parse(ProgramId::ProgramOEIS(79), &source_code).unwrap();
+        let source_code: String = PROGRAM.to_string();
+        let runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, &source_code).unwrap();
         assert_eq!(runner.inspect(10), "1,2,4,8,16,32,64,128,256,512");
     }
 
@@ -310,6 +306,43 @@ mod tests {
         let mut dm: DependencyManager = dependency_manager_mock("tests/live_register6");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.live_registers().len(), 1);
+        assert_eq!(runner.has_live_registers(), false);
+    }
+
+    #[test]
+    fn test_40001_mining_trick_attempt_fixing_the_output_register1() {
+        const PROGRAM: &str = r#"
+        mov $5,$0
+        mov $0,0
+        "#;
+        let mut dm = DependencyManager::new(
+            PathBuf::from("non-existing-dir"),
+        );
+        let source_code: String = PROGRAM.to_string();
+        let mut runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, &source_code).unwrap();
+        assert_eq!(runner.live_registers().len(), 1);
+        assert_eq!(runner.has_live_registers(), false);
+        assert_eq!(runner.mining_trick_attempt_fixing_the_output_register(), true);
+        assert_eq!(runner.live_registers().len(), 2);
+        assert_eq!(runner.has_live_registers(), true);
+    }
+
+    #[test]
+    fn test_40002_mining_trick_attempt_fixing_the_output_register2() {
+        const PROGRAM: &str = r#"
+        mov $5,$0
+        mov $0,0
+        mul $5,0
+        "#;
+        let mut dm = DependencyManager::new(
+            PathBuf::from("non-existing-dir"),
+        );
+        let source_code: String = PROGRAM.to_string();
+        let mut runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, &source_code).unwrap();
+        assert_eq!(runner.live_registers().len(), 0);
+        assert_eq!(runner.has_live_registers(), false);
+        assert_eq!(runner.mining_trick_attempt_fixing_the_output_register(), false);
+        assert_eq!(runner.live_registers().len(), 0);
         assert_eq!(runner.has_live_registers(), false);
     }
 }
