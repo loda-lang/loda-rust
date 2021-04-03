@@ -34,6 +34,9 @@ impl Node for NodeMoveRegister {
     fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
         if register_set.contains(&self.source) {
             register_set.insert(self.target.clone());
+        } else {
+            // Overwrite content of the target register a non-live register.
+            register_set.remove(&self.target);
         }
     }
 }
@@ -68,6 +71,7 @@ impl Node for NodeMoveConstant {
     }
     
     fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        // Overwrite content of the target register a non-live register.
         register_set.remove(&self.target);
     }
 }
