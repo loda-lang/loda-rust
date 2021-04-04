@@ -1,9 +1,7 @@
-use crate::util::{BigIntVec, bigintvec_to_string};
-use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, parse_program, ParseProgramError, ParsedProgram};
-use rand::{Rng,RngCore,SeedableRng};
-use rand::rngs::StdRng;
+use crate::util::BigIntVec;
+use crate::parser::{InstructionId, InstructionParameter, ParameterType};
+use rand::Rng;
 use rand::seq::SliceRandom;
-use rand::thread_rng;
 use std::fmt;
 
 pub enum MutateValue {
@@ -15,9 +13,9 @@ pub enum MutateValue {
 pub struct GenomeItem {
     enabled: bool,
     instruction_id: InstructionId,
-    pub target_value: i32,
-    pub source_type: ParameterType,
-    pub source_value: i32,
+    target_value: i32,
+    source_type: ParameterType,
+    source_value: i32,
 }
 
 impl GenomeItem {
@@ -61,6 +59,18 @@ impl GenomeItem {
 
     pub fn instruction_id(&self) -> &InstructionId {
         &self.instruction_id
+    }
+
+    pub fn target_value(&self) -> i32 {
+        self.target_value
+    }
+
+    pub fn source_type(&self) -> &ParameterType {
+        &self.source_type
+    }
+
+    pub fn source_value(&self) -> i32 {
+        self.source_value
     }
 
     pub fn mutate_trigger_division_by_zero(&mut self) {

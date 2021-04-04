@@ -248,7 +248,7 @@ impl Genome {
         // Identify all the instructions that use constants
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if genome_item.source_type == ParameterType::Constant {
+            if *genome_item.source_type() == ParameterType::Constant {
                 indexes.push(index);
             }
         }
@@ -283,7 +283,7 @@ impl Genome {
         // Identify all the instructions that use source_type=register
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if genome_item.source_type == ParameterType::Register {
+            if *genome_item.source_type() == ParameterType::Register {
                 indexes.push(index);
             }
         }
@@ -363,7 +363,7 @@ impl Genome {
         // Identify all the instructions that use two registers
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if genome_item.source_type == ParameterType::Register {
+            if *genome_item.source_type() == ParameterType::Register {
                 indexes.push(index);
             }
         }
