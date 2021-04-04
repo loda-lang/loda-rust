@@ -153,8 +153,8 @@ fn run_experiment0(
         }
     };
     
-    let mut genome = Genome::new_from_parsed_program(&parsed_program);
-    // let mut genome = Genome::new();
+    // let mut genome = Genome::new_from_parsed_program(&parsed_program);
+    let mut genome = Genome::new();
     // genome.mutate_insert_loop(&mut rng);
     // debug!("Initial genome\n{}", genome);
     println!("Initial genome\n{}", genome);
@@ -173,6 +173,7 @@ fn run_experiment0(
     let mut iteration: usize = 0;
     let mut progress_time = Instant::now();
     let mut progress_iteration: usize = 0;
+    let mut number_of_failed_mutations: usize = 0;
     let mut number_of_errors_parse: usize = 0;
     let mut number_of_errors_nooutput: usize = 0;
     let mut number_of_errors_run: usize = 0;
@@ -187,7 +188,8 @@ fn run_experiment0(
                 );
 
                 let error_info = format!(
-                    "[{},{},{}]",
+                    "[{},{},{},{}]",
+                    number_of_failed_mutations,
                     number_of_errors_parse,
                     number_of_errors_nooutput,
                     number_of_errors_run
@@ -201,15 +203,26 @@ fn run_experiment0(
                     iteration_info
                 );
 
+                println!("Current genome\n{}", genome);
+
                 progress_time = Instant::now();
                 progress_iteration = iteration;
             }
         }
         iteration += 1;
+        // if iteration > 5 {
+        //     break;
+        // }
         
-        for _ in 0..5 {
-            genome.mutate(&mut rng);
+        // for _ in 0..5 {
+        //     genome.mutate(&mut rng);
+        // }
+
+        if !genome.mutate_call(&mut rng, &available_program_ids) {
+            number_of_failed_mutations += 1;
+            continue;
         }
+        // println!("#{} Current genome\n{}", iteration, genome);
     
         // Create program from genome
         dm.reset();
@@ -242,6 +255,7 @@ fn run_experiment0(
                 continue;
             }
         };
+        // println!("terms10: {:?}", terms10);
         if !funnel.check_basic(&terms10) {
             continue;
         }

@@ -62,68 +62,68 @@ impl Genome {
             let item = GenomeItem::new_move_register(1, 0);
             genome_vec.push(item);
         }
-        {
-            let item = GenomeItem::new_move_register(2, 0);
-            genome_vec.push(item);
-        }
-        {
-            let item = GenomeItem::new_move_register(3, 0);
-            genome_vec.push(item);
-        }
+        // {
+        //     let item = GenomeItem::new_move_register(2, 0);
+        //     genome_vec.push(item);
+        // }
+        // {
+        //     let item = GenomeItem::new_move_register(3, 0);
+        //     genome_vec.push(item);
+        // }
         // append instructions that doesn't do anything to the output register
-        {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
-            genome_vec.push(item);
-        }
-        {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
-            genome_vec.push(item);
-        }
-        {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 1, 10);
-            genome_vec.push(item);
-        }
+        // {
+        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
+        //     genome_vec.push(item);
+        // }
+        // {
+        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
+        //     genome_vec.push(item);
+        // }
+        // {
+        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 1, 10);
+        //     genome_vec.push(item);
+        // }
         // {
         //     let item = GenomeItem::new_instruction_with_const(InstructionId::Divide, 1, 2);
         //     genome_vec.push(item);
         // }
-        {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 2, 10);
-            genome_vec.push(item);
-        }
-        {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::DivideIf, 1, 10);
-            genome_vec.push(item);
-        }
-        {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 2, 10);
-            genome_vec.push(item);
-        }
+        // {
+        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 2, 10);
+        //     genome_vec.push(item);
+        // }
+        // {
+        //     let item = GenomeItem::new_instruction_with_const(InstructionId::DivideIf, 1, 10);
+        //     genome_vec.push(item);
+        // }
+        // {
+        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 2, 10);
+        //     genome_vec.push(item);
+        // }
         {
             let item = GenomeItem::new(
                 InstructionId::Call,
                 1,
                 ParameterType::Constant,
-                80578,
+                40,
             );
             genome_vec.push(item);
         }
         {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 3, 2);
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 1, 10);
             genome_vec.push(item);
         }
-        {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
-            genome_vec.push(item);
-        }
-        {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
-            genome_vec.push(item);
-        }
-        {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 1, 6);
-            genome_vec.push(item);
-        }
+        // {
+        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
+        //     genome_vec.push(item);
+        // }
+        // {
+        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
+        //     genome_vec.push(item);
+        // }
+        // {
+        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 1, 6);
+        //     genome_vec.push(item);
+        // }
         // for _ in 0..4 {
         //     {
         //         let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);

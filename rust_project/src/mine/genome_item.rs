@@ -222,12 +222,14 @@ impl GenomeItem {
             return true;
         }
         
+        // If the program was found among the available programs,
+        // then pick the next available program.
         if let Some(new_program_id) = iter.next() {
             self.source_value = *new_program_id as i32;
             return true;   
         }
         
-        // This is the last item in the vector. Wrap around and pick the first item instead.
+        // Wraparound when reaching the end of the available programs.
         match available_program_ids.first() {
             Some(new_program_id) => {
                 self.source_value = *new_program_id as i32;
