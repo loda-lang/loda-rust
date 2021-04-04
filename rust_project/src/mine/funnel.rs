@@ -1,6 +1,6 @@
 use crate::mine::CheckFixedLengthSequence;
 use crate::util::Analyze;
-use crate::oeis::stripped_sequence::BigIntVec;
+use crate::util::BigIntVec;
 
 pub struct Funnel<'a> {
     checker10: &'a CheckFixedLengthSequence,

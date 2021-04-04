@@ -3,7 +3,7 @@ use crate::config::Config;
 use crate::mine::{CheckFixedLengthSequence, load_program_ids_csv_file, Funnel};
 use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, parse_program, ParseProgramError, ParsedProgram};
 use crate::execute::{EvalError, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
-use crate::oeis::stripped_sequence::BigIntVec;
+use crate::util::BigIntVec;
 use std::fs;
 use std::fmt;
 use std::time::Instant;

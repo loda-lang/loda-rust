@@ -1,4 +1,4 @@
-use crate::oeis::stripped_sequence::BigIntVec;
+use crate::util::BigIntVec;
 use std::collections::HashSet;
 use num_bigint::{BigInt, ToBigInt};
 use num_traits::Zero;
