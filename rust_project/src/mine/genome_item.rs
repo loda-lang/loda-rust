@@ -13,8 +13,8 @@ pub enum MutateValue {
 }
 
 pub struct GenomeItem {
-    pub enabled: bool,
-    pub instruction_id: InstructionId,
+    enabled: bool,
+    instruction_id: InstructionId,
     pub target_value: i32,
     pub source_type: ParameterType,
     pub source_value: i32,
@@ -49,6 +49,18 @@ impl GenomeItem {
             source_type: ParameterType::Constant,
             source_value: source_value,
         }
+    }
+
+    pub fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+
+    pub fn set_enabled(&mut self, enabled: bool) {
+        self.enabled = enabled;
+    }
+
+    pub fn instruction_id(&self) -> &InstructionId {
+        &self.instruction_id
     }
 
     pub fn mutate_trigger_division_by_zero(&mut self) {

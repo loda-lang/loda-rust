@@ -173,13 +173,12 @@ impl Genome {
             genome_vec.push(item);
         }
         {
-            let item = GenomeItem {
-                enabled: true,
-                instruction_id: InstructionId::Call,
-                target_value: 1,
-                source_type: ParameterType::Constant,
-                source_value: 80578,
-            };
+            let item = GenomeItem::new(
+                InstructionId::Call,
+                1,
+                ParameterType::Constant,
+                80578,
+            );
             genome_vec.push(item);
         }
         {
@@ -219,12 +218,12 @@ impl Genome {
 
         let mut line_number: usize = 0;
         for genome_item in self.genome_vec.iter() {
-            if !genome_item.enabled {
+            if !genome_item.is_enabled() {
                 continue;
             }
 
             let instruction_id: InstructionId = 
-                genome_item.instruction_id.clone();
+                genome_item.instruction_id().clone();
     
             let parameter_vec: Vec<InstructionParameter> = 
                 genome_item.to_parameter_vec();
@@ -407,8 +406,8 @@ impl Genome {
         if index0 == index1 {
             return false;
         }
-        let instruction0: &InstructionId = &self.genome_vec[index0].instruction_id;
-        let instruction1: &InstructionId = &self.genome_vec[index1].instruction_id;
+        let instruction0: &InstructionId = self.genome_vec[index0].instruction_id();
+        let instruction1: &InstructionId = self.genome_vec[index1].instruction_id();
         // Prevent messing with loop begin/end instructions.
         let is_loop = 
             *instruction0 == InstructionId::LoopBegin || 
@@ -431,8 +430,8 @@ impl Genome {
         }
         let index0: usize = rng.gen_range(0..length-1);
         let index1: usize = index0 + 1;
-        let instruction0: &InstructionId = &self.genome_vec[index0].instruction_id;
-        let instruction1: &InstructionId = &self.genome_vec[index1].instruction_id;
+        let instruction0: &InstructionId = self.genome_vec[index0].instruction_id();
+        let instruction1: &InstructionId = self.genome_vec[index1].instruction_id();
         // Prevent reversing the order of the loop begin/end instructions.
         let is_loop = 
             *instruction0 == InstructionId::LoopBegin && 
