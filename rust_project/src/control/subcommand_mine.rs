@@ -3,7 +3,7 @@ use crate::config::Config;
 use crate::mine::{CheckFixedLengthSequence, load_program_ids_csv_file, Funnel};
 use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, parse_program, ParseProgramError, ParsedProgram};
 use crate::execute::{EvalError, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
-use crate::util::BigIntVec;
+use crate::util::{BigIntVec, bigintvec_to_string};
 use std::fs;
 use std::fmt;
 use std::time::Instant;
@@ -74,14 +74,6 @@ pub fn subcommand_mine() {
         &available_program_ids,
         initial_random_seed,
     );
-}
-
-fn terms_to_string(terms: &BigIntVec) -> String {
-    let term_strings: Vec<String> = terms.iter().map(|term| {
-        term.to_string()
-    }).collect();
-    let term_strings_joined: String = term_strings.join(",");
-    term_strings_joined
 }
 
 enum MutateValue {
@@ -1202,7 +1194,7 @@ fn run_experiment0(
         // Yay, this candidate program has 40 terms that are good.
         // Save a snapshot of this program to `$HOME/.loda-lab/mine-even/`
         let mut serializer = ProgramSerializer::new();
-        serializer.append(format!("; {}", terms_to_string(&terms40)));
+        serializer.append(format!("; {}", bigintvec_to_string(&terms40)));
         serializer.append("");
         runner.serialize(&mut serializer);
         let candidate_program: String = serializer.to_string();
