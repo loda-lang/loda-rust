@@ -412,6 +412,29 @@ impl Genome {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure.
+    pub fn mutate_call<R: Rng + ?Sized>(&mut self, rng: &mut R, available_program_ids: &Vec<u32>) -> bool {
+        // Identify GenomeItem's that use the `cal` instruction
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if *genome_item.instruction_id() == InstructionId::Call {
+                indexes.push(index);
+            }
+        }
+        if indexes.is_empty() {
+            return false;
+        }
+
+        // Pick one of the GenomeItem's 
+        let index: &usize = indexes.choose(rng).unwrap();
+
+        // Mutate the call instruction, so it invokes the next program in the list.
+        // If it reaches the end, then it picks the first program from the list.
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
+        genome_item.mutate_pick_next_program(rng, available_program_ids)
+    }
+
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure.
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mutation_vec: Vec<MutateGenome> = vec![
             MutateGenome::Instruction,

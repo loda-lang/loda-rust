@@ -200,6 +200,47 @@ impl GenomeItem {
         true
     }
 
+    pub fn mutate_pick_next_program<R: Rng + ?Sized>(&mut self, rng: &mut R, available_program_ids: &Vec<u32>) -> bool {
+        let is_call = self.instruction_id == InstructionId::Call;
+        if !is_call {
+            // Only a call instruction can be modified.
+            return false;
+        }
+        if available_program_ids.is_empty() {
+            // There are no program_ids to pick from.
+            return false;
+        }
+        let current_program_id: u32 = self.source_value().abs() as u32;
+        let mut iter = available_program_ids.iter();
+        let index: Option<usize> = iter.position(|&program_id| program_id == current_program_id);
+
+        // If the program wasn't found among the available programs,
+        // then pick a random program.
+        if index.is_none() {
+            let new_program_id: &u32 = available_program_ids.choose(rng).unwrap();
+            self.source_value = *new_program_id as i32;
+            return true;
+        }
+        
+        if let Some(new_program_id) = iter.next() {
+            self.source_value = *new_program_id as i32;
+            return true;   
+        }
+        
+        // This is the last item in the vector. Wrap around and pick the first item instead.
+        match available_program_ids.first() {
+            Some(new_program_id) => {
+                self.source_value = *new_program_id as i32;
+                return true;   
+            },
+            None => {
+                // If everything fails, fallback to fibonacci, A000045
+                self.source_value = 45;
+                return false;
+            }
+        }
+    }
+
     pub fn mutate_sanitize_program_row(&mut self) -> bool {
         // Things to prevent 
         // division by zero
