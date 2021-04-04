@@ -101,7 +101,7 @@ impl GenomeItem {
             InstructionId::Divide,
             InstructionId::DivideIf,
             InstructionId::GCD,
-            InstructionId::Logarithm,
+            // InstructionId::Logarithm,
             // InstructionId::Max,
             // InstructionId::Min,
             InstructionId::Modulo,
@@ -293,12 +293,16 @@ impl GenomeItem {
             InstructionId::Multiply => {
                 match self.source_type {
                     ParameterType::Constant => {
-                        if self.source_value < 2 {
-                            self.source_value = 2;
-                            return false;
-                        }
                         if self.source_value > 16 {
                             self.source_value = 16;
+                            return false;
+                        }
+                        if self.source_value < -1 {
+                            self.source_value = -1;
+                            return false;
+                        }
+                        if self.source_value < 2 {
+                            self.source_value = 2;
                             return false;
                         }
                     },
@@ -333,7 +337,7 @@ impl GenomeItem {
             InstructionId::Subtract => {
                 match self.source_type {
                     ParameterType::Constant => {
-                        if self.source_value == 0 {
+                        if self.source_value < 0 {
                             self.source_value = 1;
                             return false;
                         }
@@ -352,7 +356,7 @@ impl GenomeItem {
             },
             InstructionId::Add => {
                 if self.source_type == ParameterType::Constant {
-                    if self.source_value == 0 {
+                    if self.source_value < 1 {
                         self.source_value = 1;
                         return false;
                     }
@@ -365,7 +369,7 @@ impl GenomeItem {
             InstructionId::Move => {
                 match self.source_type {
                     ParameterType::Constant => {
-                        if self.source_value == 0 {
+                        if self.source_value < 0 {
                             self.source_value = 1;
                             return false;
                         }
@@ -418,6 +422,17 @@ impl GenomeItem {
             },
             InstructionId::LoopEnd => {
                 return vec!();
+            },
+            InstructionId::Call => {
+                let parameter0 = InstructionParameter {
+                    parameter_type: ParameterType::Register,
+                    parameter_value: self.target_value.abs() as i64,
+                };
+                let parameter1 = InstructionParameter {
+                    parameter_type: ParameterType::Constant,
+                    parameter_value: (self.source_value.abs()) as i64,
+                };
+                return vec![parameter0, parameter1];
             },
             _ => {
                 let parameter0 = InstructionParameter {
