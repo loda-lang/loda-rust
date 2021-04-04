@@ -1,6 +1,5 @@
 use crate::config::Config;
-use crate::mine::check_fixed_length_sequence::create_cache_file;
-use crate::mine::load_program_ids_csv_file;
+use crate::mine::{create_cache_file, load_program_ids_csv_file};
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
 use std::iter::FromIterator;
