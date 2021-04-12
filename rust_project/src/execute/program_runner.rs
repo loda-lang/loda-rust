@@ -38,7 +38,7 @@ impl ProgramRunner {
         // Initial state
         let mut state = ProgramState::new(self.register_count, run_mode, step_count_limit);
         state.set_step_count(step_count_before);
-        state.set_register_value(RegisterIndex(0), input.clone());
+        state.set_input_value(&input);
 
         // Invoke the actual run() function
         let run_result = self.program.run(&mut state, cache);

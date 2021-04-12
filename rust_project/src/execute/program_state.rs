@@ -8,6 +8,13 @@ lazy_static! {
     static ref OUT_OF_BOUNDS_RETURN_VALUE: RegisterValue = RegisterValue::zero();
 }
 
+// The register 0 is for input data.
+const INPUT_REGISTER: usize = 0;
+
+// The register 1 is for output data.
+const OUTPUT_REGISTER: usize = 1;
+
+
 #[derive(Clone)]
 pub struct ProgramState {
     register_vec: Vec<RegisterValue>,
@@ -57,10 +64,10 @@ impl ProgramState {
         return &self.register_vec[index];
     }    
 
-    // The register 1 is the output register.
+    // Read the value of register 1, the output register.
     pub fn get_output_value(&self) -> &RegisterValue {
         assert!(self.register_vec.len() >= 2);
-        return &self.register_vec[1];
+        return &self.register_vec[OUTPUT_REGISTER];
     }    
 
     pub fn set_register_value(&mut self, register_index: RegisterIndex, register_value: RegisterValue) {
@@ -71,6 +78,12 @@ impl ProgramState {
         self.register_vec[index] = register_value;
     }
 
+    // Write a value to register 0, the input register.
+    pub fn set_input_value(&mut self, register_value: &RegisterValue) {
+        assert!(self.register_vec.len() >= 2);
+        self.register_vec[INPUT_REGISTER] = register_value.clone();
+    }
+   
     pub fn set_register_range_to_zero(&mut self, register_index: RegisterIndex, count: u8) {
         let number_of_registers: usize = self.register_vec.len(); 
         let mut index = register_index.0 as usize;
