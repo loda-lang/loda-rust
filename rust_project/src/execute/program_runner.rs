@@ -52,8 +52,8 @@ impl ProgramRunner {
             return Err(error);
         }
         
-        // In case run succeeded, then return register 1.
-        let output: RegisterValue = state.get_register_value(RegisterIndex(1));
+        // In case run succeeded, then return output.
+        let output: RegisterValue = state.get_output_value().clone();
 
         // Update cache
         match self.program_id {

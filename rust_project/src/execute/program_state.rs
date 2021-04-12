@@ -39,15 +39,6 @@ impl ProgramState {
         self.run_mode
     }
 
-    pub fn get_register_value_ref(&self, register_index: &RegisterIndex) -> &RegisterValue {
-        let index = register_index.0 as usize;
-        if index >= self.register_vec.len() {
-            // Accessing a register outside bounds always returns zero
-            return &OUT_OF_BOUNDS_RETURN_VALUE;
-        }
-        return &self.register_vec[index];
-    }
-
     pub fn get_register_value(&self, register_index: RegisterIndex) -> RegisterValue {
         let index = register_index.0 as usize;
         if index >= self.register_vec.len() {
@@ -56,6 +47,21 @@ impl ProgramState {
         }
         return self.register_vec[index].clone();
     }
+
+    pub fn get_register_value_ref(&self, register_index: &RegisterIndex) -> &RegisterValue {
+        let index = register_index.0 as usize;
+        if index >= self.register_vec.len() {
+            // Accessing a register outside bounds always returns zero
+            return &OUT_OF_BOUNDS_RETURN_VALUE;
+        }    
+        return &self.register_vec[index];
+    }    
+
+    // The register 1 is the output register.
+    pub fn get_output_value(&self) -> &RegisterValue {
+        assert!(self.register_vec.len() >= 2);
+        return &self.register_vec[1];
+    }    
 
     pub fn set_register_value(&mut self, register_index: RegisterIndex, register_value: RegisterValue) {
         let index = register_index.0 as usize;
