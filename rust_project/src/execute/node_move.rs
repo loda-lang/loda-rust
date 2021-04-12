@@ -21,8 +21,8 @@ impl Node for NodeMoveRegister {
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
-        let value: RegisterValue = state.get_register_value(self.source.clone());
-        state.set_register_value(self.target.clone(), value);
+        let value: &RegisterValue = state.get_register_value_ref(&self.source);
+        state.set_register_value(self.target.clone(), value.clone());
         Ok(())
     }
 

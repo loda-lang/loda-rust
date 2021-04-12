@@ -66,7 +66,7 @@ impl Node for NodeClearRegister {
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
-        let value: RegisterValue = state.get_register_value(self.register_with_clear_count.clone());
+        let value: &RegisterValue = state.get_register_value_ref(&self.register_with_clear_count);
         let value_inner: &BigInt = &value.0;
         let clear_count: u8;
         let max_clear_count_bigint: BigInt = 255.to_bigint().unwrap();

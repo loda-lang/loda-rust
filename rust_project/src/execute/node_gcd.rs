@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
 
-fn perform_operation(x: RegisterValue, y: RegisterValue) -> Result<RegisterValue,EvalError> {
+fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,EvalError> {
     let xx: &BigInt = &x.0;
     let yy: &BigInt = &y.0;
     if xx.is_zero() && yy.is_zero() {
@@ -36,8 +36,8 @@ impl Node for NodeGCDRegister {
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
-        let lhs: RegisterValue = state.get_register_value(self.target.clone());
-        let rhs: RegisterValue = state.get_register_value(self.source.clone());
+        let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
+        let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
         let value: RegisterValue = perform_operation(lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
@@ -75,8 +75,8 @@ impl Node for NodeGCDConstant {
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
-        let lhs: RegisterValue = state.get_register_value(self.target.clone());
-        let rhs: RegisterValue = self.source.clone();
+        let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
+        let rhs: &RegisterValue = &self.source;
         let value: RegisterValue = perform_operation(lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
@@ -93,8 +93,8 @@ mod tests {
 
     fn process(left: i64, right: i64) -> String {
         let result = perform_operation(
-            RegisterValue::from_i64(left),
-            RegisterValue::from_i64(right)
+            &RegisterValue::from_i64(left),
+            &RegisterValue::from_i64(right)
         );
         match result {
             Ok(value) => value.to_string(),
