@@ -77,6 +77,7 @@ struct ConfigInner {
 }
 
 fn load_config_from_home_dir() -> Config {
+    #![allow(warnings)]
     let homedir: PathBuf = match std::env::home_dir() {
         Some(value) => value,
         None => {

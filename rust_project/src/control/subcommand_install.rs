@@ -6,6 +6,7 @@ use std::io::prelude::*;
 
 pub fn subcommand_install() {
     // Obtain $HOME environment variable
+    #![allow(warnings)]
     let homedir: PathBuf = match std::env::home_dir() {
         Some(value) => value,
         None => {
