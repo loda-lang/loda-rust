@@ -73,6 +73,11 @@ file 'data/loda-lab' do
     ruby 'task_lodalab_executable.rb'
 end
 
+desc "identify the programs that can be used by the miner"
+file 'data/mine_program_ids.csv' => ['data/terms_lab.csv'] do
+    ruby 'task_mine_program_ids.rb'
+end
+
 task :default do
     system 'rake -T'
 end
