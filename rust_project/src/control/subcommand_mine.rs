@@ -83,7 +83,7 @@ impl ProgramRunner {
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
             let output: RegisterValue = self.run(
-                input, 
+                &input, 
                 RunMode::Silent, 
                 &mut _step_count, 
                 step_count_limit, 

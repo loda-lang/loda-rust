@@ -36,7 +36,7 @@ impl Node for NodeCallConstant {
         if !self.link_established {
             panic!("No link have been establish. This node cannot do its job.");
         }
-        let input: RegisterValue = state.get_register_value(self.target.clone());
+        let input: &RegisterValue = state.get_register_value_ref(&self.target);
         if input.0.is_negative() {
             // Prevent calling other programs with a negative parameter.
             return Err(EvalError::CallWithNegativeParameter);

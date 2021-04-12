@@ -21,7 +21,7 @@ impl ProgramRunner {
         }
     }
 
-    pub fn run(&self, input: RegisterValue, run_mode: RunMode, step_count: &mut u64, step_count_limit: u64, cache: &mut ProgramCache) -> Result<RegisterValue, EvalError> {
+    pub fn run(&self, input: &RegisterValue, run_mode: RunMode, step_count: &mut u64, step_count_limit: u64, cache: &mut ProgramCache) -> Result<RegisterValue, EvalError> {
         let step_count_before: u64 = *step_count;
 
         // Lookup (programid+input) in cache
@@ -38,7 +38,7 @@ impl ProgramRunner {
         // Initial state
         let mut state = ProgramState::new(self.register_count, run_mode, step_count_limit);
         state.set_step_count(step_count_before);
-        state.set_input_value(&input);
+        state.set_input_value(input);
 
         // Invoke the actual run() function
         let run_result = self.program.run(&mut state, cache);
@@ -153,7 +153,7 @@ impl ProgramRunner {
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
             let result = self.run(
-                input, 
+                &input, 
                 RunMode::Silent, 
                 &mut step_count, 
                 step_count_limit,
