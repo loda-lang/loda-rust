@@ -18,6 +18,11 @@ pub struct ProgramState {
 
 impl ProgramState {
     pub fn new(register_count: u8, run_mode: RunMode, step_count_limit: u64) -> Self {
+        // Register 0 is for input value
+        // Register 1 is for output value
+        // So there must be a least 2 registers.
+        assert!(register_count >= 2);
+
         let mut register_vec: Vec<RegisterValue> = vec!();
         for _ in 0..register_count {
             register_vec.push(RegisterValue::zero());
@@ -184,7 +189,19 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_set_register_range_to_zero() {
+    #[should_panic]
+    fn test_10001_initialize_with_too_few_registers() {
+        ProgramState::new(0, RunMode::Silent, 1000);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_10002_initialize_with_too_few_registers() {
+        ProgramState::new(1, RunMode::Silent, 1000);
+    }
+
+    #[test]
+    fn test_20001_set_register_range_to_zero() {
         {
             // clear 0 registers is the same as doing nothing
             let mut state = mock_program_state();
@@ -218,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_is_less_range_returns_false() {
+    fn test_30000_is_less_range_returns_false() {
         {
             // compare 0 registers
             let zero_length: u8 = 0;
@@ -278,7 +295,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_is_less_range_returns_true() {
+    fn test_30001_is_less_range_returns_true() {
         {
             // compare 1 register
             let state0 = empty_program_state();
@@ -333,7 +350,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20002_is_less_single_returns_false() {
+    fn test_30002_is_less_single_returns_false() {
         {
             let state = empty_program_state();
             assert_eq!(state.is_less_single(&state, RegisterIndex(0)), false);
@@ -366,7 +383,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20003_is_less_single_returns_true() {
+    fn test_30003_is_less_single_returns_true() {
         {
             let state0 = empty_program_state();
             let mut state1 = empty_program_state();
