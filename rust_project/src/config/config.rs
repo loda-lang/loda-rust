@@ -1,6 +1,5 @@
 use std::path::{Path,PathBuf};
 use serde::Deserialize;
-use toml::de::Error;
 use std::fs;
 
 const DEFAULT_CONFIG: &'static str =

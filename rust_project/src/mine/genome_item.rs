@@ -1,4 +1,3 @@
-use crate::util::BigIntVec;
 use crate::parser::{InstructionId, InstructionParameter, ParameterType};
 use rand::Rng;
 use rand::seq::SliceRandom;

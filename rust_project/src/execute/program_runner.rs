@@ -1,4 +1,4 @@
-use super::{CacheValue, EvalError, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterIndex, RegisterValue, RunMode};
+use super::{EvalError, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterIndex, RegisterValue, RunMode};
 use super::node_move::NodeMoveRegister;
 use std::collections::HashSet;
 

@@ -1,7 +1,7 @@
 use super::DependencyManager;
 use crate::config::Config;
-use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, GenomeItem, load_program_ids_csv_file, MutateGenome, MutateValue};
-use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, parse_program, ParseProgramError, ParsedProgram};
+use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, load_program_ids_csv_file};
+use crate::parser::{parse_program, ParsedProgram};
 use crate::execute::{EvalError, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use crate::util::{BigIntVec, bigintvec_to_string};
 use std::fs;
@@ -9,9 +9,8 @@ use std::time::Instant;
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::prelude::*;
-use rand::{Rng,RngCore,SeedableRng};
+use rand::{RngCore, SeedableRng};
 use rand::rngs::StdRng;
-use rand::seq::SliceRandom;
 use rand::thread_rng;
 use chrono::{DateTime, Utc};
 
@@ -146,7 +145,7 @@ fn run_experiment0(
         }
     };
 
-    let parsed_program: ParsedProgram = match parse_program(&contents) {
+    let _parsed_program: ParsedProgram = match parse_program(&contents) {
         Ok(value) => value,
         Err(error) => {
             panic!("Something went wrong parsing the program: {:?}", error);
@@ -235,7 +234,7 @@ fn run_experiment0(
         );
         let mut runner: ProgramRunner = match result_parse {
             Ok(value) => value,
-            Err(error) => {
+            Err(_error) => {
                 // debug!("iteration: {} cannot be parsed. {}", iteration, error);
                 number_of_errors_parse += 1;
                 continue;
@@ -252,7 +251,7 @@ fn run_experiment0(
         let number_of_terms: u64 = 10;
         let terms10: BigIntVec = match runner.compute_terms(number_of_terms, &mut cache) {
             Ok(value) => value,
-            Err(error) => {
+            Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
                 number_of_errors_run += 1;
                 continue;
@@ -268,7 +267,7 @@ fn run_experiment0(
 
         let terms20: BigIntVec = match runner.compute_terms(20, &mut cache) {
             Ok(value) => value,
-            Err(error) => {
+            Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
                 number_of_errors_run += 1;
                 continue;
@@ -280,7 +279,7 @@ fn run_experiment0(
 
         let terms30: BigIntVec = match runner.compute_terms(30, &mut cache) {
             Ok(value) => value,
-            Err(error) => {
+            Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
                 number_of_errors_run += 1;
                 continue;
@@ -292,7 +291,7 @@ fn run_experiment0(
 
         let terms40: BigIntVec = match runner.compute_terms(40, &mut cache) {
             Ok(value) => value,
-            Err(error) => {
+            Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
                 number_of_errors_run += 1;
                 continue;
