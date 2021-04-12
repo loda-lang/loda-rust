@@ -91,6 +91,7 @@ impl ProgramRunner {
         register_set
     }
 
+    #[allow(dead_code)]
     pub fn has_live_registers(&self) -> bool {
         self.live_registers().contains(&RegisterIndex(1))
     }

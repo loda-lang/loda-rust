@@ -8,6 +8,7 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> RegisterValue {
     RegisterValue(xx + yy)
 }
 
+#[allow(dead_code)]
 pub struct NodeAddRegister {
     target: RegisterIndex,
     source: RegisterIndex,
@@ -47,6 +48,7 @@ impl Node for NodeAddRegister {
     }
 }
 
+#[allow(dead_code)]
 pub struct NodeAddConstant {
     target: RegisterIndex,
     source: RegisterValue,

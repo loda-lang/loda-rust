@@ -52,6 +52,7 @@ impl GenomeItem {
         self.enabled
     }
 
+    #[allow(dead_code)]
     pub fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
@@ -60,6 +61,7 @@ impl GenomeItem {
         &self.instruction_id
     }
 
+    #[allow(dead_code)]
     pub fn target_value(&self) -> i32 {
         self.target_value
     }
@@ -72,6 +74,7 @@ impl GenomeItem {
         self.source_value
     }
 
+    #[allow(dead_code)]
     pub fn mutate_trigger_division_by_zero(&mut self) {
         self.instruction_id = InstructionId::Divide;
         self.source_type = ParameterType::Constant;

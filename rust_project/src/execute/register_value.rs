@@ -23,6 +23,7 @@ impl RegisterValue {
         RegisterValue(value_bigint)
     }
 
+    #[allow(dead_code)]
     pub fn to_i64(&self) -> i64 {
         self.0.to_i64().unwrap()
     }

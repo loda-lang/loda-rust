@@ -6,6 +6,7 @@ use rand::seq::SliceRandom;
 
 // Ideas for more mutations
 // append random row
+#[allow(dead_code)]
 pub enum MutateGenome {
     Instruction,
     SourceConstant,
@@ -24,6 +25,7 @@ pub struct Genome {
 }
 
 impl Genome {
+    #[allow(dead_code)]
     pub fn new_from_parsed_program(parsed_program: &ParsedProgram) -> Self {
         let mut genome_vec: Vec<GenomeItem> = vec!();
 
@@ -56,6 +58,7 @@ impl Genome {
         }
     }
 
+    #[allow(dead_code)]
     pub fn new() -> Self {
         let mut genome_vec: Vec<GenomeItem> = vec!();
         {
@@ -171,6 +174,7 @@ impl Genome {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
+    #[allow(dead_code)]
     pub fn mutate_source_value_constant<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         // Identify all the instructions that use constants
         let mut indexes: Vec<usize> = vec!();
@@ -206,6 +210,7 @@ impl Genome {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as no instructions that use a source_type=register, underflow, overflow.
+    #[allow(dead_code)]
     pub fn mutate_source_register<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         // Identify all the instructions that use source_type=register
         let mut indexes: Vec<usize> = vec!();
@@ -258,6 +263,7 @@ impl Genome {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    #[allow(dead_code)]
     pub fn mutate_instruction<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         assert!(length > 0);
@@ -272,6 +278,7 @@ impl Genome {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    #[allow(dead_code)]
     pub fn mutate_source_type<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         assert!(length > 0);
@@ -286,6 +293,7 @@ impl Genome {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    #[allow(dead_code)]
     pub fn mutate_swap_registers<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         // Identify all the instructions that use two registers
         let mut indexes: Vec<usize> = vec!();
@@ -309,6 +317,7 @@ impl Genome {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    #[allow(dead_code)]
     pub fn mutate_enabled<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         assert!(length > 0);
@@ -323,6 +332,7 @@ impl Genome {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    #[allow(dead_code)]
     pub fn mutate_swap_rows<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         if length < 2 {
@@ -350,6 +360,7 @@ impl Genome {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    #[allow(dead_code)]
     pub fn mutate_swap_adjacent_rows<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         if length < 3 {
@@ -372,6 +383,7 @@ impl Genome {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    #[allow(dead_code)]
     pub fn mutate_insert_loop<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         if length < 2 {
@@ -412,6 +424,7 @@ impl Genome {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure.
+    #[allow(dead_code)]
     pub fn mutate_call<R: Rng + ?Sized>(&mut self, rng: &mut R, available_program_ids: &Vec<u32>) -> bool {
         // Identify GenomeItem's that use the `cal` instruction
         let mut indexes: Vec<usize> = vec!();
@@ -435,6 +448,7 @@ impl Genome {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure.
+    #[allow(dead_code)]
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mutation_vec: Vec<MutateGenome> = vec![
             MutateGenome::Instruction,
