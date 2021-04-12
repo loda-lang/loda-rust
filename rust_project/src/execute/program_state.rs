@@ -2,6 +2,11 @@ use super::{EvalError, RegisterIndex, RegisterValue, RunMode};
 use num_bigint::BigInt;
 use num_traits::Signed;
 use std::cmp::Ordering;
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref OUT_OF_BOUNDS_RETURN_VALUE: RegisterValue = RegisterValue::zero();
+}
 
 #[derive(Clone)]
 pub struct ProgramState {
@@ -27,6 +32,15 @@ impl ProgramState {
 
     pub fn run_mode(&self) -> RunMode {
         self.run_mode
+    }
+
+    pub fn get_register_value_ref(&self, register_index: &RegisterIndex) -> &RegisterValue {
+        let index = register_index.0 as usize;
+        if index >= self.register_vec.len() {
+            // Accessing a register outside bounds always returns zero
+            return &OUT_OF_BOUNDS_RETURN_VALUE;
+        }
+        return &self.register_vec[index];
     }
 
     pub fn get_register_value(&self, register_index: RegisterIndex) -> RegisterValue {
