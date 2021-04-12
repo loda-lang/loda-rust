@@ -4,7 +4,7 @@ use num_traits::Signed;
 
 pub enum NodeCallNegativeInputBehavior {
     // When encountering a negative input, then stop executing the program.
-    // This is robust and the default behavior.
+    // This is robust. Hopefully this can become the default behavior.
     DisallowNegativeInput,
 
     // Allow negative input. Not recommended, since this is fragile. 
