@@ -2,12 +2,13 @@ use super::{EvalError, Node, ProgramCache, ProgramState, RegisterIndex, Register
 use std::collections::HashSet;
 use num_bigint::BigInt;
 
-fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
+fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> RegisterValue {
     let xx: &BigInt = &x.0;
     let yy: &BigInt = &y.0;
     RegisterValue(xx + yy)
 }
 
+#[allow(dead_code)]
 pub struct NodeAddRegister {
     target: RegisterIndex,
     source: RegisterIndex,
@@ -28,8 +29,8 @@ impl Node for NodeAddRegister {
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
-        let lhs: RegisterValue = state.get_register_value(self.target.clone());
-        let rhs: RegisterValue = state.get_register_value(self.source.clone());
+        let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
+        let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
         let value = perform_operation(lhs, rhs);
         state.set_register_value(self.target.clone(), value);
         Ok(())
@@ -43,12 +44,11 @@ impl Node for NodeAddRegister {
     fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
         if register_set.contains(&self.source) {
             register_set.insert(self.target.clone());
-        } else {
-            register_set.remove(&self.target);
         }
     }
 }
 
+#[allow(dead_code)]
 pub struct NodeAddConstant {
     target: RegisterIndex,
     source: RegisterValue,
@@ -69,8 +69,8 @@ impl Node for NodeAddConstant {
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
-        let lhs: RegisterValue = state.get_register_value(self.target.clone());
-        let rhs: RegisterValue = self.source.clone();
+        let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
+        let rhs: &RegisterValue = &self.source;
         let value = perform_operation(lhs, rhs);
         state.set_register_value(self.target.clone(), value);
         Ok(())
@@ -87,8 +87,8 @@ mod tests {
 
     fn process(left: i64, right: i64) -> String {
         let value: RegisterValue = perform_operation(
-            RegisterValue::from_i64(left),
-            RegisterValue::from_i64(right)
+            &RegisterValue::from_i64(left),
+            &RegisterValue::from_i64(right)
         );
         value.to_string()
     }

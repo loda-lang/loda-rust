@@ -2,11 +2,22 @@ use std::rc::Rc;
 use super::{EvalError, ProgramCache, Node, RegisterIndex, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
 use num_traits::Signed;
 
+pub enum NodeCallNegativeInputBehavior {
+    // When encountering a negative input, then stop executing the program.
+    // This is robust and the default behavior.
+    DisallowNegativeInput,
+
+    // Allow negative input. Not recommended, since this is fragile. 
+    // The programs change over time and are undefined for negative values.
+    AllowNegativeInput,
+}
+
 pub struct NodeCallConstant {
     target: RegisterIndex,
     program_id: u64,
     program_runner_rc: Rc::<ProgramRunner>,
     link_established: bool,
+    negative_input_behavior: NodeCallNegativeInputBehavior,
 }
 
 impl NodeCallConstant {
@@ -23,6 +34,8 @@ impl NodeCallConstant {
             program_id: program_id,
             program_runner_rc: program_runner_rc,
             link_established: false,
+            // negative_input_behavior: NodeCallNegativeInputBehavior::DisallowNegativeInput,
+            negative_input_behavior: NodeCallNegativeInputBehavior::AllowNegativeInput,
         }
     }
 }
@@ -36,11 +49,24 @@ impl Node for NodeCallConstant {
         if !self.link_established {
             panic!("No link have been establish. This node cannot do its job.");
         }
-        let input: RegisterValue = state.get_register_value(self.target.clone());
+        let input: &RegisterValue = state.get_register_value_ref(&self.target);
+
         if input.0.is_negative() {
-            // Prevent calling other programs with a negative parameter.
-            return Err(EvalError::CallWithNegativeParameter);
+            match self.negative_input_behavior {
+                NodeCallNegativeInputBehavior::DisallowNegativeInput => {
+                    // Prevent calling other programs with a negative parameter.
+                    return Err(EvalError::CallWithNegativeParameter);
+                },
+                NodeCallNegativeInputBehavior::AllowNegativeInput => {
+                    // Allowing negative values is fragile.
+                    // If program A depends on program B. 
+                    // Some day program B gets changed, and it breaks program A,
+                    // because negative input values was being used.
+                    warn!("call instruction with negative input");
+                }
+            }
         }
+
         let step_count_limit: u64 = state.step_count_limit();
         let mut step_count: u64 = state.step_count();
 

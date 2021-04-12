@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use num_bigint::BigInt;
 use num_traits::{Zero, One, Signed};
 
-fn perform_operation(x: RegisterValue, y: RegisterValue) -> Result<RegisterValue,EvalError> {
+fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,EvalError> {
     let n: &BigInt = &x.0;
     let base: &BigInt = &y.0;
     if !n.is_positive() {  
@@ -51,8 +51,8 @@ impl Node for NodeLogarithmRegister {
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
-        let lhs: RegisterValue = state.get_register_value(self.target.clone());
-        let rhs: RegisterValue = state.get_register_value(self.source.clone());
+        let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
+        let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
         let value: RegisterValue = perform_operation(lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
@@ -66,8 +66,6 @@ impl Node for NodeLogarithmRegister {
     fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
         if register_set.contains(&self.source) {
             register_set.insert(self.target.clone());
-        } else {
-            register_set.remove(&self.target);
         }
     }    
 }
@@ -92,8 +90,8 @@ impl Node for NodeLogarithmConstant {
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
-        let lhs: RegisterValue = state.get_register_value(self.target.clone());
-        let rhs: RegisterValue = self.source.clone();
+        let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
+        let rhs: &RegisterValue = &self.source;
         let value: RegisterValue = perform_operation(lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
@@ -110,8 +108,8 @@ mod tests {
 
     fn process(left: i64, right: i64) -> String {
         let result = perform_operation(
-            RegisterValue::from_i64(left),
-            RegisterValue::from_i64(right)
+            &RegisterValue::from_i64(left),
+            &RegisterValue::from_i64(right)
         );
         match result {
             Ok(value) => value.to_string(),

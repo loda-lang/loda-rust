@@ -18,6 +18,7 @@ rake data/compare_loda_vs_lab.csv   # compare terms between "LODA official" and 
 rake data/denylist.csv              # extract program ids from the LODA denylist file
 rake data/dont_mine.csv             # determine which program ids that shouldn't be attempted mined
 rake data/loda-lab                  # compiles the loda-lab executable
+rake data/mine_program_ids.csv      # identify the programs that can be used by the miner
 rake data/most_called_programs.csv  # determine the most called programs
 rake data/pagerank.csv              # run the PageRank algorithm and ranking the most influential programs
 rake data/program_ids.csv           # obtain all the program ids

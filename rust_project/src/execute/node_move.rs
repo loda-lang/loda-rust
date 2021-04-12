@@ -21,8 +21,9 @@ impl Node for NodeMoveRegister {
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
-        let value: RegisterValue = state.get_register_value(self.source.clone());
-        state.set_register_value(self.target.clone(), value);
+        let value: &RegisterValue = state.get_register_value_ref(&self.source);
+        let tmp_value: RegisterValue = value.clone();
+        state.set_register_value(self.target.clone(), tmp_value);
         Ok(())
     }
 
@@ -35,6 +36,7 @@ impl Node for NodeMoveRegister {
         if register_set.contains(&self.source) {
             register_set.insert(self.target.clone());
         } else {
+            // Overwrite content of the target register a non-live register.
             register_set.remove(&self.target);
         }
     }
@@ -70,6 +72,7 @@ impl Node for NodeMoveConstant {
     }
     
     fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        // Overwrite content of the target register a non-live register.
         register_set.remove(&self.target);
     }
 }

@@ -9,7 +9,7 @@ use num_integer::Integer;
 // y is the power value.
 // Ruby: x ** y
 // Math syntax: x ^ y.
-fn perform_operation(x: RegisterValue, y: RegisterValue) -> Result<RegisterValue,EvalError> {
+fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,EvalError> {
     let base: &BigInt = &x.0;
     let exponent: &BigInt = &y.0;
     
@@ -85,8 +85,8 @@ impl Node for NodePowerRegister {
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
-        let lhs: RegisterValue = state.get_register_value(self.target.clone());
-        let rhs: RegisterValue = state.get_register_value(self.source.clone());
+        let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
+        let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
         let value: RegisterValue = perform_operation(lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
@@ -100,8 +100,6 @@ impl Node for NodePowerRegister {
     fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
         if register_set.contains(&self.source) {
             register_set.insert(self.target.clone());
-        } else {
-            register_set.remove(&self.target);
         }
     }    
 }
@@ -126,8 +124,8 @@ impl Node for NodePowerConstant {
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
-        let lhs: RegisterValue = state.get_register_value(self.target.clone());
-        let rhs: RegisterValue = self.source.clone();
+        let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
+        let rhs: &RegisterValue = &self.source;
         let value: RegisterValue = perform_operation(lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
@@ -152,8 +150,8 @@ mod tests {
 
     fn process(left: i64, right: i64) -> String {
         let result = perform_operation(
-            RegisterValue::from_i64(left),
-            RegisterValue::from_i64(right)
+            &RegisterValue::from_i64(left),
+            &RegisterValue::from_i64(right)
         );
         match result {
             Ok(value) => return value.to_string(),

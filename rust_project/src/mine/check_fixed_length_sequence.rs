@@ -1,3 +1,4 @@
+use crate::util::BigIntVec;
 use crate::oeis::stripped_sequence::*;
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;

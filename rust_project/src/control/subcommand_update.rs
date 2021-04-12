@@ -1,19 +1,20 @@
 use crate::config::Config;
-use crate::mine::check_fixed_length_sequence::create_cache_file;
-use crate::mine::dont_mine::load_dontmine_file;
+use crate::mine::{create_cache_file, load_program_ids_csv_file};
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
+use std::iter::FromIterator;
 
 fn obtain_dontmine_program_ids(loda_lab_repository: &Path) -> HashSet<u32> {
     let relative_path = Path::new("resources/dont_mine.csv");
     let path = loda_lab_repository.join(relative_path);
 
-    let hashset: HashSet<u32> = match load_dontmine_file(&path) {
+    let program_ids: Vec<u32> = match load_program_ids_csv_file(&path) {
         Ok(value) => value,
         Err(error) => {
             panic!("Unable to loading the dontmine file. path: {:?} error: {:?}", path, error);
         }
     };
+    let hashset: HashSet<u32> = HashSet::from_iter(program_ids.iter().cloned());
     println!("loaded dontmine file. number of records: {}", hashset.len());
     hashset
 }

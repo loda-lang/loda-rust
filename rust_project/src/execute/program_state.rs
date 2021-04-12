@@ -2,6 +2,18 @@ use super::{EvalError, RegisterIndex, RegisterValue, RunMode};
 use num_bigint::BigInt;
 use num_traits::Signed;
 use std::cmp::Ordering;
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref OUT_OF_BOUNDS_RETURN_VALUE: RegisterValue = RegisterValue::zero();
+}
+
+// The register 0 is for input data.
+const INPUT_REGISTER: usize = 0;
+
+// The register 1 is for output data.
+const OUTPUT_REGISTER: usize = 1;
+
 
 #[derive(Clone)]
 pub struct ProgramState {
@@ -13,6 +25,11 @@ pub struct ProgramState {
 
 impl ProgramState {
     pub fn new(register_count: u8, run_mode: RunMode, step_count_limit: u64) -> Self {
+        // Register 0 is for input value
+        // Register 1 is for output value
+        // So there must be a least 2 registers.
+        assert!(register_count >= 2);
+
         let mut register_vec: Vec<RegisterValue> = vec!();
         for _ in 0..register_count {
             register_vec.push(RegisterValue::zero());
@@ -29,14 +46,20 @@ impl ProgramState {
         self.run_mode
     }
 
-    pub fn get_register_value(&self, register_index: RegisterIndex) -> RegisterValue {
+    pub fn get_register_value_ref(&self, register_index: &RegisterIndex) -> &RegisterValue {
         let index = register_index.0 as usize;
         if index >= self.register_vec.len() {
             // Accessing a register outside bounds always returns zero
-            return RegisterValue::zero();
-        }
-        return self.register_vec[index].clone();
-    }
+            return &OUT_OF_BOUNDS_RETURN_VALUE;
+        }    
+        return &self.register_vec[index];
+    }    
+
+    // Read the value of register 1, the output register.
+    pub fn get_output_value(&self) -> &RegisterValue {
+        assert!(self.register_vec.len() >= 2);
+        return &self.register_vec[OUTPUT_REGISTER];
+    }    
 
     pub fn set_register_value(&mut self, register_index: RegisterIndex, register_value: RegisterValue) {
         let index = register_index.0 as usize;
@@ -46,6 +69,12 @@ impl ProgramState {
         self.register_vec[index] = register_value;
     }
 
+    // Write a value to register 0, the input register.
+    pub fn set_input_value(&mut self, register_value: &RegisterValue) {
+        assert!(self.register_vec.len() >= 2);
+        self.register_vec[INPUT_REGISTER] = register_value.clone();
+    }
+   
     pub fn set_register_range_to_zero(&mut self, register_index: RegisterIndex, count: u8) {
         let number_of_registers: usize = self.register_vec.len(); 
         let mut index = register_index.0 as usize;
@@ -170,7 +199,19 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_set_register_range_to_zero() {
+    #[should_panic]
+    fn test_10001_initialize_with_too_few_registers() {
+        ProgramState::new(0, RunMode::Silent, 1000);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_10002_initialize_with_too_few_registers() {
+        ProgramState::new(1, RunMode::Silent, 1000);
+    }
+
+    #[test]
+    fn test_20001_set_register_range_to_zero() {
         {
             // clear 0 registers is the same as doing nothing
             let mut state = mock_program_state();
@@ -204,7 +245,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_is_less_range_returns_false() {
+    fn test_30000_is_less_range_returns_false() {
         {
             // compare 0 registers
             let zero_length: u8 = 0;
@@ -264,7 +305,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_is_less_range_returns_true() {
+    fn test_30001_is_less_range_returns_true() {
         {
             // compare 1 register
             let state0 = empty_program_state();
@@ -319,7 +360,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20002_is_less_single_returns_false() {
+    fn test_30002_is_less_single_returns_false() {
         {
             let state = empty_program_state();
             assert_eq!(state.is_less_single(&state, RegisterIndex(0)), false);
@@ -352,7 +393,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20003_is_less_single_returns_true() {
+    fn test_30003_is_less_single_returns_true() {
         {
             let state0 = empty_program_state();
             let mut state1 = empty_program_state();

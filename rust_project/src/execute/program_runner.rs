@@ -1,4 +1,5 @@
-use super::{CacheValue, EvalError, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterIndex, RegisterValue, RunMode};
+use super::{EvalError, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterIndex, RegisterValue, RunMode};
+use super::node_move::NodeMoveRegister;
 use std::collections::HashSet;
 
 pub struct ProgramRunner {
@@ -20,7 +21,7 @@ impl ProgramRunner {
         }
     }
 
-    pub fn run(&self, input: RegisterValue, run_mode: RunMode, step_count: &mut u64, step_count_limit: u64, cache: &mut ProgramCache) -> Result<RegisterValue, EvalError> {
+    pub fn run(&self, input: &RegisterValue, run_mode: RunMode, step_count: &mut u64, step_count_limit: u64, cache: &mut ProgramCache) -> Result<RegisterValue, EvalError> {
         let step_count_before: u64 = *step_count;
 
         // Lookup (programid+input) in cache
@@ -37,7 +38,7 @@ impl ProgramRunner {
         // Initial state
         let mut state = ProgramState::new(self.register_count, run_mode, step_count_limit);
         state.set_step_count(step_count_before);
-        state.set_register_value(RegisterIndex(0), input.clone());
+        state.set_input_value(input);
 
         // Invoke the actual run() function
         let run_result = self.program.run(&mut state, cache);
@@ -51,8 +52,8 @@ impl ProgramRunner {
             return Err(error);
         }
         
-        // In case run succeeded, then return register 1.
-        let output: RegisterValue = state.get_register_value(RegisterIndex(1));
+        // In case run succeeded, then return output.
+        let output: RegisterValue = state.get_output_value().clone();
 
         // Update cache
         match self.program_id {
@@ -83,11 +84,59 @@ impl ProgramRunner {
         self.program.serialize(serializer);
     }
 
-    pub fn has_live_registers(&self) -> bool {
+    pub fn live_registers(&self) -> HashSet<RegisterIndex> {
         let mut register_set: HashSet<RegisterIndex> = HashSet::new();
         register_set.insert(RegisterIndex(0));
         self.program.live_register_indexes(&mut register_set);
-        register_set.contains(&RegisterIndex(1))
+        register_set
+    }
+
+    #[allow(dead_code)]
+    pub fn has_live_registers(&self) -> bool {
+        self.live_registers().contains(&RegisterIndex(1))
+    }
+
+    // While mining. Many programs gets rejected, because there is no connection from the 
+    // input register to the output register. These defunct programs can be turned into 
+    // working programs, by doing this trick:
+    //
+    // When detecting there no live output register, then append a move instruction 
+    // that takes data from the lowest live register, and places it in the output register.
+    // There may still be something meaningful in one of the other live registers.
+    //
+    // When there is zero live registers, then there is no way to get to the output register, 
+    // and this program is truely defunct.
+    pub fn mining_trick_attempt_fixing_the_output_register(&mut self) -> bool {
+        let live_registers: HashSet<RegisterIndex> = self.live_registers();
+        if live_registers.is_empty() {
+            // There is no live registers to pick from.
+            return false;
+        }
+        let target: RegisterIndex = RegisterIndex(1);
+        if live_registers.contains(&target) {
+            // There is live data in the output register.
+            // No need to apply the trick.
+            return true;
+        }
+
+        // There is no live data in the output register.
+        // Append a `mov` instruction to the program that moves 
+        // data to the output register.
+
+        // Pick the lowest register index from the hash.
+        let source: RegisterIndex = live_registers.into_iter()
+            .min_by(|a, b| a.partial_cmp(&b).expect("Found a NaN"))
+            .expect("There was no minimum");
+
+        let node = NodeMoveRegister::new(target, source);
+        let node_wrapped = Box::new(node);
+        self.program.push_boxed(node_wrapped);
+
+        // Determine the number of registeres to allocate before running the program
+        let max_register_index: u8 = self.program.max_register_index();
+        self.register_count = max_register_index + 1;
+
+        true
     }
 
     #[cfg(test)]
@@ -105,7 +154,7 @@ impl ProgramRunner {
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
             let result = self.run(
-                input, 
+                &input, 
                 RunMode::Silent, 
                 &mut step_count, 
                 step_count_limit,

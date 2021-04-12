@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use num_bigint::BigInt;
 use num_traits::Zero;
 
-fn perform_operation(x: RegisterValue, y: RegisterValue) -> RegisterValue {
+fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> RegisterValue {
     let xx: &BigInt = &x.0;
     let yy: &BigInt = &y.0;
     RegisterValue(xx * yy)
@@ -29,8 +29,8 @@ impl Node for NodeMultiplyRegister {
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
-        let lhs: RegisterValue = state.get_register_value(self.target.clone());
-        let rhs: RegisterValue = state.get_register_value(self.source.clone());
+        let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
+        let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
         let value = perform_operation(lhs, rhs);
         state.set_register_value(self.target.clone(), value);
         Ok(())
@@ -44,8 +44,6 @@ impl Node for NodeMultiplyRegister {
     fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
         if register_set.contains(&self.source) {
             register_set.insert(self.target.clone());
-        } else {
-            register_set.remove(&self.target);
         }
     }
 }
@@ -70,8 +68,8 @@ impl Node for NodeMultiplyConstant {
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
-        let lhs: RegisterValue = state.get_register_value(self.target.clone());
-        let rhs: RegisterValue = self.source.clone();
+        let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
+        let rhs: &RegisterValue = &self.source;
         let value = perform_operation(lhs, rhs);
         state.set_register_value(self.target.clone(), value);
         Ok(())
@@ -94,8 +92,8 @@ mod tests {
 
     fn process(left: i64, right: i64) -> String {
         let value: RegisterValue = perform_operation(
-            RegisterValue::from_i64(left),
-            RegisterValue::from_i64(right)
+            &RegisterValue::from_i64(left),
+            &RegisterValue::from_i64(right)
         );
         value.to_string()
     }

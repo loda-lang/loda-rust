@@ -2,8 +2,7 @@ use num_bigint::BigInt;
 use std::fmt;
 use regex::Regex;
 use lazy_static::lazy_static;
-
-pub type BigIntVec = Vec<BigInt>;
+use crate::util::BigIntVec;
 
 pub struct StrippedSequence {
     pub sequence_number: u32,
