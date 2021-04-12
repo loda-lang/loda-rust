@@ -72,7 +72,7 @@ impl Node for NodeClearRegister {
         let max_clear_count_bigint: BigInt = 255.to_bigint().unwrap();
         if value_inner.is_positive() {
             if value_inner > &max_clear_count_bigint {
-                error!("Range length is beyond the ProgramState max length. Clamping range to 255.");
+                // debug!("Range length is beyond the ProgramState max length. Clamping range to 255.");
                 clear_count = 255;
             } else {
                 // Value is between 0 and 255, so it can be casted to an unsigned byte.
@@ -82,7 +82,7 @@ impl Node for NodeClearRegister {
             // Value is negative. Clamp to 0 length.
             clear_count = 0;
         }
-        debug!("clear_count: {}", clear_count);
+        // debug!("clear_count: {}", clear_count);
         
         state.set_register_range_to_zero(self.target.clone(), clear_count);
         Ok(())
