@@ -46,15 +46,6 @@ impl ProgramState {
         self.run_mode
     }
 
-    pub fn get_register_value(&self, register_index: RegisterIndex) -> RegisterValue {
-        let index = register_index.0 as usize;
-        if index >= self.register_vec.len() {
-            // Accessing a register outside bounds always returns zero
-            return RegisterValue::zero();
-        }
-        return self.register_vec[index].clone();
-    }
-
     pub fn get_register_value_ref(&self, register_index: &RegisterIndex) -> &RegisterValue {
         let index = register_index.0 as usize;
         if index >= self.register_vec.len() {
