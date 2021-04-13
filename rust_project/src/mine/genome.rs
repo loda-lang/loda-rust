@@ -18,6 +18,7 @@ pub enum MutateGenome {
     SwapRows,
     SwapAdjacentRows,
     InsertLoopBeginEnd,
+    CallAnotherProgram,
 }
 
 pub struct Genome {
@@ -115,18 +116,18 @@ impl Genome {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 1, 10);
             genome_vec.push(item);
         }
-        // {
-        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
-        //     genome_vec.push(item);
-        // }
-        // {
-        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
-        //     genome_vec.push(item);
-        // }
-        // {
-        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 1, 6);
-        //     genome_vec.push(item);
-        // }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 1, 6);
+            genome_vec.push(item);
+        }
         // for _ in 0..4 {
         //     {
         //         let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
@@ -449,20 +450,21 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure.
     #[allow(dead_code)]
-    pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        let mutation_vec: Vec<MutateGenome> = vec![
-            MutateGenome::Instruction,
-            MutateGenome::SourceConstant,
-            MutateGenome::SourceType,
-            MutateGenome::SwapRegisters,
-            MutateGenome::SourceRegister,
-            MutateGenome::TargetRegister,
-            MutateGenome::ToggleEnabled,
-            // MutateGenome::SwapRows,
-            MutateGenome::SwapAdjacentRows,
-            // MutateGenome::InsertLoopBeginEnd,
+    pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, available_program_ids: &Vec<u32>) -> bool {
+        let mutation_vec: Vec<(MutateGenome,usize)> = vec![
+            (MutateGenome::Instruction, 10),
+            (MutateGenome::SourceConstant, 200),
+            (MutateGenome::SourceType, 100),
+            (MutateGenome::SwapRegisters, 100),
+            (MutateGenome::SourceRegister, 100),
+            (MutateGenome::TargetRegister, 100),
+            (MutateGenome::ToggleEnabled, 20),
+            (MutateGenome::SwapRows, 1),
+            (MutateGenome::SwapAdjacentRows, 10),
+            (MutateGenome::InsertLoopBeginEnd, 0),
+            (MutateGenome::CallAnotherProgram, 5),
         ];
-        let mutation: &MutateGenome = mutation_vec.choose(rng).unwrap();
+        let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
         match mutation {
             MutateGenome::Instruction => {
                 return self.mutate_instruction(rng);
@@ -493,6 +495,9 @@ impl Genome {
             },
             MutateGenome::InsertLoopBeginEnd => {
                 return self.mutate_insert_loop(rng);
+            },
+            MutateGenome::CallAnotherProgram => {
+                return self.mutate_call(rng, available_program_ids);
             }
         }
     }

@@ -124,21 +124,15 @@ pub fn run_miner_loop(
             }
         }
         iteration += 1;
-        // if iteration > available_program_ids.len() {
-        //     break;
-        // }
         // if iteration > 5 {
         //     break;
         // }
         
-        // for _ in 0..5 {
-        //     genome.mutate(&mut rng);
-        // }
-
-        if !genome.mutate_call(&mut rng, &available_program_ids) {
+        if !genome.mutate(&mut rng, &available_program_ids) {
             number_of_failed_mutations += 1;
             continue;
         }
+
         // println!("#{} Current genome\n{}", iteration, genome);
     
         // Create program from genome
