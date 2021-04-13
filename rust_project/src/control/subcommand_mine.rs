@@ -1,18 +1,15 @@
 use super::DependencyManager;
 use crate::config::Config;
-use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, load_program_ids_csv_file};
+use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, load_program_ids_csv_file, save_candidate_program};
 use crate::parser::{parse_program, ParsedProgram};
 use crate::execute::{EvalError, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use crate::util::{BigIntVec, bigintvec_to_string};
 use std::fs;
 use std::time::Instant;
 use std::path::{Path, PathBuf};
-use std::fs::File;
-use std::io::prelude::*;
 use rand::{RngCore, SeedableRng};
 use rand::rngs::StdRng;
 use rand::thread_rng;
-use chrono::{DateTime, Utc};
 
 pub fn subcommand_mine() {
 
@@ -100,25 +97,6 @@ impl ProgramRunner {
         // print!("stats: step_count: {}", step_count);
         Ok(terms)
     }
-}
-
-fn save_candidate_program(
-    mine_event_dir: &Path,
-    iteration: usize,
-    content: &String,
-) -> std::io::Result<()> 
-{
-    // Format filename as "19841231-235959-1234.asm"
-    let now: DateTime<Utc> = Utc::now();
-    let filename: String = format!("{}-{}.asm", now.format("%Y%m%d-%H%M%S"), iteration);
-
-    // Write the file to the output dir
-    let path = mine_event_dir.join(Path::new(&filename));
-    let mut file = File::create(&path)?;
-    file.write_all(content.as_bytes())?;
-
-    println!("candidate: {:?}", filename);
-    Ok(())
 }
 
 fn run_experiment0(
