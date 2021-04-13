@@ -5,17 +5,16 @@ This script traverses all the programs inside the LODA program rootdir.
 It looks for all the LODA assembly programs there are.
 This script determines date the program was first added to the git repository.
 
-This script outputs a `bigram.csv` file, with this format:
+This script outputs a `program_creation_dates.csv` file, with this format:
 
-    count;word0;word1
-    18066;mov;mov
-    16888;START;mov
-    14712;mov;lpb
-    13386;mov;sub
-    13132;mov;add
-    11776;add;mov
-    10522;add;add
-    9840;mul;add
+    program id;creation date
+    4;20190115
+    5;20190119
+    6;20210316
+    7;20181012
+    8;20210118
+    10;20210225
+    12;20190115
 
 =end
 
@@ -63,7 +62,12 @@ def process_files(paths, csv)
             puts "Unable to obtain git creation date for path: #{path}"
             next 
         end
-        yyyymmdd = Date.iso8601(output.strip).strftime('%Y%m%d')
+        yyyymmdd = nil
+        begin
+            yyyymmdd = Date.iso8601(output.strip).strftime('%Y%m%d')
+        rescue => e
+            puts "error occurred: #{e}"
+        end
         if yyyymmdd == nil
             puts "Unable to parse as iso8601: '#{output}'  path: #{path}"
             next
