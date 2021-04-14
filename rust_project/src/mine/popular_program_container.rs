@@ -71,9 +71,16 @@ impl PopularProgramContainer {
         assert!(cluster_weight_vec.len() == (NUMBER_OF_CLUSTERS as usize));
         let cluster_id: &usize = &cluster_weight_vec.choose_weighted(rng, |item| item.1).unwrap().0;
         let program_ids: &Vec<u32> = &self.cluster_program_ids[*cluster_id];
+        if program_ids.is_empty() {
+            // The CSV file is supposed to have several program_ids for every cluster_id.
+            // No matter what cluster_id is picked, there should be at least 1 program.
+            // Return None, in the unfortunate case there isn't any program_ids for the picked cluser_id.
+            return None;
+        }
         let program_id: u32 = match program_ids.choose(rng) {
             Some(program_id) => *program_id,
             None => {
+                // For a non-empty vector, this shouldn't happen.
                 return None;
             }
         };
