@@ -444,7 +444,8 @@ impl Genome {
         // Mutate the call instruction, so it invokes the next program in the list.
         // If it reaches the end, then it picks the first program from the list.
         let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
-        genome_item.mutate_pick_next_program(rng, context)
+        // genome_item.mutate_pick_next_program(rng, context)
+        genome_item.mutate_pick_popular_program(rng, context)
     }
 
     // Return `true` when the mutation was successful.
@@ -462,7 +463,7 @@ impl Genome {
             (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 10),
             (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallAnotherProgram, 5),
+            (MutateGenome::CallAnotherProgram, 50),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
         match mutation {

@@ -18,7 +18,7 @@ impl GenomeMutateContext {
         &self.available_program_ids
     }
 
-    pub fn choose_popular_program_id<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
+    pub fn choose_popular_program<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
         self.popular_program_container.choose(rng)
     }
 }
