@@ -56,15 +56,30 @@ def process_files(paths, csv)
         # https://stackoverflow.com/questions/2390199/finding-the-date-time-a-file-was-first-added-to-a-git-repository
         output = `git log --diff-filter=A --follow --format=%aI -- #{path} | tail -1`
         # The output looks like this: "1984-12-30T20:12:09+01:00"
-        
+        output = output.strip
         success = $?.success?
         if !success
             puts "Unable to obtain git creation date for path: #{path}"
             next 
         end
+        
+        if output.empty?
+            # Rarely the "--diff-filter=A --follow" options outputs an empty string.
+            # Out of 30k files, I have experienced 16 files where this happened.
+            # This seems to be files where the lastest commit has a merge conflict.
+            # Removing the options, and now I'm getting output.
+            output = `git log --format=%aI -- #{path} | tail -1`
+            # The output looks like this: "1984-12-30T20:12:09+01:00"
+            output = output.strip
+            success = $?.success?
+            if !success
+                puts "Unable to obtain git creation date for path: #{path}"
+                next 
+            end
+        end
         yyyymmdd = nil
         begin
-            yyyymmdd = Date.iso8601(output.strip).strftime('%Y%m%d')
+            yyyymmdd = Date.iso8601(output).strftime('%Y%m%d')
         rescue => e
             puts "error occurred: #{e}"
         end
