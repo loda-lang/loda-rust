@@ -19,11 +19,18 @@ pub struct PopularProgramContainer {
 }
 
 impl PopularProgramContainer {
+    pub fn load(path: &Path) -> Result<Self, Box<dyn Error>> {
+        let file = File::open(path)?;
+        let mut reader = BufReader::new(file);
+        process_csv_into_clusters(&mut reader)
+    }
+
     #[allow(dead_code)]
     fn cluster_program_ids(&self) -> &Vec<Vec<u32>> {
         &self.cluster_program_ids
     }
 
+    #[allow(dead_code)]
     pub fn choose<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
         let cluster_weight_vec: Vec<(usize,usize)> = vec![
             (0, 1), // Low probability for choosing an unpopular program.
@@ -65,12 +72,6 @@ impl fmt::Display for ProgramPopularityError {
 }
 
 impl Error for ProgramPopularityError {}
-
-pub fn load_program_popularity_csv_file(path: &Path) -> Result<PopularProgramContainer, Box<dyn Error>> {
-    let file = File::open(path)?;
-    let mut reader = BufReader::new(file);
-    process_csv_into_clusters(&mut reader)
-}
 
 fn process_csv_into_clusters(reader: &mut dyn BufRead) -> Result<PopularProgramContainer, Box<dyn Error>> {
     let records: Vec<Record> = process_csv_data(reader)?;

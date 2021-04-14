@@ -14,6 +14,6 @@ pub use genome_mutate_context::GenomeMutateContext;
 pub use genome::{Genome, MutateGenome};
 pub use genome_item::{GenomeItem, MutateValue};
 pub use load_program_ids_csv_file::load_program_ids_csv_file;
-pub use load_program_popularity_csv_file::{load_program_popularity_csv_file, PopularProgramContainer};
+pub use load_program_popularity_csv_file::PopularProgramContainer;
 pub use run_miner_loop::run_miner_loop;
 pub use save_candidate_program::save_candidate_program;

@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::mine::{CheckFixedLengthSequence, load_program_popularity_csv_file, load_program_ids_csv_file, PopularProgramContainer, run_miner_loop};
+use crate::mine::{CheckFixedLengthSequence, load_program_ids_csv_file, PopularProgramContainer, run_miner_loop};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 
@@ -47,7 +47,7 @@ pub fn subcommand_mine() {
 
     // Load the clusters with popular/unpopular program ids
     let program_popularity_file = loda_lab_repository.join(Path::new("resources/program_popularity.csv"));
-    let program_program_container: PopularProgramContainer = match load_program_popularity_csv_file(&program_popularity_file) {
+    let program_program_container: PopularProgramContainer = match PopularProgramContainer::load(&program_popularity_file) {
         Ok(value) => value,
         Err(error) => {
             panic!("Unable to load file. path: {:?} error: {:?}", program_popularity_file, error);
