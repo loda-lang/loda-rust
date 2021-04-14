@@ -1,5 +1,5 @@
 use crate::control::DependencyManager;
-use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, save_candidate_program};
+use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, save_candidate_program};
 use crate::parser::{parse_program, ParsedProgram};
 use crate::execute::{EvalError, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use crate::util::{BigIntVec, bigintvec_to_string};
@@ -43,7 +43,7 @@ pub fn run_miner_loop(
     checker30: &CheckFixedLengthSequence,
     checker40: &CheckFixedLengthSequence,
     mine_event_dir: &Path,
-    available_program_ids: &Vec<u32>,
+    available_program_ids: Vec<u32>,
     initial_random_seed: u64,
 ) {
     let mut rng = StdRng::seed_from_u64(initial_random_seed);
@@ -74,6 +74,10 @@ pub fn run_miner_loop(
     println!("Initial genome\n{}", genome);
 
     // return;
+
+    let context = GenomeMutateContext::new(
+        available_program_ids
+    );
 
     let mut funnel = Funnel::new(
         checker10,
@@ -128,7 +132,7 @@ pub fn run_miner_loop(
         //     break;
         // }
         
-        if !genome.mutate(&mut rng, &available_program_ids) {
+        if !genome.mutate(&mut rng, &context) {
             number_of_failed_mutations += 1;
             continue;
         }

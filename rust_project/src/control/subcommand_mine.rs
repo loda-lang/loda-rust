@@ -67,7 +67,7 @@ pub fn subcommand_mine() {
         &checker30,
         &checker40,
         &mine_event_dir,
-        &available_program_ids,
+        available_program_ids,
         initial_random_seed,
     );
 }

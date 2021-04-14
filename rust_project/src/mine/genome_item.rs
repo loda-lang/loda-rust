@@ -1,4 +1,5 @@
 use crate::parser::{InstructionId, InstructionParameter, ParameterType};
+use crate::mine::GenomeMutateContext;
 use rand::Rng;
 use rand::seq::SliceRandom;
 use std::fmt;
@@ -202,12 +203,13 @@ impl GenomeItem {
         true
     }
 
-    pub fn mutate_pick_next_program<R: Rng + ?Sized>(&mut self, rng: &mut R, available_program_ids: &Vec<u32>) -> bool {
+    pub fn mutate_pick_next_program<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let is_call = self.instruction_id == InstructionId::Call;
         if !is_call {
             // Only a call instruction can be modified.
             return false;
         }
+        let available_program_ids: &Vec<u32> = context.available_program_ids();
         if available_program_ids.is_empty() {
             // There are no program_ids to pick from.
             return false;

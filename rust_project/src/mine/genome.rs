@@ -1,4 +1,4 @@
-use crate::mine::{GenomeItem, MutateValue};
+use crate::mine::{GenomeItem, GenomeMutateContext, MutateValue};
 use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
 use std::fmt;
 use rand::Rng;
@@ -426,7 +426,7 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure.
     #[allow(dead_code)]
-    pub fn mutate_call<R: Rng + ?Sized>(&mut self, rng: &mut R, available_program_ids: &Vec<u32>) -> bool {
+    pub fn mutate_call<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Identify GenomeItem's that use the `cal` instruction
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
@@ -444,13 +444,13 @@ impl Genome {
         // Mutate the call instruction, so it invokes the next program in the list.
         // If it reaches the end, then it picks the first program from the list.
         let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
-        genome_item.mutate_pick_next_program(rng, available_program_ids)
+        genome_item.mutate_pick_next_program(rng, context)
     }
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure.
     #[allow(dead_code)]
-    pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, available_program_ids: &Vec<u32>) -> bool {
+    pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             (MutateGenome::Instruction, 10),
             (MutateGenome::SourceConstant, 200),
@@ -497,7 +497,7 @@ impl Genome {
                 return self.mutate_insert_loop(rng);
             },
             MutateGenome::CallAnotherProgram => {
-                return self.mutate_call(rng, available_program_ids);
+                return self.mutate_call(rng, context);
             }
         }
     }
