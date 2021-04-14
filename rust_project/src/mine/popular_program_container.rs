@@ -112,6 +112,7 @@ struct Record {
 }
 
 impl Record {
+    #[cfg(test)]
     fn new(program_id: u32, popularity_cluster_id: u8) -> Self {
         Self {
             program_id: program_id,
