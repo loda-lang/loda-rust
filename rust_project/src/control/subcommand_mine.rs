@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::mine::{CheckFixedLengthSequence, load_program_ids_csv_file, run_miner_loop};
+use crate::mine::{CheckFixedLengthSequence, load_program_popularity_csv_file, load_program_ids_csv_file, run_miner_loop};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 
@@ -35,7 +35,7 @@ pub fn subcommand_mine() {
     let checker40: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file40);
     debug!("step2");
 
-    // Load the program_ids to cycle through
+    // Load the program_ids available for mining
     let available_program_ids_file = loda_lab_repository.join(Path::new("resources/mine_program_ids.csv"));
     let available_program_ids: Vec<u32> = match load_program_ids_csv_file(&available_program_ids_file) {
         Ok(value) => value,
@@ -44,6 +44,15 @@ pub fn subcommand_mine() {
         }
     };
     println!("number_of_available_programs = {}", available_program_ids.len());
+
+    // Load the clusters with popular/unpopular program ids
+    let program_popularity_file = loda_lab_repository.join(Path::new("resources/program_popularity.csv"));
+    let _program_popularity_clusters: Vec<Vec<u32>> = match load_program_popularity_csv_file(&program_popularity_file) {
+        Ok(value) => value,
+        Err(error) => {
+            panic!("Unable to load file. path: {:?} error: {:?}", program_popularity_file, error);
+        }
+    };
 
     // Pick a random seed
     let mut rng = thread_rng();
