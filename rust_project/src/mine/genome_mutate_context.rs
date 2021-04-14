@@ -1,12 +1,15 @@
+use crate::mine::PopularProgramContainer;
 
 pub struct GenomeMutateContext {
     available_program_ids: Vec<u32>,
+    program_program_container: PopularProgramContainer,
 }
 
 impl GenomeMutateContext {
-    pub fn new(available_program_ids: Vec<u32>) -> Self {
+    pub fn new(available_program_ids: Vec<u32>, program_program_container: PopularProgramContainer) -> Self {
         Self {
             available_program_ids: available_program_ids,
+            program_program_container: program_program_container,
         }
     }
 

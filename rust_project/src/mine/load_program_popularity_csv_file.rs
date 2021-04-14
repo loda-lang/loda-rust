@@ -12,6 +12,16 @@ use serde::Deserialize;
 // where 9 is the most used program_ids.
 const NUMBER_OF_CLUSTERS: u8 = 10;
 
+pub struct PopularProgramContainer {
+    cluster_program_ids: Vec<Vec<u32>>,
+}
+
+impl PopularProgramContainer {
+    fn cluster_program_ids(&self) -> &Vec<Vec<u32>> {
+        &self.cluster_program_ids
+    }
+}
+
 #[derive(Debug)]
 pub enum ProgramPopularityError {
     PopularityClusterIdOutOfBounds,
@@ -28,13 +38,13 @@ impl fmt::Display for ProgramPopularityError {
 
 impl Error for ProgramPopularityError {}
 
-pub fn load_program_popularity_csv_file(path: &Path) -> Result<Vec<Vec<u32>>, Box<dyn Error>> {
+pub fn load_program_popularity_csv_file(path: &Path) -> Result<PopularProgramContainer, Box<dyn Error>> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file);
     process_csv_into_clusters(&mut reader)
 }
 
-fn process_csv_into_clusters(reader: &mut dyn BufRead) -> Result<Vec<Vec<u32>>, Box<dyn Error>> {
+fn process_csv_into_clusters(reader: &mut dyn BufRead) -> Result<PopularProgramContainer, Box<dyn Error>> {
     let records: Vec<Record> = process_csv_data(reader)?;
     convert_records_to_clusters(records)
 }
@@ -69,7 +79,7 @@ fn process_csv_data(reader: &mut dyn BufRead) -> Result<Vec<Record>, Box<dyn Err
     Ok(records)
 }
 
-fn convert_records_to_clusters(records: Vec<Record>) -> Result<Vec<Vec<u32>>, Box<dyn Error>> {
+fn convert_records_to_clusters(records: Vec<Record>) -> Result<PopularProgramContainer, Box<dyn Error>> {
     // Ensure there isn't too many clusters
     let mut max_cluster_id: u8 = 0;
     for record in &records {
@@ -93,7 +103,10 @@ fn convert_records_to_clusters(records: Vec<Record>) -> Result<Vec<Vec<u32>>, Bo
         clusters.push(program_ids);
     }
 
-    Ok(clusters)
+    let container = PopularProgramContainer {
+        cluster_program_ids: clusters
+    };
+    Ok(container)
 }
 
 #[cfg(test)]
@@ -145,7 +158,8 @@ program id;popularity
             Record::new(901, 9),
             Record::new(902, 9),
         ];
-        let cluster_program_ids: Vec<Vec<u32>> = convert_records_to_clusters(records).unwrap();
+        let container: PopularProgramContainer = convert_records_to_clusters(records).unwrap();
+        let cluster_program_ids: &Vec<Vec<u32>> = container.cluster_program_ids();
         assert_eq!(cluster_program_ids.len(), 10);
         assert_eq!(cluster_program_ids[0].len(), 3);
         assert_eq!(cluster_program_ids[4].len(), 1);
