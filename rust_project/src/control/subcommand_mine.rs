@@ -47,7 +47,7 @@ pub fn subcommand_mine() {
 
     // Load the clusters with popular/unpopular program ids
     let program_popularity_file = loda_lab_repository.join(Path::new("resources/program_popularity.csv"));
-    let program_program_container: PopularProgramContainer = match PopularProgramContainer::load(&program_popularity_file) {
+    let popular_program_container: PopularProgramContainer = match PopularProgramContainer::load(&program_popularity_file) {
         Ok(value) => value,
         Err(error) => {
             panic!("Unable to load file. path: {:?} error: {:?}", program_popularity_file, error);
@@ -69,6 +69,6 @@ pub fn subcommand_mine() {
         &mine_event_dir,
         available_program_ids,
         initial_random_seed,
-        program_program_container,
+        popular_program_container,
     );
 }

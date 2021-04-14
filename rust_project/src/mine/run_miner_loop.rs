@@ -45,7 +45,7 @@ pub fn run_miner_loop(
     mine_event_dir: &Path,
     available_program_ids: Vec<u32>,
     initial_random_seed: u64,
-    program_program_container: PopularProgramContainer,
+    popular_program_container: PopularProgramContainer,
 ) {
     let mut rng = StdRng::seed_from_u64(initial_random_seed);
 
@@ -78,7 +78,7 @@ pub fn run_miner_loop(
 
     let context = GenomeMutateContext::new(
         available_program_ids,
-        program_program_container,
+        popular_program_container,
     );
 
     let mut funnel = Funnel::new(
