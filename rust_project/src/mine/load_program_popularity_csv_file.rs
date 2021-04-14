@@ -4,6 +4,8 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use serde::Deserialize;
+use rand::Rng;
+use rand::seq::SliceRandom;
 
 // Inside the file `program_popularity.csv`:
 // The column `popularity` contain values in the range 0 to 9.
@@ -17,8 +19,34 @@ pub struct PopularProgramContainer {
 }
 
 impl PopularProgramContainer {
+    #[allow(dead_code)]
     fn cluster_program_ids(&self) -> &Vec<Vec<u32>> {
         &self.cluster_program_ids
+    }
+
+    pub fn choose<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
+        let cluster_weight_vec: Vec<(usize,usize)> = vec![
+            (0, 1), // Low probability for choosing an unpopular program.
+            (1, 2),
+            (2, 4),
+            (3, 8),
+            (4, 16),
+            (5, 32),
+            (6, 64),
+            (7, 128),
+            (8, 256),
+            (9, 512), // High probablility for choosing a popular program.
+        ];
+        assert!(cluster_weight_vec.len() == (NUMBER_OF_CLUSTERS as usize));
+        let cluster_id: &usize = &cluster_weight_vec.choose_weighted(rng, |item| item.1).unwrap().0;
+        let program_ids: &Vec<u32> = &self.cluster_program_ids[*cluster_id];
+        let program_id: u32 = match program_ids.choose(rng) {
+            Some(program_id) => *program_id,
+            None => {
+                return None;
+            }
+        };
+        Some(program_id)
     }
 }
 
