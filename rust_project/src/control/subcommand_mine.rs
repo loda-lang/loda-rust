@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::mine::{CheckFixedLengthSequence, load_program_ids_csv_file, PopularProgramContainer, run_miner_loop};
+use crate::mine::{CheckFixedLengthSequence, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 
@@ -54,6 +54,15 @@ pub fn subcommand_mine() {
         }
     };
 
+    // Load the clusters with newest/oldest program ids
+    let recent_program_file = loda_lab_repository.join(Path::new("resources/program_creation_dates.csv"));
+    let recent_program_container: RecentProgramContainer = match RecentProgramContainer::load(&recent_program_file) {
+        Ok(value) => value,
+        Err(error) => {
+            panic!("Unable to load file. path: {:?} error: {:?}", recent_program_file, error);
+        }
+    };
+
     // Pick a random seed
     let mut rng = thread_rng();
     let initial_random_seed: u64 = rng.next_u64();
@@ -70,5 +79,6 @@ pub fn subcommand_mine() {
         available_program_ids,
         initial_random_seed,
         popular_program_container,
+        recent_program_container,
     );
 }

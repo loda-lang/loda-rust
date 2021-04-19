@@ -1,5 +1,5 @@
 use crate::control::DependencyManager;
-use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, save_candidate_program};
+use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, RecentProgramContainer, save_candidate_program};
 use crate::parser::{parse_program, ParsedProgram};
 use crate::execute::{EvalError, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use crate::util::{BigIntVec, bigintvec_to_string};
@@ -46,6 +46,7 @@ pub fn run_miner_loop(
     available_program_ids: Vec<u32>,
     initial_random_seed: u64,
     popular_program_container: PopularProgramContainer,
+    recent_program_container: RecentProgramContainer,
 ) {
     let mut rng = StdRng::seed_from_u64(initial_random_seed);
 
