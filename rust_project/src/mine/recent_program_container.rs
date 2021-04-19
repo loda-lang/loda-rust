@@ -210,6 +210,17 @@ program id;creation date
         ];
         let container: RecentProgramContainer = convert_records_to_clusters(records).unwrap();
         assert_eq!(container.cluster_lengths(), "1,1,1,1,1,1,1,1,1,1");
+        let cluster_program_ids = container.cluster_program_ids();
+        {
+            // cluster 9 contains the newest program_ids
+            let newest_program_id: Option<&u32> = (cluster_program_ids[9]).first();
+            assert_eq!(*newest_program_id.unwrap(), 110);
+        }
+        {
+            // cluster 0 contains the oldest program_ids
+            let newest_program_id: Option<&u32> = (cluster_program_ids[0]).first();
+            assert_eq!(*newest_program_id.unwrap(), 101);
+        }
     }
 
     #[test]
