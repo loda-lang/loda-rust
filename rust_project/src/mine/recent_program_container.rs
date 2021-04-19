@@ -132,33 +132,25 @@ fn process_csv_data(reader: &mut dyn BufRead) -> Result<Vec<Record>, Box<dyn Err
     Ok(records)
 }
 
-fn chunk_size(item_count: usize, chunk_count: usize) -> usize {
-    (item_count + chunk_count - 1) / chunk_count
-}
-
 fn convert_records_to_clusters(mut records: Vec<Record>) -> Result<RecentProgramContainer, Box<dyn Error>> {
     // Order program_ids by their creation date
     records.sort_by(|a,b| a.creation_date.cmp(&b.creation_date));
 
-    let chunk_size: usize = chunk_size(records.len(), NUMBER_OF_CLUSTERS as usize);
-
-    // Identify program_ids for each cluster
+    // Create clusters with empty vectors
     let mut clusters: Vec<Vec<u32>> = vec!();
-    if chunk_size >= 1 {
-        for records_in_chunk in records.chunks(chunk_size) {
-            let mut program_ids: Vec<u32> = vec!();
-            for record in records_in_chunk {
-                program_ids.push(record.program_id);
-            }
-            clusters.push(program_ids);
-        }
-    }
-
-    // Padding if needed
-    let padding: usize = (NUMBER_OF_CLUSTERS as usize) - clusters.len();
-    for _ in 0..padding {
+    for _ in 0..NUMBER_OF_CLUSTERS {
         let program_ids: Vec<u32> = vec!();
         clusters.push(program_ids);
+    }
+    
+    // Place program_ids evenly in each cluster
+    let count: usize = records.len();
+    for (index, record) in records.iter().enumerate() {
+        let cluster_id = (index * ((NUMBER_OF_CLUSTERS) as usize)) / count;
+        if cluster_id >= clusters.len() {
+            panic!("cluster_id is out of bounds");
+        }
+        clusters[cluster_id].push(record.program_id);
     }
 
     let container = RecentProgramContainer {
@@ -191,39 +183,6 @@ program id;creation date
     }
 
     #[test]
-    fn test_10001_chunk_size() {
-        assert_eq!(chunk_size(1, 1), 1);
-
-        assert_eq!(chunk_size(4, 1), 4);
-        assert_eq!(chunk_size(4, 2), 2);
-        assert_eq!(chunk_size(4, 3), 2);
-        assert_eq!(chunk_size(4, 4), 1);
-        assert_eq!(chunk_size(4, 5), 1);
-        assert_eq!(chunk_size(4, 100), 1);
-
-        assert_eq!(chunk_size(5, 1), 5);
-        assert_eq!(chunk_size(5, 2), 3);
-        assert_eq!(chunk_size(5, 3), 2);
-        assert_eq!(chunk_size(5, 4), 2);
-        assert_eq!(chunk_size(5, 5), 1);
-        assert_eq!(chunk_size(5, 6), 1);
-        assert_eq!(chunk_size(5, 7), 1);
-        assert_eq!(chunk_size(5, 8), 1);
-
-        assert_eq!(chunk_size(6, 1), 6);
-        assert_eq!(chunk_size(6, 2), 3);
-        assert_eq!(chunk_size(6, 3), 2);
-        assert_eq!(chunk_size(6, 4), 2);
-        assert_eq!(chunk_size(6, 5), 2);
-        assert_eq!(chunk_size(6, 6), 1);
-        assert_eq!(chunk_size(6, 7), 1);
-
-        assert_eq!(chunk_size(999, 10), 100);
-        assert_eq!(chunk_size(1000, 10), 100);
-        assert_eq!(chunk_size(1001, 10), 101);
-    }
-
-    #[test]
     fn test_10010_convert_records_to_clusters4() {
         let records: Vec<Record> = vec![
             Record::new(101, 19840101),
@@ -232,7 +191,7 @@ program id;creation date
             Record::new(104, 19840104),
         ];
         let container: RecentProgramContainer = convert_records_to_clusters(records).unwrap();
-        assert_eq!(container.cluster_lengths(), "1,1,1,1,0,0,0,0,0,0");
+        assert_eq!(container.cluster_lengths(), "1,0,1,0,0,1,0,1,0,0");
     }
 
     #[test]
@@ -269,11 +228,38 @@ program id;creation date
             Record::new(111, 19840111),
         ];
         let container: RecentProgramContainer = convert_records_to_clusters(records).unwrap();
-        assert_eq!(container.cluster_lengths(), "2,2,2,2,2,1,0,0,0,0");
+        assert_eq!(container.cluster_lengths(), "2,1,1,1,1,1,1,1,1,1");
     }
 
     #[test]
-    fn test_10013_convert_records_to_clusters21() {
+    fn test_10013_convert_records_to_clusters19() {
+        let records: Vec<Record> = vec![
+            Record::new(101, 19840101),
+            Record::new(102, 19840102),
+            Record::new(103, 19840103),
+            Record::new(104, 19840104),
+            Record::new(105, 19840105),
+            Record::new(106, 19840106),
+            Record::new(107, 19840107),
+            Record::new(108, 19840108),
+            Record::new(109, 19840109),
+            Record::new(110, 19840110),
+            Record::new(111, 19840111),
+            Record::new(112, 19840112),
+            Record::new(113, 19840113),
+            Record::new(114, 19840114),
+            Record::new(115, 19840115),
+            Record::new(116, 19840116),
+            Record::new(117, 19840117),
+            Record::new(118, 19840118),
+            Record::new(119, 19840119),
+        ];
+        let container: RecentProgramContainer = convert_records_to_clusters(records).unwrap();
+        assert_eq!(container.cluster_lengths(), "2,2,2,2,2,2,2,2,2,1");
+    }
+
+    #[test]
+    fn test_10014_convert_records_to_clusters21() {
         let records: Vec<Record> = vec![
             Record::new(101, 19840101),
             Record::new(102, 19840102),
@@ -298,6 +284,6 @@ program id;creation date
             Record::new(121, 19840121),
         ];
         let container: RecentProgramContainer = convert_records_to_clusters(records).unwrap();
-        assert_eq!(container.cluster_lengths(), "3,3,3,3,3,3,3,0,0,0");
+        assert_eq!(container.cluster_lengths(), "3,2,2,2,2,2,2,2,2,2");
     }
 }
