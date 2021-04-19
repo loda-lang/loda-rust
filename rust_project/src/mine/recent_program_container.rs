@@ -86,6 +86,14 @@ impl RecentProgramContainer {
         };
         Some(program_id)
     }
+
+    #[cfg(test)]
+    fn cluster_lengths(&self) -> String {
+        let strings: Vec<String> = self.cluster_program_ids.iter().map(|program_ids| {
+            format!("{}", program_ids.len())
+        }).collect();
+        strings.join(",")
+    }
 }
 
 fn process_csv_into_clusters(reader: &mut dyn BufRead) -> Result<RecentProgramContainer, Box<dyn Error>> {
@@ -224,19 +232,7 @@ program id;creation date
             Record::new(104, 19840104),
         ];
         let container: RecentProgramContainer = convert_records_to_clusters(records).unwrap();
-        let cluster_program_ids: &Vec<Vec<u32>> = container.cluster_program_ids();
-        assert_eq!(cluster_program_ids.len(), 10);
-        assert_eq!(cluster_program_ids[0].len(), 1);
-        assert_eq!(cluster_program_ids[1].len(), 1);
-        assert_eq!(cluster_program_ids[2].len(), 1);
-        assert_eq!(cluster_program_ids[3].len(), 1);
-        assert_eq!(cluster_program_ids[4].len(), 0);
-        assert_eq!(cluster_program_ids[4].len(), 0);
-        assert_eq!(cluster_program_ids[5].len(), 0);
-        assert_eq!(cluster_program_ids[6].len(), 0);
-        assert_eq!(cluster_program_ids[7].len(), 0);
-        assert_eq!(cluster_program_ids[8].len(), 0);
-        assert_eq!(cluster_program_ids[9].len(), 0);
+        assert_eq!(container.cluster_lengths(), "1,1,1,1,0,0,0,0,0,0");
     }
 
     #[test]
@@ -254,18 +250,7 @@ program id;creation date
             Record::new(110, 19840110),
         ];
         let container: RecentProgramContainer = convert_records_to_clusters(records).unwrap();
-        let cluster_program_ids: &Vec<Vec<u32>> = container.cluster_program_ids();
-        assert_eq!(cluster_program_ids.len(), 10);
-        assert_eq!(cluster_program_ids[0].len(), 1);
-        assert_eq!(cluster_program_ids[1].len(), 1);
-        assert_eq!(cluster_program_ids[2].len(), 1);
-        assert_eq!(cluster_program_ids[3].len(), 1);
-        assert_eq!(cluster_program_ids[4].len(), 1);
-        assert_eq!(cluster_program_ids[5].len(), 1);
-        assert_eq!(cluster_program_ids[6].len(), 1);
-        assert_eq!(cluster_program_ids[7].len(), 1);
-        assert_eq!(cluster_program_ids[8].len(), 1);
-        assert_eq!(cluster_program_ids[9].len(), 1);
+        assert_eq!(container.cluster_lengths(), "1,1,1,1,1,1,1,1,1,1");
     }
 
     #[test]
@@ -284,18 +269,7 @@ program id;creation date
             Record::new(111, 19840111),
         ];
         let container: RecentProgramContainer = convert_records_to_clusters(records).unwrap();
-        let cluster_program_ids: &Vec<Vec<u32>> = container.cluster_program_ids();
-        assert_eq!(cluster_program_ids.len(), 10);
-        assert_eq!(cluster_program_ids[0].len(), 2);
-        assert_eq!(cluster_program_ids[1].len(), 2);
-        assert_eq!(cluster_program_ids[2].len(), 2);
-        assert_eq!(cluster_program_ids[3].len(), 2);
-        assert_eq!(cluster_program_ids[4].len(), 2);
-        assert_eq!(cluster_program_ids[5].len(), 1); // unfair for few items
-        assert_eq!(cluster_program_ids[6].len(), 0);
-        assert_eq!(cluster_program_ids[7].len(), 0);
-        assert_eq!(cluster_program_ids[8].len(), 0);
-        assert_eq!(cluster_program_ids[9].len(), 0);
+        assert_eq!(container.cluster_lengths(), "2,2,2,2,2,1,0,0,0,0");
     }
 
     #[test]
@@ -324,18 +298,6 @@ program id;creation date
             Record::new(121, 19840121),
         ];
         let container: RecentProgramContainer = convert_records_to_clusters(records).unwrap();
-        let cluster_program_ids: &Vec<Vec<u32>> = container.cluster_program_ids();
-        assert_eq!(cluster_program_ids.len(), 10);
-        assert_eq!(cluster_program_ids[0].len(), 3);
-        assert_eq!(cluster_program_ids[1].len(), 3);
-        assert_eq!(cluster_program_ids[2].len(), 3);
-        assert_eq!(cluster_program_ids[3].len(), 3);
-        assert_eq!(cluster_program_ids[4].len(), 3);
-        assert_eq!(cluster_program_ids[5].len(), 3);
-        assert_eq!(cluster_program_ids[6].len(), 3);
-        assert_eq!(cluster_program_ids[7].len(), 0); // unfair for few items
-        assert_eq!(cluster_program_ids[8].len(), 0);
-        assert_eq!(cluster_program_ids[9].len(), 0);
+        assert_eq!(container.cluster_lengths(), "3,3,3,3,3,3,3,0,0,0");
     }
-
 }
