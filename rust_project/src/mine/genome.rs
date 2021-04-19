@@ -445,7 +445,8 @@ impl Genome {
         // If it reaches the end, then it picks the first program from the list.
         let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
         // genome_item.mutate_pick_next_program(rng, context)
-        genome_item.mutate_pick_popular_program(rng, context)
+        // genome_item.mutate_pick_popular_program(rng, context)
+        genome_item.mutate_pick_recent_program(rng, context)
     }
 
     // Return `true` when the mutation was successful.

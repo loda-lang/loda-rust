@@ -80,6 +80,7 @@ pub fn run_miner_loop(
     let context = GenomeMutateContext::new(
         available_program_ids,
         popular_program_container,
+        recent_program_container,
     );
 
     let mut funnel = Funnel::new(

@@ -282,6 +282,39 @@ impl GenomeItem {
         true
     }
 
+    // Mutate the call instruction, so it invokes a random recent program.
+    pub fn mutate_pick_recent_program<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+        let is_call = self.instruction_id == InstructionId::Call;
+        if !is_call {
+            // Only a call instruction can be modified.
+            return false;
+        }
+        let new_program_id: u32 = match context.choose_recent_program(rng) {
+            Some(value) => value,
+            None => {
+                // The RecentProgramContainer is empty in some way.
+                return false;
+            }
+        };
+        let available_program_ids: &Vec<u32> = context.available_program_ids();
+        if !available_program_ids.contains(&new_program_id) {
+            // Picked a program that isn't among the available programs.
+            // This happens when the csv files are outdated with the latest LODA repository.
+            return false;
+        }
+        let current_soruce_value: i32 = self.source_value();
+        if current_soruce_value >= 0 {
+            let is_same = (current_soruce_value as u32) == new_program_id;
+            if is_same {
+                // Failed to pick a different program
+                return false;
+            }
+        }
+        // Successfully picked a new program
+        self.source_value = new_program_id as i32;
+        true
+    }
+
     pub fn mutate_sanitize_program_row(&mut self) -> bool {
         // Things to prevent 
         // division by zero
