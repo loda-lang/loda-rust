@@ -1,4 +1,4 @@
-use crate::mine::{GenomeItem, MutateValue};
+use crate::mine::{GenomeItem, GenomeMutateContext, MutateValue};
 use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
 use std::fmt;
 use rand::Rng;
@@ -18,6 +18,7 @@ pub enum MutateGenome {
     SwapRows,
     SwapAdjacentRows,
     InsertLoopBeginEnd,
+    CallAnotherProgram,
 }
 
 pub struct Genome {
@@ -115,18 +116,18 @@ impl Genome {
             let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 1, 10);
             genome_vec.push(item);
         }
-        // {
-        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
-        //     genome_vec.push(item);
-        // }
-        // {
-        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
-        //     genome_vec.push(item);
-        // }
-        // {
-        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 1, 6);
-        //     genome_vec.push(item);
-        // }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
+            genome_vec.push(item);
+        }
+        {
+            let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 1, 6);
+            genome_vec.push(item);
+        }
         // for _ in 0..4 {
         //     {
         //         let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
@@ -425,7 +426,7 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure.
     #[allow(dead_code)]
-    pub fn mutate_call<R: Rng + ?Sized>(&mut self, rng: &mut R, available_program_ids: &Vec<u32>) -> bool {
+    pub fn mutate_call<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Identify GenomeItem's that use the `cal` instruction
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
@@ -443,26 +444,29 @@ impl Genome {
         // Mutate the call instruction, so it invokes the next program in the list.
         // If it reaches the end, then it picks the first program from the list.
         let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
-        genome_item.mutate_pick_next_program(rng, available_program_ids)
+        // genome_item.mutate_pick_next_program(rng, context)
+        // genome_item.mutate_pick_popular_program(rng, context)
+        genome_item.mutate_pick_recent_program(rng, context)
     }
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure.
     #[allow(dead_code)]
-    pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        let mutation_vec: Vec<MutateGenome> = vec![
-            MutateGenome::Instruction,
-            MutateGenome::SourceConstant,
-            MutateGenome::SourceType,
-            MutateGenome::SwapRegisters,
-            MutateGenome::SourceRegister,
-            MutateGenome::TargetRegister,
-            MutateGenome::ToggleEnabled,
-            // MutateGenome::SwapRows,
-            MutateGenome::SwapAdjacentRows,
-            // MutateGenome::InsertLoopBeginEnd,
+    pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+        let mutation_vec: Vec<(MutateGenome,usize)> = vec![
+            (MutateGenome::Instruction, 10),
+            (MutateGenome::SourceConstant, 200),
+            (MutateGenome::SourceType, 100),
+            (MutateGenome::SwapRegisters, 100),
+            (MutateGenome::SourceRegister, 100),
+            (MutateGenome::TargetRegister, 100),
+            (MutateGenome::ToggleEnabled, 20),
+            (MutateGenome::SwapRows, 1),
+            (MutateGenome::SwapAdjacentRows, 10),
+            (MutateGenome::InsertLoopBeginEnd, 0),
+            (MutateGenome::CallAnotherProgram, 50),
         ];
-        let mutation: &MutateGenome = mutation_vec.choose(rng).unwrap();
+        let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
         match mutation {
             MutateGenome::Instruction => {
                 return self.mutate_instruction(rng);
@@ -493,6 +497,9 @@ impl Genome {
             },
             MutateGenome::InsertLoopBeginEnd => {
                 return self.mutate_insert_loop(rng);
+            },
+            MutateGenome::CallAnotherProgram => {
+                return self.mutate_call(rng, context);
             }
         }
     }

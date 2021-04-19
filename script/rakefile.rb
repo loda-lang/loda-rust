@@ -78,6 +78,16 @@ file 'data/mine_program_ids.csv' => ['data/terms_lab.csv'] do
     ruby 'task_mine_program_ids.rb'
 end
 
+desc "extract creation date for all programs"
+file 'data/program_creation_dates.csv' do
+    ruby 'task_program_creation_dates.rb'
+end
+
+desc "extract the most popular programs"
+file 'data/program_popularity.csv' => ['data/pagerank.csv'] do
+    ruby 'task_program_popularity.rb'
+end
+
 task :default do
     system 'rake -T'
 end
