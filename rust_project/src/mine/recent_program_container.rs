@@ -124,6 +124,10 @@ fn process_csv_data(reader: &mut dyn BufRead) -> Result<Vec<Record>, Box<dyn Err
     Ok(records)
 }
 
+fn chunk_size(item_count: usize, chunk_count: usize) -> usize {
+    (item_count + chunk_count - 1) / chunk_count
+}
+
 fn convert_records_to_clusters(mut records: Vec<Record>) -> Result<RecentProgramContainer, Box<dyn Error>> {
     // Order program_ids by their creation date
     records.sort_by(|a,b| a.creation_date.cmp(&b.creation_date));
@@ -199,5 +203,38 @@ program id;creation date
         assert_eq!(cluster_program_ids[0].len(), 1);
         assert_eq!(cluster_program_ids[4].len(), 1);
         assert_eq!(cluster_program_ids[9].len(), 1);
+    }
+
+    #[test]
+    fn test_10003_chunk_size() {
+        assert_eq!(chunk_size(1, 1), 1);
+
+        assert_eq!(chunk_size(4, 1), 4);
+        assert_eq!(chunk_size(4, 2), 2);
+        assert_eq!(chunk_size(4, 3), 2);
+        assert_eq!(chunk_size(4, 4), 1);
+        assert_eq!(chunk_size(4, 5), 1);
+        assert_eq!(chunk_size(4, 100), 1);
+
+        assert_eq!(chunk_size(5, 1), 5);
+        assert_eq!(chunk_size(5, 2), 3);
+        assert_eq!(chunk_size(5, 3), 2);
+        assert_eq!(chunk_size(5, 4), 2);
+        assert_eq!(chunk_size(5, 5), 1);
+        assert_eq!(chunk_size(5, 6), 1);
+        assert_eq!(chunk_size(5, 7), 1);
+        assert_eq!(chunk_size(5, 8), 1);
+
+        assert_eq!(chunk_size(6, 1), 6);
+        assert_eq!(chunk_size(6, 2), 3);
+        assert_eq!(chunk_size(6, 3), 2);
+        assert_eq!(chunk_size(6, 4), 2);
+        assert_eq!(chunk_size(6, 5), 2);
+        assert_eq!(chunk_size(6, 6), 1);
+        assert_eq!(chunk_size(6, 7), 1);
+
+        assert_eq!(chunk_size(999, 10), 100);
+        assert_eq!(chunk_size(1000, 10), 100);
+        assert_eq!(chunk_size(1001, 10), 101);
     }
 }
