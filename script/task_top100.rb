@@ -202,9 +202,14 @@ def oeis_link(program_id)
 end
 
 comments = {
-    244049 => 'Popular in LODA, underappreciated in OEIS. Why?',
-    230980 => "Same as " + oeis_link(720) + ", starting at n=0.",
+    25669  => 'Popular in LODA, underappreciated in OEIS. Why?',
+    33132  => 'Popular in LODA, underappreciated in OEIS. Why?',
+    117818 => 'Popular in LODA, underappreciated in OEIS. Why?',
+    161560 => 'Popular in LODA, underappreciated in OEIS. Why?',
     206735 => 'Popular in LODA, underappreciated in OEIS. Why?',
+    230980 => "Same as " + oeis_link(720) + ", starting at n=0.",
+    244049 => 'Popular in LODA, underappreciated in OEIS. Why?',
+    293810 => 'Popular in LODA, underappreciated in OEIS. Why?',
 }
 
 rows = []
