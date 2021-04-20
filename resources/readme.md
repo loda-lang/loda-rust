@@ -13,7 +13,7 @@ What goes into the `dont_mine.csv` file.
 - Duplicate OEIS sequence.
 - Existing programs.
 
-The `dont_mine.csv` is extracted from the LODA `denylist.txt`.
+The `dont_mine.csv` is extracted from the LODA `deny.txt`.
 
 To rebuild this file follow these steps:
 
