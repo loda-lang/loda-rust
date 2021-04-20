@@ -1,5 +1,5 @@
 use crate::control::DependencyManager;
-use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, RecentProgramContainer, save_candidate_program};
+use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, PreventFlooding, PreventFloodingError, RecentProgramContainer, save_candidate_program};
 use crate::parser::{parse_program, ParsedProgram};
 use crate::execute::{EvalError, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use crate::util::{BigIntVec, bigintvec_to_string};
@@ -36,6 +36,75 @@ impl ProgramRunner {
     }
 }
 
+fn asm_files_in_the_mine_event_dir(mine_event_dir: &Path) -> Vec<PathBuf> {
+    let readdir_iterator: fs::ReadDir = match fs::read_dir(mine_event_dir) {
+        Ok(values) => values,
+        Err(err) => {
+            panic!("Unable to obtain paths for mine_event_dir. error: {:?}", err);
+        }
+    };
+
+    let mut paths: Vec<PathBuf> = vec!();
+    for path in readdir_iterator {
+        let direntry: fs::DirEntry = match path {
+            Ok(value) => value,
+            Err(_) => {
+                continue;
+            }
+        };
+        let path: PathBuf = direntry.path();
+        let extension = match path.extension() {
+            Some(value) => value,
+            None => {
+                continue;
+            }
+        };
+        if extension != "asm" {
+            continue;
+        }
+        if !path.is_file() {
+            continue;
+        }
+        paths.push(path);
+    }
+    paths
+}
+
+impl PreventFlooding {
+    fn load(&mut self, dependency_manager: &mut DependencyManager, cache: &mut ProgramCache, paths: Vec<PathBuf>) {
+        for path in paths {
+            let contents: String = match fs::read_to_string(&path) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Something went wrong reading the file: {:?}  error: {:?}", path, error);
+                    continue;
+                }
+            };
+            let runner: ProgramRunner = match dependency_manager.parse(ProgramId::ProgramWithoutId, &contents) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Something went wrong when parsing the file: {:?}  error: {:?}", path, error);
+                    continue;
+                }
+            };
+            let number_of_terms: u64 = 40;
+            let terms: BigIntVec = match runner.compute_terms(number_of_terms, cache) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("program cannot be run. path: {:?}  error: {:?}", path, error);
+                    continue;
+                }
+            };
+            if self.try_register(&terms).is_err() {
+                // println!("already registered.");
+                continue;
+            }
+            // println!("ok");
+        }    
+    }
+}
+
+
 pub fn run_miner_loop(
     loda_program_rootdir: &PathBuf, 
     checker10: &CheckFixedLengthSequence, 
@@ -53,6 +122,15 @@ pub fn run_miner_loop(
     let mut dm = DependencyManager::new(
         loda_program_rootdir.clone(),
     );
+    let mut cache = ProgramCache::new();
+
+    let paths: Vec<PathBuf> = asm_files_in_the_mine_event_dir(mine_event_dir);
+    println!("number of .asm files in the mine-event dir: {:?}", paths.len());
+
+    let mut prevent_flooding = PreventFlooding::new();
+    prevent_flooding.load(&mut dm, &mut cache, paths);
+    println!("number of programs added to the PreventFlooding mechanism: {:?}", prevent_flooding.len());
+
 
     let path_to_program: PathBuf = dm.path_to_program(112456);
     let contents: String = match fs::read_to_string(&path_to_program) {
@@ -91,7 +169,6 @@ pub fn run_miner_loop(
     );
 
     println!("\nPress CTRL-C to stop the miner.");
-    let mut cache = ProgramCache::new();
     let mut iteration: usize = 0;
     let mut progress_time = Instant::now();
     let mut progress_iteration: usize = 0;
@@ -99,6 +176,7 @@ pub fn run_miner_loop(
     let mut number_of_errors_parse: usize = 0;
     let mut number_of_errors_nooutput: usize = 0;
     let mut number_of_errors_run: usize = 0;
+    let mut number_of_prevented_floodings: usize = 0;
     loop {
         if (iteration % 10000) == 0 {
             let elapsed: u128 = progress_time.elapsed().as_millis();
@@ -117,11 +195,12 @@ pub fn run_miner_loop(
                     number_of_errors_run
                 );
 
-                println!("#{} cache: {}   error: {}   funnel: {}   {}", 
+                println!("#{} cache: {}   error: {}   funnel: {}  flooding: {}  {}", 
                     iteration, 
                     cache.hit_miss_info(), 
                     error_info,
-                    funnel.funnel_info(), 
+                    funnel.funnel_info(),
+                    number_of_prevented_floodings,
                     iteration_info
                 );
 
@@ -215,6 +294,12 @@ pub fn run_miner_loop(
             }
         };
         if !funnel.check40(&terms40) {
+            continue;
+        }
+
+        if prevent_flooding.try_register(&terms40).is_err() {
+            // debug!("prevented flooding");
+            number_of_prevented_floodings += 1;
             continue;
         }
 

@@ -44,6 +44,10 @@ impl PreventFlooding {
         // Successfully registered the new program.
         Ok(())
     }
+
+    pub fn len(&self) -> usize {
+        self.hashset.len()
+    }
 }
 
 #[cfg(test)]
