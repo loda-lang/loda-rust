@@ -204,6 +204,7 @@ end
 comments = {
     10201  => 'Popular in LODA, underappreciated in OEIS. Why?',
     25669  => 'Popular in LODA, underappreciated in OEIS. Why?',
+    25676  => 'Popular in LODA, underappreciated in OEIS. Why?',
     33132  => 'Popular in LODA, underappreciated in OEIS. Why?',
     33142  => 'Popular in LODA, underappreciated in OEIS. Why?',
     97133  => 'Popular in LODA, underappreciated in OEIS. Why?',
@@ -213,7 +214,9 @@ comments = {
     161560 => 'Popular in LODA, underappreciated in OEIS. Why?',
     206735 => 'Popular in LODA, underappreciated in OEIS. Why?',
     230980 => "Same as " + oeis_link(720) + ", starting at n=0.",
+    271342 => 'Popular in LODA, underappreciated in OEIS. Why?',
     293810 => 'Popular in LODA, underappreciated in OEIS. Why?',
+    301657 => 'Popular in LODA, underappreciated in OEIS. Why?',
 }
 
 rows = []
