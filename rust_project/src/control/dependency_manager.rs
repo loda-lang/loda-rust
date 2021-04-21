@@ -6,7 +6,7 @@ use std::rc::Rc;
 use crate::parser::{ParsedProgram, ParseProgramError, parse_program, create_program, CreatedProgram, CreateProgramError};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct CyclicDependencyError {
     program_id: u64,
 }
@@ -260,9 +260,9 @@ mod tests {
     }
 
     impl DependencyManagerError {
-        fn expect_cyclic_dependency(&self) -> CyclicDependencyError {
+        fn expect_cyclic_dependency(&self) -> &CyclicDependencyError {
             match self {
-                DependencyManagerError::CyclicDependency(value) => value.clone(),
+                DependencyManagerError::CyclicDependency(value) => &value,
                 _ => {
                     panic!("Expected CyclicDependency, but got something else.");
                 }
@@ -273,22 +273,25 @@ mod tests {
     #[test]
     fn test_10201_load_detect_cycle1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle1");
-        let error: DependencyManagerError = dm.load(666).err().unwrap();
-        assert_eq!(error.expect_cyclic_dependency(), CyclicDependencyError::new(666));
+        let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
+        let error: &CyclicDependencyError = dm_error.expect_cyclic_dependency();
+        assert_eq!(error.program_id, 666);
     }
 
     #[test]
     fn test_10202_load_detect_cycle2() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle2");
-        let error: DependencyManagerError = dm.load(666).err().unwrap();
-        assert_eq!(error.expect_cyclic_dependency(), CyclicDependencyError::new(666));
+        let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
+        let error: &CyclicDependencyError = dm_error.expect_cyclic_dependency();
+        assert_eq!(error.program_id, 666);
     }
 
     #[test]
     fn test_10203_load_detect_cycle3() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle3");
-        let error: DependencyManagerError = dm.load(666).err().unwrap();
-        assert_eq!(error.expect_cyclic_dependency(), CyclicDependencyError::new(666));
+        let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
+        let error: &CyclicDependencyError = dm_error.expect_cyclic_dependency();
+        assert_eq!(error.program_id, 666);
     }
 
     impl DependencyManagerError {
