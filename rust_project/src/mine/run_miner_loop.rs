@@ -187,42 +187,38 @@ pub fn run_miner_loop(
     let mut number_of_errors_run: usize = 0;
     let mut number_of_prevented_floodings: usize = 0;
     loop {
-        if (iteration % 10000) == 0 {
-            let elapsed: u128 = progress_time.elapsed().as_millis();
-            if elapsed >= 5000 {
-                let iterations_diff: usize = iteration - progress_iteration;
-                let iterations_per_second: f32 = ((1000 * iterations_diff) as f32) / (elapsed as f32);
-                let iteration_info = format!(
-                    "{:.0} iter/sec", iterations_per_second
-                );
+        let elapsed: u128 = progress_time.elapsed().as_millis();
+        if elapsed >= 1000 {
+            let iterations_diff: usize = iteration - progress_iteration;
+            let iterations_per_second: f32 = ((1000 * iterations_diff) as f32) / (elapsed as f32);
+            let iteration_info = format!(
+                "{:.0} iter/sec", iterations_per_second
+            );
 
-                let error_info = format!(
-                    "[{},{},{},{}]",
-                    number_of_failed_mutations,
-                    number_of_errors_parse,
-                    number_of_errors_nooutput,
-                    number_of_errors_run
-                );
+            let error_info = format!(
+                "[{},{},{},{}]",
+                number_of_failed_mutations,
+                number_of_errors_parse,
+                number_of_errors_nooutput,
+                number_of_errors_run
+            );
 
-                println!("#{} cache: {}   error: {}   funnel: {}  flooding: {}  {}", 
-                    iteration, 
-                    cache.hit_miss_info(), 
-                    error_info,
-                    funnel.funnel_info(),
-                    number_of_prevented_floodings,
-                    iteration_info
-                );
+            println!("#{} cache: {}   error: {}   funnel: {}  flooding: {}  {}", 
+                iteration, 
+                cache.hit_miss_info(), 
+                error_info,
+                funnel.funnel_info(),
+                number_of_prevented_floodings,
+                iteration_info
+            );
 
-                println!("Current genome\n{}", genome);
+            // println!("Current genome\n{}", genome);
 
-                progress_time = Instant::now();
-                progress_iteration = iteration;
-            }
+            progress_time = Instant::now();
+            progress_iteration = iteration;
         }
+
         iteration += 1;
-        // if iteration > 5 {
-        //     break;
-        // }
         
         if !genome.mutate(&mut rng, &context) {
             number_of_failed_mutations += 1;
