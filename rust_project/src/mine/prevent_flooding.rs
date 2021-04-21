@@ -25,6 +25,7 @@ impl PreventFlooding {
         }
     }
 
+    #[allow(dead_code)]
     pub fn contains(&self, bigintvec: &BigIntVec) -> bool {
         let s: String = bigintvec_to_string(&bigintvec);
         if self.hashset.contains(&s) {

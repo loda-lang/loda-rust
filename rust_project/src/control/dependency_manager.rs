@@ -33,6 +33,7 @@ impl CannotReadProgramFileError {
         }
     }
 
+    #[allow(dead_code)]
     pub fn program_id(&self) -> u64 {
         self.program_id
     }
