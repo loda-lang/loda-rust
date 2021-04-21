@@ -20,6 +20,9 @@ pub enum EvalError {
     PowerZeroDivision,
     PowerExponentTooHigh,
 
+    // Range length is beyond the ProgramState max length
+    LoopRangeLengthExceededLimit,
+
     // Stuck in a loop that takes way too long time to compute
     LoopCountExceededLimit,
 
