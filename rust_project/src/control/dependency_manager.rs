@@ -19,9 +19,34 @@ impl CyclicDependencyError {
     }
 }
 
+#[derive(Debug)]
+pub struct CannotReadProgramFileError {
+    program_id: u64,
+    io_error: std::io::Error,
+}
+
+impl CannotReadProgramFileError {
+    pub fn new(program_id: u64, io_error: std::io::Error) -> Self {
+        Self {
+            program_id: program_id,
+            io_error: io_error,
+        }
+    }
+
+    pub fn program_id(&self) -> u64 {
+        self.program_id
+    }
+}
+
+impl PartialEq for CannotReadProgramFileError {
+    fn eq(&self, other: &Self) -> bool {
+        self.program_id == other.program_id
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum DependencyManagerError {
-    CannotLoadFile,
+    CannotReadProgramFile(CannotReadProgramFileError),
     CyclicDependency(CyclicDependencyError),
     ParseProgram(ParseProgramError),
     CreateProgram(CreateProgramError),
@@ -31,8 +56,8 @@ pub enum DependencyManagerError {
 impl fmt::Display for DependencyManagerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::CannotLoadFile =>
-                write!(f, "Failed to load the assembler file"),
+            Self::CannotReadProgramFile(error) =>
+                write!(f, "Failed to load the assembler file. program_id: {}", error.program_id),
             Self::CyclicDependency(error) =>
                 write!(f, "Detected a cyclic dependency. program_id: {}", error.program_id),
             Self::ParseProgram(error) => 
@@ -97,9 +122,10 @@ impl DependencyManager {
 
         let contents: String = match fs::read_to_string(&path) {
             Ok(value) => value,
-            Err(error) => {
-                error!("Something went wrong reading the file: {:?}", error);
-                return Err(DependencyManagerError::CannotLoadFile);
+            Err(io_error) => {
+                // Something went wrong reading the file.
+                let error = CannotReadProgramFileError::new(program_id, io_error);
+                return Err(DependencyManagerError::CannotReadProgramFile(error));
             }
         };
 
@@ -265,11 +291,22 @@ mod tests {
         assert_eq!(error.expect_cyclic_dependency(), CyclicDependencyError::new(666));
     }
 
+    impl DependencyManagerError {
+        fn expect_cannot_read_program_file(&self) -> &CannotReadProgramFileError {
+            match self {
+                DependencyManagerError::CannotReadProgramFile(value) => &value,
+                _ => {
+                    panic!("Expected CannotReadProgramFile, but got something else.");
+                }
+            }
+        }
+    }
     #[test]
     fn test_10301_load_detect_missing1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_missing1");
-        let error: DependencyManagerError = dm.load(666).err().unwrap();
-        assert_eq!(error, DependencyManagerError::CannotLoadFile);
+        let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
+        let error: &CannotReadProgramFileError = dm_error.expect_cannot_read_program_file();
+        assert_eq!(error.program_id(), 668);
     }
 
     // #[test]
