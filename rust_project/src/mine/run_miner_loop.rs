@@ -72,18 +72,25 @@ fn asm_files_in_the_mine_event_dir(mine_event_dir: &Path) -> Vec<PathBuf> {
 
 impl PreventFlooding {
     fn load(&mut self, dependency_manager: &mut DependencyManager, cache: &mut ProgramCache, paths: Vec<PathBuf>) {
+        let mut number_of_read_errors: usize = 0;
+        let mut number_of_parse_errors: usize = 0;
+        let mut number_of_runtime_errors: usize = 0;
+        let mut number_of_already_registered_programs: usize = 0;
+        let mut number_of_successfully_registered_programs: usize = 0;
         for path in paths {
             let contents: String = match fs::read_to_string(&path) {
                 Ok(value) => value,
                 Err(error) => {
-                    error!("Something went wrong reading the file: {:?}  error: {:?}", path, error);
+                    debug!("Something went wrong reading the file: {:?}  error: {:?}", path, error);
+                    number_of_read_errors += 1;
                     continue;
                 }
             };
             let runner: ProgramRunner = match dependency_manager.parse(ProgramId::ProgramWithoutId, &contents) {
                 Ok(value) => value,
                 Err(error) => {
-                    error!("Something went wrong when parsing the file: {:?}  error: {:?}", path, error);
+                    debug!("Something went wrong when parsing the file: {:?}  error: {:?}", path, error);
+                    number_of_parse_errors += 1;
                     continue;
                 }
             };
@@ -91,16 +98,19 @@ impl PreventFlooding {
             let terms: BigIntVec = match runner.compute_terms(number_of_terms, cache) {
                 Ok(value) => value,
                 Err(error) => {
-                    error!("program cannot be run. path: {:?}  error: {:?}", path, error);
+                    debug!("program cannot be run. path: {:?}  error: {:?}", path, error);
+                    number_of_runtime_errors += 1;
                     continue;
                 }
             };
             if self.try_register(&terms).is_err() {
-                // println!("already registered.");
+                number_of_already_registered_programs += 1;
                 continue;
             }
-            // println!("ok");
-        }    
+            number_of_successfully_registered_programs += 1;
+        }
+        let junk_count: usize = number_of_read_errors + number_of_parse_errors + number_of_runtime_errors + number_of_already_registered_programs;
+        debug!("prevent flooding. Registered {} programs. Ignoring {} junk programs.", number_of_successfully_registered_programs, junk_count);
     }
 }
 
@@ -129,8 +139,7 @@ pub fn run_miner_loop(
 
     let mut prevent_flooding = PreventFlooding::new();
     prevent_flooding.load(&mut dm, &mut cache, paths);
-    println!("number of programs added to the PreventFlooding mechanism: {:?}", prevent_flooding.len());
-
+    println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
 
     let path_to_program: PathBuf = dm.path_to_program(112456);
     let contents: String = match fs::read_to_string(&path_to_program) {
