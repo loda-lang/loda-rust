@@ -6,10 +6,23 @@ use std::rc::Rc;
 use crate::parser::{ParsedProgram, ParseProgramError, parse_program, create_program, CreatedProgram, CreateProgramError};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct CyclicDependencyError {
+    program_id: u64,
+}
+
+impl CyclicDependencyError {
+    pub fn new(program_id: u64) -> Self {
+        Self {
+            program_id: program_id,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum DependencyManagerError {
     CannotLoadFile,
-    CyclicDependency,
+    CyclicDependency(CyclicDependencyError),
     ParseProgram(ParseProgramError),
     CreateProgram(CreateProgramError),
     LookupProgramId,
@@ -20,8 +33,8 @@ impl fmt::Display for DependencyManagerError {
         match self {
             Self::CannotLoadFile =>
                 write!(f, "Failed to load the assembler file"),
-            Self::CyclicDependency =>
-                write!(f, "Detected a cyclic dependency"),
+            Self::CyclicDependency(error) =>
+                write!(f, "Detected a cyclic dependency. program_id: {}", error.program_id),
             Self::ParseProgram(error) => 
                 write!(f, "Failed to parse program. error: {}", error),
             Self::CreateProgram(error) => 
@@ -71,12 +84,13 @@ impl DependencyManager {
         self.programid_dependencies.push(program_id);
 
         if self.program_run_manager.contains(program_id) {
-            // program is already loaded. No need to load it again.
+            // Program is already loaded. No need to load it again.
             return Ok(());
         }
         if self.programids_currently_loading.contains(&program_id) {
-            error!("detected cyclic dependency. program_id: {}", program_id);
-            return Err(DependencyManagerError::CyclicDependency);
+            // Detected a cyclic dependency, a chain of programs that calls each other. 
+            let error = CyclicDependencyError::new(program_id);
+            return Err(DependencyManagerError::CyclicDependency(error));
         }
         self.programids_currently_loading.insert(program_id);
         let path = self.path_to_program(program_id);
@@ -219,25 +233,36 @@ mod tests {
         assert_eq!(runner.inspect(10), "1,2,1,2,1,2,1,2,1,2");
     }
 
+    impl DependencyManagerError {
+        fn expect_cyclic_dependency(&self) -> CyclicDependencyError {
+            match self {
+                DependencyManagerError::CyclicDependency(value) => value.clone(),
+                _ => {
+                    panic!("Expected CyclicDependency, but got something else.");
+                }
+            }
+        }
+    }
+
     #[test]
     fn test_10201_load_detect_cycle1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle1");
         let error: DependencyManagerError = dm.load(666).err().unwrap();
-        assert_eq!(error, DependencyManagerError::CyclicDependency);
+        assert_eq!(error.expect_cyclic_dependency(), CyclicDependencyError::new(666));
     }
 
     #[test]
     fn test_10202_load_detect_cycle2() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle2");
         let error: DependencyManagerError = dm.load(666).err().unwrap();
-        assert_eq!(error, DependencyManagerError::CyclicDependency);
+        assert_eq!(error.expect_cyclic_dependency(), CyclicDependencyError::new(666));
     }
 
     #[test]
     fn test_10203_load_detect_cycle3() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle3");
         let error: DependencyManagerError = dm.load(666).err().unwrap();
-        assert_eq!(error, DependencyManagerError::CyclicDependency);
+        assert_eq!(error.expect_cyclic_dependency(), CyclicDependencyError::new(666));
     }
 
     #[test]
