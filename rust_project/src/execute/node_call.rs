@@ -77,6 +77,7 @@ impl Node for NodeCallConstant {
             state.run_mode(), 
             &mut step_count, 
             step_count_limit,
+            state.node_binomial_limit().clone(),
             cache,
         );
 
