@@ -4,6 +4,12 @@ use num_integer::{binomial, Integer};
 use num_bigint::{BigInt, ToBigInt};
 use num_traits::{Zero, One, Signed};
 
+#[derive(Clone)]
+pub enum NodeBinomialLimit {
+    Unlimited,
+    LimitN(u8)
+}
+
 enum BinomialError {
     TooHighNValue,
     TooLowNValue,
@@ -15,16 +21,20 @@ impl From<BinomialError> for EvalError {
     }
 }
 
-fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, BinomialError> {
+fn perform_operation(x: &RegisterValue, y: &RegisterValue, limit: &NodeBinomialLimit) -> Result<RegisterValue, BinomialError> {
     let input_n: &BigInt = &x.0;
     let input_k: &BigInt = &y.0;
 
     // positive n or zero
     if input_n.is_zero() || input_n.is_positive() {
-        if *input_n > 30.to_bigint().unwrap() {
-            error!("too high a N value: bin({:?},{:?})", input_n, input_k);
-            // panic!("too high a N value");
-            return Err(BinomialError::TooHighNValue);
+        match limit {
+            NodeBinomialLimit::Unlimited => {},
+            NodeBinomialLimit::LimitN(max_n) => {
+                if *input_n > max_n.to_bigint().unwrap() {
+                    debug!("too high a N value: bin({:?},{:?})", input_n, input_k);
+                    return Err(BinomialError::TooHighNValue);
+                }
+            }
         }
         if input_k.is_negative() || input_k > input_n {
             return Ok(RegisterValue::zero());
@@ -41,10 +51,14 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterVal
         return Ok(RegisterValue(value));
     }
 
-    if *input_n < -30.to_bigint().unwrap() {
-        error!("too low a N value: bin({:?},{:?})", input_n, input_k);
-        // panic!("too low a N value");
-        return Err(BinomialError::TooLowNValue);
+    match limit {
+        NodeBinomialLimit::Unlimited => {},
+        NodeBinomialLimit::LimitN(max_n) => {
+            if input_n.abs() > max_n.to_bigint().unwrap() {
+                debug!("too low a N value: bin({:?},{:?})", input_n, input_k);
+                return Err(BinomialError::TooLowNValue);
+            }
+        }
     }
 
     let mut n: BigInt = input_n.clone();
@@ -115,7 +129,7 @@ impl Node for NodeBinomialRegister {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
-        let value: RegisterValue = perform_operation(lhs, rhs)?;
+        let value: RegisterValue = perform_operation(lhs, rhs, state.node_binomial_limit())?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -154,7 +168,7 @@ impl Node for NodeBinomialConstant {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = &self.source;
-        let value: RegisterValue = perform_operation(lhs, rhs)?;
+        let value: RegisterValue = perform_operation(lhs, rhs, state.node_binomial_limit())?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -169,15 +183,25 @@ mod tests {
     use super::*;
 
     fn process(left: i64, right: i64) -> String {
+        let limit = NodeBinomialLimit::Unlimited;
+        process_inner(left, right, &limit)
+    }
+
+    fn process_limit(left: i64, right: i64, limit: u8) -> String {
+        let limit = NodeBinomialLimit::LimitN(limit);
+        process_inner(left, right, &limit)
+    }
+
+    fn process_inner(left: i64, right: i64, limit: &NodeBinomialLimit) -> String {
         let result = perform_operation(
             &RegisterValue::from_i64(left),
-            &RegisterValue::from_i64(right)
+            &RegisterValue::from_i64(right),
+            limit,
         );
         let value: RegisterValue = match result {
             Ok(value) => value,
-            Err(_) => {
-                return "BOOM".to_string();
-            }
+            Err(BinomialError::TooHighNValue) => return "TOOHIGH".to_string(),
+            Err(BinomialError::TooLowNValue) => return "TOOLOW".to_string(),
         };
         let v = value.to_i64();
         if v >= 0xffffff {
@@ -257,5 +281,23 @@ mod tests {
         assert_eq!(process(-3, 1), "-3");
         assert_eq!(process(-3, 2), "6");
         assert_eq!(process(-3, 3), "-10");
+    }
+
+    #[test]
+    fn test_20001_check_upper_limit() {
+        assert_eq!(process_limit(3, 1, 3), "3");
+        assert_eq!(process_limit(4, 1, 3), "TOOHIGH");
+
+        assert_eq!(process_limit(80, 1, 80), "80");
+        assert_eq!(process_limit(81, 1, 80), "TOOHIGH");
+    }
+
+    #[test]
+    fn test_20002_check_lower_limit() {
+        assert_eq!(process_limit(-3, 1, 3), "-3");
+        assert_eq!(process_limit(-4, 1, 3), "TOOLOW");
+
+        assert_eq!(process_limit(-80, 1, 80), "-80");
+        assert_eq!(process_limit(-81, 1, 80), "TOOLOW");
     }
 }

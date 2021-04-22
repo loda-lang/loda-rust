@@ -1,4 +1,5 @@
 use super::{EvalError, RegisterIndex, RegisterValue, RunMode};
+use super::node_binomial::NodeBinomialLimit;
 use num_bigint::BigInt;
 use num_traits::Signed;
 use std::cmp::Ordering;
@@ -21,6 +22,7 @@ pub struct ProgramState {
     step_count: u64,
     run_mode: RunMode,
     step_count_limit: u64,
+    node_binomial_limit: NodeBinomialLimit,
 }
 
 impl ProgramState {
@@ -39,7 +41,12 @@ impl ProgramState {
             step_count: 0,
             run_mode: run_mode,
             step_count_limit: step_count_limit,
+            node_binomial_limit: NodeBinomialLimit::Unlimited,
         }
+    }
+
+    pub fn node_binomial_limit(&self) -> &NodeBinomialLimit {
+        &self.node_binomial_limit
     }
 
     pub fn run_mode(&self) -> RunMode {
