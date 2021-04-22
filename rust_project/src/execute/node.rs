@@ -11,6 +11,11 @@ pub enum EvalError {
 
     DivisionByZero,
 
+    // Binomial with N >= 34 and the result value can no longer fit into a 32bit integer.
+    // Binomial with N >= 67 and the result value can no longer fit into a 64bit integer.
+    // During mining, it can be a big time waster computing binomial with way big values.
+    BinomialDomainError,
+
     // When a mathematical function is evaluated outside of its domain of definition.
     LogDomainError,
 

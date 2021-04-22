@@ -1,19 +1,33 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
 use std::collections::HashSet;
 use num_integer::{binomial, Integer};
-use num_bigint::BigInt;
+use num_bigint::{BigInt, ToBigInt};
 use num_traits::{Zero, One, Signed};
 
-fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> RegisterValue {
+enum BinomialError {
+    TooHighNValue,
+    TooLowNValue,
+}
+
+impl From<BinomialError> for EvalError {
+    fn from(_err: BinomialError) -> EvalError {
+        EvalError::BinomialDomainError
+    }
+}
+
+fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, BinomialError> {
     let input_n: &BigInt = &x.0;
     let input_k: &BigInt = &y.0;
 
-    // TODO: deal with infinity
-
     // positive n or zero
     if input_n.is_zero() || input_n.is_positive() {
+        if *input_n > 30.to_bigint().unwrap() {
+            error!("too high a N value: bin({:?},{:?})", input_n, input_k);
+            // panic!("too high a N value");
+            return Err(BinomialError::TooHighNValue);
+        }
         if input_k.is_negative() || input_k > input_n {
-            return RegisterValue::zero();
+            return Ok(RegisterValue::zero());
         }
 
         // Inside pascals triangle
@@ -24,7 +38,13 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> RegisterValue {
             k = n.clone() - k.clone();
         }
         let value: BigInt = binomial(n, k);
-        return RegisterValue(value);
+        return Ok(RegisterValue(value));
+    }
+
+    if *input_n < -30.to_bigint().unwrap() {
+        error!("too low a N value: bin({:?},{:?})", input_n, input_k);
+        // panic!("too low a N value");
+        return Err(BinomialError::TooLowNValue);
     }
 
     let mut n: BigInt = input_n.clone();
@@ -48,12 +68,12 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> RegisterValue {
             n = -k.clone() - 1;
             k = n_old - k;
         } else {
-            return RegisterValue::zero();
+            return Ok(RegisterValue::zero());
         }
     }
 
     if k.is_negative() || k > n {
-        return RegisterValue::zero();
+        return Ok(RegisterValue::zero());
     }
 
     let k2: BigInt = k.clone() * 2;
@@ -69,9 +89,8 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> RegisterValue {
         value *= n_minus_i;
         i += 1;
         value = value / i.clone();
-        // TODO: deal with overflow
     }
-    RegisterValue(value * sign)
+    Ok(RegisterValue(value * sign))
 }
 
 pub struct NodeBinomialRegister {
@@ -96,7 +115,7 @@ impl Node for NodeBinomialRegister {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
-        let value = perform_operation(lhs, rhs);
+        let value: RegisterValue = perform_operation(lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -135,7 +154,7 @@ impl Node for NodeBinomialConstant {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = &self.source;
-        let value = perform_operation(lhs, rhs);
+        let value: RegisterValue = perform_operation(lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -150,10 +169,16 @@ mod tests {
     use super::*;
 
     fn process(left: i64, right: i64) -> String {
-        let value: RegisterValue = perform_operation(
+        let result = perform_operation(
             &RegisterValue::from_i64(left),
             &RegisterValue::from_i64(right)
         );
+        let value: RegisterValue = match result {
+            Ok(value) => value,
+            Err(_) => {
+                return "BOOM".to_string();
+            }
+        };
         let v = value.to_i64();
         if v >= 0xffffff {
             return "BOOM".to_string();
