@@ -13,7 +13,7 @@ pub enum EvalError {
 
     // Binomial with N >= 34 and the result value can no longer fit into a 32bit integer.
     // Binomial with N >= 67 and the result value can no longer fit into a 64bit integer.
-    // During mining, it can be a big time waster computing binomial with way big values.
+    // During mining, it can be a time waster computing binomial with huge values.
     BinomialDomainError,
 
     // When a mathematical function is evaluated outside of its domain of definition.
@@ -24,6 +24,7 @@ pub enum EvalError {
 
     PowerZeroDivision,
     PowerExponentTooHigh,
+    // During mining, it can be a time waster computing power with huge values.
     PowerExceededLimit,
 
     // Range length is beyond the ProgramState max length
