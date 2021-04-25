@@ -185,6 +185,15 @@ mod tests {
 
     fn process(left: i64, right: i64) -> String {
         let limit = NodePowerLimit::Unlimited;
+        process_inner(left, right, &limit)
+    }
+
+    fn process_limit(left: i64, right: i64, limit: u32) -> String {
+        let limit = NodePowerLimit::LimitBits(limit);
+        process_inner(left, right, &limit)
+    }
+
+    fn process_inner(left: i64, right: i64, limit: &NodePowerLimit) -> String {
         let result = perform_operation(
             &RegisterValue::from_i64(left),
             &RegisterValue::from_i64(right),
@@ -284,5 +293,36 @@ mod tests {
         let max: u32 = u32::MAX;
         let max_plus1: i64 = (max as i64) + 1;
         assert_eq!(process(1234, max_plus1), "ExponentTooHigh");
+    }
+
+    #[test]
+    fn test_30000_exceed_limit() {
+        // 2 bits for representing the base
+        assert_eq!(process_limit(2, 7, 16), "128");
+        assert_eq!(process_limit(2, 8, 16), "256");
+        assert_eq!(process_limit(2, 9, 16), "ExceededLimit");
+        assert_eq!(process_limit(3, 7, 16), "2187");
+        assert_eq!(process_limit(3, 8, 16), "6561");
+        assert_eq!(process_limit(3, 9, 16), "ExceededLimit");
+
+        // 3 bits for representing the base
+        assert_eq!(process_limit(4, 4, 16), "256");
+        assert_eq!(process_limit(4, 5, 16), "1024");
+        assert_eq!(process_limit(4, 6, 16), "ExceededLimit");
+        assert_eq!(process_limit(7, 4, 16), "2401");
+        assert_eq!(process_limit(7, 5, 16), "16807");
+        assert_eq!(process_limit(7, 6, 16), "ExceededLimit");
+
+        // 4 bits for representing the base
+        assert_eq!(process_limit(8, 4, 20), "4096");
+        assert_eq!(process_limit(8, 5, 20), "32768");
+        assert_eq!(process_limit(8, 6, 20), "ExceededLimit");
+        assert_eq!(process_limit(15, 4, 20), "50625");
+        assert_eq!(process_limit(15, 5, 20), "759375");
+        assert_eq!(process_limit(15, 6, 20), "ExceededLimit");
+
+        // 8 bits for representing the base
+        assert_eq!(process_limit(255, 2, 16), "65025");
+        assert_eq!(process_limit(255, 2, 15), "ExceededLimit");
     }
 }
