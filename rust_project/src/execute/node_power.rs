@@ -19,9 +19,9 @@ enum PowerError {
 impl From<PowerError> for EvalError {
     fn from(error: PowerError) -> EvalError {
         match error {
-            DivisionByZero => EvalError::PowerZeroDivision,
+            DivisionByZero  => EvalError::PowerZeroDivision,
             ExponentTooHigh => EvalError::PowerExponentTooHigh,
-            ExceededLimit => EvalError::PowerExceededLimit,
+            ExceededLimit   => EvalError::PowerExceededLimit,
         }
     }
 }

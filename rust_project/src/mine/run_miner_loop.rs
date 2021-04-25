@@ -3,6 +3,7 @@ use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext,
 use crate::parser::{parse_program, ParsedProgram};
 use crate::execute::{EvalError, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use crate::execute::node_binomial::NodeBinomialLimit;
+use crate::execute::node_power::NodePowerLimit;
 use crate::util::{BigIntVec, bigintvec_to_string};
 use std::fs;
 use std::time::Instant;
@@ -15,6 +16,7 @@ impl ProgramRunner {
         let mut terms: BigIntVec = vec!();
         let step_count_limit: u64 = 10000;
         let node_binomial_limit = NodeBinomialLimit::LimitN(20);
+        let node_power_limit = NodePowerLimit::LimitBits(30);
         let mut _step_count: u64 = 0;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
@@ -24,6 +26,7 @@ impl ProgramRunner {
                 &mut _step_count, 
                 step_count_limit, 
                 node_binomial_limit.clone(),
+                node_power_limit.clone(),
                 cache
             )?;
             terms.push(output.0.clone());

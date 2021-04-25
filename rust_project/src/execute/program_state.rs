@@ -1,5 +1,6 @@
 use super::{EvalError, RegisterIndex, RegisterValue, RunMode};
 use super::node_binomial::NodeBinomialLimit;
+use super::node_power::NodePowerLimit;
 use num_bigint::BigInt;
 use num_traits::Signed;
 use std::cmp::Ordering;
@@ -23,10 +24,17 @@ pub struct ProgramState {
     run_mode: RunMode,
     step_count_limit: u64,
     node_binomial_limit: NodeBinomialLimit,
+    node_power_limit: NodePowerLimit,
 }
 
 impl ProgramState {
-    pub fn new(register_count: u8, run_mode: RunMode, step_count_limit: u64, node_binomial_limit: NodeBinomialLimit) -> Self {
+    pub fn new(
+        register_count: u8, 
+        run_mode: RunMode, 
+        step_count_limit: u64, 
+        node_binomial_limit: NodeBinomialLimit, 
+        node_power_limit: NodePowerLimit
+    ) -> Self {
         // Register 0 is for input value
         // Register 1 is for output value
         // So there must be a least 2 registers.
@@ -42,11 +50,16 @@ impl ProgramState {
             run_mode: run_mode,
             step_count_limit: step_count_limit,
             node_binomial_limit: node_binomial_limit,
+            node_power_limit: node_power_limit,
         }
     }
 
     pub fn node_binomial_limit(&self) -> &NodeBinomialLimit {
         &self.node_binomial_limit
+    }
+
+    pub fn node_power_limit(&self) -> &NodePowerLimit {
+        &self.node_power_limit
     }
 
     pub fn run_mode(&self) -> RunMode {
@@ -187,7 +200,13 @@ mod tests {
     use super::*;
 
     fn mock_program_state() -> ProgramState {
-        let mut state = ProgramState::new(4, RunMode::Silent, 1000, NodeBinomialLimit::Unlimited);
+        let mut state = ProgramState::new(
+            4, 
+            RunMode::Silent, 
+            1000, 
+            NodeBinomialLimit::Unlimited,
+            NodePowerLimit::Unlimited,
+        );
         state.set_register_value(RegisterIndex(0), RegisterValue::from_i64(100));
         state.set_register_value(RegisterIndex(1), RegisterValue::from_i64(101));
         state.set_register_value(RegisterIndex(2), RegisterValue::from_i64(102));
@@ -196,7 +215,13 @@ mod tests {
     }
 
     fn empty_program_state() -> ProgramState {
-        ProgramState::new(4, RunMode::Silent, 1000, NodeBinomialLimit::Unlimited)
+        ProgramState::new(
+            4, 
+            RunMode::Silent, 
+            1000, 
+            NodeBinomialLimit::Unlimited,
+            NodePowerLimit::Unlimited,
+        )
     }
 
     #[test]
@@ -208,13 +233,25 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_10001_initialize_with_too_few_registers() {
-        ProgramState::new(0, RunMode::Silent, 1000, NodeBinomialLimit::Unlimited);
+        ProgramState::new(
+            0, 
+            RunMode::Silent, 
+            1000, 
+            NodeBinomialLimit::Unlimited,
+            NodePowerLimit::Unlimited,
+        );
     }
 
     #[test]
     #[should_panic]
     fn test_10002_initialize_with_too_few_registers() {
-        ProgramState::new(1, RunMode::Silent, 1000, NodeBinomialLimit::Unlimited);
+        ProgramState::new(
+            1, 
+            RunMode::Silent, 
+            1000,
+            NodeBinomialLimit::Unlimited,
+            NodePowerLimit::Unlimited,
+        );
     }
 
     #[test]

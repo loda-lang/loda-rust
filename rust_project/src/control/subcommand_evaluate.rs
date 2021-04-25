@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use super::DependencyManager;
 use crate::execute::{ProgramCache, ProgramRunner, RegisterValue, RunMode};
 use crate::execute::node_binomial::NodeBinomialLimit;
+use crate::execute::node_power::NodePowerLimit;
 use crate::config::Config;
 
 pub enum SubcommandEvaluateMode {
@@ -62,6 +63,7 @@ impl ProgramRunner {
                 &mut step_count, 
                 step_count_limit,
                 NodeBinomialLimit::Unlimited,
+                NodePowerLimit::Unlimited,
                 &mut cache
             );
             let output: RegisterValue = match result_run {
@@ -100,6 +102,7 @@ impl ProgramRunner {
                 &mut step_count, 
                 step_count_limit,
                 NodeBinomialLimit::Unlimited,
+                NodePowerLimit::Unlimited,
                 &mut cache,
             );
             if let Err(error) = result_run {
@@ -133,6 +136,7 @@ impl ProgramRunner {
                 &mut step_count, 
                 step_count_limit,
                 NodeBinomialLimit::Unlimited,
+                NodePowerLimit::Unlimited,
                 &mut cache,
             );
             let output: RegisterValue = match result_run {
