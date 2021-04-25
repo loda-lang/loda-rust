@@ -1,4 +1,4 @@
-use num_bigint::BigInt;
+use num_bigint::{BigInt, ToBigInt};
 
 pub type BigIntVec = Vec<BigInt>;
 
@@ -9,18 +9,23 @@ pub fn bigintvec_to_string(items: &BigIntVec) -> String {
     strings.join(",")
 }
 
+#[allow(dead_code)]
+pub fn i64vec_to_bigintvec(values: Vec<i64>) -> BigIntVec {
+    let mut bigintvec: BigIntVec = vec!();
+    for value in values {
+        let value_bigint: BigInt = value.to_bigint().unwrap();
+        bigintvec.push(value_bigint);
+    }
+    bigintvec
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use num_bigint::ToBigInt;
 
     fn bigintvec_to_string_process(values: Vec<i64>) -> String {
-        let mut bigints: BigIntVec = vec!();
-        for value in values {
-            let value_bigint: BigInt = value.to_bigint().unwrap();
-            bigints.push(value_bigint);
-        }
-        bigintvec_to_string(&bigints)
+        let bigintvec: BigIntVec = i64vec_to_bigintvec(values);
+        bigintvec_to_string(&bigintvec)
     }
 
     #[test]

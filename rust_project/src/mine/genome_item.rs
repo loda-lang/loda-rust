@@ -205,6 +205,7 @@ impl GenomeItem {
 
     // Mutate the call instruction, so it invokes the next program in the list.
     // If it reaches the end, then it picks the first program from the list.
+    #[allow(dead_code)]
     pub fn mutate_pick_next_program<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let is_call = self.instruction_id == InstructionId::Call;
         if !is_call {
@@ -250,6 +251,7 @@ impl GenomeItem {
     }
 
     // Mutate the call instruction, so it invokes a random popular program.
+    #[allow(dead_code)]
     pub fn mutate_pick_popular_program<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let is_call = self.instruction_id == InstructionId::Call;
         if !is_call {

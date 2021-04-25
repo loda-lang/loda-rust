@@ -4,12 +4,34 @@ use num_bigint::BigInt;
 use num_traits::{ToPrimitive, One, Zero, Signed};
 use num_integer::Integer;
 
+#[derive(Clone)]
+pub enum NodePowerLimit {
+    Unlimited,
+    LimitBits(u32)
+}
+
+enum PowerError {
+    DivisionByZero,
+    ExponentTooHigh,
+    ExceededLimit,
+}
+
+impl From<PowerError> for EvalError {
+    fn from(error: PowerError) -> EvalError {
+        match error {
+            PowerError::DivisionByZero  => EvalError::PowerZeroDivision,
+            PowerError::ExponentTooHigh => EvalError::PowerExponentTooHigh,
+            PowerError::ExceededLimit   => EvalError::PowerExceededLimit,
+        }
+    }
+}
+
 // x raised to the power of y
 // x is the base value.
 // y is the power value.
 // Ruby: x ** y
 // Math syntax: x ^ y.
-fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,EvalError> {
+fn perform_operation(x: &RegisterValue, y: &RegisterValue, limit: &NodePowerLimit) -> Result<RegisterValue,PowerError> {
     let base: &BigInt = &x.0;
     let exponent: &BigInt = &y.0;
     
@@ -20,7 +42,7 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterVal
         if exponent.is_zero() {
             return Ok(RegisterValue::one());
         }
-        return Err(EvalError::PowerZeroDivision);
+        return Err(PowerError::DivisionByZero);
     }
 
     if base.is_one() {
@@ -53,13 +75,24 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterVal
     let exponent_u32: u32 = match exponent.to_u32() {
         Some(value) => value,
         None => {
-            warn!("NodePower exponent is higher than a 32bit unsigned integer. This is beyond what the pow() function can handle.");
-            return Err(EvalError::PowerExponentTooHigh);
+            // NodePower `exponent` is higher than a 32bit unsigned integer. This is beyond what the pow() function can handle.
+            return Err(PowerError::ExponentTooHigh);
         }
     };
-    if exponent_u32 > 1000000 {
-        warn!("WARNING: NodePower exponent is higher than 1000000. This is a HUGE number.");
+
+    // Ensure that the result of pow doesn't exceed the limit
+    match limit {
+        NodePowerLimit::Unlimited => {},
+        NodePowerLimit::LimitBits(max_bits) => {
+            // There is no floating point logarithm for BigInt.
+            // so it's a rough estimate of the number of bits in the result.
+            let result_size: u128 = (base.bits() as u128) * (exponent_u32 as u128);
+            if result_size > (*max_bits as u128) {
+                return Err(PowerError::ExceededLimit);
+            }
+        }
     }
+
     let result: BigInt = base.pow(exponent_u32);
     Ok(RegisterValue(result))
 }
@@ -87,7 +120,8 @@ impl Node for NodePowerRegister {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
-        let value: RegisterValue = perform_operation(lhs, rhs)?;
+        let limit = NodePowerLimit::Unlimited;
+        let value: RegisterValue = perform_operation(lhs, rhs, &limit)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -126,7 +160,8 @@ impl Node for NodePowerConstant {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = &self.source;
-        let value: RegisterValue = perform_operation(lhs, rhs)?;
+        let limit = NodePowerLimit::Unlimited;
+        let value: RegisterValue = perform_operation(lhs, rhs, &limit)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -149,17 +184,28 @@ mod tests {
     use super::*;
 
     fn process(left: i64, right: i64) -> String {
+        let limit = NodePowerLimit::Unlimited;
+        process_inner(left, right, &limit)
+    }
+
+    fn process_limit(left: i64, right: i64, limit: u32) -> String {
+        let limit = NodePowerLimit::LimitBits(limit);
+        process_inner(left, right, &limit)
+    }
+
+    fn process_inner(left: i64, right: i64, limit: &NodePowerLimit) -> String {
         let result = perform_operation(
             &RegisterValue::from_i64(left),
-            &RegisterValue::from_i64(right)
+            &RegisterValue::from_i64(right),
+            &limit,
         );
         match result {
             Ok(value) => return value.to_string(),
             Err(err) => {
                 match err {
-                    EvalError::PowerZeroDivision => return "ZeroDivision".to_string(),
-                    EvalError::PowerExponentTooHigh => return "ExponentTooHigh".to_string(),
-                    _ => return "BOOM".to_string()
+                    PowerError::DivisionByZero => return "ZeroDivision".to_string(),
+                    PowerError::ExponentTooHigh => return "ExponentTooHigh".to_string(),
+                    PowerError::ExceededLimit => return "ExceededLimit".to_string()
                 }
             }
         }
@@ -247,5 +293,36 @@ mod tests {
         let max: u32 = u32::MAX;
         let max_plus1: i64 = (max as i64) + 1;
         assert_eq!(process(1234, max_plus1), "ExponentTooHigh");
+    }
+
+    #[test]
+    fn test_30000_exceed_limit() {
+        // 2 bits for representing the base
+        assert_eq!(process_limit(2, 7, 16), "128");
+        assert_eq!(process_limit(2, 8, 16), "256");
+        assert_eq!(process_limit(2, 9, 16), "ExceededLimit");
+        assert_eq!(process_limit(3, 7, 16), "2187");
+        assert_eq!(process_limit(3, 8, 16), "6561");
+        assert_eq!(process_limit(3, 9, 16), "ExceededLimit");
+
+        // 3 bits for representing the base
+        assert_eq!(process_limit(4, 4, 16), "256");
+        assert_eq!(process_limit(4, 5, 16), "1024");
+        assert_eq!(process_limit(4, 6, 16), "ExceededLimit");
+        assert_eq!(process_limit(7, 4, 16), "2401");
+        assert_eq!(process_limit(7, 5, 16), "16807");
+        assert_eq!(process_limit(7, 6, 16), "ExceededLimit");
+
+        // 4 bits for representing the base
+        assert_eq!(process_limit(8, 4, 20), "4096");
+        assert_eq!(process_limit(8, 5, 20), "32768");
+        assert_eq!(process_limit(8, 6, 20), "ExceededLimit");
+        assert_eq!(process_limit(15, 4, 20), "50625");
+        assert_eq!(process_limit(15, 5, 20), "759375");
+        assert_eq!(process_limit(15, 6, 20), "ExceededLimit");
+
+        // 8 bits for representing the base
+        assert_eq!(process_limit(255, 2, 16), "65025");
+        assert_eq!(process_limit(255, 2, 15), "ExceededLimit");
     }
 }

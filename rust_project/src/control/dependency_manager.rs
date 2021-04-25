@@ -7,9 +7,48 @@ use crate::parser::{ParsedProgram, ParseProgramError, parse_program, create_prog
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 
 #[derive(Debug, PartialEq)]
+pub struct CyclicDependencyError {
+    program_id: u64,
+}
+
+impl CyclicDependencyError {
+    pub fn new(program_id: u64) -> Self {
+        Self {
+            program_id: program_id,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct CannotReadProgramFileError {
+    program_id: u64,
+    io_error: std::io::Error,
+}
+
+impl CannotReadProgramFileError {
+    pub fn new(program_id: u64, io_error: std::io::Error) -> Self {
+        Self {
+            program_id: program_id,
+            io_error: io_error,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn program_id(&self) -> u64 {
+        self.program_id
+    }
+}
+
+impl PartialEq for CannotReadProgramFileError {
+    fn eq(&self, other: &Self) -> bool {
+        self.program_id == other.program_id
+    }
+}
+
+#[derive(Debug, PartialEq)]
 pub enum DependencyManagerError {
-    CannotLoadFile,
-    CyclicDependency,
+    CannotReadProgramFile(CannotReadProgramFileError),
+    CyclicDependency(CyclicDependencyError),
     ParseProgram(ParseProgramError),
     CreateProgram(CreateProgramError),
     LookupProgramId,
@@ -18,10 +57,10 @@ pub enum DependencyManagerError {
 impl fmt::Display for DependencyManagerError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::CannotLoadFile =>
-                write!(f, "Failed to load the assembler file"),
-            Self::CyclicDependency =>
-                write!(f, "Detected a cyclic dependency"),
+            Self::CannotReadProgramFile(error) =>
+                write!(f, "Failed to load the assembler file. program_id: {}", error.program_id),
+            Self::CyclicDependency(error) =>
+                write!(f, "Detected a cyclic dependency. program_id: {}", error.program_id),
             Self::ParseProgram(error) => 
                 write!(f, "Failed to parse program. error: {}", error),
             Self::CreateProgram(error) => 
@@ -71,21 +110,23 @@ impl DependencyManager {
         self.programid_dependencies.push(program_id);
 
         if self.program_run_manager.contains(program_id) {
-            // program is already loaded. No need to load it again.
+            // Program is already loaded. No need to load it again.
             return Ok(());
         }
         if self.programids_currently_loading.contains(&program_id) {
-            error!("detected cyclic dependency. program_id: {}", program_id);
-            return Err(DependencyManagerError::CyclicDependency);
+            // Detected a cyclic dependency, a chain of programs that calls each other. 
+            let error = CyclicDependencyError::new(program_id);
+            return Err(DependencyManagerError::CyclicDependency(error));
         }
         self.programids_currently_loading.insert(program_id);
         let path = self.path_to_program(program_id);
 
         let contents: String = match fs::read_to_string(&path) {
             Ok(value) => value,
-            Err(error) => {
-                error!("Something went wrong reading the file: {:?}", error);
-                return Err(DependencyManagerError::CannotLoadFile);
+            Err(io_error) => {
+                // Something went wrong reading the file.
+                let error = CannotReadProgramFileError::new(program_id, io_error);
+                return Err(DependencyManagerError::CannotReadProgramFile(error));
             }
         };
 
@@ -219,32 +260,57 @@ mod tests {
         assert_eq!(runner.inspect(10), "1,2,1,2,1,2,1,2,1,2");
     }
 
+    impl DependencyManagerError {
+        fn expect_cyclic_dependency(&self) -> &CyclicDependencyError {
+            match self {
+                DependencyManagerError::CyclicDependency(value) => &value,
+                _ => {
+                    panic!("Expected CyclicDependency, but got something else.");
+                }
+            }
+        }
+    }
+
     #[test]
     fn test_10201_load_detect_cycle1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle1");
-        let error: DependencyManagerError = dm.load(666).err().unwrap();
-        assert_eq!(error, DependencyManagerError::CyclicDependency);
+        let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
+        let error: &CyclicDependencyError = dm_error.expect_cyclic_dependency();
+        assert_eq!(error.program_id, 666);
     }
 
     #[test]
     fn test_10202_load_detect_cycle2() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle2");
-        let error: DependencyManagerError = dm.load(666).err().unwrap();
-        assert_eq!(error, DependencyManagerError::CyclicDependency);
+        let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
+        let error: &CyclicDependencyError = dm_error.expect_cyclic_dependency();
+        assert_eq!(error.program_id, 666);
     }
 
     #[test]
     fn test_10203_load_detect_cycle3() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle3");
-        let error: DependencyManagerError = dm.load(666).err().unwrap();
-        assert_eq!(error, DependencyManagerError::CyclicDependency);
+        let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
+        let error: &CyclicDependencyError = dm_error.expect_cyclic_dependency();
+        assert_eq!(error.program_id, 666);
     }
 
+    impl DependencyManagerError {
+        fn expect_cannot_read_program_file(&self) -> &CannotReadProgramFileError {
+            match self {
+                DependencyManagerError::CannotReadProgramFile(value) => &value,
+                _ => {
+                    panic!("Expected CannotReadProgramFile, but got something else.");
+                }
+            }
+        }
+    }
     #[test]
     fn test_10301_load_detect_missing1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_missing1");
-        let error: DependencyManagerError = dm.load(666).err().unwrap();
-        assert_eq!(error, DependencyManagerError::CannotLoadFile);
+        let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
+        let error: &CannotReadProgramFileError = dm_error.expect_cannot_read_program_file();
+        assert_eq!(error.program_id(), 668);
     }
 
     // #[test]

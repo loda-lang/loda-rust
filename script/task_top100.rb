@@ -141,6 +141,21 @@ oeis_number_of_refs = {
     336551 => 5,
     1223 => 598,
     10055 => 76,
+    155085 => 8,
+    239050 => 29,
+    48724 => 60,
+    146076 => 26,
+    4737 => 28,
+    3958 => 61,
+    288713 => 3,
+    131326 => 5,
+    49643 => 6,
+    8937 => 35,
+    338363 => 1,
+    72668 => 14,
+    180122 => 3,
+    194029 => 38,
+    89068 => 9,
 }
 
 # Obtain all the ranked program_ids
@@ -187,9 +202,21 @@ def oeis_link(program_id)
 end
 
 comments = {
-    244049 => 'Popular in LODA, underappreciated in OEIS. Why?',
-    230980 => "Same as " + oeis_link(720) + ", starting at n=0.",
+    10201  => 'Popular in LODA, underappreciated in OEIS. Why?',
+    25669  => 'Popular in LODA, underappreciated in OEIS. Why?',
+    25676  => 'Popular in LODA, underappreciated in OEIS. Why?',
+    33132  => 'Popular in LODA, underappreciated in OEIS. Why?',
+    33142  => 'Popular in LODA, underappreciated in OEIS. Why?',
+    97133  => 'Popular in LODA, underappreciated in OEIS. Why?',
+    105661 => 'Popular in LODA, underappreciated in OEIS. Why?',
+    117818 => 'Popular in LODA, underappreciated in OEIS. Why?',
+    138342 => 'Popular in LODA, underappreciated in OEIS. Why?',
+    161560 => 'Popular in LODA, underappreciated in OEIS. Why?',
     206735 => 'Popular in LODA, underappreciated in OEIS. Why?',
+    230980 => "Same as " + oeis_link(720) + ", starting at n=0.",
+    271342 => 'Popular in LODA, underappreciated in OEIS. Why?',
+    293810 => 'Popular in LODA, underappreciated in OEIS. Why?',
+    301657 => 'Popular in LODA, underappreciated in OEIS. Why?',
 }
 
 rows = []

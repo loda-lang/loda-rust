@@ -1,4 +1,6 @@
 use super::{EvalError, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterIndex, RegisterValue, RunMode};
+use super::node_binomial::NodeBinomialLimit;
+use super::node_power::NodePowerLimit;
 use super::node_move::NodeMoveRegister;
 use std::collections::HashSet;
 
@@ -21,7 +23,16 @@ impl ProgramRunner {
         }
     }
 
-    pub fn run(&self, input: &RegisterValue, run_mode: RunMode, step_count: &mut u64, step_count_limit: u64, cache: &mut ProgramCache) -> Result<RegisterValue, EvalError> {
+    pub fn run(
+        &self, 
+        input: &RegisterValue, 
+        run_mode: RunMode, 
+        step_count: &mut u64, 
+        step_count_limit: u64, 
+        node_binomial_limit: NodeBinomialLimit, 
+        node_power_limit: NodePowerLimit, 
+        cache: &mut ProgramCache
+    ) -> Result<RegisterValue, EvalError> {
         let step_count_before: u64 = *step_count;
 
         // Lookup (programid+input) in cache
@@ -36,7 +47,13 @@ impl ProgramRunner {
         }
 
         // Initial state
-        let mut state = ProgramState::new(self.register_count, run_mode, step_count_limit);
+        let mut state = ProgramState::new(
+            self.register_count, 
+            run_mode, 
+            step_count_limit, 
+            node_binomial_limit,
+            node_power_limit,
+        );
         state.set_step_count(step_count_before);
         state.set_input_value(input);
 
@@ -158,6 +175,8 @@ impl ProgramRunner {
                 RunMode::Silent, 
                 &mut step_count, 
                 step_count_limit,
+                NodeBinomialLimit::Unlimited,
+                NodePowerLimit::Unlimited,
                 cache,
             );
             match result {

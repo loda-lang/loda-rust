@@ -1,7 +1,9 @@
 use crate::control::DependencyManager;
-use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, RecentProgramContainer, save_candidate_program};
+use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, PreventFlooding, RecentProgramContainer, save_candidate_program};
 use crate::parser::{parse_program, ParsedProgram};
 use crate::execute::{EvalError, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
+use crate::execute::node_binomial::NodeBinomialLimit;
+use crate::execute::node_power::NodePowerLimit;
 use crate::util::{BigIntVec, bigintvec_to_string};
 use std::fs;
 use std::time::Instant;
@@ -13,6 +15,8 @@ impl ProgramRunner {
     fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError> {
         let mut terms: BigIntVec = vec!();
         let step_count_limit: u64 = 10000;
+        let node_binomial_limit = NodeBinomialLimit::LimitN(20);
+        let node_power_limit = NodePowerLimit::LimitBits(30);
         let mut _step_count: u64 = 0;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
@@ -21,6 +25,8 @@ impl ProgramRunner {
                 RunMode::Silent, 
                 &mut _step_count, 
                 step_count_limit, 
+                node_binomial_limit.clone(),
+                node_power_limit.clone(),
                 cache
             )?;
             terms.push(output.0.clone());
@@ -35,6 +41,85 @@ impl ProgramRunner {
         Ok(terms)
     }
 }
+
+fn asm_files_in_the_mine_event_dir(mine_event_dir: &Path) -> Vec<PathBuf> {
+    let readdir_iterator: fs::ReadDir = match fs::read_dir(mine_event_dir) {
+        Ok(values) => values,
+        Err(err) => {
+            panic!("Unable to obtain paths for mine_event_dir. error: {:?}", err);
+        }
+    };
+
+    let mut paths: Vec<PathBuf> = vec!();
+    for path in readdir_iterator {
+        let direntry: fs::DirEntry = match path {
+            Ok(value) => value,
+            Err(_) => {
+                continue;
+            }
+        };
+        let path: PathBuf = direntry.path();
+        let extension = match path.extension() {
+            Some(value) => value,
+            None => {
+                continue;
+            }
+        };
+        if extension != "asm" {
+            continue;
+        }
+        if !path.is_file() {
+            continue;
+        }
+        paths.push(path);
+    }
+    paths
+}
+
+impl PreventFlooding {
+    fn load(&mut self, dependency_manager: &mut DependencyManager, cache: &mut ProgramCache, paths: Vec<PathBuf>) {
+        let mut number_of_read_errors: usize = 0;
+        let mut number_of_parse_errors: usize = 0;
+        let mut number_of_runtime_errors: usize = 0;
+        let mut number_of_already_registered_programs: usize = 0;
+        let mut number_of_successfully_registered_programs: usize = 0;
+        for path in paths {
+            let contents: String = match fs::read_to_string(&path) {
+                Ok(value) => value,
+                Err(error) => {
+                    debug!("Something went wrong reading the file: {:?}  error: {:?}", path, error);
+                    number_of_read_errors += 1;
+                    continue;
+                }
+            };
+            let runner: ProgramRunner = match dependency_manager.parse(ProgramId::ProgramWithoutId, &contents) {
+                Ok(value) => value,
+                Err(error) => {
+                    debug!("Something went wrong when parsing the file: {:?}  error: {:?}", path, error);
+                    number_of_parse_errors += 1;
+                    continue;
+                }
+            };
+            let number_of_terms: u64 = 40;
+            let terms: BigIntVec = match runner.compute_terms(number_of_terms, cache) {
+                Ok(value) => value,
+                Err(error) => {
+                    debug!("program cannot be run. path: {:?}  error: {:?}", path, error);
+                    number_of_runtime_errors += 1;
+                    continue;
+                }
+            };
+            if self.try_register(&terms).is_err() {
+                number_of_already_registered_programs += 1;
+                continue;
+            }
+            number_of_successfully_registered_programs += 1;
+        }
+        let junk_count: usize = number_of_read_errors + number_of_parse_errors + number_of_runtime_errors + number_of_already_registered_programs;
+        debug!("prevent flooding. Registered {} programs. Ignoring {} junk programs.", number_of_successfully_registered_programs, junk_count);
+    }
+}
+
 
 pub fn run_miner_loop(
     loda_program_rootdir: &PathBuf, 
@@ -53,6 +138,14 @@ pub fn run_miner_loop(
     let mut dm = DependencyManager::new(
         loda_program_rootdir.clone(),
     );
+    let mut cache = ProgramCache::new();
+
+    let paths: Vec<PathBuf> = asm_files_in_the_mine_event_dir(mine_event_dir);
+    println!("number of .asm files in the mine-event dir: {:?}", paths.len());
+
+    let mut prevent_flooding = PreventFlooding::new();
+    prevent_flooding.load(&mut dm, &mut cache, paths);
+    println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
 
     let path_to_program: PathBuf = dm.path_to_program(112456);
     let contents: String = match fs::read_to_string(&path_to_program) {
@@ -91,7 +184,6 @@ pub fn run_miner_loop(
     );
 
     println!("\nPress CTRL-C to stop the miner.");
-    let mut cache = ProgramCache::new();
     let mut iteration: usize = 0;
     let mut progress_time = Instant::now();
     let mut progress_iteration: usize = 0;
@@ -99,42 +191,40 @@ pub fn run_miner_loop(
     let mut number_of_errors_parse: usize = 0;
     let mut number_of_errors_nooutput: usize = 0;
     let mut number_of_errors_run: usize = 0;
+    let mut number_of_prevented_floodings: usize = 0;
     loop {
-        if (iteration % 10000) == 0 {
-            let elapsed: u128 = progress_time.elapsed().as_millis();
-            if elapsed >= 5000 {
-                let iterations_diff: usize = iteration - progress_iteration;
-                let iterations_per_second: f32 = ((1000 * iterations_diff) as f32) / (elapsed as f32);
-                let iteration_info = format!(
-                    "{:.0} iter/sec", iterations_per_second
-                );
+        let elapsed: u128 = progress_time.elapsed().as_millis();
+        if elapsed >= 1000 {
+            let iterations_diff: usize = iteration - progress_iteration;
+            let iterations_per_second: f32 = ((1000 * iterations_diff) as f32) / (elapsed as f32);
+            let iteration_info = format!(
+                "{:.0} iter/sec", iterations_per_second
+            );
 
-                let error_info = format!(
-                    "[{},{},{},{}]",
-                    number_of_failed_mutations,
-                    number_of_errors_parse,
-                    number_of_errors_nooutput,
-                    number_of_errors_run
-                );
+            let error_info = format!(
+                "[{},{},{},{}]",
+                number_of_failed_mutations,
+                number_of_errors_parse,
+                number_of_errors_nooutput,
+                number_of_errors_run
+            );
 
-                println!("#{} cache: {}   error: {}   funnel: {}   {}", 
-                    iteration, 
-                    cache.hit_miss_info(), 
-                    error_info,
-                    funnel.funnel_info(), 
-                    iteration_info
-                );
+            println!("#{} cache: {}   error: {}   funnel: {}  flooding: {}  {}", 
+                iteration, 
+                cache.hit_miss_info(), 
+                error_info,
+                funnel.funnel_info(),
+                number_of_prevented_floodings,
+                iteration_info
+            );
 
-                println!("Current genome\n{}", genome);
+            // println!("Current genome\n{}", genome);
 
-                progress_time = Instant::now();
-                progress_iteration = iteration;
-            }
+            progress_time = Instant::now();
+            progress_iteration = iteration;
         }
+
         iteration += 1;
-        // if iteration > 5 {
-        //     break;
-        // }
         
         if !genome.mutate(&mut rng, &context) {
             number_of_failed_mutations += 1;
@@ -215,6 +305,12 @@ pub fn run_miner_loop(
             }
         };
         if !funnel.check40(&terms40) {
+            continue;
+        }
+
+        if prevent_flooding.try_register(&terms40).is_err() {
+            // debug!("prevented flooding");
+            number_of_prevented_floodings += 1;
             continue;
         }
 
