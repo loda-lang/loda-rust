@@ -11,12 +11,18 @@ pub enum NodePowerLimit {
 }
 
 enum PowerError {
+    DivisionByZero,
+    ExponentTooHigh,
     ExceededLimit,
 }
 
 impl From<PowerError> for EvalError {
-    fn from(_err: PowerError) -> EvalError {
-        EvalError::PowerExceededLimit
+    fn from(error: PowerError) -> EvalError {
+        match error {
+            DivisionByZero => EvalError::PowerZeroDivision,
+            ExponentTooHigh => EvalError::PowerExponentTooHigh,
+            ExceededLimit => EvalError::PowerExceededLimit,
+        }
     }
 }
 
@@ -25,7 +31,7 @@ impl From<PowerError> for EvalError {
 // y is the power value.
 // Ruby: x ** y
 // Math syntax: x ^ y.
-fn perform_operation(x: &RegisterValue, y: &RegisterValue, limit: &NodePowerLimit) -> Result<RegisterValue,EvalError> {
+fn perform_operation(x: &RegisterValue, y: &RegisterValue, limit: &NodePowerLimit) -> Result<RegisterValue,PowerError> {
     let base: &BigInt = &x.0;
     let exponent: &BigInt = &y.0;
     
@@ -36,7 +42,7 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue, limit: &NodePowerLimi
         if exponent.is_zero() {
             return Ok(RegisterValue::one());
         }
-        return Err(EvalError::PowerZeroDivision);
+        return Err(PowerError::DivisionByZero);
     }
 
     if base.is_one() {
@@ -70,7 +76,7 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue, limit: &NodePowerLimi
         Some(value) => value,
         None => {
             // NodePower `exponent` is higher than a 32bit unsigned integer. This is beyond what the pow() function can handle.
-            return Err(EvalError::PowerExponentTooHigh);
+            return Err(PowerError::ExponentTooHigh);
         }
     };
 
@@ -82,7 +88,7 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue, limit: &NodePowerLimi
             // so it's a rough estimate of the number of bits in the result.
             let result_size: u128 = (base.bits() as u128) * (exponent_u32 as u128);
             if result_size > (*max_bits as u128) {
-                return Err(EvalError::PowerExceededLimit);
+                return Err(PowerError::ExceededLimit);
             }
         }
     }
@@ -188,10 +194,9 @@ mod tests {
             Ok(value) => return value.to_string(),
             Err(err) => {
                 match err {
-                    EvalError::PowerZeroDivision => return "ZeroDivision".to_string(),
-                    EvalError::PowerExponentTooHigh => return "ExponentTooHigh".to_string(),
-                    EvalError::PowerExceededLimit => return "ExceededLimit".to_string(),
-                    _ => return "BOOM".to_string()
+                    PowerError::DivisionByZero => return "ZeroDivision".to_string(),
+                    PowerError::ExponentTooHigh => return "ExponentTooHigh".to_string(),
+                    PowerError::ExceededLimit => return "ExceededLimit".to_string()
                 }
             }
         }
