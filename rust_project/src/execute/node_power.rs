@@ -1,15 +1,31 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
 use std::collections::HashSet;
-use num_bigint::BigInt;
+use num_bigint::{BigInt, BigUint};
 use num_traits::{ToPrimitive, One, Zero, Signed};
-use num_integer::Integer;
+use num_integer::{Integer};
+
+#[derive(Clone)]
+pub enum NodePowerLimit {
+    Unlimited,
+    LimitBits(u32)
+}
+
+enum PowerError {
+    ExceededLimit,
+}
+
+impl From<PowerError> for EvalError {
+    fn from(_err: PowerError) -> EvalError {
+        EvalError::PowerExceededLimit
+    }
+}
 
 // x raised to the power of y
 // x is the base value.
 // y is the power value.
 // Ruby: x ** y
 // Math syntax: x ^ y.
-fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,EvalError> {
+fn perform_operation(x: &RegisterValue, y: &RegisterValue, limit: &NodePowerLimit) -> Result<RegisterValue,EvalError> {
     let base: &BigInt = &x.0;
     let exponent: &BigInt = &y.0;
     
@@ -53,13 +69,24 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterVal
     let exponent_u32: u32 = match exponent.to_u32() {
         Some(value) => value,
         None => {
-            warn!("NodePower exponent is higher than a 32bit unsigned integer. This is beyond what the pow() function can handle.");
+            // NodePower `exponent` is higher than a 32bit unsigned integer. This is beyond what the pow() function can handle.
             return Err(EvalError::PowerExponentTooHigh);
         }
     };
-    if exponent_u32 > 1000000 {
-        warn!("WARNING: NodePower exponent is higher than 1000000. This is a HUGE number.");
+
+    // Ensure that the result of pow doesn't exceed the limit
+    match limit {
+        NodePowerLimit::Unlimited => {},
+        NodePowerLimit::LimitBits(max_bits) => {
+            // There is no floating point logarithm for BigInt.
+            // so it's a rough estimate of the number of bits in the result.
+            let result_size: u128 = (base.bits() as u128) * (exponent_u32 as u128);
+            if result_size > (*max_bits as u128) {
+                return Err(EvalError::PowerExceededLimit);
+            }
+        }
     }
+
     let result: BigInt = base.pow(exponent_u32);
     Ok(RegisterValue(result))
 }
@@ -87,7 +114,8 @@ impl Node for NodePowerRegister {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
-        let value: RegisterValue = perform_operation(lhs, rhs)?;
+        let limit = NodePowerLimit::Unlimited;
+        let value: RegisterValue = perform_operation(lhs, rhs, &limit)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -126,7 +154,8 @@ impl Node for NodePowerConstant {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = &self.source;
-        let value: RegisterValue = perform_operation(lhs, rhs)?;
+        let limit = NodePowerLimit::Unlimited;
+        let value: RegisterValue = perform_operation(lhs, rhs, &limit)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -149,9 +178,11 @@ mod tests {
     use super::*;
 
     fn process(left: i64, right: i64) -> String {
+        let limit = NodePowerLimit::Unlimited;
         let result = perform_operation(
             &RegisterValue::from_i64(left),
-            &RegisterValue::from_i64(right)
+            &RegisterValue::from_i64(right),
+            &limit,
         );
         match result {
             Ok(value) => return value.to_string(),
@@ -159,6 +190,7 @@ mod tests {
                 match err {
                     EvalError::PowerZeroDivision => return "ZeroDivision".to_string(),
                     EvalError::PowerExponentTooHigh => return "ExponentTooHigh".to_string(),
+                    EvalError::PowerExceededLimit => return "ExceededLimit".to_string(),
                     _ => return "BOOM".to_string()
                 }
             }
