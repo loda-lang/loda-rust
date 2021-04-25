@@ -1,5 +1,5 @@
 use crate::control::DependencyManager;
-use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, PreventFlooding, PreventFloodingError, RecentProgramContainer, save_candidate_program};
+use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, PreventFlooding, RecentProgramContainer, save_candidate_program};
 use crate::parser::{parse_program, ParsedProgram};
 use crate::execute::{EvalError, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use crate::execute::node_binomial::NodeBinomialLimit;

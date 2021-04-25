@@ -73,7 +73,7 @@ impl Node for NodeLoopRegister {
                 if value_inner > &max_range_length_bigint {
                     error!("Range length is beyond the ProgramState max length. Clamping range to 255.");
                     panic!("Does this ever happen in LODA?");
-                    range_length = 255;
+                    // range_length = 255;
                 } else {
                     // Value is between 0 and 255, so it can be casted to an unsigned byte.
                     range_length = value_inner.to_u8().unwrap();
