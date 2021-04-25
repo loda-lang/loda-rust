@@ -1,8 +1,8 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
 use std::collections::HashSet;
-use num_bigint::{BigInt, BigUint};
+use num_bigint::BigInt;
 use num_traits::{ToPrimitive, One, Zero, Signed};
-use num_integer::{Integer};
+use num_integer::Integer;
 
 #[derive(Clone)]
 pub enum NodePowerLimit {
