@@ -11,6 +11,45 @@ use std::path::{Path, PathBuf};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 
+struct TermComputer {
+    terms: BigIntVec,
+    step_count: u64,
+}
+
+impl TermComputer {
+    fn create() -> Self {
+        Self {
+            terms: vec!(),
+            step_count: 0,
+        }
+    }
+
+    fn compute(&mut self, cache: &mut ProgramCache, runner: &ProgramRunner, count: usize) -> Result<BigIntVec, EvalError> {
+        let step_count_limit: u64 = 10000;
+        let node_binomial_limit = NodeBinomialLimit::LimitN(20);
+        let node_power_limit = NodePowerLimit::LimitBits(30);
+        loop {
+            let length: usize = self.terms.len();
+            if length >= count {
+                break;
+            }
+            let index = length as i64;
+            let input = RegisterValue::from_i64(index);
+            let output: RegisterValue = runner.run(
+                &input, 
+                RunMode::Silent, 
+                &mut self.step_count, 
+                step_count_limit, 
+                node_binomial_limit.clone(),
+                node_power_limit.clone(),
+                cache
+            )?;
+            self.terms.push(output.0.clone());
+        }
+        Ok(self.terms.clone())
+    }
+}
+
 impl ProgramRunner {
     fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError> {
         let mut terms: BigIntVec = vec!();
@@ -255,8 +294,8 @@ pub fn run_miner_loop(
         }
 
         // Execute program
-        let number_of_terms: u64 = 10;
-        let terms10: BigIntVec = match runner.compute_terms(number_of_terms, &mut cache) {
+        let mut term_computer = TermComputer::create();
+        let terms10: BigIntVec = match term_computer.compute(&mut cache, &runner, 10) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
@@ -272,7 +311,7 @@ pub fn run_miner_loop(
             continue;
         }
 
-        let terms20: BigIntVec = match runner.compute_terms(20, &mut cache) {
+        let terms20: BigIntVec = match term_computer.compute(&mut cache, &runner, 20) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
@@ -284,7 +323,7 @@ pub fn run_miner_loop(
             continue;
         }
 
-        let terms30: BigIntVec = match runner.compute_terms(30, &mut cache) {
+        let terms30: BigIntVec = match term_computer.compute(&mut cache, &runner, 30) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
@@ -296,7 +335,7 @@ pub fn run_miner_loop(
             continue;
         }
 
-        let terms40: BigIntVec = match runner.compute_terms(40, &mut cache) {
+        let terms40: BigIntVec = match term_computer.compute(&mut cache, &runner, 40) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
