@@ -120,8 +120,7 @@ impl Node for NodePowerRegister {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
-        let limit = NodePowerLimit::Unlimited;
-        let value: RegisterValue = perform_operation(lhs, rhs, &limit)?;
+        let value: RegisterValue = perform_operation(lhs, rhs, state.node_power_limit())?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -160,8 +159,7 @@ impl Node for NodePowerConstant {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = &self.source;
-        let limit = NodePowerLimit::Unlimited;
-        let value: RegisterValue = perform_operation(lhs, rhs, &limit)?;
+        let value: RegisterValue = perform_operation(lhs, rhs, state.node_power_limit())?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
