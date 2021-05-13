@@ -5,11 +5,11 @@ use num_traits::Signed;
 pub enum NodeCallNegativeInputBehavior {
     // When encountering a negative input, then stop executing the program.
     // This is robust. Hopefully this can become the default behavior.
-    #[allow(dead_code)]
     DisallowNegativeInput,
 
     // Allow negative input. Not recommended, since this is fragile. 
     // The programs change over time and are undefined for negative values.
+    #[allow(dead_code)]
     AllowNegativeInput,
 }
 
@@ -35,8 +35,8 @@ impl NodeCallConstant {
             program_id: program_id,
             program_runner_rc: program_runner_rc,
             link_established: false,
-            // negative_input_behavior: NodeCallNegativeInputBehavior::DisallowNegativeInput,
-            negative_input_behavior: NodeCallNegativeInputBehavior::AllowNegativeInput,
+            negative_input_behavior: NodeCallNegativeInputBehavior::DisallowNegativeInput,
+            // negative_input_behavior: NodeCallNegativeInputBehavior::AllowNegativeInput,
         }
     }
 }
