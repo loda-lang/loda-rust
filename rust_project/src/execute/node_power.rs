@@ -301,28 +301,48 @@ mod tests {
         assert_eq!(process_limit(2, 7, 16), "128");
         assert_eq!(process_limit(2, 8, 16), "256");
         assert_eq!(process_limit(2, 9, 16), "ExceededLimit");
+        assert_eq!(process_limit(-2, 7, 16), "-128");
+        assert_eq!(process_limit(-2, 8, 16), "256");
+        assert_eq!(process_limit(-2, 9, 16), "ExceededLimit");
         assert_eq!(process_limit(3, 7, 16), "2187");
         assert_eq!(process_limit(3, 8, 16), "6561");
         assert_eq!(process_limit(3, 9, 16), "ExceededLimit");
+        assert_eq!(process_limit(-3, 7, 16), "-2187");
+        assert_eq!(process_limit(-3, 8, 16), "6561");
+        assert_eq!(process_limit(-3, 9, 16), "ExceededLimit");
 
         // 3 bits for representing the base
         assert_eq!(process_limit(4, 4, 16), "256");
         assert_eq!(process_limit(4, 5, 16), "1024");
         assert_eq!(process_limit(4, 6, 16), "ExceededLimit");
+        assert_eq!(process_limit(-4, 4, 16), "256");
+        assert_eq!(process_limit(-4, 5, 16), "-1024");
+        assert_eq!(process_limit(-4, 6, 16), "ExceededLimit");
         assert_eq!(process_limit(7, 4, 16), "2401");
         assert_eq!(process_limit(7, 5, 16), "16807");
         assert_eq!(process_limit(7, 6, 16), "ExceededLimit");
+        assert_eq!(process_limit(-7, 4, 16), "2401");
+        assert_eq!(process_limit(-7, 5, 16), "-16807");
+        assert_eq!(process_limit(-7, 6, 16), "ExceededLimit");
 
         // 4 bits for representing the base
         assert_eq!(process_limit(8, 4, 20), "4096");
         assert_eq!(process_limit(8, 5, 20), "32768");
         assert_eq!(process_limit(8, 6, 20), "ExceededLimit");
+        assert_eq!(process_limit(-8, 4, 20), "4096");
+        assert_eq!(process_limit(-8, 5, 20), "-32768");
+        assert_eq!(process_limit(-8, 6, 20), "ExceededLimit");
         assert_eq!(process_limit(15, 4, 20), "50625");
         assert_eq!(process_limit(15, 5, 20), "759375");
         assert_eq!(process_limit(15, 6, 20), "ExceededLimit");
+        assert_eq!(process_limit(-15, 4, 20), "50625");
+        assert_eq!(process_limit(-15, 5, 20), "-759375");
+        assert_eq!(process_limit(-15, 6, 20), "ExceededLimit");
 
         // 8 bits for representing the base
         assert_eq!(process_limit(255, 2, 16), "65025");
         assert_eq!(process_limit(255, 2, 15), "ExceededLimit");
+        assert_eq!(process_limit(-255, 2, 16), "65025");
+        assert_eq!(process_limit(-255, 2, 15), "ExceededLimit");
     }
 }
