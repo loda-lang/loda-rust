@@ -14,8 +14,8 @@ enum GCDError {
 impl From<GCDError> for EvalError {
     fn from(err: GCDError) -> EvalError {
         match err {
-            GCDError::InputOutOfRange => EvalError::GCDDomainError,
-            GCDError::ZeroInput => EvalError::GCDOutOfRange, 
+            GCDError::InputOutOfRange => EvalError::GCDOutOfRange,
+            GCDError::ZeroInput => EvalError::GCDDomainError, 
         }
     }
 }
