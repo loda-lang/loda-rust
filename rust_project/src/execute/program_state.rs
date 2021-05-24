@@ -118,8 +118,9 @@ impl ProgramState {
     }
 
     // Compare a range of registers.
-    // LODA's `Memory.is_less` is always invoked with absolute values.
-    // Unlike LODA, here the absolute value happens inside this `is_less` function.
+    // Returns `true` if the range of registers have a lower value.
+    // Returns `false` if the range of registers have the same value or greater value, o.
+    // Returns `false` if a register is encountered with a negative value.
     pub fn is_less_range(&self, other_state: &ProgramState, register_index: RegisterIndex, range_length: u8) -> bool {
         let vector_length: usize = self.register_vec.len();
         if vector_length != other_state.register_vec.len() {
@@ -135,6 +136,7 @@ impl ProgramState {
             let a: &RegisterValue = &self.register_vec[index];
             let a_value: &BigInt = &a.0;
             if a_value.is_negative() {
+                // Negative value encountered
                 return false;
             }
             let b: &RegisterValue = &other_state.register_vec[index];
@@ -164,6 +166,7 @@ impl ProgramState {
         let a: &RegisterValue = &self.register_vec[index];
         let a_value: &BigInt = &a.0;
         if a_value.is_negative() {
+            // Negative value encountered
             return false;
         }
         let b: &RegisterValue = &other_state.register_vec[index];
