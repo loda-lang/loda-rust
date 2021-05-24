@@ -8,9 +8,10 @@ pub enum EvalError {
     // Programs are usually well behaved for 0 and greater values.
     // However for negative values the behavior is undefined.
     CallWithNegativeParameter,
+    CallOutOfRange,
 
     AddOutOfRange,
-    CallOutOfRange,
+    CompareOutOfRange,
 
     DivideOutOfRange,
     DivisionByZero,
