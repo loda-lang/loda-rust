@@ -1,4 +1,4 @@
-use super::{EvalError, RegisterIndex, RegisterValue, RunMode};
+use super::{EvalError, NodeLoopLimit, RegisterIndex, RegisterValue, RunMode};
 use super::node_binomial::NodeBinomialLimit;
 use super::node_power::NodePowerLimit;
 use num_bigint::BigInt;
@@ -24,6 +24,7 @@ pub struct ProgramState {
     run_mode: RunMode,
     step_count_limit: u64,
     node_binomial_limit: NodeBinomialLimit,
+    node_loop_limit: NodeLoopLimit,
     node_power_limit: NodePowerLimit,
 }
 
@@ -33,6 +34,7 @@ impl ProgramState {
         run_mode: RunMode, 
         step_count_limit: u64, 
         node_binomial_limit: NodeBinomialLimit, 
+        node_loop_limit: NodeLoopLimit,
         node_power_limit: NodePowerLimit
     ) -> Self {
         // Register 0 is for input value
@@ -50,12 +52,17 @@ impl ProgramState {
             run_mode: run_mode,
             step_count_limit: step_count_limit,
             node_binomial_limit: node_binomial_limit,
+            node_loop_limit: node_loop_limit,
             node_power_limit: node_power_limit,
         }
     }
 
     pub fn node_binomial_limit(&self) -> &NodeBinomialLimit {
         &self.node_binomial_limit
+    }
+
+    pub fn node_loop_limit(&self) -> &NodeLoopLimit {
+        &self.node_loop_limit
     }
 
     pub fn node_power_limit(&self) -> &NodePowerLimit {
@@ -214,6 +221,7 @@ mod tests {
             RunMode::Silent, 
             1000, 
             NodeBinomialLimit::Unlimited,
+            NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         );
         state.set_register_value(RegisterIndex(0), RegisterValue::from_i64(100));
@@ -229,6 +237,7 @@ mod tests {
             RunMode::Silent, 
             1000, 
             NodeBinomialLimit::Unlimited,
+            NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         )
     }
@@ -247,6 +256,7 @@ mod tests {
             RunMode::Silent, 
             1000, 
             NodeBinomialLimit::Unlimited,
+            NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         );
     }
@@ -259,6 +269,7 @@ mod tests {
             RunMode::Silent, 
             1000,
             NodeBinomialLimit::Unlimited,
+            NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         );
     }

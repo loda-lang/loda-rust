@@ -1,4 +1,4 @@
-use super::{EvalError, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterIndex, RegisterValue, RunMode};
+use super::{EvalError, NodeLoopLimit, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterIndex, RegisterValue, RunMode};
 use super::node_binomial::NodeBinomialLimit;
 use super::node_power::NodePowerLimit;
 use super::node_move::NodeMoveRegister;
@@ -30,6 +30,7 @@ impl ProgramRunner {
         step_count: &mut u64, 
         step_count_limit: u64, 
         node_binomial_limit: NodeBinomialLimit, 
+        node_loop_limit: NodeLoopLimit,
         node_power_limit: NodePowerLimit, 
         cache: &mut ProgramCache
     ) -> Result<RegisterValue, EvalError> {
@@ -52,6 +53,7 @@ impl ProgramRunner {
             run_mode, 
             step_count_limit, 
             node_binomial_limit,
+            node_loop_limit,
             node_power_limit,
         );
         state.set_step_count(step_count_before);
@@ -176,6 +178,7 @@ impl ProgramRunner {
                 &mut step_count, 
                 step_count_limit,
                 NodeBinomialLimit::Unlimited,
+                NodeLoopLimit::Unlimited,
                 NodePowerLimit::Unlimited,
                 cache,
             );

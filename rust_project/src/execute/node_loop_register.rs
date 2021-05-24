@@ -1,4 +1,4 @@
-use super::{EvalError, Node, Program, ProgramCache, ProgramSerializer, ProgramState, ProgramRunnerManager, RegisterIndex, RegisterValue, RunMode, ValidateCallError};
+use super::{EvalError, Node, NodeLoopLimit, Program, ProgramCache, ProgramSerializer, ProgramState, ProgramRunnerManager, RegisterIndex, RegisterValue, RunMode, ValidateCallError};
 use std::collections::HashSet;
 use num_bigint::{BigInt, ToBigInt};
 use num_traits::{ToPrimitive, Signed};
@@ -60,6 +60,7 @@ impl Node for NodeLoopRegister {
 
         let mut currently_smallest_range_length: u8 = initial_range_length;
 
+        let limit: NodeLoopLimit = state.node_loop_limit().clone();
         let mut cycles = 0;
         loop {
             let old_state: ProgramState = state.clone();
@@ -111,10 +112,15 @@ impl Node for NodeLoopRegister {
                 break;
             }
 
-
-            cycles += 1;
-            if cycles > 1000 {
-                return Err(EvalError::LoopCountExceededLimit);
+            // Prevent looping for too long
+            match limit {
+                NodeLoopLimit::Unlimited => {},
+                NodeLoopLimit::LimitCount(limit_count) => {
+                    cycles += 1;
+                    if cycles > limit_count {
+                        return Err(EvalError::LoopCountExceededLimit);
+                    }
+                }
             }
             if state.run_mode() == RunMode::Verbose {
                 let before = state.register_vec_to_string();

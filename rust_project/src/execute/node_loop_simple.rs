@@ -1,4 +1,4 @@
-use super::{EvalError, Node, ProgramCache, Program, ProgramRunnerManager, ProgramSerializer, ProgramState, RegisterIndex, RunMode, ValidateCallError};
+use super::{EvalError, Node, NodeLoopLimit, ProgramCache, Program, ProgramRunnerManager, ProgramSerializer, ProgramState, RegisterIndex, RunMode, ValidateCallError};
 use std::collections::HashSet;
 
 pub struct NodeLoopSimple {
@@ -35,6 +35,7 @@ impl Node for NodeLoopSimple {
             println!("{:12} {} => {}", instruction, snapshot, snapshot);
         }
 
+        let limit: NodeLoopLimit = state.node_loop_limit().clone();
         let mut cycles = 0;
         loop {
             let old_state: ProgramState = state.clone();
@@ -58,10 +59,15 @@ impl Node for NodeLoopSimple {
                 break;
             }
 
-
-            cycles += 1;
-            if cycles > 1000 {
-                return Err(EvalError::LoopCountExceededLimit);
+            // Prevent looping for too long
+            match limit {
+                NodeLoopLimit::Unlimited => {},
+                NodeLoopLimit::LimitCount(limit_count) => {
+                    cycles += 1;
+                    if cycles > limit_count {
+                        return Err(EvalError::LoopCountExceededLimit);
+                    }
+                }
             }
             if state.run_mode() == RunMode::Verbose {
                 println!("lpe");

@@ -1,4 +1,5 @@
 mod node;
+mod node_loop_shared;
 mod program;
 mod program_cache;
 mod program_id;
@@ -19,6 +20,7 @@ pub use program_cache::{CacheValue, ProgramCache};
 pub use program_serializer::ProgramSerializer;
 pub use run_mode::RunMode;
 pub use node::{BoxNode, EvalError, Node, ValidateCallError};
+pub use node_loop_shared::NodeLoopLimit;
 pub use register_index::RegisterIndex;
 pub use register_value::RegisterValue;
 
