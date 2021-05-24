@@ -26,6 +26,7 @@ pub enum EvalError {
 
     // When a mathematical function is evaluated outside of its domain of definition.
     GCDDomainError,
+    GCDOutOfRange,
 
     PowerZeroDivision,
     PowerExponentTooHigh,

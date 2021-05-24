@@ -4,12 +4,34 @@ use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
 
-fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,EvalError> {
+enum GCDError {
+    InputOutOfRange,
+
+    // Both parameters must not be zero at the same time.
+    ZeroInput,
+}
+
+impl From<GCDError> for EvalError {
+    fn from(err: GCDError) -> EvalError {
+        match err {
+            GCDError::InputOutOfRange => EvalError::GCDDomainError,
+            GCDError::ZeroInput => EvalError::GCDOutOfRange, 
+        }
+    }
+}
+
+fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,GCDError> {
     let xx: &BigInt = &x.0;
+    if xx.bits() >= 32 {
+        return Err(GCDError::InputOutOfRange);
+    }
     let yy: &BigInt = &y.0;
+    if yy.bits() >= 32 {
+        return Err(GCDError::InputOutOfRange);
+    }
     if xx.is_zero() && yy.is_zero() {
         debug!("NodeGCD, both parameters must not be zero at the same time");
-        return Err(EvalError::GCDDomainError);
+        return Err(GCDError::ZeroInput);
     }
     // https://en.wikipedia.org/wiki/Binary_GCD_algorithm
     let zz = xx.gcd(yy);
@@ -98,13 +120,14 @@ mod tests {
         );
         match result {
             Ok(value) => value.to_string(),
-            Err(_) => "BOOM".to_string()
+            Err(GCDError::InputOutOfRange) => "BOOM-INPUT".to_string(),
+            Err(GCDError::ZeroInput) => "BOOM-ZERO".to_string()
         }
     }
 
     #[test]
     fn test_10000() {
-        assert_eq!(process(0, 0), "BOOM");
+        assert_eq!(process(0, 0), "BOOM-ZERO");
         assert_eq!(process(0, 1), "1");
         assert_eq!(process(1, 0), "1");
         assert_eq!(process(1, 1), "1");
@@ -115,5 +138,15 @@ mod tests {
         assert_eq!(process(-100, -55), "5");
         assert_eq!(process(-100, 1), "1");
         assert_eq!(process(43, 41), "1");
+    }
+
+    #[test]
+    fn test_10001_outofrange() {
+        assert_eq!(process(0x80000000, 1), "BOOM-INPUT");
+        assert_eq!(process(-0x80000000, 1), "BOOM-INPUT");
+        assert_eq!(process(0x80000000, 0x80000000), "BOOM-INPUT");
+        assert_eq!(process(-0x80000000, -0x80000000), "BOOM-INPUT");
+        assert_eq!(process(1, 0x80000000), "BOOM-INPUT");
+        assert_eq!(process(1, -0x80000000), "BOOM-INPUT");
     }
 }
