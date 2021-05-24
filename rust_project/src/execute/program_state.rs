@@ -133,10 +133,13 @@ impl ProgramState {
                 return false;
             }
             let a: &RegisterValue = &self.register_vec[index];
+            let a_value: &BigInt = &a.0;
+            if a_value.is_negative() {
+                return false;
+            }
             let b: &RegisterValue = &other_state.register_vec[index];
-            let a_abs: BigInt = a.0.abs();
-            let b_abs: BigInt = b.0.abs();
-            let ordering: Ordering = a_abs.cmp(&b_abs);
+            let b_value: &BigInt = &b.0;
+            let ordering: Ordering = a_value.cmp(&b_value);
             match ordering {
                 Ordering::Less => return true,
                 Ordering::Greater => return false,
@@ -159,10 +162,13 @@ impl ProgramState {
             return false;
         }
         let a: &RegisterValue = &self.register_vec[index];
+        let a_value: &BigInt = &a.0;
+        if a_value.is_negative() {
+            return false;
+        }
         let b: &RegisterValue = &other_state.register_vec[index];
-        let a_abs: BigInt = a.0.abs();
-        let b_abs: BigInt = b.0.abs();
-        let ordering: Ordering = a_abs.cmp(&b_abs);
+        let b_value: &BigInt = &b.0;
+        let ordering: Ordering = a_value.cmp(&b_value);
         match ordering {
             Ordering::Less => return true,
             Ordering::Greater => return false,
@@ -346,6 +352,22 @@ mod tests {
             state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
             assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), false);
         }
+        {
+            // compare 1 register
+            let mut state0 = mock_program_state();
+            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
+            let mut state1 = mock_program_state();
+            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(50));
+            assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), false);
+        }
+        {
+            // compare 1 register
+            let mut state0 = mock_program_state();
+            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
+            let mut state1 = mock_program_state();
+            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-50));
+            assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), false);
+        }
     }
 
     #[test]
@@ -385,22 +407,6 @@ mod tests {
             state1.set_register_value(RegisterIndex(3), RegisterValue::from_i64(104));
             assert_eq!(state0.is_less_range(&state1, RegisterIndex(2), 4), true);
         }
-        {
-            // compare 1 register
-            let mut state0 = mock_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
-            let mut state1 = mock_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(50));
-            assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), true);
-        }
-        {
-            // compare 1 register
-            let mut state0 = mock_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
-            let mut state1 = mock_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-50));
-            assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), true);
-        }
     }
 
     #[test]
@@ -411,27 +417,49 @@ mod tests {
         }
         {
             let crazy_index_out_of_bounds = RegisterIndex(100);
-            let state = mock_program_state();
+            let state = empty_program_state();
             assert_eq!(state.is_less_single(&state, crazy_index_out_of_bounds), false);
         }
         {
-            let state0 = mock_program_state();
-            let mut state1 = mock_program_state();
+            let mut state0 = empty_program_state();
+            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(51));
+            let mut state1 = empty_program_state();
             state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(50));
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
         }
         {
-            let mut state0 = mock_program_state();
+            let mut state0 = empty_program_state();
+            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(50));
+            let mut state1 = empty_program_state();
+            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(50));
+            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
+        }
+        {
+            let mut state0 = empty_program_state();
             state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-50));
-            let mut state1 = mock_program_state();
+            let mut state1 = empty_program_state();
             state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(49));
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
         }
         {
-            let mut state0 = mock_program_state();
+            let mut state0 = empty_program_state();
             state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-50));
-            let mut state1 = mock_program_state();
+            let mut state1 = empty_program_state();
             state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
+            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
+        }
+        {
+            let mut state0 = empty_program_state();
+            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
+            let mut state1 = empty_program_state();
+            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(50));
+            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
+        }
+        {
+            let mut state0 = empty_program_state();
+            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
+            let mut state1 = empty_program_state();
+            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-50));
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
         }
     }
@@ -445,17 +473,30 @@ mod tests {
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
         }
         {
-            let mut state0 = mock_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
-            let mut state1 = mock_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(50));
+            let mut state0 = empty_program_state();
+            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(1));
+            let mut state1 = empty_program_state();
+            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(2));
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
         }
         {
-            let mut state0 = mock_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
-            let mut state1 = mock_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-50));
+            let mut state0 = empty_program_state();
+            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(1));
+            let mut state1 = empty_program_state();
+            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(100));
+            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
+        }
+        {
+            let state0 = empty_program_state();
+            let mut state1 = empty_program_state();
+            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(100));
+            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
+        }
+        {
+            let mut state0 = empty_program_state();
+            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(99));
+            let mut state1 = empty_program_state();
+            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(100));
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
         }
     }

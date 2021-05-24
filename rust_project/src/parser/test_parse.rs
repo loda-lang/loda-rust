@@ -28,13 +28,10 @@ mod tests {
     ; A000196: Integer part of square root of n.
     ; 0,1,1,1,2,2,2,2,2,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,5
     
-    add $0,1
-    mov $3,$0
-    mul $3,-1
+    mov $1,1
     lpb $0
-      sub $3,1
       add $1,2
-      sub $0,$1
+      trn $0,$1
     lpe
     div $1,2
     "#;
@@ -43,18 +40,15 @@ mod tests {
     ; A005131: A generalized continued fraction for Euler's number e.
     ; 1,0,1,1,2,1,1,4,1,1,6,1,1,8,1,1,10,1,1,12,1,1,14,1,1,16,1,1,18
     
-    sub $0,1
+    mul $0,2
+    mov $2,2
+    sub $2,$0
+    sub $0,2
+    add $2,3
+    dif $2,3
+    add $0,$2
     mov $1,$0
-    lpb $0
-      sub $0,3
-      sub $1,1
-    lpe
-    add $1,1
-    lpb $0
-      div $0,2
-      mov $1,2
-    lpe
-    sub $1,1
+    div $1,2
     "#;
 
     const INPUT_A002624: &str = r#"
@@ -87,6 +81,32 @@ mod tests {
     mov $1,$13
     "#;
 
+    const INPUT_A002791: &str = r#"
+    ; A002791: a(n) = Sum_{d|n, d <= 4} d^2 + 4*Sum_{d|n, d>4} d.
+    ; 1,5,10,21,21,38,29,53,46,65,45,102,53,89,90,117,69,146,77,161
+
+    add $0,1
+    mov $2,$0
+    lpb $0
+      mov $3,$2
+      clr $8,$0
+      mov $26,$0
+      cmp $26,0
+      add $0,$26
+      dif $3,$0
+      cmp $3,$2
+      cmp $3,0
+      mul $3,$0
+      sub $0,1
+      add $1,$3
+      sub $3,18
+      add $11,$1
+    lpe
+    sub $11,$3
+    mov $1,$11
+    sub $1,17
+    "#;
+
     const INPUT_A007958: &str = r#"
     ; A007958: Even numbers with at least one odd digit.
     ; 10,12,14,16,18,30,32,34,36,38,50,52,54,56,58,70,72
@@ -114,24 +134,6 @@ mod tests {
       sub $0,1
       add $1,2
     lpe
-    "#;
-
-    const INPUT_A117452: &str = r#"
-    ; A117452: Periodic {2, -1, 1, 0, 0} - 0^n.
-    ; 1,-1,1,0,0,2,-1,1,0,0,2,-1,1,0,0,2,-1,1,0
-    
-    mul $0,2
-    add $0,1
-    lpb $0
-      sub $0,4
-      mov $3,1
-      mov $1,$3
-      mov $4,$1
-      sub $0,$4
-    lpe
-    mov $2,$0
-    add $1,$2
-    clr $0,$2
     "#;
 
     const INPUT_A206735: &str = r#"
@@ -320,15 +322,15 @@ mod tests {
 
     #[test]
     fn test_10007_clear_memory_range_with_register() {
-        let result = parse(INPUT_A117452);
+        let result = parse(INPUT_A002791);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
         let program = parse.created_program.program;
         let runner = ProgramRunner::new(
-          ProgramId::ProgramOEIS(117452),
+          ProgramId::ProgramOEIS(2791),
           program
         );
-        assert_eq!(runner.inspect(15), "1,-1,1,0,0,2,-1,1,0,0,2,-1,1,0,0");
+        assert_eq!(runner.inspect(15), "1,5,10,21,21,38,29,53,46,65,45,102,53,89,90");
     }
 
     #[test]
