@@ -3,13 +3,32 @@ use std::collections::HashSet;
 use num_bigint::BigInt;
 use num_traits::Zero;
 
-fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,EvalError> {
+enum DivideError {
+    InputOutOfRange,
+    DivisionByZero,
+}
+
+impl From<DivideError> for EvalError {
+    fn from(err: DivideError) -> EvalError {
+        match err {
+            DivideError::InputOutOfRange => EvalError::DivideOutOfRange,
+            DivideError::DivisionByZero => EvalError::DivisionByZero
+        }
+    }
+}
+
+fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,DivideError> {
     let yy: &BigInt = &y.0;
+    if yy.bits() >= 32 {
+        return Err(DivideError::InputOutOfRange);
+    }
     if yy.is_zero() {
-        debug!("NodeDivideIf, division by zero");
-        return Err(EvalError::DivisionByZero);
+        return Err(DivideError::DivisionByZero);
     }
     let xx: &BigInt = &x.0;
+    if xx.bits() >= 32 {
+        return Err(DivideError::InputOutOfRange);
+    }
     let remain: BigInt = xx % yy;
     if remain.is_zero() {
         return Ok(RegisterValue(xx / yy));
@@ -100,18 +119,13 @@ mod tests {
         );
         match result {
             Ok(value) => value.to_string(),
-            Err(_) => "BOOM".to_string()
+            Err(DivideError::DivisionByZero) => "BOOM-ZERO".to_string(),
+            Err(DivideError::InputOutOfRange) => "BOOM-INPUT".to_string()
         }
     }
 
     #[test]
-    fn test_10000_zero() {
-        assert_eq!(process(100, 0), "BOOM");
-        assert_eq!(process(-100, 0), "BOOM");
-    }
-
-    #[test]
-    fn test_10001_remainder_zero() {
+    fn test_10000_remainder_zero() {
         assert_eq!(process(50, 10), "5");
         assert_eq!(process(100, 1), "100");
         assert_eq!(process(42, -1), "-42");
@@ -121,9 +135,31 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_cannot_be_divided() {
+    fn test_10001_cannot_be_divided() {
         assert_eq!(process(33, 10), "33");
         assert_eq!(process(100, 33), "100");
         assert_eq!(process(-100, -33), "-100");
+    }
+
+    #[test]
+    fn test_10002_divisionbyzero() {
+        assert_eq!(process(100, 0), "BOOM-ZERO");
+        assert_eq!(process(-100, 0), "BOOM-ZERO");
+    }
+
+    #[test]
+    fn test_10003_inputoutofrange() {
+        assert_eq!(process(0x7fffffff, 0x7fffffff), "1");
+        assert_eq!(process(-0x7fffffff, -0x7fffffff), "1");
+        assert_eq!(process(0x80000000, 1), "BOOM-INPUT");
+        assert_eq!(process(-0x80000000, 1), "BOOM-INPUT");
+        assert_eq!(process(0x80000001, 2), "BOOM-INPUT");
+        assert_eq!(process(-0x80000001, 2), "BOOM-INPUT");
+        assert_eq!(process(1, 0x7fffffff), "1");
+        assert_eq!(process(1, -0x7fffffff), "1");
+        assert_eq!(process(1, 0x80000000), "BOOM-INPUT");
+        assert_eq!(process(1, -0x80000000), "BOOM-INPUT");
+        assert_eq!(process(1, 0x80000001), "BOOM-INPUT");
+        assert_eq!(process(1, -0x80000001), "BOOM-INPUT");
     }
 }
