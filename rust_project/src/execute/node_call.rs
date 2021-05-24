@@ -47,6 +47,10 @@ impl Node for NodeCallConstant {
             return Err(EvalError::CallWithNegativeParameter);
         }
 
+        if input.0.bits() >= 32 {
+            return Err(EvalError::CallOutOfRange);
+        }
+
         let step_count_limit: u64 = state.step_count_limit();
         let mut step_count: u64 = state.step_count();
 
@@ -71,6 +75,10 @@ impl Node for NodeCallConstant {
                 return Err(error);
             }
         };
+
+        if output.0.bits() >= 32 {
+            return Err(EvalError::CallOutOfRange);
+        }
 
         // In case run succeeded, then pass on the outputted value.
         state.set_register_value(self.target.clone(), output);

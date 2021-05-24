@@ -10,6 +10,7 @@ pub enum EvalError {
     CallWithNegativeParameter,
 
     AddOutOfRange,
+    CallOutOfRange,
 
     DivideOutOfRange,
     DivisionByZero,
