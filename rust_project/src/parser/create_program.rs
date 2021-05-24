@@ -10,7 +10,6 @@ use crate::execute::node_compare::*;
 use crate::execute::node_divide::*;
 use crate::execute::node_divideif::*;
 use crate::execute::node_gcd::*;
-use crate::execute::node_logarithm::*;
 use crate::execute::node_loop_constant::*;
 use crate::execute::node_loop_register::*;
 use crate::execute::node_loop_simple::*;
@@ -179,11 +178,6 @@ impl Instruction {
                 let node_wrapped = Box::new(node);
                 return node_wrapped;
             },
-            InstructionId::Logarithm => {
-                let node = NodeLogarithmConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
             InstructionId::Max => {
                 let node = NodeMaxConstant::new(target, source);
                 let node_wrapped = Box::new(node);
@@ -278,11 +272,6 @@ impl Instruction {
             },
             InstructionId::Compare => {
                 let node = NodeCompareRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            InstructionId::Logarithm => {
-                let node = NodeLogarithmRegister::new(target, source);
                 let node_wrapped = Box::new(node);
                 return node_wrapped;
             },
@@ -564,10 +553,6 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 program.push_boxed(node);
             },
             InstructionId::Compare => {
-                let node = create_two_parameter_node(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::Logarithm => {
                 let node = create_two_parameter_node(&instruction)?;
                 program.push_boxed(node);
             },

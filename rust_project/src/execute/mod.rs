@@ -30,7 +30,6 @@ pub mod node_compare;
 pub mod node_divide;
 pub mod node_divideif;
 pub mod node_gcd;
-pub mod node_logarithm;
 pub mod node_loop_constant;
 pub mod node_loop_register;
 pub mod node_loop_simple;
