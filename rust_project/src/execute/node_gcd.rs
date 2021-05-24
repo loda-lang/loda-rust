@@ -30,7 +30,6 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterVal
         return Err(GCDError::InputOutOfRange);
     }
     if xx.is_zero() && yy.is_zero() {
-        debug!("NodeGCD, both parameters must not be zero at the same time");
         return Err(GCDError::ZeroInput);
     }
     // https://en.wikipedia.org/wiki/Binary_GCD_algorithm
