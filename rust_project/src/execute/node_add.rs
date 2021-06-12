@@ -2,6 +2,50 @@ use super::{EvalError, Node, ProgramCache, ProgramState, RegisterIndex, Register
 use std::collections::HashSet;
 use num_bigint::BigInt;
 
+struct OperationUnlimited {}
+
+struct OperationLimited32Bit {}
+
+enum CheckValueError {
+    OutOfRange,
+}
+
+trait CheckValue {
+    fn check_value(&self, value: &BigInt) -> Result<(), CheckValueError>;
+}
+
+impl CheckValue for OperationLimited32Bit {
+    fn check_value(&self, value: &BigInt) -> Result<(), CheckValueError> {
+        if value.bits() >= 32 {
+            return Err(CheckValueError::OutOfRange);
+        }
+        Ok(())
+    }
+}
+
+impl CheckValue for OperationUnlimited {
+    fn check_value(&self, _value: &BigInt) -> Result<(), CheckValueError> {
+        Ok(())
+    }
+}
+
+impl From<CheckValueError> for EvalError {
+    fn from(_err: CheckValueError) -> EvalError {
+        EvalError::AddOutOfRange
+    }
+}
+
+fn perform_operation<T: CheckValue>(checker: &T, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, EvalError> {
+    let xx: &BigInt = &x.0;
+    let yy: &BigInt = &y.0;
+    checker.check_value(xx)?;
+    checker.check_value(yy)?;
+    let zz: BigInt = xx + yy;
+    checker.check_value(&zz)?;
+    Ok(RegisterValue(zz))
+}
+
+
 enum AddError {
     InputOutOfRange,
     OutputOutOfRange,
@@ -13,7 +57,7 @@ impl From<AddError> for EvalError {
     }
 }
 
-fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, AddError> {
+fn old_perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, AddError> {
     let xx: &BigInt = &x.0;
     let yy: &BigInt = &y.0;
     if xx.bits() >= 32 {
@@ -52,7 +96,9 @@ impl Node for NodeAddRegister {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
-        let value = perform_operation(lhs, rhs)?;
+        // let checker = OperationUnlimited {};
+        let checker = OperationLimited32Bit {};
+        let value = perform_operation(&checker, lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -92,7 +138,7 @@ impl Node for NodeAddConstant {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = &self.source;
-        let value = perform_operation(lhs, rhs)?;
+        let value = old_perform_operation(lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -107,7 +153,7 @@ mod tests {
     use super::*;
 
     fn process(left: i64, right: i64) -> String {
-        let result = perform_operation(
+        let result = old_perform_operation(
             &RegisterValue::from_i64(left),
             &RegisterValue::from_i64(right)
         );
