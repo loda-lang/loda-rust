@@ -16,6 +16,7 @@ pub enum EvalError {
     CallWithNegativeParameter,
     CallOutOfRange,
 
+    // When a mathematical function is evaluated outside of its domain of definition.
     DivisionByZero,
 
     // Binomial with N >= 34 and the result value can no longer fit into a 32bit integer.
@@ -25,7 +26,6 @@ pub enum EvalError {
 
     // When a mathematical function is evaluated outside of its domain of definition.
     GCDDomainError,
-    GCDOutOfRange,
 
     PowerZeroDivision,
     PowerExponentTooHigh,

@@ -1,36 +1,19 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use super::{BoxCheckValue, PerformCheckValue};
 use std::collections::HashSet;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::Zero;
 
-enum GCDError {
-    InputOutOfRange,
-
-    // Both parameters must not be zero at the same time.
-    ZeroInput,
-}
-
-impl From<GCDError> for EvalError {
-    fn from(err: GCDError) -> EvalError {
-        match err {
-            GCDError::InputOutOfRange => EvalError::GCDOutOfRange,
-            GCDError::ZeroInput => EvalError::GCDDomainError, 
-        }
-    }
-}
-
-fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,GCDError> {
+fn perform_operation(check: &BoxCheckValue, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,EvalError> {
     let xx: &BigInt = &x.0;
-    if xx.bits() >= 32 {
-        return Err(GCDError::InputOutOfRange);
-    }
+    check.input(xx)?;
+
     let yy: &BigInt = &y.0;
-    if yy.bits() >= 32 {
-        return Err(GCDError::InputOutOfRange);
-    }
+    check.input(yy)?;
+
     if xx.is_zero() && yy.is_zero() {
-        return Err(GCDError::ZeroInput);
+        return Err(EvalError::GCDDomainError);
     }
     // https://en.wikipedia.org/wiki/Binary_GCD_algorithm
     let zz = xx.gcd(yy);
@@ -59,7 +42,7 @@ impl Node for NodeGCDRegister {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
-        let value: RegisterValue = perform_operation(lhs, rhs)?;
+        let value: RegisterValue = perform_operation(state.check_value(), lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -98,7 +81,7 @@ impl Node for NodeGCDConstant {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = &self.source;
-        let value: RegisterValue = perform_operation(lhs, rhs)?;
+        let value: RegisterValue = perform_operation(state.check_value(), lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -111,16 +94,20 @@ impl Node for NodeGCDConstant {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::CheckValueLimitBits;
 
     fn process(left: i64, right: i64) -> String {
+        let check_value: BoxCheckValue = Box::new(CheckValueLimitBits::new(32));
         let result = perform_operation(
+            &check_value,
             &RegisterValue::from_i64(left),
             &RegisterValue::from_i64(right)
         );
         match result {
             Ok(value) => value.to_string(),
-            Err(GCDError::InputOutOfRange) => "BOOM-INPUT".to_string(),
-            Err(GCDError::ZeroInput) => "BOOM-ZERO".to_string()
+            Err(EvalError::InputOutOfRange) => return "BOOM-INPUT".to_string(),
+            Err(EvalError::GCDDomainError) => return "BOOM-ZERO".to_string(),
+            Err(_) => return "BOOM-OTHER".to_string()
         }
     }
 
