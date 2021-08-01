@@ -60,6 +60,7 @@ impl Node for NodeCallConstant {
             state.run_mode(), 
             &mut step_count, 
             step_count_limit,
+            state.node_register_limit().clone(),
             state.node_binomial_limit().clone(),
             state.node_loop_limit().clone(),
             state.node_power_limit().clone(),

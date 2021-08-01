@@ -1,6 +1,7 @@
 use super::{EvalError, NodeLoopLimit, RegisterIndex, RegisterValue, RunMode};
 use super::node_binomial::NodeBinomialLimit;
 use super::node_power::NodePowerLimit;
+use super::node::NodeRegisterLimit;
 use num_bigint::BigInt;
 use num_traits::Signed;
 use std::cmp::Ordering;
@@ -23,6 +24,7 @@ pub struct ProgramState {
     step_count: u64,
     run_mode: RunMode,
     step_count_limit: u64,
+    node_register_limit: NodeRegisterLimit,
     node_binomial_limit: NodeBinomialLimit,
     node_loop_limit: NodeLoopLimit,
     node_power_limit: NodePowerLimit,
@@ -33,6 +35,7 @@ impl ProgramState {
         register_count: u8, 
         run_mode: RunMode, 
         step_count_limit: u64, 
+        node_register_limit: NodeRegisterLimit,
         node_binomial_limit: NodeBinomialLimit, 
         node_loop_limit: NodeLoopLimit,
         node_power_limit: NodePowerLimit
@@ -51,10 +54,15 @@ impl ProgramState {
             step_count: 0,
             run_mode: run_mode,
             step_count_limit: step_count_limit,
+            node_register_limit: node_register_limit,
             node_binomial_limit: node_binomial_limit,
             node_loop_limit: node_loop_limit,
             node_power_limit: node_power_limit,
         }
+    }
+
+    pub fn node_register_limit(&self) -> &NodeRegisterLimit {
+        &self.node_register_limit
     }
 
     pub fn node_binomial_limit(&self) -> &NodeBinomialLimit {
@@ -220,6 +228,7 @@ mod tests {
             4, 
             RunMode::Silent, 
             1000, 
+            NodeRegisterLimit::Unlimited,
             NodeBinomialLimit::Unlimited,
             NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
@@ -236,6 +245,7 @@ mod tests {
             4, 
             RunMode::Silent, 
             1000, 
+            NodeRegisterLimit::Unlimited,
             NodeBinomialLimit::Unlimited,
             NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
@@ -255,6 +265,7 @@ mod tests {
             0, 
             RunMode::Silent, 
             1000, 
+            NodeRegisterLimit::Unlimited,
             NodeBinomialLimit::Unlimited,
             NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
@@ -268,6 +279,7 @@ mod tests {
             1, 
             RunMode::Silent, 
             1000,
+            NodeRegisterLimit::Unlimited,
             NodeBinomialLimit::Unlimited,
             NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
