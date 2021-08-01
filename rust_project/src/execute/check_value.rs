@@ -14,12 +14,48 @@ impl Clone for BoxCheckValue {
     }
 }
 
+pub enum CheckValueError {
+    InputOutOfRange,
+    OutputOutOfRange,
+}
+
+pub trait PerformCheckValue {
+    fn input(&self, value: &BigInt) -> Result<(), CheckValueError>;
+    fn output(&self, value: &BigInt) -> Result<(), CheckValueError>;
+}
+
+impl PerformCheckValue for BoxCheckValue {
+    fn input(&self, value: &BigInt) -> Result<(), CheckValueError> {
+        match self.is_valid(value) {
+            true => Ok(()),
+            false => Err(CheckValueError::InputOutOfRange)
+        }
+    }
+
+    fn output(&self, value: &BigInt) -> Result<(), CheckValueError> {
+        match self.is_valid(value) {
+            true => Ok(()),
+            false => Err(CheckValueError::OutputOutOfRange)
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct CheckValueUnlimited {}
 
 impl CheckValueUnlimited {
     pub fn new() -> Self {
         Self {}
+    }
+}
+
+impl CheckValue for CheckValueUnlimited {
+    fn is_valid(&self, _value: &BigInt) -> bool {
+        true
+    }
+
+    fn clone_boxed(&self) -> BoxCheckValue {
+        Box::new(self.clone())
     }
 }
 
@@ -46,41 +82,5 @@ impl CheckValue for CheckValueLimitBits {
 
     fn clone_boxed(&self) -> BoxCheckValue {
         Box::new(self.clone())
-    }
-}
-
-impl CheckValue for CheckValueUnlimited {
-    fn is_valid(&self, _value: &BigInt) -> bool {
-        true
-    }
-
-    fn clone_boxed(&self) -> BoxCheckValue {
-        Box::new(self.clone())
-    }
-}
-
-pub enum CheckValueError {
-    InputOutOfRange,
-    OutputOutOfRange,
-}
-
-pub trait PerformCheckValue {
-    fn input(&self, value: &BigInt) -> Result<(), CheckValueError>;
-    fn output(&self, value: &BigInt) -> Result<(), CheckValueError>;
-}
-
-impl PerformCheckValue for BoxCheckValue {
-    fn input(&self, value: &BigInt) -> Result<(), CheckValueError> {
-        match self.is_valid(value) {
-            true => Ok(()),
-            false => Err(CheckValueError::InputOutOfRange)
-        }
-    }
-
-    fn output(&self, value: &BigInt) -> Result<(), CheckValueError> {
-        match self.is_valid(value) {
-            true => Ok(()),
-            false => Err(CheckValueError::OutputOutOfRange)
-        }
     }
 }
