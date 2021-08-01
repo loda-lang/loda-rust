@@ -100,10 +100,10 @@ impl Node for NodeAddConstant {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::OperationLimitBits;
+    use super::super::CheckValueLimitBits;
 
     fn process(left: i64, right: i64) -> String {
-        let check_value: BoxCheckValue = Box::new(OperationLimitBits::new(32));
+        let check_value: BoxCheckValue = Box::new(CheckValueLimitBits::new(32));
         let result = perform_operation(
             &check_value,
             &RegisterValue::from_i64(left),

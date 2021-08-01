@@ -2,7 +2,7 @@ use super::{EvalError, NodeLoopLimit, RegisterIndex, RegisterValue, RunMode};
 use super::node_binomial::NodeBinomialLimit;
 use super::node_power::NodePowerLimit;
 use super::node::NodeRegisterLimit;
-use super::{BoxCheckValue, OperationUnlimited, OperationLimitBits};
+use super::{BoxCheckValue, CheckValueUnlimited, CheckValueLimitBits};
 use num_bigint::BigInt;
 use num_traits::Signed;
 use std::cmp::Ordering;
@@ -54,9 +54,9 @@ impl ProgramState {
 
         let check_value: BoxCheckValue = match node_register_limit {
             NodeRegisterLimit::Unlimited => 
-                Box::new(OperationUnlimited::new()),
+                Box::new(CheckValueUnlimited::new()),
             NodeRegisterLimit::LimitBits(max_bits) => 
-                Box::new(OperationLimitBits::new(max_bits)),
+                Box::new(CheckValueLimitBits::new(max_bits)),
         };
 
         Self {

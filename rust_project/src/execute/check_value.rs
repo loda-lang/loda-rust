@@ -15,20 +15,20 @@ impl Clone for BoxCheckValue {
 }
 
 #[derive(Clone)]
-pub struct OperationUnlimited {}
+pub struct CheckValueUnlimited {}
 
-impl OperationUnlimited {
+impl CheckValueUnlimited {
     pub fn new() -> Self {
         Self {}
     }
 }
 
 #[derive(Clone)]
-pub struct OperationLimitBits {
+pub struct CheckValueLimitBits {
     max_bits: u32,
 }
 
-impl OperationLimitBits {
+impl CheckValueLimitBits {
     pub fn new(max_bits: u32) -> Self {
         Self {
             max_bits: max_bits,
@@ -36,7 +36,7 @@ impl OperationLimitBits {
     }
 }
 
-impl CheckValue for OperationLimitBits {
+impl CheckValue for CheckValueLimitBits {
     fn is_valid(&self, value: &BigInt) -> bool {
         if value.bits() >= self.max_bits.into() {
             return false;
@@ -49,7 +49,7 @@ impl CheckValue for OperationLimitBits {
     }
 }
 
-impl CheckValue for OperationUnlimited {
+impl CheckValue for CheckValueUnlimited {
     fn is_valid(&self, _value: &BigInt) -> bool {
         true
     }
