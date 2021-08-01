@@ -62,18 +62,21 @@ pub enum CheckValueError {
     OutputOutOfRange,
 }
 
-pub struct PerformCheckValue {}
+pub trait PerformCheckValue {
+    fn input(&self, value: &BigInt) -> Result<(), CheckValueError>;
+    fn output(&self, value: &BigInt) -> Result<(), CheckValueError>;
+}
 
-impl PerformCheckValue {
-    pub fn check_input(check_value: &dyn CheckValue, value: &BigInt) -> Result<(), CheckValueError> {
-        match check_value.is_valid(value) {
+impl PerformCheckValue for Box<dyn CheckValue> {
+    fn input(&self, value: &BigInt) -> Result<(), CheckValueError> {
+        match self.is_valid(value) {
             true => Ok(()),
             false => Err(CheckValueError::InputOutOfRange)
         }
     }
 
-    pub fn check_output(check_value: &dyn CheckValue, value: &BigInt) -> Result<(), CheckValueError> {
-        match check_value.is_valid(value) {
+    fn output(&self, value: &BigInt) -> Result<(), CheckValueError> {
+        match self.is_valid(value) {
             true => Ok(()),
             false => Err(CheckValueError::OutputOutOfRange)
         }

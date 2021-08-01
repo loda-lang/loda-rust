@@ -72,8 +72,8 @@ impl ProgramState {
         }
     }
 
-    pub fn check_value(&self) -> &dyn CheckValue {
-        self.check_value.as_ref()
+    pub fn check_value(&self) -> &Box<dyn CheckValue> {
+        &self.check_value
     }
 
     pub fn node_register_limit(&self) -> &NodeRegisterLimit {

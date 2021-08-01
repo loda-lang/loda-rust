@@ -11,15 +11,15 @@ impl From<CheckValueError> for EvalError {
     }
 }
 
-fn perform_operation(check_value: &dyn CheckValue, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, CheckValueError> {
+fn perform_operation(check: &Box<dyn CheckValue>, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, CheckValueError> {
     let xx: &BigInt = &x.0;
-    PerformCheckValue::check_input(check_value, xx)?;
+    check.input(xx)?;
 
     let yy: &BigInt = &y.0;
-    PerformCheckValue::check_input(check_value, yy)?;
+    check.input(yy)?;
 
     let zz: BigInt = xx + yy;
-    PerformCheckValue::check_output(check_value, &zz)?;
+    check.output(&zz)?;
 
     Ok(RegisterValue(zz))
 }
@@ -103,7 +103,7 @@ mod tests {
     use super::super::OperationLimitBits;
 
     fn process(left: i64, right: i64) -> String {
-        let check_value = OperationLimitBits::new(32);
+        let check_value: Box<dyn CheckValue> = Box::new(OperationLimitBits::new(32));
         let result = perform_operation(
             &check_value,
             &RegisterValue::from_i64(left),
