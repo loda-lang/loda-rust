@@ -1,4 +1,5 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use super::{BoxCheckValue, PerformCheckValue};
 use std::collections::HashSet;
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, One, Zero, Signed};
@@ -10,30 +11,22 @@ pub enum NodePowerLimit {
     LimitBits(u32)
 }
 
-enum PowerError {
-    DivisionByZero,
-    ExponentTooHigh,
-    ExceededLimit,
-}
-
-impl From<PowerError> for EvalError {
-    fn from(error: PowerError) -> EvalError {
-        match error {
-            PowerError::DivisionByZero  => EvalError::PowerZeroDivision,
-            PowerError::ExponentTooHigh => EvalError::PowerExponentTooHigh,
-            PowerError::ExceededLimit   => EvalError::PowerExceededLimit,
-        }
-    }
-}
-
 // x raised to the power of y
 // x is the base value.
 // y is the power value.
 // Ruby: x ** y
 // Math syntax: x ^ y.
-fn perform_operation(x: &RegisterValue, y: &RegisterValue, limit: &NodePowerLimit) -> Result<RegisterValue,PowerError> {
+fn perform_operation(
+    check: &BoxCheckValue, 
+    limit: &NodePowerLimit,
+    x: &RegisterValue, 
+    y: &RegisterValue
+) -> Result<RegisterValue, EvalError> {
     let base: &BigInt = &x.0;
+    check.input(base)?;
+
     let exponent: &BigInt = &y.0;
+    check.input(exponent)?;
     
     if base.is_zero() {
         if exponent.is_positive() {
@@ -42,7 +35,7 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue, limit: &NodePowerLimi
         if exponent.is_zero() {
             return Ok(RegisterValue::one());
         }
-        return Err(PowerError::DivisionByZero);
+        return Err(EvalError::PowerZeroDivision);
     }
 
     if base.is_one() {
@@ -76,7 +69,7 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue, limit: &NodePowerLimi
         Some(value) => value,
         None => {
             // NodePower `exponent` is higher than a 32bit unsigned integer. This is beyond what the pow() function can handle.
-            return Err(PowerError::ExponentTooHigh);
+            return Err(EvalError::PowerExponentTooHigh);
         }
     };
 
@@ -88,12 +81,13 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue, limit: &NodePowerLimi
             // so it's a rough estimate of the number of bits in the result.
             let result_size: u128 = (base.bits() as u128) * (exponent_u32 as u128);
             if result_size > (*max_bits as u128) {
-                return Err(PowerError::ExceededLimit);
+                return Err(EvalError::PowerExceededLimit);
             }
         }
     }
 
     let result: BigInt = base.pow(exponent_u32);
+    check.output(&result)?;
     Ok(RegisterValue(result))
 }
 
@@ -120,7 +114,12 @@ impl Node for NodePowerRegister {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
-        let value: RegisterValue = perform_operation(lhs, rhs, state.node_power_limit())?;
+        let value: RegisterValue = perform_operation(
+            state.check_value(), 
+            state.node_power_limit(), 
+            lhs, 
+            rhs
+        )?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -159,7 +158,12 @@ impl Node for NodePowerConstant {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = &self.source;
-        let value: RegisterValue = perform_operation(lhs, rhs, state.node_power_limit())?;
+        let value: RegisterValue = perform_operation(
+            state.check_value(), 
+            state.node_power_limit(), 
+            lhs, 
+            rhs
+        )?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -180,32 +184,43 @@ impl Node for NodePowerConstant {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::CheckValueLimitBits;
+    use super::super::CheckValueUnlimited;
 
     fn process(left: i64, right: i64) -> String {
+        let check_value: BoxCheckValue = Box::new(CheckValueUnlimited::new());
         let limit = NodePowerLimit::Unlimited;
-        process_inner(left, right, &limit)
+        process_inner(left, right, &check_value, &limit)
     }
 
     fn process_limit(left: i64, right: i64, limit: u32) -> String {
+        let check_value: BoxCheckValue = Box::new(CheckValueUnlimited::new());
+        // let check_value: BoxCheckValue = Box::new(CheckValueLimitBits::new(32));
         let limit = NodePowerLimit::LimitBits(limit);
-        process_inner(left, right, &limit)
+        process_inner(left, right, &check_value, &limit)
     }
 
-    fn process_inner(left: i64, right: i64, limit: &NodePowerLimit) -> String {
+    fn process_checkvalue_limit(left: i64, right: i64, checkvalue: u32, limit: u32) -> String {
+        let check_value: BoxCheckValue = Box::new(CheckValueLimitBits::new(checkvalue));
+        let limit = NodePowerLimit::LimitBits(limit);
+        process_inner(left, right, &check_value, &limit)
+    }
+
+    fn process_inner(left: i64, right: i64, check_value: &BoxCheckValue, limit: &NodePowerLimit) -> String {
         let result = perform_operation(
+            &check_value,
+            &limit,
             &RegisterValue::from_i64(left),
             &RegisterValue::from_i64(right),
-            &limit,
         );
         match result {
             Ok(value) => return value.to_string(),
-            Err(err) => {
-                match err {
-                    PowerError::DivisionByZero => return "ZeroDivision".to_string(),
-                    PowerError::ExponentTooHigh => return "ExponentTooHigh".to_string(),
-                    PowerError::ExceededLimit => return "ExceededLimit".to_string()
-                }
-            }
+            Err(EvalError::InputOutOfRange) => return "BOOM-INPUT".to_string(),
+            Err(EvalError::OutputOutOfRange) => return "BOOM-OUTPUT".to_string(),
+            Err(EvalError::PowerZeroDivision) => return "ZeroDivision".to_string(),
+            Err(EvalError::PowerExponentTooHigh) => return "ExponentTooHigh".to_string(),
+            Err(EvalError::PowerExceededLimit) => return "ExceededLimit".to_string(),
+            Err(_) => return "BOOM-OTHER".to_string()
         }
     }
 
@@ -342,5 +357,21 @@ mod tests {
         assert_eq!(process_limit(255, 2, 15), "ExceededLimit");
         assert_eq!(process_limit(-255, 2, 16), "65025");
         assert_eq!(process_limit(-255, 2, 15), "ExceededLimit");
+    }
+
+    #[test]
+    fn test_30001_out_of_range() {
+        {
+            assert_eq!(process_checkvalue_limit(127, 1, 8, 32), "127");
+            assert_eq!(process_checkvalue_limit(128, 1, 8, 32), "BOOM-INPUT");
+        }
+        {
+            assert_eq!(process_checkvalue_limit(1, 127, 8, 32), "1");
+            assert_eq!(process_checkvalue_limit(1, 128, 8, 32), "BOOM-INPUT");
+        }
+        {
+            assert_eq!(process_checkvalue_limit(2, 6, 8, 32), "64");
+            assert_eq!(process_checkvalue_limit(2, 7, 8, 32), "BOOM-OUTPUT");
+        }
     }
 }
