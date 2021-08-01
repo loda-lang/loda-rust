@@ -1,8 +1,8 @@
 use super::{EvalError, NodeLoopLimit, RegisterIndex, RegisterValue, RunMode};
 use super::node_binomial::NodeBinomialLimit;
 use super::node_power::NodePowerLimit;
-use super::node::NodeRegisterLimit;
-use super::{BoxCheckValue, CheckValueUnlimited, CheckValueLimitBits};
+use super::NodeRegisterLimit;
+use super::BoxCheckValue;
 use num_bigint::BigInt;
 use num_traits::Signed;
 use std::cmp::Ordering;
@@ -52,12 +52,7 @@ impl ProgramState {
             register_vec.push(RegisterValue::zero());
         }
 
-        let check_value: BoxCheckValue = match node_register_limit {
-            NodeRegisterLimit::Unlimited => 
-                Box::new(CheckValueUnlimited::new()),
-            NodeRegisterLimit::LimitBits(max_bits) => 
-                Box::new(CheckValueLimitBits::new(max_bits)),
-        };
+        let check_value: BoxCheckValue = node_register_limit.create_boxed_check_value();
 
         Self {
             register_vec: register_vec,

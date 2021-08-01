@@ -1,5 +1,5 @@
 use super::{EvalError, NodeLoopLimit, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterIndex, RegisterValue, RunMode};
-use super::node::NodeRegisterLimit;
+use super::NodeRegisterLimit;
 use super::node_binomial::NodeBinomialLimit;
 use super::node_power::NodePowerLimit;
 use super::node_move::NodeMoveRegister;

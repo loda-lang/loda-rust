@@ -85,10 +85,3 @@ pub trait Node {
 }
 
 pub type BoxNode = Box<dyn Node>;
-
-#[derive(Clone)]
-pub enum NodeRegisterLimit {
-    Unlimited,
-    LimitBits(u32)
-}
-
