@@ -7,10 +7,10 @@ use num_traits::Zero;
 fn perform_operation(check: &BoxCheckValue, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,EvalError> {
     let yy: &BigInt = &y.0;
     check.input(yy)?;
-
     if yy.is_zero() {
         return Err(EvalError::DivisionByZero);
     }
+
     let xx: &BigInt = &x.0;
     check.input(xx)?;
 

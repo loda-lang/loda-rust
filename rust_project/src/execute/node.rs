@@ -16,7 +16,6 @@ pub enum EvalError {
     CallWithNegativeParameter,
     CallOutOfRange,
 
-    DivideOutOfRange,
     DivisionByZero,
 
     // Binomial with N >= 34 and the result value can no longer fit into a 32bit integer.
