@@ -1,6 +1,8 @@
-use super::{EvalError, RegisterIndex, RegisterValue, RunMode};
+use super::{EvalError, NodeLoopLimit, RegisterIndex, RegisterValue, RunMode};
 use super::node_binomial::NodeBinomialLimit;
 use super::node_power::NodePowerLimit;
+use super::NodeRegisterLimit;
+use super::BoxCheckValue;
 use num_bigint::BigInt;
 use num_traits::Signed;
 use std::cmp::Ordering;
@@ -23,8 +25,11 @@ pub struct ProgramState {
     step_count: u64,
     run_mode: RunMode,
     step_count_limit: u64,
+    node_register_limit: NodeRegisterLimit,
     node_binomial_limit: NodeBinomialLimit,
+    node_loop_limit: NodeLoopLimit,
     node_power_limit: NodePowerLimit,
+    check_value: BoxCheckValue,
 }
 
 impl ProgramState {
@@ -32,7 +37,9 @@ impl ProgramState {
         register_count: u8, 
         run_mode: RunMode, 
         step_count_limit: u64, 
+        node_register_limit: NodeRegisterLimit,
         node_binomial_limit: NodeBinomialLimit, 
+        node_loop_limit: NodeLoopLimit,
         node_power_limit: NodePowerLimit
     ) -> Self {
         // Register 0 is for input value
@@ -44,18 +51,36 @@ impl ProgramState {
         for _ in 0..register_count {
             register_vec.push(RegisterValue::zero());
         }
+
+        let check_value: BoxCheckValue = node_register_limit.create_boxed_check_value();
+
         Self {
             register_vec: register_vec,
             step_count: 0,
             run_mode: run_mode,
             step_count_limit: step_count_limit,
+            node_register_limit: node_register_limit,
             node_binomial_limit: node_binomial_limit,
+            node_loop_limit: node_loop_limit,
             node_power_limit: node_power_limit,
+            check_value: check_value,
         }
+    }
+
+    pub fn check_value(&self) -> &BoxCheckValue {
+        &self.check_value
+    }
+
+    pub fn node_register_limit(&self) -> &NodeRegisterLimit {
+        &self.node_register_limit
     }
 
     pub fn node_binomial_limit(&self) -> &NodeBinomialLimit {
         &self.node_binomial_limit
+    }
+
+    pub fn node_loop_limit(&self) -> &NodeLoopLimit {
+        &self.node_loop_limit
     }
 
     pub fn node_power_limit(&self) -> &NodePowerLimit {
@@ -213,7 +238,9 @@ mod tests {
             4, 
             RunMode::Silent, 
             1000, 
+            NodeRegisterLimit::Unlimited,
             NodeBinomialLimit::Unlimited,
+            NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         );
         state.set_register_value(RegisterIndex(0), RegisterValue::from_i64(100));
@@ -228,7 +255,9 @@ mod tests {
             4, 
             RunMode::Silent, 
             1000, 
+            NodeRegisterLimit::Unlimited,
             NodeBinomialLimit::Unlimited,
+            NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         )
     }
@@ -246,7 +275,9 @@ mod tests {
             0, 
             RunMode::Silent, 
             1000, 
+            NodeRegisterLimit::Unlimited,
             NodeBinomialLimit::Unlimited,
+            NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         );
     }
@@ -258,7 +289,9 @@ mod tests {
             1, 
             RunMode::Silent, 
             1000,
+            NodeRegisterLimit::Unlimited,
             NodeBinomialLimit::Unlimited,
+            NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         );
     }

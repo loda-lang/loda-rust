@@ -1,15 +1,19 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use super::{BoxCheckValue, PerformCheckValue};
 use std::collections::HashSet;
 use num_bigint::BigInt;
 use num_traits::Zero;
 
-fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,EvalError> {
+fn perform_operation(check: &BoxCheckValue, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,EvalError> {
     let yy: &BigInt = &y.0;
+    check.input(yy)?;
     if yy.is_zero() {
-        debug!("NodeDivideIf, division by zero");
         return Err(EvalError::DivisionByZero);
     }
+
     let xx: &BigInt = &x.0;
+    check.input(xx)?;
+
     let remain: BigInt = xx % yy;
     if remain.is_zero() {
         return Ok(RegisterValue(xx / yy));
@@ -40,7 +44,7 @@ impl Node for NodeDivideIfRegister {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
-        let value: RegisterValue = perform_operation(lhs, rhs)?;
+        let value: RegisterValue = perform_operation(state.check_value(), lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -79,7 +83,7 @@ impl Node for NodeDivideIfConstant {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = &self.source;
-        let value: RegisterValue = perform_operation(lhs, rhs)?;
+        let value: RegisterValue = perform_operation(state.check_value(), lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -92,26 +96,25 @@ impl Node for NodeDivideIfConstant {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::CheckValueLimitBits;
 
     fn process(left: i64, right: i64) -> String {
+        let check_value: BoxCheckValue = Box::new(CheckValueLimitBits::new(32));
         let result = perform_operation(
+            &check_value,
             &RegisterValue::from_i64(left),
             &RegisterValue::from_i64(right)
         );
         match result {
             Ok(value) => value.to_string(),
-            Err(_) => "BOOM".to_string()
+            Err(EvalError::DivisionByZero) => "BOOM-ZERO".to_string(),
+            Err(EvalError::InputOutOfRange) => "BOOM-INPUT".to_string(),
+            Err(_) => return "BOOM-OTHER".to_string()
         }
     }
 
     #[test]
-    fn test_10000_zero() {
-        assert_eq!(process(100, 0), "BOOM");
-        assert_eq!(process(-100, 0), "BOOM");
-    }
-
-    #[test]
-    fn test_10001_remainder_zero() {
+    fn test_10000_remainder_zero() {
         assert_eq!(process(50, 10), "5");
         assert_eq!(process(100, 1), "100");
         assert_eq!(process(42, -1), "-42");
@@ -121,9 +124,31 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_cannot_be_divided() {
+    fn test_10001_cannot_be_divided() {
         assert_eq!(process(33, 10), "33");
         assert_eq!(process(100, 33), "100");
         assert_eq!(process(-100, -33), "-100");
+    }
+
+    #[test]
+    fn test_10002_divisionbyzero() {
+        assert_eq!(process(100, 0), "BOOM-ZERO");
+        assert_eq!(process(-100, 0), "BOOM-ZERO");
+    }
+
+    #[test]
+    fn test_10003_inputoutofrange() {
+        assert_eq!(process(0x7fffffff, 0x7fffffff), "1");
+        assert_eq!(process(-0x7fffffff, -0x7fffffff), "1");
+        assert_eq!(process(0x80000000, 1), "BOOM-INPUT");
+        assert_eq!(process(-0x80000000, 1), "BOOM-INPUT");
+        assert_eq!(process(0x80000001, 2), "BOOM-INPUT");
+        assert_eq!(process(-0x80000001, 2), "BOOM-INPUT");
+        assert_eq!(process(1, 0x7fffffff), "1");
+        assert_eq!(process(1, -0x7fffffff), "1");
+        assert_eq!(process(1, 0x80000000), "BOOM-INPUT");
+        assert_eq!(process(1, -0x80000000), "BOOM-INPUT");
+        assert_eq!(process(1, 0x80000001), "BOOM-INPUT");
+        assert_eq!(process(1, -0x80000001), "BOOM-INPUT");
     }
 }

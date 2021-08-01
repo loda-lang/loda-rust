@@ -2,7 +2,8 @@ use std::time::Instant;
 use std::rc::Rc;
 use std::path::PathBuf;
 use super::DependencyManager;
-use crate::execute::{ProgramCache, ProgramRunner, RegisterValue, RunMode};
+use crate::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
+use crate::execute::NodeRegisterLimit;
 use crate::execute::node_binomial::NodeBinomialLimit;
 use crate::execute::node_power::NodePowerLimit;
 use crate::config::Config;
@@ -62,7 +63,9 @@ impl ProgramRunner {
                 RunMode::Silent, 
                 &mut step_count, 
                 step_count_limit,
+                NodeRegisterLimit::Unlimited,
                 NodeBinomialLimit::Unlimited,
+                NodeLoopLimit::Unlimited,
                 NodePowerLimit::Unlimited,
                 &mut cache
             );
@@ -101,7 +104,9 @@ impl ProgramRunner {
                 RunMode::Silent, 
                 &mut step_count, 
                 step_count_limit,
+                NodeRegisterLimit::Unlimited,
                 NodeBinomialLimit::Unlimited,
+                NodeLoopLimit::Unlimited,
                 NodePowerLimit::Unlimited,
                 &mut cache,
             );
@@ -135,7 +140,9 @@ impl ProgramRunner {
                 RunMode::Verbose, 
                 &mut step_count, 
                 step_count_limit,
+                NodeRegisterLimit::Unlimited,
                 NodeBinomialLimit::Unlimited,
+                NodeLoopLimit::Unlimited,
                 NodePowerLimit::Unlimited,
                 &mut cache,
             );

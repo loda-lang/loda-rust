@@ -1,7 +1,8 @@
 use crate::control::DependencyManager;
 use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, PreventFlooding, RecentProgramContainer, save_candidate_program};
 use crate::parser::{parse_program, ParsedProgram};
-use crate::execute::{EvalError, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
+use crate::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
+use crate::execute::NodeRegisterLimit;
 use crate::execute::node_binomial::NodeBinomialLimit;
 use crate::execute::node_power::NodePowerLimit;
 use crate::util::{BigIntVec, bigintvec_to_string};
@@ -26,7 +27,9 @@ impl TermComputer {
 
     fn compute(&mut self, cache: &mut ProgramCache, runner: &ProgramRunner, count: usize) -> Result<BigIntVec, EvalError> {
         let step_count_limit: u64 = 10000;
+        let node_register_limit = NodeRegisterLimit::LimitBits(32);
         let node_binomial_limit = NodeBinomialLimit::LimitN(20);
+        let node_loop_limit = NodeLoopLimit::LimitCount(1000);
         let node_power_limit = NodePowerLimit::LimitBits(30);
         loop {
             let length: usize = self.terms.len();
@@ -40,7 +43,9 @@ impl TermComputer {
                 RunMode::Silent, 
                 &mut self.step_count, 
                 step_count_limit, 
+                node_register_limit.clone(),
                 node_binomial_limit.clone(),
+                node_loop_limit.clone(),
                 node_power_limit.clone(),
                 cache
             )?;
@@ -54,7 +59,9 @@ impl ProgramRunner {
     fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError> {
         let mut terms: BigIntVec = vec!();
         let step_count_limit: u64 = 10000;
+        let node_register_limit = NodeRegisterLimit::LimitBits(32);
         let node_binomial_limit = NodeBinomialLimit::LimitN(20);
+        let node_loop_limit = NodeLoopLimit::LimitCount(1000);
         let node_power_limit = NodePowerLimit::LimitBits(30);
         let mut _step_count: u64 = 0;
         for index in 0..(count as i64) {
@@ -64,7 +71,9 @@ impl ProgramRunner {
                 RunMode::Silent, 
                 &mut _step_count, 
                 step_count_limit, 
+                node_register_limit.clone(),
                 node_binomial_limit.clone(),
+                node_loop_limit.clone(),
                 node_power_limit.clone(),
                 cache
             )?;

@@ -1,4 +1,7 @@
+mod check_value;
 mod node;
+mod node_loop_shared;
+mod node_register_limit;
 mod program;
 mod program_cache;
 mod program_id;
@@ -10,6 +13,7 @@ mod register_value;
 mod run_mode;
 mod program_serializer;
 
+use check_value::*;
 pub use program::Program;
 pub use program_id::ProgramId;
 pub use program_runner::ProgramRunner;
@@ -19,8 +23,10 @@ pub use program_cache::{CacheValue, ProgramCache};
 pub use program_serializer::ProgramSerializer;
 pub use run_mode::RunMode;
 pub use node::{BoxNode, EvalError, Node, ValidateCallError};
+pub use node_loop_shared::NodeLoopLimit;
 pub use register_index::RegisterIndex;
 pub use register_value::RegisterValue;
+pub use node_register_limit::NodeRegisterLimit;
 
 pub mod node_add;
 pub mod node_binomial;
@@ -30,7 +36,6 @@ pub mod node_compare;
 pub mod node_divide;
 pub mod node_divideif;
 pub mod node_gcd;
-pub mod node_logarithm;
 pub mod node_loop_constant;
 pub mod node_loop_register;
 pub mod node_loop_simple;

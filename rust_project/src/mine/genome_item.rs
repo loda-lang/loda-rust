@@ -431,26 +431,6 @@ impl GenomeItem {
                     }
                 }
             },
-            InstructionId::Logarithm => {
-                match self.source_type {
-                    ParameterType::Constant => {
-                        if self.source_value < 2 {
-                            self.source_value = 2;
-                            return false;
-                        }
-                        if self.source_value > 16 {
-                            self.source_value = 16;
-                            return false;
-                        }
-                    },
-                    ParameterType::Register => {
-                        if self.source_value == self.target_value {
-                            self.source_value = (self.target_value + 1) % 5;
-                            return false;
-                        }
-                    }
-                }
-            },
             InstructionId::Subtract => {
                 match self.source_type {
                     ParameterType::Constant => {
