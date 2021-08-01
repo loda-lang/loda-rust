@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use super::{EvalError, ProgramCache, Node, RegisterIndex, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
+use super::PerformCheckValue;
 use num_traits::Signed;
 
 pub struct NodeCallConstant {
@@ -47,9 +48,8 @@ impl Node for NodeCallConstant {
             return Err(EvalError::CallWithNegativeParameter);
         }
 
-        if input.0.bits() >= 32 {
-            return Err(EvalError::CallOutOfRange);
-        }
+        // Abort if the input value is beyond the limit (optional)
+        state.check_value().input(&input.0)?;
 
         let step_count_limit: u64 = state.step_count_limit();
         let mut step_count: u64 = state.step_count();
@@ -78,9 +78,8 @@ impl Node for NodeCallConstant {
             }
         };
 
-        if output.0.bits() >= 32 {
-            return Err(EvalError::CallOutOfRange);
-        }
+        // Abort if the output value is beyond the limit (optional)
+        state.check_value().output(&output.0)?;
 
         // In case run succeeded, then pass on the outputted value.
         state.set_register_value(self.target.clone(), output);
