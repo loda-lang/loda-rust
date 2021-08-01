@@ -3,10 +3,12 @@ use num_bigint::BigInt;
 pub trait CheckValue {
     fn is_valid(&self, value: &BigInt) -> bool;
 
-    fn clone_boxed(&self) -> Box<dyn CheckValue>;
+    fn clone_boxed(&self) -> BoxCheckValue;
 }
 
-impl Clone for Box<dyn CheckValue> {
+pub type BoxCheckValue = Box<dyn CheckValue>;
+
+impl Clone for BoxCheckValue {
     fn clone(&self) -> Self {
         self.clone_boxed()
     }
@@ -42,7 +44,7 @@ impl CheckValue for OperationLimitBits {
         true
     }
 
-    fn clone_boxed(&self) -> Box<dyn CheckValue> {
+    fn clone_boxed(&self) -> BoxCheckValue {
         Box::new(self.clone())
     }
 }
@@ -52,7 +54,7 @@ impl CheckValue for OperationUnlimited {
         true
     }
 
-    fn clone_boxed(&self) -> Box<dyn CheckValue> {
+    fn clone_boxed(&self) -> BoxCheckValue {
         Box::new(self.clone())
     }
 }
@@ -67,7 +69,7 @@ pub trait PerformCheckValue {
     fn output(&self, value: &BigInt) -> Result<(), CheckValueError>;
 }
 
-impl PerformCheckValue for Box<dyn CheckValue> {
+impl PerformCheckValue for BoxCheckValue {
     fn input(&self, value: &BigInt) -> Result<(), CheckValueError> {
         match self.is_valid(value) {
             true => Ok(()),

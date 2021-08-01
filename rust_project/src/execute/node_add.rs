@@ -1,7 +1,7 @@
 use super::{EvalError, Node};
 use super::{ProgramCache, ProgramState};
 use super::{RegisterIndex, RegisterValue};
-use super::{CheckValue, CheckValueError, PerformCheckValue};
+use super::{BoxCheckValue, CheckValueError, PerformCheckValue};
 use std::collections::HashSet;
 use num_bigint::BigInt;
 
@@ -11,7 +11,7 @@ impl From<CheckValueError> for EvalError {
     }
 }
 
-fn perform_operation(check: &Box<dyn CheckValue>, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, CheckValueError> {
+fn perform_operation(check: &BoxCheckValue, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, CheckValueError> {
     let xx: &BigInt = &x.0;
     check.input(xx)?;
 
@@ -103,7 +103,7 @@ mod tests {
     use super::super::OperationLimitBits;
 
     fn process(left: i64, right: i64) -> String {
-        let check_value: Box<dyn CheckValue> = Box::new(OperationLimitBits::new(32));
+        let check_value: BoxCheckValue = Box::new(OperationLimitBits::new(32));
         let result = perform_operation(
             &check_value,
             &RegisterValue::from_i64(left),

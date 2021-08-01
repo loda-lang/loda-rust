@@ -2,7 +2,7 @@ use super::{EvalError, NodeLoopLimit, RegisterIndex, RegisterValue, RunMode};
 use super::node_binomial::NodeBinomialLimit;
 use super::node_power::NodePowerLimit;
 use super::node::NodeRegisterLimit;
-use super::{CheckValue, OperationUnlimited, OperationLimitBits};
+use super::{BoxCheckValue, OperationUnlimited, OperationLimitBits};
 use num_bigint::BigInt;
 use num_traits::Signed;
 use std::cmp::Ordering;
@@ -29,7 +29,7 @@ pub struct ProgramState {
     node_binomial_limit: NodeBinomialLimit,
     node_loop_limit: NodeLoopLimit,
     node_power_limit: NodePowerLimit,
-    check_value: Box<dyn CheckValue>,
+    check_value: BoxCheckValue,
 }
 
 impl ProgramState {
@@ -52,7 +52,7 @@ impl ProgramState {
             register_vec.push(RegisterValue::zero());
         }
 
-        let check_value: Box<dyn CheckValue> = match node_register_limit {
+        let check_value: BoxCheckValue = match node_register_limit {
             NodeRegisterLimit::Unlimited => 
                 Box::new(OperationUnlimited::new()),
             NodeRegisterLimit::LimitBits(max_bits) => 
@@ -72,7 +72,7 @@ impl ProgramState {
         }
     }
 
-    pub fn check_value(&self) -> &Box<dyn CheckValue> {
+    pub fn check_value(&self) -> &BoxCheckValue {
         &self.check_value
     }
 
