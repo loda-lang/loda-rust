@@ -1,11 +1,19 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use super::{BoxCheckValue, PerformCheckValue};
 use std::collections::HashSet;
 use num_bigint::BigInt;
 
-fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> RegisterValue {
+fn perform_operation(check: &BoxCheckValue, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, EvalError> {
     let xx: &BigInt = &x.0;
+    check.input(xx)?;
+
     let yy: &BigInt = &y.0;
-    RegisterValue(xx - yy)
+    check.input(yy)?;
+
+    let zz: BigInt = xx - yy;
+    check.output(&zz)?;
+
+    Ok(RegisterValue(zz))
 }
 
 pub struct NodeSubtractRegister {
@@ -30,7 +38,7 @@ impl Node for NodeSubtractRegister {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
-        let value = perform_operation(lhs, rhs);
+        let value = perform_operation(state.check_value(), lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -74,7 +82,7 @@ impl Node for NodeSubtractConstant {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = &self.source;
-        let value = perform_operation(lhs, rhs);
+        let value = perform_operation(state.check_value(), lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -87,13 +95,21 @@ impl Node for NodeSubtractConstant {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::CheckValueLimitBits;
 
     fn process(left: i64, right: i64) -> String {
-        let value: RegisterValue = perform_operation(
+        let check_value: BoxCheckValue = Box::new(CheckValueLimitBits::new(32));
+        let result = perform_operation(
+            &check_value,
             &RegisterValue::from_i64(left),
             &RegisterValue::from_i64(right)
         );
-        value.to_string()
+        match result {
+            Ok(value) => return value.to_string(),
+            Err(EvalError::InputOutOfRange) => return "BOOM-INPUT".to_string(),
+            Err(EvalError::OutputOutOfRange) => return "BOOM-OUTPUT".to_string(),
+            Err(_) => return "BOOM-OTHER".to_string()
+        }
     }
 
     #[test]
@@ -103,5 +119,24 @@ mod tests {
         assert_eq!(process(-100, -100), "0");
         assert_eq!(process(100, 300), "-200");
         assert_eq!(process(0, 10), "-10");
+    }
+
+    #[test]
+    fn test_10001_out_of_range() {
+        {
+            assert_eq!(process(0x7fffffff, 0), "2147483647");
+            assert_eq!(process(0x80000000, 0), "BOOM-INPUT");
+            assert_eq!(process(0, 0x80000000), "BOOM-INPUT");
+            assert_eq!(process(-0x80000000, 0), "BOOM-INPUT");
+            assert_eq!(process(0, -0x80000000), "BOOM-INPUT");
+        }
+        {
+            assert_eq!(process(0x6fffffff, -0x10000000), "2147483647");
+            assert_eq!(process(0x70000000, -0x10000000), "BOOM-OUTPUT");
+        }
+        {
+            assert_eq!(process(-0x6fffffff, 0x10000000), "-2147483647");
+            assert_eq!(process(-0x70000000, 0x10000000), "BOOM-OUTPUT");
+        }
     }
 }
