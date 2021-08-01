@@ -1,3 +1,4 @@
+mod check_value;
 mod node;
 mod node_loop_shared;
 mod program;
@@ -11,6 +12,7 @@ mod register_value;
 mod run_mode;
 mod program_serializer;
 
+use check_value::*;
 pub use program::Program;
 pub use program_id::ProgramId;
 pub use program_runner::ProgramRunner;

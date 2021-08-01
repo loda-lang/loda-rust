@@ -1,37 +1,9 @@
-use super::{EvalError, Node, NodeRegisterLimit};
+use super::{EvalError, Node};
 use super::{ProgramCache, ProgramState};
 use super::{RegisterIndex, RegisterValue};
+use super::{CheckValue, CheckValueError};
 use std::collections::HashSet;
 use num_bigint::BigInt;
-
-struct OperationUnlimited {}
-
-struct OperationLimitBits {
-    max_bits: u32,
-}
-
-enum CheckValueError {
-    OutOfRange,
-}
-
-trait CheckValue {
-    fn check_value(&self, value: &BigInt) -> Result<(), CheckValueError>;
-}
-
-impl CheckValue for OperationLimitBits {
-    fn check_value(&self, value: &BigInt) -> Result<(), CheckValueError> {
-        if value.bits() >= self.max_bits.into() {
-            return Err(CheckValueError::OutOfRange);
-        }
-        Ok(())
-    }
-}
-
-impl CheckValue for OperationUnlimited {
-    fn check_value(&self, _value: &BigInt) -> Result<(), CheckValueError> {
-        Ok(())
-    }
-}
 
 impl From<CheckValueError> for EvalError {
     fn from(_err: CheckValueError) -> EvalError {
@@ -100,13 +72,7 @@ impl Node for NodeAddRegister {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
-        // let checker = OperationUnlimited {};
-        // let checker = OperationLimitBits { max_bits: 32 };
-        let checker: Box<dyn CheckValue> = match state.node_register_limit() {
-            NodeRegisterLimit::Unlimited => Box::new(OperationUnlimited {}),
-            NodeRegisterLimit::LimitBits(max_bits) => Box::new(OperationLimitBits { max_bits: *max_bits }),
-        };
-        let value = perform_operation(checker.as_ref(), lhs, rhs)?;
+        let value = perform_operation(state.check_value(), lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
