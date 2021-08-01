@@ -1,12 +1,12 @@
-use super::{EvalError, Node, ProgramCache, ProgramState, RegisterIndex, RegisterValue};
+use super::{EvalError, Node, NodeRegisterLimit};
+use super::{ProgramCache, ProgramState};
+use super::{RegisterIndex, RegisterValue};
 use std::collections::HashSet;
 use num_bigint::BigInt;
 
 struct OperationUnlimited {}
 
-struct OperationLimited32Bit {}
-
-struct OperationLimitedNBit {
+struct OperationLimitBits {
     max_bits: u32,
 }
 
@@ -18,16 +18,7 @@ trait CheckValue {
     fn check_value(&self, value: &BigInt) -> Result<(), CheckValueError>;
 }
 
-impl CheckValue for OperationLimited32Bit {
-    fn check_value(&self, value: &BigInt) -> Result<(), CheckValueError> {
-        if value.bits() >= 32 {
-            return Err(CheckValueError::OutOfRange);
-        }
-        Ok(())
-    }
-}
-
-impl CheckValue for OperationLimitedNBit {
+impl CheckValue for OperationLimitBits {
     fn check_value(&self, value: &BigInt) -> Result<(), CheckValueError> {
         if value.bits() >= self.max_bits.into() {
             return Err(CheckValueError::OutOfRange);
@@ -48,7 +39,7 @@ impl From<CheckValueError> for EvalError {
     }
 }
 
-fn perform_operation<T: CheckValue>(checker: &T, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, EvalError> {
+fn perform_operation(checker: &dyn CheckValue, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, EvalError> {
     let xx: &BigInt = &x.0;
     let yy: &BigInt = &y.0;
     checker.check_value(xx)?;
@@ -110,8 +101,12 @@ impl Node for NodeAddRegister {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
         // let checker = OperationUnlimited {};
-        let checker = OperationLimited32Bit {};
-        let value = perform_operation(&checker, lhs, rhs)?;
+        // let checker = OperationLimitBits { max_bits: 32 };
+        let checker: Box<dyn CheckValue> = match state.node_register_limit() {
+            NodeRegisterLimit::Unlimited => Box::new(OperationUnlimited {}),
+            NodeRegisterLimit::LimitBits(max_bits) => Box::new(OperationLimitBits { max_bits: *max_bits }),
+        };
+        let value = perform_operation(checker.as_ref(), lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
