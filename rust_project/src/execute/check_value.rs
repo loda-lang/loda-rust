@@ -1,11 +1,7 @@
 use num_bigint::BigInt;
 
-pub enum CheckValueError {
-    OutOfRange,
-}
-
 pub trait CheckValue {
-    fn check_value(&self, value: &BigInt) -> Result<(), CheckValueError>;
+    fn is_valid(&self, value: &BigInt) -> bool;
 
     fn clone_boxed(&self) -> Box<dyn CheckValue>;
 }
@@ -39,11 +35,11 @@ impl OperationLimitBits {
 }
 
 impl CheckValue for OperationLimitBits {
-    fn check_value(&self, value: &BigInt) -> Result<(), CheckValueError> {
+    fn is_valid(&self, value: &BigInt) -> bool {
         if value.bits() >= self.max_bits.into() {
-            return Err(CheckValueError::OutOfRange);
+            return false;
         }
-        Ok(())
+        true
     }
 
     fn clone_boxed(&self) -> Box<dyn CheckValue> {
@@ -52,11 +48,34 @@ impl CheckValue for OperationLimitBits {
 }
 
 impl CheckValue for OperationUnlimited {
-    fn check_value(&self, _value: &BigInt) -> Result<(), CheckValueError> {
-        Ok(())
+    fn is_valid(&self, _value: &BigInt) -> bool {
+        true
     }
 
     fn clone_boxed(&self) -> Box<dyn CheckValue> {
         Box::new(self.clone())
+    }
+}
+
+pub enum CheckValueError {
+    InputOutOfRange,
+    OutputOutOfRange,
+}
+
+pub struct PerformCheckValue {}
+
+impl PerformCheckValue {
+    pub fn check_input(check_value: &dyn CheckValue, value: &BigInt) -> Result<(), CheckValueError> {
+        match check_value.is_valid(value) {
+            true => Ok(()),
+            false => Err(CheckValueError::InputOutOfRange)
+        }
+    }
+
+    pub fn check_output(check_value: &dyn CheckValue, value: &BigInt) -> Result<(), CheckValueError> {
+        match check_value.is_valid(value) {
+            true => Ok(()),
+            false => Err(CheckValueError::OutputOutOfRange)
+        }
     }
 }

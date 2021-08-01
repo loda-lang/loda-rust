@@ -1,7 +1,7 @@
 use super::{EvalError, Node};
 use super::{ProgramCache, ProgramState};
 use super::{RegisterIndex, RegisterValue};
-use super::{CheckValue, CheckValueError};
+use super::{CheckValue, CheckValueError, PerformCheckValue};
 use std::collections::HashSet;
 use num_bigint::BigInt;
 
@@ -11,41 +11,16 @@ impl From<CheckValueError> for EvalError {
     }
 }
 
-fn perform_operation(checker: &dyn CheckValue, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, EvalError> {
+fn perform_operation(check_value: &dyn CheckValue, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, CheckValueError> {
     let xx: &BigInt = &x.0;
+    PerformCheckValue::check_input(check_value, xx)?;
+
     let yy: &BigInt = &y.0;
-    checker.check_value(xx)?;
-    checker.check_value(yy)?;
+    PerformCheckValue::check_input(check_value, yy)?;
+
     let zz: BigInt = xx + yy;
-    checker.check_value(&zz)?;
-    Ok(RegisterValue(zz))
-}
+    PerformCheckValue::check_output(check_value, &zz)?;
 
-
-enum AddError {
-    InputOutOfRange,
-    OutputOutOfRange,
-}
-
-impl From<AddError> for EvalError {
-    fn from(_err: AddError) -> EvalError {
-        EvalError::AddOutOfRange
-    }
-}
-
-fn old_perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, AddError> {
-    let xx: &BigInt = &x.0;
-    let yy: &BigInt = &y.0;
-    if xx.bits() >= 32 {
-        return Err(AddError::InputOutOfRange);
-    }
-    if yy.bits() >= 32 {
-        return Err(AddError::InputOutOfRange);
-    }
-    let zz: BigInt = xx + yy;
-    if zz.bits() >= 32 {
-        return Err(AddError::OutputOutOfRange);
-    }
     Ok(RegisterValue(zz))
 }
 
@@ -112,7 +87,7 @@ impl Node for NodeAddConstant {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = &self.source;
-        let value = old_perform_operation(lhs, rhs)?;
+        let value = perform_operation(state.check_value(), lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -125,16 +100,19 @@ impl Node for NodeAddConstant {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::OperationLimitBits;
 
     fn process(left: i64, right: i64) -> String {
-        let result = old_perform_operation(
+        let check_value = OperationLimitBits::new(32);
+        let result = perform_operation(
+            &check_value,
             &RegisterValue::from_i64(left),
             &RegisterValue::from_i64(right)
         );
         match result {
             Ok(value) => return value.to_string(),
-            Err(AddError::InputOutOfRange) => return "BOOM-INPUT".to_string(),
-            Err(AddError::OutputOutOfRange) => return "BOOM-OUTPUT".to_string()
+            Err(CheckValueError::InputOutOfRange) => return "BOOM-INPUT".to_string(),
+            Err(CheckValueError::OutputOutOfRange) => return "BOOM-OUTPUT".to_string(),
         }
     }
 
