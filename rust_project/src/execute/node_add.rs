@@ -6,6 +6,10 @@ struct OperationUnlimited {}
 
 struct OperationLimited32Bit {}
 
+struct OperationLimitedNBit {
+    max_bits: u32,
+}
+
 enum CheckValueError {
     OutOfRange,
 }
@@ -17,6 +21,15 @@ trait CheckValue {
 impl CheckValue for OperationLimited32Bit {
     fn check_value(&self, value: &BigInt) -> Result<(), CheckValueError> {
         if value.bits() >= 32 {
+            return Err(CheckValueError::OutOfRange);
+        }
+        Ok(())
+    }
+}
+
+impl CheckValue for OperationLimitedNBit {
+    fn check_value(&self, value: &BigInt) -> Result<(), CheckValueError> {
+        if value.bits() >= self.max_bits.into() {
             return Err(CheckValueError::OutOfRange);
         }
         Ok(())
