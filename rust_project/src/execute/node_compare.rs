@@ -1,26 +1,15 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use super::{BoxCheckValue, PerformCheckValue};
 use std::collections::HashSet;
 use num_bigint::BigInt;
 
-enum CompareError {
-    InputOutOfRange,
-}
-
-impl From<CompareError> for EvalError {
-    fn from(_err: CompareError) -> EvalError {
-        EvalError::CompareOutOfRange
-    }
-}
-
-fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,CompareError> {
+fn perform_operation(check: &BoxCheckValue, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,EvalError> {
     let xx: &BigInt = &x.0;
-    if xx.bits() >= 32 {
-        return Err(CompareError::InputOutOfRange);
-    }
+    check.input(xx)?;
+
     let yy: &BigInt = &y.0;
-    if yy.bits() >= 32 {
-        return Err(CompareError::InputOutOfRange);
-    }
+    check.input(yy)?;
+
     if xx == yy {
         Ok(RegisterValue::one())
     } else {
@@ -50,7 +39,7 @@ impl Node for NodeCompareRegister {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = state.get_register_value_ref(&self.source);
-        let value: RegisterValue = perform_operation(lhs, rhs)?;
+        let value: RegisterValue = perform_operation(state.check_value(), lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -94,7 +83,7 @@ impl Node for NodeCompareConstant {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         let lhs: &RegisterValue = state.get_register_value_ref(&self.target);
         let rhs: &RegisterValue = &self.source;
-        let value: RegisterValue = perform_operation(lhs, rhs)?;
+        let value: RegisterValue = perform_operation(state.check_value(), lhs, rhs)?;
         state.set_register_value(self.target.clone(), value);
         Ok(())
     }
@@ -107,15 +96,19 @@ impl Node for NodeCompareConstant {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::CheckValueLimitBits;
 
     fn process(left: i64, right: i64) -> String {
+        let check_value: BoxCheckValue = Box::new(CheckValueLimitBits::new(32));
         let result = perform_operation(
+            &check_value,
             &RegisterValue::from_i64(left),
             &RegisterValue::from_i64(right)
         );
         match result {
             Ok(value) => return value.to_string(),
-            Err(CompareError::InputOutOfRange) => return "BOOM-INPUT".to_string()
+            Err(EvalError::InputOutOfRange) => return "BOOM-INPUT".to_string(),
+            Err(_) => return "BOOM-OTHER".to_string()
         }
     }
 

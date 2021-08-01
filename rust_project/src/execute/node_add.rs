@@ -1,17 +1,11 @@
 use super::{EvalError, Node};
 use super::{ProgramCache, ProgramState};
 use super::{RegisterIndex, RegisterValue};
-use super::{BoxCheckValue, CheckValueError, PerformCheckValue};
+use super::{BoxCheckValue, PerformCheckValue};
 use std::collections::HashSet;
 use num_bigint::BigInt;
 
-impl From<CheckValueError> for EvalError {
-    fn from(_err: CheckValueError) -> EvalError {
-        EvalError::AddOutOfRange
-    }
-}
-
-fn perform_operation(check: &BoxCheckValue, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, CheckValueError> {
+fn perform_operation(check: &BoxCheckValue, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue, EvalError> {
     let xx: &BigInt = &x.0;
     check.input(xx)?;
 
@@ -111,8 +105,9 @@ mod tests {
         );
         match result {
             Ok(value) => return value.to_string(),
-            Err(CheckValueError::InputOutOfRange) => return "BOOM-INPUT".to_string(),
-            Err(CheckValueError::OutputOutOfRange) => return "BOOM-OUTPUT".to_string(),
+            Err(EvalError::InputOutOfRange) => return "BOOM-INPUT".to_string(),
+            Err(EvalError::OutputOutOfRange) => return "BOOM-OUTPUT".to_string(),
+            Err(_) => return "BOOM-OTHER".to_string()
         }
     }
 

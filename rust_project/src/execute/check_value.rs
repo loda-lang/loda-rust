@@ -1,4 +1,5 @@
 use num_bigint::BigInt;
+use super::EvalError;
 
 pub trait CheckValue {
     fn is_valid(&self, value: &BigInt) -> bool;
@@ -14,28 +15,23 @@ impl Clone for BoxCheckValue {
     }
 }
 
-pub enum CheckValueError {
-    InputOutOfRange,
-    OutputOutOfRange,
-}
-
 pub trait PerformCheckValue {
-    fn input(&self, value: &BigInt) -> Result<(), CheckValueError>;
-    fn output(&self, value: &BigInt) -> Result<(), CheckValueError>;
+    fn input(&self, value: &BigInt) -> Result<(), EvalError>;
+    fn output(&self, value: &BigInt) -> Result<(), EvalError>;
 }
 
 impl PerformCheckValue for BoxCheckValue {
-    fn input(&self, value: &BigInt) -> Result<(), CheckValueError> {
+    fn input(&self, value: &BigInt) -> Result<(), EvalError> {
         match self.is_valid(value) {
             true => Ok(()),
-            false => Err(CheckValueError::InputOutOfRange)
+            false => Err(EvalError::InputOutOfRange)
         }
     }
 
-    fn output(&self, value: &BigInt) -> Result<(), CheckValueError> {
+    fn output(&self, value: &BigInt) -> Result<(), EvalError> {
         match self.is_valid(value) {
             true => Ok(()),
-            false => Err(CheckValueError::OutputOutOfRange)
+            false => Err(EvalError::OutputOutOfRange)
         }
     }
 }
