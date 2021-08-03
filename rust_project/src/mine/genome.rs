@@ -105,7 +105,7 @@ impl Genome {
         // }
         {
             let item = GenomeItem::new(
-                InstructionId::Call,
+                InstructionId::EvalSequence,
                 1,
                 ParameterType::Constant,
                 40,
@@ -430,7 +430,7 @@ impl Genome {
         // Identify GenomeItem's that use the `cal` instruction
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.instruction_id() == InstructionId::Call {
+            if *genome_item.instruction_id() == InstructionId::EvalSequence {
                 indexes.push(index);
             }
         }
