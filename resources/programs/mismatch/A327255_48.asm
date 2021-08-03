@@ -3,5 +3,5 @@
 ; 48 terms correct.
 
 add $0,1
-cal $0,54683
+seq $0,54683
 mov $1,$0

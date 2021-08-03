@@ -4,6 +4,6 @@
 
 mov $1,$0
 add $1,1
-cal $1,328578 ; Index of the least prime not dividing A276086(A276086(n)): a(n) = A257993(A276087(n)).
-cal $0,257993 ; Least gap in the partition having Heinz number n; index of the least prime not dividing n.
+seq $1,328578 ; Index of the least prime not dividing A276086(A276086(n)): a(n) = A257993(A276087(n)).
+seq $0,257993 ; Least gap in the partition having Heinz number n; index of the least prime not dividing n.
 sub $1,$0

@@ -4,5 +4,5 @@
 
 mul $0,2
 add $0,1
-cal $0,74065 ; Numerators a(n) of fractions slowly converging to sqrt(3)
+seq $0,74065 ; Numerators a(n) of fractions slowly converging to sqrt(3)
 mov $1,$0

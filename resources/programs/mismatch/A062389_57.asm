@@ -3,5 +3,5 @@
 ; 57 terms correct.
 
 add $0,$0
-cal $0,292987
+seq $0,292987
 mov $1,$0

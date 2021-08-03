@@ -3,5 +3,5 @@
 ; 66 terms correct.
 
 mul $0,2
-cal $0,138467 ; a(1)=1, then for n>=2 a(n) = n - floor((1/3)*a(a(n-1))).
+seq $0,138467 ; a(1)=1, then for n>=2 a(n) = n - floor((1/3)*a(a(n-1))).
 mov $1,$0

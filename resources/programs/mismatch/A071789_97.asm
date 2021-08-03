@@ -3,5 +3,5 @@
 ; 97 terms correct.
 
 mov $1,$0
-cal $1,115180 ; Beatty sequence for (Champernowne constant)*10 = 1.234567891011121314....
+seq $1,115180 ; Beatty sequence for (Champernowne constant)*10 = 1.234567891011121314....
 mod $1,10

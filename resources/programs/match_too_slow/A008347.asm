@@ -6,7 +6,7 @@ mov $2,1  ; initial sign
 lpb $0
   sub $0,1
   mov $3,$0
-  cal $3,40 ; prime(n-i)
+  seq $3,40 ; prime(n-i)
   mul $3,$2 ; multiply by (-1)^i
   add $1,$3 ; add to sum
   mul $2,-1 ; alternate betweeen -1 and +1
