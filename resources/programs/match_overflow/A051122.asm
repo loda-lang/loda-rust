@@ -5,16 +5,16 @@
 add $0,1
 
 mov $5,$0
-cal $5,45 ; Fibonacci
+seq $5,45 ; Fibonacci
 ; Now $5 holds Fibonacci(n+1).
 
 sub $0,1
-cal $0,45 ; Fibonacci
+seq $0,45 ; Fibonacci
 ; Now $0 holds Fibonacci(n).
 
 ; Determine the number of times to loop
 mov $2,$5
-cal $2,70939 ; Length of binary representation of Fibonacci(n+1).
+seq $2,70939 ; Length of binary representation of Fibonacci(n+1).
 
 mov $4,1  ; Inital scale factor
 lpb $2

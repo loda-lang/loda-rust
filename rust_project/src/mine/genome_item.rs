@@ -84,7 +84,7 @@ impl GenomeItem {
 
     pub fn mutate_randomize_instruction<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         // If there is a Call instruction then don't touch it.
-        let is_call = self.instruction_id == InstructionId::Call;
+        let is_call = self.instruction_id == InstructionId::EvalSequence;
         if is_call {
             return false;
         }
@@ -120,7 +120,7 @@ impl GenomeItem {
     }
 
     pub fn mutate_source_value(&mut self, mutation: &MutateValue) -> bool {
-        let is_call = self.instruction_id == InstructionId::Call;
+        let is_call = self.instruction_id == InstructionId::EvalSequence;
         if is_call {
             return false;
         }
@@ -159,7 +159,7 @@ impl GenomeItem {
     }
 
     pub fn mutate_source_type(&mut self) -> bool {
-        let is_call = self.instruction_id == InstructionId::Call;
+        let is_call = self.instruction_id == InstructionId::EvalSequence;
         if is_call {
             return false;
         }
@@ -175,7 +175,7 @@ impl GenomeItem {
     }
 
     pub fn mutate_enabled(&mut self) -> bool {
-        let is_call = self.instruction_id == InstructionId::Call;
+        let is_call = self.instruction_id == InstructionId::EvalSequence;
         if is_call {
             return false;
         }
@@ -193,7 +193,7 @@ impl GenomeItem {
     }
 
     pub fn mutate_swap_source_target_value(&mut self) -> bool {
-        let is_call = self.instruction_id == InstructionId::Call;
+        let is_call = self.instruction_id == InstructionId::EvalSequence;
         if is_call {
             return false;
         }
@@ -207,7 +207,7 @@ impl GenomeItem {
     // If it reaches the end, then it picks the first program from the list.
     #[allow(dead_code)]
     pub fn mutate_pick_next_program<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
-        let is_call = self.instruction_id == InstructionId::Call;
+        let is_call = self.instruction_id == InstructionId::EvalSequence;
         if !is_call {
             // Only a call instruction can be modified.
             return false;
@@ -253,7 +253,7 @@ impl GenomeItem {
     // Mutate the call instruction, so it invokes a random popular program.
     #[allow(dead_code)]
     pub fn mutate_pick_popular_program<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
-        let is_call = self.instruction_id == InstructionId::Call;
+        let is_call = self.instruction_id == InstructionId::EvalSequence;
         if !is_call {
             // Only a call instruction can be modified.
             return false;
@@ -286,7 +286,7 @@ impl GenomeItem {
 
     // Mutate the call instruction, so it invokes a random recent program.
     pub fn mutate_pick_recent_program<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
-        let is_call = self.instruction_id == InstructionId::Call;
+        let is_call = self.instruction_id == InstructionId::EvalSequence;
         if !is_call {
             // Only a call instruction can be modified.
             return false;
@@ -520,7 +520,7 @@ impl GenomeItem {
             InstructionId::LoopEnd => {
                 return vec!();
             },
-            InstructionId::Call => {
+            InstructionId::EvalSequence => {
                 let parameter0 = InstructionParameter {
                     parameter_type: ParameterType::Register,
                     parameter_value: self.target_value.abs() as i64,

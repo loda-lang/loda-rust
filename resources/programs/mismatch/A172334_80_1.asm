@@ -5,7 +5,7 @@
 mov $3,$4
 dif $2,2
 mul $0,2
-cal $1,40
+seq $1,40
 pow $2,2
 mov $3,9
 trn $3,1

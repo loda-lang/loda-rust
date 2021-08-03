@@ -568,7 +568,7 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 let node = create_two_parameter_node(&instruction)?;
                 program.push_boxed(node);
             },
-            InstructionId::Call => {
+            InstructionId::EvalSequence => {
                 let node = create_call_node(&instruction)?;
                 program.push_boxed(node);
             },

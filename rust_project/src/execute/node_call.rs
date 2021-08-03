@@ -30,7 +30,7 @@ impl NodeCallConstant {
 
 impl Node for NodeCallConstant {
     fn formatted_instruction(&self) -> String {
-        format!("cal {},{}", self.target, self.program_id)
+        format!("seq {},{}", self.target, self.program_id)
     }
 
     fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
@@ -45,7 +45,7 @@ impl Node for NodeCallConstant {
             // Example: If program A depends on program B. 
             // Some day program B gets changed, and it breaks program A,
             // because negative input values was being used.
-            return Err(EvalError::CallWithNegativeParameter);
+            return Err(EvalError::EvalSequenceWithNegativeParameter);
         }
 
         // Abort if the input value is beyond the limit (optional)

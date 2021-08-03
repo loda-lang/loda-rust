@@ -11,7 +11,7 @@ mul $1,2
 mul $0,$4
 mov $0,3
 sub $1,1
-cal $3,10
+seq $3,10
 div $1,3
 trn $2,10
 div $2,$0

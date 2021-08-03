@@ -3,5 +3,5 @@
 ; 174 correct terms
 
 add $0,1
-cal $0,155902 ; Arises in Connell's game, a variation of Wythoff's Nim game.
+seq $0,155902 ; Arises in Connell's game, a variation of Wythoff's Nim game.
 mov $1,$0

@@ -5,7 +5,7 @@
 mov $2,0
 lpb $0
     mov $3,$2
-    cal $3,2808 ; The composite numbers: numbers n of the form x*y for x > 1 and y > 1. 
+    seq $3,2808 ; The composite numbers: numbers n of the form x*y for x > 1 and y > 1. 
     add $1,$3
 
     ; update counters

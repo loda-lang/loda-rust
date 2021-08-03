@@ -13,7 +13,7 @@ pub enum EvalError {
 
     // Programs are usually well behaved for 0 and greater values.
     // However for negative values the behavior is undefined.
-    CallWithNegativeParameter,
+    EvalSequenceWithNegativeParameter,
 
     // When a mathematical function is evaluated outside of its domain of definition.
     DivisionByZero,
