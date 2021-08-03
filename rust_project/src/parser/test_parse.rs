@@ -228,7 +228,7 @@ mod tests {
 
         // Program that calls the A000079 program, and subtracts 1.
         let input = r#"
-        cal $0,79
+        seq $0,79
         sub $0,1
         mov $1,$0
         "#;

@@ -42,7 +42,7 @@ pub fn parse_instruction_id(input: &str, line_number: usize)
     match input {
         "add" => Ok(InstructionId::Add),
         "bin" => Ok(InstructionId::Binomial),
-        "cal" => Ok(InstructionId::EvalSequence),
+        "cal" => Ok(InstructionId::EvalSequence), // `cal` is deprecated. Use `seq` instead.
         "clr" => Ok(InstructionId::Clear),
         "cmp" => Ok(InstructionId::Compare),
         "dif" => Ok(InstructionId::DivideIf),
@@ -56,6 +56,7 @@ pub fn parse_instruction_id(input: &str, line_number: usize)
         "mov" => Ok(InstructionId::Move),
         "mul" => Ok(InstructionId::Multiply),
         "pow" => Ok(InstructionId::Power),
+        "seq" => Ok(InstructionId::EvalSequence),
         "sub" => Ok(InstructionId::Subtract),
         "trn" => Ok(InstructionId::Truncate),
         _     => Err(ParseInstructionIdError::UnrecognizedInstructionId(line_number)),
@@ -67,7 +68,7 @@ impl InstructionId {
         match self {
             Self::Add          => "add",
             Self::Binomial     => "bin",
-            Self::EvalSequence => "cal",
+            Self::EvalSequence => "seq",
             Self::Clear        => "clr",
             Self::Compare      => "cmp",
             Self::Divide       => "div",

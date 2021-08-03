@@ -30,7 +30,7 @@ impl NodeCallConstant {
 
 impl Node for NodeCallConstant {
     fn formatted_instruction(&self) -> String {
-        format!("cal {},{}", self.target, self.program_id)
+        format!("seq {},{}", self.target, self.program_id)
     }
 
     fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
