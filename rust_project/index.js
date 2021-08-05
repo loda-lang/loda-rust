@@ -6,8 +6,10 @@ const runWasm = async () => {
     const addResult = wasmModule.add(24, 24);
     document.body.textContent = `Hello World! addResult: ${addResult}`;
 
-    wasmModule.console_log_from_wasm();
+    wasmModule.setup_log();
 
     wasmModule.myjsfunc_from_wasm();
+
+    wasmModule.fetch_from_repo();
 };
 runWasm();

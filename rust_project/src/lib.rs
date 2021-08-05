@@ -1,4 +1,7 @@
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use wasm_bindgen_futures::JsFuture;
+use web_sys::{Request, RequestInit, RequestMode, Response};
 
 use log::{Log,Metadata,Record,LevelFilter};
 
@@ -59,7 +62,7 @@ impl MyCustomLog {
 
 #[wasm_bindgen]
 pub fn add(a: i32, b: i32) -> i32 {
-  return a + b;
+    return a + b;
 }
 
 pub mod console {
@@ -73,18 +76,9 @@ pub mod console {
 }
 
 #[wasm_bindgen]
-pub fn console_log_from_wasm() {
+pub fn setup_log() {
     console::log("This console.log is from wasm!");
-}
 
-#[wasm_bindgen]
-pub fn myjsfunc_from_wasm() {
-    console::log(&format!("myjsfunc_from_wasm: {:?}", 42));
-
-    eval_loda_program();
-}
-
-fn eval_loda_program() {
     MyCustomLog::new().init().unwrap();
 
     trace!("I'm trace");
@@ -92,7 +86,39 @@ fn eval_loda_program() {
     error!("I'm error");
     info!("I'm info");
     warn!("I'm warn");
+}
 
+#[wasm_bindgen]
+pub async fn fetch_from_repo() -> Result<JsValue, JsValue> {
+    let mut opts = RequestInit::new();
+    opts.method("GET");
+    opts.mode(RequestMode::Cors);
+
+    let url = "https://raw.githubusercontent.com/ckrause/loda/master/programs/oeis/000/A000040.asm";
+
+    let request = Request::new_with_str_and_init(&url, &opts)?;
+
+    let window = web_sys::window().unwrap();
+    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
+
+    // `resp_value` is a `Response` object.
+    assert!(resp_value.is_instance_of::<Response>());
+    let resp: Response = resp_value.dyn_into().unwrap();
+
+    // Convert this javascript `Promise` into a rust `Future`.
+    let s = JsFuture::from(resp.text()?).await?;
+
+    debug!("response: {:?}", s);
+
+    Ok(JsValue::from("success"))
+}
+
+#[wasm_bindgen]
+pub fn myjsfunc_from_wasm() {
+    eval_loda_program();
+}
+
+fn eval_loda_program() {
     const PROGRAM: &str = r#"        
     mov $1,2
     pow $1,$0
