@@ -64,11 +64,6 @@ impl MyCustomLog {
     }
 }
 
-#[wasm_bindgen]
-pub fn add(a: i32, b: i32) -> i32 {
-    return a + b;
-}
-
 pub mod console {
     use super::*;
 
@@ -186,11 +181,7 @@ pub async fn fetch_from_repo() -> Result<JsValue, JsValue> {
 }
 
 #[wasm_bindgen]
-pub fn myjsfunc_from_wasm() {
-    eval_loda_program_mock();
-}
-
-fn eval_loda_program_mock() {
+pub fn perform_selfcheck() {
     const PROGRAM: &str = r#"        
     mov $1,2
     pow $1,$0
@@ -201,6 +192,7 @@ fn eval_loda_program_mock() {
     let source_code: String = PROGRAM.to_string();
     let runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, &source_code).unwrap();
     runner.my_print_terms(10);
+    info!("Selfcheck success");
 }
 
 impl ProgramRunner {
@@ -242,7 +234,6 @@ impl ProgramRunner {
             }
             info!(",{}", output.0);
         }
-        info!("\n");
         debug!("steps: {}", step_count);
         debug!("cache: {}", cache.hit_miss_info());
     }
