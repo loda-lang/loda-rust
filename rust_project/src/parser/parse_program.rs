@@ -2,6 +2,7 @@ use std::fmt;
 use super::extract_row_re::EXTRACT_ROW_RE;
 use super::instruction_id::{InstructionId,ParseInstructionIdError,parse_instruction_id};
 use super::instruction::{Instruction,InstructionParameter};
+use super::parameter_type::ParameterType;
 use super::parse_parameters::*;
 use super::remove_comment::remove_comment;
 
@@ -45,6 +46,32 @@ impl From<ParseInstructionIdError> for ParseProgramError {
 impl From<ParseParametersError> for ParseProgramError {
     fn from(err: ParseParametersError) -> ParseProgramError {
         ParseProgramError::ParseParameters(err)
+    }
+}
+
+impl ParsedProgram {
+    // The direct dependencies that this program depends on.
+    // This doesn't include the indirect dependencies.
+    pub fn direct_dependencies(&self) -> Vec<u64> {
+        let mut program_ids: Vec<u64> = vec!();
+        for instruction in &self.instruction_vec {
+            if instruction.instruction_id != InstructionId::EvalSequence {
+                continue;
+            }
+            if instruction.parameter_vec.len() != 2 {
+                continue;
+            }
+            let param: &InstructionParameter = &(instruction.parameter_vec[1]);
+            if param.parameter_type != ParameterType::Constant {
+                continue;
+            }
+            let program_id: i64 = param.parameter_value;
+            if program_id < 0 {
+                continue;
+            }
+            program_ids.push(program_id as u64);
+        }
+        return program_ids;
     }
 }
 
@@ -130,5 +157,24 @@ mod tests {
         assert_eq!(process("mov$0"), "SyntaxError(1)");
         assert_eq!(process("boom $1"), "ParseInstructionId(UnrecognizedInstructionId(1))");
         assert_eq!(process("mov $x"), "ParseParameters(UnrecognizedParameter(1))");
+    }
+
+    #[test]
+    fn test_10003_direct_dependencies() {
+        {
+            let parsed_program: ParsedProgram = parse_program(
+                "seq $1,40 ; fibonacci\nseq $2,40; fib again!\nseq $3,10\nseq $4,45").unwrap();
+            assert_eq!(parsed_program.direct_dependencies(), vec!(40,40,10,45));
+        }
+        {
+            let parsed_program: ParsedProgram = parse_program(
+                "mov $1,$0\nadd $1,$1").unwrap();
+            assert_eq!(parsed_program.direct_dependencies().is_empty(), true);
+        }
+        {
+            let parsed_program: ParsedProgram = parse_program(
+                ";negative parameter is ignored\nseq $1,-1000\nseq $1,-100").unwrap();
+            assert_eq!(parsed_program.direct_dependencies().is_empty(), true);
+        }
     }
 }
