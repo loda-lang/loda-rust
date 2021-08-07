@@ -94,7 +94,7 @@ pub async fn fetch_from_repo() -> Result<JsValue, JsValue> {
     opts.method("GET");
     opts.mode(RequestMode::Cors);
 
-    let url = "https://raw.githubusercontent.com/ckrause/loda/master/programs/oeis/000/A000040.asm";
+    let url = "https://raw.githubusercontent.com/ckrause/loda/master/programs/oeis/000/A000045.asm";
 
     let request = Request::new_with_str_and_init(&url, &opts)?;
 
@@ -105,20 +105,46 @@ pub async fn fetch_from_repo() -> Result<JsValue, JsValue> {
     assert!(resp_value.is_instance_of::<Response>());
     let resp: Response = resp_value.dyn_into().unwrap();
 
+    let text_result: Result<js_sys::Promise, JsValue> = resp.text();
+    let text_jspromise: js_sys::Promise = match text_result {
+        Ok(jspromise) => jspromise,
+        Err(err) => {
+            error!("Unable to obtain text() from response");
+            return Err(err)
+        }
+    };
     // Convert this javascript `Promise` into a rust `Future`.
-    let s = JsFuture::from(resp.text()?).await?;
+    let text_jsvalue: JsValue = wasm_bindgen_futures::JsFuture::from(text_jspromise).await?;
+    
+    let response_text: String = match text_jsvalue.as_string() {
+        Some(value) => value,
+        None => {
+            error!("Unable to obtain convert JsValue to Rust String");
+            let err = JsValue::from_str("Unable to obtain convert JsValue to Rust String");
+            return Err(err);
+        }
+    };
 
-    debug!("response: {:?}", s);
+    debug!("response: {:?}", response_text);
+    eval_loda_program(&response_text);
 
     Ok(JsValue::from("success"))
 }
 
 #[wasm_bindgen]
 pub fn myjsfunc_from_wasm() {
-    eval_loda_program();
+    eval_loda_program_mock();
 }
 
-fn eval_loda_program() {
+fn eval_loda_program(source_code: &String) {
+    let mut dm = DependencyManager::new(
+        PathBuf::from("non-existing-dir"),
+    );
+    let runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, source_code).unwrap();
+    runner.my_print_terms(10);
+}
+
+fn eval_loda_program_mock() {
     const PROGRAM: &str = r#"        
     mov $1,2
     pow $1,$0
