@@ -21,6 +21,7 @@ use execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterVal
 use execute::NodeRegisterLimit;
 use execute::node_binomial::NodeBinomialLimit;
 use execute::node_power::NodePowerLimit;
+use parser::{ParsedProgram, ParseProgramError, parse_program, create_program, CreatedProgram, CreateProgramError};
 
 
 #[derive(Clone)]
@@ -124,6 +125,16 @@ pub async fn fetch_from_repo() -> Result<JsValue, JsValue> {
             return Err(err);
         }
     };
+    
+    let parsed_program: ParsedProgram = match parse_program(&response_text) {
+        Ok(value) => value,
+        Err(error) => {
+            let err = JsValue::from_str("Unable to parse program");
+            return Err(err);
+        }
+    };
+
+    debug!("dependencies: {:?}", parsed_program.direct_dependencies());
 
     debug!("response: {:?}", response_text);
     eval_loda_program(&response_text);
