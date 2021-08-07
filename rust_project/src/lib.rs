@@ -16,6 +16,9 @@ mod oeis;
 mod util;
 
 use std::path::PathBuf;
+use std::rc::Rc;
+use std::collections::HashMap;
+use std::collections::HashSet;
 use control::DependencyManager;
 use execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use execute::NodeRegisterLimit;
@@ -101,53 +104,83 @@ fn url_from_program_id(program_id: u64) -> String {
 
 #[wasm_bindgen]
 pub async fn fetch_from_repo() -> Result<JsValue, JsValue> {
-    let mut opts = RequestInit::new();
-    opts.method("GET");
-    opts.mode(RequestMode::Cors);
 
-    let url = url_from_program_id(45);
+    let execute_program_id: u64 = 40;
+    let mut pending_program_ids: Vec<u64> = vec!(execute_program_id);
+    let mut already_fetched_program_ids = HashSet::<u64>::new();
+    let mut virtual_filesystem: HashMap<u64, String> = HashMap::new();
 
-    let request = Request::new_with_str_and_init(&url, &opts)?;
-
-    let window = web_sys::window().unwrap();
-    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
-
-    // `resp_value` is a `Response` object.
-    assert!(resp_value.is_instance_of::<Response>());
-    let resp: Response = resp_value.dyn_into().unwrap();
-
-    let text_result: Result<js_sys::Promise, JsValue> = resp.text();
-    let text_jspromise: js_sys::Promise = match text_result {
-        Ok(jspromise) => jspromise,
-        Err(err) => {
-            error!("Unable to obtain text() from response");
-            return Err(err)
+    loop {
+        let program_id: u64 = match pending_program_ids.pop() {
+            Some(value) => value,
+            None => {
+                debug!("all programs have been fetched");
+                break;
+            }
+        };
+        if already_fetched_program_ids.contains(&program_id) {
+            debug!("skip program that have already been fetched. {:?}", program_id);
+            continue;
         }
-    };
-    // Convert this javascript `Promise` into a rust `Future`.
-    let text_jsvalue: JsValue = wasm_bindgen_futures::JsFuture::from(text_jspromise).await?;
+
+        let url = url_from_program_id(program_id);
+
+        let mut opts = RequestInit::new();
+        opts.method("GET");
+        opts.mode(RequestMode::Cors);
+        let request = Request::new_with_str_and_init(&url, &opts)?;
     
-    let response_text: String = match text_jsvalue.as_string() {
-        Some(value) => value,
-        None => {
-            error!("Unable to obtain convert JsValue to Rust String");
-            let err = JsValue::from_str("Unable to obtain convert JsValue to Rust String");
-            return Err(err);
-        }
-    };
+        let window = web_sys::window().unwrap();
+        let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
     
-    let parsed_program: ParsedProgram = match parse_program(&response_text) {
-        Ok(value) => value,
-        Err(error) => {
-            let err = JsValue::from_str("Unable to parse program");
-            return Err(err);
-        }
-    };
+        // `resp_value` is a `Response` object.
+        assert!(resp_value.is_instance_of::<Response>());
+        let resp: Response = resp_value.dyn_into().unwrap();
+    
+        let text_result: Result<js_sys::Promise, JsValue> = resp.text();
+        let text_jspromise: js_sys::Promise = match text_result {
+            Ok(jspromise) => jspromise,
+            Err(err) => {
+                error!("Unable to obtain text() from response");
+                return Err(err)
+            }
+        };
+        // Convert this javascript `Promise` into a rust `Future`.
+        let text_jsvalue: JsValue = wasm_bindgen_futures::JsFuture::from(text_jspromise).await?;
+        
+        let response_text: String = match text_jsvalue.as_string() {
+            Some(value) => value,
+            None => {
+                error!("Unable to obtain convert JsValue to Rust String");
+                let err = JsValue::from_str("Unable to obtain convert JsValue to Rust String");
+                return Err(err);
+            }
+        };
+        
+        let parsed_program: ParsedProgram = match parse_program(&response_text) {
+            Ok(value) => value,
+            Err(error) => {
+                error!("Unable to parse program: {:?}", error);
+                let err = JsValue::from_str("Unable to parse program");
+                return Err(err);
+            }
+        };
+    
+        let dependencies: Vec<u64> = parsed_program.direct_dependencies();
+        debug!("program: {:?} has these dependencies: {:?}", program_id, dependencies);
+        pending_program_ids.extend(dependencies);
+        already_fetched_program_ids.insert(program_id);
+        virtual_filesystem.insert(program_id, response_text);
+    }
 
-    debug!("dependencies: {:?}", parsed_program.direct_dependencies());
-
-    debug!("response: {:?}", response_text);
-    eval_loda_program(&response_text);
+    let mut dm = DependencyManager::new(
+        PathBuf::from("non-existing-dir"),
+    );
+    for (program_id, file_content) in virtual_filesystem {
+        dm.virtual_filesystem_insert_file(program_id, file_content);
+    }
+    let runner: Rc::<ProgramRunner> = dm.load(execute_program_id).unwrap();
+    runner.my_print_terms(10);
 
     Ok(JsValue::from("success"))
 }
@@ -155,14 +188,6 @@ pub async fn fetch_from_repo() -> Result<JsValue, JsValue> {
 #[wasm_bindgen]
 pub fn myjsfunc_from_wasm() {
     eval_loda_program_mock();
-}
-
-fn eval_loda_program(source_code: &String) {
-    let mut dm = DependencyManager::new(
-        PathBuf::from("non-existing-dir"),
-    );
-    let runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, source_code).unwrap();
-    runner.my_print_terms(10);
 }
 
 fn eval_loda_program_mock() {

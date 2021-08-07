@@ -2,6 +2,7 @@ use std::fmt;
 use std::fs;
 use std::path::{Path,PathBuf};
 use std::collections::HashSet;
+use std::collections::HashMap;
 use std::rc::Rc;
 use crate::parser::{ParsedProgram, ParseProgramError, parse_program, create_program, CreatedProgram, CreateProgramError};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
@@ -48,6 +49,7 @@ impl PartialEq for CannotReadProgramFileError {
 #[derive(Debug, PartialEq)]
 pub enum DependencyManagerError {
     CannotReadProgramFile(CannotReadProgramFileError),
+    CannotReadProgramFileFromVirtualFileSystem,
     CyclicDependency(CyclicDependencyError),
     ParseProgram(ParseProgramError),
     CreateProgram(CreateProgramError),
@@ -59,6 +61,8 @@ impl fmt::Display for DependencyManagerError {
         match self {
             Self::CannotReadProgramFile(error) =>
                 write!(f, "Failed to load the assembler file. program_id: {}", error.program_id),
+            Self::CannotReadProgramFileFromVirtualFileSystem =>
+                write!(f, "Failed to load the assembler file from virtual file system"),
             Self::CyclicDependency(error) =>
                 write!(f, "Detected a cyclic dependency. program_id: {}", error.program_id),
             Self::ParseProgram(error) => 
@@ -76,6 +80,7 @@ pub struct DependencyManager {
     program_run_manager: ProgramRunnerManager,
     programids_currently_loading: HashSet<u64>,
     programid_dependencies: Vec<u64>,
+    virtual_filesystem: HashMap<u64, String>
 }
 
 impl DependencyManager {
@@ -85,12 +90,17 @@ impl DependencyManager {
             program_run_manager: ProgramRunnerManager::new(),
             programids_currently_loading: HashSet::new(),
             programid_dependencies: vec!(),
+            virtual_filesystem: HashMap::new(),
         }        
     }
 
     pub fn reset(&mut self) {
         self.programid_dependencies.clear();
         self.programids_currently_loading.clear();
+    }
+
+    pub fn virtual_filesystem_insert_file(&mut self, program_id: u64, file_content: String) {
+        self.virtual_filesystem.insert(program_id, file_content);
     }
 
     pub fn load(&mut self, program_id: u64) ->
@@ -119,16 +129,22 @@ impl DependencyManager {
             return Err(DependencyManagerError::CyclicDependency(error));
         }
         self.programids_currently_loading.insert(program_id);
-        let path = self.path_to_program(program_id);
 
-        let contents: String = match fs::read_to_string(&path) {
-            Ok(value) => value,
-            Err(io_error) => {
-                // Something went wrong reading the file.
-                let error = CannotReadProgramFileError::new(program_id, io_error);
-                return Err(DependencyManagerError::CannotReadProgramFile(error));
+        let contents: String = match self.virtual_filesystem.get(&program_id) {
+            Some(value) => value.clone(),
+            None => {
+                return Err(DependencyManagerError::CannotReadProgramFileFromVirtualFileSystem);
             }
         };
+        // let path = self.path_to_program(program_id);
+        // let contents: String = match fs::read_to_string(&path) {
+        //     Ok(value) => value,
+        //     Err(io_error) => {
+        //         // Something went wrong reading the file.
+        //         let error = CannotReadProgramFileError::new(program_id, io_error);
+        //         return Err(DependencyManagerError::CannotReadProgramFile(error));
+        //     }
+        // };
 
         let program_id_inner = ProgramId::ProgramOEIS(program_id);
         let runner: ProgramRunner = self.parse(program_id_inner, &contents)?;    
