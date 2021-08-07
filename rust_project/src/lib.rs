@@ -89,13 +89,23 @@ pub fn setup_log() {
     warn!("I'm warn");
 }
 
+// Construct url for a program id (eg A112088), like the following
+// https://raw.githubusercontent.com/ckrause/loda/master/programs/oeis/112/A112088.asm
+fn url_from_program_id(program_id: u64) -> String {
+    let dir_index: u64 = program_id / 1000;
+    let dir_index_string: String = format!("{:0>3}", dir_index);
+    let filename_string: String = format!("A{:0>6}.asm", program_id);
+    let baseurl = "https://raw.githubusercontent.com/ckrause/loda/master/programs/oeis";
+    format!("{}/{}/{}", baseurl, dir_index_string, filename_string)
+}
+
 #[wasm_bindgen]
 pub async fn fetch_from_repo() -> Result<JsValue, JsValue> {
     let mut opts = RequestInit::new();
     opts.method("GET");
     opts.mode(RequestMode::Cors);
 
-    let url = "https://raw.githubusercontent.com/ckrause/loda/master/programs/oeis/000/A000045.asm";
+    let url = url_from_program_id(45);
 
     let request = Request::new_with_str_and_init(&url, &opts)?;
 
