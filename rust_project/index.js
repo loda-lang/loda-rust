@@ -7,9 +7,9 @@ const runWasm = async () => {
 
     wasmModule.perform_selfcheck();
 
-    wasmModule.fetch_from_repo();
+    var output = document.getElementById("output");
+    output.innerText = 'Loading';
 
-    const x = 1234;
-    document.body.textContent = `Hello World! x: ${x}`;
+    wasmModule.fetch_from_repo();
 };
 runWasm();

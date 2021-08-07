@@ -38,6 +38,8 @@ features = [
   'RequestMode',
   'Response',
   'Window',
+  'Document',
+  'Element'
 ]
 
 [dev-dependencies]

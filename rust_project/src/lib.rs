@@ -97,8 +97,19 @@ fn url_from_program_id(program_id: u64) -> String {
     format!("{}/{}/{}", baseurl, dir_index_string, filename_string)
 }
 
+pub fn get_element_by_id(element_id: &str) -> Option<web_sys::Element> {
+    web_sys::window()?.document()?.get_element_by_id(element_id)
+}
+
 #[wasm_bindgen]
 pub async fn fetch_from_repo() -> Result<JsValue, JsValue> {
+    let output_div: web_sys::Element = match get_element_by_id("output") {
+        Some(value) => value,
+        None => {
+            let err = JsValue::from_str("No #output div found");
+            return Err(err);
+        }
+    };
 
     let execute_program_id: u64 = 40;
     let mut pending_program_ids: Vec<u64> = vec!(execute_program_id);
@@ -176,6 +187,12 @@ pub async fn fetch_from_repo() -> Result<JsValue, JsValue> {
     }
     let runner: Rc::<ProgramRunner> = dm.load(execute_program_id).unwrap();
     runner.my_print_terms(10);
+
+    
+    let value = "done";
+    if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
+        node.set_text_content(Some(&value));
+    }
 
     Ok(JsValue::from("success"))
 }
