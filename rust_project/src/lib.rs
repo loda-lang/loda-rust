@@ -111,6 +111,11 @@ pub async fn fetch_from_repo() -> Result<JsValue, JsValue> {
         }
     };
 
+    if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
+        let val = "Downloading";
+        node.set_text_content(Some(&val));
+    }
+
     let window = web_sys::window().unwrap();
 
     let execute_program_id: u64 = 40;
@@ -200,6 +205,10 @@ async fn execute_program(runner: Rc::<ProgramRunner>, count: u64, output_div: &w
         let err = JsValue::from_str("Expected number of terms to be 1 or greater.");
         return Err(err);
     }
+    if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
+        let val = "Executing";
+        node.set_text_content(Some(&val));
+    }
     let mut cache = ProgramCache::new();
     let step_count_limit: u64 = 10000000;
     let mut step_count: u64 = 0;
@@ -232,6 +241,10 @@ async fn execute_program(runner: Rc::<ProgramRunner>, count: u64, output_div: &w
         if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
             let val = web_sys::window().unwrap().document().unwrap().create_element("span")?;
             val.set_text_content(Some(&term_string));
+            if index == 0 {
+                // remove all child elements
+                node.set_text_content(None);
+            }
             node.append_child(&val)?;
         }
     }
