@@ -18,16 +18,13 @@
 </head>
 <body>
   <form onsubmit="submitForm(event)">
-    <label for="oeis">OEIS id</label><br>
     <input 
       id="sequenceid"
       type="number" 
-      name="oeis" 
       min="1" 
       max="999999" 
+      placeholder="OEIS sequence id"
       value="45">
-    <br>
-    <button type="submit">Execute</button>
   </form>
   <div id="output">Initializing</div>
 </body>
