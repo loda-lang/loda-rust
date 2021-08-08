@@ -3,14 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <title>Loda Lab</title>
-  <script type="module" src="./index.js"></script>
   <script>
-  function submitForm(event){
-    event.preventDefault();
-    var el = document.getElementById("sequenceid");
-    console.log("execute: ", el.value);
-  }
+    var executeProgramCallback = (programId) => {
+      console.log("executeProgramCallback is not installed");
+    }
+    function submitForm(event){
+      event.preventDefault();
+      var el = document.getElementById("sequenceid");
+      const programId = parseInt(el.value);
+      executeProgramCallback(programId);
+    }
   </script>
+  <script type="module" src="index.js"></script>
 </head>
 <body>
   <form onsubmit="submitForm(event)">

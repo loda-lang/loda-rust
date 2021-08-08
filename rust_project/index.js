@@ -1,5 +1,9 @@
 import wasmInit from "./pkg/loda_lab.js";
 
+executeProgramCallback = (programId) => {
+    console.log(`execute: ${programId}`);
+}
+
 const runWasm = async () => {
     const wasmModule = await wasmInit("./pkg/loda_lab_bg.wasm");
 
