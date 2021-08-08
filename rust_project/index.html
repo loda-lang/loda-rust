@@ -1,11 +1,30 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>Loda Lab</title>
-    <script type="module" src="./index.js"></script>
-  </head>
-  <body>
-    <div id="output">Initializing</div>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <title>Loda Lab</title>
+  <script type="module" src="./index.js"></script>
+  <script>
+  function submitForm(event){
+    event.preventDefault();
+    var el = document.getElementById("sequenceid");
+    console.log("execute: ", el.value);
+  }
+  </script>
+</head>
+<body>
+  <form onsubmit="submitForm(event)">
+    <label for="oeis">OEIS id</label><br>
+    <input 
+      id="sequenceid"
+      type="number" 
+      name="oeis" 
+      min="1" 
+      max="999999" 
+      value="45">
+    <br>
+    <button type="submit">Execute</button>
+  </form>
+  <div id="output">Initializing</div>
+</body>
 </html>
