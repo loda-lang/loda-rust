@@ -102,7 +102,13 @@ pub fn get_element_by_id(element_id: &str) -> Option<web_sys::Element> {
 }
 
 #[wasm_bindgen]
-pub async fn fetch_from_repo() -> Result<JsValue, JsValue> {
+pub async fn run_program(js_program_id: i32) -> Result<JsValue, JsValue> {
+    if js_program_id < 0 {
+        let err = JsValue::from_str("Expected program_id to be positive, but it's negative");
+        return Err(err);
+    }
+    let execute_program_id: u64 = js_program_id as u64;
+
     let output_div: web_sys::Element = match get_element_by_id("output") {
         Some(value) => value,
         None => {
@@ -118,7 +124,6 @@ pub async fn fetch_from_repo() -> Result<JsValue, JsValue> {
 
     let window = web_sys::window().unwrap();
 
-    let execute_program_id: u64 = 40;
     let mut pending_program_ids: Vec<u64> = vec!(execute_program_id);
     let mut already_fetched_program_ids = HashSet::<u64>::new();
     let mut virtual_filesystem: HashMap<u64, String> = HashMap::new();
