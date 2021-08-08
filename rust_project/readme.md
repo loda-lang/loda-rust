@@ -34,3 +34,14 @@ This is useful if there is a crash.
 PROMPT> RUST_BACKTRACE=1 cargo run -- eval 79 -t 64
 ```
 
+
+### Deploy for web
+
+```
+PROMPT> wasm-pack build --target web
+```
+
+Open "index.html" in the browser.
+
+
+
