@@ -53,7 +53,7 @@ impl ProgramRunner {
             panic!("Expected number of terms to be 1 or greater.");
         }
         let mut cache = ProgramCache::new();
-        let step_count_limit: u64 = 10000000;
+        let step_count_limit: u64 = 1000000000;
         let mut step_count: u64 = 0;
         let start_time = Instant::now();
         for index in 0..(count as i64) {
@@ -95,7 +95,7 @@ impl ProgramRunner {
             panic!("Expected number of terms to be 1 or greater.");
         }
         let mut cache = ProgramCache::new();
-        let step_count_limit: u64 = 10000000;
+        let step_count_limit: u64 = 1000000000;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
             let mut step_count: u64 = 0;
@@ -130,7 +130,7 @@ impl ProgramRunner {
             panic!("Expected number of terms to be 1 or greater.");
         }
         let mut cache = ProgramCache::new();
-        let step_count_limit: u64 = 10000000;
+        let step_count_limit: u64 = 1000000000;
         let mut step_count: u64 = 0;
         for index in 0..(count as i64) {
             println!("INPUT: a({})", index);
