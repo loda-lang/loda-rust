@@ -214,6 +214,10 @@ class PageController {
   }
 }
 
+var executeProgramCallback = (programId) => {
+  console.log("executeProgramCallback is not installed");
+}
+
 var gPageController = null;
 
 function body_onload() {
@@ -228,6 +232,7 @@ function body_onbeforeunload() {
   }
 }
 </script>
+<script type="module" src="index.js"></script>
 
 </head>
 
