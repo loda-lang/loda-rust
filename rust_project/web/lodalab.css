@@ -19,14 +19,14 @@ body {
 }
 #splitview-inner {
 }
-#new-textarea-outer {
+#editor-outer {
     position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
     width: 50%;
 }
-#new-textarea {
+#editor-inner {
 }
 #output-outer {
     position: absolute;
@@ -45,11 +45,8 @@ body {
     overflow-wrap: break-word;
     word-wrap: break-word;
 }
-.page-footer {
+#page-footer {
     border-top: 1px solid #bdbdbd;
-}
-#new-text-container {
-    display: none;
 }
   
 .CodeMirror { height: 100%; }

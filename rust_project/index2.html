@@ -51,14 +51,14 @@ function checkRequiredURLSearchParams() {
 class PageController {
   constructor() {
     this.mIdenticalToOriginal = true;
-    this.mOriginalText = new String(document.getElementById("new-textarea").value);
+    this.mOriginalText = new String(document.getElementById("editor-inner").value);
     this.mEditor = this.configureEditor();
     this.updateSaveButtonState();
     this.configureKeyboardShortcuts();
   }
   
   configureEditor() {
-    const editor = CodeMirror.fromTextArea(document.getElementById("new-textarea"), {
+    const editor = CodeMirror.fromTextArea(document.getElementById("editor-inner"), {
       lineNumbers: true,
       lineWrapping: true,
       styleActiveLine: true,
@@ -234,8 +234,8 @@ function body_onbeforeunload() {
 <main id="splitview-outer">
   <div id="splitview-inner">
 
-    <div id="new-textarea-outer">
-      <textarea id="new-textarea" placeholder="Content goes here&hellip;">Initializing</textarea>
+    <div id="editor-outer">
+      <textarea id="editor-inner" placeholder="Content goes here&hellip;">Initializing</textarea>
     </div>
 
     <div id="output-outer">
@@ -247,7 +247,7 @@ function body_onbeforeunload() {
   </div>
 </main>
 
-<footer class="page-footer">
+<footer id="page-footer">
   Sticky footer line 1<br>
   Sticky footer line 2
 </footer>
