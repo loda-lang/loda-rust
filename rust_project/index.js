@@ -5,12 +5,8 @@ const runWasm = async () => {
     window.wasmModule = wasmModule;
 
     wasmModule.setup_log();
-
     // wasmModule.perform_selfcheck();
 
-    var output = document.getElementById("output-inner");
-    output.innerText = 'Loading';
-    
     callbackExecuteProgramId = (programId) => {
         console.log(`execute: ${programId}`);
         wasmModule.run_program_id(programId);

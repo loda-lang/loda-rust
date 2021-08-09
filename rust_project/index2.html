@@ -102,17 +102,22 @@ class PageController {
 
     let url = urlFromProgramId(programId);
 
+    var output = document.getElementById("output-inner");
+    output.innerText = 'Downloading';
+
     // TODO: deal with status code when there is no 404 and show error message
     fetch(url)
       .then(response => response.text())
       .then(textdata => {
-        console.log('Did load program');
+        console.log('Did fetch program');
         this.mIdenticalToOriginal = true;
         this.mOriginalText = textdata;
         this.mEditor.setValue(textdata);
         this.mEditor.focus();
         this.hideOverlay();
-        this.runAction();
+
+        var self = this;
+        setTimeout(function() { self.didLoadProgram(); }, 100);
       })
       .catch((error) => {
         console.error('Error:', error);
@@ -123,6 +128,13 @@ class PageController {
         this.mEditor.focus();
         this.hideOverlay();
       });
+  }
+
+  didLoadProgram() {
+    console.log("didLoadProgram");
+    var output = document.getElementById("output-inner");
+    output.innerText = 'Computing';
+    this.runAction();
   }
 
   configureKeyboardShortcuts() {
@@ -136,12 +148,10 @@ class PageController {
       const isEscapeKeyCode = (event.keyCode == 27);
       // intercept CTRL+ENTER, and run the program.
       if(isEnterKeyCode && isMetaKey) {
-        // if (!pageControllerInstance.mIdenticalToOriginal) {
-          console.log("ctrl+enter: submit form");
-          event.preventDefault(); // Suppress "double action"
-          pageControllerInstance.runAction();
-          return;
-        // }
+        console.log("ctrl+enter: submit form");
+        event.preventDefault(); // Suppress "double action"
+        pageControllerInstance.runAction();
+        return;
       }
       // intercept ESCape key, and jump to parent page.
       if(isEscapeKeyCode) {
@@ -152,16 +162,6 @@ class PageController {
       }
     };
     window.addEventListener('keydown', keydownHandler, true);
-  }
-
-  resolveReturnLocation() {
-    const queryString = window.location.search;
-    const params = new URLSearchParams(queryString);
-    if (!params.has('return_location')) {
-      console.log("ERROR: Expected window.location.search to contain a 'return_location', but got none. Cannot jump to parent.")
-      return '/';
-    }
-    return params.get('return_location');
   }
 
   runAction() {
@@ -184,7 +184,6 @@ var callbackExecuteSourceCode = (sourceCode) => {
 }
 var callbackFinishedWasmLoading = () => {
   console.log("callbackFinishedWasmLoading invoked");
-  gPageController.runAction();
 }
 
 function body_onload() {
@@ -238,7 +237,7 @@ function body_onbeforeunload() {
   <div class="titlebar-item titlebar-item-center">Edit</div>
 
   <div class="titlebar-item titlebar-item-right">
-    <button id="run-button" class="primary-button" onclick="gPageController.runAction()">Run</button>
+    <button id="run-button" class="primary-button" onclick="gPageController.runAction()">Run (Ctrl+Enter)</button>
   </div>
 </header>
 
