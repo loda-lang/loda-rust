@@ -1,7 +1,8 @@
-import wasmInit from "./pkg/loda_lab.js";
+import init, * as wasmModule from './pkg/loda_lab.js';
 
 const runWasm = async () => {
-    const wasmModule = await wasmInit("./pkg/loda_lab_bg.wasm");
+    await init('./pkg/loda_lab_bg.wasm');
+    window.wasmModule = wasmModule;
 
     wasmModule.setup_log();
 
@@ -10,11 +11,11 @@ const runWasm = async () => {
     var output = document.getElementById("output-inner");
     output.innerText = 'Loading';
 
-    wasmModule.run_program(45);
+    wasmModule.run_program_id(45);
     
     executeProgramCallback = (programId) => {
         console.log(`execute: ${programId}`);
-        wasmModule.run_program(programId);
+        wasmModule.run_program_id(programId);
     }
 };
 runWasm();

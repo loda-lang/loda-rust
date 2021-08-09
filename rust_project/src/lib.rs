@@ -102,7 +102,7 @@ pub fn get_element_by_id(element_id: &str) -> Option<web_sys::Element> {
 }
 
 #[wasm_bindgen]
-pub async fn run_program(js_program_id: i32) -> Result<JsValue, JsValue> {
+pub async fn run_program_id(js_program_id: i32) -> Result<JsValue, JsValue> {
     if js_program_id < 0 {
         let err = JsValue::from_str("Expected program_id to be positive, but it's negative");
         return Err(err);
@@ -112,7 +112,7 @@ pub async fn run_program(js_program_id: i32) -> Result<JsValue, JsValue> {
     let output_div: web_sys::Element = match get_element_by_id("output-inner") {
         Some(value) => value,
         None => {
-            let err = JsValue::from_str("No #output div found");
+            let err = JsValue::from_str("No #output-inner div found");
             return Err(err);
         }
     };
