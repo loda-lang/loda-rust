@@ -65,6 +65,7 @@ body {
 }
 #page-footer {
     border-top: 1px solid #bdbdbd;
+    padding: 10px;
 }
   
 .CodeMirror { height: 100%; }
