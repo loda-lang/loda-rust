@@ -109,7 +109,7 @@ pub async fn run_program(js_program_id: i32) -> Result<JsValue, JsValue> {
     }
     let execute_program_id: u64 = js_program_id as u64;
 
-    let output_div: web_sys::Element = match get_element_by_id("output") {
+    let output_div: web_sys::Element = match get_element_by_id("output-inner") {
         Some(value) => value,
         None => {
             let err = JsValue::from_str("No #output div found");

@@ -7,7 +7,7 @@ const runWasm = async () => {
 
     wasmModule.perform_selfcheck();
 
-    var output = document.getElementById("output");
+    var output = document.getElementById("output-inner");
     output.innerText = 'Loading';
 
     wasmModule.run_program(45);
