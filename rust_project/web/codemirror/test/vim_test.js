@@ -197,13 +197,13 @@ function testVim(name, run, opts, expectedFail) {
       }
     }
     function fakeOpenDialog(result) {
-      return function(text, callback) {
+      return function(template, callback) {
         return callback(result);
       }
     }
     function fakeOpenNotification(matcher) {
-      return function(text) {
-        matcher(text);
+      return function(template) {
+        matcher(template.innerHTML);
       }
     }
     var helpers = {
@@ -495,7 +495,7 @@ testVim('j_k_and_gj_gk', function(cm,vim,helpers){
   //should return to the same character-index
   helpers.doKeys('k');
   helpers.assertCursorAt(0, 176);
-},{ lineWrapping:true, value: 'This line is intentially long to test movement of gj and gk over wrapped lines. I will start on the end of this line, then make a step up and back to set the origin for j and k.\nThis line is supposed to be even longer than the previous. I will jump here and make another wiggle with gj and gk, before I jump back to the line above. Both wiggles should not change my cursor\'s target character but both j/k and gj/gk change each other\'s reference position.'});
+},{ lineWrapping:true, value: 'This line is intentionally long. It tests movements of gj and gk over wrapped lines. Starts on the end of this line, then makes a step up and back to set the origin for j and k.\nThis line is supposed to be even longer than the previous. I will jump here and make another wiggle with gj and gk, before I jump back to the line above. Both wiggles should not change my cursor\'s target character but both j/k and gj/gk change each other\'s reference position.'});
 testVim('gj_gk', function(cm, vim, helpers) {
   cm.setSize(120);
   // Test top of document edge case.
@@ -3168,6 +3168,13 @@ testVim(':_register', function(cm,vim,helpers) {
   });
   helpers.doKeys(':');
 }, {value: ''});
+testVim('registers_html_encoding', function(cm,vim,helpers) {
+  helpers.doKeys('y', 'y');
+  cm.openNotification = helpers.fakeOpenNotification(function(text) {
+    is(/"\s+&lt;script&gt;throw "&amp;amp;"&lt;\/script&gt;/.test(text));
+  });
+  helpers.doEx('registers');
+}, {value: '<script>throw "&amp;"</script>'});
 testVim('search_register_escape', function(cm, vim, helpers) {
   // Check that the register is restored if the user escapes rather than confirms.
   cm.openDialog = helpers.fakeOpenDialog('waldo');
@@ -4063,10 +4070,22 @@ testVim('ex_sort_pattern_alpha_num', function(cm, vim, helpers) {
 testVim('ex_global', function(cm, vim, helpers) {
   cm.setCursor(0, 0);
   helpers.doEx('g/one/s//two');
-  eq('two two\n two two\n two two', cm.getValue());
+  eq('two one\n two one\n two one', cm.getValue());
   helpers.doEx('1,2g/two/s//one');
-  eq('one one\n one one\n two two', cm.getValue());
+  eq('one one\n one one\n two one', cm.getValue());
+  cm.openNotification = helpers.fakeOpenNotification(function(text) {
+    eq(' one one\n two one', text);
+  });
+  helpers.doEx('g/^ /');
 }, {value: 'one one\n one one\n one one'});
+testVim('ex_global_substitute_join', function(cm, vim, helpers) {
+  helpers.doEx('g/o/s/\\n/;');
+  eq('one;two\nthree\nfour;five\n', cm.getValue());
+}, {value: 'one\ntwo\nthree\nfour\nfive\n'});
+testVim('ex_global_substitute_split', function(cm, vim, helpers) {
+  helpers.doEx('g/e/s/[or]/\\n');
+  eq('\nne\ntwo\nth\nee\nfour\nfive\n', cm.getValue());
+}, {value: 'one\ntwo\nthree\nfour\nfive\n'});
 testVim('ex_global_confirm', function(cm, vim, helpers) {
   cm.setCursor(0, 0);
   var onKeyDown;
@@ -4094,6 +4113,15 @@ testVim('ex_global_confirm', function(cm, vim, helpers) {
   onKeyDown({keyCode: KEYCODES.y}, '', close);
   eq('one two\n two two\n one one\n two one\n one one', cm.getValue());
 }, {value: 'one one\n one one\n one one\n one one\n one one'});
+// test for :vglobal command
+testVim('ex_vglobal', function(cm, vim, helpers) {
+  helpers.doEx('v/e/s/o/e');
+  eq('one\n twe\n three\n feur\n five\n', cm.getValue());
+  cm.openNotification = helpers.fakeOpenNotification(function(text) {
+    eq('one\n three\n feur\n', text);
+  });
+  helpers.doEx('v/[vw]');
+}, {value: 'one\n two\n three\n four\n five\n'});
 // Basic substitute tests.
 testVim('ex_substitute_same_line', function(cm, vim, helpers) {
   cm.setCursor(1, 0);
@@ -4292,18 +4320,38 @@ testSubstitute('ex_substitute_multibackslash_replacement', {
   value: 'one,two \n three,four',
   expectedValue: 'one\\\\\\\\two \n three\\\\\\\\four', // 2*8 backslashes.
   expr: '%s/,/\\\\\\\\\\\\\\\\/g'}); // 16 backslashes.
-testSubstitute('ex_substitute_dollar_match', {
+testSubstitute('ex_substitute_dollar_assertion', {
   value: 'one,two \n three,four',
-  expectedValue: 'one,two ,\n three,four',
+  expectedValue: 'one,two ,\n three,four', // TODO: should match at end of doc.
   expr: '%s/$/,/g'});
+testSubstitute('ex_substitute_dollar_literal', {
+  value: 'one$two\n$three\nfour$\n$',
+  expectedValue: 'one,two\n,three\nfour,\n,',
+  expr: '%s/\\$/,/g'});
 testSubstitute('ex_substitute_newline_match', {
   value: 'one,two \n three,four',
   expectedValue: 'one,two , three,four',
   expr: '%s/\\n/,/g'});
+testSubstitute('ex_substitute_newline_join_global', {
+  value: 'one,two \n three,four \n five \n six',
+  expectedValue: 'one,two \n three,four , five \n six',
+  expr: '2s/\\n/,/g'});
+testSubstitute('ex_substitute_newline_join_noglobal', {
+  value: 'one,two \n three,four \n five \n six\n',
+  expectedValue: 'one,two \n three,four , five , six\n',
+  expr: '2,3s/\\n/,/'});
 testSubstitute('ex_substitute_newline_replacement', {
-  value: 'one,two \n three,four',
-  expectedValue: 'one\ntwo \n three\nfour',
+  value: 'one,two, \n three,four,',
+  expectedValue: 'one\ntwo\n \n three\nfour\n',
   expr: '%s/,/\\n/g'});
+testSubstitute('ex_substitute_newline_multiple_splits', {
+  value: 'one,two, \n three,four,five,six, \n seven,',
+  expectedValue: 'one,two, \n three\nfour\nfive\nsix\n \n seven,',
+  expr: '2s/,/\\n/g'});
+testSubstitute('ex_substitute_newline_first_occurrences', {
+  value: 'one,two, \n three,four,five,six, \n seven,',
+  expectedValue: 'one\ntwo, \n three\nfour,five,six, \n seven\n',
+  expr: '%s/,/\\n/'});
 testSubstitute('ex_substitute_braces_word', {
   value: 'ababab abb ab{2}',
   expectedValue: 'ab abb ab{2}',
