@@ -96,7 +96,10 @@ class PageController {
     let programId = params.get('id');
     console.log("loadProgram: programId", programId);
 
+    // TODO: convert from programId to url
     let url = 'https://raw.githubusercontent.com/ckrause/loda/master/programs/oeis/000/A000040.asm';
+
+    // TODO: deal with status code when there is no 404 and show error message
     fetch(url)
       .then(response => response.text())
       .then(textdata => {
