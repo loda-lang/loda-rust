@@ -68,9 +68,8 @@ class PageController {
     };
 
     this.mIdenticalToOriginal = true;
-    this.mOriginalText = new String(document.getElementById("editor-inner").value);
+    this.mOriginalText = "";
     this.mEditor = this.configureEditor();
-    this.updateRunButtonState();
     this.configureKeyboardShortcuts();
     this.loadProgram();
   }
@@ -84,17 +83,6 @@ class PageController {
       mode: "markdown",
       xml: true,
       showTrailingSpace: true  
-    });
-  
-    // Whenever the user types in a character or removes a character
-    // Then turn on/off the "run" button.
-    let pageControllerInstance = this;
-    editor.on("change", function(instance, changeObj) {
-      let value = instance.getValue();
-      let s2 = new String(value);
-      let is_same = (s2.valueOf() == pageControllerInstance.mOriginalText.valueOf());
-      pageControllerInstance.mIdenticalToOriginal = is_same;
-      pageControllerInstance.updateRunButtonState();
     });
     return editor;
   }
@@ -119,13 +107,19 @@ class PageController {
       .then(response => response.text())
       .then(textdata => {
         console.log('Did load program');
+        this.mIdenticalToOriginal = true;
+        this.mOriginalText = textdata;
         this.mEditor.setValue(textdata);
         this.mEditor.focus();
         this.hideOverlay();
+        this.runAction();
       })
       .catch((error) => {
         console.error('Error:', error);
-        this.mEditor.setValue("Unable to load program!");
+        const textdata = "Unable to load program!";
+        this.mIdenticalToOriginal = true;
+        this.mOriginalText = textdata;
+        this.mEditor.setValue(textdata);
         this.mEditor.focus();
         this.hideOverlay();
       });
@@ -142,12 +136,12 @@ class PageController {
       const isEscapeKeyCode = (event.keyCode == 27);
       // intercept CTRL+ENTER, and run the program.
       if(isEnterKeyCode && isMetaKey) {
-        if (!pageControllerInstance.mIdenticalToOriginal) {
+        // if (!pageControllerInstance.mIdenticalToOriginal) {
           console.log("ctrl+enter: submit form");
           event.preventDefault(); // Suppress "double action"
           pageControllerInstance.runAction();
           return;
-        }
+        // }
       }
       // intercept ESCape key, and jump to parent page.
       if(isEscapeKeyCode) {
@@ -172,18 +166,15 @@ class PageController {
 
   runAction() {
     let sourceCode = this.mEditor.getValue();
-    this.mIdenticalToOriginal = true;
     this.runSourceCode(sourceCode);
   }
 
-  updateRunButtonState() {
-    document.getElementById("run-button").disabled = this.mIdenticalToOriginal;
-  }
-
   cancelAction() {
-    document.location = this.resolveReturnLocation();
+    console.log("Cancel button");
   }
 }
+
+var gPageController = null;
 
 var callbackExecuteProgramId = (programId) => {
   console.log("callbackExecuteProgramId is not installed");
@@ -191,8 +182,10 @@ var callbackExecuteProgramId = (programId) => {
 var callbackExecuteSourceCode = (sourceCode) => {
   console.log("callbackExecuteSourceCode is not installed");
 }
-
-var gPageController = null;
+var callbackFinishedWasmLoading = () => {
+  console.log("callbackFinishedWasmLoading invoked");
+  gPageController.runAction();
+}
 
 function body_onload() {
   const runSourceCode = function(sourceCode) {
@@ -245,7 +238,7 @@ function body_onbeforeunload() {
   <div class="titlebar-item titlebar-item-center">Edit</div>
 
   <div class="titlebar-item titlebar-item-right">
-    <button id="run-button" class="primary-button" onclick="gPageController.runAction()" disabled>Run</button>
+    <button id="run-button" class="primary-button" onclick="gPageController.runAction()">Run</button>
   </div>
 </header>
 
@@ -258,7 +251,7 @@ function body_onbeforeunload() {
 
     <div id="output-outer">
       <div id="output-inner">
-        1,2,2,3,2,4,2,4,3,4,2,6,2,4,4,5,2,6,2,6,4,4,2,8,3,4,4,6,2,8,2,6,4,4,4,9,2,4,4,8,2,8,2,6,6,4,2,10,3,6,4,6,2,8,4,8,4,4,2,12,2,4,6,7,4,8,2,6,4,8,2,12,2,4,6,6,4,8,2,10,5,4,2,12,4,4,4,8,2,12,4,6,4,4,4,12,2,6,6,9
+        Output Area
       </div>
     </div>
 

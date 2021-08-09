@@ -10,8 +10,15 @@
     var callbackExecuteSourceCode = (sourceCode) => {
       console.log("callbackExecuteSourceCode is not installed");
     }
-    function submitForm(event){
+    var callbackFinishedWasmLoading = () => {
+      console.log("callbackFinishedWasmLoading invoked");
+      runCurrentProgram();
+    }
+    function submitForm(event) {
       event.preventDefault();
+      runCurrentProgram();
+    }
+    function runCurrentProgram() {
       var el = document.getElementById("sequenceid");
       const programId = parseInt(el.value);
       callbackExecuteProgramId(programId);

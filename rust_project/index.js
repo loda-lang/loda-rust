@@ -6,7 +6,7 @@ const runWasm = async () => {
 
     wasmModule.setup_log();
 
-    wasmModule.perform_selfcheck();
+    // wasmModule.perform_selfcheck();
 
     var output = document.getElementById("output-inner");
     output.innerText = 'Loading';
@@ -20,7 +20,8 @@ const runWasm = async () => {
         wasmModule.run_source_code(sourceCode);
     }
 
-    wasmModule.run_program_id(45);
+    callbackFinishedWasmLoading();
+    // wasmModule.run_program_id(45);
     // callbackExecuteSourceCode("mov $1,2\npow $1,$0");
 };
 runWasm();
