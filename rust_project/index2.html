@@ -70,7 +70,7 @@ class PageController {
     this.mIdenticalToOriginal = true;
     this.mOriginalText = new String(document.getElementById("editor-inner").value);
     this.mEditor = this.configureEditor();
-    this.updateSaveButtonState();
+    this.updateRunButtonState();
     this.configureKeyboardShortcuts();
     this.loadProgram();
   }
@@ -87,15 +87,14 @@ class PageController {
     });
   
     // Whenever the user types in a character or removes a character
-    // Then update the number of characters indicator.
-    // Then turn on/off the "save" button.
+    // Then turn on/off the "run" button.
     let pageControllerInstance = this;
     editor.on("change", function(instance, changeObj) {
       let value = instance.getValue();
       let s2 = new String(value);
       let is_same = (s2.valueOf() == pageControllerInstance.mOriginalText.valueOf());
       pageControllerInstance.mIdenticalToOriginal = is_same;
-      pageControllerInstance.updateSaveButtonState();
+      pageControllerInstance.updateRunButtonState();
     });
     return editor;
   }
@@ -141,12 +140,12 @@ class PageController {
       const isMetaKey = event.metaKey || event.ctrlKey;
       const isEnterKeyCode = (event.keyCode == 10) || (event.keyCode == 13);
       const isEscapeKeyCode = (event.keyCode == 27);
-      // intercept CTRL+ENTER, and save data.
+      // intercept CTRL+ENTER, and run the program.
       if(isEnterKeyCode && isMetaKey) {
         if (!pageControllerInstance.mIdenticalToOriginal) {
           console.log("ctrl+enter: submit form");
           event.preventDefault(); // Suppress "double action"
-          pageControllerInstance.saveAction();
+          pageControllerInstance.runAction();
           return;
         }
       }
@@ -171,60 +170,14 @@ class PageController {
     return params.get('return_location');
   }
 
-  saveAction() {
+  runAction() {
     let sourceCode = this.mEditor.getValue();
-    this.runSourceCode(sourceCode);
-    return;
-    let parameterValue = this.mEditor.getValue();
-    console.log("Will send form data");
-    // console.log("parameterValue", parameterValue);
-
-    let params = new URLSearchParams(window.location.search);
-    let tableName = params.get('table_name');
-    let columnName = params.get('column_name');
-    let updateId = params.get('update_id');
-    let tableNameEncoded = encodeURIComponent(tableName);
-    let columnNameEncoded = encodeURIComponent(columnName);
-    let updateIdEncoded = encodeURIComponent(updateId);
-    let parameterValueEncoded = encodeURIComponent(parameterValue);
-    let sendBody = `table_name=${tableNameEncoded}&column_name=${columnNameEncoded}&update_id=${updateIdEncoded}&value=${parameterValueEncoded}`;
-
-    var xhr = new XMLHttpRequest();
-    let pageControllerInstance = this;
-    xhr.onreadystatechange = function () {
-      pageControllerInstance.saveAction_onreadystatechange(xhr);
-    };
-    xhr.open("POST", "/save-data", true);
-    xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
-    xhr.send(sendBody);
-  }
-
-  saveAction_onreadystatechange(xhr) {
-    // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/readyState
-    const readyState_done = 4;
-    if (xhr.readyState !== readyState_done) {
-      console.log("readyState", xhr.readyState); 
-      return;
-    }
-    if (xhr.status !== 200) {  
-      let statusText = xhr.statusText;
-      let statusCode = xhr.status;
-      let responseText = xhr.responseText;
-      let message = `${statusCode} ${statusText}: ${responseText}`;
-      console.log("ERROR", message);
-      let element0 = document.getElementById('top-banner-item-center-content');
-      element0.innerText = message;
-      let element1 = document.getElementById('top-banner');
-      element1.style.display = 'block';
-      return;
-    }  
-    console.log("Did send form data. Response: ", xhr.responseText);
     this.mIdenticalToOriginal = true;
-    document.location = this.resolveReturnLocation();
+    this.runSourceCode(sourceCode);
   }
 
-  updateSaveButtonState() {
-    document.getElementById("save-button").disabled = this.mIdenticalToOriginal;
+  updateRunButtonState() {
+    document.getElementById("run-button").disabled = this.mIdenticalToOriginal;
   }
 
   cancelAction() {
@@ -292,7 +245,7 @@ function body_onbeforeunload() {
   <div class="titlebar-item titlebar-item-center">Edit</div>
 
   <div class="titlebar-item titlebar-item-right">
-    <button id="save-button" class="primary-button" onclick="gPageController.saveAction()" disabled>Save</button>
+    <button id="run-button" class="primary-button" onclick="gPageController.runAction()" disabled>Run</button>
   </div>
 </header>
 
