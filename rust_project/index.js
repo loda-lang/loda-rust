@@ -10,12 +10,17 @@ const runWasm = async () => {
 
     var output = document.getElementById("output-inner");
     output.innerText = 'Loading';
-
-    wasmModule.run_program_id(45);
     
     callbackExecuteProgramId = (programId) => {
         console.log(`execute: ${programId}`);
         wasmModule.run_program_id(programId);
     }
+    callbackExecuteSourceCode = (sourceCode) => {
+        console.log(`execute sourceCode`);
+        wasmModule.run_source_code(sourceCode);
+    }
+
+    wasmModule.run_program_id(45);
+    // callbackExecuteSourceCode("mov $1,2\npow $1,$0");
 };
 runWasm();
