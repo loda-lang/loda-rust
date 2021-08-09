@@ -49,7 +49,13 @@ function checkRequiredURLSearchParams() {
 }
 
 class PageController {
-  constructor() {
+  constructor(dict) {
+
+    // Install `runSourceCode` callback
+    this.runSourceCode = dict['runSourceCode'] || function(sourceCode) {
+      console.error("PageController.runSourceCode() callback not installed");
+    };
+
     this.mIdenticalToOriginal = true;
     this.mOriginalText = new String(document.getElementById("editor-inner").value);
     this.mEditor = this.configureEditor();
@@ -156,6 +162,8 @@ class PageController {
   }
 
   saveAction() {
+    let sourceCode = this.mEditor.getValue();
+    this.runSourceCode(sourceCode);
     return;
     let parameterValue = this.mEditor.getValue();
     console.log("Will send form data");
@@ -224,7 +232,13 @@ var callbackExecuteSourceCode = (sourceCode) => {
 var gPageController = null;
 
 function body_onload() {
-  gPageController = new PageController();
+  const runSourceCode = function(sourceCode) {
+    callbackExecuteSourceCode(sourceCode);
+  };
+  const dict = {
+    'runSourceCode': runSourceCode
+  };
+  gPageController = new PageController(dict);
 }
 
 function body_onbeforeunload() {
