@@ -13,7 +13,7 @@ const runWasm = async () => {
 
     wasmModule.run_program_id(45);
     
-    executeProgramCallback = (programId) => {
+    callbackExecuteProgramId = (programId) => {
         console.log(`execute: ${programId}`);
         wasmModule.run_program_id(programId);
     }
