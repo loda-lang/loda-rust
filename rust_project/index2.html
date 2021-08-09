@@ -1,0 +1,262 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>Edit</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="format-detection" content="telephone=no">
+<link rel="stylesheet" href="/web/codemirror/lib/codemirror.css">
+<link rel="stylesheet" href="/web/codemirror/theme/idea.css">
+<script src="/web/codemirror/lib/codemirror.js"></script>
+<script src="/web/codemirror/mode/markdown/markdown.js"></script>
+<script src="/web/codemirror/mode/xml/xml.js"></script>
+<script src="/web/codemirror/addon/selection/active-line.js"></script>
+<script src="/web/codemirror/addon/edit/trailingspace.js"></script>
+<script src="/web/codemirror/addon/display/placeholder.js"></script>
+<link media="all" rel="stylesheet" type="text/css" href="/web/lodalab.css">
+
+<script>
+function checkRequiredURLSearchParams() {
+  let validURLSearchParam = function (params, name) {
+    if (!params.has(name)) {
+      console.log(`ERROR: Expected '${name}' in URLSearchParams, but it's missing.`);
+      return false;
+    }
+    let s = params.get(name);
+    let n = s.length;
+    if (n >= 10) {
+      console.log(`ERROR: Parameter '${name}' is too long.`);
+      return false;
+    }
+    if (n < 1) {
+      console.log(`ERROR: Parameter '${name}' is too short.`);
+      return false;
+    }
+    return true;
+  }
+
+  let params = new URLSearchParams(window.location.search);
+  let param_names = ['id'];
+  var has_errors = false;
+  for (param_name of param_names) {
+    if (!validURLSearchParam(params, param_name)) {
+      has_errors = true;
+    }
+  }
+  if (has_errors) {
+    alert("There are one or more problems with the URLSearchParams. Check the console for details.");
+    return;
+  }
+  //console.log("All the required URLSearchParams are present.");
+}
+
+class PageController {
+  constructor() {
+    this.mIdenticalToOriginal = true;
+    this.mOriginalText = new String(document.getElementById("new-textarea").value);
+    this.mEditor = this.configureEditor();
+    this.updateSaveButtonState();
+    this.configureKeyboardShortcuts();
+  }
+  
+  configureEditor() {
+    const editor = CodeMirror.fromTextArea(document.getElementById("new-textarea"), {
+      lineNumbers: true,
+      lineWrapping: true,
+      styleActiveLine: true,
+      theme: "idea",
+      mode: "markdown",
+      xml: true,
+      showTrailingSpace: true  
+    });
+  
+    // Whenever the user types in a character or removes a character
+    // Then update the number of characters indicator.
+    // Then turn on/off the "save" button.
+    let pageControllerInstance = this;
+    editor.on("change", function(instance, changeObj) {
+      let value = instance.getValue();
+      let s2 = new String(value);
+      let is_same = (s2.valueOf() == pageControllerInstance.mOriginalText.valueOf());
+      pageControllerInstance.mIdenticalToOriginal = is_same;
+      pageControllerInstance.updateSaveButtonState();
+    });
+
+    // Make the user able to type right away when the page has loaded.
+    // No need for the user to first tap on the textarea to focus it.
+    // This saves 1 click.
+    editor.focus();
+    return editor;
+  }
+
+  configureKeyboardShortcuts() {
+    let pageControllerInstance = this;
+    let keydownHandler = function(event) {
+      if(event.defaultPrevented) {
+        return; // Should do nothing if the default action has been cancelled
+      }
+      const isMetaKey = event.metaKey || event.ctrlKey;
+      const isEnterKeyCode = (event.keyCode == 10) || (event.keyCode == 13);
+      const isEscapeKeyCode = (event.keyCode == 27);
+      // intercept CTRL+ENTER, and save data.
+      if(isEnterKeyCode && isMetaKey) {
+        if (!pageControllerInstance.mIdenticalToOriginal) {
+          console.log("ctrl+enter: submit form");
+          event.preventDefault(); // Suppress "double action"
+          pageControllerInstance.saveAction();
+          return;
+        }
+      }
+      // intercept ESCape key, and jump to parent page.
+      if(isEscapeKeyCode) {
+        console.log("escape: cancel");
+        event.preventDefault(); // Suppress "double action"
+        pageControllerInstance.cancelAction();
+        return;
+      }
+    };
+    window.addEventListener('keydown', keydownHandler, true);
+  }
+
+  resolveReturnLocation() {
+    const queryString = window.location.search;
+    const params = new URLSearchParams(queryString);
+    if (!params.has('return_location')) {
+      console.log("ERROR: Expected window.location.search to contain a 'return_location', but got none. Cannot jump to parent.")
+      return '/';
+    }
+    return params.get('return_location');
+  }
+
+  saveAction() {
+    return;
+    let parameterValue = this.mEditor.getValue();
+    console.log("Will send form data");
+    // console.log("parameterValue", parameterValue);
+
+    let params = new URLSearchParams(window.location.search);
+    let tableName = params.get('table_name');
+    let columnName = params.get('column_name');
+    let updateId = params.get('update_id');
+    let tableNameEncoded = encodeURIComponent(tableName);
+    let columnNameEncoded = encodeURIComponent(columnName);
+    let updateIdEncoded = encodeURIComponent(updateId);
+    let parameterValueEncoded = encodeURIComponent(parameterValue);
+    let sendBody = `table_name=${tableNameEncoded}&column_name=${columnNameEncoded}&update_id=${updateIdEncoded}&value=${parameterValueEncoded}`;
+
+    var xhr = new XMLHttpRequest();
+    let pageControllerInstance = this;
+    xhr.onreadystatechange = function () {
+      pageControllerInstance.saveAction_onreadystatechange(xhr);
+    };
+    xhr.open("POST", "/save-data", true);
+    xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
+    xhr.send(sendBody);
+  }
+
+  saveAction_onreadystatechange(xhr) {
+    // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/readyState
+    const readyState_done = 4;
+    if (xhr.readyState !== readyState_done) {
+      console.log("readyState", xhr.readyState); 
+      return;
+    }
+    if (xhr.status !== 200) {  
+      let statusText = xhr.statusText;
+      let statusCode = xhr.status;
+      let responseText = xhr.responseText;
+      let message = `${statusCode} ${statusText}: ${responseText}`;
+      console.log("ERROR", message);
+      let element0 = document.getElementById('top-banner-item-center-content');
+      element0.innerText = message;
+      let element1 = document.getElementById('top-banner');
+      element1.style.display = 'block';
+      return;
+    }  
+    console.log("Did send form data. Response: ", xhr.responseText);
+    this.mIdenticalToOriginal = true;
+    document.location = this.resolveReturnLocation();
+  }
+
+  updateSaveButtonState() {
+    document.getElementById("save-button").disabled = this.mIdenticalToOriginal;
+  }
+
+  cancelAction() {
+    document.location = this.resolveReturnLocation();
+  }
+}
+
+var gPageController = null;
+
+function body_onload() {
+  gPageController = new PageController();
+}
+
+function body_onbeforeunload() {
+  if (gPageController.mIdenticalToOriginal) {
+    return undefined;
+  } else {
+    return "The data on this page will be lost if you leave";
+  }
+}
+</script>
+
+</head>
+
+<body onload="body_onload()" onbeforeunload="return body_onbeforeunload()">
+
+<header class="top-banner-container-outer" id="top-banner">
+  <div class="top-banner-container-inner">
+    <div class="top-banner-item top-banner-item-left">
+      &#9888;
+    </div>
+    <div class="top-banner-item top-banner-item-center">
+      There was a problem sending the data. Please try again.<br>
+      <span id="top-banner-item-center-content">No details available.</span>
+    </div>
+    <div class="top-banner-item top-banner-item-right">
+      &#9888;
+    </div>
+  </div>
+</header>
+  
+<header class="titlebar-container">
+  <div class="titlebar-item titlebar-item-left">
+    <button class="seconday-button" onclick="gPageController.cancelAction()">Cancel</button>
+  </div>
+
+  <div class="titlebar-item titlebar-item-center">Edit</div>
+
+  <div class="titlebar-item titlebar-item-right">
+    <button id="save-button" class="primary-button" onclick="gPageController.saveAction()" disabled>Save</button>
+  </div>
+</header>
+
+<main id="splitview-outer">
+  <div id="splitview-inner">
+
+    <div id="new-textarea-outer">
+      <textarea id="new-textarea" placeholder="Content goes here&hellip;">Initializing</textarea>
+    </div>
+
+    <div id="output-outer">
+      <div id="output-inner">
+        1,2,2,3,2,4,2,4,3,4,2,6,2,4,4,5,2,6,2,6,4,4,2,8,3,4,4,6,2,8,2,6,4,4,4,9,2,4,4,8,2,8,2,6,6,4,2,10,3,6,4,6,2,8,4,8,4,4,2,12,2,4,6,7,4,8,2,6,4,8,2,12,2,4,6,6,4,8,2,10,5,4,2,12,4,4,4,8,2,12,4,6,4,4,4,12,2,6,6,9
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="page-footer">
+  Sticky footer line 1<br>
+  Sticky footer line 2
+</footer>
+
+<script>
+(function() {
+  checkRequiredURLSearchParams();
+})();
+</script>
+
+</body>
+</html>
