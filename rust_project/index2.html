@@ -55,6 +55,7 @@ class PageController {
     this.mEditor = this.configureEditor();
     this.updateSaveButtonState();
     this.configureKeyboardShortcuts();
+    this.loadProgram();
   }
   
   configureEditor() {
@@ -79,12 +80,37 @@ class PageController {
       pageControllerInstance.mIdenticalToOriginal = is_same;
       pageControllerInstance.updateSaveButtonState();
     });
-
-    // Make the user able to type right away when the page has loaded.
-    // No need for the user to first tap on the textarea to focus it.
-    // This saves 1 click.
-    editor.focus();
     return editor;
+  }
+
+  hideOverlay() {
+    document.getElementById("overlay").style.display = "none";
+  }
+
+  showOverlay() {
+    document.getElementById("overlay").style.display = "block";
+  }
+
+  loadProgram() {
+    let params = new URLSearchParams(window.location.search);
+    let programId = params.get('id');
+    console.log("loadProgram: programId", programId);
+
+    let url = 'https://raw.githubusercontent.com/ckrause/loda/master/programs/oeis/000/A000040.asm';
+    fetch(url)
+      .then(response => response.text())
+      .then(textdata => {
+        console.log('Did load program');
+        this.mEditor.setValue(textdata);
+        this.mEditor.focus();
+        this.hideOverlay();
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        this.mEditor.setValue("Unable to load program!");
+        this.mEditor.focus();
+        this.hideOverlay();
+      });
   }
 
   configureKeyboardShortcuts() {
@@ -204,6 +230,10 @@ function body_onbeforeunload() {
 
 <body onload="body_onload()" onbeforeunload="return body_onbeforeunload()">
 
+<div id="overlay">
+  <div id="overlay-message">Initializing&hellip;</div>
+</div>
+
 <header class="top-banner-container-outer" id="top-banner">
   <div class="top-banner-container-inner">
     <div class="top-banner-item top-banner-item-left">
@@ -235,7 +265,7 @@ function body_onbeforeunload() {
   <div id="splitview-inner">
 
     <div id="editor-outer">
-      <textarea id="editor-inner" placeholder="Content goes here&hellip;">Initializing</textarea>
+      <textarea id="editor-inner" placeholder="Content goes here&hellip;"> </textarea>
     </div>
 
     <div id="output-outer">

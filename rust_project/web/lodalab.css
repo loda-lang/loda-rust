@@ -12,6 +12,24 @@ body {
     display: flex;
     flex-direction: column;
 }
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    background-color: rgba(171, 171, 171, 0.81);
+}
+#overlay-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    font-size: 50px;
+    color: rgb(0, 0, 0);
+    transform: translate(-50%,-50%);
+    -ms-transform: translate(-50%,-50%);
+}
 #splitview-outer {
     flex: 1 1 auto;
     position: relative;
