@@ -431,10 +431,26 @@ impl ProgramRunner {
 
 struct WebDependencyManagerInner {
     count: i32,
-    dependency_manager: DependencyManager
+    dependency_manager: DependencyManager,
+    cache: ProgramCache,
+    step_count: u64,
 }
 
 impl WebDependencyManagerInner {
+    fn create() -> WebDependencyManagerInner {
+        let dm = DependencyManager::new(
+            PathBuf::from("non-existing-dir"),
+        );
+        let cache = ProgramCache::new();
+
+        WebDependencyManagerInner {
+            count: 0,
+            dependency_manager: dm,
+            cache: cache,
+            step_count: 0,
+        }
+    }
+
     async fn run_source_code(&mut self, root_source_code: String) -> Result<JsValue, JsValue> {
         debug!("WebDependencyManagerInner.run_source_code() count: {:?} root_source_code: {:?}", self.count, root_source_code);
         let root_parsed_program: ParsedProgram = match parse_program(&root_source_code) {
@@ -546,6 +562,11 @@ impl WebDependencyManagerInner {
 
         Ok(JsValue::from_str("success"))
     }
+
+    fn print_stats(&self) {
+        debug!("steps: {}", self.step_count);
+        debug!("cache: {}", self.cache.hit_miss_info());    
+    }
 }
 
 #[wasm_bindgen]
@@ -558,14 +579,7 @@ impl WebDependencyManager {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Result<WebDependencyManager, JsValue> {
         debug!("WebDependencyManager.new");
-
-        let dm = DependencyManager::new(
-            PathBuf::from("non-existing-dir"),
-        );
-        let inner0 = WebDependencyManagerInner {
-            count: 0,
-            dependency_manager: dm,
-        };
+        let inner0 = WebDependencyManagerInner::create();
         let inner1 = Rc::new(RefCell::new(inner0));
         Ok(Self { 
             inner: inner1,
@@ -586,5 +600,10 @@ impl WebDependencyManager {
     pub async fn run_source_code(self, root_source_code: String) -> Result<JsValue, JsValue> {
         self.inner.borrow_mut()
             .run_source_code(root_source_code).await
+    }
+
+    pub fn print_stats(self) {
+        self.inner.borrow_mut()
+            .print_stats();
     }
 }

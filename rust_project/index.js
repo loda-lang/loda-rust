@@ -25,7 +25,8 @@ const runWasm = async () => {
        
             dm.increment();
             await dm.clone().run_source_code(sourceCode);
-            
+            dm.clone().print_stats();
+
             console.log('after start');
         })();
     };
