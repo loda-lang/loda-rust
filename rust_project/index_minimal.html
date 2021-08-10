@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Loda Lab</title>
+  <script>
+    var callbackExecuteProgramId = (programId) => {
+      console.log("callbackExecuteProgramId is not installed");
+    }
+    var callbackExecuteSourceCode = (sourceCode) => {
+      console.log("callbackExecuteSourceCode is not installed");
+    }
+    var callbackFinishedWasmLoading = () => {
+      console.log("callbackFinishedWasmLoading invoked");
+      runCurrentProgram();
+    }
+    function submitForm(event) {
+      event.preventDefault();
+      runCurrentProgram();
+    }
+    function runCurrentProgram() {
+      var el = document.getElementById("sequenceid");
+      const programId = parseInt(el.value);
+      callbackExecuteProgramId(programId);
+    }
+  </script>
+  <script type="module" src="index.js"></script>
+</head>
+<body>
+  <form onsubmit="submitForm(event)">
+    <input 
+      id="sequenceid"
+      type="number" 
+      min="1" 
+      max="999999" 
+      placeholder="OEIS sequence id"
+      value="45">
+  </form>
+  <div id="output-inner">Initializing</div>
+</body>
+</html>

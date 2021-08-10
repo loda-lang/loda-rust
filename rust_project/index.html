@@ -1,41 +1,271 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <title>Loda Lab</title>
-  <script>
-    var callbackExecuteProgramId = (programId) => {
-      console.log("callbackExecuteProgramId is not installed");
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>Edit</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="format-detection" content="telephone=no">
+<link rel="stylesheet" href="./web/codemirror/lib/codemirror.css">
+<link rel="stylesheet" href="./web/codemirror/theme/idea.css">
+<script src="./web/codemirror/lib/codemirror.js"></script>
+<script src="./web/codemirror/mode/asterisk/asterisk.js"></script>
+<script src="./web/codemirror/addon/selection/active-line.js"></script>
+<script src="./web/codemirror/addon/edit/trailingspace.js"></script>
+<script src="./web/codemirror/addon/display/placeholder.js"></script>
+<link media="all" rel="stylesheet" type="text/css" href="./web/lodalab.css">
+
+<script>
+function checkRequiredURLSearchParams() {
+  let validURLSearchParam = function (params, name) {
+    if (!params.has(name)) {
+      console.log(`ERROR: Expected '${name}' in URLSearchParams, but it's missing.`);
+      return false;
     }
-    var callbackExecuteSourceCode = (sourceCode) => {
-      console.log("callbackExecuteSourceCode is not installed");
+    let s = params.get(name);
+    let n = s.length;
+    if (n >= 10) {
+      console.log(`ERROR: Parameter '${name}' is too long.`);
+      return false;
     }
-    var callbackFinishedWasmLoading = () => {
-      console.log("callbackFinishedWasmLoading invoked");
-      runCurrentProgram();
+    if (n < 1) {
+      console.log(`ERROR: Parameter '${name}' is too short.`);
+      return false;
     }
-    function submitForm(event) {
-      event.preventDefault();
-      runCurrentProgram();
+    return true;
+  }
+
+  let params = new URLSearchParams(window.location.search);
+  let param_names = ['id'];
+  var has_errors = false;
+  for (param_name of param_names) {
+    if (!validURLSearchParam(params, param_name)) {
+      has_errors = true;
     }
-    function runCurrentProgram() {
-      var el = document.getElementById("sequenceid");
-      const programId = parseInt(el.value);
-      callbackExecuteProgramId(programId);
-    }
-  </script>
-  <script type="module" src="index.js"></script>
+  }
+  if (has_errors) {
+    alert("There are one or more problems with the URLSearchParams. Check the console for details.");
+    return;
+  }
+  //console.log("All the required URLSearchParams are present.");
+}
+
+// Construct url for a program id (eg A112088), like the following
+// https://raw.githubusercontent.com/ckrause/loda/master/programs/oeis/112/A112088.asm
+function urlFromProgramId(programId) {
+  const zeroPad = (num, places) => String(num).padStart(places, '0');
+  const dir_index_string = zeroPad(Math.floor(programId/1000), 3);
+  const filename_string = "A" + zeroPad(programId, 6) + ".asm";
+  let baseurl = "https://raw.githubusercontent.com/ckrause/loda/master/programs/oeis";
+  let url = `${baseurl}/${dir_index_string}/${filename_string}`;
+  return url;
+}
+
+class PageController {
+  constructor(dict) {
+
+    // Install `runSourceCode` callback
+    this.runSourceCode = dict['runSourceCode'] || function(sourceCode) {
+      console.error("PageController.runSourceCode() callback not installed");
+    };
+
+    this.mIdenticalToOriginal = true;
+    this.mOriginalText = "";
+    this.mEditor = this.configureEditor();
+    this.configureKeyboardShortcuts();
+    this.loadProgram();
+  }
+  
+  configureEditor() {
+    const editor = CodeMirror.fromTextArea(document.getElementById("editor-inner"), {
+      lineNumbers: true,
+      lineWrapping: true,
+      styleActiveLine: true,
+      theme: "idea",
+      mode: "asterisk",
+      xml: true,
+      showTrailingSpace: true  
+    });
+    return editor;
+  }
+
+  hideOverlay() {
+    document.getElementById("overlay").style.display = "none";
+  }
+
+  showOverlay() {
+    document.getElementById("overlay").style.display = "block";
+  }
+
+  loadProgram() {
+    let params = new URLSearchParams(window.location.search);
+    let programId = params.get('id');
+    console.log("loadProgram: programId", programId);
+
+    let url = urlFromProgramId(programId);
+
+    var output = document.getElementById("output-inner");
+    output.innerText = 'Downloading';
+
+    // TODO: deal with status code when there is no 404 and show error message
+    fetch(url)
+      .then(response => response.text())
+      .then(textdata => {
+        console.log('Did fetch program');
+        this.mIdenticalToOriginal = true;
+        this.mOriginalText = textdata;
+        this.mEditor.setValue(textdata);
+        this.mEditor.focus();
+        this.hideOverlay();
+
+        var self = this;
+        setTimeout(function() { self.didLoadProgram(); }, 100);
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        const textdata = "Unable to load program!";
+        this.mIdenticalToOriginal = true;
+        this.mOriginalText = textdata;
+        this.mEditor.setValue(textdata);
+        this.mEditor.focus();
+        this.hideOverlay();
+      });
+  }
+
+  didLoadProgram() {
+    console.log("didLoadProgram");
+    var output = document.getElementById("output-inner");
+    output.innerText = 'Computing';
+    this.runAction();
+  }
+
+  configureKeyboardShortcuts() {
+    let pageControllerInstance = this;
+    let keydownHandler = function(event) {
+      if(event.defaultPrevented) {
+        return; // Should do nothing if the default action has been cancelled
+      }
+      const isMetaKey = event.metaKey || event.ctrlKey;
+      const isEnterKeyCode = (event.keyCode == 10) || (event.keyCode == 13);
+      const isEscapeKeyCode = (event.keyCode == 27);
+      // intercept CTRL+ENTER, and run the program.
+      if(isEnterKeyCode && isMetaKey) {
+        console.log("ctrl+enter: submit form");
+        event.preventDefault(); // Suppress "double action"
+        pageControllerInstance.runAction();
+        return;
+      }
+      // intercept ESCape key, and jump to parent page.
+      if(isEscapeKeyCode) {
+        console.log("escape: cancel");
+        event.preventDefault(); // Suppress "double action"
+        pageControllerInstance.cancelAction();
+        return;
+      }
+    };
+    window.addEventListener('keydown', keydownHandler, true);
+  }
+
+  runAction() {
+    let sourceCode = this.mEditor.getValue();
+    this.runSourceCode(sourceCode);
+  }
+
+  cancelAction() {
+    console.log("Cancel button");
+  }
+}
+
+var gPageController = null;
+
+var callbackExecuteProgramId = (programId) => {
+  console.log("callbackExecuteProgramId is not installed");
+}
+var callbackExecuteSourceCode = (sourceCode) => {
+  console.log("callbackExecuteSourceCode is not installed");
+}
+var callbackFinishedWasmLoading = () => {
+  console.log("callbackFinishedWasmLoading invoked");
+}
+
+function body_onload() {
+  const runSourceCode = function(sourceCode) {
+    callbackExecuteSourceCode(sourceCode);
+  };
+  const dict = {
+    'runSourceCode': runSourceCode
+  };
+  gPageController = new PageController(dict);
+}
+
+function body_onbeforeunload() {
+  if (gPageController.mIdenticalToOriginal) {
+    return undefined;
+  } else {
+    return "The data on this page will be lost if you leave";
+  }
+}
+</script>
+<script type="module" src="index.js"></script>
+
 </head>
-<body>
-  <form onsubmit="submitForm(event)">
-    <input 
-      id="sequenceid"
-      type="number" 
-      min="1" 
-      max="999999" 
-      placeholder="OEIS sequence id"
-      value="45">
-  </form>
-  <div id="output-inner">Initializing</div>
+
+<body onload="body_onload()" onbeforeunload="return body_onbeforeunload()">
+
+<div id="overlay">
+  <div id="overlay-message">Initializing&hellip;</div>
+</div>
+
+<header class="top-banner-container-outer" id="top-banner">
+  <div class="top-banner-container-inner">
+    <div class="top-banner-item top-banner-item-left">
+      &#9888;
+    </div>
+    <div class="top-banner-item top-banner-item-center">
+      There was a problem sending the data. Please try again.<br>
+      <span id="top-banner-item-center-content">No details available.</span>
+    </div>
+    <div class="top-banner-item top-banner-item-right">
+      &#9888;
+    </div>
+  </div>
+</header>
+  
+<header class="titlebar-container">
+  <div class="titlebar-item titlebar-item-left">
+    <button class="seconday-button" onclick="gPageController.cancelAction()">Cancel</button>
+  </div>
+
+  <div class="titlebar-item titlebar-item-center">Edit</div>
+
+  <div class="titlebar-item titlebar-item-right">
+    <button id="run-button" class="primary-button" onclick="gPageController.runAction()">Run (Ctrl+Enter)</button>
+  </div>
+</header>
+
+<main id="splitview-outer">
+  <div id="splitview-inner">
+
+    <div id="editor-outer">
+      <textarea id="editor-inner" placeholder="Content goes here&hellip;"> </textarea>
+    </div>
+
+    <div id="output-outer">
+      <div id="output-inner">
+        Output Area
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer id="page-footer">
+  Version 2021.08.09<br>
+  Source code: <a href="https://github.com/neoneye/loda-lab">https://github.com/neoneye/loda-lab</a>
+</footer>
+
+<script>
+(function() {
+  checkRequiredURLSearchParams();
+})();
+</script>
+
 </body>
 </html>
