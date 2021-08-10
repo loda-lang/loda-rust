@@ -25,6 +25,7 @@ const runWasm = async () => {
        
             dm.increment();
             await dm.clone().run_source_code(sourceCode);
+            await dm.clone().execute_current_program();
             dm.clone().print_stats();
 
             console.log('after start');

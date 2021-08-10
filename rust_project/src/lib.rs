@@ -434,20 +434,26 @@ struct WebDependencyManagerInner {
     dependency_manager: DependencyManager,
     cache: ProgramCache,
     step_count: u64,
+    program_runner: Rc::<ProgramRunner>,
 }
 
 impl WebDependencyManagerInner {
     fn create() -> WebDependencyManagerInner {
-        let dm = DependencyManager::new(
+        let mut dm = DependencyManager::new(
             PathBuf::from("non-existing-dir"),
         );
         let cache = ProgramCache::new();
+
+        let dummy_program = "mov $1,$0".to_string();
+        let dummy_runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, &dummy_program).unwrap();
+        let program_runner: Rc::<ProgramRunner> = Rc::new(dummy_runner);
 
         WebDependencyManagerInner {
             count: 0,
             dependency_manager: dm,
             cache: cache,
             step_count: 0,
+            program_runner: program_runner,
         }
     }
 
@@ -558,7 +564,74 @@ impl WebDependencyManagerInner {
         let runner1: ProgramRunner = self.dependency_manager.parse(ProgramId::ProgramWithoutId, &root_source_code).unwrap();
 
         let runner: Rc::<ProgramRunner> = Rc::new(runner1);
-        execute_program(runner, 10, &output_div).await?;
+        self.program_runner = runner;
+        // execute_program(runner, 10, &output_div).await?;
+
+        Ok(JsValue::from_str("success"))
+    }
+
+    async fn execute_current_program(&mut self) -> Result<JsValue, JsValue> {
+        debug!("WebDependencyManagerInner.execute_current_program()");
+
+        let output_div: web_sys::Element = match get_element_by_id("output-inner") {
+            Some(value) => value,
+            None => {
+                let err = JsValue::from_str("No #output-inner div found");
+                return Err(err);
+            }
+        };
+
+        let count: u64 = 20;
+        if count >= 0x7fff_ffff_ffff_ffff {
+            let err = JsValue::from_str("Value is too high. Cannot be converted to 64bit signed integer.");
+            return Err(err);
+        }
+        if count < 1 {
+            let err = JsValue::from_str("Expected number of terms to be 1 or greater.");
+            return Err(err);
+        }
+        if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
+            let val = "Executing";
+            node.set_text_content(Some(&val));
+        }
+        let step_count_limit: u64 = 10000000;
+        let mut step_count: u64 = 0;
+        for index in 0..(count as i64) {
+            let input = RegisterValue::from_i64(index);
+            let result_run = self.program_runner.run(
+                &input, 
+                RunMode::Verbose, 
+                &mut step_count, 
+                step_count_limit,
+                NodeRegisterLimit::Unlimited,
+                NodeBinomialLimit::Unlimited,
+                NodeLoopLimit::Unlimited,
+                NodePowerLimit::Unlimited,
+                &mut self.cache
+            );
+            let output: RegisterValue = match result_run {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Failure while computing term {}, error: {:?}", index, error);
+                    let s = format!("Failure while computing term {}, error: {:?}", index, error);
+                    let err = JsValue::from_str(&s);
+                    return Err(err);
+                }
+            };
+            let term_string: String = match index {
+                0 => format!("{}", output.0),
+                _ => format!(", {}", output.0)
+            };
+            if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
+                let val = web_sys::window().unwrap().document().unwrap().create_element("span")?;
+                val.set_text_content(Some(&term_string));
+                if index == 0 {
+                    // remove all child elements
+                    node.set_text_content(None);
+                }
+                node.append_child(&val)?;
+            }
+        }
 
         Ok(JsValue::from_str("success"))
     }
@@ -600,6 +673,11 @@ impl WebDependencyManager {
     pub async fn run_source_code(self, root_source_code: String) -> Result<JsValue, JsValue> {
         self.inner.borrow_mut()
             .run_source_code(root_source_code).await
+    }
+
+    pub async fn execute_current_program(self) -> Result<JsValue, JsValue> {
+        self.inner.borrow_mut()
+            .execute_current_program().await
     }
 
     pub fn print_stats(self) {
