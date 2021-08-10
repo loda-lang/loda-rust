@@ -221,6 +221,12 @@ impl DependencyManager {
     }
 }
 
+impl fmt::Debug for DependencyManager {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "DependencyManager")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
