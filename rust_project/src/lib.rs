@@ -436,8 +436,7 @@ struct WebDependencyManagerInner {
 
 impl WebDependencyManagerInner {
     async fn run_source_code(&mut self, root_source_code: String) -> Result<JsValue, JsValue> {
-        debug!("WebDependencyManagerInner.run_source_code() root_source_code: {:?}", root_source_code);
-
+        debug!("WebDependencyManagerInner.run_source_code() count: {:?} root_source_code: {:?}", self.count, root_source_code);
         let root_parsed_program: ParsedProgram = match parse_program(&root_source_code) {
             Ok(value) => value,
             Err(error) => {
@@ -541,7 +540,7 @@ impl WebDependencyManagerInner {
         let runner: Rc::<ProgramRunner> = Rc::new(runner1);
         execute_program(runner, 10, &output_div).await?;
 
-        Ok(JsValue::from("success"))
+        Ok(JsValue::from_str("success"))
     }
 }
 
@@ -569,13 +568,17 @@ impl WebDependencyManager {
         })
     }
         
-    #[wasm_bindgen]
     pub fn increment(&mut self) {
         debug!("WebDependencyManager.increment");
         self.inner.borrow_mut().count += 1;
     }
 
-    #[wasm_bindgen]
+    pub fn clone(&self) -> WebDependencyManager {
+        WebDependencyManager {
+            inner: self.inner.clone(),
+        }
+    }
+
     pub async fn run_source_code(self, root_source_code: String) -> Result<JsValue, JsValue> {
         self.inner.borrow_mut()
             .run_source_code(root_source_code).await
