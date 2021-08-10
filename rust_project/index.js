@@ -1,5 +1,16 @@
 import init, * as wasmModule from './pkg/loda_lab.js';
 
+function computeAndYield(remaining, index, dm) {
+    if (remaining <= 0) {
+        dm.clone().print_stats();
+        return;
+    }
+    (async() => {
+        await dm.clone().execute_current_program(index);
+        setTimeout(function() { computeAndYield(remaining - 1, index + 1, dm); }, 0);
+    })();
+}
+
 const runWasm = async () => {
     await init('./pkg/loda_lab_bg.wasm');
     window.wasmModule = wasmModule;
@@ -25,8 +36,7 @@ const runWasm = async () => {
        
             dm.increment();
             await dm.clone().run_source_code(sourceCode);
-            await dm.clone().execute_current_program();
-            dm.clone().print_stats();
+            computeAndYield(40, 0, dm);
 
             console.log('after start');
         })();
