@@ -103,6 +103,10 @@ impl DependencyManager {
         self.virtual_filesystem.insert(program_id, file_content);
     }
 
+    pub fn virtual_filesystem_remove_all_files(&mut self) {
+        self.virtual_filesystem.clear();
+    }
+
     pub fn load(&mut self, program_id: u64) ->
         Result<Rc::<ProgramRunner>, DependencyManagerError> 
     {
