@@ -427,3 +427,32 @@ impl ProgramRunner {
         debug!("cache: {}", cache.hit_miss_info());
     }
 }
+
+#[wasm_bindgen]
+#[derive(Debug)]
+pub struct WebDependencyManager {
+    count: i32,
+    dependency_manager: DependencyManager
+}
+
+#[wasm_bindgen]
+impl WebDependencyManager {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Result<WebDependencyManager, JsValue> {
+        debug!("WebDependencyManager.new");
+
+        let mut dm = DependencyManager::new(
+            PathBuf::from("non-existing-dir"),
+        );
+        Ok(Self { 
+            count: 0,
+            dependency_manager: dm,
+        })
+    }
+        
+    #[wasm_bindgen]
+    pub fn increment(&mut self) {
+        debug!("WebDependencyManager.increment");
+        self.count += 1;
+    }
+}
