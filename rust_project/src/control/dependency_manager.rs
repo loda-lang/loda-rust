@@ -223,6 +223,10 @@ impl DependencyManager {
         let program_id_pretty: String = strings.join(",");
         println!("{}", program_id_pretty);
     }
+
+    pub fn contains(&self, program_id: u64) -> bool {
+        self.program_run_manager.contains(program_id)
+    }
 }
 
 impl fmt::Debug for DependencyManager {

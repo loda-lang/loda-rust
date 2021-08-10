@@ -482,6 +482,11 @@ impl WebDependencyManagerInner {
                 debug!("skip program that have already been fetched. {:?}", program_id);
                 continue;
             }
+            if self.dependency_manager.contains(program_id) {
+                debug!("skip program that have already been parsed. {:?}", program_id);
+                already_fetched_program_ids.insert(program_id);
+                continue;
+            }
 
             let url = url_from_program_id(program_id);
 
@@ -531,7 +536,6 @@ impl WebDependencyManagerInner {
             virtual_filesystem.insert(program_id, response_text);
         }
 
-        self.dependency_manager.virtual_filesystem_remove_all_files();
         for (program_id, file_content) in virtual_filesystem {
             self.dependency_manager.virtual_filesystem_insert_file(program_id, file_content);
         }
