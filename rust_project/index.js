@@ -7,6 +7,10 @@ const runWasm = async () => {
     wasmModule.setup_log();
     // wasmModule.perform_selfcheck();
 
+    let dm = new wasmModule.WebDependencyManager();
+    dm.increment();
+    await dm.run_source_code("mov $1,2\npow $1,$0");
+
     callbackExecuteProgramId = (programId) => {
         console.log(`execute: ${programId}`);
         wasmModule.run_program_id(programId);
@@ -15,9 +19,6 @@ const runWasm = async () => {
         console.log(`execute sourceCode`);
         wasmModule.run_source_code(sourceCode);
     }
-
-    let dm = new wasmModule.WebDependencyManager();
-    dm.increment();
 
     callbackFinishedWasmLoading();
     // wasmModule.run_program_id(45);

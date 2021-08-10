@@ -17,6 +17,7 @@ mod util;
 
 use std::path::PathBuf;
 use std::rc::Rc;
+use core::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use control::DependencyManager;
@@ -428,11 +429,125 @@ impl ProgramRunner {
     }
 }
 
-#[wasm_bindgen]
-#[derive(Debug)]
-pub struct WebDependencyManager {
+struct WebDependencyManagerInner {
     count: i32,
     dependency_manager: DependencyManager
+}
+
+impl WebDependencyManagerInner {
+    async fn run_source_code(&mut self, root_source_code: String) -> Result<JsValue, JsValue> {
+        debug!("WebDependencyManagerInner.run_source_code() root_source_code: {:?}", root_source_code);
+
+        let root_parsed_program: ParsedProgram = match parse_program(&root_source_code) {
+            Ok(value) => value,
+            Err(error) => {
+                error!("Unable to parse program: {:?}", error);
+                let err = JsValue::from_str("Unable to parse program");
+                return Err(err);
+            }
+        };
+
+        let root_dependencies: Vec<u64> = root_parsed_program.direct_dependencies();
+        debug!("the root program has these dependencies: {:?}", root_dependencies);
+
+        let output_div: web_sys::Element = match get_element_by_id("output-inner") {
+            Some(value) => value,
+            None => {
+                let err = JsValue::from_str("No #output-inner div found");
+                return Err(err);
+            }
+        };
+
+        if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
+            let val = "Downloading";
+            node.set_text_content(Some(&val));
+        }
+
+        let window = web_sys::window().unwrap();
+
+        let mut pending_program_ids: Vec<u64> = vec!();
+        let mut already_fetched_program_ids = HashSet::<u64>::new();
+        let mut virtual_filesystem: HashMap<u64, String> = HashMap::new();
+
+        pending_program_ids.extend(root_dependencies);
+
+        loop {
+            let program_id: u64 = match pending_program_ids.pop() {
+                Some(value) => value,
+                None => {
+                    debug!("all programs have been fetched");
+                    break;
+                }
+            };
+            if already_fetched_program_ids.contains(&program_id) {
+                debug!("skip program that have already been fetched. {:?}", program_id);
+                continue;
+            }
+
+            let url = url_from_program_id(program_id);
+
+            let mut opts = RequestInit::new();
+            opts.method("GET");
+            opts.mode(RequestMode::Cors);
+            let request = Request::new_with_str_and_init(&url, &opts)?;
+            let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
+        
+            // `resp_value` is a `Response` object.
+            assert!(resp_value.is_instance_of::<Response>());
+            let resp: Response = resp_value.dyn_into().unwrap();
+        
+            let text_result: Result<js_sys::Promise, JsValue> = resp.text();
+            let text_jspromise: js_sys::Promise = match text_result {
+                Ok(jspromise) => jspromise,
+                Err(err) => {
+                    error!("Unable to obtain text() from response");
+                    return Err(err)
+                }
+            };
+            // Convert this javascript `Promise` into a rust `Future`.
+            let text_jsvalue: JsValue = wasm_bindgen_futures::JsFuture::from(text_jspromise).await?;
+            
+            let response_text: String = match text_jsvalue.as_string() {
+                Some(value) => value,
+                None => {
+                    error!("Unable to obtain convert JsValue to Rust String");
+                    let err = JsValue::from_str("Unable to obtain convert JsValue to Rust String");
+                    return Err(err);
+                }
+            };
+            
+            let parsed_program: ParsedProgram = match parse_program(&response_text) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Unable to parse program: {:?}", error);
+                    let err = JsValue::from_str("Unable to parse program");
+                    return Err(err);
+                }
+            };
+        
+            let dependencies: Vec<u64> = parsed_program.direct_dependencies();
+            debug!("program: {:?} has these dependencies: {:?}", program_id, dependencies);
+            pending_program_ids.extend(dependencies);
+            already_fetched_program_ids.insert(program_id);
+            virtual_filesystem.insert(program_id, response_text);
+        }
+
+        self.dependency_manager.virtual_filesystem_remove_all_files();
+        for (program_id, file_content) in virtual_filesystem {
+            self.dependency_manager.virtual_filesystem_insert_file(program_id, file_content);
+        }
+        let runner1: ProgramRunner = self.dependency_manager.parse(ProgramId::ProgramWithoutId, &root_source_code).unwrap();
+
+        let runner: Rc::<ProgramRunner> = Rc::new(runner1);
+        execute_program(runner, 10, &output_div).await?;
+
+        Ok(JsValue::from("success"))
+    }
+}
+
+#[wasm_bindgen]
+pub struct WebDependencyManager {
+    inner: Rc<RefCell<WebDependencyManagerInner>>,
 }
 
 #[wasm_bindgen]
@@ -441,18 +556,28 @@ impl WebDependencyManager {
     pub fn new() -> Result<WebDependencyManager, JsValue> {
         debug!("WebDependencyManager.new");
 
-        let mut dm = DependencyManager::new(
+        let dm = DependencyManager::new(
             PathBuf::from("non-existing-dir"),
         );
-        Ok(Self { 
+        let inner0 = WebDependencyManagerInner {
             count: 0,
             dependency_manager: dm,
+        };
+        let inner1 = Rc::new(RefCell::new(inner0));
+        Ok(Self { 
+            inner: inner1,
         })
     }
         
     #[wasm_bindgen]
     pub fn increment(&mut self) {
         debug!("WebDependencyManager.increment");
-        self.count += 1;
+        self.inner.borrow_mut().count += 1;
+    }
+
+    #[wasm_bindgen]
+    pub async fn run_source_code(self, root_source_code: String) -> Result<JsValue, JsValue> {
+        self.inner.borrow_mut()
+            .run_source_code(root_source_code).await
     }
 }
