@@ -52,6 +52,7 @@ impl From<ParseParametersError> for ParseProgramError {
 impl ParsedProgram {
     // The direct dependencies that this program depends on.
     // This doesn't include the indirect dependencies.
+    #[allow(dead_code)]
     pub fn direct_dependencies(&self) -> Vec<u64> {
         let mut program_ids: Vec<u64> = vec!();
         for instruction in &self.instruction_vec {
