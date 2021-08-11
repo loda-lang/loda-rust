@@ -68,6 +68,7 @@ def generate_image(program_ids)
     content = rows.join("\n")
     IO.write(filename, content)
     puts "generated file: '#{filename}'  filesize: #{content.bytes.count}"
+    puts "number of black pixels: #{program_ids.count}" 
 end
 
 program_ids = obtain_program_ids(LODA_PROGRAM_ROOTDIR)
