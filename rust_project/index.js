@@ -24,19 +24,19 @@ const runWasm = async () => {
     // dm.clone().run_source_code("mov $1,3\npow $1,$0");
     // dm.clone().run_source_code("mov $1,4\npow $1,$0");
 
-    callbackExecuteProgramId = (programId) => {
-        console.log(`execute: ${programId}`);
+    callbackExecuteProgramId = (programId, termCount) => {
+        console.log(`execute: ${programId}  termCount: ${termCount}`);
         wasmModule.run_program_id(programId);
     };
 
-    callbackExecuteSourceCode = (sourceCode) => {
-        console.log(`execute sourceCode`);
+    callbackExecuteSourceCode = (sourceCode, termCount) => {
+        console.log(`execute sourceCode, termCount: ${termCount}`);
         (async() => {
             console.log('before start');
        
             dm.increment();
             await dm.clone().run_source_code(sourceCode);
-            computeAndYield(40, 0, dm);
+            computeAndYield(termCount, 0, dm);
 
             console.log('after start');
         })();

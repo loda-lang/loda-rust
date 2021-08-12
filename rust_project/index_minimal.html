@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <title>Loda Lab</title>
   <script>
-    var callbackExecuteProgramId = (programId) => {
+    var callbackExecuteProgramId = (programId, termCount) => {
       console.log("callbackExecuteProgramId is not installed");
     }
-    var callbackExecuteSourceCode = (sourceCode) => {
+    var callbackExecuteSourceCode = (sourceCode, termCount) => {
       console.log("callbackExecuteSourceCode is not installed");
     }
     var callbackFinishedWasmLoading = () => {
@@ -21,7 +21,7 @@
     function runCurrentProgram() {
       var el = document.getElementById("sequenceid");
       const programId = parseInt(el.value);
-      callbackExecuteProgramId(programId);
+      callbackExecuteProgramId(programId, 10);
     }
   </script>
   <script type="module" src="index.js"></script>

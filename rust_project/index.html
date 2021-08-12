@@ -62,14 +62,16 @@ class PageController {
   constructor(dict) {
 
     // Install `runSourceCode` callback
-    this.runSourceCode = dict['runSourceCode'] || function(sourceCode) {
+    this.runSourceCode = dict['runSourceCode'] || function(sourceCode, termCount) {
       console.error("PageController.runSourceCode() callback not installed");
     };
 
     this.mIdenticalToOriginal = true;
     this.mOriginalText = "";
+    this.mNumberOfTerms = 10;
     this.mEditor = this.configureEditor();
     this.configureKeyboardShortcuts();
+    this.configureOutputCount();
     this.loadProgram();
   }
   
@@ -92,6 +94,16 @@ class PageController {
 
   showOverlay() {
     document.getElementById("overlay").style.display = "block";
+  }
+
+  configureOutputCount() {
+    const el = document.getElementById('output-count');
+    var self = this;
+    el.addEventListener('change', function(e) {
+      const s = e.target.value;
+      self.mNumberOfTerms = parseInt(s);
+      self.runAction();
+    }, false);
   }
 
   loadProgram() {
@@ -165,7 +177,8 @@ class PageController {
 
   runAction() {
     let sourceCode = this.mEditor.getValue();
-    this.runSourceCode(sourceCode);
+    let termCount = this.mNumberOfTerms;
+    this.runSourceCode(sourceCode, termCount);
   }
 
   cancelAction() {
@@ -175,10 +188,10 @@ class PageController {
 
 var gPageController = null;
 
-var callbackExecuteProgramId = (programId) => {
+var callbackExecuteProgramId = (programId, termCount) => {
   console.log("callbackExecuteProgramId is not installed");
 }
-var callbackExecuteSourceCode = (sourceCode) => {
+var callbackExecuteSourceCode = (sourceCode, termCount) => {
   console.log("callbackExecuteSourceCode is not installed");
 }
 var callbackFinishedWasmLoading = () => {
@@ -186,8 +199,8 @@ var callbackFinishedWasmLoading = () => {
 }
 
 function body_onload() {
-  const runSourceCode = function(sourceCode) {
-    callbackExecuteSourceCode(sourceCode);
+  const runSourceCode = function(sourceCode, termCount) {
+    callbackExecuteSourceCode(sourceCode, termCount);
   };
   const dict = {
     'runSourceCode': runSourceCode
@@ -252,15 +265,15 @@ function body_onbeforeunload() {
       <div id="output-count">
         Number of terms:
         <span class="output-count-radio-item">
-          <input type="radio" id="count10" name="outputcount" value="10" checked="on">
+          <input type="radio" id="count10" name="outputcountname" value="10" checked="on">
           <label for="count10">10</label>
         </span>
         <span class="output-count-radio-item">
-          <input type="radio" id="count100" name="outputcount" value="100">
+          <input type="radio" id="count100" name="outputcountname" value="100">
           <label for="count100">100</label>
         </span>
         <span class="output-count-radio-item">
-          <input type="radio" id="count1000" name="outputcount" value="1000">
+          <input type="radio" id="count1000" name="outputcountname" value="1000">
           <label for="count1000">1000</label>
         </span>      
       </div>
