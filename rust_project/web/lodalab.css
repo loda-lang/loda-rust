@@ -65,6 +65,9 @@ body {
     word-wrap: break-word;
     font-family: monospace;
 }
+.output-stopped-timeout {
+    color: red;
+}
 #page-footer {
     border-top: 1px solid #bdbdbd;
     padding: 10px;
