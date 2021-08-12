@@ -624,7 +624,7 @@ impl WebDependencyManagerInner {
         if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
             let val0 = web_sys::window().unwrap().document().unwrap().create_element("span")?;
             val0.set_class_name("separator");
-            val0.set_text_content(Some(", "));
+            val0.set_text_content(Some(","));
             let val1 = web_sys::window().unwrap().document().unwrap().create_element("span")?;
             val1.set_class_name("term");
             val1.set_text_content(Some(&term_string));

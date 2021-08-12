@@ -150,11 +150,11 @@ class PageController {
     this.runAction();
   }
 
-  outputInnerAppendStopMessage(message) {
+  outputInnerAppendErrorMessage(message) {
     var output = document.getElementById("output-inner");
     var el0 = document.createElement('span');
     el0.className = "separator";
-    el0.innerText = ", ";
+    el0.innerText = ",";
     output.appendChild(el0);
     var el1 = document.createElement('span');
     el1.className = "error";
@@ -169,7 +169,7 @@ class PageController {
     // console.log(`tick: ${this.mTick}`);
     if (this.mTick >= 100) {
       this.mUpdateTick = false;
-      this.outputInnerAppendStopMessage("Stopped - exceeded 10 second time limit.");
+      this.outputInnerAppendErrorMessage("Stopped - exceeded 10 second time limit.");
       return;
     }
     this.mTick += 1;
@@ -228,7 +228,7 @@ class PageController {
 
   exceptionOccurredWhileRunning(message) {
     this.mUpdateTick = false;
-    this.outputInnerAppendStopMessage(message);
+    this.outputInnerAppendErrorMessage(message);
   }
 }
 
