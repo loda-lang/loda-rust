@@ -565,6 +565,8 @@ impl WebDependencyManagerInner {
         let runner: Rc::<ProgramRunner> = Rc::new(runner1);
         self.program_runner = runner;
 
+        self.step_count = 0;
+
         Ok(JsValue::from_str("success"))
     }
 
@@ -583,7 +585,7 @@ impl WebDependencyManagerInner {
             return Err(err);
         }
 
-        let step_count_limit: u64 = 10000000;
+        let step_count_limit: u64 = 1000000000;
         let index: i64 = js_index as i64;
 
         let input = RegisterValue::from_i64(index);
