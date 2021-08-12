@@ -434,6 +434,7 @@ struct WebDependencyManagerInner {
     dependency_manager: DependencyManager,
     cache: ProgramCache,
     step_count: u64,
+    outputted_byte_count: u64,
     program_runner: Rc::<ProgramRunner>,
 }
 
@@ -453,6 +454,7 @@ impl WebDependencyManagerInner {
             dependency_manager: dm,
             cache: cache,
             step_count: 0,
+            outputted_byte_count: 0,
             program_runner: program_runner,
         }
     }
@@ -566,6 +568,7 @@ impl WebDependencyManagerInner {
         self.program_runner = runner;
 
         self.step_count = 0;
+        self.outputted_byte_count = 0;
 
         Ok(JsValue::from_str("success"))
     }
@@ -585,6 +588,7 @@ impl WebDependencyManagerInner {
             return Err(err);
         }
 
+        let output_byte_count_limit: u64 = 2000;
         let step_count_limit: u64 = 1000000000;
         let index: i64 = js_index as i64;
 
@@ -609,18 +613,29 @@ impl WebDependencyManagerInner {
                 return Err(err);
             }
         };
-        let term_string: String = match index {
-            0 => format!("{}", output.0),
-            _ => format!(", {}", output.0)
-        };
+        let term_string: String = output.0.to_str_radix(10);
+        self.outputted_byte_count += term_string.len() as u64;
+        if self.outputted_byte_count > output_byte_count_limit {
+            error!("Failure while computing term {}, the amount of output exceeded the limit {} bytes", index, output_byte_count_limit);
+            let s = format!("Stop - output exceeded the limit of {} bytes", output_byte_count_limit);
+            let err = JsValue::from_str(&s);
+            return Err(err);
+        }
         if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
-            let val = web_sys::window().unwrap().document().unwrap().create_element("span")?;
-            val.set_text_content(Some(&term_string));
+            let val0 = web_sys::window().unwrap().document().unwrap().create_element("span")?;
+            val0.set_class_name("separator");
+            val0.set_text_content(Some(", "));
+            let val1 = web_sys::window().unwrap().document().unwrap().create_element("span")?;
+            val1.set_class_name("term");
+            val1.set_text_content(Some(&term_string));
             if index == 0 {
                 // remove all child elements
                 node.set_text_content(None);
+                node.append_child(&val1)?;
+            } else {
+                node.append_child(&val0)?;
+                node.append_child(&val1)?;
             }
-            node.append_child(&val)?;
         }
 
         Ok(JsValue::from_str("success"))

@@ -13,7 +13,15 @@ function computeAndYield(remaining, index, dm) {
         return;
     }
     (async() => {
-        await dm.clone().execute_current_program(index);
+        try {
+            await dm.clone().execute_current_program(index);
+        }
+        catch(err) {
+            console.log("Exception inside execute_current_program: ", err);
+            dm.clone().print_stats();
+            gPageController.exceptionOccurredWhileRunning(`${err}`);
+            return;
+        }
         setTimeout(function() { computeAndYield(remaining - 1, index + 1, dm); }, 0);
     })();
 }

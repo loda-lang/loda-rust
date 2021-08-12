@@ -65,8 +65,14 @@ body {
     word-wrap: break-word;
     font-family: monospace;
 }
-.output-stopped-timeout {
+#output-inner .error {
     color: red;
+}
+#output-inner .term {
+    color: black;
+}
+#output-inner .separator {
+    color: lightgray;
 }
 #page-footer {
     border-top: 1px solid #bdbdbd;

@@ -150,14 +150,15 @@ class PageController {
     this.runAction();
   }
 
-  outputInnerAppendStopTimeout() {
+  outputInnerAppendStopMessage(message) {
     var output = document.getElementById("output-inner");
     var el0 = document.createElement('span');
+    el0.className = "separator";
     el0.innerText = ", ";
     output.appendChild(el0);
     var el1 = document.createElement('span');
-    el1.className = "output-stopped-timeout";
-    el1.innerText = "Stopped - exceeded 10 second time limit.";
+    el1.className = "error";
+    el1.innerText = message;
     output.appendChild(el1);
   }
 
@@ -168,7 +169,7 @@ class PageController {
     // console.log(`tick: ${this.mTick}`);
     if (this.mTick >= 100) {
       this.mUpdateTick = false;
-      this.outputInnerAppendStopTimeout();
+      this.outputInnerAppendStopMessage("Stopped - exceeded 10 second time limit.");
       return;
     }
     this.mTick += 1;
@@ -223,6 +224,11 @@ class PageController {
   finishedComputingTheLastTerm() {
     console.log("finished computing the last term");
     this.mUpdateTick = false;
+  }
+
+  exceptionOccurredWhileRunning(message) {
+    this.mUpdateTick = false;
+    this.outputInnerAppendStopMessage(message);
   }
 }
 
