@@ -165,10 +165,10 @@ class PageController {
     if (!this.mUpdateTick) {
       return;
     }
-    console.log(`tick: ${this.mTick}`);
+    // console.log(`tick: ${this.mTick}`);
     if (this.mTick >= 100) {
       this.mUpdateTick = false;
-      outputInnerAppendStopTimeout();
+      this.outputInnerAppendStopTimeout();
       return;
     }
     this.mTick += 1;
@@ -214,6 +214,15 @@ class PageController {
 
   cancelAction() {
     console.log("Cancel button");
+  }
+
+  isRunningProgram() {
+    return this.mUpdateTick;
+  }
+
+  finishedComputingTheLastTerm() {
+    console.log("finished computing the last term");
+    this.mUpdateTick = false;
   }
 }
 

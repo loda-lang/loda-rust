@@ -1,8 +1,15 @@
 import init, * as wasmModule from './pkg/loda_lab.js';
 
 function computeAndYield(remaining, index, dm) {
-    if (remaining <= 0) {
+    if (!gPageController.isRunningProgram()) {
+        console.log("prematurely abort");
         dm.clone().print_stats();
+        return;
+    }
+    if (remaining <= 0) {
+        console.log("all terms have been computed.");
+        dm.clone().print_stats();
+        gPageController.finishedComputingTheLastTerm();
         return;
     }
     (async() => {
