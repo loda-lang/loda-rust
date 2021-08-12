@@ -55,6 +55,7 @@ body {
     right: 0;
     border-left: 1px solid #bdbdbd;
     box-sizing: border-box;
+    overflow-y: scroll;
 }
 #output-inner {
     margin: 10px;
