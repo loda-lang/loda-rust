@@ -193,11 +193,11 @@ class PageController {
         pageControllerInstance.runAction();
         return;
       }
-      // intercept ESCape key, and jump to parent page.
+      // intercept ESCape key, and stop a running program.
       if(isEscapeKeyCode) {
-        console.log("escape: cancel");
+        console.log("escape: stop running");
         event.preventDefault(); // Suppress "double action"
-        pageControllerInstance.cancelAction();
+        pageControllerInstance.stopAction();
         return;
       }
     };
@@ -213,8 +213,14 @@ class PageController {
     this.runSourceCode(sourceCode, termCount);
   }
 
-  cancelAction() {
-    console.log("Cancel button");
+  stopAction() {
+    console.log("Stop button");
+    this.mUpdateTick = false;
+  }
+
+  showInfo() {
+    console.log("Show info");
+    document.location = "https://github.com/ckrause/loda";
   }
 
   isRunningProgram() {
@@ -289,12 +295,13 @@ function body_onbeforeunload() {
   
 <header class="titlebar-container">
   <div class="titlebar-item titlebar-item-left">
-    <button class="seconday-button" onclick="gPageController.cancelAction()">Cancel</button>
+    <button class="seconday-button" onclick="gPageController.showInfo()">Info</button>
   </div>
 
   <div class="titlebar-item titlebar-item-center">Edit</div>
 
   <div class="titlebar-item titlebar-item-right">
+    <button class="seconday-button" onclick="gPageController.stopAction()">Stop (Esc)</button>
     <button id="run-button" class="primary-button" onclick="gPageController.runAction()">Run (Ctrl+Enter)</button>
   </div>
 </header>
