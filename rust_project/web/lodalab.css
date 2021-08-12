@@ -63,6 +63,7 @@ body {
     background-color: white;
     overflow-wrap: break-word;
     word-wrap: break-word;
+    font-family: monospace;
 }
 #page-footer {
     border-top: 1px solid #bdbdbd;
