@@ -45,7 +45,7 @@ impl ProgramState {
         // Register 0 is for input value
         // Register 1 is for output value
         // So there must be a least 2 registers.
-        assert!(register_count >= 2);
+        let register_count: u8 = u8::max(register_count, 2);
 
         let mut register_vec: Vec<RegisterValue> = vec!();
         for _ in 0..register_count {
@@ -269,9 +269,8 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_10001_initialize_with_too_few_registers() {
-        ProgramState::new(
+        let state = ProgramState::new(
             0, 
             RunMode::Silent, 
             1000, 
@@ -280,12 +279,12 @@ mod tests {
             NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         );
+        assert_eq!(state.register_vec_to_string(), "[0,0]")
     }
 
     #[test]
-    #[should_panic]
     fn test_10002_initialize_with_too_few_registers() {
-        ProgramState::new(
+        let state = ProgramState::new(
             1, 
             RunMode::Silent, 
             1000,
@@ -294,6 +293,7 @@ mod tests {
             NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         );
+        assert_eq!(state.register_vec_to_string(), "[0,0]")
     }
 
     #[test]
