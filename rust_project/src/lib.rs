@@ -2,11 +2,14 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Request, RequestInit, RequestMode, Response};
+use std::panic;
 
 use log::{Log,Metadata,Record,LevelFilter};
 
 #[macro_use]
 extern crate log;
+
+extern crate console_error_panic_hook;
 
 mod config;
 mod control;
@@ -76,7 +79,7 @@ pub mod console {
 }
 
 #[wasm_bindgen]
-pub fn setup_log() {
+pub fn setup_lib() {
     console::log("This console.log is from wasm!");
 
     MyCustomLog::new().init().unwrap();
@@ -86,6 +89,8 @@ pub fn setup_log() {
     error!("I'm error");
     info!("I'm info");
     warn!("I'm warn");
+
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
 }
 
 // Construct url for a program id (eg A112088), like the following

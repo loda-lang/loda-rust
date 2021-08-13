@@ -30,7 +30,7 @@ const runWasm = async () => {
     await init('./pkg/loda_lab_bg.wasm');
     window.wasmModule = wasmModule;
 
-    wasmModule.setup_log();
+    wasmModule.setup_lib();
     // wasmModule.perform_selfcheck();
 
     const dm = new wasmModule.WebDependencyManager();
