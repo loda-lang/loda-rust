@@ -15,8 +15,8 @@ lazy_static! {
 // The register 0 is for input data.
 const INPUT_REGISTER: usize = 0;
 
-// The register 1 is for output data.
-const OUTPUT_REGISTER: usize = 1;
+// The register 0 is for output data.
+const OUTPUT_REGISTER: usize = 0;
 
 
 #[derive(Clone)]
@@ -43,9 +43,9 @@ impl ProgramState {
         node_power_limit: NodePowerLimit
     ) -> Self {
         // Register 0 is for input value
-        // Register 1 is for output value
-        // So there must be a least 2 registers.
-        let register_count: u8 = u8::max(register_count, 2);
+        // Register 0 is for output value
+        // So there must be a least 1 register.
+        let register_count: u8 = u8::max(register_count, 1);
 
         let mut register_vec: Vec<RegisterValue> = vec!();
         for _ in 0..register_count {
@@ -100,9 +100,9 @@ impl ProgramState {
         return &self.register_vec[index];
     }    
 
-    // Read the value of register 1, the output register.
+    // Read the value of register 0, the output register.
     pub fn get_output_value(&self) -> &RegisterValue {
-        assert!(self.register_vec.len() >= 2);
+        assert!(self.register_vec.len() >= 1);
         return &self.register_vec[OUTPUT_REGISTER];
     }    
 
@@ -116,7 +116,7 @@ impl ProgramState {
 
     // Write a value to register 0, the input register.
     pub fn set_input_value(&mut self, register_value: &RegisterValue) {
-        assert!(self.register_vec.len() >= 2);
+        assert!(self.register_vec.len() >= 1);
         self.register_vec[INPUT_REGISTER] = register_value.clone();
     }
    
@@ -279,11 +279,11 @@ mod tests {
             NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         );
-        assert_eq!(state.register_vec_to_string(), "[0,0]")
+        assert_eq!(state.register_vec_to_string(), "[0]")
     }
 
     #[test]
-    fn test_10002_initialize_with_too_few_registers() {
+    fn test_10002_initialize_with_the_minimum_number_of_registers() {
         let state = ProgramState::new(
             1, 
             RunMode::Silent, 
@@ -293,7 +293,7 @@ mod tests {
             NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         );
-        assert_eq!(state.register_vec_to_string(), "[0,0]")
+        assert_eq!(state.register_vec_to_string(), "[0]")
     }
 
     #[test]

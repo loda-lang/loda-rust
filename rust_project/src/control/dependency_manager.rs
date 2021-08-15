@@ -215,6 +215,7 @@ mod tests {
         const PROGRAM: &str = r#"        
         mov $1,2
         pow $1,$0
+        mov $0,$1
         "#;
         let mut dm = DependencyManager::new(
             PathBuf::from("non-existing-dir"),

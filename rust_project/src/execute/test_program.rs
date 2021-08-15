@@ -20,6 +20,7 @@ mod tests {
         let mut program = Program::new();
         program.push(NodeMoveConstant::new(RegisterIndex(3), RegisterValue::one()));
         program.push(NodeLoopSimple::new(RegisterIndex(0), program_inner));
+        program.push(NodeMoveRegister::new(RegisterIndex(0), RegisterIndex(1)));
         program
     }
 
@@ -30,8 +31,8 @@ lpb $0
   mov $2,$1
   add $1,$3
   mov $3,$2
-lpe"#;
-
+lpe
+mov $0,$1"#;
 
     #[test]
     fn test_10000_serialize() {

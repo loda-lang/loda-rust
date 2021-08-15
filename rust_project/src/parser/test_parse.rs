@@ -14,6 +14,7 @@ mod tests {
       add $1,$3
       mov $3,$2
     lpe
+    mov $0,$1
     "#;
 
     const INPUT_A000079: &str = r#"
@@ -22,6 +23,7 @@ mod tests {
     
     mov $1,2
     pow $1,$0
+    mov $0,$1
     "#;
 
     const INPUT_A000196: &str = r#"
@@ -34,6 +36,7 @@ mod tests {
       trn $0,$1
     lpe
     div $1,2
+    mov $0,$1
     "#;
 
     const INPUT_A005131: &str = r#"
@@ -47,8 +50,7 @@ mod tests {
     add $2,3
     dif $2,3
     add $0,$2
-    mov $1,$0
-    div $1,2
+    div $0,2
     "#;
 
     const INPUT_A002624: &str = r#"
@@ -78,7 +80,7 @@ mod tests {
       lpe
       add $13,$10
     lpe
-    mov $1,$13
+    mov $0,$13
     "#;
 
     const INPUT_A002791: &str = r#"
@@ -105,6 +107,7 @@ mod tests {
     sub $11,$3
     mov $1,$11
     sub $1,17
+    mov $0,$1
     "#;
 
     const INPUT_A007958: &str = r#"
@@ -134,6 +137,7 @@ mod tests {
       sub $0,1
       add $1,2
     lpe
+    mov $0,$1
     "#;
 
     const INPUT_A206735: &str = r#"
@@ -146,7 +150,7 @@ mod tests {
       sub $4,$3
     lpe
     bin $3,$4
-    mov $1,$3
+    mov $0,$3
     "#;
 
     const INPUT_A253472: &str = r#"
@@ -185,6 +189,7 @@ mod tests {
     sub $0,$4
     sub $1,$0
     sub $1,2
+    mov $0,$1
     "#;
 
     #[test]
