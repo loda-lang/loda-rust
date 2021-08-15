@@ -4,4 +4,3 @@
 
 seq $0,186291 ; Adjusted joint rank sequence of (f(i)) and (g(j)) with f(i) after g(j) when f(i)=g(j), where f and g are the squares and pentagonal numbers. Complement of A186290.
 div $0,3
-mov $1,$0

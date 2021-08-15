@@ -4,4 +4,3 @@
 
 seq $0,284621 ; Positions of 0 in A284620.
 add $0,2
-mov $1,$0

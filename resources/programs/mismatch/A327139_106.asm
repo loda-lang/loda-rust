@@ -4,4 +4,3 @@
 
 seq $0,127451 ; Beatty sequence for n/(1 - e^Pi + Pi^e), complement of A127450.
 trn $0,2
-mov $1,$0

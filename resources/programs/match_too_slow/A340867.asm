@@ -5,3 +5,4 @@
 mov $1,$0
 seq $1,8347 ; a(n) = Sum_{i=0..n-1} (-1)^i * prime(n-i).
 mod $1,4
+mov $0,$1

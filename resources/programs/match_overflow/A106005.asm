@@ -4,3 +4,4 @@
 mov $1,$0
 seq $1,45 ; Fibonacci
 mod $1,15
+mov $0,$1

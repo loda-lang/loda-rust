@@ -4,4 +4,3 @@
 
 seq $0,186322 ; Adjusted joint rank sequence of (f(i)) and (g(j)) with f(i) after g(j) when f(i)=g(j), where f and g are the squares and heptagonal numbers.  Complement of A186323.
 trn $0,1
-mov $1,$0
