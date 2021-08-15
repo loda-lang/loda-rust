@@ -260,6 +260,13 @@ mod tests {
         assert_eq!(runner.inspect(10), "1,2,1,2,1,2,1,2,1,2");
     }
 
+    #[test]
+    fn test_10103_load_simple3() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/load_simple3");
+        let runner: Rc::<ProgramRunner> = dm.load(120).unwrap();
+        assert_eq!(runner.inspect(10), "0,1,1,2,1,2,2,3,1,2");
+    }
+
     impl DependencyManagerError {
         fn expect_cyclic_dependency(&self) -> &CyclicDependencyError {
             match self {
