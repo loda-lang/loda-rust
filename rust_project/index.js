@@ -39,11 +39,6 @@ const runWasm = async () => {
     // dm.clone().run_source_code("mov $1,3\npow $1,$0");
     // dm.clone().run_source_code("mov $1,4\npow $1,$0");
 
-    callbackExecuteProgramId = (programId, termCount) => {
-        console.log(`execute: ${programId}  termCount: ${termCount}`);
-        wasmModule.run_program_id(programId);
-    };
-
     callbackExecuteSourceCode = (sourceCode, termCount) => {
         console.log(`execute sourceCode, termCount: ${termCount}`);
         (async() => {
