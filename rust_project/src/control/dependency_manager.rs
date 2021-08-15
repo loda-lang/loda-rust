@@ -241,6 +241,7 @@ mod tests {
         const PROGRAM: &str = r#"        
         mov $1,2
         pow $1,$0
+        mov $0,$1
         "#;
         let mut dm = DependencyManager::new(
             PathBuf::from("non-existing-dir"),
@@ -284,6 +285,13 @@ mod tests {
         let mut dm: DependencyManager = dependency_manager_mock("tests/load_simple2");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.inspect(10), "1,2,1,2,1,2,1,2,1,2");
+    }
+
+    #[test]
+    fn test_10103_load_simple3() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/load_simple3");
+        let runner: Rc::<ProgramRunner> = dm.load(120).unwrap();
+        assert_eq!(runner.inspect(10), "0,1,1,2,1,2,2,3,1,2");
     }
 
     impl DependencyManagerError {
@@ -398,7 +406,7 @@ mod tests {
         let mut dm: DependencyManager = dependency_manager_mock("tests/live_register6");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.live_registers().len(), 1);
-        assert_eq!(runner.has_live_registers(), false);
+        assert_eq!(runner.has_live_registers(), true);
     }
 
     #[test]

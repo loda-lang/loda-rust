@@ -4,4 +4,3 @@
 
 seq $0,329975 ; Beatty sequence for 1 + x + x^2, where x is the real solution of 1/x + 1/(1+x+x^2) = 1.
 div $0,3
-mov $1,$0

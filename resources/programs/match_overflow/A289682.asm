@@ -4,3 +4,4 @@
 mov $1,$0
 seq $1,108 ; Catalan numbers: C(n) = binomial(2n,n)/(n+1) = (2n)!/(n!(n+1)!).
 mod $1,16
+mov $0,$1
