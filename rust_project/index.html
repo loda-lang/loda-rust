@@ -70,7 +70,6 @@ class PageController {
     this.mUpdateTick = false;
     this.mIdenticalToOriginal = true;
     this.mOriginalText = "";
-    this.mNumberOfTerms = 10;
     this.mEditor = this.configureEditor();
     this.configureKeyboardShortcuts();
     this.configureOutputCount();
@@ -98,12 +97,23 @@ class PageController {
     document.getElementById("overlay").style.display = "block";
   }
 
+  getNumberOfTerms() {
+    var radios = document.getElementsByName("outputcountname");
+    const length = radios.length;
+    var value = 10;
+    for (var i = 0; i < length; i++) {
+      if (radios[i].checked) {
+        value = radios[i].value;
+        break;
+      }
+    }
+    return value;
+  }
+
   configureOutputCount() {
     const el = document.getElementById('output-count');
     var self = this;
     el.addEventListener('change', function(e) {
-      const s = e.target.value;
-      self.mNumberOfTerms = parseInt(s);
       self.runAction();
     }, false);
   }
@@ -209,7 +219,7 @@ class PageController {
     this.mUpdateTick = true;
     this.executeTick();
     let sourceCode = this.mEditor.getValue();
-    let termCount = this.mNumberOfTerms;
+    let termCount = this.getNumberOfTerms();
     this.runSourceCode(sourceCode, termCount);
   }
 
