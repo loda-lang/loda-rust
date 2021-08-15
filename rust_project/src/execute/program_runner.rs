@@ -115,7 +115,7 @@ impl ProgramRunner {
 
     #[allow(dead_code)]
     pub fn has_live_registers(&self) -> bool {
-        self.live_registers().contains(&RegisterIndex(1))
+        self.live_registers().contains(&RegisterIndex(0))
     }
 
     // While mining. Many programs gets rejected, because there is no connection from the 
@@ -134,7 +134,7 @@ impl ProgramRunner {
             // There is no live registers to pick from.
             return false;
         }
-        let target: RegisterIndex = RegisterIndex(1);
+        let target: RegisterIndex = RegisterIndex(0);
         if live_registers.contains(&target) {
             // There is live data in the output register.
             // No need to apply the trick.
