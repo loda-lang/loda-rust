@@ -4,4 +4,3 @@
 
 seq $0,139704 ; Nearly palindromic numbers: non-palindromes that can be made palindromic by inserting an extra digit.
 pow $0,2
-mov $1,$0

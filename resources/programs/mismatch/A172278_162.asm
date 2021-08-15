@@ -9,3 +9,4 @@ sub $0,1
 max $0,0
 seq $0,276383 ; Complement of A158919: complementary Beatty sequence to the Beatty sequence defined by the tribonacci constant tau = A058265.
 mul $1,$0
+mov $0,$1

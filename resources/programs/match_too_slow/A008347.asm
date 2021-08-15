@@ -11,3 +11,4 @@ lpb $0
   add $1,$3 ; add to sum
   mul $2,-1 ; alternate betweeen -1 and +1
 lpe
+mov $0,$1

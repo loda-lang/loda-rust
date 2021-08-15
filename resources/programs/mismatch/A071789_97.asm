@@ -5,3 +5,4 @@
 mov $1,$0
 seq $1,115180 ; Beatty sequence for (Champernowne constant)*10 = 1.234567891011121314....
 mod $1,10
+mov $0,$1

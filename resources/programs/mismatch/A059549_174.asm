@@ -4,4 +4,3 @@
 
 add $0,1
 seq $0,155902 ; Arises in Connell's game, a variation of Wythoff's Nim game.
-mov $1,$0

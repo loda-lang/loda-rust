@@ -4,4 +4,3 @@
 
 seq $0,39163 ; Numbers n such that representation in base 11 has same number of 0's and 8's.
 sub $0,1
-mov $1,$0

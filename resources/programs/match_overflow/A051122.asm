@@ -34,3 +34,4 @@ lpb $2
     mul $4,2 ; Double the scale factor. Example: 1,2,4,8,16,32
     sub $2,1
 lpe
+mov $0,$1
