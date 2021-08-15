@@ -380,7 +380,7 @@ mod tests {
         let mut dm: DependencyManager = dependency_manager_mock("tests/live_register6");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.live_registers().len(), 1);
-        assert_eq!(runner.has_live_registers(), false);
+        assert_eq!(runner.has_live_registers(), true);
     }
 
     #[test]
