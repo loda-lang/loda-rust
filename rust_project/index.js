@@ -1,7 +1,7 @@
 import init, * as wasmModule from './pkg/loda_lab.js';
 
-function computeAndYield(remaining, index, dm) {
-    if (!gPageController.isRunningProgram()) {
+function computeAndYield(remaining, index, dm, runId) {
+    if (!gPageController.isRunningProgram(runId)) {
         console.log("prematurely abort");
         dm.clone().print_stats();
         return;
@@ -22,7 +22,7 @@ function computeAndYield(remaining, index, dm) {
             gPageController.exceptionOccurredWhileRunning(`${err}`);
             return;
         }
-        setTimeout(function() { computeAndYield(remaining - 1, index + 1, dm); }, 0);
+        setTimeout(function() { computeAndYield(remaining - 1, index + 1, dm, runId); }, 0);
     })();
 }
 
@@ -39,14 +39,14 @@ const runWasm = async () => {
     // dm.clone().run_source_code("mov $1,3\npow $1,$0");
     // dm.clone().run_source_code("mov $1,4\npow $1,$0");
 
-    callbackExecuteSourceCode = (sourceCode, termCount) => {
+    callbackExecuteSourceCode = (sourceCode, termCount, runId) => {
         console.log(`execute sourceCode, termCount: ${termCount}`);
         (async() => {
             console.log('before start');
        
             dm.increment();
             await dm.clone().run_source_code(sourceCode);
-            computeAndYield(termCount, 0, dm);
+            computeAndYield(termCount, 0, dm, runId);
 
             console.log('after start');
         })();
