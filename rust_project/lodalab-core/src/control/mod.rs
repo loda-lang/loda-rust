@@ -5,7 +5,7 @@ mod subcommand_install;
 // mod subcommand_mine;
 // mod subcommand_update;
 
-pub use dependency_manager::DependencyManager;
+pub use dependency_manager::{DependencyManager,DependencyManagerFileSystemMode};
 pub use subcommand_dependencies::subcommand_dependencies;
 pub use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 pub use subcommand_install::subcommand_install;

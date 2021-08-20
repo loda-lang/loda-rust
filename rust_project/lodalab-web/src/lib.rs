@@ -18,7 +18,7 @@ use std::rc::Rc;
 use core::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use lodalab_core::control::DependencyManager;
+use lodalab_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use lodalab_core::execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use lodalab_core::execute::NodeRegisterLimit;
 use lodalab_core::execute::node_binomial::NodeBinomialLimit;
@@ -167,6 +167,7 @@ pub fn perform_selfcheck() {
     pow $1,$0
     "#;
     let mut dm = DependencyManager::new(
+        DependencyManagerFileSystemMode::Virtual,
         PathBuf::from("non-existing-dir"),
     );
     let source_code: String = PROGRAM.to_string();
@@ -235,6 +236,7 @@ struct WebDependencyManagerInner {
 impl WebDependencyManagerInner {
     fn create() -> WebDependencyManagerInner {
         let mut dm = DependencyManager::new(
+            DependencyManagerFileSystemMode::Virtual,
             PathBuf::from("non-existing-dir"),
         );
         let cache = ProgramCache::new();

@@ -75,7 +75,13 @@ impl fmt::Display for DependencyManagerError {
     }
 }
 
+pub enum DependencyManagerFileSystemMode {
+    System,
+    Virtual
+}
+
 pub struct DependencyManager {
+    file_system_mode: DependencyManagerFileSystemMode,
     loda_program_dir: PathBuf,
     program_run_manager: ProgramRunnerManager,
     programids_currently_loading: HashSet<u64>,
@@ -84,8 +90,9 @@ pub struct DependencyManager {
 }
 
 impl DependencyManager {
-    pub fn new(loda_program_dir: PathBuf) -> Self {
+    pub fn new(file_system_mode: DependencyManagerFileSystemMode, loda_program_dir: PathBuf) -> Self {
         Self {
+            file_system_mode: file_system_mode,
             loda_program_dir: loda_program_dir,
             program_run_manager: ProgramRunnerManager::new(),
             programids_currently_loading: HashSet::new(),
@@ -130,27 +137,42 @@ impl DependencyManager {
         }
         self.programids_currently_loading.insert(program_id);
 
-        let contents: String = match self.virtual_filesystem.get(&program_id) {
-            Some(value) => value.clone(),
-            None => {
-                return Err(DependencyManagerError::CannotReadProgramFileFromVirtualFileSystem);
-            }
+        // Read the file, or return an error if no such file exist.
+        let contents: String = match self.file_system_mode {
+            DependencyManagerFileSystemMode::System => self.system_read(program_id)?,
+            DependencyManagerFileSystemMode::Virtual => self.virtual_read(program_id)?
         };
-        // let path = self.path_to_program(program_id);
-        // let contents: String = match fs::read_to_string(&path) {
-        //     Ok(value) => value,
-        //     Err(io_error) => {
-        //         // Something went wrong reading the file.
-        //         let error = CannotReadProgramFileError::new(program_id, io_error);
-        //         return Err(DependencyManagerError::CannotReadProgramFile(error));
-        //     }
-        // };
 
         let program_id_inner = ProgramId::ProgramOEIS(program_id);
         let runner: ProgramRunner = self.parse(program_id_inner, &contents)?;    
         self.program_run_manager.register(program_id, runner);
         self.programids_currently_loading.remove(&program_id);
         Ok(())
+    }
+
+    // Read a file from the actual file system.
+    fn system_read(&self, program_id: u64) -> Result<String, DependencyManagerError> {
+        let path = self.path_to_program(program_id);
+        let contents: String = match fs::read_to_string(&path) {
+            Ok(value) => value,
+            Err(io_error) => {
+                // Something went wrong reading the file.
+                let error = CannotReadProgramFileError::new(program_id, io_error);
+                return Err(DependencyManagerError::CannotReadProgramFile(error));
+            }
+        };
+        Ok(contents)
+    }
+
+    // Read a file from a dictionary.
+    fn virtual_read(&self, program_id: u64) -> Result<String, DependencyManagerError> {
+        let contents: String = match self.virtual_filesystem.get(&program_id) {
+            Some(value) => value.clone(),
+            None => {
+                return Err(DependencyManagerError::CannotReadProgramFileFromVirtualFileSystem);
+            }
+        };
+        Ok(contents)
     }
 
     pub fn parse(&mut self, program_id: ProgramId, contents: &String) -> 
@@ -244,6 +266,7 @@ mod tests {
         mov $0,$1
         "#;
         let mut dm = DependencyManager::new(
+            DependencyManagerFileSystemMode::System,
             PathBuf::from("non-existing-dir"),
         );
         let source_code: String = PROGRAM.to_string();
@@ -254,7 +277,10 @@ mod tests {
     #[test]
     fn test_10001_path_to_program() {
         let basedir = PathBuf::from("non-existing-dir");
-        let dm = DependencyManager::new(basedir.clone());
+        let dm = DependencyManager::new(
+            DependencyManagerFileSystemMode::System,
+            basedir.clone()
+        );
         {
             let actual: PathBuf = dm.path_to_program(79);
             let expected: PathBuf = basedir.join("000/A000079.asm");
@@ -270,7 +296,10 @@ mod tests {
     fn dependency_manager_mock(relative_path_to_testdir: &str) -> DependencyManager {
         let e = env!("CARGO_MANIFEST_DIR");
         let path = PathBuf::from(e).join(relative_path_to_testdir);
-        DependencyManager::new(path)
+        DependencyManager::new(
+            DependencyManagerFileSystemMode::System,
+            path
+        )
     }
 
     #[test]
@@ -416,6 +445,7 @@ mod tests {
         mov $0,0
         "#;
         let mut dm = DependencyManager::new(
+            DependencyManagerFileSystemMode::System,
             PathBuf::from("non-existing-dir"),
         );
         let source_code: String = PROGRAM.to_string();
@@ -435,6 +465,7 @@ mod tests {
         mul $5,0
         "#;
         let mut dm = DependencyManager::new(
+            DependencyManagerFileSystemMode::System,
             PathBuf::from("non-existing-dir"),
         );
         let source_code: String = PROGRAM.to_string();

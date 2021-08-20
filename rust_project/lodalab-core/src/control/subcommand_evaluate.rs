@@ -1,7 +1,7 @@
 use std::time::Instant;
 use std::rc::Rc;
 use std::path::PathBuf;
-use super::DependencyManager;
+use super::{DependencyManager,DependencyManagerFileSystemMode};
 use crate::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
 use crate::execute::NodeRegisterLimit;
 use crate::execute::node_binomial::NodeBinomialLimit;
@@ -23,6 +23,7 @@ pub fn subcommand_evaluate(
     let loda_program_rootdir: PathBuf = config.loda_program_rootdir();
 
     let mut dm = DependencyManager::new(
+        DependencyManagerFileSystemMode::System,
         loda_program_rootdir,
     );
     let program_runner: Rc::<ProgramRunner> = match dm.load(program_id) {

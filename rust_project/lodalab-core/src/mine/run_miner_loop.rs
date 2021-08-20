@@ -1,4 +1,4 @@
-use crate::control::DependencyManager;
+use crate::control::{DependencyManager,DependencyManagerFileSystemMode};
 use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, PreventFlooding, RecentProgramContainer, save_candidate_program};
 use crate::parser::{parse_program, ParsedProgram};
 use crate::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
@@ -184,6 +184,7 @@ pub fn run_miner_loop(
     let mut rng = StdRng::seed_from_u64(initial_random_seed);
 
     let mut dm = DependencyManager::new(
+        DependencyManagerFileSystemMode::System,
         loda_program_rootdir.clone(),
     );
     let mut cache = ProgramCache::new();
