@@ -13,6 +13,8 @@ mod subcommand_evaluate;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 mod subcommand_dependencies;
 use subcommand_dependencies::subcommand_dependencies;
+mod subcommand_install;
+use subcommand_install::subcommand_install;
 
 extern crate clap;
 extern crate num_bigint;

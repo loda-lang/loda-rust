@@ -1,4 +1,5 @@
-use crate::config::Config;
+use lodalab_core;
+use lodalab_core::config::Config;
 use std::path::{Path,PathBuf};
 use std::fs;
 use std::fs::File;
