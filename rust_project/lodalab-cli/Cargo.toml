@@ -7,6 +7,10 @@ repository = "https://github.com/neoneye/loda-lab"
 license = "MIT OR Apache-2.0"
 edition = "2018"
 
+[[bin]]
+name = "loda-lab"
+path = "src/main.rs"
+
 [dependencies]
 lodalab-core = { path = "../lodalab-core" }
 env_logger = "0.9.0"
