@@ -38,6 +38,7 @@ PROMPT> RUST_BACKTRACE=1 cargo run -- eval 79 -t 64
 ### Deploy for web
 
 ```
+PROMPT> cd lodalab-web
 PROMPT> wasm-pack build --target web
 ```
 
