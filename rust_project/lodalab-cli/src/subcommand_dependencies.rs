@@ -1,5 +1,6 @@
+use lodalab_core;
 use super::{DependencyManager,DependencyManagerFileSystemMode};
-use crate::config::Config;
+use lodalab_core::config::Config;
 use std::path::PathBuf;
 
 pub fn subcommand_dependencies(program_id: u64) {

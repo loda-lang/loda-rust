@@ -11,6 +11,8 @@ use lodalab_core::control::*;
 
 mod subcommand_evaluate;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
+mod subcommand_dependencies;
+use subcommand_dependencies::subcommand_dependencies;
 
 extern crate clap;
 extern crate num_bigint;
