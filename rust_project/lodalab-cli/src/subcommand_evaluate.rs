@@ -1,12 +1,13 @@
+use lodalab_core;
 use std::time::Instant;
 use std::rc::Rc;
 use std::path::PathBuf;
-use super::{DependencyManager,DependencyManagerFileSystemMode};
-use crate::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
-use crate::execute::NodeRegisterLimit;
-use crate::execute::node_binomial::NodeBinomialLimit;
-use crate::execute::node_power::NodePowerLimit;
-use crate::config::Config;
+use lodalab_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+use lodalab_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
+use lodalab_core::execute::NodeRegisterLimit;
+use lodalab_core::execute::node_binomial::NodeBinomialLimit;
+use lodalab_core::execute::node_power::NodePowerLimit;
+use lodalab_core::config::Config;
 
 pub enum SubcommandEvaluateMode {
     PrintTerms,
@@ -45,7 +46,13 @@ pub fn subcommand_evaluate(
     }
 }
 
-impl ProgramRunner {
+trait PrintTermsStepsDebug {
+    fn print_terms(&self, count: u64);
+    fn print_steps(&self, count: u64);
+    fn print_debug(&self, count: u64);
+}
+
+impl PrintTermsStepsDebug for ProgramRunner {
     fn print_terms(&self, count: u64) {
         if count >= 0x7fff_ffff_ffff_ffff {
             panic!("Value is too high. Cannot be converted to 64bit signed integer.");

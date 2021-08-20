@@ -1,10 +1,16 @@
 use lodalab_core;
 
+#[macro_use]
+extern crate log;
+
 extern crate env_logger;
 
 use std::str::FromStr;
 
 use lodalab_core::control::*;
+
+mod subcommand_evaluate;
+use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 
 extern crate clap;
 extern crate num_bigint;
