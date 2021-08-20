@@ -2,6 +2,7 @@
 name = "lodalab-cli"
 version = "0.1.0"
 authors = ["Simon Strandgaard <neoneye@gmail.com>"]
+description = "Command line interface for LODA Lab"
 edition = "2018"
 
 [dependencies]
