@@ -248,6 +248,7 @@ dependencies = [
  "log",
  "num-bigint",
  "num-traits",
+ "rand",
 ]
 
 [[package]]

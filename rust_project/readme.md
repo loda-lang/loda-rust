@@ -35,6 +35,14 @@ PROMPT> RUST_BACKTRACE=1 cargo run -- eval 79 -t 64
 ```
 
 
+### Compile for release and run miner
+
+```
+PROMPT> cargo build -p lodalab-cli --release
+PROMPT> ./target/release/lodalab-cli mine
+```
+
+
 ### Deploy for web
 
 ```

@@ -1,5 +1,6 @@
-use crate::config::Config;
-use crate::mine::{CheckFixedLengthSequence, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop};
+use lodalab_core;
+use lodalab_core::config::Config;
+use lodalab_core::mine::{CheckFixedLengthSequence, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 

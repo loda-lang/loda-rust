@@ -9,13 +9,16 @@ use std::str::FromStr;
 
 use lodalab_core::control::*;
 
-mod subcommand_evaluate;
-use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 mod subcommand_dependencies;
-use subcommand_dependencies::subcommand_dependencies;
+mod subcommand_evaluate;
 mod subcommand_install;
-use subcommand_install::subcommand_install;
+mod subcommand_mine;
 mod subcommand_update;
+
+use subcommand_dependencies::subcommand_dependencies;
+use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
+use subcommand_install::subcommand_install;
+use subcommand_mine::subcommand_mine;
 use subcommand_update::subcommand_update;
 
 extern crate clap;
@@ -125,7 +128,7 @@ fn main() {
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("mine") {
-        // TODO: subcommand_mine();
+        subcommand_mine();
         return;
     }
 
