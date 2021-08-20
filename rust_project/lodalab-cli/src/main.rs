@@ -15,6 +15,8 @@ mod subcommand_dependencies;
 use subcommand_dependencies::subcommand_dependencies;
 mod subcommand_install;
 use subcommand_install::subcommand_install;
+mod subcommand_update;
+use subcommand_update::subcommand_update;
 
 extern crate clap;
 extern crate num_bigint;
@@ -118,7 +120,7 @@ fn main() {
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("update") {
-        // TODO: subcommand_update();
+        subcommand_update();
         return;
     }
 
