@@ -23,7 +23,7 @@ use lodalab_core::execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunne
 use lodalab_core::execute::NodeRegisterLimit;
 use lodalab_core::execute::node_binomial::NodeBinomialLimit;
 use lodalab_core::execute::node_power::NodePowerLimit;
-use lodalab_core::parser::{ParsedProgram, ParseProgramError, parse_program, create_program, CreatedProgram, CreateProgramError};
+use lodalab_core::parser::{ParsedProgram, parse_program};
 
 
 #[derive(Clone)]
@@ -100,64 +100,6 @@ fn url_from_program_id(program_id: u64) -> String {
 
 pub fn get_element_by_id(element_id: &str) -> Option<web_sys::Element> {
     web_sys::window()?.document()?.get_element_by_id(element_id)
-}
-
-async fn execute_program(runner: Rc::<ProgramRunner>, count: u64, output_div: &web_sys::Element) -> Result<JsValue, JsValue> {
-    if count >= 0x7fff_ffff_ffff_ffff {
-        let err = JsValue::from_str("Value is too high. Cannot be converted to 64bit signed integer.");
-        return Err(err);
-    }
-    if count < 1 {
-        let err = JsValue::from_str("Expected number of terms to be 1 or greater.");
-        return Err(err);
-    }
-    if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
-        let val = "Executing";
-        node.set_text_content(Some(&val));
-    }
-    let mut cache = ProgramCache::new();
-    let step_count_limit: u64 = 10000000;
-    let mut step_count: u64 = 0;
-    for index in 0..(count as i64) {
-        let input = RegisterValue::from_i64(index);
-        let result_run = runner.run(
-            &input, 
-            RunMode::Verbose, 
-            &mut step_count, 
-            step_count_limit,
-            NodeRegisterLimit::Unlimited,
-            NodeBinomialLimit::Unlimited,
-            NodeLoopLimit::Unlimited,
-            NodePowerLimit::Unlimited,
-            &mut cache
-        );
-        let output: RegisterValue = match result_run {
-            Ok(value) => value,
-            Err(error) => {
-                error!("Failure while computing term {}, error: {:?}", index, error);
-                let s = format!("Failure while computing term {}, error: {:?}", index, error);
-                let err = JsValue::from_str(&s);
-                return Err(err);
-            }
-        };
-        let term_string: String = match index {
-            0 => format!("{}", output.0),
-            _ => format!(", {}", output.0)
-        };
-        if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
-            let val = web_sys::window().unwrap().document().unwrap().create_element("span")?;
-            val.set_text_content(Some(&term_string));
-            if index == 0 {
-                // remove all child elements
-                node.set_text_content(None);
-            }
-            node.append_child(&val)?;
-        }
-    }
-    debug!("steps: {}", step_count);
-    debug!("cache: {}", cache.hit_miss_info());
-
-    Ok(JsValue::from("success"))
 }
 
 #[wasm_bindgen]
