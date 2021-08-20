@@ -1,18 +1,10 @@
-#[macro_use]
-extern crate log;
+use lodalab_core;
 
 extern crate env_logger;
 
 use std::str::FromStr;
 
-mod config;
-mod control;
-mod execute;
-mod mine;
-mod parser;
-mod oeis;
-mod util;
-use control::*;
+use lodalab_core::control::*;
 
 extern crate clap;
 extern crate num_bigint;
@@ -116,12 +108,12 @@ fn main() {
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("update") {
-        subcommand_update();
+        // TODO: subcommand_update();
         return;
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("mine") {
-        subcommand_mine();
+        // TODO: subcommand_mine();
         return;
     }
 

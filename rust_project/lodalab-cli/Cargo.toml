@@ -1,0 +1,13 @@
+[package]
+name = "lodalab-cli"
+version = "0.1.0"
+authors = ["Simon Strandgaard <neoneye@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+lodalab-core = { path = "../lodalab-core" }
+env_logger = "0.9.0"
+log = "0.4.14"
+clap = "2.33.3"
+num-bigint = "0.4"
+num-traits = "0.2"
