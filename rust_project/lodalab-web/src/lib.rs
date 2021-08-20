@@ -11,24 +11,19 @@ extern crate log;
 
 extern crate console_error_panic_hook;
 
-mod config;
-mod control;
-mod execute;
-mod parser;
-mod oeis;
-mod util;
+use lodalab_core;
 
 use std::path::PathBuf;
 use std::rc::Rc;
 use core::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use control::DependencyManager;
-use execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
-use execute::NodeRegisterLimit;
-use execute::node_binomial::NodeBinomialLimit;
-use execute::node_power::NodePowerLimit;
-use parser::{ParsedProgram, ParseProgramError, parse_program, create_program, CreatedProgram, CreateProgramError};
+use lodalab_core::control::DependencyManager;
+use lodalab_core::execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
+use lodalab_core::execute::NodeRegisterLimit;
+use lodalab_core::execute::node_binomial::NodeBinomialLimit;
+use lodalab_core::execute::node_power::NodePowerLimit;
+use lodalab_core::parser::{ParsedProgram, ParseProgramError, parse_program, create_program, CreatedProgram, CreateProgramError};
 
 
 #[derive(Clone)]
@@ -180,7 +175,11 @@ pub fn perform_selfcheck() {
     info!("Selfcheck success");
 }
 
-impl ProgramRunner {
+trait MyPrintTerms {
+    fn my_print_terms(&self, count: u64);
+}
+
+impl MyPrintTerms for ProgramRunner {
     fn my_print_terms(&self, count: u64) {
         if count >= 0x7fff_ffff_ffff_ffff {
             error!("Value is too high. Cannot be converted to 64bit signed integer.");

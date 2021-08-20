@@ -279,6 +279,7 @@ dependencies = [
  "console_error_panic_hook",
  "js-sys",
  "lodalab-core",
+ "log",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
