@@ -48,12 +48,12 @@ function checkRequiredURLSearchParams() {
 }
 
 // Construct url for a program id (eg A112088), like the following
-// https://raw.githubusercontent.com/ckrause/loda/master/programs/oeis/112/A112088.asm
+// https://raw.githubusercontent.com/loda-lang/loda-programs/main/oeis/112/A112088.asm
 function urlFromProgramId(programId) {
   const zeroPad = (num, places) => String(num).padStart(places, '0');
   const dir_index_string = zeroPad(Math.floor(programId/1000), 3);
   const filename_string = "A" + zeroPad(programId, 6) + ".asm";
-  let baseurl = "https://raw.githubusercontent.com/ckrause/loda/master/programs/oeis";
+  let baseurl = "https://raw.githubusercontent.com/loda-lang/loda-programs/main/oeis";
   let url = `${baseurl}/${dir_index_string}/${filename_string}`;
   return url;
 }
@@ -234,7 +234,10 @@ class PageController {
 
   showInfo() {
     console.log("Show info");
-    document.location = "https://github.com/ckrause/loda";
+    window.open(
+      "https://github.com/loda-lang/loda-lang",
+      '_blank' // Open in a new window.
+    );
   }
 
   isRunningProgram(runId) {
@@ -312,7 +315,7 @@ function body_onbeforeunload() {
   
 <header class="titlebar-container">
   <div class="titlebar-item titlebar-item-left">
-    <button class="seconday-button" onclick="gPageController.showInfo()">Info</button>
+    <button class="seconday-button" onclick="gPageController.showInfo()">Language</button>
   </div>
 
   <div class="titlebar-item titlebar-item-center">Edit</div>
@@ -357,8 +360,8 @@ function body_onbeforeunload() {
 </main>
 
 <footer id="page-footer">
-  Version 2021.08.20<br>
-  Source code: <a href="https://github.com/neoneye/loda-lab">https://github.com/neoneye/loda-lab</a>
+  Version 2021.08.22<br>
+  Source code: <a target="_blank" href="https://github.com/loda-lang/loda-rust">https://github.com/loda-lang/loda-rust</a>
 </footer>
 
 <script>

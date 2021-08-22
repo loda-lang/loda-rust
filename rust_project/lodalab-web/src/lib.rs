@@ -89,12 +89,12 @@ pub fn setup_lib() {
 }
 
 // Construct url for a program id (eg A112088), like the following
-// https://raw.githubusercontent.com/ckrause/loda/master/programs/oeis/112/A112088.asm
+// https://raw.githubusercontent.com/loda-lang/loda-programs/main/oeis/112/A112088.asm
 fn url_from_program_id(program_id: u64) -> String {
     let dir_index: u64 = program_id / 1000;
     let dir_index_string: String = format!("{:0>3}", dir_index);
     let filename_string: String = format!("A{:0>6}.asm", program_id);
-    let baseurl = "https://raw.githubusercontent.com/ckrause/loda/master/programs/oeis";
+    let baseurl = "https://raw.githubusercontent.com/loda-lang/loda-programs/main/oeis";
     format!("{}/{}/{}", baseurl, dir_index_string, filename_string)
 }
 
