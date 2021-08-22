@@ -7,51 +7,26 @@ This repo is inspired by [Christian Krause's LODA project](https://github.com/lo
 LODA has proved to be remarkable good at making programs that correspond to OEIS integer sequences.
 
 
-# Installation
+# Web interface
 
-LODA Rust is a commandline tool.
+Run LODA programs in your browser. Examples to try out:
 
-It can be installed on macOS, Linux.
+| [A000010: Euler totient function.](https://neoneye.github.io/lodalab/?id=10) |
+| [A000045: Fibonacci numbers.](https://neoneye.github.io/lodalab/?id=45) |
+| [A001113: Decimal expansion of e.](https://neoneye.github.io/lodalab/?id=1113) |
+| [A002994: Initial digit of cubes.](https://neoneye.github.io/lodalab/?id=2994) |
 
-See [Installation Guide](documents/install.md).
+
+# Vision for LODA
+
+"Type in a few numbers, and get a formula".
 
 
-# Usage
+# Contributing
 
-### Print 10 terms
+Christian Krause's [https://github.com/loda-lang/loda-cpp](loda-cpp) have discovered 35000 programs so far. You can run the miner on your computer, and submit the programs being found.
 
-Evaluate program for the A000079 oeis sequence, printing 10 terms.
+You can implement LODA programs for OEIS sequences that doesn't already have a LODA program.
 
-```
-PROMPT> loda-lab eval 79 -t 10
-1,2,4,8,16,32,64,128,256,512
-PROMPT>
-```
-
-### Print dependencies
-
-Print dependencies of a program for the A000073 oeis sequence.
-
-```
-PROMPT> loda-lab deps 73
-73,232508,301657
-PROMPT>
-```
-
-### Print internal state
-
-Evaluate program for the A000079 oeis sequence, processing 2 terms and printing the internal state.
-
-```
-PROMPT> loda-lab eval 79 -t 2 --debug
-INPUT: a(0)
-mov $1,2     [0,0] => [0,2]
-pow $1,$0    [0,2] => [0,1]
-OUTPUT: a(0) = 1
-INPUT: a(1)
-mov $1,2     [1,0] => [1,2]
-pow $1,$0    [1,2] => [1,2]
-OUTPUT: a(1) = 2
-PROMPT>
-```
+Join our Slack community.
 
