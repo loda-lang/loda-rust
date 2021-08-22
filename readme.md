@@ -3,7 +3,7 @@
 Hi, I'm Simon Strandgaard. I'm a fan of the [On-Line Encyclopedia of Integer Sequences® (OEIS®)](http://oeis.org/) and a fan of AI. 
 This is my attempt at doing a crossover of both. This is experimental stuff.
 
-This repo is inspired by [Christian Krause's LODA project](https://github.com/lodalang) for mining integer sequences.
+This repo is inspired by [Christian Krause's LODA project](https://github.com/loda-lang) for mining integer sequences.
 LODA has proved to be remarkable good at making programs that correspond to OEIS integer sequences.
 
 
