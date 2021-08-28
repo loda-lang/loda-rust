@@ -1,3 +1,5 @@
+// Syntax coloring for LODA assembly language
+// https://github.com/loda-lang/loda-lang
 (function(mod) {
     if (typeof exports == "object" && typeof module == "object") // CommonJS
       mod(require("../../lib/codemirror"), require("../../addon/mode/simple"));
