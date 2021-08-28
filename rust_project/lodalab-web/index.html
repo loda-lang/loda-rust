@@ -123,21 +123,32 @@ class PageController {
 
   prepareProgram() {
     let params = new URLSearchParams(window.location.search);
-    if (params.has('id')) {
-      let programId = params.get('id');
-      this.loadProgramById(programId);
-      return;
-    }
     if (params.has('source')) {
       let sourceCode = params.get('source');
-      console.log("sourceCode", sourceCode);
+      this.prepareProgramSourceCode(sourceCode);
+      return;
+    }
+    if (params.has('id')) {
+      let programId = params.get('id');
+      this.prepareProgramId(programId);
       return;
     }
     console.error("Unrecognized url parameters");
   }
 
-  loadProgramById(programId) {
-    console.log("loadProgramById", programId);
+  prepareProgramSourceCode(sourceCode) {
+    console.log("prepareProgramSourceCode", sourceCode);
+    this.mIdenticalToOriginal = true;
+    this.mOriginalText = sourceCode;
+    this.mEditor.setValue(sourceCode);
+    this.mEditor.focus();
+    this.hideOverlay();
+    var self = this;
+    setTimeout(function() { self.didLoadProgram(); }, 100);
+  }
+
+  prepareProgramId(programId) {
+    console.log("prepareProgramId", programId);
 
     let url = urlFromProgramId(programId);
 
