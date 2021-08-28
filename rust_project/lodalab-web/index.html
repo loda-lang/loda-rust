@@ -42,8 +42,8 @@ function checkRequiredURLSearchParams() {
     }
   }
   if (has_errors) {
-    alert("There are one or more problems with the URLSearchParams. Check the console for details.");
-    return;
+    // alert("There are one or more problems with the URLSearchParams. Check the console for details.");
+    // return;
   }
   //console.log("All the required URLSearchParams are present.");
 }
@@ -75,7 +75,7 @@ class PageController {
     this.mEditor = this.configureEditor();
     this.configureKeyboardShortcuts();
     this.configureOutputCount();
-    this.loadProgram();
+    this.prepareProgram();
   }
   
   configureEditor() {
@@ -121,10 +121,23 @@ class PageController {
     }, false);
   }
 
-  loadProgram() {
+  prepareProgram() {
     let params = new URLSearchParams(window.location.search);
-    let programId = params.get('id');
-    console.log("loadProgram: programId", programId);
+    if (params.has('id')) {
+      let programId = params.get('id');
+      this.loadProgramById(programId);
+      return;
+    }
+    if (params.has('source')) {
+      let sourceCode = params.get('source');
+      console.log("sourceCode", sourceCode);
+      return;
+    }
+    console.error("Unrecognized url parameters");
+  }
+
+  loadProgramById(programId) {
+    console.log("loadProgramById", programId);
 
     let url = urlFromProgramId(programId);
 
