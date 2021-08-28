@@ -14,40 +14,6 @@
 <link media="all" rel="stylesheet" type="text/css" href="web/lodalab.css">
 
 <script>
-function checkRequiredURLSearchParams() {
-  let validURLSearchParam = function (params, name) {
-    if (!params.has(name)) {
-      console.log(`ERROR: Expected '${name}' in URLSearchParams, but it's missing.`);
-      return false;
-    }
-    let s = params.get(name);
-    let n = s.length;
-    if (n >= 10) {
-      console.log(`ERROR: Parameter '${name}' is too long.`);
-      return false;
-    }
-    if (n < 1) {
-      console.log(`ERROR: Parameter '${name}' is too short.`);
-      return false;
-    }
-    return true;
-  }
-
-  let params = new URLSearchParams(window.location.search);
-  let param_names = ['id'];
-  var has_errors = false;
-  for (param_name of param_names) {
-    if (!validURLSearchParam(params, param_name)) {
-      has_errors = true;
-    }
-  }
-  if (has_errors) {
-    // alert("There are one or more problems with the URLSearchParams. Check the console for details.");
-    // return;
-  }
-  //console.log("All the required URLSearchParams are present.");
-}
-
 // Construct url for a program id (eg A112088), like the following
 // https://raw.githubusercontent.com/loda-lang/loda-programs/main/oeis/112/A112088.asm
 function urlFromProgramId(programId) {
@@ -133,7 +99,19 @@ class PageController {
       this.prepareProgramId(programId);
       return;
     }
-    console.error("Unrecognized url parameters");
+    console.error("Missing or unrecognized url parameters");
+    this.prepareProgramEmpty();
+  }
+
+  prepareProgramEmpty() {
+    const sourceCode = "";
+    this.mIdenticalToOriginal = true;
+    this.mOriginalText = sourceCode;
+    this.mEditor.setValue(sourceCode);
+    this.mEditor.focus();
+    this.hideOverlay();
+    var self = this;
+    setTimeout(function() { self.didLoadProgram(); }, 100);
   }
 
   prepareProgramSourceCode(sourceCode) {
@@ -389,12 +367,6 @@ function body_onbeforeunload() {
   Version 2021.8.28<br>
   Source code: <a target="_blank" href="https://github.com/loda-lang/loda-rust">https://github.com/loda-lang/loda-rust</a>
 </footer>
-
-<script>
-(function() {
-  checkRequiredURLSearchParams();
-})();
-</script>
 
 </body>
 </html>
