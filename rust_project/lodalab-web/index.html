@@ -12,6 +12,45 @@
 <script src="web/codemirror/addon/display/placeholder.js"></script>
 <script src="web/codemirror_mode_loda.js"></script>
 <link media="all" rel="stylesheet" type="text/css" href="web/lodalab.css">
+<style>
+  .tooltip {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .tooltip .tooltiptext {
+    visibility: hidden;
+    width: 140px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 4;
+    bottom: 150%;
+    left: 50%;
+    margin-left: -75px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  
+  .tooltip .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+  }
+  
+  .tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+  }
+  </style>
 
 <script>
 // Construct url for a program id (eg A112088), like the following
@@ -263,6 +302,21 @@ class PageController {
     this.mUpdateTick = false;
     this.outputInnerAppendErrorMessage(message);
   }
+
+  programURLString() {
+    let sourceCode = this.mEditor.getValue();
+    var url = new URL(window.location.href);
+    url.search = `source=${encodeURIComponent(sourceCode)}`;
+    return url.href;
+  }
+
+  copyProgramURLToClipboard() {
+    let urlString = this.programURLString();
+    navigator.clipboard.writeText(urlString);
+    let byteCount = urlString.length;
+    let tooltip = document.getElementById("myTooltip");
+    tooltip.innerHTML = `Copied ${byteCount} bytes to clipboard`;
+  }
 }
 
 var gPageController = null;
@@ -290,6 +344,11 @@ function body_onbeforeunload() {
   } else {
     return "The data on this page will be lost if you leave";
   }
+}
+
+function outFunc() {
+  var tooltip = document.getElementById("myTooltip");
+  tooltip.innerHTML = "Copy to clipboard";
 }
 </script>
 <script type="module" src="index.js"></script>
@@ -364,6 +423,12 @@ function body_onbeforeunload() {
 </main>
 
 <footer id="page-footer">
+  <div class="tooltip">
+    <button onclick="gPageController.copyProgramURLToClipboard()" onmouseout="outFunc()">
+      <span class="tooltiptext" id="myTooltip">Copy to clipboard</span>
+      Copy text
+      </button>
+    </div>
   Version 2021.8.28<br>
   Source code: <a target="_blank" href="https://github.com/loda-lang/loda-rust">https://github.com/loda-lang/loda-rust</a>
 </footer>
