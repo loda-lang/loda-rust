@@ -2,8 +2,8 @@
 name = "lodalab-core"
 version = "0.1.0"
 authors = ["Simon Strandgaard <neoneye@gmail.com>"]
-description = "Shared code between LODA Lab projects"
-repository = "https://github.com/neoneye/loda-lab"
+description = "Shared code between LODA Rust projects"
+repository = "https://github.com/loda-lang/loda-rust"
 license = "MIT OR Apache-2.0"
 edition = "2018"
 

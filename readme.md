@@ -1,56 +1,32 @@
-# LODA Lab
+# LODA Rust
 
 Hi, I'm Simon Strandgaard. I'm a fan of the [On-Line Encyclopedia of Integer Sequences® (OEIS®)](http://oeis.org/) and a fan of AI. 
 This is my attempt at doing a crossover of both. This is experimental stuff.
 
-This repo is inspired by [Christian Krause's LODA project](https://github.com/ckrause/loda) for mining integer sequences.
+This repo is inspired by [Christian Krause's LODA project](https://github.com/loda-lang/loda-cpp) for mining integer sequences.
 LODA has proved to be remarkable good at making programs that correspond to OEIS integer sequences.
 
-# Installation
 
-LODA Lab is a commandline tool.
+# Web interface
 
-It can be installed on macOS, Linux.
+Run LODA programs in your browser. Examples to try out:
 
-See [Installation Guide](documents/install.md).
+- [A000010: Euler totient function.](https://neoneye.github.io/lodalab/?id=10)
+- [A000045: Fibonacci numbers.](https://neoneye.github.io/lodalab/?id=45)
+- [A001113: Decimal expansion of e.](https://neoneye.github.io/lodalab/?id=1113)
+- [A002994: Initial digit of cubes.](https://neoneye.github.io/lodalab/?id=2994)
 
 
-# Usage
+# Vision for LODA
 
-### Print 10 terms
+"Type in a few numbers, and get a formula".
 
-Evaluate program for the A000079 oeis sequence, printing 10 terms.
 
-```
-PROMPT> loda-lab eval 79 -t 10
-1,2,4,8,16,32,64,128,256,512
-PROMPT>
-```
+# Contributing
 
-### Print dependencies
+Christian Krause's [https://github.com/loda-lang/loda-cpp](loda-cpp) have discovered 35000 programs so far. You can run the miner on your computer, and submit the programs being found.
 
-Print dependencies of a program for the A000073 oeis sequence.
+You can implement LODA programs for OEIS sequences that doesn't already have a LODA program.
 
-```
-PROMPT> loda-lab deps 73
-73,232508,301657
-PROMPT>
-```
-
-### Print internal state
-
-Evaluate program for the A000079 oeis sequence, processing 2 terms and printing the internal state.
-
-```
-PROMPT> loda-lab eval 79 -t 2 --debug
-INPUT: a(0)
-mov $1,2     [0,0] => [0,2]
-pow $1,$0    [0,2] => [0,1]
-OUTPUT: a(0) = 1
-INPUT: a(1)
-mov $1,2     [1,0] => [1,2]
-pow $1,$0    [1,2] => [1,2]
-OUTPUT: a(1) = 2
-PROMPT>
-```
+Join our Slack community.
 
