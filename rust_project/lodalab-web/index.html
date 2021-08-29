@@ -12,57 +12,6 @@
 <script src="web/codemirror/addon/display/placeholder.js"></script>
 <script src="web/codemirror_mode_loda.js"></script>
 <link media="all" rel="stylesheet" type="text/css" href="web/lodalab.css">
-<style>
-#page-footer {
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  align-items: stretch;
-}
-.page-footer-item {
-  flex: 1;
-}
-#page-footer-item0 {
-  text-align: center;
-}
-  .tooltip {
-    position: relative;
-    display: inline-block;
-  }
-  
-  .tooltip .tooltiptext {
-    visibility: hidden;
-    width: 140px;
-    background-color: #555;
-    color: #fff;
-    text-align: center;
-    border-radius: 6px;
-    padding: 5px;
-    position: absolute;
-    z-index: 4;
-    bottom: 150%;
-    left: 50%;
-    margin-left: -75px;
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-  
-  .tooltip .tooltiptext::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: #555 transparent transparent transparent;
-  }
-  
-  .tooltip:hover .tooltiptext {
-    visibility: visible;
-    opacity: 1;
-  }
-  </style>
 
 <script>
 // Construct url for a program id (eg A112088), like the following
@@ -326,8 +275,13 @@ class PageController {
     let urlString = this.programURLString();
     navigator.clipboard.writeText(urlString);
     let byteCount = urlString.length;
-    let tooltip = document.getElementById("myTooltip");
+    let tooltip = document.getElementById("copy-program-link-to-clipboard-tooltip-text");
     tooltip.innerHTML = `Copied ${byteCount} bytes to clipboard`;
+  }
+
+  hideCopyToClipboardTooltip() {
+    let tooltip = document.getElementById("copy-program-link-to-clipboard-tooltip-text");
+    tooltip.innerHTML = "Copy to clipboard";
   }
 }
 
@@ -356,11 +310,6 @@ function body_onbeforeunload() {
   } else {
     return "The data on this page will be lost if you leave";
   }
-}
-
-function outFunc() {
-  var tooltip = document.getElementById("myTooltip");
-  tooltip.innerHTML = "Copy to clipboard";
 }
 </script>
 <script type="module" src="index.js"></script>
@@ -437,12 +386,12 @@ function outFunc() {
 <footer id="page-footer">
   <div id="page-footer-item0" class="page-footer-item">
     Link to this program
-    <div class="tooltip">
-      <button onclick="gPageController.copyProgramURLToClipboard()" onmouseout="outFunc()">
-        <span class="tooltiptext" id="myTooltip">Copy to clipboard</span>
+    <div class="copy-program-link-to-clipboard-tooltip-area">
+      <button onclick="gPageController.copyProgramURLToClipboard()" onmouseout="gPageController.hideCopyToClipboardTooltip()">
+        <span class="tooltiptext" id="copy-program-link-to-clipboard-tooltip-text">Copy to clipboard</span>
         Copy
-        </button>
-      </div>
+      </button>
+    </div>
   </div>
   <div id="page-footer-item1" class="page-footer-item">
     Version 2021.8.28<br>

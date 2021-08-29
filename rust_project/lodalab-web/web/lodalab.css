@@ -77,6 +77,10 @@ body {
 #page-footer {
     border-top: 1px solid #bdbdbd;
     padding: 10px;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: stretch;
 }
   
 .CodeMirror { height: 100%; }
@@ -190,3 +194,44 @@ body {
 .output-count-radio-item {
     margin-right: 10px;
 }
+.page-footer-item {
+    flex: 1;
+}
+#page-footer-item0 {
+    text-align: center;
+}
+.copy-program-link-to-clipboard-tooltip-area {
+    position: relative;
+    display: inline-block;
+}
+.copy-program-link-to-clipboard-tooltip-area .tooltiptext {
+    visibility: hidden;
+    width: 140px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 4;
+    bottom: 150%;
+    left: 50%;
+    margin-left: -75px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.copy-program-link-to-clipboard-tooltip-area .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+}
+.copy-program-link-to-clipboard-tooltip-area:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+  
