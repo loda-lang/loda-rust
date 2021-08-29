@@ -13,6 +13,18 @@
 <script src="web/codemirror_mode_loda.js"></script>
 <link media="all" rel="stylesheet" type="text/css" href="web/lodalab.css">
 <style>
+#page-footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+.page-footer-item {
+  flex: 1;
+}
+#page-footer-item0 {
+  text-align: center;
+}
   .tooltip {
     position: relative;
     display: inline-block;
@@ -423,14 +435,19 @@ function outFunc() {
 </main>
 
 <footer id="page-footer">
-  <div class="tooltip">
-    <button onclick="gPageController.copyProgramURLToClipboard()" onmouseout="outFunc()">
-      <span class="tooltiptext" id="myTooltip">Copy to clipboard</span>
-      Copy text
-      </button>
-    </div>
-  Version 2021.8.28<br>
-  Source code: <a target="_blank" href="https://github.com/loda-lang/loda-rust">https://github.com/loda-lang/loda-rust</a>
+  <div id="page-footer-item0" class="page-footer-item">
+    Link to this program
+    <div class="tooltip">
+      <button onclick="gPageController.copyProgramURLToClipboard()" onmouseout="outFunc()">
+        <span class="tooltiptext" id="myTooltip">Copy to clipboard</span>
+        Copy
+        </button>
+      </div>
+  </div>
+  <div id="page-footer-item1" class="page-footer-item">
+    Version 2021.8.28<br>
+    Source code: <a target="_blank" href="https://github.com/loda-lang/loda-rust">https://github.com/loda-lang/loda-rust</a>
+  </div>
 </footer>
 
 </body>
