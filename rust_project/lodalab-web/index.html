@@ -263,6 +263,26 @@ class PageController {
     this.mUpdateTick = false;
     this.outputInnerAppendErrorMessage(message);
   }
+
+  programURLString() {
+    let sourceCode = this.mEditor.getValue();
+    var url = new URL(window.location.href);
+    url.search = `source=${encodeURIComponent(sourceCode)}`;
+    return url.href;
+  }
+
+  copyProgramURLToClipboard() {
+    let urlString = this.programURLString();
+    navigator.clipboard.writeText(urlString);
+    let byteCount = urlString.length;
+    let tooltip = document.getElementById("copy-program-link-to-clipboard-tooltip-text");
+    tooltip.innerHTML = `Copied ${byteCount} bytes to clipboard`;
+  }
+
+  hideCopyToClipboardTooltip() {
+    let tooltip = document.getElementById("copy-program-link-to-clipboard-tooltip-text");
+    tooltip.innerHTML = "Copy to clipboard";
+  }
 }
 
 var gPageController = null;
@@ -364,8 +384,19 @@ function body_onbeforeunload() {
 </main>
 
 <footer id="page-footer">
-  Version 2021.8.28<br>
-  Source code: <a target="_blank" href="https://github.com/loda-lang/loda-rust">https://github.com/loda-lang/loda-rust</a>
+  <div id="page-footer-item0" class="page-footer-item">
+    Link to this program
+    <div class="copy-program-link-to-clipboard-tooltip-area">
+      <button onclick="gPageController.copyProgramURLToClipboard()" onmouseout="gPageController.hideCopyToClipboardTooltip()">
+        <span class="tooltiptext" id="copy-program-link-to-clipboard-tooltip-text">Copy to clipboard</span>
+        Copy
+      </button>
+    </div>
+  </div>
+  <div id="page-footer-item1" class="page-footer-item">
+    Version 2021.8.29<br>
+    Source code: <a target="_blank" href="https://github.com/loda-lang/loda-rust">https://github.com/loda-lang/loda-rust</a>
+  </div>
 </footer>
 
 </body>
