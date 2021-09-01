@@ -14,15 +14,15 @@ cargo 1.48.0 (65cbdd2dc 1984-12-29)
 ```
 
 
-## Step 2 - LODA repository
+## Step 2 - LODA repositories
 
-The `LODA Lab` project depends on the `LODA` project. So first install LODA.
+The `LODA Rust` project depends on the `LODA` project. So first install LODA.
 
 #### Step 2 A
 
 Check out [loda-programs](https://github.com/loda-lang/loda-programs) on your computer.
 
-A good place for this repository, is the `$HOME/git/loda-cpp` dir.
+A good place for this repository, is the `$HOME/git/loda-programs` dir.
 
 #### Step 2 B
 
@@ -46,7 +46,7 @@ So far so good. LODA is installed.
 
 #### Step 3 A
 
-Check out [LODA Rust repository](https://github.com/loda-lang/loda-rust) on your computer.
+Check out [loda-rust](https://github.com/loda-lang/loda-rust) on your computer.
 
 A good place for this repository, is the `$HOME/git/loda-rust` dir.
 
