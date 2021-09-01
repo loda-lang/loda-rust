@@ -20,13 +20,19 @@ The `LODA Lab` project depends on the `LODA` project. So first install LODA.
 
 #### Step 2 A
 
-Check out [Christian Krause's LODA repository](https://github.com/ckrause/loda) on your computer.
+Check out [loda-programs](https://github.com/loda-lang/loda-programs) on your computer.
 
-A good place for this repository, is the `$HOME/git/loda` dir.
+A good place for this repository, is the `$HOME/git/loda-cpp` dir.
 
 #### Step 2 B
 
-Follow the `LODA` project install instructions.
+Check out [loda-cpp](https://github.com/loda-lang/loda-cpp) on your computer.
+
+A good place for this repository, is the `$HOME/git/loda-cpp` dir.
+
+#### Step 2 C
+
+Follow the `loda-cpp` project install instructions.
 
 LODA creates a `$HOME/.loda` dir.
 
@@ -36,13 +42,13 @@ So far so good. LODA is installed.
 
 
 
-## Step 3 - LODA Lab repository
+## Step 3 - LODA Rust repository
 
 #### Step 3 A
 
-Check out [Simon Strandgaard's LODA Lab repository](https://github.com/neoneye/loda-lab) on your computer.
+Check out [LODA Rust repository](https://github.com/loda-lang/loda-rust) on your computer.
 
-A good place for this repository, is the `$HOME/git/loda-lab` dir.
+A good place for this repository, is the `$HOME/git/loda-rust` dir.
 
 #### Step 3 B
 
@@ -50,7 +56,7 @@ Compile the `rust_project` into an executable named `loda-lab`.
 
 ```
 PROMPT> pwd
-/Users/JOHNDOE/git/loda-lab/rust_project
+/Users/JOHNDOE/git/loda-rust/rust_project
 PROMPT> cargo build --release
 PROMPT> cp target/release/loda-lab ..
 ```
@@ -61,17 +67,17 @@ PROMPT> cp target/release/loda-lab ..
 PROMPT> loda-lab install
 ```
 
-This creates a `$HOME/.loda-lab` dir.
+This creates a `$HOME/.loda-rust` dir.
 
 #### Step 3 D
 
-Manually edit the configuration file `$HOME/.loda-lab/config.toml`.
+Manually edit the configuration file `$HOME/.loda-rust/config.toml`.
 
 Here you must update the paths, so they refer to where LODA is installed on your computer.
 
 Manually modify this parameter, so it points to the dir that contains all the LODA programs.
 ```
-loda_program_rootdir = "/Users/JOHNDOE/git/loda/programs/oeis"
+loda_program_rootdir = "/Users/JOHNDOE/git/loda-programs/oeis"
 ```
 
 Manually modify this parameter, so it points to the unzipped OEIS stripped file.
@@ -79,9 +85,14 @@ Manually modify this parameter, so it points to the unzipped OEIS stripped file.
 oeis_stripped_file = "/Users/JOHNDOE/.loda/oeis/stripped"
 ```
 
-Manually modify this parameter, so it points to the LODA Lab repository dir.
+Manually modify this parameter, so it points to the LODA Rust repository dir.
 ```
-loda_rust_repository = "/Users/JOHNDOE/git/loda-lab"
+loda_rust_repository = "/Users/JOHNDOE/git/loda-rust"
+```
+
+Manually modify this parameter, so it points to the LODA Cpp repository dir.
+```
+loda_cpp_repository = "/Users/JOHNDOE/git/loda-cpp"
 ```
 
 #### Step 3 E
