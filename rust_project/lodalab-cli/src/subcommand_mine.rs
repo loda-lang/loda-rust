@@ -22,7 +22,7 @@ pub fn subcommand_mine() {
     let loda_program_rootdir: PathBuf = config.loda_program_rootdir();
     let cache_dir: PathBuf = config.cache_dir();
     let mine_event_dir: PathBuf = config.mine_event_dir();
-    let loda_lab_repository: PathBuf = config.loda_lab_repository();
+    let loda_rust_repository: PathBuf = config.loda_rust_repository();
 
     // Load cached data
     debug!("step1");
@@ -37,7 +37,7 @@ pub fn subcommand_mine() {
     debug!("step2");
 
     // Load the program_ids available for mining
-    let available_program_ids_file = loda_lab_repository.join(Path::new("resources/mine_program_ids.csv"));
+    let available_program_ids_file = loda_rust_repository.join(Path::new("resources/mine_program_ids.csv"));
     let available_program_ids: Vec<u32> = match load_program_ids_csv_file(&available_program_ids_file) {
         Ok(value) => value,
         Err(error) => {
@@ -47,7 +47,7 @@ pub fn subcommand_mine() {
     println!("number_of_available_programs = {}", available_program_ids.len());
 
     // Load the clusters with popular/unpopular program ids
-    let program_popularity_file = loda_lab_repository.join(Path::new("resources/program_popularity.csv"));
+    let program_popularity_file = loda_rust_repository.join(Path::new("resources/program_popularity.csv"));
     let popular_program_container: PopularProgramContainer = match PopularProgramContainer::load(&program_popularity_file) {
         Ok(value) => value,
         Err(error) => {
@@ -56,7 +56,7 @@ pub fn subcommand_mine() {
     };
 
     // Load the clusters with newest/oldest program ids
-    let recent_program_file = loda_lab_repository.join(Path::new("resources/program_creation_dates.csv"));
+    let recent_program_file = loda_rust_repository.join(Path::new("resources/program_creation_dates.csv"));
     let recent_program_container: RecentProgramContainer = match RecentProgramContainer::load(&recent_program_file) {
         Ok(value) => value,
         Err(error) => {

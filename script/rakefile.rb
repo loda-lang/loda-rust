@@ -18,14 +18,14 @@ file 'data/most_called_programs.csv' => 'data/caller_callee_list.csv' do
     ruby 'task_most_called_programs.rb'
 end
 
-desc 'compute terms with "LODA Lab"'
+desc 'compute terms with "LODA Rust"'
 file 'data/terms_lab.csv' => ['data/loda-lab', 'data/program_ids.csv'] do
-    ruby 'task_terms_lab.rb'
+    ruby 'task_terms_loda_rust.rb'
 end
 
-desc 'compute terms with "LODA Official"'
+desc 'compute terms with "LODA Cpp"'
 file 'data/terms_loda.csv' => 'data/program_ids.csv' do
-    ruby 'task_terms_loda.rb'
+    ruby 'task_terms_loda_cpp.rb'
 end
 
 desc 'compare terms between "LODA official" and "LODA Lab"'
