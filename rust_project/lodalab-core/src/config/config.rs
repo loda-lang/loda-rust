@@ -5,8 +5,8 @@ use std::fs;
 const DEFAULT_CONFIG: &'static str =
 r#"# Configuration for LODA Rust
 
-# Absolute path to the dir that contains all the LODA programs.
-loda_program_rootdir = "/Users/JOHNDOE/git/loda/programs/oeis"
+# Absolute path to the dir that contains all the LODA programs repository's "oeis" dir.
+loda_program_rootdir = "/Users/JOHNDOE/git/loda-programs/oeis"
 
 # Absolute path to the unzipped OEIS stripped file.
 oeis_stripped_file = "/Users/JOHNDOE/.loda/oeis/stripped"
@@ -120,7 +120,7 @@ mod tests {
         let basedir = PathBuf::from(Path::new("non-existing-basedir"));
         let config: Config = config_from_toml_content(Config::default_config(), basedir);
         assert_eq!(config.basedir.to_str().unwrap(), "non-existing-basedir");
-        assert_eq!(config.loda_program_rootdir, "/Users/JOHNDOE/git/loda/programs/oeis");
+        assert_eq!(config.loda_program_rootdir, "/Users/JOHNDOE/git/loda-programs/oeis");
         assert_eq!(config.oeis_stripped_file, "/Users/JOHNDOE/.loda/oeis/stripped");
         assert_eq!(config.loda_rust_repository, "/Users/JOHNDOE/git/loda-rust");
     }
