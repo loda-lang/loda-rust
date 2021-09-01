@@ -72,7 +72,7 @@ fn main() {
         )
         .subcommand(
             SubCommand::with_name("install")
-                .about("Create the $HOME/.loda-lab directory")
+                .about("Create the $HOME/.loda-rust directory")
         )
         // Experiments with mining new programs
         .subcommand(

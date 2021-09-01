@@ -99,14 +99,14 @@ fn load_config_from_home_dir() -> Config {
     assert!(homedir.is_dir());
     assert!(homedir.is_absolute());
 
-    let basedir_name = Path::new(".loda-lab");
+    let basedir_name = Path::new(".loda-rust");
     let basedir: PathBuf = homedir.join(basedir_name);
     if !basedir.is_dir() {
-        panic!("Expected a '$HOME/.loda-lab' directory, but got something else. {:?}, Possible solution, remove the thing that uses the same name.", basedir);
+        panic!("Expected a '$HOME/.loda-rust' directory, but got something else. {:?}, Possible solution, remove the thing that uses the same name.", basedir);
     }
     let path_to_config: PathBuf = basedir.join(Path::new("config.toml"));
     if !path_to_config.is_file() {
-        panic!("Cannot locate the file '$HOME/.loda-lab/config.toml'");
+        panic!("Cannot locate the file '$HOME/.loda-rust/config.toml'");
     }
 
     let toml_content: String = fs::read_to_string(path_to_config).unwrap();
