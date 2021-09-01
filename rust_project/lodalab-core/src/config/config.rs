@@ -5,14 +5,14 @@ use std::fs;
 const DEFAULT_CONFIG: &'static str =
 r#"# Configuration for LODA Rust
 
-# Absolute path to the LODA Cpp repository dir.
+# Absolute path to the "loda-programs" repository dir.
+loda_programs_repository = "/Users/JOHNDOE/git/loda-programs"
+
+# Absolute path to the "loda-cpp" repository dir.
 loda_cpp_repository = "/Users/JOHNDOE/git/loda-cpp"
 
-# Absolute path to the LODA Rust repository dir.
+# Absolute path to the "loda-rust" repository dir.
 loda_rust_repository = "/Users/JOHNDOE/git/loda-rust"
-
-# Absolute path to the dir that contains all the LODA programs repository's "oeis" dir.
-loda_program_rootdir = "/Users/JOHNDOE/git/loda-programs/oeis"
 
 # Absolute path to the unzipped OEIS stripped file.
 oeis_stripped_file = "/Users/JOHNDOE/.loda/oeis/stripped"
@@ -22,10 +22,10 @@ oeis_stripped_file = "/Users/JOHNDOE/.loda/oeis/stripped"
 #[derive(Debug)]
 pub struct Config {
     basedir: PathBuf,
-    loda_program_rootdir: String,
-    oeis_stripped_file: String,
+    loda_programs_repository: String,
     loda_rust_repository: String,
     loda_cpp_repository: String,
+    oeis_stripped_file: String,
 }
 
 impl Config {
@@ -51,8 +51,15 @@ impl Config {
         path
     }
 
+    pub fn loda_programs_repository(&self) -> PathBuf {
+        let path = Path::new(&self.loda_programs_repository);
+        assert!(path.is_absolute());
+        assert!(path.is_dir());
+        PathBuf::from(path)
+    }
+
     pub fn loda_program_rootdir(&self) -> PathBuf {
-        let path = Path::new(&self.loda_program_rootdir);
+        let path = self.loda_programs_repository().join("oeis");
         assert!(path.is_absolute());
         assert!(path.is_dir());
         PathBuf::from(path)
@@ -82,7 +89,7 @@ impl Config {
 
 #[derive(Debug, Deserialize)]
 struct ConfigInner {
-    loda_program_rootdir: String,
+    loda_programs_repository: String,
     oeis_stripped_file: String,
     loda_rust_repository: String,
     loda_cpp_repository: String,
@@ -117,7 +124,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf) -> Config {
     let inner: ConfigInner = toml::from_str(&toml_content).unwrap();
     Config {
         basedir: basedir,
-        loda_program_rootdir: inner.loda_program_rootdir.clone(),
+        loda_programs_repository: inner.loda_programs_repository.clone(),
         oeis_stripped_file: inner.oeis_stripped_file.clone(),
         loda_rust_repository: inner.loda_rust_repository.clone(),
         loda_cpp_repository: inner.loda_cpp_repository.clone(),
@@ -133,7 +140,7 @@ mod tests {
         let basedir = PathBuf::from(Path::new("non-existing-basedir"));
         let config: Config = config_from_toml_content(Config::default_config(), basedir);
         assert_eq!(config.basedir.to_str().unwrap(), "non-existing-basedir");
-        assert_eq!(config.loda_program_rootdir, "/Users/JOHNDOE/git/loda-programs/oeis");
+        assert_eq!(config.loda_programs_repository, "/Users/JOHNDOE/git/loda-programs");
         assert_eq!(config.oeis_stripped_file, "/Users/JOHNDOE/.loda/oeis/stripped");
         assert_eq!(config.loda_rust_repository, "/Users/JOHNDOE/git/loda-rust");
         assert_eq!(config.loda_cpp_repository, "/Users/JOHNDOE/git/loda-cpp");
