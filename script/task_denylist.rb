@@ -22,9 +22,9 @@ This script outputs a `denylist.csv` file, with this format:
 require 'csv'
 require_relative 'config'
 
-LODA_PROGRAM_ROOTDIR = Config.instance.loda_program_rootdir
+LODA_PROGRAMS_OEIS = Config.instance.loda_programs_oeis
 
-input_filename = File.join(LODA_PROGRAM_ROOTDIR, 'deny.txt')
+input_filename = File.join(LODA_PROGRAMS_OEIS, 'deny.txt')
 output_filename = 'data/denylist.csv'
 
 program_ids = []

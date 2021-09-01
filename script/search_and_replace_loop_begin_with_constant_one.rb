@@ -2,7 +2,7 @@
 
 =begin
 
-This script traverses all the programs inside the LODA program rootdir.
+This script traverses all the programs inside the "loda-programs/oeis" dir.
 It does search-and-replace through all the LODA assembly programs there are.
 When encountering a program that contains a `lpb $x,1` instruction, then it's being replaced by `lpb $x`.
 
@@ -11,7 +11,7 @@ When encountering a program that contains a `lpb $x,1` instruction, then it's be
 require 'csv'
 require_relative 'config'
 
-LODA_PROGRAM_ROOTDIR = Config.instance.loda_program_rootdir
+LODA_PROGRAMS_OEIS = Config.instance.loda_programs_oeis
 
 def absolute_paths_for_all_programs(rootdir)
     relative_paths = Dir.glob(File.join("**", "*.asm"), base: rootdir).sort
@@ -37,5 +37,5 @@ def process_paths(paths)
     end
 end
 
-paths = absolute_paths_for_all_programs(LODA_PROGRAM_ROOTDIR)
+paths = absolute_paths_for_all_programs(LODA_PROGRAMS_OEIS)
 process_paths(paths)

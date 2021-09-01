@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 =begin
-This script traverses all the programs inside the LODA program rootdir.
+This script traverses all the programs inside the "loda-programs/oeis" dir.
 It looks for all the LODA assembly programs there are.
 This script determines date the program was first added to the git repository.
 
@@ -22,7 +22,7 @@ require 'csv'
 require 'date'
 require_relative 'config'
 
-LODA_PROGRAM_ROOTDIR = Config.instance.loda_program_rootdir
+LODA_PROGRAMS_OEIS = Config.instance.loda_programs_oeis
 
 output_filename = 'data/program_creation_dates.csv'
 
@@ -94,13 +94,13 @@ def process_files(paths, csv)
     puts "number of rows written to csv file: #{number_of_rows}"
 end
 
-paths = relative_paths_for_all_programs(LODA_PROGRAM_ROOTDIR)
+paths = relative_paths_for_all_programs(LODA_PROGRAMS_OEIS)
 # paths = paths.first(50)
 #p paths
 
 CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
     csv << ["program id", "creation date"]
-    Dir.chdir(LODA_PROGRAM_ROOTDIR) do
+    Dir.chdir(LODA_PROGRAMS_OEIS) do
         process_files(paths, csv)
     end
 end

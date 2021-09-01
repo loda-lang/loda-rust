@@ -20,7 +20,7 @@ This script outputs a `program_ids.csv` file, with this format:
 require 'csv'
 require_relative 'config'
 
-LODA_PROGRAM_ROOTDIR = Config.instance.loda_program_rootdir
+LODA_PROGRAMS_OEIS = Config.instance.loda_programs_oeis
 
 output_filename = 'data/program_ids.csv'
 
@@ -61,7 +61,7 @@ def integers_from_filenames(filenames)
 end
 
 
-filenames = obtain_nested_names(LODA_PROGRAM_ROOTDIR)
+filenames = obtain_nested_names(LODA_PROGRAMS_OEIS)
 program_ids = integers_from_filenames(filenames)
 
 CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|

@@ -14,7 +14,7 @@ class Config
         @loda_cpp_repository = dict['loda_cpp_repository']
     end
 
-    def loda_program_rootdir
+    def loda_programs_oeis
         File.join(@loda_programs_repository, 'oeis')
     end
 end

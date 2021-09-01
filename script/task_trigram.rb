@@ -4,7 +4,7 @@
 Creates a trigram with LODA instructions.
 https://en.wikipedia.org/wiki/N-gram
 
-This script traverses all the programs inside the LODA program rootdir.
+This script traverses all the programs inside the "loda-programs/oeis" dir.
 It looks for all the LODA assembly programs there are.
 This script determines the most frequent combinations of instructions.
 
@@ -28,7 +28,7 @@ Learning D: The `mul` and `add` is usually the last of the program.
 require 'csv'
 require_relative 'config'
 
-LODA_PROGRAM_ROOTDIR = Config.instance.loda_program_rootdir
+LODA_PROGRAMS_OEIS = Config.instance.loda_programs_oeis
 
 output_filename = 'data/trigram.csv'
 
@@ -66,7 +66,7 @@ def process_files(paths)
     dict
 end
 
-paths = absolute_paths_for_all_programs(LODA_PROGRAM_ROOTDIR)
+paths = absolute_paths_for_all_programs(LODA_PROGRAMS_OEIS)
 # paths = paths.first(10)
 count_combo_dict = process_files(paths)
 #puts "count: #{count_combo_dict.count}"
