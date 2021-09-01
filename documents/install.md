@@ -81,7 +81,7 @@ oeis_stripped_file = "/Users/JOHNDOE/.loda/oeis/stripped"
 
 Manually modify this parameter, so it points to the LODA Lab repository dir.
 ```
-loda_lab_repository = "/Users/JOHNDOE/git/loda-lab"
+loda_rust_repository = "/Users/JOHNDOE/git/loda-lab"
 ```
 
 #### Step 3 E
