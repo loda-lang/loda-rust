@@ -5,10 +5,10 @@ use std::path::PathBuf;
 
 pub fn subcommand_dependencies(program_id: u64) {
     let config = Config::load();
-    let loda_program_rootdir: PathBuf = config.loda_program_rootdir();
+    let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
     let mut dm = DependencyManager::new(
         DependencyManagerFileSystemMode::System,
-        loda_program_rootdir,
+        loda_programs_oeis_dir,
     );
     if let Err(error) = dm.load(program_id) {
         panic!("Failure during loadin of program. error: {:?}", error);

@@ -21,11 +21,11 @@ pub fn subcommand_evaluate(
     mode: SubcommandEvaluateMode,
 ) {
     let config = Config::load();
-    let loda_program_rootdir: PathBuf = config.loda_program_rootdir();
+    let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
 
     let mut dm = DependencyManager::new(
         DependencyManagerFileSystemMode::System,
-        loda_program_rootdir,
+        loda_programs_oeis_dir,
     );
     let program_runner: Rc::<ProgramRunner> = match dm.load(program_id) {
         Ok(value) => value,

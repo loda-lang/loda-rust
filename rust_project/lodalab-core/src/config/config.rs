@@ -58,7 +58,7 @@ impl Config {
         PathBuf::from(path)
     }
 
-    pub fn loda_program_rootdir(&self) -> PathBuf {
+    pub fn loda_programs_oeis_dir(&self) -> PathBuf {
         let path = self.loda_programs_repository().join("oeis");
         assert!(path.is_absolute());
         assert!(path.is_dir());

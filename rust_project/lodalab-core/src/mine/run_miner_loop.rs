@@ -170,7 +170,7 @@ impl PreventFlooding {
 
 
 pub fn run_miner_loop(
-    loda_program_rootdir: &PathBuf, 
+    loda_programs_oeis_dir: &PathBuf, 
     checker10: &CheckFixedLengthSequence, 
     checker20: &CheckFixedLengthSequence,
     checker30: &CheckFixedLengthSequence,
@@ -185,7 +185,7 @@ pub fn run_miner_loop(
 
     let mut dm = DependencyManager::new(
         DependencyManagerFileSystemMode::System,
-        loda_program_rootdir.clone(),
+        loda_programs_oeis_dir.clone(),
     );
     let mut cache = ProgramCache::new();
 

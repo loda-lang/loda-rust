@@ -19,7 +19,7 @@ pub fn subcommand_mine() {
 
     // Load config file
     let config = Config::load();
-    let loda_program_rootdir: PathBuf = config.loda_program_rootdir();
+    let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
     let cache_dir: PathBuf = config.cache_dir();
     let mine_event_dir: PathBuf = config.mine_event_dir();
     let loda_rust_repository: PathBuf = config.loda_rust_repository();
@@ -71,7 +71,7 @@ pub fn subcommand_mine() {
 
     // Launch the miner
     run_miner_loop(
-        &loda_program_rootdir, 
+        &loda_programs_oeis_dir, 
         &checker10, 
         &checker20,
         &checker30,
