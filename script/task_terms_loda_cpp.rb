@@ -30,8 +30,9 @@ This script outputs a `terms_loda.csv` file, with this format:
 =end
 
 require 'csv'
+require_relative 'config'
 
-LODA_EXECUTABLE_DIR = '/Users/neoneye/git/oeis-loda'
+LODA_CPP_REPOSITORY = Config.instance.loda_cpp_repository
 
 input_filename = 'data/program_ids.csv'
 output_filename = 'data/terms_loda.csv'
@@ -56,7 +57,7 @@ end
 
 # Generate output file
 absolute_path_to_output_file = File.join(Dir.pwd, output_filename)
-Dir.chdir(LODA_EXECUTABLE_DIR) do
+Dir.chdir(LODA_CPP_REPOSITORY) do
     CSV.open(absolute_path_to_output_file, "wb", {:col_sep => ";"}) do |csv|
         csv << ["program id", "terms"]
         program_ids.each_with_index do |program_id, index|
