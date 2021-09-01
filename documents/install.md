@@ -75,14 +75,14 @@ Manually edit the configuration file `$HOME/.loda-rust/config.toml`.
 
 Here you must update the paths, so they refer to where LODA is installed on your computer.
 
-Manually modify this parameter, so it points to the dir that contains all the LODA programs.
+Manually modify this parameter, so it points to the "loda-programs" repository dir.
 ```
-loda_program_rootdir = "/Users/JOHNDOE/git/loda-programs/oeis"
+loda_programs_repository = "/Users/JOHNDOE/git/loda-programs"
 ```
 
-Manually modify this parameter, so it points to the unzipped OEIS stripped file.
+Manually modify this parameter, so it points to the LODA Cpp repository dir.
 ```
-oeis_stripped_file = "/Users/JOHNDOE/.loda/oeis/stripped"
+loda_cpp_repository = "/Users/JOHNDOE/git/loda-cpp"
 ```
 
 Manually modify this parameter, so it points to the LODA Rust repository dir.
@@ -90,9 +90,9 @@ Manually modify this parameter, so it points to the LODA Rust repository dir.
 loda_rust_repository = "/Users/JOHNDOE/git/loda-rust"
 ```
 
-Manually modify this parameter, so it points to the LODA Cpp repository dir.
+Manually modify this parameter, so it points to the unzipped OEIS stripped file.
 ```
-loda_cpp_repository = "/Users/JOHNDOE/git/loda-cpp"
+oeis_stripped_file = "/Users/JOHNDOE/.loda/oeis/stripped"
 ```
 
 #### Step 3 E
