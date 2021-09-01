@@ -82,7 +82,7 @@ pub enum DependencyManagerFileSystemMode {
 
 pub struct DependencyManager {
     file_system_mode: DependencyManagerFileSystemMode,
-    loda_program_dir: PathBuf,
+    loda_programs_oeis_dir: PathBuf,
     program_run_manager: ProgramRunnerManager,
     programids_currently_loading: HashSet<u64>,
     programid_dependencies: Vec<u64>,
@@ -90,10 +90,10 @@ pub struct DependencyManager {
 }
 
 impl DependencyManager {
-    pub fn new(file_system_mode: DependencyManagerFileSystemMode, loda_program_dir: PathBuf) -> Self {
+    pub fn new(file_system_mode: DependencyManagerFileSystemMode, loda_programs_oeis_dir: PathBuf) -> Self {
         Self {
             file_system_mode: file_system_mode,
-            loda_program_dir: loda_program_dir,
+            loda_programs_oeis_dir: loda_programs_oeis_dir,
             program_run_manager: ProgramRunnerManager::new(),
             programids_currently_loading: HashSet::new(),
             programid_dependencies: vec!(),
@@ -230,7 +230,7 @@ impl DependencyManager {
         let filename_string: String = format!("A{:0>6}.asm", program_id);
         let dirname = Path::new(&dir_index_string);
         let filename = Path::new(&filename_string);
-        let pathbuf: PathBuf = self.loda_program_dir.join(dirname).join(filename);
+        let pathbuf: PathBuf = self.loda_programs_oeis_dir.join(dirname).join(filename);
         pathbuf
     }
 
