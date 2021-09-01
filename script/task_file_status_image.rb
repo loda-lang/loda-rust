@@ -5,7 +5,7 @@
 This script generates an image with an overview of what files already exist and
 what is yet to be mined.
 
-This script traverses all the programs inside the LODA program rootdir.
+This script traverses all the programs inside the "loda-programs/oeis" dir.
 
 For every program that exist, a black pixel is plotted.
 White pixels when there exist no program.
@@ -20,7 +20,7 @@ The top-right pixel correspond to A000999.
 require 'set'
 require_relative 'config'
 
-LODA_PROGRAM_ROOTDIR = Config.instance.loda_program_rootdir
+LODA_PROGRAMS_OEIS = Config.instance.loda_programs_oeis
 
 def obtain_program_ids(rootdir)
     paths = Dir.glob(File.join("**", "*.asm"), base: rootdir)
@@ -71,6 +71,6 @@ def generate_image(program_ids)
     puts "number of black pixels: #{program_ids.count}" 
 end
 
-program_ids = obtain_program_ids(LODA_PROGRAM_ROOTDIR)
+program_ids = obtain_program_ids(LODA_PROGRAMS_OEIS)
 generate_image(program_ids)
 

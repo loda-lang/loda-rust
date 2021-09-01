@@ -17,7 +17,7 @@ pub fn subcommand_install() {
     assert!(homedir.is_dir());
     assert!(homedir.is_absolute());
 
-    let basedir_name = Path::new(".loda-lab");
+    let basedir_name = Path::new(".loda-rust");
     let basedir: PathBuf = homedir.join(basedir_name);
 
     // Create basedir if needed.
@@ -59,7 +59,7 @@ pub fn subcommand_install() {
     }
 
     if number_of_issues > 0 {
-        error!("Installation problems occurred. Try delete the '$HOME/.loda-lab' and try again.");
+        error!("Installation problems occurred. Try delete the '$HOME/.loda-rust' and try again.");
         return;
     }
     
@@ -73,9 +73,9 @@ fn create_readme_in_basedir(basedir: &Path) -> std::io::Result<()> {
     }
 
     let content = 
-r#"The directory `.loda-lab` holds the config+data for LODA Lab.
+r#"The directory `.loda-rust` holds the config+data for LODA Rust.
 
-https://github.com/neoneye/loda-lab
+https://github.com/loda-lang/loda-rust
 "#;
 
     let mut file = File::create(path)?;

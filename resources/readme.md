@@ -1,4 +1,4 @@
-# Resources used by LODA Lab
+# Resources used by LODA Rust
 
 When the "LODA Lab" executable is running, it makes use of the files in this dir.
 
@@ -19,7 +19,7 @@ To rebuild this file follow these steps:
 
 ```
 PROMPT> pwd
-/Users/JOHNDOE/git/loda-lab/script
+/Users/JOHNDOE/git/loda-rust/script
 PROMPT> rake data/dont_mine.csv
 PROMPT> cd ..
 PROMPT> cp script/data/dont_mine.csv resources/dont_mine.csv
@@ -41,7 +41,7 @@ To rebuild this file follow these steps:
 
 ```
 PROMPT> pwd
-/Users/JOHNDOE/git/loda-lab/script
+/Users/JOHNDOE/git/loda-rust/script
 PROMPT> rake data/mine_program_ids.csv
 PROMPT> cd ..
 PROMPT> cp script/data/mine_program_ids.csv resources/mine_program_ids.csv
@@ -60,7 +60,7 @@ To rebuild this file follow these steps:
 
 ```
 PROMPT> pwd
-/Users/JOHNDOE/git/loda-lab/script
+/Users/JOHNDOE/git/loda-rust/script
 PROMPT> rake data/program_creation_dates.csv
 PROMPT> cd ..
 PROMPT> cp script/data/program_creation_dates.csv resources/program_creation_dates.csv
@@ -77,7 +77,7 @@ To rebuild this file follow these steps:
 
 ```
 PROMPT> pwd
-/Users/JOHNDOE/git/loda-lab/script
+/Users/JOHNDOE/git/loda-rust/script
 PROMPT> rake data/program_popularity.csv
 PROMPT> cd ..
 PROMPT> cp script/data/program_popularity.csv resources/program_popularity.csv
