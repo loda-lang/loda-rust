@@ -174,6 +174,7 @@ oeis_number_of_refs = {
     3951 => 59,
     3952 => 57,
     3953 => 59,
+    3954 => 57,
     3961 => 458,
     3983 => 35,
     3991 => 88,
@@ -230,6 +231,7 @@ oeis_number_of_refs = {
     75423 => 3,
     77444 => 15,
     77445 => 7,
+    77868 => 9,
     77985 => 13,
     78057 => 65,
     7814 => 699,
@@ -303,7 +305,7 @@ end
 def program_link(program_id)
     a_name = oeis_a_name(program_id)
     dir_name = "%03i" % (program_id / 1000)
-    "[#{a_name}](https://github.com/ckrause/loda/blob/master/programs/oeis/#{dir_name}/#{a_name}.asm)"
+    "[#{a_name}](https://github.com/loda-lang/loda-programs/tree/main/oeis/#{dir_name}/#{a_name}.asm)"
 end
 
 def oeis_link(program_id)
@@ -315,6 +317,7 @@ comments = {
     8507   => 'Popular in LODA, underappreciated in OEIS. Why?',
     10201  => 'Popular in LODA, underappreciated in OEIS. Why?',
     25676  => 'Popular in LODA, underappreciated in OEIS. Why?',
+    33132  => 'Popular in LODA, underappreciated in OEIS. Why?',
     33142  => 'Popular in LODA, underappreciated in OEIS. Why?',
     63918  => 'Popular in LODA, underappreciated in OEIS. Why?',
     80545  => 'Popular in LODA, underappreciated in OEIS. Why?',
