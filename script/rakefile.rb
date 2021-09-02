@@ -19,7 +19,7 @@ file 'data/most_called_programs.csv' => 'data/caller_callee_list.csv' do
 end
 
 desc 'compute terms with "loda-rust"'
-file 'data/terms_lab.csv' => ['data/loda-rust', 'data/program_ids.csv'] do
+file 'data/terms_loda_rust.csv' => ['data/loda-rust', 'data/program_ids.csv'] do
     ruby 'task_terms_loda_rust.rb'
 end
 
@@ -29,8 +29,8 @@ file 'data/terms_loda.csv' => 'data/program_ids.csv' do
 end
 
 desc 'compare terms between "loda-cpp" and "loda-rust"'
-file 'data/compare_loda_vs_lab.csv' => ['data/terms_lab.csv', 'data/terms_loda.csv'] do
-    ruby 'task_compare_loda_vs_lab.rb'
+file 'data/compare_loda_cpp_vs_loda_rust.csv' => ['data/terms_loda_rust.csv', 'data/terms_loda.csv'] do
+    ruby 'task_compare_loda_cpp_vs_loda_rust.rb'
 end
 
 desc 'run the PageRank algorithm and ranking the most influential programs'
@@ -74,7 +74,7 @@ file 'data/loda-rust' do
 end
 
 desc "identify the programs that can be used by the miner"
-file 'data/mine_program_ids.csv' => ['data/terms_lab.csv'] do
+file 'data/mine_program_ids.csv' => ['data/terms_loda_rust.csv'] do
     ruby 'task_mine_program_ids.rb'
 end
 

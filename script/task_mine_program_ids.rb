@@ -7,7 +7,7 @@ Mining is computationally expensive.
 The purpose of this script is to make mining less expensive,
 by identifying defunct programs, so that it doesn't happen at runtime.
 
-This script takes input from a `terms_lab.csv` file, with this format:
+This script takes input from a `terms_loda_rust.csv` file, with this format:
 
     program id;terms
     4;0,0,0,0,0,0,0,0,0,0
@@ -51,7 +51,7 @@ def extract_good_program_ids(input_filename)
     result.to_a.sort
 end
 
-input_filename = 'data/terms_lab.csv'
+input_filename = 'data/terms_loda_rust.csv'
 output_filename = 'data/mine_program_ids.csv'
 
 program_ids = extract_good_program_ids(input_filename)

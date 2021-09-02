@@ -19,7 +19,7 @@ This script compares terms of all rows.
 If the terms are the same it says "ok".
 If the terms are different it says "mismatch".
 
-This script outputs a `compare_loda_vs_lab.csv` file, with this format:
+This script outputs a `compare_loda_cpp_vs_loda_rust.csv` file, with this format:
 
     program id;status;actual;expected
     5;ok;1,2,2,3,2,4,2,4,3,4;1,2,2,3,2,4,2,4,3,4
@@ -43,9 +43,9 @@ def load_terms_into_dict(input_filename)
     dict
 end
 
-input_filename0 = 'data/terms_lab.csv'
+input_filename0 = 'data/terms_loda_rust.csv'
 input_filename1 = 'data/terms_loda.csv'
-output_filename = 'data/compare_loda_vs_lab.csv'
+output_filename = 'data/compare_loda_cpp_vs_loda_rust.csv'
 time_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
 
