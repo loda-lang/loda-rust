@@ -47,7 +47,7 @@ class PageController {
   configureEditor() {
     const editor = CodeMirror.fromTextArea(document.getElementById("editor-inner"), {
       lineNumbers: true,
-      lineWrapping: true,
+      lineWrapping: false,
       styleActiveLine: true,
       theme: "idea",
       mode: "loda",
@@ -240,7 +240,7 @@ class PageController {
   showInfo() {
     console.log("Show info");
     window.open(
-      "https://github.com/loda-lang/loda-lang",
+      "https://loda-lang.github.io/",
       '_blank' // Open in a new window.
     );
   }
@@ -340,7 +340,7 @@ function body_onbeforeunload() {
   
 <header class="titlebar-container">
   <div class="titlebar-item titlebar-item-left">
-    <button class="seconday-button" onclick="gPageController.showInfo()">Language</button>
+    <button class="seconday-button" onclick="gPageController.showInfo()">LODA Language</button>
   </div>
 
   <div class="titlebar-item titlebar-item-center">Edit</div>
