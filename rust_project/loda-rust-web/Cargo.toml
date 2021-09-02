@@ -1,5 +1,5 @@
 [package]
-name = "lodalab-web"
+name = "loda-rust-web"
 version = "0.1.0"
 authors = ["Simon Strandgaard <neoneye@gmail.com>"]
 description = "Interactive web interface, so a person new to LODA, can try it in their browser."
@@ -11,7 +11,7 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-lodalab-core = { path = "../lodalab-core" }
+loda-rust-core = { path = "../loda-rust-core" }
 wasm-bindgen = "0.2"
 js-sys = "0.3.51"
 wasm-bindgen-futures = "0.4.25"

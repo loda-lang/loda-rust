@@ -1,13 +1,13 @@
-use lodalab_core;
+use loda_rust_core;
 use std::time::Instant;
 use std::rc::Rc;
 use std::path::PathBuf;
-use lodalab_core::control::{DependencyManager,DependencyManagerFileSystemMode};
-use lodalab_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
-use lodalab_core::execute::NodeRegisterLimit;
-use lodalab_core::execute::node_binomial::NodeBinomialLimit;
-use lodalab_core::execute::node_power::NodePowerLimit;
-use lodalab_core::config::Config;
+use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
+use loda_rust_core::execute::NodeRegisterLimit;
+use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
+use loda_rust_core::execute::node_power::NodePowerLimit;
+use loda_rust_core::config::Config;
 
 pub enum SubcommandEvaluateMode {
     PrintTerms,

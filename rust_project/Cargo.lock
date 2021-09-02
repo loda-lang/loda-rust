@@ -239,12 +239,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7f823d141fe0a24df1e23b4af4e3c7ba9e5966ec514ea068c93024aa7deb765"
 
 [[package]]
-name = "lodalab-cli"
+name = "loda-rust-cli"
 version = "0.1.0"
 dependencies = [
  "clap",
  "env_logger",
- "lodalab-core",
+ "loda-rust-core",
  "log",
  "num-bigint",
  "num-traits",
@@ -252,7 +252,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "lodalab-core"
+name = "loda-rust-core"
 version = "0.1.0"
 dependencies = [
  "bloomfilter",
@@ -274,12 +274,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "lodalab-web"
+name = "loda-rust-web"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "js-sys",
- "lodalab-core",
+ "loda-rust-core",
  "log",
  "wasm-bindgen",
  "wasm-bindgen-futures",

@@ -1,5 +1,5 @@
-use lodalab_core;
-use lodalab_core::config::Config;
+use loda_rust_core;
+use loda_rust_core::config::Config;
 use std::path::{Path,PathBuf};
 use std::fs;
 use std::fs::File;

@@ -1,5 +1,5 @@
 [package]
-name = "lodalab-core"
+name = "loda-rust-core"
 version = "0.1.0"
 authors = ["Simon Strandgaard <neoneye@gmail.com>"]
 description = "Shared code between LODA Rust projects"

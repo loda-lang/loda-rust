@@ -4,12 +4,12 @@ file 'data/program_ids.csv' do
 end
 
 desc 'obtain all the dependencies between programs, for use as input to PageRank algorithm'
-file 'data/caller_callee_pairs.csv' => ['data/loda-lab', 'data/program_ids.csv'] do
+file 'data/caller_callee_pairs.csv' => ['data/loda-rust', 'data/program_ids.csv'] do
     ruby 'task_caller_callee_pairs.rb'
 end
 
 desc 'obtain all the dependencies between programs, comma separated list'
-file 'data/caller_callee_list.csv' => ['data/loda-lab', 'data/program_ids.csv'] do
+file 'data/caller_callee_list.csv' => ['data/loda-rust', 'data/program_ids.csv'] do
     ruby 'task_caller_callee_list.rb'
 end
 
@@ -18,19 +18,19 @@ file 'data/most_called_programs.csv' => 'data/caller_callee_list.csv' do
     ruby 'task_most_called_programs.rb'
 end
 
-desc 'compute terms with "LODA Rust"'
-file 'data/terms_lab.csv' => ['data/loda-lab', 'data/program_ids.csv'] do
+desc 'compute terms with "loda-rust"'
+file 'data/terms_loda_rust.csv' => ['data/loda-rust', 'data/program_ids.csv'] do
     ruby 'task_terms_loda_rust.rb'
 end
 
-desc 'compute terms with "LODA Cpp"'
-file 'data/terms_loda.csv' => 'data/program_ids.csv' do
+desc 'compute terms with "loda-cpp"'
+file 'data/terms_loda_cpp.csv' => 'data/program_ids.csv' do
     ruby 'task_terms_loda_cpp.rb'
 end
 
-desc 'compare terms between "LODA official" and "LODA Lab"'
-file 'data/compare_loda_vs_lab.csv' => ['data/terms_lab.csv', 'data/terms_loda.csv'] do
-    ruby 'task_compare_loda_vs_lab.rb'
+desc 'compare terms between "loda-cpp" and "loda-rust"'
+file 'data/compare_loda_cpp_vs_loda_rust.csv' => ['data/terms_loda_rust.csv', 'data/terms_loda_cpp.csv'] do
+    ruby 'task_compare_loda_cpp_vs_loda_rust.rb'
 end
 
 desc 'run the PageRank algorithm and ranking the most influential programs'
@@ -68,13 +68,13 @@ file 'data/top100.md' => ['data/pagerank.csv', 'data/caller_callee_pairs.csv'] d
     ruby 'task_top100.rb'
 end
 
-desc "compiles the loda-lab executable"
-file 'data/loda-lab' do
-    ruby 'task_lodalab_executable.rb'
+desc "compiles the loda-rust executable"
+file 'data/loda-rust' do
+    ruby 'task_loda_rust_executable.rb'
 end
 
 desc "identify the programs that can be used by the miner"
-file 'data/mine_program_ids.csv' => ['data/terms_lab.csv'] do
+file 'data/mine_program_ids.csv' => ['data/terms_loda_rust.csv'] do
     ruby 'task_mine_program_ids.rb'
 end
 

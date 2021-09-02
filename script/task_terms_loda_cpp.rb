@@ -14,7 +14,7 @@ This script takes input from a `program_ids.csv` file, with this format:
 This script traverses all the programs inside the LODA program rootdir.
 Each program is evaluated and the outputs is stored in the CSV file.
 
-This script outputs a `terms_loda.csv` file, with this format:
+This script outputs a `terms_loda_cpp.csv` file, with this format:
 
     program id;terms
     4;0,0,0,0,0,0,0,0,0,0
@@ -35,7 +35,7 @@ require_relative 'config'
 LODA_CPP_REPOSITORY = Config.instance.loda_cpp_repository
 
 input_filename = 'data/program_ids.csv'
-output_filename = 'data/terms_loda.csv'
+output_filename = 'data/terms_loda_cpp.csv'
 time_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
 # Obtain all the program_ids to be processed

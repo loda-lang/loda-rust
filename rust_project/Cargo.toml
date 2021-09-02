@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-  "lodalab-core",
-  "lodalab-cli",
-  "lodalab-web"
+  "loda-rust-core",
+  "loda-rust-cli",
+  "loda-rust-web"
 ]

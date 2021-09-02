@@ -1,4 +1,4 @@
-use lodalab_core;
+use loda_rust_core;
 
 #[macro_use]
 extern crate log;
@@ -7,7 +7,7 @@ extern crate env_logger;
 
 use std::str::FromStr;
 
-use lodalab_core::control::*;
+use loda_rust_core::control::*;
 
 mod subcommand_dependencies;
 mod subcommand_evaluate;
@@ -31,7 +31,7 @@ fn main() {
     // Initialize logging from the `RUST_LOG` environment variable.
     env_logger::init();
 
-    let matches = App::new("loda-lab")
+    let matches = App::new("loda-rust")
         .version("0.0.1")
         .about("Experimental tool")
         .setting(AppSettings::SubcommandRequiredElseHelp)

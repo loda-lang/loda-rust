@@ -14,7 +14,7 @@ This script takes input from a `program_ids.csv` file, with this format:
 This script traverses all the programs inside the LODA program rootdir.
 Each program is evaluated and the outputs is stored in the CSV file.
 
-This script outputs a `terms_lab.csv` file, with this format:
+This script outputs a `terms_loda_rust.csv` file, with this format:
 
     program id;terms
     4;0,0,0,0,0,0,0,0,0,0
@@ -32,7 +32,7 @@ This script outputs a `terms_lab.csv` file, with this format:
 require 'csv'
 
 input_filename = 'data/program_ids.csv'
-output_filename = 'data/terms_lab.csv'
+output_filename = 'data/terms_loda_rust.csv'
 
 time_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
@@ -57,7 +57,7 @@ end
 CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
     csv << ["program id", "terms"]
     program_ids.each_with_index do |program_id, index|
-        output = `data/loda-lab evaluate #{program_id} -t 10`
+        output = `data/loda-rust evaluate #{program_id} -t 10`
         output = output.strip
         success = $?.success?
         if success

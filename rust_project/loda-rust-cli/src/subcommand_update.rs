@@ -1,6 +1,6 @@
-use lodalab_core;
-use lodalab_core::config::Config;
-use lodalab_core::mine::{create_cache_file, load_program_ids_csv_file};
+use loda_rust_core;
+use loda_rust_core::config::Config;
+use loda_rust_core::mine::{create_cache_file, load_program_ids_csv_file};
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
 use std::iter::FromIterator;

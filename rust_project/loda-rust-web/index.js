@@ -1,4 +1,4 @@
-import init, * as wasmModule from './pkg/lodalab_web.js';
+import init, * as wasmModule from './pkg/loda_rust_web.js';
 
 function computeAndYield(remaining, index, dm, runId) {
     if (!gPageController.isRunningProgram(runId)) {
@@ -27,7 +27,7 @@ function computeAndYield(remaining, index, dm, runId) {
 }
 
 const runWasm = async () => {
-    await init('./pkg/lodalab_web_bg.wasm');
+    await init('./pkg/loda_rust_web_bg.wasm');
     window.wasmModule = wasmModule;
 
     wasmModule.setup_lib();
