@@ -24,12 +24,12 @@ file 'data/terms_loda_rust.csv' => ['data/loda-rust', 'data/program_ids.csv'] do
 end
 
 desc 'compute terms with "loda-cpp"'
-file 'data/terms_loda.csv' => 'data/program_ids.csv' do
+file 'data/terms_loda_cpp.csv' => 'data/program_ids.csv' do
     ruby 'task_terms_loda_cpp.rb'
 end
 
 desc 'compare terms between "loda-cpp" and "loda-rust"'
-file 'data/compare_loda_cpp_vs_loda_rust.csv' => ['data/terms_loda_rust.csv', 'data/terms_loda.csv'] do
+file 'data/compare_loda_cpp_vs_loda_rust.csv' => ['data/terms_loda_rust.csv', 'data/terms_loda_cpp.csv'] do
     ruby 'task_compare_loda_cpp_vs_loda_rust.rb'
 end
 

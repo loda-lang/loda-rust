@@ -44,7 +44,7 @@ def load_terms_into_dict(input_filename)
 end
 
 input_filename0 = 'data/terms_loda_rust.csv'
-input_filename1 = 'data/terms_loda.csv'
+input_filename1 = 'data/terms_loda_cpp.csv'
 output_filename = 'data/compare_loda_cpp_vs_loda_rust.csv'
 time_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
