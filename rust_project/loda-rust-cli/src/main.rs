@@ -1,4 +1,4 @@
-use lodalab_core;
+use loda_rust_core;
 
 #[macro_use]
 extern crate log;
@@ -7,7 +7,7 @@ extern crate env_logger;
 
 use std::str::FromStr;
 
-use lodalab_core::control::*;
+use loda_rust_core::control::*;
 
 mod subcommand_dependencies;
 mod subcommand_evaluate;
