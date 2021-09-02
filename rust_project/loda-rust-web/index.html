@@ -94,8 +94,9 @@ class PageController {
       this.prepareProgramSourceCode(sourceCode);
       return;
     }
-    if (params.has('id')) {
-      let programId = params.get('id');
+    if (params.has('oeis')) {
+      var programId = params.get('oeis');
+      programId = programId.replace(/^A0*/i, '');
       this.prepareProgramId(programId);
       return;
     }
