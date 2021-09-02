@@ -1,5 +1,5 @@
 [package]
-name = "lodalab-cli"
+name = "loda-rust-cli"
 version = "0.1.0"
 authors = ["Simon Strandgaard <neoneye@gmail.com>"]
 description = "Command line interface for LODA Rust"
@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 edition = "2018"
 
 [[bin]]
-name = "loda-lab"
+name = "loda-rust"
 path = "src/main.rs"
 
 [dependencies]

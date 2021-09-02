@@ -2,6 +2,6 @@
 
 members = [
   "lodalab-core",
-  "lodalab-cli",
+  "loda-rust-cli",
   "lodalab-web"
 ]

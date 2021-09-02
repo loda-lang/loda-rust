@@ -14,7 +14,7 @@ See [Installation Guide](documents/install.md).
 Evaluate program for the A000079 oeis sequence, printing 10 terms.
 
 ```
-PROMPT> loda-lab eval 79 -t 10
+PROMPT> loda-rust eval 79 -t 10
 1,2,4,8,16,32,64,128,256,512
 PROMPT>
 ```
@@ -24,7 +24,7 @@ PROMPT>
 Print dependencies of a program for the A000073 oeis sequence.
 
 ```
-PROMPT> loda-lab deps 73
+PROMPT> loda-rust deps 73
 73,232508,301657
 PROMPT>
 ```
@@ -34,7 +34,7 @@ PROMPT>
 Evaluate program for the A000079 oeis sequence, processing 2 terms and printing the internal state.
 
 ```
-PROMPT> loda-lab eval 79 -t 2 --debug
+PROMPT> loda-rust eval 79 -t 2 --debug
 INPUT: a(0)
 mov $1,2     [0,0] => [0,2]
 pow $1,$0    [0,2] => [0,1]

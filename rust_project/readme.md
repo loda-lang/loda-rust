@@ -38,8 +38,8 @@ PROMPT> RUST_BACKTRACE=1 cargo run -- eval 79 -t 64
 ### Compile for release and run miner
 
 ```
-PROMPT> cargo build -p lodalab-cli --release
-PROMPT> ./target/release/loda-lab mine
+PROMPT> cargo build -p loda-rust-cli --release
+PROMPT> ./target/release/loda-rust mine
 ```
 
 
