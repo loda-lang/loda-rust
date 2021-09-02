@@ -53,7 +53,7 @@ end
 CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
     csv << ["program id", "dependency count", "program ids"]
     program_ids.each_with_index do |program_id, index|
-        output = `data/loda-lab dependencies #{program_id}`
+        output = `data/loda-rust dependencies #{program_id}`
         output = output.strip
         dependency_count = output.split(',').count
         success = $?.success?
