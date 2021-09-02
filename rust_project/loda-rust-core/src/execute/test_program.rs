@@ -10,7 +10,7 @@ mod tests {
 
     fn program_a000045() -> Program {
         // Fibonacci integer sequence
-        // https://github.com/ckrause/loda/blob/master/programs/oeis/000/A000045.asm
+        // https://github.com/loda-lang/loda-programs/blob/main/oeis/000/A000045.asm
         let mut program_inner = Program::new();
         program_inner.push(NodeSubtractConstant::new(RegisterIndex(0), RegisterValue::one()));
         program_inner.push(NodeMoveRegister::new(RegisterIndex(2), RegisterIndex(1)));
