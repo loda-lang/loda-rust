@@ -104,7 +104,6 @@ impl GenomeItem {
             InstructionId::Divide,
             InstructionId::DivideIf,
             InstructionId::GCD,
-            // InstructionId::Logarithm,
             // InstructionId::Max,
             // InstructionId::Min,
             InstructionId::Modulo,
