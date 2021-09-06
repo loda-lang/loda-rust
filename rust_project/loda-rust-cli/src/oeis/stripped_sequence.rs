@@ -2,7 +2,7 @@ use num_bigint::BigInt;
 use std::fmt;
 use regex::Regex;
 use lazy_static::lazy_static;
-use crate::util::BigIntVec;
+use loda_rust_core::util::BigIntVec;
 
 pub struct StrippedSequence {
     pub sequence_number: u32,

@@ -1,5 +1,5 @@
 use loda_rust_core::util::BigIntVec;
-use loda_rust_core::oeis::stripped_sequence::*;
+use crate::oeis::stripped_sequence::*;
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;
 use std::io;
