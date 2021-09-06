@@ -138,7 +138,13 @@ pub fn create_cache_file(oeis_stripped_file: &Path, destination_file: &Path, ter
     instance.save(destination_file);
 }
 
-fn create_inner<F>(reader: &mut dyn io::BufRead, term_count: usize, program_ids_to_ignore: &HashSet<u32>, print_progress: bool, mut callback: F)
+fn create_inner<F>(
+    reader: &mut dyn io::BufRead, 
+    term_count: usize, 
+    program_ids_to_ignore: &HashSet<u32>, 
+    print_progress: bool, 
+    mut callback: F
+)
     where F: FnMut(&StrippedSequence)
 {
     assert!(term_count >= 1);
