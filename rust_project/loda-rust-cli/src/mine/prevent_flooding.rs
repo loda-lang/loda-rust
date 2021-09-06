@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use crate::util::{BigIntVec, bigintvec_to_string};
+use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
 
 // The `mine-event` dir can quickly get filled up with candidate programs
 // that output the same terms. I have experienced that 80k files was
@@ -54,7 +54,7 @@ impl PreventFlooding {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::util::i64vec_to_bigintvec;
+    use loda_rust_core::util::i64vec_to_bigintvec;
     
     #[test]
     fn test_10000_try_register() {

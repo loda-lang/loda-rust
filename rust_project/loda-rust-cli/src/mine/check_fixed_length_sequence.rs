@@ -1,4 +1,4 @@
-use crate::util::BigIntVec;
+use loda_rust_core::util::BigIntVec;
 use crate::oeis::stripped_sequence::*;
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;

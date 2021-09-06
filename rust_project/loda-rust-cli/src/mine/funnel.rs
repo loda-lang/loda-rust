@@ -1,6 +1,6 @@
-use crate::mine::CheckFixedLengthSequence;
-use crate::util::Analyze;
-use crate::util::BigIntVec;
+use super::CheckFixedLengthSequence;
+use loda_rust_core::util::Analyze;
+use loda_rust_core::util::BigIntVec;
 
 pub struct Funnel<'a> {
     checker10: &'a CheckFixedLengthSequence,

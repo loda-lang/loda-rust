@@ -1,5 +1,5 @@
-use crate::mine::{GenomeItem, GenomeMutateContext, MutateValue};
-use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
+use super::{GenomeItem, GenomeMutateContext, MutateValue};
+use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
 use std::fmt;
 use rand::Rng;
 use rand::seq::SliceRandom;

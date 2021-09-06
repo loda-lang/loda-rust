@@ -1,11 +1,11 @@
-use crate::control::{DependencyManager,DependencyManagerFileSystemMode};
-use crate::mine::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, PreventFlooding, RecentProgramContainer, save_candidate_program};
-use crate::parser::{parse_program, ParsedProgram};
-use crate::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
-use crate::execute::NodeRegisterLimit;
-use crate::execute::node_binomial::NodeBinomialLimit;
-use crate::execute::node_power::NodePowerLimit;
-use crate::util::{BigIntVec, bigintvec_to_string};
+use super::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, PreventFlooding, RecentProgramContainer, save_candidate_program};
+use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+use loda_rust_core::parser::{parse_program, ParsedProgram};
+use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
+use loda_rust_core::execute::NodeRegisterLimit;
+use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
+use loda_rust_core::execute::node_power::NodePowerLimit;
+use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
 use std::fs;
 use std::time::Instant;
 use std::path::{Path, PathBuf};
@@ -55,7 +55,11 @@ impl TermComputer {
     }
 }
 
-impl ProgramRunner {
+trait ComputeTerms {
+    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError>;
+}
+
+impl ComputeTerms for ProgramRunner {
     fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError> {
         let mut terms: BigIntVec = vec!();
         let step_count_limit: u64 = 10000;
