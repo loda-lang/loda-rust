@@ -95,27 +95,57 @@ impl CheckFixedLengthSequenceInternalRepresentation {
     }
 }
 
+struct SequenceProcessor {
+    counter: usize,
+}
+
+impl SequenceProcessor {
+    fn new() -> Self {
+        Self {
+            counter: 0
+        }
+    }
+}
+
 pub fn create_cache_file(oeis_stripped_file: &Path, destination_file: &Path, term_count: usize, program_ids_to_ignore: &HashSet<u32>) {
     assert!(oeis_stripped_file.is_absolute());
     assert!(oeis_stripped_file.is_file());
 
     let file = File::open(oeis_stripped_file).unwrap();
     let mut reader = BufReader::new(file);
-    let instance: CheckFixedLengthSequence = create_inner(&mut reader, term_count, program_ids_to_ignore, true);
+
+    let mut processor = SequenceProcessor::new();
+    let x = &mut processor;
+
+    let items_count: usize = 400000;
+    let false_positive_rate: f64 = 0.01;
+    let mut bloom = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
+    let y = &mut bloom;
+
+    let process_callback = |stripped_sequence: &StrippedSequence| {
+        // debug!("call {:?}", stripped_sequence.sequence_number);
+        (*x).counter += 1;
+
+        let vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
+        (*y).set(vec);
+    };
+    create_inner(&mut reader, term_count, program_ids_to_ignore, true, process_callback);
+    debug!("counter: {:?}", processor.counter);
+
+    let instance = CheckFixedLengthSequence::new(bloom, term_count);
 
     println!("saving cache file: {:?}", destination_file);
     instance.save(destination_file);
 }
 
-fn create_inner(reader: &mut dyn io::BufRead, term_count: usize, program_ids_to_ignore: &HashSet<u32>, print_progress: bool) -> CheckFixedLengthSequence {
+fn create_inner<F>(reader: &mut dyn io::BufRead, term_count: usize, program_ids_to_ignore: &HashSet<u32>, print_progress: bool, mut callback: F)
+    where F: FnMut(&StrippedSequence)
+{
     assert!(term_count >= 1);
     assert!(term_count <= 100);
-    let items_count: usize = 400000;
-    let false_positive_rate: f64 = 0.01;
-    let mut bloom = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
 
     let mut count: usize = 0;
-    let mut count_sequences: usize = 0;
+    let mut count_callback: usize = 0;
     let mut count_junk: usize = 0;
     let mut count_tooshort: usize = 0;
     let mut count_ignore: usize = 0;
@@ -124,9 +154,8 @@ fn create_inner(reader: &mut dyn io::BufRead, term_count: usize, program_ids_to_
         if print_progress && ((count % 10000) == 0) {
             println!("progress: {}", count);
         }
-
         let line: String = line.unwrap();
-        let stripped_sequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
+        let stripped_sequence: StrippedSequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
             Some(value) => value,
             None => {
                 count_junk += 1;
@@ -137,21 +166,17 @@ fn create_inner(reader: &mut dyn io::BufRead, term_count: usize, program_ids_to_
             count_ignore += 1;
             continue;
         }
-        let vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
-        if vec.len() != term_count {
+        if stripped_sequence.len() != term_count {
             count_tooshort += 1;
             continue;
         }
-
-        bloom.set(vec);
-        count_sequences += 1;
+        callback(&stripped_sequence);
+        count_callback += 1;
     }
-    debug!("count_sequences: {}", count_sequences);
+    debug!("count_sequences: {}", count_callback);
     debug!("count_ignore: {}", count_ignore);
     debug!("count_tooshort: {}", count_tooshort);
     debug!("count_junk: {}", count_junk);
-
-    CheckFixedLengthSequence::new(bloom, term_count)
 }
 
 

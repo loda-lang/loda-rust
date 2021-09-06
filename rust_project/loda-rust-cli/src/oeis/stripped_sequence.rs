@@ -20,6 +20,10 @@ impl StrippedSequence {
     pub fn bigint_vec_ref(&self) -> &BigIntVec {
         &self.bigint_vec
     }
+
+    pub fn len(&self) -> usize {
+        self.bigint_vec.len()
+    }
 }
 
 impl fmt::Display for StrippedSequence {
