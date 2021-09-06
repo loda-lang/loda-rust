@@ -105,12 +105,10 @@ version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "670ad68c9088c2a963aaa298cb369688cf3f9465ce5e2d4ca10e6e0098a1ce73"
 dependencies = [
- "js-sys",
  "libc",
  "num-integer",
  "num-traits",
  "time",
- "wasm-bindgen",
  "winapi",
 ]
 
@@ -181,10 +179,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7fcd999463524c52659517fe2cea98493cfe485d10565e7b0fb07dbba7ad2753"
 dependencies = [
  "cfg-if 1.0.0",
- "js-sys",
  "libc",
  "wasi",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -242,34 +238,33 @@ checksum = "a7f823d141fe0a24df1e23b4af4e3c7ba9e5966ec514ea068c93024aa7deb765"
 name = "loda-rust-cli"
 version = "0.1.0"
 dependencies = [
+ "bloomfilter",
+ "chrono",
  "clap",
+ "csv",
  "env_logger",
  "loda-rust-core",
  "log",
  "num-bigint",
  "num-traits",
  "rand",
+ "serde",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]
 name = "loda-rust-core"
 version = "0.1.0"
 dependencies = [
- "bloomfilter",
- "chrono",
- "csv",
- "getrandom",
  "lazy_static",
  "log",
  "lru",
  "num-bigint",
  "num-integer",
  "num-traits",
- "rand",
  "regex",
  "serde",
- "serde_json",
- "tempfile",
  "toml",
 ]
 
