@@ -1,6 +1,6 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
-use crate::mine::{CheckFixedLengthSequence, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop};
+use crate::mine::{CheckFixedLengthSequence, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 
@@ -26,14 +26,18 @@ pub fn subcommand_mine() {
 
     // Load cached data
     debug!("step1");
-    let file10 = cache_dir.join(Path::new("fixed_length_sequence_10terms.json"));
-    let checker10: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file10);
-    let file20 = cache_dir.join(Path::new("fixed_length_sequence_20terms.json"));
-    let checker20: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file20);
-    let file30 = cache_dir.join(Path::new("fixed_length_sequence_30terms.json"));
-    let checker30: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file30);
-    let file40 = cache_dir.join(Path::new("fixed_length_sequence_40terms.json"));
-    let checker40: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&file40);
+    let filename10: &str = NamedCacheFile::Bloom10Terms.filename();
+    let filename20: &str = NamedCacheFile::Bloom20Terms.filename();
+    let filename30: &str = NamedCacheFile::Bloom30Terms.filename();
+    let filename40: &str = NamedCacheFile::Bloom40Terms.filename();
+    let path10 = cache_dir.join(Path::new(filename10));
+    let path20 = cache_dir.join(Path::new(filename20));
+    let path30 = cache_dir.join(Path::new(filename30));
+    let path40 = cache_dir.join(Path::new(filename40));
+    let checker10: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path10);
+    let checker20: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path20);
+    let checker30: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path30);
+    let checker40: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path40);
     debug!("step2");
 
     // Load the program_ids available for mining

@@ -1,9 +1,10 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
-use crate::mine::{create_cache_file, load_program_ids_csv_file};
+use crate::mine::{create_cache_files, load_program_ids_csv_file};
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
 use std::iter::FromIterator;
+use std::time::Instant;
 
 fn obtain_dontmine_program_ids(loda_rust_repository: &Path) -> HashSet<u32> {
     let relative_path = Path::new("resources/dont_mine.csv");
@@ -21,6 +22,7 @@ fn obtain_dontmine_program_ids(loda_rust_repository: &Path) -> HashSet<u32> {
 }
 
 pub fn subcommand_update() {
+    let start_time = Instant::now();
     let config = Config::load();
     let oeis_stripped_file: PathBuf = config.oeis_stripped_file();
     let cache_dir: PathBuf = config.cache_dir();
@@ -29,23 +31,7 @@ pub fn subcommand_update() {
     println!("update begin");
     
     let program_ids_to_ignore: HashSet<u32> = obtain_dontmine_program_ids(&loda_rust_repository);
+    create_cache_files(&oeis_stripped_file, &cache_dir, &program_ids_to_ignore);
 
-    {
-        let destination_file = cache_dir.join(Path::new("fixed_length_sequence_10terms.json"));
-        create_cache_file(&oeis_stripped_file, &destination_file, 10, &program_ids_to_ignore);
-    }
-    {
-        let destination_file = cache_dir.join(Path::new("fixed_length_sequence_20terms.json"));
-        create_cache_file(&oeis_stripped_file, &destination_file, 20, &program_ids_to_ignore);
-    }
-    {
-        let destination_file = cache_dir.join(Path::new("fixed_length_sequence_30terms.json"));
-        create_cache_file(&oeis_stripped_file, &destination_file, 30, &program_ids_to_ignore);
-    }
-    {
-        let destination_file = cache_dir.join(Path::new("fixed_length_sequence_40terms.json"));
-        create_cache_file(&oeis_stripped_file, &destination_file, 40, &program_ids_to_ignore);
-    }
-
-    println!("update end");
+    println!("update end, elapsed: {:?} ms", start_time.elapsed().as_millis());
 }
