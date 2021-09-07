@@ -113,17 +113,29 @@ pub fn create_cache_files(oeis_stripped_file: &Path, cache_dir: &PathBuf, progra
 
     let file = File::open(oeis_stripped_file).unwrap();
     let mut reader = BufReader::new(file);
+    let bloom_items_count: usize = 400000;
+    create_cache_files_inner(
+        &mut reader, 
+        bloom_items_count, 
+        cache_dir, 
+        program_ids_to_ignore
+    );
+}
 
+fn create_cache_files_inner(
+    oeis_stripped_file_reader: &mut dyn io::BufRead, 
+    bloom_items_count: usize,
+    cache_dir: &PathBuf, 
+    program_ids_to_ignore: &HashSet<u32>
+) {
     let mut processor = SequenceProcessor::new();
     let x = &mut processor;
 
-    let items_count: usize = 400000;
     let false_positive_rate: f64 = 0.01;
-
-    let mut bloom10 = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
-    let mut bloom20 = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
-    let mut bloom30 = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
-    let mut bloom40 = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
+    let mut bloom10 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
+    let mut bloom20 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
+    let mut bloom30 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
+    let mut bloom40 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
     let bloom10_ref = &mut bloom10;
     let bloom20_ref = &mut bloom20;
     let bloom30_ref = &mut bloom30;
@@ -152,7 +164,13 @@ pub fn create_cache_files(oeis_stripped_file: &Path, cache_dir: &PathBuf, progra
         }
     };
     let term_count: usize = 40;
-    process_stripped_sequence_file(&mut reader, term_count, program_ids_to_ignore, true, process_callback);
+    process_stripped_sequence_file(
+        oeis_stripped_file_reader, 
+        term_count, 
+        program_ids_to_ignore, 
+        true, 
+        process_callback
+    );
     debug!("number of items processed: {:?}", processor.counter);
 
     {
@@ -228,7 +246,6 @@ fn process_stripped_sequence_file<F>(
     debug!("count_junk: {}", count_junk);
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -236,6 +253,7 @@ mod tests {
     use rand::prelude::*;
     use std::path::PathBuf;
     use num_bigint::ToBigInt;
+    use std::fs;
     
     #[test]
     fn test_10000_bloomfilter_basic() {
@@ -370,5 +388,24 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
             }
         }
         assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn test_30000_create_cache_files() {
+        let dirname = "test_30000_create_cache_files";
+        let tempdir = tempfile::tempdir().unwrap();
+        let mut cache_dir_path = PathBuf::from(&tempdir.path());
+        cache_dir_path.push(dirname);
+        fs::create_dir(&cache_dir_path).unwrap();
+
+        let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
+        let hashset = HashSet::<u32>::new();
+        create_cache_files_inner(
+            &mut input, 
+            10,
+            &cache_dir_path, 
+            &hashset
+        );
+
     }
 }
