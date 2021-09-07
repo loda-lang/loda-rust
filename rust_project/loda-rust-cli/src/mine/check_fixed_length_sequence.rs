@@ -340,7 +340,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
 
     #[test]
     fn test_20001_save_load() {
-        let filename = "test_10004_save_load.json";
+        let filename = "test_20001_save_load.json";
         let tempdir = tempfile::tempdir().unwrap();
         let mut path = PathBuf::from(&tempdir.path());
         path.push(filename);
