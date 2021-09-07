@@ -3,7 +3,7 @@ use crate::oeis::stripped_sequence::*;
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::io::prelude::*;
@@ -107,7 +107,7 @@ impl SequenceProcessor {
     }
 }
 
-pub fn create_cache_file(oeis_stripped_file: &Path, destination_file: &Path, term_count: usize, program_ids_to_ignore: &HashSet<u32>) {
+pub fn create_cache_files(oeis_stripped_file: &Path, cache_dir: &PathBuf, program_ids_to_ignore: &HashSet<u32>) {
     assert!(oeis_stripped_file.is_absolute());
     assert!(oeis_stripped_file.is_file());
 
@@ -119,23 +119,66 @@ pub fn create_cache_file(oeis_stripped_file: &Path, destination_file: &Path, ter
 
     let items_count: usize = 400000;
     let false_positive_rate: f64 = 0.01;
-    let mut bloom = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
-    let y = &mut bloom;
+
+    let mut bloom10 = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
+    let mut bloom20 = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
+    let mut bloom30 = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
+    let mut bloom40 = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
+    let bloom10_ref = &mut bloom10;
+    let bloom20_ref = &mut bloom20;
+    let bloom30_ref = &mut bloom30;
+    let bloom40_ref = &mut bloom40;
 
     let process_callback = |stripped_sequence: &StrippedSequence| {
         // debug!("call {:?}", stripped_sequence.sequence_number);
         (*x).counter += 1;
 
-        let vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
-        (*y).set(vec);
+        let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
+        {
+            let vec: BigIntVec = all_vec[0..10].to_vec();
+            (*bloom10_ref).set(&vec);
+        }
+        {
+            let vec: BigIntVec = all_vec[0..20].to_vec();
+            (*bloom20_ref).set(&vec);
+        }
+        {
+            let vec: BigIntVec = all_vec[0..30].to_vec();
+            (*bloom30_ref).set(&vec);
+        }
+        {
+            let vec: BigIntVec = all_vec[0..40].to_vec();
+            (*bloom40_ref).set(&vec);
+        }
     };
+    let term_count: usize = 40;
     create_inner(&mut reader, term_count, program_ids_to_ignore, true, process_callback);
-    debug!("counter: {:?}", processor.counter);
+    debug!("number of items processed: {:?}", processor.counter);
 
-    let instance = CheckFixedLengthSequence::new(bloom, term_count);
-
-    println!("saving cache file: {:?}", destination_file);
-    instance.save(destination_file);
+    {
+        let instance = CheckFixedLengthSequence::new(bloom10, term_count);
+        let destination_file = cache_dir.join(Path::new("fixed_length_sequence_10terms.json"));
+        println!("saving cache file: {:?}", destination_file);
+        instance.save(&destination_file);
+    }
+    {
+        let instance = CheckFixedLengthSequence::new(bloom20, term_count);
+        let destination_file = cache_dir.join(Path::new("fixed_length_sequence_20terms.json"));
+        println!("saving cache file: {:?}", destination_file);
+        instance.save(&destination_file);
+    }
+    {
+        let instance = CheckFixedLengthSequence::new(bloom30, term_count);
+        let destination_file = cache_dir.join(Path::new("fixed_length_sequence_30terms.json"));
+        println!("saving cache file: {:?}", destination_file);
+        instance.save(&destination_file);
+    }
+    {
+        let instance = CheckFixedLengthSequence::new(bloom40, term_count);
+        let destination_file = cache_dir.join(Path::new("fixed_length_sequence_40terms.json"));
+        println!("saving cache file: {:?}", destination_file);
+        instance.save(&destination_file);
+    }
 }
 
 fn create_inner<F>(

@@ -10,7 +10,7 @@ mod recent_program_container;
 mod run_miner_loop;
 mod save_candidate_program;
 
-pub use check_fixed_length_sequence::{CheckFixedLengthSequence, create_cache_file};
+pub use check_fixed_length_sequence::{CheckFixedLengthSequence, create_cache_files};
 pub use funnel::Funnel;
 pub use genome_mutate_context::GenomeMutateContext;
 pub use genome::{Genome, MutateGenome};
