@@ -105,7 +105,7 @@ impl Node for NodeCallConstant {
 
         self.program_runner_rc = program_runner;
         self.link_established = true;
-        debug!("NodeCall: update_call. program_id: {}", program_id);
+        //trace!("NodeCall: update_call. program_id: {}", program_id);
     }
 
     fn accumulate_call_dependencies(&self, program_id_vec: &mut Vec<u64>) {

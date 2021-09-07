@@ -211,7 +211,7 @@ impl DependencyManager {
         let mut dependent_program_id_vec: Vec<u64> = vec!();
         program.accumulate_call_dependencies(&mut dependent_program_id_vec);
         if !dependent_program_id_vec.is_empty() {
-            debug!("program_id: {:?}  depends on other programs: {:?}", program_id, dependent_program_id_vec);
+            //trace!("program_id: {:?}  depends on other programs: {:?}", program_id, dependent_program_id_vec);
         }
         for dependent_program_id in dependent_program_id_vec {
             self.load_inner(dependent_program_id)?;
