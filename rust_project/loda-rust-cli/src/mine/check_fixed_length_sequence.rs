@@ -107,7 +107,7 @@ impl SequenceProcessor {
     }
 }
 
-enum NamedCacheFile {
+pub enum NamedCacheFile {
     Bloom10Terms,
     Bloom20Terms,
     Bloom30Terms,
@@ -115,11 +115,12 @@ enum NamedCacheFile {
 }
 
 impl NamedCacheFile {
+    #[allow(dead_code)]
     fn all() -> Vec<NamedCacheFile> {
         vec!(Self::Bloom10Terms, Self::Bloom20Terms, Self::Bloom30Terms, Self::Bloom40Terms)
     }
 
-    fn filename(&self) -> &str {
+    pub fn filename(&self) -> &str {
         match self {
             Self::Bloom10Terms => "fixed_length_sequence_10terms.json",
             Self::Bloom20Terms => "fixed_length_sequence_20terms.json",
