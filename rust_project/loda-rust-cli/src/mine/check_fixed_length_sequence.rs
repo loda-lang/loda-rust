@@ -152,7 +152,7 @@ pub fn create_cache_files(oeis_stripped_file: &Path, cache_dir: &PathBuf, progra
         }
     };
     let term_count: usize = 40;
-    create_inner(&mut reader, term_count, program_ids_to_ignore, true, process_callback);
+    process_stripped_sequence_file(&mut reader, term_count, program_ids_to_ignore, true, process_callback);
     debug!("number of items processed: {:?}", processor.counter);
 
     {
@@ -181,7 +181,7 @@ pub fn create_cache_files(oeis_stripped_file: &Path, cache_dir: &PathBuf, progra
     }
 }
 
-fn create_inner<F>(
+fn process_stripped_sequence_file<F>(
     reader: &mut dyn io::BufRead, 
     term_count: usize, 
     program_ids_to_ignore: &HashSet<u32>, 
@@ -275,11 +275,35 @@ A000040 ,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,
 A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
 "#;
 
+    fn create_checkfixedlengthsequence_inner(
+        reader: &mut dyn io::BufRead, 
+        term_count: usize, 
+        program_ids_to_ignore: &HashSet<u32>, 
+    ) -> CheckFixedLengthSequence
+    {
+        let items_count: usize = 400000;
+        let false_positive_rate: f64 = 0.01;
+        let mut bloom = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
+        let bloom_ref = &mut bloom;
+        let process_callback = |stripped_sequence: &StrippedSequence| {
+            let vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
+            (*bloom_ref).set(vec);
+        };
+        process_stripped_sequence_file(
+            reader, 
+            term_count, 
+            program_ids_to_ignore, 
+            false, 
+            process_callback
+        );
+        CheckFixedLengthSequence::new(bloom, term_count)
+    }
+
     impl CheckFixedLengthSequence {
         fn new_mock() -> CheckFixedLengthSequence {
             let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
             let hashset = HashSet::<u32>::new();
-            create_inner(&mut input, 5, &hashset, false)
+            create_checkfixedlengthsequence_inner(&mut input, 5, &hashset)
         }
 
         fn check_i64(&self, ary: &Vec<i64>) -> bool {
