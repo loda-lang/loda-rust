@@ -107,6 +107,28 @@ impl SequenceProcessor {
     }
 }
 
+enum NamedCacheFile {
+    Bloom10Terms,
+    Bloom20Terms,
+    Bloom30Terms,
+    Bloom40Terms
+}
+
+impl NamedCacheFile {
+    fn all() -> Vec<NamedCacheFile> {
+        vec!(Self::Bloom10Terms, Self::Bloom20Terms, Self::Bloom30Terms, Self::Bloom40Terms)
+    }
+
+    fn filename(&self) -> &str {
+        match self {
+            Self::Bloom10Terms => "fixed_length_sequence_10terms.json",
+            Self::Bloom20Terms => "fixed_length_sequence_20terms.json",
+            Self::Bloom30Terms => "fixed_length_sequence_30terms.json",
+            Self::Bloom40Terms => "fixed_length_sequence_40terms.json"
+        }
+    }
+}
+
 pub fn create_cache_files(oeis_stripped_file: &Path, cache_dir: &PathBuf, program_ids_to_ignore: &HashSet<u32>) {
     assert!(oeis_stripped_file.is_absolute());
     assert!(oeis_stripped_file.is_file());
@@ -127,7 +149,7 @@ fn create_cache_files_inner(
     bloom_items_count: usize,
     cache_dir: &PathBuf, 
     program_ids_to_ignore: &HashSet<u32>
-) {
+) -> usize {
     let mut processor = SequenceProcessor::new();
     let x = &mut processor;
 
@@ -171,32 +193,39 @@ fn create_cache_files_inner(
         true, 
         process_callback
     );
-    debug!("number of items processed: {:?}", processor.counter);
+    debug!("number of sequences processed: {:?}", processor.counter);
 
     {
         let instance = CheckFixedLengthSequence::new(bloom10, term_count);
-        let destination_file = cache_dir.join(Path::new("fixed_length_sequence_10terms.json"));
+        let filename: &str = NamedCacheFile::Bloom10Terms.filename();
+        let destination_file = cache_dir.join(Path::new(filename));
         println!("saving cache file: {:?}", destination_file);
         instance.save(&destination_file);
     }
     {
         let instance = CheckFixedLengthSequence::new(bloom20, term_count);
-        let destination_file = cache_dir.join(Path::new("fixed_length_sequence_20terms.json"));
+        let filename: &str = NamedCacheFile::Bloom20Terms.filename();
+        let destination_file = cache_dir.join(Path::new(filename));
         println!("saving cache file: {:?}", destination_file);
         instance.save(&destination_file);
     }
     {
         let instance = CheckFixedLengthSequence::new(bloom30, term_count);
-        let destination_file = cache_dir.join(Path::new("fixed_length_sequence_30terms.json"));
+        let filename: &str = NamedCacheFile::Bloom30Terms.filename();
+        let destination_file = cache_dir.join(Path::new(filename));
         println!("saving cache file: {:?}", destination_file);
         instance.save(&destination_file);
     }
     {
         let instance = CheckFixedLengthSequence::new(bloom40, term_count);
-        let destination_file = cache_dir.join(Path::new("fixed_length_sequence_40terms.json"));
+        let filename: &str = NamedCacheFile::Bloom40Terms.filename();
+        let destination_file = cache_dir.join(Path::new(filename));
         println!("saving cache file: {:?}", destination_file);
         instance.save(&destination_file);
     }
+
+    // Number of sequences processed
+    processor.counter
 }
 
 fn process_stripped_sequence_file<F>(
@@ -289,8 +318,8 @@ mod tests {
 # Last Modified: January 32 01:01 UTC 1984
 # Use of this content is governed by the
 # OEIS End-User License: http://oeis.org/LICENSE
-A000040 ,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,
-A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
+A000040 ,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199,211,223,227,229,233,239,241,251,257,263,269,271,
+A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10946,17711,28657,46368,75025,121393,196418,317811,514229,832040,1346269,2178309,3524578,5702887,9227465,14930352,24157817,39088169,63245986,102334155,
 "#;
 
     fn create_checkfixedlengthsequence_inner(
@@ -394,18 +423,29 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,
     fn test_30000_create_cache_files() {
         let dirname = "test_30000_create_cache_files";
         let tempdir = tempfile::tempdir().unwrap();
-        let mut cache_dir_path = PathBuf::from(&tempdir.path());
-        cache_dir_path.push(dirname);
-        fs::create_dir(&cache_dir_path).unwrap();
+        let mut cache_dir = PathBuf::from(&tempdir.path());
+        cache_dir.push(dirname);
+        fs::create_dir(&cache_dir).unwrap();
 
+        // Create cache files
         let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
         let hashset = HashSet::<u32>::new();
-        create_cache_files_inner(
+        let number_of_sequences: usize = create_cache_files_inner(
             &mut input, 
             10,
-            &cache_dir_path, 
+            &cache_dir,
             &hashset
         );
+        assert_eq!(number_of_sequences, 2);
 
+        // Check that all the cache files can be loaded
+        let mut file_count: usize = 0;
+        for item in NamedCacheFile::all() {
+            let filename: &str = item.filename();
+            let path: PathBuf = cache_dir.join(Path::new(filename));
+            let _checker: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path);
+            file_count += 1;
+        }
+        assert_eq!(file_count, 4);
     }
 }
