@@ -11,10 +11,10 @@ LODA has proved to be remarkable good at making programs that correspond to OEIS
 
 Run LODA programs in your browser. Examples to try out:
 
-- [A000010: Euler totient function.](https://loda-lang.github.io/edit/?oeis=10)
-- [A000045: Fibonacci numbers.](https://loda-lang.github.io/edit/?oeis=45)
-- [A001113: Decimal expansion of e.](https://loda-lang.github.io/edit/?oeis=1113)
-- [A002994: Initial digit of cubes.](https://loda-lang.github.io/edit/?oeis=2994)
+- [A000010: Euler totient function.](https://loda-lang.org/edit/?oeis=10)
+- [A000045: Fibonacci numbers.](https://loda-lang.org/edit/?oeis=45)
+- [A001113: Decimal expansion of e.](https://loda-lang.org/edit/?oeis=1113)
+- [A002994: Initial digit of cubes.](https://loda-lang.org/edit/?oeis=2994)
 
 
 # Vision for LODA
