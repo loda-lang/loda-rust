@@ -6,7 +6,7 @@ const DEFAULT_CONFIG: &'static str =
 r#"# Configuration for LODA Rust
 
 # Absolute path to the "loda-programs" repository dir.
-loda_programs_repository = "/Users/JOHNDOE/git/loda-programs"
+loda_programs_repository = "/Users/JOHNDOE/loda/programs"
 
 # Absolute path to the "loda-cpp" repository dir.
 loda_cpp_repository = "/Users/JOHNDOE/git/loda-cpp"
@@ -15,7 +15,7 @@ loda_cpp_repository = "/Users/JOHNDOE/git/loda-cpp"
 loda_rust_repository = "/Users/JOHNDOE/git/loda-rust"
 
 # Absolute path to the unzipped OEIS stripped file.
-oeis_stripped_file = "/Users/JOHNDOE/.loda/oeis/stripped"
+oeis_stripped_file = "/Users/JOHNDOE/loda/oeis/stripped"
 "#;
 
 
@@ -140,8 +140,8 @@ mod tests {
         let basedir = PathBuf::from(Path::new("non-existing-basedir"));
         let config: Config = config_from_toml_content(Config::default_config(), basedir);
         assert_eq!(config.basedir.to_str().unwrap(), "non-existing-basedir");
-        assert_eq!(config.loda_programs_repository, "/Users/JOHNDOE/git/loda-programs");
-        assert_eq!(config.oeis_stripped_file, "/Users/JOHNDOE/.loda/oeis/stripped");
+        assert_eq!(config.loda_programs_repository, "/Users/JOHNDOE/loda/programs");
+        assert_eq!(config.oeis_stripped_file, "/Users/JOHNDOE/loda/oeis/stripped");
         assert_eq!(config.loda_rust_repository, "/Users/JOHNDOE/git/loda-rust");
         assert_eq!(config.loda_cpp_repository, "/Users/JOHNDOE/git/loda-cpp");
     }
