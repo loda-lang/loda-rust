@@ -29,6 +29,7 @@ impl GenomeItem {
         }
     }
 
+    #[allow(dead_code)]
     pub fn new_move_register(target_value: i32, source_value: i32) -> Self {
         Self {
             enabled: true,
@@ -39,6 +40,7 @@ impl GenomeItem {
         }
     }
 
+    #[allow(dead_code)]
     pub fn new_instruction_with_const(instruction_id: InstructionId, target_value: i32, source_value: i32) -> Self {
         Self {
             enabled: true,

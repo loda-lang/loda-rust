@@ -1,6 +1,5 @@
 use super::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, PreventFlooding, RecentProgramContainer, save_candidate_program};
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
-use loda_rust_core::parser::{parse_program, ParsedProgram};
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
@@ -200,25 +199,7 @@ pub fn run_miner_loop(
     prevent_flooding.load(&mut dm, &mut cache, paths);
     println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
 
-    let path_to_program: PathBuf = dm.path_to_program(112456);
-    let contents: String = match fs::read_to_string(&path_to_program) {
-        Ok(value) => value,
-        Err(error) => {
-            panic!("Something went wrong reading the file: {:?}", error);
-        }
-    };
-
-    let _parsed_program: ParsedProgram = match parse_program(&contents) {
-        Ok(value) => value,
-        Err(error) => {
-            panic!("Something went wrong parsing the program: {:?}", error);
-        }
-    };
-    
-    // let mut genome = Genome::new_from_parsed_program(&parsed_program);
     let mut genome = Genome::new();
-    // genome.mutate_insert_loop(&mut rng);
-    // debug!("Initial genome\n{}", genome);
     println!("Initial genome\n{}", genome);
 
     // return;
@@ -240,6 +221,7 @@ pub fn run_miner_loop(
     let mut iteration: usize = 0;
     let mut progress_time = Instant::now();
     let mut progress_iteration: usize = 0;
+    let mut number_of_failed_loads: usize = 0;
     let mut number_of_failed_mutations: usize = 0;
     let mut number_of_errors_parse: usize = 0;
     let mut number_of_errors_nooutput: usize = 0;
@@ -255,11 +237,12 @@ pub fn run_miner_loop(
             );
 
             let error_info = format!(
-                "[{},{},{},{}]",
+                "[{},{},{},{},{}]",
                 number_of_failed_mutations,
                 number_of_errors_parse,
                 number_of_errors_nooutput,
-                number_of_errors_run
+                number_of_errors_run,
+                number_of_failed_loads
             );
 
             println!("#{} cache: {}   error: {}   funnel: {}  flooding: {}  {}", 
@@ -275,6 +258,13 @@ pub fn run_miner_loop(
 
             progress_time = Instant::now();
             progress_iteration = iteration;
+        }
+
+        if (iteration % 100) == 0 {
+            let load_ok: bool = genome.load_random_program(&mut rng, &dm, &context);
+            if !load_ok {
+                number_of_failed_loads += 1;
+            }
         }
 
         iteration += 1;

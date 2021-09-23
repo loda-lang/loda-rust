@@ -1,8 +1,12 @@
 use super::{GenomeItem, GenomeMutateContext, MutateValue};
-use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
+use loda_rust_core::control::DependencyManager;
+use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
+use loda_rust_core::parser::{parse_program, ParsedProgram};
 use std::fmt;
 use rand::Rng;
 use rand::seq::SliceRandom;
+use std::fs;
+use std::path::PathBuf;
 
 // Ideas for more mutations
 // append random row
@@ -26,8 +30,46 @@ pub struct Genome {
 }
 
 impl Genome {
-    #[allow(dead_code)]
-    pub fn new_from_parsed_program(parsed_program: &ParsedProgram) -> Self {
+    pub fn new() -> Self {
+        Self {
+            genome_vec: vec!(),
+        }
+    }
+
+    pub fn load_random_program<R: Rng + ?Sized>(&mut self, rng: &mut R, dm: &DependencyManager, context: &GenomeMutateContext) -> bool {
+        let program_id_u32: u32 = match context.choose_available_program(rng) {
+            Some(value) => value,
+            None => {
+                error!("cannot load random program. The list of available programs is empty");
+                return false;
+            }
+        };
+        let program_id: u64 = program_id_u32 as u64;
+        return self.load_program(dm, program_id);
+    }
+
+    pub fn load_program(&mut self, dm: &DependencyManager, program_id: u64) -> bool {
+        let path_to_program: PathBuf = dm.path_to_program(program_id);
+        let contents: String = match fs::read_to_string(&path_to_program) {
+            Ok(value) => value,
+            Err(error) => {
+                error!("loading program_id: {:?}, something went wrong reading the file: {:?}", program_id, error);
+                return false;
+            }
+        };
+        let parsed_program: ParsedProgram = match parse_program(&contents) {
+            Ok(value) => value,
+            Err(error) => {
+                error!("loading program_id: {:?}, something went wrong parsing the program: {:?}", program_id, error);
+                return false;
+            }
+        };
+        self.replace_genome_with_parsed_program(&parsed_program);
+        debug!("loaded program_id: {:?}", program_id);
+        return true;
+    }
+
+    pub fn replace_genome_with_parsed_program(&mut self, parsed_program: &ParsedProgram) {
         let mut genome_vec: Vec<GenomeItem> = vec!();
 
         for instruction in &parsed_program.instruction_vec {
@@ -54,94 +96,7 @@ impl Genome {
             genome_vec.push(genome_item);
         }
 
-        Self {
-            genome_vec: genome_vec,
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn new() -> Self {
-        let mut genome_vec: Vec<GenomeItem> = vec!();
-        {
-            let item = GenomeItem::new_move_register(1, 0);
-            genome_vec.push(item);
-        }
-        // {
-        //     let item = GenomeItem::new_move_register(2, 0);
-        //     genome_vec.push(item);
-        // }
-        // {
-        //     let item = GenomeItem::new_move_register(3, 0);
-        //     genome_vec.push(item);
-        // }
-        // append instructions that doesn't do anything to the output register
-        // {
-        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
-        //     genome_vec.push(item);
-        // }
-        // {
-        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
-        //     genome_vec.push(item);
-        // }
-        // {
-        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 1, 10);
-        //     genome_vec.push(item);
-        // }
-        // {
-        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Divide, 1, 2);
-        //     genome_vec.push(item);
-        // }
-        // {
-        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 2, 10);
-        //     genome_vec.push(item);
-        // }
-        // {
-        //     let item = GenomeItem::new_instruction_with_const(InstructionId::DivideIf, 1, 10);
-        //     genome_vec.push(item);
-        // }
-        // {
-        //     let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 2, 10);
-        //     genome_vec.push(item);
-        // }
-        {
-            let item = GenomeItem::new(
-                InstructionId::EvalSequence,
-                1,
-                ParameterType::Constant,
-                40,
-            );
-            genome_vec.push(item);
-        }
-        {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Modulo, 1, 10);
-            genome_vec.push(item);
-        }
-        {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
-            genome_vec.push(item);
-        }
-        {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
-            genome_vec.push(item);
-        }
-        {
-            let item = GenomeItem::new_instruction_with_const(InstructionId::Multiply, 1, 6);
-            genome_vec.push(item);
-        }
-        // for _ in 0..4 {
-        //     {
-        //         let item = GenomeItem::new_instruction_with_const(InstructionId::Add, 1, 1);
-        //         genome_vec.push(item);
-        //     }
-        //     {
-        //         let item = GenomeItem::new_instruction_with_const(InstructionId::Subtract, 1, 1);
-        //         genome_vec.push(item);
-        //     }
-        // }
-        // genome_vec[2].mutate_trigger_division_by_zero();
-        Self {
-            genome_vec: genome_vec,
-        }
+        self.genome_vec = genome_vec;
     }
 
     pub fn to_parsed_program(&self) -> ParsedProgram {
