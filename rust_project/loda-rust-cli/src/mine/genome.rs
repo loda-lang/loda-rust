@@ -1,8 +1,12 @@
 use super::{GenomeItem, GenomeMutateContext, MutateValue};
-use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
+use loda_rust_core::control::DependencyManager;
+use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
+use loda_rust_core::parser::{parse_program, ParsedProgram};
 use std::fmt;
 use rand::Rng;
 use rand::seq::SliceRandom;
+use std::fs;
+use std::path::PathBuf;
 
 // Ideas for more mutations
 // append random row
@@ -142,6 +146,57 @@ impl Genome {
         Self {
             genome_vec: genome_vec,
         }
+    }
+
+    pub fn load_random_program<R: Rng + ?Sized>(&mut self, rng: &mut R, dm: &DependencyManager, context: &GenomeMutateContext) {
+        let program_id_u32: u32 = context.choose_available_program(rng).unwrap();
+        let program_id: u64 = program_id_u32 as u64;
+        let path_to_program: PathBuf = dm.path_to_program(program_id);
+        let contents: String = match fs::read_to_string(&path_to_program) {
+            Ok(value) => value,
+            Err(error) => {
+                panic!("loading program_id: {:?}, something went wrong reading the file: {:?}", program_id, error);
+            }
+        };
+    
+        let parsed_program: ParsedProgram = match parse_program(&contents) {
+            Ok(value) => value,
+            Err(error) => {
+                panic!("loading program_id: {:?}, something went wrong parsing the program: {:?}", program_id, error);
+            }
+        };
+        self.replace_genome_with_parsed_program(&parsed_program);
+        debug!("loaded program_id: {:?}", program_id);
+    }
+
+    pub fn replace_genome_with_parsed_program(&mut self, parsed_program: &ParsedProgram) {
+        let mut genome_vec: Vec<GenomeItem> = vec!();
+
+        for instruction in &parsed_program.instruction_vec {
+
+            let mut target_parameter_value: i32 = 0;
+            let mut source_parameter_type: ParameterType = ParameterType::Constant;
+            let mut source_parameter_value: i32 = 0;
+            for (index, parameter) in instruction.parameter_vec.iter().enumerate() {
+                if index == 0 {
+                    target_parameter_value = parameter.parameter_value as i32;
+                }
+                if index == 1 {
+                    source_parameter_value = parameter.parameter_value as i32;
+                    source_parameter_type = parameter.parameter_type.clone();
+                }
+            }
+        
+            let genome_item = GenomeItem::new(
+                instruction.instruction_id.clone(),
+                target_parameter_value,
+                source_parameter_type,
+                source_parameter_value,
+            );
+            genome_vec.push(genome_item);
+        }
+
+        self.genome_vec = genome_vec;
     }
 
     pub fn to_parsed_program(&self) -> ParsedProgram {

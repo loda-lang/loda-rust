@@ -277,6 +277,10 @@ pub fn run_miner_loop(
             progress_iteration = iteration;
         }
 
+        if (iteration % 100) == 0 {
+            genome.load_random_program(&mut rng, &dm, &context);
+        }
+
         iteration += 1;
         
         if !genome.mutate(&mut rng, &context) {
