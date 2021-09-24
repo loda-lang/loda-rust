@@ -84,7 +84,7 @@ output_filename = 'data/pagerank.csv'
 
 # Obtain a set of all program ids
 program_ids = Set.new
-CSV.foreach(input_filename0, {:col_sep => ";"}) do |row|
+CSV.foreach(input_filename0, col_sep: ";") do |row|
     program_id = row.first.to_i
     next if program_id == 0
     program_ids.add(program_id)
@@ -114,7 +114,7 @@ puts "temp_file: #{temp_filename}"
 rows = []
 count_good = 0
 count_skip = 0
-CSV.foreach(temp_filename, {:col_sep => " = "}) do |col0, col1|
+CSV.foreach(temp_filename, col_sep: " = ") do |col0, col1|
     program_id = col0.to_i
     if !program_ids.member?(program_id)
         # For some reason the `pagerank` tool outputs filler rows for non-existing entries
@@ -132,7 +132,7 @@ puts "count_good: #{count_good}"
 rows = rows.sort.reverse
 
 puts "output: #{output_filename}"
-CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
+CSV.open(output_filename, "wb", col_sep: ";") do |csv|
     csv << ["program id", "pagerank"]
 
     rows.each do |pagerank, program_id|

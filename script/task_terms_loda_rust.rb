@@ -38,7 +38,7 @@ time_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
 # Obtain all the program_ids to be processed
 program_ids = []
-CSV.foreach(input_filename, {:col_sep => ";"}) do |row|
+CSV.foreach(input_filename, col_sep: ";") do |row|
     col0 = row[0]
     program_id = col0.to_i
     next if program_id == 0
@@ -54,7 +54,7 @@ if program_ids_count_minus1 == 0
 end
 
 # Generate output file
-CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
+CSV.open(output_filename, "wb", col_sep: ";") do |csv|
     csv << ["program id", "terms"]
     program_ids.each_with_index do |program_id, index|
         output = `data/loda-rust evaluate #{program_id} -t 10`

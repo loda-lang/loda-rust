@@ -272,7 +272,7 @@ oeis_number_of_refs = {
 
 # Obtain all the ranked program_ids
 ranked_program_ids = []
-CSV.foreach(input_filename0, {:col_sep => ";"}) do |row|
+CSV.foreach(input_filename0, col_sep: ";") do |row|
     col0 = row[0]
     program_id = col0.to_i
     next if program_id == 0
@@ -283,7 +283,7 @@ end
 # p ranked_program_ids
 
 program_id_dict = {}
-CSV.foreach(input_filename1, {:col_sep => ";"}) do |row|
+CSV.foreach(input_filename1, col_sep: ";") do |row|
     col0 = row[0]
     col1 = row[1]
     program_id0 = col0.to_i # caller

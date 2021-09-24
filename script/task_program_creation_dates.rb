@@ -98,7 +98,7 @@ paths = relative_paths_for_all_programs(LODA_PROGRAMS_OEIS)
 # paths = paths.first(50)
 #p paths
 
-CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
+CSV.open(output_filename, "wb", col_sep: ";") do |csv|
     csv << ["program id", "creation date"]
     Dir.chdir(LODA_PROGRAMS_OEIS) do
         process_files(paths, csv)

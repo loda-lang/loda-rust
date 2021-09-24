@@ -78,7 +78,7 @@ count_combo_ary = count_combo_dict.to_a.map {|combo,count| [count, combo] }
 # Move the lesser used items to the bottom
 count_combo_ary = count_combo_ary.sort.reverse
 
-CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
+CSV.open(output_filename, "wb", col_sep: ";") do |csv|
     csv << ["count", "word0", "word1", "word2"]
     count_combo_ary.each_with_index do |count_combo, index|
         count, combo = count_combo

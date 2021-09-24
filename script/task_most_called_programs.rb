@@ -33,7 +33,7 @@ dict = {}
 
 puts "input: #{input_filename}"
 count = 0
-CSV.foreach(input_filename, {:col_sep => ";"}) do |col0, col1, col2|
+CSV.foreach(input_filename, col_sep: ";") do |col0, col1, col2|
     caller_program_id = col0.to_i
     callee_program_ids = col2.split(',').drop(1)
 
@@ -50,7 +50,7 @@ end
 
 puts "output: #{output_filename}"
 sorted_callee_program_ids = dict.keys.sort
-CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
+CSV.open(output_filename, "wb", col_sep: ";") do |csv|
     csv << ["callee program id", "dependency count", "caller program ids"]
 
     sorted_callee_program_ids.each do |callee_program_id|
