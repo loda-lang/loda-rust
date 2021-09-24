@@ -1,15 +1,15 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    citrus (3.0.2)
-    toml-rb (2.0.1)
-      citrus (~> 3.0, > 3.0)
+    parslet (2.0.0)
+    toml (0.3.0)
+      parslet (>= 1.8.0, < 3.0.0)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
-  toml-rb (~> 2.0.1)
+  toml (~> 0.3.0)
 
 BUNDLED WITH
-   1.17.2
+   2.2.26

@@ -1,4 +1,4 @@
-require 'toml-rb'
+require 'toml'
 require 'singleton'
 
 class Config
@@ -9,7 +9,7 @@ class Config
     
     def initialize
         path = File.join(ENV['HOME'], '/.loda-rust/config.toml')
-        dict = TomlRB.load_file(path)
+        dict = TOML.load_file(path)
         @loda_programs_repository = dict['loda_programs_repository']
         @loda_cpp_repository = dict['loda_cpp_repository']
     end
