@@ -11,6 +11,9 @@ loda_programs_repository = "/Users/JOHNDOE/loda/programs"
 # Absolute path to the "loda-cpp" repository dir.
 loda_cpp_repository = "/Users/JOHNDOE/git/loda-cpp"
 
+# Absolute path to the "loda" executable file.
+loda_cpp_executable = "/Users/JOHNDOE/loda/bin/loda"
+
 # Absolute path to the "loda-rust" repository dir.
 loda_rust_repository = "/Users/JOHNDOE/git/loda-rust"
 
@@ -25,6 +28,7 @@ pub struct Config {
     loda_programs_repository: String,
     loda_rust_repository: String,
     loda_cpp_repository: String,
+    loda_cpp_executable: String,
     oeis_stripped_file: String,
 }
 
@@ -85,6 +89,13 @@ impl Config {
         assert!(path.is_dir());
         PathBuf::from(path)
     }
+
+    pub fn loda_cpp_executable(&self) -> PathBuf {
+        let path = Path::new(&self.loda_cpp_executable);
+        assert!(path.is_absolute());
+        assert!(path.is_file());
+        PathBuf::from(path)
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -93,6 +104,7 @@ struct ConfigInner {
     oeis_stripped_file: String,
     loda_rust_repository: String,
     loda_cpp_repository: String,
+    loda_cpp_executable: String,
 }
 
 fn load_config_from_home_dir() -> Config {
@@ -128,6 +140,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf) -> Config {
         oeis_stripped_file: inner.oeis_stripped_file.clone(),
         loda_rust_repository: inner.loda_rust_repository.clone(),
         loda_cpp_repository: inner.loda_cpp_repository.clone(),
+        loda_cpp_executable: inner.loda_cpp_executable.clone(),
     }
 }
 
@@ -144,5 +157,6 @@ mod tests {
         assert_eq!(config.oeis_stripped_file, "/Users/JOHNDOE/loda/oeis/stripped");
         assert_eq!(config.loda_rust_repository, "/Users/JOHNDOE/git/loda-rust");
         assert_eq!(config.loda_cpp_repository, "/Users/JOHNDOE/git/loda-cpp");
+        assert_eq!(config.loda_cpp_executable, "/Users/JOHNDOE/loda/bin/loda");
     }
 }

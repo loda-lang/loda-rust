@@ -197,7 +197,7 @@ end
 
 # Load the CSV file
 bigram_rows = []
-CSV.foreach(input_filename0, {:col_sep => ";"}) do |row|
+CSV.foreach(input_filename0, col_sep: ";") do |row|
     col0, col1, col2 = row
     count = col0.to_i
     next if count == 0
@@ -209,7 +209,7 @@ end
 
 # Obtain all the program_ids
 program_ids = []
-CSV.foreach(input_filename1, {:col_sep => ";"}) do |row|
+CSV.foreach(input_filename1, col_sep: ";") do |row|
     col0 = row[0]
     program_id = col0.to_i
     next if program_id == 0

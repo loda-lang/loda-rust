@@ -67,6 +67,7 @@ oeis_number_of_refs = {
     134816 => 21,
     134860 => 14,
     137319 => 11,
+    138288 => 11,
     138342 => 2,
     142 => 2319,
     146076 => 26,
@@ -83,8 +84,10 @@ oeis_number_of_refs = {
     163271 => 9,
     166260 => 1,
     167821 => 5,
+    168835 => 0,
     171621 => 6,
     172407 => 1,
+    173833 => 5,
     175851 => 13,
     180122 => 3,
     182190 => 7,
@@ -155,6 +158,7 @@ oeis_number_of_refs = {
     32 => 1183,
     320226 => 5,
     32741 => 172,
+    32742 => 212,
     33132 => 0,
     33142 => 0,
     33270 => 9,
@@ -272,7 +276,7 @@ oeis_number_of_refs = {
 
 # Obtain all the ranked program_ids
 ranked_program_ids = []
-CSV.foreach(input_filename0, {:col_sep => ";"}) do |row|
+CSV.foreach(input_filename0, col_sep: ";") do |row|
     col0 = row[0]
     program_id = col0.to_i
     next if program_id == 0
@@ -283,7 +287,7 @@ end
 # p ranked_program_ids
 
 program_id_dict = {}
-CSV.foreach(input_filename1, {:col_sep => ";"}) do |row|
+CSV.foreach(input_filename1, col_sep: ";") do |row|
     col0 = row[0]
     col1 = row[1]
     program_id0 = col0.to_i # caller

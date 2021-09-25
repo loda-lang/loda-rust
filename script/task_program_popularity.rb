@@ -50,7 +50,7 @@ end
 
 # Extract program_id and pagerank
 programid_score = []
-CSV.foreach(input_filename, {:col_sep => ";"}) do |row|
+CSV.foreach(input_filename, col_sep: ";") do |row|
     col0 = row[0]
     col1 = row[1]
     program_id = col0.to_i
@@ -113,7 +113,7 @@ end
 program_id_with_group_id.sort_by! { |program_id,group_index| program_id }
 
 # Create csv file with result
-CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
+CSV.open(output_filename, "wb", col_sep: ";") do |csv|
     csv << ["program id", "popularity"]
     program_id_with_group_id.each do |program_id, group_id|
         csv << [program_id, group_id]

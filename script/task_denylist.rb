@@ -39,7 +39,7 @@ end
 puts "number of program ids: #{program_ids.count}"
 
 # Generate output file
-CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
+CSV.open(output_filename, "wb", col_sep: ";") do |csv|
     csv << ["program id"]
     program_ids.each_with_index do |program_id, index|
         csv << [program_id.to_s]

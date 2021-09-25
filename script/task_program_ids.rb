@@ -64,7 +64,7 @@ end
 filenames = obtain_nested_names(LODA_PROGRAMS_OEIS)
 program_ids = integers_from_filenames(filenames)
 
-CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
+CSV.open(output_filename, "wb", col_sep: ";") do |csv|
     csv << ["program id"]
     program_ids.each_with_index do |program_id, index|
         csv << [program_id.to_s]

@@ -32,7 +32,7 @@ This script outputs a `terms_loda_cpp.csv` file, with this format:
 require 'csv'
 require_relative 'config'
 
-LODA_CPP_REPOSITORY = Config.instance.loda_cpp_repository
+LODA_CPP_EXECUTABLE = Config.instance.loda_cpp_executable
 
 input_filename = 'data/program_ids.csv'
 output_filename = 'data/terms_loda_cpp.csv'
@@ -40,7 +40,7 @@ time_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
 # Obtain all the program_ids to be processed
 program_ids = []
-CSV.foreach(input_filename, {:col_sep => ";"}) do |row|
+CSV.foreach(input_filename, col_sep: ";") do |row|
     col0 = row[0]
     program_id = col0.to_i
     next if program_id == 0
@@ -56,27 +56,24 @@ if program_ids_count_minus1 == 0
 end
 
 # Generate output file
-absolute_path_to_output_file = File.join(Dir.pwd, output_filename)
-Dir.chdir(LODA_CPP_REPOSITORY) do
-    CSV.open(absolute_path_to_output_file, "wb", {:col_sep => ";"}) do |csv|
-        csv << ["program id", "terms"]
-        program_ids.each_with_index do |program_id, index|
-            output = `./loda eval A#{program_id} -t 10`
-            output = output.strip
-            success = $?.success?
-            if success
-                count_success += 1
-                csv << [program_id.to_s, output]
-            else
-                count_failure += 1
-                csv << [program_id.to_s, "BOOM"]
-            end
-            if (index % 1000) == 0
-                percent = (100 * index) / program_ids_count_minus1
-                puts "PROGRESS: #{index} / #{program_ids.count}  percent: #{percent}"
-            end
-            # break if index == 10
+CSV.open(output_filename, "wb", col_sep: ";") do |csv|
+    csv << ["program id", "terms"]
+    program_ids.each_with_index do |program_id, index|
+        output = `#{LODA_CPP_EXECUTABLE} eval A#{program_id} -t 10`
+        output = output.strip
+        success = $?.success?
+        if success
+            count_success += 1
+            csv << [program_id.to_s, output]
+        else
+            count_failure += 1
+            csv << [program_id.to_s, "BOOM"]
         end
+        if (index % 1000) == 0
+            percent = (100 * index) / program_ids_count_minus1
+            puts "PROGRESS: #{index} / #{program_ids.count}  percent: #{percent}"
+        end
+        # break if index == 10
     end
 end
 

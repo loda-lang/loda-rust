@@ -34,7 +34,7 @@ require 'csv'
 
 def load_terms_into_dict(input_filename)
     dict = {}
-    CSV.foreach(input_filename, {:col_sep => ";"}) do |col0, col1|
+    CSV.foreach(input_filename, col_sep: ";") do |col0, col1|
         program_id = col0.to_i
         terms = col1
         next if program_id == 0
@@ -66,7 +66,7 @@ if program_ids_count_minus1 == 0
 end
 
 # Generate output file
-CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
+CSV.open(output_filename, "wb", col_sep: ";") do |csv|
     csv << ["program id", "status", "actual", "expected"]
     program_ids.each_with_index do |program_id, index|
         actual = dict0[program_id]

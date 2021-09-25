@@ -41,7 +41,7 @@ require 'set'
 
 def extract_good_program_ids(input_filename)
     result = Set.new
-    CSV.foreach(input_filename, {:col_sep => ";"}) do |col0, col1|
+    CSV.foreach(input_filename, col_sep: ";") do |col0, col1|
         program_id = col0.to_i
         terms = col1
         next if program_id == 0
@@ -57,7 +57,7 @@ output_filename = 'data/mine_program_ids.csv'
 program_ids = extract_good_program_ids(input_filename)
 #p program_ids.count
 
-CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
+CSV.open(output_filename, "wb", col_sep: ";") do |csv|
     csv << ["program id"]
     program_ids.each_with_index do |program_id, index|
         csv << [program_id.to_s]

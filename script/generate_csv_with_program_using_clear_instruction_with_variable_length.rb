@@ -54,7 +54,7 @@ paths = absolute_paths_for_all_programs(LODA_PROGRAMS_OEIS)
 info_rows = obtain_info_rows(paths)
 puts "count: #{info_rows.count}"
 
-CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
+CSV.open(output_filename, "wb", col_sep: ";") do |csv|
     csv << ["program id"]
     info_rows.each_with_index do |info_row, index|
         csv << info_row

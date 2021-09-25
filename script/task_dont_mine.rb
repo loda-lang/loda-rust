@@ -52,13 +52,13 @@ input_filename1 = 'data/program_ids.csv'
 output_filename = 'data/dont_mine.csv'
 
 program_id_set = Set.new
-CSV.foreach(input_filename0, {:col_sep => ";"}) do |row|
+CSV.foreach(input_filename0, col_sep: ";") do |row|
     col0 = row[0]
     program_id = col0.to_i
     next if program_id == 0
     program_id_set << program_id
 end
-CSV.foreach(input_filename1, {:col_sep => ";"}) do |row|
+CSV.foreach(input_filename1, col_sep: ";") do |row|
     col0 = row[0]
     program_id = col0.to_i
     next if program_id == 0
@@ -87,7 +87,7 @@ program_ids = program_id_set.to_a.sort
 puts "number of program ids: #{program_ids.count}"
 
 # Generate output file
-CSV.open(output_filename, "wb", {:col_sep => ";"}) do |csv|
+CSV.open(output_filename, "wb", col_sep: ";") do |csv|
     csv << ["program id"]
     program_ids.each_with_index do |program_id, index|
         csv << [program_id.to_s]
