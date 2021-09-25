@@ -33,6 +33,7 @@ require 'csv'
 require_relative 'config'
 
 LODA_CPP_REPOSITORY = Config.instance.loda_cpp_repository
+LODA_CPP_EXECUTABLE = Config.instance.loda_cpp_executable
 
 input_filename = 'data/program_ids.csv'
 output_filename = 'data/terms_loda_cpp.csv'
@@ -61,7 +62,7 @@ Dir.chdir(LODA_CPP_REPOSITORY) do
     CSV.open(absolute_path_to_output_file, "wb", col_sep: ";") do |csv|
         csv << ["program id", "terms"]
         program_ids.each_with_index do |program_id, index|
-            output = `./loda eval A#{program_id} -t 10`
+            output = `#{LODA_CPP_EXECUTABLE} eval A#{program_id} -t 10`
             output = output.strip
             success = $?.success?
             if success
