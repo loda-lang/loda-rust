@@ -19,6 +19,9 @@ loda_rust_repository = "/Users/JOHNDOE/git/loda-rust"
 
 # Absolute path to the unzipped OEIS stripped file.
 oeis_stripped_file = "/Users/JOHNDOE/loda/oeis/stripped"
+
+# Absolute path to the unzipped OEIS names file.
+oeis_names_file = "/Users/JOHNDOE/loda/oeis/names"
 "#;
 
 
@@ -30,6 +33,7 @@ pub struct Config {
     loda_cpp_repository: String,
     loda_cpp_executable: String,
     oeis_stripped_file: String,
+    oeis_names_file: String,
 }
 
 impl Config {
@@ -76,6 +80,13 @@ impl Config {
         PathBuf::from(path)
     }
 
+    pub fn oeis_names_file(&self) -> PathBuf {
+        let path = Path::new(&self.oeis_names_file);
+        assert!(path.is_absolute());
+        assert!(path.is_file());
+        PathBuf::from(path)
+    }
+
     pub fn loda_rust_repository(&self) -> PathBuf {
         let path = Path::new(&self.loda_rust_repository);
         assert!(path.is_absolute());
@@ -105,6 +116,7 @@ struct ConfigInner {
     loda_rust_repository: String,
     loda_cpp_repository: String,
     loda_cpp_executable: String,
+    oeis_names_file: String,
 }
 
 fn load_config_from_home_dir() -> Config {
@@ -138,6 +150,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf) -> Config {
         basedir: basedir,
         loda_programs_repository: inner.loda_programs_repository.clone(),
         oeis_stripped_file: inner.oeis_stripped_file.clone(),
+        oeis_names_file: inner.oeis_names_file.clone(),
         loda_rust_repository: inner.loda_rust_repository.clone(),
         loda_cpp_repository: inner.loda_cpp_repository.clone(),
         loda_cpp_executable: inner.loda_cpp_executable.clone(),
@@ -155,6 +168,7 @@ mod tests {
         assert_eq!(config.basedir.to_str().unwrap(), "non-existing-basedir");
         assert_eq!(config.loda_programs_repository, "/Users/JOHNDOE/loda/programs");
         assert_eq!(config.oeis_stripped_file, "/Users/JOHNDOE/loda/oeis/stripped");
+        assert_eq!(config.oeis_names_file, "/Users/JOHNDOE/loda/oeis/names");
         assert_eq!(config.loda_rust_repository, "/Users/JOHNDOE/git/loda-rust");
         assert_eq!(config.loda_cpp_repository, "/Users/JOHNDOE/git/loda-cpp");
         assert_eq!(config.loda_cpp_executable, "/Users/JOHNDOE/loda/bin/loda");
