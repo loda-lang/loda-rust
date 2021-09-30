@@ -36,6 +36,11 @@ unless File.exist?(LODA_CPP_EXECUTABLE)
     raise "No such file #{LODA_CPP_EXECUTABLE}, cannot run script"
 end
 
+LODA_PROGRAMS_OEIS = Config.instance.loda_programs_oeis
+unless File.exist?(LODA_PROGRAMS_OEIS)
+    raise "No such dir #{LODA_PROGRAMS_OEIS}, cannot run script"
+end
+
 OEIS_STRIPPED_FILE = Config.instance.oeis_stripped_file
 unless File.exist?(OEIS_STRIPPED_FILE)
     raise "No such file #{OEIS_STRIPPED_FILE}, cannot run script"
@@ -99,13 +104,66 @@ File.new(OEIS_STRIPPED_FILE, "r").each_with_index do |line, index|
     # break if index > 20000
 end
 
-p candidate_programs
+#p candidate_programs
+
+def path_for_oeis_program(program_id)
+    filename = "A%06i.asm" % program_id
+    dirname = "%03i" % (program_id / 1000)
+    File.join(LODA_PROGRAMS_OEIS, dirname, filename)
+end
+
+def analyze_candidate(candidate_program, program_id)
+    path = path_for_oeis_program(program_id)
+    if File.exist?(path)
+        puts "ignoring #{program_id}, since there already is a program with that id. path: #{path}"
+        return false
+    end
+    puts "Creating file: #{path}"
+    IO.write(path, IO.read(candidate_program.path))
+
+    a_name = "A%06i" % program_id
+
+    output = `#{LODA_CPP_EXECUTABLE} check #{a_name} -b 0`
+    output.strip!
+    success = $?.success?
+    if success
+        puts "check success"
+        puts output
+        if output =~ /^(\d+) .* expected/
+            correct_term_count = $1.to_i
+            puts "correct #{correct_term_count} terms, followed by mismatch"
+            File.delete(path)
+            
+            # save to mismatch dir
+            mismatch_name = "#{a_name}_#{correct_term_count}.asm"
+            mismatch_path = File.join(MINE_EVENT_DIR, mismatch_name)
+            IO.write(mismatch_path, IO.read(candidate_program.path))
+            return true
+        else
+            puts "regex didn't match"
+            return false
+        end
+    else
+        puts "check failure"
+        puts output
+        return false
+    end
+end
 
 candidate_programs.each do |candidate_program|
-    oeis_ids = candidate_program.oeis_ids
-    puts "Checking: #{candidate_program.path}  candidate oeis_ids: #{oeis_ids}"
-    oeis_ids.each do |oeis_id|
-        
+    program_ids = candidate_program.oeis_ids
+    puts "Checking: #{candidate_program.path}  candidate program_ids: #{program_ids}"
+    counter = 0
+    program_ids.each do |program_id|
+        if analyze_candidate(candidate_program, program_id)
+            counter += 1
+        end
+    end
+    
+    if counter > 0
+        # delete candidate program when it has been fully analyzed
+        File.delete(candidate_program.path)
+        raise 'yay'
     end
 end
 
