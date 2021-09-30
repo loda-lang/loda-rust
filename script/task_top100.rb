@@ -28,6 +28,10 @@ The document shows a human readable table of the 100 most popular LODA programs.
 =end
 
 require 'csv'
+require 'set'
+require_relative 'config'
+
+OEIS_NAMES_FILE = Config.instance.oeis_names_file
 
 input_filename0 = 'data/pagerank.csv'
 input_filename1 = 'data/caller_callee_pairs.csv'
@@ -317,46 +321,40 @@ def oeis_link(program_id)
     "[#{a_name}](https://oeis.org/#{a_name})"
 end
 
-comments = {
-    8507   => 'Popular in LODA, underappreciated in OEIS. Why?',
-    10201  => 'Popular in LODA, underappreciated in OEIS. Why?',
-    25676  => 'Popular in LODA, underappreciated in OEIS. Why?',
-    33132  => 'Popular in LODA, underappreciated in OEIS. Why?',
-    33142  => 'Popular in LODA, underappreciated in OEIS. Why?',
-    63918  => 'Popular in LODA, underappreciated in OEIS. Why?',
-    80545  => 'Popular in LODA, underappreciated in OEIS. Why?',
-    82524  => 'Popular in LODA, underappreciated in OEIS. Why?',
-    117818 => 'Popular in LODA, underappreciated in OEIS. Why?',
-    138342 => 'Popular in LODA, underappreciated in OEIS. Why?',
-    161560 => 'Popular in LODA, underappreciated in OEIS. Why?',
-    166260 => 'Popular in LODA, underappreciated in OEIS. Why?',
-    206735 => 'Popular in LODA, underappreciated in OEIS. Why?',
-    230980 => "Same as " + oeis_link(720) + ", starting at n=0.",
-    271342 => 'Popular in LODA, underappreciated in OEIS. Why?',
-    276886 => 'Popular in LODA, underappreciated in OEIS. Why?',
-    293810 => 'Popular in LODA, underappreciated in OEIS. Why?',
-    301657 => 'Popular in LODA, underappreciated in OEIS. Why?',
-    339765 => 'Popular in LODA, underappreciated in OEIS. Why?',
-}
+# Lookup the A number and obtain the corresponding OEIS name
+#program_ids_set = [45, 1113].to_set
+program_ids_set = ranked_program_ids.to_set
+program_id_to_name = {}
+File.new(OEIS_NAMES_FILE, "r").each do |line|
+    next unless line =~ /^A0*(\d+) (.+)$/
+    program_id = $1.to_i
+    next unless program_ids_set.include?(program_id)
+    oeis_name = $2
+    program_id_to_name[program_id] = oeis_name
+end
+#puts "program_id_to_name.count: #{program_id_to_name.count}"
+
+def format_oeis_name_as_markdown(name)
+    name.gsub(/[^ a-zA-Z0-9+,.]/) { |s| '\\' + s }
+end
 
 rows = []
 rows << "# Most called LODA programs"
 rows << ''
-rows << "Rank | LODA (callers) | OEIS (refs) | Comment"
+rows << "Rank | LODA (callers) | OEIS (refs) | Name"
 rows << "---- | ---- | ---- | ----"
 ranked_program_ids.each_with_index do |program_id, index|
     caller_ary = program_id_dict[program_id] || []
     number_of_callers = caller_ary.count
     
     number_of_oeis_refs = oeis_number_of_refs[program_id] || 'n/a'
-    
-    comment = comments[program_id] || ''
+    name = program_id_to_name[program_id] || 'n/a'
     
     columns = []
     columns << (index+1).to_s
     columns << program_link(program_id) + " (#{number_of_callers})"
     columns << oeis_link(program_id) + " (#{number_of_oeis_refs})"
-    columns << comment
+    columns << format_oeis_name_as_markdown(name)
     
     rows << columns.join(' | ')
 end
