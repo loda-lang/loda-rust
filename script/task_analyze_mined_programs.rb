@@ -140,13 +140,12 @@ def analyze_candidate(candidate_program, program_id)
             IO.write(mismatch_path, IO.read(candidate_program.path))
             return true
         else
-            puts "regex didn't match"
-            return false
+            raise "regex didn't match"
         end
     else
         puts "check failure"
         puts output
-        return false
+        raise "check failure"
     end
 end
 
