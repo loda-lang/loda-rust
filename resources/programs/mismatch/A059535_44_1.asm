@@ -2,7 +2,7 @@
 
 mov $7,$0
 add $0,1
-mov $2,3
+mov $2,$3
 mov $3,2
 mov $5,64
 mov $6,10
@@ -15,10 +15,10 @@ lpe
 add $1,1
 add $2,5
 mul $2,2
-mov $4,1
+mov $4,0
 sub $4,$6
 mul $4,$6
-add $2,$4
+add $4,$2
 div $1,$4
 add $1,1
 add $1,$7
