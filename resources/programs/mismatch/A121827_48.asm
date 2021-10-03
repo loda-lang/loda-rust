@@ -5,7 +5,7 @@ add $3,3
 ; trn $0,$1
 gcd $1,$3
 mul $1,$0
-cal $1,4956
+seq $1,4956
 ; div $0,6
 add $0,6
 sub $4,2

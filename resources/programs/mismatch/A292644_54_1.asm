@@ -4,7 +4,7 @@ mod $1,4
 sub $1,1
 ; dif $0,6
 trn $0,$1
-cal $0,4956
+seq $0,4956
 add $2,$2
 ; mov $2,2
 add $3,6
