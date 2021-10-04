@@ -9,8 +9,10 @@ mod prevent_flooding;
 mod recent_program_container;
 mod run_miner_loop;
 mod save_candidate_program;
+mod find_asm_files_recursively;
 
 pub use check_fixed_length_sequence::{CheckFixedLengthSequence, create_cache_files, NamedCacheFile};
+pub use find_asm_files_recursively::find_asm_files_recursively;
 pub use funnel::Funnel;
 pub use genome_mutate_context::GenomeMutateContext;
 pub use genome::{Genome, MutateGenome};

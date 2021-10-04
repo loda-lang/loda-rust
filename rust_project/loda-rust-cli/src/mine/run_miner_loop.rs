@@ -10,6 +10,7 @@ use std::time::Instant;
 use std::path::{Path, PathBuf};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
+use super::find_asm_files_recursively;
 
 struct TermComputer {
     terms: BigIntVec,
@@ -93,40 +94,6 @@ impl ComputeTerms for ProgramRunner {
     }
 }
 
-fn asm_files_in_the_mine_event_dir(mine_event_dir: &Path) -> Vec<PathBuf> {
-    let readdir_iterator: fs::ReadDir = match fs::read_dir(mine_event_dir) {
-        Ok(values) => values,
-        Err(err) => {
-            panic!("Unable to obtain paths for mine_event_dir. error: {:?}", err);
-        }
-    };
-
-    let mut paths: Vec<PathBuf> = vec!();
-    for path in readdir_iterator {
-        let direntry: fs::DirEntry = match path {
-            Ok(value) => value,
-            Err(_) => {
-                continue;
-            }
-        };
-        let path: PathBuf = direntry.path();
-        let extension = match path.extension() {
-            Some(value) => value,
-            None => {
-                continue;
-            }
-        };
-        if extension != "asm" {
-            continue;
-        }
-        if !path.is_file() {
-            continue;
-        }
-        paths.push(path);
-    }
-    paths
-}
-
 impl PreventFlooding {
     fn load(&mut self, dependency_manager: &mut DependencyManager, cache: &mut ProgramCache, paths: Vec<PathBuf>) {
         let mut number_of_read_errors: usize = 0;
@@ -192,7 +159,7 @@ pub fn run_miner_loop(
     );
     let mut cache = ProgramCache::new();
 
-    let paths: Vec<PathBuf> = asm_files_in_the_mine_event_dir(mine_event_dir);
+    let paths: Vec<PathBuf> = find_asm_files_recursively(mine_event_dir);
     println!("number of .asm files in the mine-event dir: {:?}", paths.len());
 
     let mut prevent_flooding = PreventFlooding::new();
