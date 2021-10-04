@@ -146,6 +146,7 @@ pub fn run_miner_loop(
     checker30: &CheckFixedLengthSequence,
     checker40: &CheckFixedLengthSequence,
     mine_event_dir: &Path,
+    loda_rust_mismatches: &Path,
     available_program_ids: Vec<u32>,
     initial_random_seed: u64,
     popular_program_container: PopularProgramContainer,
@@ -159,8 +160,12 @@ pub fn run_miner_loop(
     );
     let mut cache = ProgramCache::new();
 
-    let paths: Vec<PathBuf> = find_asm_files_recursively(mine_event_dir);
-    println!("number of .asm files in the mine-event dir: {:?}", paths.len());
+    let mut paths0: Vec<PathBuf> = find_asm_files_recursively(mine_event_dir);
+    let mut paths1: Vec<PathBuf> = find_asm_files_recursively(loda_rust_mismatches);
+    let mut paths: Vec<PathBuf> = vec!();
+    paths.append(&mut paths0);
+    paths.append(&mut paths1);
+    println!("number of .asm files in total: {:?}", paths.len());
 
     let mut prevent_flooding = PreventFlooding::new();
     prevent_flooding.load(&mut dm, &mut cache, paths);
