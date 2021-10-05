@@ -10,6 +10,7 @@ class Config
     attr_reader :loda_cpp_executable
     attr_reader :oeis_stripped_file
     attr_reader :oeis_names_file
+    attr_reader :loda_rust_mismatches
     
     def initialize
         name_dot_loda_rust = '.loda-rust'
@@ -23,6 +24,7 @@ class Config
         @loda_cpp_executable = dict['loda_cpp_executable']
         @oeis_stripped_file = dict['oeis_stripped_file']
         @oeis_names_file = dict['oeis_names_file']
+        @loda_rust_mismatches = dict['loda_rust_mismatches']
     end
 
     def loda_programs_oeis
