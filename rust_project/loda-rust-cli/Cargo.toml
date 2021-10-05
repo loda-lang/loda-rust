@@ -26,6 +26,7 @@ csv = "1.1"
 chrono = "0.4.19"
 regex = "1.4.3"
 lazy_static = "1.4.0"
+walkdir = "2"
 
 [dev-dependencies]
 tempfile = "3.2.0"

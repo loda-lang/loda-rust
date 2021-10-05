@@ -22,6 +22,9 @@ oeis_stripped_file = "/Users/JOHNDOE/loda/oeis/stripped"
 
 # Absolute path to the unzipped OEIS names file.
 oeis_names_file = "/Users/JOHNDOE/loda/oeis/names"
+
+# Absolute path to the dir that holds the accumulated mismatches.
+loda_rust_mismatches = "/Users/JOHNDOE/git/loda-rust/resources/programs/mismatch"
 "#;
 
 
@@ -34,6 +37,7 @@ pub struct Config {
     loda_cpp_executable: String,
     oeis_stripped_file: String,
     oeis_names_file: String,
+    loda_rust_mismatches: String,
 }
 
 impl Config {
@@ -107,6 +111,13 @@ impl Config {
         assert!(path.is_file());
         PathBuf::from(path)
     }
+
+    pub fn loda_rust_mismatches(&self) -> PathBuf {
+        let path = Path::new(&self.loda_rust_mismatches);
+        assert!(path.is_absolute());
+        assert!(path.is_dir());
+        PathBuf::from(path)
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -117,6 +128,7 @@ struct ConfigInner {
     loda_cpp_repository: String,
     loda_cpp_executable: String,
     oeis_names_file: String,
+    loda_rust_mismatches: String,
 }
 
 fn load_config_from_home_dir() -> Config {
@@ -154,6 +166,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf) -> Config {
         loda_rust_repository: inner.loda_rust_repository.clone(),
         loda_cpp_repository: inner.loda_cpp_repository.clone(),
         loda_cpp_executable: inner.loda_cpp_executable.clone(),
+        loda_rust_mismatches: inner.loda_rust_mismatches.clone(),
     }
 }
 
@@ -172,5 +185,6 @@ mod tests {
         assert_eq!(config.loda_rust_repository, "/Users/JOHNDOE/git/loda-rust");
         assert_eq!(config.loda_cpp_repository, "/Users/JOHNDOE/git/loda-cpp");
         assert_eq!(config.loda_cpp_executable, "/Users/JOHNDOE/loda/bin/loda");
+        assert_eq!(config.loda_rust_mismatches, "/Users/JOHNDOE/git/loda-rust/resources/programs/mismatch");
     }
 }
