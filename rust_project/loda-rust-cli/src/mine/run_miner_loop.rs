@@ -232,7 +232,7 @@ pub fn run_miner_loop(
             progress_iteration = iteration;
         }
 
-        if (iteration % 100) == 0 {
+        if (iteration % 20) == 0 {
             let load_ok: bool = genome.load_random_program(&mut rng, &dm, &context);
             if !load_ok {
                 number_of_failed_loads += 1;

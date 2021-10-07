@@ -409,15 +409,15 @@ impl Genome {
     #[allow(dead_code)]
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
-            (MutateGenome::Instruction, 10),
-            (MutateGenome::SourceConstant, 200),
+            (MutateGenome::Instruction, 2),
+            (MutateGenome::SourceConstant, 20),
             (MutateGenome::SourceType, 100),
-            (MutateGenome::SwapRegisters, 100),
-            (MutateGenome::SourceRegister, 100),
+            (MutateGenome::SwapRegisters, 10),
+            (MutateGenome::SourceRegister, 10),
             (MutateGenome::TargetRegister, 100),
             (MutateGenome::ToggleEnabled, 20),
             (MutateGenome::SwapRows, 1),
-            (MutateGenome::SwapAdjacentRows, 10),
+            (MutateGenome::SwapAdjacentRows, 100),
             (MutateGenome::InsertLoopBeginEnd, 0),
             (MutateGenome::CallAnotherProgram, 50),
         ];
