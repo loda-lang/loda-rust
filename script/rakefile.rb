@@ -88,6 +88,11 @@ file 'data/program_popularity.csv' => ['data/pagerank.csv'] do
     ruby 'task_program_popularity.rb'
 end
 
+desc "clean up the inconsistent filenames in the dir for mismatches"
+task :cleanup_mismatch_filenames do
+    ruby 'task_cleanup_mismatch_filenames.rb'
+end
+
 task :default do
     system 'rake -T'
 end
