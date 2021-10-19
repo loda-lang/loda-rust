@@ -73,11 +73,11 @@ def update_names_in_program_file(path, oeis_name_dict, loda_submitted_by)
     content = IO.read(path).strip
 
     # Identify with `seq` instructions, and insert their corresponding sequence name.
-    content.gsub!(/^\s*seq .*,\s*(\d+)$/) { |match|
+    content.gsub!(/^\s*seq .*,\s*(\d+)$/) do |match|
         sequence_program_id = $1.to_i
         sequence_name = oeis_name_dict[sequence_program_id]
         "#{match} ; #{sequence_name}"
-    }
+    end
     
     new_content = ""
     new_content += "; #{oeis_id}: #{program_name}\n"
@@ -85,7 +85,8 @@ def update_names_in_program_file(path, oeis_name_dict, loda_submitted_by)
     new_content += content
     new_content += "\n"
     
-    puts new_content
+    IO.write(path, new_content)
+    puts "Updated program: #{path}"
 end
 
 def update_names_in_program_files(paths, oeis_name_dict, loda_submitted_by)
@@ -119,8 +120,14 @@ File.new(OEIS_NAMES_FILE, "r").each_with_index do |line, index|
     program_id = $1.to_i
     name = $2
     next unless program_ids_set.include?(program_id)
-    puts "program_id: #{program_id} name: #{name}"
+    #puts "program_id: #{program_id} name: #{name}"
     oeis_name_dict[program_id] = name
+end
+
+if oeis_name_dict.count != program_ids_set.count
+    puts "oeis_name_dict: #{oeis_name_dict}"
+    puts "program_ids_set: #{program_ids_set}"
+    raise "Inconsistency: Unable to lookup all program_ids"
 end
 
 update_names_in_program_files(paths, oeis_name_dict, LODA_SUBMITTED_BY)
