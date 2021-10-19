@@ -59,6 +59,31 @@ def extract_oeis_ids_from_program_files(paths)
     program_ids
 end
 
+def update_names_in_program_file(path, oeis_name_dict)
+    path =~ /\b(A0*(\d+))[.]asm$/
+    oeis_id = $1
+    program_id = $2.to_i
+    if program_id == 0
+        raise "Unable to process file at path: #{path}"
+    end
+    content = IO.read(path)
+    
+    content.gsub!(/^\s*seq .*,\s*(\d+)$/) { |match|
+        sequence_program_id = $1.to_i
+        sequence_name = oeis_name_dict[sequence_program_id]
+        "#{match} ; #{sequence_name}"
+    }
+    program_name = oeis_name_dict[program_id]
+    puts "; #{oeis_id}: #{program_name}"
+    puts content
+end
+
+def update_names_in_program_files(paths, oeis_name_dict)
+    paths.each do |path|
+        update_names_in_program_file(path, oeis_name_dict)
+    end
+end
+
 paths = absolute_paths_for_unstaged_programs
 #p paths
 if paths.empty?
@@ -73,6 +98,7 @@ program_ids = extract_oeis_ids_from_program_files(paths)
 program_ids_set = program_ids.to_set
 puts "Will lookup names for these program ids: #{program_ids_set.to_a.sort}" 
 
+oeis_name_dict = {}
 approx_row_count = 350000
 File.new(OEIS_NAMES_FILE, "r").each_with_index do |line, index|
     if (index % 30000) == 0
@@ -82,7 +108,15 @@ File.new(OEIS_NAMES_FILE, "r").each_with_index do |line, index|
     next unless line =~ /^A0*(\d+) (.+)$/
     program_id = $1.to_i
     name = $2
-    if program_ids_set.include?(program_id)
-        puts "program_id: #{program_id} name: #{name}"
-    end
+    next unless program_ids_set.include?(program_id)
+    puts "program_id: #{program_id} name: #{name}"
+    oeis_name_dict[program_id] = name
 end
+
+p oeis_name_dict
+
+update_names_in_program_files(paths, oeis_name_dict)
+
+
+
+
