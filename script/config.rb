@@ -11,6 +11,7 @@ class Config
     attr_reader :oeis_stripped_file
     attr_reader :oeis_names_file
     attr_reader :loda_rust_mismatches
+    attr_reader :loda_submitted_by
     
     def initialize
         name_dot_loda_rust = '.loda-rust'
@@ -25,6 +26,7 @@ class Config
         @oeis_stripped_file = dict['oeis_stripped_file']
         @oeis_names_file = dict['oeis_names_file']
         @loda_rust_mismatches = dict['loda_rust_mismatches']
+        @loda_submitted_by = dict['loda_submitted_by']
     end
 
     def loda_programs_oeis
