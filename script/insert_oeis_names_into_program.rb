@@ -1,7 +1,13 @@
 #!/usr/bin/env ruby
 
 =begin
+Traverse all the unstaged .asm files in the "loda-programs" repository.
 
+Insert a header, like this:
+; A123456: Oeis name
+; Submitted by John Doe
+
+When encountering a `seq` instruction, then insert the corresponding oeis name.
 =end
 
 require 'set'
