@@ -17,6 +17,8 @@ unless File.exist?(OEIS_NAMES_FILE)
     raise "No such file #{OEIS_NAMES_FILE}, cannot run script"
 end
 
+LODA_SUBMITTED_BY = Config.instance.loda_submitted_by
+
 # git: list new files only
 # https://stackoverflow.com/a/26891150/78336
 def absolute_paths_for_unstaged_files(repo_rootdir)
@@ -59,28 +61,36 @@ def extract_oeis_ids_from_program_files(paths)
     program_ids
 end
 
-def update_names_in_program_file(path, oeis_name_dict)
+def update_names_in_program_file(path, oeis_name_dict, loda_submitted_by)
     path =~ /\b(A0*(\d+))[.]asm$/
     oeis_id = $1
     program_id = $2.to_i
     if program_id == 0
         raise "Unable to process file at path: #{path}"
     end
-    content = IO.read(path)
-    
+    program_name = oeis_name_dict[program_id]
+
+    content = IO.read(path).strip
+
+    # Identify with `seq` instructions, and insert their corresponding sequence name.
     content.gsub!(/^\s*seq .*,\s*(\d+)$/) { |match|
         sequence_program_id = $1.to_i
         sequence_name = oeis_name_dict[sequence_program_id]
         "#{match} ; #{sequence_name}"
     }
-    program_name = oeis_name_dict[program_id]
-    puts "; #{oeis_id}: #{program_name}"
-    puts content
+    
+    new_content = ""
+    new_content += "; #{oeis_id}: #{program_name}\n"
+    new_content += "; Submitted by #{loda_submitted_by}\n"
+    new_content += content
+    new_content += "\n"
+    
+    puts new_content
 end
 
-def update_names_in_program_files(paths, oeis_name_dict)
+def update_names_in_program_files(paths, oeis_name_dict, loda_submitted_by)
     paths.each do |path|
-        update_names_in_program_file(path, oeis_name_dict)
+        update_names_in_program_file(path, oeis_name_dict, loda_submitted_by)
     end
 end
 
@@ -113,10 +123,4 @@ File.new(OEIS_NAMES_FILE, "r").each_with_index do |line, index|
     oeis_name_dict[program_id] = name
 end
 
-p oeis_name_dict
-
-update_names_in_program_files(paths, oeis_name_dict)
-
-
-
-
+update_names_in_program_files(paths, oeis_name_dict, LODA_SUBMITTED_BY)
