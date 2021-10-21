@@ -17,6 +17,8 @@ So that a program can be boiled down to just a sequence, like this:
 require 'fileutils'
 require_relative 'config'
 
+OUTPUT_DIR = 'data/instructions'
+
 LODA_PROGRAMS_OEIS = Config.instance.loda_programs_oeis
 unless File.exist?(LODA_PROGRAMS_OEIS)
     raise "No such dir #{LODA_PROGRAMS_OEIS}, cannot run script"
@@ -49,7 +51,7 @@ relative_paths.each_with_index do |relative_path, index|
     end
     # puts "processing: #{relative_path}"
     path_input = File.join(rootdir, relative_path)
-    path_output = File.join('data', 'instructions', relative_path)
+    path_output = File.join(OUTPUT_DIR, relative_path)
     path_output.gsub!(/[.]asm$/, '_instructions.txt')
     process_file(path_input, path_output)
 end
