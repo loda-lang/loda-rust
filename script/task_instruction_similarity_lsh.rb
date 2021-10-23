@@ -11,9 +11,9 @@ INPUT_FILE_BIGRAM = 'data/bigram.csv'
 INPUT_DIR = 'data/instructions'
 OUTPUT_DIR = 'data/instructions'
 
-SIGNATURE_LENGTH = 10
+SIGNATURE_LENGTH = 20
+OVERLAP_MATCH_LIMIT = 10
 NUMBER_OF_PROGRESS_PRINTS = 50
-JACCARD_INDEX_MATCH_LIMIT = 0.5
 
 unless File.exist?(INPUT_DIR)
     raise "No such dir #{LODA_PROGRAMS_OEIS}, cannot run script"
@@ -148,7 +148,7 @@ def signature_and_line_count_program(path, vocabulary, indexes_array)
     matches = match_set.to_a.sort
     # p matches
 
-    signature = []
+    signature = 0
     indexes_array.each do |indexes|
         signature_item = -1
         # stop at first matching hash
@@ -164,7 +164,8 @@ def signature_and_line_count_program(path, vocabulary, indexes_array)
             signature_item = j
             break
         end
-        signature << signature_item
+        binary = 1 << signature_item
+        signature |= binary
     end
     # p signature
     [signature, line_count]
@@ -223,17 +224,16 @@ end
 def compare_signature(program0, program1)
     signature0 = program0.signature
     signature1 = program1.signature
-    if signature0.count != signature1.count
+    overlap = signature0 & signature1
+    # puts "signature0: #{signature0.to_s(2)}"
+    # puts "signature1: #{signature1.to_s(2)}"
+    # puts "overlap:    #{overlap.to_s(2)}"
+    if overlap == 0
         return 0
     end
-    number_of_matches = 0
-    signature0.zip(signature1).each do |signature0_item, signature1_item|
-        if signature0_item == signature1_item
-            number_of_matches += 1
-        end
-    end
-    jaccard_index = number_of_matches.to_f / signature0.count
-    return jaccard_index
+    overlap_count = overlap.to_s(2).count("1")
+    # puts "overlap_count: #{overlap_count}"
+    return overlap_count
 end
 
 vocabulary = load_bigram(INPUT_FILE_BIGRAM)
@@ -254,12 +254,16 @@ end
 
 program_ary = process_all_input_files(vocabulary, indexes_array)
 
+# p program_ary.first.signature.to_s(2)
+# raise
+
 #program_ary = program_ary.first(50)
 
 number_of_mismatches = 0
 number_of_matches = 0
 row_count = program_ary.count
 row_count_mod = (row_count / NUMBER_OF_PROGRESS_PRINTS).ceil
+t0 = Time.now
 program_ary.each_with_index do |program0, program0_index|
     if (program0_index % row_count_mod) == 0
         percentage = (100 * program0_index) / row_count
@@ -267,8 +271,11 @@ program_ary.each_with_index do |program0, program0_index|
     end
     program_ary.each do |program1|
         next if program0 === program1
-        jaccard_index = compare_signature(program0, program1)
-        if jaccard_index < JACCARD_INDEX_MATCH_LIMIT
+        # if number_of_mismatches > 3
+        #     break
+        # end
+        overlap_count = compare_signature(program0, program1)
+        if overlap_count < OVERLAP_MATCH_LIMIT
             number_of_mismatches += 1
             next
         end
@@ -276,10 +283,13 @@ program_ary.each_with_index do |program0, program0_index|
         number_of_matches += 1
     end
 end
-
+t1 = Time.now
+elapsed = t1 - t0
+puts "comparing signatures. elapsed #{elapsed}"
 puts "number_of_matches: #{number_of_matches}"
 puts "number_of_mismatches: #{number_of_mismatches}"
-
+match_ratio = number_of_matches.to_f / (number_of_matches + number_of_mismatches)
+puts "match_ratio: #{match_ratio}"
 
 
 
