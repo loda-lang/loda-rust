@@ -1,6 +1,27 @@
 #!/usr/bin/env ruby
 
 =begin
+My first attempt at identifying similar programs. It's terrible slow.
+It uses the `diff` command for counting the number of identical lines shared between two files.
+
+There are 41000 programs in the "loda-programs" repo at the moment.
+Invoking diff between all programs would require NxN operations.
+In order to avoid that, the programs are grouped into 40 different clusters.
+Short programs go together in the cluster for short programs.
+Long programs go into the cluster for long programs.
+So 1 program only have to be compared with 1025 (41000 / 40) other programs.
+
+For every program, a CSV file is outputted, like this:
+
+A014368_similarity.csv
+program_id;overlap_count;jaccard_index
+155096;16;0.6957
+255995;16;0.6400
+
+The above file means that A014368 is similar to A155096 
+and that A014368 is also similar to A255995.
+
+If 80% of the lines are identical, then the program gets added to the CSV file.
 
 =end
 
