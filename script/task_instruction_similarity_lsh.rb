@@ -13,8 +13,7 @@ OUTPUT_DIR = 'data/instructions'
 
 SIGNATURE_LENGTH = 10
 NUMBER_OF_PROGRESS_PRINTS = 50
-NUMBER_OF_CLUSTERS = 40
-PERCENTAGE_MUST_BE_IDENTICAL = 0.8
+JACCARD_INDEX_MATCH_LIMIT = 0.5
 
 unless File.exist?(INPUT_DIR)
     raise "No such dir #{LODA_PROGRAMS_OEIS}, cannot run script"
@@ -171,68 +170,55 @@ def signature_and_line_count_program(path, vocabulary, indexes_array)
     [signature, line_count]
 end
 
-vocabulary = load_bigram(INPUT_FILE_BIGRAM)
-puts "vocabulary size: #{vocabulary.count}"
-#p vocabulary
+def process_all_input_files(vocabulary, indexes_array)
+    rootdir = INPUT_DIR
+    relative_paths = Dir.glob(File.join("**", "*_instructions.txt"), base: rootdir).sort
+    #relative_paths = relative_paths.first(10)
 
-vocabulary_indexes = (0..vocabulary.count-1).to_a
-#p vocabulary_indexes
+    # Process all the input files, and create a signature
+    program_ary = []
+    row_count = relative_paths.count
+    row_count_mod = (row_count / NUMBER_OF_PROGRESS_PRINTS).ceil
+    t0 = Time.now
+    number_of_too_short_programs = 0
+    number_of_too_long_programs = 0
+    relative_paths.each_with_index do |relative_path, index|
+        if (index % row_count_mod) == 0
+            percentage = (100 * index) / row_count
+            puts "progress %#{percentage}  #{index}/#{row_count}"
+        end
 
-# Create permutations of the numbers between (0 .. vocabulary.count-1)
-indexes_array = []
-SIGNATURE_LENGTH.times do |i|
-    seed = 10 * i
-    indexes = vocabulary_indexes.shuffle(random: Random.new(seed))
-    indexes_array << indexes
+        relative_path =~ /\bA0*(\d+)_/
+        program_id = $1.to_i
+        if program_id == 0
+            puts "Ignoring invalid program id for relative_path: #{relative_path}"
+            next
+        end
+        path_input = File.join(INPUT_DIR, relative_path)
+        output_name = relative_path.gsub('_instructions.txt', '_similarity2.csv')
+        path_output = File.join(OUTPUT_DIR, output_name)
+        signature, line_count = signature_and_line_count_program(path_input, vocabulary, indexes_array)
+        if line_count < 4
+            # puts "Ignoring too short program: #{relative_path}"
+            number_of_too_short_programs += 1
+            next
+        end
+        if line_count > 60
+            # puts "Ignoring too long program: #{relative_path}"
+            number_of_too_long_programs += 1
+            next
+        end
+        program_ary << Program.new(program_id, path_input, path_output, line_count, signature)
+        if program_ary.count >= 5000
+            break
+        end
+    end
+    t1 = Time.now
+    elapsed = t1 - t0
+    puts "number of ignored programs. too short: #{number_of_too_short_programs}  too long: #{number_of_too_long_programs}"
+    puts "computed signatures for #{program_ary.count} programs. Elapsed: #{elapsed}"
+    program_ary
 end
-#p indexes_array
-
-rootdir = INPUT_DIR
-relative_paths = Dir.glob(File.join("**", "*_instructions.txt"), base: rootdir).sort
-#relative_paths = relative_paths.first(10)
-
-# Process all the input files, and create a signature
-program_ary = []
-row_count = relative_paths.count
-row_count_mod = (row_count / NUMBER_OF_PROGRESS_PRINTS).ceil
-t0 = Time.now
-number_of_too_short_programs = 0
-number_of_too_long_programs = 0
-relative_paths.each_with_index do |relative_path, index|
-    if (index % row_count_mod) == 0
-        percentage = (100 * index) / row_count
-        puts "progress %#{percentage}  #{index}/#{row_count}"
-    end
-
-    relative_path =~ /\bA0*(\d+)_/
-    program_id = $1.to_i
-    if program_id == 0
-        puts "Ignoring invalid program id for relative_path: #{relative_path}"
-        next
-    end
-    path_input = File.join(INPUT_DIR, relative_path)
-    output_name = relative_path.gsub('_instructions.txt', '_similarity2.csv')
-    path_output = File.join(OUTPUT_DIR, output_name)
-    signature, line_count = signature_and_line_count_program(path_input, vocabulary, indexes_array)
-    if line_count < 4
-        # puts "Ignoring too short program: #{relative_path}"
-        number_of_too_short_programs += 1
-        next
-    end
-    if line_count > 60
-        # puts "Ignoring too long program: #{relative_path}"
-        number_of_too_long_programs += 1
-        next
-    end
-    program_ary << Program.new(program_id, path_input, path_output, line_count, signature)
-    if program_ary.count >= 500
-        break
-    end
-end
-t1 = Time.now
-elapsed = t1 - t0
-puts "number of ignored programs. too short: #{number_of_too_short_programs}  too long: #{number_of_too_long_programs}"
-puts "computed signatures for #{program_ary.count} programs. Elapsed: #{elapsed}"
 
 def compare_signature(program0, program1)
     signature0 = program0.signature
@@ -250,15 +236,39 @@ def compare_signature(program0, program1)
     return jaccard_index
 end
 
-program_ary = program_ary.first(50)
+vocabulary = load_bigram(INPUT_FILE_BIGRAM)
+puts "vocabulary size: #{vocabulary.count}"
+#p vocabulary
+
+vocabulary_indexes = (0..vocabulary.count-1).to_a
+#p vocabulary_indexes
+
+# Create permutations of the numbers between (0 .. vocabulary.count-1)
+indexes_array = []
+SIGNATURE_LENGTH.times do |i|
+    seed = 10 * i
+    indexes = vocabulary_indexes.shuffle(random: Random.new(seed))
+    indexes_array << indexes
+end
+#p indexes_array
+
+program_ary = process_all_input_files(vocabulary, indexes_array)
+
+#program_ary = program_ary.first(50)
 
 number_of_mismatches = 0
 number_of_matches = 0
-program_ary.each do |program0|
+row_count = program_ary.count
+row_count_mod = (row_count / NUMBER_OF_PROGRESS_PRINTS).ceil
+program_ary.each_with_index do |program0, program0_index|
+    if (program0_index % row_count_mod) == 0
+        percentage = (100 * program0_index) / row_count
+        puts "progress %#{percentage}  #{program0_index}/#{row_count}   #{number_of_matches}:#{number_of_mismatches}"
+    end
     program_ary.each do |program1|
         next if program0 === program1
         jaccard_index = compare_signature(program0, program1)
-        if jaccard_index < 0.25
+        if jaccard_index < JACCARD_INDEX_MATCH_LIMIT
             number_of_mismatches += 1
             next
         end
