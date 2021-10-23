@@ -4,6 +4,8 @@
 
 =end
 
+require 'csv'
+
 INPUT_DIR = 'data/instructions'
 OUTPUT_DIR = 'data/instructions'
 
@@ -24,6 +26,30 @@ class Program
     end
 end
 
+class ComparisonResult
+    attr_reader :program_id
+    attr_reader :a_line_count
+    attr_reader :b_line_count
+    attr_reader :overlap_line_count
+    
+    def initialize(program_id, a_line_count, b_line_count, overlap_line_count)
+        @program_id = program_id
+        @a_line_count = a_line_count
+        @b_line_count = b_line_count
+        @overlap_line_count = overlap_line_count
+    end
+    
+    def jaccard_index
+        x = @overlap_line_count
+        y = @a_line_count + @b_line_count - @overlap_line_count
+        x.to_f / y.to_f
+    end
+    
+    def human_readable_jaccard_index
+        "%.4f" % jaccard_index
+    end
+end
+
 def split_array_into_clusters(ary, cluster_count)
     result = []
     slice_length = (ary.count + cluster_count - 1) / cluster_count
@@ -37,53 +63,57 @@ def split_array_into_clusters(ary, cluster_count)
     result
 end
 
-def is_similar_programs(current_program, program_of_similar_length)
-    line_count0 = current_program.line_count
-    line_count1 = program_of_similar_length.line_count
+def compare_programs(program0, program1)
+    line_count0 = program0.line_count
+    line_count1 = program1.line_count
     lc_diff = (line_count0 - line_count1).abs
     if line_count0 < 5 || line_count1 < 5
         if lc_diff > 0
             # puts "skip 0"
-            return false
+            return nil
         end
     else
         if line_count0 < 10 && line_count1 < 10
             if lc_diff > 4
                 # puts "skip 1"
-                return false
+                return nil
             end
         end
     end
-    path0 = current_program.path_input
-    path1 = program_of_similar_length.path_input
+    path0 = program0.path_input
+    path1 = program1.path_input
     cmd = "diff --unchanged-group-format='%<' --old-group-format='' --new-group-format='' #{path0} #{path1}"
     #puts "will execute: #{cmd}"
     output = `#{cmd}`
     output.strip!
     if output.empty?
         # puts "skip 2"
-        return false
+        return nil
     end
     number_of_identical_lines = output.split("\n").count
-    target0 = (line_count0 * PERCENTAGE_MUST_BE_IDENTICAL).ceil
-    target1 = (line_count1 * PERCENTAGE_MUST_BE_IDENTICAL).ceil
-    if number_of_identical_lines < target0
-        # puts "skip 3 #{number_of_identical_lines} < #{target0}"
-        return false
+    target = (line_count0 * PERCENTAGE_MUST_BE_IDENTICAL).ceil
+    if number_of_identical_lines < target
+        # puts "skip 3 #{number_of_identical_lines} < #{target}"
+        return nil
     end
-    if number_of_identical_lines < target1
-        # puts "skip 4 #{number_of_identical_lines} < #{target1}"
-        return false
-    end
-    puts "similar #{current_program.program_id} with #{program_of_similar_length.program_id}. number of lines shared: #{number_of_identical_lines}"
-    return true
+    puts "similar #{program0.program_id} with #{program1.program_id}. number of lines shared: #{number_of_identical_lines}"
+    return ComparisonResult.new(program1.program_id, line_count0, line_count1, number_of_identical_lines)
 end
 
-def save_similar_programs(current_program, similar_program_array)
+def save_similar_programs(current_program, comparison_result_array)
     path = current_program.path_output
-    program_ids = similar_program_array.map { |program| program.program_id }
-    content = program_ids.join("\n")
-    IO.write(path, content)
+    CSV.open(path, "wb", col_sep: ";") do |csv|
+        csv << ["program_id", "overlap_count", "jaccard_index"]
+        comparison_result_array.each_with_index do |comparison_result, index|
+            row = [
+                comparison_result.program_id,
+                comparison_result.overlap_line_count,
+                comparison_result.human_readable_jaccard_index
+            ]
+            csv << row
+            # break if index == 10
+        end
+    end
 end
 
 unless File.exist?(INPUT_DIR)
@@ -109,7 +139,7 @@ relative_paths.each_with_index do |relative_path, index|
         next
     end
     path_input = File.join(INPUT_DIR, relative_path)
-    output_name = relative_path.gsub('_instructions.txt', '_similar.txt')
+    output_name = relative_path.gsub('_instructions.txt', '_similarity.csv')
     path_output = File.join(OUTPUT_DIR, output_name)
     line_count = count_number_of_lines_in_file(path_input)
     program_ary << Program.new(program_id, path_input, path_output, line_count)
@@ -131,25 +161,23 @@ clustered_programs.each_with_index do |programs_of_similar_length, cluster_index
         next if current_program.line_count < 10
         next if current_program.line_count > 30
         
-        similar_program_array = []
+        comparison_result_array = []
         programs_of_similar_length.each do |program_of_similar_length|
             if current_program === program_of_similar_length
                 next
             end
-            # if (program_index % 10000) == 0
-            #     puts "program: #{program_index} cluster: #{cluster_index} current_program_index: #{current_program_index}"
-            # end
-            if is_similar_programs(current_program, program_of_similar_length)
-                similar_program_array << program_of_similar_length
+            comparison_result = compare_programs(current_program, program_of_similar_length)
+            if comparison_result != nil
+                comparison_result_array << comparison_result
             end
         end
-        similar_program_array.sort! { |a,b| a.program_id <=> b.program_id }
+        comparison_result_array.sort! { |a,b| a.program_id <=> b.program_id }
         
-        save_similar_programs(current_program, similar_program_array)
+        save_similar_programs(current_program, comparison_result_array)
         
         percent = program_index * 100 / program_count
         progress = "#{percent}\% #{program_index}/#{program_count}" 
-        puts "#{progress}  #{current_program.program_id} is similar to #{similar_program_array.count} other programs."
+        puts "#{progress}  #{current_program.program_id} is similar to #{comparison_result_array.count} other programs."
         program_index += 1
     end
 end
