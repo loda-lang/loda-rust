@@ -41,20 +41,18 @@ end
 
 class ComparisonResult
     attr_reader :program_id
-    attr_reader :a_line_count
-    attr_reader :b_line_count
-    attr_reader :overlap_line_count
+    attr_reader :overlap_count
+    attr_reader :signature_length
     
-    def initialize(program_id, a_line_count, b_line_count, overlap_line_count)
+    def initialize(program_id, overlap_count, signature_length)
         @program_id = program_id
-        @a_line_count = a_line_count
-        @b_line_count = b_line_count
-        @overlap_line_count = overlap_line_count
+        @overlap_count = overlap_count
+        @signature_length = signature_length
     end
     
     def jaccard_index
-        x = @overlap_line_count
-        y = @a_line_count + @b_line_count - @overlap_line_count
+        x = @overlap_count
+        y = @signature_length
         x.to_f / y.to_f
     end
     
@@ -63,55 +61,18 @@ class ComparisonResult
     end
 end
 
-def compare_programs(program0, program1)
-    line_count0 = program0.line_count
-    line_count1 = program1.line_count
-    lc_diff = (line_count0 - line_count1).abs
-    if line_count0 < 5 || line_count1 < 5
-        if lc_diff > 0
-            # puts "skip 0"
-            return nil
-        end
-    else
-        if line_count0 < 10 && line_count1 < 10
-            if lc_diff > 4
-                # puts "skip 1"
-                return nil
-            end
-        end
-    end
-    path0 = program0.path_input
-    path1 = program1.path_input
-    cmd = "diff --unchanged-group-format='%<' --old-group-format='' --new-group-format='' #{path0} #{path1}"
-    #puts "will execute: #{cmd}"
-    output = `#{cmd}`
-    output.strip!
-    if output.empty?
-        # puts "skip 2"
-        return nil
-    end
-    number_of_identical_lines = output.split("\n").count
-    target = (line_count0 * PERCENTAGE_MUST_BE_IDENTICAL).ceil
-    if number_of_identical_lines < target
-        # puts "skip 3 #{number_of_identical_lines} < #{target}"
-        return nil
-    end
-    puts "similar #{program0.program_id} with #{program1.program_id}. number of lines shared: #{number_of_identical_lines}"
-    return ComparisonResult.new(program1.program_id, line_count0, line_count1, number_of_identical_lines)
-end
-
 def save_similar_programs(current_program, comparison_result_array)
     path = current_program.path_output
     CSV.open(path, "wb", col_sep: ";") do |csv|
-        csv << ["program_id", "overlap_count", "jaccard_index"]
+        csv << ["program_id", "overlap_count", "signature_length", "jaccard_index"]
         comparison_result_array.each_with_index do |comparison_result, index|
             row = [
                 comparison_result.program_id,
-                comparison_result.overlap_line_count,
+                comparison_result.overlap_count,
+                comparison_result.signature_length,
                 comparison_result.human_readable_jaccard_index
             ]
             csv << row
-            # break if index == 10
         end
     end
 end
@@ -196,7 +157,7 @@ def process_all_input_files(vocabulary, indexes_array)
             next
         end
         path_input = File.join(INPUT_DIR, relative_path)
-        output_name = relative_path.gsub('_instructions.txt', '_similarity2.csv')
+        output_name = relative_path.gsub('_instructions.txt', '_similarity_lsh.csv')
         path_output = File.join(OUTPUT_DIR, output_name)
         signature, line_count = signature_and_line_count_program(path_input, vocabulary, indexes_array)
         if line_count < 4
@@ -210,9 +171,9 @@ def process_all_input_files(vocabulary, indexes_array)
             next
         end
         program_ary << Program.new(program_id, path_input, path_output, line_count, signature)
-        if program_ary.count >= 5000
-            break
-        end
+        # if program_ary.count >= 5000
+        #     break
+        # end
     end
     t1 = Time.now
     elapsed = t1 - t0
@@ -265,23 +226,30 @@ row_count = program_ary.count
 row_count_mod = (row_count / NUMBER_OF_PROGRESS_PRINTS).ceil
 t0 = Time.now
 program_ary.each_with_index do |program0, program0_index|
+    percent = (100 * program0_index) / row_count
+    progress = "#{percent}\% #{program0_index}/#{row_count}"
     if (program0_index % row_count_mod) == 0
-        percentage = (100 * program0_index) / row_count
-        puts "progress %#{percentage}  #{program0_index}/#{row_count}   #{number_of_matches}:#{number_of_mismatches}"
+        match_ratio = number_of_matches.to_f / (number_of_matches + number_of_mismatches)
+        t1 = Time.now
+        elapsed = t1 - t0
+        puts "PROGRESS: #{progress}  matches: #{number_of_matches} mismatches: #{number_of_mismatches}  ratio: #{match_ratio}  elapsed: #{elapsed}"
     end
+    comparison_result_array = []
     program_ary.each do |program1|
         next if program0 === program1
-        # if number_of_mismatches > 3
-        #     break
-        # end
         overlap_count = compare_signature(program0, program1)
         if overlap_count < OVERLAP_MATCH_LIMIT
             number_of_mismatches += 1
             next
         end
-        # puts "#{program0.program_id} #{program1.program_id} #{jaccard_index}"
         number_of_matches += 1
+        comparison_result = ComparisonResult.new(program1.program_id, overlap_count, SIGNATURE_LENGTH)
+        comparison_result_array << comparison_result
     end
+    comparison_result_array.sort! { |a,b| a.program_id <=> b.program_id }
+    
+    save_similar_programs(program0, comparison_result_array)
+    puts "#{progress}  #{program0.program_id} is similar to #{comparison_result_array.count} other programs."
 end
 t1 = Time.now
 elapsed = t1 - t0
@@ -290,8 +258,4 @@ puts "number_of_matches: #{number_of_matches}"
 puts "number_of_mismatches: #{number_of_mismatches}"
 match_ratio = number_of_matches.to_f / (number_of_matches + number_of_mismatches)
 puts "match_ratio: #{match_ratio}"
-
-
-
-
 
