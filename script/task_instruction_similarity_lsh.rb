@@ -2,6 +2,16 @@
 
 =begin
 My second attempt at identifying similar programs.
+
+My first attempt was slow. It took 8 hours to compute similarity for 1600 programs.
+I used unix `diff` tool for identifying the number of identical lines.
+If there were more than 80% identical lines, then I added it to the csv file.
+
+A faster approach is LSH/minhash. This is what is using here.
+All 41000 programs in the loda-programs repository can be traversed in about 2 hours.
+
+The jaccard index is a value between 0 and 1, that indicates how much overlap there are between 2 sets.
+https://en.wikipedia.org/wiki/Jaccard_index
 =end
 
 require 'csv'
