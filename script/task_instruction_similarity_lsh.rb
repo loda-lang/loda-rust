@@ -11,7 +11,7 @@ INPUT_FILE_BIGRAM = 'data/bigram.csv'
 INPUT_DIR = 'data/instructions'
 OUTPUT_DIR = 'data/instructions'
 
-SIGNATURE_LENGTH = 20
+SIGNATURE_LENGTH = 30
 OVERLAP_MATCH_LIMIT = 10
 NUMBER_OF_PROGRESS_PRINTS = 50
 
@@ -160,12 +160,12 @@ def process_all_input_files(vocabulary, indexes_array)
         output_name = relative_path.gsub('_instructions.txt', '_similarity_lsh.csv')
         path_output = File.join(OUTPUT_DIR, output_name)
         signature, line_count = signature_and_line_count_program(path_input, vocabulary, indexes_array)
-        if line_count < 4
+        if line_count < 1
             # puts "Ignoring too short program: #{relative_path}"
             number_of_too_short_programs += 1
             next
         end
-        if line_count > 60
+        if line_count > 300
             # puts "Ignoring too long program: #{relative_path}"
             number_of_too_long_programs += 1
             next
