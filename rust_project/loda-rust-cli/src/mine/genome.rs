@@ -410,16 +410,16 @@ impl Genome {
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             (MutateGenome::Instruction, 1),
-            (MutateGenome::SourceConstant, 1),
+            (MutateGenome::SourceConstant, 100),
             (MutateGenome::SourceType, 1),
             (MutateGenome::SwapRegisters, 1),
             (MutateGenome::SourceRegister, 1),
             (MutateGenome::TargetRegister, 1),
-            (MutateGenome::ToggleEnabled, 1),
+            (MutateGenome::ToggleEnabled, 100),
             (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 1),
             (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallAnotherProgram, 100),
+            (MutateGenome::CallAnotherProgram, 1),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
         match mutation {
