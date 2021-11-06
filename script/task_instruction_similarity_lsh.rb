@@ -22,7 +22,7 @@ INPUT_DIR = 'data/instructions'
 OUTPUT_DIR = 'data/instructions'
 
 SIGNATURE_LENGTH = 30
-OVERLAP_MATCH_LIMIT = 10
+MAX_NUMBER_OF_ROWS_IN_CSV_FILES = 100
 NUMBER_OF_PROGRESS_PRINTS = 50
 
 unless File.exist?(INPUT_DIR)
@@ -254,7 +254,7 @@ program_ary.each_with_index do |program0, program0_index|
     result_array.filter! { |result| result.overlap_count > 0 }
     result_array.sort! { |a,b| a.overlap_count <=> b.overlap_count }
     result_array.reverse!
-    result_array = result_array.first(100)
+    result_array = result_array.first(MAX_NUMBER_OF_ROWS_IN_CSV_FILES)
     result_array.sort! { |a,b| a.program_id <=> b.program_id }
     if result_array.empty?
         number_of_mismatches += 1
