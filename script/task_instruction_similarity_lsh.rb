@@ -244,22 +244,25 @@ program_ary.each_with_index do |program0, program0_index|
         elapsed = t1 - t0
         puts "PROGRESS: #{progress}  matches: #{number_of_matches} mismatches: #{number_of_mismatches}  ratio: #{match_ratio}  elapsed: #{elapsed}"
     end
-    comparison_result_array = []
+    result_array = []
     program_ary.each do |program1|
         next if program0 === program1
         overlap_count = compare_signature(program0, program1)
-        if overlap_count < OVERLAP_MATCH_LIMIT
-            number_of_mismatches += 1
-            next
-        end
-        number_of_matches += 1
         comparison_result = ComparisonResult.new(program1.program_id, overlap_count, SIGNATURE_LENGTH)
-        comparison_result_array << comparison_result
+        result_array << comparison_result
     end
-    comparison_result_array.sort! { |a,b| a.program_id <=> b.program_id }
-    
-    save_similar_programs(program0, comparison_result_array)
-    puts "#{progress}  #{program0.program_id} is similar to #{comparison_result_array.count} other programs."
+    result_array.filter! { |result| result.overlap_count > 0 }
+    result_array.sort! { |a,b| a.overlap_count <=> b.overlap_count }
+    result_array.reverse!
+    result_array = result_array.first(100)
+    result_array.sort! { |a,b| a.program_id <=> b.program_id }
+    if result_array.empty?
+        number_of_mismatches += 1
+    else
+        number_of_matches += 1
+    end
+    save_similar_programs(program0, result_array)
+    puts "#{progress}  #{program0.program_id} is similar to #{result_array.count} other programs."
 end
 t1 = Time.now
 elapsed = t1 - t0
