@@ -12,8 +12,40 @@
 <script src="web/codemirror/addon/display/placeholder.js"></script>
 <script src="web/codemirror_mode_loda.js"></script>
 <link media="all" rel="stylesheet" type="text/css" href="web/loda_rust_web.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+
 
 <script>
+var chart_config = {
+    type: 'scatter',
+    data: {
+        datasets: []
+    },
+    options: {
+        animation: false,
+        responsive: true,
+        maintainAspectRatio: false,
+        tooltips: {
+            mode: 'point',
+            callbacks: {
+                label: function(tooltipItem, data) {
+                    var pointItem = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+                    var s = pointItem.label;
+                    var is_string = (typeof s == 'string') || (s instanceof String);
+                    if (is_string) {
+                        return s;
+                    } else {
+                        return "x: " + pointItem.x + " y: " + pointItem.y;
+                    }
+                }
+            },
+        },
+        legend: {
+            display: false,
+        }
+    }
+};
+  
 // Construct url for a program id (eg A112088), like the following
 // https://raw.githubusercontent.com/loda-lang/loda-programs/main/oeis/112/A112088.asm
 function urlFromProgramId(programId) {
@@ -286,6 +318,39 @@ class PageController {
   }
 }
 
+function rebuildChart() {
+    var chart = window.outputChart;
+    
+    var count = 100;
+    var dataAll = [];
+    for ( var i = 0; i < count; i+=1 ) {
+        const value = i;
+        const y = Math.floor(value);
+        dict = {
+            x: i,
+            y: y,
+            label: `a(${i}) = ${y}`
+        };
+        dataAll.push(dict);
+    }
+    
+    const datasetAll = {
+        label: 'All',
+        backgroundColor: 'rgba(25,25,25,1.0)',
+        pointRadius: 1,
+        pointHitRadius: 5,
+        borderWidth: 0,
+        data: dataAll,
+    };
+    
+    while (chart.data.datasets.length > 0) {
+        chart.data.datasets.pop();
+    }
+    chart.data.datasets.push(datasetAll);
+    
+    chart.update();
+}
+
 var gPageController = null;
 
 var callbackExecuteSourceCode = (sourceCode, termCount, runId) => {
@@ -303,6 +368,10 @@ function body_onload() {
     'runSourceCode': runSourceCode
   };
   gPageController = new PageController(dict);
+
+  var ctx = document.getElementById('output-chart').getContext('2d');
+  window.outputChart = new Chart(ctx, chart_config);
+  rebuildChart();
 }
 
 function body_onbeforeunload() {
@@ -374,6 +443,10 @@ function body_onbeforeunload() {
           <input type="radio" id="count1000" name="outputcountname" value="1000">
           <label for="count1000">1000</label>
         </span>      
+      </div>
+
+      <div class="chart-container" style="position: relative;height:40vh">
+        <canvas id="output-chart"></canvas>
       </div>
 
       <div id="output-inner">
