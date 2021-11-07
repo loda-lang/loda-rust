@@ -100,7 +100,7 @@ class PageController {
       this.prepareProgramId(programId);
       return;
     }
-    console.error("Missing or unrecognized url parameters");
+    console.log("Missing or unrecognized url parameters. Showing an empty program.");
     this.prepareProgramEmpty();
   }
 
