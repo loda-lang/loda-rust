@@ -16,36 +16,6 @@
 
 
 <script>
-var chart_config = {
-    type: 'scatter',
-    data: {
-        datasets: []
-    },
-    options: {
-        animation: false,
-        responsive: true,
-        maintainAspectRatio: false,
-        tooltips: {
-            mode: 'point',
-            callbacks: {
-                label: function(tooltipItem, data) {
-                    var pointItem = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
-                    var s = pointItem.label;
-                    var is_string = (typeof s == 'string') || (s instanceof String);
-                    if (is_string) {
-                        return s;
-                    } else {
-                        return "x: " + pointItem.x + " y: " + pointItem.y;
-                    }
-                }
-            },
-        },
-        legend: {
-            display: false,
-        }
-    }
-};
-  
 // Construct url for a program id (eg A112088), like the following
 // https://raw.githubusercontent.com/loda-lang/loda-programs/main/oeis/112/A112088.asm
 function urlFromProgramId(programId) {
@@ -71,9 +41,11 @@ class PageController {
     this.mIdenticalToOriginal = true;
     this.mOriginalText = "";
     this.mEditor = this.configureEditor();
+    this.mOutputChart = this.configureChart();
     this.configureKeyboardShortcuts();
     this.configureOutputCount();
     this.prepareProgram();
+    this.rebuildChart();
   }
   
   configureEditor() {
@@ -88,6 +60,41 @@ class PageController {
       indentWithTabs: false,
     });
     return editor;
+  }
+
+  configureChart() {
+    var chart_config = {
+      type: 'scatter',
+      data: {
+          datasets: []
+      },
+      options: {
+          animation: false,
+          responsive: true,
+          maintainAspectRatio: false,
+          tooltips: {
+              mode: 'point',
+              callbacks: {
+                  label: function(tooltipItem, data) {
+                      var pointItem = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+                      var s = pointItem.label;
+                      var is_string = (typeof s == 'string') || (s instanceof String);
+                      if (is_string) {
+                          return s;
+                      } else {
+                          return "x: " + pointItem.x + " y: " + pointItem.y;
+                      }
+                  }
+              },
+          },
+          legend: {
+              display: false,
+          }
+        }
+    };
+
+    var ctx = document.getElementById('output-chart').getContext('2d');
+    return new Chart(ctx, chart_config);
   }
 
   hideOverlay() {
@@ -290,6 +297,7 @@ class PageController {
   finishedComputingTheLastTerm() {
     console.log("finished computing the last term");
     this.mUpdateTick = false;
+    this.rebuildChart();
   }
 
   exceptionOccurredWhileRunning(message) {
@@ -316,39 +324,58 @@ class PageController {
     let tooltip = document.getElementById("copy-program-link-to-clipboard-tooltip-text");
     tooltip.innerHTML = "Copy to clipboard";
   }
-}
 
-function rebuildChart() {
-    var chart = window.outputChart;
-    
-    var count = 100;
-    var dataAll = [];
-    for ( var i = 0; i < count; i+=1 ) {
-        const value = i;
+  rebuildChart() {
+      var chart = this.mOutputChart;
+      
+      var count = 100;
+      var dataAll = [];
+      // for ( var i = 0; i < count; i+=1 ) {
+      //     const value = i;
+      //     const y = Math.floor(value);
+      //     const dict = {
+      //         x: i,
+      //         y: y,
+      //         label: `a(${i}) = ${y}`
+      //     };
+      //     dataAll.push(dict);
+      // }
+
+      const div = document.getElementById("output-inner");
+      const text = div.innerText;
+      console.log("text", text);
+      const textItems = text.split(",");
+      for (var i = 0; i < textItems.length; i += 1) {
+        const textItem = textItems[i];
+        var value = parseInt(textItem);
+        if (isNaN(value)) { 
+          value = 0;
+        }
         const y = Math.floor(value);
-        dict = {
-            x: i,
-            y: y,
-            label: `a(${i}) = ${y}`
-        };
-        dataAll.push(dict);
-    }
-    
-    const datasetAll = {
-        label: 'All',
-        backgroundColor: 'rgba(25,25,25,1.0)',
-        pointRadius: 1,
-        pointHitRadius: 5,
-        borderWidth: 0,
-        data: dataAll,
-    };
-    
-    while (chart.data.datasets.length > 0) {
-        chart.data.datasets.pop();
-    }
-    chart.data.datasets.push(datasetAll);
-    
-    chart.update();
+          const dict = {
+              x: i,
+              y: y,
+              label: `a(${i}) = ${y}`
+          };
+          dataAll.push(dict);
+      }
+      
+      const datasetAll = {
+          label: 'All',
+          backgroundColor: 'rgba(25,25,25,1.0)',
+          pointRadius: 1,
+          pointHitRadius: 5,
+          borderWidth: 0,
+          data: dataAll,
+      };
+      
+      while (chart.data.datasets.length > 0) {
+          chart.data.datasets.pop();
+      }
+      chart.data.datasets.push(datasetAll);
+      
+      chart.update();
+  }
 }
 
 var gPageController = null;
@@ -368,10 +395,6 @@ function body_onload() {
     'runSourceCode': runSourceCode
   };
   gPageController = new PageController(dict);
-
-  var ctx = document.getElementById('output-chart').getContext('2d');
-  window.outputChart = new Chart(ctx, chart_config);
-  rebuildChart();
 }
 
 function body_onbeforeunload() {
