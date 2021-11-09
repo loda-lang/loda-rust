@@ -3,7 +3,6 @@ use super::{BoxCheckValue, PerformCheckValue};
 use std::collections::HashSet;
 use num_bigint::BigInt;
 use num_integer::Integer;
-use num_traits::Zero;
 
 fn perform_operation(check: &BoxCheckValue, x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,EvalError> {
     let xx: &BigInt = &x.0;
@@ -12,9 +11,6 @@ fn perform_operation(check: &BoxCheckValue, x: &RegisterValue, y: &RegisterValue
     let yy: &BigInt = &y.0;
     check.input(yy)?;
 
-    if xx.is_zero() && yy.is_zero() {
-        return Err(EvalError::GCDDomainError);
-    }
     // https://en.wikipedia.org/wiki/Binary_GCD_algorithm
     let zz = xx.gcd(yy);
     Ok(RegisterValue(zz))
@@ -106,14 +102,13 @@ mod tests {
         match result {
             Ok(value) => value.to_string(),
             Err(EvalError::InputOutOfRange) => return "BOOM-INPUT".to_string(),
-            Err(EvalError::GCDDomainError) => return "BOOM-ZERO".to_string(),
             Err(_) => return "BOOM-OTHER".to_string()
         }
     }
 
     #[test]
     fn test_10000() {
-        assert_eq!(process(0, 0), "BOOM-ZERO");
+        assert_eq!(process(0, 0), "0");
         assert_eq!(process(0, 1), "1");
         assert_eq!(process(1, 0), "1");
         assert_eq!(process(1, 1), "1");
@@ -124,6 +119,8 @@ mod tests {
         assert_eq!(process(-100, -55), "5");
         assert_eq!(process(-100, 1), "1");
         assert_eq!(process(43, 41), "1");
+        assert_eq!(process(100, 0), "100");
+        assert_eq!(process(-100, 0), "100");
     }
 
     #[test]
