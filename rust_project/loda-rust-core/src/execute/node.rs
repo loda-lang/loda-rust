@@ -24,8 +24,6 @@ pub enum EvalError {
     BinomialDomainError,
 
     // When a mathematical function is evaluated outside of its domain of definition.
-    GCDDomainError,
-
     PowerZeroDivision,
     PowerExponentTooHigh,
     // During mining, it can be a time waster computing power with huge values.
