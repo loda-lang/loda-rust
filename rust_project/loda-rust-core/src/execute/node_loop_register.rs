@@ -56,7 +56,9 @@ impl Node for NodeLoopRegister {
             // Value is negative. Clamp to 0 length.
             initial_range_length = 0;
         }
-        debug!("initial_range_length: {}", initial_range_length);
+        if state.run_mode() == RunMode::Verbose {
+            debug!("initial_range_length: {}", initial_range_length);
+        }
 
         let mut currently_smallest_range_length: u8 = initial_range_length;
 
@@ -82,7 +84,9 @@ impl Node for NodeLoopRegister {
                 // Value is negative. Clamp to 0 length.
                 range_length = 0;
             }
-            debug!("range_length: {}", range_length);
+            if state.run_mode() == RunMode::Verbose {
+                debug!("range_length: {}", range_length);
+            }
 
             currently_smallest_range_length = u8::min(
                 range_length, 
@@ -94,7 +98,9 @@ impl Node for NodeLoopRegister {
                 self.register_start.clone(),
                 currently_smallest_range_length
             );
-            debug!("is_less: {}  currently_smallest_range_length: {}", is_less, currently_smallest_range_length);
+            if state.run_mode() == RunMode::Verbose {
+                debug!("is_less: {}  currently_smallest_range_length: {}", is_less, currently_smallest_range_length);
+            }
 
             if !is_less {
 
