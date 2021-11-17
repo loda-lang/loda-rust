@@ -13,10 +13,15 @@ use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::time::Instant;
 use std::rc::Rc;
+use std::fs::{self, File};
+use std::io::Write;
+use std::io::LineWriter;
 
-fn identify_all_valid_programs() {
+fn identify_all_valid_programs() -> std::io::Result<()> {
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
+
+    let available_program_ids_file: PathBuf = config.cache_dir().join(Path::new("mine_program_ids2.csv"));
 
     // Obtain paths to loda asm files
     let paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
@@ -43,6 +48,11 @@ fn identify_all_valid_programs() {
         debug!("program_ids last: {:?}", last_items);
     }
 
+    // Create CSV file
+    let file = File::create(available_program_ids_file)?;
+    let mut line_writer = LineWriter::new(file);
+    line_writer.write_all(b"program id;terms\n")?;
+
     // Run all the programs.
     // Reject the programs that is having difficulties running.
     let mut dm = DependencyManager::new(
@@ -63,13 +73,20 @@ fn identify_all_valid_programs() {
         let program_runner: Rc::<ProgramRunner> = match dm.load(program_id64) {
             Ok(value) => value,
             Err(error) => {
-                error!("Cannot load program {:?}: {:?}", program_id, error);
+                // error!("Cannot load program {:?}: {:?}", program_id, error);
+                let row = format!("{:?};ERROR {:?}\n", program_id, error);
+                line_writer.write_all(row.as_bytes())?;
                 continue;
             }
         };
         program_runner.compute_terms(10, &mut cache);
+
+        // Append status for programs to the csv file.
+        let row = format!("{:?};ok\n", program_id);
+        line_writer.write_all(row.as_bytes())?;
     }
 
+    return Ok(());
 }
 
 trait ComputeTerms {
@@ -141,6 +158,7 @@ pub fn subcommand_update() {
 
     println!("update begin");
     
+    // let _ = identify_all_valid_programs();
     let program_ids_to_ignore: HashSet<u32> = obtain_dontmine_program_ids(&loda_rust_repository);
     create_cache_files(&oeis_stripped_file, &cache_dir, &program_ids_to_ignore);
 
