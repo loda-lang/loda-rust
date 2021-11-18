@@ -18,13 +18,14 @@ use std::fs::File;
 use std::io::Write;
 use std::io::LineWriter;
 
-fn identify_runnable_programs() -> std::io::Result<()> {
+fn validate_programs() -> std::io::Result<()> {
     let start_time = Instant::now();
-    println!("identify_runnable_programs begin");
+    println!("validate_programs begin");
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
 
-    let runnable_program_ids_file: PathBuf = config.cache_dir().join(Path::new("runnable_programs.csv"));
+    let programs_valid_csv_file: PathBuf = config.cache_dir().join(Path::new("programs_valid.csv"));
+    let programs_invalid_csv_file: PathBuf = config.cache_dir().join(Path::new("programs_invalid.csv"));
 
     // Obtain paths to loda asm files
     let paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
@@ -43,12 +44,17 @@ fn identify_runnable_programs() -> std::io::Result<()> {
         program_ids.push(program_id);
     }
     program_ids.sort();
-    println!("identify_runnable_programs will process {:?} programs", program_ids.len());
+    println!("validate_programs, will analyze {:?} programs", program_ids.len());
 
-    // Create CSV file
-    let file = File::create(runnable_program_ids_file)?;
-    let mut line_writer = LineWriter::new(file);
-    line_writer.write_all(b"program id;terms\n")?;
+    // Create CSV file for valid program ids
+    let file0 = File::create(programs_valid_csv_file)?;
+    let mut programs_valid_csv = LineWriter::new(file0);
+    programs_valid_csv.write_all(b"program id\n")?;
+
+    // Create CSV file for invalid programs and their error message
+    let file1 = File::create(programs_invalid_csv_file)?;
+    let mut programs_invalid_csv = LineWriter::new(file1);
+    programs_invalid_csv.write_all(b"program id;terms\n")?;
 
     // Run all the programs.
     // Reject the programs that is having difficulties running.
@@ -73,8 +79,8 @@ fn identify_runnable_programs() -> std::io::Result<()> {
             Ok(value) => value,
             Err(error) => {
                 // error!("Cannot load program {:?}: {:?}", program_id, error);
-                let row = format!("{:?};ERROR {:?}\n", program_id, error);
-                line_writer.write_all(row.as_bytes())?;
+                let row = format!("{:?};{:?}\n", program_id, error);
+                programs_invalid_csv.write_all(row.as_bytes())?;
                 number_of_invalid_programs += 1;
                 continue;
             }
@@ -83,21 +89,21 @@ fn identify_runnable_programs() -> std::io::Result<()> {
             Ok(_) => {},
             Err(error) => {
                 // error!("Cannot run program {:?}: {:?}", program_id, error);
-                let row = format!("{:?};ERROR {:?}\n", program_id, error);
-                line_writer.write_all(row.as_bytes())?;
+                let row = format!("{:?};{:?}\n", program_id, error);
+                programs_invalid_csv.write_all(row.as_bytes())?;
                 number_of_invalid_programs += 1;
                 continue;
             }
         }
 
         // Append status for programs to the csv file.
-        let row = format!("{:?};ok\n", program_id);
-        line_writer.write_all(row.as_bytes())?;
+        let row = format!("{:?}\n", program_id);
+        programs_valid_csv.write_all(row.as_bytes())?;
         valid_program_ids.insert(*program_id);
     }
     println!("number of valid programs: {:?}", valid_program_ids.len());
     println!("number of invalid programs: {:?}", number_of_invalid_programs);
-    println!("identify_runnable_programs end. elapsed: {:?} ms", start_time.elapsed().as_millis());
+    println!("validate_programs end. elapsed: {:?} ms", start_time.elapsed().as_millis());
 
     return Ok(());
 }
@@ -174,7 +180,12 @@ pub fn subcommand_update() {
     let start_time = Instant::now();
     println!("update begin");
     
-    let _ = identify_runnable_programs();
+    // TODO: when populating the cache files, then use the "mine_program_ids.csv" for program_ids_to_ignore.
+    // so the bloom filter doesn't contain items for any of the valid program ids.
+    // otherwise lots of cpu cycles are wasted, only to find out that a new candiate program
+    // already exist among the valid programs.
+
+    let _ = validate_programs();
     populate_bloomfilter();
 
     println!("update end, elapsed: {:?} ms", start_time.elapsed().as_millis());
