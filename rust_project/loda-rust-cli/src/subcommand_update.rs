@@ -179,14 +179,7 @@ fn populate_bloomfilter() {
 pub fn subcommand_update() {
     let start_time = Instant::now();
     println!("update begin");
-    
-    // TODO: when populating the cache files, then use the "mine_program_ids.csv" for program_ids_to_ignore.
-    // so the bloom filter doesn't contain items for any of the valid program ids.
-    // otherwise lots of cpu cycles are wasted, only to find out that a new candiate program
-    // already exist among the valid programs.
-
     let _ = validate_programs();
     populate_bloomfilter();
-
     println!("update end, elapsed: {:?} ms", start_time.elapsed().as_millis());
 }
