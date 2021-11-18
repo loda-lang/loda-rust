@@ -417,7 +417,12 @@ fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstr
     let loop_type: LoopType;
     if instruction.parameter_vec.len() == 2 {
         let parameter: &InstructionParameter = instruction.parameter_vec.last().unwrap();
-        debug!("loop begin with 2nd parameter: {}", parameter.parameter_value);
+        if parameter.parameter_value > 6 {
+            debug!("loop begin with 2nd parameter: {} which is unusual high", parameter.parameter_value);
+        }
+        if parameter.parameter_value < 1 {
+            debug!("loop begin with 2nd parameter: {} which is less than one!", parameter.parameter_value);
+        }
         loop_type = node_loop_range_parameter(instruction, parameter)?;
     } else {
         // No 2nd parameter supplied

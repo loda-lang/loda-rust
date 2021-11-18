@@ -1,43 +1,5 @@
-use super::{ProgramCache, ProgramRunnerManager, ProgramSerializer, ProgramState, RegisterIndex};
+use super::{ProgramCache, ProgramRunnerManager, ProgramSerializer, ProgramState, RegisterIndex, EvalError, ValidateCallError};
 use std::collections::HashSet;
-
-pub struct ValidateCallError {}
-
-#[derive(Debug)]
-pub enum EvalError {
-    // During mining it makes little sense if the values are too extreme to 
-    // possible lead to a result. Here the CheckValue settings controls the limit.
-    // When not-mining there are no limit to the register value.
-    InputOutOfRange,
-    OutputOutOfRange,
-
-    // Programs are usually well behaved for 0 and greater values.
-    // However for negative values the behavior is undefined.
-    EvalSequenceWithNegativeParameter,
-
-    // When a mathematical function is evaluated outside of its domain of definition.
-    DivisionByZero,
-
-    // Binomial with N >= 34 and the result value can no longer fit into a 32bit integer.
-    // Binomial with N >= 67 and the result value can no longer fit into a 64bit integer.
-    // During mining, it can be a time waster computing binomial with huge values.
-    BinomialDomainError,
-
-    // When a mathematical function is evaluated outside of its domain of definition.
-    PowerZeroDivision,
-    PowerExponentTooHigh,
-    // During mining, it can be a time waster computing power with huge values.
-    PowerExceededLimit,
-
-    // Range length is beyond the ProgramState max length
-    LoopRangeLengthExceededLimit,
-
-    // Stuck in a loop that takes way too long time to compute
-    LoopCountExceededLimit,
-
-    // Using way too many cpu cycles
-    StepCountExceededLimit,
-}
 
 pub trait Node {
     fn formatted_instruction(&self) -> String;

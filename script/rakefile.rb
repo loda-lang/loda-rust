@@ -73,11 +73,6 @@ file 'data/loda-rust' do
     ruby 'task_loda_rust_executable.rb'
 end
 
-desc "identify the programs that can be used by the miner"
-file 'data/mine_program_ids.csv' => ['data/terms_loda_rust.csv'] do
-    ruby 'task_mine_program_ids.rb'
-end
-
 desc "extract creation date for all programs"
 file 'data/program_creation_dates.csv' do
     ruby 'task_program_creation_dates.rb'

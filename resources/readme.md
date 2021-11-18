@@ -25,28 +25,6 @@ PROMPT> cd ..
 PROMPT> cp script/data/dont_mine.csv resources/dont_mine.csv
 ```
 
-### The `mine_program_ids.csv` file
-
-These are the `program_ids` that are safe for the miner to use.
-
-This list contains programs that can compute 10 terms.
-
-This list does not contain:
-- programs with cyclic dependencies.
-- programs that fails to compute 10 terms.
- 
-So that the miner doesn't waste cpu on resolving cyclic dependencies.
-
-To rebuild this file follow these steps:
-
-```
-PROMPT> pwd
-/Users/JOHNDOE/git/loda-rust/script
-PROMPT> rake data/mine_program_ids.csv
-PROMPT> cd ..
-PROMPT> cp script/data/mine_program_ids.csv resources/mine_program_ids.csv
-```
-
 
 ### The `program_creation_dates.csv` file
 

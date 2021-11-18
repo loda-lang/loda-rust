@@ -10,6 +10,7 @@ mod recent_program_container;
 mod run_miner_loop;
 mod save_candidate_program;
 mod find_asm_files_recursively;
+mod program_id_from_path;
 
 pub use check_fixed_length_sequence::{CheckFixedLengthSequence, create_cache_files, NamedCacheFile};
 pub use find_asm_files_recursively::find_asm_files_recursively;
@@ -23,3 +24,4 @@ pub use prevent_flooding::{PreventFlooding, PreventFloodingError};
 pub use recent_program_container::RecentProgramContainer;
 pub use run_miner_loop::run_miner_loop;
 pub use save_candidate_program::save_candidate_program;
+pub use program_id_from_path::program_id_from_path;
