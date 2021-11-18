@@ -18,15 +18,15 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::io::LineWriter;
 
-fn identify_all_valid_programs() -> std::io::Result<()> {
+fn identify_runnable_programs() -> std::io::Result<()> {
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
 
-    let available_program_ids_file: PathBuf = config.cache_dir().join(Path::new("mine_program_ids2.csv"));
+    let runnable_program_ids_file: PathBuf = config.cache_dir().join(Path::new("runnable_programs.csv"));
 
     // Obtain paths to loda asm files
     let paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
-    debug!("number of paths: {:?}", paths.len());
+    // debug!("number of paths: {:?}", paths.len());
 
     // Extract program_ids from paths
     let mut program_ids: Vec<u32> = vec!();
@@ -42,15 +42,15 @@ fn identify_all_valid_programs() -> std::io::Result<()> {
     }
     program_ids.sort();
     debug!("number of program_ids: {:?}", program_ids.len());
-    if program_ids.len() > 10 {
-        let first_items = &program_ids[0..10];
-        debug!("program_ids first: {:?}", first_items);
-        let last_items = &program_ids[program_ids.len()-10..];
-        debug!("program_ids last: {:?}", last_items);
-    }
+    // if program_ids.len() > 10 {
+    //     let first_items = &program_ids[0..10];
+    //     debug!("program_ids first: {:?}", first_items);
+    //     let last_items = &program_ids[program_ids.len()-10..];
+    //     debug!("program_ids last: {:?}", last_items);
+    // }
 
     // Create CSV file
-    let file = File::create(available_program_ids_file)?;
+    let file = File::create(runnable_program_ids_file)?;
     let mut line_writer = LineWriter::new(file);
     line_writer.write_all(b"program id;terms\n")?;
 
@@ -63,11 +63,13 @@ fn identify_all_valid_programs() -> std::io::Result<()> {
     let mut cache = ProgramCache::new();
     let mut progress_time = Instant::now();
     let program_ids_len: usize = program_ids.len();
+    let mut number_of_invalid_programs: u32 = 0;
+    let mut valid_program_ids: HashSet<u32> = HashSet::new();
     for (index, program_id) in program_ids.iter().enumerate() {
         let elapsed: u128 = progress_time.elapsed().as_millis();
         if elapsed >= 1000 {
             let percent: f32 = ((index * 100) as f32) / (program_ids_len as f32);
-            debug!("progress: {:.2}%  {:?} / {:?}", percent, index, program_ids_len);
+            println!("progress: {:.2}%  {:?} / {:?}", percent, index, program_ids_len);
             progress_time = Instant::now();
         }
         let program_id64 = *program_id as u64;
@@ -77,6 +79,7 @@ fn identify_all_valid_programs() -> std::io::Result<()> {
                 // error!("Cannot load program {:?}: {:?}", program_id, error);
                 let row = format!("{:?};ERROR {:?}\n", program_id, error);
                 line_writer.write_all(row.as_bytes())?;
+                number_of_invalid_programs += 1;
                 continue;
             }
         };
@@ -86,6 +89,7 @@ fn identify_all_valid_programs() -> std::io::Result<()> {
                 // error!("Cannot run program {:?}: {:?}", program_id, error);
                 let row = format!("{:?};ERROR {:?}\n", program_id, error);
                 line_writer.write_all(row.as_bytes())?;
+                number_of_invalid_programs += 1;
                 continue;
             }
         }
@@ -93,7 +97,10 @@ fn identify_all_valid_programs() -> std::io::Result<()> {
         // Append status for programs to the csv file.
         let row = format!("{:?};ok\n", program_id);
         line_writer.write_all(row.as_bytes())?;
+        valid_program_ids.insert(*program_id);
     }
+    println!("number of valid programs: {:?}", valid_program_ids.len());
+    println!("number of invalid programs: {:?}", number_of_invalid_programs);
 
     return Ok(());
 }
@@ -125,21 +132,14 @@ impl ComputeTerms for ProgramRunner {
                 NodePowerLimit::Unlimited,
                 cache
             );
-            let output: RegisterValue = match result_run {
+            let _ = match result_run {
                 Ok(value) => value,
                 Err(error) => {
                     debug!("Failure while computing term {}, error: {:?}", index, error);
                     return Err(Box::new(error));
                 }
             };
-            // if index == 0 {
-            //     print!("{}", output.0);
-            //     continue;
-            // }
-            // print!(",{}", output.0);
         }
-        // print!("\n");
-        // debug!("steps: {}", step_count);
         return Ok(());
     }
 }
