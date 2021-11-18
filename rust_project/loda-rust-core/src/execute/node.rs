@@ -1,5 +1,7 @@
 use super::{ProgramCache, ProgramRunnerManager, ProgramSerializer, ProgramState, RegisterIndex};
 use std::collections::HashSet;
+use std::error::Error;
+use std::fmt;
 
 pub struct ValidateCallError {}
 
@@ -38,6 +40,37 @@ pub enum EvalError {
     // Using way too many cpu cycles
     StepCountExceededLimit,
 }
+
+impl fmt::Display for EvalError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::InputOutOfRange => 
+                write!(f, "Input is out of range"),
+            Self::OutputOutOfRange => 
+                write!(f, "Output is out of range"),
+            Self::EvalSequenceWithNegativeParameter => 
+                write!(f, "Eval sequence with a negative parameter"),
+            Self::DivisionByZero => 
+                write!(f, "Division by zero"),
+            Self::BinomialDomainError => 
+                write!(f, "Binomial domain error"),
+            Self::PowerZeroDivision => 
+                write!(f, "Power zero division"),
+            Self::PowerExponentTooHigh => 
+                write!(f, "Power exponent too high"),
+            Self::PowerExceededLimit => 
+                write!(f, "Power exceeded limit"),
+            Self::LoopRangeLengthExceededLimit => 
+                write!(f, "Loop range length exceeded limit"),
+            Self::LoopCountExceededLimit => 
+                write!(f, "Loop count exceeded limit, stuck in a loop that takes way too long time to compute"),
+            Self::StepCountExceededLimit => 
+                write!(f, "Step count exceeded limit, using way too many cpu cycles")
+        }
+    }
+}
+
+impl Error for EvalError {}
 
 pub trait Node {
     fn formatted_instruction(&self) -> String;

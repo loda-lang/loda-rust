@@ -10,6 +10,7 @@ use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
+use std::error::Error;
 use std::iter::FromIterator;
 use std::time::Instant;
 use std::rc::Rc;
@@ -79,7 +80,15 @@ fn identify_all_valid_programs() -> std::io::Result<()> {
                 continue;
             }
         };
-        program_runner.compute_terms(10, &mut cache);
+        match program_runner.compute_terms(10, &mut cache) {
+            Ok(_) => {},
+            Err(error) => {
+                // error!("Cannot run program {:?}: {:?}", program_id, error);
+                let row = format!("{:?};ERROR {:?}\n", program_id, error);
+                line_writer.write_all(row.as_bytes())?;
+                continue;
+            }
+        }
 
         // Append status for programs to the csv file.
         let row = format!("{:?};ok\n", program_id);
@@ -90,11 +99,11 @@ fn identify_all_valid_programs() -> std::io::Result<()> {
 }
 
 trait ComputeTerms {
-    fn compute_terms(&self, count: u64, cache: &mut ProgramCache);
+    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<(), Box<dyn Error>>;
 }
 
 impl ComputeTerms for ProgramRunner {
-    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) {
+    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<(), Box<dyn Error>> {
         if count >= 0x7fff_ffff_ffff_ffff {
             panic!("Value is too high. Cannot be converted to 64bit signed integer.");
         }
@@ -119,8 +128,8 @@ impl ComputeTerms for ProgramRunner {
             let output: RegisterValue = match result_run {
                 Ok(value) => value,
                 Err(error) => {
-                    error!("Failure while computing term {}, error: {:?}", index, error);
-                    return;
+                    debug!("Failure while computing term {}, error: {:?}", index, error);
+                    return Err(Box::new(error));
                 }
             };
             // if index == 0 {
@@ -131,6 +140,7 @@ impl ComputeTerms for ProgramRunner {
         }
         // print!("\n");
         // debug!("steps: {}", step_count);
+        return Ok(());
     }
 }
 
