@@ -1,6 +1,9 @@
-use std::fmt;
 use regex::Regex;
 use lazy_static::lazy_static;
+use std::error::Error;
+use std::path::Path;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 lazy_static! {
     // Extract the sequence number "000017" from a string like this "A000017: Erroneous version of A032522.".
@@ -9,7 +12,7 @@ lazy_static! {
     ).unwrap();
 }
 
-pub fn parse_deny_line(line: &String) -> Option<u32> {
+fn parse_line(line: &String) -> Option<u32> {
     if !line.starts_with("A") {
         return None;            
     }
@@ -33,13 +36,39 @@ pub fn parse_deny_line(line: &String) -> Option<u32> {
     return Some(sequence_number);
 }
 
+pub fn load_program_ids_from_deny_file(path: &Path) -> Result<Vec<u32>, Box<dyn Error>> {
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+    let mut program_ids: Vec<u32> = vec!();
+    let mut current_line_number: u32 = 0;
+    for line in reader.lines() {
+        current_line_number += 1;
+        let line: String = match line {
+            Ok(value) => value,
+            Err(error) => {
+                error!("Problem reading line #{:?}. {:?}", current_line_number, error);
+                continue;
+            }
+        };
+        let program_id: u32 = match parse_line(&line) {
+            Some(value) => value,
+            None => {
+                error!("Unable to parse line #{:?}. Skipping.", current_line_number);
+                continue;
+            }
+        };
+        program_ids.push(program_id);
+    }
+    Ok(program_ids)
+}
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn parse(input: &str) -> String {
-        match parse_deny_line(&input.to_string()) {
+        match parse_line(&input.to_string()) {
             Some(stripped_sequence) => return stripped_sequence.to_string(),
             None => return "NONE".to_string()
         }
@@ -67,12 +96,12 @@ A000572: A Beatty sequence: [ n(e+1) ].
 "#;
 
     #[test]
-    fn test_10001_parse_file() {
+    fn test_10001_parse_multiple_lines() {
         let s = INPUT_DATA.to_string();
         let mut line_count_sequences: usize = 0;
         let mut line_count_junk: usize = 0;
         for line in s.lines() {
-            match parse_deny_line(&line.to_string()) {
+            match parse_line(&line.to_string()) {
                 Some(_) => { 
                     line_count_sequences += 1;
                 },

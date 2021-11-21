@@ -2,6 +2,7 @@ use loda_rust_core;
 use loda_rust_core::config::Config;
 use crate::mine::{create_cache_files, load_program_ids_csv_file};
 use crate::mine::validate_programs;
+use crate::mine::load_program_ids_from_deny_file;
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
 use std::iter::FromIterator;
@@ -10,7 +11,14 @@ use std::time::Instant;
 fn process_loda_programs_deny_file() {
     let config = Config::load();
     let path = config.loda_programs_oeis_deny_file();
-
+    let program_ids: Vec<u32> = match load_program_ids_from_deny_file(&path) {
+        Ok(value) => value,
+        Err(error) => {
+            error!("Unable to read the file: {:?} error: {:?}", path, error);
+            return;
+        }
+    };
+    println!("program_ids: {:?}", program_ids.len());
 }
 
 fn obtain_dontmine_program_ids(loda_rust_repository: &Path) -> HashSet<u32> {
