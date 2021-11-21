@@ -27,8 +27,8 @@ Usecase A:
 During mining, when mutating a `seq` instruction and assigning it a 
 random program id. Here we want to be certain that it's a meaningful program id.
 Assigning a program id that doesn't exist, wastes time trying to resolve it.
-Assigning a program id that is defunct, may compute a few terms, but then failes.
-For best performance, it's best to know up front what program ids makes sense to use.
+Assigning a program id that is defunct, may compute a few terms, but then fails.
+For best performance, it's best up front to know what program ids makes sense to use.
 
 Usecase B:
 During mining, when choosing a random program as template for mutations.

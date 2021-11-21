@@ -18,7 +18,7 @@ fn process_loda_programs_deny_file() {
             return;
         }
     };
-    println!("program_ids: {:?}", program_ids.len());
+    println!("deny.txt program_ids.len(): {:?}", program_ids.len());
 }
 
 fn obtain_dontmine_program_ids(loda_rust_repository: &Path) -> HashSet<u32> {
