@@ -7,6 +7,12 @@ use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::time::Instant;
 
+fn process_loda_programs_deny_file() {
+    let config = Config::load();
+    let path = config.loda_programs_oeis_deny_file();
+
+}
+
 fn obtain_dontmine_program_ids(loda_rust_repository: &Path) -> HashSet<u32> {
     let relative_path = Path::new("resources/dont_mine.csv");
     let path = loda_rust_repository.join(relative_path);
@@ -39,6 +45,7 @@ fn populate_bloomfilter() {
 pub fn subcommand_update() {
     let start_time = Instant::now();
     println!("update begin");
+    process_loda_programs_deny_file();
     let _ = validate_programs();
     populate_bloomfilter();
     println!("update end, elapsed: {:?} ms", start_time.elapsed().as_millis());

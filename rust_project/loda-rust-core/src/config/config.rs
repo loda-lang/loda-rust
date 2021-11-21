@@ -81,6 +81,13 @@ impl Config {
         PathBuf::from(path)
     }
 
+    pub fn loda_programs_oeis_deny_file(&self) -> PathBuf {
+        let path = self.loda_programs_oeis_dir().join("deny.txt");
+        assert!(path.is_absolute());
+        assert!(path.is_file());
+        PathBuf::from(path)
+    }
+
     pub fn oeis_stripped_file(&self) -> PathBuf {
         let path = Path::new(&self.oeis_stripped_file);
         assert!(path.is_absolute());

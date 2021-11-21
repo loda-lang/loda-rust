@@ -1,4 +1,5 @@
 mod check_fixed_length_sequence;
+mod deny_file;
 mod funnel;
 mod genome;
 mod genome_item;
@@ -14,6 +15,7 @@ mod program_id_from_path;
 mod validate_programs;
 
 pub use check_fixed_length_sequence::{CheckFixedLengthSequence, create_cache_files, NamedCacheFile};
+pub use deny_file::parse_deny_line;
 pub use find_asm_files_recursively::find_asm_files_recursively;
 pub use funnel::Funnel;
 pub use genome_mutate_context::GenomeMutateContext;
