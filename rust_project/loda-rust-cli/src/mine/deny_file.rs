@@ -78,7 +78,7 @@ mod tests {
 
     fn parse(input: &str) -> String {
         match parse_line(&input.to_string()) {
-            Some(stripped_sequence) => return stripped_sequence.to_string(),
+            Some(program_id) => return program_id.to_string(),
             None => return "NONE".to_string()
         }
     }
