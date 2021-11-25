@@ -1,7 +1,7 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use super::find_asm_files_recursively;
-use super::program_id_from_path;
+use super::program_ids_from_paths;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -77,18 +77,7 @@ pub fn validate_programs() -> std::io::Result<()> {
     // debug!("number of paths: {:?}", paths.len());
 
     // Extract program_ids from paths
-    let mut program_ids: Vec<u32> = vec!();
-    for path in paths {
-        let program_id: u32 = match program_id_from_path(&path) {
-            Some(program_id) => program_id,
-            None => {
-                warn!("Unable to extract program_id from {:?}", path);
-                continue;
-            }
-        };
-        program_ids.push(program_id);
-    }
-    program_ids.sort();
+    let program_ids: Vec<u32> = program_ids_from_paths(paths);
     println!("validate_programs, will analyze {:?} programs", program_ids.len());
 
     // Create CSV file for valid program ids
