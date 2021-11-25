@@ -94,6 +94,7 @@ File.new(OEIS_STRIPPED_FILE, "r").each_with_index do |line, index|
     next unless line =~ /^A0*(\d+) ,(.+)$/
     program_id = $1.to_i
     all_terms = $2
+    # TODO: skip line if the program_id is contained in the "dont-mine.csv", so that duplicate and unwanted sequences gets submitted.
     candidate_programs.each do |candidate_program|
         if all_terms.start_with?(candidate_program.terms40)
             # puts "#{program_id} #{candidate_program.terms40}"
