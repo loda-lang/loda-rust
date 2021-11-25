@@ -147,7 +147,12 @@ impl Genome {
         let mutation_vec: Vec<MutateValue> = vec![
             MutateValue::Increment,
             MutateValue::Decrement,
+            MutateValue::Assign(-1),
+            MutateValue::Assign(0),
+            MutateValue::Assign(1),
             MutateValue::Assign(2),
+            MutateValue::Assign(3),
+            MutateValue::Assign(4),
             MutateValue::Assign(6),
             MutateValue::Assign(10),
             // MutateValue::Assign(100),
@@ -409,17 +414,17 @@ impl Genome {
     #[allow(dead_code)]
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
-            (MutateGenome::Instruction, 100),
+            (MutateGenome::Instruction, 30),
             (MutateGenome::SourceConstant, 100),
             (MutateGenome::SourceType, 1),
             (MutateGenome::SwapRegisters, 1),
-            (MutateGenome::SourceRegister, 1),
-            (MutateGenome::TargetRegister, 1),
-            (MutateGenome::ToggleEnabled, 1),
+            (MutateGenome::SourceRegister, 5),
+            (MutateGenome::TargetRegister, 5),
+            (MutateGenome::ToggleEnabled, 10),
             (MutateGenome::SwapRows, 1),
-            (MutateGenome::SwapAdjacentRows, 1),
+            (MutateGenome::SwapAdjacentRows, 30),
             (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallAnotherProgram, 100),
+            (MutateGenome::CallAnotherProgram, 10),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
         match mutation {
