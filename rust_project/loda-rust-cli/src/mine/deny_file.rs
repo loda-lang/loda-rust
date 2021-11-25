@@ -3,6 +3,7 @@ use lazy_static::lazy_static;
 use std::error::Error;
 use std::path::Path;
 use std::fs::File;
+use std::io;
 use std::io::{BufRead, BufReader};
 
 lazy_static! {
@@ -38,7 +39,15 @@ fn parse_line(line: &String) -> Option<u32> {
 
 pub fn load_program_ids_from_deny_file(path: &Path) -> Result<Vec<u32>, Box<dyn Error>> {
     let file = File::open(path)?;
-    let reader = BufReader::new(file);
+    let mut reader = BufReader::new(file);
+    load_program_ids_from_deny_file_inner(
+        &mut reader, 
+    )
+}
+
+fn load_program_ids_from_deny_file_inner(
+    reader: &mut dyn io::BufRead
+) -> Result<Vec<u32>, Box<dyn Error>> {
     let mut program_ids: Vec<u32> = vec!();
     let mut current_line_number: u32 = 0;
     for line in reader.lines() {
@@ -97,20 +106,8 @@ A000572: A Beatty sequence: [ n(e+1) ].
 
     #[test]
     fn test_10001_parse_multiple_lines() {
-        let s = INPUT_DATA.to_string();
-        let mut line_count_sequences: usize = 0;
-        let mut line_count_junk: usize = 0;
-        for line in s.lines() {
-            match parse_line(&line.to_string()) {
-                Some(_) => { 
-                    line_count_sequences += 1;
-                },
-                None => {
-                    line_count_junk += 1;
-                }
-            }
-        }
-        assert_eq!(line_count_sequences, 5);
-        assert_eq!(line_count_junk, 3);
+        let mut input: &[u8] = INPUT_DATA.as_bytes();
+        let result: Vec<u32> = load_program_ids_from_deny_file_inner(&mut input).unwrap();
+        assert_eq!(vec![17, 154, 381, 480, 572], result);
     }
 }
