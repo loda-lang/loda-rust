@@ -60,6 +60,12 @@ impl Config {
         path
     }
 
+    pub fn cache_dir_dont_mine_file(&self) -> PathBuf {
+        let path = self.cache_dir().join("dont_mine.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
     pub fn mine_event_dir(&self) -> PathBuf {
         let name = Path::new("mine-event");
         let path = self.basedir.join(name);
