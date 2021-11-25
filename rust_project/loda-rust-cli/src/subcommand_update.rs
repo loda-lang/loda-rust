@@ -7,10 +7,14 @@ use std::path::{Path, PathBuf};
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::time::Instant;
+use std::io;
+use std::error::Error;
 
 fn process_loda_programs_deny_file() {
     let config = Config::load();
     let path = config.loda_programs_oeis_deny_file();
+    let cache_dir: PathBuf = config.cache_dir();
+    let output_path: PathBuf = cache_dir.join("dont-mine2.csv");
     let program_ids: Vec<u32> = match load_program_ids_from_deny_file(&path) {
         Ok(value) => value,
         Err(error) => {
@@ -19,6 +23,25 @@ fn process_loda_programs_deny_file() {
         }
     };
     println!("deny.txt program_ids.len(): {:?}", program_ids.len());
+    match create_csv_file(program_ids, &output_path) {
+        Ok(_) => {
+            println!("ok");
+        },
+        Err(error) => {
+            println!("error: {:?}", error);
+        }
+    }
+}
+
+fn create_csv_file(program_ids: Vec<u32>, output_path: &Path) -> Result<(), Box<dyn Error>> {
+    let mut wtr = csv::Writer::from_path(output_path)?;
+    wtr.write_record(&["program id"])?;
+    for program_id in program_ids {
+        let s = format!("{:?}", program_id);
+        wtr.write_record(&[s])?;
+    }
+    wtr.flush()?;
+    Ok(())
 }
 
 fn obtain_dontmine_program_ids(loda_rust_repository: &Path) -> HashSet<u32> {
