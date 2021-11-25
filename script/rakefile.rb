@@ -53,16 +53,6 @@ file 'data/skipgram.csv' do
     ruby 'task_skipgram.rb'
 end
 
-desc 'extract program ids from the LODA denylist file'
-file 'data/denylist.csv' do
-    ruby 'task_denylist.rb'
-end
-
-desc "determine which program ids that shouldn't be attempted mined"
-file 'data/dont_mine.csv' => ['data/program_ids.csv', 'data/denylist.csv'] do
-    ruby 'task_dont_mine.rb'
-end
-
 desc "create a markdown document with the 100 most popular LODA programs"
 file 'data/top100.md' => ['data/pagerank.csv', 'data/caller_callee_pairs.csv'] do
     ruby 'task_top100.rb'

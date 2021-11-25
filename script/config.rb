@@ -5,6 +5,7 @@ class Config
     include Singleton
     
     attr_reader :dot_loda_rust
+    attr_reader :cache_dir
     attr_reader :loda_programs_repository
     attr_reader :loda_cpp_repository
     attr_reader :loda_cpp_executable
@@ -20,6 +21,7 @@ class Config
         dict = TOML.load_file(path)
         
         @dot_loda_rust = dot_loda_rust
+        @cache_dir = File.join(dot_loda_rust, 'cache')
         @loda_programs_repository = dict['loda_programs_repository']
         @loda_cpp_repository = dict['loda_cpp_repository']
         @loda_cpp_executable = dict['loda_cpp_executable']
@@ -35,5 +37,9 @@ class Config
     
     def dot_loda_rust_mine_event
         File.join(@dot_loda_rust, 'mine-event')
+    end
+    
+    def cache_dir_dont_mine_file
+        File.join(@cache_dir, 'dont_mine.csv')
     end
 end
