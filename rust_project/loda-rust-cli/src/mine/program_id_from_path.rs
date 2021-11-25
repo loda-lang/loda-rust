@@ -5,7 +5,7 @@ use std::path::Path;
 lazy_static! {
     // Extract the sequence number "123456" from a string like this "dir1/dir2/A123456.asm".
     static ref EXTRACT_SEQUENCE_NUMBER: Regex = Regex::new(
-        "\\bA(\\d+)[.]asm$"
+        "\\bA(\\d+)(?:\\D.*)?[.]asm$"
     ).unwrap();
 }
 
@@ -49,6 +49,9 @@ mod tests {
         assert_eq!(parse("dir/dir/A1.asm"), "1");
         assert_eq!(parse("dir/dir/A000040.asm"), "40");
         assert_eq!(parse("dir/dir/A123456.asm"), "123456");
+        assert_eq!(parse("A172330_90_0.asm"), "172330");
+        assert_eq!(parse("dir/dir/A323130_63_4.asm"), "323130");
+        assert_eq!(parse("A172330ignore.asm"), "172330");
         assert_eq!(parse("# comment"), "NONE");
         assert_eq!(parse("Ajunk"), "NONE");
         assert_eq!(parse("A junk"), "NONE");
