@@ -3,12 +3,22 @@ use loda_rust_core::config::Config;
 use crate::mine::{create_cache_files, load_program_ids_csv_file};
 use crate::mine::validate_programs;
 use crate::mine::load_program_ids_from_deny_file;
+use crate::mine::load_program_ids_from_mismatch_dir;
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::time::Instant;
 use std::io;
 use std::error::Error;
+use crate::mine::find_asm_files_recursively;
+use crate::mine::program_id_from_path;
+
+fn process_mismatches() {
+    let config = Config::load();
+    let dir_containing_mismatches: PathBuf = config.loda_rust_mismatches();
+    let program_ids: Vec<u32> = load_program_ids_from_mismatch_dir(&dir_containing_mismatches);
+    println!("number of mismatches: {:?}", program_ids.len());
+}
 
 fn process_loda_programs_deny_file() {
     let config = Config::load();
@@ -76,7 +86,8 @@ fn populate_bloomfilter() {
 pub fn subcommand_update() {
     let start_time = Instant::now();
     println!("update begin");
-    process_loda_programs_deny_file();
+    // process_mismatches();
+    // process_loda_programs_deny_file();
     let _ = validate_programs();
     populate_bloomfilter();
     println!("update end, elapsed: {:?} ms", start_time.elapsed().as_millis());
