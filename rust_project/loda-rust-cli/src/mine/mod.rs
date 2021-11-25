@@ -29,5 +29,5 @@ pub use prevent_flooding::{PreventFlooding, PreventFloodingError};
 pub use recent_program_container::RecentProgramContainer;
 pub use run_miner_loop::run_miner_loop;
 pub use save_candidate_program::save_candidate_program;
-pub use program_id_from_path::program_id_from_path;
+pub use program_id_from_path::{program_id_from_path, program_ids_from_paths};
 pub use validate_programs::validate_programs;
