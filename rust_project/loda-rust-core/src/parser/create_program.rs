@@ -22,7 +22,7 @@ use crate::execute::node_power::*;
 use crate::execute::node_subtract::*;
 use crate::execute::node_truncate::*;
 use num_bigint::{BigInt, ToBigInt};
-use num_traits::{One, Zero, Signed, ToPrimitive};
+use num_traits::{Signed, ToPrimitive};
 
 #[derive(Debug, PartialEq)]
 pub enum CreateInstructionErrorType {
@@ -35,6 +35,8 @@ pub enum CreateInstructionErrorType {
     LoopWithConstantRangeIsTooHigh,
     RegisterIndexMustBeNonNegative,
     RegisterIndexTooHigh,
+    ClearRangeLengthMustBeNonNegative,
+    ClearRangeLengthExceedsLimit,
 }
 
 #[derive(Debug, PartialEq)]
@@ -188,25 +190,6 @@ impl Instruction {
                 let node_wrapped = Box::new(node);
                 return node_wrapped;
             },
-            InstructionId::Clear => {
-                if source.0.is_negative() {
-                    panic!("clear instruction with source being a negative number. Makes no sense.");
-                }
-                if source.0.is_zero() {
-                    debug!("clear instruction with source=0. Makes no sense.");
-                }
-                if source.0.is_one() {
-                    debug!("clear instruction with source=1. Same as setting the register to zero.");
-                }
-                let limit_bigint: BigInt = 256.to_bigint().unwrap();
-                if source.0 >= limit_bigint {
-                    panic!("clear instruction with source being an unusual high value.");
-                }
-                let clear_count: u8 = source.0.to_u8().unwrap();
-                let node = NodeClearConstant::new(target, clear_count);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
             _ => {
                 panic!("unhandled instruction: {:?}", self.instruction_id);
             }
@@ -321,6 +304,56 @@ fn create_two_parameter_node(instruction: &Instruction) -> Result<BoxNode, Creat
             return Ok(node_wrapped);
         }
     }
+}
+
+fn create_clear_node(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
+    instruction.expect_two_parameters()?;
+
+    let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
+    let register_index0 = register_index_from_parameter(instruction, parameter0)?;
+
+    let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
+    match parameter1.parameter_type {
+        ParameterType::Constant => {
+            return create_clear_node_with_register_and_constant(
+                instruction,
+                register_index0,
+                RegisterValue::from_i64(parameter1.parameter_value)
+            )
+        },
+        ParameterType::Register => {
+            let register_index1 = register_index_from_parameter(instruction, parameter1)?;
+            let node_wrapped = instruction.create_node_with_register_and_register(
+                register_index0,
+                register_index1,
+            );
+            return Ok(node_wrapped);
+        }
+    }
+}
+
+fn create_clear_node_with_register_and_constant(instruction: &Instruction, target: RegisterIndex, source: RegisterValue) -> Result<BoxNode, CreateInstructionError> {
+    if source.0.is_negative() {
+        // clear instruction with source being a negative number. Makes no sense.
+        let err = CreateInstructionError {
+            line_number: instruction.line_number,
+            error_type: CreateInstructionErrorType::ClearRangeLengthMustBeNonNegative,
+        };
+        return Err(err);
+    }
+    let limit_bigint: BigInt = 255.to_bigint().unwrap();
+    if source.0 > limit_bigint {
+        // clear instruction with source being an unusual high value.
+        let err = CreateInstructionError {
+            line_number: instruction.line_number,
+            error_type: CreateInstructionErrorType::ClearRangeLengthExceedsLimit,
+        };
+        return Err(err);
+    }
+    let clear_count: u8 = source.0.to_u8().unwrap();
+    let node = NodeClearConstant::new(target, clear_count);
+    let node_wrapped = Box::new(node);
+    Ok(node_wrapped)
 }
 
 fn create_call_node(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
@@ -562,7 +595,7 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 program.push_boxed(node);
             },
             InstructionId::Clear => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_clear_node(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Max => {
