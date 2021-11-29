@@ -21,8 +21,6 @@ use crate::execute::node_multiply::*;
 use crate::execute::node_power::*;
 use crate::execute::node_subtract::*;
 use crate::execute::node_truncate::*;
-use num_bigint::{BigInt, ToBigInt};
-use num_traits::{One, Zero, Signed, ToPrimitive};
 
 #[derive(Debug, PartialEq)]
 pub enum CreateInstructionErrorType {
@@ -35,6 +33,7 @@ pub enum CreateInstructionErrorType {
     LoopWithConstantRangeIsTooHigh,
     RegisterIndexMustBeNonNegative,
     RegisterIndexTooHigh,
+    NodeCreateError,
 }
 
 #[derive(Debug, PartialEq)]
@@ -116,96 +115,92 @@ impl Instruction {
         Ok(())
     }
 
-    fn create_node_with_register_and_constant(&self, target: RegisterIndex, source: RegisterValue) -> BoxNode {
+    fn create_node_with_register_and_constant(&self, target: RegisterIndex, source: RegisterValue) -> Result<BoxNode, CreateInstructionError> {
         match &self.instruction_id {
             InstructionId::Move => {
                 let node = NodeMoveConstant::new(target, source);
                 let node_wrapped = Box::new(node);
-                return node_wrapped;
+                return Ok(node_wrapped);
             },
             InstructionId::Add => {
                 let node = NodeAddConstant::new(target, source);
                 let node_wrapped = Box::new(node);
-                return node_wrapped;
+                return Ok(node_wrapped);
             },
             InstructionId::Subtract => {
                 let node = NodeSubtractConstant::new(target, source);
                 let node_wrapped = Box::new(node);
-                return node_wrapped;
+                return Ok(node_wrapped);
             },
             InstructionId::Power => {
                 let node = NodePowerConstant::new(target, source);
                 let node_wrapped = Box::new(node);
-                return node_wrapped;
+                return Ok(node_wrapped);
             },
             InstructionId::Multiply => {
                 let node = NodeMultiplyConstant::new(target, source);
                 let node_wrapped = Box::new(node);
-                return node_wrapped;
+                return Ok(node_wrapped);
             },
             InstructionId::Divide => {
                 let node = NodeDivideConstant::new(target, source);
                 let node_wrapped = Box::new(node);
-                return node_wrapped;
+                return Ok(node_wrapped);
             },
             InstructionId::DivideIf => {
                 let node = NodeDivideIfConstant::new(target, source);
                 let node_wrapped = Box::new(node);
-                return node_wrapped;
+                return Ok(node_wrapped);
             },
             InstructionId::Modulo => {
                 let node = NodeModuloConstant::new(target, source);
                 let node_wrapped = Box::new(node);
-                return node_wrapped;
+                return Ok(node_wrapped);
             },
             InstructionId::GCD => {
                 let node = NodeGCDConstant::new(target, source);
                 let node_wrapped = Box::new(node);
-                return node_wrapped;
+                return Ok(node_wrapped);
             },
             InstructionId::Truncate => {
                 let node = NodeTruncateConstant::new(target, source);
                 let node_wrapped = Box::new(node);
-                return node_wrapped;
+                return Ok(node_wrapped);
             },
             InstructionId::Binomial => {
                 let node = NodeBinomialConstant::new(target, source);
                 let node_wrapped = Box::new(node);
-                return node_wrapped;
+                return Ok(node_wrapped);
             },
             InstructionId::Compare => {
                 let node = NodeCompareConstant::new(target, source);
                 let node_wrapped = Box::new(node);
-                return node_wrapped;
+                return Ok(node_wrapped);
             },
             InstructionId::Max => {
                 let node = NodeMaxConstant::new(target, source);
                 let node_wrapped = Box::new(node);
-                return node_wrapped;
+                return Ok(node_wrapped);
             },
             InstructionId::Min => {
                 let node = NodeMinConstant::new(target, source);
                 let node_wrapped = Box::new(node);
-                return node_wrapped;
+                return Ok(node_wrapped);
             },
             InstructionId::Clear => {
-                if source.0.is_negative() {
-                    panic!("clear instruction with source being a negative number. Makes no sense.");
-                }
-                if source.0.is_zero() {
-                    debug!("clear instruction with source=0. Makes no sense.");
-                }
-                if source.0.is_one() {
-                    debug!("clear instruction with source=1. Same as setting the register to zero.");
-                }
-                let limit_bigint: BigInt = 256.to_bigint().unwrap();
-                if source.0 >= limit_bigint {
-                    panic!("clear instruction with source being an unusual high value.");
-                }
-                let clear_count: u8 = source.0.to_u8().unwrap();
-                let node = NodeClearConstant::new(target, clear_count);
+                let node = match NodeClearConstant::create(target, source) {
+                    Ok(value) => value,
+                    Err(create_error) => {
+                        error!("NodeClearConstant::create() instruction: {:?} returned: {:?}", self, create_error);
+                        let err = CreateInstructionError {
+                            line_number: self.line_number,
+                            error_type: CreateInstructionErrorType::NodeCreateError,
+                        };
+                        return Err(err);
+                    }
+                };
                 let node_wrapped = Box::new(node);
-                return node_wrapped;
+                return Ok(node_wrapped);
             },
             _ => {
                 panic!("unhandled instruction: {:?}", self.instruction_id);
@@ -306,11 +301,10 @@ fn create_two_parameter_node(instruction: &Instruction) -> Result<BoxNode, Creat
     let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
     match parameter1.parameter_type {
         ParameterType::Constant => {
-            let node_wrapped = instruction.create_node_with_register_and_constant(
+            return instruction.create_node_with_register_and_constant(
                 register_index0,
                 RegisterValue::from_i64(parameter1.parameter_value)
             );
-            return Ok(node_wrapped);
         },
         ParameterType::Register => {
             let register_index1 = register_index_from_parameter(instruction, parameter1)?;
