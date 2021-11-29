@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::fmt;
 use super::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use super::validate_loops::*;
@@ -21,6 +22,70 @@ use crate::execute::node_multiply::*;
 use crate::execute::node_power::*;
 use crate::execute::node_subtract::*;
 use crate::execute::node_truncate::*;
+
+trait NodeCreator {
+    fn create_with_register_and_constant(&self, target: RegisterIndex, source: RegisterValue) -> Result<BoxNode, NodeCreatorError>;
+}
+type BoxNodeCreator = Box<dyn NodeCreator>;
+
+#[derive(Debug)]
+pub enum NodeCreatorError {
+    MissingClassForInstruction,
+    CannotConstructInstance,
+}
+
+impl fmt::Display for NodeCreatorError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::MissingClassForInstruction => 
+                write!(f, "The instruction doesn't have a corresponding class"),
+            Self::CannotConstructInstance =>
+                write!(f, "The instance cannot be constructed"),
+        }
+    }
+}
+
+impl Error for NodeCreatorError {}
+
+struct ClearNodeCreator {
+}
+
+impl NodeCreator for ClearNodeCreator {
+    fn create_with_register_and_constant(&self, target: RegisterIndex, source: RegisterValue) -> Result<BoxNode, NodeCreatorError> {
+        let node = match NodeClearConstant::create(target, source) {
+            Ok(value) => value,
+            Err(create_error) => {
+                error!("Cannot construct instance: {:?}", create_error);
+                return Err(NodeCreatorError::CannotConstructInstance);
+            }
+        };
+        Ok(Box::new(node))
+    }
+}
+
+struct MoveNodeCreator {
+}
+
+impl NodeCreator for MoveNodeCreator {
+    fn create_with_register_and_constant(&self, target: RegisterIndex, source: RegisterValue) -> Result<BoxNode, NodeCreatorError> {
+        let node = NodeMoveConstant::new(target, source);
+        Ok(Box::new(node))
+    }
+}
+
+fn node_creator_from_instruction(instruction: &Instruction) -> Result<BoxNodeCreator, NodeCreatorError> {
+    let node_creator: BoxNodeCreator = match instruction.instruction_id {
+        InstructionId::Clear => Box::new(ClearNodeCreator {}),
+        InstructionId::Move => Box::new(MoveNodeCreator {}),
+        _ => {
+            return Err(NodeCreatorError::MissingClassForInstruction);
+        }
+    };
+    // node_creator.create_node_with_register_and_constant()
+    Ok(node_creator)
+}
+
+
 
 #[derive(Debug, PartialEq)]
 pub enum CreateInstructionErrorType {
@@ -116,77 +181,35 @@ impl Instruction {
     }
 
     fn create_node_with_register_and_constant(&self, target: RegisterIndex, source: RegisterValue) -> Result<BoxNode, CreateInstructionError> {
-        match &self.instruction_id {
-            InstructionId::Move => {
-                let node = NodeMoveConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Add => {
-                let node = NodeAddConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Subtract => {
-                let node = NodeSubtractConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Power => {
-                let node = NodePowerConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Multiply => {
-                let node = NodeMultiplyConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Divide => {
-                let node = NodeDivideConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::DivideIf => {
-                let node = NodeDivideIfConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Modulo => {
-                let node = NodeModuloConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::GCD => {
-                let node = NodeGCDConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Truncate => {
-                let node = NodeTruncateConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Binomial => {
-                let node = NodeBinomialConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Compare => {
-                let node = NodeCompareConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Max => {
-                let node = NodeMaxConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Min => {
-                let node = NodeMinConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
+        let boxed_node: BoxNode = match &self.instruction_id {
+            InstructionId::Move =>
+                Box::new(NodeMoveConstant::new(target, source)),
+            InstructionId::Add =>
+                Box::new(NodeAddConstant::new(target, source)),
+            InstructionId::Subtract =>
+                Box::new(NodeSubtractConstant::new(target, source)),
+            InstructionId::Power =>
+                Box::new(NodePowerConstant::new(target, source)),
+            InstructionId::Multiply =>
+                Box::new(NodeMultiplyConstant::new(target, source)),
+            InstructionId::Divide =>
+                Box::new(NodeDivideConstant::new(target, source)),
+            InstructionId::DivideIf =>
+                Box::new(NodeDivideIfConstant::new(target, source)),
+            InstructionId::Modulo =>
+                Box::new(NodeModuloConstant::new(target, source)),
+            InstructionId::GCD =>
+                Box::new(NodeGCDConstant::new(target, source)),
+            InstructionId::Truncate =>
+                Box::new(NodeTruncateConstant::new(target, source)),
+            InstructionId::Binomial =>
+                Box::new(NodeBinomialConstant::new(target, source)),
+            InstructionId::Compare =>
+                Box::new(NodeCompareConstant::new(target, source)),
+            InstructionId::Max =>
+                Box::new(NodeMaxConstant::new(target, source)),
+            InstructionId::Min =>
+                Box::new(NodeMinConstant::new(target, source)),
             InstructionId::Clear => {
                 let node = match NodeClearConstant::create(target, source) {
                     Ok(value) => value,
@@ -199,13 +222,13 @@ impl Instruction {
                         return Err(err);
                     }
                 };
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
+                Box::new(node)
             },
             _ => {
                 panic!("unhandled instruction: {:?}", self.instruction_id);
             }
-        }
+        };
+        Ok(boxed_node)
     }
 
     fn create_node_with_register_and_register(&self, target: RegisterIndex, source: RegisterIndex) -> BoxNode {
