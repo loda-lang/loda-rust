@@ -3,6 +3,7 @@ use std::fmt;
 
 pub struct ValidateCallError {}
 
+// Errors that can arise while evaluating the program.
 #[derive(Debug)]
 pub enum EvalError {
     // During mining it makes little sense if the values are too extreme to 
