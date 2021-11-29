@@ -1,4 +1,4 @@
-use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use super::{CreateError, EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
 use std::collections::HashSet;
 use num_bigint::{BigInt, ToBigInt};
 use num_traits::{ToPrimitive, Signed};
@@ -9,6 +9,21 @@ pub struct NodeClearConstant {
 }
 
 impl NodeClearConstant {
+    pub fn create(target: RegisterIndex, source: RegisterValue) -> Result<Self, CreateError> {
+        if source.0.is_negative() {
+            // clear instruction with source being a negative number. Makes no sense.
+            return Err(CreateError::ClearRangeLengthMustBeNonNegative);
+        }
+        let limit_bigint: BigInt = 255.to_bigint().unwrap();
+        if source.0 > limit_bigint {
+            // clear instruction with source being an unusual high value.
+            return Err(CreateError::ClearRangeLengthExceedsLimit);
+        }
+        let clear_count: u8 = source.0.to_u8().unwrap();
+        let node = Self::new(target, clear_count);
+        Ok(node)
+    }
+
     pub fn new(target: RegisterIndex, clear_count: u8) -> Self {
         Self {
             target: target,

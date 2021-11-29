@@ -1,4 +1,5 @@
 mod check_value;
+mod create_error;
 mod eval_error;
 mod node;
 mod node_loop_shared;
@@ -15,6 +16,7 @@ mod run_mode;
 mod program_serializer;
 
 use check_value::*;
+pub use create_error::CreateError;
 pub use program::Program;
 pub use program_id::ProgramId;
 pub use program_runner::ProgramRunner;
