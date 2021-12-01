@@ -8,7 +8,7 @@ fn perform_operation(check: &BoxCheckValue, x: &RegisterValue, y: &RegisterValue
     let yy: &BigInt = &y.0;
     check.input(yy)?;
     if yy.is_zero() {
-        return Err(EvalError::DivisionByZero);
+        return Ok(x.clone());
     }
 
     let xx: &BigInt = &x.0;
@@ -107,7 +107,6 @@ mod tests {
         );
         match result {
             Ok(value) => value.to_string(),
-            Err(EvalError::DivisionByZero) => "BOOM-ZERO".to_string(),
             Err(EvalError::InputOutOfRange) => "BOOM-INPUT".to_string(),
             Err(_) => return "BOOM-OTHER".to_string()
         }
@@ -132,8 +131,9 @@ mod tests {
 
     #[test]
     fn test_10002_divisionbyzero() {
-        assert_eq!(process(100, 0), "BOOM-ZERO");
-        assert_eq!(process(-100, 0), "BOOM-ZERO");
+        assert_eq!(process(100, 0), "100");
+        assert_eq!(process(0, 0), "0");
+        assert_eq!(process(-100, 0), "-100");
     }
 
     #[test]
