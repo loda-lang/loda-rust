@@ -9,6 +9,8 @@ It looks for all the LODA assembly programs there are.
 =end
 
 require_relative 'config'
+require 'csv'
+require 'set'
 
 class CandidateProgram
     attr_reader :path
@@ -46,6 +48,11 @@ unless File.exist?(OEIS_STRIPPED_FILE)
     raise "No such file #{OEIS_STRIPPED_FILE}, cannot run script"
 end
 
+CACHE_DIR_DONT_MINE_FILE = Config.instance.cache_dir_dont_mine_file
+unless File.exist?(CACHE_DIR_DONT_MINE_FILE)
+    raise "No such file #{CACHE_DIR_DONT_MINE_FILE}, cannot run script"
+end
+
 def absolute_paths_for_all_programs(rootdir)
     relative_paths = Dir.glob(File.join("**", "*.asm"), base: rootdir).sort
     absolute_paths = relative_paths.map { |relative_path| File.join(rootdir, relative_path) }
@@ -53,7 +60,20 @@ def absolute_paths_for_all_programs(rootdir)
 end
 
 paths = absolute_paths_for_all_programs(MINE_EVENT_DIR)
+if paths.empty?
+    puts "There are no pending programs to be processed."
+    exit 0
+end
 puts "Number of programs to be analyzed: #{paths.count}"
+
+dontmine_program_id_set = Set.new
+CSV.foreach(CACHE_DIR_DONT_MINE_FILE, col_sep: ";") do |row|
+    col0 = row[0]
+    program_id = col0.to_i
+    next if program_id == 0
+    dontmine_program_id_set << program_id
+end
+puts "Number of items in dontmine file: #{dontmine_program_id_set.count}"
 
 # This script traverses all the programs inside the "mine-event" dir.
 # It evaluate all the LODA assembly programs, and obtain 40 terms.
@@ -94,6 +114,10 @@ File.new(OEIS_STRIPPED_FILE, "r").each_with_index do |line, index|
     next unless line =~ /^A0*(\d+) ,(.+)$/
     program_id = $1.to_i
     all_terms = $2
+    
+    # skip this line if the program_id is contained in the "dont_mine.csv", so that duplicate and unwanted sequences never gets submitted.
+    next if dontmine_program_id_set.include?(program_id)
+    
     candidate_programs.each do |candidate_program|
         if all_terms.start_with?(candidate_program.terms40)
             # puts "#{program_id} #{candidate_program.terms40}"

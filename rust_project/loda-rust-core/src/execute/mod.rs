@@ -1,4 +1,6 @@
 mod check_value;
+mod create_error;
+mod eval_error;
 mod node;
 mod node_loop_shared;
 mod node_register_limit;
@@ -14,6 +16,7 @@ mod run_mode;
 mod program_serializer;
 
 use check_value::*;
+pub use create_error::CreateError;
 pub use program::Program;
 pub use program_id::ProgramId;
 pub use program_runner::ProgramRunner;
@@ -22,7 +25,8 @@ pub use program_state::ProgramState;
 pub use program_cache::{CacheValue, ProgramCache};
 pub use program_serializer::ProgramSerializer;
 pub use run_mode::RunMode;
-pub use node::{BoxNode, EvalError, Node, ValidateCallError};
+pub use eval_error::{EvalError, ValidateCallError};
+pub use node::{BoxNode, Node};
 pub use node_loop_shared::NodeLoopLimit;
 pub use register_index::RegisterIndex;
 pub use register_value::RegisterValue;

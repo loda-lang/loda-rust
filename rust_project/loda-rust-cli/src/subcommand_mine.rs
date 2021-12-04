@@ -42,7 +42,7 @@ pub fn subcommand_mine() {
     debug!("step2");
 
     // Load the program_ids available for mining
-    let available_program_ids_file = loda_rust_repository.join(Path::new("resources/mine_program_ids.csv"));
+    let available_program_ids_file = cache_dir.join(Path::new("programs_valid.csv"));
     let available_program_ids: Vec<u32> = match load_program_ids_csv_file(&available_program_ids_file) {
         Ok(value) => value,
         Err(error) => {
