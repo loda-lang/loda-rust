@@ -388,6 +388,16 @@ var callbackFinishedWasmLoading = () => {
 }
 
 function body_onload() {
+  function receiveFromWorker(e) {
+    console.log("receiveFromWorker: ", e);
+    const div = document.getElementById("titlebar-text");
+    div.innerText = e.data;
+  }
+
+  const worker = new Worker('worker.js', { type: 'module' });
+  worker.onmessage = receiveFromWorker;
+  worker.postMessage("hello");
+
   const runSourceCode = function(sourceCode, termCount, runId) {
     callbackExecuteSourceCode(sourceCode, termCount, runId);
   };
@@ -435,7 +445,7 @@ function body_onbeforeunload() {
     <button class="seconday-button" onclick="gPageController.showInfo()">LODA Language</button>
   </div>
 
-  <div class="titlebar-item titlebar-item-center">Edit</div>
+  <div id="titlebar-text" class="titlebar-item titlebar-item-center">Edit</div>
 
   <div class="titlebar-item titlebar-item-right">
     <button class="seconday-button" onclick="gPageController.stopAction()">Stop (Esc)</button>
