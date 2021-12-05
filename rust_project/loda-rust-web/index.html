@@ -46,8 +46,22 @@ class PageController {
     this.configureOutputCount();
     this.prepareProgram();
     this.rebuildChart();
+    this.mWorker = this.configureWorker();
+  }
+
+  configureWorker() {
+    const worker = new Worker('worker.js', { type: 'module' });
+    worker.onmessage = this.receiveFromWorker;
+    worker.postMessage(["range", 0, 100]);
+    return worker;
   }
   
+  receiveFromWorker(e) {
+    console.log("receiveFromWorker: ", e);
+    const div = document.getElementById("titlebar-text");
+    div.innerText = e.data;
+  }
+
   configureEditor() {
     const editor = CodeMirror.fromTextArea(document.getElementById("editor-inner"), {
       lineNumbers: true,
@@ -388,16 +402,6 @@ var callbackFinishedWasmLoading = () => {
 }
 
 function body_onload() {
-  function receiveFromWorker(e) {
-    console.log("receiveFromWorker: ", e);
-    const div = document.getElementById("titlebar-text");
-    div.innerText = e.data;
-  }
-
-  const worker = new Worker('worker.js', { type: 'module' });
-  worker.onmessage = receiveFromWorker;
-  worker.postMessage("hello");
-
   const runSourceCode = function(sourceCode, termCount, runId) {
     callbackExecuteSourceCode(sourceCode, termCount, runId);
   };
