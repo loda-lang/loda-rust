@@ -172,15 +172,15 @@ fn create_cache_files_inner(
 
         let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
         {
-            let vec: BigIntVec = all_vec[0..10].to_vec();
+            let vec: BigIntVec = all_vec[0..8].to_vec();
             (*bloom10_ref).set(&vec);
         }
         {
-            let vec: BigIntVec = all_vec[0..20].to_vec();
+            let vec: BigIntVec = all_vec[0..14].to_vec();
             (*bloom20_ref).set(&vec);
         }
         {
-            let vec: BigIntVec = all_vec[0..30].to_vec();
+            let vec: BigIntVec = all_vec[0..25].to_vec();
             (*bloom30_ref).set(&vec);
         }
         {

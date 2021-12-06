@@ -276,7 +276,7 @@ pub fn run_miner_loop(
 
         // Execute program
         let mut term_computer = TermComputer::create();
-        let terms10: BigIntVec = match term_computer.compute(&mut cache, &runner, 10) {
+        let terms10: BigIntVec = match term_computer.compute(&mut cache, &runner, 8) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
@@ -292,7 +292,7 @@ pub fn run_miner_loop(
             continue;
         }
 
-        let terms20: BigIntVec = match term_computer.compute(&mut cache, &runner, 20) {
+        let terms20: BigIntVec = match term_computer.compute(&mut cache, &runner, 14) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
@@ -304,7 +304,7 @@ pub fn run_miner_loop(
             continue;
         }
 
-        let terms30: BigIntVec = match term_computer.compute(&mut cache, &runner, 30) {
+        let terms30: BigIntVec = match term_computer.compute(&mut cache, &runner, 25) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
