@@ -136,7 +136,7 @@ pub fn create_cache_files(oeis_stripped_file: &Path, cache_dir: &PathBuf, progra
 
     let file = File::open(oeis_stripped_file).unwrap();
     let mut reader = BufReader::new(file);
-    let bloom_items_count: usize = 400000;
+    let bloom_items_count: usize = 300000;
     create_cache_files_inner(
         &mut reader, 
         bloom_items_count, 
@@ -154,11 +154,13 @@ fn create_cache_files_inner(
     let mut processor = SequenceProcessor::new();
     let x = &mut processor;
 
-    let false_positive_rate: f64 = 0.01;
-    let mut bloom10 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
-    let mut bloom20 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
-    let mut bloom30 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
-    let mut bloom40 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
+    let false_positive_rate0: f64 = 0.01;
+    let false_positive_rate1: f64 = 0.02;
+    let false_positive_rate2: f64 = 0.04;
+    let mut bloom10 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate0);
+    let mut bloom20 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate1);
+    let mut bloom30 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate2);
+    let mut bloom40 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate2);
     let bloom10_ref = &mut bloom10;
     let bloom20_ref = &mut bloom20;
     let bloom30_ref = &mut bloom30;
@@ -297,7 +299,7 @@ mod tests {
     }
     
     #[test]
-    fn test_10001_bloomfilter_false_positive_rate() {
+    fn test_10001_bloomfilter_few_false_positives() {
         let items_count: usize = 400000;
         let false_positive_rate: f64 = 0.01;
         let bloom = Bloom::<()>::new_for_fp_rate(items_count, false_positive_rate);
@@ -305,6 +307,15 @@ mod tests {
         assert_eq!(bloom.number_of_hash_functions(), 7);
     }
     
+    #[test]
+    fn test_10001_bloomfilter_many_false_positives() {
+        let items_count: usize = 400000;
+        let false_positive_rate: f64 = 0.1;
+        let bloom = Bloom::<()>::new_for_fp_rate(items_count, false_positive_rate);
+        assert_eq!(bloom.number_of_bits(), 1917016);
+        assert_eq!(bloom.number_of_hash_functions(), 4);
+    }
+
     #[test]
     fn test_10002_bloomfilter_set_check_with_hash_of_string() {
         let mut bloom = Bloom::<String>::new_for_fp_rate(100, 0.1);
