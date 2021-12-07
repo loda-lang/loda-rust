@@ -52,7 +52,7 @@ class PageController {
   configureWorker() {
     const worker = new Worker('worker.js', { type: 'module' });
     worker.onmessage = this.receiveFromWorker;
-    worker.postMessage(["range", 0, 100]);
+    worker.postMessage(["range", 0, 10]);
     return worker;
   }
   
