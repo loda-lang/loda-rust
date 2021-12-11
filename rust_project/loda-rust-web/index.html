@@ -36,8 +36,6 @@ class PageController {
       console.error("PageController.runSourceCode() callback not installed");
     };
 
-    this.mInstanceId = Math.random()*0xffffff|0;
-    console.log("this.mInstanceId: ", this.mInstanceId);
     this.mTick = 0;
     this.mUpdateTick = false;
     this.mRunId = 0;
@@ -53,7 +51,6 @@ class PageController {
   }
 
   configureWorker() {
-    console.log("create worker");
     const worker = new Worker('worker.js', { type: 'module' });
     worker.addEventListener('message', (e) => {
       this.workerOnMessage(e);
@@ -61,10 +58,6 @@ class PageController {
     worker.addEventListener('error', (e) => {
       this.workerOnError(e);
     }, false);
-    worker.postMessage({
-      fn: "setup", 
-      instanceId: this.mInstanceId
-    });
     worker.postMessage({
       fn: "range", 
       rangeStart: 0,
@@ -84,6 +77,9 @@ class PageController {
     case "result":
       this.commandResult(e.data);
       break;
+    case "debug":
+      this.commandDebug(e.data);
+      break;
     default:
       console.error(`workerOnMessage.unknown: ${e.data}`);
       break;
@@ -91,8 +87,13 @@ class PageController {
   }
 
   commandResult(parameters) {
+    console.log("worker result", parameters.value);
     const div = document.getElementById("titlebar-text");
     div.innerText = parameters;
+  }
+
+  commandDebug(parameters) {
+    console.log("worker debug", parameters);
   }
 
   configureEditor() {
