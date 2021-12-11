@@ -51,13 +51,20 @@ class PageController {
 
   configureWorker() {
     const worker = new Worker('worker.js', { type: 'module' });
-    worker.onmessage = this.receiveFromWorker;
+    worker.onmessage = this.workerOnMessage;
+    worker.onerror = this.workerOnError;
     worker.postMessage(["range", 0, 10]);
     return worker;
   }
+
+  workerOnError(e) {
+    document.getElementById('worker-error').textContent = [
+      'ERROR: Line ', e.lineno, ' in ', e.filename, ': ', e.message
+    ].join('');
+  }
   
-  receiveFromWorker(e) {
-    console.log("receiveFromWorker: ", e);
+  workerOnMessage(e) {
+    console.log("workerOnMessage: ", e);
     const div = document.getElementById("titlebar-text");
     div.innerText = e.data;
   }
@@ -485,6 +492,8 @@ function body_onbeforeunload() {
       <div class="chart-container" style="position: relative;height:40vh">
         <canvas id="output-chart"></canvas>
       </div>
+
+      <output id="worker-error" style="color: red;">No error</output>
 
       <div id="output-inner">
         Output Area
