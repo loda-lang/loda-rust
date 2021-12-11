@@ -18,12 +18,17 @@ async function commandRange(parameters) {
 }
 
 addEventListener('message', async (e) => {
+    console.log("worker.js addEventListener message. before");
     switch (e.data.fn) {
     case "range":
         await commandRange(e.data);
+        break;
+    case "setup":
+        console.log("setup:", e.data.instanceId);
         break;
     default:
         console.error(`worker.message: unknown: ${e.data}`);
         break;
     }
+    console.log("worker.js addEventListener message. after");
 });
