@@ -3,29 +3,27 @@ function sleep(ms) {
 }
 
 async function commandRange(parameters) {
-    self.postMessage(`commandRange ${parameters}`);
-    const rangeStart = parameters[0];
-    const rangeLength = parameters[1];
+    // self.postMessage([`commandRange ${parameters}`]);
+    console.log("commandRange");
+    const rangeStart = parameters.rangeStart;
+    const rangeLength = parameters.rangeLength;
     for (var i = rangeStart; i < rangeLength; i++) {
         console.log("step", i);
         await sleep(100);
-        self.postMessage(['result', i]);
+        self.postMessage({
+            fn: 'result', 
+            value: i
+        });
     }
 }
 
 addEventListener('message', async (e) => {
-    // command = the first element of the input array
-    // parameters = except the first element of the input array
-    var parameters = e.data.slice();
-    const command = parameters.shift();
-    switch (command) {
+    switch (e.data.fn) {
     case "range":
-        await commandRange(parameters);
+        await commandRange(e.data);
         break;
     default:
-        self.postMessage(`unknown: ${e.data}`);
+        console.error(`worker.message: unknown: ${e.data}`);
         break;
     }
 });
-
-postMessage('started');

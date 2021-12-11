@@ -51,9 +51,17 @@ class PageController {
 
   configureWorker() {
     const worker = new Worker('worker.js', { type: 'module' });
-    worker.onmessage = this.workerOnMessage;
-    worker.onerror = this.workerOnError;
-    worker.postMessage(["range", 0, 10]);
+    worker.addEventListener('message', (e) => {
+      this.workerOnMessage(e);
+    }, false);
+    worker.addEventListener('error', (e) => {
+      this.workerOnError(e);
+    }, false);
+    worker.postMessage({
+      fn: "range", 
+      rangeStart: 0,
+      rangeLength: 10
+    });
     return worker;
   }
 
@@ -64,9 +72,19 @@ class PageController {
   }
   
   workerOnMessage(e) {
-    console.log("workerOnMessage: ", e);
+    switch (e.data.fn) {
+    case "result":
+      this.commandResult(e.data);
+      break;
+    default:
+      console.error(`workerOnMessage.unknown: ${e.data}`);
+      break;
+    }
+  }
+
+  commandResult(parameters) {
     const div = document.getElementById("titlebar-text");
-    div.innerText = e.data;
+    div.innerText = parameters;
   }
 
   configureEditor() {
