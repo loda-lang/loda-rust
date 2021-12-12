@@ -67,9 +67,10 @@ class PageController {
   }
 
   workerOnError(e) {
-    document.getElementById('worker-error').textContent = [
+    const errorMessage = [
       'ERROR: Line ', e.lineno, ' in ', e.filename, ': ', e.message
     ].join('');
+    this.outputArea_appendError(errorMessage);
   }
   
   workerOnMessage(e) {
@@ -82,14 +83,13 @@ class PageController {
       break;
     default:
       console.error(`workerOnMessage.unknown: ${e.data}`);
+      this.outputArea_appendError("unknown message, see log");
       break;
     }
   }
 
   commandResult(parameters) {
-    console.log("worker result", parameters.value);
-    const div = document.getElementById("titlebar-text");
-    div.innerText = parameters.value;
+    // console.log("worker result", parameters.value);
     this.outputArea_appendTerm(parameters.value);
   }
 
@@ -108,6 +108,23 @@ class PageController {
     const b0 = document.createElement("span");
     b0.className = "term";
     const b1 = document.createTextNode(`${termValue}`);
+    b0.appendChild(b1);
+
+    div.appendChild(a0);
+    div.appendChild(b0);
+  }
+
+  outputArea_appendError(message) {
+    const div = document.getElementById("output-inner2");
+
+    const a0 = document.createElement("span");
+    a0.className = "separator";
+    const a1 = document.createTextNode(",");
+    a0.appendChild(a1);
+
+    const b0 = document.createElement("span");
+    b0.className = "error";
+    const b1 = document.createTextNode(message);
     b0.appendChild(b1);
 
     div.appendChild(a0);
@@ -501,7 +518,7 @@ function body_onbeforeunload() {
     <button class="seconday-button" onclick="gPageController.showInfo()">LODA Language</button>
   </div>
 
-  <div id="titlebar-text" class="titlebar-item titlebar-item-center">Edit</div>
+  <div class="titlebar-item titlebar-item-center">Edit</div>
 
   <div class="titlebar-item titlebar-item-right">
     <button class="seconday-button" onclick="gPageController.stopAction()">Stop (Esc)</button>
@@ -537,8 +554,6 @@ function body_onbeforeunload() {
       <div class="chart-container" style="position: relative;height:40vh">
         <canvas id="output-chart"></canvas>
       </div>
-
-      <output id="worker-error" style="color: red;">No error</output>
 
       <div id="output-inner">
         Output Area
