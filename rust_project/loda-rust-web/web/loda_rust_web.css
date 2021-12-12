@@ -74,6 +74,23 @@ body {
 #output-inner .separator {
     color: #bbb;
 }
+#output-inner2 {
+    margin: 10px;
+    padding: 5px;
+    background-color: white;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    font-family: monospace;
+}
+#output-inner2 .error {
+    color: red;
+}
+#output-inner2 .term {
+    color: black;
+}
+#output-inner2 .separator {
+    color: #bbb;
+}
 #page-footer {
     border-top: 1px solid #bdbdbd;
     padding: 10px;
