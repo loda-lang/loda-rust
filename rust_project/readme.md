@@ -47,7 +47,7 @@ PROMPT> ./target/release/loda-rust mine
 
 ```
 PROMPT> cd loda-rust-web
-PROMPT> wasm-pack build --target web
+PROMPT> ./build.sh
 ```
 
 Open "index.html" in the browser.
