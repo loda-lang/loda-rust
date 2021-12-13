@@ -1,8 +1,10 @@
 // import * as wasmModule from './pkg/loda_rust_web.js';
 // 
-// importScripts('./pkg/loda_rust_web.js');
-
 console.log('Initializing worker');
+
+importScripts('./pkg/loda_rust_web.js');
+
+console.log('Initializing worker 2');
 
 // const {setup_lib} = wasm_bindgen;
 // const module = await import("./pkg/loda_rust_web.js");
@@ -71,7 +73,10 @@ const myWorker = new MyWorker(this);
 addEventListener('message', async (e) => {
     switch (e.data.fn) {
     case "setup":
-        const module = await import("./pkg/loda_rust_web.js");
+        console.log("before");
+        const module = await wasm_bindgen('./pkg/loda_rust_web_bg.wasm');
+        console.log("after");
+        module.setup_lib();
 
         break;
     case "range":

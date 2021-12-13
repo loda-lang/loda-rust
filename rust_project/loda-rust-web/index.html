@@ -62,11 +62,11 @@ class PageController {
     worker.postMessage({
       fn: "setup"
     });
-    worker.postMessage({
-      fn: "range", 
-      rangeStart: 0,
-      rangeLength: 10
-    });
+    // worker.postMessage({
+    //   fn: "range", 
+    //   rangeStart: 0,
+    //   rangeLength: 10
+    // });
     return worker;
   }
 
