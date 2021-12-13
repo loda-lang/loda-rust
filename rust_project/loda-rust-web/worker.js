@@ -1,6 +1,6 @@
-// import * as wasmModule from './pkg/loda_rust_web.js';
+// import * as wasm_bindgen from './pkg/loda_rust_web.js';
 // 
-console.log('Initializing worker');
+// console.log('Initializing worker');
 
 importScripts('./pkg/loda_rust_web.js');
 
@@ -68,22 +68,29 @@ class MyWorker {
     }
 }
 
-const myWorker = new MyWorker(this);
-  
-addEventListener('message', async (e) => {
-    switch (e.data.fn) {
-    case "setup":
-        console.log("before");
-        const module = await wasm_bindgen('./pkg/loda_rust_web_bg.wasm');
-        console.log("after");
-        module.setup_lib();
 
-        break;
-    case "range":
-        await myWorker.commandRange(e.data);
-        break;
-    default:
-        console.error(`worker.message: unknown: ${e.data.fn} ${e.data}`);
-        break;
-    }
-}, false);
+async function init_worker() {
+
+    console.log("before");
+    const module = await wasm_bindgen('./pkg/loda_rust_web_bg.wasm');
+    console.log("after");
+    module.setup_lib();
+
+    const myWorker = new MyWorker(this);
+  
+    addEventListener('message', async (e) => {
+        switch (e.data.fn) {
+        case "setup":
+    
+            break;
+        case "range":
+            await myWorker.commandRange(e.data);
+            break;
+        default:
+            console.error(`worker.message: unknown: ${e.data.fn} ${e.data}`);
+            break;
+        }
+    }, false);    
+}
+
+init_worker();

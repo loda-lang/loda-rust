@@ -59,9 +59,9 @@ class PageController {
     worker.addEventListener('error', (e) => {
       this.workerOnError(e);
     }, false);
-    worker.postMessage({
-      fn: "setup"
-    });
+    // worker.postMessage({
+    //   fn: "setup"
+    // });
     // worker.postMessage({
     //   fn: "range", 
     //   rangeStart: 0,
