@@ -58,11 +58,6 @@ class PageController {
     worker.addEventListener('error', (e) => {
       this.workerOnError(e);
     }, false);
-    worker.postMessage({
-      fn: "range", 
-      rangeStart: 0,
-      rangeLength: 10
-    });
     return worker;
   }
 
@@ -81,6 +76,9 @@ class PageController {
     case "debug":
       this.commandDebug(e.data);
       break;
+    case "ready":
+      this.commandReady(e.data);
+      break;
     default:
       console.error(`workerOnMessage.unknown: ${e.data}`);
       this.outputArea_appendError("unknown message, see log");
@@ -95,6 +93,15 @@ class PageController {
 
   commandDebug(parameters) {
     console.log("worker debug", parameters);
+  }
+
+  commandReady(parameters) {
+    console.log("worker is ready", parameters);
+    this.mWorker.postMessage({
+      fn: "range", 
+      rangeStart: 0,
+      rangeLength: 10
+    });
   }
 
   outputArea_appendTerm(termValue) {

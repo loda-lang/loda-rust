@@ -32,7 +32,7 @@ class MyWorker {
 }
 
 
-async function init_worker() {
+async function init_worker(owner) {
     // console.log("init_worker 1");
 
     const module = await wasm_bindgen('./pkg/loda_rust_web_bg.wasm');
@@ -43,9 +43,9 @@ async function init_worker() {
 
     // console.log("init_worker 3");
 
-    const myWorker = new MyWorker(this);
+    const myWorker = new MyWorker(owner);
   
-    addEventListener('message', async (e) => {
+    owner.addEventListener('message', async (e) => {
         switch (e.data.fn) {
         case "range":
             await myWorker.commandRange(e.data);
@@ -54,7 +54,11 @@ async function init_worker() {
             console.error(`worker.message: unknown: ${e.data.fn} ${e.data}`);
             break;
         }
-    }, false);    
+    }, false);
+
+    owner.postMessage({
+        fn: 'ready'
+    });
 }
 
-init_worker();
+init_worker(this);
