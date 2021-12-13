@@ -52,12 +52,16 @@ class PageController {
 
   configureWorker() {
     const worker = new Worker('worker.js', { type: 'module' });
+    // const worker = new Worker('worker.js');
     worker.addEventListener('message', (e) => {
       this.workerOnMessage(e);
     }, false);
     worker.addEventListener('error', (e) => {
       this.workerOnError(e);
     }, false);
+    worker.postMessage({
+      fn: "setup"
+    });
     worker.postMessage({
       fn: "range", 
       rangeStart: 0,
@@ -488,7 +492,7 @@ function body_onbeforeunload() {
   }
 }
 </script>
-<script type="module" src="index.js"></script>
+<!-- <script type="module" src="index.js"></script> -->
 
 </head>
 

@@ -385,6 +385,7 @@ impl WebDependencyManagerInner {
     }
 }
 
+/*
 #[wasm_bindgen]
 pub struct WebDependencyManager {
     inner: Rc<RefCell<WebDependencyManagerInner>>,
@@ -428,3 +429,4 @@ impl WebDependencyManager {
             .print_stats();
     }
 }
+*/

@@ -1,5 +1,7 @@
-import init, * as wasmModule from './pkg/loda_rust_web.js';
+// import init, * as wasmModule from './pkg/loda_rust_web.js';
+import * as wasmModule from './pkg/loda_rust_web.js';
 
+/*
 function computeAndYield(remaining, index, dm, runId) {
     if (!gPageController.isRunningProgram(runId)) {
         console.log("prematurely abort");
@@ -25,6 +27,7 @@ function computeAndYield(remaining, index, dm, runId) {
         setTimeout(function() { computeAndYield(remaining - 1, index + 1, dm, runId); }, 0);
     })();
 }
+*/
 
 const runWasm = async () => {
     await init('./pkg/loda_rust_web_bg.wasm');
@@ -33,26 +36,26 @@ const runWasm = async () => {
     wasmModule.setup_lib();
     // wasmModule.perform_selfcheck();
 
-    const dm = new wasmModule.WebDependencyManager();
+    // const dm = new wasmModule.WebDependencyManager();
     // dm.increment();
     // dm.clone().run_source_code("mov $1,2\npow $1,$0");
     // dm.clone().run_source_code("mov $1,3\npow $1,$0");
     // dm.clone().run_source_code("mov $1,4\npow $1,$0");
 
-    callbackExecuteSourceCode = (sourceCode, termCount, runId) => {
-        console.log(`execute sourceCode, termCount: ${termCount}`);
-        (async() => {
-            console.log('before start');
+    // callbackExecuteSourceCode = (sourceCode, termCount, runId) => {
+    //     console.log(`execute sourceCode, termCount: ${termCount}`);
+    //     (async() => {
+    //         console.log('before start');
        
-            dm.increment();
-            await dm.clone().run_source_code(sourceCode);
-            computeAndYield(termCount, 0, dm, runId);
+    //         dm.increment();
+    //         await dm.clone().run_source_code(sourceCode);
+    //         computeAndYield(termCount, 0, dm, runId);
 
-            console.log('after start');
-        })();
-    };
+    //         console.log('after start');
+    //     })();
+    // };
 
-    callbackFinishedWasmLoading();
+    // callbackFinishedWasmLoading();
     // wasmModule.run_program_id(45);
     // callbackExecuteSourceCode("mov $1,2\npow $1,$0");
 };
