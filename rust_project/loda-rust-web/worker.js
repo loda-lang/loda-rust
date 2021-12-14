@@ -52,8 +52,8 @@ async function init_worker(owner) {
     const dm = new WebDependencyManager();
 
     dm.increment();
-    // dm.clone().run_source_code("mov $1,2\npow $1,$0");
-    dm.clone().run_source_code("seq $0,40\nmul $0,-1");
+    // await dm.clone().run_source_code("mov $1,2\npow $1,$0");
+    await dm.clone().run_source_code("seq $0,40\nmul $0,-1");
 
 
     const myWorker = new MyWorker(owner);
