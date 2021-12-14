@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, RequestInit, RequestMode, Response};
+use web_sys::{Request, RequestInit, RequestMode, Response, WorkerGlobalScope};
 use std::panic;
 
 use log::{Log,Metadata,Record,LevelFilter};
@@ -225,8 +225,7 @@ impl WebDependencyManagerInner {
         // }
         debug!("Downloading");
 
-        // TODO: use WorkerGlobalScope instead
-        let window = web_sys::window().unwrap();
+        let global = js_sys::global().unchecked_into::<WorkerGlobalScope>();
 
         let mut pending_program_ids: Vec<u64> = vec!();
         let mut already_fetched_program_ids = HashSet::<u64>::new();
@@ -258,7 +257,7 @@ impl WebDependencyManagerInner {
             opts.method("GET");
             opts.mode(RequestMode::Cors);
             let request = Request::new_with_str_and_init(&url, &opts)?;
-            let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
+            let resp_value = JsFuture::from(global.fetch_with_request(&request)).await?;
         
             // `resp_value` is a `Response` object.
             assert!(resp_value.is_instance_of::<Response>());

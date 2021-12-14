@@ -51,11 +51,9 @@ async function init_worker(owner) {
 
     const dm = new WebDependencyManager();
 
-    console.log("what is dm", dm);
-    // console.log("is this class of type: WebDependencyManager, status: ", dm instanceof klass);
-
     dm.increment();
-    dm.clone().run_source_code("mov $1,2\npow $1,$0");
+    // dm.clone().run_source_code("mov $1,2\npow $1,$0");
+    dm.clone().run_source_code("seq $0,40\nmul $0,-1");
 
 
     const myWorker = new MyWorker(owner);

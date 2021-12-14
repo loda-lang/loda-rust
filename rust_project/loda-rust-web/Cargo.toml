@@ -28,5 +28,6 @@ features = [
   'Response',
   'Window',
   'Document',
-  'Element'
+  'Element',
+  'WorkerGlobalScope'
 ]
