@@ -7,8 +7,9 @@ function sleep(ms) {
 }
 
 class MyWorker {
-    constructor(workerOwner) {
+    constructor(workerOwner, dependencyManager) {
         this.mWorkerOwner = workerOwner;
+        this.mDependencyManager = dependencyManager;
     }
 
     debug(message) {
@@ -30,6 +31,12 @@ class MyWorker {
                 value: i
             });
         }
+    }
+
+    async commandRun(parameters) {
+        this.debug("commandRun");
+        const sourceCode = parameters.sourceCode;
+        await this.mDependencyManager.clone().run_source_code(sourceCode);
     }
 }
 
@@ -56,12 +63,15 @@ async function init_worker(owner) {
     await dm.clone().run_source_code("seq $0,40\nmul $0,-1");
 
 
-    const myWorker = new MyWorker(owner);
+    const myWorker = new MyWorker(owner, dm);
   
     owner.addEventListener('message', async (e) => {
         switch (e.data.fn) {
         case "range":
             await myWorker.commandRange(e.data);
+            break;
+        case "run":
+            await myWorker.commandRun(e.data);
             break;
         default:
             console.error(`worker.message: unknown: ${e.data.fn} ${e.data}`);

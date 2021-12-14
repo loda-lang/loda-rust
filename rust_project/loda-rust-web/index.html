@@ -86,6 +86,15 @@ class PageController {
     }
   }
 
+  workerExecuteRun() {
+    console.log("run source code");
+    let sourceCode = this.mEditor.getValue();
+    this.mWorker.postMessage({
+      fn: "run", 
+      sourceCode: sourceCode
+    });
+  }
+
   commandResult(parameters) {
     // console.log("worker result", parameters.value);
     this.outputArea_appendTerm(parameters.value);
@@ -335,7 +344,8 @@ class PageController {
       if(isEnterKeyCode && isMetaKey) {
         console.log("ctrl+enter: submit form");
         event.preventDefault(); // Suppress "double action"
-        pageControllerInstance.runAction();
+        // pageControllerInstance.runAction();
+        pageControllerInstance.workerExecuteRun();
         return;
       }
       // intercept ESCape key, and stop a running program.
