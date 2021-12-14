@@ -430,8 +430,3 @@ impl WebDependencyManager {
             .print_stats();
     }
 }
-
-#[wasm_bindgen]
-pub fn create_web_dependency_manager() -> WebDependencyManager {
-    WebDependencyManager::new()
-}
