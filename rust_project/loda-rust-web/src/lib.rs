@@ -98,9 +98,9 @@ fn url_from_program_id(program_id: u64) -> String {
     format!("{}/{}/{}", baseurl, dir_index_string, filename_string)
 }
 
-pub fn get_element_by_id(element_id: &str) -> Option<web_sys::Element> {
-    web_sys::window()?.document()?.get_element_by_id(element_id)
-}
+// pub fn get_element_by_id(element_id: &str) -> Option<web_sys::Element> {
+//     web_sys::window()?.document()?.get_element_by_id(element_id)
+// }
 
 #[wasm_bindgen]
 pub fn perform_selfcheck() {
@@ -225,6 +225,7 @@ impl WebDependencyManagerInner {
         // }
         debug!("Downloading");
 
+        // TODO: use WorkerGlobalScope instead
         let window = web_sys::window().unwrap();
 
         let mut pending_program_ids: Vec<u64> = vec!();
@@ -394,16 +395,6 @@ pub struct WebDependencyManager {
 
 #[wasm_bindgen]
 impl WebDependencyManager {
-    // #[wasm_bindgen(constructor)]
-    // pub fn new() -> Result<WebDependencyManager, JsValue> {
-    //     debug!("WebDependencyManager.new");
-    //     let inner0 = WebDependencyManagerInner::create();
-    //     let inner1 = Rc::new(RefCell::new(inner0));
-    //     Ok(Self { 
-    //         inner: inner1,
-    //     })
-    // }
-
     #[wasm_bindgen(constructor)]
     pub fn new() -> WebDependencyManager {
         debug!("WebDependencyManager.new");
