@@ -46,6 +46,19 @@ async function init_worker(owner) {
     wasmModule.perform_selfcheck();
 
     // console.log("init_worker 4");
+
+    const WebDependencyManager = wasmModule.WebDependencyManager;
+
+    const dm = wasmModule.create_web_dependency_manager();
+    // const dm = new wasmModule.WebDependencyManager();
+    // const dm = new WebDependencyManager();
+
+    // console.log("is this class of type: WebDependencyManager, status: ", dm instanceof klass);
+
+    // dm.increment();
+    // dm.clone().run_source_code("mov $1,2\npow $1,$0");
+
+
     const myWorker = new MyWorker(owner);
   
     owner.addEventListener('message', async (e) => {
