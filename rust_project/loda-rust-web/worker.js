@@ -35,14 +35,17 @@ class MyWorker {
 async function init_worker(owner) {
     // console.log("init_worker 1");
 
-    const module = await wasm_bindgen('./pkg/loda_rust_web_bg.wasm');
+    const wasmModule = await wasm_bindgen('./pkg/loda_rust_web_bg.wasm');
 
     // console.log("init_worker 2");
 
-    module.setup_lib();
+    wasmModule.setup_lib();
 
     // console.log("init_worker 3");
 
+    wasmModule.perform_selfcheck();
+
+    // console.log("init_worker 4");
     const myWorker = new MyWorker(owner);
   
     owner.addEventListener('message', async (e) => {
