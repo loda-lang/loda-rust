@@ -86,11 +86,11 @@ class PageController {
     }
   }
 
-  workerExecuteRun() {
-    console.log("run source code");
+  workerCompileAndExecute() {
+    console.log("compile and execute");
     let sourceCode = this.mEditor.getValue();
     this.mWorker.postMessage({
-      fn: "run", 
+      fn: "compile", 
       sourceCode: sourceCode
     });
     this.outputArea_clear();
@@ -364,7 +364,7 @@ class PageController {
         console.log("ctrl+enter: submit form");
         event.preventDefault(); // Suppress "double action"
         // pageControllerInstance.runAction();
-        pageControllerInstance.workerExecuteRun();
+        pageControllerInstance.workerCompileAndExecute();
         return;
       }
       // intercept ESCape key, and stop a running program.

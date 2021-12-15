@@ -45,8 +45,8 @@ class MyWorker {
         }
     }
 
-    async commandRun(parameters) {
-        this.debug("commandRun");
+    async commandCompile(parameters) {
+        this.debug("commandCompile");
         const sourceCode = parameters.sourceCode;
         await this.mDependencyManager.clone().run_source_code(sourceCode);
     }
@@ -90,8 +90,8 @@ async function init_worker(owner) {
         case "executerange":
             await myWorker.commandExecuteRange(e.data);
             break;
-        case "run":
-            await myWorker.commandRun(e.data);
+        case "compile":
+            await myWorker.commandCompile(e.data);
             break;
         default:
             console.error(`worker.message: unknown: ${e.data.fn} ${e.data}`);
