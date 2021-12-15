@@ -40,7 +40,7 @@ class MyWorker {
     async executeIndex(index) {
         console.log(`executeIndex before step ${index}`);
 
-        await sleep(100);
+        // await sleep(100);
 
         try {
             const valueString = await this.mDependencyManager.clone().execute_current_program(index);

@@ -29,7 +29,7 @@ class PageController {
         this.configureKeyboardShortcuts();
         this.configureOutputCount();
         this.prepareProgram();
-        this.rebuildChart();
+        // this.rebuildChart();
         this.mWorker = this.configureWorker();
     }
   
@@ -88,6 +88,7 @@ class PageController {
     commandResult(parameters) {
         // console.log("worker result", parameters.valueString);
         this.outputArea_appendTerm(parameters.valueString);
+        this.rebuildChart();
     }
   
     commandDebug(parameters) {
@@ -469,7 +470,7 @@ class PageController {
         //     dataAll.push(dict);
         // }
   
-        const div = document.getElementById("output-inner");
+        const div = document.getElementById("output-inner2");
         const text = div.innerText;
         console.log("text", text);
         const textItems = text.split(",");
