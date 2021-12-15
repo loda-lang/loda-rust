@@ -10,6 +10,8 @@ class MyWorker {
     constructor(workerOwner, dependencyManager) {
         this.mWorkerOwner = workerOwner;
         this.mDependencyManager = dependencyManager;
+        this.mRangeStart = 0;
+        this.mRangeLength = 10;
     }
 
     debug(message) {
@@ -19,16 +21,21 @@ class MyWorker {
         });
     }
 
-    async commandRange(parameters) {
-        this.debug("commandRange");
-        const rangeStart = parameters.rangeStart;
-        const rangeLength = parameters.rangeLength;
+    async commandSetRange(parameters) {
+        this.debug("commandSetRange");
+        this.mRangeStart = parameters.rangeStart;
+        this.mRangeLength = parameters.rangeLength;
+    }
+
+    async commandExecuteRange(parameters) {
+        this.debug("commandExecuteRange");
+        const rangeStart = this.mRangeStart;
+        const rangeLength = this.mRangeLength;
         for (var i = rangeStart; i < rangeLength; i++) {
             // this.debug(`step ${i}`);
 
-            // const index = 2;
             const valueString = await this.mDependencyManager.clone().execute_current_program(i);
-            console.log("computed value: ", valueString);
+            // console.log("computed value: ", valueString);
         
             await sleep(100);
             this.mWorkerOwner.postMessage({
@@ -77,8 +84,11 @@ async function init_worker(owner) {
   
     owner.addEventListener('message', async (e) => {
         switch (e.data.fn) {
-        case "range":
-            await myWorker.commandRange(e.data);
+        case "setrange":
+            myWorker.commandSetRange(e.data);
+            break;
+        case "executerange":
+            await myWorker.commandExecuteRange(e.data);
             break;
         case "run":
             await myWorker.commandRun(e.data);

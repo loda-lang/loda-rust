@@ -93,6 +93,7 @@ class PageController {
       fn: "run", 
       sourceCode: sourceCode
     });
+    this.executeRange();
   }
 
   commandResult(parameters) {
@@ -106,11 +107,8 @@ class PageController {
 
   commandReady(parameters) {
     console.log("worker is ready", parameters);
-    this.mWorker.postMessage({
-      fn: "range", 
-      rangeStart: 0,
-      rangeLength: 10
-    });
+    this.setRange();
+    this.executeRange();
   }
 
   outputArea_appendTerm(termValueString) {
@@ -145,6 +143,20 @@ class PageController {
 
     div.appendChild(a0);
     div.appendChild(b0);
+  }
+
+  setRange() {
+    this.mWorker.postMessage({
+      fn: "setrange", 
+      rangeStart: 0,
+      rangeLength: 10
+    });
+  }
+
+  executeRange() {
+    this.mWorker.postMessage({
+      fn: "executerange", 
+    });
   }
 
   configureEditor() {
