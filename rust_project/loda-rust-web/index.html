@@ -153,10 +153,11 @@ class PageController {
   }
 
   setRange() {
+    let rangeLength = this.getNumberOfTerms();
     this.mWorker.postMessage({
       fn: "setrange", 
       rangeStart: 0,
-      rangeLength: 10
+      rangeLength: rangeLength
     });
   }
 
@@ -240,7 +241,10 @@ class PageController {
     const el = document.getElementById('output-count');
     var self = this;
     el.addEventListener('change', function(e) {
-      self.runAction();
+      self.setRange();
+      self.outputArea_clear();
+      self.executeRange();
+      // self.runAction();
     }, false);
   }
 
