@@ -25,10 +25,15 @@ class MyWorker {
         const rangeLength = parameters.rangeLength;
         for (var i = rangeStart; i < rangeLength; i++) {
             // this.debug(`step ${i}`);
+
+            // const index = 2;
+            const valueString = await this.mDependencyManager.clone().execute_current_program(i);
+            console.log("computed value: ", valueString);
+        
             await sleep(100);
             this.mWorkerOwner.postMessage({
                 fn: 'result', 
-                value: i
+                valueString: valueString
             });
         }
     }
@@ -62,6 +67,11 @@ async function init_worker(owner) {
     // await dm.clone().run_source_code("mov $1,2\npow $1,$0");
     await dm.clone().run_source_code("seq $0,40\nmul $0,-1");
 
+    const index = 2;
+    const value = await dm.clone().execute_current_program(index);
+    console.log("computed value: ", value);
+
+    dm.clone().print_stats();
 
     const myWorker = new MyWorker(owner, dm);
   

@@ -360,7 +360,7 @@ impl WebDependencyManagerInner {
             let err = JsValue::from_str(&s);
             return Err(err);
         }
-        debug!("computed term {:?}", term_string);
+        // debug!("computed term {:?}", term_string);
         // if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
         //     let val0 = web_sys::window().unwrap().document().unwrap().create_element("span")?;
         //     val0.set_class_name("separator");
@@ -378,7 +378,7 @@ impl WebDependencyManagerInner {
         //     }
         // }
 
-        Ok(JsValue::from_str("success"))
+        Ok(JsValue::from_str(&term_string))
     }
 
     fn print_stats(&self) {

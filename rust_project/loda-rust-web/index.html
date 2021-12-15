@@ -97,7 +97,7 @@ class PageController {
 
   commandResult(parameters) {
     // console.log("worker result", parameters.value);
-    this.outputArea_appendTerm(parameters.value);
+    this.outputArea_appendTerm(parameters.valueString);
   }
 
   commandDebug(parameters) {
@@ -113,7 +113,7 @@ class PageController {
     });
   }
 
-  outputArea_appendTerm(termValue) {
+  outputArea_appendTerm(termValueString) {
     const div = document.getElementById("output-inner2");
 
     const a0 = document.createElement("span");
@@ -123,7 +123,7 @@ class PageController {
 
     const b0 = document.createElement("span");
     b0.className = "term";
-    const b1 = document.createTextNode(`${termValue}`);
+    const b1 = document.createTextNode(termValueString);
     b0.appendChild(b1);
 
     div.appendChild(a0);
