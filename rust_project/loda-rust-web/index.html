@@ -86,13 +86,18 @@ class PageController {
     }
   }
 
-  workerCompileAndExecute() {
-    console.log("compile and execute");
+  compileEditorCode() {
+    console.log("compile editor code");
     let sourceCode = this.mEditor.getValue();
     this.mWorker.postMessage({
       fn: "compile", 
       sourceCode: sourceCode
     });
+  }
+
+  workerCompileAndExecute() {
+    console.log("compile and execute");
+    this.compileEditorCode();
     this.outputArea_clear();
     this.executeRange();
   }
@@ -108,9 +113,9 @@ class PageController {
 
   commandReady(parameters) {
     console.log("worker is ready", parameters);
-    this.setRange();
-    this.outputArea_clear();
-    this.executeRange();
+    // this.setRange();
+    // this.outputArea_clear();
+    // this.executeRange();
   }
 
   outputArea_clear() {
@@ -295,6 +300,7 @@ class PageController {
     var output = document.getElementById("output-inner");
     output.innerText = 'Downloading';
 
+    // TODO: make this fetch happen in the worker.js, so there is less redundant code.
     // TODO: deal with status code when there is no 404 and show error message
     fetch(url)
       .then(response => response.text())
@@ -320,11 +326,22 @@ class PageController {
       });
   }
 
+  workerCompileAndExecute() {
+    console.log("compile and execute");
+    this.compileEditorCode();
+    this.outputArea_clear();
+    this.executeRange();
+  }
+
   didLoadProgram() {
     console.log("didLoadProgram");
-    var output = document.getElementById("output-inner");
-    output.innerText = 'Computing';
-    this.runAction();
+    this.setRange();
+    this.compileEditorCode();
+    this.outputArea_clear();
+    this.executeRange();
+    // var output = document.getElementById("output-inner");
+    // output.innerText = 'Computing';
+    // this.runAction();
   }
 
   outputInnerAppendErrorMessage(message) {
