@@ -36,6 +36,7 @@ class PageController {
       console.error("PageController.runSourceCode() callback not installed");
     };
 
+    this.mWorkerIsReady = false;
     this.mTick = 0;
     this.mUpdateTick = false;
     this.mRunId = 0;
@@ -113,6 +114,7 @@ class PageController {
 
   commandReady(parameters) {
     console.log("worker is ready", parameters);
+    this.mWorkerIsReady = true;
     // this.setRange();
     // this.outputArea_clear();
     // this.executeRange();
@@ -335,6 +337,10 @@ class PageController {
 
   didLoadProgram() {
     console.log("didLoadProgram");
+    if (!this.mWorkerIsReady) {
+      console.log("worker is not yet ready");
+      return;
+    }
     this.setRange();
     this.compileEditorCode();
     this.outputArea_clear();
