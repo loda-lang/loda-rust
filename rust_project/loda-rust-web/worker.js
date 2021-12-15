@@ -37,7 +37,7 @@ class MyWorker {
             const valueString = await this.mDependencyManager.clone().execute_current_program(i);
             // console.log("computed value: ", valueString);
         
-            await sleep(100);
+            // await sleep(100);
             this.mWorkerOwner.postMessage({
                 fn: 'result', 
                 valueString: valueString
