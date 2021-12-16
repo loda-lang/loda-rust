@@ -109,26 +109,47 @@ mod tests {
     }
 
     #[test]
-    fn test_10000() {
-        assert_eq!(process(50, 10), "5");
-        assert_eq!(process(100, 1), "100");
-        assert_eq!(process(10, 2), "5");
-        assert_eq!(process(9, 2), "4");
-        assert_eq!(process(-1, -1), "1");
-        assert_eq!(process(3, -3), "-1");
-        assert_eq!(process(-3, 3), "-1");
-        assert_eq!(process(-9, 2), "-4");
-        assert_eq!(process(-10, 2), "-5");
-    }
-
-    #[test]
-    fn test_10001_divisionbyzero() {
+    fn test_10000_divisionbyzero() {
         assert_eq!(process(100, 0), "BOOM-ZERO");
         assert_eq!(process(-100, 0), "BOOM-ZERO");
     }
 
     #[test]
-    fn test_10002_inputoutofrange() {
+    fn test_10001_divisionby1() {
+        assert_eq!(process(-100, 1), "-100");
+        assert_eq!(process(0, 1), "0");
+        assert_eq!(process(100, 1), "100");
+        assert_eq!(process(-1, -1), "1");
+        assert_eq!(process(0, -1), "0");
+        assert_eq!(process(1, -1), "-1");
+    }
+
+    #[test]
+    fn test_10002_divisionby2() {
+        assert_eq!(process(-10, 2), "-5");
+        assert_eq!(process(-9, 2), "-4");
+        assert_eq!(process(-4, 2), "-2");
+        assert_eq!(process(-3, 2), "-1");
+        assert_eq!(process(-2, 2), "-1");
+        assert_eq!(process(-1, 2), "0");
+        assert_eq!(process(0, 2), "0");
+        assert_eq!(process(1, 2), "0");
+        assert_eq!(process(2, 2), "1");
+        assert_eq!(process(3, 2), "1");
+        assert_eq!(process(4, 2), "2");
+        assert_eq!(process(9, 2), "4");
+        assert_eq!(process(10, 2), "5");
+    }
+
+    #[test]
+    fn test_10003_divisionbybiggervalues() {
+        assert_eq!(process(50, 10), "5");
+        assert_eq!(process(3, -3), "-1");
+        assert_eq!(process(-3, 3), "-1");
+    }
+
+    #[test]
+    fn test_10004_inputoutofrange() {
         assert_eq!(process(0x7fffffff, 0x7fffffff), "1");
         assert_eq!(process(-0x7fffffff, -0x7fffffff), "1");
         assert_eq!(process(0x80000000, 1), "BOOM-INPUT");
