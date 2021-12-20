@@ -26,7 +26,7 @@ MAX_NUMBER_OF_ROWS_IN_CSV_FILES = 100
 NUMBER_OF_PROGRESS_PRINTS = 50
 
 unless File.exist?(INPUT_DIR)
-    raise "No such dir #{LODA_PROGRAMS_OEIS}, cannot run script"
+    raise "No such dir #{INPUT_DIR}, cannot run script"
 end
 
 unless File.exist?(INPUT_FILE_BIGRAM)
