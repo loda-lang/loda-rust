@@ -479,7 +479,7 @@ class PageController {
   
         const div = document.getElementById("output-inner2");
         const text = div.innerText;
-        console.log("text", text);
+        // console.log("text", text);
         const textItems = text.split(",");
         for (var i = 0; i < textItems.length; i += 1) {
             const textItem = textItems[i];

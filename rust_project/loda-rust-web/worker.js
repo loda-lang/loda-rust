@@ -40,7 +40,7 @@ class MyWorker {
     }
 
     async executeIndex(index) {
-        console.log(`executeIndex before step ${index}`);
+        // console.log(`executeIndex before step ${index}`);
 
         // await sleep(100);
 
@@ -56,7 +56,7 @@ class MyWorker {
             console.log("Exception inside execute_current_program: ", err);
         }    
         
-        console.log("executeNext after");
+        // console.log("executeNext after");
     }
 
     async commandCompile(parameters) {
@@ -67,11 +67,14 @@ class MyWorker {
     }
 }
 
+const {WebDependencyManager} = wasm_bindgen;
+
+
+
+/*
 // console.log("init_worker 1");
 
 wasm_bindgen("./pkg/loda_rust_web_bg.wasm").then((wasmModule) => {
-
-    const {WebDependencyManager} = wasm_bindgen;
 
     // console.log("init_worker 2");
 
@@ -115,6 +118,8 @@ wasm_bindgen("./pkg/loda_rust_web_bg.wasm").then((wasmModule) => {
 
 });
 
+*/
+
 
 async function init_worker(owner) {
     // console.log("init_worker 1");
@@ -135,13 +140,15 @@ async function init_worker(owner) {
 
     // dm.increment();
     // await dm.clone().run_source_code("mov $1,2\npow $1,$0");
-    // await dm.clone().run_source_code("seq $0,40\nmul $0,-1");
+    await dm.clone().run_source_code("seq $0,40\nmul $0,-1");
 
     // const index = 2;
     // const value = await dm.clone().execute_current_program(index);
     // console.log("computed value: ", value);
 
     // dm.clone().print_stats();
+
+    // throw new Error("Demo of an exception");
 
     const myWorker = new MyWorker(owner, dm);
   
@@ -162,9 +169,25 @@ async function init_worker(owner) {
         }
     }, false);
 
+    // let things know that we are ready to accept commands:
+    postMessage({
+        fn: "init",
+        value: true
+    });
+    
     owner.postMessage({
         fn: 'ready'
     });
 }
 
-// init_worker(this);
+init_worker(this)
+    .catch(e => {
+        console.log('There has been a problem: ' + e.message);
+
+        // let things know that we failed to initialise the WASM:
+        postMessage({
+            fn: "init",
+            value: false,
+            reason: "failed to fetch and instantiate the WASM"
+        });
+    });
