@@ -2,7 +2,7 @@ importScripts('./pkg/loda_rust_web.js');
 
 delete WebAssembly.instantiateStreaming;
 
-const {WebDependencyManager} = wasm_bindgen;
+// const {WebDependencyManager} = wasm_bindgen;
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -67,6 +67,54 @@ class MyWorker {
     }
 }
 
+// console.log("init_worker 1");
+
+wasm_bindgen("./pkg/loda_rust_web_bg.wasm").then((wasmModule) => {
+
+    const {WebDependencyManager} = wasm_bindgen;
+
+    // console.log("init_worker 2");
+
+    wasmModule.setup_lib();
+
+    // console.log("init_worker 3");
+
+    wasmModule.perform_selfcheck();
+
+    // console.log("init_worker 4");
+
+    const dm = new WebDependencyManager();
+
+    dm.increment();
+    // await dm.clone().run_source_code("mov $1,2\npow $1,$0");
+    // await dm.clone().run_source_code("seq $0,40\nmul $0,-1");
+
+    // const index = 2;
+    // const value = await dm.clone().execute_current_program(index);
+    // console.log("computed value: ", value);
+
+    // dm.clone().print_stats();
+
+    // TODO: How to do await here? Can it be converted into a promise?
+
+
+    // let things know that we are ready to accept commands:
+    postMessage({
+        fn: "init",
+        value: true
+    });
+
+}, _ => {
+
+    // let things know that we failed to initialise the WASM:
+    postMessage({
+        fn: "init",
+        value: false,
+        reason: "failed to fetch and instantiate the WASM"
+    });
+
+});
+
 
 async function init_worker(owner) {
     // console.log("init_worker 1");
@@ -119,4 +167,4 @@ async function init_worker(owner) {
     });
 }
 
-init_worker(this);
+// init_worker(this);

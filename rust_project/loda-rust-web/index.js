@@ -62,6 +62,9 @@ class PageController {
         case "ready":
             this.commandReady(e.data);
             break;
+        case "init":
+            this.commandInit(e.data);
+            break;
         default:
             console.error(`workerOnMessage.unknown: ${e.data}`);
             this.outputArea_appendError("unknown message, see log");
@@ -69,6 +72,10 @@ class PageController {
         }
     }
   
+    commandInit(parameters) {
+        console.log("worker init", parameters);
+    }
+
     compileEditorCode() {
         console.log("compile editor code");
         let sourceCode = this.mEditor.getValue();
