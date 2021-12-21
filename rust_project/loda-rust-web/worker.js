@@ -1,5 +1,7 @@
 importScripts('./pkg/loda_rust_web.js');
 
+delete WebAssembly.instantiateStreaming;
+
 const {WebDependencyManager} = wasm_bindgen;
 
 function sleep(ms) {
