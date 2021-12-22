@@ -312,7 +312,7 @@ impl WebDependencyManagerInner {
         Ok(JsValue::from_str("success"))
     }
 
-    async fn execute_current_program(&mut self, js_index: i32) -> Result<JsValue, JsValue> {
+    fn execute_current_program(&mut self, js_index: i32) -> Result<JsValue, JsValue> {
         // debug!("WebDependencyManagerInner.execute_current_program() js_index: {:?}", js_index);
 
         // let output_div: web_sys::Element = match get_element_by_id("output-inner") {
@@ -420,9 +420,9 @@ impl WebDependencyManager {
             .run_source_code(root_source_code).await
     }
 
-    pub async fn execute_current_program(self, js_index: i32) -> Result<JsValue, JsValue> {
+    pub fn execute_current_program(self, js_index: i32) -> Result<JsValue, JsValue> {
         self.inner.borrow_mut()
-            .execute_current_program(js_index).await
+            .execute_current_program(js_index)
     }
 
     pub fn print_stats(self) {

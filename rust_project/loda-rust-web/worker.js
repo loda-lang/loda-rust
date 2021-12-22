@@ -23,12 +23,13 @@ class MyWorker {
         this.mRangeLength = parameters.rangeLength;
     }
 
-    async commandExecuteRange(parameters) {
+    commandExecuteRange(parameters) {
         console.log("commandExecuteRange before");
+        // TODO: setTimeout, to execute the loop after
         const index0 = this.mRangeStart;
         const index1 = this.mRangeStart + this.mRangeLength;
         for (var i = index0; i < index1; i++) {
-            mResults[i] = await this.executeIndex(i);
+            mResults[i] = this.executeIndex(i);
         }
         console.log("commandExecuteRange after");
     }
@@ -40,13 +41,13 @@ class MyWorker {
         return result;
     }
 
-    async executeIndex(index) {
+    executeIndex(index) {
         // console.log(`executeIndex before step ${index}`);
 
         // await sleep(100);
 
         try {
-            const valueString = await this.mDependencyManager.clone().execute_current_program(index);
+            const valueString = this.mDependencyManager.clone().execute_current_program(index);
             // console.log("computed value: ", valueString);
             return valueString;
         }
@@ -106,7 +107,7 @@ async function init_worker() {
             myWorker.commandSetRange(e);
             break;
         case "executerange":
-            await myWorker.commandExecuteRange(e);
+            myWorker.commandExecuteRange(e);
             // I imagine "await" will block the communication channel.
             // TODO: start a loop, so it doesn't block the communication
             break;
