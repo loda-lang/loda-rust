@@ -8,7 +8,11 @@ function urlFromProgramId(programId) {
     let url = `${baseurl}/${dir_index_string}/${filename_string}`;
     return url;
 }
-  
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 class PageController {
     constructor(dict) {
         console.log("PageController.ctor");
@@ -165,6 +169,55 @@ class PageController {
         await this.mPromiseWorker.postMessage({
             fn: "executerange", 
         });
+        // var self = this;
+        // setTimeout(function() { self.pullWorkerResults(); }, 100);
+        await this.pullWorkerResults();
+    }
+
+    async pullWorkerResults() {
+        console.log("!!!!!! pull 1");
+        await sleep(10);
+        console.log("!!!!!! pull 2");
+        this.outputArea_clear();
+        // this.outputArea_appendTerm("result comes here");
+        // TODO: within a synchronous function, how to make a call to an async function?
+        const resultDictionary = await this.mPromiseWorker.postMessage({
+            fn: "takeresult", 
+        });
+        console.log("resultDictionary", resultDictionary);
+
+        var indexes = [];
+        var dict = {};
+        for (const key in resultDictionary) {
+            // console.log("key", key);
+            var index = parseInt(key);
+            if (isNaN(index)) { 
+                console.log("skipping key", key);
+                continue;
+            }
+            // console.log("index", index);
+            dict[index] = resultDictionary[key];
+            indexes.push(index);
+        }
+
+        // Sort numbers
+        indexes.sort(function(a, b) {
+            return a - b;
+        });
+        console.log("indexes: ", indexes);
+
+        for (const index in indexes) {
+            const term = dict[index];
+            console.log("a(", index, ") = ", term);
+            this.outputArea_appendTerm(term);
+        }
+        //     console.log("key", key);
+
+        //     if (Object.hasOwnProperty.call(keys, key)) {
+        //         const element = keys[key];
+        //         console.log("key2", element);
+        //     }
+        // }
     }
   
     configureEditor() {
