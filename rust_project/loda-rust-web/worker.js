@@ -9,12 +9,27 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+class OperationComputeTerm {
+    constructor(index) {
+        this.mIndex = index;
+    }
+
+    index() {
+        return this.mIndex;
+    }
+
+    accept(visitor) {
+        visitor.visit_compute_term(this);
+    }
+}
+
 class MyWorker {
     constructor(dependencyManager) {
         this.mDependencyManager = dependencyManager;
         this.mRangeStart = 0;
         this.mRangeLength = 10;
         this.mResults = {};
+        this.mPendingOperations = [];
     }
 
     commandSetRange(parameters) {
@@ -29,7 +44,8 @@ class MyWorker {
         const index0 = this.mRangeStart;
         const index1 = this.mRangeStart + this.mRangeLength;
         for (var i = index0; i < index1; i++) {
-            this.mResults[i] = this.executeIndex(i);
+            this.mPendingOperations.push(new OperationComputeTerm(i));
+            // this.mResults[i] = this.executeIndex(i);
         }
         var self = this;
         setTimeout(function() { self.commandExecuteRangePost(); }, 0);
@@ -39,6 +55,29 @@ class MyWorker {
     commandExecuteRangePost() {
         console.log("commandExecuteRangePost - start executing pending operations");
         // TODO: Execute pending items from queue
+
+        this.pickFirstPendingOperation();
+    }
+
+    pickFirstPendingOperation() {
+        // console.log("pickFirstPendingOperation");
+        const operation = this.mPendingOperations.shift();
+        if (typeof (operation) === 'undefined') {
+            console.log("pickFirstPendingOperation - no more pending operations - stopping");
+            return;
+        }
+        console.log("pickFirstPendingOperation - will execute", operation);
+
+        operation.accept(this);
+
+        var self = this;
+        setTimeout(function() { self.pickFirstPendingOperation(); }, 0);
+    }
+
+    visit_compute_term(operation_compute_term) {
+        // console.log("yay");
+        const index = operation_compute_term.index();
+        this.mResults[index] = this.executeIndex(index);
     }
 
     commandTakeResult(parameters) {
@@ -47,7 +86,8 @@ class MyWorker {
         this.mResults = {};
         // TODO: If still executing, then set true, so the UI knows there is more data to come.
         // TODO: If execute has stopped, then set to false, so the UI stops refreshing.
-        result["executing"] = true;
+        // result["executing"] = true;
+        result["numberOfPendingOperations"] = this.mPendingOperations.length;
         return result;
     }
 
@@ -58,7 +98,7 @@ class MyWorker {
 
         try {
             const valueString = this.mDependencyManager.clone().execute_current_program(index);
-            // console.log("computed value: ", valueString);
+            console.log("computed value", valueString, "for index", index);
             return valueString;
         }
         catch(err) {
