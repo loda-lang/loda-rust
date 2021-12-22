@@ -33,6 +33,13 @@ class MyWorker {
         console.log("commandExecuteRange after");
     }
 
+    commandTakeResult(parameters) {
+        console.log("commandTakeResult");
+        const result = this.mResults;
+        this.mResults = {};
+        return result;
+    }
+
     async executeIndex(index) {
         // console.log(`executeIndex before step ${index}`);
 
@@ -100,10 +107,14 @@ async function init_worker() {
             break;
         case "executerange":
             await myWorker.commandExecuteRange(e);
+            // I imagine "await" will block the communication channel.
+            // TODO: start a loop, so it doesn't block the communication
             break;
         case "compile":
             await myWorker.commandCompile(e);
             break;
+        case "takeresult":
+            return myWorker.commandTakeResult(e);
         default:
             throw Error(`worker.message: unknown: ${e}`);
         }
