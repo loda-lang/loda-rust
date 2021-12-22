@@ -28,7 +28,7 @@ class MyWorker {
         this.mDependencyManager = dependencyManager;
         this.mRangeStart = 0;
         this.mRangeLength = 10;
-        this.mResults = {};
+        this.mResults = [];
         this.mPendingOperations = [];
     }
 
@@ -53,7 +53,7 @@ class MyWorker {
     }
 
     commandExecuteRangePost() {
-        console.log("commandExecuteRangePost - start executing pending operations");
+        // console.log("commandExecuteRangePost - start executing pending operations");
         // TODO: Execute pending items from queue
 
         this.pickFirstPendingOperation();
@@ -63,10 +63,10 @@ class MyWorker {
         // console.log("pickFirstPendingOperation");
         const operation = this.mPendingOperations.shift();
         if (typeof (operation) === 'undefined') {
-            console.log("pickFirstPendingOperation - no more pending operations - stopping");
+            // console.log("pickFirstPendingOperation - no more pending operations - stopping");
             return;
         }
-        console.log("pickFirstPendingOperation - will execute", operation);
+        // console.log("pickFirstPendingOperation - will execute", operation);
 
         operation.accept(this);
 
@@ -77,18 +77,25 @@ class MyWorker {
     visit_compute_term(operation_compute_term) {
         // console.log("yay");
         const index = operation_compute_term.index();
-        this.mResults[index] = this.executeIndex(index);
+        const valueString = this.executeIndex(index);
+        var dict = {};
+        dict["index"] = index;
+        dict["value"] = valueString;
+        this.mResults.push(dict);
     }
 
     commandTakeResult(parameters) {
         console.log("commandTakeResult");
-        var result = this.mResults;
-        this.mResults = {};
+        // const termsArray = JSON.parse(JSON.stringify(this.mResults));
+        const termsArray = this.mResults;
+        this.mResults = [];
         // TODO: If still executing, then set true, so the UI knows there is more data to come.
         // TODO: If execute has stopped, then set to false, so the UI stops refreshing.
         // result["executing"] = true;
-        result["numberOfPendingOperations"] = this.mPendingOperations.length;
-        return result;
+        var dict = {};
+        dict["terms"] = termsArray;
+        dict["numberOfPendingOperations"] = this.mPendingOperations.length;
+        return dict;
     }
 
     executeIndex(index) {
@@ -121,7 +128,7 @@ const {WebDependencyManager} = wasm_bindgen;
 
 
 async function init_worker() {
-    // console.log("init_worker 1");
+    console.log("init_worker 1");
 
     const wasmModule = await wasm_bindgen('./pkg/loda_rust_web_bg.wasm');
 

@@ -175,49 +175,26 @@ class PageController {
     }
 
     async pullWorkerResults() {
-        console.log("!!!!!! pull 1");
+        console.log("pull - before sleep");
         await sleep(10);
-        console.log("!!!!!! pull 2");
+        console.log("pull - after sleep");
         this.outputArea_clear();
         // this.outputArea_appendTerm("result comes here");
-        // TODO: within a synchronous function, how to make a call to an async function?
+
         const resultDictionary = await this.mPromiseWorker.postMessage({
             fn: "takeresult", 
         });
-        console.log("resultDictionary", resultDictionary);
+        // console.log("resultDictionary", resultDictionary);
+        const termsArray = resultDictionary.terms;
 
-        var indexes = [];
-        var dict = {};
-        for (const key in resultDictionary) {
-            // console.log("key", key);
-            var index = parseInt(key);
-            if (isNaN(index)) { 
-                console.log("skipping key", key);
-                continue;
-            }
-            // console.log("index", index);
-            dict[index] = resultDictionary[key];
-            indexes.push(index);
+        var arrayLength = termsArray.length;
+        for (var i = 0; i < arrayLength; i++) {
+            const item = termsArray[i];
+            this.outputArea_appendTerm(item.value);
         }
 
-        // Sort numbers
-        indexes.sort(function(a, b) {
-            return a - b;
-        });
-        console.log("indexes: ", indexes);
-
-        for (const index in indexes) {
-            const term = dict[index];
-            console.log("a(", index, ") = ", term);
-            this.outputArea_appendTerm(term);
-        }
-        //     console.log("key", key);
-
-        //     if (Object.hasOwnProperty.call(keys, key)) {
-        //         const element = keys[key];
-        //         console.log("key2", element);
-        //     }
-        // }
+        // TODO: check if the worker is still computing. Stop if all terms have been computed.
+        // await this.pullWorkerResults();
     }
   
     configureEditor() {
