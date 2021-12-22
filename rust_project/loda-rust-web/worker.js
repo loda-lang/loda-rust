@@ -25,13 +25,20 @@ class MyWorker {
 
     commandExecuteRange(parameters) {
         console.log("commandExecuteRange before");
-        // TODO: setTimeout, to execute the loop after
+        // TODO: enqueue an operation for this range
         const index0 = this.mRangeStart;
         const index1 = this.mRangeStart + this.mRangeLength;
         for (var i = index0; i < index1; i++) {
-            mResults[i] = this.executeIndex(i);
+            this.mResults[i] = this.executeIndex(i);
         }
+        var self = this;
+        setTimeout(function() { self.commandExecuteRangePost(); }, 0);
         console.log("commandExecuteRange after");
+    }
+
+    commandExecuteRangePost() {
+        console.log("commandExecuteRangePost - start executing pending operations");
+        // TODO: Execute pending items from queue
     }
 
     commandTakeResult(parameters) {

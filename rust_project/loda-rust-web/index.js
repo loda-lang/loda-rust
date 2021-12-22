@@ -92,7 +92,7 @@ class PageController {
         console.log("compile and execute");
         await this.compileEditorCode();
         this.outputArea_clear();
-        this.executeRange();
+        await this.executeRange();
     }
   
     commandResult(parameters) {
@@ -161,10 +161,10 @@ class PageController {
         // });
     }
   
-    executeRange() {
-        // this.mPromiseWorker.postMessage({
-        //     fn: "executerange", 
-        // });
+    async executeRange() {
+        await this.mPromiseWorker.postMessage({
+            fn: "executerange", 
+        });
     }
   
     configureEditor() {
@@ -243,7 +243,7 @@ class PageController {
         el.addEventListener('change', function(e) {
             self.setRange();
             self.outputArea_clear();
-            self.executeRange();
+            // self.executeRange();
             // self.runAction();
         }, false);
     }
@@ -325,7 +325,7 @@ class PageController {
         console.log("compile and execute");
         await this.compileEditorCode();
         this.outputArea_clear();
-        this.executeRange();
+        await this.executeRange();
     }
   
     // async didLoadProgram() {
