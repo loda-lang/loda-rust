@@ -166,6 +166,10 @@ class PageController {
     }
   
     async executeRange() {
+        // TODO: hitting Ctrl+Enter several times in rapid succession, and then
+        // the output gets messed up. 
+        // Stop the current execution, or terminate the worker.
+        
         await this.mPromiseWorker.postMessage({
             fn: "executerange", 
         });
