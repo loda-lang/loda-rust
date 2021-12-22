@@ -43,8 +43,11 @@ class MyWorker {
 
     commandTakeResult(parameters) {
         console.log("commandTakeResult");
-        const result = this.mResults;
+        var result = this.mResults;
         this.mResults = {};
+        // TODO: If still executing, then set true, so the UI knows there is more data to come.
+        // TODO: If execute has stopped, then set to false, so the UI stops refreshing.
+        result["executing"] = true;
         return result;
     }
 
