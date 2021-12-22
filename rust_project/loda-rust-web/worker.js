@@ -1,3 +1,4 @@
+importScripts('https://unpkg.com/promise-worker/dist/promise-worker.register.js');
 importScripts('./pkg/loda_rust_web.js');
 
 delete WebAssembly.instantiateStreaming;
@@ -9,22 +10,15 @@ function sleep(ms) {
 }
 
 class MyWorker {
-    constructor(workerOwner, dependencyManager) {
-        this.mWorkerOwner = workerOwner;
+    constructor(dependencyManager) {
         this.mDependencyManager = dependencyManager;
         this.mRangeStart = 0;
         this.mRangeLength = 10;
+        this.mResults = {};
     }
 
-    debug(message) {
-        this.mWorkerOwner.postMessage({
-            fn: 'debug',
-            message: message
-        });
-    }
-
-    async commandSetRange(parameters) {
-        this.debug("commandSetRange");
+    commandSetRange(parameters) {
+        console.log("commandSetRange");
         this.mRangeStart = parameters.rangeStart;
         this.mRangeLength = parameters.rangeLength;
     }
@@ -34,7 +28,7 @@ class MyWorker {
         const index0 = this.mRangeStart;
         const index1 = this.mRangeStart + this.mRangeLength;
         for (var i = index0; i < index1; i++) {
-            await this.executeIndex(i);
+            mResults[i] = await this.executeIndex(i);
         }
         console.log("commandExecuteRange after");
     }
@@ -47,13 +41,11 @@ class MyWorker {
         try {
             const valueString = await this.mDependencyManager.clone().execute_current_program(index);
             // console.log("computed value: ", valueString);
-            this.mWorkerOwner.postMessage({
-                fn: 'result', 
-                valueString: valueString
-            });
+            return valueString;
         }
         catch(err) {
             console.log("Exception inside execute_current_program: ", err);
+            return "ERROR";
         }    
         
         // console.log("executeNext after");
@@ -70,58 +62,7 @@ class MyWorker {
 const {WebDependencyManager} = wasm_bindgen;
 
 
-
-/*
-// console.log("init_worker 1");
-
-wasm_bindgen("./pkg/loda_rust_web_bg.wasm").then((wasmModule) => {
-
-    // console.log("init_worker 2");
-
-    wasmModule.setup_lib();
-
-    // console.log("init_worker 3");
-
-    wasmModule.perform_selfcheck();
-
-    // console.log("init_worker 4");
-
-    const dm = new WebDependencyManager();
-
-    dm.increment();
-    // await dm.clone().run_source_code("mov $1,2\npow $1,$0");
-    // await dm.clone().run_source_code("seq $0,40\nmul $0,-1");
-
-    // const index = 2;
-    // const value = await dm.clone().execute_current_program(index);
-    // console.log("computed value: ", value);
-
-    // dm.clone().print_stats();
-
-    // TODO: How to do await here? Can it be converted into a promise?
-
-
-    // let things know that we are ready to accept commands:
-    postMessage({
-        fn: "init",
-        value: true
-    });
-
-}, _ => {
-
-    // let things know that we failed to initialise the WASM:
-    postMessage({
-        fn: "init",
-        value: false,
-        reason: "failed to fetch and instantiate the WASM"
-    });
-
-});
-
-*/
-
-
-async function init_worker(owner) {
+async function init_worker() {
     // console.log("init_worker 1");
 
     const wasmModule = await wasm_bindgen('./pkg/loda_rust_web_bg.wasm');
@@ -140,7 +81,7 @@ async function init_worker(owner) {
 
     // dm.increment();
     // await dm.clone().run_source_code("mov $1,2\npow $1,$0");
-    await dm.clone().run_source_code("seq $0,40\nmul $0,-1");
+    // await dm.clone().run_source_code("seq $0,40\nmul $0,-1");
 
     // const index = 2;
     // const value = await dm.clone().execute_current_program(index);
@@ -150,24 +91,23 @@ async function init_worker(owner) {
 
     // throw new Error("Demo of an exception");
 
-    const myWorker = new MyWorker(owner, dm);
-  
-    owner.addEventListener('message', async (e) => {
-        switch (e.data.fn) {
+    const myWorker = new MyWorker(dm);
+
+    registerPromiseWorker(async function (e) {
+        switch (e.fn) {
         case "setrange":
-            myWorker.commandSetRange(e.data);
+            myWorker.commandSetRange(e);
             break;
         case "executerange":
-            await myWorker.commandExecuteRange(e.data);
+            await myWorker.commandExecuteRange(e);
             break;
         case "compile":
-            await myWorker.commandCompile(e.data);
+            await myWorker.commandCompile(e);
             break;
         default:
-            console.error(`worker.message: unknown: ${e.data.fn} ${e.data}`);
-            break;
+            throw Error(`worker.message: unknown: ${e}`);
         }
-    }, false);
+    });
 
     // let things know that we are ready to accept commands:
     postMessage({
@@ -175,12 +115,12 @@ async function init_worker(owner) {
         value: true
     });
     
-    owner.postMessage({
+    postMessage({
         fn: 'ready'
     });
 }
 
-init_worker(this)
+init_worker()
     .catch(e => {
         console.log('There has been a problem: ' + e.message);
 

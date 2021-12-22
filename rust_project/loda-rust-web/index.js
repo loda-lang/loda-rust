@@ -30,18 +30,19 @@ class PageController {
         this.configureOutputCount();
         this.prepareProgram();
         // this.rebuildChart();
-        this.mWorker = this.configureWorker();
+        this.mPromiseWorker = this.configureWorker();
     }
   
     configureWorker() {
         const worker = new Worker('worker.js');
-        worker.addEventListener('message', (e) => {
-            this.workerOnMessage(e);
-        }, false);
-        worker.addEventListener('error', (e) => {
-            this.workerOnError(e);
-        }, false);
-        return worker;
+        const promiseWorker = new PromiseWorker(worker);
+        // worker.addEventListener('message', (e) => {
+        //     this.workerOnMessage(e);
+        // }, false);
+        // worker.addEventListener('error', (e) => {
+        //     this.workerOnError(e);
+        // }, false);
+        return promiseWorker;
     }
   
     workerOnError(e) {
@@ -76,18 +77,20 @@ class PageController {
         console.log("worker init", parameters);
     }
 
-    compileEditorCode() {
-        console.log("compile editor code");
+    async compileEditorCode() {
+        console.log("compile editor code BEFORE");
         let sourceCode = this.mEditor.getValue();
-        this.mWorker.postMessage({
+        await this.mPromiseWorker.postMessage({
             fn: "compile", 
             sourceCode: sourceCode
         });
+        // TODO: await that compile has finished and a "compile" is received from the worker
+        console.log("compile editor code AFTER");
     }
   
-    workerCompileAndExecute() {
+    async workerCompileAndExecute() {
         console.log("compile and execute");
-        this.compileEditorCode();
+        await this.compileEditorCode();
         this.outputArea_clear();
         this.executeRange();
     }
@@ -151,17 +154,17 @@ class PageController {
   
     setRange() {
         let rangeLength = this.getNumberOfTerms();
-        this.mWorker.postMessage({
-            fn: "setrange", 
-            rangeStart: 0,
-            rangeLength: rangeLength
-        });
+        // await this.mPromiseWorker.postMessage({
+        //     fn: "setrange", 
+        //     rangeStart: 0,
+        //     rangeLength: rangeLength
+        // });
     }
   
     executeRange() {
-        this.mWorker.postMessage({
-            fn: "executerange", 
-        });
+        // this.mPromiseWorker.postMessage({
+        //     fn: "executerange", 
+        // });
     }
   
     configureEditor() {
@@ -318,23 +321,24 @@ class PageController {
             });
     }
   
-    workerCompileAndExecute() {
+    async workerCompileAndExecute() {
         console.log("compile and execute");
-        this.compileEditorCode();
+        await this.compileEditorCode();
         this.outputArea_clear();
         this.executeRange();
     }
   
+    // async didLoadProgram() {
     didLoadProgram() {
         console.log("didLoadProgram");
         if (!this.mWorkerIsReady) {
             console.log("worker is not yet ready");
             return;
         }
-        this.setRange();
-        this.compileEditorCode();
+        // this.setRange();
+        // await this.compileEditorCode();
         this.outputArea_clear();
-        this.executeRange();
+        // this.executeRange();
         // var output = document.getElementById("output-inner");
         // output.innerText = 'Computing';
         // this.runAction();
@@ -381,7 +385,14 @@ class PageController {
                 console.log("ctrl+enter: submit form");
                 event.preventDefault(); // Suppress "double action"
                 // pageControllerInstance.runAction();
-                pageControllerInstance.workerCompileAndExecute();
+                // pageControllerInstance.workerCompileAndExecute();
+                // await pageControllerInstance.workerCompileAndExecute();
+                // TODO: block the UI, until it has completed compiling and then unblock
+                pageControllerInstance.workerCompileAndExecute().then((success) => {
+                    console.log("Successfully compiled program");
+                }, (reason) => {
+                    console.error("Unable to compile", reason);
+                });
                 return;
             }
             // intercept ESCape key, and stop a running program.
