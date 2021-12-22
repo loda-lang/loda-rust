@@ -169,23 +169,17 @@ class PageController {
         await this.mPromiseWorker.postMessage({
             fn: "executerange", 
         });
-        // var self = this;
-        // setTimeout(function() { self.pullWorkerResults(); }, 100);
+        this.outputArea_clear();
         await this.pullWorkerResults();
     }
 
     async pullWorkerResults() {
-        console.log("pull - before sleep");
-        await sleep(10);
-        console.log("pull - after sleep");
-        this.outputArea_clear();
-        // this.outputArea_appendTerm("result comes here");
-
-        const resultDictionary = await this.mPromiseWorker.postMessage({
+        const responseDictionary = await this.mPromiseWorker.postMessage({
             fn: "takeresult", 
         });
-        // console.log("resultDictionary", resultDictionary);
-        const termsArray = resultDictionary.terms;
+        // console.log("responseDictionary", responseDictionary);
+        const termsArray = responseDictionary.terms;
+        const isExecuting = responseDictionary.isExecuting;
 
         var arrayLength = termsArray.length;
         for (var i = 0; i < arrayLength; i++) {
@@ -193,8 +187,21 @@ class PageController {
             this.outputArea_appendTerm(item.value);
         }
 
-        // TODO: check if the worker is still computing. Stop if all terms have been computed.
-        // await this.pullWorkerResults();
+        this.rebuildChart();
+
+        // Check if the worker is still computing. Stop if all terms have been computed.
+        if (!isExecuting) {
+            // Stop fetching, when all the data have been fetched.
+            return;
+        }
+
+        // console.log("pull - before sleep");
+        await sleep(30);
+        // console.log("pull - after sleep");
+        // this.outputArea_appendTerm("zzz");
+
+        // Fetch more results
+        await this.pullWorkerResults();
     }
   
     configureEditor() {

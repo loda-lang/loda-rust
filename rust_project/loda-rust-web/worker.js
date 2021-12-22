@@ -27,9 +27,10 @@ class MyWorker {
     constructor(dependencyManager) {
         this.mDependencyManager = dependencyManager;
         this.mRangeStart = 0;
-        this.mRangeLength = 10;
+        this.mRangeLength = 100;
         this.mResults = [];
         this.mPendingOperations = [];
+        this.mIsExecutingPendingOperations = false;
     }
 
     commandSetRange(parameters) {
@@ -64,10 +65,12 @@ class MyWorker {
         const operation = this.mPendingOperations.shift();
         if (typeof (operation) === 'undefined') {
             // console.log("pickFirstPendingOperation - no more pending operations - stopping");
+            this.mIsExecutingPendingOperations = false;
             return;
         }
         // console.log("pickFirstPendingOperation - will execute", operation);
 
+        this.mIsExecutingPendingOperations = true;
         operation.accept(this);
 
         var self = this;
@@ -75,7 +78,6 @@ class MyWorker {
     }
 
     visit_compute_term(operation_compute_term) {
-        // console.log("yay");
         const index = operation_compute_term.index();
         const valueString = this.executeIndex(index);
         var dict = {};
@@ -85,17 +87,17 @@ class MyWorker {
     }
 
     commandTakeResult(parameters) {
-        console.log("commandTakeResult");
-        // const termsArray = JSON.parse(JSON.stringify(this.mResults));
+        // console.log("commandTakeResult");
         const termsArray = this.mResults;
         this.mResults = [];
-        // TODO: If still executing, then set true, so the UI knows there is more data to come.
-        // TODO: If execute has stopped, then set to false, so the UI stops refreshing.
-        // result["executing"] = true;
-        var dict = {};
-        dict["terms"] = termsArray;
-        dict["numberOfPendingOperations"] = this.mPendingOperations.length;
-        return dict;
+
+        var responseDictionary = {};
+        responseDictionary["terms"] = termsArray;
+
+        // If still executing, then set true, so the UI knows there is more data to come.
+        // If execute has stopped, then set to false, so the UI stops refreshing.
+        responseDictionary["isExecuting"] = this.mIsExecutingPendingOperations;
+        return responseDictionary;
     }
 
     executeIndex(index) {
@@ -105,7 +107,7 @@ class MyWorker {
 
         try {
             const valueString = this.mDependencyManager.clone().execute_current_program(index);
-            console.log("computed value", valueString, "for index", index);
+            // console.log("computed value", valueString, "for index", index);
             return valueString;
         }
         catch(err) {
