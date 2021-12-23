@@ -84,7 +84,6 @@ class MyWorker {
         }
         // console.log("pickFirstPendingOperation - will execute", operation);
 
-        // this.mIsExecutingPendingOperations = true;
         operation.accept(this);
 
         var self = this;
@@ -93,11 +92,28 @@ class MyWorker {
 
     visit_compute_term(operation_compute_term) {
         const index = operation_compute_term.index();
-        const valueString = this.executeIndex(index);
         var dict = {};
         dict["index"] = index;
-        dict["value"] = valueString;
-        this.mResults.push(dict);
+
+        try {
+            const valueString = this.mDependencyManager.clone().execute_current_program(index);
+            // console.log("computed value", valueString, "for index", index);
+            dict["value"] = valueString;
+            this.mResults.push(dict);
+        }
+        catch(err) {
+            console.log("Exception inside execute_current_program: ", err);
+            dict["error"] = `ERROR: ${err}`;
+            this.mResults.push(dict);
+
+            // Stop execution of following terms
+
+            // Indicate that no execution is going on
+            this.mIsExecutingPendingOperations = false;
+
+            // Remove pending operations
+            this.mPendingOperations = [];
+        }    
     }
 
     commandTakeResult(parameters) {
@@ -112,24 +128,6 @@ class MyWorker {
         // If execute has stopped, then set to false, so the UI stops refreshing.
         responseDictionary["isExecuting"] = this.mIsExecutingPendingOperations;
         return responseDictionary;
-    }
-
-    executeIndex(index) {
-        // console.log(`executeIndex before step ${index}`);
-
-        // await sleep(100);
-
-        try {
-            const valueString = this.mDependencyManager.clone().execute_current_program(index);
-            // console.log("computed value", valueString, "for index", index);
-            return valueString;
-        }
-        catch(err) {
-            console.log("Exception inside execute_current_program: ", err);
-            return "ERROR";
-        }    
-        
-        // console.log("executeNext after");
     }
 
     async commandCompile(parameters) {
@@ -152,7 +150,7 @@ class MyWorker {
         // Discard old results
         this.mResults = [];
 
-        // Indicate that a new execute is going on
+        // Indicate that no execution is going on
         this.mIsExecutingPendingOperations = false;
 
         // Remove pending operations

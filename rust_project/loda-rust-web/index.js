@@ -190,7 +190,18 @@ class PageController {
         var arrayLength = termsArray.length;
         for (var i = 0; i < arrayLength; i++) {
             const item = termsArray[i];
-            this.outputArea_appendTerm(item.value);
+            if (item.value != null) {
+                this.outputArea_appendTerm(item.value);
+                continue;
+            }
+            if (item.error != null) {
+                console.error("Unable to compute term", item.error);
+                this.outputArea_appendError(item.error);
+                break;
+            }
+            console.error("Encountered an integrity error. Expected either 'value' or 'error', but got something else.");
+            this.outputArea_appendError("Integrity error");
+            break;
         }
 
         this.rebuildChart();
