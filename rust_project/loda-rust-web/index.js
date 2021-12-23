@@ -22,13 +22,12 @@ class PageController {
             console.error("PageController.runSourceCode() callback not installed");
         };
 
-        this.mWorkerIsReady = false;
         this.mTick = 0;
         this.mUpdateTick = false;
         this.mRunId = 0;
         this.mIdenticalToOriginal = true;
         this.mOriginalText = "";
-        this.mPromiseWorker = this.configureWorker();
+        this.setupWorker();
         this.mEditor = this.configureEditor();
         this.mOutputChart = this.configureChart();
         this.configureKeyboardShortcuts();
@@ -37,56 +36,53 @@ class PageController {
         // this.rebuildChart();
     }
   
-    configureWorker() {
+    setupWorker() {
+        this.mWorkerIsReady = false;
         const worker = new Worker('worker.js');
-        const promiseWorker = new PromiseWorker(worker);
-        worker.addEventListener('message', (e) => {
+        this.mPromiseWorker = new PromiseWorker(worker);
+        const eventListener = (e) => {
             this.workerOnMessage(e);
-        }, false);
-        // worker.addEventListener('error', (e) => {
-        //     this.workerOnError(e);
-        // }, false);
-        return promiseWorker;
+        };
+        worker.addEventListener('message', eventListener);
+        this.mWorker = worker;
+        this.mWorkerTemporaryEventListener = eventListener;
     }
   
-    workerOnError(e) {
-        const errorMessage = [
-            'ERROR: Line ', e.lineno, ' in ', e.filename, ': ', e.message
-        ].join('');
-        this.outputArea_appendError(errorMessage);
-    }
-    
     workerOnMessage(e) {
         // console.log("onMessage", e.data);
         switch (e.data.fn) {
-        // case "result":
-        //     this.commandResult(e.data);
-        //     break;
-        // case "debug":
-        //     this.commandDebug(e.data);
-        //     break;
-        // case "ready":
-        //     this.commandReady(e.data);
-        //     break;
         case "init":
             this.commandInit(e.data);
             break;
         default:
-            // console.error(`workerOnMessage.unknown: ${e.data}`);
-            // this.outputArea_appendError("unknown message, see log");
+            console.error(`workerOnMessage.unknown: ${e.data}`);
+            this.outputArea_appendError("workerOnMessage received unknown message");
             break;
         }
     }
   
     commandInit(parameters) {
         // console.log("worker init", parameters);
+
+        // Remove the temporary event listener.
+        this.mWorker.removeEventListener("message", this.mWorkerTemporaryEventListener);
+        this.mWorkerTemporaryEventListener = null;
+        this.mWorker = null;
+
+        // Show an error if the worker failed to load.
         if(!parameters.value) {
             console.error("failed to initialize worker", parameters);
             this.outputArea_clear();
             this.outputArea_appendError(`Failed to initialize worker. reason: ${parameters.reason}`);
             return;
         }
-        console.log("worker initialized successful", parameters);
+
+        // Show that the worker has been loaded successfully.
+        // console.log("worker initialized successful", parameters);
+        this.outputArea_clear();
+        this.outputArea_appendTerm("Worker loaded OK.");
+
+        this.mWorkerIsReady = true;
     }
 
     async compileEditorCode() {
@@ -117,13 +113,13 @@ class PageController {
         console.log("worker debug", parameters);
     }
   
-    commandReady(parameters) {
-        console.log("worker is ready", parameters);
-        this.mWorkerIsReady = true;
+    // commandReady(parameters) {
+    //     console.log("worker is ready", parameters);
+    //     this.mWorkerIsReady = true;
         // this.setRange();
         // this.outputArea_clear();
         // this.executeRange();
-    }
+    // }
   
     outputArea_clear() {
         const div = document.getElementById("output-inner2");
@@ -395,7 +391,7 @@ class PageController {
         }
         // this.setRange();
         // await this.compileEditorCode();
-        this.outputArea_clear();
+        // this.outputArea_clear();
         // this.executeRange();
         // var output = document.getElementById("output-inner");
         // output.innerText = 'Computing';
