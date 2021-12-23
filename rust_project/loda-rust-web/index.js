@@ -167,13 +167,13 @@ class PageController {
         parentDiv.appendChild(b0);
     }
   
-    setRange() {
+    async setRange() {
         let rangeLength = this.getNumberOfTerms();
-        // await this.mPromiseWorker.postMessage({
-        //     fn: "setrange", 
-        //     rangeStart: 0,
-        //     rangeLength: rangeLength
-        // });
+        await this.mPromiseWorker.postMessage({
+            fn: "setrange", 
+            rangeStart: 0,
+            rangeLength: rangeLength
+        });
     }
   
     async executeRange() {
@@ -304,12 +304,19 @@ class PageController {
         const el = document.getElementById('output-count');
         var self = this;
         el.addEventListener('change', function(e) {
-            self.setRange();
-            self.outputArea_clear();
-            // self.executeRange();
-            // self.runAction();
+            self.outputCountAction();
         }, false);
     }
+
+    outputCountAction() {
+        console.log("change range");
+        this.outputArea_clear();
+        (async () => {
+            await this.setRange();
+            await this.workerCompileAndExecute();
+        })();
+    }
+
   
     prepareProgram() {
         let params = new URLSearchParams(window.location.search);
