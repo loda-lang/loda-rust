@@ -9,6 +9,10 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function randomInt(max) {
+    return Math.floor(Math.random() * max);
+}
+
 class OperationComputeTerm {
     constructor(index) {
         this.mIndex = index;
@@ -24,10 +28,11 @@ class OperationComputeTerm {
 }
 
 class MyWorker {
-    constructor(dependencyManager) {
+    constructor(dependencyManager, workerId) {
         this.mDependencyManager = dependencyManager;
+        this.mWorkerId = workerId;
         this.mRangeStart = 0;
-        this.mRangeLength = 100;
+        this.mRangeLength = 10;
         this.mResults = [];
         this.mPendingOperations = [];
         this.mIsExecutingPendingOperations = false;
@@ -40,17 +45,22 @@ class MyWorker {
     }
 
     commandExecuteRange(parameters) {
-        console.log("commandExecuteRange before");
-        // TODO: enqueue an operation for this range
+        console.log("worker", this.mWorkerId, "- commandExecuteRange before");
+        this.mIsExecutingPendingOperations = false;
+        this.mResults = [];
+        this.mPendingOperations = [];
+
+        // Enqueue operations for this range
         const index0 = this.mRangeStart;
         const index1 = this.mRangeStart + this.mRangeLength;
         for (var i = index0; i < index1; i++) {
             this.mPendingOperations.push(new OperationComputeTerm(i));
-            // this.mResults[i] = this.executeIndex(i);
         }
+
+        this.mIsExecutingPendingOperations = true;
         var self = this;
         setTimeout(function() { self.commandExecuteRangePost(); }, 0);
-        console.log("commandExecuteRange after");
+        console.log("worker", this.mWorkerId, "- commandExecuteRange after");
     }
 
     commandExecuteRangePost() {
@@ -62,6 +72,10 @@ class MyWorker {
 
     pickFirstPendingOperation() {
         // console.log("pickFirstPendingOperation");
+        if (!this.mIsExecutingPendingOperations) {
+            console.log("worker", this.mWorkerId, "- stop running");
+            return;
+        }
         const operation = this.mPendingOperations.shift();
         if (typeof (operation) === 'undefined') {
             // console.log("pickFirstPendingOperation - no more pending operations - stopping");
@@ -70,7 +84,7 @@ class MyWorker {
         }
         // console.log("pickFirstPendingOperation - will execute", operation);
 
-        this.mIsExecutingPendingOperations = true;
+        // this.mIsExecutingPendingOperations = true;
         operation.accept(this);
 
         var self = this;
@@ -118,11 +132,25 @@ class MyWorker {
         // console.log("executeNext after");
     }
 
+    stopExecuteAndDiscardResults() {
+        this.mResults = [];
+        this.mIsExecutingPendingOperations = false;
+    }
+
     async commandCompile(parameters) {
-        console.log("commandCompile before");
+        console.log("worker", this.mWorkerId, "- commandCompile before");
+        // discard old results
+        this.mResults = [];
+
+        // indicate that a new execute is going on
+        this.mIsExecutingPendingOperations = false;
+
+        // Remove pending operations
+        this.mPendingOperations = [];
+
         const sourceCode = parameters.sourceCode;
         await this.mDependencyManager.clone().run_source_code(sourceCode);
-        console.log("commandCompile after");
+        console.log("worker", this.mWorkerId, "- commandCompile after");
     }
 }
 
@@ -130,7 +158,8 @@ const {WebDependencyManager} = wasm_bindgen;
 
 
 async function init_worker() {
-    console.log("init_worker 1");
+    const workerId = randomInt(1000000);
+    console.log("init_worker 1", workerId);
 
     const wasmModule = await wasm_bindgen('./pkg/loda_rust_web_bg.wasm');
 
@@ -158,7 +187,7 @@ async function init_worker() {
 
     // throw new Error("Demo of an exception");
 
-    const myWorker = new MyWorker(dm);
+    const myWorker = new MyWorker(dm, workerId);
 
     registerPromiseWorker(async function (e) {
         switch (e.fn) {
