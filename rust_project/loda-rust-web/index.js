@@ -111,12 +111,12 @@ class PageController {
     }
     
     outputArea_clear() {
-        const div = document.getElementById("output-inner2");
+        const div = document.getElementById("output-inner");
         div.innerHTML = '';
     }
   
     outputArea_appendTerm(termValueString) {
-        const parentDiv = document.getElementById("output-inner2");    
+        const parentDiv = document.getElementById("output-inner");    
         if (parentDiv.hasChildNodes()) {
             const a0 = document.createElement("span");
             a0.className = "separator";
@@ -132,7 +132,7 @@ class PageController {
     }
   
     outputArea_appendError(message) {
-        const parentDiv = document.getElementById("output-inner2");    
+        const parentDiv = document.getElementById("output-inner");    
         if (parentDiv.hasChildNodes()) {
             const a0 = document.createElement("span");
             a0.className = "separator";
@@ -334,9 +334,6 @@ class PageController {
     
         let url = urlFromProgramId(programId);
     
-        var output = document.getElementById("output-inner");
-        output.innerText = 'Downloading';
-    
         // TODO: deal with status code when there is no 404 and show error message
         fetch(url)
             .then(response => response.text())
@@ -455,7 +452,7 @@ class PageController {
         //     dataAll.push(dict);
         // }
   
-        const div = document.getElementById("output-inner2");
+        const div = document.getElementById("output-inner");
         const text = div.innerText;
         // console.log("text", text);
         const textItems = text.split(",");
