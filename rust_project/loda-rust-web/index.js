@@ -14,17 +14,11 @@ function sleep(ms) {
 }
 
 class PageController {
-    constructor(dict) {
+    constructor() {
         console.log("PageController.ctor");
 
         this.mWorkerIsReady = false;
         this.mDidLoadProgram = false;
-
-        // Install `runSourceCode` callback
-        this.runSourceCode = dict['runSourceCode'] || function(sourceCode, termCount, runId) {
-            console.error("PageController.runSourceCode() callback not installed");
-        };
-
         this.mIdenticalToOriginal = true;
         this.mOriginalText = "";
         this.setupWorker();
@@ -518,21 +512,8 @@ class PageController {
   
 var gPageController = null;
   
-var callbackExecuteSourceCode = (sourceCode, termCount, runId) => {
-    console.log("callbackExecuteSourceCode is not installed");
-}
-var callbackFinishedWasmLoading = () => {
-    console.log("callbackFinishedWasmLoading invoked");
-}
-  
 function body_onload() {
-    const runSourceCode = function(sourceCode, termCount, runId) {
-        callbackExecuteSourceCode(sourceCode, termCount, runId);
-    };
-    const dict = {
-        'runSourceCode': runSourceCode
-    };
-    gPageController = new PageController(dict);
+    gPageController = new PageController();
 }
   
 function body_onbeforeunload() {
