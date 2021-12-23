@@ -137,7 +137,7 @@ class MyWorker {
         // Discard old results
         this.mResults = [];
 
-        // indicate that a new execute is going on
+        // Indicate that a new execute is going on
         this.mIsExecutingPendingOperations = false;
 
         // Remove pending operations
@@ -152,7 +152,7 @@ class MyWorker {
         // Discard old results
         this.mResults = [];
 
-        // indicate that a new execute is going on
+        // Indicate that a new execute is going on
         this.mIsExecutingPendingOperations = false;
 
         // Remove pending operations
