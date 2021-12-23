@@ -25,9 +25,6 @@ class PageController {
             console.error("PageController.runSourceCode() callback not installed");
         };
 
-        this.mTick = 0;
-        this.mUpdateTick = false;
-        this.mRunId = 0;
         this.mIdenticalToOriginal = true;
         this.mOriginalText = "";
         this.setupWorker();
@@ -399,33 +396,6 @@ class PageController {
         this.proceedIfAllThingsAreReady();
     }
   
-    outputInnerAppendErrorMessage(message) {
-        var output = document.getElementById("output-inner");
-        var el0 = document.createElement('span');
-        el0.className = "separator";
-        el0.innerText = ",";
-        output.appendChild(el0);
-        var el1 = document.createElement('span');
-        el1.className = "error";
-        el1.innerText = message;
-        output.appendChild(el1);
-    }
-  
-    executeTick() {
-        if (!this.mUpdateTick) {
-            return;
-        }
-        // console.log(`tick: ${this.mTick}`);
-        if (this.mTick >= 100) {
-            this.mUpdateTick = false;
-            this.outputInnerAppendErrorMessage("Stopped - exceeded 10 second time limit.");
-            return;
-        }
-        this.mTick += 1;
-        var self = this;
-        setTimeout(function() { self.executeTick(); }, 100);
-    }
-  
     configureKeyboardShortcuts() {
         let pageControllerInstance = this;
         let keydownHandler = function(event) {
@@ -471,27 +441,6 @@ class PageController {
             "https://loda-lang.org/",
             '_blank' // Open in a new window.
         );
-    }
-  
-    isRunningProgram(runId) {
-        if (!this.mUpdateTick) {
-            return false;
-        }
-        if (this.mRunId != runId) {
-            return false;
-        }
-        return true;
-    }
-  
-    finishedComputingTheLastTerm() {
-        console.log("finished computing the last term");
-        this.mUpdateTick = false;
-        this.rebuildChart();
-    }
-  
-    exceptionOccurredWhileRunning(message) {
-        this.mUpdateTick = false;
-        this.outputInnerAppendErrorMessage(message);
     }
   
     programURLString() {
