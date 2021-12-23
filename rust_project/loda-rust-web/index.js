@@ -17,6 +17,9 @@ class PageController {
     constructor(dict) {
         console.log("PageController.ctor");
 
+        this.mWorkerIsReady = false;
+        this.mEditorFetchReady = false;
+
         // Install `runSourceCode` callback
         this.runSourceCode = dict['runSourceCode'] || function(sourceCode, termCount, runId) {
             console.error("PageController.runSourceCode() callback not installed");
@@ -37,7 +40,6 @@ class PageController {
     }
   
     setupWorker() {
-        this.mWorkerIsReady = false;
         const worker = new Worker('worker.js');
         this.mPromiseWorker = new PromiseWorker(worker);
         const eventListener = (e) => {
@@ -83,6 +85,22 @@ class PageController {
         this.outputArea_appendTerm("Worker loaded OK.");
 
         this.mWorkerIsReady = true;
+        this.proceedIfAllThingsAreReady();
+    }
+
+    proceedIfAllThingsAreReady() {
+        if (!this.mEditorFetchReady) {
+            return;
+        }
+        if (!this.mWorkerIsReady) {
+            return;
+        }
+        // this.setRange();
+        // this.outputArea_clear();
+        // this.executeRange();
+        (async () => {
+            await this.workerCompileAndExecute();
+          })();
     }
 
     async compileEditorCode() {
@@ -367,10 +385,9 @@ class PageController {
     // async didLoadProgram() {
     didLoadProgram() {
         console.log("didLoadProgram");
-        if (!this.mWorkerIsReady) {
-            console.log("worker is not yet ready");
-            return;
-        }
+        this.mEditorFetchReady = true;
+        this.proceedIfAllThingsAreReady();
+
         // this.setRange();
         // await this.compileEditorCode();
         // this.outputArea_clear();
