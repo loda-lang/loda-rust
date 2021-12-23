@@ -109,6 +109,7 @@ class PageController {
 
 
         (async () => {
+            this.hideOverlay();
             await this.workerCompileAndExecute();
         })();
     }
@@ -334,9 +335,7 @@ class PageController {
         this.mOriginalText = sourceCode;
         this.mEditor.setValue(sourceCode);
         this.mEditor.focus();
-        this.hideOverlay();
-        var self = this;
-        setTimeout(function() { self.didLoadProgram(); }, 100);
+        this.didLoadProgram();
     }
   
     prepareProgramSourceCode(sourceCode) {
@@ -345,9 +344,7 @@ class PageController {
         this.mOriginalText = sourceCode;
         this.mEditor.setValue(sourceCode);
         this.mEditor.focus();
-        this.hideOverlay();
-        var self = this;
-        setTimeout(function() { self.didLoadProgram(); }, 100);
+        this.didLoadProgram();
     }
   
     prepareProgramId(programId) {
@@ -368,10 +365,7 @@ class PageController {
                 this.mOriginalText = textdata;
                 this.mEditor.setValue(textdata);
                 this.mEditor.focus();
-                this.hideOverlay();
-        
-                var self = this;
-                setTimeout(function() { self.didLoadProgram(); }, 100);
+                this.didLoadProgram();
             })
             .catch((error) => {
                 console.error('Error:', error);
