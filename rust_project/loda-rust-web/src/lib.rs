@@ -98,10 +98,6 @@ fn url_from_program_id(program_id: u64) -> String {
     format!("{}/{}/{}", baseurl, dir_index_string, filename_string)
 }
 
-// pub fn get_element_by_id(element_id: &str) -> Option<web_sys::Element> {
-//     web_sys::window()?.document()?.get_element_by_id(element_id)
-// }
-
 #[wasm_bindgen]
 pub fn perform_selfcheck() {
     const PROGRAM: &str = r#"        
@@ -210,19 +206,6 @@ impl WebDependencyManagerInner {
 
         let root_dependencies: Vec<u64> = root_parsed_program.direct_dependencies();
         debug!("the root program has these dependencies: {:?}", root_dependencies);
-
-        // let output_div: web_sys::Element = match get_element_by_id("output-inner") {
-        //     Some(value) => value,
-        //     None => {
-        //         let err = JsValue::from_str("No #output-inner div found");
-        //         return Err(err);
-        //     }
-        // };
-
-        // if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
-        //     let val = "Downloading";
-        //     node.set_text_content(Some(&val));
-        // }
         debug!("Downloading");
 
         let global = js_sys::global().unchecked_into::<WorkerGlobalScope>();
@@ -314,14 +297,6 @@ impl WebDependencyManagerInner {
 
     fn execute_current_program(&mut self, js_index: i32) -> Result<JsValue, JsValue> {
         // debug!("WebDependencyManagerInner.execute_current_program() js_index: {:?}", js_index);
-
-        // let output_div: web_sys::Element = match get_element_by_id("output-inner") {
-        //     Some(value) => value,
-        //     None => {
-        //         let err = JsValue::from_str("No #output-inner div found");
-        //         return Err(err);
-        //     }
-        // };
         if js_index < 0 {
             let err = JsValue::from_str("Expecting non-negative index");
             return Err(err);
@@ -361,23 +336,6 @@ impl WebDependencyManagerInner {
             return Err(err);
         }
         // debug!("computed term {:?}", term_string);
-        // if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
-        //     let val0 = web_sys::window().unwrap().document().unwrap().create_element("span")?;
-        //     val0.set_class_name("separator");
-        //     val0.set_text_content(Some(","));
-        //     let val1 = web_sys::window().unwrap().document().unwrap().create_element("span")?;
-        //     val1.set_class_name("term");
-        //     val1.set_text_content(Some(&term_string));
-        //     if index == 0 {
-        //         // remove all child elements
-        //         node.set_text_content(None);
-        //         node.append_child(&val1)?;
-        //     } else {
-        //         node.append_child(&val0)?;
-        //         node.append_child(&val1)?;
-        //     }
-        // }
-
         Ok(JsValue::from_str(&term_string))
     }
 
