@@ -431,15 +431,7 @@ class PageController {
             if(isEnterKeyCode && isMetaKey) {
                 console.log("ctrl+enter: submit form");
                 event.preventDefault(); // Suppress "double action"
-                // pageControllerInstance.runAction();
-                // pageControllerInstance.workerCompileAndExecute();
-                // await pageControllerInstance.workerCompileAndExecute();
-                // TODO: block the UI, until it has completed compiling and then unblock
-                pageControllerInstance.workerCompileAndExecute().then((success) => {
-                    console.log("Successfully compiled program");
-                }, (reason) => {
-                    console.error("Unable to compile", reason);
-                });
+                pageControllerInstance.runAction();
                 return;
             }
             // intercept ESCape key, and stop a running program.
@@ -454,15 +446,9 @@ class PageController {
     }
   
     runAction() {
-        this.mTick = 0;
-        this.mUpdateTick = true;
-        this.mRunId = (this.mRunId + 1) % 256;
-        const runIdClone0 = this.mRunId * 10;
-        const runIdClone1 = runIdClone0 / 10;
-        this.executeTick();
-        let sourceCode = this.mEditor.getValue();
-        let termCount = this.getNumberOfTerms();
-        this.runSourceCode(sourceCode, termCount, runIdClone1);
+        (async () => {
+            await this.workerCompileAndExecute();
+        })();
     }
   
     stopAction() {
