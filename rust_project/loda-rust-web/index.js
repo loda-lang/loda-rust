@@ -27,7 +27,6 @@ class PageController {
         this.configureKeyboardShortcuts();
         this.configureOutputCount();
         this.prepareProgram();
-        // this.rebuildChart();
     }
   
     setupWorker() {
