@@ -446,33 +446,12 @@ class PageController {
         let tooltip = document.getElementById("copy-program-link-to-clipboard-tooltip-text");
         tooltip.innerHTML = "Copy to clipboard";
     }
-  
-    rebuildChart() {
-        var chart = this.mOutputChart;
-        
+
+    chartMockData() {
         var count = 100;
         var dataAll = [];
-        // for ( var i = 0; i < count; i+=1 ) {
-        //     const value = i;
-        //     const y = Math.floor(value);
-        //     const dict = {
-        //         x: i,
-        //         y: y,
-        //         label: `a(${i}) = ${y}`
-        //     };
-        //     dataAll.push(dict);
-        // }
-  
-        const div = document.getElementById("output-inner");
-        const text = div.innerText;
-        // console.log("text", text);
-        const textItems = text.split(",");
-        for (var i = 0; i < textItems.length; i += 1) {
-            const textItem = textItems[i];
-            var value = parseInt(textItem);
-            if (isNaN(value)) { 
-                value = 0;
-            }
+        for ( var i = 0; i < count; i+=1 ) {
+            const value = i;
             const y = Math.floor(value);
             const dict = {
                 x: i,
@@ -481,6 +460,42 @@ class PageController {
             };
             dataAll.push(dict);
         }
+        return dataAll;
+    }
+
+    extractChartDataFromOutput() {
+        var dataAll = [];
+        const parentDiv = document.getElementById("output-inner");
+        var children = parentDiv.children;
+        var index = 0;
+        for (var i = 0; i < children.length; i += 1) {
+            const child = children[i];
+            if (child.className != 'term') {
+                // Ignore elements such as: separator, error
+                continue;
+            }
+            const textItem = child.innerText;
+            var value = parseInt(textItem);
+            if (isNaN(value)) { 
+                value = 0;
+            }
+            const y = Math.floor(value);
+            const dict = {
+                x: index,
+                y: y,
+                label: `a(${index}) = ${y}`
+            };
+            dataAll.push(dict);
+            index += 1;
+        }
+        return dataAll;
+    }
+  
+    rebuildChart() {
+        var chart = this.mOutputChart;
+        
+        // const dataAll = this.chartMockData();
+        const dataAll = this.extractChartDataFromOutput();
 
         var pointRadius = 1;
         if (dataAll.length <= 10) {
