@@ -86,19 +86,6 @@ class PageController {
         if (!this.mWorkerIsReady) {
             return;
         }
-        // this.setRange();
-        // this.outputArea_clear();
-        // this.executeRange();
-
-        // this.setRange();
-        // await this.compileEditorCode();
-        // this.outputArea_clear();
-        // this.executeRange();
-        // var output = document.getElementById("output-inner");
-        // output.innerText = 'Computing';
-        // this.runAction();
-
-
         (async () => {
             this.hideOverlay();
             await this.workerCompileAndExecute();
@@ -122,14 +109,7 @@ class PageController {
         });
         console.log("compile editor code AFTER");
     }
-  
-    async workerCompileAndExecute() {
-        console.log("compile and execute");
-        await this.compileEditorCode();
-        this.outputArea_clear();
-        await this.executeRange();
-    }
-  
+    
     outputArea_clear() {
         const div = document.getElementById("output-inner2");
         div.innerHTML = '';
@@ -301,22 +281,18 @@ class PageController {
     }
   
     configureOutputCount() {
-        const el = document.getElementById('output-count');
+        const element = document.getElementById('output-count');
         var self = this;
-        el.addEventListener('change', function(e) {
+        element.addEventListener('change', function(e) {
             self.outputCountAction();
         }, false);
     }
 
     outputCountAction() {
-        console.log("change range");
-        this.outputArea_clear();
         (async () => {
-            await this.setRange();
             await this.workerCompileAndExecute();
         })();
     }
-
   
     prepareProgram() {
         let params = new URLSearchParams(window.location.search);
@@ -385,13 +361,13 @@ class PageController {
   
     async workerCompileAndExecute() {
         console.log("compile and execute");
+        await this.setRange();
         await this.compileEditorCode();
         this.outputArea_clear();
         await this.executeRange();
     }
-  
+
     didLoadProgram() {
-        // console.log("didLoadProgram");
         this.mDidLoadProgram = true;
         this.proceedIfAllThingsAreReady();
     }
