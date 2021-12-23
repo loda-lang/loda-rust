@@ -169,7 +169,7 @@ class PageController {
         // Usecase:
         // There is nothing executing in the web worker.
         // The user hits Ctrl+Enter a single time.
-        // Causing the code to be run.
+        // Causing the code to run.
         //
         // Usecase:
         // The user may be hitting Ctrl+Enter several times in rapid succession.
@@ -178,8 +178,8 @@ class PageController {
         // Usecase:
         // There is currently executing stuff in the web worker.
         // The user hits Ctrl+Enter a single time.
-        // Causing the current executing to get stopped.
-        // And causing the new code to be run.
+        // Causing the current executing to stop.
+        // And causing the new code to run.
 
         await this.mPromiseWorker.postMessage({
             fn: "executerange", 
