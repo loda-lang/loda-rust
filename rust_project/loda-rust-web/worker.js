@@ -218,10 +218,6 @@ async function init_worker() {
         fn: "init",
         value: true
     });
-    
-    postMessage({
-        fn: 'ready'
-    });
 }
 
 init_worker()
