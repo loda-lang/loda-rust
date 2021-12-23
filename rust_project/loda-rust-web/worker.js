@@ -32,7 +32,7 @@ class MyWorker {
         this.mDependencyManager = dependencyManager;
         this.mWorkerId = workerId;
         this.mRangeStart = 0;
-        this.mRangeLength = 10;
+        this.mRangeLength = 100;
         this.mResults = [];
         this.mPendingOperations = [];
         this.mIsExecutingPendingOperations = false;
