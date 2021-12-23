@@ -18,7 +18,7 @@ class PageController {
         console.log("PageController.ctor");
 
         this.mWorkerIsReady = false;
-        this.mEditorFetchReady = false;
+        this.mDidLoadProgram = false;
 
         // Install `runSourceCode` callback
         this.runSourceCode = dict['runSourceCode'] || function(sourceCode, termCount, runId) {
@@ -89,7 +89,7 @@ class PageController {
     }
 
     proceedIfAllThingsAreReady() {
-        if (!this.mEditorFetchReady) {
+        if (!this.mDidLoadProgram) {
             return;
         }
         if (!this.mWorkerIsReady) {
@@ -98,9 +98,19 @@ class PageController {
         // this.setRange();
         // this.outputArea_clear();
         // this.executeRange();
+
+        // this.setRange();
+        // await this.compileEditorCode();
+        // this.outputArea_clear();
+        // this.executeRange();
+        // var output = document.getElementById("output-inner");
+        // output.innerText = 'Computing';
+        // this.runAction();
+
+
         (async () => {
             await this.workerCompileAndExecute();
-          })();
+        })();
     }
 
     async compileEditorCode() {
@@ -110,7 +120,6 @@ class PageController {
             fn: "compile", 
             sourceCode: sourceCode
         });
-        // TODO: await that compile has finished and a "compile" is received from the worker
         console.log("compile editor code AFTER");
     }
   
@@ -382,19 +391,10 @@ class PageController {
         await this.executeRange();
     }
   
-    // async didLoadProgram() {
     didLoadProgram() {
-        console.log("didLoadProgram");
-        this.mEditorFetchReady = true;
+        // console.log("didLoadProgram");
+        this.mDidLoadProgram = true;
         this.proceedIfAllThingsAreReady();
-
-        // this.setRange();
-        // await this.compileEditorCode();
-        // this.outputArea_clear();
-        // this.executeRange();
-        // var output = document.getElementById("output-inner");
-        // output.innerText = 'Computing';
-        // this.runAction();
     }
   
     outputInnerAppendErrorMessage(message) {
