@@ -3,7 +3,7 @@ importScripts('./pkg/loda_rust_web.js');
 
 delete WebAssembly.instantiateStreaming;
 
-// const {WebDependencyManager} = wasm_bindgen;
+const {WebDependencyManager} = wasm_bindgen;
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -154,9 +154,6 @@ class MyWorker {
     }
 }
 
-const {WebDependencyManager} = wasm_bindgen;
-
-
 async function init_worker() {
     const workerId = randomInt(1000000);
     console.log("init_worker 1", workerId);
@@ -196,8 +193,6 @@ async function init_worker() {
             break;
         case "executerange":
             myWorker.commandExecuteRange(e);
-            // I imagine "await" will block the communication channel.
-            // TODO: start a loop, so it doesn't block the communication
             break;
         case "compile":
             await myWorker.commandCompile(e);
