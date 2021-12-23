@@ -481,11 +481,16 @@ class PageController {
             };
             dataAll.push(dict);
         }
+
+        var pointRadius = 1;
+        if (dataAll.length <= 10) {
+            pointRadius = 3;
+        }
         
         const datasetAll = {
             label: 'All',
             backgroundColor: 'rgba(25,25,25,1.0)',
-            pointRadius: 1,
+            pointRadius: pointRadius,
             pointHitRadius: 5,
             borderWidth: 0,
             data: dataAll,
