@@ -123,37 +123,35 @@ class PageController {
     }
   
     outputArea_appendTerm(termValueString) {
-        const div = document.getElementById("output-inner2");
-    
-        const a0 = document.createElement("span");
-        a0.className = "separator";
-        const a1 = document.createTextNode(",");
-        a0.appendChild(a1);
-    
+        const parentDiv = document.getElementById("output-inner2");    
+        if (parentDiv.hasChildNodes()) {
+            const a0 = document.createElement("span");
+            a0.className = "separator";
+            const a1 = document.createTextNode(",");
+            a0.appendChild(a1);        
+            parentDiv.appendChild(a0);
+        }
         const b0 = document.createElement("span");
         b0.className = "term";
         const b1 = document.createTextNode(termValueString);
         b0.appendChild(b1);
-    
-        div.appendChild(a0);
-        div.appendChild(b0);
+        parentDiv.appendChild(b0);
     }
   
     outputArea_appendError(message) {
-        const div = document.getElementById("output-inner2");
-    
-        const a0 = document.createElement("span");
-        a0.className = "separator";
-        const a1 = document.createTextNode(",");
-        a0.appendChild(a1);
-    
+        const parentDiv = document.getElementById("output-inner2");    
+        if (parentDiv.hasChildNodes()) {
+            const a0 = document.createElement("span");
+            a0.className = "separator";
+            const a1 = document.createTextNode(",");
+            a0.appendChild(a1);        
+            parentDiv.appendChild(a0);
+        }
         const b0 = document.createElement("span");
         b0.className = "error";
         const b1 = document.createTextNode(message);
-        b0.appendChild(b1);
-    
-        div.appendChild(a0);
-        div.appendChild(b0);
+        b0.appendChild(b1);        
+        parentDiv.appendChild(b0);
     }
   
     setRange() {
