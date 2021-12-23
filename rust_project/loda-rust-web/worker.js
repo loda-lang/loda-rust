@@ -1,4 +1,4 @@
-importScripts('https://unpkg.com/promise-worker/dist/promise-worker.register.js');
+importScripts('./web/promise-worker/promise-worker.register.js');
 importScripts('./pkg/loda_rust_web.js');
 
 delete WebAssembly.instantiateStreaming;
