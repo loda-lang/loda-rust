@@ -327,7 +327,7 @@ impl WebDependencyManagerInner {
             return Err(err);
         }
 
-        let output_byte_count_limit: u64 = 2000;
+        let output_byte_count_limit: u64 = 10000;
         let step_count_limit: u64 = 1000000000;
         let index: i64 = js_index as i64;
 
