@@ -354,7 +354,6 @@ class PageController {
         var output = document.getElementById("output-inner");
         output.innerText = 'Downloading';
     
-        // TODO: make this fetch happen in the worker.js, so there is less redundant code.
         // TODO: deal with status code when there is no 404 and show error message
         fetch(url)
             .then(response => response.text())
@@ -391,7 +390,7 @@ class PageController {
     }
   
     configureKeyboardShortcuts() {
-        let pageControllerInstance = this;
+        let self = this;
         let keydownHandler = function(event) {
             if(event.defaultPrevented) {
                 return; // Should do nothing if the default action has been cancelled
@@ -403,14 +402,14 @@ class PageController {
             if(isEnterKeyCode && isMetaKey) {
                 console.log("ctrl+enter: submit form");
                 event.preventDefault(); // Suppress "double action"
-                pageControllerInstance.runAction();
+                self.runAction();
                 return;
             }
             // intercept ESCape key, and stop a running program.
             if(isEscapeKeyCode) {
                 console.log("escape: stop running");
                 event.preventDefault(); // Suppress "double action"
-                pageControllerInstance.stopAction();
+                self.stopAction();
                 return;
             }
         };
