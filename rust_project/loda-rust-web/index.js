@@ -28,21 +28,21 @@ class PageController {
         this.mRunId = 0;
         this.mIdenticalToOriginal = true;
         this.mOriginalText = "";
+        this.mPromiseWorker = this.configureWorker();
         this.mEditor = this.configureEditor();
         this.mOutputChart = this.configureChart();
         this.configureKeyboardShortcuts();
         this.configureOutputCount();
         this.prepareProgram();
         // this.rebuildChart();
-        this.mPromiseWorker = this.configureWorker();
     }
   
     configureWorker() {
         const worker = new Worker('worker.js');
         const promiseWorker = new PromiseWorker(worker);
-        // worker.addEventListener('message', (e) => {
-        //     this.workerOnMessage(e);
-        // }, false);
+        worker.addEventListener('message', (e) => {
+            this.workerOnMessage(e);
+        }, false);
         // worker.addEventListener('error', (e) => {
         //     this.workerOnError(e);
         // }, false);
@@ -57,28 +57,36 @@ class PageController {
     }
     
     workerOnMessage(e) {
+        // console.log("onMessage", e.data);
         switch (e.data.fn) {
-        case "result":
-            this.commandResult(e.data);
-            break;
-        case "debug":
-            this.commandDebug(e.data);
-            break;
-        case "ready":
-            this.commandReady(e.data);
-            break;
+        // case "result":
+        //     this.commandResult(e.data);
+        //     break;
+        // case "debug":
+        //     this.commandDebug(e.data);
+        //     break;
+        // case "ready":
+        //     this.commandReady(e.data);
+        //     break;
         case "init":
             this.commandInit(e.data);
             break;
         default:
-            console.error(`workerOnMessage.unknown: ${e.data}`);
-            this.outputArea_appendError("unknown message, see log");
+            // console.error(`workerOnMessage.unknown: ${e.data}`);
+            // this.outputArea_appendError("unknown message, see log");
             break;
         }
     }
   
     commandInit(parameters) {
-        console.log("worker init", parameters);
+        // console.log("worker init", parameters);
+        if(!parameters.value) {
+            console.error("failed to initialize worker", parameters);
+            this.outputArea_clear();
+            this.outputArea_appendError(`Failed to initialize worker. reason: ${parameters.reason}`);
+            return;
+        }
+        console.log("worker initialized successful", parameters);
     }
 
     async compileEditorCode() {
