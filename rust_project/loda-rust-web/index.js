@@ -103,24 +103,6 @@ class PageController {
         await this.executeRange();
     }
   
-    commandResult(parameters) {
-        // console.log("worker result", parameters.valueString);
-        this.outputArea_appendTerm(parameters.valueString);
-        this.rebuildChart();
-    }
-  
-    commandDebug(parameters) {
-        console.log("worker debug", parameters);
-    }
-  
-    // commandReady(parameters) {
-    //     console.log("worker is ready", parameters);
-    //     this.mWorkerIsReady = true;
-        // this.setRange();
-        // this.outputArea_clear();
-        // this.executeRange();
-    // }
-  
     outputArea_clear() {
         const div = document.getElementById("output-inner2");
         div.innerHTML = '';
