@@ -166,10 +166,21 @@ class PageController {
     }
   
     async executeRange() {
-        // TODO: hitting Ctrl+Enter several times in rapid succession, and then
-        // the output gets messed up. 
-        // Stop the current execution, or terminate the worker.
-        
+        // Usecase:
+        // There is nothing executing in the web worker.
+        // The user hits Ctrl+Enter a single time.
+        // Causing the code to be run.
+        //
+        // Usecase:
+        // The user may be hitting Ctrl+Enter several times in rapid succession.
+        // This happens surprisingly often.
+        //
+        // Usecase:
+        // There is currently executing stuff in the web worker.
+        // The user hits Ctrl+Enter a single time.
+        // Causing the current executing to get stopped.
+        // And causing the new code to be run.
+
         await this.mPromiseWorker.postMessage({
             fn: "executerange", 
         });
