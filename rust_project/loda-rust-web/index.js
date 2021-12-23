@@ -114,6 +114,14 @@ class PageController {
         })();
     }
 
+    async tellWorkerToStopExecuting() {
+        console.log("stop executing BEFORE");
+        await this.mPromiseWorker.postMessage({
+            fn: "stop"
+        });
+        console.log("stop executing AFTER");
+    }
+  
     async compileEditorCode() {
         console.log("compile editor code BEFORE");
         let sourceCode = this.mEditor.getValue();
@@ -452,8 +460,9 @@ class PageController {
     }
   
     stopAction() {
-        console.log("Stop button");
-        this.mUpdateTick = false;
+        (async () => {
+            await this.tellWorkerToStopExecuting();
+        })();
     }
   
     showInfo() {

@@ -132,14 +132,9 @@ class MyWorker {
         // console.log("executeNext after");
     }
 
-    stopExecuteAndDiscardResults() {
-        this.mResults = [];
-        this.mIsExecutingPendingOperations = false;
-    }
-
     async commandCompile(parameters) {
         console.log("worker", this.mWorkerId, "- commandCompile before");
-        // discard old results
+        // Discard old results
         this.mResults = [];
 
         // indicate that a new execute is going on
@@ -151,6 +146,17 @@ class MyWorker {
         const sourceCode = parameters.sourceCode;
         await this.mDependencyManager.clone().run_source_code(sourceCode);
         console.log("worker", this.mWorkerId, "- commandCompile after");
+    }
+
+    commandStop(parameters) {
+        // Discard old results
+        this.mResults = [];
+
+        // indicate that a new execute is going on
+        this.mIsExecutingPendingOperations = false;
+
+        // Remove pending operations
+        this.mPendingOperations = [];
     }
 }
 
@@ -199,6 +205,9 @@ async function init_worker() {
             break;
         case "takeresult":
             return myWorker.commandTakeResult(e);
+        case "stop":
+            await myWorker.commandStop(e);
+            break;
         default:
             throw Error(`worker.message: unknown: ${e}`);
         }
