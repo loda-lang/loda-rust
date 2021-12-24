@@ -39,13 +39,13 @@ class MyWorker {
     }
 
     commandSetRange(parameters) {
-        console.log("commandSetRange");
+        // console.log("commandSetRange");
         this.mRangeStart = parameters.rangeStart;
         this.mRangeLength = parameters.rangeLength;
     }
 
     commandExecuteRange(parameters) {
-        console.log("worker", this.mWorkerId, "- commandExecuteRange before");
+        // console.log("worker", this.mWorkerId, "- commandExecuteRange before");
         this.mIsExecutingPendingOperations = false;
         this.mResults = [];
         this.mPendingOperations = [];
@@ -60,13 +60,12 @@ class MyWorker {
         this.mIsExecutingPendingOperations = true;
         var self = this;
         setTimeout(function() { self.commandExecuteRangePost(); }, 0);
-        console.log("worker", this.mWorkerId, "- commandExecuteRange after");
+        // console.log("worker", this.mWorkerId, "- commandExecuteRange after");
     }
 
     commandExecuteRangePost() {
         // console.log("commandExecuteRangePost - start executing pending operations");
-        // TODO: Execute pending items from queue
-
+        // Begin executing pending items from queue
         this.pickFirstPendingOperation();
     }
 
@@ -86,6 +85,7 @@ class MyWorker {
 
         operation.accept(this);
 
+        // Continue executing pending items from queue
         var self = this;
         setTimeout(function() { self.pickFirstPendingOperation(); }, 0);
     }
@@ -131,7 +131,7 @@ class MyWorker {
     }
 
     async commandCompile(parameters) {
-        console.log("worker", this.mWorkerId, "- commandCompile before");
+        // console.log("worker", this.mWorkerId, "- commandCompile before");
         // Discard old results
         this.mResults = [];
 
@@ -143,7 +143,7 @@ class MyWorker {
 
         const sourceCode = parameters.sourceCode;
         await this.mDependencyManager.clone().run_source_code(sourceCode);
-        console.log("worker", this.mWorkerId, "- commandCompile after");
+        // console.log("worker", this.mWorkerId, "- commandCompile after");
     }
 
     commandStop(parameters) {
@@ -160,7 +160,7 @@ class MyWorker {
 
 async function init_worker() {
     const workerId = randomInt(1000000);
-    console.log("init_worker 1", workerId);
+    console.log("init_worker", workerId);
 
     const wasmModule = await wasm_bindgen('./pkg/loda_rust_web_bg.wasm');
 
