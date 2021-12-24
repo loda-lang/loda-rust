@@ -24,7 +24,7 @@ class PageController {
         this.setupWorker();
         this.setupEditor();
         this.setupChart();
-        this.configureKeyboardShortcuts();
+        this.setupKeyboardShortcuts();
         this.configureOutputCount();
         this.prepareProgram();
     }
@@ -379,7 +379,7 @@ class PageController {
         this.proceedIfAllThingsAreReady();
     }
   
-    configureKeyboardShortcuts() {
+    setupKeyboardShortcuts() {
         let self = this;
         let keydownHandler = function(event) {
             if(event.defaultPrevented) {
