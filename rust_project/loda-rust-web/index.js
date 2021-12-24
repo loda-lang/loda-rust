@@ -22,7 +22,7 @@ class PageController {
         this.mIdenticalToOriginal = true;
         this.mOriginalText = "";
         this.setupWorker();
-        this.mEditor = this.configureEditor();
+        this.setupEditor();
         this.setupChart();
         this.configureKeyboardShortcuts();
         this.configureOutputCount();
@@ -219,7 +219,7 @@ class PageController {
         await this.pullWorkerResults();
     }
   
-    configureEditor() {
+    setupEditor() {
         const editor = CodeMirror.fromTextArea(document.getElementById("editor-inner"), {
             lineNumbers: true,
             lineWrapping: false,
@@ -230,7 +230,7 @@ class PageController {
             tabSize: 2,
             indentWithTabs: false,
         });
-        return editor;
+        this.mEditor = editor;
     }
   
     setupChart() {
