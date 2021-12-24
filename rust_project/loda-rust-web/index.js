@@ -23,7 +23,7 @@ class PageController {
         this.mOriginalText = "";
         this.setupWorker();
         this.mEditor = this.configureEditor();
-        this.mOutputChart = this.configureChart();
+        this.setupChart();
         this.configureKeyboardShortcuts();
         this.configureOutputCount();
         this.prepareProgram();
@@ -214,7 +214,6 @@ class PageController {
         // console.log("pull - before sleep");
         await sleep(30);
         // console.log("pull - after sleep");
-        // this.outputArea_appendTerm("zzz");
 
         // Fetch more results
         await this.pullWorkerResults();
@@ -234,7 +233,7 @@ class PageController {
         return editor;
     }
   
-    configureChart() {
+    setupChart() {
         const plugin_tooltip = {
             mode: 'point',
             callbacks: {
@@ -267,7 +266,7 @@ class PageController {
             options: options
         };
         var ctx = document.getElementById('output-chart').getContext('2d');
-        return new Chart(ctx, config);
+        this.mOutputChart = new Chart(ctx, config);
     }
   
     hideOverlay() {
