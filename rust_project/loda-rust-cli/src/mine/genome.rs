@@ -183,6 +183,8 @@ impl Genome {
         let mutation_vec: Vec<MutateValue> = vec![
             MutateValue::Increment,
             MutateValue::Decrement,
+            MutateValue::Assign(0),
+            MutateValue::Assign(1),
         ];
         let mutation: &MutateValue = mutation_vec.choose(rng).unwrap();
 
@@ -206,6 +208,8 @@ impl Genome {
         let mutation_vec: Vec<MutateValue> = vec![
             MutateValue::Increment,
             MutateValue::Decrement,
+            MutateValue::Assign(0),
+            MutateValue::Assign(1),
         ];
         let mutation: &MutateValue = mutation_vec.choose(rng).unwrap();
 
@@ -409,13 +413,13 @@ impl Genome {
     #[allow(dead_code)]
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
-            (MutateGenome::Instruction, 100),
-            (MutateGenome::SourceConstant, 100),
+            (MutateGenome::Instruction, 1),
+            (MutateGenome::SourceConstant, 20),
             (MutateGenome::SourceType, 1),
-            (MutateGenome::SwapRegisters, 1),
-            (MutateGenome::SourceRegister, 1),
-            (MutateGenome::TargetRegister, 1),
-            (MutateGenome::ToggleEnabled, 1),
+            (MutateGenome::SwapRegisters, 10),
+            (MutateGenome::SourceRegister, 10),
+            (MutateGenome::TargetRegister, 20),
+            (MutateGenome::ToggleEnabled, 5),
             (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 1),
             (MutateGenome::InsertLoopBeginEnd, 0),
