@@ -235,38 +235,39 @@ class PageController {
     }
   
     configureChart() {
-        var chart_config = {
-            type: 'scatter',
-            data: {
-                datasets: []
-            },
-            options: {
-                animation: false,
-                responsive: true,
-                maintainAspectRatio: false,
-                tooltips: {
-                    mode: 'point',
-                    callbacks: {
-                        label: function(tooltipItem, data) {
-                            var pointItem = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
-                            var s = pointItem.label;
-                            var is_string = (typeof s == 'string') || (s instanceof String);
-                            if (is_string) {
-                                return s;
-                            } else {
-                                return "x: " + pointItem.x + " y: " + pointItem.y;
-                            }
-                        }
-                    },
-                },
-                legend: {
-                    display: false,
+        const plugin_tooltip = {
+            mode: 'point',
+            callbacks: {
+                label: function(context) {
+                    const pointItem = context.raw;
+                    var s = pointItem.label || '';
+                    var is_string = (typeof s == 'string') || (s instanceof String);
+                    if (is_string) {
+                        return s;
+                    } else {
+                        return "x: " + pointItem.x + " y: " + pointItem.y;
+                    }
                 }
+            },
+        };
+        const plugin_legend = {
+            display: false,
+        };
+        const options = {
+            animation: false,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: plugin_tooltip,
+                legend: plugin_legend,
             }
         };
-    
+        const config = {
+            type: 'scatter',
+            data: {},
+            options: options
+        };
         var ctx = document.getElementById('output-chart').getContext('2d');
-        return new Chart(ctx, chart_config);
+        return new Chart(ctx, config);
     }
   
     hideOverlay() {
