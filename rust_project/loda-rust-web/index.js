@@ -25,7 +25,7 @@ class PageController {
         this.setupEditor();
         this.setupChart();
         this.setupKeyboardShortcuts();
-        this.configureOutputCount();
+        this.setupRangePicker();
         this.prepareProgram();
     }
   
@@ -290,15 +290,15 @@ class PageController {
         return value;
     }
   
-    configureOutputCount() {
+    setupRangePicker() {
         const element = document.getElementById('output-count');
         var self = this;
         element.addEventListener('change', function(e) {
-            self.outputCountAction();
+            self.rangePickerAction();
         }, false);
     }
 
-    outputCountAction() {
+    rangePickerAction() {
         (async () => {
             await this.workerCompileAndExecute();
         })();
