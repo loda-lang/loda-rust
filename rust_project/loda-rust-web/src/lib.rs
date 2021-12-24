@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, RequestInit, RequestMode, Response};
+use web_sys::{Request, RequestInit, RequestMode, Response, WorkerGlobalScope};
 use std::panic;
 
 use log::{Log,Metadata,Record,LevelFilter};
@@ -96,10 +96,6 @@ fn url_from_program_id(program_id: u64) -> String {
     let filename_string: String = format!("A{:0>6}.asm", program_id);
     let baseurl = "https://raw.githubusercontent.com/loda-lang/loda-programs/main/oeis";
     format!("{}/{}/{}", baseurl, dir_index_string, filename_string)
-}
-
-pub fn get_element_by_id(element_id: &str) -> Option<web_sys::Element> {
-    web_sys::window()?.document()?.get_element_by_id(element_id)
 }
 
 #[wasm_bindgen]
@@ -210,21 +206,9 @@ impl WebDependencyManagerInner {
 
         let root_dependencies: Vec<u64> = root_parsed_program.direct_dependencies();
         debug!("the root program has these dependencies: {:?}", root_dependencies);
+        debug!("Downloading");
 
-        let output_div: web_sys::Element = match get_element_by_id("output-inner") {
-            Some(value) => value,
-            None => {
-                let err = JsValue::from_str("No #output-inner div found");
-                return Err(err);
-            }
-        };
-
-        if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
-            let val = "Downloading";
-            node.set_text_content(Some(&val));
-        }
-
-        let window = web_sys::window().unwrap();
+        let global = js_sys::global().unchecked_into::<WorkerGlobalScope>();
 
         let mut pending_program_ids: Vec<u64> = vec!();
         let mut already_fetched_program_ids = HashSet::<u64>::new();
@@ -256,7 +240,7 @@ impl WebDependencyManagerInner {
             opts.method("GET");
             opts.mode(RequestMode::Cors);
             let request = Request::new_with_str_and_init(&url, &opts)?;
-            let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
+            let resp_value = JsFuture::from(global.fetch_with_request(&request)).await?;
         
             // `resp_value` is a `Response` object.
             assert!(resp_value.is_instance_of::<Response>());
@@ -311,22 +295,14 @@ impl WebDependencyManagerInner {
         Ok(JsValue::from_str("success"))
     }
 
-    async fn execute_current_program(&mut self, js_index: i32) -> Result<JsValue, JsValue> {
+    fn execute_current_program(&mut self, js_index: i32) -> Result<JsValue, JsValue> {
         // debug!("WebDependencyManagerInner.execute_current_program() js_index: {:?}", js_index);
-
-        let output_div: web_sys::Element = match get_element_by_id("output-inner") {
-            Some(value) => value,
-            None => {
-                let err = JsValue::from_str("No #output-inner div found");
-                return Err(err);
-            }
-        };
         if js_index < 0 {
             let err = JsValue::from_str("Expecting non-negative index");
             return Err(err);
         }
 
-        let output_byte_count_limit: u64 = 2000;
+        let output_byte_count_limit: u64 = 10000;
         let step_count_limit: u64 = 1000000000;
         let index: i64 = js_index as i64;
 
@@ -359,24 +335,8 @@ impl WebDependencyManagerInner {
             let err = JsValue::from_str(&s);
             return Err(err);
         }
-        if let Some(node) = output_div.dyn_ref::<web_sys::Node>() {
-            let val0 = web_sys::window().unwrap().document().unwrap().create_element("span")?;
-            val0.set_class_name("separator");
-            val0.set_text_content(Some(","));
-            let val1 = web_sys::window().unwrap().document().unwrap().create_element("span")?;
-            val1.set_class_name("term");
-            val1.set_text_content(Some(&term_string));
-            if index == 0 {
-                // remove all child elements
-                node.set_text_content(None);
-                node.append_child(&val1)?;
-            } else {
-                node.append_child(&val0)?;
-                node.append_child(&val1)?;
-            }
-        }
-
-        Ok(JsValue::from_str("success"))
+        // debug!("computed term {:?}", term_string);
+        Ok(JsValue::from_str(&term_string))
     }
 
     fn print_stats(&self) {
@@ -393,15 +353,15 @@ pub struct WebDependencyManager {
 #[wasm_bindgen]
 impl WebDependencyManager {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> Result<WebDependencyManager, JsValue> {
+    pub fn new() -> WebDependencyManager {
         debug!("WebDependencyManager.new");
         let inner0 = WebDependencyManagerInner::create();
         let inner1 = Rc::new(RefCell::new(inner0));
-        Ok(Self { 
+        Self { 
             inner: inner1,
-        })
+        }
     }
-        
+    
     pub fn increment(&mut self) {
         debug!("WebDependencyManager.increment");
         self.inner.borrow_mut().count += 1;
@@ -418,9 +378,9 @@ impl WebDependencyManager {
             .run_source_code(root_source_code).await
     }
 
-    pub async fn execute_current_program(self, js_index: i32) -> Result<JsValue, JsValue> {
+    pub fn execute_current_program(self, js_index: i32) -> Result<JsValue, JsValue> {
         self.inner.borrow_mut()
-            .execute_current_program(js_index).await
+            .execute_current_program(js_index)
     }
 
     pub fn print_stats(self) {
