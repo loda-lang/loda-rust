@@ -45,6 +45,18 @@ def populate_dictionary_with_file_stats(dict, path)
         if instruction == 'lpb'
             next
         end
+        if instruction == 'add' && constant == '0'
+            puts "Instruction: add by 0, can be eliminated: #{path}"
+        end
+        if instruction == 'sub' && constant == '0'
+            puts "Instruction: sub by 0, can be eliminated: #{path}"
+        end
+        if instruction == 'mul' && constant == '1'
+            puts "Instruction: mul by 1, can be eliminated: #{path}"
+        end
+        if instruction == 'div' && constant == '1'
+            puts "Instruction: div by 1, can be eliminated: #{path}"
+        end
         key = "#{instruction} #{constant}"
         dict[key] = (dict[key] || 0) + 1
     end
