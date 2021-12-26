@@ -5,7 +5,7 @@ This script traverses all the programs inside the "loda-programs/oeis" dir.
 It looks for all the LODA assembly programs there are.
 This script determines the most frequent used constants that goes with each instruction.
 
-This script outputs a `constants.csv` file, with this format:
+This script outputs a `histogram_instruction_constant.csv` file, with this format:
 
     count;instruction;constant
     532;add;1
@@ -27,7 +27,7 @@ require_relative 'config'
 
 LODA_PROGRAMS_OEIS = Config.instance.loda_programs_oeis
 
-output_filename = 'data/constants.csv'
+output_filename = 'data/histogram_instruction_constant.csv'
 
 def absolute_paths_for_all_programs(rootdir)
     relative_paths = Dir.glob(File.join("**", "*.asm"), base: rootdir).sort
@@ -91,7 +91,6 @@ end
 
 paths = absolute_paths_for_all_programs(LODA_PROGRAMS_OEIS)
 #paths = paths.first(10)
-# paths = paths.first(1000)
 instruction_constant_count_dict = process_files(paths)
 #puts "count: #{instruction_constant_count_dict.count}"
 
