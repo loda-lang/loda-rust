@@ -26,6 +26,7 @@ class PageController {
         this.mDidLoadProgram = false;
         this.mIdenticalToOriginal = true;
         this.mOriginalText = "";
+        this.mWasUnableToFetchProgram = false;
         this.setupWorker();
         this.setupEditor();
         this.setupChart();
@@ -74,12 +75,22 @@ class PageController {
             return;
         }
 
-        // Show that the worker has been loaded successfully.
+        // The worker has been initialized successfully
         // console.log("worker initialized successful", parameters);
+        this.mWorkerIsReady = true;
+
+        // Mechanism that prevents the "Worker loaded OK" message to get shown, 
+        // if there have been an error during initialization.
+        if (this.mWasUnableToFetchProgram) {
+            console.log("An error is already shown, that has higher priority.");
+            return;
+        }
+
+        // Show that the worker has been loaded successfully.
         this.outputArea_clear();
         this.outputArea_appendTerm("Worker loaded OK.");
 
-        this.mWorkerIsReady = true;
+        // Run the program 
         this.proceedIfAllThingsAreReady();
     }
 
@@ -376,6 +387,7 @@ class PageController {
                 this.mEditor.setValue(textdata);
                 this.mEditor.focus();
                 this.outputArea_clear();
+                this.mWasUnableToFetchProgram = true;
                 if (error.name == 'pretty-error-message') {
                     this.outputArea_appendError(error.message);
                 } else {
