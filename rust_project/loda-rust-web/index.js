@@ -22,8 +22,6 @@ function sleep(ms) {
 
 class PageController {
     constructor() {
-        console.log("PageController.ctor");
-
         this.mWorkerIsReady = false;
         this.mDidLoadProgram = false;
         this.mIdenticalToOriginal = true;
