@@ -9,6 +9,13 @@ function urlFromProgramId(programId) {
     return url;
 }
 
+// Construct an OEIS id from a program id (eg 40), like the following
+// "A000040".
+function oeisIdFromProgramId(programId) {
+    const zeroPad = (num, places) => String(num).padStart(places, '0');
+    return "A" + zeroPad(programId, 6);
+}
+
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -341,12 +348,20 @@ class PageController {
   
     prepareProgramId(programId) {
         console.log("prepareProgramId", programId);
-    
         let url = urlFromProgramId(programId);
-    
-        // TODO: deal with status code when there is no 404 and show error message
         fetch(url)
-            .then(response => response.text())
+            .then(response => {
+                if (response.status == 404) {
+                    const oeisId = oeisIdFromProgramId(programId);
+                    var error = new Error(`There exist no program for ${oeisId}`);
+                    error.name = 'pretty-error-message';
+                    throw error;
+                }
+                if (!response.ok) {
+                    throw new Error(`Expected status 2xx, but got ${response.status}`);
+                }
+                return response.text();
+            })
             .then(textdata => {
                 console.log('Did fetch program');
                 this.mIdenticalToOriginal = true;
@@ -357,11 +372,17 @@ class PageController {
             })
             .catch((error) => {
                 console.error('Error:', error);
-                const textdata = "Unable to load program!";
+                const textdata = '';
                 this.mIdenticalToOriginal = true;
                 this.mOriginalText = textdata;
                 this.mEditor.setValue(textdata);
                 this.mEditor.focus();
+                this.outputArea_clear();
+                if (error.name == 'pretty-error-message') {
+                    this.outputArea_appendError(error.message);
+                } else {
+                    this.outputArea_appendError(`Error - ${error.message}`);
+                }
                 this.hideOverlay();
             });
     }
