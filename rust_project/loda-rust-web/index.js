@@ -276,9 +276,22 @@ class PageController {
                 legend: plugin_legend,
             }
         };
+        // Dataset with invisible points
+        const dataAll = this.chartEmptyData();
+        const datasetAll = {
+            pointRadius: 0,
+            pointHitRadius: 0,
+            borderWidth: 0,
+            data: dataAll,
+        };
+        const data = {
+            datasets: [
+                datasetAll
+            ]
+        };
         const config = {
             type: 'scatter',
-            data: {},
+            data: data,
             options: options
         };
         var ctx = document.getElementById('output-chart').getContext('2d');
@@ -477,8 +490,8 @@ class PageController {
         tooltip.innerHTML = "Copy to clipboard";
     }
 
-    chartMockData() {
-        var count = 100;
+    chartEmptyData() {
+        var count = 10;
         var dataAll = [];
         for ( var i = 0; i < count; i+=1 ) {
             const value = i;
@@ -524,7 +537,7 @@ class PageController {
     rebuildChart() {
         var chart = this.mOutputChart;
         
-        // const dataAll = this.chartMockData();
+        // const dataAll = this.chartEmptyData();
         const dataAll = this.extractChartDataFromOutput();
 
         var pointRadius = 1;
@@ -533,7 +546,6 @@ class PageController {
         }
         
         const datasetAll = {
-            label: 'All',
             backgroundColor: 'rgba(25,25,25,1.0)',
             pointRadius: pointRadius,
             pointHitRadius: 5,
