@@ -9,18 +9,24 @@ function urlFromProgramId(programId) {
     return url;
 }
 
+// Construct an OEIS id from a program id (eg 40), like the following
+// "A000040".
+function oeisIdFromProgramId(programId) {
+    const zeroPad = (num, places) => String(num).padStart(places, '0');
+    return "A" + zeroPad(programId, 6);
+}
+
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 class PageController {
     constructor() {
-        console.log("PageController.ctor");
-
         this.mWorkerIsReady = false;
         this.mDidLoadProgram = false;
         this.mIdenticalToOriginal = true;
         this.mOriginalText = "";
+        this.mWasUnableToFetchProgram = false;
         this.setupWorker();
         this.setupEditor();
         this.setupChart();
@@ -69,12 +75,22 @@ class PageController {
             return;
         }
 
-        // Show that the worker has been loaded successfully.
+        // The worker has been initialized successfully
         // console.log("worker initialized successful", parameters);
+        this.mWorkerIsReady = true;
+
+        // Mechanism that prevents the "Worker loaded OK" message to get shown, 
+        // if there have been an error during initialization.
+        if (this.mWasUnableToFetchProgram) {
+            console.log("An error is already shown, that has higher priority.");
+            return;
+        }
+
+        // Show that the worker has been loaded successfully.
         this.outputArea_clear();
         this.outputArea_appendTerm("Worker loaded OK.");
 
-        this.mWorkerIsReady = true;
+        // Run the program 
         this.proceedIfAllThingsAreReady();
     }
 
@@ -260,9 +276,22 @@ class PageController {
                 legend: plugin_legend,
             }
         };
+        // Dataset with invisible points
+        const dataAll = this.chartEmptyData();
+        const datasetAll = {
+            pointRadius: 0,
+            pointHitRadius: 0,
+            borderWidth: 0,
+            data: dataAll,
+        };
+        const data = {
+            datasets: [
+                datasetAll
+            ]
+        };
         const config = {
             type: 'scatter',
-            data: {},
+            data: data,
             options: options
         };
         var ctx = document.getElementById('output-chart').getContext('2d');
@@ -341,12 +370,20 @@ class PageController {
   
     prepareProgramId(programId) {
         console.log("prepareProgramId", programId);
-    
         let url = urlFromProgramId(programId);
-    
-        // TODO: deal with status code when there is no 404 and show error message
         fetch(url)
-            .then(response => response.text())
+            .then(response => {
+                if (response.status == 404) {
+                    const oeisId = oeisIdFromProgramId(programId);
+                    var error = new Error(`There exist no program for ${oeisId}`);
+                    error.name = 'pretty-error-message';
+                    throw error;
+                }
+                if (!response.ok) {
+                    throw new Error(`Expected status 2xx, but got ${response.status}`);
+                }
+                return response.text();
+            })
             .then(textdata => {
                 console.log('Did fetch program');
                 this.mIdenticalToOriginal = true;
@@ -357,11 +394,18 @@ class PageController {
             })
             .catch((error) => {
                 console.error('Error:', error);
-                const textdata = "Unable to load program!";
+                const textdata = '';
                 this.mIdenticalToOriginal = true;
                 this.mOriginalText = textdata;
                 this.mEditor.setValue(textdata);
                 this.mEditor.focus();
+                this.outputArea_clear();
+                this.mWasUnableToFetchProgram = true;
+                if (error.name == 'pretty-error-message') {
+                    this.outputArea_appendError(error.message);
+                } else {
+                    this.outputArea_appendError(`Error - ${error.message}`);
+                }
                 this.hideOverlay();
             });
     }
@@ -446,8 +490,8 @@ class PageController {
         tooltip.innerHTML = "Copy to clipboard";
     }
 
-    chartMockData() {
-        var count = 100;
+    chartEmptyData() {
+        var count = 10;
         var dataAll = [];
         for ( var i = 0; i < count; i+=1 ) {
             const value = i;
@@ -493,7 +537,7 @@ class PageController {
     rebuildChart() {
         var chart = this.mOutputChart;
         
-        // const dataAll = this.chartMockData();
+        // const dataAll = this.chartEmptyData();
         const dataAll = this.extractChartDataFromOutput();
 
         var pointRadius = 1;
@@ -502,7 +546,6 @@ class PageController {
         }
         
         const datasetAll = {
-            label: 'All',
             backgroundColor: 'rgba(25,25,25,1.0)',
             pointRadius: pointRadius,
             pointHitRadius: 5,
