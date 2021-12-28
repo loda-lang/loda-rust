@@ -544,13 +544,70 @@ class PageController {
         if (dataAll.length <= 10) {
             pointRadius = 3;
         }
-        
+
+        var useLogarithmic = false;
+
+        var minY = 0;
+        var maxY = 0;
+        if (dataAll.length >= 1) {
+            const dataItem = dataAll[0];
+            const y = dataItem.y;
+            minY = y;
+            maxY = y;
+        }
+        for (var i = 0; i < dataAll.length; i += 1) {
+            const dataItem = dataAll[i];
+            const y = dataItem.y;
+            if (y < minY) {
+                minY = y;
+            }
+            if (y > maxY) {
+                maxY = y;
+            }
+        }
+
+        var linearSum = 0.0;
+        var logSum = 0.0;
+        for (var i = 0; i < dataAll.length; i += 1) {
+            const dataItem = dataAll[i];
+            linearSum += dataItem.y;
+            logSum += Math.log(dataItem.y);
+        }
+        var linearAverage = linearSum / dataAll.length;
+        var logAverage = logSum / dataAll.length;
+
+        var linearSumError = 0.0;
+        var logSumError = 0.0;
+        for (var i = 0; i < dataAll.length; i += 1) {
+            const dataItem = dataAll[i];
+            const linearDiff = dataItem.y - linearAverage;
+            linearSumError += linearDiff * linearDiff;
+            const logDiff = Math.log(dataItem.y) - logAverage;
+            logSumError += logDiff * logDiff;
+        }
+        var linearAverageError = linearSumError / dataAll.length;
+        var logAverageError = logSumError / dataAll.length;
+
+        // useLogarithmic = linearAverageError < logAverageError;
+        // useLogarithmic = true;
+
+        const divStats = document.getElementById("output-stats");
+        // divStats.innerText = `average: ${linearAverage} ${linearAverageError}`;
+        divStats.innerText = `${linearAverageError} ${logAverageError}`;
+
+        const divColor = document.getElementById("output-count");
+        if (useLogarithmic) {
+            divColor.style = 'background:#f00';
+        } else {
+            divColor.style = '';
+        }
+
         const datasetAll = {
             backgroundColor: 'rgba(25,25,25,1.0)',
             pointRadius: pointRadius,
             pointHitRadius: 5,
             borderWidth: 0,
-            data: dataAll,
+            data: dataAll
         };
         
         while (chart.data.datasets.length > 0) {
@@ -558,6 +615,12 @@ class PageController {
         }
         chart.data.datasets.push(datasetAll);
         
+        if (useLogarithmic) {
+            chart.options.scales.y.type = 'logarithmic';
+        } else {
+            chart.options.scales.y.type = 'linear';
+        }
+
         chart.update();
     }
 }
