@@ -540,6 +540,11 @@ class PageController {
         // const dataAll = this.chartEmptyData();
         const dataAll = this.extractChartDataFromOutput();
 
+        if (dataAll.length < 1) {
+            this.outputArea_appendError("length is empty");
+            return;
+        }
+
         var pointRadius = 1;
         if (dataAll.length <= 10) {
             pointRadius = 3;
@@ -565,13 +570,14 @@ class PageController {
                 maxY = y;
             }
         }
+        const yRangeLength = maxY - minY + 1;
 
         var linearSum = 0.0;
         var logSum = 0.0;
         for (var i = 0; i < dataAll.length; i += 1) {
             const dataItem = dataAll[i];
             linearSum += dataItem.y;
-            logSum += Math.log(dataItem.y);
+            logSum += Math.log(dataItem.y - minY + 1);
         }
         var linearAverage = linearSum / dataAll.length;
         var logAverage = logSum / dataAll.length;
@@ -582,14 +588,46 @@ class PageController {
             const dataItem = dataAll[i];
             const linearDiff = dataItem.y - linearAverage;
             linearSumError += linearDiff * linearDiff;
-            const logDiff = Math.log(dataItem.y) - logAverage;
+            const logDiff = Math.log(dataItem.y - minY + 1) - logAverage;
             logSumError += logDiff * logDiff;
         }
         var linearAverageError = linearSumError / dataAll.length;
         var logAverageError = logSumError / dataAll.length;
 
         // useLogarithmic = linearAverageError < logAverageError;
-        // useLogarithmic = true;
+        useLogarithmic = false;
+        const binCount = 10;
+        var bins = [];
+        for (var i = 0; i < binCount; i += 1) {
+            bins.push(0);
+        }
+        var total = 0;
+        for (var i = 0; i < dataAll.length; i += 1) {
+            const dataItem = dataAll[i];
+            const y = dataItem.y - minY;
+            const binIndex = Math.floor(y * (binCount-1) / yRangeLength);
+            bins[binIndex] += 1;
+            total += 1;
+        }
+        // console.log("total", total);
+        console.log("bin count", bins.length);
+        for (var i = 0; i < bins.length; i += 1) {
+            const count = bins[i];
+            console.log(`bin ${i} = ${count}`);
+        }
+        const target0 = Math.floor(dataAll.length * 0.8);
+        console.log("target", target0, "bin0", bins[0]);
+        if (bins[0] > target0) {
+            useLogarithmic = true;
+        }
+        if (minY <= 0) {
+            // chartjs cannot do logarithmic plots with negative numbers nor zeros.
+            useLogarithmic = false;
+        }
+        if (yRangeLength < 20) {
+            useLogarithmic = false;
+        }
+
 
         const divStats = document.getElementById("output-stats");
         // divStats.innerText = `average: ${linearAverage} ${linearAverageError}`;
