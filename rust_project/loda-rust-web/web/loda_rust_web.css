@@ -193,24 +193,16 @@ body {
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
-    font-size: medium;
     border-bottom: 1px solid var(--loda-grid);
 }
+#graph-scaling,
 #output-count {
-    background-color: white;
-    white-space: nowrap;
-}  
-.output-count-radio-item {
-    margin-right: 10px;
-}
-#graph-scaling {
-    background-color: white;
     display: flex;
 }
-#graph-scaling .selected {
+#output-interactive-ui .selected {
     font-weight: normal;
     border: none;
-    color: black;
+    color: rgb(77, 73, 73);
     background-color: transparent;
     padding: 10px 18px;
     text-align: center;
@@ -218,7 +210,7 @@ body {
     font-size: 16px;
     margin: 0;
 }
-#graph-scaling .not-selected {
+#output-interactive-ui .not-selected {
     font-weight: normal;
     border: none;
     color: rgb(77, 73, 73);
@@ -229,20 +221,17 @@ body {
     font-size: 16px;
     margin: 0;
 }
-#graph-scaling .not-selected:hover {
+#output-interactive-ui .not-selected:hover {
     background-color: #e8e8e8;
 }
-#graph-scaling .not-selected:active {
+#output-interactive-ui .not-selected:active {
     background-color: #d3d3d3;
 }
-#graph-scaling #graph-scaling-auto {
+#output-interactive-ui #graph-scaling button {
     border-right: 1px solid var(--loda-grid);
 }
-#graph-scaling #graph-scaling-linear {
-    border-right: 1px solid var(--loda-grid);
-}
-#graph-scaling #graph-scaling-logarithmic {
-    border-right: 1px solid var(--loda-grid);
+#output-interactive-ui #output-count button {
+    border-left: 1px solid var(--loda-grid);
 }
 .page-footer-item {
     flex: 1;

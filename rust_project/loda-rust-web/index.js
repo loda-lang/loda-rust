@@ -32,11 +32,11 @@ class PageController {
         this.mOriginalText = "";
         this.mWasUnableToFetchProgram = false;
         this.mScaleMode = ENUM_SCALEMODE_AUTO;
+        this.mTermCount = 10;
         this.setupWorker();
         this.setupEditor();
         this.setupChart();
         this.setupKeyboardShortcuts();
-        this.setupRangePicker();
         this.prepareProgram();
         this.setupInteractiveArea();
     }
@@ -169,7 +169,7 @@ class PageController {
     }
   
     async setRange() {
-        let rangeLength = this.getNumberOfTerms();
+        let rangeLength = this.mTermCount;
         await this.mPromiseWorker.postMessage({
             fn: "setrange", 
             rangeStart: 0,
@@ -308,6 +308,10 @@ class PageController {
         this.mGraphScalingAuto = document.getElementById("graph-scaling-auto");
         this.mGraphScalingLinear = document.getElementById("graph-scaling-linear");
         this.mGraphScalingLogarithmic = document.getElementById("graph-scaling-logarithmic");
+
+        this.mTermCount10 = document.getElementById("output-count-10");
+        this.mTermCount100 = document.getElementById("output-count-100");
+        this.mTermCount1000 = document.getElementById("output-count-1000");
     }
   
     hideOverlay() {
@@ -317,34 +321,7 @@ class PageController {
     showOverlay() {
         document.getElementById("overlay").style.display = "block";
     }
-  
-    getNumberOfTerms() {
-        var radios = document.getElementsByName("outputcountname");
-        const length = radios.length;
-        var value = 10;
-        for (var i = 0; i < length; i++) {
-            if (radios[i].checked) {
-            value = radios[i].value;
-            break;
-            }
-        }
-        return value;
-    }
-  
-    setupRangePicker() {
-        const element = document.getElementById('output-count');
-        var self = this;
-        element.addEventListener('change', function(e) {
-            self.rangePickerAction();
-        }, false);
-    }
 
-    rangePickerAction() {
-        (async () => {
-            await this.workerCompileAndExecute();
-        })();
-    }
-  
     prepareProgram() {
         let params = new URLSearchParams(window.location.search);
         if (params.has('source')) {
@@ -697,7 +674,6 @@ class PageController {
     }
 
     useAutoScalingAction() {
-        // console.log("use auto scaling");
         this.mGraphScalingAuto.className = 'selected';
         this.mGraphScalingLinear.className = 'not-selected';
         this.mGraphScalingLogarithmic.className = 'not-selected';
@@ -706,7 +682,6 @@ class PageController {
     }
 
     useLinearScalingAction() {
-        // console.log("use linear scaling");
         this.mGraphScalingAuto.className = 'not-selected';
         this.mGraphScalingLinear.className = 'selected';
         this.mGraphScalingLogarithmic.className = 'not-selected';
@@ -715,12 +690,50 @@ class PageController {
     }
 
     useLogarithmicScalingAction() {
-        // console.log("use logarithmic scaling");
         this.mGraphScalingAuto.className = 'not-selected';
         this.mGraphScalingLinear.className = 'not-selected';
         this.mGraphScalingLogarithmic.className = 'selected';
         this.mScaleMode = ENUM_SCALEMODE_LOGARITHMIC;
         this.rebuildChart();
+    }
+
+    show10TermsAction() {
+        if (this.mTermCount == 10) {
+            return;
+        }
+        this.mTermCount = 10;
+        this.mTermCount10.className = 'selected';
+        this.mTermCount100.className = 'not-selected';
+        this.mTermCount1000.className = 'not-selected';
+        this.didUpdateTermCount();
+    }
+  
+    show100TermsAction() {
+        if (this.mTermCount == 100) {
+            return;
+        }
+        this.mTermCount = 100;
+        this.mTermCount10.className = 'not-selected';
+        this.mTermCount100.className = 'selected';
+        this.mTermCount1000.className = 'not-selected';
+        this.didUpdateTermCount();
+    }
+  
+    show1000TermsAction() {
+        if (this.mTermCount == 1000) {
+            return;
+        }
+        this.mTermCount = 1000;
+        this.mTermCount10.className = 'not-selected';
+        this.mTermCount100.className = 'not-selected';
+        this.mTermCount1000.className = 'selected';
+        this.didUpdateTermCount();
+    }
+  
+    didUpdateTermCount() {
+        (async () => {
+            await this.workerCompileAndExecute();
+        })();
     }
 }
   

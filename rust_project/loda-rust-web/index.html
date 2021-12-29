@@ -68,18 +68,9 @@
         </div>
 
         <div id="output-count">
-          <span class="output-count-radio-item">
-            <input type="radio" id="count10" name="outputcountname" value="10" checked="on">
-            <label for="count10">10</label>
-          </span>
-          <span class="output-count-radio-item">
-            <input type="radio" id="count100" name="outputcountname" value="100">
-            <label for="count100">100</label>
-          </span>
-          <span class="output-count-radio-item">
-            <input type="radio" id="count1000" name="outputcountname" value="1000">
-            <label for="count1000">1000</label>
-          </span>
+          <button id="output-count-10" class="selected" onclick="gPageController.show10TermsAction()">10</button>
+          <button id="output-count-100" class="not-selected" onclick="gPageController.show100TermsAction()">100</button>
+          <button id="output-count-1000" class="not-selected" onclick="gPageController.show1000TermsAction()">1000</button>
         </div>
       </div>
 
