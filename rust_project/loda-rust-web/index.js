@@ -20,6 +20,10 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+const ENUM_SCALEMODE_AUTO = 0;
+const ENUM_SCALEMODE_LINEAR = 1;
+const ENUM_SCALEMODE_LOGARITHMIC = 2;
+
 class PageController {
     constructor() {
         this.mWorkerIsReady = false;
@@ -27,12 +31,14 @@ class PageController {
         this.mIdenticalToOriginal = true;
         this.mOriginalText = "";
         this.mWasUnableToFetchProgram = false;
+        this.mScaleMode = ENUM_SCALEMODE_AUTO;
+        this.mTermCount = 10;
         this.setupWorker();
         this.setupEditor();
         this.setupChart();
         this.setupKeyboardShortcuts();
-        this.setupRangePicker();
         this.prepareProgram();
+        this.setupInteractiveArea();
     }
   
     setupWorker() {
@@ -163,7 +169,7 @@ class PageController {
     }
   
     async setRange() {
-        let rangeLength = this.getNumberOfTerms();
+        let rangeLength = this.mTermCount;
         await this.mPromiseWorker.postMessage({
             fn: "setrange", 
             rangeStart: 0,
@@ -297,6 +303,16 @@ class PageController {
         var ctx = document.getElementById('output-chart').getContext('2d');
         this.mOutputChart = new Chart(ctx, config);
     }
+
+    setupInteractiveArea() {
+        this.mGraphScalingAuto = document.getElementById("graph-scaling-auto");
+        this.mGraphScalingLinear = document.getElementById("graph-scaling-linear");
+        this.mGraphScalingLogarithmic = document.getElementById("graph-scaling-logarithmic");
+
+        this.mTermCount10 = document.getElementById("output-count-10");
+        this.mTermCount100 = document.getElementById("output-count-100");
+        this.mTermCount1000 = document.getElementById("output-count-1000");
+    }
   
     hideOverlay() {
         document.getElementById("overlay").style.display = "none";
@@ -305,34 +321,7 @@ class PageController {
     showOverlay() {
         document.getElementById("overlay").style.display = "block";
     }
-  
-    getNumberOfTerms() {
-        var radios = document.getElementsByName("outputcountname");
-        const length = radios.length;
-        var value = 10;
-        for (var i = 0; i < length; i++) {
-            if (radios[i].checked) {
-            value = radios[i].value;
-            break;
-            }
-        }
-        return value;
-    }
-  
-    setupRangePicker() {
-        const element = document.getElementById('output-count');
-        var self = this;
-        element.addEventListener('change', function(e) {
-            self.rangePickerAction();
-        }, false);
-    }
 
-    rangePickerAction() {
-        (async () => {
-            await this.workerCompileAndExecute();
-        })();
-    }
-  
     prepareProgram() {
         let params = new URLSearchParams(window.location.search);
         if (params.has('source')) {
@@ -538,19 +527,37 @@ class PageController {
         var chart = this.mOutputChart;
         
         // const dataAll = this.chartEmptyData();
-        const dataAll = this.extractChartDataFromOutput();
+        var dataAll = this.extractChartDataFromOutput();
+        if (dataAll.length < 1) {
+            // console.log("length is empty");
+            return;
+        }
 
         var pointRadius = 1;
+        if (dataAll.length <= 200) {
+            pointRadius = 2;
+        }
         if (dataAll.length <= 10) {
             pointRadius = 3;
         }
-        
+
+        const useLogarithmic = this.determineIfLogarithmShouldBeUsed(dataAll);
+
+        var backgroundColor = 'rgba(25,25,25,1.0)';
+        if (useLogarithmic) {
+            var backgroundColorArray = [];
+            var newDataAll = [];
+            this.clampDataForLogarithmicChart(backgroundColorArray, newDataAll, dataAll);
+            backgroundColor = backgroundColorArray;
+            dataAll = newDataAll;
+        }
+
         const datasetAll = {
-            backgroundColor: 'rgba(25,25,25,1.0)',
+            backgroundColor: backgroundColor,
             pointRadius: pointRadius,
             pointHitRadius: 5,
             borderWidth: 0,
-            data: dataAll,
+            data: dataAll
         };
         
         while (chart.data.datasets.length > 0) {
@@ -558,7 +565,154 @@ class PageController {
         }
         chart.data.datasets.push(datasetAll);
         
+        if (useLogarithmic) {
+            chart.options.scales.y.type = 'logarithmic';
+        } else {
+            chart.options.scales.y.type = 'linear';
+        }
+
         chart.update();
+    }
+
+    determineIfLogarithmShouldBeUsed(dataAll) {
+        if (this.mScaleMode == ENUM_SCALEMODE_LINEAR) {
+            return false;
+        }
+        if (this.mScaleMode == ENUM_SCALEMODE_LOGARITHMIC) {
+            return true;
+        }
+        // The scale mode is `ENUM_SCALEMODE_AUTO`.
+
+        if (dataAll.length < 1) {
+            return false;
+        }
+
+        const dataItem = dataAll[0];
+        var minY = dataItem.y;
+        var maxY = dataItem.y;
+        for (var i = 0; i < dataAll.length; i += 1) {
+            const dataItem = dataAll[i];
+            const y = dataItem.y;
+            if (y < minY) {
+                minY = y;
+            }
+            if (y > maxY) {
+                maxY = y;
+            }
+        }
+        const yRangeLength = maxY - minY + 1;
+        if (minY <= 0) {
+            // chartjs cannot do logarithmic plots with negative numbers nor zeros.
+            return false;
+        }
+        if (yRangeLength < 50) {
+            return false;
+        }
+
+        const binCount = 10;
+        var bins = [];
+        for (var i = 0; i < binCount; i += 1) {
+            bins.push(0);
+        }
+        for (var i = 0; i < dataAll.length; i += 1) {
+            const dataItem = dataAll[i];
+            const y = dataItem.y - minY;
+            const binIndex = Math.floor(y * (binCount-1) / yRangeLength);
+            bins[binIndex] += 1;
+        }
+        const target0 = Math.floor(dataAll.length * 0.8);
+        if (bins[0] > target0) {
+            // More than 80% of the data appears to end up in one bin.
+            // Logarithmic plot seems best for this.
+            return true;
+        }
+        // Data appears to be spread out more evenly across the bins.
+        // Linear plot seems best for this.
+        return false;
+    }
+
+    // Problem: Zero and negative numbers cannot be used for log.
+    // The values that works are 1 and higher.
+    // Solution: This function clamps the troublesome values to 1, 
+    // so the points show up on the log plot.
+    clampDataForLogarithmicChart(backgroundColorArray, clampedDataArray, originalDataArray) {
+        for (var i = 0; i < originalDataArray.length; i += 1) {
+            const dataItem = originalDataArray[i];
+            const y = dataItem.y;
+            if (y < 1) {
+                backgroundColorArray.push('rgba(255,25,25,1.0)');
+                var newDataItem = {};
+                Object.assign(newDataItem, dataItem);
+                newDataItem.y = 1;
+                clampedDataArray.push(newDataItem);
+                continue;
+            }
+            backgroundColorArray.push('rgba(25,25,25,1.0)');
+            clampedDataArray.push(dataItem);
+        }
+    }
+
+    useAutoScalingAction() {
+        this.mGraphScalingAuto.className = 'selected';
+        this.mGraphScalingLinear.className = 'not-selected';
+        this.mGraphScalingLogarithmic.className = 'not-selected';
+        this.mScaleMode = ENUM_SCALEMODE_AUTO;
+        this.rebuildChart();
+    }
+
+    useLinearScalingAction() {
+        this.mGraphScalingAuto.className = 'not-selected';
+        this.mGraphScalingLinear.className = 'selected';
+        this.mGraphScalingLogarithmic.className = 'not-selected';
+        this.mScaleMode = ENUM_SCALEMODE_LINEAR;
+        this.rebuildChart();
+    }
+
+    useLogarithmicScalingAction() {
+        this.mGraphScalingAuto.className = 'not-selected';
+        this.mGraphScalingLinear.className = 'not-selected';
+        this.mGraphScalingLogarithmic.className = 'selected';
+        this.mScaleMode = ENUM_SCALEMODE_LOGARITHMIC;
+        this.rebuildChart();
+    }
+
+    show10TermsAction() {
+        if (this.mTermCount == 10) {
+            return;
+        }
+        this.mTermCount = 10;
+        this.mTermCount10.className = 'selected';
+        this.mTermCount100.className = 'not-selected';
+        this.mTermCount1000.className = 'not-selected';
+        this.didUpdateTermCount();
+    }
+  
+    show100TermsAction() {
+        if (this.mTermCount == 100) {
+            return;
+        }
+        this.mTermCount = 100;
+        this.mTermCount10.className = 'not-selected';
+        this.mTermCount100.className = 'selected';
+        this.mTermCount1000.className = 'not-selected';
+        this.didUpdateTermCount();
+    }
+  
+    show1000TermsAction() {
+        if (this.mTermCount == 1000) {
+            return;
+        }
+        this.mTermCount = 1000;
+        this.mTermCount10.className = 'not-selected';
+        this.mTermCount100.className = 'not-selected';
+        this.mTermCount1000.className = 'selected';
+        this.didUpdateTermCount();
+    }
+  
+    didUpdateTermCount() {
+        (async () => {
+            await this.workerCompileAndExecute();
+        })();
     }
 }
   
