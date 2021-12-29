@@ -38,16 +38,12 @@ body {
     position: relative;
     min-height: 0;
 }
-#splitview-inner {
-}
 #editor-outer {
     position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
     width: 50%;
-}
-#editor-inner {
 }
 #output-outer {
     position: absolute;
