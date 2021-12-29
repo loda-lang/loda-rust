@@ -550,7 +550,7 @@ class PageController {
         var chart = this.mOutputChart;
         
         // const dataAll = this.chartEmptyData();
-        const dataAll = this.extractChartDataFromOutput();
+        var dataAll = this.extractChartDataFromOutput();
         if (dataAll.length < 1) {
             console.log("length is empty");
             return;
@@ -652,8 +652,30 @@ class PageController {
             useLogarithmic = true;
         }
 
+        var newDataAll = [];
+        var backgroundColorArray = [];
+        for (var i = 0; i < dataAll.length; i += 1) {
+            const dataItem = dataAll[i];
+            const y = dataItem.y;
+            if (y < 1) {
+                backgroundColorArray.push('rgba(255,25,25,1.0)');
+                var newDataItem = {};
+                Object.assign(newDataItem, dataItem);
+                newDataItem.y = 1;
+                newDataAll.push(newDataItem);
+                continue;
+            }
+            backgroundColorArray.push('rgba(25,25,25,1.0)');
+            newDataAll.push(dataItem);
+        }
+        var backgroundColor = 'rgba(25,25,25,1.0)';
+        if (useLogarithmic) {
+            backgroundColor = backgroundColorArray;
+            dataAll = newDataAll;
+        }
+
         const datasetAll = {
-            backgroundColor: 'rgba(25,25,25,1.0)',
+            backgroundColor: backgroundColor,
             pointRadius: pointRadius,
             pointHitRadius: 5,
             borderWidth: 0,
