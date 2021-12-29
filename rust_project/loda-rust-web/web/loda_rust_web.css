@@ -204,19 +204,50 @@ body {
     margin-right: 10px;
 }
 #graph-scaling {
-    background-color: purple;
+    /* background-color: purple; */
     /* margin: 10px;
     padding: 5px; */
-    white-space: nowrap;
-}
-#graph-scaling .selectable {
-    /* padding-top: 10px;
-    padding-bottom: 10px; */
-    background-color: orange;
+    /* white-space: nowrap; */
+    display: flex;
 }
 #graph-scaling .selected {
     font-weight: bold;
+
+    border: none;
+    color: rgb(77, 73, 73);
+    /* background-color: #f7eb42; */
+    background-color: transparent;
+    /* border: 1px solid rgb(54, 54, 54); */
+    padding: 10px 18px;
+    text-align: center;
     text-decoration: underline;
+    font-size: 16px;
+    /* border-radius: 5px; */
+    margin: 0;
+}
+#graph-scaling .not-selected {
+    font-weight: normal;
+
+    border: none;
+    color: black;
+    /* background-color: #f7eb42; */
+    background-color: transparent;
+    /* border: 1px solid rgb(54, 54, 54); */
+    padding: 10px 18px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 16px;
+    /* border-radius: 5px; */
+    margin: 0;
+}
+#graph-scaling #graph-scaling-auto {
+    border-right: 1px solid #bdbdbd;
+}
+#graph-scaling #graph-scaling-linear {
+    border-right: 1px solid #bdbdbd;
+}
+#graph-scaling #graph-scaling-logarithmic {
+    border-right: 1px solid #bdbdbd;
 }
 #output-stats {
     /* background-color: green;

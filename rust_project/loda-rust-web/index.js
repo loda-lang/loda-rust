@@ -33,6 +33,7 @@ class PageController {
         this.setupKeyboardShortcuts();
         this.setupRangePicker();
         this.prepareProgram();
+        this.setupInteractiveArea();
     }
   
     setupWorker() {
@@ -296,6 +297,12 @@ class PageController {
         };
         var ctx = document.getElementById('output-chart').getContext('2d');
         this.mOutputChart = new Chart(ctx, config);
+    }
+
+    setupInteractiveArea() {
+        this.mGraphScalingAuto = document.getElementById("graph-scaling-auto");
+        this.mGraphScalingLinear = document.getElementById("graph-scaling-linear");
+        this.mGraphScalingLogarithmic = document.getElementById("graph-scaling-logarithmic");
     }
   
     hideOverlay() {
@@ -660,6 +667,27 @@ class PageController {
         }
 
         chart.update();
+    }
+
+    useAutoScalingAction() {
+        console.log("use auto scaling");
+        this.mGraphScalingAuto.className = 'selected';
+        this.mGraphScalingLinear.className = 'not-selected';
+        this.mGraphScalingLogarithmic.className = 'not-selected';
+    }
+
+    useLinearScalingAction() {
+        console.log("use linear scaling");
+        this.mGraphScalingAuto.className = 'not-selected';
+        this.mGraphScalingLinear.className = 'selected';
+        this.mGraphScalingLogarithmic.className = 'not-selected';
+    }
+
+    useLogarithmicScalingAction() {
+        console.log("use logarithmic scaling");
+        this.mGraphScalingAuto.className = 'not-selected';
+        this.mGraphScalingLinear.className = 'not-selected';
+        this.mGraphScalingLogarithmic.className = 'selected';
     }
 }
   

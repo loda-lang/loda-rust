@@ -62,11 +62,9 @@
 
       <div id="output-interactive-ui">
         <div id="graph-scaling">
-          <span class="selectable selected">Auto</span>
-          <span>|</span>
-          <span class="selectable">Linear</span>
-          <span>|</span>
-          <span class="selectable">Log</span>
+          <button id="graph-scaling-auto" class="selected" onclick="gPageController.useAutoScalingAction()">Auto</button>
+          <button id="graph-scaling-linear" class="not-selected" onclick="gPageController.useLinearScalingAction()">Linear</button>
+          <button id="graph-scaling-logarithmic" class="not-selected" onclick="gPageController.useLogarithmicScalingAction()">Log</button>
         </div>
 
         <div id="output-count">
@@ -84,11 +82,12 @@
           </span>
         </div>
       </div>
-      <div id="output-stats">
-      </div>
 
       <div class="chart-container" style="position: relative;height:40vh">
         <canvas id="output-chart"></canvas>
+      </div>
+
+      <div id="output-stats">
       </div>
 
       <div id="output-inner">
