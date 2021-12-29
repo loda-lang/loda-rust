@@ -60,6 +60,11 @@ body {
     box-sizing: border-box;
     overflow-y: scroll;
 }
+#output-chart-container {
+    border-bottom: 1px solid var(--loda-grid);
+    position: relative;
+    height: 40vh;
+}
 #output-inner {
     margin: 10px;
     padding: 5px;
