@@ -529,7 +529,7 @@ class PageController {
         // const dataAll = this.chartEmptyData();
         var dataAll = this.extractChartDataFromOutput();
         if (dataAll.length < 1) {
-            console.log("length is empty");
+            // console.log("length is empty");
             return;
         }
 
@@ -540,8 +540,6 @@ class PageController {
         if (dataAll.length <= 10) {
             pointRadius = 3;
         }
-
-        var useLogarithmic = false;
 
         var minY = 0;
         var maxY = 0;
@@ -563,44 +561,18 @@ class PageController {
         }
         const yRangeLength = maxY - minY + 1;
 
-        var linearSum = 0.0;
-        var logSum = 0.0;
-        for (var i = 0; i < dataAll.length; i += 1) {
-            const dataItem = dataAll[i];
-            linearSum += dataItem.y;
-            logSum += Math.log(dataItem.y - minY + 1);
-        }
-        var linearAverage = linearSum / dataAll.length;
-        var logAverage = logSum / dataAll.length;
-
-        var linearSumError = 0.0;
-        var logSumError = 0.0;
-        for (var i = 0; i < dataAll.length; i += 1) {
-            const dataItem = dataAll[i];
-            const linearDiff = dataItem.y - linearAverage;
-            linearSumError += linearDiff * linearDiff;
-            const logDiff = Math.log(dataItem.y - minY + 1) - logAverage;
-            logSumError += logDiff * logDiff;
-        }
-        var linearAverageError = linearSumError / dataAll.length;
-        var logAverageError = logSumError / dataAll.length;
-
-        // useLogarithmic = linearAverageError < logAverageError;
-        useLogarithmic = false;
+        var useLogarithmic = false;
         const binCount = 10;
         var bins = [];
         for (var i = 0; i < binCount; i += 1) {
             bins.push(0);
         }
-        var total = 0;
         for (var i = 0; i < dataAll.length; i += 1) {
             const dataItem = dataAll[i];
             const y = dataItem.y - minY;
             const binIndex = Math.floor(y * (binCount-1) / yRangeLength);
             bins[binIndex] += 1;
-            total += 1;
         }
-        // console.log("total", total);
         console.log("bin count", bins.length);
         for (var i = 0; i < bins.length; i += 1) {
             const count = bins[i];
