@@ -190,58 +190,49 @@ body {
     border: 1px solid rgb(34, 34, 34);
 }
 #output-interactive-ui {
-    background-color: white;
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
-    /* padding: 5px; */
     font-size: medium;
 }
 #output-count {
-    background-color: yellow;
-    /* margin: 10px;
-    padding: 5px; */
+    background-color: white;
     white-space: nowrap;
 }  
 .output-count-radio-item {
     margin-right: 10px;
 }
 #graph-scaling {
-    /* background-color: purple; */
-    /* margin: 10px;
-    padding: 5px; */
-    /* white-space: nowrap; */
+    background-color: white;
     display: flex;
 }
 #graph-scaling .selected {
-    font-weight: bold;
-
+    font-weight: normal;
     border: none;
-    color: rgb(77, 73, 73);
-    /* background-color: #f7eb42; */
+    color: black;
     background-color: transparent;
-    /* border: 1px solid rgb(54, 54, 54); */
     padding: 10px 18px;
     text-align: center;
     text-decoration: underline;
     font-size: 16px;
-    /* border-radius: 5px; */
     margin: 0;
 }
 #graph-scaling .not-selected {
     font-weight: normal;
-
     border: none;
-    color: black;
-    /* background-color: #f7eb42; */
+    color: rgb(77, 73, 73);
     background-color: transparent;
-    /* border: 1px solid rgb(54, 54, 54); */
     padding: 10px 18px;
     text-align: center;
     text-decoration: none;
     font-size: 16px;
-    /* border-radius: 5px; */
     margin: 0;
+}
+#graph-scaling .not-selected:hover {
+    background-color: #e8e8e8;
+}
+#graph-scaling .not-selected:active {
+    background-color: #d3d3d3;
 }
 #graph-scaling #graph-scaling-auto {
     border-right: 1px solid var(--loda-grid);
@@ -253,8 +244,6 @@ body {
     border-right: 1px solid var(--loda-grid);
 }
 #output-stats {
-    /* background-color: green;
-    opacity: 0.3; */
     border-top: 1px solid green;
     border-bottom: 1px solid green;
 }

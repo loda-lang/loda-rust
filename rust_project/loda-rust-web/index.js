@@ -20,6 +20,10 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+const ENUM_SCALEMODE_AUTO = 0;
+const ENUM_SCALEMODE_LINEAR = 1;
+const ENUM_SCALEMODE_LOGARITHMIC = 2;
+
 class PageController {
     constructor() {
         this.mWorkerIsReady = false;
@@ -27,6 +31,7 @@ class PageController {
         this.mIdenticalToOriginal = true;
         this.mOriginalText = "";
         this.mWasUnableToFetchProgram = false;
+        this.mScaleMode = ENUM_SCALEMODE_AUTO;
         this.setupWorker();
         this.setupEditor();
         this.setupChart();
@@ -635,6 +640,16 @@ class PageController {
             useLogarithmic = false;
         }
 
+        if (this.mScaleMode == ENUM_SCALEMODE_AUTO) {
+            // do nothing
+        }
+        if (this.mScaleMode == ENUM_SCALEMODE_LINEAR) {
+            useLogarithmic = false;
+        }
+        if (this.mScaleMode == ENUM_SCALEMODE_LOGARITHMIC) {
+            useLogarithmic = true;
+        }
+
 
         const divStats = document.getElementById("output-stats");
         // divStats.innerText = `average: ${linearAverage} ${linearAverageError}`;
@@ -670,24 +685,30 @@ class PageController {
     }
 
     useAutoScalingAction() {
-        console.log("use auto scaling");
+        // console.log("use auto scaling");
         this.mGraphScalingAuto.className = 'selected';
         this.mGraphScalingLinear.className = 'not-selected';
         this.mGraphScalingLogarithmic.className = 'not-selected';
+        this.mScaleMode = ENUM_SCALEMODE_AUTO;
+        this.rebuildChart();
     }
 
     useLinearScalingAction() {
-        console.log("use linear scaling");
+        // console.log("use linear scaling");
         this.mGraphScalingAuto.className = 'not-selected';
         this.mGraphScalingLinear.className = 'selected';
         this.mGraphScalingLogarithmic.className = 'not-selected';
+        this.mScaleMode = ENUM_SCALEMODE_LINEAR;
+        this.rebuildChart();
     }
 
     useLogarithmicScalingAction() {
-        console.log("use logarithmic scaling");
+        // console.log("use logarithmic scaling");
         this.mGraphScalingAuto.className = 'not-selected';
         this.mGraphScalingLinear.className = 'not-selected';
         this.mGraphScalingLogarithmic.className = 'selected';
+        this.mScaleMode = ENUM_SCALEMODE_LOGARITHMIC;
+        this.rebuildChart();
     }
 }
   
