@@ -601,24 +601,11 @@ class PageController {
             useLogarithmic = true;
         }
 
-        var newDataAll = [];
-        var backgroundColorArray = [];
-        for (var i = 0; i < dataAll.length; i += 1) {
-            const dataItem = dataAll[i];
-            const y = dataItem.y;
-            if (y < 1) {
-                backgroundColorArray.push('rgba(255,25,25,1.0)');
-                var newDataItem = {};
-                Object.assign(newDataItem, dataItem);
-                newDataItem.y = 1;
-                newDataAll.push(newDataItem);
-                continue;
-            }
-            backgroundColorArray.push('rgba(25,25,25,1.0)');
-            newDataAll.push(dataItem);
-        }
         var backgroundColor = 'rgba(25,25,25,1.0)';
         if (useLogarithmic) {
+            var backgroundColorArray = [];
+            var newDataAll = [];
+            this.clampDataForLogarithmicChart(backgroundColorArray, newDataAll, dataAll);
             backgroundColor = backgroundColorArray;
             dataAll = newDataAll;
         }
@@ -643,6 +630,27 @@ class PageController {
         }
 
         chart.update();
+    }
+
+    // Problem: Zero and negative numbers cannot be used for log.
+    // The values that works are 1 and higher.
+    // Solution: This function clamps the troublesome values to 1, 
+    // so the points show up on the log plot.
+    clampDataForLogarithmicChart(backgroundColorArray, clampedDataArray, originalDataArray) {
+        for (var i = 0; i < originalDataArray.length; i += 1) {
+            const dataItem = originalDataArray[i];
+            const y = dataItem.y;
+            if (y < 1) {
+                backgroundColorArray.push('rgba(255,25,25,1.0)');
+                var newDataItem = {};
+                Object.assign(newDataItem, dataItem);
+                newDataItem.y = 1;
+                clampedDataArray.push(newDataItem);
+                continue;
+            }
+            backgroundColorArray.push('rgba(25,25,25,1.0)');
+            clampedDataArray.push(dataItem);
+        }
     }
 
     useAutoScalingAction() {
