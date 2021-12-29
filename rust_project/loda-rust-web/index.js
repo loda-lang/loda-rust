@@ -649,13 +649,6 @@ class PageController {
             useLogarithmic = true;
         }
 
-        const divColor = document.getElementById("graph-scaling");
-        if (useLogarithmic) {
-            divColor.style = 'background:#f00';
-        } else {
-            divColor.style = '';
-        }
-
         const datasetAll = {
             backgroundColor: 'rgba(25,25,25,1.0)',
             pointRadius: pointRadius,
