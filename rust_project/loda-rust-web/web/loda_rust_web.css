@@ -243,10 +243,6 @@ body {
 #graph-scaling #graph-scaling-logarithmic {
     border-right: 1px solid var(--loda-grid);
 }
-#output-stats {
-    border-top: 1px solid green;
-    border-bottom: 1px solid green;
-}
 .page-footer-item {
     flex: 1;
 }

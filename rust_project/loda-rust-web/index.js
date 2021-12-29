@@ -551,9 +551,8 @@ class PageController {
         
         // const dataAll = this.chartEmptyData();
         const dataAll = this.extractChartDataFromOutput();
-
         if (dataAll.length < 1) {
-            this.outputArea_appendError("length is empty");
+            console.log("length is empty");
             return;
         }
 
@@ -649,11 +648,6 @@ class PageController {
         if (this.mScaleMode == ENUM_SCALEMODE_LOGARITHMIC) {
             useLogarithmic = true;
         }
-
-
-        const divStats = document.getElementById("output-stats");
-        // divStats.innerText = `average: ${linearAverage} ${linearAverageError}`;
-        divStats.innerText = `${linearAverageError} ${logAverageError}`;
 
         const divColor = document.getElementById("graph-scaling");
         if (useLogarithmic) {
