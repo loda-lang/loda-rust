@@ -557,6 +557,9 @@ class PageController {
         }
 
         var pointRadius = 1;
+        if (dataAll.length <= 200) {
+            pointRadius = 2;
+        }
         if (dataAll.length <= 10) {
             pointRadius = 3;
         }
