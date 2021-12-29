@@ -633,7 +633,7 @@ class PageController {
         // divStats.innerText = `average: ${linearAverage} ${linearAverageError}`;
         divStats.innerText = `${linearAverageError} ${logAverageError}`;
 
-        const divColor = document.getElementById("output-count");
+        const divColor = document.getElementById("graph-scaling");
         if (useLogarithmic) {
             divColor.style = 'background:#f00';
         } else {

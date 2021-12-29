@@ -186,13 +186,26 @@ body {
     background-color: #eaeaea;
     border: 1px solid rgb(34, 34, 34);
 }
+#output-interactive-ui {
+    background-color: white;
+}
 #output-count {
     margin: 10px;
     padding: 5px;
-    background-color: white;
 }  
 .output-count-radio-item {
     margin-right: 10px;
+}
+#graph-scaling {
+    margin: 10px;
+    padding: 5px;
+}
+#graph-scaling .selected {
+    font-weight: bold;
+    text-decoration: underline;
+}
+#output-stats {
+    background-color: green;
 }
 .page-footer-item {
     flex: 1;

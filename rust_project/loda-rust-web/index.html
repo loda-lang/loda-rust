@@ -60,21 +60,31 @@
 
     <div id="output-outer">
 
-      <div id="output-count">
-        Number of terms:
-        <span class="output-count-radio-item">
-          <input type="radio" id="count10" name="outputcountname" value="10" checked="on">
-          <label for="count10">10</label>
-        </span>
-        <span class="output-count-radio-item">
-          <input type="radio" id="count100" name="outputcountname" value="100">
-          <label for="count100">100</label>
-        </span>
-        <span class="output-count-radio-item">
-          <input type="radio" id="count1000" name="outputcountname" value="1000">
-          <label for="count1000">1000</label>
-        </span>
-        <span id="output-stats"></span>
+      <div id="output-interactive-ui">
+        <div id="output-count">
+          <span class="output-count-radio-item">
+            <input type="radio" id="count10" name="outputcountname" value="10" checked="on">
+            <label for="count10">10</label>
+          </span>
+          <span class="output-count-radio-item">
+            <input type="radio" id="count100" name="outputcountname" value="100">
+            <label for="count100">100</label>
+          </span>
+          <span class="output-count-radio-item">
+            <input type="radio" id="count1000" name="outputcountname" value="1000">
+            <label for="count1000">1000</label>
+          </span>
+        </div>
+
+        <div id="graph-scaling">
+          <span class="selected">Auto</span>
+          <span>|</span>
+          <span>Linear</span>
+          <span>|</span>
+          <span>Log</span>
+        </div>
+      </div>
+      <div id="output-stats">
       </div>
 
       <div class="chart-container" style="position: relative;height:40vh">
