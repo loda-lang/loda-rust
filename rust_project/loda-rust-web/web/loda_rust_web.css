@@ -194,6 +194,7 @@ body {
     justify-content: space-between;
     flex-wrap: wrap;
     font-size: medium;
+    border-bottom: 1px solid var(--loda-grid);
 }
 #output-count {
     background-color: white;
