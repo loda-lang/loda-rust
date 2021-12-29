@@ -541,65 +541,7 @@ class PageController {
             pointRadius = 3;
         }
 
-        var minY = 0;
-        var maxY = 0;
-        if (dataAll.length >= 1) {
-            const dataItem = dataAll[0];
-            const y = dataItem.y;
-            minY = y;
-            maxY = y;
-        }
-        for (var i = 0; i < dataAll.length; i += 1) {
-            const dataItem = dataAll[i];
-            const y = dataItem.y;
-            if (y < minY) {
-                minY = y;
-            }
-            if (y > maxY) {
-                maxY = y;
-            }
-        }
-        const yRangeLength = maxY - minY + 1;
-
-        var useLogarithmic = false;
-        const binCount = 10;
-        var bins = [];
-        for (var i = 0; i < binCount; i += 1) {
-            bins.push(0);
-        }
-        for (var i = 0; i < dataAll.length; i += 1) {
-            const dataItem = dataAll[i];
-            const y = dataItem.y - minY;
-            const binIndex = Math.floor(y * (binCount-1) / yRangeLength);
-            bins[binIndex] += 1;
-        }
-        console.log("bin count", bins.length);
-        for (var i = 0; i < bins.length; i += 1) {
-            const count = bins[i];
-            console.log(`bin ${i} = ${count}`);
-        }
-        const target0 = Math.floor(dataAll.length * 0.8);
-        console.log("target", target0, "bin0", bins[0]);
-        if (bins[0] > target0) {
-            useLogarithmic = true;
-        }
-        if (minY <= 0) {
-            // chartjs cannot do logarithmic plots with negative numbers nor zeros.
-            useLogarithmic = false;
-        }
-        if (yRangeLength < 20) {
-            useLogarithmic = false;
-        }
-
-        if (this.mScaleMode == ENUM_SCALEMODE_AUTO) {
-            // do nothing
-        }
-        if (this.mScaleMode == ENUM_SCALEMODE_LINEAR) {
-            useLogarithmic = false;
-        }
-        if (this.mScaleMode == ENUM_SCALEMODE_LOGARITHMIC) {
-            useLogarithmic = true;
-        }
+        const useLogarithmic = this.determineIfLogarithmShouldBeUsed(dataAll);
 
         var backgroundColor = 'rgba(25,25,25,1.0)';
         if (useLogarithmic) {
@@ -630,6 +572,63 @@ class PageController {
         }
 
         chart.update();
+    }
+
+    determineIfLogarithmShouldBeUsed(dataAll) {
+        if (this.mScaleMode == ENUM_SCALEMODE_LINEAR) {
+            return false;
+        }
+        if (this.mScaleMode == ENUM_SCALEMODE_LOGARITHMIC) {
+            return true;
+        }
+        // The scale mode is `ENUM_SCALEMODE_AUTO`.
+
+        if (dataAll.length < 1) {
+            return false;
+        }
+
+        const dataItem = dataAll[0];
+        var minY = dataItem.y;
+        var maxY = dataItem.y;
+        for (var i = 0; i < dataAll.length; i += 1) {
+            const dataItem = dataAll[i];
+            const y = dataItem.y;
+            if (y < minY) {
+                minY = y;
+            }
+            if (y > maxY) {
+                maxY = y;
+            }
+        }
+        const yRangeLength = maxY - minY + 1;
+        if (minY <= 0) {
+            // chartjs cannot do logarithmic plots with negative numbers nor zeros.
+            return false;
+        }
+        if (yRangeLength < 50) {
+            return false;
+        }
+
+        const binCount = 10;
+        var bins = [];
+        for (var i = 0; i < binCount; i += 1) {
+            bins.push(0);
+        }
+        for (var i = 0; i < dataAll.length; i += 1) {
+            const dataItem = dataAll[i];
+            const y = dataItem.y - minY;
+            const binIndex = Math.floor(y * (binCount-1) / yRangeLength);
+            bins[binIndex] += 1;
+        }
+        const target0 = Math.floor(dataAll.length * 0.8);
+        if (bins[0] > target0) {
+            // More than 80% of the data appears to end up in one bin.
+            // Logarithmic plot seems best for this.
+            return true;
+        }
+        // Data appears to be spread out more evenly across the bins.
+        // Linear plot seems best for this.
+        return false;
     }
 
     // Problem: Zero and negative numbers cannot be used for log.
