@@ -188,24 +188,41 @@ body {
 }
 #output-interactive-ui {
     background-color: white;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    /* padding: 5px; */
+    font-size: medium;
 }
 #output-count {
-    margin: 10px;
-    padding: 5px;
+    background-color: yellow;
+    /* margin: 10px;
+    padding: 5px; */
+    white-space: nowrap;
 }  
 .output-count-radio-item {
     margin-right: 10px;
 }
 #graph-scaling {
-    margin: 10px;
-    padding: 5px;
+    background-color: purple;
+    /* margin: 10px;
+    padding: 5px; */
+    white-space: nowrap;
+}
+#graph-scaling .selectable {
+    /* padding-top: 10px;
+    padding-bottom: 10px; */
+    background-color: orange;
 }
 #graph-scaling .selected {
     font-weight: bold;
     text-decoration: underline;
 }
 #output-stats {
-    background-color: green;
+    /* background-color: green;
+    opacity: 0.3; */
+    border-top: 1px solid green;
+    border-bottom: 1px solid green;
 }
 .page-footer-item {
     flex: 1;
