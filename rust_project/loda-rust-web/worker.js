@@ -142,7 +142,11 @@ class MyWorker {
         this.mPendingOperations = [];
 
         const sourceCode = parameters.sourceCode;
-        await this.mDependencyManager.clone().run_source_code(sourceCode);
+        try {
+            await this.mDependencyManager.clone().run_source_code(sourceCode);
+        } catch (err) {
+            throw new Error("Hello");
+        }
         // console.log("worker", this.mWorkerId, "- commandCompile after");
     }
 
