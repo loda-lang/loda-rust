@@ -60,7 +60,7 @@ class PageController {
             break;
         default:
             console.error(`workerOnMessage.unknown: ${e.data}`);
-            this.outputArea_appendError("workerOnMessage received unknown message");
+            this.outputArea_appendErrorMessage("workerOnMessage received unknown message");
             break;
         }
     }
@@ -77,7 +77,7 @@ class PageController {
         if(!parameters.value) {
             console.error("failed to initialize worker", parameters);
             this.outputArea_clear();
-            this.outputArea_appendError(`Failed to initialize worker. reason: ${parameters.reason}`);
+            this.outputArea_appendErrorMessage(`Failed to initialize worker. reason: ${parameters.reason}`);
             return;
         }
 
@@ -160,7 +160,7 @@ class PageController {
         parentDiv.appendChild(b0);
     }
   
-    outputArea_appendError(message) {
+    outputArea_appendErrorMessage(errorMessage) {
         const parentDiv = document.getElementById("output-inner");    
         if (parentDiv.hasChildNodes()) {
             const a0 = document.createElement("span");
@@ -171,14 +171,14 @@ class PageController {
         }
         const b0 = document.createElement("span");
         b0.className = "error";
-        const b1 = document.createTextNode(message);
+        const b1 = document.createTextNode(errorMessage);
         b0.appendChild(b1);        
         parentDiv.appendChild(b0);
     }
 
     outputArea_showError(error) {
         this.outputArea_clear();
-        this.outputArea_appendError(error.message);
+        this.outputArea_appendErrorMessage(error.message);
     }
   
     async setRange() {
@@ -230,11 +230,11 @@ class PageController {
             }
             if (item.error != null) {
                 console.error("Unable to compute term", item.error);
-                this.outputArea_appendError(item.error);
+                this.outputArea_appendErrorMessage(item.error);
                 break;
             }
             console.error("Encountered an integrity error. Expected either 'value' or 'error', but got something else.");
-            this.outputArea_appendError("Integrity error");
+            this.outputArea_appendErrorMessage("Integrity error");
             break;
         }
 
