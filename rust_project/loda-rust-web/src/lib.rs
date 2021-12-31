@@ -249,16 +249,16 @@ impl WebDependencyManagerInner {
             // Stop if the program cannot be found
             let status: u16 = resp.status();
             if status == 404 {
-                error!("404 Not found. Cannot find dependendency. program_id: {:?}", program_id);
-                let s = format!("404 Not found. Cannot find dependendency. program_id: {:?}", program_id);
+                error!("Dependency not found. program_id: {:?}", program_id);
+                let s = format!("Dependency not found. program_id: {:?}", program_id);
                 let err = JsValue::from_str(&s);
                 return Err(err);
             }
 
             // Stop if the program cannot be fetched for some other reason
             if !resp.ok() {
-                error!("Expected status 2xx, but got {:?}. Cannot find dependendency. program_id: {:?}", status, program_id);
-                let s = format!("Expected status 2xx, but got {:?}. Cannot find dependendency. program_id: {:?}", status, program_id);
+                error!("Expected status 2xx, but got {:?}. Cannot fetch dependendency. program_id: {:?}", status, program_id);
+                let s = format!("Expected status 2xx, but got {:?}. Cannot fetch dependendency. program_id: {:?}", status, program_id);
                 let err = JsValue::from_str(&s);
                 return Err(err);
             }
