@@ -124,11 +124,20 @@ class PageController {
     async compileEditorCode() {
         console.log("compile editor code BEFORE");
         let sourceCode = this.mEditor.getValue();
-        await this.mPromiseWorker.postMessage({
-            fn: "compile", 
-            sourceCode: sourceCode
-        });
+
+        try {
+            await this.mPromiseWorker.postMessage({
+                fn: "compile", 
+                sourceCode: sourceCode
+            });
+        } catch(err) {
+            console.error("Unable to compile", err);
+            this.outputArea_clear();
+            this.outputArea_appendError("Unable to compile");
+            return false;
+        }
         console.log("compile editor code AFTER");
+        return true;
     }
     
     outputArea_clear() {
@@ -402,7 +411,10 @@ class PageController {
     async workerCompileAndExecute() {
         console.log("compile and execute");
         await this.setRange();
-        await this.compileEditorCode();
+        const compileOk = await this.compileEditorCode();
+        if (!compileOk) {
+            return;
+        }
         this.outputArea_clear();
         await this.executeRange();
     }
