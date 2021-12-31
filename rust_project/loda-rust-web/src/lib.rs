@@ -302,7 +302,14 @@ impl WebDependencyManagerInner {
         for (program_id, file_content) in virtual_filesystem {
             self.dependency_manager.virtual_filesystem_insert_file(program_id, file_content);
         }
-        let runner1: ProgramRunner = self.dependency_manager.parse(ProgramId::ProgramWithoutId, &root_source_code).unwrap();
+        let runner1: ProgramRunner = match self.dependency_manager.parse(ProgramId::ProgramWithoutId, &root_source_code) {
+            Ok(value) => value,
+            Err(error) => {
+                error!("Unable to create program runner: {:?}", error);
+                let err = JsValue::from_str("Unable to create program runner");
+                return Err(err);
+            }
+        };
         let runner: Rc::<ProgramRunner> = Rc::new(runner1);
         self.program_runner = runner;
 
