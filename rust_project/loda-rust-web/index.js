@@ -130,10 +130,9 @@ class PageController {
                 fn: "compile", 
                 sourceCode: sourceCode
             });
-        } catch(err) {
-            console.error("Unable to compile", err);
-            this.outputArea_clear();
-            this.outputArea_appendError("Unable to compile");
+        } catch(error) {
+            console.error("Unable to compile", error);
+            this.outputArea_showError(error);
             return false;
         }
         console.log("compile editor code AFTER");
@@ -175,6 +174,11 @@ class PageController {
         const b1 = document.createTextNode(message);
         b0.appendChild(b1);        
         parentDiv.appendChild(b0);
+    }
+
+    outputArea_showError(error) {
+        this.outputArea_clear();
+        this.outputArea_appendError(error.message);
     }
   
     async setRange() {
@@ -373,9 +377,7 @@ class PageController {
             .then(response => {
                 if (response.status == 404) {
                     const oeisId = oeisIdFromProgramId(programId);
-                    var error = new Error(`There exist no program for ${oeisId}`);
-                    error.name = 'pretty-error-message';
-                    throw error;
+                    throw new Error(`There exist no program for ${oeisId}`);
                 }
                 if (!response.ok) {
                     throw new Error(`Expected status 2xx, but got ${response.status}`);
@@ -397,13 +399,8 @@ class PageController {
                 this.mOriginalText = textdata;
                 this.mEditor.setValue(textdata);
                 this.mEditor.focus();
-                this.outputArea_clear();
                 this.mWasUnableToFetchProgram = true;
-                if (error.name == 'pretty-error-message') {
-                    this.outputArea_appendError(error.message);
-                } else {
-                    this.outputArea_appendError(`Error - ${error.message}`);
-                }
+                this.outputArea_showError(error);
                 this.hideOverlay();
             });
     }
