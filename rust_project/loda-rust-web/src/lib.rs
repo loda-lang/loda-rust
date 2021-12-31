@@ -287,8 +287,9 @@ impl WebDependencyManagerInner {
             let parsed_program: ParsedProgram = match parse_program(&response_text) {
                 Ok(value) => value,
                 Err(error) => {
-                    error!("Unable to parse program: {:?}", error);
-                    let err = JsValue::from_str("Unable to parse program");
+                    error!("Problem with dependency program_id: {}. Unable to parse program: {}", program_id, error);
+                    let s = format!("Problem with dependency program_id: {}. Unable to parse program: {}", program_id, error);
+                    let err = JsValue::from_str(&s);
                     return Err(err);
                 }
             };
