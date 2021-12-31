@@ -245,7 +245,24 @@ impl WebDependencyManagerInner {
             // `resp_value` is a `Response` object.
             assert!(resp_value.is_instance_of::<Response>());
             let resp: Response = resp_value.dyn_into().unwrap();
-        
+
+            // Stop if the program cannot be found
+            let status: u16 = resp.status();
+            if status == 404 {
+                error!("404 Not found. Cannot find dependendency. program_id: {:?}", program_id);
+                let s = format!("404 Not found. Cannot find dependendency. program_id: {:?}", program_id);
+                let err = JsValue::from_str(&s);
+                return Err(err);
+            }
+
+            // Stop if the program cannot be fetched for some other reason
+            if !resp.ok() {
+                error!("Expected status 2xx, but got {:?}. Cannot find dependendency. program_id: {:?}", status, program_id);
+                let s = format!("Expected status 2xx, but got {:?}. Cannot find dependendency. program_id: {:?}", status, program_id);
+                let err = JsValue::from_str(&s);
+                return Err(err);
+            }
+
             let text_result: Result<js_sys::Promise, JsValue> = resp.text();
             let text_jspromise: js_sys::Promise = match text_result {
                 Ok(jspromise) => jspromise,
