@@ -199,7 +199,8 @@ impl WebDependencyManagerInner {
             Ok(value) => value,
             Err(error) => {
                 error!("Unable to parse program: {:?}", error);
-                let err = JsValue::from_str("Unable to parse program");
+                let s = format!("{}", error);
+                let err = JsValue::from_str(&s);
                 return Err(err);
             }
         };
