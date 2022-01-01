@@ -308,7 +308,8 @@ impl WebDependencyManagerInner {
             Ok(value) => value,
             Err(error) => {
                 error!("Unable to create program runner: {:?}", error);
-                let err = JsValue::from_str("Unable to create program runner");
+                let s = format!("Unable to create program runner: {}", error);
+                let err = JsValue::from_str(&s);
                 return Err(err);
             }
         };
