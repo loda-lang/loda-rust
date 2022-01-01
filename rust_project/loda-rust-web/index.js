@@ -60,7 +60,7 @@ class PageController {
             break;
         default:
             console.error(`workerOnMessage.unknown: ${e.data}`);
-            this.outputArea_appendError("workerOnMessage received unknown message");
+            this.outputArea_appendErrorMessage("workerOnMessage received unknown message");
             break;
         }
     }
@@ -77,7 +77,7 @@ class PageController {
         if(!parameters.value) {
             console.error("failed to initialize worker", parameters);
             this.outputArea_clear();
-            this.outputArea_appendError(`Failed to initialize worker. reason: ${parameters.reason}`);
+            this.outputArea_appendErrorMessage(`Failed to initialize worker. reason: ${parameters.reason}`);
             return;
         }
 
@@ -124,11 +124,19 @@ class PageController {
     async compileEditorCode() {
         console.log("compile editor code BEFORE");
         let sourceCode = this.mEditor.getValue();
-        await this.mPromiseWorker.postMessage({
-            fn: "compile", 
-            sourceCode: sourceCode
-        });
+
+        try {
+            await this.mPromiseWorker.postMessage({
+                fn: "compile", 
+                sourceCode: sourceCode
+            });
+        } catch(error) {
+            console.error("Unable to compile", error);
+            this.outputArea_showError(error);
+            return false;
+        }
         console.log("compile editor code AFTER");
+        return true;
     }
     
     outputArea_clear() {
@@ -152,7 +160,7 @@ class PageController {
         parentDiv.appendChild(b0);
     }
   
-    outputArea_appendError(message) {
+    outputArea_appendErrorMessage(errorMessage) {
         const parentDiv = document.getElementById("output-inner");    
         if (parentDiv.hasChildNodes()) {
             const a0 = document.createElement("span");
@@ -163,9 +171,14 @@ class PageController {
         }
         const b0 = document.createElement("span");
         b0.className = "error";
-        const b1 = document.createTextNode(message);
+        const b1 = document.createTextNode(errorMessage);
         b0.appendChild(b1);        
         parentDiv.appendChild(b0);
+    }
+
+    outputArea_showError(error) {
+        this.outputArea_clear();
+        this.outputArea_appendErrorMessage(error.message);
     }
   
     async setRange() {
@@ -217,11 +230,11 @@ class PageController {
             }
             if (item.error != null) {
                 console.error("Unable to compute term", item.error);
-                this.outputArea_appendError(item.error);
+                this.outputArea_appendErrorMessage(item.error);
                 break;
             }
             console.error("Encountered an integrity error. Expected either 'value' or 'error', but got something else.");
-            this.outputArea_appendError("Integrity error");
+            this.outputArea_appendErrorMessage("Integrity error");
             break;
         }
 
@@ -364,9 +377,7 @@ class PageController {
             .then(response => {
                 if (response.status == 404) {
                     const oeisId = oeisIdFromProgramId(programId);
-                    var error = new Error(`There exist no program for ${oeisId}`);
-                    error.name = 'pretty-error-message';
-                    throw error;
+                    throw new Error(`There exist no program for ${oeisId}`);
                 }
                 if (!response.ok) {
                     throw new Error(`Expected status 2xx, but got ${response.status}`);
@@ -388,13 +399,8 @@ class PageController {
                 this.mOriginalText = textdata;
                 this.mEditor.setValue(textdata);
                 this.mEditor.focus();
-                this.outputArea_clear();
                 this.mWasUnableToFetchProgram = true;
-                if (error.name == 'pretty-error-message') {
-                    this.outputArea_appendError(error.message);
-                } else {
-                    this.outputArea_appendError(`Error - ${error.message}`);
-                }
+                this.outputArea_showError(error);
                 this.hideOverlay();
             });
     }
@@ -402,7 +408,10 @@ class PageController {
     async workerCompileAndExecute() {
         console.log("compile and execute");
         await this.setRange();
-        await this.compileEditorCode();
+        const compileOk = await this.compileEditorCode();
+        if (!compileOk) {
+            return;
+        }
         this.outputArea_clear();
         await this.executeRange();
     }
