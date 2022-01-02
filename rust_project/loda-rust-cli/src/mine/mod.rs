@@ -6,6 +6,7 @@ mod funnel;
 mod genome;
 mod genome_item;
 mod genome_mutate_context;
+mod load_histogram_instruction_constant_csv_file;
 mod load_program_ids_csv_file;
 mod popular_program_container;
 mod prevent_flooding;
