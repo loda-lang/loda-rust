@@ -25,6 +25,8 @@ require 'csv'
 require 'date'
 require_relative 'config'
 
+DISCARD_EXTREME_VALUES_BEYOND_THIS_LIMIT = 10000
+
 LODA_PROGRAMS_OEIS = Config.instance.loda_programs_oeis
 
 output_filename = 'data/histogram_instruction_constant.csv'
@@ -43,6 +45,10 @@ def populate_dictionary_with_file_stats(dict, path)
             next
         end
         if instruction == 'lpb'
+            next
+        end
+        if constant.to_i.abs > DISCARD_EXTREME_VALUES_BEYOND_THIS_LIMIT
+            # puts "Ignoring too extreme constant, #{constant}: #{path}"
             next
         end
         if instruction == 'add' && constant == '0'
