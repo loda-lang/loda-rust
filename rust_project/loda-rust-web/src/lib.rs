@@ -199,7 +199,8 @@ impl WebDependencyManagerInner {
             Ok(value) => value,
             Err(error) => {
                 error!("Unable to parse program: {:?}", error);
-                let err = JsValue::from_str("Unable to parse program");
+                let s = format!("{}", error);
+                let err = JsValue::from_str(&s);
                 return Err(err);
             }
         };
@@ -245,7 +246,24 @@ impl WebDependencyManagerInner {
             // `resp_value` is a `Response` object.
             assert!(resp_value.is_instance_of::<Response>());
             let resp: Response = resp_value.dyn_into().unwrap();
-        
+
+            // Stop if the program cannot be found
+            let status: u16 = resp.status();
+            if status == 404 {
+                error!("Dependency not found. program_id: {:?}", program_id);
+                let s = format!("Dependency not found. program_id: {:?}", program_id);
+                let err = JsValue::from_str(&s);
+                return Err(err);
+            }
+
+            // Stop if the program cannot be fetched for some other reason
+            if !resp.ok() {
+                error!("Expected status 2xx, but got {:?}. Cannot fetch dependendency. program_id: {:?}", status, program_id);
+                let s = format!("Expected status 2xx, but got {:?}. Cannot fetch dependendency. program_id: {:?}", status, program_id);
+                let err = JsValue::from_str(&s);
+                return Err(err);
+            }
+
             let text_result: Result<js_sys::Promise, JsValue> = resp.text();
             let text_jspromise: js_sys::Promise = match text_result {
                 Ok(jspromise) => jspromise,
@@ -269,8 +287,9 @@ impl WebDependencyManagerInner {
             let parsed_program: ParsedProgram = match parse_program(&response_text) {
                 Ok(value) => value,
                 Err(error) => {
-                    error!("Unable to parse program: {:?}", error);
-                    let err = JsValue::from_str("Unable to parse program");
+                    error!("Problem with dependency program_id: {}. Unable to parse program: {}", program_id, error);
+                    let s = format!("Problem with dependency program_id: {}. Unable to parse program: {}", program_id, error);
+                    let err = JsValue::from_str(&s);
                     return Err(err);
                 }
             };
@@ -285,7 +304,15 @@ impl WebDependencyManagerInner {
         for (program_id, file_content) in virtual_filesystem {
             self.dependency_manager.virtual_filesystem_insert_file(program_id, file_content);
         }
-        let runner1: ProgramRunner = self.dependency_manager.parse(ProgramId::ProgramWithoutId, &root_source_code).unwrap();
+        let runner1: ProgramRunner = match self.dependency_manager.parse(ProgramId::ProgramWithoutId, &root_source_code) {
+            Ok(value) => value,
+            Err(error) => {
+                error!("Unable to create program runner: {:?}", error);
+                let s = format!("Unable to create program runner: {}", error);
+                let err = JsValue::from_str(&s);
+                return Err(err);
+            }
+        };
         let runner: Rc::<ProgramRunner> = Rc::new(runner1);
         self.program_runner = runner;
 
