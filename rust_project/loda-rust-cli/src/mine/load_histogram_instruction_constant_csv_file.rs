@@ -3,6 +3,35 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use serde::Deserialize;
+use rand::Rng;
+use rand::seq::SliceRandom;
+use loda_rust_core::parser::InstructionId;
+
+struct MostPopularConstant {
+
+}
+
+impl MostPopularConstant {
+    fn populate(records: &Vec<Record>) {
+        // populate_with_instruction(records, InstructionId::Divide);
+    }
+
+    fn populate_with_instruction(records: &Vec<Record>, instruction_id: InstructionId) {
+        for record in records {
+            
+        }
+    }
+
+    fn random<R: Rng + ?Sized>(&self, rng: &mut R, instruction_id: &InstructionId) -> i32 {
+        let mutation_vec: Vec<(i32,usize)> = vec![
+            (-1, 1),
+            (5, 20),
+            (18, 1),
+        ];
+        let value: &i32 = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
+        *value
+    }
+}
 
 #[derive(Debug, Deserialize)]
 struct Record {
