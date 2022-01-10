@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum InstructionId {
     Add,
     Binomial,

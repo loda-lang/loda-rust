@@ -12,11 +12,11 @@ type ValueAndWeight = (i32,u32);
 type ValueAndWeightVector = Vec<ValueAndWeight>;
 
 struct MostPopularConstant {
-
+    instruction_and_valueweightvector: HashMap<InstructionId, ValueAndWeightVector>
 }
 
 impl MostPopularConstant {
-    fn populate(records: &Vec<Record>) {
+    fn new(records: &Vec<Record>) -> MostPopularConstant {
         let instruction_ids: &[InstructionId] = &[
             InstructionId::Add,
             InstructionId::Divide,
@@ -25,7 +25,10 @@ impl MostPopularConstant {
         for instruction_id in instruction_ids {
             let value_and_weight_vec: ValueAndWeightVector = 
                 Self::extract_value_and_weight_vec(records, &instruction_id);
-            // result.insert(*instruction_id, value_and_weight_vec);
+            result.insert(*instruction_id, value_and_weight_vec);
+        }
+        Self {
+            instruction_and_valueweightvector: result
         }
     }
 
