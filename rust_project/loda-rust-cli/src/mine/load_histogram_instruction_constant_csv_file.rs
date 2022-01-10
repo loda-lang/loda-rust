@@ -2,10 +2,14 @@ use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
+use std::collections::HashMap;
 use serde::Deserialize;
 use rand::Rng;
 use rand::seq::SliceRandom;
 use loda_rust_core::parser::InstructionId;
+
+type ValueAndWeight = (i32,u32);
+type ValueAndWeightVector = Vec<ValueAndWeight>;
 
 struct MostPopularConstant {
 
@@ -13,17 +17,33 @@ struct MostPopularConstant {
 
 impl MostPopularConstant {
     fn populate(records: &Vec<Record>) {
-        // populate_with_instruction(records, InstructionId::Divide);
-    }
-
-    fn populate_with_instruction(records: &Vec<Record>, instruction_id: InstructionId) {
-        for record in records {
-            
+        let instruction_ids: &[InstructionId] = &[
+            InstructionId::Add,
+            InstructionId::Divide,
+        ];
+        let mut result: HashMap<InstructionId, ValueAndWeightVector> = HashMap::new();
+        for instruction_id in instruction_ids {
+            let value_and_weight_vec: ValueAndWeightVector = 
+                Self::extract_value_and_weight_vec(records, &instruction_id);
+            // result.insert(*instruction_id, value_and_weight_vec);
         }
     }
 
+    fn extract_value_and_weight_vec(records: &Vec<Record>, instruction_id: &InstructionId) -> ValueAndWeightVector {
+        let mut value_and_weight_vec: ValueAndWeightVector = vec!();
+        let needle: &str = instruction_id.shortname();
+        for record in records {
+            if record.instruction != needle {
+                continue;
+            }
+            let value = (record.constant, record.count);
+            value_and_weight_vec.push(value);
+        }
+        value_and_weight_vec
+    }
+
     fn random<R: Rng + ?Sized>(&self, rng: &mut R, instruction_id: &InstructionId) -> i32 {
-        let mutation_vec: Vec<(i32,usize)> = vec![
+        let mutation_vec: Vec<(i32,u32)> = vec![
             (-1, 1),
             (5, 20),
             (18, 1),
