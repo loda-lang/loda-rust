@@ -1,6 +1,6 @@
 use std::fmt;
 use super::extract_row_re::EXTRACT_ROW_RE;
-use super::instruction_id::{InstructionId,ParseInstructionIdError,parse_instruction_id};
+use super::instruction_id::{InstructionId,ParseInstructionIdError};
 use super::instruction::{Instruction,InstructionParameter};
 use super::parameter_type::ParameterType;
 use super::parse_parameters::*;
@@ -101,7 +101,7 @@ pub fn parse_program(raw_input: &str) -> Result<ParsedProgram, ParseProgramError
         let parameter_string: &str = captures.get(2).map_or("", |m| m.as_str());
 
         let instruction_id: InstructionId = 
-            parse_instruction_id(instruction_raw, line_number)?;
+            InstructionId::parse(instruction_raw, line_number)?;
 
         let parameter_vec: Vec<InstructionParameter> = 
             parse_parameters(parameter_string, line_number)?;
