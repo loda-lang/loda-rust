@@ -2,7 +2,8 @@ use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::iter::FromIterator;
 use serde::Deserialize;
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -17,6 +18,9 @@ struct MostPopularConstant {
 
 impl MostPopularConstant {
     fn new(records: &Vec<Record>) -> MostPopularConstant {
+        let hashset: HashSet<InstructionId> = Record::unique_instruction_ids(records);
+        let unique_instruction_ids: Vec<InstructionId> = Vec::from_iter(hashset);
+
         let instruction_ids: &[InstructionId] = &[
             InstructionId::Add,
             InstructionId::Divide,
@@ -76,6 +80,21 @@ fn process_csv_data(reader: &mut dyn BufRead) -> Result<Vec<Record>, Box<dyn Err
         records.push(record);
     }
     Ok(records)
+}
+
+impl Record {
+    fn unique_instruction_ids(records: &Vec<Record>) -> HashSet<InstructionId> {
+        let mut instruction_ids = Vec::<InstructionId>::new();
+        for record in records {
+            match InstructionId::parse(&record.instruction, 0) {
+                Ok(instruction_id) => {
+                    instruction_ids.push(instruction_id);
+                },
+                Err(_) => {}
+            }
+        }
+        HashSet::from_iter(instruction_ids.iter().cloned())
+    }
 }
 
 #[cfg(test)]
