@@ -45,14 +45,16 @@ impl MostPopularConstant {
         value_and_weight_vec
     }
 
-    fn random<R: Rng + ?Sized>(&self, rng: &mut R, instruction_id: &InstructionId) -> i32 {
-        let mutation_vec: Vec<(i32,u32)> = vec![
-            (-1, 1),
-            (5, 20),
-            (18, 1),
-        ];
-        let value: &i32 = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
-        *value
+    fn choose_weighted<R: Rng + ?Sized>(&self, rng: &mut R, instruction_id: InstructionId) -> Option<i32> {
+        let value_and_weight_vec: &ValueAndWeightVector = 
+        match self.instruction_and_valueweightvector.get(&instruction_id) {
+            Some(value) => value,
+            None => {
+                return None;
+            }
+        };
+        let value: i32 = value_and_weight_vec.choose_weighted(rng, |item| item.1).unwrap().0;
+        Some(value)
     }
 }
 
