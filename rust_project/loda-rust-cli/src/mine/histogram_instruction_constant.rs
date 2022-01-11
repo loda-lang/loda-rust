@@ -93,12 +93,18 @@ impl Record {
     fn value_and_weight_vec(records: &Vec<Record>, instruction_id: InstructionId) -> ValueAndWeightVector {
         let mut value_and_weight_vec: ValueAndWeightVector = vec!();
         let needle: &str = instruction_id.shortname();
+        let mut already_known = HashSet::<i32>::new();
         for record in records {
             if record.instruction != needle {
                 continue;
             }
+            if already_known.contains(&record.constant) {
+                // Keep only the first value. Ignore following duplicates.
+                continue;
+            }
             let value = (record.constant, record.count);
             value_and_weight_vec.push(value);
+            already_known.insert(record.constant);
         }
         value_and_weight_vec
     }
@@ -159,7 +165,7 @@ count;instruction;constant
     }
     
     #[test]
-    fn test_10002_value_and_weight_vec() {
+    fn test_10002_value_and_weight_vec_typical_data() {
         let data = "\
 count;instruction;constant
 36545;add;1
@@ -175,7 +181,24 @@ count;instruction;constant
     }
     
     #[test]
-    fn test_10003_instruction_and_valueweightvector() {
+    fn test_10003_value_and_weight_vec_without_duplicates() {
+        let data = "\
+count;instruction;constant
+1000;add;1
+1000;add;2
+1000;add;1
+1000;add;3
+1001;add;1
+";
+        let mut input: &[u8] = data.as_bytes();
+        let records: Vec<Record> = Record::parse_csv_data(&mut input).unwrap();
+        let actual: ValueAndWeightVector = Record::value_and_weight_vec(&records, InstructionId::Add);
+        let expected: ValueAndWeightVector = vec![(1,1000),(2,1000),(3,1000)];
+        assert_eq!(actual, expected);
+    }
+    
+    #[test]
+    fn test_10004_instruction_and_valueweightvector() {
         let data = "\
 count;instruction;constant
 1001;add;1
