@@ -69,20 +69,20 @@ struct Record {
     constant: i32,
 }
 
-fn process_csv_data(reader: &mut dyn BufRead) -> Result<Vec<Record>, Box<dyn Error>> {
-    let mut records = Vec::<Record>::new();
-    let mut csv_reader = csv::ReaderBuilder::new()
-        .delimiter(b';')
-        .has_headers(true)
-        .from_reader(reader);
-    for result in csv_reader.deserialize() {
-        let record: Record = result?;
-        records.push(record);
-    }
-    Ok(records)
-}
-
 impl Record {
+    fn parse_csv_data(reader: &mut dyn BufRead) -> Result<Vec<Record>, Box<dyn Error>> {
+        let mut records = Vec::<Record>::new();
+        let mut csv_reader = csv::ReaderBuilder::new()
+            .delimiter(b';')
+            .has_headers(true)
+            .from_reader(reader);
+        for result in csv_reader.deserialize() {
+            let record: Record = result?;
+            records.push(record);
+        }
+        Ok(records)
+    }
+
     fn unique_instruction_ids(records: &Vec<Record>) -> HashSet<InstructionId> {
         let mut instruction_ids = Vec::<InstructionId>::new();
         for record in records {
@@ -102,7 +102,7 @@ mod tests {
     use super::*;
     
     #[test]
-    fn test_10000_process_csv_data() {
+    fn test_10000_parse_csv_data() {
         let data = "\
 count;instruction;constant
 36545;add;1
@@ -110,11 +110,30 @@ count;instruction;constant
 17147;mul;-2
 ";
         let mut input: &[u8] = data.as_bytes();
-        let records: Vec<Record> = process_csv_data(&mut input).unwrap();
+        let records: Vec<Record> = Record::parse_csv_data(&mut input).unwrap();
         let strings: Vec<String> = records.iter().map(|record| {
             format!("{} {} {}", record.count, record.instruction, record.constant)
         }).collect();
         let strings_joined: String = strings.join(",");
         assert_eq!(strings_joined, "36545 add 1,33648 sub 1,17147 mul -2");
+    }
+    
+    #[test]
+    fn test_10001_unique_instruction_ids() {
+        let data = "\
+count;instruction;constant
+36545;add;1
+9232;add;2
+666;unknown;23
+555;sub;1
+171;mul;-2
+92;add;3
+";
+        let mut input: &[u8] = data.as_bytes();
+        let records: Vec<Record> = Record::parse_csv_data(&mut input).unwrap();
+        let actual: HashSet<InstructionId> = Record::unique_instruction_ids(&records);
+        let v = vec![InstructionId::Add, InstructionId::Subtract, InstructionId::Multiply];
+        let expected: HashSet<InstructionId> = HashSet::from_iter(v);
+        assert_eq!(actual, expected);
     }
 }
