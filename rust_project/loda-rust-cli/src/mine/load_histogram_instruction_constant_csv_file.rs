@@ -18,35 +18,16 @@ struct MostPopularConstant {
 
 impl MostPopularConstant {
     fn new(records: &Vec<Record>) -> MostPopularConstant {
-        let hashset: HashSet<InstructionId> = Record::unique_instruction_ids(records);
-        let unique_instruction_ids: Vec<InstructionId> = Vec::from_iter(hashset);
-
-        let instruction_ids: &[InstructionId] = &[
-            InstructionId::Add,
-            InstructionId::Divide,
-        ];
+        let instruction_ids: HashSet<InstructionId> = Record::unique_instruction_ids(records);
         let mut result: HashMap<InstructionId, ValueAndWeightVector> = HashMap::new();
         for instruction_id in instruction_ids {
             let value_and_weight_vec: ValueAndWeightVector = 
-                Self::extract_value_and_weight_vec(records, &instruction_id);
-            result.insert(*instruction_id, value_and_weight_vec);
+                Record::value_and_weight_vec(records, instruction_id);
+            result.insert(instruction_id, value_and_weight_vec);
         }
         Self {
             instruction_and_valueweightvector: result
         }
-    }
-
-    fn extract_value_and_weight_vec(records: &Vec<Record>, instruction_id: &InstructionId) -> ValueAndWeightVector {
-        let mut value_and_weight_vec: ValueAndWeightVector = vec!();
-        let needle: &str = instruction_id.shortname();
-        for record in records {
-            if record.instruction != needle {
-                continue;
-            }
-            let value = (record.constant, record.count);
-            value_and_weight_vec.push(value);
-        }
-        value_and_weight_vec
     }
 
     fn choose_weighted<R: Rng + ?Sized>(&self, rng: &mut R, instruction_id: InstructionId) -> Option<i32> {
@@ -95,6 +76,19 @@ impl Record {
         }
         HashSet::from_iter(instruction_ids.iter().cloned())
     }
+
+    fn value_and_weight_vec(records: &Vec<Record>, instruction_id: InstructionId) -> ValueAndWeightVector {
+        let mut value_and_weight_vec: ValueAndWeightVector = vec!();
+        let needle: &str = instruction_id.shortname();
+        for record in records {
+            if record.instruction != needle {
+                continue;
+            }
+            let value = (record.constant, record.count);
+            value_and_weight_vec.push(value);
+        }
+        value_and_weight_vec
+    }
 }
 
 #[cfg(test)]
@@ -134,6 +128,22 @@ count;instruction;constant
         let actual: HashSet<InstructionId> = Record::unique_instruction_ids(&records);
         let v = vec![InstructionId::Add, InstructionId::Subtract, InstructionId::Multiply];
         let expected: HashSet<InstructionId> = HashSet::from_iter(v);
+        assert_eq!(actual, expected);
+    }
+    
+    #[test]
+    fn test_10002_value_and_weight_vec() {
+        let data = "\
+count;instruction;constant
+36545;add;1
+92;add;2
+9232;add;3
+100;add;4
+";
+        let mut input: &[u8] = data.as_bytes();
+        let records: Vec<Record> = Record::parse_csv_data(&mut input).unwrap();
+        let actual: ValueAndWeightVector = Record::value_and_weight_vec(&records, InstructionId::Add);
+        let expected: ValueAndWeightVector = vec![(1,36545),(2,92),(3,9232),(4,100)];
         assert_eq!(actual, expected);
     }
 }
