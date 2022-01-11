@@ -34,7 +34,11 @@ impl HistogramInstructionConstant {
     pub fn load_csv_file(path: &Path) -> Result<HistogramInstructionConstant, Box<dyn Error>> {
         let file = File::open(path)?;
         let mut reader = BufReader::new(file);
-        let records: Vec<Record> = Record::parse_csv_data(&mut reader)?;
+        Self::create(&mut reader)
+    }
+
+    fn create(reader: &mut dyn BufRead) -> Result<HistogramInstructionConstant, Box<dyn Error>> {
+        let records: Vec<Record> = Record::parse_csv_data(reader)?;
         let instruction_and_valueweightvector: HashMap<InstructionId, ValueAndWeightVector> = 
             Record::instruction_and_valueweightvector(&records);
         let result = Self {
@@ -127,7 +131,9 @@ impl Record {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+    use rand::SeedableRng;
+    use rand::rngs::StdRng;
+
     #[test]
     fn test_10000_parse_csv_data() {
         let data = "\
@@ -210,5 +216,47 @@ count;instruction;constant
         let records: Vec<Record> = Record::parse_csv_data(&mut input).unwrap();
         let actual: HashMap<InstructionId, ValueAndWeightVector> = Record::instruction_and_valueweightvector(&records);
         assert_eq!(actual.len(), 3);
+    }
+
+    #[test]
+    fn test_20000_instruction_and_valueweightvector_add() {
+        let data = "\
+count;instruction;constant
+1000;add;1984
+1000;mul;-1
+";
+        let mut input: &[u8] = data.as_bytes();
+        let instance = HistogramInstructionConstant::create(&mut input).unwrap();
+        let mut rng = StdRng::seed_from_u64(0);
+        let actual = instance.choose_weighted(&mut rng, InstructionId::Add);
+        assert_eq!(actual, Some(1984));
+    }
+
+    #[test]
+    fn test_20001_instruction_and_valueweightvector_multiply() {
+        let data = "\
+count;instruction;constant
+1000;add;1984
+1000;mul;-1
+";
+        let mut input: &[u8] = data.as_bytes();
+        let instance = HistogramInstructionConstant::create(&mut input).unwrap();
+        let mut rng = StdRng::seed_from_u64(0);
+        let actual = instance.choose_weighted(&mut rng, InstructionId::Multiply);
+        assert_eq!(actual, Some(-1));
+    }
+
+    #[test]
+    fn test_20002_instruction_and_valueweightvector_no_such_instruction() {
+        let data = "\
+count;instruction;constant
+1000;add;1984
+1000;mul;-1
+";
+        let mut input: &[u8] = data.as_bytes();
+        let instance = HistogramInstructionConstant::create(&mut input).unwrap();
+        let mut rng = StdRng::seed_from_u64(0);
+        let actual = instance.choose_weighted(&mut rng, InstructionId::GCD);
+        assert_eq!(actual, None);
     }
 }
