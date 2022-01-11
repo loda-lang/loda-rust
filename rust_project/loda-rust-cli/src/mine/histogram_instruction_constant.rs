@@ -12,12 +12,26 @@ use loda_rust_core::parser::InstructionId;
 type ValueAndWeight = (i32,u32);
 type ValueAndWeightVector = Vec<ValueAndWeight>;
 
-struct MostPopularConstant {
+// Instructions that takes a constant value.
+//
+// The most used combo: `add $0,1` (addition)
+// Almost as popular combo: `sub $0,1` (subtract by 1)
+//
+// Usecase:
+// During mining, when mutating an `add` instruction.
+//
+// It's a time waster making poor choices of constants.
+// The miner originally picked random integers, but it was excruciating slow.
+//
+// Time can be saved this way. 
+// Before mining: analyze all programs and build a histogram.
+// During mining: make weighted choices from the histogram.
+struct HistogramInstructionConstant {
     instruction_and_valueweightvector: HashMap<InstructionId, ValueAndWeightVector>
 }
 
-impl MostPopularConstant {
-    fn new(records: &Vec<Record>) -> MostPopularConstant {
+impl HistogramInstructionConstant {
+    fn new(records: &Vec<Record>) -> HistogramInstructionConstant {
         let instruction_ids: HashSet<InstructionId> = Record::unique_instruction_ids(records);
         let mut result: HashMap<InstructionId, ValueAndWeightVector> = HashMap::new();
         for instruction_id in instruction_ids {
