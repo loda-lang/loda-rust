@@ -26,25 +26,24 @@ type ValueAndWeightVector = Vec<ValueAndWeight>;
 // Time can be saved this way. 
 // Before mining: analyze all programs and build a histogram.
 // During mining: make weighted choices from the histogram.
-struct HistogramInstructionConstant {
+pub struct HistogramInstructionConstant {
     instruction_and_valueweightvector: HashMap<InstructionId, ValueAndWeightVector>
 }
 
 impl HistogramInstructionConstant {
-    fn new(records: &Vec<Record>) -> HistogramInstructionConstant {
-        let instruction_ids: HashSet<InstructionId> = Record::unique_instruction_ids(records);
-        let mut result: HashMap<InstructionId, ValueAndWeightVector> = HashMap::new();
-        for instruction_id in instruction_ids {
-            let value_and_weight_vec: ValueAndWeightVector = 
-                Record::value_and_weight_vec(records, instruction_id);
-            result.insert(instruction_id, value_and_weight_vec);
-        }
-        Self {
-            instruction_and_valueweightvector: result
-        }
+    pub fn load_csv_file(path: &Path) -> Result<HistogramInstructionConstant, Box<dyn Error>> {
+        let file = File::open(path)?;
+        let mut reader = BufReader::new(file);
+        let records: Vec<Record> = Record::parse_csv_data(&mut reader)?;
+        let instruction_and_valueweightvector: HashMap<InstructionId, ValueAndWeightVector> = 
+            Record::instruction_and_valueweightvector(&records);
+        let result = Self {
+            instruction_and_valueweightvector: instruction_and_valueweightvector
+        };
+        Ok(result)
     }
 
-    fn choose_weighted<R: Rng + ?Sized>(&self, rng: &mut R, instruction_id: InstructionId) -> Option<i32> {
+    pub fn choose_weighted<R: Rng + ?Sized>(&self, rng: &mut R, instruction_id: InstructionId) -> Option<i32> {
         let value_and_weight_vec: &ValueAndWeightVector = 
         match self.instruction_and_valueweightvector.get(&instruction_id) {
             Some(value) => value,
@@ -103,6 +102,20 @@ impl Record {
         }
         value_and_weight_vec
     }
+
+    fn instruction_and_valueweightvector(records: &Vec<Record>) -> HashMap<InstructionId, ValueAndWeightVector> {
+        let instruction_ids: HashSet<InstructionId> = Record::unique_instruction_ids(&records);
+        let mut result: HashMap<InstructionId, ValueAndWeightVector> = HashMap::new();
+        for instruction_id in instruction_ids {
+            let value_and_weight_vec: ValueAndWeightVector = 
+                Record::value_and_weight_vec(&records, instruction_id);
+            if value_and_weight_vec.is_empty() {
+                continue;
+            }
+            result.insert(instruction_id, value_and_weight_vec);
+        }
+        result
+    }
 }
 
 #[cfg(test)]
@@ -159,5 +172,20 @@ count;instruction;constant
         let actual: ValueAndWeightVector = Record::value_and_weight_vec(&records, InstructionId::Add);
         let expected: ValueAndWeightVector = vec![(1,36545),(2,92),(3,9232),(4,100)];
         assert_eq!(actual, expected);
+    }
+    
+    #[test]
+    fn test_10003_instruction_and_valueweightvector() {
+        let data = "\
+count;instruction;constant
+1001;add;1
+1002;add;2
+999;div;2
+998;mul;-1
+";
+        let mut input: &[u8] = data.as_bytes();
+        let records: Vec<Record> = Record::parse_csv_data(&mut input).unwrap();
+        let actual: HashMap<InstructionId, ValueAndWeightVector> = Record::instruction_and_valueweightvector(&records);
+        assert_eq!(actual.len(), 3);
     }
 }

@@ -21,6 +21,7 @@ pub use deny_file::load_program_ids_from_deny_file;
 pub use dont_mine::DontMine;
 pub use find_asm_files_recursively::find_asm_files_recursively;
 pub use funnel::Funnel;
+pub use histogram_instruction_constant::HistogramInstructionConstant;
 pub use genome_mutate_context::GenomeMutateContext;
 pub use genome::{Genome, MutateGenome};
 pub use genome_item::{GenomeItem, MutateValue};
