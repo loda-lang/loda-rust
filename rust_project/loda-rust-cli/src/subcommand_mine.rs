@@ -1,6 +1,6 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
-use crate::mine::{CheckFixedLengthSequence, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop};
+use crate::mine::{CheckFixedLengthSequence, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 
@@ -39,7 +39,27 @@ pub fn subcommand_mine() {
     let checker20: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path20);
     let checker30: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path30);
     let checker40: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path40);
+
     debug!("step2");
+    let path_histogram = cache_dir.join(Path::new("histogram_instruction_constant.csv"));
+    let histogram: Option<HistogramInstructionConstant>;
+    if path_histogram.is_file() {
+        histogram = match HistogramInstructionConstant::load_csv_file(&path_histogram) {
+            Ok(value) => {
+                println!("Optional histogram: loaded successful");
+                Some(value)
+            },
+            Err(error) => {
+                println!("Optional histogram: {:?} error: {:?}", path_histogram, error);
+                None
+            }
+        };
+    } else {
+        println!("Optional histogram: Not found at path {:?}", path_histogram);
+        histogram = None;
+    }
+
+    debug!("step3");
 
     // Load the program_ids available for mining
     let available_program_ids_file = cache_dir.join(Path::new("programs_valid.csv"));
