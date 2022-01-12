@@ -42,9 +42,9 @@ pub fn subcommand_mine() {
 
     debug!("step2");
     let path_histogram = cache_dir.join(Path::new("histogram_instruction_constant.csv"));
-    let histogram: Option<HistogramInstructionConstant>;
+    let histogram_instruction_constant: Option<HistogramInstructionConstant>;
     if path_histogram.is_file() {
-        histogram = match HistogramInstructionConstant::load_csv_file(&path_histogram) {
+        histogram_instruction_constant = match HistogramInstructionConstant::load_csv_file(&path_histogram) {
             Ok(value) => {
                 println!("Optional histogram: loaded successful");
                 Some(value)
@@ -56,7 +56,7 @@ pub fn subcommand_mine() {
         };
     } else {
         println!("Optional histogram: Not found at path {:?}", path_histogram);
-        histogram = None;
+        histogram_instruction_constant = None;
     }
 
     debug!("step3");
@@ -101,6 +101,7 @@ pub fn subcommand_mine() {
         &checker20,
         &checker30,
         &checker40,
+        histogram_instruction_constant,
         &mine_event_dir,
         &loda_rust_mismatches,
         available_program_ids,
