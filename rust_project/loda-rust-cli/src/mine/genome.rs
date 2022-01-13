@@ -135,9 +135,22 @@ impl Genome {
         // Identify all the instructions that use constants
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.source_type() == ParameterType::Constant {
-                indexes.push(index);
+            if *genome_item.source_type() != ParameterType::Constant {
+                continue;
             }
+            if *genome_item.instruction_id() == InstructionId::EvalSequence {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::LoopBegin {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::Clear {
+                continue;
+            }
+            indexes.push(index);
         }
         if indexes.is_empty() {
             return false;
