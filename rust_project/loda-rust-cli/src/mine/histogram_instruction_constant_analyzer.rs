@@ -97,11 +97,12 @@ impl HistogramInstructionConstantAnalyzer {
         }
     }
 
-    fn analyze_instruction_and_constant(&mut self, program_id: u32, instruction: &Instruction, value: i64) -> bool {
-        if value.abs() > DISCARD_EXTREME_VALUES_BEYOND_THIS_LIMIT {
-            debug!("program_id: {:?}, Ignoring too extreme constant: {:?}", program_id, value);
+    fn analyze_instruction_and_constant(&mut self, program_id: u32, instruction: &Instruction, raw_value: i64) -> bool {
+        if raw_value.abs() > DISCARD_EXTREME_VALUES_BEYOND_THIS_LIMIT {
+            debug!("program_id: {:?}, Ignoring too extreme constant: {:?}", program_id, raw_value);
             return false;
         }
+        let value: i32 = raw_value as i32;
         if instruction.instruction_id == InstructionId::Add && value == 0 {
             debug!("program_id: {:?}, add by 0, can be eliminated", program_id);
             return false;
@@ -122,8 +123,9 @@ impl HistogramInstructionConstantAnalyzer {
             debug!("program_id: {:?}, detected a dangerous divide by 0", program_id);
             return false;
         }
-        // key = "#{instruction} #{constant}"
-        // dict[key] = (dict[key] || 0) + 1
+        let key: HistogramKey = (instruction.instruction_id, value);
+        let counter = self.histogram.entry(key).or_insert(0);
+        *counter += 1;
         true
     }
 
