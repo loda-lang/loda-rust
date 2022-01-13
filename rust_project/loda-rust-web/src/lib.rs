@@ -23,7 +23,7 @@ use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRun
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
-use loda_rust_core::parser::{ParsedProgram, parse_program};
+use loda_rust_core::parser::ParsedProgram;
 
 
 #[derive(Clone)]
@@ -195,7 +195,7 @@ impl WebDependencyManagerInner {
 
     async fn run_source_code(&mut self, root_source_code: String) -> Result<JsValue, JsValue> {
         debug!("WebDependencyManagerInner.run_source_code() count: {:?} root_source_code: {:?}", self.count, root_source_code);
-        let root_parsed_program: ParsedProgram = match parse_program(&root_source_code) {
+        let root_parsed_program: ParsedProgram = match ParsedProgram::parse_program(&root_source_code) {
             Ok(value) => value,
             Err(error) => {
                 error!("Unable to parse program: {:?}", error);
@@ -284,7 +284,7 @@ impl WebDependencyManagerInner {
                 }
             };
             
-            let parsed_program: ParsedProgram = match parse_program(&response_text) {
+            let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&response_text) {
                 Ok(value) => value,
                 Err(error) => {
                     error!("Problem with dependency program_id: {}. Unable to parse program: {}", program_id, error);

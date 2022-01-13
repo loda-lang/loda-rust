@@ -1,7 +1,7 @@
 use super::{GenomeItem, GenomeMutateContext, MutateValue};
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
-use loda_rust_core::parser::{parse_program, ParsedProgram};
+use loda_rust_core::parser::ParsedProgram;
 use std::fmt;
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -58,7 +58,7 @@ impl Genome {
                 return false;
             }
         };
-        let parsed_program: ParsedProgram = match parse_program(&contents) {
+        let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&contents) {
             Ok(value) => value,
             Err(error) => {
                 error!("loading program_id: {:?}, something went wrong parsing the program: {:?}", program_id, error);

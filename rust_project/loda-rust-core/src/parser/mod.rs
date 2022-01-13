@@ -12,7 +12,7 @@ pub use instruction_id::{InstructionId, ParseInstructionIdError};
 pub use parameter_type::ParameterType;
 pub use parse::{ParseResult, ParseError, parse};
 pub use parse_parameters::{ParseParametersError, parse_parameters};
-pub use parse_program::{ParsedProgram, ParseProgramError, parse_program};
+pub use parse_program::{ParsedProgram, ParseProgramError};
 
 pub mod extract_parameter_re;
 pub mod extract_row_re;
