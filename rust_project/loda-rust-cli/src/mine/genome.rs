@@ -129,11 +129,15 @@ impl Genome {
         }
     }
 
+    // Assign a pseudo random constant.
+    //
+    // There is a high probability that the picked constant is junk.
+    //
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
     #[allow(dead_code)]
     pub fn mutate_source_value_constant_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        // Identify all the instructions that use constants
+        // Identify the instructions that use constants
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
             if *genome_item.source_type() != ParameterType::Constant {
@@ -178,6 +182,21 @@ impl Genome {
         genome_item.mutate_sanitize_program_row()
     }
 
+    // Assign a constant, by picking from a histogram.
+    // The histogram has knowledge about each instruction.
+    // If it's an `add` instruction, then the most used constant is 1.
+    // If it's a `mul` instruction, then the most used constant is 2.
+    // If it's a `cmp` instruction, then the most used constant is 0.
+    //
+    // There is a high probability that this function assigns a constant
+    // that is highly used across all programs.
+    //
+    // There is a low probablility that this function assigns a constant
+    // that is sporadic used across all programs.
+    //
+    // This function does not assign a constant that has never been
+    // used elsewhere. So it doesn't explore new never tried out magic constants.
+    //
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
     #[allow(dead_code)]
@@ -187,7 +206,7 @@ impl Genome {
             return false;
         }
 
-        // Identify all the instructions that use constants
+        // Identify the instructions that use constants
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
             if *genome_item.source_type() != ParameterType::Constant {
