@@ -77,6 +77,10 @@ impl GenomeItem {
         self.source_value
     }
 
+    pub fn set_source_value(&mut self, value: i32) {
+        self.source_value = value;
+    }
+
     #[allow(dead_code)]
     pub fn mutate_trigger_division_by_zero(&mut self) {
         self.instruction_id = InstructionId::Divide;

@@ -13,7 +13,8 @@ use std::path::PathBuf;
 #[allow(dead_code)]
 pub enum MutateGenome {
     Instruction,
-    SourceConstant,
+    SourceConstantWithoutHistogram,
+    SourceConstantWithHistogram,
     SourceType,
     SwapRegisters,
     SourceRegister,
@@ -131,7 +132,7 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
     #[allow(dead_code)]
-    pub fn mutate_source_value_constant<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+    pub fn mutate_source_value_constant_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         // Identify all the instructions that use constants
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
@@ -174,6 +175,59 @@ impl Genome {
         if !genome_item.mutate_source_value(mutation) {
             return false;
         }
+        genome_item.mutate_sanitize_program_row()
+    }
+
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
+    #[allow(dead_code)]
+    pub fn mutate_source_value_constant_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+        // Bail out if the histogram csv file hasn't been loaded.
+        if !context.has_histogram_instruction_constant() {
+            return false;
+        }
+
+        // Identify all the instructions that use constants
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if *genome_item.source_type() != ParameterType::Constant {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::EvalSequence {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::LoopBegin {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::Clear {
+                continue;
+            }
+            indexes.push(index);
+        }
+        if indexes.is_empty() {
+            return false;
+        }
+
+        // Mutate one of the instructions that use a constant
+        let index: &usize = indexes.choose(rng).unwrap();
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
+
+        let instruction_id: InstructionId = *genome_item.instruction_id();
+        let picked_value: i32 = match context.choose_constant_with_histogram(rng, instruction_id) {
+            Some(value) => value,
+            None => {
+                return false;
+            }
+        };
+
+        if picked_value == genome_item.source_value() {
+            return false;
+        }
+
+        genome_item.set_source_value(picked_value);
         genome_item.mutate_sanitize_program_row()
     }
 
@@ -427,7 +481,8 @@ impl Genome {
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             (MutateGenome::Instruction, 1),
-            (MutateGenome::SourceConstant, 20),
+            (MutateGenome::SourceConstantWithoutHistogram, 20),
+            (MutateGenome::SourceConstantWithHistogram, 100),
             (MutateGenome::SourceType, 1),
             (MutateGenome::SwapRegisters, 10),
             (MutateGenome::SourceRegister, 10),
@@ -443,8 +498,11 @@ impl Genome {
             MutateGenome::Instruction => {
                 return self.mutate_instruction(rng);
             },
-            MutateGenome::SourceConstant => {
-                return self.mutate_source_value_constant(rng);
+            MutateGenome::SourceConstantWithoutHistogram => {
+                return self.mutate_source_value_constant_without_histogram(rng);
+            },
+            MutateGenome::SourceConstantWithHistogram => {
+                return self.mutate_source_value_constant_with_histogram(rng, context);
             },
             MutateGenome::SourceType => {
                 return self.mutate_source_type(rng);
