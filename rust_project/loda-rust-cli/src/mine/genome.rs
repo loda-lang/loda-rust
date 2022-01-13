@@ -501,16 +501,16 @@ impl Genome {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             (MutateGenome::Instruction, 10),
             (MutateGenome::SourceConstantWithoutHistogram, 1),
-            (MutateGenome::SourceConstantWithHistogram, 100),
+            (MutateGenome::SourceConstantWithHistogram, 1000),
             (MutateGenome::SourceType, 1),
-            (MutateGenome::SwapRegisters, 1),
-            (MutateGenome::SourceRegister, 10),
+            (MutateGenome::SwapRegisters, 10),
+            (MutateGenome::SourceRegister, 20),
             (MutateGenome::TargetRegister, 10),
-            (MutateGenome::ToggleEnabled, 10),
+            (MutateGenome::ToggleEnabled, 5),
             (MutateGenome::SwapRows, 1),
-            (MutateGenome::SwapAdjacentRows, 5),
+            (MutateGenome::SwapAdjacentRows, 10),
             (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallAnotherProgram, 10),
+            (MutateGenome::CallAnotherProgram, 100),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
         match mutation {
