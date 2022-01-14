@@ -105,7 +105,7 @@ pub fn validate_programs() -> std::io::Result<()> {
         let elapsed: u128 = progress_time.elapsed().as_millis();
         if elapsed >= 1000 {
             let percent: f32 = ((index * 100) as f32) / (program_ids_len as f32);
-            println!("progress: {:.2}%  {:?} / {:?}", percent, index, program_ids_len);
+            println!("progress: {:.2}%  {:?} of {:?}", percent, index, program_ids_len);
             progress_time = Instant::now();
         }
         let program_id64 = *program_id as u64;

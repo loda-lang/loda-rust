@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::fs;
 use csv::WriterBuilder;
 use serde::Serialize;
+use std::time::Instant;
 use super::find_asm_files_recursively;
 use super::program_id_from_path;
 
@@ -64,8 +65,22 @@ impl HistogramInstructionConstantAnalyzer {
     fn analyze_all_program_files(&mut self) {
         let dir_containing_programs: PathBuf = self.config.loda_programs_oeis_dir();
         let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
+        let number_of_paths = paths.len();
+        if number_of_paths <= 0 {
+            error!("Expected 1 or more programs, but there are no programs to analyze");
+            return;
+        }
+        let max_path_index: usize = number_of_paths - 1;
         println!("number of programs to be analyzed: {:?}", paths.len());
-        for path in paths {
+        let mut progress_time = Instant::now();
+        for (index, path) in paths.iter().enumerate() {
+            let elapsed: u128 = progress_time.elapsed().as_millis();
+            let is_last: bool = index == max_path_index;
+            if elapsed >= 1000 || is_last {
+                let percent: f32 = ((index * 100) as f32) / (max_path_index as f32);
+                println!("progress: {:.2}%  {:?} of {:?}", percent, index, number_of_paths);
+                progress_time = Instant::now();
+            }
             self.analyze_program_file(&path);
         }
         println!("number of program files that could not be loaded: {:?}", self.number_of_program_files_that_could_not_be_loaded);
