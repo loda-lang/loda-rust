@@ -13,11 +13,13 @@ use super::program_id_from_path;
 
 type HistogramBigramKey = (String,String);
 type HistogramTrigramKey = (String,String,String);
+type HistogramSkipgramKey = (String,String);
 
 pub struct NgramGenerator {
     config: Config,
     histogram_bigram: HashMap<HistogramBigramKey,u32>,
     histogram_trigram: HashMap<HistogramTrigramKey,u32>,
+    histogram_skipgram: HashMap<HistogramSkipgramKey,u32>,
     number_of_program_files_that_could_not_be_loaded: u32,
 }
 
@@ -27,6 +29,7 @@ impl NgramGenerator {
             config: Config::load(),
             histogram_bigram: HashMap::new(),
             histogram_trigram: HashMap::new(),
+            histogram_skipgram: HashMap::new(),
             number_of_program_files_that_could_not_be_loaded: 0,
         };
         instance.analyze_all_program_files();
@@ -58,6 +61,7 @@ impl NgramGenerator {
         println!("number of program files that could not be loaded: {:?}", self.number_of_program_files_that_could_not_be_loaded);
         println!("number of items in bigram: {:?}", self.histogram_bigram.len());
         println!("number of items in trigram: {:?}", self.histogram_trigram.len());
+        println!("number of items in skipgram: {:?}", self.histogram_skipgram.len());
     }
 
     fn analyze_program_file(&mut self, path_to_program: &PathBuf) {
@@ -88,6 +92,7 @@ impl NgramGenerator {
         let words: Vec<String> = Self::extract_words(&parsed_program);
         self.populate_bigram(&words);
         self.populate_trigram(&words);
+        self.populate_skipgram(&words);
     }
 
     fn extract_words(parsed_program: &ParsedProgram) -> Vec<String> {
@@ -137,6 +142,27 @@ impl NgramGenerator {
         }
         for key in keys {
             let counter = self.histogram_trigram.entry(key).or_insert(0);
+            *counter += 1;
+        }
+    }
+
+    fn populate_skipgram(&mut self, words: &Vec<String>) {
+        let mut keys = Vec::<HistogramSkipgramKey>::new();
+        let mut prev_prev_word = String::new();
+        let mut prev_word = String::new();
+        for (index, word2) in words.iter().enumerate() {
+            let word0: String = prev_prev_word;
+            let word1: String = prev_word.clone();
+            prev_prev_word = prev_word;
+            prev_word = word2.clone();
+            if index < 2 {
+                continue;
+            }
+            let key: HistogramSkipgramKey = (word0, word2.clone());
+            keys.push(key);
+        }
+        for key in keys {
+            let counter = self.histogram_skipgram.entry(key).or_insert(0);
             *counter += 1;
         }
     }
