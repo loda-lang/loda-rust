@@ -38,21 +38,6 @@ file 'data/pagerank.csv' => ['data/program_ids.csv', 'data/caller_callee_pairs.c
     ruby 'task_pagerank.rb'
 end
 
-desc 'generate a bigram'
-file 'data/bigram.csv' do
-    ruby 'task_bigram.rb'
-end
-
-desc 'generate a trigram'
-file 'data/trigram.csv' do
-    ruby 'task_trigram.rb'
-end
-
-desc 'generate a skipgram'
-file 'data/skipgram.csv' do
-    ruby 'task_skipgram.rb'
-end
-
 desc "create a markdown document with the 100 most popular LODA programs"
 file 'data/top100.md' => ['data/pagerank.csv', 'data/caller_callee_pairs.csv'] do
     ruby 'task_top100.rb'
