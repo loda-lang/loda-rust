@@ -70,15 +70,15 @@ impl HistogramInstructionConstantAnalyzer {
             error!("Expected 1 or more programs, but there are no programs to analyze");
             return;
         }
-        let max_path_index: usize = number_of_paths - 1;
+        let max_index: usize = number_of_paths - 1;
         println!("number of programs to be analyzed: {:?}", paths.len());
         let mut progress_time = Instant::now();
         for (index, path) in paths.iter().enumerate() {
             let elapsed: u128 = progress_time.elapsed().as_millis();
-            let is_last: bool = index == max_path_index;
+            let is_last: bool = index == max_index;
             if elapsed >= 1000 || is_last {
-                let percent: f32 = ((index * 100) as f32) / (max_path_index as f32);
-                println!("progress: {:.2}%  {:?} of {:?}", percent, index, number_of_paths);
+                let percent: usize = (index * 100) / max_index;
+                println!("progress: {}%  {} of {}", percent, index, number_of_paths);
                 progress_time = Instant::now();
             }
             self.analyze_program_file(&path);
