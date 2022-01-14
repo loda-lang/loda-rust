@@ -139,7 +139,7 @@ impl ValidatePrograms {
             let is_last: bool = index == max_index;
             if elapsed >= 1000 || is_last {
                 let percent: usize = (index * 100) / max_index;
-                println!("progress: {}%  {} of {}", percent, index, program_ids_len);
+                println!("progress: {}%  {} of {}", percent, index + 1, program_ids_len);
                 progress_time = Instant::now();
             }
             let program_id64 = *program_id as u64;

@@ -78,7 +78,7 @@ impl HistogramInstructionConstantAnalyzer {
             let is_last: bool = index == max_index;
             if elapsed >= 1000 || is_last {
                 let percent: usize = (index * 100) / max_index;
-                println!("progress: {}%  {} of {}", percent, index, number_of_paths);
+                println!("progress: {}%  {} of {}", percent, index + 1, number_of_paths);
                 progress_time = Instant::now();
             }
             self.analyze_program_file(&path);
