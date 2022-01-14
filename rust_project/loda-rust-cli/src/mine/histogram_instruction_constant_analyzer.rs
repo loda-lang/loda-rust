@@ -86,6 +86,7 @@ impl HistogramInstructionConstantAnalyzer {
         println!("number of program files that could not be loaded: {:?}", self.number_of_program_files_that_could_not_be_loaded);
         println!("number of constants processed unsuccessful: {:?}", self.number_of_constant_processed_unsuccessful);
         println!("number of constants processed successful: {:?}", self.number_of_constant_processed_successful);
+        println!("number of items in histogram: {:?}", self.histogram.len());
     }
 
     fn analyze_program_file(&mut self, path_to_program: &PathBuf) {
@@ -173,8 +174,6 @@ impl HistogramInstructionConstantAnalyzer {
     }
 
     fn save(&self) {
-        println!("saving, number of items in histogram: {:?}", self.histogram.len());
-
         // Convert from dictionary to array
         let mut records = Vec::<Record>::new();
         for (histogram_key, histogram_count) in &self.histogram {
