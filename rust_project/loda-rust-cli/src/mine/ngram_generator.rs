@@ -12,10 +12,12 @@ use super::find_asm_files_recursively;
 use super::program_id_from_path;
 
 type HistogramBigramKey = (String,String);
+type HistogramTrigramKey = (String,String,String);
 
 pub struct NgramGenerator {
     config: Config,
     histogram_bigram: HashMap<HistogramBigramKey,u32>,
+    histogram_trigram: HashMap<HistogramTrigramKey,u32>,
     number_of_program_files_that_could_not_be_loaded: u32,
 }
 
@@ -24,10 +26,12 @@ impl NgramGenerator {
         let mut instance = Self {
             config: Config::load(),
             histogram_bigram: HashMap::new(),
+            histogram_trigram: HashMap::new(),
             number_of_program_files_that_could_not_be_loaded: 0,
         };
         instance.analyze_all_program_files();
         instance.save_bigram();
+        instance.save_trigram();
     }
 
     fn analyze_all_program_files(&mut self) {
@@ -53,6 +57,7 @@ impl NgramGenerator {
         }
         println!("number of program files that could not be loaded: {:?}", self.number_of_program_files_that_could_not_be_loaded);
         println!("number of items in bigram: {:?}", self.histogram_bigram.len());
+        println!("number of items in trigram: {:?}", self.histogram_trigram.len());
     }
 
     fn analyze_program_file(&mut self, path_to_program: &PathBuf) {
@@ -82,6 +87,7 @@ impl NgramGenerator {
         };
         let words: Vec<String> = Self::extract_words(&parsed_program);
         self.populate_bigram(&words);
+        self.populate_trigram(&words);
     }
 
     fn extract_words(parsed_program: &ParsedProgram) -> Vec<String> {
@@ -98,10 +104,10 @@ impl NgramGenerator {
 
     fn populate_bigram(&mut self, words: &Vec<String>) {
         let mut keys = Vec::<HistogramBigramKey>::new();
-        let mut last_word = String::new();
+        let mut prev_word = String::new();
         for (index, word1) in words.iter().enumerate() {
-            let word0: String = last_word;
-            last_word = word1.clone();
+            let word0: String = prev_word;
+            prev_word = word1.clone();
             if index == 0 {
                 continue;
             }
@@ -114,11 +120,32 @@ impl NgramGenerator {
         }
     }
 
+    fn populate_trigram(&mut self, words: &Vec<String>) {
+        let mut keys = Vec::<HistogramTrigramKey>::new();
+        let mut prev_prev_word = String::new();
+        let mut prev_word = String::new();
+        for (index, word2) in words.iter().enumerate() {
+            let word0: String = prev_prev_word;
+            let word1: String = prev_word.clone();
+            prev_prev_word = prev_word;
+            prev_word = word2.clone();
+            if index < 2 {
+                continue;
+            }
+            let key: HistogramTrigramKey = (word0, word1, word2.clone());
+            keys.push(key);
+        }
+        for key in keys {
+            let counter = self.histogram_trigram.entry(key).or_insert(0);
+            *counter += 1;
+        }
+    }
+
     fn save_bigram(&self) {
         // Convert from dictionary to array
-        let mut records = Vec::<Record>::new();
+        let mut records = Vec::<RecordBigram>::new();
         for (histogram_key, histogram_count) in &self.histogram_bigram {
-            let record = Record {
+            let record = RecordBigram {
                 count: *histogram_count,
                 word0: histogram_key.0.clone(),
                 word1: histogram_key.1.clone()
@@ -133,7 +160,7 @@ impl NgramGenerator {
 
         // Save as a CSV file
         let output_path: PathBuf = self.config.cache_dir_histogram_instruction_bigram_file();
-        match Self::create_csv_file(&records, &output_path) {
+        match RecordBigram::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("save ok");
             },
@@ -142,8 +169,47 @@ impl NgramGenerator {
             }
         }
     }
-    
-    fn create_csv_file(records: &Vec<Record>, output_path: &Path) -> Result<(), Box<dyn Error>> {
+
+    fn save_trigram(&self) {
+        // Convert from dictionary to array
+        let mut records = Vec::<RecordTrigram>::new();
+        for (histogram_key, histogram_count) in &self.histogram_trigram {
+            let record = RecordTrigram {
+                count: *histogram_count,
+                word0: histogram_key.0.clone(),
+                word1: histogram_key.1.clone(),
+                word2: histogram_key.2.clone()
+            };
+            records.push(record);
+        }
+
+        // Move the most frequently occuring items to the top
+        // Move the lesser used items to the bottom
+        records.sort_unstable_by_key(|item| (item.count, item.word0.clone(), item.word1.clone(), item.word2.clone()));
+        records.reverse();
+
+        // Save as a CSV file
+        let output_path: PathBuf = self.config.cache_dir_histogram_instruction_trigram_file();
+        match RecordTrigram::create_csv_file(&records, &output_path) {
+            Ok(_) => {
+                println!("save ok");
+            },
+            Err(error) => {
+                println!("save error: {:?}", error);
+            }
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct RecordBigram {
+    count: u32,
+    word0: String,
+    word1: String,
+}
+
+impl RecordBigram {
+    fn create_csv_file(records: &Vec<RecordBigram>, output_path: &Path) -> Result<(), Box<dyn Error>> {
         let mut wtr = WriterBuilder::new()
             .has_headers(true)
             .delimiter(b';')
@@ -157,8 +223,23 @@ impl NgramGenerator {
 }
 
 #[derive(Serialize)]
-struct Record {
+struct RecordTrigram {
     count: u32,
     word0: String,
     word1: String,
+    word2: String,
+}
+
+impl RecordTrigram {
+    fn create_csv_file(records: &Vec<RecordTrigram>, output_path: &Path) -> Result<(), Box<dyn Error>> {
+        let mut wtr = WriterBuilder::new()
+            .has_headers(true)
+            .delimiter(b';')
+            .from_path(output_path)?;
+        for record in records {
+            wtr.serialize(record)?;
+        }
+        wtr.flush()?;
+        Ok(())
+    }
 }
