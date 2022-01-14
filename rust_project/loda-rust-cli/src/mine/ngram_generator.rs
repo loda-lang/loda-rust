@@ -11,9 +11,11 @@ use std::time::Instant;
 use super::find_asm_files_recursively;
 use super::program_id_from_path;
 
+type HistogramBigramKey = (String,String);
+
 pub struct NgramGenerator {
     config: Config,
-    bigram: HashMap<String,u32>,
+    histogram_bigram: HashMap<HistogramBigramKey,u32>,
     number_of_program_files_that_could_not_be_loaded: u32,
 }
 
@@ -21,10 +23,11 @@ impl NgramGenerator {
     pub fn run() {
         let mut instance = Self {
             config: Config::load(),
-            bigram: HashMap::new(),
+            histogram_bigram: HashMap::new(),
             number_of_program_files_that_could_not_be_loaded: 0,
         };
         instance.analyze_all_program_files();
+        instance.save_bigram();
     }
 
     fn analyze_all_program_files(&mut self) {
@@ -49,7 +52,7 @@ impl NgramGenerator {
             self.analyze_program_file(&path);
         }
         println!("number of program files that could not be loaded: {:?}", self.number_of_program_files_that_could_not_be_loaded);
-        println!("number of items in bigram: {:?}", self.bigram.len());
+        println!("number of items in bigram: {:?}", self.histogram_bigram.len());
     }
 
     fn analyze_program_file(&mut self, path_to_program: &PathBuf) {
@@ -94,7 +97,7 @@ impl NgramGenerator {
     }
 
     fn populate_bigram(&mut self, words: &Vec<String>) {
-        let mut combo_vec = Vec::<String>::new();
+        let mut keys = Vec::<HistogramBigramKey>::new();
         let mut last_word = String::new();
         for (index, word1) in words.iter().enumerate() {
             let word0: String = last_word;
@@ -102,12 +105,60 @@ impl NgramGenerator {
             if index == 0 {
                 continue;
             }
-            let combo = format!("{};{}", word0, word1);
-            combo_vec.push(combo);
+            let key: HistogramBigramKey = (word0, word1.clone());
+            keys.push(key);
         }
-        for combo in combo_vec {
-            let counter = self.bigram.entry(combo).or_insert(0);
+        for key in keys {
+            let counter = self.histogram_bigram.entry(key).or_insert(0);
             *counter += 1;
         }
     }
+
+    fn save_bigram(&self) {
+        // Convert from dictionary to array
+        let mut records = Vec::<Record>::new();
+        for (histogram_key, histogram_count) in &self.histogram_bigram {
+            let record = Record {
+                count: *histogram_count,
+                word0: histogram_key.0.clone(),
+                word1: histogram_key.1.clone()
+            };
+            records.push(record);
+        }
+
+        // Move the most frequently occuring items to the top
+        // Move the lesser used items to the bottom
+        records.sort_unstable_by_key(|item| (item.count, item.word0.clone(), item.word1.clone()));
+        records.reverse();
+
+        // Save as a CSV file
+        let output_path: PathBuf = self.config.cache_dir_histogram_instruction_bigram_file();
+        match Self::create_csv_file(&records, &output_path) {
+            Ok(_) => {
+                println!("save ok");
+            },
+            Err(error) => {
+                println!("save error: {:?}", error);
+            }
+        }
+    }
+    
+    fn create_csv_file(records: &Vec<Record>, output_path: &Path) -> Result<(), Box<dyn Error>> {
+        let mut wtr = WriterBuilder::new()
+            .has_headers(true)
+            .delimiter(b';')
+            .from_path(output_path)?;
+        for record in records {
+            wtr.serialize(record)?;
+        }
+        wtr.flush()?;
+        Ok(())
+    }
+}
+
+#[derive(Serialize)]
+struct Record {
+    count: u32,
+    word0: String,
+    word1: String,
 }
