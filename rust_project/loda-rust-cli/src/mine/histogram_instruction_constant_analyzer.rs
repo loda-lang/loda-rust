@@ -131,5 +131,52 @@ impl HistogramInstructionConstantAnalyzer {
 
     pub fn save(&self) {
         println!("saving, number of items in histogram: {:?}", self.histogram.len());
+
+        // Convert from dictionary to array
+        let mut records = Vec::<Record>::new();
+        for (histogram_key, histogram_count) in &self.histogram {
+            let instruction_name: String = histogram_key.0.shortname().to_string();
+            let record = Record {
+                count: *histogram_count,
+                instruction: instruction_name,
+                value: histogram_key.1
+            };
+            records.push(record);
+        }
+
+        // Move the most frequently occuring items to the top
+        // Move the lesser used items to the bottom
+        records.sort_unstable_by_key(|item| (item.count, item.instruction.clone(), item.value));
+        records.reverse();
+
+        // Save as a CSV file
+        let output_path: PathBuf = self.config.cache_dir_histogram_instruction_constant_file();
+        match Self::create_csv_file(&records, &output_path) {
+            Ok(_) => {
+                println!("save ok");
+            },
+            Err(error) => {
+                println!("save error: {:?}", error);
+            }
+        }
     }
+    
+    fn create_csv_file(records: &Vec<Record>, output_path: &Path) -> Result<(), Box<dyn Error>> {
+        let mut wtr = csv::Writer::from_path(output_path)?;
+        wtr.write_record(&["count", "instruction", "constant"])?;
+        for record in records {
+            let s0 = format!("{:?}", record.count);
+            let s1 = record.instruction.clone();
+            let s2 = format!("{:?}", record.value);
+            wtr.write_record(&[s0, s1, s2])?;
+        }
+        wtr.flush()?;
+        Ok(())
+    }
+}
+
+struct Record {
+    count: u32,
+    instruction: String,
+    value: i32,
 }
