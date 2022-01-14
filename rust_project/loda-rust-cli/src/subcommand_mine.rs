@@ -41,7 +41,7 @@ pub fn subcommand_mine() {
     let checker40: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path40);
 
     debug!("step2");
-    let path_histogram = cache_dir.join(Path::new("histogram_instruction_constant.csv"));
+    let path_histogram: PathBuf = config.cache_dir_histogram_instruction_constant_file();
     let histogram_instruction_constant: Option<HistogramInstructionConstant>;
     if path_histogram.is_file() {
         histogram_instruction_constant = match HistogramInstructionConstant::load_csv_file(&path_histogram) {
