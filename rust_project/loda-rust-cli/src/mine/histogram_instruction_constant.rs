@@ -31,6 +31,7 @@ pub struct HistogramInstructionConstant {
 }
 
 impl HistogramInstructionConstant {
+    #[allow(dead_code)]
     pub fn load_csv_file(path: &Path) -> Result<HistogramInstructionConstant, Box<dyn Error>> {
         let file = File::open(path)?;
         let mut reader = BufReader::new(file);
