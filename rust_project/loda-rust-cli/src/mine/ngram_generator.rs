@@ -1,6 +1,6 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
-use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
+use loda_rust_core::parser::{InstructionId, ParsedProgram};
 use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::collections::HashMap;
@@ -188,10 +188,10 @@ impl NgramGenerator {
         let output_path: PathBuf = self.config.cache_dir_histogram_instruction_bigram_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
-                println!("save ok");
+                println!("saved bigram.csv");
             },
             Err(error) => {
-                println!("save error: {:?}", error);
+                println!("cannot save bigram.csv error: {:?}", error);
             }
         }
     }
@@ -218,10 +218,10 @@ impl NgramGenerator {
         let output_path: PathBuf = self.config.cache_dir_histogram_instruction_trigram_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
-                println!("save ok");
+                println!("saved trigram.csv");
             },
             Err(error) => {
-                println!("save error: {:?}", error);
+                println!("cannot save trigram.csv error: {:?}", error);
             }
         }
     }
@@ -247,10 +247,10 @@ impl NgramGenerator {
         let output_path: PathBuf = self.config.cache_dir_histogram_instruction_skipgram_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
-                println!("save ok");
+                println!("saved skipgram.csv");
             },
             Err(error) => {
-                println!("save error: {:?}", error);
+                println!("cannot save skipgram.csv error: {:?}", error);
             }
         }
     }
