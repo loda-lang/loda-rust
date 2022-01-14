@@ -23,7 +23,7 @@ pub struct HistogramInstructionConstantAnalyzer {
 }
 
 impl HistogramInstructionConstantAnalyzer {
-    pub fn create() -> Self {
+    pub fn run() {
         let mut instance = Self {
             config: Config::load(),
             histogram: HashMap::new(),
@@ -32,7 +32,7 @@ impl HistogramInstructionConstantAnalyzer {
             number_of_constant_processed_successful: 0,
         };
         instance.analyze_all_program_files();
-        instance
+        instance.save();
     }
 
     fn analyze_all_program_files(&mut self) {
@@ -131,7 +131,7 @@ impl HistogramInstructionConstantAnalyzer {
         true
     }
 
-    pub fn save(&self) {
+    fn save(&self) {
         println!("saving, number of items in histogram: {:?}", self.histogram.len());
 
         // Convert from dictionary to array
@@ -176,7 +176,6 @@ impl HistogramInstructionConstantAnalyzer {
     }
 }
 
-    
 #[derive(Serialize)]
 struct Record {
     count: u32,

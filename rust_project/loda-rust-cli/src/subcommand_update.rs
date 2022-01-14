@@ -37,10 +37,8 @@ fn populate_bloomfilter() {
 pub fn subcommand_update() {
     let start_time = Instant::now();
     println!("update begin");
-    let dontmine = DontMine::create();
-    dontmine.save();
-    let histogram = HistogramInstructionConstantAnalyzer::create();
-    histogram.save();
+    DontMine::run();
+    HistogramInstructionConstantAnalyzer::run();
     let _ = validate_programs();
     populate_bloomfilter();
     println!("update end, elapsed: {:?} ms", start_time.elapsed().as_millis());
