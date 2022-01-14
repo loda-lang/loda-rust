@@ -44,7 +44,6 @@ impl InstructionId {
         match input {
             "add" => Ok(InstructionId::Add),
             "bin" => Ok(InstructionId::Binomial),
-            "cal" => Ok(InstructionId::EvalSequence), // `cal` is deprecated. Use `seq` instead.
             "clr" => Ok(InstructionId::Clear),
             "cmp" => Ok(InstructionId::Compare),
             "dif" => Ok(InstructionId::DivideIf),
