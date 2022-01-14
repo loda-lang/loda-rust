@@ -13,6 +13,10 @@ use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::time::Instant;
 
+// As of january 2022, the OEIS contains around 350k sequences.
+// So an approx count of 400k and there should be room for them all.
+static APPROX_BLOOM_ITEMS_COUNT: usize = 400000;
+
 pub struct CheckFixedLengthSequence {
     bloom: Bloom::<BigIntVec>,
     term_count: usize,
@@ -139,11 +143,12 @@ fn create_cache_files(oeis_stripped_file: &Path, cache_dir: &PathBuf, program_id
     assert!(oeis_stripped_file.is_file());
 
     let file = File::open(oeis_stripped_file).unwrap();
+    let filesize: usize = file.metadata().unwrap().len() as usize;
     let mut reader = BufReader::new(file);
-    let bloom_items_count: usize = 400000;
     create_cache_files_inner(
         &mut reader, 
-        bloom_items_count, 
+        filesize,
+        APPROX_BLOOM_ITEMS_COUNT, 
         cache_dir, 
         program_ids_to_ignore
     );
@@ -151,6 +156,7 @@ fn create_cache_files(oeis_stripped_file: &Path, cache_dir: &PathBuf, program_id
 
 fn create_cache_files_inner(
     oeis_stripped_file_reader: &mut dyn io::BufRead, 
+    filesize: usize,
     bloom_items_count: usize,
     cache_dir: &PathBuf, 
     program_ids_to_ignore: &HashSet<u32>
@@ -193,6 +199,7 @@ fn create_cache_files_inner(
     let term_count: usize = 40;
     process_stripped_sequence_file(
         oeis_stripped_file_reader, 
+        filesize,
         term_count, 
         program_ids_to_ignore, 
         true, 
@@ -235,6 +242,7 @@ fn create_cache_files_inner(
 
 fn process_stripped_sequence_file<F>(
     reader: &mut dyn io::BufRead, 
+    filesize: usize,
     term_count: usize, 
     program_ids_to_ignore: &HashSet<u32>, 
     print_progress: bool, 
@@ -242,20 +250,27 @@ fn process_stripped_sequence_file<F>(
 )
     where F: FnMut(&StrippedSequence)
 {
+    assert!(filesize >= 1);
     assert!(term_count >= 1);
     assert!(term_count <= 100);
-
-    let mut count: usize = 0;
+    if print_progress {
+        println!("number of bytes to be processed: {}", filesize);
+    }
     let mut count_callback: usize = 0;
     let mut count_junk: usize = 0;
     let mut count_tooshort: usize = 0;
     let mut count_ignore: usize = 0;
+    let mut count_bytes: usize = 0;
+    let mut progress_time = Instant::now();
     for line in reader.lines() {
-        count += 1;
-        if print_progress && ((count % 10000) == 0) {
-            println!("progress: {}", count);
+        let elapsed: u128 = progress_time.elapsed().as_millis();
+        if print_progress && elapsed >= 1000 {
+            let percent: usize = (count_bytes * 100) / filesize;
+            println!("progress: {}%  {} of {}", percent, count_bytes, filesize);
+            progress_time = Instant::now();
         }
         let line: String = line.unwrap();
+        count_bytes += line.len();
         let stripped_sequence: StrippedSequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
             Some(value) => value,
             None => {
@@ -360,6 +375,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
 
     fn create_checkfixedlengthsequence_inner(
         reader: &mut dyn io::BufRead, 
+        filesize: usize,
         term_count: usize, 
         program_ids_to_ignore: &HashSet<u32>, 
     ) -> CheckFixedLengthSequence
@@ -374,6 +390,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
         };
         process_stripped_sequence_file(
             reader, 
+            filesize,
             term_count, 
             program_ids_to_ignore, 
             false, 
@@ -385,8 +402,14 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
     impl CheckFixedLengthSequence {
         fn new_mock() -> CheckFixedLengthSequence {
             let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
+            let filesize: usize = input.len();
             let hashset = HashSet::<u32>::new();
-            create_checkfixedlengthsequence_inner(&mut input, 5, &hashset)
+            create_checkfixedlengthsequence_inner(
+                &mut input, 
+                filesize,
+                5, 
+                &hashset
+            )
         }
 
         fn check_i64(&self, ary: &Vec<i64>) -> bool {
@@ -465,9 +488,11 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
 
         // Create cache files
         let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
+        let filesize: usize = input.len();
         let hashset = HashSet::<u32>::new();
         let number_of_sequences: usize = create_cache_files_inner(
             &mut input, 
+            filesize,
             10,
             &cache_dir,
             &hashset
