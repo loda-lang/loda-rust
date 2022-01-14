@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::collections::HashMap;
 use std::fs;
+use csv::WriterBuilder;
+use serde::Serialize;
 use super::find_asm_files_recursively;
 use super::program_id_from_path;
 
@@ -139,14 +141,14 @@ impl HistogramInstructionConstantAnalyzer {
             let record = Record {
                 count: *histogram_count,
                 instruction: instruction_name,
-                value: histogram_key.1
+                constant: histogram_key.1
             };
             records.push(record);
         }
 
         // Move the most frequently occuring items to the top
         // Move the lesser used items to the bottom
-        records.sort_unstable_by_key(|item| (item.count, item.instruction.clone(), item.value));
+        records.sort_unstable_by_key(|item| (item.count, item.instruction.clone(), item.constant));
         records.reverse();
 
         // Save as a CSV file
@@ -162,21 +164,22 @@ impl HistogramInstructionConstantAnalyzer {
     }
     
     fn create_csv_file(records: &Vec<Record>, output_path: &Path) -> Result<(), Box<dyn Error>> {
-        let mut wtr = csv::Writer::from_path(output_path)?;
-        wtr.write_record(&["count", "instruction", "constant"])?;
+        let mut wtr = WriterBuilder::new()
+            .has_headers(true)
+            .delimiter(b';')
+            .from_path(output_path)?;
         for record in records {
-            let s0 = format!("{:?}", record.count);
-            let s1 = record.instruction.clone();
-            let s2 = format!("{:?}", record.value);
-            wtr.write_record(&[s0, s1, s2])?;
+            wtr.serialize(record)?;
         }
         wtr.flush()?;
         Ok(())
     }
 }
 
+    
+#[derive(Serialize)]
 struct Record {
     count: u32,
     instruction: String,
-    value: i32,
+    constant: i32,
 }
