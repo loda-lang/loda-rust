@@ -75,6 +75,13 @@ impl ParsedProgram {
         return program_ids;
     }
 
+    #[allow(dead_code)]
+    pub fn instruction_ids(&self) -> Vec<InstructionId> {
+        self.instruction_vec.iter().map(|instruction| {
+            instruction.instruction_id
+        }).collect()
+    }
+
     pub fn parse_program(raw_input: &str) -> Result<ParsedProgram, ParseProgramError> {
         let re = &EXTRACT_ROW_RE;
         let mut instruction_vec: Vec<Instruction> = vec!();
@@ -177,5 +184,19 @@ mod tests {
                 ";negative parameter is ignored\nseq $1,-1000\nseq $1,-100").unwrap();
             assert_eq!(parsed_program.direct_dependencies().is_empty(), true);
         }
+    }
+
+    #[test]
+    fn test_10004_instruction_ids() {
+        let parsed_program: ParsedProgram = ParsedProgram::parse_program(
+            "mov $1,$0\nlpb $0\ndiv $1,2\nsub $0,$1\nlpe").unwrap();
+        let expected = vec![
+            InstructionId::Move,
+            InstructionId::LoopBegin,
+            InstructionId::Divide,
+            InstructionId::Subtract,
+            InstructionId::LoopEnd
+        ];
+        assert_eq!(parsed_program.instruction_ids(), expected);
     }
 }
