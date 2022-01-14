@@ -14,7 +14,7 @@ type ValueAndWeightVector = Vec<ValueAndWeight>;
 
 // Instructions that takes a constant value.
 //
-// The most used combo: `add $0,1` (addition)
+// The most used combo: `add $0,1` (addition by 1)
 // Almost as popular combo: `sub $0,1` (subtract by 1)
 //
 // Usecase:
