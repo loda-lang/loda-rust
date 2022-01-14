@@ -35,6 +35,7 @@ impl NgramGenerator {
         instance.analyze_all_program_files();
         instance.save_bigram();
         instance.save_trigram();
+        instance.save_skipgram();
     }
 
     fn analyze_all_program_files(&mut self) {
@@ -152,7 +153,6 @@ impl NgramGenerator {
         let mut prev_word = String::new();
         for (index, word2) in words.iter().enumerate() {
             let word0: String = prev_prev_word;
-            let word1: String = prev_word.clone();
             prev_prev_word = prev_word;
             prev_word = word2.clone();
             if index < 2 {
@@ -186,7 +186,7 @@ impl NgramGenerator {
 
         // Save as a CSV file
         let output_path: PathBuf = self.config.cache_dir_histogram_instruction_bigram_file();
-        match RecordBigram::create_csv_file(&records, &output_path) {
+        match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("save ok");
             },
@@ -216,7 +216,7 @@ impl NgramGenerator {
 
         // Save as a CSV file
         let output_path: PathBuf = self.config.cache_dir_histogram_instruction_trigram_file();
-        match RecordTrigram::create_csv_file(&records, &output_path) {
+        match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("save ok");
             },
@@ -224,6 +224,47 @@ impl NgramGenerator {
                 println!("save error: {:?}", error);
             }
         }
+    }
+
+    fn save_skipgram(&self) {
+        // Convert from dictionary to array
+        let mut records = Vec::<RecordSkipgram>::new();
+        for (histogram_key, histogram_count) in &self.histogram_skipgram {
+            let record = RecordSkipgram {
+                count: *histogram_count,
+                word0: histogram_key.0.clone(),
+                word2: histogram_key.1.clone()
+            };
+            records.push(record);
+        }
+
+        // Move the most frequently occuring items to the top
+        // Move the lesser used items to the bottom
+        records.sort_unstable_by_key(|item| (item.count, item.word0.clone(), item.word2.clone()));
+        records.reverse();
+
+        // Save as a CSV file
+        let output_path: PathBuf = self.config.cache_dir_histogram_instruction_skipgram_file();
+        match Self::create_csv_file(&records, &output_path) {
+            Ok(_) => {
+                println!("save ok");
+            },
+            Err(error) => {
+                println!("save error: {:?}", error);
+            }
+        }
+    }
+
+    fn create_csv_file<S: Serialize>(records: &Vec<S>, output_path: &Path) -> Result<(), Box<dyn Error>> {
+        let mut wtr = WriterBuilder::new()
+            .has_headers(true)
+            .delimiter(b';')
+            .from_path(output_path)?;
+        for record in records {
+            wtr.serialize(record)?;
+        }
+        wtr.flush()?;
+        Ok(())
     }
 }
 
@@ -234,20 +275,6 @@ struct RecordBigram {
     word1: String,
 }
 
-impl RecordBigram {
-    fn create_csv_file(records: &Vec<RecordBigram>, output_path: &Path) -> Result<(), Box<dyn Error>> {
-        let mut wtr = WriterBuilder::new()
-            .has_headers(true)
-            .delimiter(b';')
-            .from_path(output_path)?;
-        for record in records {
-            wtr.serialize(record)?;
-        }
-        wtr.flush()?;
-        Ok(())
-    }
-}
-
 #[derive(Serialize)]
 struct RecordTrigram {
     count: u32,
@@ -256,16 +283,9 @@ struct RecordTrigram {
     word2: String,
 }
 
-impl RecordTrigram {
-    fn create_csv_file(records: &Vec<RecordTrigram>, output_path: &Path) -> Result<(), Box<dyn Error>> {
-        let mut wtr = WriterBuilder::new()
-            .has_headers(true)
-            .delimiter(b';')
-            .from_path(output_path)?;
-        for record in records {
-            wtr.serialize(record)?;
-        }
-        wtr.flush()?;
-        Ok(())
-    }
+#[derive(Serialize)]
+struct RecordSkipgram {
+    count: u32,
+    word0: String,
+    word2: String,
 }
