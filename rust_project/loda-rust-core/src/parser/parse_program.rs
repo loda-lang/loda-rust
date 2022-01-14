@@ -50,38 +50,8 @@ impl From<ParseParametersError> for ParseProgramError {
 }
 
 impl ParsedProgram {
-    // The direct dependencies that this program depends on.
-    // This doesn't include the indirect dependencies.
-    #[allow(dead_code)]
-    pub fn direct_dependencies(&self) -> Vec<u64> {
-        let mut program_ids: Vec<u64> = vec!();
-        for instruction in &self.instruction_vec {
-            if instruction.instruction_id != InstructionId::EvalSequence {
-                continue;
-            }
-            if instruction.parameter_vec.len() != 2 {
-                continue;
-            }
-            let param: &InstructionParameter = &(instruction.parameter_vec[1]);
-            if param.parameter_type != ParameterType::Constant {
-                continue;
-            }
-            let program_id: i64 = param.parameter_value;
-            if program_id < 0 {
-                continue;
-            }
-            program_ids.push(program_id as u64);
-        }
-        return program_ids;
-    }
-
-    #[allow(dead_code)]
-    pub fn instruction_ids(&self) -> Vec<InstructionId> {
-        self.instruction_vec.iter().map(|instruction| {
-            instruction.instruction_id
-        }).collect()
-    }
-
+    // Returns Ok if the program can be parsed.
+    // Returns Err if there is a problem during parsing.
     pub fn parse_program(raw_input: &str) -> Result<ParsedProgram, ParseProgramError> {
         let re = &EXTRACT_ROW_RE;
         let mut instruction_vec: Vec<Instruction> = vec!();
@@ -125,6 +95,38 @@ impl ParsedProgram {
         };
         Ok(parsed_program)
     }    
+
+    // The direct dependencies that this program depends on.
+    // This doesn't include the indirect dependencies.
+    #[allow(dead_code)]
+    pub fn direct_dependencies(&self) -> Vec<u64> {
+        let mut program_ids: Vec<u64> = vec!();
+        for instruction in &self.instruction_vec {
+            if instruction.instruction_id != InstructionId::EvalSequence {
+                continue;
+            }
+            if instruction.parameter_vec.len() != 2 {
+                continue;
+            }
+            let param: &InstructionParameter = &(instruction.parameter_vec[1]);
+            if param.parameter_type != ParameterType::Constant {
+                continue;
+            }
+            let program_id: i64 = param.parameter_value;
+            if program_id < 0 {
+                continue;
+            }
+            program_ids.push(program_id as u64);
+        }
+        return program_ids;
+    }
+
+    #[allow(dead_code)]
+    pub fn instruction_ids(&self) -> Vec<InstructionId> {
+        self.instruction_vec.iter().map(|instruction| {
+            instruction.instruction_id
+        }).collect()
+    }
 }
 
 #[cfg(test)]
