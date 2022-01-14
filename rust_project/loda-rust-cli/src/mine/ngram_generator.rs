@@ -15,6 +15,69 @@ type HistogramBigramKey = (String,String);
 type HistogramTrigramKey = (String,String,String);
 type HistogramSkipgramKey = (String,String);
 
+/*
+Creates csv files with bigram/trigram/skipgram with LODA instructions.
+https://en.wikipedia.org/wiki/N-gram
+
+This script traverses all the programs inside the "loda-programs/oeis" dir.
+It looks for all the LODA assembly programs there are.
+This script determines the most frequent combinations of instructions.
+
+---
+
+This script outputs a `bigram.csv` file, with this format:
+
+    count;word0;word1
+    18066;mov;mov
+    16888;START;mov
+    14712;mov;lpb
+    13386;mov;sub
+    13132;mov;add
+    11776;add;mov
+    10522;add;add
+    9840;mul;add
+
+Learnings from this bigram with LODA programs:
+Learning A: The `mov` instruction is most likely to be followed by another `mov` instruction.
+Learning B: The program is most likely to start with a `mov` instruction.
+Learning C: The `mul` instruction is most likely to be followed by an `add` instruction.
+Learning D: The `lpb` instruction is most likely to be followed by a `mov` instruction.
+
+---
+
+This script outputs a `trigram.csv` file, with this format:
+
+    count;word0;word1;word2
+    8776;mov;mov;lpb
+    6709;lpb;mov;sub
+    5717;START;mov;mov
+    5386;mov;lpb;mov
+    4321;mov;lpb;sub
+    4310;mul;add;STOP
+
+Learnings from this trigram with LODA programs:
+Learning A: The `mov` and `mov` is usually followed by a `lpb` instruction.
+Learning B: The `lpb` and `mov` is usually followed by a `sub` instruction.
+Learning C: The `mov` and `lpb` is usually followed by a `mov` instruction.
+Learning D: The `mul` and `add` is usually the last of the program.
+
+---
+
+This script outputs a `skipgram.csv` file, with this format:
+
+    count;word0;word2
+    17826;mov;add
+    15585;mov;mov
+    12458;mov;lpb
+    11971;add;mov
+    11942;mov;sub
+    11662;sub;mov
+
+Learnings from this skipgram with LODA programs:
+Learning A: The `mov` and some junk is usually followed by the `add` instruction.
+Learning B: The `add` and some junk is usually followed by the `mov` instruction.
+Learning C: The `sub` and some junk is usually followed by the `mov` instruction.
+*/
 pub struct NgramGenerator {
     config: Config,
     histogram_bigram: HashMap<HistogramBigramKey,u32>,
