@@ -1,6 +1,6 @@
 use std::fmt;
 use super::extract_row_re::EXTRACT_ROW_RE;
-use super::instruction_id::{InstructionId,ParseInstructionIdError,parse_instruction_id};
+use super::instruction_id::{InstructionId,ParseInstructionIdError};
 use super::instruction::{Instruction,InstructionParameter};
 use super::parameter_type::ParameterType;
 use super::parse_parameters::*;
@@ -74,50 +74,50 @@ impl ParsedProgram {
         }
         return program_ids;
     }
-}
 
-pub fn parse_program(raw_input: &str) -> Result<ParsedProgram, ParseProgramError> {
-    let re = &EXTRACT_ROW_RE;
-    let mut instruction_vec: Vec<Instruction> = vec!();
-    for (index, raw_input_line) in raw_input.split("\n").enumerate() {
-        let line_number: usize = index + 1;
-
-        let line0 = remove_comment(raw_input_line);
-        let line1: &str = line0.trim_end();
-        if line1.is_empty() {
-            // skip lines without code
-            // if it's a line with just a comment, then skip the line.
-            // if it's a line with just blank spaces, then skip the line.
-            continue;
-        }
-
-        let captures = match re.captures(line1) {
-            Some(value) => value,
-            None => {
-                return Err(ParseProgramError::SyntaxError(line_number));
+    pub fn parse_program(raw_input: &str) -> Result<ParsedProgram, ParseProgramError> {
+        let re = &EXTRACT_ROW_RE;
+        let mut instruction_vec: Vec<Instruction> = vec!();
+        for (index, raw_input_line) in raw_input.split("\n").enumerate() {
+            let line_number: usize = index + 1;
+    
+            let line0 = remove_comment(raw_input_line);
+            let line1: &str = line0.trim_end();
+            if line1.is_empty() {
+                // skip lines without code
+                // if it's a line with just a comment, then skip the line.
+                // if it's a line with just blank spaces, then skip the line.
+                continue;
             }
+    
+            let captures = match re.captures(line1) {
+                Some(value) => value,
+                None => {
+                    return Err(ParseProgramError::SyntaxError(line_number));
+                }
+            };
+            let instruction_raw: &str = captures.get(1).map_or("", |m| m.as_str());
+            let parameter_string: &str = captures.get(2).map_or("", |m| m.as_str());
+    
+            let instruction_id: InstructionId = 
+                InstructionId::parse(instruction_raw, line_number)?;
+    
+            let parameter_vec: Vec<InstructionParameter> = 
+                parse_parameters(parameter_string, line_number)?;
+    
+            let instruction = Instruction {
+                instruction_id: instruction_id,
+                parameter_vec: parameter_vec,
+                line_number: line_number,
+            };
+            instruction_vec.push(instruction);
+        }
+    
+        let parsed_program = Self {
+            instruction_vec: instruction_vec
         };
-        let instruction_raw: &str = captures.get(1).map_or("", |m| m.as_str());
-        let parameter_string: &str = captures.get(2).map_or("", |m| m.as_str());
-
-        let instruction_id: InstructionId = 
-            parse_instruction_id(instruction_raw, line_number)?;
-
-        let parameter_vec: Vec<InstructionParameter> = 
-            parse_parameters(parameter_string, line_number)?;
-
-        let instruction = Instruction {
-            instruction_id: instruction_id,
-            parameter_vec: parameter_vec,
-            line_number: line_number,
-        };
-        instruction_vec.push(instruction);
-    }
-
-    let parsed_program = ParsedProgram {
-        instruction_vec: instruction_vec
-    };
-    Ok(parsed_program)
+        Ok(parsed_program)
+    }    
 }
 
 #[cfg(test)]
@@ -125,7 +125,7 @@ mod tests {
     use super::*;
 
     fn process(input: &str) -> String {
-        let result = parse_program(input);
+        let result = ParsedProgram::parse_program(input);
         let parsed_program: ParsedProgram = match result {
             Ok(value) => value,
             Err(error) => {
@@ -163,17 +163,17 @@ mod tests {
     #[test]
     fn test_10003_direct_dependencies() {
         {
-            let parsed_program: ParsedProgram = parse_program(
+            let parsed_program: ParsedProgram = ParsedProgram::parse_program(
                 "seq $1,40 ; fibonacci\nseq $2,40; fib again!\nseq $3,10\nseq $4,45").unwrap();
             assert_eq!(parsed_program.direct_dependencies(), vec!(40,40,10,45));
         }
         {
-            let parsed_program: ParsedProgram = parse_program(
+            let parsed_program: ParsedProgram = ParsedProgram::parse_program(
                 "mov $1,$0\nadd $1,$1").unwrap();
             assert_eq!(parsed_program.direct_dependencies().is_empty(), true);
         }
         {
-            let parsed_program: ParsedProgram = parse_program(
+            let parsed_program: ParsedProgram = ParsedProgram::parse_program(
                 ";negative parameter is ignored\nseq $1,-1000\nseq $1,-100").unwrap();
             assert_eq!(parsed_program.direct_dependencies().is_empty(), true);
         }

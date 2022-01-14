@@ -66,6 +66,12 @@ impl Config {
         PathBuf::from(path)
     }
 
+    pub fn cache_dir_histogram_instruction_constant_file(&self) -> PathBuf {
+        let path = self.cache_dir().join("histogram_instruction_constant.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
     pub fn mine_event_dir(&self) -> PathBuf {
         let name = Path::new("mine-event");
         let path = self.basedir.join(name);

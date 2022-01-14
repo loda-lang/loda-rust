@@ -1,4 +1,5 @@
-use crate::mine::{PopularProgramContainer, RecentProgramContainer};
+use crate::mine::{PopularProgramContainer, RecentProgramContainer, HistogramInstructionConstant};
+use loda_rust_core::parser::InstructionId;
 use rand::Rng;
 use rand::seq::SliceRandom;
 
@@ -6,18 +7,21 @@ pub struct GenomeMutateContext {
     available_program_ids: Vec<u32>,
     popular_program_container: PopularProgramContainer,
     recent_program_container: RecentProgramContainer,
+    histogram_instruction_constant: Option<HistogramInstructionConstant>,
 }
 
 impl GenomeMutateContext {
     pub fn new(
         available_program_ids: Vec<u32>, 
         popular_program_container: PopularProgramContainer, 
-        recent_program_container: RecentProgramContainer) -> Self 
-    {
+        recent_program_container: RecentProgramContainer,
+        histogram_instruction_constant: Option<HistogramInstructionConstant>
+    ) -> Self {
         Self {
             available_program_ids: available_program_ids,
             popular_program_container: popular_program_container,
             recent_program_container: recent_program_container,
+            histogram_instruction_constant: histogram_instruction_constant
         }
     }
 
@@ -42,5 +46,19 @@ impl GenomeMutateContext {
 
     pub fn choose_recent_program<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
         self.recent_program_container.choose(rng)
+    }
+
+    pub fn has_histogram_instruction_constant(&self) -> bool {
+        self.histogram_instruction_constant.is_some()
+    }
+
+    pub fn choose_constant_with_histogram<R: Rng + ?Sized>(&self, rng: &mut R, instruction_id: InstructionId) -> Option<i32> {
+        let instance: &HistogramInstructionConstant = match &self.histogram_instruction_constant {
+            Some(value) => value,
+            None => {
+                return None;
+            }
+        };
+        instance.choose_weighted(rng, instruction_id)
     }
 }

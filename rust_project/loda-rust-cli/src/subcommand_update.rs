@@ -1,8 +1,8 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use crate::mine::{create_cache_files, load_program_ids_csv_file};
-use crate::mine::validate_programs;
-use crate::mine::DontMine;
+use crate::mine::ValidatePrograms;
+use crate::mine::{DontMine, HistogramInstructionConstantAnalyzer};
 use std::path::PathBuf;
 use std::collections::HashSet;
 use std::iter::FromIterator;
@@ -37,9 +37,9 @@ fn populate_bloomfilter() {
 pub fn subcommand_update() {
     let start_time = Instant::now();
     println!("update begin");
-    let dontmine = DontMine::create();
-    dontmine.save();
-    let _ = validate_programs();
+    DontMine::run();
+    HistogramInstructionConstantAnalyzer::run();
+    ValidatePrograms::run();
     populate_bloomfilter();
     println!("update end, elapsed: {:?} ms", start_time.elapsed().as_millis());
 }

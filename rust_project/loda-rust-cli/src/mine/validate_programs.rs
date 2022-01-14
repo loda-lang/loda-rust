@@ -12,9 +12,25 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::time::Instant;
 use std::rc::Rc;
+use std::fmt;
 use std::fs::File;
 use std::io::Write;
 use std::io::LineWriter;
+
+#[derive(Debug)]
+pub enum ValidateProgramError {
+    NoPrograms,
+}
+
+impl std::error::Error for ValidateProgramError {}
+
+impl fmt::Display for ValidateProgramError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::NoPrograms => write!(f, "Expected 1 or more programs, cannot validate"),
+        }
+    }
+}
 
 /*
 Identify the programs that can safely be used by the miner.
@@ -63,83 +79,102 @@ The outputted file: `programs_invalid.csv` has this format:
     21292;ParseProgram(ParseParameters(UnrecognizedParameterType(5)))
 
 */
-pub fn validate_programs() -> std::io::Result<()> {
-    let start_time = Instant::now();
-    println!("validate_programs begin");
-    let config = Config::load();
-    let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
+pub struct ValidatePrograms {}
 
-    let programs_valid_csv_file: PathBuf = config.cache_dir().join(Path::new("programs_valid.csv"));
-    let programs_invalid_csv_file: PathBuf = config.cache_dir().join(Path::new("programs_invalid.csv"));
-
-    // Obtain paths to loda asm files
-    let paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
-    // debug!("number of paths: {:?}", paths.len());
-
-    // Extract program_ids from paths
-    let program_ids: Vec<u32> = program_ids_from_paths(paths);
-    println!("validate_programs, will analyze {:?} programs", program_ids.len());
-
-    // Create CSV file for valid program ids
-    let file0 = File::create(programs_valid_csv_file)?;
-    let mut programs_valid_csv = LineWriter::new(file0);
-    programs_valid_csv.write_all(b"program id\n")?;
-
-    // Create CSV file for invalid programs and their error message
-    let file1 = File::create(programs_invalid_csv_file)?;
-    let mut programs_invalid_csv = LineWriter::new(file1);
-    programs_invalid_csv.write_all(b"program id;error\n")?;
-
-    // Run all the programs.
-    // Reject the programs that is having difficulties running.
-    let mut dm = DependencyManager::new(
-        DependencyManagerFileSystemMode::System,
-        loda_programs_oeis_dir,
-    );
-    let mut cache = ProgramCache::new();
-    let mut progress_time = Instant::now();
-    let program_ids_len: usize = program_ids.len();
-    let mut number_of_invalid_programs: u32 = 0;
-    let mut valid_program_ids: HashSet<u32> = HashSet::new();
-    for (index, program_id) in program_ids.iter().enumerate() {
-        let elapsed: u128 = progress_time.elapsed().as_millis();
-        if elapsed >= 1000 {
-            let percent: f32 = ((index * 100) as f32) / (program_ids_len as f32);
-            println!("progress: {:.2}%  {:?} / {:?}", percent, index, program_ids_len);
-            progress_time = Instant::now();
-        }
-        let program_id64 = *program_id as u64;
-        let program_runner: Rc::<ProgramRunner> = match dm.load(program_id64) {
-            Ok(value) => value,
-            Err(error) => {
-                // error!("Cannot load program {:?}: {:?}", program_id, error);
-                let row = format!("{:?};{:?}\n", program_id, error);
-                programs_invalid_csv.write_all(row.as_bytes())?;
-                number_of_invalid_programs += 1;
-                continue;
-            }
-        };
-        match program_runner.compute_terms(10, &mut cache) {
+impl ValidatePrograms {
+    pub fn run() {
+        match Self::run_inner() {
             Ok(_) => {},
-            Err(error) => {
-                // error!("Cannot run program {:?}: {:?}", program_id, error);
-                let row = format!("{:?};{:?}\n", program_id, error);
-                programs_invalid_csv.write_all(row.as_bytes())?;
-                number_of_invalid_programs += 1;
-                continue;
+            Err(err) => {
+                error!("Error occured while validating programs: {}", err);
             }
         }
-
-        // Append status for programs to the csv file.
-        let row = format!("{:?}\n", program_id);
-        programs_valid_csv.write_all(row.as_bytes())?;
-        valid_program_ids.insert(*program_id);
     }
-    println!("number of valid programs: {:?}", valid_program_ids.len());
-    println!("number of invalid programs: {:?}", number_of_invalid_programs);
-    println!("validate_programs end. elapsed: {:?} ms", start_time.elapsed().as_millis());
 
-    return Ok(());
+    fn run_inner() -> Result<(), Box<dyn Error>> {
+        let start_time = Instant::now();
+        println!("validate_programs begin");
+        let config = Config::load();
+        let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
+
+        let programs_valid_csv_file: PathBuf = config.cache_dir().join(Path::new("programs_valid.csv"));
+        let programs_invalid_csv_file: PathBuf = config.cache_dir().join(Path::new("programs_invalid.csv"));
+
+        // Obtain paths to loda asm files
+        let paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
+        let number_of_paths = paths.len();
+        if number_of_paths <= 0 {
+            return Err(Box::new(ValidateProgramError::NoPrograms));
+        }
+        let max_index: usize = number_of_paths - 1;
+        // debug!("number of paths: {:?}", number_of_paths);
+
+        // Extract program_ids from paths
+        let program_ids: Vec<u32> = program_ids_from_paths(paths);
+        println!("validate_programs, will analyze {:?} programs", program_ids.len());
+
+        // Create CSV file for valid program ids
+        let file0 = File::create(programs_valid_csv_file)?;
+        let mut programs_valid_csv = LineWriter::new(file0);
+        programs_valid_csv.write_all(b"program id\n")?;
+
+        // Create CSV file for invalid programs and their error message
+        let file1 = File::create(programs_invalid_csv_file)?;
+        let mut programs_invalid_csv = LineWriter::new(file1);
+        programs_invalid_csv.write_all(b"program id;error\n")?;
+
+        // Run all the programs.
+        // Reject the programs that is having difficulties running.
+        let mut dm = DependencyManager::new(
+            DependencyManagerFileSystemMode::System,
+            loda_programs_oeis_dir,
+        );
+        let mut cache = ProgramCache::new();
+        let mut progress_time = Instant::now();
+        let program_ids_len: usize = program_ids.len();
+        let mut number_of_invalid_programs: u32 = 0;
+        let mut valid_program_ids: HashSet<u32> = HashSet::new();
+        for (index, program_id) in program_ids.iter().enumerate() {
+            let elapsed: u128 = progress_time.elapsed().as_millis();
+            let is_last: bool = index == max_index;
+            if elapsed >= 1000 || is_last {
+                let percent: usize = (index * 100) / max_index;
+                println!("progress: {}%  {} of {}", percent, index + 1, program_ids_len);
+                progress_time = Instant::now();
+            }
+            let program_id64 = *program_id as u64;
+            let program_runner: Rc::<ProgramRunner> = match dm.load(program_id64) {
+                Ok(value) => value,
+                Err(error) => {
+                    // error!("Cannot load program {:?}: {:?}", program_id, error);
+                    let row = format!("{:?};{:?}\n", program_id, error);
+                    programs_invalid_csv.write_all(row.as_bytes())?;
+                    number_of_invalid_programs += 1;
+                    continue;
+                }
+            };
+            match program_runner.compute_terms(10, &mut cache) {
+                Ok(_) => {},
+                Err(error) => {
+                    // error!("Cannot run program {:?}: {:?}", program_id, error);
+                    let row = format!("{:?};{:?}\n", program_id, error);
+                    programs_invalid_csv.write_all(row.as_bytes())?;
+                    number_of_invalid_programs += 1;
+                    continue;
+                }
+            }
+
+            // Append status for programs to the csv file.
+            let row = format!("{:?}\n", program_id);
+            programs_valid_csv.write_all(row.as_bytes())?;
+            valid_program_ids.insert(*program_id);
+        }
+        println!("number of valid programs: {:?}", valid_program_ids.len());
+        println!("number of invalid programs: {:?}", number_of_invalid_programs);
+        println!("validate_programs end. elapsed: {:?} ms", start_time.elapsed().as_millis());
+
+        return Ok(());
+    }
 }
 
 trait ComputeTerms {

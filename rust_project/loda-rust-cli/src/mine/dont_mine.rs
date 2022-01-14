@@ -22,7 +22,7 @@ pub struct DontMine {
 }
 
 impl DontMine {
-    pub fn create() -> Self {
+    pub fn run() {
         let mut instance = Self {
             config: Config::load(),
             program_ids: vec!()
@@ -39,7 +39,7 @@ impl DontMine {
             let program_ids: Vec<u32> = instance.process_loda_programs_deny_file();
             instance.program_ids.extend(program_ids);
         }
-        instance
+        instance.save();
     }
 
     fn process_existing_programs(&self) -> Vec<u32> {
@@ -71,7 +71,7 @@ impl DontMine {
         program_ids
     }
 
-    pub fn save(&self) {
+    fn save(&self) {
         println!("saving, number of program_ids: {:?}", self.program_ids.len());
         let output_path: PathBuf = self.config.cache_dir_dont_mine_file();
         match Self::create_csv_file(&self.program_ids, &output_path) {

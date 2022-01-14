@@ -1,4 +1,4 @@
-use super::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, PreventFlooding, RecentProgramContainer, save_candidate_program};
+use super::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, PreventFlooding, RecentProgramContainer, save_candidate_program, HistogramInstructionConstant};
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -145,6 +145,7 @@ pub fn run_miner_loop(
     checker20: &CheckFixedLengthSequence,
     checker30: &CheckFixedLengthSequence,
     checker40: &CheckFixedLengthSequence,
+    histogram_instruction_constant: Option<HistogramInstructionConstant>,
     mine_event_dir: &Path,
     loda_rust_mismatches: &Path,
     available_program_ids: Vec<u32>,
@@ -180,6 +181,7 @@ pub fn run_miner_loop(
         available_program_ids,
         popular_program_container,
         recent_program_container,
+        histogram_instruction_constant,
     );
 
     let mut funnel = Funnel::new(

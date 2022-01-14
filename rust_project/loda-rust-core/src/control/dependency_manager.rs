@@ -4,7 +4,7 @@ use std::path::{Path,PathBuf};
 use std::collections::HashSet;
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::parser::{ParsedProgram, ParseProgramError, parse_program, create_program, CreatedProgram, CreateProgramError};
+use crate::parser::{ParsedProgram, ParseProgramError, create_program, CreatedProgram, CreateProgramError};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 
 #[derive(Debug, PartialEq)]
@@ -178,7 +178,7 @@ impl DependencyManager {
     pub fn parse(&mut self, program_id: ProgramId, contents: &String) -> 
         Result<ProgramRunner, DependencyManagerError> 
     {
-        let parsed_program: ParsedProgram = match parse_program(contents) {
+        let parsed_program: ParsedProgram = match ParsedProgram::parse_program(contents) {
             Ok(value) => value,
             Err(error) => {
                 return Err(DependencyManagerError::ParseProgram(error));
