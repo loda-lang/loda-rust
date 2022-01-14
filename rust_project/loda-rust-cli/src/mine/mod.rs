@@ -17,7 +17,7 @@ mod run_miner_loop;
 mod save_candidate_program;
 mod validate_programs;
 
-pub use check_fixed_length_sequence::{CheckFixedLengthSequence, create_cache_files, NamedCacheFile};
+pub use check_fixed_length_sequence::{CheckFixedLengthSequence, NamedCacheFile, PopulateBloomfilter};
 pub use deny_file::load_program_ids_from_deny_file;
 pub use dont_mine::DontMine;
 pub use find_asm_files_recursively::find_asm_files_recursively;
