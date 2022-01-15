@@ -78,7 +78,7 @@ Learning A: The `mov` and some junk is usually followed by the `add` instruction
 Learning B: The `add` and some junk is usually followed by the `mov` instruction.
 Learning C: The `sub` and some junk is usually followed by the `mov` instruction.
 */
-pub struct NgramGenerator {
+pub struct HistogramInstructionNgramAnalyzer {
     config: Config,
     histogram_bigram: HashMap<HistogramBigramKey,u32>,
     histogram_trigram: HashMap<HistogramTrigramKey,u32>,
@@ -86,7 +86,7 @@ pub struct NgramGenerator {
     number_of_program_files_that_could_not_be_loaded: u32,
 }
 
-impl NgramGenerator {
+impl HistogramInstructionNgramAnalyzer {
     pub fn run() {
         let mut instance = Self {
             config: Config::load(),
