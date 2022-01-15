@@ -1,11 +1,11 @@
-use super::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, PreventFlooding, RecentProgramContainer, save_candidate_program, HistogramInstructionConstant};
+use super::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, RecentProgramContainer, save_candidate_program, HistogramInstructionConstant};
+use super::{PreventFlooding, prevent_flooding_populate};
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
 use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
-use std::fs;
 use std::time::Instant;
 use std::path::{Path, PathBuf};
 use rand::SeedableRng;
@@ -55,90 +55,6 @@ impl TermComputer {
     }
 }
 
-trait ComputeTerms {
-    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError>;
-}
-
-impl ComputeTerms for ProgramRunner {
-    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError> {
-        let mut terms: BigIntVec = vec!();
-        let step_count_limit: u64 = 10000;
-        let node_register_limit = NodeRegisterLimit::LimitBits(32);
-        let node_binomial_limit = NodeBinomialLimit::LimitN(20);
-        let node_loop_limit = NodeLoopLimit::LimitCount(1000);
-        let node_power_limit = NodePowerLimit::LimitBits(30);
-        let mut _step_count: u64 = 0;
-        for index in 0..(count as i64) {
-            let input = RegisterValue::from_i64(index);
-            let output: RegisterValue = self.run(
-                &input, 
-                RunMode::Silent, 
-                &mut _step_count, 
-                step_count_limit, 
-                node_register_limit.clone(),
-                node_binomial_limit.clone(),
-                node_loop_limit.clone(),
-                node_power_limit.clone(),
-                cache
-            )?;
-            terms.push(output.0.clone());
-            if index == 0 {
-                // print!("{}", output.0);
-                continue;
-            }
-            // print!(",{}", output.0);
-        }
-        // print!("\n");
-        // print!("stats: step_count: {}", step_count);
-        Ok(terms)
-    }
-}
-
-impl PreventFlooding {
-    fn load(&mut self, dependency_manager: &mut DependencyManager, cache: &mut ProgramCache, paths: Vec<PathBuf>) {
-        let mut number_of_read_errors: usize = 0;
-        let mut number_of_parse_errors: usize = 0;
-        let mut number_of_runtime_errors: usize = 0;
-        let mut number_of_already_registered_programs: usize = 0;
-        let mut number_of_successfully_registered_programs: usize = 0;
-        for path in paths {
-            let contents: String = match fs::read_to_string(&path) {
-                Ok(value) => value,
-                Err(error) => {
-                    debug!("Something went wrong reading the file: {:?}  error: {:?}", path, error);
-                    number_of_read_errors += 1;
-                    continue;
-                }
-            };
-            let runner: ProgramRunner = match dependency_manager.parse(ProgramId::ProgramWithoutId, &contents) {
-                Ok(value) => value,
-                Err(error) => {
-                    debug!("Something went wrong when parsing the file: {:?}  error: {:?}", path, error);
-                    number_of_parse_errors += 1;
-                    continue;
-                }
-            };
-            let number_of_terms: u64 = 40;
-            let terms: BigIntVec = match runner.compute_terms(number_of_terms, cache) {
-                Ok(value) => value,
-                Err(error) => {
-                    debug!("program cannot be run. path: {:?}  error: {:?}", path, error);
-                    number_of_runtime_errors += 1;
-                    continue;
-                }
-            };
-            if self.try_register(&terms).is_err() {
-                number_of_already_registered_programs += 1;
-                continue;
-            }
-            number_of_successfully_registered_programs += 1;
-        }
-        let junk_count: usize = number_of_read_errors + number_of_parse_errors + number_of_runtime_errors + number_of_already_registered_programs;
-        debug!("prevent flooding. Registered {} programs. Ignoring {} junk programs.", number_of_successfully_registered_programs, junk_count);
-    }
-}
-
-
 pub fn run_miner_loop(
     loda_programs_oeis_dir: &PathBuf, 
     checker10: &CheckFixedLengthSequence, 
@@ -169,13 +85,10 @@ pub fn run_miner_loop(
     println!("number of .asm files in total: {:?}", paths.len());
 
     let mut prevent_flooding = PreventFlooding::new();
-    prevent_flooding.load(&mut dm, &mut cache, paths);
+    prevent_flooding_populate(&mut prevent_flooding, &mut dm, &mut cache, paths);
     println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
 
     let mut genome = Genome::new();
-    println!("Initial genome\n{}", genome);
-
-    // return;
 
     let context = GenomeMutateContext::new(
         available_program_ids,
