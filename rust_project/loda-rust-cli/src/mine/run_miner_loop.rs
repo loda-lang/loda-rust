@@ -111,6 +111,7 @@ pub fn run_miner_loop(
         popular_program_container,
         recent_program_container,
         histogram_instruction_constant,
+        Some(suggest_instruction)
     );
 
     let mut funnel = Funnel::new(
