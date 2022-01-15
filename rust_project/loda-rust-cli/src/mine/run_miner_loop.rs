@@ -89,7 +89,6 @@ pub fn run_miner_loop(
     println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
 
     let mut genome = Genome::new();
-    println!("Initial genome\n{}", genome);
 
     let context = GenomeMutateContext::new(
         available_program_ids,
