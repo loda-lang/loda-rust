@@ -1,12 +1,53 @@
 use std::error::Error;
-use std::io::BufRead;
+use std::io::{BufRead, BufReader};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
+use std::path::PathBuf;
+use std::fs::File;
+use loda_rust_core::config::Config;
 
+#[allow(dead_code)]
 pub struct HistogramInstructionNgram {
+    path_bigram: PathBuf,
+    path_trigram: PathBuf,
+    path_skipgram: PathBuf,
 }
 
 impl HistogramInstructionNgram {
+    #[allow(dead_code)]
+    pub fn new() -> Self {
+        let config = Config::load(); 
+        Self {
+            path_bigram: config.cache_dir_histogram_instruction_bigram_file(),
+            path_trigram: config.cache_dir_histogram_instruction_trigram_file(),
+            path_skipgram: config.cache_dir_histogram_instruction_skipgram_file(),
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn loda_bigram(&self) -> Result<Vec<RecordBigram>, Box<dyn Error>> {
+        let file = File::open(&self.path_bigram)?;
+        let mut reader = BufReader::new(file);
+        let records: Vec<RecordBigram> = Self::parse_csv_data(&mut reader)?;
+        Ok(records)
+    }
+
+    #[allow(dead_code)]
+    pub fn loda_trigram(&self) -> Result<Vec<RecordTrigram>, Box<dyn Error>> {
+        let file = File::open(&self.path_trigram)?;
+        let mut reader = BufReader::new(file);
+        let records: Vec<RecordTrigram> = Self::parse_csv_data(&mut reader)?;
+        Ok(records)
+    }
+
+    #[allow(dead_code)]
+    pub fn loda_skipgram(&self) -> Result<Vec<RecordSkipgram>, Box<dyn Error>> {
+        let file = File::open(&self.path_skipgram)?;
+        let mut reader = BufReader::new(file);
+        let records: Vec<RecordSkipgram> = Self::parse_csv_data(&mut reader)?;
+        Ok(records)
+    }
+
     #[allow(dead_code)]
     fn parse_csv_data<D: DeserializeOwned>(reader: &mut dyn BufRead) 
         -> Result<Vec<D>, Box<dyn Error>> 
@@ -24,26 +65,29 @@ impl HistogramInstructionNgram {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
-struct RecordBigram {
-    count: u32,
-    word0: String,
-    word1: String,
+pub struct RecordBigram {
+    pub count: u32,
+    pub word0: String,
+    pub word1: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
-struct RecordTrigram {
-    count: u32,
-    word0: String,
-    word1: String,
-    word2: String,
+pub struct RecordTrigram {
+    pub count: u32,
+    pub word0: String,
+    pub word1: String,
+    pub word2: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
-struct RecordSkipgram {
-    count: u32,
-    word0: String,
-    word2: String,
+pub struct RecordSkipgram {
+    pub count: u32,
+    pub word0: String,
+    pub word2: String,
 }
 
 #[cfg(test)]
