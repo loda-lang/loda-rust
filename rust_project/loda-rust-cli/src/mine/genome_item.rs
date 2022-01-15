@@ -124,6 +124,34 @@ impl GenomeItem {
         true
     }
 
+    pub fn set_instruction(&mut self, new_instruction_id: InstructionId) -> bool {
+        // Is the new instruction identical to the original instruction.
+        if self.instruction_id == new_instruction_id {
+            return false;
+        }
+
+        // If there is a Call instruction then don't touch it.
+        let is_call = 
+            self.instruction_id == InstructionId::EvalSequence ||
+            new_instruction_id == InstructionId::EvalSequence;
+        if is_call {
+            return false;
+        }    
+
+        // Prevent messing up loop begin/end.
+        let is_loop = 
+            self.instruction_id == InstructionId::LoopBegin || 
+            self.instruction_id == InstructionId::LoopEnd ||
+            new_instruction_id == InstructionId::LoopBegin || 
+            new_instruction_id == InstructionId::LoopEnd;
+        if is_loop {
+            return false;
+        }    
+
+        self.instruction_id = new_instruction_id;
+        true
+    }
+
     pub fn mutate_source_value(&mut self, mutation: &MutateValue) -> bool {
         let is_call = self.instruction_id == InstructionId::EvalSequence;
         if is_call {
