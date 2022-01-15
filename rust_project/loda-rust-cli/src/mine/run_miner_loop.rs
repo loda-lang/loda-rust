@@ -175,8 +175,6 @@ pub fn run_miner_loop(
     let mut genome = Genome::new();
     println!("Initial genome\n{}", genome);
 
-    // return;
-
     let context = GenomeMutateContext::new(
         available_program_ids,
         popular_program_container,
