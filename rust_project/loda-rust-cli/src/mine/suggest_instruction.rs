@@ -1,5 +1,4 @@
-use super::HistogramInstructionNgram;
-use super::histogram_instruction_ngram::RecordTrigram;
+use super::histogram_instruction_ngram::{RecordTrigram, TrigramVec};
 use loda_rust_core::parser::InstructionId;
 use std::collections::HashMap;
 use rand::Rng;
@@ -21,8 +20,8 @@ impl SuggestInstruction {
         }
     }
 
-    pub fn populate(&mut self, ngram: &HistogramInstructionNgram) -> Result<(), Box<dyn Error>> {
-        let records: Vec<RecordTrigram> = ngram.loda_trigram()?;
+    pub fn populate(&mut self, ngram: &dyn TrigramVec) -> Result<(), Box<dyn Error>> {
+        let records: Vec<RecordTrigram> = ngram.trigram_vec()?;
         for record in records {
             let key: HistogramKey = (record.word0, record.word2);
             let instruction_id: InstructionId = match InstructionId::parse(&record.word1, 0) {
@@ -47,6 +46,7 @@ impl SuggestInstruction {
 
     // If it's the beginning of the program then set prev_instruction to None.
     // If it's the end of the program then set next_instruction to None.
+    #[allow(dead_code)]
     fn candidate_instructions(&self, prev_instruction: Option<InstructionId>, next_instruction: Option<InstructionId>) -> Option<&HistogramValue> {
         let word0: String = match prev_instruction {
             Some(instruction_id) => instruction_id.shortname().to_string(),
@@ -60,6 +60,7 @@ impl SuggestInstruction {
         self.histogram.get(&key)
     }
 
+    #[allow(dead_code)]
     pub fn best_instruction(&self, prev_instruction: Option<InstructionId>, next_instruction: Option<InstructionId>) -> Option<InstructionId> {
         let histogram_value: &HistogramValue = match self.candidate_instructions(prev_instruction, next_instruction) {
             Some(value) => value,
@@ -76,6 +77,7 @@ impl SuggestInstruction {
         Some(instruction_id)
     }
 
+    #[allow(dead_code)]
     pub fn choose_weighted<R: Rng + ?Sized>(&self, rng: &mut R, prev_instruction: Option<InstructionId>, next_instruction: Option<InstructionId>) -> Option<InstructionId> {
         let histogram_value: &HistogramValue = match self.candidate_instructions(prev_instruction, next_instruction) {
             Some(value) => value,
