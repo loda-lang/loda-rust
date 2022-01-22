@@ -7,7 +7,6 @@ use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId,
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
-use loda_rust_core::parser::InstructionId;
 use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
 use std::time::Instant;
 use std::path::{Path, PathBuf};
@@ -82,14 +81,6 @@ pub fn run_miner_loop(
     let ngram = HistogramInstructionNgram::new();
     let mut suggest_instruction = SuggestInstruction::new();
     suggest_instruction.populate(&ngram).expect("Unable to load trigram.csv");
-    let instruction0 = suggest_instruction.best_instruction(Some(InstructionId::Add), Some(InstructionId::Max));
-    let instruction1 = suggest_instruction.best_instruction(None, Some(InstructionId::Modulo));
-    let instruction2 = suggest_instruction.best_instruction(Some(InstructionId::Modulo), None);
-    let instruction3 = suggest_instruction.choose_weighted(&mut rng, Some(InstructionId::Compare), Some(InstructionId::Add));
-    println!("instruction0: {:?}", instruction0);
-    println!("instruction1: {:?}", instruction1);
-    println!("instruction2: {:?}", instruction2);
-    println!("instruction3: {:?}", instruction3);
 
     let mut cache = ProgramCache::new();
 
