@@ -1,4 +1,5 @@
-use crate::mine::{PopularProgramContainer, RecentProgramContainer, HistogramInstructionConstant};
+use super::{PopularProgramContainer, RecentProgramContainer, HistogramInstructionConstant};
+use super::SuggestInstruction;
 use loda_rust_core::parser::InstructionId;
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -8,6 +9,7 @@ pub struct GenomeMutateContext {
     popular_program_container: PopularProgramContainer,
     recent_program_container: RecentProgramContainer,
     histogram_instruction_constant: Option<HistogramInstructionConstant>,
+    suggest_instruction: Option<SuggestInstruction>,
 }
 
 impl GenomeMutateContext {
@@ -15,13 +17,15 @@ impl GenomeMutateContext {
         available_program_ids: Vec<u32>, 
         popular_program_container: PopularProgramContainer, 
         recent_program_container: RecentProgramContainer,
-        histogram_instruction_constant: Option<HistogramInstructionConstant>
+        histogram_instruction_constant: Option<HistogramInstructionConstant>,
+        suggest_instruction: Option<SuggestInstruction>
     ) -> Self {
         Self {
             available_program_ids: available_program_ids,
             popular_program_container: popular_program_container,
             recent_program_container: recent_program_container,
-            histogram_instruction_constant: histogram_instruction_constant
+            histogram_instruction_constant: histogram_instruction_constant,
+            suggest_instruction: suggest_instruction
         }
     }
 
@@ -60,5 +64,19 @@ impl GenomeMutateContext {
             }
         };
         instance.choose_weighted(rng, instruction_id)
+    }
+
+    pub fn has_suggest_instruction(&self) -> bool {
+        self.suggest_instruction.is_some()
+    }
+
+    pub fn suggest_instruction<R: Rng + ?Sized>(&self, rng: &mut R, prev_instruction: Option<InstructionId>, next_instruction: Option<InstructionId>) -> Option<InstructionId> {
+        let suggest_instruction: &SuggestInstruction = match &self.suggest_instruction {
+            Some(value) => value,
+            None => {
+                return None;
+            }
+        };
+        suggest_instruction.choose_weighted(rng, prev_instruction, next_instruction)
     }
 }

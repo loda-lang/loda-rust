@@ -1,5 +1,7 @@
-use super::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, RecentProgramContainer, save_candidate_program, HistogramInstructionConstant};
+use super::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, RecentProgramContainer, save_candidate_program};
 use super::{PreventFlooding, prevent_flooding_populate};
+use super::{HistogramInstructionConstant, HistogramInstructionNgram};
+use super::SuggestInstruction;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -75,6 +77,11 @@ pub fn run_miner_loop(
         DependencyManagerFileSystemMode::System,
         loda_programs_oeis_dir.clone(),
     );
+
+    let ngram = HistogramInstructionNgram::new();
+    let mut suggest_instruction = SuggestInstruction::new();
+    suggest_instruction.populate(&ngram).expect("Unable to load trigram.csv");
+
     let mut cache = ProgramCache::new();
 
     let mut paths0: Vec<PathBuf> = find_asm_files_recursively(mine_event_dir);
@@ -95,6 +102,7 @@ pub fn run_miner_loop(
         popular_program_container,
         recent_program_container,
         histogram_instruction_constant,
+        Some(suggest_instruction)
     );
 
     let mut funnel = Funnel::new(

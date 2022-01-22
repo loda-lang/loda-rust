@@ -12,7 +12,8 @@ use std::path::PathBuf;
 // append random row
 #[allow(dead_code)]
 pub enum MutateGenome {
-    Instruction,
+    InstructionWithoutHistogram,
+    InstructionWithHistogram,
     SourceConstantWithoutHistogram,
     SourceConstantWithHistogram,
     SourceType,
@@ -310,7 +311,7 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     #[allow(dead_code)]
-    pub fn mutate_instruction<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+    pub fn mutate_instruction_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         assert!(length > 0);
         let index: usize = rng.gen_range(0..length);
@@ -319,6 +320,53 @@ impl Genome {
         if !genome_item.mutate_randomize_instruction(rng) {
             return false;
         }
+        genome_item.mutate_sanitize_program_row()
+    }
+
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    #[allow(dead_code)]
+    pub fn mutate_instruction_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+        // Bail out if the trigram.csv file hasn't been loaded.
+        if !context.has_suggest_instruction() {
+            return false;
+        }
+        let length: usize = self.genome_vec.len();
+        if length < 1 {
+            return false;
+        }
+        let index1: usize = rng.gen_range(0..length);
+        let index0: i32 = (index1 as i32) - 1;
+        let index2: usize = index1 + 1;
+        let mut prev_instruction: Option<InstructionId> = None;
+        if index0 >= 0 {
+            match self.genome_vec.get(index0 as usize) {
+                Some(ref value) => {
+                    let instruction_id: InstructionId = *value.instruction_id();
+                    prev_instruction = Some(instruction_id);
+                },
+                None => {}
+            };
+        }
+        let next_instruction: Option<InstructionId> = match self.genome_vec.get(index2) {
+            Some(ref value) => {
+                let instruction_id: InstructionId = *value.instruction_id();
+                Some(instruction_id)
+            },
+            None => None
+        };
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[index1];
+        let suggested_instruction_id: InstructionId = match context.suggest_instruction(rng, prev_instruction, next_instruction) {
+            Some(value) => value,
+            None => {
+                return false;
+            }
+        };
+        // let old_instruction: InstructionId = *genome_item.instruction_id();
+        if !genome_item.set_instruction(suggested_instruction_id) {
+            return false;
+        }
+        // debug!("suggest instruction: {:?} -> {:?}", old_instruction, suggested_instruction_id);
         genome_item.mutate_sanitize_program_row()
     }
 
@@ -499,23 +547,27 @@ impl Genome {
     #[allow(dead_code)]
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
-            (MutateGenome::Instruction, 10),
+            (MutateGenome::InstructionWithoutHistogram, 10),
+            (MutateGenome::InstructionWithHistogram, 100),
             (MutateGenome::SourceConstantWithoutHistogram, 1),
-            (MutateGenome::SourceConstantWithHistogram, 1000),
-            (MutateGenome::SourceType, 1),
+            (MutateGenome::SourceConstantWithHistogram, 1500),
+            (MutateGenome::SourceType, 5),
             (MutateGenome::SwapRegisters, 10),
             (MutateGenome::SourceRegister, 20),
             (MutateGenome::TargetRegister, 10),
-            (MutateGenome::ToggleEnabled, 5),
+            (MutateGenome::ToggleEnabled, 10),
             (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 10),
             (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallAnotherProgram, 100),
+            (MutateGenome::CallAnotherProgram, 10),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
         match mutation {
-            MutateGenome::Instruction => {
-                return self.mutate_instruction(rng);
+            MutateGenome::InstructionWithoutHistogram => {
+                return self.mutate_instruction_without_histogram(rng);
+            },
+            MutateGenome::InstructionWithHistogram => {
+                return self.mutate_instruction_with_histogram(rng, context);
             },
             MutateGenome::SourceConstantWithoutHistogram => {
                 return self.mutate_source_value_constant_without_histogram(rng);
