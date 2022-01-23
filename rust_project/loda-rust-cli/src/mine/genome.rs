@@ -12,8 +12,8 @@ use std::path::PathBuf;
 // append random row
 #[allow(dead_code)]
 pub enum MutateGenome {
-    InstructionWithoutHistogram,
-    InstructionWithHistogram,
+    ReplaceInstructionWithoutHistogram,
+    ReplaceInstructionWithHistogram,
     SourceConstantWithoutHistogram,
     SourceConstantWithHistogram,
     SourceType,
@@ -311,7 +311,7 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     #[allow(dead_code)]
-    pub fn mutate_instruction_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+    pub fn replace_instruction_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         assert!(length > 0);
         let index: usize = rng.gen_range(0..length);
@@ -326,7 +326,7 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     #[allow(dead_code)]
-    pub fn mutate_instruction_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+    pub fn replace_instruction_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Bail out if the trigram.csv file hasn't been loaded.
         if !context.has_suggest_instruction() {
             return false;
@@ -547,8 +547,8 @@ impl Genome {
     #[allow(dead_code)]
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
-            (MutateGenome::InstructionWithoutHistogram, 10),
-            (MutateGenome::InstructionWithHistogram, 100),
+            (MutateGenome::ReplaceInstructionWithoutHistogram, 10),
+            (MutateGenome::ReplaceInstructionWithHistogram, 100),
             (MutateGenome::SourceConstantWithoutHistogram, 1),
             (MutateGenome::SourceConstantWithHistogram, 1500),
             (MutateGenome::SourceType, 5),
@@ -563,11 +563,11 @@ impl Genome {
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
         match mutation {
-            MutateGenome::InstructionWithoutHistogram => {
-                return self.mutate_instruction_without_histogram(rng);
+            MutateGenome::ReplaceInstructionWithoutHistogram => {
+                return self.replace_instruction_without_histogram(rng);
             },
-            MutateGenome::InstructionWithHistogram => {
-                return self.mutate_instruction_with_histogram(rng, context);
+            MutateGenome::ReplaceInstructionWithHistogram => {
+                return self.replace_instruction_with_histogram(rng, context);
             },
             MutateGenome::SourceConstantWithoutHistogram => {
                 return self.mutate_source_value_constant_without_histogram(rng);
