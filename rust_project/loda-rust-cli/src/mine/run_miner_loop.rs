@@ -122,6 +122,7 @@ pub fn run_miner_loop(
     let mut number_of_errors_nooutput: usize = 0;
     let mut number_of_errors_run: usize = 0;
     let mut number_of_prevented_floodings: usize = 0;
+    let mut reload: bool = true;
     loop {
         let elapsed: u128 = progress_time.elapsed().as_millis();
         if elapsed >= 1000 {
@@ -156,10 +157,16 @@ pub fn run_miner_loop(
         }
 
         if (iteration % 10) == 0 {
+            reload = true;
+        }
+        if reload {
+            genome.clear_message_vec();
             let load_ok: bool = genome.load_random_program(&mut rng, &dm, &context);
             if !load_ok {
                 number_of_failed_loads += 1;
+                continue;
             }
+            reload = false;
         }
 
         iteration += 1;
@@ -249,6 +256,7 @@ pub fn run_miner_loop(
         if prevent_flooding.try_register(&terms40).is_err() {
             // debug!("prevented flooding");
             number_of_prevented_floodings += 1;
+            reload = true;
             continue;
         }
 
@@ -258,6 +266,11 @@ pub fn run_miner_loop(
         serializer.append_comment(bigintvec_to_string(&terms40));
         serializer.append_empty_line();
         runner.serialize(&mut serializer);
+        serializer.append_empty_line();
+        for message in genome.message_vec() {
+            serializer.append_comment(message);
+        }
+        serializer.append_empty_line();
         let candidate_program: String = serializer.to_string();
 
         if let Err(error) = save_candidate_program(mine_event_dir, iteration, &candidate_program) {

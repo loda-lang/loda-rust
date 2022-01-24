@@ -27,13 +27,15 @@ pub enum MutateGenome {
 }
 
 pub struct Genome {
-    genome_vec: Vec<GenomeItem>
+    genome_vec: Vec<GenomeItem>,
+    message_vec: Vec<String>,
 }
 
 impl Genome {
     pub fn new() -> Self {
         Self {
             genome_vec: vec!(),
+            message_vec: vec!(),
         }
     }
 
@@ -67,6 +69,7 @@ impl Genome {
         };
         self.replace_genome_with_parsed_program(&parsed_program);
         debug!("loaded program_id: {:?}", program_id);
+        self.message_vec.push(format!("template {:?}", program_id));
         return true;
     }
 
@@ -127,6 +130,14 @@ impl Genome {
         ParsedProgram {
             instruction_vec: instruction_vec
         }
+    }
+
+    pub fn message_vec(&self) -> &Vec<String> {
+        &self.message_vec
+    }
+
+    pub fn clear_message_vec(&mut self) {
+        self.message_vec.clear();
     }
 
     // Assign a pseudo random constant.
