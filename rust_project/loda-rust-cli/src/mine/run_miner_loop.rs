@@ -255,8 +255,8 @@ pub fn run_miner_loop(
         // Yay, this candidate program has 40 terms that are good.
         // Save a snapshot of this program to `$HOME/.loda-rust/mine-even/`
         let mut serializer = ProgramSerializer::new();
-        serializer.append(format!("; {}", bigintvec_to_string(&terms40)));
-        serializer.append("");
+        serializer.append_raw(format!("; {}", bigintvec_to_string(&terms40)));
+        serializer.append_raw("");
         runner.serialize(&mut serializer);
         let candidate_program: String = serializer.to_string();
 
