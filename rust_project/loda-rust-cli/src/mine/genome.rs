@@ -12,8 +12,9 @@ use std::path::PathBuf;
 // append random row
 #[allow(dead_code)]
 pub enum MutateGenome {
-    InstructionWithoutHistogram,
-    InstructionWithHistogram,
+    ReplaceInstructionWithoutHistogram,
+    ReplaceInstructionWithHistogram,
+    InsertInstructionWithConstant,
     SourceConstantWithoutHistogram,
     SourceConstantWithHistogram,
     SourceType,
@@ -311,7 +312,7 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     #[allow(dead_code)]
-    pub fn mutate_instruction_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+    pub fn replace_instruction_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         assert!(length > 0);
         let index: usize = rng.gen_range(0..length);
@@ -326,7 +327,7 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     #[allow(dead_code)]
-    pub fn mutate_instruction_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+    pub fn replace_instruction_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Bail out if the trigram.csv file hasn't been loaded.
         if !context.has_suggest_instruction() {
             return false;
@@ -368,6 +369,65 @@ impl Genome {
         }
         // debug!("suggest instruction: {:?} -> {:?}", old_instruction, suggested_instruction_id);
         genome_item.mutate_sanitize_program_row()
+    }
+
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    #[allow(dead_code)]
+    pub fn insert_instruction_with_constant<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+        // Bail out if the histogram csv file hasn't been loaded.
+        if !context.has_histogram_instruction_constant() {
+            return false;
+        }
+        // Bail out if the trigram.csv file hasn't been loaded.
+        if !context.has_suggest_instruction() {
+            return false;
+        }
+        let length: usize = self.genome_vec.len();
+        if length < 1 {
+            return false;
+        }
+        let index1: usize = rng.gen_range(0..length);
+        let index0: i32 = (index1 as i32) - 1;
+        let index2: usize = index1;
+        let mut prev_instruction: Option<InstructionId> = None;
+        if index0 >= 0 {
+            match self.genome_vec.get(index0 as usize) {
+                Some(ref value) => {
+                    let instruction_id: InstructionId = *value.instruction_id();
+                    prev_instruction = Some(instruction_id);
+                },
+                None => {}
+            };
+        }
+        let next_instruction: Option<InstructionId> = match self.genome_vec.get(index2) {
+            Some(ref value) => {
+                let instruction_id: InstructionId = *value.instruction_id();
+                Some(instruction_id)
+            },
+            None => None
+        };
+        let suggested_instruction_id: InstructionId = match context.suggest_instruction(rng, prev_instruction, next_instruction) {
+            Some(value) => value,
+            None => {
+                return false;
+            }
+        };
+        let source_value: i32 = match context.choose_constant_with_histogram(rng, suggested_instruction_id) {
+            Some(value) => value,
+            None => 0
+        };
+        let target_value: i32 = rng.gen_range(0..5);
+        let mut genome_item = GenomeItem::new(
+            suggested_instruction_id, 
+            target_value, 
+            ParameterType::Constant, 
+            source_value
+        );
+        genome_item.mutate_sanitize_program_row();
+        // println!("insert at {:?} item: {:?}", index1, genome_item);
+        self.genome_vec.insert(index1, genome_item);
+        true
     }
 
     // Return `true` when the mutation was successful.
@@ -547,8 +607,9 @@ impl Genome {
     #[allow(dead_code)]
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
-            (MutateGenome::InstructionWithoutHistogram, 10),
-            (MutateGenome::InstructionWithHistogram, 100),
+            (MutateGenome::ReplaceInstructionWithoutHistogram, 10),
+            (MutateGenome::ReplaceInstructionWithHistogram, 100),
+            (MutateGenome::InsertInstructionWithConstant, 100),
             (MutateGenome::SourceConstantWithoutHistogram, 1),
             (MutateGenome::SourceConstantWithHistogram, 1500),
             (MutateGenome::SourceType, 5),
@@ -563,11 +624,14 @@ impl Genome {
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
         match mutation {
-            MutateGenome::InstructionWithoutHistogram => {
-                return self.mutate_instruction_without_histogram(rng);
+            MutateGenome::ReplaceInstructionWithoutHistogram => {
+                return self.replace_instruction_without_histogram(rng);
             },
-            MutateGenome::InstructionWithHistogram => {
-                return self.mutate_instruction_with_histogram(rng, context);
+            MutateGenome::ReplaceInstructionWithHistogram => {
+                return self.replace_instruction_with_histogram(rng, context);
+            },
+            MutateGenome::InsertInstructionWithConstant => {
+                return self.insert_instruction_with_constant(rng, context);
             },
             MutateGenome::SourceConstantWithoutHistogram => {
                 return self.mutate_source_value_constant_without_histogram(rng);

@@ -10,6 +10,7 @@ pub enum MutateValue {
     Assign(i32),
 }
 
+#[derive(Debug)]
 pub struct GenomeItem {
     enabled: bool,
     instruction_id: InstructionId,
