@@ -31,6 +31,10 @@ impl ProgramSerializer {
         self.append_raw(format!("; {}", content.into()));
     }
 
+    pub fn append_empty_line(&mut self) {
+        self.rows.push(String::new());
+    }
+
     pub fn to_string(&self) -> String {
         self.rows.join("\n")
     }
@@ -69,6 +73,23 @@ mod tests {
         ps.indent_decrement();
         ps.append_comment("root");
         let expected = "; root\n  ; level 1\n    ; level 2\n  ; level 1\n; root";
+        assert_eq!(ps.to_string(), expected);
+    }
+
+    #[test]
+    fn test_10002_append_empty_line() {
+        let mut ps = ProgramSerializer::new();
+        ps.append_raw("a");
+        ps.indent_increment();
+        ps.append_raw("b");
+        ps.append_empty_line();
+        ps.append_raw("c");
+        ps.indent_decrement();
+        ps.append_raw("d");
+        ps.append_empty_line();
+        ps.append_empty_line();
+        ps.append_raw("e");
+        let expected = "a\n  b\n\n  c\nd\n\n\ne";
         assert_eq!(ps.to_string(), expected);
     }
 }
