@@ -8,8 +8,6 @@ use rand::seq::SliceRandom;
 use std::fs;
 use std::path::PathBuf;
 
-// Ideas for more mutations
-// append random row
 #[allow(dead_code)]
 pub enum MutateGenome {
     ReplaceInstructionWithoutHistogram,
