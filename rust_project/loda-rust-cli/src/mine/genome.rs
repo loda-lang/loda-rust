@@ -620,9 +620,9 @@ impl Genome {
             (MutateGenome::ReplaceInstructionWithoutHistogram, 10),
             (MutateGenome::ReplaceInstructionWithHistogram, 100),
             (MutateGenome::InsertInstructionWithConstant, 100),
-            (MutateGenome::SourceConstantWithoutHistogram, 1),
-            (MutateGenome::SourceConstantWithHistogram, 1500),
-            (MutateGenome::SourceType, 5),
+            (MutateGenome::SourceConstantWithoutHistogram, 10),
+            (MutateGenome::SourceConstantWithHistogram, 100),
+            (MutateGenome::SourceType, 10),
             (MutateGenome::SwapRegisters, 10),
             (MutateGenome::SourceRegister, 20),
             (MutateGenome::TargetRegister, 10),
@@ -630,7 +630,7 @@ impl Genome {
             (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 10),
             (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallAnotherProgram, 10),
+            (MutateGenome::CallAnotherProgram, 1),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
         self.message_vec.push(format!("mutation: {:?}", mutation));
