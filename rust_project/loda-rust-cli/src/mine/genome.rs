@@ -8,8 +8,7 @@ use rand::seq::SliceRandom;
 use std::fs;
 use std::path::PathBuf;
 
-// Ideas for more mutations
-// append random row
+#[derive(Debug)]
 #[allow(dead_code)]
 pub enum MutateGenome {
     ReplaceInstructionWithoutHistogram,
@@ -29,13 +28,15 @@ pub enum MutateGenome {
 }
 
 pub struct Genome {
-    genome_vec: Vec<GenomeItem>
+    genome_vec: Vec<GenomeItem>,
+    message_vec: Vec<String>,
 }
 
 impl Genome {
     pub fn new() -> Self {
         Self {
             genome_vec: vec!(),
+            message_vec: vec!(),
         }
     }
 
@@ -69,6 +70,7 @@ impl Genome {
         };
         self.replace_genome_with_parsed_program(&parsed_program);
         debug!("loaded program_id: {:?}", program_id);
+        self.message_vec.push(format!("template {:?}", program_id));
         return true;
     }
 
@@ -129,6 +131,14 @@ impl Genome {
         ParsedProgram {
             instruction_vec: instruction_vec
         }
+    }
+
+    pub fn message_vec(&self) -> &Vec<String> {
+        &self.message_vec
+    }
+
+    pub fn clear_message_vec(&mut self) {
+        self.message_vec.clear();
     }
 
     // Assign a pseudo random constant.
@@ -610,9 +620,9 @@ impl Genome {
             (MutateGenome::ReplaceInstructionWithoutHistogram, 10),
             (MutateGenome::ReplaceInstructionWithHistogram, 100),
             (MutateGenome::InsertInstructionWithConstant, 100),
-            (MutateGenome::SourceConstantWithoutHistogram, 1),
-            (MutateGenome::SourceConstantWithHistogram, 1500),
-            (MutateGenome::SourceType, 5),
+            (MutateGenome::SourceConstantWithoutHistogram, 10),
+            (MutateGenome::SourceConstantWithHistogram, 100),
+            (MutateGenome::SourceType, 10),
             (MutateGenome::SwapRegisters, 10),
             (MutateGenome::SourceRegister, 20),
             (MutateGenome::TargetRegister, 10),
@@ -620,9 +630,10 @@ impl Genome {
             (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 10),
             (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallAnotherProgram, 10),
+            (MutateGenome::CallAnotherProgram, 1),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
+        self.message_vec.push(format!("mutation: {:?}", mutation));
         match mutation {
             MutateGenome::ReplaceInstructionWithoutHistogram => {
                 return self.replace_instruction_without_histogram(rng);

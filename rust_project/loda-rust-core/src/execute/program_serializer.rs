@@ -20,11 +20,19 @@ impl ProgramSerializer {
         self.indentation -= 1;
     }
 
-    pub fn append<S>(&mut self, content: S) where S: Into<String> {
+    pub fn append_raw<S>(&mut self, content: S) where S: Into<String> {
         const INDENT_SIZE: usize = 2;
         let prefix: String = " ".repeat(self.indentation * INDENT_SIZE);
         let row = format!("{}{}", prefix, content.into());
         self.rows.push(row);
+    }
+
+    pub fn append_comment<S>(&mut self, content: S) where S: Into<String> {
+        self.append_raw(format!("; {}", content.into()));
+    }
+
+    pub fn append_empty_line(&mut self) {
+        self.rows.push(String::new());
     }
 
     pub fn to_string(&self) -> String {
@@ -37,18 +45,51 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_10000() {
+    fn test_10000_append_raw() {
         let mut ps = ProgramSerializer::new();
-        ps.append("a");
+        ps.append_raw("a");
         ps.indent_increment();
-        ps.append("b");
+        ps.append_raw("b");
         ps.indent_increment();
-        ps.append("c");
+        ps.append_raw("c");
         ps.indent_decrement();
-        ps.append("d");
+        ps.append_raw("d");
         ps.indent_decrement();
-        ps.append("e");
+        ps.append_raw("e");
         let expected = "a\n  b\n    c\n  d\ne";
+        assert_eq!(ps.to_string(), expected);
+    }
+
+    #[test]
+    fn test_10001_append_comment() {
+        let mut ps = ProgramSerializer::new();
+        ps.append_comment("root");
+        ps.indent_increment();
+        ps.append_comment("level 1");
+        ps.indent_increment();
+        ps.append_comment("level 2");
+        ps.indent_decrement();
+        ps.append_comment("level 1");
+        ps.indent_decrement();
+        ps.append_comment("root");
+        let expected = "; root\n  ; level 1\n    ; level 2\n  ; level 1\n; root";
+        assert_eq!(ps.to_string(), expected);
+    }
+
+    #[test]
+    fn test_10002_append_empty_line() {
+        let mut ps = ProgramSerializer::new();
+        ps.append_raw("a");
+        ps.indent_increment();
+        ps.append_raw("b");
+        ps.append_empty_line();
+        ps.append_raw("c");
+        ps.indent_decrement();
+        ps.append_raw("d");
+        ps.append_empty_line();
+        ps.append_empty_line();
+        ps.append_raw("e");
+        let expected = "a\n  b\n\n  c\nd\n\n\ne";
         assert_eq!(ps.to_string(), expected);
     }
 }

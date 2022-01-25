@@ -9,7 +9,7 @@ pub trait Node {
     // For most nodes, this is irrelevant, so this does nothing by default.
     // However for loop instructions, there is indentation to deal with.
     fn serialize(&self, serializer: &mut ProgramSerializer) {
-        serializer.append(self.formatted_instruction());
+        serializer.append_raw(self.formatted_instruction());
     }
 
     // Execute the primary operation of this node.

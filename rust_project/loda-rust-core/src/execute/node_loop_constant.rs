@@ -23,11 +23,11 @@ impl Node for NodeLoopConstant {
     }
 
     fn serialize(&self, serializer: &mut ProgramSerializer) {
-        serializer.append(self.formatted_instruction());
+        serializer.append_raw(self.formatted_instruction());
         serializer.indent_increment();
         self.program.serialize(serializer);
         serializer.indent_decrement();
-        serializer.append("lpe");
+        serializer.append_raw("lpe");
     }
 
     fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
