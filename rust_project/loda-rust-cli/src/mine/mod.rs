@@ -1,3 +1,4 @@
+mod analyze_target_ngram;
 mod batch_program_analyzer;
 mod check_fixed_length_sequence;
 mod deny_file;
@@ -22,6 +23,7 @@ mod save_candidate_program;
 mod suggest_instruction;
 mod validate_programs;
 
+pub use analyze_target_ngram::AnalyzeTargetNgram;
 pub use batch_program_analyzer::{BatchProgramAnalyzer, BatchProgramAnalyzerContext, BatchProgramAnalyzerPlugin};
 pub use check_fixed_length_sequence::{CheckFixedLengthSequence, NamedCacheFile, PopulateBloomfilter};
 pub use deny_file::load_program_ids_from_deny_file;
