@@ -1,3 +1,4 @@
+mod batch_program_analyzer;
 mod check_fixed_length_sequence;
 mod deny_file;
 mod dont_mine;
@@ -35,6 +36,7 @@ pub use genome::{Genome, MutateGenome};
 pub use genome_item::{GenomeItem, MutateValue};
 pub use load_program_ids_csv_file::load_program_ids_csv_file;
 pub use popular_program_container::PopularProgramContainer;
+pub use batch_program_analyzer::{BatchProgramAnalyzer, BatchProgramAnalyzerContext, BatchProgramAnalyzerPlugin};
 pub use prevent_flooding::{PreventFlooding, PreventFloodingError};
 pub use prevent_flooding_populate::prevent_flooding_populate;
 pub use recent_program_container::RecentProgramContainer;
