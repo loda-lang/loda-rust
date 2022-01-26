@@ -274,7 +274,7 @@ impl HistogramInstructionNgramAnalyzer {
 }
 
 impl BatchProgramAnalyzerPlugin for HistogramInstructionNgramAnalyzer {
-    fn process(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
+    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
         let words: Vec<String> = Self::extract_words(&context.parsed_program);
         self.populate_bigram(&words);
         self.populate_trigram(&words);

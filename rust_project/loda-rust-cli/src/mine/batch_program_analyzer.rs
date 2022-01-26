@@ -15,7 +15,7 @@ pub struct BatchProgramAnalyzerContext {
 }
 
 pub trait BatchProgramAnalyzerPlugin {
-    fn process(&mut self, context: &BatchProgramAnalyzerContext) -> bool;
+    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool;
     fn save(&self);
 }
 
@@ -54,7 +54,7 @@ impl BatchProgramAnalyzer {
             return;
         }
         let max_index: usize = number_of_paths - 1;
-        println!("number of programs for the ngram generator: {:?}", paths.len());
+        println!("number of programs for the batch-program-analyzer: {:?}", paths.len());
         let mut progress_time = Instant::now();
         for (index, path) in paths.iter().enumerate() {
             let elapsed: u128 = progress_time.elapsed().as_millis();
@@ -99,7 +99,7 @@ impl BatchProgramAnalyzer {
             parsed_program: parsed_program,
         };
         for plugin in self.plugin_vec.iter() {
-            let ok: bool = plugin.borrow_mut().process(&context);
+            let ok: bool = plugin.borrow_mut().analyze(&context);
             if !ok {
                 break;
             }

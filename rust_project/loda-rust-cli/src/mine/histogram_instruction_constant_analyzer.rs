@@ -55,7 +55,7 @@ impl HistogramInstructionConstantAnalyzer {
         }
     }
 
-    fn analyze_program(&mut self, program_id: u32, parsed_program: &ParsedProgram) {
+    fn analyze_inner(&mut self, program_id: u32, parsed_program: &ParsedProgram) {
         for instruction in &parsed_program.instruction_vec {
             if instruction.instruction_id == InstructionId::EvalSequence {
                 continue;
@@ -163,8 +163,8 @@ impl HistogramInstructionConstantAnalyzer {
 }
 
 impl BatchProgramAnalyzerPlugin for HistogramInstructionConstantAnalyzer {
-    fn process(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
-        self.analyze_program(context.program_id, &context.parsed_program);
+    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
+        self.analyze_inner(context.program_id, &context.parsed_program);
         true
     }
 
