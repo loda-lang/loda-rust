@@ -1,3 +1,4 @@
+mod analyze_instruction_ngram;
 mod analyze_target_ngram;
 mod batch_program_analyzer;
 mod check_fixed_length_sequence;
@@ -11,7 +12,6 @@ mod genome_mutate_context;
 mod histogram_instruction_constant;
 mod histogram_instruction_constant_analyzer;
 mod histogram_instruction_ngram;
-mod histogram_instruction_ngram_analyzer;
 mod load_program_ids_csv_file;
 mod popular_program_container;
 mod prevent_flooding;
@@ -23,6 +23,7 @@ mod save_candidate_program;
 mod suggest_instruction;
 mod validate_programs;
 
+pub use analyze_instruction_ngram::AnalyzeInstructionNgram;
 pub use analyze_target_ngram::AnalyzeTargetNgram;
 pub use batch_program_analyzer::{BatchProgramAnalyzer, BatchProgramAnalyzerContext, BatchProgramAnalyzerPlugin};
 pub use check_fixed_length_sequence::{CheckFixedLengthSequence, NamedCacheFile, PopulateBloomfilter};
@@ -33,7 +34,6 @@ pub use funnel::Funnel;
 pub use histogram_instruction_constant::HistogramInstructionConstant;
 pub use histogram_instruction_constant_analyzer::HistogramInstructionConstantAnalyzer;
 pub use histogram_instruction_ngram::HistogramInstructionNgram;
-pub use histogram_instruction_ngram_analyzer::HistogramInstructionNgramAnalyzer;
 pub use genome_mutate_context::GenomeMutateContext;
 pub use genome::{Genome, MutateGenome};
 pub use genome_item::{GenomeItem, MutateValue};

@@ -105,7 +105,7 @@ Learning A: The `mov` and some junk is usually followed by the `add` instruction
 Learning B: The `add` and some junk is usually followed by the `mov` instruction.
 Learning C: The `sub` and some junk is usually followed by the `mov` instruction.
 */
-pub struct HistogramInstructionNgramAnalyzer {
+pub struct AnalyzeInstructionNgram {
     config: Config,
     histogram_unigram: HashMap<String,u32>,
     histogram_bigram: HashMap<HistogramBigramKey,u32>,
@@ -113,7 +113,7 @@ pub struct HistogramInstructionNgramAnalyzer {
     histogram_skipgram: HashMap<HistogramSkipgramKey,u32>,
 }
 
-impl HistogramInstructionNgramAnalyzer {
+impl AnalyzeInstructionNgram {
     pub fn new() -> Self {
         Self {
             config: Config::load(),
@@ -343,7 +343,7 @@ impl HistogramInstructionNgramAnalyzer {
     }
 }
 
-impl BatchProgramAnalyzerPlugin for HistogramInstructionNgramAnalyzer {
+impl BatchProgramAnalyzerPlugin for AnalyzeInstructionNgram {
     fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
         let words: Vec<String> = Self::extract_words(&context.parsed_program);
         self.populate_unigram(&words);
