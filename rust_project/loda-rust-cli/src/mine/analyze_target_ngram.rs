@@ -77,6 +77,7 @@ Learning C: The `sub` and some junk is usually followed by the `mov` instruction
 */
 pub struct AnalyzeTargetNgram {
     config: Config,
+    histogram_unigram: HashMap<String,u32>,
     histogram_bigram: HashMap<HistogramBigramKey,u32>,
     histogram_trigram: HashMap<HistogramTrigramKey,u32>,
     histogram_skipgram: HashMap<HistogramSkipgramKey,u32>,
@@ -86,6 +87,7 @@ impl AnalyzeTargetNgram {
     pub fn new() -> Self {
         Self {
             config: Config::load(),
+            histogram_unigram: HashMap::new(),
             histogram_bigram: HashMap::new(),
             histogram_trigram: HashMap::new(),
             histogram_skipgram: HashMap::new(),
@@ -93,9 +95,11 @@ impl AnalyzeTargetNgram {
     }
 
     fn save_inner(&self) {
+        println!("number of items in unigram: {:?}", self.histogram_unigram.len());
         println!("number of items in bigram: {:?}", self.histogram_bigram.len());
         println!("number of items in trigram: {:?}", self.histogram_trigram.len());
         println!("number of items in skipgram: {:?}", self.histogram_skipgram.len());
+        self.save_unigram();
         self.save_bigram();
         self.save_trigram();
         self.save_skipgram();
@@ -117,6 +121,14 @@ impl AnalyzeTargetNgram {
         }
         words.push("STOP".to_string());
         words
+    }
+
+    fn populate_unigram(&mut self, words: &Vec<String>) {
+        let keys: Vec<String> = words.clone();
+        for key in keys {
+            let counter = self.histogram_unigram.entry(key).or_insert(0);
+            *counter += 1;
+        }
     }
 
     fn populate_bigram(&mut self, words: &Vec<String>) {
@@ -175,6 +187,34 @@ impl AnalyzeTargetNgram {
         for key in keys {
             let counter = self.histogram_skipgram.entry(key).or_insert(0);
             *counter += 1;
+        }
+    }
+
+    fn save_unigram(&self) {
+        // Convert from dictionary to array
+        let mut records = Vec::<RecordUnigram>::new();
+        for (histogram_key, histogram_count) in &self.histogram_unigram {
+            let record = RecordUnigram {
+                count: *histogram_count,
+                word: histogram_key.clone(),
+            };
+            records.push(record);
+        }
+
+        // Move the most frequently occuring items to the top
+        // Move the lesser used items to the bottom
+        records.sort_unstable_by_key(|item| (item.count, item.word.clone()));
+        records.reverse();
+
+        // Save as a CSV file
+        let output_path: PathBuf = self.config.cache_dir_histogram_target_unigram_file();
+        match Self::create_csv_file(&records, &output_path) {
+            Ok(_) => {
+                println!("saved unigram.csv");
+            },
+            Err(error) => {
+                println!("cannot save unigram.csv error: {:?}", error);
+            }
         }
     }
 
@@ -282,6 +322,7 @@ impl AnalyzeTargetNgram {
 impl BatchProgramAnalyzerPlugin for AnalyzeTargetNgram {
     fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
         let words: Vec<String> = Self::extract_words(&context.parsed_program);
+        self.populate_unigram(&words);
         self.populate_bigram(&words);
         self.populate_trigram(&words);
         self.populate_skipgram(&words);
@@ -291,6 +332,12 @@ impl BatchProgramAnalyzerPlugin for AnalyzeTargetNgram {
     fn save(&self) {
         self.save_inner();
     }
+}
+
+#[derive(Serialize)]
+struct RecordUnigram {
+    count: u32,
+    word: String,
 }
 
 #[derive(Serialize)]

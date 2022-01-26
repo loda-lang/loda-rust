@@ -96,6 +96,12 @@ impl Config {
         PathBuf::from(path)
     }
 
+    pub fn cache_dir_histogram_target_unigram_file(&self) -> PathBuf {
+        let path = self.cache_dir().join("histogram_target_unigram.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
     pub fn cache_dir_histogram_target_bigram_file(&self) -> PathBuf {
         let path = self.cache_dir().join("histogram_target_bigram.csv");
         assert!(path.is_absolute());
