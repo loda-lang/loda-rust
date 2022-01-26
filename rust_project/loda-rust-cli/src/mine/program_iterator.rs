@@ -16,6 +16,7 @@ pub struct ProgramIteratorContext {
 
 pub trait ProgramIteratorPlugin {
     fn process(&mut self, context: &ProgramIteratorContext) -> bool;
+    fn save(&self);
 }
 
 pub type ProgramIteratorPluginItem = Rc<RefCell<dyn ProgramIteratorPlugin>>;
@@ -39,7 +40,12 @@ impl ProgramIterator {
         self.plugin_vec.push(plugin);
     }
 
-    pub fn analyze_all_program_files(&mut self) {
+    pub fn run(&mut self) {
+        self.analyze_all_program_files();
+        self.save_result_files();
+    }
+
+    fn analyze_all_program_files(&mut self) {
         let dir_containing_programs: PathBuf = self.config.loda_programs_oeis_dir();
         let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
         let number_of_paths = paths.len();
@@ -97,6 +103,12 @@ impl ProgramIterator {
             if !ok {
                 break;
             }
+        }
+    }
+
+    fn save_result_files(&self) {
+        for plugin in self.plugin_vec.iter() {
+            plugin.borrow().save();
         }
     }
 }

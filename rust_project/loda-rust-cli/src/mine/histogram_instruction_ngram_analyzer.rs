@@ -92,7 +92,7 @@ impl HistogramInstructionNgramAnalyzer {
         }
     }
 
-    pub fn save(&self) {
+    fn save_inner(&self) {
         println!("number of items in bigram: {:?}", self.histogram_bigram.len());
         println!("number of items in trigram: {:?}", self.histogram_trigram.len());
         println!("number of items in skipgram: {:?}", self.histogram_skipgram.len());
@@ -280,6 +280,10 @@ impl ProgramIteratorPlugin for HistogramInstructionNgramAnalyzer {
         self.populate_trigram(&words);
         self.populate_skipgram(&words);
         true
+    }
+
+    fn save(&self) {
+        self.save_inner();
     }
 }
 

@@ -115,7 +115,7 @@ impl HistogramInstructionConstantAnalyzer {
         true
     }
 
-    pub fn save(&self) {
+    fn save_inner(&self) {
         println!("number of constants processed unsuccessful: {:?}", self.number_of_constant_processed_unsuccessful);
         println!("number of constants processed successful: {:?}", self.number_of_constant_processed_successful);
         println!("number of items in histogram: {:?}", self.histogram.len());
@@ -166,6 +166,10 @@ impl ProgramIteratorPlugin for HistogramInstructionConstantAnalyzer {
     fn process(&mut self, context: &ProgramIteratorContext) -> bool {
         self.analyze_program(context.program_id, &context.parsed_program);
         true
+    }
+
+    fn save(&self) {
+        self.save_inner();
     }
 }
 
