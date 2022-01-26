@@ -9,25 +9,25 @@ use core::cell::RefCell;
 use super::find_asm_files_recursively;
 use super::program_id_from_path;
 
-pub struct ProgramIteratorContext {
+pub struct BatchProgramAnalyzerContext {
     pub program_id: u32,
     pub parsed_program: ParsedProgram,
 }
 
-pub trait ProgramIteratorPlugin {
-    fn process(&mut self, context: &ProgramIteratorContext) -> bool;
+pub trait BatchProgramAnalyzerPlugin {
+    fn process(&mut self, context: &BatchProgramAnalyzerContext) -> bool;
     fn save(&self);
 }
 
-pub type ProgramIteratorPluginItem = Rc<RefCell<dyn ProgramIteratorPlugin>>;
+pub type BatchProgramAnalyzerPluginItem = Rc<RefCell<dyn BatchProgramAnalyzerPlugin>>;
 
-pub struct ProgramIterator {
+pub struct BatchProgramAnalyzer {
     config: Config,
     number_of_program_files_that_could_not_be_loaded: u32,
-    plugin_vec: Vec<ProgramIteratorPluginItem>,
+    plugin_vec: Vec<BatchProgramAnalyzerPluginItem>,
 }
 
-impl ProgramIterator {
+impl BatchProgramAnalyzer {
     pub fn new() -> Self {
         Self {
             config: Config::load(),
@@ -36,7 +36,7 @@ impl ProgramIterator {
         }
     }
 
-    pub fn install_plugin(&mut self, plugin: ProgramIteratorPluginItem) {
+    pub fn register(&mut self, plugin: BatchProgramAnalyzerPluginItem) {
         self.plugin_vec.push(plugin);
     }
 
@@ -94,7 +94,7 @@ impl ProgramIterator {
                 return;
             }
         };
-        let context = ProgramIteratorContext {
+        let context = BatchProgramAnalyzerContext {
             program_id: program_id,
             parsed_program: parsed_program,
         };

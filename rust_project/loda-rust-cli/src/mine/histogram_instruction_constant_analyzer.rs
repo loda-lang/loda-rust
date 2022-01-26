@@ -6,7 +6,7 @@ use std::error::Error;
 use std::collections::HashMap;
 use csv::WriterBuilder;
 use serde::Serialize;
-use super::{ProgramIteratorPlugin, ProgramIteratorContext};
+use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
 type HistogramKey = (InstructionId,i32);
 
@@ -162,8 +162,8 @@ impl HistogramInstructionConstantAnalyzer {
     }
 }
 
-impl ProgramIteratorPlugin for HistogramInstructionConstantAnalyzer {
-    fn process(&mut self, context: &ProgramIteratorContext) -> bool {
+impl BatchProgramAnalyzerPlugin for HistogramInstructionConstantAnalyzer {
+    fn process(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
         self.analyze_program(context.program_id, &context.parsed_program);
         true
     }

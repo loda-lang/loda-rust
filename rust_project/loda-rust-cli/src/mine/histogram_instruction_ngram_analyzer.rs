@@ -6,7 +6,7 @@ use std::error::Error;
 use std::collections::HashMap;
 use csv::WriterBuilder;
 use serde::Serialize;
-use super::{ProgramIteratorPlugin, ProgramIteratorContext};
+use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
 type HistogramBigramKey = (String,String);
 type HistogramTrigramKey = (String,String,String);
@@ -273,8 +273,8 @@ impl HistogramInstructionNgramAnalyzer {
     }
 }
 
-impl ProgramIteratorPlugin for HistogramInstructionNgramAnalyzer {
-    fn process(&mut self, context: &ProgramIteratorContext) -> bool {
+impl BatchProgramAnalyzerPlugin for HistogramInstructionNgramAnalyzer {
+    fn process(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
         let words: Vec<String> = Self::extract_words(&context.parsed_program);
         self.populate_bigram(&words);
         self.populate_trigram(&words);
