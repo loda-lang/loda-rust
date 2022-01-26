@@ -1,12 +1,8 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
-use loda_rust_core::parser::{InstructionId, ParsedProgram};
-use std::path::{Path, PathBuf};
-use std::error::Error;
-use std::collections::HashMap;
+use loda_rust_core::parser::ParsedProgram;
+use std::path::PathBuf;
 use std::fs;
-use csv::WriterBuilder;
-use serde::Serialize;
 use std::time::Instant;
 use std::rc::Rc;
 use core::cell::RefCell;

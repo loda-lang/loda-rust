@@ -4,12 +4,8 @@ use loda_rust_core::parser::{InstructionId, ParsedProgram};
 use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::collections::HashMap;
-use std::fs;
 use csv::WriterBuilder;
 use serde::Serialize;
-use std::time::Instant;
-use super::find_asm_files_recursively;
-use super::program_id_from_path;
 use super::{ProgramIteratorPlugin, ProgramIteratorContext};
 
 type HistogramBigramKey = (String,String);
