@@ -9,15 +9,19 @@ pub fn subcommand_update() {
     println!("update begin");
 
     let plugin_ngram = Rc::new(RefCell::new(HistogramInstructionNgramAnalyzer::new()));
+    let plugin_constant = Rc::new(RefCell::new(HistogramInstructionConstantAnalyzer::new()));
 
     let plugin2 = Rc::clone(&plugin_ngram);
+    let plugin3 = Rc::clone(&plugin_constant);
 
     let mut iterator = ProgramIterator::new();
     iterator.install_plugin(plugin_ngram);
+    iterator.install_plugin(plugin_constant);
 
     iterator.analyze_all_program_files();
 
     plugin2.borrow_mut().save();
+    plugin3.borrow_mut().save();
 
     /*
     DontMine::run();

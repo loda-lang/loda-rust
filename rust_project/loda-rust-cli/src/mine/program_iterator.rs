@@ -18,7 +18,7 @@ pub trait ProgramIteratorPlugin {
     fn process(&mut self, context: &ProgramIteratorContext) -> bool;
 }
 
-type ProgramIteratorPluginItem = Rc<RefCell<dyn ProgramIteratorPlugin>>;
+pub type ProgramIteratorPluginItem = Rc<RefCell<dyn ProgramIteratorPlugin>>;
 
 pub struct ProgramIterator {
     config: Config,
