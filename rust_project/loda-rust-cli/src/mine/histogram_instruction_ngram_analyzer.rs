@@ -13,7 +13,7 @@ type HistogramTrigramKey = (String,String,String);
 type HistogramSkipgramKey = (String,String);
 
 /*
-Creates csv files with bigram/trigram/skipgram with LODA instructions.
+Creates csv files with unigram/bigram/trigram/skipgram with LODA instructions.
 https://en.wikipedia.org/wiki/N-gram
 
 This script traverses all the programs inside the "loda-programs/oeis" dir.
