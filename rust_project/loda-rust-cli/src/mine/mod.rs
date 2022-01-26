@@ -1,3 +1,4 @@
+mod analyze_instruction_constant;
 mod analyze_instruction_ngram;
 mod analyze_target_ngram;
 mod batch_program_analyzer;
@@ -10,7 +11,6 @@ mod genome;
 mod genome_item;
 mod genome_mutate_context;
 mod histogram_instruction_constant;
-mod histogram_instruction_constant_analyzer;
 mod histogram_instruction_ngram;
 mod load_program_ids_csv_file;
 mod popular_program_container;
@@ -23,6 +23,7 @@ mod save_candidate_program;
 mod suggest_instruction;
 mod validate_programs;
 
+pub use analyze_instruction_constant::AnalyzeInstructionConstant;
 pub use analyze_instruction_ngram::AnalyzeInstructionNgram;
 pub use analyze_target_ngram::AnalyzeTargetNgram;
 pub use batch_program_analyzer::{BatchProgramAnalyzer, BatchProgramAnalyzerContext, BatchProgramAnalyzerPlugin};
@@ -32,7 +33,6 @@ pub use dont_mine::DontMine;
 pub use find_asm_files_recursively::find_asm_files_recursively;
 pub use funnel::Funnel;
 pub use histogram_instruction_constant::HistogramInstructionConstant;
-pub use histogram_instruction_constant_analyzer::HistogramInstructionConstantAnalyzer;
 pub use histogram_instruction_ngram::HistogramInstructionNgram;
 pub use genome_mutate_context::GenomeMutateContext;
 pub use genome::{Genome, MutateGenome};

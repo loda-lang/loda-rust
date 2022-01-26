@@ -38,14 +38,14 @@ static DISCARD_EXTREME_VALUES_BEYOND_THIS_LIMIT: i64 = 10000;
 //     78;cmp;0
 //     69;bin;2
 // 
-pub struct HistogramInstructionConstantAnalyzer {
+pub struct AnalyzeInstructionConstant {
     config: Config,
     histogram: HashMap<HistogramKey,u32>,
     number_of_constant_processed_unsuccessful: u32,
     number_of_constant_processed_successful: u32,
 }
 
-impl HistogramInstructionConstantAnalyzer {
+impl AnalyzeInstructionConstant {
     pub fn new() -> Self {
         Self {
             config: Config::load(),
@@ -162,7 +162,7 @@ impl HistogramInstructionConstantAnalyzer {
     }
 }
 
-impl BatchProgramAnalyzerPlugin for HistogramInstructionConstantAnalyzer {
+impl BatchProgramAnalyzerPlugin for AnalyzeInstructionConstant {
     fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
         self.analyze_inner(context.program_id, &context.parsed_program);
         true

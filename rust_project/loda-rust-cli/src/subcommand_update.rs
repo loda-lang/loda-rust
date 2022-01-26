@@ -1,11 +1,11 @@
 use std::time::Instant;
 use std::rc::Rc;
 use core::cell::RefCell;
-use crate::mine::{AnalyzeInstructionNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, DontMine, HistogramInstructionConstantAnalyzer, PopulateBloomfilter, ValidatePrograms};
+use crate::mine::{AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, DontMine, PopulateBloomfilter, ValidatePrograms};
 
 fn run_batch_program_analyzer() {
     let plugin_instruction_ngram = Rc::new(RefCell::new(AnalyzeInstructionNgram::new()));
-    let plugin_instruction_constant = Rc::new(RefCell::new(HistogramInstructionConstantAnalyzer::new()));
+    let plugin_instruction_constant = Rc::new(RefCell::new(AnalyzeInstructionConstant::new()));
     let plugin_target_ngram = Rc::new(RefCell::new(AnalyzeTargetNgram::new()));
     let mut analyzer = BatchProgramAnalyzer::new();
     analyzer.register(plugin_instruction_ngram);
