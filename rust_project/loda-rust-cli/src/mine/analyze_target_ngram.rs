@@ -1,6 +1,6 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
-use loda_rust_core::parser::{InstructionId, ParsedProgram};
+use loda_rust_core::parser::{InstructionParameter, ParsedProgram};
 use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::collections::HashMap;
@@ -13,79 +13,105 @@ type HistogramTrigramKey = (String,String,String);
 type HistogramSkipgramKey = (String,String);
 
 /*
-Creates csv files with bigram/trigram/skipgram with LODA instructions.
+Creates csv files with unigram/bigram/trigram/skipgram with LODA target registers.
 https://en.wikipedia.org/wiki/N-gram
 
 This script traverses all the programs inside the "loda-programs/oeis" dir.
 It looks for all the LODA assembly programs there are.
-This script determines the most frequent combinations of instructions.
+This script determines the most frequent combinations of target registers.
+
+---
+
+This script outputs a `unigram.csv` file, with this format:
+
+    count;word
+    225985;0
+    122853;1
+    100247;2
+    62531;3
+    61799;STOP
+    61799;START
+    40310;NONE
+    32944;4
+    17332;5
+
+Learnings from this unigram with LODA programs:
+Learning A: Target register `$0` is by far the most used.
+Learning B: Target register `$1` and `$2` is on a shared 2nd place.
+Learning C: Target register `NONE` is for the `lpe` instruction, that doesn't have any register.
 
 ---
 
 This script outputs a `bigram.csv` file, with this format:
 
     count;word0;word1
-    18066;mov;mov
-    16888;START;mov
-    14712;mov;lpb
-    13386;mov;sub
-    13132;mov;add
-    11776;add;mov
-    10522;add;add
-    9840;mul;add
+    91494;0;0
+    60727;0;STOP
+    41637;1;1
+    34118;1;0
+    30760;START;0
+    28122;0;1
+    27650;2;2
+    25737;0;2
+    24493;NONE;0
+    23051;2;0
 
 Learnings from this bigram with LODA programs:
-Learning A: The `mov` instruction is most likely to be followed by another `mov` instruction.
-Learning B: The program is most likely to start with a `mov` instruction.
-Learning C: The `mul` instruction is most likely to be followed by an `add` instruction.
-Learning D: The `lpb` instruction is most likely to be followed by a `mov` instruction.
+Learning A: Target register `$0` is most likely to be followed by another `$0` target register.
+Learning B: Target register `$1` is most likely to be followed by another `$1` target register.
+Learning C: Target register `$2` is most likely to be followed by another `$2` target register.
+Learning D: The program is most likely to start with a `$0` target register.
+Learning E: The program is most likely to stop with a `$0` target register.
 
 ---
 
 This script outputs a `trigram.csv` file, with this format:
 
     count;word0;word1;word2
-    8776;mov;mov;lpb
-    6709;lpb;mov;sub
-    5717;START;mov;mov
-    5386;mov;lpb;mov
-    4321;mov;lpb;sub
-    4310;mul;add;STOP
+    33031;0;0;0
+    31497;0;0;STOP
+    17270;1;1;1
+    16090;START;0;0
+    14132;1;0;STOP
+    13901;1;1;0
+    12383;NONE;0;STOP
 
 Learnings from this trigram with LODA programs:
-Learning A: The `mov` and `mov` is usually followed by a `lpb` instruction.
-Learning B: The `lpb` and `mov` is usually followed by a `sub` instruction.
-Learning C: The `mov` and `lpb` is usually followed by a `mov` instruction.
-Learning D: The `mul` and `add` is usually the last of the program.
+Learning A: Target register `$0` and `$0` is usually followed by a `$0` target register.
+Learning B: Target register `$1` and `$1` is usually followed by a `$1` target register.
+Learning C: Target register `$0` and `$0` is often the last two target registers in a program.
 
 ---
 
 This script outputs a `skipgram.csv` file, with this format:
 
     count;word0;word2
-    17826;mov;add
-    15585;mov;mov
-    12458;mov;lpb
-    11971;add;mov
-    11942;mov;sub
-    11662;sub;mov
+    56263;0;0
+    37328;1;0
+    31837;0;STOP
+    28951;1;1
+    27690;START;0
+    27089;2;0
+    25911;0;1
 
 Learnings from this skipgram with LODA programs:
-Learning A: The `mov` and some junk is usually followed by the `add` instruction.
-Learning B: The `add` and some junk is usually followed by the `mov` instruction.
-Learning C: The `sub` and some junk is usually followed by the `mov` instruction.
+Learning A: The `$0` and some junk is usually followed by another `$0` target register.
+Learning B: The `$1` and some junk is usually followed by a `$0` target register.
+Learning C: The `$0` and some junk is usually followed by the end of the program.
 */
-pub struct HistogramInstructionNgramAnalyzer {
+pub struct AnalyzeTargetNgram {
     config: Config,
+    histogram_unigram: HashMap<String,u32>,
     histogram_bigram: HashMap<HistogramBigramKey,u32>,
     histogram_trigram: HashMap<HistogramTrigramKey,u32>,
     histogram_skipgram: HashMap<HistogramSkipgramKey,u32>,
 }
 
-impl HistogramInstructionNgramAnalyzer {
+impl AnalyzeTargetNgram {
     pub fn new() -> Self {
         Self {
             config: Config::load(),
+            histogram_unigram: HashMap::new(),
             histogram_bigram: HashMap::new(),
             histogram_trigram: HashMap::new(),
             histogram_skipgram: HashMap::new(),
@@ -93,9 +119,11 @@ impl HistogramInstructionNgramAnalyzer {
     }
 
     fn save_inner(&self) {
+        println!("number of items in unigram: {:?}", self.histogram_unigram.len());
         println!("number of items in bigram: {:?}", self.histogram_bigram.len());
         println!("number of items in trigram: {:?}", self.histogram_trigram.len());
         println!("number of items in skipgram: {:?}", self.histogram_skipgram.len());
+        self.save_unigram();
         self.save_bigram();
         self.save_trigram();
         self.save_skipgram();
@@ -104,13 +132,27 @@ impl HistogramInstructionNgramAnalyzer {
     fn extract_words(parsed_program: &ParsedProgram) -> Vec<String> {
         let mut words: Vec<String> = vec!();
         words.push("START".to_string());
-        let instruction_ids: Vec<InstructionId> = parsed_program.instruction_ids();
-        for instruction_id in instruction_ids {
-            let word: String = String::from(instruction_id.shortname());
-            words.push(word);
+        for instruction in &parsed_program.instruction_vec {
+            let parameter0: &InstructionParameter = match instruction.parameter_vec.first() {
+                Some(value) => &value,
+                None => {
+                    words.push("NONE".to_string());
+                    continue;
+                }
+            };
+            let parameter_value: i64 = parameter0.parameter_value;
+            words.push(format!("{:?}", parameter_value));
         }
         words.push("STOP".to_string());
         words
+    }
+
+    fn populate_unigram(&mut self, words: &Vec<String>) {
+        let keys: Vec<String> = words.clone();
+        for key in keys {
+            let counter = self.histogram_unigram.entry(key).or_insert(0);
+            *counter += 1;
+        }
     }
 
     fn populate_bigram(&mut self, words: &Vec<String>) {
@@ -172,6 +214,34 @@ impl HistogramInstructionNgramAnalyzer {
         }
     }
 
+    fn save_unigram(&self) {
+        // Convert from dictionary to array
+        let mut records = Vec::<RecordUnigram>::new();
+        for (histogram_key, histogram_count) in &self.histogram_unigram {
+            let record = RecordUnigram {
+                count: *histogram_count,
+                word: histogram_key.clone(),
+            };
+            records.push(record);
+        }
+
+        // Move the most frequently occuring items to the top
+        // Move the lesser used items to the bottom
+        records.sort_unstable_by_key(|item| (item.count, item.word.clone()));
+        records.reverse();
+
+        // Save as a CSV file
+        let output_path: PathBuf = self.config.cache_dir_histogram_target_unigram_file();
+        match Self::create_csv_file(&records, &output_path) {
+            Ok(_) => {
+                println!("saved unigram.csv");
+            },
+            Err(error) => {
+                println!("cannot save unigram.csv error: {:?}", error);
+            }
+        }
+    }
+
     fn save_bigram(&self) {
         // Convert from dictionary to array
         let mut records = Vec::<RecordBigram>::new();
@@ -190,7 +260,7 @@ impl HistogramInstructionNgramAnalyzer {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.cache_dir_histogram_instruction_bigram_file();
+        let output_path: PathBuf = self.config.cache_dir_histogram_target_bigram_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("saved bigram.csv");
@@ -220,7 +290,7 @@ impl HistogramInstructionNgramAnalyzer {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.cache_dir_histogram_instruction_trigram_file();
+        let output_path: PathBuf = self.config.cache_dir_histogram_target_trigram_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("saved trigram.csv");
@@ -249,7 +319,7 @@ impl HistogramInstructionNgramAnalyzer {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.cache_dir_histogram_instruction_skipgram_file();
+        let output_path: PathBuf = self.config.cache_dir_histogram_target_skipgram_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("saved skipgram.csv");
@@ -273,9 +343,10 @@ impl HistogramInstructionNgramAnalyzer {
     }
 }
 
-impl BatchProgramAnalyzerPlugin for HistogramInstructionNgramAnalyzer {
+impl BatchProgramAnalyzerPlugin for AnalyzeTargetNgram {
     fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
         let words: Vec<String> = Self::extract_words(&context.parsed_program);
+        self.populate_unigram(&words);
         self.populate_bigram(&words);
         self.populate_trigram(&words);
         self.populate_skipgram(&words);
@@ -285,6 +356,12 @@ impl BatchProgramAnalyzerPlugin for HistogramInstructionNgramAnalyzer {
     fn save(&self) {
         self.save_inner();
     }
+}
+
+#[derive(Serialize)]
+struct RecordUnigram {
+    count: u32,
+    word: String,
 }
 
 #[derive(Serialize)]
