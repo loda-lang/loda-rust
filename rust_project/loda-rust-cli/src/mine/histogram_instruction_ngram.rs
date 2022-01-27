@@ -1,10 +1,10 @@
 use std::error::Error;
-use std::io::{BufRead, BufReader};
+use std::io::BufReader;
 use serde::Deserialize;
-use serde::de::DeserializeOwned;
 use std::path::PathBuf;
 use std::fs::File;
 use loda_rust_core::config::Config;
+use super::parse_csv_data;
 
 pub trait BigramVec {
     fn bigram_vec(&self) -> Result<Vec<RecordBigram>, Box<dyn Error>>;
@@ -35,29 +35,13 @@ impl HistogramInstructionNgram {
             path_skipgram: config.cache_dir_histogram_instruction_skipgram_file(),
         }
     }
-
-    #[allow(dead_code)]
-    fn parse_csv_data<D: DeserializeOwned>(reader: &mut dyn BufRead) 
-        -> Result<Vec<D>, Box<dyn Error>> 
-    {
-        let mut records = Vec::<D>::new();
-        let mut csv_reader = csv::ReaderBuilder::new()
-            .delimiter(b';')
-            .has_headers(true)
-            .from_reader(reader);
-        for result in csv_reader.deserialize() {
-            let record: D = result?;
-            records.push(record);
-        }
-        Ok(records)
-    }
 }
 
 impl BigramVec for HistogramInstructionNgram {
     fn bigram_vec(&self) -> Result<Vec<RecordBigram>, Box<dyn Error>> {
         let file = File::open(&self.path_bigram)?;
         let mut reader = BufReader::new(file);
-        let records: Vec<RecordBigram> = Self::parse_csv_data(&mut reader)?;
+        let records: Vec<RecordBigram> = parse_csv_data(&mut reader)?;
         Ok(records)
     }
 }
@@ -66,7 +50,7 @@ impl TrigramVec for HistogramInstructionNgram {
     fn trigram_vec(&self) -> Result<Vec<RecordTrigram>, Box<dyn Error>> {
         let file = File::open(&self.path_trigram)?;
         let mut reader = BufReader::new(file);
-        let records: Vec<RecordTrigram> = Self::parse_csv_data(&mut reader)?;
+        let records: Vec<RecordTrigram> = parse_csv_data(&mut reader)?;
         Ok(records)
     }
 }
@@ -75,7 +59,7 @@ impl SkipgramVec for HistogramInstructionNgram {
     fn skipgram_vec(&self) -> Result<Vec<RecordSkipgram>, Box<dyn Error>> {
         let file = File::open(&self.path_skipgram)?;
         let mut reader = BufReader::new(file);
-        let records: Vec<RecordSkipgram> = Self::parse_csv_data(&mut reader)?;
+        let records: Vec<RecordSkipgram> = parse_csv_data(&mut reader)?;
         Ok(records)
     }
 }
@@ -118,7 +102,7 @@ count;word0;word1
 24764;mov;STOP
 ";
         let mut input: &[u8] = data.as_bytes();
-        let records: Vec<RecordBigram> = HistogramInstructionNgram::parse_csv_data(&mut input).unwrap();
+        let records: Vec<RecordBigram> = parse_csv_data(&mut input).unwrap();
         let strings: Vec<String> = records.iter().map(|record| {
             format!("{} {} {}", record.count, record.word0, record.word1)
         }).collect();
@@ -135,7 +119,7 @@ count;word0;word1;word2
 10224;add;lpe;mov
 ";
         let mut input: &[u8] = data.as_bytes();
-        let records: Vec<RecordTrigram> = HistogramInstructionNgram::parse_csv_data(&mut input).unwrap();
+        let records: Vec<RecordTrigram> = parse_csv_data(&mut input).unwrap();
         let strings: Vec<String> = records.iter().map(|record| {
             format!("{} {} {} {}", record.count, record.word0, record.word1, record.word2)
         }).collect();
@@ -152,7 +136,7 @@ count;word0;word2
 22644;mov;add
 ";
         let mut input: &[u8] = data.as_bytes();
-        let records: Vec<RecordSkipgram> = HistogramInstructionNgram::parse_csv_data(&mut input).unwrap();
+        let records: Vec<RecordSkipgram> = parse_csv_data(&mut input).unwrap();
         let strings: Vec<String> = records.iter().map(|record| {
             format!("{} {} {}", record.count, record.word0, record.word2)
         }).collect();
