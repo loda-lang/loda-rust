@@ -1,6 +1,7 @@
 use super::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, RecentProgramContainer, save_candidate_program};
 use super::{PreventFlooding, prevent_flooding_populate};
-use super::{HistogramInstructionConstant, HistogramInstructionNgram};
+use super::HistogramInstructionConstant;
+use super::RecordTrigram;
 use super::SuggestInstruction;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
@@ -66,6 +67,7 @@ pub fn run_miner_loop(
     histogram_instruction_constant: Option<HistogramInstructionConstant>,
     mine_event_dir: &Path,
     loda_rust_mismatches: &Path,
+    instruction_trigram_csv: &Path,
     available_program_ids: Vec<u32>,
     initial_random_seed: u64,
     popular_program_container: PopularProgramContainer,
@@ -78,9 +80,9 @@ pub fn run_miner_loop(
         loda_programs_oeis_dir.clone(),
     );
 
-    let ngram = HistogramInstructionNgram::new();
+    let instruction_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(instruction_trigram_csv).expect("Unable to load instruction trigram csv");
     let mut suggest_instruction = SuggestInstruction::new();
-    suggest_instruction.populate(&ngram).expect("Unable to load trigram.csv");
+    suggest_instruction.populate(&instruction_trigram_vec);
 
     let mut cache = ProgramCache::new();
 
