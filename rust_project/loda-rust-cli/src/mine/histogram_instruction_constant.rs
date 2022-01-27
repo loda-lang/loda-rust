@@ -8,6 +8,7 @@ use serde::Deserialize;
 use rand::Rng;
 use rand::seq::SliceRandom;
 use loda_rust_core::parser::InstructionId;
+use super::parse_csv_data;
 
 type ValueAndWeight = (i32,u32);
 type ValueAndWeightVector = Vec<ValueAndWeight>;
@@ -39,7 +40,7 @@ impl HistogramInstructionConstant {
     }
 
     fn create(reader: &mut dyn BufRead) -> Result<HistogramInstructionConstant, Box<dyn Error>> {
-        let records: Vec<Record> = Record::parse_csv_data(reader)?;
+        let records: Vec<Record> = parse_csv_data::<Record>(reader)?;
         let instruction_and_valueweightvector: HashMap<InstructionId, ValueAndWeightVector> = 
             Record::instruction_and_valueweightvector(&records);
         let result = Self {
@@ -69,19 +70,6 @@ struct Record {
 }
 
 impl Record {
-    fn parse_csv_data(reader: &mut dyn BufRead) -> Result<Vec<Record>, Box<dyn Error>> {
-        let mut records = Vec::<Record>::new();
-        let mut csv_reader = csv::ReaderBuilder::new()
-            .delimiter(b';')
-            .has_headers(true)
-            .from_reader(reader);
-        for result in csv_reader.deserialize() {
-            let record: Record = result?;
-            records.push(record);
-        }
-        Ok(records)
-    }
-
     fn unique_instruction_ids(records: &Vec<Record>) -> HashSet<InstructionId> {
         let mut instruction_ids = Vec::<InstructionId>::new();
         for record in records {
@@ -144,7 +132,7 @@ count;instruction;constant
 17147;mul;-2
 ";
         let mut input: &[u8] = data.as_bytes();
-        let records: Vec<Record> = Record::parse_csv_data(&mut input).unwrap();
+        let records: Vec<Record> = parse_csv_data(&mut input).unwrap();
         let strings: Vec<String> = records.iter().map(|record| {
             format!("{} {} {}", record.count, record.instruction, record.constant)
         }).collect();
@@ -164,7 +152,7 @@ count;instruction;constant
 92;add;3
 ";
         let mut input: &[u8] = data.as_bytes();
-        let records: Vec<Record> = Record::parse_csv_data(&mut input).unwrap();
+        let records: Vec<Record> = parse_csv_data(&mut input).unwrap();
         let actual: HashSet<InstructionId> = Record::unique_instruction_ids(&records);
         let v = vec![InstructionId::Add, InstructionId::Subtract, InstructionId::Multiply];
         let expected: HashSet<InstructionId> = HashSet::from_iter(v);
@@ -181,7 +169,7 @@ count;instruction;constant
 100;add;4
 ";
         let mut input: &[u8] = data.as_bytes();
-        let records: Vec<Record> = Record::parse_csv_data(&mut input).unwrap();
+        let records: Vec<Record> = parse_csv_data(&mut input).unwrap();
         let actual: ValueAndWeightVector = Record::value_and_weight_vec(&records, InstructionId::Add);
         let expected: ValueAndWeightVector = vec![(1,36545),(2,92),(3,9232),(4,100)];
         assert_eq!(actual, expected);
@@ -198,7 +186,7 @@ count;instruction;constant
 1001;add;1
 ";
         let mut input: &[u8] = data.as_bytes();
-        let records: Vec<Record> = Record::parse_csv_data(&mut input).unwrap();
+        let records: Vec<Record> = parse_csv_data(&mut input).unwrap();
         let actual: ValueAndWeightVector = Record::value_and_weight_vec(&records, InstructionId::Add);
         let expected: ValueAndWeightVector = vec![(1,1000),(2,1000),(3,1000)];
         assert_eq!(actual, expected);
@@ -214,7 +202,7 @@ count;instruction;constant
 998;mul;-1
 ";
         let mut input: &[u8] = data.as_bytes();
-        let records: Vec<Record> = Record::parse_csv_data(&mut input).unwrap();
+        let records: Vec<Record> = parse_csv_data(&mut input).unwrap();
         let actual: HashMap<InstructionId, ValueAndWeightVector> = Record::instruction_and_valueweightvector(&records);
         assert_eq!(actual.len(), 3);
     }
