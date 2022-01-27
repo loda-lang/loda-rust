@@ -43,4 +43,21 @@ count;word0;word1;word2
         let strings_joined: String = strings.join(",");
         assert_eq!(strings_joined, "10976 lpe mov STOP,10556 mov lpb sub,10224 add lpe mov");
     }
+
+    #[test]
+    fn test_10001_parse_ok() {
+        let data = "\
+count;word0;word1;word2
+33031;0;0;0
+31497;0;0;STOP
+17270;1;1;1
+";
+        let mut input: &[u8] = data.as_bytes();
+        let records: Vec<RecordTrigram> = parse_csv_data(&mut input).unwrap();
+        let strings: Vec<String> = records.iter().map(|record| {
+            format!("{} {} {} {}", record.count, record.word0, record.word1, record.word2)
+        }).collect();
+        let strings_joined: String = strings.join(",");
+        assert_eq!(strings_joined, "33031 0 0 0,31497 0 0 STOP,17270 1 1 1");
+    }
 }
