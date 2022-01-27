@@ -25,6 +25,7 @@ mod recent_program_container;
 mod run_miner_loop;
 mod save_candidate_program;
 mod suggest_instruction;
+mod suggest_target;
 mod validate_programs;
 
 pub use analyze_instruction_constant::AnalyzeInstructionConstant;
@@ -54,4 +55,5 @@ pub use recent_program_container::RecentProgramContainer;
 pub use run_miner_loop::run_miner_loop;
 pub use save_candidate_program::save_candidate_program;
 pub use suggest_instruction::SuggestInstruction;
+pub use suggest_target::SuggestTarget;
 pub use validate_programs::ValidatePrograms;
