@@ -6,10 +6,6 @@ use std::fs::File;
 use loda_rust_core::config::Config;
 use super::parse_csv_data;
 
-pub trait BigramVec {
-    fn bigram_vec(&self) -> Result<Vec<RecordBigram>, Box<dyn Error>>;
-}
-
 pub trait SkipgramVec {
     fn skipgram_vec(&self) -> Result<Vec<RecordSkipgram>, Box<dyn Error>>;
 }
@@ -33,15 +29,6 @@ impl HistogramInstructionNgram {
     }
 }
 
-impl BigramVec for HistogramInstructionNgram {
-    fn bigram_vec(&self) -> Result<Vec<RecordBigram>, Box<dyn Error>> {
-        let file = File::open(&self.path_bigram)?;
-        let mut reader = BufReader::new(file);
-        let records: Vec<RecordBigram> = parse_csv_data(&mut reader)?;
-        Ok(records)
-    }
-}
-
 impl SkipgramVec for HistogramInstructionNgram {
     fn skipgram_vec(&self) -> Result<Vec<RecordSkipgram>, Box<dyn Error>> {
         let file = File::open(&self.path_skipgram)?;
@@ -49,14 +36,6 @@ impl SkipgramVec for HistogramInstructionNgram {
         let records: Vec<RecordSkipgram> = parse_csv_data(&mut reader)?;
         Ok(records)
     }
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Deserialize)]
-pub struct RecordBigram {
-    pub count: u32,
-    pub word0: String,
-    pub word1: String,
 }
 
 #[allow(dead_code)]
@@ -70,23 +49,6 @@ pub struct RecordSkipgram {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_10000_bigram_parse_csv_data() {
-        let data = "\
-count;word0;word1
-29843;START;mov
-28868;add;mov
-24764;mov;STOP
-";
-        let mut input: &[u8] = data.as_bytes();
-        let records: Vec<RecordBigram> = parse_csv_data(&mut input).unwrap();
-        let strings: Vec<String> = records.iter().map(|record| {
-            format!("{} {} {}", record.count, record.word0, record.word1)
-        }).collect();
-        let strings_joined: String = strings.join(",");
-        assert_eq!(strings_joined, "29843 START mov,28868 add mov,24764 mov STOP");
-    }
 
     #[test]
     fn test_30000_skipgram_parse_csv_data() {
