@@ -1,9 +1,7 @@
 use std::error::Error;
-use std::io::BufReader;
 use serde::Deserialize;
 use std::path::Path;
-use std::fs::File;
-use super::parse_csv_data;
+use super::parse_csv_file;
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
@@ -16,16 +14,14 @@ pub struct RecordBigram {
 impl RecordBigram {
     #[allow(dead_code)]
     pub fn parse_csv(path: &Path) -> Result<Vec<RecordBigram>, Box<dyn Error>> {
-        let file = File::open(path)?;
-        let mut reader = BufReader::new(file);
-        let records: Vec<RecordBigram> = parse_csv_data(&mut reader)?;
-        Ok(records)
+        parse_csv_file::parse_csv_file(path)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::mine::parse_csv_data;
 
     #[test]
     fn test_10000_parse_ok() {
