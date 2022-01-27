@@ -3,7 +3,7 @@ use std::io::BufRead;
 use serde::de::DeserializeOwned;
 
 #[allow(dead_code)]
-pub fn parse_csv_data<D: DeserializeOwned>(reader: &mut dyn BufRead) 
+pub fn parse_csv_data<D: DeserializeOwned>(reader: &mut dyn BufRead)
     -> Result<Vec<D>, Box<dyn Error>> 
 {
     let mut records = Vec::<D>::new();

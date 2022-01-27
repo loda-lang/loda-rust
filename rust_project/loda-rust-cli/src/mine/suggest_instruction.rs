@@ -1,9 +1,8 @@
-use super::histogram_instruction_ngram::{RecordTrigram, TrigramVec};
+use super::RecordTrigram;
 use loda_rust_core::parser::InstructionId;
 use std::collections::HashMap;
 use rand::Rng;
 use rand::seq::SliceRandom;
-use std::error::Error;
 
 type HistogramKey = (String,String);
 type InstructionAndWeight = (InstructionId,u32);
@@ -20,10 +19,9 @@ impl SuggestInstruction {
         }
     }
 
-    pub fn populate(&mut self, ngram: &dyn TrigramVec) -> Result<(), Box<dyn Error>> {
-        let records: Vec<RecordTrigram> = ngram.trigram_vec()?;
+    pub fn populate(&mut self, records: &Vec<RecordTrigram>) {
         for record in records {
-            let key: HistogramKey = (record.word0, record.word2);
+            let key: HistogramKey = (record.word0.clone(), record.word2.clone());
             let instruction_id: InstructionId = match InstructionId::parse(&record.word1, 0) {
                 Ok(instruction_id) => instruction_id,
                 Err(_) => {
@@ -41,7 +39,6 @@ impl SuggestInstruction {
             let item = self.histogram.entry(key).or_insert(vec!());
             (*item).push(instruction_and_weight);
         }
-        Ok(())
     }
 
     // If it's the beginning of the program then set prev_instruction to None.
@@ -96,45 +93,41 @@ mod tests {
     use rand::SeedableRng;
     use rand::rngs::StdRng;
 
-    struct MockTrigramVec {}
-
-    impl TrigramVec for MockTrigramVec {
-        fn trigram_vec(&self) -> Result<Vec<RecordTrigram>, Box<dyn Error>> {
-            let v = vec![
-                RecordTrigram {
-                    count: 1000,
-                    word0: "mov".to_string(),
-                    word1: "div".to_string(),
-                    word2: "mul".to_string()
-                },
-                RecordTrigram {
-                    count: 1000,
-                    word0: "START".to_string(),
-                    word1: "sub".to_string(),
-                    word2: "add".to_string()
-                },
-                RecordTrigram {
-                    count: 1000,
-                    word0: "gcd".to_string(),
-                    word1: "min".to_string(),
-                    word2: "STOP".to_string()
-                },
-                RecordTrigram {
-                    count: 1000,
-                    word0: "START".to_string(),
-                    word1: "max".to_string(),
-                    word2: "STOP".to_string()
-                },
-            ];
-            Ok(v)
-        }
+    fn mockdata() -> Vec<RecordTrigram> {
+        let v = vec![
+            RecordTrigram {
+                count: 1000,
+                word0: "mov".to_string(),
+                word1: "div".to_string(),
+                word2: "mul".to_string()
+            },
+            RecordTrigram {
+                count: 1000,
+                word0: "START".to_string(),
+                word1: "sub".to_string(),
+                word2: "add".to_string()
+            },
+            RecordTrigram {
+                count: 1000,
+                word0: "gcd".to_string(),
+                word1: "min".to_string(),
+                word2: "STOP".to_string()
+            },
+            RecordTrigram {
+                count: 1000,
+                word0: "START".to_string(),
+                word1: "max".to_string(),
+                word2: "STOP".to_string()
+            },
+        ];
+        v
     }
 
     #[test]
     fn test_10000_choose_weighted_instruction_surrounded_by_other_instructions() {
-        let mock = MockTrigramVec {};
+        let mock = mockdata();
         let mut si = SuggestInstruction::new();
-        si.populate(&mock).expect("should not fail");
+        si.populate(&mock);
         let mut rng = StdRng::seed_from_u64(0);
         let actual: InstructionId = si.choose_weighted(&mut rng, Some(InstructionId::Move), Some(InstructionId::Multiply)).unwrap();
         assert_eq!(actual, InstructionId::Divide);
@@ -142,9 +135,9 @@ mod tests {
 
     #[test]
     fn test_10001_choose_weighted_start_of_program() {
-        let mock = MockTrigramVec {};
+        let mock = mockdata();
         let mut si = SuggestInstruction::new();
-        si.populate(&mock).expect("should not fail");
+        si.populate(&mock);
         let mut rng = StdRng::seed_from_u64(0);
         let actual: InstructionId = si.choose_weighted(&mut rng, None, Some(InstructionId::Add)).unwrap();
         assert_eq!(actual, InstructionId::Subtract);
@@ -152,9 +145,9 @@ mod tests {
 
     #[test]
     fn test_10002_choose_weighted_end_of_program() {
-        let mock = MockTrigramVec {};
+        let mock = mockdata();
         let mut si = SuggestInstruction::new();
-        si.populate(&mock).expect("should not fail");
+        si.populate(&mock);
         let mut rng = StdRng::seed_from_u64(0);
         let actual: InstructionId = si.choose_weighted(&mut rng, Some(InstructionId::GCD), None).unwrap();
         assert_eq!(actual, InstructionId::Min);
@@ -162,9 +155,9 @@ mod tests {
 
     #[test]
     fn test_10003_choose_weighted_start_and_end_of_program() {
-        let mock = MockTrigramVec {};
+        let mock = mockdata();
         let mut si = SuggestInstruction::new();
-        si.populate(&mock).expect("should not fail");
+        si.populate(&mock);
         let mut rng = StdRng::seed_from_u64(0);
         let actual: InstructionId = si.choose_weighted(&mut rng, None, None).unwrap();
         assert_eq!(actual, InstructionId::Max);
@@ -172,9 +165,9 @@ mod tests {
 
     #[test]
     fn test_10004_choose_weighted_unrecognized_input() {
-        let mock = MockTrigramVec {};
+        let mock = mockdata();
         let mut si = SuggestInstruction::new();
-        si.populate(&mock).expect("should not fail");
+        si.populate(&mock);
         let mut rng = StdRng::seed_from_u64(0);
         let actual: Option<InstructionId> = si.choose_weighted(
             &mut rng, Some(InstructionId::DivideIf), Some(InstructionId::DivideIf)

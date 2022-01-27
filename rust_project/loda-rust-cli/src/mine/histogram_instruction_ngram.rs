@@ -10,10 +10,6 @@ pub trait BigramVec {
     fn bigram_vec(&self) -> Result<Vec<RecordBigram>, Box<dyn Error>>;
 }
 
-pub trait TrigramVec {
-    fn trigram_vec(&self) -> Result<Vec<RecordTrigram>, Box<dyn Error>>;
-}
-
 pub trait SkipgramVec {
     fn skipgram_vec(&self) -> Result<Vec<RecordSkipgram>, Box<dyn Error>>;
 }
@@ -46,15 +42,6 @@ impl BigramVec for HistogramInstructionNgram {
     }
 }
 
-impl TrigramVec for HistogramInstructionNgram {
-    fn trigram_vec(&self) -> Result<Vec<RecordTrigram>, Box<dyn Error>> {
-        let file = File::open(&self.path_trigram)?;
-        let mut reader = BufReader::new(file);
-        let records: Vec<RecordTrigram> = parse_csv_data(&mut reader)?;
-        Ok(records)
-    }
-}
-
 impl SkipgramVec for HistogramInstructionNgram {
     fn skipgram_vec(&self) -> Result<Vec<RecordSkipgram>, Box<dyn Error>> {
         let file = File::open(&self.path_skipgram)?;
@@ -70,15 +57,6 @@ pub struct RecordBigram {
     pub count: u32,
     pub word0: String,
     pub word1: String,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Deserialize)]
-pub struct RecordTrigram {
-    pub count: u32,
-    pub word0: String,
-    pub word1: String,
-    pub word2: String,
 }
 
 #[allow(dead_code)]
@@ -108,23 +86,6 @@ count;word0;word1
         }).collect();
         let strings_joined: String = strings.join(",");
         assert_eq!(strings_joined, "29843 START mov,28868 add mov,24764 mov STOP");
-    }
-
-    #[test]
-    fn test_20000_trigram_parse_csv_data() {
-        let data = "\
-count;word0;word1;word2
-10976;lpe;mov;STOP
-10556;mov;lpb;sub
-10224;add;lpe;mov
-";
-        let mut input: &[u8] = data.as_bytes();
-        let records: Vec<RecordTrigram> = parse_csv_data(&mut input).unwrap();
-        let strings: Vec<String> = records.iter().map(|record| {
-            format!("{} {} {} {}", record.count, record.word0, record.word1, record.word2)
-        }).collect();
-        let strings_joined: String = strings.join(",");
-        assert_eq!(strings_joined, "10976 lpe mov STOP,10556 mov lpb sub,10224 add lpe mov");
     }
 
     #[test]
