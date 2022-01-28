@@ -41,15 +41,15 @@ impl SuggestInstruction {
         }
     }
 
-    // If it's the beginning of the program then set prev_instruction to None.
-    // If it's the end of the program then set next_instruction to None.
+    // If it's the beginning of the program then set prev_word to None.
+    // If it's the end of the program then set next_word to None.
     #[allow(dead_code)]
-    fn candidate_instructions(&self, prev_instruction: Option<InstructionId>, next_instruction: Option<InstructionId>) -> Option<&HistogramValue> {
-        let word0: String = match prev_instruction {
+    fn candidates(&self, prev_word: Option<InstructionId>, next_word: Option<InstructionId>) -> Option<&HistogramValue> {
+        let word0: String = match prev_word {
             Some(instruction_id) => instruction_id.shortname().to_string(),
             None => "START".to_string()
         };
-        let word2: String = match next_instruction {
+        let word2: String = match next_word {
             Some(instruction_id) => instruction_id.shortname().to_string(),
             None => "STOP".to_string()
         };
@@ -58,8 +58,8 @@ impl SuggestInstruction {
     }
 
     #[allow(dead_code)]
-    pub fn best_instruction(&self, prev_instruction: Option<InstructionId>, next_instruction: Option<InstructionId>) -> Option<InstructionId> {
-        let histogram_value: &HistogramValue = match self.candidate_instructions(prev_instruction, next_instruction) {
+    pub fn best_instruction(&self, prev_word: Option<InstructionId>, next_word: Option<InstructionId>) -> Option<InstructionId> {
+        let histogram_value: &HistogramValue = match self.candidates(prev_word, next_word) {
             Some(value) => value,
             None => {
                 return None;
@@ -75,15 +75,15 @@ impl SuggestInstruction {
     }
 
     #[allow(dead_code)]
-    pub fn choose_weighted<R: Rng + ?Sized>(&self, rng: &mut R, prev_instruction: Option<InstructionId>, next_instruction: Option<InstructionId>) -> Option<InstructionId> {
-        let histogram_value: &HistogramValue = match self.candidate_instructions(prev_instruction, next_instruction) {
+    pub fn choose_weighted<R: Rng + ?Sized>(&self, rng: &mut R, prev_word: Option<InstructionId>, next_word: Option<InstructionId>) -> Option<InstructionId> {
+        let histogram_value: &HistogramValue = match self.candidates(prev_word, next_word) {
             Some(value) => value,
             None => {
                 return None;
             }
         };
-        let instruction_id: InstructionId = histogram_value.choose_weighted(rng, |item| item.1).unwrap().0;
-        Some(instruction_id)
+        let value: InstructionId = histogram_value.choose_weighted(rng, |item| item.1).unwrap().0;
+        Some(value)
     }
 }
 
@@ -124,13 +124,15 @@ mod tests {
     }
 
     #[test]
-    fn test_10000_choose_weighted_instruction_surrounded_by_other_instructions() {
+    fn test_10000_choose_weighted_instruction_surrounded_by_other_words() {
         let mock = mockdata();
         let mut si = SuggestInstruction::new();
         si.populate(&mock);
         let mut rng = StdRng::seed_from_u64(0);
-        let actual: InstructionId = si.choose_weighted(&mut rng, Some(InstructionId::Move), Some(InstructionId::Multiply)).unwrap();
-        assert_eq!(actual, InstructionId::Divide);
+        let actual: Option<InstructionId> = si.choose_weighted(
+            &mut rng, Some(InstructionId::Move), Some(InstructionId::Multiply)
+        );
+        assert_eq!(actual, Some(InstructionId::Divide));
     }
 
     #[test]
@@ -139,8 +141,10 @@ mod tests {
         let mut si = SuggestInstruction::new();
         si.populate(&mock);
         let mut rng = StdRng::seed_from_u64(0);
-        let actual: InstructionId = si.choose_weighted(&mut rng, None, Some(InstructionId::Add)).unwrap();
-        assert_eq!(actual, InstructionId::Subtract);
+        let actual: Option<InstructionId> = si.choose_weighted(
+            &mut rng, None, Some(InstructionId::Add)
+        );
+        assert_eq!(actual, Some(InstructionId::Subtract));
     }
 
     #[test]
@@ -149,8 +153,10 @@ mod tests {
         let mut si = SuggestInstruction::new();
         si.populate(&mock);
         let mut rng = StdRng::seed_from_u64(0);
-        let actual: InstructionId = si.choose_weighted(&mut rng, Some(InstructionId::GCD), None).unwrap();
-        assert_eq!(actual, InstructionId::Min);
+        let actual: Option<InstructionId> = si.choose_weighted(
+            &mut rng, Some(InstructionId::GCD), None
+        );
+        assert_eq!(actual, Some(InstructionId::Min));
     }
 
     #[test]
@@ -159,8 +165,10 @@ mod tests {
         let mut si = SuggestInstruction::new();
         si.populate(&mock);
         let mut rng = StdRng::seed_from_u64(0);
-        let actual: InstructionId = si.choose_weighted(&mut rng, None, None).unwrap();
-        assert_eq!(actual, InstructionId::Max);
+        let actual: Option<InstructionId> = si.choose_weighted(
+            &mut rng, None, None
+        );
+        assert_eq!(actual, Some(InstructionId::Max));
     }
 
     #[test]
