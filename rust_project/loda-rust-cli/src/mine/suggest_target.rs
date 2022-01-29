@@ -32,6 +32,12 @@ impl TargetValue {
             },
             _ => {}
         }
+        if s.starts_with('+') {
+            return None;
+        }
+        if s.starts_with('-') {
+            return None;
+        }
         match s.parse::<i32>() {
             Ok(value) => {
                 return Some(TargetValue::Value(value));
@@ -144,8 +150,8 @@ mod tests {
         "STOP",
         "NONE",
         "42",
-        "+42",
         "0",
+        "+42",
         "-1",
         "$1",
         "boom",
@@ -159,9 +165,9 @@ mod tests {
         "STOP",
         "NONE",
         "42",
-        "42",
         "0",
-        "-1",
+        "IGNORE",
+        "IGNORE",
         "IGNORE",
         "IGNORE",
         "IGNORE",
