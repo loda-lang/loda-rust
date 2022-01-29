@@ -229,14 +229,22 @@ mod tests {
         v
     }
 
-    #[test]
-    fn test_20000_choose_weighted_surrounded_by_other_words0() {
+    fn exercise_choose_weighted(prev_word: TargetValue, next_word: TargetValue) -> Option<TargetValue> {
         let mock = mockdata();
         let mut si = SuggestTarget::new();
         si.populate(&mock);
         let mut rng = StdRng::seed_from_u64(0);
         let actual: Option<TargetValue> = si.choose_weighted(
             &mut rng, 
+            prev_word, 
+            next_word
+        );
+        actual
+    }
+
+    #[test]
+    fn test_20000_choose_weighted_surrounded_by_other_words0() {
+        let actual: Option<TargetValue> = exercise_choose_weighted(
             TargetValue::Value(0), 
             TargetValue::Value(0)
         );
@@ -245,12 +253,7 @@ mod tests {
 
     #[test]
     fn test_20001_choose_weighted_surrounded_by_other_words1() {
-        let mock = mockdata();
-        let mut si = SuggestTarget::new();
-        si.populate(&mock);
-        let mut rng = StdRng::seed_from_u64(0);
-        let actual: Option<TargetValue> = si.choose_weighted(
-            &mut rng, 
+        let actual: Option<TargetValue> = exercise_choose_weighted(
             TargetValue::Value(1),
             TargetValue::Value(1)
         );
@@ -259,12 +262,7 @@ mod tests {
 
     #[test]
     fn test_20002_choose_weighted_start_of_program() {
-        let mock = mockdata();
-        let mut si = SuggestTarget::new();
-        si.populate(&mock);
-        let mut rng = StdRng::seed_from_u64(0);
-        let actual: Option<TargetValue> = si.choose_weighted(
-            &mut rng, 
+        let actual: Option<TargetValue> = exercise_choose_weighted(
             TargetValue::ProgramStart,
             TargetValue::Value(2)
         );
@@ -273,12 +271,7 @@ mod tests {
 
     #[test]
     fn test_20003_choose_weighted_end_of_program() {
-        let mock = mockdata();
-        let mut si = SuggestTarget::new();
-        si.populate(&mock);
-        let mut rng = StdRng::seed_from_u64(0);
-        let actual: Option<TargetValue> = si.choose_weighted(
-            &mut rng, 
+        let actual: Option<TargetValue> = exercise_choose_weighted(
             TargetValue::Value(3),
             TargetValue::ProgramStop
         );
@@ -287,12 +280,7 @@ mod tests {
 
     #[test]
     fn test_20004_choose_weighted_start_and_end_of_program() {
-        let mock = mockdata();
-        let mut si = SuggestTarget::new();
-        si.populate(&mock);
-        let mut rng = StdRng::seed_from_u64(0);
-        let actual: Option<TargetValue> = si.choose_weighted(
-            &mut rng, 
+        let actual: Option<TargetValue> = exercise_choose_weighted(
             TargetValue::ProgramStart,
             TargetValue::ProgramStop
         );
@@ -301,12 +289,7 @@ mod tests {
 
     #[test]
     fn test_20005_choose_weighted_surrounded_by_none() {
-        let mock = mockdata();
-        let mut si = SuggestTarget::new();
-        si.populate(&mock);
-        let mut rng = StdRng::seed_from_u64(0);
-        let actual: Option<TargetValue> = si.choose_weighted(
-            &mut rng, 
+        let actual: Option<TargetValue> = exercise_choose_weighted(
             TargetValue::None,
             TargetValue::None
         );
@@ -315,12 +298,7 @@ mod tests {
 
     #[test]
     fn test_20006_choose_weighted_unrecognized_input() {
-        let mock = mockdata();
-        let mut si = SuggestTarget::new();
-        si.populate(&mock);
-        let mut rng = StdRng::seed_from_u64(0);
-        let actual: Option<TargetValue> = si.choose_weighted(
-            &mut rng, 
+        let actual: Option<TargetValue> = exercise_choose_weighted(
             TargetValue::Value(666),
             TargetValue::Value(666)
         );
