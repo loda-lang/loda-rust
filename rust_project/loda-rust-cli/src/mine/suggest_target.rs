@@ -48,6 +48,7 @@ impl TargetValue {
         }
     }
 
+    #[allow(dead_code)]
     fn to_string(&self) -> String {
         match self {
             Self::Value(value) => return format!("{}", value),
