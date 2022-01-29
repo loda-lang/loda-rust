@@ -70,6 +70,17 @@ impl GenomeItem {
         self.target_value
     }
 
+    pub fn set_target_value(&mut self, value: i32) -> bool {
+        if self.target_value() == value {
+            return false;
+        }
+        if value < 0 {
+            return false;
+        }
+        self.target_value = value;
+        return true;
+    }
+
     pub fn source_type(&self) -> &ParameterType {
         &self.source_type
     }
