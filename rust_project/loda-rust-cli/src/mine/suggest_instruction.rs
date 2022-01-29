@@ -123,62 +123,53 @@ mod tests {
         v
     }
 
-    #[test]
-    fn test_10000_choose_weighted_surrounded_by_other_words() {
+    fn exercise_choose_weighted(prev_word: Option<InstructionId>, next_word: Option<InstructionId>) -> Option<InstructionId> {
         let mock = mockdata();
         let mut si = SuggestInstruction::new();
         si.populate(&mock);
         let mut rng = StdRng::seed_from_u64(0);
         let actual: Option<InstructionId> = si.choose_weighted(
-            &mut rng, Some(InstructionId::Move), Some(InstructionId::Multiply)
+            &mut rng, prev_word, next_word
+        );
+        actual
+    }
+
+    #[test]
+    fn test_10000_choose_weighted_surrounded_by_other_words() {
+        let actual: Option<InstructionId> = exercise_choose_weighted(
+            Some(InstructionId::Move), Some(InstructionId::Multiply)
         );
         assert_eq!(actual, Some(InstructionId::Divide));
     }
 
     #[test]
     fn test_10001_choose_weighted_start_of_program() {
-        let mock = mockdata();
-        let mut si = SuggestInstruction::new();
-        si.populate(&mock);
-        let mut rng = StdRng::seed_from_u64(0);
-        let actual: Option<InstructionId> = si.choose_weighted(
-            &mut rng, None, Some(InstructionId::Add)
+        let actual: Option<InstructionId> = exercise_choose_weighted(
+            None, Some(InstructionId::Add)
         );
         assert_eq!(actual, Some(InstructionId::Subtract));
     }
 
     #[test]
     fn test_10002_choose_weighted_end_of_program() {
-        let mock = mockdata();
-        let mut si = SuggestInstruction::new();
-        si.populate(&mock);
-        let mut rng = StdRng::seed_from_u64(0);
-        let actual: Option<InstructionId> = si.choose_weighted(
-            &mut rng, Some(InstructionId::GCD), None
+        let actual: Option<InstructionId> = exercise_choose_weighted(
+            Some(InstructionId::GCD), None
         );
         assert_eq!(actual, Some(InstructionId::Min));
     }
 
     #[test]
     fn test_10003_choose_weighted_start_and_end_of_program() {
-        let mock = mockdata();
-        let mut si = SuggestInstruction::new();
-        si.populate(&mock);
-        let mut rng = StdRng::seed_from_u64(0);
-        let actual: Option<InstructionId> = si.choose_weighted(
-            &mut rng, None, None
+        let actual: Option<InstructionId> = exercise_choose_weighted(
+            None, None
         );
         assert_eq!(actual, Some(InstructionId::Max));
     }
 
     #[test]
     fn test_10004_choose_weighted_unrecognized_input() {
-        let mock = mockdata();
-        let mut si = SuggestInstruction::new();
-        si.populate(&mock);
-        let mut rng = StdRng::seed_from_u64(0);
-        let actual: Option<InstructionId> = si.choose_weighted(
-            &mut rng, Some(InstructionId::DivideIf), Some(InstructionId::DivideIf)
+        let actual: Option<InstructionId> = exercise_choose_weighted(
+            Some(InstructionId::DivideIf), Some(InstructionId::DivideIf)
         );
         assert_eq!(actual, None);
     }
