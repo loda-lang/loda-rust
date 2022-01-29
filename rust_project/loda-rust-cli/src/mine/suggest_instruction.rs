@@ -124,7 +124,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10000_choose_weighted_instruction_surrounded_by_other_words() {
+    fn test_10000_choose_weighted_surrounded_by_other_words() {
         let mock = mockdata();
         let mut si = SuggestInstruction::new();
         si.populate(&mock);
