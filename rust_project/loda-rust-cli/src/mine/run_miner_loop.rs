@@ -3,6 +3,7 @@ use super::{PreventFlooding, prevent_flooding_populate};
 use super::HistogramInstructionConstant;
 use super::RecordTrigram;
 use super::SuggestInstruction;
+use super::SuggestTarget;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -68,6 +69,7 @@ pub fn run_miner_loop(
     mine_event_dir: &Path,
     loda_rust_mismatches: &Path,
     instruction_trigram_csv: &Path,
+    target_trigram_csv: &Path,
     available_program_ids: Vec<u32>,
     initial_random_seed: u64,
     popular_program_container: PopularProgramContainer,
@@ -83,6 +85,10 @@ pub fn run_miner_loop(
     let instruction_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(instruction_trigram_csv).expect("Unable to load instruction trigram csv");
     let mut suggest_instruction = SuggestInstruction::new();
     suggest_instruction.populate(&instruction_trigram_vec);
+
+    let target_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(target_trigram_csv).expect("Unable to load target trigram csv");
+    let mut suggest_target = SuggestTarget::new();
+    suggest_target.populate(&target_trigram_vec);
 
     let mut cache = ProgramCache::new();
 
@@ -104,7 +110,8 @@ pub fn run_miner_loop(
         popular_program_container,
         recent_program_container,
         histogram_instruction_constant,
-        Some(suggest_instruction)
+        Some(suggest_instruction),
+        Some(suggest_target)
     );
 
     let mut funnel = Funnel::new(

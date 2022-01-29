@@ -25,6 +25,7 @@ pub fn subcommand_mine() {
     let loda_rust_repository: PathBuf = config.loda_rust_repository();
     let loda_rust_mismatches: PathBuf = config.loda_rust_mismatches();
     let instruction_trigram_csv: PathBuf = config.cache_dir_histogram_instruction_trigram_file();
+    let target_trigram_csv: PathBuf = config.cache_dir_histogram_target_trigram_file();
 
     // Load cached data
     debug!("step1");
@@ -106,6 +107,7 @@ pub fn subcommand_mine() {
         &mine_event_dir,
         &loda_rust_mismatches,
         &instruction_trigram_csv,
+        &target_trigram_csv,
         available_program_ids,
         initial_random_seed,
         popular_program_container,

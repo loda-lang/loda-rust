@@ -1,4 +1,4 @@
-use super::{GenomeItem, GenomeMutateContext, MutateValue};
+use super::{GenomeItem, GenomeMutateContext, MutateValue, TargetValue};
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use loda_rust_core::parser::ParsedProgram;
@@ -19,7 +19,8 @@ pub enum MutateGenome {
     SourceType,
     SwapRegisters,
     SourceRegister,
-    TargetRegister,
+    ReplaceTargetWithoutHistogram,
+    ReplaceTargetWithHistogram,
     ToggleEnabled,
     SwapRows,
     SwapAdjacentRows,
@@ -297,7 +298,7 @@ impl Genome {
 
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    pub fn mutate_target_register<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+    pub fn replace_target_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         assert!(length > 0);
         let index: usize = rng.gen_range(0..length);
@@ -317,6 +318,87 @@ impl Genome {
             return false;
         }
         genome_item.mutate_sanitize_program_row()
+    }
+
+    fn get_target_value(genome_item: &GenomeItem) -> TargetValue {
+        let instruction_id: InstructionId = *genome_item.instruction_id();
+        if instruction_id == InstructionId::LoopEnd {
+            return TargetValue::None;
+        }
+        let value: i32 = genome_item.target_value();
+        TargetValue::Value(value)
+    }
+
+    // Return `true` when the mutation was successful.
+    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    pub fn replace_target_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+        // let length: usize = self.genome_vec.len();
+        // assert!(length > 0);
+        // let index: usize = rng.gen_range(0..length);
+
+        // // Pick a random mutation
+        // let mutation_vec: Vec<MutateValue> = vec![
+        //     MutateValue::Increment,
+        //     MutateValue::Decrement,
+        //     MutateValue::Assign(0),
+        //     MutateValue::Assign(1),
+        // ];
+        // let mutation: &MutateValue = mutation_vec.choose(rng).unwrap();
+
+        // // Mutate one of the instructions
+        // let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
+        // if !genome_item.mutate_target_value(mutation) {
+        //     return false;
+        // }
+        // genome_item.mutate_sanitize_program_row()
+
+        // Bail out if the trigram.csv file hasn't been loaded.
+        if !context.has_suggest_target() {
+            return false;
+        }
+        let length: usize = self.genome_vec.len();
+        if length < 1 {
+            return false;
+        }
+        let index1: usize = rng.gen_range(0..length);
+        let index0: i32 = (index1 as i32) - 1;
+        let index2: usize = index1 + 1;
+        let mut prev_word: TargetValue = TargetValue::ProgramStart;
+        if index0 >= 0 {
+            match self.genome_vec.get(index0 as usize) {
+                Some(ref value) => {
+                    prev_word = Self::get_target_value(value)
+                },
+                None => {}
+            };
+        }
+        let mut next_word: TargetValue = TargetValue::ProgramStop;
+        match self.genome_vec.get(index2) {
+            Some(ref value) => {
+                next_word = Self::get_target_value(value)
+            },
+            None => {}
+        };
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[index1];
+        let suggested_value: TargetValue = match context.suggest_target(rng, prev_word, next_word) {
+            Some(value) => value,
+            None => {
+                return false;
+            }
+        };
+        let suggested_value_inner: i32 = match suggested_value {
+            TargetValue::Value(value) => value,
+            _ => {
+                return false;
+            }
+        };
+        let old_target: i32 = genome_item.target_value();
+        if !genome_item.set_target_value(suggested_value_inner) {
+            return false;
+        }
+        debug!("suggest target: {:?} -> {:?}", old_target, suggested_value_inner);
+        // No need to sanitize when using histogram
+        true
     }
 
     // Return `true` when the mutation was successful.
@@ -625,7 +707,8 @@ impl Genome {
             (MutateGenome::SourceType, 10),
             (MutateGenome::SwapRegisters, 10),
             (MutateGenome::SourceRegister, 20),
-            (MutateGenome::TargetRegister, 10),
+            (MutateGenome::ReplaceTargetWithoutHistogram, 5),
+            (MutateGenome::ReplaceTargetWithHistogram, 100),
             (MutateGenome::ToggleEnabled, 10),
             (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 10),
@@ -659,8 +742,11 @@ impl Genome {
             MutateGenome::SourceRegister => {
                 return self.mutate_source_register(rng);
             },
-            MutateGenome::TargetRegister => {
-                return self.mutate_target_register(rng);
+            MutateGenome::ReplaceTargetWithoutHistogram => {
+                return self.replace_target_without_histogram(rng);
+            },
+            MutateGenome::ReplaceTargetWithHistogram => {
+                return self.replace_target_with_histogram(rng, context);
             },
             MutateGenome::ToggleEnabled => {
                 return self.mutate_enabled(rng);

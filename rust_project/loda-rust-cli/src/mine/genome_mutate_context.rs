@@ -1,5 +1,6 @@
 use super::{PopularProgramContainer, RecentProgramContainer, HistogramInstructionConstant};
 use super::SuggestInstruction;
+use super::{SuggestTarget, TargetValue};
 use loda_rust_core::parser::InstructionId;
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -10,6 +11,7 @@ pub struct GenomeMutateContext {
     recent_program_container: RecentProgramContainer,
     histogram_instruction_constant: Option<HistogramInstructionConstant>,
     suggest_instruction: Option<SuggestInstruction>,
+    suggest_target: Option<SuggestTarget>,
 }
 
 impl GenomeMutateContext {
@@ -18,14 +20,16 @@ impl GenomeMutateContext {
         popular_program_container: PopularProgramContainer, 
         recent_program_container: RecentProgramContainer,
         histogram_instruction_constant: Option<HistogramInstructionConstant>,
-        suggest_instruction: Option<SuggestInstruction>
+        suggest_instruction: Option<SuggestInstruction>,
+        suggest_target: Option<SuggestTarget>
     ) -> Self {
         Self {
             available_program_ids: available_program_ids,
             popular_program_container: popular_program_container,
             recent_program_container: recent_program_container,
             histogram_instruction_constant: histogram_instruction_constant,
-            suggest_instruction: suggest_instruction
+            suggest_instruction: suggest_instruction,
+            suggest_target: suggest_target
         }
     }
 
@@ -70,13 +74,27 @@ impl GenomeMutateContext {
         self.suggest_instruction.is_some()
     }
 
-    pub fn suggest_instruction<R: Rng + ?Sized>(&self, rng: &mut R, prev_instruction: Option<InstructionId>, next_instruction: Option<InstructionId>) -> Option<InstructionId> {
+    pub fn suggest_instruction<R: Rng + ?Sized>(&self, rng: &mut R, prev_word: Option<InstructionId>, next_word: Option<InstructionId>) -> Option<InstructionId> {
         let suggest_instruction: &SuggestInstruction = match &self.suggest_instruction {
             Some(value) => value,
             None => {
                 return None;
             }
         };
-        suggest_instruction.choose_weighted(rng, prev_instruction, next_instruction)
+        suggest_instruction.choose_weighted(rng, prev_word, next_word)
+    }
+
+    pub fn has_suggest_target(&self) -> bool {
+        self.suggest_target.is_some()
+    }
+
+    pub fn suggest_target<R: Rng + ?Sized>(&self, rng: &mut R, prev_word: TargetValue, next_word: TargetValue) -> Option<TargetValue> {
+        let suggest_target: &SuggestTarget = match &self.suggest_target {
+            Some(value) => value,
+            None => {
+                return None;
+            }
+        };
+        suggest_target.choose_weighted(rng, prev_word, next_word)
     }
 }
