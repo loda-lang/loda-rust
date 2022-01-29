@@ -129,6 +129,54 @@ mod tests {
     use rand::SeedableRng;
     use rand::rngs::StdRng;
 
+    static INPUT: &'static [&'static str] = &[
+        "START",
+        "STOP",
+        "NONE",
+        "42",
+        "+42",
+        "0",
+        "-1",
+        "$1",
+        "boom",
+        "",
+        " 0",
+        " 0 ",
+    ];
+
+    static OUTPUT: &'static [&'static str] = &[
+        "START",
+        "STOP",
+        "NONE",
+        "42",
+        "42",
+        "0",
+        "-1",
+        "IGNORE",
+        "IGNORE",
+        "IGNORE",
+        "IGNORE",
+        "IGNORE",
+    ];
+
+    fn process<S: AsRef<str>>(input: S) -> String {
+        let input = input.as_ref();
+        let target_value: TargetValue = match TargetValue::parse(input) {
+            Some(value) => value,
+            None => {
+                return "IGNORE".to_string();
+            }
+        };
+        target_value.to_string()
+    }
+
+    #[test]
+    fn test_10000_target_value_parse() {
+        for (index, input) in INPUT.iter().enumerate() {
+            assert_eq!(process(input), OUTPUT[index]);
+        }
+    }
+
     fn mockdata() -> Vec<RecordTrigram> {
         let v = vec![
             RecordTrigram {
@@ -172,7 +220,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10000_choose_weighted_surrounded_by_other_words0() {
+    fn test_20000_choose_weighted_surrounded_by_other_words0() {
         let mock = mockdata();
         let mut si = SuggestTarget::new();
         si.populate(&mock);
@@ -186,7 +234,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_choose_weighted_surrounded_by_other_words1() {
+    fn test_20001_choose_weighted_surrounded_by_other_words1() {
         let mock = mockdata();
         let mut si = SuggestTarget::new();
         si.populate(&mock);
@@ -200,7 +248,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_choose_weighted_start_of_program() {
+    fn test_20002_choose_weighted_start_of_program() {
         let mock = mockdata();
         let mut si = SuggestTarget::new();
         si.populate(&mock);
@@ -214,7 +262,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10003_choose_weighted_end_of_program() {
+    fn test_20003_choose_weighted_end_of_program() {
         let mock = mockdata();
         let mut si = SuggestTarget::new();
         si.populate(&mock);
@@ -228,7 +276,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10004_choose_weighted_start_and_end_of_program() {
+    fn test_20004_choose_weighted_start_and_end_of_program() {
         let mock = mockdata();
         let mut si = SuggestTarget::new();
         si.populate(&mock);
@@ -242,7 +290,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10005_choose_weighted_surrounded_by_none() {
+    fn test_20005_choose_weighted_surrounded_by_none() {
         let mock = mockdata();
         let mut si = SuggestTarget::new();
         si.populate(&mock);
@@ -256,7 +304,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10006_choose_weighted_unrecognized_input() {
+    fn test_20006_choose_weighted_unrecognized_input() {
         let mock = mockdata();
         let mut si = SuggestTarget::new();
         si.populate(&mock);
