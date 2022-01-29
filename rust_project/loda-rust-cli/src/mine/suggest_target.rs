@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rand::Rng;
 use rand::seq::SliceRandom;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum TargetValue {
     ProgramStart,
     ProgramStop,
@@ -42,7 +42,7 @@ impl TargetValue {
         }
     }
 
-    pub fn to_string(&self) -> String {
+    fn to_string(&self) -> String {
         match self {
             Self::Value(value) => return format!("{}", value),
             Self::ProgramStart => return "START".to_string(),
@@ -52,7 +52,7 @@ impl TargetValue {
     }
 }
 
-type HistogramKey = (String,String);
+type HistogramKey = (TargetValue,TargetValue);
 type ValueAndWeight = (TargetValue,u32);
 type HistogramValue = Vec<ValueAndWeight>;
 
@@ -69,13 +69,25 @@ impl SuggestTarget {
 
     pub fn populate(&mut self, records: &Vec<RecordTrigram>) {
         for record in records {
+            let value0: TargetValue = match TargetValue::parse(&record.word0) {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
             let value1: TargetValue = match TargetValue::parse(&record.word1) {
                 Some(value) => value,
                 None => {
                     continue;
                 }
             };
-            let key: HistogramKey = (record.word0.clone(), record.word2.clone());
+            let value2: TargetValue = match TargetValue::parse(&record.word2) {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
+            let key: HistogramKey = (value0, value2);
             let value_and_weight: ValueAndWeight = (value1, record.count);
             let item = self.histogram.entry(key).or_insert(vec!());
             (*item).push(value_and_weight);
@@ -87,9 +99,7 @@ impl SuggestTarget {
     // If it's a `lpe` (loop end) instruction that has no parameter, then use None.
     #[allow(dead_code)]
     fn candidates(&self, prev_word: TargetValue, next_word: TargetValue) -> Option<&HistogramValue> {
-        let word0: String = prev_word.to_string();
-        let word2: String = next_word.to_string();
-        let key: HistogramKey = (word0, word2);
+        let key: HistogramKey = (prev_word, next_word);
         self.histogram.get(&key)
     }
 
