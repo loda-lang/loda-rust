@@ -332,26 +332,6 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     pub fn replace_target_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
-        // let length: usize = self.genome_vec.len();
-        // assert!(length > 0);
-        // let index: usize = rng.gen_range(0..length);
-
-        // // Pick a random mutation
-        // let mutation_vec: Vec<MutateValue> = vec![
-        //     MutateValue::Increment,
-        //     MutateValue::Decrement,
-        //     MutateValue::Assign(0),
-        //     MutateValue::Assign(1),
-        // ];
-        // let mutation: &MutateValue = mutation_vec.choose(rng).unwrap();
-
-        // // Mutate one of the instructions
-        // let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
-        // if !genome_item.mutate_target_value(mutation) {
-        //     return false;
-        // }
-        // genome_item.mutate_sanitize_program_row()
-
         // Bail out if the trigram.csv file hasn't been loaded.
         if !context.has_suggest_target() {
             return false;
@@ -392,11 +372,11 @@ impl Genome {
                 return false;
             }
         };
-        let old_target: i32 = genome_item.target_value();
+        // let old_target: i32 = genome_item.target_value();
         if !genome_item.set_target_value(suggested_value_inner) {
             return false;
         }
-        debug!("suggest target: {:?} -> {:?}", old_target, suggested_value_inner);
+        // debug!("suggest target: {:?} -> {:?}", old_target, suggested_value_inner);
         // No need to sanitize when using histogram
         true
     }
