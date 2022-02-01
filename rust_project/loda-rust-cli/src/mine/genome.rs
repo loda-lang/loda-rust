@@ -150,7 +150,7 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
     #[allow(dead_code)]
-    pub fn replace_source_value_constant_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+    pub fn replace_source_constant_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         // Identify the instructions that use constants
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
@@ -214,7 +214,7 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
     #[allow(dead_code)]
-    pub fn replace_source_value_constant_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+    pub fn replace_source_constant_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Bail out if the histogram csv file hasn't been loaded.
         if !context.has_histogram_instruction_constant() {
             return false;
@@ -780,10 +780,10 @@ impl Genome {
                 return self.insert_instruction_with_constant(rng, context);
             },
             MutateGenome::ReplaceSourceConstantWithoutHistogram => {
-                return self.replace_source_value_constant_without_histogram(rng);
+                return self.replace_source_constant_without_histogram(rng);
             },
             MutateGenome::ReplaceSourceConstantWithHistogram => {
-                return self.replace_source_value_constant_with_histogram(rng, context);
+                return self.replace_source_constant_with_histogram(rng, context);
             },
             MutateGenome::SourceType => {
                 return self.mutate_source_type(rng);
