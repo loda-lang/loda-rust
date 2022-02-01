@@ -1,6 +1,6 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
-use loda_rust_core::parser::{InstructionParameter, ParsedProgram};
+use loda_rust_core::parser::{InstructionParameter, ParsedProgram, ParameterType};
 use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::collections::HashMap;
@@ -13,93 +13,96 @@ type HistogramTrigramKey = (String,String,String);
 type HistogramSkipgramKey = (String,String);
 
 /*
-Creates csv files with unigram/bigram/trigram/skipgram with LODA target registers.
+Creates csv files with unigram/bigram/trigram/skipgram with LODA source register/constants.
 https://en.wikipedia.org/wiki/N-gram
 
 This script traverses all the programs inside the "loda-programs/oeis" dir.
 It looks for all the LODA assembly programs there are.
-This script determines the most frequent combinations of target registers.
+This script determines the most frequent combinations of source register/constants.
 
 ---
 
 This script outputs a `unigram.csv` file, with this format:
 
     count;word
-    225985;0
-    122853;1
-    100247;2
-    62531;3
-    61799;STOP
-    61799;START
-    40310;NONE
-    32944;4
-    17332;5
+    291363;CONST
+    80741;NONE
+    74575;0
+    61967;STOP
+    61967;START
+    57089;1
+    50819;2
+    29725;3
 
 Learnings from this unigram with LODA programs:
-Learning A: Target register `$0` is by far the most used.
-Learning B: Target register `$1` and `$2` is on a shared 2nd place.
-Learning C: Target register `NONE` is for the `lpe` instruction, that doesn't have any register.
+Learning A: Source is most often a contant.
+Learning B: Often there is no source parameter, such as for loop begin `lpb $3` or loop end `lpe`.
+Learning C: The source register `$0` is most used.
 
 ---
 
 This script outputs a `bigram.csv` file, with this format:
 
     count;word0;word1
-    91494;0;0
-    60727;0;STOP
-    41637;1;1
-    34118;1;0
-    30760;START;0
-    28122;0;1
-    27650;2;2
-    25737;0;2
-    24493;NONE;0
-    23051;2;0
+    107662;CONST;CONST
+    43147;0;CONST
+    42103;START;CONST
+    40569;CONST;NONE
+    38239;CONST;0
+    33260;NONE;CONST
+    31547;CONST;STOP
+    25079;CONST;1
+    21977;1;STOP
+    20578;CONST;2
 
 Learnings from this bigram with LODA programs:
-Learning A: Target register `$0` is most likely to be followed by another `$0` target register.
-Learning B: Target register `$1` is most likely to be followed by another `$1` target register.
-Learning C: Target register `$2` is most likely to be followed by another `$2` target register.
-Learning D: The program is most likely to start with a `$0` target register.
-Learning E: The program is most likely to stop with a `$0` target register.
+Learning A: Source constant is most likely to be followed by another source constant.
+Learning B: Source register `$0` is most likely to be followed by a source constant.
+Learning C: The program is most likely to start with a source constant.
+Learning D: The program is most likely to stop with a source constant.
 
 ---
 
 This script outputs a `trigram.csv` file, with this format:
 
     count;word0;word1;word2
-    33031;0;0;0
-    31497;0;0;STOP
-    17270;1;1;1
-    16090;START;0;0
-    14132;1;0;STOP
-    13901;1;1;0
-    12383;NONE;0;STOP
+    36000;CONST;CONST;CONST
+    23556;START;CONST;CONST
+    19935;CONST;NONE;CONST
+    19921;CONST;0;CONST
+    19376;0;CONST;CONST
+    17677;CONST;CONST;NONE
+    16321;CONST;CONST;STOP
+    11998;START;CONST;0
+    11679;START;0;CONST
+    11052;CONST;CONST;0
 
 Learnings from this trigram with LODA programs:
-Learning A: Target register `$0` and `$0` is usually followed by a `$0` target register.
-Learning B: Target register `$1` and `$1` is usually followed by a `$1` target register.
-Learning C: Target register `$0` and `$0` is often the last two target registers in a program.
+Learning A: Three source contants in succession are most popular.
+Learning B: Programs often start with two source contants.
+Learning C: The source register `$0` is often surrounded by two source constants.
 
 ---
 
 This script outputs a `skipgram.csv` file, with this format:
 
     count;word0;word2
-    56263;0;0
-    37328;1;0
-    31837;0;STOP
-    28951;1;1
-    27690;START;0
-    27089;2;0
-    25911;0;1
+    99972;CONST;CONST
+    38355;START;CONST
+    35538;NONE;CONST
+    35059;CONST;NONE
+    30733;0;CONST
+    28197;CONST;STOP
+    24782;CONST;1
+    24108;CONST;2
+    21690;CONST;0
 
 Learnings from this skipgram with LODA programs:
-Learning A: The `$0` and some junk is usually followed by another `$0` target register.
-Learning B: The `$1` and some junk is usually followed by a `$0` target register.
-Learning C: The `$0` and some junk is usually followed by the end of the program.
+Learning A: Constant and some junk is usually followed by another constant.
+Learning B: Program start and some junk is usually followed a constant.
+Learning C: The `$0` and some junk is usually followed by a constant.
 */
-pub struct AnalyzeTargetNgram {
+pub struct AnalyzeSourceNgram {
     config: Config,
     histogram_unigram: HashMap<String,u32>,
     histogram_bigram: HashMap<HistogramBigramKey,u32>,
@@ -107,7 +110,7 @@ pub struct AnalyzeTargetNgram {
     histogram_skipgram: HashMap<HistogramSkipgramKey,u32>,
 }
 
-impl AnalyzeTargetNgram {
+impl AnalyzeSourceNgram {
     pub fn new() -> Self {
         Self {
             config: Config::load(),
@@ -133,15 +136,20 @@ impl AnalyzeTargetNgram {
         let mut words: Vec<String> = vec!();
         words.push("START".to_string());
         for instruction in &parsed_program.instruction_vec {
-            let parameter: &InstructionParameter = match instruction.parameter_vec.first() {
-                Some(value) => &value,
-                None => {
-                    words.push("NONE".to_string());
-                    continue;
+            if instruction.parameter_vec.len() < 2 {
+                words.push("NONE".to_string());
+                continue;
+            }
+            let parameter: &InstructionParameter = &instruction.parameter_vec[1];
+            match parameter.parameter_type {
+                ParameterType::Constant => {
+                    words.push("CONST".to_string());
+                },
+                ParameterType::Register => {
+                    let parameter_value: i64 = parameter.parameter_value;
+                    words.push(format!("{:?}", parameter_value));
                 }
-            };
-            let parameter_value: i64 = parameter.parameter_value;
-            words.push(format!("{:?}", parameter_value));
+            }
         }
         words.push("STOP".to_string());
         words
@@ -231,7 +239,7 @@ impl AnalyzeTargetNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.cache_dir_histogram_target_unigram_file();
+        let output_path: PathBuf = self.config.cache_dir_histogram_source_unigram_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("saved unigram.csv");
@@ -260,7 +268,7 @@ impl AnalyzeTargetNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.cache_dir_histogram_target_bigram_file();
+        let output_path: PathBuf = self.config.cache_dir_histogram_source_bigram_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("saved bigram.csv");
@@ -290,7 +298,7 @@ impl AnalyzeTargetNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.cache_dir_histogram_target_trigram_file();
+        let output_path: PathBuf = self.config.cache_dir_histogram_source_trigram_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("saved trigram.csv");
@@ -319,7 +327,7 @@ impl AnalyzeTargetNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.cache_dir_histogram_target_skipgram_file();
+        let output_path: PathBuf = self.config.cache_dir_histogram_source_skipgram_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("saved skipgram.csv");
@@ -343,7 +351,7 @@ impl AnalyzeTargetNgram {
     }
 }
 
-impl BatchProgramAnalyzerPlugin for AnalyzeTargetNgram {
+impl BatchProgramAnalyzerPlugin for AnalyzeSourceNgram {
     fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
         let words: Vec<String> = Self::extract_words(&context.parsed_program);
         self.populate_unigram(&words);

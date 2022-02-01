@@ -1,5 +1,6 @@
 mod analyze_instruction_constant;
 mod analyze_instruction_ngram;
+mod analyze_source_ngram;
 mod analyze_target_ngram;
 mod batch_program_analyzer;
 mod check_fixed_length_sequence;
@@ -30,6 +31,7 @@ mod validate_programs;
 
 pub use analyze_instruction_constant::AnalyzeInstructionConstant;
 pub use analyze_instruction_ngram::AnalyzeInstructionNgram;
+pub use analyze_source_ngram::AnalyzeSourceNgram;
 pub use analyze_target_ngram::AnalyzeTargetNgram;
 pub use batch_program_analyzer::{BatchProgramAnalyzer, BatchProgramAnalyzerContext, BatchProgramAnalyzerPlugin};
 pub use check_fixed_length_sequence::{CheckFixedLengthSequence, NamedCacheFile, PopulateBloomfilter};

@@ -120,6 +120,30 @@ impl Config {
         PathBuf::from(path)
     }
 
+    pub fn cache_dir_histogram_source_unigram_file(&self) -> PathBuf {
+        let path = self.cache_dir().join("histogram_source_unigram.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
+    pub fn cache_dir_histogram_source_bigram_file(&self) -> PathBuf {
+        let path = self.cache_dir().join("histogram_source_bigram.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
+    pub fn cache_dir_histogram_source_trigram_file(&self) -> PathBuf {
+        let path = self.cache_dir().join("histogram_source_trigram.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
+    pub fn cache_dir_histogram_source_skipgram_file(&self) -> PathBuf {
+        let path = self.cache_dir().join("histogram_source_skipgram.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
     pub fn mine_event_dir(&self) -> PathBuf {
         let name = Path::new("mine-event");
         let path = self.basedir.join(name);
