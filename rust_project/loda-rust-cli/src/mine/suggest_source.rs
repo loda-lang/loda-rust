@@ -8,6 +8,7 @@ pub enum SourceValue {
     ProgramStart,
     ProgramStop,
     Value(i32),
+    Constant,
     None,
 }
 
@@ -16,6 +17,7 @@ impl SourceValue {
     // Convert "42" to SourceValue::Value(42).
     // Convert "START" to SourceValue::ProgramStart.
     // Convert "STOP" to SourceValue::ProgramStop.
+    // Convert "CONST" to SourceValue::Constant.
     // Convert "NONE" to SourceValue::None.
     // Convert "JUNK" to Optional::None.
     fn parse<S>(content: S) -> Option<SourceValue> where S: Into<String> {
@@ -26,6 +28,9 @@ impl SourceValue {
             },
             "STOP" => {
                 return Some(SourceValue::ProgramStop);
+            },
+            "CONST" => {
+                return Some(SourceValue::Constant);
             },
             "NONE" => {
                 return Some(SourceValue::None);
@@ -54,6 +59,7 @@ impl SourceValue {
             Self::Value(value) => return format!("{}", value),
             Self::ProgramStart => return "START".to_string(),
             Self::ProgramStop => return "STOP".to_string(),
+            Self::Constant => return "CONST".to_string(),
             Self::None => return "NONE".to_string(),
         }
     }
@@ -103,7 +109,8 @@ impl SuggestSource {
 
     // If it's the beginning of the program then set prev_word to ProgramStart.
     // If it's the end of the program then set next_word to ProgramStop.
-    // If it's a `lpe` (loop end) instruction that has no parameter, then use None.
+    // If it's a `lpb` (loop begin) instruction can have a 2nd parameter, then None may be used.
+    // If it's a `lpe` (loop end) instruction that has no parameters, then use None.
     #[allow(dead_code)]
     fn candidates(&self, prev_word: SourceValue, next_word: SourceValue) -> Option<&HistogramValue> {
         let key: HistogramKey = (prev_word, next_word);
@@ -149,6 +156,7 @@ mod tests {
     static INPUT: &'static [&'static str] = &[
         "START",
         "STOP",
+        "CONST",
         "NONE",
         "42",
         "0",
@@ -164,6 +172,7 @@ mod tests {
     static OUTPUT: &'static [&'static str] = &[
         "START",
         "STOP",
+        "CONST",
         "NONE",
         "42",
         "0",
@@ -199,7 +208,7 @@ mod tests {
             RecordTrigram {
                 count: 1000,
                 word0: "0".to_string(),
-                word1: "0".to_string(),
+                word1: "CONST".to_string(),
                 word2: "0".to_string()
             },
             RecordTrigram {
@@ -232,6 +241,12 @@ mod tests {
                 word1: "6".to_string(),
                 word2: "NONE".to_string()
             },
+            RecordTrigram {
+                count: 1000,
+                word0: "CONST".to_string(),
+                word1: "CONST".to_string(),
+                word2: "CONST".to_string()
+            },
         ];
         v
     }
@@ -255,7 +270,7 @@ mod tests {
             SourceValue::Value(0), 
             SourceValue::Value(0)
         );
-        assert_eq!(actual, Some(SourceValue::Value(0)));
+        assert_eq!(actual, Some(SourceValue::Constant));
     }
 
     #[test]
@@ -304,7 +319,16 @@ mod tests {
     }
 
     #[test]
-    fn test_20006_choose_weighted_unrecognized_input() {
+    fn test_20006_choose_weighted_surrounded_by_const() {
+        let actual: Option<SourceValue> = exercise_choose_weighted(
+            SourceValue::Constant,
+            SourceValue::Constant
+        );
+        assert_eq!(actual, Some(SourceValue::Constant));
+    }
+
+    #[test]
+    fn test_20007_choose_weighted_unrecognized_input() {
         let actual: Option<SourceValue> = exercise_choose_weighted(
             SourceValue::Value(666),
             SourceValue::Value(666)
