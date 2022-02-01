@@ -14,11 +14,11 @@ pub enum MutateGenome {
     ReplaceInstructionWithoutHistogram,
     ReplaceInstructionWithHistogram,
     InsertInstructionWithConstant,
-    SourceConstantWithoutHistogram,
-    SourceConstantWithHistogram,
+    ReplaceSourceConstantWithoutHistogram,
+    ReplaceSourceConstantWithHistogram,
     SourceType,
     SwapRegisters,
-    SourceRegister,
+    ReplaceSourceRegisterWithoutHistogram,
     ReplaceTargetWithoutHistogram,
     ReplaceTargetWithHistogram,
     ToggleEnabled,
@@ -149,7 +149,7 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
     #[allow(dead_code)]
-    pub fn mutate_source_value_constant_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+    pub fn replace_source_value_constant_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         // Identify the instructions that use constants
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
@@ -213,7 +213,7 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
     #[allow(dead_code)]
-    pub fn mutate_source_value_constant_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+    pub fn replace_source_value_constant_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Bail out if the histogram csv file hasn't been loaded.
         if !context.has_histogram_instruction_constant() {
             return false;
@@ -266,7 +266,7 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure, such as no instructions that use a source_type=register, underflow, overflow.
     #[allow(dead_code)]
-    pub fn mutate_source_register<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+    pub fn replace_source_register_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         // Identify all the instructions that use source_type=register
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
@@ -682,11 +682,11 @@ impl Genome {
             (MutateGenome::ReplaceInstructionWithoutHistogram, 10),
             (MutateGenome::ReplaceInstructionWithHistogram, 100),
             (MutateGenome::InsertInstructionWithConstant, 100),
-            (MutateGenome::SourceConstantWithoutHistogram, 10),
-            (MutateGenome::SourceConstantWithHistogram, 100),
+            (MutateGenome::ReplaceSourceConstantWithoutHistogram, 10),
+            (MutateGenome::ReplaceSourceConstantWithHistogram, 100),
             (MutateGenome::SourceType, 10),
             (MutateGenome::SwapRegisters, 10),
-            (MutateGenome::SourceRegister, 20),
+            (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 20),
             (MutateGenome::ReplaceTargetWithoutHistogram, 5),
             (MutateGenome::ReplaceTargetWithHistogram, 100),
             (MutateGenome::ToggleEnabled, 10),
@@ -707,11 +707,11 @@ impl Genome {
             MutateGenome::InsertInstructionWithConstant => {
                 return self.insert_instruction_with_constant(rng, context);
             },
-            MutateGenome::SourceConstantWithoutHistogram => {
-                return self.mutate_source_value_constant_without_histogram(rng);
+            MutateGenome::ReplaceSourceConstantWithoutHistogram => {
+                return self.replace_source_value_constant_without_histogram(rng);
             },
-            MutateGenome::SourceConstantWithHistogram => {
-                return self.mutate_source_value_constant_with_histogram(rng, context);
+            MutateGenome::ReplaceSourceConstantWithHistogram => {
+                return self.replace_source_value_constant_with_histogram(rng, context);
             },
             MutateGenome::SourceType => {
                 return self.mutate_source_type(rng);
@@ -719,8 +719,8 @@ impl Genome {
             MutateGenome::SwapRegisters => {
                 return self.mutate_swap_registers(rng);
             },
-            MutateGenome::SourceRegister => {
-                return self.mutate_source_register(rng);
+            MutateGenome::ReplaceSourceRegisterWithoutHistogram => {
+                return self.replace_source_register_without_histogram(rng);
             },
             MutateGenome::ReplaceTargetWithoutHistogram => {
                 return self.replace_target_without_histogram(rng);
