@@ -1,5 +1,6 @@
 use super::{PopularProgramContainer, RecentProgramContainer, HistogramInstructionConstant};
 use super::SuggestInstruction;
+use super::{SuggestSource, SourceValue};
 use super::{SuggestTarget, TargetValue};
 use loda_rust_core::parser::InstructionId;
 use rand::Rng;
@@ -11,6 +12,7 @@ pub struct GenomeMutateContext {
     recent_program_container: RecentProgramContainer,
     histogram_instruction_constant: Option<HistogramInstructionConstant>,
     suggest_instruction: Option<SuggestInstruction>,
+    suggest_source: Option<SuggestSource>,
     suggest_target: Option<SuggestTarget>,
 }
 
@@ -21,6 +23,7 @@ impl GenomeMutateContext {
         recent_program_container: RecentProgramContainer,
         histogram_instruction_constant: Option<HistogramInstructionConstant>,
         suggest_instruction: Option<SuggestInstruction>,
+        suggest_source: Option<SuggestSource>,
         suggest_target: Option<SuggestTarget>
     ) -> Self {
         Self {
@@ -29,6 +32,7 @@ impl GenomeMutateContext {
             recent_program_container: recent_program_container,
             histogram_instruction_constant: histogram_instruction_constant,
             suggest_instruction: suggest_instruction,
+            suggest_source: suggest_source,
             suggest_target: suggest_target
         }
     }
@@ -82,6 +86,20 @@ impl GenomeMutateContext {
             }
         };
         suggest_instruction.choose_weighted(rng, prev_word, next_word)
+    }
+
+    pub fn has_suggest_source(&self) -> bool {
+        self.suggest_source.is_some()
+    }
+
+    pub fn suggest_source<R: Rng + ?Sized>(&self, rng: &mut R, prev_word: SourceValue, next_word: SourceValue) -> Option<SourceValue> {
+        let suggest_source: &SuggestSource = match &self.suggest_source {
+            Some(value) => value,
+            None => {
+                return None;
+            }
+        };
+        suggest_source.choose_weighted(rng, prev_word, next_word)
     }
 
     pub fn has_suggest_target(&self) -> bool {
