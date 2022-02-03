@@ -526,48 +526,79 @@ impl Genome {
         if !context.has_suggest_instruction() {
             return false;
         }
+        // Bail out if the trigram.csv file hasn't been loaded.
+        if !context.has_suggest_target() {
+            return false;
+        }
         let length: usize = self.genome_vec.len();
         if length < 1 {
             return false;
         }
+
+        // Decide on where to insert a new GenomeItem
         let index1: usize = rng.gen_range(0..length);
         let index0: i32 = (index1 as i32) - 1;
         let index2: usize = index1;
+
+        // Gather info about the "previous" GenomeItem
         let mut prev_instruction: Option<InstructionId> = None;
+        let mut prev_target: TargetValue = TargetValue::ProgramStart;
         if index0 >= 0 {
             match self.genome_vec.get(index0 as usize) {
                 Some(ref value) => {
                     let instruction_id: InstructionId = *value.instruction_id();
                     prev_instruction = Some(instruction_id);
+                    prev_target = Self::get_target_value(value);
                 },
                 None => {}
             };
         }
-        let next_instruction: Option<InstructionId> = match self.genome_vec.get(index2) {
+
+        // Gather info about the "next" GenomeItem
+        let mut next_instruction: Option<InstructionId> = None;
+        let mut next_target: TargetValue = TargetValue::ProgramStop;
+        match self.genome_vec.get(index2) {
             Some(ref value) => {
                 let instruction_id: InstructionId = *value.instruction_id();
-                Some(instruction_id)
+                next_instruction = Some(instruction_id);
+                next_target = Self::get_target_value(value)
             },
-            None => None
-        };
+            None => {}
+        }
+
+        // Pick an instruction from the histogram
         let suggested_instruction_id: InstructionId = match context.suggest_instruction(rng, prev_instruction, next_instruction) {
             Some(value) => value,
             None => {
                 return false;
             }
         };
+
+        // Pick a source constant from the histogram
         let source_value: i32 = match context.choose_constant_with_histogram(rng, suggested_instruction_id) {
             Some(value) => value,
             None => 0
         };
-        let target_value: i32 = rng.gen_range(0..5);
-        let mut genome_item = GenomeItem::new(
+
+        // Pick a target register from the histogram
+        let suggested_target_value: Option<TargetValue> = context.suggest_target(rng, prev_target, next_target);
+        let target_value: i32;
+        match suggested_target_value {
+            Some(TargetValue::Value(value)) => {
+                target_value = value;
+            },
+            _ => {
+                target_value = rng.gen_range(0..5);
+            }
+        };
+
+        let genome_item = GenomeItem::new(
             suggested_instruction_id, 
             target_value, 
             ParameterType::Constant, 
             source_value
         );
-        genome_item.mutate_sanitize_program_row();
+        // No need to sanitize when using histogram
         // println!("insert at {:?} item: {:?}", index1, genome_item);
         self.genome_vec.insert(index1, genome_item);
         true
@@ -752,13 +783,13 @@ impl Genome {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             (MutateGenome::ReplaceInstructionWithoutHistogram, 10),
             (MutateGenome::ReplaceInstructionWithHistogram, 100),
-            (MutateGenome::InsertInstructionWithConstant, 100),
+            (MutateGenome::InsertInstructionWithConstant, 200),
             (MutateGenome::ReplaceSourceConstantWithoutHistogram, 10),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 100),
-            (MutateGenome::SourceType, 10),
+            (MutateGenome::SourceType, 1),
             (MutateGenome::SwapRegisters, 10),
             (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 10),
-            (MutateGenome::ReplaceSourceRegisterWithHistogram, 100),
+            (MutateGenome::ReplaceSourceRegisterWithHistogram, 50),
             (MutateGenome::ReplaceTargetWithoutHistogram, 5),
             (MutateGenome::ReplaceTargetWithHistogram, 100),
             (MutateGenome::ToggleEnabled, 10),
