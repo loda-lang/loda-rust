@@ -129,6 +129,7 @@ pub fn run_miner_loop(
     );
 
     println!("\nPress CTRL-C to stop the miner.");
+    let total_time = Instant::now();
     let mut iteration: usize = 0;
     let mut progress_time = Instant::now();
     let mut progress_iteration: usize = 0;
@@ -144,10 +145,14 @@ pub fn run_miner_loop(
         if elapsed >= 1000 {
             let iterations_diff: usize = iteration - progress_iteration;
             let iterations_per_second: f32 = ((1000 * iterations_diff) as f32) / (elapsed as f32);
-            let iteration_info = format!(
+            let delta_iteration_info = format!(
                 "{:.0} iter/sec", iterations_per_second
             );
-
+            let total_elapsed: u128 = total_time.elapsed().as_millis();
+            let average_iterations_per_second: f32 = ((1000 * iteration) as f32) / (total_elapsed as f32);
+            let average_iteration_info = format!(
+                "{:.0} iter/sec", average_iterations_per_second
+            );
             let error_info = format!(
                 "[{},{},{},{},{}]",
                 number_of_failed_mutations,
@@ -156,14 +161,14 @@ pub fn run_miner_loop(
                 number_of_errors_run,
                 number_of_failed_loads
             );
-
-            println!("#{} cache: {}   error: {}   funnel: {}  flooding: {}  {}", 
+            println!("#{} cache: {}   error: {}   funnel: {}  flooding: {}  delta: {}  average: {}", 
                 iteration, 
                 cache.hit_miss_info(), 
                 error_info,
                 funnel.funnel_info(),
                 number_of_prevented_floodings,
-                iteration_info
+                delta_iteration_info,
+                average_iteration_info
             );
 
             // println!("Current genome\n{}", genome);
