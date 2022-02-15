@@ -17,6 +17,9 @@ pub fn subcommand_mine() {
     assert!(number_of_threads >= 1_usize);
     assert!(number_of_threads < 1000_usize);
 
+    number_of_threads = number_of_threads / 2;
+    number_of_threads = number_of_threads.max(1);
+
     let (sender, receiver) = channel::<String>();
 
     let builder = thread::Builder::new().name("minercoordinator".to_string());
