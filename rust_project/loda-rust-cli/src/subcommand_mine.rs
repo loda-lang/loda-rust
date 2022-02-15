@@ -5,31 +5,53 @@ use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 use std::thread;
 use std::time::Duration;
-use std::thread::ThreadId;
+use std::sync::mpsc::{channel, Sender, Receiver};
 
 pub fn subcommand_mine() {
     let number_of_threads = 5;
+
+    let (tx, rx) = channel::<String>();
+
+    let builder = thread::Builder::new().name("minercoordinator".to_string());
+    let join_handle: thread::JoinHandle<_> = builder.spawn(move || {
+        miner_coordinator_inner(rx);
+    }).unwrap();
+
     for j in 0..number_of_threads {
         println!("start thread {} of {}", j, number_of_threads);
         let name = format!("miner{}", j);
+        let tx1 = tx.clone();
         let _ = thread::Builder::new().name(name).spawn(move || {
-            let thread_id: ThreadId = thread::current().id();
-            println!("launched thread: {:?}", thread_id);
-            subcommand_mine_inner();
+            subcommand_mine_inner(tx1);
         });
         thread::sleep(Duration::from_millis(2000));
     }
-    thread::sleep(Duration::from_millis(1000));
 
+    join_handle.join().expect("The minercoordinator thread being joined has panicked");
+}
+
+fn miner_coordinator_inner(rx: Receiver<String>) {
     loop {
-        println!("stats");
+        println!("coordinator iteration");
+        loop {
+            match rx.try_recv() {
+                Ok(message) => {
+                    println!("received message: {:?}", message);
+                    continue;
+                },
+                Err(_) => {
+                    break;
+                }
+            }
+        }
         thread::sleep(Duration::from_millis(1000));
     }
 }
 
+fn subcommand_mine_inner(tx: Sender<String>) {
+    let val = "Did launch thread".to_string();
+    tx.send(val).unwrap();
 
-
-pub fn subcommand_mine_inner() {
     // Print info about start conditions
     let build_mode: &str;
     if cfg!(debug_assertions) {
@@ -120,6 +142,9 @@ pub fn subcommand_mine_inner() {
     let mut rng = thread_rng();
     let initial_random_seed: u64 = rng.next_u64();
     println!("random_seed = {}", initial_random_seed);
+
+    let val2 = "Will launch miner thread".to_string();
+    tx.send(val2).unwrap();
 
     // Launch the miner
     run_miner_loop(
