@@ -11,7 +11,8 @@ pub fn subcommand_mine() {
     let number_of_threads = 5;
     for j in 0..number_of_threads {
         println!("start thread {} of {}", j, number_of_threads);
-        thread::spawn(|| {
+        let name = format!("miner{}", j);
+        let _ = thread::Builder::new().name(name).spawn(move || {
             let thread_id: ThreadId = thread::current().id();
             println!("launched thread: {:?}", thread_id);
             subcommand_mine_inner();
