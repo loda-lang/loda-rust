@@ -23,6 +23,7 @@ impl CyclicDependencyError {
 #[derive(Debug)]
 pub struct CannotReadProgramFileError {
     program_id: u64,
+    #[allow(dead_code)]
     io_error: std::io::Error,
 }
 
