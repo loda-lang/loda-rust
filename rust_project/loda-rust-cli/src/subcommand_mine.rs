@@ -7,8 +7,14 @@ use std::thread;
 use std::time::Duration;
 use std::sync::mpsc::{channel, Sender, Receiver};
 
+extern crate num_cpus;
+
 pub fn subcommand_mine() {
-    let number_of_threads = 5;
+    let mut number_of_threads: usize = 1;
+
+    number_of_threads = num_cpus::get();
+    assert!(number_of_threads >= 1_usize);
+    assert!(number_of_threads < 1000_usize);
 
     let (tx, rx) = channel::<String>();
 

@@ -27,6 +27,7 @@ chrono = "0.4.19"
 regex = "1.4.3"
 lazy_static = "1.4.0"
 walkdir = "2"
+num_cpus = "1.13.0"
 
 [dev-dependencies]
 tempfile = "3.2.0"
