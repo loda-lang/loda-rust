@@ -4,6 +4,7 @@ use crate::mine::{CheckFixedLengthSequence, NamedCacheFile, load_program_ids_csv
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 use std::thread;
+use std::mem;
 use std::time::Duration;
 use std::sync::mpsc::{channel, Sender, Receiver};
 
@@ -16,22 +17,25 @@ pub fn subcommand_mine() {
     assert!(number_of_threads >= 1_usize);
     assert!(number_of_threads < 1000_usize);
 
-    let (tx, rx) = channel::<String>();
+    let (sender, receiver) = channel::<String>();
 
     let builder = thread::Builder::new().name("minercoordinator".to_string());
     let join_handle: thread::JoinHandle<_> = builder.spawn(move || {
-        miner_coordinator_inner(rx);
+        miner_coordinator_inner(receiver);
     }).unwrap();
 
     for j in 0..number_of_threads {
         println!("start thread {} of {}", j, number_of_threads);
         let name = format!("miner{}", j);
-        let tx1 = tx.clone();
+        let sender_clone = sender.clone();
         let _ = thread::Builder::new().name(name).spawn(move || {
-            subcommand_mine_inner(tx1);
+            subcommand_mine_inner(sender_clone);
         });
         thread::sleep(Duration::from_millis(2000));
     }
+
+    // Drop the original sender that is not being used
+    mem::drop(sender);
 
     join_handle.join().expect("The minercoordinator thread being joined has panicked");
 }
