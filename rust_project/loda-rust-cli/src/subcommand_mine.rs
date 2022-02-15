@@ -3,9 +3,32 @@ use loda_rust_core::config::Config;
 use crate::mine::{CheckFixedLengthSequence, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
+use std::thread;
+use std::time::Duration;
+use std::thread::ThreadId;
 
 pub fn subcommand_mine() {
+    let number_of_threads = 5;
+    for j in 0..number_of_threads {
+        println!("start thread {} of {}", j, number_of_threads);
+        thread::spawn(|| {
+            let thread_id: ThreadId = thread::current().id();
+            println!("launched thread: {:?}", thread_id);
+            subcommand_mine_inner();
+        });
+        thread::sleep(Duration::from_millis(2000));
+    }
+    thread::sleep(Duration::from_millis(1000));
 
+    loop {
+        println!("stats");
+        thread::sleep(Duration::from_millis(1000));
+    }
+}
+
+
+
+pub fn subcommand_mine_inner() {
     // Print info about start conditions
     let build_mode: &str;
     if cfg!(debug_assertions) {
