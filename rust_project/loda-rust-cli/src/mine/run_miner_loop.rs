@@ -139,7 +139,7 @@ pub fn run_miner_loop(
     let mut progress_time = Instant::now();
     let mut progress_iteration: usize = 0;
     let mut number_of_failed_loads: usize = 0;
-    let mut number_of_failed_mutations: usize = 0;
+    let mut metric_number_of_failed_mutations: u32 = 0;
     let mut number_of_errors_parse: usize = 0;
     let mut number_of_errors_nooutput: usize = 0;
     let mut number_of_errors_run: usize = 0;
@@ -160,8 +160,7 @@ pub fn run_miner_loop(
                 "{:.0} iter/sec", average_iterations_per_second
             );
             let error_info = format!(
-                "[{},{},{},{},{}]",
-                number_of_failed_mutations,
+                "[{},{},{},{}]",
                 number_of_errors_parse,
                 number_of_errors_nooutput,
                 number_of_errors_run,
@@ -215,10 +214,16 @@ pub fn run_miner_loop(
                 let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::PreventedFlooding, y);
                 tx.send(message).unwrap();
             }
+            {
+                let y: u32 = metric_number_of_failed_mutations;
+                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfFailedMutations, y);
+                tx.send(message).unwrap();
+            }
 
             funnel.reset_metrics();
             metric_number_of_miner_loop_iterations = 0;
             metric_number_of_prevented_floodings = 0;
+            metric_number_of_failed_mutations = 0;
 
             progress_time = Instant::now();
             progress_iteration = iteration;
@@ -240,7 +245,7 @@ pub fn run_miner_loop(
         iteration += 1;
         
         if !genome.mutate(&mut rng, &context) {
-            number_of_failed_mutations += 1;
+            metric_number_of_failed_mutations += 1;
             continue;
         }
 

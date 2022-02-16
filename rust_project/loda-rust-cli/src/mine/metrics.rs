@@ -7,4 +7,5 @@ pub enum KeyMetricU32 {
     Funnel30TermsInBloomfilter,
     Funnel40TermsInBloomfilter,
     PreventedFlooding,
+    NumberOfFailedMutations,
 }
