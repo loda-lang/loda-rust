@@ -1,6 +1,6 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
-use crate::mine::{CheckFixedLengthSequence, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant};
+use crate::mine::{CheckFixedLengthSequence, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant, KeyMetricU32};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 use std::thread;
@@ -9,15 +9,6 @@ use std::time::Duration;
 use std::sync::mpsc::{channel, Sender, Receiver};
 
 extern crate num_cpus;
-
-#[derive(Debug)]
-pub enum KeyMetricU32 {
-    Funnel10TermsPassingBasicCheck,
-    Funnel10TermsInBloomfilter,
-    Funnel20TermsInBloomfilter,
-    Funnel30TermsInBloomfilter,
-    Funnel40TermsInBloomfilter,
-}
 
 #[derive(Debug)]
 pub enum MinerThreadMessageToCoordinator {
