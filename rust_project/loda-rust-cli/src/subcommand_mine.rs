@@ -124,8 +124,9 @@ impl MessageProcessor {
         let metric7: u32 = provider.metric_u32(KeyMetricU32::NumberOfFailedMutations);
         let metric8: u32 = provider.metric_u32(KeyMetricU32::NumberOfProgramsThatCannotParse);
         let metric9: u32 = provider.metric_u32(KeyMetricU32::NumberOfProgramsWithoutOutput);
+        let metric10: u32 = provider.metric_u32(KeyMetricU32::NumberOfProgramsThatCannotRun);
         let s: String = format!(
-            "[{},{},{},{},{},{},{},{},{},{}]",
+            "[{},{},{},{},{},{},{},{},{},{},{}]",
             metric0,
             metric1,
             metric2,
@@ -136,6 +137,7 @@ impl MessageProcessor {
             metric7,
             metric8,
             metric9,
+            metric10,
         );
         s
     }

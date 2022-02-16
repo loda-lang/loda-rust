@@ -10,4 +10,5 @@ pub enum KeyMetricU32 {
     NumberOfFailedMutations,
     NumberOfProgramsThatCannotParse,
     NumberOfProgramsWithoutOutput,
+    NumberOfProgramsThatCannotRun,
 }
