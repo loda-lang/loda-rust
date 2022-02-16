@@ -8,4 +8,5 @@ pub enum KeyMetricU32 {
     Funnel40TermsInBloomfilter,
     PreventedFlooding,
     NumberOfFailedMutations,
+    NumberOfProgramsThatCannotParse,
 }
