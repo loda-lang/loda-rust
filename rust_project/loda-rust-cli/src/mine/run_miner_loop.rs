@@ -141,7 +141,7 @@ pub fn run_miner_loop(
     let mut number_of_failed_loads: usize = 0;
     let mut metric_number_of_failed_mutations: u32 = 0;
     let mut metric_number_of_programs_that_cannot_parse: u32 = 0;
-    let mut number_of_errors_nooutput: usize = 0;
+    let mut metric_number_of_programs_without_output: u32 = 0;
     let mut number_of_errors_run: usize = 0;
     let mut reload: bool = true;
     loop {
@@ -160,8 +160,7 @@ pub fn run_miner_loop(
                 "{:.0} iter/sec", average_iterations_per_second
             );
             let error_info = format!(
-                "[{},{},{}]",
-                number_of_errors_nooutput,
+                "[{},{}]",
                 number_of_errors_run,
                 number_of_failed_loads
             );
@@ -223,12 +222,18 @@ pub fn run_miner_loop(
                 let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfProgramsThatCannotParse, y);
                 tx.send(message).unwrap();
             }
+            {
+                let y: u32 = metric_number_of_programs_without_output;
+                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfProgramsWithoutOutput, y);
+                tx.send(message).unwrap();
+            }
 
             funnel.reset_metrics();
             metric_number_of_miner_loop_iterations = 0;
             metric_number_of_prevented_floodings = 0;
             metric_number_of_failed_mutations = 0;
             metric_number_of_programs_that_cannot_parse = 0;
+            metric_number_of_programs_without_output = 0;
 
             progress_time = Instant::now();
             progress_iteration = iteration;
@@ -273,7 +278,7 @@ pub fn run_miner_loop(
 
         // If the program has no live output register, then pick the lowest live register.
         if !runner.mining_trick_attempt_fixing_the_output_register() {
-            number_of_errors_nooutput += 1;
+            metric_number_of_programs_without_output += 1;
             continue;
         }
 

@@ -9,4 +9,5 @@ pub enum KeyMetricU32 {
     PreventedFlooding,
     NumberOfFailedMutations,
     NumberOfProgramsThatCannotParse,
+    NumberOfProgramsWithoutOutput,
 }
