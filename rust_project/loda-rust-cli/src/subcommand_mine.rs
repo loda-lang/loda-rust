@@ -120,14 +120,16 @@ impl MessageProcessor {
         let metric3: u32 = provider.metric_u32(KeyMetricU32::Funnel20TermsInBloomfilter);
         let metric4: u32 = provider.metric_u32(KeyMetricU32::Funnel30TermsInBloomfilter);
         let metric5: u32 = provider.metric_u32(KeyMetricU32::Funnel40TermsInBloomfilter);
+        let metric6: u32 = provider.metric_u32(KeyMetricU32::PreventedFlooding);
         let s: String = format!(
-            "[{},{},{},{},{},{}]",
+            "[{},{},{},{},{},{},{}]",
             metric0,
             metric1,
             metric2,
             metric3,
             metric4,
             metric5,
+            metric6,
         );
         s
     }

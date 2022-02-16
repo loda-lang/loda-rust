@@ -6,4 +6,5 @@ pub enum KeyMetricU32 {
     Funnel20TermsInBloomfilter,
     Funnel30TermsInBloomfilter,
     Funnel40TermsInBloomfilter,
+    PreventedFlooding,
 }

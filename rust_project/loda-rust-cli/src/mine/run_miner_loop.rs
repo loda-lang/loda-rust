@@ -134,6 +134,7 @@ pub fn run_miner_loop(
 
     let total_time = Instant::now();
     let mut metric_number_of_miner_loop_iterations: u32 = 0;
+    let mut metric_number_of_prevented_floodings: u32 = 0;
     let mut iteration: usize = 0;
     let mut progress_time = Instant::now();
     let mut progress_iteration: usize = 0;
@@ -142,7 +143,6 @@ pub fn run_miner_loop(
     let mut number_of_errors_parse: usize = 0;
     let mut number_of_errors_nooutput: usize = 0;
     let mut number_of_errors_run: usize = 0;
-    let mut number_of_prevented_floodings: usize = 0;
     let mut reload: bool = true;
     loop {
         metric_number_of_miner_loop_iterations += 1;
@@ -167,12 +167,10 @@ pub fn run_miner_loop(
                 number_of_errors_run,
                 number_of_failed_loads
             );
-            println!("#{} cache: {}   error: {}   funnel: {}  flooding: {}  delta: {}  average: {}", 
+            println!("#{} cache: {}   error: {}   delta: {}  average: {}", 
                 iteration, 
                 cache.hit_miss_info(), 
                 error_info,
-                funnel.funnel_info(),
-                number_of_prevented_floodings,
                 delta_iteration_info,
                 average_iteration_info
             );
@@ -212,9 +210,15 @@ pub fn run_miner_loop(
                 let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel40TermsInBloomfilter, y);
                 tx.send(message).unwrap();
             }
+            {
+                let y: u32 = metric_number_of_prevented_floodings;
+                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::PreventedFlooding, y);
+                tx.send(message).unwrap();
+            }
 
             funnel.reset_metrics();
             metric_number_of_miner_loop_iterations = 0;
+            metric_number_of_prevented_floodings = 0;
 
             progress_time = Instant::now();
             progress_iteration = iteration;
@@ -319,7 +323,7 @@ pub fn run_miner_loop(
 
         if prevent_flooding.try_register(&terms40).is_err() {
             // debug!("prevented flooding");
-            number_of_prevented_floodings += 1;
+            metric_number_of_prevented_floodings += 1;
             reload = true;
             continue;
         }

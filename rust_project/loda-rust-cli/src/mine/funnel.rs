@@ -35,17 +35,6 @@ impl<'a> Funnel<'a> {
         }
     }
 
-    pub fn funnel_info(&self) -> String {
-        format!(
-            "[{},{},{},{},{}]",
-            self.metric_number_of_candidates_with_basiccheck,
-            self.metric_number_of_candidates_with_10terms,
-            self.metric_number_of_candidates_with_20terms,
-            self.metric_number_of_candidates_with_30terms,
-            self.metric_number_of_candidates_with_40terms,
-        )
-    }
-
     pub fn check_basic(&mut self, terms: &BigIntVec) -> bool {
         if !is_possible_candidate_basic_checks(terms) {
             return false;
