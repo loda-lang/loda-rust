@@ -7,17 +7,42 @@ use std::collections::HashMap;
 
 extern crate num_cpus;
 
-pub fn subcommand_mine() {
+pub enum SubcommandMineParallelComputingMode {
+    SingleInstance,
+    ParallelInstancces,
+}
+
+impl SubcommandMineParallelComputingMode {
+    fn number_of_threads(&self) -> usize {
+        match self {
+            Self::SingleInstance => {
+                return 1;
+            },
+            Self::ParallelInstancces => {
+                return Self::number_of_threads_in_parallel_mode();
+            }
+        }
+    }
+
+    fn number_of_threads_in_parallel_mode() -> usize {
+        let mut number_of_threads = num_cpus::get();
+        assert!(number_of_threads >= 1_usize);
+        assert!(number_of_threads < 1000_usize);
+
+        // Spawning too many threads, causes the miner performance too drop significantly.
+        // The simple solution: Use half as many threads as there are cores.
+        number_of_threads = number_of_threads / 2;
+
+        // Ensures that zero is never returned
+        number_of_threads.max(1)
+    }
+}
+
+pub fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComputingMode) {
     print_info_about_start_conditions();
 
-    let mut number_of_threads: usize = 1;
-
-    number_of_threads = num_cpus::get();
-    assert!(number_of_threads >= 1_usize);
-    assert!(number_of_threads < 1000_usize);
-
-    number_of_threads = number_of_threads / 2;
-    number_of_threads = number_of_threads.max(1);
+    let number_of_threads: usize = parallel_computing_mode.number_of_threads();
+    println!("number of threads: {}", number_of_threads);
 
     let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
 
