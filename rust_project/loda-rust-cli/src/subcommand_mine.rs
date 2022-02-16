@@ -1,8 +1,9 @@
-use crate::mine::{MinerThreadMessageToCoordinator, start_miner_loop};
+use crate::mine::{MinerThreadMessageToCoordinator, start_miner_loop, KeyMetricU32};
 use std::thread;
 use std::mem;
 use std::time::Duration;
 use std::sync::mpsc::{channel, Receiver};
+use std::collections::HashMap;
 
 extern crate num_cpus;
 
@@ -45,7 +46,7 @@ pub fn subcommand_mine() {
 fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>) {
     let mut message_processor = MessageProcessor::new();
     loop {
-        println!("coordinator iteration");
+        // println!("coordinator iteration");
         loop {
             match rx.try_recv() {
                 Ok(message) => {
@@ -57,6 +58,8 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>) {
                 }
             }
         }
+        message_processor.metrics_summary();
+        message_processor.metrics_reset();
         thread::sleep(Duration::from_millis(1000));
     }
 }
@@ -75,15 +78,54 @@ fn print_info_about_start_conditions() {
 }
 
 struct MessageProcessor {
-
+    metricu32_accumulated: HashMap<KeyMetricU32, u32>
 }
 
 impl MessageProcessor {
     fn new() -> Self {
-        Self {}
+        Self {
+            metricu32_accumulated: HashMap::new()
+        }
     }
 
     fn process_message(&mut self, message: MinerThreadMessageToCoordinator) {
-        println!("received message: {:?}", message);
+        // println!("received message: {:?}", message);
+        match message {
+            MinerThreadMessageToCoordinator::ReadyForMining => {
+                println!("Ready");
+            },
+            MinerThreadMessageToCoordinator::MetricU32(key, value) => {
+                let counter = self.metricu32_accumulated.entry(key).or_insert(0);
+                *counter += value;
+            }
+        }
+    }
+
+    fn metrics_summary(&self) {
+        // println!("stats: {:?}", self.metricu32_accumulated);
+        let metric0: u32 = self.metric_u32(KeyMetricU32::NumberOfMinerLoopIterations);
+        let metric1: u32 = self.metric_u32(KeyMetricU32::Funnel10TermsPassingBasicCheck);
+        let metric2: u32 = self.metric_u32(KeyMetricU32::Funnel10TermsInBloomfilter);
+        let metric3: u32 = self.metric_u32(KeyMetricU32::Funnel20TermsInBloomfilter);
+        let metric4: u32 = self.metric_u32(KeyMetricU32::Funnel30TermsInBloomfilter);
+        let metric5: u32 = self.metric_u32(KeyMetricU32::Funnel40TermsInBloomfilter);
+        let s: String = format!(
+            "[{},{},{},{},{},{}]",
+            metric0,
+            metric1,
+            metric2,
+            metric3,
+            metric4,
+            metric5,
+        );
+        println!("metrics: {}", s);
+    }
+
+    fn metric_u32(&self, key: KeyMetricU32) -> u32 {
+        self.metricu32_accumulated.get(&key).map_or(0, |value| *value )
+    }
+
+    fn metrics_reset(&mut self) {
+        self.metricu32_accumulated.clear();
     }
 }

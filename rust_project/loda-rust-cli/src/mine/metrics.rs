@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 pub enum KeyMetricU32 {
     NumberOfMinerLoopIterations,
     Funnel10TermsPassingBasicCheck,
