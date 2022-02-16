@@ -20,7 +20,7 @@ mod subcommand_update;
 use subcommand_dependencies::subcommand_dependencies;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 use subcommand_install::subcommand_install;
-use subcommand_mine::subcommand_mine;
+use subcommand_mine::{subcommand_mine,SubcommandMineParallelComputingMode};
 use subcommand_update::subcommand_update;
 
 extern crate clap;
@@ -79,11 +79,17 @@ fn main() {
         // Experiments with mining new programs
         .subcommand(
             SubCommand::with_name("update")
-                .about("Prepare caching files used by validation")
+                .about("Prepare data needed for mining, by analyzing the existing programs.")
         )
         .subcommand(
             SubCommand::with_name("mine")
-                .about("Experimental: Come up with new programs")
+                .about("Run a single miner instance")
+                .arg(
+                    Arg::with_name("parallel")
+                        .help("Run as many miner instances as possible")
+                        .takes_value(false)
+                        .short("p")
+                )
         )
         .get_matches();
 
@@ -129,8 +135,13 @@ fn main() {
         return;
     }
 
-    if let Some(_sub_m) = matches.subcommand_matches("mine") {
-        subcommand_mine();
+    if let Some(sub_m) = matches.subcommand_matches("mine") {
+        let run_parallel: bool = sub_m.is_present("parallel");
+        let parallel_computing_mode: SubcommandMineParallelComputingMode = match run_parallel {
+            true => SubcommandMineParallelComputingMode::ParallelInstancces,
+            false => SubcommandMineParallelComputingMode::SingleInstance
+        };
+        subcommand_mine(parallel_computing_mode);
         return;
     }
 
