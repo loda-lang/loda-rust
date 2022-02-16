@@ -69,4 +69,5 @@ fn print_info_about_start_conditions() {
     }
     println!("[mining info]");
     println!("build_mode = {}", build_mode);
+    println!("\nPress CTRL-C to stop the miner.");
 }

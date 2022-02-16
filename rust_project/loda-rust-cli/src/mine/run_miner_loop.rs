@@ -5,6 +5,8 @@ use super::RecordTrigram;
 use super::SuggestInstruction;
 use super::SuggestSource;
 use super::SuggestTarget;
+use super::find_asm_files_recursively;
+use super::{MinerThreadMessageToCoordinator, KeyMetricU32};
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -15,7 +17,8 @@ use std::time::Instant;
 use std::path::{Path, PathBuf};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
-use super::find_asm_files_recursively;
+use std::sync::mpsc::Sender;
+use std::convert::TryFrom;
 
 struct TermComputer {
     terms: BigIntVec,
@@ -61,6 +64,7 @@ impl TermComputer {
 }
 
 pub fn run_miner_loop(
+    tx: Sender<MinerThreadMessageToCoordinator>,
     loda_programs_oeis_dir: &PathBuf, 
     checker10: &CheckFixedLengthSequence, 
     checker20: &CheckFixedLengthSequence,
@@ -128,7 +132,6 @@ pub fn run_miner_loop(
         checker40,
     );
 
-    println!("\nPress CTRL-C to stop the miner.");
     let total_time = Instant::now();
     let mut iteration: usize = 0;
     let mut progress_time = Instant::now();
@@ -171,7 +174,38 @@ pub fn run_miner_loop(
                 average_iteration_info
             );
 
-            // println!("Current genome\n{}", genome);
+            {
+                let x: u64 = funnel.metric_number_of_candidates_with_basiccheck();
+                let y: u32 = u32::try_from(x).unwrap_or(0);
+                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel10TermsPassingBasicCheck, y);
+                tx.send(message).unwrap();
+            }
+            {
+                let x: u64 = funnel.metric_number_of_candidates_with_10terms();
+                let y: u32 = u32::try_from(x).unwrap_or(0);
+                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel10TermsInBloomfilter, y);
+                tx.send(message).unwrap();
+            }
+            {
+                let x: u64 = funnel.metric_number_of_candidates_with_20terms();
+                let y: u32 = u32::try_from(x).unwrap_or(0);
+                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel20TermsInBloomfilter, y);
+                tx.send(message).unwrap();
+            }
+            {
+                let x: u64 = funnel.metric_number_of_candidates_with_30terms();
+                let y: u32 = u32::try_from(x).unwrap_or(0);
+                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel30TermsInBloomfilter, y);
+                tx.send(message).unwrap();
+            }
+            {
+                let x: u64 = funnel.metric_number_of_candidates_with_40terms();
+                let y: u32 = u32::try_from(x).unwrap_or(0);
+                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel40TermsInBloomfilter, y);
+                tx.send(message).unwrap();
+            }
+
+            funnel.reset_metrics();
 
             progress_time = Instant::now();
             progress_iteration = iteration;

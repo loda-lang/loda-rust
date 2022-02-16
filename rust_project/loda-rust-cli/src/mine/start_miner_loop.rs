@@ -91,6 +91,7 @@ pub fn start_miner_loop(tx: Sender<MinerThreadMessageToCoordinator>) {
 
     // Launch the miner
     run_miner_loop(
+        tx,
         &loda_programs_oeis_dir, 
         &checker10, 
         &checker20,

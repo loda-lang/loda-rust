@@ -8,11 +8,11 @@ pub struct Funnel<'a> {
     checker30: &'a CheckFixedLengthSequence,
     checker40: &'a CheckFixedLengthSequence,
 
-    number_of_candidates_with_basiccheck: u64,
-    number_of_candidates_with_10terms: u64,
-    number_of_candidates_with_20terms: u64,
-    number_of_candidates_with_30terms: u64,
-    number_of_candidates_with_40terms: u64,
+    metric_number_of_candidates_with_basiccheck: u64,
+    metric_number_of_candidates_with_10terms: u64,
+    metric_number_of_candidates_with_20terms: u64,
+    metric_number_of_candidates_with_30terms: u64,
+    metric_number_of_candidates_with_40terms: u64,
 }
 
 impl<'a> Funnel<'a> {
@@ -27,22 +27,22 @@ impl<'a> Funnel<'a> {
             checker20: checker20,
             checker30: checker30,
             checker40: checker40,
-            number_of_candidates_with_basiccheck: 0,
-            number_of_candidates_with_10terms: 0,
-            number_of_candidates_with_20terms: 0,
-            number_of_candidates_with_30terms: 0,
-            number_of_candidates_with_40terms: 0,
+            metric_number_of_candidates_with_basiccheck: 0,
+            metric_number_of_candidates_with_10terms: 0,
+            metric_number_of_candidates_with_20terms: 0,
+            metric_number_of_candidates_with_30terms: 0,
+            metric_number_of_candidates_with_40terms: 0,
         }
     }
 
     pub fn funnel_info(&self) -> String {
         format!(
             "[{},{},{},{},{}]",
-            self.number_of_candidates_with_basiccheck,
-            self.number_of_candidates_with_10terms,
-            self.number_of_candidates_with_20terms,
-            self.number_of_candidates_with_30terms,
-            self.number_of_candidates_with_40terms,
+            self.metric_number_of_candidates_with_basiccheck,
+            self.metric_number_of_candidates_with_10terms,
+            self.metric_number_of_candidates_with_20terms,
+            self.metric_number_of_candidates_with_30terms,
+            self.metric_number_of_candidates_with_40terms,
         )
     }
 
@@ -50,7 +50,7 @@ impl<'a> Funnel<'a> {
         if !is_possible_candidate_basic_checks(terms) {
             return false;
         }
-        self.number_of_candidates_with_basiccheck += 1;
+        self.metric_number_of_candidates_with_basiccheck += 1;
         true
     }
 
@@ -58,7 +58,7 @@ impl<'a> Funnel<'a> {
         if !self.checker10.check(terms) {
             return false;
         }
-        self.number_of_candidates_with_10terms += 1;
+        self.metric_number_of_candidates_with_10terms += 1;
         true
     }
 
@@ -66,7 +66,7 @@ impl<'a> Funnel<'a> {
         if !self.checker20.check(terms) {
             return false;
         }
-        self.number_of_candidates_with_20terms += 1;
+        self.metric_number_of_candidates_with_20terms += 1;
         true
     }
 
@@ -74,7 +74,7 @@ impl<'a> Funnel<'a> {
         if !self.checker30.check(terms) {
             return false;
         }
-        self.number_of_candidates_with_30terms += 1;
+        self.metric_number_of_candidates_with_30terms += 1;
         true
     }
 
@@ -82,8 +82,36 @@ impl<'a> Funnel<'a> {
         if !self.checker40.check(terms) {
             return false;
         }
-        self.number_of_candidates_with_40terms += 1;
+        self.metric_number_of_candidates_with_40terms += 1;
         true
+    }
+
+    pub fn metric_number_of_candidates_with_basiccheck(&self) -> u64 {
+        self.metric_number_of_candidates_with_basiccheck
+    }
+
+    pub fn metric_number_of_candidates_with_10terms(&self) -> u64 {
+        self.metric_number_of_candidates_with_10terms
+    }
+
+    pub fn metric_number_of_candidates_with_20terms(&self) -> u64 {
+        self.metric_number_of_candidates_with_20terms
+    }
+
+    pub fn metric_number_of_candidates_with_30terms(&self) -> u64 {
+        self.metric_number_of_candidates_with_30terms
+    }
+
+    pub fn metric_number_of_candidates_with_40terms(&self) -> u64 {
+        self.metric_number_of_candidates_with_40terms
+    }
+
+    pub fn reset_metrics(&mut self) {
+        self.metric_number_of_candidates_with_basiccheck = 0;
+        self.metric_number_of_candidates_with_10terms = 0;
+        self.metric_number_of_candidates_with_20terms = 0;
+        self.metric_number_of_candidates_with_30terms = 0;
+        self.metric_number_of_candidates_with_40terms = 0;
     }
 }
 
