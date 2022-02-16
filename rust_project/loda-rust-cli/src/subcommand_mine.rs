@@ -78,13 +78,15 @@ fn print_info_about_start_conditions() {
 }
 
 struct MessageProcessor {
-    metricu32_accumulated: HashMap<KeyMetricU32, u32>
+    metric_u32_this_iteration: HashMap<KeyMetricU32, u32>,
+    metric_u32_across_all_iterations: HashMap<KeyMetricU32, u32>,
 }
 
 impl MessageProcessor {
     fn new() -> Self {
         Self {
-            metricu32_accumulated: HashMap::new()
+            metric_u32_this_iteration: HashMap::new(),
+            metric_u32_across_all_iterations: HashMap::new(),
         }
     }
 
@@ -95,14 +97,15 @@ impl MessageProcessor {
                 println!("Ready");
             },
             MinerThreadMessageToCoordinator::MetricU32(key, value) => {
-                let counter = self.metricu32_accumulated.entry(key).or_insert(0);
-                *counter += value;
+                let counter0 = self.metric_u32_this_iteration.entry(key).or_insert(0);
+                *counter0 += value;
+                let counter1 = self.metric_u32_across_all_iterations.entry(key).or_insert(0);
+                *counter1 += value;
             }
         }
     }
 
     fn metrics_summary(&self) {
-        // println!("stats: {:?}", self.metricu32_accumulated);
         let metric0: u32 = self.metric_u32(KeyMetricU32::NumberOfMinerLoopIterations);
         let metric1: u32 = self.metric_u32(KeyMetricU32::Funnel10TermsPassingBasicCheck);
         let metric2: u32 = self.metric_u32(KeyMetricU32::Funnel10TermsInBloomfilter);
@@ -122,10 +125,10 @@ impl MessageProcessor {
     }
 
     fn metric_u32(&self, key: KeyMetricU32) -> u32 {
-        self.metricu32_accumulated.get(&key).map_or(0, |value| *value )
+        self.metric_u32_this_iteration.get(&key).map_or(0, |value| *value )
     }
 
     fn metrics_reset(&mut self) {
-        self.metricu32_accumulated.clear();
+        self.metric_u32_this_iteration.clear();
     }
 }
