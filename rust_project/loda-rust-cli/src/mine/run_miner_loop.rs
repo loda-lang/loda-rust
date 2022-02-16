@@ -159,9 +159,8 @@ pub fn run_miner_loop(
             let average_iteration_info = format!(
                 "{:.0} iter/sec", average_iterations_per_second
             );
-            println!("#{} cache: {}   delta: {}  average: {}", 
+            println!("#{} delta: {}  average: {}", 
                 iteration, 
-                cache.hit_miss_info(), 
                 delta_iteration_info,
                 average_iteration_info
             );
@@ -231,8 +230,27 @@ pub fn run_miner_loop(
                 let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfFailedGenomeLoads, y);
                 tx.send(message).unwrap();
             }
+            {
+                let x: u64 = cache.metric_hit();
+                let y: u32 = u32::try_from(x).unwrap_or(0);
+                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::CacheHit, y);
+                tx.send(message).unwrap();
+            }
+            {
+                let x: u64 = cache.metric_miss_for_program_oeis();
+                let y: u32 = u32::try_from(x).unwrap_or(0);
+                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::CacheMissForProgramOeis, y);
+                tx.send(message).unwrap();
+            }
+            {
+                let x: u64 = cache.metric_miss_for_program_without_id();
+                let y: u32 = u32::try_from(x).unwrap_or(0);
+                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::CacheMissForProgramWithoutId, y);
+                tx.send(message).unwrap();
+            }
 
             funnel.reset_metrics();
+            cache.reset_metrics();
             metric_number_of_miner_loop_iterations = 0;
             metric_number_of_prevented_floodings = 0;
             metric_number_of_failed_mutations = 0;

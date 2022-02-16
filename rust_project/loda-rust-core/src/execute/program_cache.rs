@@ -18,9 +18,9 @@ pub struct CacheValue {
 
 pub struct ProgramCache {
     cache: LruCache<CacheKey, CacheValue>,
-    count_hit: u64,
-    count_miss_for_program_oeis: u64,
-    count_miss_for_program_without_id: u64,
+    metric_hit: u64,
+    metric_miss_for_program_oeis: u64,
+    metric_miss_for_program_without_id: u64,
 }
 
 impl ProgramCache {
@@ -28,26 +28,44 @@ impl ProgramCache {
         let cache: LruCache<CacheKey, CacheValue> = LruCache::new(CACHE_CAPACITY);
         Self {
             cache: cache,
-            count_hit: 0,
-            count_miss_for_program_oeis: 0,
-            count_miss_for_program_without_id: 0,
+            metric_hit: 0,
+            metric_miss_for_program_oeis: 0,
+            metric_miss_for_program_without_id: 0,
         }
     }
 
     pub fn register_cache_hit(&mut self) {
-        self.count_hit += 1;
+        self.metric_hit += 1;
     }
 
     pub fn register_cache_miss_for_program_oeis(&mut self) {
-        self.count_miss_for_program_oeis += 1;
+        self.metric_miss_for_program_oeis += 1;
     }
 
     pub fn register_cache_miss_for_program_without_id(&mut self) {
-        self.count_miss_for_program_without_id += 1;
+        self.metric_miss_for_program_without_id += 1;
+    }
+
+    pub fn metric_hit(&self) -> u64 {
+        self.metric_hit
+    }
+
+    pub fn metric_miss_for_program_oeis(&self) -> u64 {
+        self.metric_miss_for_program_oeis
+    }
+
+    pub fn metric_miss_for_program_without_id(&self) -> u64 {
+        self.metric_miss_for_program_without_id
+    }
+
+    pub fn reset_metrics(&mut self) {
+        self.metric_hit = 0;
+        self.metric_miss_for_program_oeis = 0;
+        self.metric_miss_for_program_without_id = 0;
     }
 
     pub fn hit_miss_info(&self) -> String {
-        format!("hit:{} miss:{},{}", self.count_hit, self.count_miss_for_program_oeis, self.count_miss_for_program_without_id)
+        format!("hit:{} miss:{},{}", self.metric_hit, self.metric_miss_for_program_oeis, self.metric_miss_for_program_without_id)
     }
 
     pub fn get(&mut self, program_id: u64, index: &BigInt) -> Option<&CacheValue> {
