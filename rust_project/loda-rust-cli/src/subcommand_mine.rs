@@ -41,8 +41,8 @@ impl SubcommandMineParallelComputingMode {
 pub fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComputingMode) {
     print_info_about_start_conditions();
 
-    let number_of_threads: usize = parallel_computing_mode.number_of_threads();
-    println!("number of threads: {}", number_of_threads);
+    let number_of_minerworkers: usize = parallel_computing_mode.number_of_threads();
+    println!("Number of parallel miner instances: {}", number_of_minerworkers);
 
     let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
 
@@ -51,9 +51,9 @@ pub fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComputingM
         miner_coordinator_inner(receiver);
     }).unwrap();
 
-    for j in 0..number_of_threads {
-        println!("start thread {} of {}", j, number_of_threads);
+    for j in 0..number_of_minerworkers {
         let name = format!("minerworker{}", j);
+        println!("Spawn thread: {}", name);
         let sender_clone = sender.clone();
         let _ = thread::Builder::new().name(name).spawn(move || {
             start_miner_loop(sender_clone);
@@ -71,7 +71,6 @@ pub fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComputingM
 fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>) {
     let mut message_processor = MessageProcessor::new();
     loop {
-        // println!("coordinator iteration");
         loop {
             match rx.try_recv() {
                 Ok(message) => {
@@ -121,7 +120,7 @@ impl MessageProcessor {
         // println!("received message: {:?}", message);
         match message {
             MinerThreadMessageToCoordinator::ReadyForMining => {
-                println!("Ready");
+                println!("Miner instance is ready");
             },
             MinerThreadMessageToCoordinator::MetricU32(key, value) => {
                 let counter0 = self.metric_u32_this_iteration.entry(key).or_insert(0);
