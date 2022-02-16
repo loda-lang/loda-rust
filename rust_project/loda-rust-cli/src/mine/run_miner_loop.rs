@@ -132,39 +132,22 @@ pub fn run_miner_loop(
         checker40,
     );
 
-    let total_time = Instant::now();
     let mut metric_number_of_miner_loop_iterations: u32 = 0;
     let mut metric_number_of_prevented_floodings: u32 = 0;
-    let mut iteration: usize = 0;
-    let mut progress_time = Instant::now();
-    let mut progress_iteration: usize = 0;
     let mut metric_number_of_failed_genome_loads: u32 = 0;
     let mut metric_number_of_failed_mutations: u32 = 0;
     let mut metric_number_of_programs_that_cannot_parse: u32 = 0;
     let mut metric_number_of_programs_without_output: u32 = 0;
     let mut metric_number_of_programs_that_cannot_run: u32 = 0;
+
+    let mut progress_time = Instant::now();
+    let mut iteration: usize = 0;
     let mut reload: bool = true;
     loop {
         metric_number_of_miner_loop_iterations += 1;
 
         let elapsed: u128 = progress_time.elapsed().as_millis();
         if elapsed >= 1000 {
-            let iterations_diff: usize = iteration - progress_iteration;
-            let iterations_per_second: f32 = ((1000 * iterations_diff) as f32) / (elapsed as f32);
-            let delta_iteration_info = format!(
-                "{:.0} iter/sec", iterations_per_second
-            );
-            let total_elapsed: u128 = total_time.elapsed().as_millis();
-            let average_iterations_per_second: f32 = ((1000 * iteration) as f32) / (total_elapsed as f32);
-            let average_iteration_info = format!(
-                "{:.0} iter/sec", average_iterations_per_second
-            );
-            println!("#{} delta: {}  average: {}", 
-                iteration, 
-                delta_iteration_info,
-                average_iteration_info
-            );
-
             {
                 let y: u32 = metric_number_of_miner_loop_iterations;
                 let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfMinerLoopIterations, y);
@@ -260,7 +243,6 @@ pub fn run_miner_loop(
             metric_number_of_failed_genome_loads = 0;
 
             progress_time = Instant::now();
-            progress_iteration = iteration;
         }
 
         if (iteration % 10) == 0 {
