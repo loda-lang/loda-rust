@@ -11,4 +11,5 @@ pub enum KeyMetricU32 {
     NumberOfProgramsThatCannotParse,
     NumberOfProgramsWithoutOutput,
     NumberOfProgramsThatCannotRun,
+    NumberOfFailedGenomeLoads,
 }

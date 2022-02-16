@@ -138,7 +138,7 @@ pub fn run_miner_loop(
     let mut iteration: usize = 0;
     let mut progress_time = Instant::now();
     let mut progress_iteration: usize = 0;
-    let mut number_of_failed_loads: usize = 0;
+    let mut metric_number_of_failed_genome_loads: u32 = 0;
     let mut metric_number_of_failed_mutations: u32 = 0;
     let mut metric_number_of_programs_that_cannot_parse: u32 = 0;
     let mut metric_number_of_programs_without_output: u32 = 0;
@@ -159,14 +159,9 @@ pub fn run_miner_loop(
             let average_iteration_info = format!(
                 "{:.0} iter/sec", average_iterations_per_second
             );
-            let error_info = format!(
-                "[{}]",
-                number_of_failed_loads
-            );
-            println!("#{} cache: {}   error: {}   delta: {}  average: {}", 
+            println!("#{} cache: {}   delta: {}  average: {}", 
                 iteration, 
                 cache.hit_miss_info(), 
-                error_info,
                 delta_iteration_info,
                 average_iteration_info
             );
@@ -231,6 +226,11 @@ pub fn run_miner_loop(
                 let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfProgramsThatCannotRun, y);
                 tx.send(message).unwrap();
             }
+            {
+                let y: u32 = metric_number_of_failed_genome_loads;
+                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfFailedGenomeLoads, y);
+                tx.send(message).unwrap();
+            }
 
             funnel.reset_metrics();
             metric_number_of_miner_loop_iterations = 0;
@@ -239,6 +239,7 @@ pub fn run_miner_loop(
             metric_number_of_programs_that_cannot_parse = 0;
             metric_number_of_programs_without_output = 0;
             metric_number_of_programs_that_cannot_run = 0;
+            metric_number_of_failed_genome_loads = 0;
 
             progress_time = Instant::now();
             progress_iteration = iteration;
@@ -251,7 +252,7 @@ pub fn run_miner_loop(
             genome.clear_message_vec();
             let load_ok: bool = genome.load_random_program(&mut rng, &dm, &context);
             if !load_ok {
-                number_of_failed_loads += 1;
+                metric_number_of_failed_genome_loads += 1;
                 continue;
             }
             reload = false;
