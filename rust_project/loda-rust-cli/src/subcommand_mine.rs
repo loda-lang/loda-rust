@@ -26,6 +26,8 @@ pub enum MinerThreadMessageToCoordinator {
 }
 
 pub fn subcommand_mine() {
+    print_info_about_start_conditions();
+
     let mut number_of_threads: usize = 1;
 
     number_of_threads = num_cpus::get();
@@ -76,8 +78,7 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>) {
     }
 }
 
-fn subcommand_mine_inner(tx: Sender<MinerThreadMessageToCoordinator>) {
-    // Print info about start conditions
+fn print_info_about_start_conditions() {
     let build_mode: &str;
     if cfg!(debug_assertions) {
         error!("Debugging enabled. Wasting cpu cycles. Not good for mining!");
@@ -87,7 +88,9 @@ fn subcommand_mine_inner(tx: Sender<MinerThreadMessageToCoordinator>) {
     }
     println!("[mining info]");
     println!("build_mode = {}", build_mode);
+}
 
+fn subcommand_mine_inner(tx: Sender<MinerThreadMessageToCoordinator>) {
     // Load config file
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
