@@ -10,6 +10,21 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 
 extern crate num_cpus;
 
+#[derive(Debug)]
+pub enum KeyMetricU32 {
+    Funnel10TermsPassingBasicCheck,
+    Funnel10TermsInBloomfilter,
+    Funnel20TermsInBloomfilter,
+    Funnel30TermsInBloomfilter,
+    Funnel40TermsInBloomfilter,
+}
+
+#[derive(Debug)]
+pub enum MinerThreadMessageToCoordinator {
+    ReadyForMining,
+    MetricU32(KeyMetricU32, u32),
+}
+
 pub fn subcommand_mine() {
     let mut number_of_threads: usize = 1;
 
@@ -20,7 +35,7 @@ pub fn subcommand_mine() {
     number_of_threads = number_of_threads / 2;
     number_of_threads = number_of_threads.max(1);
 
-    let (sender, receiver) = channel::<String>();
+    let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
 
     let builder = thread::Builder::new().name("minercoordinator".to_string());
     let join_handle: thread::JoinHandle<_> = builder.spawn(move || {
@@ -43,7 +58,7 @@ pub fn subcommand_mine() {
     join_handle.join().expect("The minercoordinator thread being joined has panicked");
 }
 
-fn miner_coordinator_inner(rx: Receiver<String>) {
+fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>) {
     loop {
         println!("coordinator iteration");
         loop {
@@ -61,10 +76,7 @@ fn miner_coordinator_inner(rx: Receiver<String>) {
     }
 }
 
-fn subcommand_mine_inner(tx: Sender<String>) {
-    let val = "Did launch thread".to_string();
-    tx.send(val).unwrap();
-
+fn subcommand_mine_inner(tx: Sender<MinerThreadMessageToCoordinator>) {
     // Print info about start conditions
     let build_mode: &str;
     if cfg!(debug_assertions) {
@@ -156,7 +168,7 @@ fn subcommand_mine_inner(tx: Sender<String>) {
     let initial_random_seed: u64 = rng.next_u64();
     println!("random_seed = {}", initial_random_seed);
 
-    let val2 = "Will launch miner thread".to_string();
+    let val2 = MinerThreadMessageToCoordinator::ReadyForMining;
     tx.send(val2).unwrap();
 
     // Launch the miner
