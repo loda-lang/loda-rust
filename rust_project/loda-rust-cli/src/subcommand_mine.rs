@@ -59,7 +59,7 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>) {
             }
         }
         message_processor.metrics_summary();
-        message_processor.metrics_reset();
+        message_processor.reset_iteration_metrics();
         thread::sleep(Duration::from_millis(1000));
     }
 }
@@ -77,9 +77,11 @@ fn print_info_about_start_conditions() {
     println!("\nPress CTRL-C to stop the miner.");
 }
 
+type HashMapMetricU32 = HashMap<KeyMetricU32, u32>;
+
 struct MessageProcessor {
-    metric_u32_this_iteration: HashMap<KeyMetricU32, u32>,
-    metric_u32_across_all_iterations: HashMap<KeyMetricU32, u32>,
+    metric_u32_this_iteration: HashMapMetricU32,
+    metric_u32_across_all_iterations: HashMapMetricU32,
 }
 
 impl MessageProcessor {
@@ -106,12 +108,18 @@ impl MessageProcessor {
     }
 
     fn metrics_summary(&self) {
-        let metric0: u32 = self.metric_u32(KeyMetricU32::NumberOfMinerLoopIterations);
-        let metric1: u32 = self.metric_u32(KeyMetricU32::Funnel10TermsPassingBasicCheck);
-        let metric2: u32 = self.metric_u32(KeyMetricU32::Funnel10TermsInBloomfilter);
-        let metric3: u32 = self.metric_u32(KeyMetricU32::Funnel20TermsInBloomfilter);
-        let metric4: u32 = self.metric_u32(KeyMetricU32::Funnel30TermsInBloomfilter);
-        let metric5: u32 = self.metric_u32(KeyMetricU32::Funnel40TermsInBloomfilter);
+        let summary0 = self.format_summary(&self.metric_u32_across_all_iterations);
+        let summary1 = self.format_summary(&self.metric_u32_this_iteration);
+        println!("total: {} delta: {}", summary0, summary1);
+    }
+
+    fn format_summary(&self, provider: &dyn ProvideMetricU32) -> String {
+        let metric0: u32 = provider.metric_u32(KeyMetricU32::NumberOfMinerLoopIterations);
+        let metric1: u32 = provider.metric_u32(KeyMetricU32::Funnel10TermsPassingBasicCheck);
+        let metric2: u32 = provider.metric_u32(KeyMetricU32::Funnel10TermsInBloomfilter);
+        let metric3: u32 = provider.metric_u32(KeyMetricU32::Funnel20TermsInBloomfilter);
+        let metric4: u32 = provider.metric_u32(KeyMetricU32::Funnel30TermsInBloomfilter);
+        let metric5: u32 = provider.metric_u32(KeyMetricU32::Funnel40TermsInBloomfilter);
         let s: String = format!(
             "[{},{},{},{},{},{}]",
             metric0,
@@ -121,14 +129,20 @@ impl MessageProcessor {
             metric4,
             metric5,
         );
-        println!("metrics: {}", s);
+        s
     }
 
-    fn metric_u32(&self, key: KeyMetricU32) -> u32 {
-        self.metric_u32_this_iteration.get(&key).map_or(0, |value| *value )
-    }
-
-    fn metrics_reset(&mut self) {
+    fn reset_iteration_metrics(&mut self) {
         self.metric_u32_this_iteration.clear();
+    }
+}
+
+trait ProvideMetricU32 {
+    fn metric_u32(&self, key: KeyMetricU32) -> u32;
+}
+
+impl ProvideMetricU32 for HashMapMetricU32 {
+    fn metric_u32(&self, key: KeyMetricU32) -> u32 {
+        self.get(&key).map_or(0, |value| *value )
     }
 }
