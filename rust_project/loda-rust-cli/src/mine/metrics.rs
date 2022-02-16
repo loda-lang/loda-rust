@@ -1,5 +1,6 @@
 #[derive(Debug)]
 pub enum KeyMetricU32 {
+    NumberOfMinerLoopIterations,
     Funnel10TermsPassingBasicCheck,
     Funnel10TermsInBloomfilter,
     Funnel20TermsInBloomfilter,

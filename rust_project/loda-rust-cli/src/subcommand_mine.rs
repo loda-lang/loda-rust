@@ -42,12 +42,13 @@ pub fn subcommand_mine() {
 }
 
 fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>) {
+    let mut message_processor = MessageProcessor::new();
     loop {
         println!("coordinator iteration");
         loop {
             match rx.try_recv() {
                 Ok(message) => {
-                    println!("received message: {:?}", message);
+                    message_processor.process_message(message);
                     continue;
                 },
                 Err(_) => {
@@ -70,4 +71,18 @@ fn print_info_about_start_conditions() {
     println!("[mining info]");
     println!("build_mode = {}", build_mode);
     println!("\nPress CTRL-C to stop the miner.");
+}
+
+struct MessageProcessor {
+
+}
+
+impl MessageProcessor {
+    fn new() -> Self {
+        Self {}
+    }
+
+    fn process_message(&mut self, message: MinerThreadMessageToCoordinator) {
+        println!("received message: {:?}", message);
+    }
 }

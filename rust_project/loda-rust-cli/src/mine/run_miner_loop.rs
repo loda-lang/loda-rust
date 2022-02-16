@@ -133,6 +133,7 @@ pub fn run_miner_loop(
     );
 
     let total_time = Instant::now();
+    let mut metric_number_of_miner_loop_iterations: u32 = 0;
     let mut iteration: usize = 0;
     let mut progress_time = Instant::now();
     let mut progress_iteration: usize = 0;
@@ -144,6 +145,8 @@ pub fn run_miner_loop(
     let mut number_of_prevented_floodings: usize = 0;
     let mut reload: bool = true;
     loop {
+        metric_number_of_miner_loop_iterations += 1;
+
         let elapsed: u128 = progress_time.elapsed().as_millis();
         if elapsed >= 1000 {
             let iterations_diff: usize = iteration - progress_iteration;
@@ -174,6 +177,11 @@ pub fn run_miner_loop(
                 average_iteration_info
             );
 
+            {
+                let y: u32 = metric_number_of_miner_loop_iterations;
+                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfMinerLoopIterations, y);
+                tx.send(message).unwrap();
+            }
             {
                 let x: u64 = funnel.metric_number_of_candidates_with_basiccheck();
                 let y: u32 = u32::try_from(x).unwrap_or(0);
@@ -206,6 +214,7 @@ pub fn run_miner_loop(
             }
 
             funnel.reset_metrics();
+            metric_number_of_miner_loop_iterations = 0;
 
             progress_time = Instant::now();
             progress_iteration = iteration;
