@@ -27,7 +27,7 @@ pub fn subcommand_mine() {
 
     for j in 0..number_of_threads {
         println!("start thread {} of {}", j, number_of_threads);
-        let name = format!("miner{}", j);
+        let name = format!("minerworker{}", j);
         let sender_clone = sender.clone();
         let _ = thread::Builder::new().name(name).spawn(move || {
             start_miner_loop(sender_clone);
@@ -38,6 +38,7 @@ pub fn subcommand_mine() {
     // Drop the original sender that is not being used
     mem::drop(sender);
 
+    // Run forever, press CTRL-C to stop.
     join_handle.join().expect("The minercoordinator thread being joined has panicked");
 }
 
