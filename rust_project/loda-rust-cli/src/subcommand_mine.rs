@@ -12,8 +12,6 @@ use prometheus_client::registry::Registry;
 
 use std::sync::{Arc, Mutex};
 
-use tide::{Middleware, Next, Request, Result};
-
 extern crate num_cpus;
 
 pub enum SubcommandMineParallelComputingMode {
@@ -141,12 +139,10 @@ struct State {
 fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m: Family::<Labels, Counter>) {
     let mut message_processor = MessageProcessor::new();
     loop {
-        let mut message_count: u32 = 0;
         loop {
             match rx.try_recv() {
                 Ok(message) => {
                     message_processor.process_message(message);
-                    message_count += 1;
                     continue;
                 },
                 Err(_) => {
