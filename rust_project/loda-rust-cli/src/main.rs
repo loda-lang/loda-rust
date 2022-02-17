@@ -29,7 +29,8 @@ extern crate num_traits;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 
-fn main() {
+#[tokio::main]
+async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     // Initialize logging from the `RUST_LOG` environment variable.
     env_logger::init();
 
@@ -114,7 +115,7 @@ fn main() {
             }
         };
         subcommand_evaluate(program_id, number_of_terms, mode);
-        return;
+        return Ok(());
     }
 
     if let Some(sub_m) = matches.subcommand_matches("dependencies") {
@@ -122,17 +123,17 @@ fn main() {
         let program_id: u64 = u64::from_str(program_id_raw)
             .expect("Unable to parse program_id.");
         subcommand_dependencies(program_id);
-        return;
+        return Ok(());
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("install") {
         subcommand_install();
-        return;
+        return Ok(());
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("update") {
         subcommand_update();
-        return;
+        return Ok(());
     }
 
     if let Some(sub_m) = matches.subcommand_matches("mine") {
@@ -141,8 +142,8 @@ fn main() {
             true => SubcommandMineParallelComputingMode::ParallelInstancces,
             false => SubcommandMineParallelComputingMode::SingleInstance
         };
-        subcommand_mine(parallel_computing_mode);
-        return;
+        subcommand_mine(parallel_computing_mode).await?;
+        return Ok(());
     }
 
     panic!("No arguments provided");

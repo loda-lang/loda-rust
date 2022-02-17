@@ -5,6 +5,15 @@ use std::time::Duration;
 use std::sync::mpsc::{channel, Receiver};
 use std::collections::HashMap;
 
+use prometheus_client::encoding::text::{encode, Encode};
+use prometheus_client::metrics::counter::Counter;
+use prometheus_client::metrics::family::Family;
+use prometheus_client::registry::Registry;
+
+use std::sync::{Arc, Mutex};
+
+use tide::{Middleware, Next, Request, Result};
+
 extern crate num_cpus;
 
 pub enum SubcommandMineParallelComputingMode {
@@ -38,7 +47,11 @@ impl SubcommandMineParallelComputingMode {
     }
 }
 
-pub fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComputingMode) {
+pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComputingMode) 
+    -> std::result::Result<(), Box<dyn std::error::Error>> 
+{
+    // tide::log::start();
+    
     print_info_about_start_conditions();
 
     let number_of_minerworkers: usize = parallel_computing_mode.number_of_threads();
@@ -46,10 +59,13 @@ pub fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComputingM
 
     let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
 
-    let builder = thread::Builder::new().name("minercoordinator".to_string());
-    let join_handle: thread::JoinHandle<_> = builder.spawn(move || {
+    let _ = tokio::spawn(async move {
+        webserver_with_metrics().await;
+    });
+
+    let minercoordinator_thread = tokio::spawn(async move {
         miner_coordinator_inner(receiver);
-    }).unwrap();
+    });
 
     for j in 0..number_of_minerworkers {
         let name = format!("minerworker{}", j);
@@ -65,7 +81,84 @@ pub fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComputingM
     mem::drop(sender);
 
     // Run forever, press CTRL-C to stop.
-    join_handle.join().expect("The minercoordinator thread being joined has panicked");
+    minercoordinator_thread.await?;
+
+    Ok(())
+}
+
+async fn webserver_with_metrics() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    // tide::log::start();
+
+    let mut registry = Registry::default();
+    let http_requests_total = Family::<Labels, Counter>::default();
+    registry.register(
+        "lodarust_http_requests_total",
+        "Number of HTTP requests",
+        http_requests_total.clone(),
+    );
+
+    let middleware = MetricsMiddleware {
+        http_requests_total,
+    };
+    let mut app = tide::with_state(State {
+        registry: Arc::new(Mutex::new(registry)),
+    });
+
+    app.with(middleware);
+    app.at("/").get(|_| async { Ok("Hello, world!") });
+    app.at("/metrics")
+        .get(|req: tide::Request<State>| async move {
+            let mut encoded = Vec::new();
+            encode(&mut encoded, &req.state().registry.lock().unwrap()).unwrap();
+            let response = tide::Response::builder(200)
+                .body(encoded)
+                .content_type("application/openmetrics-text; version=1.0.0; charset=utf-8")
+                .build();
+            Ok(response)
+        });
+    app.listen("127.0.0.1:8090").await?;
+    Ok(())
+}
+
+#[derive(Clone, Hash, PartialEq, Eq, Encode)]
+struct Labels {
+    method: Method,
+    path: String,
+}
+
+#[derive(Clone, Hash, PartialEq, Eq, Encode)]
+enum Method {
+    Get,
+    Put,
+}
+
+#[derive(Clone)]
+struct State {
+    registry: Arc<Mutex<Registry<Family<Labels, Counter>>>>,
+}
+
+#[derive(Default)]
+struct MetricsMiddleware {
+    http_requests_total: Family<Labels, Counter>,
+}
+
+#[tide::utils::async_trait]
+impl Middleware<State> for MetricsMiddleware {
+    async fn handle(&self, req: Request<State>, next: Next<'_, State>) -> Result {
+        let method = match req.method() {
+            http_types::Method::Get => Method::Get,
+            http_types::Method::Put => Method::Put,
+            _ => todo!(),
+        };
+        let path = req.url().path().to_string();
+        let _count = self
+            .http_requests_total
+            .get_or_create(&Labels { method, path })
+            .inc();
+
+        let res = next.run(req).await;
+        Ok(res)
+    }
 }
 
 fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>) {
