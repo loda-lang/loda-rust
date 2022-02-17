@@ -47,6 +47,8 @@ impl SubcommandMineParallelComputingMode {
     }
 }
 
+type MyRegistry = std::sync::Arc<std::sync::Mutex<prometheus_client::registry::Registry<prometheus_client::metrics::family::Family<Labels, prometheus_client::metrics::counter::Counter>>>>;
+
 pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComputingMode) 
     -> std::result::Result<(), Box<dyn std::error::Error>> 
 {
@@ -59,22 +61,31 @@ pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComp
 
     let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
 
+    let mut registry = Registry::default();
+    let http_requests_total = Family::<Labels, Counter>::default();
+    registry.register(
+        "lodarust_http_requests_total",
+        "Number of HTTP requests",
+        http_requests_total.clone(),
+    );
+    let registry2: MyRegistry = Arc::new(Mutex::new(registry));
+
     let _ = tokio::spawn(async move {
-        let result = webserver_with_metrics().await;
+        let result = webserver_with_metrics(registry2).await;
         if let Err(error) = result {
             error!("webserver thread failed with error: {:?}", error);
         }
     });
 
+    let m_clone = http_requests_total.clone();
     let minercoordinator_thread = tokio::spawn(async move {
-        miner_coordinator_inner(receiver);
+        miner_coordinator_inner(receiver, m_clone);
     });
 
-    for j in 0..number_of_minerworkers {
-        let name = format!("minerworker{}", j);
-        println!("Spawn thread: {}", name);
+    for worker_id in 0..number_of_minerworkers {
+        println!("Spawn worker id: {}", worker_id);
         let sender_clone = sender.clone();
-        let _ = thread::Builder::new().name(name).spawn(move || {
+        let _ = tokio::spawn(async move {
             start_miner_loop(sender_clone);
         });
         thread::sleep(Duration::from_millis(2000));
@@ -89,25 +100,12 @@ pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComp
     Ok(())
 }
 
-async fn webserver_with_metrics() -> std::result::Result<(), Box<dyn std::error::Error>> {
+async fn webserver_with_metrics(registry: MyRegistry) -> std::result::Result<(), Box<dyn std::error::Error>> {
     // tide::log::start();
 
-    let mut registry = Registry::default();
-    let http_requests_total = Family::<Labels, Counter>::default();
-    registry.register(
-        "lodarust_http_requests_total",
-        "Number of HTTP requests",
-        http_requests_total.clone(),
-    );
-
-    let middleware = MetricsMiddleware {
-        http_requests_total,
-    };
     let mut app = tide::with_state(State {
-        registry: Arc::new(Mutex::new(registry)),
+        registry: registry,
     });
-
-    app.with(middleware);
     app.at("/").get(|_| async { Ok("Hello, world!") });
     app.at("/metrics")
         .get(|req: tide::Request<State>| async move {
@@ -137,40 +135,18 @@ enum Method {
 
 #[derive(Clone)]
 struct State {
-    registry: Arc<Mutex<Registry<Family<Labels, Counter>>>>,
+    registry: MyRegistry,
 }
 
-#[derive(Default)]
-struct MetricsMiddleware {
-    http_requests_total: Family<Labels, Counter>,
-}
-
-#[tide::utils::async_trait]
-impl Middleware<State> for MetricsMiddleware {
-    async fn handle(&self, req: Request<State>, next: Next<'_, State>) -> Result {
-        let method = match req.method() {
-            http_types::Method::Get => Method::Get,
-            http_types::Method::Put => Method::Put,
-            _ => todo!(),
-        };
-        let path = req.url().path().to_string();
-        let _count = self
-            .http_requests_total
-            .get_or_create(&Labels { method, path })
-            .inc();
-
-        let res = next.run(req).await;
-        Ok(res)
-    }
-}
-
-fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>) {
+fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m: Family::<Labels, Counter>) {
     let mut message_processor = MessageProcessor::new();
     loop {
+        let mut message_count: u32 = 0;
         loop {
             match rx.try_recv() {
                 Ok(message) => {
                     message_processor.process_message(message);
+                    message_count += 1;
                     continue;
                 },
                 Err(_) => {
@@ -178,6 +154,16 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>) {
                 }
             }
         }
+
+        let metric0: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::NumberOfMinerLoopIterations);
+        let metric0_label = Labels { 
+            method: Method::Get, 
+            path: "iterations".to_string() 
+        };
+        m
+            .get_or_create(&metric0_label)
+            .inc_by(metric0 as u64);
+
         message_processor.metrics_summary();
         message_processor.reset_iteration_metrics();
         thread::sleep(Duration::from_millis(1000));
