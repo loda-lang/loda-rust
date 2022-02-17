@@ -60,7 +60,10 @@ pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComp
     let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
 
     let _ = tokio::spawn(async move {
-        webserver_with_metrics().await;
+        let result = webserver_with_metrics().await;
+        if let Err(error) = result {
+            error!("webserver thread failed with error: {:?}", error);
+        }
     });
 
     let minercoordinator_thread = tokio::spawn(async move {
