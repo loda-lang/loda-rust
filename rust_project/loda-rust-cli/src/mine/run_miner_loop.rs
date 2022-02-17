@@ -20,6 +20,8 @@ use rand::rngs::StdRng;
 use std::sync::mpsc::Sender;
 use std::convert::TryFrom;
 
+const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
+
 struct TermComputer {
     terms: BigIntVec,
     step_count: u64,
@@ -147,7 +149,7 @@ pub fn run_miner_loop(
         metric_number_of_miner_loop_iterations += 1;
 
         let elapsed: u128 = progress_time.elapsed().as_millis();
-        if elapsed >= 1000 {
+        if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
             {
                 let y: u32 = metric_number_of_miner_loop_iterations;
                 let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfMinerLoopIterations, y);

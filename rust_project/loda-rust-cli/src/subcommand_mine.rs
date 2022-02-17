@@ -160,9 +160,9 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m: Fam
             .get_or_create(&metric0_label)
             .inc_by(metric0 as u64);
 
-        message_processor.metrics_summary();
+        // message_processor.metrics_summary();
         message_processor.reset_iteration_metrics();
-        thread::sleep(Duration::from_millis(1000));
+        thread::sleep(Duration::from_millis(50));
     }
 }
 
