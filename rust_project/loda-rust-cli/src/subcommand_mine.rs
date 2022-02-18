@@ -139,6 +139,17 @@ struct State {
 fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m: Family::<Labels, Counter>) {
     let mut message_processor = MessageProcessor::new();
     loop {
+        // Sleep until there are an incoming message
+        match rx.recv() {
+            Ok(message) => {
+                message_processor.process_message(message);
+            },
+            Err(error) => {
+                println!("didn't receive any messages. error: {:?}", error);
+                continue;
+            }
+        }
+        // Fetch as many messages as possible
         loop {
             match rx.try_recv() {
                 Ok(message) => {
@@ -151,6 +162,7 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m: Fam
             }
         }
 
+        // Update metrics
         let metric0: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::NumberOfMinerLoopIterations);
         let metric0_label = Labels { 
             method: Method::Get, 
@@ -162,7 +174,6 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m: Fam
 
         // message_processor.metrics_summary();
         message_processor.reset_iteration_metrics();
-        thread::sleep(Duration::from_millis(100));
     }
 }
 
