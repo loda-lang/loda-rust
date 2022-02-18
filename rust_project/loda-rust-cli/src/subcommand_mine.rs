@@ -162,7 +162,7 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m: Fam
 
         // message_processor.metrics_summary();
         message_processor.reset_iteration_metrics();
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(100));
     }
 }
 
