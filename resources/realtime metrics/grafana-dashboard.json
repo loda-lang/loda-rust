@@ -124,7 +124,7 @@
           "label": null,
           "logBase": 1,
           "max": null,
-          "min": null,
+          "min": "0",
           "show": true
         },
         {
@@ -133,7 +133,7 @@
           "logBase": 1,
           "max": null,
           "min": null,
-          "show": true
+          "show": false
         }
       ],
       "yaxis": {
@@ -284,5 +284,5 @@
   "timezone": "",
   "title": "LODA Rust",
   "uid": "DvVCV7fnz",
-  "version": 67
+  "version": 69
 }
