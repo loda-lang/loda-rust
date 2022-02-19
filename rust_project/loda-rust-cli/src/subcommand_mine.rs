@@ -4,6 +4,8 @@ use std::mem;
 use std::time::Duration;
 use std::sync::mpsc::{channel, Receiver};
 use std::collections::HashMap;
+use std::time::Instant;
+use std::convert::TryFrom;
 
 use prometheus_client::encoding::text::{encode, Encode};
 use prometheus_client::metrics::counter::Counter;
@@ -63,6 +65,7 @@ pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComp
     let mut registry = <Registry>::default();
     let http_requests_total = Family::<Labels, Counter>::default();
     let number_of_workers = Family::<Labels, Gauge>::default();
+    let number_of_iteration_now = Family::<Labels, Gauge>::default();
     registry.register(
         "lodarust_http_requests_total",
         "Number of HTTP requests",
@@ -72,6 +75,11 @@ pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComp
         "lodarust_worker_count",
         "Number of workers",
         Box::new(number_of_workers.clone()),
+    );
+    registry.register(
+        "lodarust_iterations_count",
+        "Number of iterations now",
+        Box::new(number_of_iteration_now.clone()),
     );
 
     let metric0_label = Labels { 
@@ -91,9 +99,10 @@ pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComp
         }
     });
 
-    let m_clone = http_requests_total.clone();
+    let m0_clone = http_requests_total.clone();
+    let m1_clone = number_of_iteration_now.clone();
     let minercoordinator_thread = tokio::spawn(async move {
-        miner_coordinator_inner(receiver, m_clone);
+        miner_coordinator_inner(receiver, m0_clone, m1_clone);
     });
 
     for worker_id in 0..number_of_minerworkers {
@@ -152,8 +161,10 @@ struct State {
     registry: MyRegistry,
 }
 
-fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m: Family::<Labels, Counter>) {
+fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m0: Family::<Labels, Counter>, m1: Family::<Labels, Gauge>) {
     let mut message_processor = MessageProcessor::new();
+    let mut progress_time = Instant::now();
+    let mut accumulated_iterations: u64 = 0;
     loop {
         // Sleep until there are an incoming message
         match rx.recv() {
@@ -178,15 +189,36 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m: Fam
             }
         }
 
-        // Update metrics
+        // Number of operations per second, gauge
+        let elapsed: u128 = progress_time.elapsed().as_millis();
+        if elapsed > 1000 {
+            let elapsed_clamped: u64 = u64::try_from(elapsed).unwrap_or(1000);
+            accumulated_iterations *= 1000;
+            accumulated_iterations /= elapsed_clamped;
+
+            let metric1_label = Labels { 
+                method: Method::Get, 
+                path: "iterations".to_string() 
+            };
+            m1
+                .get_or_create(&metric1_label)
+                .set(accumulated_iterations);
+    
+            progress_time = Instant::now();
+            accumulated_iterations = 0;
+        }
+
+        // Number of iterations per second, chart
         let metric0: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::NumberOfMinerLoopIterations);
         let metric0_label = Labels { 
             method: Method::Get, 
             path: "iterations".to_string() 
         };
-        m
+        m0
             .get_or_create(&metric0_label)
             .inc_by(metric0 as u64);
+
+        accumulated_iterations += metric0 as u64;
 
         // message_processor.metrics_summary();
         message_processor.reset_iteration_metrics();

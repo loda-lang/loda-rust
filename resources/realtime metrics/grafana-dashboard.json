@@ -147,6 +147,61 @@
         "defaults": {
           "custom": {},
           "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "id": 15,
+      "interval": "2s",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.3.4",
+      "targets": [
+        {
+          "expr": "lodarust_iterations_count",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Iterations per second",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
           "max": 400000,
           "min": 0,
           "thresholds": {
@@ -174,7 +229,7 @@
         "h": 8,
         "w": 4,
         "x": 20,
-        "y": 0
+        "y": 3
       },
       "id": 11,
       "interval": "5s",
@@ -292,5 +347,5 @@
   "timezone": "",
   "title": "LODA Rust",
   "uid": "DvVCV7fnz",
-  "version": 56
+  "version": 64
 }
