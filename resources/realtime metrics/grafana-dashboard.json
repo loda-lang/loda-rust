@@ -167,7 +167,7 @@
         "y": 0
       },
       "id": 15,
-      "interval": "2s",
+      "interval": "1s",
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -195,69 +195,6 @@
       "timeShift": null,
       "title": "Iterations per second",
       "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "mappings": [],
-          "max": 400000,
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 50000
-              },
-              {
-                "color": "green",
-                "value": 100000
-              }
-            ]
-          },
-          "unit": "cps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 4,
-        "x": 20,
-        "y": 3
-      },
-      "id": 11,
-      "interval": "5s",
-      "options": {
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      },
-      "pluginVersion": "7.3.4",
-      "targets": [
-        {
-          "expr": "rate(lodarust_http_requests_total_total[$__rate_interval])",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "Iterations per second",
-      "type": "gauge"
     },
     {
       "datasource": "Prometheus",
@@ -326,7 +263,7 @@
     "list": []
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {
@@ -347,5 +284,5 @@
   "timezone": "",
   "title": "LODA Rust",
   "uid": "DvVCV7fnz",
-  "version": 64
+  "version": 67
 }

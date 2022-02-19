@@ -165,6 +165,9 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m0: Fa
     let mut message_processor = MessageProcessor::new();
     let mut progress_time = Instant::now();
     let mut accumulated_iterations: u64 = 0;
+    let len = 10;
+    let mut snapshots_vec: Vec::<u64> = vec![0; len];
+    let mut current_index: usize = 0;
     loop {
         // Sleep until there are an incoming message
         match rx.recv() {
@@ -196,13 +199,22 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m0: Fa
             accumulated_iterations *= 1000;
             accumulated_iterations /= elapsed_clamped;
 
+            snapshots_vec[current_index] = accumulated_iterations.clone();
+            current_index = (current_index + 1) % len;
+
+            let mut sum: u64 = 0;
+            for v in &snapshots_vec {
+                sum += v;
+            }
+            let average_value: u64 = sum / (len as u64);
+
             let metric1_label = Labels { 
                 method: Method::Get, 
                 path: "iterations".to_string() 
             };
             m1
                 .get_or_create(&metric1_label)
-                .set(accumulated_iterations);
+                .set(average_value);
     
             progress_time = Instant::now();
             accumulated_iterations = 0;
