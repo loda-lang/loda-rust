@@ -7,6 +7,7 @@ use std::collections::HashMap;
 
 use prometheus_client::encoding::text::{encode, Encode};
 use prometheus_client::metrics::counter::Counter;
+use prometheus_client::metrics::gauge::Gauge;
 use prometheus_client::metrics::family::Family;
 use prometheus_client::registry::Registry;
 
@@ -45,7 +46,7 @@ impl SubcommandMineParallelComputingMode {
     }
 }
 
-type MyRegistry = std::sync::Arc<std::sync::Mutex<prometheus_client::registry::Registry<prometheus_client::metrics::family::Family<Labels, prometheus_client::metrics::counter::Counter>>>>;
+type MyRegistry = std::sync::Arc<std::sync::Mutex<prometheus_client::registry::Registry<std::boxed::Box<dyn prometheus_client::encoding::text::SendEncodeMetric>>>>;
 
 pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComputingMode) 
     -> std::result::Result<(), Box<dyn std::error::Error>> 
@@ -59,13 +60,28 @@ pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComp
 
     let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
 
-    let mut registry = Registry::default();
+    let mut registry = <Registry>::default();
     let http_requests_total = Family::<Labels, Counter>::default();
+    let number_of_workers = Family::<Labels, Gauge>::default();
     registry.register(
         "lodarust_http_requests_total",
         "Number of HTTP requests",
-        http_requests_total.clone(),
+        Box::new(http_requests_total.clone()),
     );
+    registry.register(
+        "lodarust_worker_count",
+        "Number of workers",
+        Box::new(number_of_workers.clone()),
+    );
+
+    let metric0_label = Labels { 
+        method: Method::Get, 
+        path: "number_of_workers".to_string() 
+    };
+    number_of_workers
+        .get_or_create(&metric0_label)
+        .set(number_of_minerworkers as u64);
+
     let registry2: MyRegistry = Arc::new(Mutex::new(registry));
 
     let _ = tokio::spawn(async move {
