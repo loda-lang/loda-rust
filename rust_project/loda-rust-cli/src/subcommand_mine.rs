@@ -7,10 +7,9 @@ use std::collections::HashMap;
 use std::time::Instant;
 use std::convert::TryFrom;
 
-use prometheus_client::encoding::text::{encode, Encode};
+use prometheus_client::encoding::text::encode;
 use prometheus_client::metrics::counter::Counter;
 use prometheus_client::metrics::gauge::Gauge;
-use prometheus_client::metrics::family::Family;
 use prometheus_client::registry::Registry;
 
 use std::sync::{Arc, Mutex};
@@ -102,34 +101,6 @@ pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComp
 
     let mut registry = <Registry>::default();
     let metrics = Metrics::new(&mut registry);
-
-    let http_requests_total = Family::<Labels, Counter>::default();
-    let number_of_workers = Family::<Labels, Gauge>::default();
-    let number_of_iteration_now = Family::<Labels, Gauge>::default();
-    registry.register(
-        "lodarust_http_requests_total",
-        "Number of HTTP requests",
-        Box::new(http_requests_total.clone()),
-    );
-    registry.register(
-        "lodarust_worker_count",
-        "Number of workers",
-        Box::new(number_of_workers.clone()),
-    );
-    registry.register(
-        "lodarust_iterations_count",
-        "Number of iterations now",
-        Box::new(number_of_iteration_now.clone()),
-    );
-
-    let metric0_label = Labels { 
-        method: Method::Get, 
-        path: "number_of_workers".to_string() 
-    };
-    number_of_workers
-        .get_or_create(&metric0_label)
-        .set(number_of_minerworkers as u64);
-
     metrics.number_of_workers.set(number_of_minerworkers as u64);
 
     let registry2: MyRegistry = Arc::new(Mutex::new(registry));
@@ -141,10 +112,8 @@ pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComp
         }
     });
 
-    let m0_clone = http_requests_total.clone();
-    let m1_clone = number_of_iteration_now.clone();
     let minercoordinator_thread = tokio::spawn(async move {
-        miner_coordinator_inner(receiver, metrics, m0_clone, m1_clone);
+        miner_coordinator_inner(receiver, metrics);
     });
 
     for worker_id in 0..number_of_minerworkers {
@@ -184,24 +153,12 @@ async fn webserver_with_metrics(registry: MyRegistry) -> std::result::Result<(),
     Ok(())
 }
 
-#[derive(Clone, Hash, PartialEq, Eq, Encode)]
-struct Labels {
-    method: Method,
-    path: String,
-}
-
-#[derive(Clone, Hash, PartialEq, Eq, Encode)]
-enum Method {
-    Get,
-    Put,
-}
-
 #[derive(Clone)]
 struct State {
     registry: MyRegistry,
 }
 
-fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, metrics: Metrics, m0: Family::<Labels, Counter>, m1: Family::<Labels, Gauge>) {
+fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, metrics: Metrics) {
     let mut message_processor = MessageProcessor::new();
     let mut progress_time = Instant::now();
     let mut accumulated_iterations: u64 = 0;
@@ -239,15 +196,6 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, metric
 
             moving_average.insert(accumulated_iterations);
             let weighted_average: u64 = moving_average.average();
-            
-            let metric1_label = Labels { 
-                method: Method::Get, 
-                path: "iterations".to_string() 
-            };
-            m1
-                .get_or_create(&metric1_label)
-                .set(weighted_average);
-
             metrics.number_of_iteration_now.set(weighted_average);
             
             progress_time = Instant::now();
@@ -257,16 +205,7 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, metric
 
         // Number of iterations per second, chart
         let metric0: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::NumberOfMinerLoopIterations);
-        let metric0_label = Labels { 
-            method: Method::Get, 
-            path: "iterations".to_string() 
-        };
-        m0
-            .get_or_create(&metric0_label)
-            .inc_by(metric0 as u64);
-
         metrics.number_of_iterations.inc_by(metric0 as u64);
-
         accumulated_iterations += metric0 as u64;
 
         // message_processor.metrics_summary();
