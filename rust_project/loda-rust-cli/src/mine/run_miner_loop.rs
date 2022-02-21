@@ -253,7 +253,7 @@ pub fn run_miner_loop(
             progress_time = Instant::now();
         }
 
-        if (iteration % 1000) == 0 {
+        if (iteration % 20) == 0 {
             reload = true;
         }
         if reload {
