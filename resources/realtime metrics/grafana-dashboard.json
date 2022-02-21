@@ -85,14 +85,14 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "irate(lodarust_http_requests_total_total{}[$__interval])",
+          "expr": "irate(lodarust_mine_iterations_total{}[$__interval])",
           "hide": false,
           "interval": "",
           "legendFormat": "1s average",
           "refId": "B"
         },
         {
-          "expr": "irate(lodarust_http_requests_total_total{}[$__interval])",
+          "expr": "irate(lodarust_mine_iterations_total{}[$__interval])",
           "instant": false,
           "interval": "",
           "intervalFactor": 10,
@@ -185,7 +185,7 @@
       "pluginVersion": "7.3.4",
       "targets": [
         {
-          "expr": "lodarust_iterations_count",
+          "expr": "lodarust_mine_iterations_now",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -243,7 +243,7 @@
       "pluginVersion": "7.3.4",
       "targets": [
         {
-          "expr": "lodarust_worker_count",
+          "expr": "lodarust_mine_workers",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -263,7 +263,7 @@
     "list": []
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-15m",
     "to": "now"
   },
   "timepicker": {
@@ -284,5 +284,5 @@
   "timezone": "",
   "title": "LODA Rust",
   "uid": "DvVCV7fnz",
-  "version": 69
+  "version": 73
 }
