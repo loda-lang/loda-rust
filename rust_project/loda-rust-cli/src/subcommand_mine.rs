@@ -17,6 +17,28 @@ use std::sync::{Arc, Mutex};
 
 extern crate num_cpus;
 
+struct Metrics {
+    number_of_iterations: Counter,
+}
+
+impl Metrics {
+    fn new(registry: &mut Registry) -> Self {
+        let sub_registry = registry.sub_registry_with_prefix("lodarust_mine");
+
+        let number_of_iterations = Counter::default();
+        sub_registry.register(
+            "iterations",
+            "Number of iterations",
+            Box::new(number_of_iterations.clone()),
+        );
+
+        Self {
+            number_of_iterations: number_of_iterations
+        }
+    }
+}
+
+
 pub enum SubcommandMineParallelComputingMode {
     SingleInstance,
     ParallelInstancces,
@@ -61,6 +83,8 @@ pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComp
     let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
 
     let mut registry = <Registry>::default();
+    let metrics = Metrics::new(&mut registry);
+
     let http_requests_total = Family::<Labels, Counter>::default();
     let number_of_workers = Family::<Labels, Gauge>::default();
     let number_of_iteration_now = Family::<Labels, Gauge>::default();
@@ -100,7 +124,7 @@ pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComp
     let m0_clone = http_requests_total.clone();
     let m1_clone = number_of_iteration_now.clone();
     let minercoordinator_thread = tokio::spawn(async move {
-        miner_coordinator_inner(receiver, m0_clone, m1_clone);
+        miner_coordinator_inner(receiver, metrics, m0_clone, m1_clone);
     });
 
     for worker_id in 0..number_of_minerworkers {
@@ -157,7 +181,7 @@ struct State {
     registry: MyRegistry,
 }
 
-fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m0: Family::<Labels, Counter>, m1: Family::<Labels, Gauge>) {
+fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, metrics: Metrics, m0: Family::<Labels, Counter>, m1: Family::<Labels, Gauge>) {
     let mut message_processor = MessageProcessor::new();
     let mut progress_time = Instant::now();
     let mut accumulated_iterations: u64 = 0;
@@ -218,6 +242,8 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m0: Fa
         m0
             .get_or_create(&metric0_label)
             .inc_by(metric0 as u64);
+
+        metrics.number_of_iterations.inc_by(metric0 as u64);
 
         accumulated_iterations += metric0 as u64;
 
