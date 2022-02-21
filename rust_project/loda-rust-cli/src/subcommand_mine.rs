@@ -1,4 +1,4 @@
-use crate::mine::{MinerThreadMessageToCoordinator, start_miner_loop, KeyMetricU32};
+use crate::mine::{MinerThreadMessageToCoordinator, start_miner_loop, KeyMetricU32, MovingAverage};
 use std::thread;
 use std::mem;
 use std::time::Duration;
@@ -165,21 +165,7 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m0: Fa
     let mut message_processor = MessageProcessor::new();
     let mut progress_time = Instant::now();
     let mut accumulated_iterations: u64 = 0;
-    let len = 19;
-    let mut snapshots_vec: Vec::<u64> = vec![0; len];
-    let mut current_index: usize = 0;
-
-    let weights = vec![
-        8, 16, 32, 64, 80, 85, 90, 95, 
-        100,
-        100,
-        100,
-        95, 90, 85, 80, 64, 32, 16, 8
-    ];
-    let mut weight_total = 0;
-    for v in &weights {
-        weight_total += v;
-    }
+    let mut moving_average = MovingAverage::new();
     loop {
         // Sleep until there are an incoming message
         match rx.recv() {
@@ -211,16 +197,8 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m0: Fa
             accumulated_iterations *= 1000;
             accumulated_iterations /= elapsed_clamped;
 
-            snapshots_vec[current_index] = accumulated_iterations.clone();
-            
-            let mut sum: u64 = 0;
-            for i in 0..len {
-                let offset = (current_index + i) % len;
-                let weight = weights[offset];
-                let value = snapshots_vec[offset];
-                sum += value * weight;
-            }
-            let weighted_average: u64 = sum / weight_total;
+            moving_average.insert(accumulated_iterations);
+            let weighted_average: u64 = moving_average.average();
             
             let metric1_label = Labels { 
                 method: Method::Get, 
@@ -232,7 +210,7 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, m0: Fa
             
             progress_time = Instant::now();
             accumulated_iterations = 0;
-            current_index = (current_index + 1) % len;
+            moving_average.rotate();
         }
 
         // Number of iterations per second, chart
