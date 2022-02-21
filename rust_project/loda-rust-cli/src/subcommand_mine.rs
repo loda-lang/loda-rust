@@ -53,8 +53,6 @@ type MyRegistry = std::sync::Arc<std::sync::Mutex<prometheus_client::registry::R
 pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComputingMode) 
     -> std::result::Result<(), Box<dyn std::error::Error>> 
 {
-    // tide::log::start();
-    
     print_info_about_start_conditions();
 
     let number_of_minerworkers: usize = parallel_computing_mode.number_of_threads();
@@ -124,8 +122,6 @@ pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComp
 }
 
 async fn webserver_with_metrics(registry: MyRegistry) -> std::result::Result<(), Box<dyn std::error::Error>> {
-    // tide::log::start();
-
     let mut app = tide::with_state(State {
         registry: registry,
     });
