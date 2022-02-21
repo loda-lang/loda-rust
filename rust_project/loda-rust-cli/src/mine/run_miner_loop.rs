@@ -141,6 +141,7 @@ pub fn run_miner_loop(
     let mut metric_number_of_programs_that_cannot_parse: u32 = 0;
     let mut metric_number_of_programs_without_output: u32 = 0;
     let mut metric_number_of_programs_that_cannot_run: u32 = 0;
+    let mut metric_number_of_candidate_programs: u32 = 0;
 
     let mut progress_time = Instant::now();
     let mut iteration: usize = 0;
@@ -233,6 +234,11 @@ pub fn run_miner_loop(
                 let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::CacheMissForProgramWithoutId, y);
                 tx.send(message).unwrap();
             }
+            {
+                let y: u32 = metric_number_of_candidate_programs;
+                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfCandiatePrograms, y);
+                tx.send(message).unwrap();
+            }
 
             funnel.reset_metrics();
             cache.reset_metrics();
@@ -247,7 +253,7 @@ pub fn run_miner_loop(
             progress_time = Instant::now();
         }
 
-        if (iteration % 10) == 0 {
+        if (iteration % 1000) == 0 {
             reload = true;
         }
         if reload {
@@ -367,6 +373,8 @@ pub fn run_miner_loop(
         if let Err(error) = save_candidate_program(mine_event_dir, iteration, &candidate_program) {
             println!("; GENOME\n{}", genome);
             error!("Unable to save candidate program: {:?}", error);
+            continue;
         }
+        metric_number_of_candidate_programs += 1;
     }
 }

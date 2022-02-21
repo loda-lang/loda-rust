@@ -20,6 +20,7 @@ struct Metrics {
     number_of_workers: Gauge::<u64>,
     number_of_iterations: Counter,
     number_of_iteration_now: Gauge::<u64>,
+    number_of_candidate_programs: Gauge::<u64>,
     cache_hit: Counter,
     cache_miss: Counter,
 }
@@ -49,6 +50,13 @@ impl Metrics {
             Box::new(number_of_iteration_now.clone())
         );
 
+        let number_of_candidate_programs = Gauge::<u64>::default();
+        sub_registry.register(
+            "candiate_programs", 
+            "Number of candidate programs found so far", 
+            Box::new(number_of_candidate_programs.clone())
+        );
+
         let cache_hit = Counter::default();
         sub_registry.register(
             "cache_hit",
@@ -69,6 +77,7 @@ impl Metrics {
             number_of_iteration_now: number_of_iteration_now,
             cache_hit: cache_hit,
             cache_miss: cache_miss,
+            number_of_candidate_programs: number_of_candidate_programs,
         }
     }
 }
@@ -228,11 +237,14 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, metric
 
         let metric1: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::CacheHit);
         metrics.cache_hit.inc_by(metric1 as u64);
-
+        
         let metric2a: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::CacheMissForProgramOeis);
         let metric2b: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::CacheMissForProgramWithoutId);
         let metric2: u32 = metric2a + metric2b;
         metrics.cache_miss.inc_by(metric2 as u64);
+        
+        let metric3: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::NumberOfCandiatePrograms);
+        metrics.number_of_candidate_programs.inc_by(metric3 as u64);
 
         // message_processor.metrics_summary();
         message_processor.reset_iteration_metrics();

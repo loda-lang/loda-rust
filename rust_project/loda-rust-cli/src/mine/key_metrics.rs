@@ -15,4 +15,5 @@ pub enum KeyMetricU32 {
     CacheHit,
     CacheMissForProgramOeis,
     CacheMissForProgramWithoutId,
+    NumberOfCandiatePrograms,
 }
