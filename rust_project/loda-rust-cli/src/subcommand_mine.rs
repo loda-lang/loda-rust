@@ -20,6 +20,8 @@ struct Metrics {
     number_of_workers: Gauge::<u64>,
     number_of_iterations: Counter,
     number_of_iteration_now: Gauge::<u64>,
+    cache_hit: Counter,
+    cache_miss: Counter,
 }
 
 impl Metrics {
@@ -47,10 +49,26 @@ impl Metrics {
             Box::new(number_of_iteration_now.clone())
         );
 
+        let cache_hit = Counter::default();
+        sub_registry.register(
+            "cache_hit",
+            "Number of cache hits",
+            Box::new(cache_hit.clone()),
+        );
+
+        let cache_miss = Counter::default();
+        sub_registry.register(
+            "cache_miss",
+            "Number of cache hits",
+            Box::new(cache_miss.clone()),
+        );
+
         Self {
             number_of_workers: number_of_workers,
             number_of_iterations: number_of_iterations,
             number_of_iteration_now: number_of_iteration_now,
+            cache_hit: cache_hit,
+            cache_miss: cache_miss,
         }
     }
 }
@@ -207,6 +225,14 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, metric
         let metric0: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::NumberOfMinerLoopIterations);
         metrics.number_of_iterations.inc_by(metric0 as u64);
         accumulated_iterations += metric0 as u64;
+
+        let metric1: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::CacheHit);
+        metrics.cache_hit.inc_by(metric1 as u64);
+
+        let metric2a: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::CacheMissForProgramOeis);
+        let metric2b: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::CacheMissForProgramWithoutId);
+        let metric2: u32 = metric2a + metric2b;
+        metrics.cache_miss.inc_by(metric2 as u64);
 
         // message_processor.metrics_summary();
         message_processor.reset_iteration_metrics();
