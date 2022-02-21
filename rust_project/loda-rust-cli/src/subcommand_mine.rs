@@ -18,20 +18,14 @@ use std::sync::{Arc, Mutex};
 extern crate num_cpus;
 
 struct Metrics {
-    number_of_iterations: Counter,
     number_of_workers: Gauge::<u64>,
+    number_of_iterations: Counter,
+    number_of_iteration_now: Gauge::<u64>,
 }
 
 impl Metrics {
     fn new(registry: &mut Registry) -> Self {
         let sub_registry = registry.sub_registry_with_prefix("lodarust_mine");
-
-        let number_of_iterations = Counter::default();
-        sub_registry.register(
-            "iterations",
-            "Number of iterations",
-            Box::new(number_of_iterations.clone()),
-        );
 
         let number_of_workers = Gauge::<u64>::default();
         sub_registry.register(
@@ -40,9 +34,24 @@ impl Metrics {
             Box::new(number_of_workers.clone())
         );
 
+        let number_of_iterations = Counter::default();
+        sub_registry.register(
+            "iterations",
+            "Number of iterations",
+            Box::new(number_of_iterations.clone()),
+        );    
+
+        let number_of_iteration_now = Gauge::<u64>::default();
+        sub_registry.register(
+            "iterations_now", 
+            "Number of iterations right now", 
+            Box::new(number_of_iteration_now.clone())
+        );
+
         Self {
-            number_of_iterations: number_of_iterations,
             number_of_workers: number_of_workers,
+            number_of_iterations: number_of_iterations,
+            number_of_iteration_now: number_of_iteration_now,
         }
     }
 }
@@ -238,6 +247,8 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, metric
             m1
                 .get_or_create(&metric1_label)
                 .set(weighted_average);
+
+            metrics.number_of_iteration_now.set(weighted_average);
             
             progress_time = Instant::now();
             accumulated_iterations = 0;
