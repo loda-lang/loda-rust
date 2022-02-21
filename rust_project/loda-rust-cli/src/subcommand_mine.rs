@@ -19,6 +19,7 @@ extern crate num_cpus;
 
 struct Metrics {
     number_of_iterations: Counter,
+    number_of_workers: Gauge::<u64>,
 }
 
 impl Metrics {
@@ -32,8 +33,16 @@ impl Metrics {
             Box::new(number_of_iterations.clone()),
         );
 
+        let number_of_workers = Gauge::<u64>::default();
+        sub_registry.register(
+            "workers", 
+            "Number of workers", 
+            Box::new(number_of_workers.clone())
+        );
+
         Self {
-            number_of_iterations: number_of_iterations
+            number_of_iterations: number_of_iterations,
+            number_of_workers: number_of_workers,
         }
     }
 }
@@ -111,6 +120,8 @@ pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComp
     number_of_workers
         .get_or_create(&metric0_label)
         .set(number_of_minerworkers as u64);
+
+    metrics.number_of_workers.set(number_of_minerworkers as u64);
 
     let registry2: MyRegistry = Arc::new(Mutex::new(registry));
 
