@@ -6,8 +6,17 @@ use super::parameter_type::ParameterType;
 use super::parse_parameters::*;
 use super::remove_comment::remove_comment;
 
+#[derive(Clone)]
 pub struct ParsedProgram {
     pub instruction_vec: Vec<Instruction>,
+}
+
+impl ParsedProgram {
+    pub fn new() -> Self {
+        Self {
+            instruction_vec: vec!()
+        }
+    }
 }
 
 impl fmt::Display for ParsedProgram {

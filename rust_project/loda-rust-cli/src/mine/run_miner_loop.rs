@@ -13,6 +13,7 @@ use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
 use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
+use loda_rust_core::parser::ParsedProgram;
 use std::time::Instant;
 use std::path::{Path, PathBuf};
 use rand::SeedableRng;
@@ -146,6 +147,11 @@ pub fn run_miner_loop(
     let mut progress_time = Instant::now();
     let mut iteration: usize = 0;
     let mut reload: bool = true;
+
+    let mut current_program_id: u64 = 0;
+    let mut current_parsed_program = ParsedProgram::new();
+
+    assert_eq!(context.has_available_programs(), true);
     loop {
         metric_number_of_miner_loop_iterations += 1;
 
@@ -253,12 +259,31 @@ pub fn run_miner_loop(
             progress_time = Instant::now();
         }
 
-        if (iteration % 20) == 0 {
+        if (iteration % 10) == 0 {
             reload = true;
+        }
+        if (iteration % 50000) == 0 {
+            match context.choose_available_program(&mut rng) {
+                Some(program_id) => { 
+                    current_program_id = program_id as u64;
+                },
+                None => {
+                    panic!("Unable to pick among available programs");
+                }
+            };
+            let parsed_program: ParsedProgram = match genome.load_program(&dm, current_program_id) {
+                Some(value) => value,
+                None => {
+                    error!("Unable to parse available program");
+                    reload = true;
+                    continue;
+                }
+            };
+            current_parsed_program = parsed_program;
         }
         if reload {
             genome.clear_message_vec();
-            let load_ok: bool = genome.load_random_program(&mut rng, &dm, &context);
+            let load_ok: bool = genome.insert_program(current_program_id, &current_parsed_program);
             if !load_ok {
                 metric_number_of_failed_genome_loads += 1;
                 continue;

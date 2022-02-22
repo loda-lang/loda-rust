@@ -51,25 +51,36 @@ impl Genome {
             }
         };
         let program_id: u64 = program_id_u32 as u64;
-        return self.load_program(dm, program_id);
+        let parsed_program: ParsedProgram = match self.load_program(dm, program_id) {
+            Some(value) => value,
+            None => {
+                return false;
+            }
+        };
+
+        return self.insert_program(program_id, &parsed_program);
     }
 
-    pub fn load_program(&mut self, dm: &DependencyManager, program_id: u64) -> bool {
+    pub fn load_program(&mut self, dm: &DependencyManager, program_id: u64) -> Option<ParsedProgram> {
         let path_to_program: PathBuf = dm.path_to_program(program_id);
         let contents: String = match fs::read_to_string(&path_to_program) {
             Ok(value) => value,
             Err(error) => {
                 error!("loading program_id: {:?}, something went wrong reading the file: {:?}", program_id, error);
-                return false;
+                return None;
             }
         };
         let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&contents) {
             Ok(value) => value,
             Err(error) => {
                 error!("loading program_id: {:?}, something went wrong parsing the program: {:?}", program_id, error);
-                return false;
+                return None;
             }
         };
+        Some(parsed_program)
+    }
+
+    pub fn insert_program(&mut self, program_id: u64, parsed_program: &ParsedProgram) -> bool {
         self.replace_genome_with_parsed_program(&parsed_program);
         debug!("loaded program_id: {:?}", program_id);
         self.message_vec.push(format!("template {:?}", program_id));
