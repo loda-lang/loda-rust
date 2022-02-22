@@ -255,6 +255,7 @@ pub fn run_miner_loop(
             metric_number_of_programs_without_output = 0;
             metric_number_of_programs_that_cannot_run = 0;
             metric_number_of_failed_genome_loads = 0;
+            metric_number_of_candidate_programs = 0;
 
             progress_time = Instant::now();
         }
