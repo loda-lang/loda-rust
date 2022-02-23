@@ -11,6 +11,7 @@ pub struct Metrics {
     pub cache_hit: Counter,
     pub cache_miss_program_oeis: Counter,
     pub cache_miss_program_without_id: Counter,
+    pub error_genome_load: Counter,
     pub reject_cannot_be_parsed: Counter,
     pub reject_no_output_register: Counter,
     pub reject_compute_error: Counter,
@@ -72,6 +73,13 @@ impl Metrics {
             "cache_miss_program_without_id",
             "Cache misses for programs without id",
             Box::new(cache_miss_program_without_id.clone()),
+        );
+
+        let error_genome_load = Counter::default();
+        sub_registry.register(
+            "error_genome_load",
+            "Unable to load program into genome",
+            Box::new(error_genome_load.clone()),
         );
 
         let reject_cannot_be_parsed = Counter::default();
@@ -138,6 +146,7 @@ impl Metrics {
             cache_hit: cache_hit,
             cache_miss_program_oeis: cache_miss_program_oeis,
             cache_miss_program_without_id: cache_miss_program_without_id,
+            error_genome_load: error_genome_load,
             reject_cannot_be_parsed: reject_cannot_be_parsed,
             reject_no_output_register: reject_no_output_register,
             reject_compute_error: reject_compute_error,

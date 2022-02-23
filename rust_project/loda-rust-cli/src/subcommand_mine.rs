@@ -224,13 +224,11 @@ impl MessageProcessor {
         let metric0: u32 = provider.metric_u32(KeyMetricU32::NumberOfMinerLoopIterations);
         let metric1: u32 = provider.metric_u32(KeyMetricU32::PreventedFlooding);
         let metric2: u32 = provider.metric_u32(KeyMetricU32::NumberOfFailedMutations);
-        let metric3: u32 = provider.metric_u32(KeyMetricU32::NumberOfFailedGenomeLoads);
         let s: String = format!(
-            "[{},{},{},{}]",
+            "[{},{},{}]",
             metric0,
             metric1,
             metric2,
-            metric3,
         );
         s
     }
