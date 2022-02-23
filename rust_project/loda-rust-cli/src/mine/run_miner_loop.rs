@@ -143,7 +143,7 @@ pub fn run_miner_loop(
     let mut metric_number_of_programs_that_cannot_parse: u32 = 0;
     let mut metric_number_of_programs_without_output: u32 = 0;
     let mut metric_number_of_programs_that_cannot_run: u32 = 0;
-    let mut metric_number_of_candidate_programs: u32 = 0;
+    let mut metric_number_of_candidate_programs: u64 = 0;
 
     let mut progress_time = Instant::now();
     let mut iteration: usize = 0;
@@ -236,9 +236,7 @@ pub fn run_miner_loop(
                 metrics.cache_miss_program_without_id.inc_by(x);
             }
             {
-                let y: u32 = metric_number_of_candidate_programs;
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfCandiatePrograms, y);
-                tx.send(message).unwrap();
+                metrics.number_of_candidate_programs.inc_by(metric_number_of_candidate_programs);
             }
 
             funnel.reset_metrics();

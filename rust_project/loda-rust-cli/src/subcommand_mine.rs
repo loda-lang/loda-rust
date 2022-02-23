@@ -166,9 +166,6 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, metric
         metrics.number_of_iterations.inc_by(metric0 as u64);
         accumulated_iterations += metric0 as u64;
 
-        let metric3: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::NumberOfCandiatePrograms);
-        metrics.number_of_candidate_programs.inc_by(metric3 as u64);
-
         // message_processor.metrics_summary();
         message_processor.reset_iteration_metrics();
     }
