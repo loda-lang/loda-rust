@@ -141,7 +141,7 @@ pub fn run_miner_loop(
     let mut metric_number_of_failed_mutations: u32 = 0;
     let mut metric_number_of_programs_that_cannot_parse: u64 = 0;
     let mut metric_number_of_programs_without_output: u64 = 0;
-    let mut metric_number_of_programs_that_cannot_run: u32 = 0;
+    let mut metric_number_of_compute_errors: u64 = 0;
     let mut metric_number_of_candidate_programs: u64 = 0;
 
     let mut progress_time = Instant::now();
@@ -201,9 +201,8 @@ pub fn run_miner_loop(
                 metrics.reject_no_output_register.inc_by(x);
             }
             {
-                let y: u32 = metric_number_of_programs_that_cannot_run;
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfProgramsThatCannotRun, y);
-                tx.send(message).unwrap();
+                let x: u64 = metric_number_of_compute_errors;
+                metrics.reject_compute_error.inc_by(x);
             }
             {
                 let y: u32 = metric_number_of_failed_genome_loads;
@@ -233,7 +232,7 @@ pub fn run_miner_loop(
             metric_number_of_failed_mutations = 0;
             metric_number_of_programs_that_cannot_parse = 0;
             metric_number_of_programs_without_output = 0;
-            metric_number_of_programs_that_cannot_run = 0;
+            metric_number_of_compute_errors = 0;
             metric_number_of_failed_genome_loads = 0;
             metric_number_of_candidate_programs = 0;
 
@@ -308,7 +307,7 @@ pub fn run_miner_loop(
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_programs_that_cannot_run += 1;
+                metric_number_of_compute_errors += 1;
                 continue;
             }
         };
@@ -324,7 +323,7 @@ pub fn run_miner_loop(
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_programs_that_cannot_run += 1;
+                metric_number_of_compute_errors += 1;
                 continue;
             }
         };
@@ -336,7 +335,7 @@ pub fn run_miner_loop(
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_programs_that_cannot_run += 1;
+                metric_number_of_compute_errors += 1;
                 continue;
             }
         };
@@ -348,7 +347,7 @@ pub fn run_miner_loop(
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_programs_that_cannot_run += 1;
+                metric_number_of_compute_errors += 1;
                 continue;
             }
         };

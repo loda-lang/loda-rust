@@ -556,7 +556,7 @@
         },
         "overrides": []
       },
-      "fill": 1,
+      "fill": 0,
       "fillGradient": 0,
       "gridPos": {
         "h": 5,
@@ -603,6 +603,12 @@
           "interval": "",
           "legendFormat": "No output register",
           "refId": "B"
+        },
+        {
+          "expr": "rate(lodarust_mine_reject_compute_error_total[2s])",
+          "interval": "",
+          "legendFormat": "Compute error",
+          "refId": "C"
         }
       ],
       "thresholds": [],
@@ -676,5 +682,5 @@
   "timezone": "",
   "title": "LODA Rust",
   "uid": "DvVCV7fnz",
-  "version": 89
+  "version": 91
 }

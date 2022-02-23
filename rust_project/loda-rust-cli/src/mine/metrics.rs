@@ -13,6 +13,7 @@ pub struct Metrics {
     pub cache_miss_program_without_id: Counter,
     pub reject_cannot_be_parsed: Counter,
     pub reject_no_output_register: Counter,
+    pub reject_compute_error: Counter,
     pub funnel_basic: Counter,
     pub funnel_10terms: Counter,
     pub funnel_20terms: Counter,
@@ -87,6 +88,13 @@ impl Metrics {
             Box::new(reject_no_output_register.clone()),
         );
 
+        let reject_compute_error = Counter::default();
+        sub_registry.register(
+            "reject_compute_error",
+            "Rejected programs because of compute error",
+            Box::new(reject_compute_error.clone()),
+        );
+
         let funnel_basic = Counter::default();
         sub_registry.register(
             "funnel_basic",
@@ -132,6 +140,7 @@ impl Metrics {
             cache_miss_program_without_id: cache_miss_program_without_id,
             reject_cannot_be_parsed: reject_cannot_be_parsed,
             reject_no_output_register: reject_no_output_register,
+            reject_compute_error: reject_compute_error,
             funnel_basic: funnel_basic,
             funnel_10terms: funnel_10terms,
             funnel_20terms: funnel_20terms,
