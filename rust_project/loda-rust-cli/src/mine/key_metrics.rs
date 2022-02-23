@@ -2,5 +2,4 @@
 pub enum KeyMetricU32 {
     NumberOfMinerLoopIterations,
     PreventedFlooding,
-    NumberOfFailedMutations,
 }

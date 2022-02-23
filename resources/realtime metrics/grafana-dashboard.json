@@ -615,6 +615,12 @@
           "interval": "",
           "legendFormat": "Genome load",
           "refId": "D"
+        },
+        {
+          "expr": "rate(lodarust_mine_reject_mutate_without_impact_total[2s])",
+          "interval": "",
+          "legendFormat": "Mutate without effect",
+          "refId": "E"
         }
       ],
       "thresholds": [],
@@ -688,5 +694,5 @@
   "timezone": "",
   "title": "LODA Rust",
   "uid": "DvVCV7fnz",
-  "version": 95
+  "version": 97
 }

@@ -223,12 +223,10 @@ impl MessageProcessor {
     fn format_summary(&self, provider: &dyn ProvideMetricU32) -> String {
         let metric0: u32 = provider.metric_u32(KeyMetricU32::NumberOfMinerLoopIterations);
         let metric1: u32 = provider.metric_u32(KeyMetricU32::PreventedFlooding);
-        let metric2: u32 = provider.metric_u32(KeyMetricU32::NumberOfFailedMutations);
         let s: String = format!(
-            "[{},{},{}]",
+            "[{},{}]",
             metric0,
             metric1,
-            metric2,
         );
         s
     }

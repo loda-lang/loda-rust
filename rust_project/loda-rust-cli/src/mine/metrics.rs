@@ -15,6 +15,7 @@ pub struct Metrics {
     pub reject_cannot_be_parsed: Counter,
     pub reject_no_output_register: Counter,
     pub reject_compute_error: Counter,
+    pub reject_mutate_without_impact: Counter,
     pub funnel_basic: Counter,
     pub funnel_10terms: Counter,
     pub funnel_20terms: Counter,
@@ -103,6 +104,13 @@ impl Metrics {
             Box::new(reject_compute_error.clone()),
         );
 
+        let reject_mutate_without_impact = Counter::default();
+        sub_registry.register(
+            "reject_mutate_without_impact",
+            "Rejected programs because mutate had no effect",
+            Box::new(reject_mutate_without_impact.clone()),
+        );
+
         let funnel_basic = Counter::default();
         sub_registry.register(
             "funnel_basic",
@@ -150,6 +158,7 @@ impl Metrics {
             reject_cannot_be_parsed: reject_cannot_be_parsed,
             reject_no_output_register: reject_no_output_register,
             reject_compute_error: reject_compute_error,
+            reject_mutate_without_impact: reject_mutate_without_impact,
             funnel_basic: funnel_basic,
             funnel_10terms: funnel_10terms,
             funnel_20terms: funnel_20terms,
