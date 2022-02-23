@@ -139,7 +139,7 @@ pub fn run_miner_loop(
     let mut metric_number_of_prevented_floodings: u32 = 0;
     let mut metric_number_of_failed_genome_loads: u32 = 0;
     let mut metric_number_of_failed_mutations: u32 = 0;
-    let mut metric_number_of_programs_that_cannot_parse: u32 = 0;
+    let mut metric_number_of_programs_that_cannot_parse: u64 = 0;
     let mut metric_number_of_programs_without_output: u32 = 0;
     let mut metric_number_of_programs_that_cannot_run: u32 = 0;
     let mut metric_number_of_candidate_programs: u64 = 0;
@@ -193,9 +193,8 @@ pub fn run_miner_loop(
                 tx.send(message).unwrap();
             }
             {
-                let y: u32 = metric_number_of_programs_that_cannot_parse;
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfProgramsThatCannotParse, y);
-                tx.send(message).unwrap();
+                let x: u64 = metric_number_of_programs_that_cannot_parse;
+                metrics.reject_cannot_be_parsed.inc_by(x);
             }
             {
                 let y: u32 = metric_number_of_programs_without_output;

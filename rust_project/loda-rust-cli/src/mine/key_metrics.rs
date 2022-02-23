@@ -3,7 +3,6 @@ pub enum KeyMetricU32 {
     NumberOfMinerLoopIterations,
     PreventedFlooding,
     NumberOfFailedMutations,
-    NumberOfProgramsThatCannotParse,
     NumberOfProgramsWithoutOutput,
     NumberOfProgramsThatCannotRun,
     NumberOfFailedGenomeLoads,

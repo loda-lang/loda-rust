@@ -11,6 +11,7 @@ pub struct Metrics {
     pub cache_hit: Counter,
     pub cache_miss_program_oeis: Counter,
     pub cache_miss_program_without_id: Counter,
+    pub reject_cannot_be_parsed: Counter,
     pub funnel_basic: Counter,
     pub funnel_10terms: Counter,
     pub funnel_20terms: Counter,
@@ -71,6 +72,13 @@ impl Metrics {
             Box::new(cache_miss_program_without_id.clone()),
         );
 
+        let reject_cannot_be_parsed = Counter::default();
+        sub_registry.register(
+            "reject_cannot_be_parsed",
+            "Rejected programs because they cannot be parsed",
+            Box::new(reject_cannot_be_parsed.clone()),
+        );
+
         let funnel_basic = Counter::default();
         sub_registry.register(
             "funnel_basic",
@@ -114,6 +122,7 @@ impl Metrics {
             cache_hit: cache_hit,
             cache_miss_program_oeis: cache_miss_program_oeis,
             cache_miss_program_without_id: cache_miss_program_without_id,
+            reject_cannot_be_parsed: reject_cannot_be_parsed,
             funnel_basic: funnel_basic,
             funnel_10terms: funnel_10terms,
             funnel_20terms: funnel_20terms,
