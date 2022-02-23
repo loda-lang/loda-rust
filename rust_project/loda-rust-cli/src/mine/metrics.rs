@@ -16,6 +16,7 @@ pub struct Metrics {
     pub reject_no_output_register: Counter,
     pub reject_compute_error: Counter,
     pub reject_mutate_without_impact: Counter,
+    pub rejected_preventing_flooding: Counter,
     pub funnel_basic: Counter,
     pub funnel_10terms: Counter,
     pub funnel_20terms: Counter,
@@ -111,6 +112,13 @@ impl Metrics {
             Box::new(reject_mutate_without_impact.clone()),
         );
 
+        let rejected_preventing_flooding = Counter::default();
+        sub_registry.register(
+            "rejected_preventing_flooding",
+            "Rejected programs because there already exist similar candidate programs",
+            Box::new(rejected_preventing_flooding.clone()),
+        );
+
         let funnel_basic = Counter::default();
         sub_registry.register(
             "funnel_basic",
@@ -159,6 +167,7 @@ impl Metrics {
             reject_no_output_register: reject_no_output_register,
             reject_compute_error: reject_compute_error,
             reject_mutate_without_impact: reject_mutate_without_impact,
+            rejected_preventing_flooding: rejected_preventing_flooding,
             funnel_basic: funnel_basic,
             funnel_10terms: funnel_10terms,
             funnel_20terms: funnel_20terms,

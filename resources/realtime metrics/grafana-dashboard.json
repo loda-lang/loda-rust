@@ -621,6 +621,12 @@
           "interval": "",
           "legendFormat": "Mutate without effect",
           "refId": "E"
+        },
+        {
+          "expr": "rate(lodarust_mine_rejected_preventing_flooding_total[2s])",
+          "interval": "",
+          "legendFormat": "Prevented flooding",
+          "refId": "F"
         }
       ],
       "thresholds": [],
@@ -694,5 +700,5 @@
   "timezone": "",
   "title": "LODA Rust",
   "uid": "DvVCV7fnz",
-  "version": 97
+  "version": 99
 }

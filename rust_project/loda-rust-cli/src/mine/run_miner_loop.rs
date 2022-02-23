@@ -136,7 +136,7 @@ pub fn run_miner_loop(
     );
 
     let mut metric_number_of_miner_loop_iterations: u32 = 0;
-    let mut metric_number_of_prevented_floodings: u32 = 0;
+    let mut metric_number_of_prevented_floodings: u64 = 0;
     let mut metric_number_of_failed_genome_loads: u64 = 0;
     let mut metric_number_of_failed_mutations: u64 = 0;
     let mut metric_number_of_programs_that_cannot_parse: u64 = 0;
@@ -183,9 +183,8 @@ pub fn run_miner_loop(
                 metrics.funnel_40terms.inc_by(x);
             }
             {
-                let y: u32 = metric_number_of_prevented_floodings;
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::PreventedFlooding, y);
-                tx.send(message).unwrap();
+                let x: u64 = metric_number_of_prevented_floodings;
+                metrics.rejected_preventing_flooding.inc_by(x);
             }
             {
                 let x: u64 = metric_number_of_failed_mutations;
