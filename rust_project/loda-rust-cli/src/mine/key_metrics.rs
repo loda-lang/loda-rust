@@ -12,8 +12,5 @@ pub enum KeyMetricU32 {
     NumberOfProgramsWithoutOutput,
     NumberOfProgramsThatCannotRun,
     NumberOfFailedGenomeLoads,
-    CacheHit,
-    CacheMissForProgramOeis,
-    CacheMissForProgramWithoutId,
     NumberOfCandiatePrograms,
 }

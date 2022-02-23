@@ -225,21 +225,15 @@ pub fn run_miner_loop(
             }
             {
                 let x: u64 = cache.metric_hit();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::CacheHit, y);
-                tx.send(message).unwrap();
+                metrics.cache_hit.inc_by(x);
             }
             {
                 let x: u64 = cache.metric_miss_for_program_oeis();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::CacheMissForProgramOeis, y);
-                tx.send(message).unwrap();
+                metrics.cache_miss_program_oeis.inc_by(x);
             }
             {
                 let x: u64 = cache.metric_miss_for_program_without_id();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::CacheMissForProgramWithoutId, y);
-                tx.send(message).unwrap();
+                metrics.cache_miss_program_without_id.inc_by(x);
             }
             {
                 let y: u32 = metric_number_of_candidate_programs;

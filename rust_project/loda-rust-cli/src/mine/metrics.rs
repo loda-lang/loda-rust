@@ -9,7 +9,8 @@ pub struct Metrics {
     pub number_of_iteration_now: Gauge::<u64>,
     pub number_of_candidate_programs: Gauge::<u64>,
     pub cache_hit: Counter,
-    pub cache_miss: Counter,
+    pub cache_miss_program_oeis: Counter,
+    pub cache_miss_program_without_id: Counter,
 }
 
 impl Metrics {
@@ -47,24 +48,32 @@ impl Metrics {
         let cache_hit = Counter::default();
         sub_registry.register(
             "cache_hit",
-            "Number of cache hits",
+            "Cache hits",
             Box::new(cache_hit.clone()),
         );
 
-        let cache_miss = Counter::default();
+        let cache_miss_program_oeis = Counter::default();
         sub_registry.register(
-            "cache_miss",
-            "Number of cache hits",
-            Box::new(cache_miss.clone()),
+            "cache_miss_program_oeis",
+            "Cache misses for oeis programs",
+            Box::new(cache_miss_program_oeis.clone()),
+        );
+
+        let cache_miss_program_without_id = Counter::default();
+        sub_registry.register(
+            "cache_miss_program_without_id",
+            "Cache misses for programs without id",
+            Box::new(cache_miss_program_without_id.clone()),
         );
 
         Self {
             number_of_workers: number_of_workers,
             number_of_iterations: number_of_iterations,
             number_of_iteration_now: number_of_iteration_now,
-            cache_hit: cache_hit,
-            cache_miss: cache_miss,
             number_of_candidate_programs: number_of_candidate_programs,
+            cache_hit: cache_hit,
+            cache_miss_program_oeis: cache_miss_program_oeis,
+            cache_miss_program_without_id: cache_miss_program_without_id,
         }
     }
 }

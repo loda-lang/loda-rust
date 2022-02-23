@@ -224,7 +224,8 @@
         "current": false,
         "max": false,
         "min": false,
-        "show": false,
+        "rightSide": false,
+        "show": true,
         "total": false,
         "values": false
       },
@@ -245,16 +246,22 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(lodarust_mine_cache_hit_total[2s])",
+          "expr": "rate(lodarust_mine_cache_miss_program_oeis_total[2s])",
           "interval": "",
-          "legendFormat": "",
-          "refId": "A"
+          "legendFormat": "Miss OEIS program",
+          "refId": "B"
         },
         {
-          "expr": "rate(lodarust_mine_cache_miss_total[2s])",
+          "expr": "rate(lodarust_mine_cache_miss_program_without_id_total[2s])",
           "interval": "",
-          "legendFormat": "",
-          "refId": "B"
+          "legendFormat": "Miss program without id",
+          "refId": "C"
+        },
+        {
+          "expr": "rate(lodarust_mine_cache_hit_total[2s])",
+          "interval": "",
+          "legendFormat": "Hit",
+          "refId": "A"
         }
       ],
       "thresholds": [],
@@ -424,7 +431,7 @@
     "list": []
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
@@ -445,5 +452,5 @@
   "timezone": "",
   "title": "LODA Rust",
   "uid": "DvVCV7fnz",
-  "version": 80
+  "version": 82
 }

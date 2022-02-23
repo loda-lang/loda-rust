@@ -166,14 +166,6 @@ fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, metric
         metrics.number_of_iterations.inc_by(metric0 as u64);
         accumulated_iterations += metric0 as u64;
 
-        let metric1: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::CacheHit);
-        metrics.cache_hit.inc_by(metric1 as u64);
-        
-        let metric2a: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::CacheMissForProgramOeis);
-        let metric2b: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::CacheMissForProgramWithoutId);
-        let metric2: u32 = metric2a + metric2b;
-        metrics.cache_miss.inc_by(metric2 as u64);
-        
         let metric3: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::NumberOfCandiatePrograms);
         metrics.number_of_candidate_programs.inc_by(metric3 as u64);
 
@@ -244,11 +236,8 @@ impl MessageProcessor {
         let metric9: u32 = provider.metric_u32(KeyMetricU32::NumberOfProgramsWithoutOutput);
         let metric10: u32 = provider.metric_u32(KeyMetricU32::NumberOfProgramsThatCannotRun);
         let metric11: u32 = provider.metric_u32(KeyMetricU32::NumberOfFailedGenomeLoads);
-        let metric12: u32 = provider.metric_u32(KeyMetricU32::CacheHit);
-        let metric13: u32 = provider.metric_u32(KeyMetricU32::CacheMissForProgramOeis);
-        let metric14: u32 = provider.metric_u32(KeyMetricU32::CacheMissForProgramWithoutId);
         let s: String = format!(
-            "[{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}]",
+            "[{},{},{},{},{},{},{},{},{},{},{},{}]",
             metric0,
             metric1,
             metric2,
@@ -261,9 +250,6 @@ impl MessageProcessor {
             metric9,
             metric10,
             metric11,
-            metric12,
-            metric13,
-            metric14,
         );
         s
     }
