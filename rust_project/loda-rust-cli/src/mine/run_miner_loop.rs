@@ -19,7 +19,6 @@ use std::path::{Path, PathBuf};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use std::sync::mpsc::Sender;
-use std::convert::TryFrom;
 
 const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
 
@@ -165,33 +164,23 @@ pub fn run_miner_loop(
             }
             {
                 let x: u64 = funnel.metric_number_of_candidates_with_basiccheck();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel10TermsPassingBasicCheck, y);
-                tx.send(message).unwrap();
+                metrics.funnel_basic.inc_by(x);
             }
             {
                 let x: u64 = funnel.metric_number_of_candidates_with_10terms();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel10TermsInBloomfilter, y);
-                tx.send(message).unwrap();
+                metrics.funnel_10terms.inc_by(x);
             }
             {
                 let x: u64 = funnel.metric_number_of_candidates_with_20terms();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel20TermsInBloomfilter, y);
-                tx.send(message).unwrap();
+                metrics.funnel_20terms.inc_by(x);
             }
             {
                 let x: u64 = funnel.metric_number_of_candidates_with_30terms();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel30TermsInBloomfilter, y);
-                tx.send(message).unwrap();
+                metrics.funnel_30terms.inc_by(x);
             }
             {
                 let x: u64 = funnel.metric_number_of_candidates_with_40terms();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel40TermsInBloomfilter, y);
-                tx.send(message).unwrap();
+                metrics.funnel_40terms.inc_by(x);
             }
             {
                 let y: u32 = metric_number_of_prevented_floodings;

@@ -307,6 +307,127 @@
       }
     },
     {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 5,
+        "w": 20,
+        "x": 0,
+        "y": 12
+      },
+      "hiddenSeries": false,
+      "id": 21,
+      "interval": "2s",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.3.4",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "rate(lodarust_mine_funnel_basic_total[2s])",
+          "interval": "",
+          "legendFormat": "Basic",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(lodarust_mine_funnel_10terms_total[2s])",
+          "interval": "",
+          "legendFormat": "10 Terms",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(lodarust_mine_funnel_20terms_total[2s])",
+          "interval": "",
+          "legendFormat": "20 Terms",
+          "refId": "C"
+        },
+        {
+          "expr": "rate(lodarust_mine_funnel_30terms_total[2s])",
+          "interval": "",
+          "legendFormat": "30 Terms",
+          "refId": "D"
+        },
+        {
+          "expr": "rate(lodarust_mine_funnel_40terms_total[2s])",
+          "interval": "",
+          "legendFormat": "40 Terms",
+          "refId": "E"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Funnel",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 2,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
       "datasource": "Prometheus",
       "description": "",
       "fieldConfig": {
@@ -333,7 +454,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 12
+        "y": 17
       },
       "id": 13,
       "options": {
@@ -391,7 +512,7 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 12
+        "y": 17
       },
       "id": 19,
       "options": {
@@ -431,7 +552,7 @@
     "list": []
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-15m",
     "to": "now"
   },
   "timepicker": {
@@ -452,5 +573,5 @@
   "timezone": "",
   "title": "LODA Rust",
   "uid": "DvVCV7fnz",
-  "version": 82
+  "version": 85
 }

@@ -11,6 +11,11 @@ pub struct Metrics {
     pub cache_hit: Counter,
     pub cache_miss_program_oeis: Counter,
     pub cache_miss_program_without_id: Counter,
+    pub funnel_basic: Counter,
+    pub funnel_10terms: Counter,
+    pub funnel_20terms: Counter,
+    pub funnel_30terms: Counter,
+    pub funnel_40terms: Counter,
 }
 
 impl Metrics {
@@ -66,6 +71,41 @@ impl Metrics {
             Box::new(cache_miss_program_without_id.clone()),
         );
 
+        let funnel_basic = Counter::default();
+        sub_registry.register(
+            "funnel_basic",
+            "Number of programs that passed the basic funnel",
+            Box::new(funnel_basic.clone()),
+        );
+
+        let funnel_10terms = Counter::default();
+        sub_registry.register(
+            "funnel_10terms",
+            "Number of programs that passed the 10 terms funnel",
+            Box::new(funnel_10terms.clone()),
+        );
+
+        let funnel_20terms = Counter::default();
+        sub_registry.register(
+            "funnel_20terms",
+            "Number of programs that passed the 20 terms funnel",
+            Box::new(funnel_20terms.clone()),
+        );
+
+        let funnel_30terms = Counter::default();
+        sub_registry.register(
+            "funnel_30terms",
+            "Number of programs that passed the 30 terms funnel",
+            Box::new(funnel_30terms.clone()),
+        );
+
+        let funnel_40terms = Counter::default();
+        sub_registry.register(
+            "funnel_40terms",
+            "Number of programs that passed the 40 terms funnel",
+            Box::new(funnel_40terms.clone()),
+        );
+
         Self {
             number_of_workers: number_of_workers,
             number_of_iterations: number_of_iterations,
@@ -74,6 +114,11 @@ impl Metrics {
             cache_hit: cache_hit,
             cache_miss_program_oeis: cache_miss_program_oeis,
             cache_miss_program_without_id: cache_miss_program_without_id,
+            funnel_basic: funnel_basic,
+            funnel_10terms: funnel_10terms,
+            funnel_20terms: funnel_20terms,
+            funnel_30terms: funnel_30terms,
+            funnel_40terms: funnel_40terms,
         }
     }
 }

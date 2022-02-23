@@ -222,19 +222,14 @@ impl MessageProcessor {
 
     fn format_summary(&self, provider: &dyn ProvideMetricU32) -> String {
         let metric0: u32 = provider.metric_u32(KeyMetricU32::NumberOfMinerLoopIterations);
-        let metric1: u32 = provider.metric_u32(KeyMetricU32::Funnel10TermsPassingBasicCheck);
-        let metric2: u32 = provider.metric_u32(KeyMetricU32::Funnel10TermsInBloomfilter);
-        let metric3: u32 = provider.metric_u32(KeyMetricU32::Funnel20TermsInBloomfilter);
-        let metric4: u32 = provider.metric_u32(KeyMetricU32::Funnel30TermsInBloomfilter);
-        let metric5: u32 = provider.metric_u32(KeyMetricU32::Funnel40TermsInBloomfilter);
-        let metric6: u32 = provider.metric_u32(KeyMetricU32::PreventedFlooding);
-        let metric7: u32 = provider.metric_u32(KeyMetricU32::NumberOfFailedMutations);
-        let metric8: u32 = provider.metric_u32(KeyMetricU32::NumberOfProgramsThatCannotParse);
-        let metric9: u32 = provider.metric_u32(KeyMetricU32::NumberOfProgramsWithoutOutput);
-        let metric10: u32 = provider.metric_u32(KeyMetricU32::NumberOfProgramsThatCannotRun);
-        let metric11: u32 = provider.metric_u32(KeyMetricU32::NumberOfFailedGenomeLoads);
+        let metric1: u32 = provider.metric_u32(KeyMetricU32::PreventedFlooding);
+        let metric2: u32 = provider.metric_u32(KeyMetricU32::NumberOfFailedMutations);
+        let metric3: u32 = provider.metric_u32(KeyMetricU32::NumberOfProgramsThatCannotParse);
+        let metric4: u32 = provider.metric_u32(KeyMetricU32::NumberOfProgramsWithoutOutput);
+        let metric5: u32 = provider.metric_u32(KeyMetricU32::NumberOfProgramsThatCannotRun);
+        let metric6: u32 = provider.metric_u32(KeyMetricU32::NumberOfFailedGenomeLoads);
         let s: String = format!(
-            "[{},{},{},{},{},{},{},{},{},{},{},{}]",
+            "[{},{},{},{},{},{},{}]",
             metric0,
             metric1,
             metric2,
@@ -242,11 +237,6 @@ impl MessageProcessor {
             metric4,
             metric5,
             metric6,
-            metric7,
-            metric8,
-            metric9,
-            metric10,
-            metric11,
         );
         s
     }
