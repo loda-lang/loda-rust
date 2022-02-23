@@ -597,6 +597,12 @@
           "interval": "",
           "legendFormat": "Cannot be parsed",
           "refId": "A"
+        },
+        {
+          "expr": "rate(lodarust_mine_reject_no_output_register_total[2s])",
+          "interval": "",
+          "legendFormat": "No output register",
+          "refId": "B"
         }
       ],
       "thresholds": [],
@@ -670,5 +676,5 @@
   "timezone": "",
   "title": "LODA Rust",
   "uid": "DvVCV7fnz",
-  "version": 87
+  "version": 89
 }

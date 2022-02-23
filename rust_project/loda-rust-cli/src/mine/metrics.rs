@@ -12,6 +12,7 @@ pub struct Metrics {
     pub cache_miss_program_oeis: Counter,
     pub cache_miss_program_without_id: Counter,
     pub reject_cannot_be_parsed: Counter,
+    pub reject_no_output_register: Counter,
     pub funnel_basic: Counter,
     pub funnel_10terms: Counter,
     pub funnel_20terms: Counter,
@@ -79,6 +80,13 @@ impl Metrics {
             Box::new(reject_cannot_be_parsed.clone()),
         );
 
+        let reject_no_output_register = Counter::default();
+        sub_registry.register(
+            "reject_no_output_register",
+            "Rejected programs because they have no output register",
+            Box::new(reject_no_output_register.clone()),
+        );
+
         let funnel_basic = Counter::default();
         sub_registry.register(
             "funnel_basic",
@@ -123,6 +131,7 @@ impl Metrics {
             cache_miss_program_oeis: cache_miss_program_oeis,
             cache_miss_program_without_id: cache_miss_program_without_id,
             reject_cannot_be_parsed: reject_cannot_be_parsed,
+            reject_no_output_register: reject_no_output_register,
             funnel_basic: funnel_basic,
             funnel_10terms: funnel_10terms,
             funnel_20terms: funnel_20terms,
