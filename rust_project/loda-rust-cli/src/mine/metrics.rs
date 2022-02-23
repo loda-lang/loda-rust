@@ -2,6 +2,7 @@ use prometheus_client::metrics::counter::Counter;
 use prometheus_client::metrics::gauge::Gauge;
 use prometheus_client::registry::Registry;
 
+#[derive(Clone)]
 pub struct Metrics {
     pub number_of_workers: Gauge::<u64>,
     pub number_of_iterations: Counter,

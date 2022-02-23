@@ -68,15 +68,17 @@ pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComp
         }
     });
 
+    let minercoordinator_metrics = metrics.clone();
     let minercoordinator_thread = tokio::spawn(async move {
-        miner_coordinator_inner(receiver, metrics);
+        miner_coordinator_inner(receiver, minercoordinator_metrics);
     });
 
     for worker_id in 0..number_of_minerworkers {
         println!("Spawn worker id: {}", worker_id);
         let sender_clone = sender.clone();
+        let metrics_clone = metrics.clone();
         let _ = tokio::spawn(async move {
-            start_miner_loop(sender_clone);
+            start_miner_loop(sender_clone, metrics_clone);
         });
         thread::sleep(Duration::from_millis(2000));
     }

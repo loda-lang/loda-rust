@@ -6,7 +6,7 @@ use super::SuggestInstruction;
 use super::SuggestSource;
 use super::SuggestTarget;
 use super::find_asm_files_recursively;
-use super::{MinerThreadMessageToCoordinator, KeyMetricU32};
+use super::{MinerThreadMessageToCoordinator, KeyMetricU32, Metrics};
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -83,6 +83,7 @@ pub fn run_miner_loop(
     initial_random_seed: u64,
     popular_program_container: PopularProgramContainer,
     recent_program_container: RecentProgramContainer,
+    metrics: Metrics,
 ) {
     let mut rng = StdRng::seed_from_u64(initial_random_seed);
 
