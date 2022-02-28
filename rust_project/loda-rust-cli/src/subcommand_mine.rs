@@ -12,6 +12,12 @@ use std::sync::{Arc, Mutex};
 
 extern crate num_cpus;
 
+#[derive(Debug)]
+pub enum SubcommandMineMetricsMode {
+    NoMetricsServer,
+    RunMetricsServer,
+}
+
 pub enum SubcommandMineParallelComputingMode {
     SingleInstance,
     ParallelInstancces,
@@ -45,9 +51,12 @@ impl SubcommandMineParallelComputingMode {
 
 type MyRegistry = std::sync::Arc<std::sync::Mutex<prometheus_client::registry::Registry<std::boxed::Box<dyn prometheus_client::encoding::text::SendEncodeMetric>>>>;
 
-pub async fn subcommand_mine(parallel_computing_mode: SubcommandMineParallelComputingMode) 
-    -> std::result::Result<(), Box<dyn std::error::Error>> 
+pub async fn subcommand_mine(
+    parallel_computing_mode: SubcommandMineParallelComputingMode,
+    metrics_mode: SubcommandMineMetricsMode
+) -> std::result::Result<(), Box<dyn std::error::Error>> 
 {
+    println!("metrics mode: {:?}", metrics_mode);
     print_info_about_start_conditions();
 
     let number_of_minerworkers: usize = parallel_computing_mode.number_of_threads();
@@ -107,7 +116,7 @@ async fn webserver_with_metrics(registry: MyRegistry) -> std::result::Result<(),
                 .build();
             Ok(response)
         });
-    app.listen("127.0.0.1:8090").await?;
+    app.listen("localhost:8090").await?;
     Ok(())
 }
 

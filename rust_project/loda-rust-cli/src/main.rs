@@ -20,7 +20,7 @@ mod subcommand_update;
 use subcommand_dependencies::subcommand_dependencies;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 use subcommand_install::subcommand_install;
-use subcommand_mine::{subcommand_mine,SubcommandMineParallelComputingMode};
+use subcommand_mine::{subcommand_mine,SubcommandMineParallelComputingMode,SubcommandMineMetricsMode};
 use subcommand_update::subcommand_update;
 
 extern crate clap;
@@ -91,6 +91,11 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
                         .takes_value(false)
                         .short("p")
                 )
+                .arg(
+                    Arg::with_name("metrics")
+                        .long("metrics")
+                        .help("Run a metrics server on localhost:8090 (can be overwritten in the config file)")
+                )
         )
         .get_matches();
 
@@ -142,7 +147,12 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
             true => SubcommandMineParallelComputingMode::ParallelInstancces,
             false => SubcommandMineParallelComputingMode::SingleInstance
         };
-        subcommand_mine(parallel_computing_mode).await?;
+        let metrics: bool = sub_m.is_present("metrics");
+        let metrics_mode: SubcommandMineMetricsMode = match metrics {
+            true => SubcommandMineMetricsMode::RunMetricsServer,
+            false => SubcommandMineMetricsMode::NoMetricsServer
+        };
+        subcommand_mine(parallel_computing_mode, metrics_mode).await?;
         return Ok(());
     }
 
