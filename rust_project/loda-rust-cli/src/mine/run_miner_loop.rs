@@ -6,7 +6,7 @@ use super::SuggestInstruction;
 use super::SuggestSource;
 use super::SuggestTarget;
 use super::find_asm_files_recursively;
-use super::{MinerThreadMessageToCoordinator, KeyMetricU32, Metrics};
+use super::{MinerThreadMessageToCoordinator, KeyMetricU32, Metrics, MetricEvent, Recorder};
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -204,19 +204,23 @@ pub fn run_miner_loop(
             }
             {
                 let x: u64 = metric_number_of_failed_genome_loads;
-                metrics.error_genome_load.inc_by(x);
+                let event = MetricEvent::ErrorGenomeLoad { increment: x };
+                metrics.record(&event);
             }
             {
                 let x: u64 = cache.metric_hit();
-                metrics.cache_hit.inc_by(x);
+                let event = MetricEvent::CacheHit { increment: x };
+                metrics.record(&event);
             }
             {
                 let x: u64 = cache.metric_miss_for_program_oeis();
-                metrics.cache_miss_program_oeis.inc_by(x);
+                let event = MetricEvent::CacheMissProgramOeis { increment: x };
+                metrics.record(&event);
             }
             {
                 let x: u64 = cache.metric_miss_for_program_without_id();
-                metrics.cache_miss_program_without_id.inc_by(x);
+                let event = MetricEvent::CacheMissProgramWithoutId { increment: x };
+                metrics.record(&event);
             }
             {
                 metrics.number_of_candidate_programs.inc_by(metric_number_of_candidate_programs);

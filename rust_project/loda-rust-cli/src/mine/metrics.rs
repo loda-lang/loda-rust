@@ -1,3 +1,4 @@
+use super::{MetricEvent, Recorder};
 use prometheus_client::metrics::counter::Counter;
 use prometheus_client::metrics::gauge::Gauge;
 use prometheus_client::registry::Registry;
@@ -173,6 +174,25 @@ impl Metrics {
             funnel_20terms: funnel_20terms,
             funnel_30terms: funnel_30terms,
             funnel_40terms: funnel_40terms,
+        }
+    }
+}
+
+impl Recorder<MetricEvent> for Metrics {
+    fn record(&self, event: &MetricEvent) {
+        match event {
+            MetricEvent::CacheHit { increment } => {
+                self.cache_hit.inc_by(*increment);
+            },
+            MetricEvent::CacheMissProgramOeis { increment } => {
+                self.cache_miss_program_oeis.inc_by(*increment);
+            },
+            MetricEvent::CacheMissProgramWithoutId { increment } => {
+                self.cache_miss_program_without_id.inc_by(*increment);
+            },
+            MetricEvent::ErrorGenomeLoad { increment } => {
+                self.error_genome_load.inc_by(*increment);
+            },
         }
     }
 }
