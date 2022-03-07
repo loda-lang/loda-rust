@@ -49,7 +49,7 @@ pub use genome_mutate_context::GenomeMutateContext;
 pub use genome::{Genome, MutateGenome};
 pub use genome_item::{GenomeItem, MutateValue};
 pub use histogram_instruction_constant::HistogramInstructionConstant;
-pub use key_metrics::{KeyMetricU32, MetricEvent, Recorder};
+pub use key_metrics::{KeyMetricU32, MetricEvent, Recorder, SinkRecorder};
 pub use load_program_ids_csv_file::load_program_ids_csv_file;
 pub use metrics::Metrics;
 pub use moving_average::MovingAverage;

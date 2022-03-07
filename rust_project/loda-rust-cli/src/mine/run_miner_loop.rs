@@ -6,7 +6,7 @@ use super::SuggestInstruction;
 use super::SuggestSource;
 use super::SuggestTarget;
 use super::find_asm_files_recursively;
-use super::{MinerThreadMessageToCoordinator, KeyMetricU32, Metrics, MetricEvent, Recorder};
+use super::{MinerThreadMessageToCoordinator, KeyMetricU32, MetricEvent, Recorder};
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -82,7 +82,6 @@ pub fn run_miner_loop(
     initial_random_seed: u64,
     popular_program_container: PopularProgramContainer,
     recent_program_container: RecentProgramContainer,
-    metrics: Metrics,
     recorder: Box<dyn Recorder<MetricEvent>>,
 ) {
     let mut rng = StdRng::seed_from_u64(initial_random_seed);
@@ -171,7 +170,6 @@ pub fn run_miner_loop(
                     terms30: funnel.metric_number_of_candidates_with_30terms(),
                     terms40: funnel.metric_number_of_candidates_with_40terms(),
                 };
-                metrics.record(&event);
                 recorder.record(&event);
             }
             {
@@ -182,7 +180,6 @@ pub fn run_miner_loop(
                     no_mutation: metric_number_of_failed_mutations,
                     compute_error: metric_number_of_compute_errors,
                 };
-                metrics.record(&event);
                 recorder.record(&event);
             }
             {
@@ -191,7 +188,6 @@ pub fn run_miner_loop(
                     miss_program_oeis: cache.metric_miss_for_program_oeis(),
                     miss_program_without_id: cache.metric_miss_for_program_without_id(),
                 };
-                metrics.record(&event);
                 recorder.record(&event);
             }
             {
@@ -199,7 +195,6 @@ pub fn run_miner_loop(
                     prevent_flooding: metric_number_of_prevented_floodings,
                     candidate_program: metric_number_of_candidate_programs,
                 };
-                metrics.record(&event);
                 recorder.record(&event);
             }
 

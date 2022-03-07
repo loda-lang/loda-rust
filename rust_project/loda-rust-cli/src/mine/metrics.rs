@@ -8,21 +8,21 @@ pub struct Metrics {
     pub number_of_workers: Gauge::<u64>,
     pub number_of_iterations: Counter,
     pub number_of_iteration_now: Gauge::<u64>,
-    pub number_of_candidate_programs: Gauge::<u64>,
-    pub cache_hit: Counter,
-    pub cache_miss_program_oeis: Counter,
-    pub cache_miss_program_without_id: Counter,
-    pub error_genome_load: Counter,
-    pub reject_cannot_be_parsed: Counter,
-    pub reject_no_output_register: Counter,
-    pub reject_compute_error: Counter,
-    pub reject_mutate_without_impact: Counter,
-    pub rejected_preventing_flooding: Counter,
-    pub funnel_basic: Counter,
-    pub funnel_10terms: Counter,
-    pub funnel_20terms: Counter,
-    pub funnel_30terms: Counter,
-    pub funnel_40terms: Counter,
+    number_of_candidate_programs: Gauge::<u64>,
+    cache_hit: Counter,
+    cache_miss_program_oeis: Counter,
+    cache_miss_program_without_id: Counter,
+    error_genome_load: Counter,
+    reject_cannot_be_parsed: Counter,
+    reject_no_output_register: Counter,
+    reject_compute_error: Counter,
+    reject_mutate_without_impact: Counter,
+    rejected_preventing_flooding: Counter,
+    funnel_basic: Counter,
+    funnel_10terms: Counter,
+    funnel_20terms: Counter,
+    funnel_30terms: Counter,
+    funnel_40terms: Counter,
 }
 
 impl Metrics {
@@ -41,7 +41,7 @@ impl Metrics {
             "iterations",
             "Number of iterations",
             Box::new(number_of_iterations.clone()),
-        );    
+        );
 
         let number_of_iteration_now = Gauge::<u64>::default();
         sub_registry.register(

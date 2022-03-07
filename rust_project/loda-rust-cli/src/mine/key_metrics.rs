@@ -32,3 +32,11 @@ pub enum MetricEvent {
 pub trait Recorder<Event> {
     fn record(&self, event: &Event);
 }
+
+pub struct SinkRecorder {}
+
+impl Recorder<MetricEvent> for SinkRecorder {
+    fn record(&self, _event: &MetricEvent) {
+        // print!("sink recorder")
+    }
+}
