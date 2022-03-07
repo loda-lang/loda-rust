@@ -83,6 +83,7 @@ pub fn run_miner_loop(
     popular_program_container: PopularProgramContainer,
     recent_program_container: RecentProgramContainer,
     metrics: Metrics,
+    recorder: Box<dyn Recorder<MetricEvent>>,
 ) {
     let mut rng = StdRng::seed_from_u64(initial_random_seed);
 
@@ -163,67 +164,43 @@ pub fn run_miner_loop(
                 tx.send(message).unwrap();
             }
             {
-                let x: u64 = funnel.metric_number_of_candidates_with_basiccheck();
-                metrics.funnel_basic.inc_by(x);
-            }
-            {
-                let x: u64 = funnel.metric_number_of_candidates_with_10terms();
-                metrics.funnel_10terms.inc_by(x);
-            }
-            {
-                let x: u64 = funnel.metric_number_of_candidates_with_20terms();
-                metrics.funnel_20terms.inc_by(x);
-            }
-            {
-                let x: u64 = funnel.metric_number_of_candidates_with_30terms();
-                metrics.funnel_30terms.inc_by(x);
-            }
-            {
-                let x: u64 = funnel.metric_number_of_candidates_with_40terms();
-                metrics.funnel_40terms.inc_by(x);
-            }
-            {
-                let x: u64 = metric_number_of_prevented_floodings;
-                metrics.rejected_preventing_flooding.inc_by(x);
-            }
-            {
-                let x: u64 = metric_number_of_failed_mutations;
-                metrics.reject_mutate_without_impact.inc_by(x);
-            }
-            {
-                let x: u64 = metric_number_of_programs_that_cannot_parse;
-                metrics.reject_cannot_be_parsed.inc_by(x);
-            }
-            {
-                let x: u64 = metric_number_of_programs_without_output;
-                metrics.reject_no_output_register.inc_by(x);
-            }
-            {
-                let x: u64 = metric_number_of_compute_errors;
-                metrics.reject_compute_error.inc_by(x);
-            }
-            {
-                let x: u64 = metric_number_of_failed_genome_loads;
-                let event = MetricEvent::ErrorGenomeLoad { increment: x };
+                let event = MetricEvent::Funnel { 
+                    basic: funnel.metric_number_of_candidates_with_basiccheck(),
+                    terms10: funnel.metric_number_of_candidates_with_10terms(),
+                    terms20: funnel.metric_number_of_candidates_with_20terms(),
+                    terms30: funnel.metric_number_of_candidates_with_30terms(),
+                    terms40: funnel.metric_number_of_candidates_with_40terms(),
+                };
                 metrics.record(&event);
+                recorder.record(&event);
             }
             {
-                let x: u64 = cache.metric_hit();
-                let event = MetricEvent::CacheHit { increment: x };
+                let event = MetricEvent::Genome { 
+                    cannot_load: metric_number_of_failed_genome_loads,
+                    cannot_parse: metric_number_of_programs_that_cannot_parse,
+                    no_output: metric_number_of_programs_without_output,
+                    no_mutation: metric_number_of_failed_mutations,
+                    compute_error: metric_number_of_compute_errors,
+                };
                 metrics.record(&event);
+                recorder.record(&event);
             }
             {
-                let x: u64 = cache.metric_miss_for_program_oeis();
-                let event = MetricEvent::CacheMissProgramOeis { increment: x };
+                let event = MetricEvent::Cache { 
+                    hit: cache.metric_hit(),
+                    miss_program_oeis: cache.metric_miss_for_program_oeis(),
+                    miss_program_without_id: cache.metric_miss_for_program_without_id(),
+                };
                 metrics.record(&event);
+                recorder.record(&event);
             }
             {
-                let x: u64 = cache.metric_miss_for_program_without_id();
-                let event = MetricEvent::CacheMissProgramWithoutId { increment: x };
+                let event = MetricEvent::General { 
+                    prevent_flooding: metric_number_of_prevented_floodings,
+                    candidate_program: metric_number_of_candidate_programs,
+                };
                 metrics.record(&event);
-            }
-            {
-                metrics.number_of_candidate_programs.inc_by(metric_number_of_candidate_programs);
+                recorder.record(&event);
             }
 
             funnel.reset_metrics();

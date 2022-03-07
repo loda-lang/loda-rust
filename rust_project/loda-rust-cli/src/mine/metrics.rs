@@ -181,17 +181,28 @@ impl Metrics {
 impl Recorder<MetricEvent> for Metrics {
     fn record(&self, event: &MetricEvent) {
         match event {
-            MetricEvent::CacheHit { increment } => {
-                self.cache_hit.inc_by(*increment);
+            MetricEvent::Funnel { basic, terms10, terms20, terms30, terms40 } => {
+                self.funnel_basic.inc_by(*basic);
+                self.funnel_10terms.inc_by(*terms10);
+                self.funnel_20terms.inc_by(*terms20);
+                self.funnel_30terms.inc_by(*terms30);
+                self.funnel_40terms.inc_by(*terms40);
             },
-            MetricEvent::CacheMissProgramOeis { increment } => {
-                self.cache_miss_program_oeis.inc_by(*increment);
+            MetricEvent::Cache { hit, miss_program_oeis, miss_program_without_id } => {
+                self.cache_hit.inc_by(*hit);
+                self.cache_miss_program_oeis.inc_by(*miss_program_oeis);
+                self.cache_miss_program_without_id.inc_by(*miss_program_without_id);
             },
-            MetricEvent::CacheMissProgramWithoutId { increment } => {
-                self.cache_miss_program_without_id.inc_by(*increment);
+            MetricEvent::Genome { cannot_load, cannot_parse, no_output, no_mutation, compute_error } => {
+                self.error_genome_load.inc_by(*cannot_load);
+                self.reject_cannot_be_parsed.inc_by(*cannot_parse);
+                self.reject_no_output_register.inc_by(*no_output);
+                self.reject_mutate_without_impact.inc_by(*no_mutation);
+                self.reject_compute_error.inc_by(*compute_error);
             },
-            MetricEvent::ErrorGenomeLoad { increment } => {
-                self.error_genome_load.inc_by(*increment);
+            MetricEvent::General { prevent_flooding, candidate_program } => {
+                self.rejected_preventing_flooding.inc_by(*prevent_flooding);
+                self.number_of_candidate_programs.inc_by(*candidate_program);
             },
         }
     }
