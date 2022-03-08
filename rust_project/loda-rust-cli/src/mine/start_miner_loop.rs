@@ -1,11 +1,14 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
-use super::{CheckFixedLengthSequence, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, Metrics, MetricEvent, Recorder, SinkRecorder};
+use super::{CheckFixedLengthSequence, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, MetricEvent, Recorder};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 use std::sync::mpsc::Sender;
 
-pub fn start_miner_loop(tx: Sender<MinerThreadMessageToCoordinator>, metrics: Metrics) {
+pub fn start_miner_loop(
+    tx: Sender<MinerThreadMessageToCoordinator>, 
+    recorder: Box<dyn Recorder<MetricEvent> + Send>
+) {
     // Load config file
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
@@ -89,13 +92,10 @@ pub fn start_miner_loop(tx: Sender<MinerThreadMessageToCoordinator>, metrics: Me
     let val2 = MinerThreadMessageToCoordinator::ReadyForMining;
     tx.send(val2).unwrap();
 
-
-    // let recorder: Box<dyn Recorder<MetricEvent>> = Box::new(SinkRecorder {});
-    let recorder: Box<dyn Recorder<MetricEvent>> = Box::new(metrics);
-
     // Launch the miner
     run_miner_loop(
         tx,
+        recorder,
         &loda_programs_oeis_dir, 
         &checker10, 
         &checker20,
@@ -111,6 +111,5 @@ pub fn start_miner_loop(tx: Sender<MinerThreadMessageToCoordinator>, metrics: Me
         initial_random_seed,
         popular_program_container,
         recent_program_container,
-        recorder,
     );
 }

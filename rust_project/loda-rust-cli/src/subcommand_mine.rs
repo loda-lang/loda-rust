@@ -1,4 +1,4 @@
-use crate::mine::{MinerThreadMessageToCoordinator, start_miner_loop, KeyMetricU32, MovingAverage, Metrics};
+use crate::mine::{MinerThreadMessageToCoordinator, start_miner_loop, KeyMetricU32, MovingAverage, Metrics, MetricEvent, Recorder, SinkRecorder};
 use std::thread;
 use std::mem;
 use std::time::Duration;
@@ -86,8 +86,12 @@ pub async fn subcommand_mine(
         println!("Spawn worker id: {}", worker_id);
         let sender_clone = sender.clone();
         let metrics_clone = metrics.clone();
+
+        // let recorder: Box<dyn Recorder<MetricEvent> + Send> = Box::new(SinkRecorder {});
+        let recorder: Box<dyn Recorder<MetricEvent> + Send> = Box::new(metrics_clone);
+
         let _ = tokio::spawn(async move {
-            start_miner_loop(sender_clone, metrics_clone);
+            start_miner_loop(sender_clone, recorder);
         });
         thread::sleep(Duration::from_millis(2000));
     }

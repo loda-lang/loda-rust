@@ -67,6 +67,7 @@ impl TermComputer {
 
 pub fn run_miner_loop(
     tx: Sender<MinerThreadMessageToCoordinator>,
+    recorder: Box<dyn Recorder<MetricEvent>>,
     loda_programs_oeis_dir: &PathBuf, 
     checker10: &CheckFixedLengthSequence, 
     checker20: &CheckFixedLengthSequence,
@@ -82,7 +83,6 @@ pub fn run_miner_loop(
     initial_random_seed: u64,
     popular_program_container: PopularProgramContainer,
     recent_program_container: RecentProgramContainer,
-    recorder: Box<dyn Recorder<MetricEvent>>,
 ) {
     let mut rng = StdRng::seed_from_u64(initial_random_seed);
 
