@@ -1,4 +1,4 @@
-use crate::mine::{MinerThreadMessageToCoordinator, start_miner_loop, KeyMetricU32, MovingAverage, Metrics, MetricEvent, Recorder, SinkRecorder};
+use crate::mine::{MinerThreadMessageToCoordinator, start_miner_loop, KeyMetricU32, MovingAverage, MetricsPrometheus, MetricEvent, Recorder, SinkRecorder};
 use std::thread;
 use std::mem;
 use std::time::Duration;
@@ -65,7 +65,7 @@ pub async fn subcommand_mine(
     let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
 
     let mut registry = <Registry>::default();
-    let metrics = Metrics::new(&mut registry);
+    let metrics = MetricsPrometheus::new(&mut registry);
     metrics.number_of_workers.set(number_of_minerworkers as u64);
 
     let registry2: MyRegistry = Arc::new(Mutex::new(registry));
@@ -129,7 +129,7 @@ struct State {
     registry: MyRegistry,
 }
 
-fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, metrics: Metrics) {
+fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, metrics: MetricsPrometheus) {
     let mut message_processor = MessageProcessor::new();
     let mut progress_time = Instant::now();
     let mut accumulated_iterations: u64 = 0;

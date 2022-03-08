@@ -4,7 +4,7 @@ use prometheus_client::metrics::gauge::Gauge;
 use prometheus_client::registry::Registry;
 
 #[derive(Clone)]
-pub struct Metrics {
+pub struct MetricsPrometheus {
     pub number_of_workers: Gauge::<u64>,
     pub number_of_iterations: Counter,
     pub number_of_iteration_now: Gauge::<u64>,
@@ -25,7 +25,7 @@ pub struct Metrics {
     funnel_40terms: Counter,
 }
 
-impl Metrics {
+impl MetricsPrometheus {
     pub fn new(registry: &mut Registry) -> Self {
         let sub_registry = registry.sub_registry_with_prefix("lodarust_mine");
 
@@ -178,7 +178,7 @@ impl Metrics {
     }
 }
 
-impl Recorder<MetricEvent> for Metrics {
+impl Recorder<MetricEvent> for MetricsPrometheus {
     fn record(&self, event: &MetricEvent) {
         match event {
             MetricEvent::Funnel { basic, terms10, terms20, terms30, terms40 } => {
