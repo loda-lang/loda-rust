@@ -20,7 +20,7 @@ pub enum SubcommandMineMetricsMode {
 
 pub enum SubcommandMineParallelComputingMode {
     SingleInstance,
-    ParallelInstancces,
+    ParallelInstances,
 }
 
 impl SubcommandMineParallelComputingMode {
@@ -29,7 +29,7 @@ impl SubcommandMineParallelComputingMode {
             Self::SingleInstance => {
                 return 1;
             },
-            Self::ParallelInstancces => {
+            Self::ParallelInstances => {
                 return Self::number_of_threads_in_parallel_mode();
             }
         }

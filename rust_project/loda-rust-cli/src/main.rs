@@ -144,7 +144,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     if let Some(sub_m) = matches.subcommand_matches("mine") {
         let run_parallel: bool = sub_m.is_present("parallel");
         let parallel_computing_mode: SubcommandMineParallelComputingMode = match run_parallel {
-            true => SubcommandMineParallelComputingMode::ParallelInstancces,
+            true => SubcommandMineParallelComputingMode::ParallelInstances,
             false => SubcommandMineParallelComputingMode::SingleInstance
         };
         let metrics: bool = sub_m.is_present("metrics");
