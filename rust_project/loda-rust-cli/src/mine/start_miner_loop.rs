@@ -1,13 +1,13 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
-use super::{CheckFixedLengthSequence, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, MetricEvent, Recorder};
+use super::{CheckFixedLengthSequence, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, Recorder};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 use std::sync::mpsc::Sender;
 
 pub fn start_miner_loop(
     tx: Sender<MinerThreadMessageToCoordinator>, 
-    recorder: Box<dyn Recorder<MetricEvent> + Send>
+    recorder: Box<dyn Recorder + Send>
 ) {
     // Load config file
     let config = Config::load();

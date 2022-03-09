@@ -178,7 +178,7 @@ impl MetricsPrometheus {
     }
 }
 
-impl Recorder<MetricEvent> for MetricsPrometheus {
+impl Recorder for MetricsPrometheus {
     fn record(&self, event: &MetricEvent) {
         match event {
             MetricEvent::Funnel { basic, terms10, terms20, terms30, terms40 } => {

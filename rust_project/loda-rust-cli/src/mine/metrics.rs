@@ -29,13 +29,33 @@ pub enum MetricEvent {
     }
 }
 
-pub trait Recorder<Event> {
-    fn record(&self, event: &Event);
+pub trait Recorder: RecorderClone {
+    fn record(&self, event: &MetricEvent);
 }
 
+pub trait RecorderClone {
+    fn clone_box(&self) -> Box<dyn Recorder + Send>;
+}
+
+impl<T> RecorderClone for T
+where
+    T: 'static + Recorder + Clone + Send,
+{
+    fn clone_box(&self) -> Box<dyn Recorder + Send> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn Recorder + Send> {
+    fn clone(&self) -> Box<dyn Recorder + Send> { 
+        self.clone_box() 
+    }
+}
+
+#[derive(Clone)]
 pub struct SinkRecorder {}
 
-impl Recorder<MetricEvent> for SinkRecorder {
+impl Recorder for SinkRecorder {
     fn record(&self, _event: &MetricEvent) {
         // print!("sink recorder")
     }

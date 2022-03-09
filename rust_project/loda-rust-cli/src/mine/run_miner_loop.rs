@@ -67,7 +67,7 @@ impl TermComputer {
 
 pub fn run_miner_loop(
     tx: Sender<MinerThreadMessageToCoordinator>,
-    recorder: Box<dyn Recorder<MetricEvent>>,
+    recorder: Box<dyn Recorder>,
     loda_programs_oeis_dir: &PathBuf, 
     checker10: &CheckFixedLengthSequence, 
     checker20: &CheckFixedLengthSequence,
