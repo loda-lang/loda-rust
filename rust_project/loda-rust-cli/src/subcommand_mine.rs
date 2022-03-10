@@ -79,7 +79,8 @@ pub async fn subcommand_mine(
 
     let minercoordinator_metrics = metrics.clone();
     let minercoordinator_thread = tokio::spawn(async move {
-        miner_coordinator_inner(receiver, minercoordinator_metrics);
+        // coordinator_thread_metrics_sink(receiver);
+        coordinator_thread_metrics_prometheus(receiver, minercoordinator_metrics);
     });
 
     let recorder: Box<dyn Recorder + Send>;
@@ -130,12 +131,36 @@ async fn webserver_with_metrics(registry: MyRegistry) -> std::result::Result<(),
     Ok(())
 }
 
+fn coordinator_thread_metrics_sink(rx: Receiver<MinerThreadMessageToCoordinator>) {
+    let mut progress_time = Instant::now();
+    let mut number_of_messages: u64 = 0;
+    loop {
+        // Sleep until there are an incoming message
+        match rx.recv() {
+            Ok(_) => {
+                number_of_messages += 1;
+            },
+            Err(error) => {
+                println!("didn't receive any messages. error: {:?}", error);
+                continue;
+            }
+        }
+        let elapsed: u128 = progress_time.elapsed().as_millis();
+        if elapsed > 1000 {
+            println!("number of messages: {:?}", number_of_messages);
+            progress_time = Instant::now();
+            number_of_messages = 0;
+        }
+    }
+ }
+
+
 #[derive(Clone)]
 struct State {
     registry: MyRegistry,
 }
 
-fn miner_coordinator_inner(rx: Receiver<MinerThreadMessageToCoordinator>, metrics: MetricsPrometheus) {
+fn coordinator_thread_metrics_prometheus(rx: Receiver<MinerThreadMessageToCoordinator>, metrics: MetricsPrometheus) {
     let mut message_processor = MessageProcessor::new();
     let mut progress_time = Instant::now();
     let mut accumulated_iterations: u64 = 0;
