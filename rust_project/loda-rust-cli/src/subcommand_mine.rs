@@ -51,65 +51,84 @@ impl SubcommandMineParallelComputingMode {
 
 type MyRegistry = std::sync::Arc<std::sync::Mutex<prometheus_client::registry::Registry<std::boxed::Box<dyn prometheus_client::encoding::text::SendEncodeMetric>>>>;
 
-pub async fn subcommand_mine(
+pub struct SubcommandMine {
     parallel_computing_mode: SubcommandMineParallelComputingMode,
-    metrics_mode: SubcommandMineMetricsMode
-) -> std::result::Result<(), Box<dyn std::error::Error>> 
-{
-    println!("metrics mode: {:?}", metrics_mode);
-    print_info_about_start_conditions();
+    metrics_mode: SubcommandMineMetricsMode,
+}
 
-    let number_of_minerworkers: usize = parallel_computing_mode.number_of_threads();
-    println!("Number of parallel miner instances: {}", number_of_minerworkers);
-
-    let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
-
-    let mut registry = <Registry>::default();
-    let metrics = MetricsPrometheus::new(&mut registry);
-    metrics.number_of_workers.set(number_of_minerworkers as u64);
-
-    let registry2: MyRegistry = Arc::new(Mutex::new(registry));
-
-    let _ = tokio::spawn(async move {
-        let result = webserver_with_metrics(registry2).await;
-        if let Err(error) = result {
-            error!("webserver thread failed with error: {:?}", error);
-        }
-    });
-
-    let minercoordinator_metrics = metrics.clone();
-    let minercoordinator_thread = tokio::spawn(async move {
-        // coordinator_thread_metrics_sink(receiver);
-        coordinator_thread_metrics_prometheus(receiver, minercoordinator_metrics);
-    });
-
-    let recorder: Box<dyn Recorder + Send>;
-    match metrics_mode {
-        SubcommandMineMetricsMode::NoMetricsServer => {
-            recorder = Box::new(SinkRecorder {});
-        },
-        SubcommandMineMetricsMode::RunMetricsServer => {
-            recorder = Box::new(metrics);
+impl SubcommandMine {
+    pub fn new(
+        parallel_computing_mode: SubcommandMineParallelComputingMode,
+        metrics_mode: SubcommandMineMetricsMode,
+    ) -> Self {
+        Self {
+            parallel_computing_mode: parallel_computing_mode,
+            metrics_mode: metrics_mode
         }
     }
 
-    for worker_id in 0..number_of_minerworkers {
-        println!("Spawn worker id: {}", worker_id);
-        let sender_clone = sender.clone();
-        let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
+    pub async fn run(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        println!("metrics mode: {:?}", self.metrics_mode);
+        print_info_about_start_conditions();
+
+        let number_of_minerworkers: usize = self.parallel_computing_mode.number_of_threads();
+        println!("Number of parallel miner instances: {}", number_of_minerworkers);
+
+        let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
+
+        let mut registry = <Registry>::default();
+        let metrics = MetricsPrometheus::new(&mut registry);
+        metrics.number_of_workers.set(number_of_minerworkers as u64);
+
+        let registry2: MyRegistry = Arc::new(Mutex::new(registry));
+
         let _ = tokio::spawn(async move {
-            start_miner_loop(sender_clone, recorder_clone);
+            let result = webserver_with_metrics(registry2).await;
+            if let Err(error) = result {
+                error!("webserver thread failed with error: {:?}", error);
+            }
         });
-        thread::sleep(Duration::from_millis(2000));
+
+        let minercoordinator_metrics = metrics.clone();
+        let minercoordinator_thread = tokio::spawn(async move {
+            // coordinator_thread_metrics_sink(receiver);
+            coordinator_thread_metrics_prometheus(receiver, minercoordinator_metrics);
+        });
+
+        let recorder: Box<dyn Recorder + Send>;
+        match self.metrics_mode {
+            SubcommandMineMetricsMode::NoMetricsServer => {
+                recorder = Box::new(SinkRecorder {});
+            },
+            SubcommandMineMetricsMode::RunMetricsServer => {
+                recorder = Box::new(metrics);
+            }
+        }
+
+        self.spawn_workers(number_of_minerworkers, sender, recorder);
+
+        // Run forever, press CTRL-C to stop.
+        minercoordinator_thread.await?;
+
+        Ok(())
     }
 
-    // Drop the original sender that is not being used
-    mem::drop(sender);
-
-    // Run forever, press CTRL-C to stop.
-    minercoordinator_thread.await?;
-
-    Ok(())
+    fn spawn_workers(
+        &self, 
+        number_of_workers: usize, 
+        sender: std::sync::mpsc::Sender<MinerThreadMessageToCoordinator>, 
+        recorder: Box<dyn Recorder + Send>
+    ) {
+        for worker_id in 0..number_of_workers {
+            println!("Spawn worker id: {}", worker_id);
+            let sender_clone = sender.clone();
+            let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
+            let _ = tokio::spawn(async move {
+                start_miner_loop(sender_clone, recorder_clone);
+            });
+            thread::sleep(Duration::from_millis(2000));
+        }
+    }
 }
 
 async fn webserver_with_metrics(registry: MyRegistry) -> std::result::Result<(), Box<dyn std::error::Error>> {

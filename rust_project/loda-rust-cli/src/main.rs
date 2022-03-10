@@ -20,7 +20,7 @@ mod subcommand_update;
 use subcommand_dependencies::subcommand_dependencies;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 use subcommand_install::subcommand_install;
-use subcommand_mine::{subcommand_mine,SubcommandMineParallelComputingMode,SubcommandMineMetricsMode};
+use subcommand_mine::{SubcommandMine,SubcommandMineParallelComputingMode,SubcommandMineMetricsMode};
 use subcommand_update::subcommand_update;
 
 extern crate clap;
@@ -152,7 +152,8 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
             true => SubcommandMineMetricsMode::RunMetricsServer,
             false => SubcommandMineMetricsMode::NoMetricsServer
         };
-        subcommand_mine(parallel_computing_mode, metrics_mode).await?;
+        let instance = SubcommandMine::new(parallel_computing_mode, metrics_mode);
+        instance.run().await?;
         return Ok(());
     }
 
