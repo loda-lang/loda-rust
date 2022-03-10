@@ -273,14 +273,12 @@ type HashMapMetricU32 = HashMap<KeyMetricU32, u32>;
 
 struct MessageProcessor {
     metric_u32_this_iteration: HashMapMetricU32,
-    metric_u32_across_all_iterations: HashMapMetricU32,
 }
 
 impl MessageProcessor {
     fn new() -> Self {
         Self {
             metric_u32_this_iteration: HashMap::new(),
-            metric_u32_across_all_iterations: HashMap::new(),
         }
     }
 
@@ -293,16 +291,13 @@ impl MessageProcessor {
             MinerThreadMessageToCoordinator::MetricU32(key, value) => {
                 let counter0 = self.metric_u32_this_iteration.entry(key).or_insert(0);
                 *counter0 += value;
-                let counter1 = self.metric_u32_across_all_iterations.entry(key).or_insert(0);
-                *counter1 += value;
             }
         }
     }
 
     fn metrics_summary(&self) {
-        let summary0 = self.format_summary(&self.metric_u32_across_all_iterations);
-        let summary1 = self.format_summary(&self.metric_u32_this_iteration);
-        println!("total: {} delta: {}", summary0, summary1);
+        let summary = self.format_summary(&self.metric_u32_this_iteration);
+        println!("summary: {}", summary);
     }
 
     fn format_summary(&self, provider: &dyn ProvideMetricU32) -> String {
