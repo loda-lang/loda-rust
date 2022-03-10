@@ -152,7 +152,9 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
             true => SubcommandMineMetricsMode::RunMetricsServer,
             false => SubcommandMineMetricsMode::NoMetricsServer
         };
-        let instance = SubcommandMine::new(parallel_computing_mode, metrics_mode);
+        let mut instance = SubcommandMine::new(parallel_computing_mode, metrics_mode);
+        instance.determine_number_of_minerworkers();
+        instance.print_info();
         instance.run().await?;
         return Ok(());
     }

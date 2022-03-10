@@ -1,6 +1,5 @@
 use crate::mine::{MinerThreadMessageToCoordinator, start_miner_loop, KeyMetricU32, MovingAverage, MetricsPrometheus, Recorder, SinkRecorder};
 use std::thread;
-use std::mem;
 use std::time::Duration;
 use std::sync::mpsc::{channel, Receiver};
 use std::collections::HashMap;
@@ -54,31 +53,65 @@ type MyRegistry = std::sync::Arc<std::sync::Mutex<prometheus_client::registry::R
 pub struct SubcommandMine {
     parallel_computing_mode: SubcommandMineParallelComputingMode,
     metrics_mode: SubcommandMineMetricsMode,
+    number_of_minerworkers: usize,
 }
 
 impl SubcommandMine {
     pub fn new(
         parallel_computing_mode: SubcommandMineParallelComputingMode,
-        metrics_mode: SubcommandMineMetricsMode,
+        metrics_mode: SubcommandMineMetricsMode
     ) -> Self {
         Self {
             parallel_computing_mode: parallel_computing_mode,
-            metrics_mode: metrics_mode
+            metrics_mode: metrics_mode,
+            number_of_minerworkers: 1,
         }
     }
 
-    pub async fn run(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    pub fn determine_number_of_minerworkers(&mut self) {
+        self.number_of_minerworkers = self.parallel_computing_mode.number_of_threads();
+    }
+
+    pub fn print_info(&self) {
         println!("metrics mode: {:?}", self.metrics_mode);
+        println!("Number of parallel miner instances: {}", self.number_of_minerworkers);
         print_info_about_start_conditions();
+    }
 
-        let number_of_minerworkers: usize = self.parallel_computing_mode.number_of_threads();
-        println!("Number of parallel miner instances: {}", number_of_minerworkers);
+    pub async fn run(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        match self.metrics_mode {
+            SubcommandMineMetricsMode::NoMetricsServer => {
+                return self.run_without_metrics().await
+            },
+            SubcommandMineMetricsMode::RunMetricsServer => {
+                return self.run_with_prometheus_metrics().await
+            }
+        }
+    }
 
+    async fn run_without_metrics(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
+
+        let minercoordinator_thread = tokio::spawn(async move {
+            coordinator_thread_metrics_sink(receiver);
+        });
+
+        let recorder: Box<dyn Recorder + Send> = Box::new(SinkRecorder {});
+
+        self.spawn_workers(sender, recorder);
+
+        // Run forever, press CTRL-C to stop.
+        minercoordinator_thread.await?;
+
+        Ok(())
+    }
+
+    async fn run_with_prometheus_metrics(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
         let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
 
         let mut registry = <Registry>::default();
         let metrics = MetricsPrometheus::new(&mut registry);
-        metrics.number_of_workers.set(number_of_minerworkers as u64);
+        metrics.number_of_workers.set(self.number_of_minerworkers as u64);
 
         let registry2: MyRegistry = Arc::new(Mutex::new(registry));
 
@@ -91,21 +124,11 @@ impl SubcommandMine {
 
         let minercoordinator_metrics = metrics.clone();
         let minercoordinator_thread = tokio::spawn(async move {
-            // coordinator_thread_metrics_sink(receiver);
             coordinator_thread_metrics_prometheus(receiver, minercoordinator_metrics);
         });
 
-        let recorder: Box<dyn Recorder + Send>;
-        match self.metrics_mode {
-            SubcommandMineMetricsMode::NoMetricsServer => {
-                recorder = Box::new(SinkRecorder {});
-            },
-            SubcommandMineMetricsMode::RunMetricsServer => {
-                recorder = Box::new(metrics);
-            }
-        }
-
-        self.spawn_workers(number_of_minerworkers, sender, recorder);
+        let recorder: Box<dyn Recorder + Send> = Box::new(metrics);
+        self.spawn_workers(sender, recorder);
 
         // Run forever, press CTRL-C to stop.
         minercoordinator_thread.await?;
@@ -115,11 +138,10 @@ impl SubcommandMine {
 
     fn spawn_workers(
         &self, 
-        number_of_workers: usize, 
         sender: std::sync::mpsc::Sender<MinerThreadMessageToCoordinator>, 
         recorder: Box<dyn Recorder + Send>
     ) {
-        for worker_id in 0..number_of_workers {
+        for worker_id in 0..self.number_of_minerworkers {
             println!("Spawn worker id: {}", worker_id);
             let sender_clone = sender.clone();
             let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
