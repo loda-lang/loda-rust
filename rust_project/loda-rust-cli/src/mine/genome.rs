@@ -42,6 +42,7 @@ impl Genome {
         }
     }
 
+    #[allow(dead_code)]
     pub fn load_random_program<R: Rng + ?Sized>(&mut self, rng: &mut R, dm: &DependencyManager, context: &GenomeMutateContext) -> bool {
         let program_id_u32: u32 = match context.choose_available_program(rng) {
             Some(value) => value,
