@@ -1,4 +1,5 @@
 use crate::mine::{MinerThreadMessageToCoordinator, start_miner_loop, KeyMetricU32, MovingAverage, MetricsPrometheus, Recorder, SinkRecorder};
+use loda_rust_core::config::Config;
 use std::thread;
 use std::time::Duration;
 use std::sync::mpsc::{channel, Receiver};
@@ -54,6 +55,7 @@ pub struct SubcommandMine {
     parallel_computing_mode: SubcommandMineParallelComputingMode,
     metrics_mode: SubcommandMineMetricsMode,
     number_of_minerworkers: usize,
+    config: Option<Config>,
 }
 
 impl SubcommandMine {
@@ -65,11 +67,16 @@ impl SubcommandMine {
             parallel_computing_mode: parallel_computing_mode,
             metrics_mode: metrics_mode,
             number_of_minerworkers: 1,
+            config: None
         }
     }
 
     pub fn determine_number_of_minerworkers(&mut self) {
         self.number_of_minerworkers = self.parallel_computing_mode.number_of_threads();
+    }
+
+    pub fn load_config(&mut self) {
+        self.config = Some(Config::load());
     }
 
     pub fn print_info(&self) {
@@ -79,6 +86,7 @@ impl SubcommandMine {
     }
 
     pub async fn run(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        assert!(self.config.is_some());
         match self.metrics_mode {
             SubcommandMineMetricsMode::NoMetricsServer => {
                 return self.run_without_metrics().await
@@ -107,6 +115,15 @@ impl SubcommandMine {
     }
 
     async fn run_with_prometheus_metrics(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let config: &Config = match &self.config {
+            Some(value) => &value,
+            None => {
+                panic!("Expected config file to have been read at this point");
+            }
+        };
+        let listen_on_port: u16 = config.miner_metrics_listen_port();
+        println!("miner metrics can be downloaded here: http://localhost:{}/metrics", listen_on_port);
+
         let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
 
         let mut registry = <Registry>::default();
@@ -116,7 +133,7 @@ impl SubcommandMine {
         let registry2: MyRegistry = Arc::new(Mutex::new(registry));
 
         let _ = tokio::spawn(async move {
-            let result = webserver_with_metrics(registry2).await;
+            let result = webserver_with_metrics(registry2, listen_on_port).await;
             if let Err(error) = result {
                 error!("webserver thread failed with error: {:?}", error);
             }
@@ -153,7 +170,7 @@ impl SubcommandMine {
     }
 }
 
-async fn webserver_with_metrics(registry: MyRegistry) -> std::result::Result<(), Box<dyn std::error::Error>> {
+async fn webserver_with_metrics(registry: MyRegistry, listen_port: u16) -> std::result::Result<(), Box<dyn std::error::Error>> {
     let mut app = tide::with_state(State {
         registry: registry,
     });
@@ -168,7 +185,8 @@ async fn webserver_with_metrics(registry: MyRegistry) -> std::result::Result<(),
                 .build();
             Ok(response)
         });
-    app.listen("localhost:8090").await?;
+    let server_address = format!("localhost:{}", listen_port);
+    app.listen(server_address).await?;
     Ok(())
 }
 
