@@ -6,19 +6,21 @@ use super::SuggestInstruction;
 use super::SuggestSource;
 use super::SuggestTarget;
 use super::find_asm_files_recursively;
-use super::{MinerThreadMessageToCoordinator, KeyMetricU32};
+use super::{MinerThreadMessageToCoordinator, MetricEvent, Recorder};
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
 use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
+use loda_rust_core::parser::ParsedProgram;
 use std::time::Instant;
 use std::path::{Path, PathBuf};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use std::sync::mpsc::Sender;
-use std::convert::TryFrom;
+
+const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
 
 struct TermComputer {
     terms: BigIntVec,
@@ -65,6 +67,7 @@ impl TermComputer {
 
 pub fn run_miner_loop(
     tx: Sender<MinerThreadMessageToCoordinator>,
+    recorder: Box<dyn Recorder>,
     loda_programs_oeis_dir: &PathBuf, 
     checker10: &CheckFixedLengthSequence, 
     checker20: &CheckFixedLengthSequence,
@@ -132,104 +135,67 @@ pub fn run_miner_loop(
         checker40,
     );
 
-    let mut metric_number_of_miner_loop_iterations: u32 = 0;
-    let mut metric_number_of_prevented_floodings: u32 = 0;
-    let mut metric_number_of_failed_genome_loads: u32 = 0;
-    let mut metric_number_of_failed_mutations: u32 = 0;
-    let mut metric_number_of_programs_that_cannot_parse: u32 = 0;
-    let mut metric_number_of_programs_without_output: u32 = 0;
-    let mut metric_number_of_programs_that_cannot_run: u32 = 0;
+    let mut metric_number_of_miner_loop_iterations: u64 = 0;
+    let mut metric_number_of_prevented_floodings: u64 = 0;
+    let mut metric_number_of_failed_genome_loads: u64 = 0;
+    let mut metric_number_of_failed_mutations: u64 = 0;
+    let mut metric_number_of_programs_that_cannot_parse: u64 = 0;
+    let mut metric_number_of_programs_without_output: u64 = 0;
+    let mut metric_number_of_compute_errors: u64 = 0;
+    let mut metric_number_of_candidate_programs: u64 = 0;
 
     let mut progress_time = Instant::now();
     let mut iteration: usize = 0;
     let mut reload: bool = true;
+
+    let mut current_program_id: u64 = 0;
+    let mut current_parsed_program = ParsedProgram::new();
+
+    assert_eq!(context.has_available_programs(), true);
     loop {
         metric_number_of_miner_loop_iterations += 1;
 
         let elapsed: u128 = progress_time.elapsed().as_millis();
-        if elapsed >= 1000 {
+        if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
             {
-                let y: u32 = metric_number_of_miner_loop_iterations;
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfMinerLoopIterations, y);
+                let y: u64 = metric_number_of_miner_loop_iterations;
+                let message = MinerThreadMessageToCoordinator::NumberOfIterations(y);
                 tx.send(message).unwrap();
             }
             {
-                let x: u64 = funnel.metric_number_of_candidates_with_basiccheck();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel10TermsPassingBasicCheck, y);
-                tx.send(message).unwrap();
+                let event = MetricEvent::Funnel { 
+                    basic: funnel.metric_number_of_candidates_with_basiccheck(),
+                    terms10: funnel.metric_number_of_candidates_with_10terms(),
+                    terms20: funnel.metric_number_of_candidates_with_20terms(),
+                    terms30: funnel.metric_number_of_candidates_with_30terms(),
+                    terms40: funnel.metric_number_of_candidates_with_40terms(),
+                };
+                recorder.record(&event);
             }
             {
-                let x: u64 = funnel.metric_number_of_candidates_with_10terms();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel10TermsInBloomfilter, y);
-                tx.send(message).unwrap();
+                let event = MetricEvent::Genome { 
+                    cannot_load: metric_number_of_failed_genome_loads,
+                    cannot_parse: metric_number_of_programs_that_cannot_parse,
+                    no_output: metric_number_of_programs_without_output,
+                    no_mutation: metric_number_of_failed_mutations,
+                    compute_error: metric_number_of_compute_errors,
+                };
+                recorder.record(&event);
             }
             {
-                let x: u64 = funnel.metric_number_of_candidates_with_20terms();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel20TermsInBloomfilter, y);
-                tx.send(message).unwrap();
+                let event = MetricEvent::Cache { 
+                    hit: cache.metric_hit(),
+                    miss_program_oeis: cache.metric_miss_for_program_oeis(),
+                    miss_program_without_id: cache.metric_miss_for_program_without_id(),
+                };
+                recorder.record(&event);
             }
             {
-                let x: u64 = funnel.metric_number_of_candidates_with_30terms();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel30TermsInBloomfilter, y);
-                tx.send(message).unwrap();
-            }
-            {
-                let x: u64 = funnel.metric_number_of_candidates_with_40terms();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::Funnel40TermsInBloomfilter, y);
-                tx.send(message).unwrap();
-            }
-            {
-                let y: u32 = metric_number_of_prevented_floodings;
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::PreventedFlooding, y);
-                tx.send(message).unwrap();
-            }
-            {
-                let y: u32 = metric_number_of_failed_mutations;
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfFailedMutations, y);
-                tx.send(message).unwrap();
-            }
-            {
-                let y: u32 = metric_number_of_programs_that_cannot_parse;
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfProgramsThatCannotParse, y);
-                tx.send(message).unwrap();
-            }
-            {
-                let y: u32 = metric_number_of_programs_without_output;
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfProgramsWithoutOutput, y);
-                tx.send(message).unwrap();
-            }
-            {
-                let y: u32 = metric_number_of_programs_that_cannot_run;
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfProgramsThatCannotRun, y);
-                tx.send(message).unwrap();
-            }
-            {
-                let y: u32 = metric_number_of_failed_genome_loads;
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfFailedGenomeLoads, y);
-                tx.send(message).unwrap();
-            }
-            {
-                let x: u64 = cache.metric_hit();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::CacheHit, y);
-                tx.send(message).unwrap();
-            }
-            {
-                let x: u64 = cache.metric_miss_for_program_oeis();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::CacheMissForProgramOeis, y);
-                tx.send(message).unwrap();
-            }
-            {
-                let x: u64 = cache.metric_miss_for_program_without_id();
-                let y: u32 = u32::try_from(x).unwrap_or(0);
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::CacheMissForProgramWithoutId, y);
-                tx.send(message).unwrap();
+                let event = MetricEvent::General { 
+                    prevent_flooding: metric_number_of_prevented_floodings,
+                    candidate_program: metric_number_of_candidate_programs,
+                };
+                recorder.record(&event);
             }
 
             funnel.reset_metrics();
@@ -239,8 +205,9 @@ pub fn run_miner_loop(
             metric_number_of_failed_mutations = 0;
             metric_number_of_programs_that_cannot_parse = 0;
             metric_number_of_programs_without_output = 0;
-            metric_number_of_programs_that_cannot_run = 0;
+            metric_number_of_compute_errors = 0;
             metric_number_of_failed_genome_loads = 0;
+            metric_number_of_candidate_programs = 0;
 
             progress_time = Instant::now();
         }
@@ -248,9 +215,28 @@ pub fn run_miner_loop(
         if (iteration % 10) == 0 {
             reload = true;
         }
+        if (iteration % 50000) == 0 {
+            match context.choose_available_program(&mut rng) {
+                Some(program_id) => { 
+                    current_program_id = program_id as u64;
+                },
+                None => {
+                    panic!("Unable to pick among available programs");
+                }
+            };
+            let parsed_program: ParsedProgram = match genome.load_program(&dm, current_program_id) {
+                Some(value) => value,
+                None => {
+                    error!("Unable to parse available program");
+                    reload = true;
+                    continue;
+                }
+            };
+            current_parsed_program = parsed_program;
+        }
         if reload {
             genome.clear_message_vec();
-            let load_ok: bool = genome.load_random_program(&mut rng, &dm, &context);
+            let load_ok: bool = genome.insert_program(current_program_id, &current_parsed_program);
             if !load_ok {
                 metric_number_of_failed_genome_loads += 1;
                 continue;
@@ -294,7 +280,7 @@ pub fn run_miner_loop(
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_programs_that_cannot_run += 1;
+                metric_number_of_compute_errors += 1;
                 continue;
             }
         };
@@ -310,7 +296,7 @@ pub fn run_miner_loop(
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_programs_that_cannot_run += 1;
+                metric_number_of_compute_errors += 1;
                 continue;
             }
         };
@@ -322,7 +308,7 @@ pub fn run_miner_loop(
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_programs_that_cannot_run += 1;
+                metric_number_of_compute_errors += 1;
                 continue;
             }
         };
@@ -334,7 +320,7 @@ pub fn run_miner_loop(
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_programs_that_cannot_run += 1;
+                metric_number_of_compute_errors += 1;
                 continue;
             }
         };
@@ -365,6 +351,8 @@ pub fn run_miner_loop(
         if let Err(error) = save_candidate_program(mine_event_dir, iteration, &candidate_program) {
             println!("; GENOME\n{}", genome);
             error!("Unable to save candidate program: {:?}", error);
+            continue;
         }
+        metric_number_of_candidate_programs += 1;
     }
 }

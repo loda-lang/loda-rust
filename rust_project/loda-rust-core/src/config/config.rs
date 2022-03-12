@@ -28,6 +28,9 @@ loda_rust_mismatches = "/Users/JOHNDOE/git/loda-rust/resources/programs/mismatch
 
 # Who to be credited when discovering new programs.
 loda_submitted_by = "John Doe"
+
+# When mining with metrics enabled, this is the port that the metrics can be accessed.
+miner_metrics_listen_port = 8090
 "#;
 
 
@@ -42,6 +45,7 @@ pub struct Config {
     oeis_names_file: String,
     loda_rust_mismatches: String,
     loda_submitted_by: String,
+    miner_metrics_listen_port: u16,
 }
 
 impl Config {
@@ -217,6 +221,13 @@ impl Config {
     pub fn loda_submitted_by(&self) -> String {
         self.loda_submitted_by.clone()
     }
+
+    pub fn miner_metrics_listen_port(&self) -> u16 {
+        let port: u16 = self.miner_metrics_listen_port;
+        assert!(port >= 80);
+        assert!(port <= 32767);
+        return port;
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -229,6 +240,7 @@ struct ConfigInner {
     oeis_names_file: String,
     loda_rust_mismatches: String,
     loda_submitted_by: String,
+    miner_metrics_listen_port: u16,
 }
 
 fn load_config_from_home_dir() -> Config {
@@ -268,6 +280,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf) -> Config {
         loda_cpp_executable: inner.loda_cpp_executable.clone(),
         loda_rust_mismatches: inner.loda_rust_mismatches.clone(),
         loda_submitted_by: inner.loda_submitted_by.clone(),
+        miner_metrics_listen_port: inner.miner_metrics_listen_port,
     }
 }
 
@@ -288,5 +301,6 @@ mod tests {
         assert_eq!(config.loda_cpp_executable, "/Users/JOHNDOE/loda/bin/loda");
         assert_eq!(config.loda_rust_mismatches, "/Users/JOHNDOE/git/loda-rust/resources/programs/mismatch");
         assert_eq!(config.loda_submitted_by, "John Doe");
+        assert_eq!(config.miner_metrics_listen_port, 8090);
     }
 }

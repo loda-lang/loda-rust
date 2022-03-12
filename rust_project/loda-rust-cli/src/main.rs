@@ -20,7 +20,7 @@ mod subcommand_update;
 use subcommand_dependencies::subcommand_dependencies;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 use subcommand_install::subcommand_install;
-use subcommand_mine::{subcommand_mine,SubcommandMineParallelComputingMode};
+use subcommand_mine::{SubcommandMine,SubcommandMineParallelComputingMode,SubcommandMineMetricsMode};
 use subcommand_update::subcommand_update;
 
 extern crate clap;
@@ -29,7 +29,8 @@ extern crate num_traits;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 
-fn main() {
+#[tokio::main]
+async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     // Initialize logging from the `RUST_LOG` environment variable.
     env_logger::init();
 
@@ -90,6 +91,11 @@ fn main() {
                         .takes_value(false)
                         .short("p")
                 )
+                .arg(
+                    Arg::with_name("metrics")
+                        .long("metrics")
+                        .help("Run a metrics server on localhost:8090 (can be overwritten in the config file)")
+                )
         )
         .get_matches();
 
@@ -114,7 +120,7 @@ fn main() {
             }
         };
         subcommand_evaluate(program_id, number_of_terms, mode);
-        return;
+        return Ok(());
     }
 
     if let Some(sub_m) = matches.subcommand_matches("dependencies") {
@@ -122,27 +128,36 @@ fn main() {
         let program_id: u64 = u64::from_str(program_id_raw)
             .expect("Unable to parse program_id.");
         subcommand_dependencies(program_id);
-        return;
+        return Ok(());
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("install") {
         subcommand_install();
-        return;
+        return Ok(());
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("update") {
         subcommand_update();
-        return;
+        return Ok(());
     }
 
     if let Some(sub_m) = matches.subcommand_matches("mine") {
         let run_parallel: bool = sub_m.is_present("parallel");
         let parallel_computing_mode: SubcommandMineParallelComputingMode = match run_parallel {
-            true => SubcommandMineParallelComputingMode::ParallelInstancces,
+            true => SubcommandMineParallelComputingMode::ParallelInstances,
             false => SubcommandMineParallelComputingMode::SingleInstance
         };
-        subcommand_mine(parallel_computing_mode);
-        return;
+        let metrics: bool = sub_m.is_present("metrics");
+        let metrics_mode: SubcommandMineMetricsMode = match metrics {
+            true => SubcommandMineMetricsMode::RunMetricsServer,
+            false => SubcommandMineMetricsMode::NoMetricsServer
+        };
+        let mut instance = SubcommandMine::new(parallel_computing_mode, metrics_mode);
+        instance.determine_number_of_minerworkers();
+        instance.load_config();
+        instance.print_info();
+        instance.run().await?;
+        return Ok(());
     }
 
     panic!("No arguments provided");

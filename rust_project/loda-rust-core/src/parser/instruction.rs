@@ -17,7 +17,7 @@ impl fmt::Display for InstructionParameter {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Instruction {
     pub instruction_id: InstructionId,
     pub parameter_vec: Vec<InstructionParameter>,

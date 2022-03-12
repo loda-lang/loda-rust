@@ -41,6 +41,10 @@ impl GenomeMutateContext {
         &self.available_program_ids
     }
 
+    pub fn has_available_programs(&self) -> bool {
+        !self.available_program_ids.is_empty()
+    }
+
     pub fn choose_available_program<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
         let program_id: u32 = match self.available_program_ids.choose(rng) {
             Some(program_id) => *program_id,
