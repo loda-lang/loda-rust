@@ -6,7 +6,7 @@ use super::SuggestInstruction;
 use super::SuggestSource;
 use super::SuggestTarget;
 use super::find_asm_files_recursively;
-use super::{MinerThreadMessageToCoordinator, KeyMetricU32, MetricEvent, Recorder};
+use super::{MinerThreadMessageToCoordinator, MetricEvent, Recorder};
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -135,7 +135,7 @@ pub fn run_miner_loop(
         checker40,
     );
 
-    let mut metric_number_of_miner_loop_iterations: u32 = 0;
+    let mut metric_number_of_miner_loop_iterations: u64 = 0;
     let mut metric_number_of_prevented_floodings: u64 = 0;
     let mut metric_number_of_failed_genome_loads: u64 = 0;
     let mut metric_number_of_failed_mutations: u64 = 0;
@@ -158,8 +158,8 @@ pub fn run_miner_loop(
         let elapsed: u128 = progress_time.elapsed().as_millis();
         if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
             {
-                let y: u32 = metric_number_of_miner_loop_iterations;
-                let message = MinerThreadMessageToCoordinator::MetricU32(KeyMetricU32::NumberOfMinerLoopIterations, y);
+                let y: u64 = metric_number_of_miner_loop_iterations;
+                let message = MinerThreadMessageToCoordinator::NumberOfIterations(y);
                 tx.send(message).unwrap();
             }
             {

@@ -1,9 +1,8 @@
-use crate::mine::{MinerThreadMessageToCoordinator, start_miner_loop, KeyMetricU32, MovingAverage, MetricsPrometheus, Recorder, SinkRecorder};
+use crate::mine::{MinerThreadMessageToCoordinator, start_miner_loop, MovingAverage, MetricsPrometheus, Recorder, SinkRecorder};
 use loda_rust_core::config::Config;
 use std::thread;
 use std::time::Duration;
 use std::sync::mpsc::{channel, Receiver};
-use std::collections::HashMap;
 use std::time::Instant;
 use std::convert::TryFrom;
 use prometheus_client::encoding::text::encode;
@@ -265,9 +264,9 @@ fn coordinator_thread_metrics_prometheus(rx: Receiver<MinerThreadMessageToCoordi
         }
 
         // Number of iterations per second, chart
-        let metric0: u32 = message_processor.metric_u32_this_iteration.metric_u32(KeyMetricU32::NumberOfMinerLoopIterations);
-        metrics.number_of_iterations.inc_by(metric0 as u64);
-        accumulated_iterations += metric0 as u64;
+        let metric0: u64 = message_processor.number_of_iterations();
+        metrics.number_of_iterations.inc_by(metric0);
+        accumulated_iterations += metric0;
 
         // message_processor.metrics_summary();
         message_processor.reset_iteration_metrics();
@@ -287,57 +286,33 @@ fn print_info_about_start_conditions() {
     println!("\nPress CTRL-C to stop the miner.");
 }
 
-type HashMapMetricU32 = HashMap<KeyMetricU32, u32>;
-
 struct MessageProcessor {
-    metric_u32_this_iteration: HashMapMetricU32,
+    number_of_iterations: u64,
 }
 
 impl MessageProcessor {
     fn new() -> Self {
         Self {
-            metric_u32_this_iteration: HashMap::new(),
+            number_of_iterations: 0,
         }
     }
 
     fn process_message(&mut self, message: MinerThreadMessageToCoordinator) {
-        // println!("received message: {:?}", message);
         match message {
             MinerThreadMessageToCoordinator::ReadyForMining => {
                 println!("Miner instance is ready");
             },
-            MinerThreadMessageToCoordinator::MetricU32(key, value) => {
-                let counter0 = self.metric_u32_this_iteration.entry(key).or_insert(0);
-                *counter0 += value;
+            MinerThreadMessageToCoordinator::NumberOfIterations(value) => {
+                self.number_of_iterations += value;
             }
         }
     }
 
-    fn metrics_summary(&self) {
-        let summary = self.format_summary(&self.metric_u32_this_iteration);
-        println!("summary: {}", summary);
-    }
-
-    fn format_summary(&self, provider: &dyn ProvideMetricU32) -> String {
-        let metric0: u32 = provider.metric_u32(KeyMetricU32::NumberOfMinerLoopIterations);
-        let s: String = format!(
-            "[{}]",
-            metric0,
-        );
-        s
-    }
-
     fn reset_iteration_metrics(&mut self) {
-        self.metric_u32_this_iteration.clear();
+        self.number_of_iterations = 0;
     }
-}
 
-trait ProvideMetricU32 {
-    fn metric_u32(&self, key: KeyMetricU32) -> u32;
-}
-
-impl ProvideMetricU32 for HashMapMetricU32 {
-    fn metric_u32(&self, key: KeyMetricU32) -> u32 {
-        self.get(&key).map_or(0, |value| *value )
+    fn number_of_iterations(&self) -> u64 {
+        self.number_of_iterations
     }
 }

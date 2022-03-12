@@ -50,7 +50,7 @@ pub use genome::{Genome, MutateGenome};
 pub use genome_item::{GenomeItem, MutateValue};
 pub use histogram_instruction_constant::HistogramInstructionConstant;
 pub use load_program_ids_csv_file::load_program_ids_csv_file;
-pub use metrics::{KeyMetricU32, MetricEvent, Recorder, SinkRecorder};
+pub use metrics::{MetricEvent, Recorder, SinkRecorder};
 pub use metrics_prometheus::MetricsPrometheus;
 pub use moving_average::MovingAverage;
 pub use parse_csv_bigram::RecordBigram;
