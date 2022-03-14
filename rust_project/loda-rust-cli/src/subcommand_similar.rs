@@ -5,6 +5,7 @@ use crate::mine::find_asm_files_recursively;
 use crate::mine::RecordBigram;
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::config::Config;
+use loda_rust_core::parser::InstructionId;
 
 
 pub fn subcommand_similar() {
@@ -16,6 +17,8 @@ pub fn subcommand_similar() {
     let instruction_bigram_csv: PathBuf = config.cache_dir_histogram_instruction_bigram_file();
     let instruction_vec: Vec<RecordBigram> = RecordBigram::parse_csv(&instruction_bigram_csv).expect("Unable to load instruction bigram csv");
     println!("number of rows in bigram.csv: {}", instruction_vec.len());
+    let bigram_pairs = BigramPair::new(instruction_vec);
+    println!("number of bigram pairs: {}", bigram_pairs.len());
 
     let dir_containing_programs: PathBuf = config.loda_programs_oeis_dir();
     let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
@@ -36,10 +39,49 @@ pub fn subcommand_similar() {
             }
         };
         sum += parsed_program.instruction_vec.len();
+
+        let words = parsed_program.as_words();
     }
     println!("number of rows total: {}", sum);
 
     println!("similar end, elapsed: {:?} ms", start_time.elapsed().as_millis());
+}
+
+struct BigramPair {
+    word0: Word,
+    word1: Word,
+}
+
+impl BigramPair {
+    fn new(bigram_rows: Vec<RecordBigram>) -> Vec<BigramPair> {
+        let mut bigram_pairs: Vec<BigramPair> = vec!();
+        let mut number_of_parse_errors = 0;
+        for bigram_row in bigram_rows {
+            let word0 = match Word::parse(&bigram_row.word0) {
+                Some(value) => value,
+                None => {
+                    number_of_parse_errors += 1;
+                    continue;
+                }
+            };
+            let word1 = match Word::parse(&bigram_row.word1) {
+                Some(value) => value,
+                None => {
+                    number_of_parse_errors += 1;
+                    continue;
+                }
+            };
+            let pair = BigramPair {
+                word0: word0,
+                word1: word1
+            };
+            bigram_pairs.push(pair);
+        }
+        if number_of_parse_errors > 0 {
+            error!("number of parse errors: {}", number_of_parse_errors);
+        }
+        bigram_pairs
+    }
 }
 
 fn load_program(path: &Path) -> Option<ParsedProgram> {
@@ -58,4 +100,47 @@ fn load_program(path: &Path) -> Option<ParsedProgram> {
         }
     };
     Some(parsed_program)
+}
+
+enum Word {
+    Start,
+    Stop,
+    Instruction(InstructionId)
+}
+
+impl Word {
+    fn parse(raw: &str) -> Option<Word> {
+        match raw {
+            "START" => {
+                return Some(Word::Start);
+            },
+            "STOP" => {
+                return Some(Word::Stop);
+            },
+            _ => {}
+        }
+        match InstructionId::parse(raw, 1) {
+            Ok(instruction_id) => {
+                return Some(Word::Instruction(instruction_id));
+            },
+            Err(_) => {
+                return None;
+            }
+        }
+    }
+}
+
+trait WordsFromProgram {
+    fn as_words(&self) -> Vec<Word>;
+}
+
+impl WordsFromProgram for ParsedProgram {
+    fn as_words(&self) -> Vec<Word> {
+        let mut words: Vec<Word> = self.instruction_ids().iter().map(|instruction_id| {
+            Word::Instruction(*instruction_id)
+        }).collect();
+        words.insert(0, Word::Start);
+        words.push(Word::Stop);
+        words
+    }
 }
