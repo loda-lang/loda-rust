@@ -8,6 +8,11 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use rand::seq::SliceRandom;
+use rand::SeedableRng;
+use rand::rngs::StdRng;
+
+const SIGNATURE_LENGTH: u8 = 30;
 
 pub fn subcommand_similar() {
     let start_time = Instant::now();
@@ -27,6 +32,9 @@ pub fn subcommand_similar() {
     }
     // println!("bigram: {:?}", bigram_to_index);
     println!("bigram_to_index length: {:?}", bigram_to_index.len());
+
+    let indexes_array = IndexesArray::new(bigram_pairs.len() as u16, SIGNATURE_LENGTH);
+
 
     let dir_containing_programs: PathBuf = config.loda_programs_oeis_dir();
     let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
@@ -48,14 +56,14 @@ pub fn subcommand_similar() {
         };
         sum += parsed_program.instruction_vec.len();
 
-        signature(&parsed_program, &bigram_to_index);
+        signature(&parsed_program, &bigram_to_index, &indexes_array);
     }
     println!("number of rows total: {}", sum);
 
     println!("similar end, elapsed: {:?} ms", start_time.elapsed().as_millis());
 }
 
-fn signature(parsed_program: &ParsedProgram, bigram_to_index: &HashMap<BigramPair,u16>) {
+fn signature(parsed_program: &ParsedProgram, bigram_to_index: &HashMap<BigramPair,u16>, indexes_array: &IndexesArray) {
     let words: Vec<Word> = parsed_program.as_words();
     let n = words.len();
     if n < 2 {
@@ -76,6 +84,29 @@ fn signature(parsed_program: &ParsedProgram, bigram_to_index: &HashMap<BigramPai
         match_set.insert(index);
     }
     // println!("match_set: {:?}", match_set);
+
+    
+}
+
+struct IndexesArray {
+    indexes_array: Vec<Vec<u16>>
+}
+
+impl IndexesArray {
+    fn new(vocabulary_size: u16, signature_length: u8) -> Self {
+        // Create permutations of the numbers between (0 .. vocabulary_size-1)
+        let mut indexes_array: Vec<Vec<u16>> = vec!();
+        let original_indexes: Vec<u16> = (0..vocabulary_size).collect();
+        for i in 0..signature_length {
+            let mut rng = StdRng::seed_from_u64(i as u64);
+            let mut indexes: Vec<u16> = original_indexes.clone();
+            indexes.shuffle(&mut rng);
+            indexes_array.push(indexes);
+        }
+        Self {
+            indexes_array: indexes_array
+        }
+    }
 }
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
