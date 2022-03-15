@@ -7,7 +7,7 @@ use std::time::Instant;
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::collections::HashMap;
-
+use std::collections::HashSet;
 
 pub fn subcommand_similar() {
     let start_time = Instant::now();
@@ -21,9 +21,9 @@ pub fn subcommand_similar() {
     let bigram_pairs = BigramPair::new(instruction_vec);
     println!("number of bigram pairs: {}", bigram_pairs.len());
 
-    let mut bigram_to_index = HashMap::<BigramPair,usize>::new();
+    let mut bigram_to_index = HashMap::<BigramPair,u16>::new();
     for (index, bigram_pair) in bigram_pairs.iter().enumerate() {
-        bigram_to_index.insert(*bigram_pair, index);
+        bigram_to_index.insert(*bigram_pair, index as u16);
     }
     // println!("bigram: {:?}", bigram_to_index);
     println!("bigram_to_index length: {:?}", bigram_to_index.len());
@@ -48,12 +48,34 @@ pub fn subcommand_similar() {
         };
         sum += parsed_program.instruction_vec.len();
 
-        let words: Vec<Word> = parsed_program.as_words();
-        
+        signature(&parsed_program, &bigram_to_index);
     }
     println!("number of rows total: {}", sum);
 
     println!("similar end, elapsed: {:?} ms", start_time.elapsed().as_millis());
+}
+
+fn signature(parsed_program: &ParsedProgram, bigram_to_index: &HashMap<BigramPair,u16>) {
+    let words: Vec<Word> = parsed_program.as_words();
+    let n = words.len();
+    if n < 2 {
+        return;
+    }
+    let mut match_set = HashSet::<u16>::new();
+    for i in 1..n {
+        let word0: Word = words[i-1];
+        let word1: Word = words[i];
+        let pair = BigramPair { word0: word0, word1: word1 };
+        let index: u16 = match bigram_to_index.get(&pair) {
+            Some(value) => *value,
+            None => {
+                println!("Unrecognized bigram, not found in vocabulary. Skipping. {:?}", pair);
+                continue;
+            }
+        };
+        match_set.insert(index);
+    }
+    // println!("match_set: {:?}", match_set);
 }
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
