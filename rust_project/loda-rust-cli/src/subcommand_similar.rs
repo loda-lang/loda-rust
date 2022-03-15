@@ -1,11 +1,12 @@
-use std::time::Instant;
-use std::path::{Path, PathBuf};
-use std::fs;
 use crate::mine::find_asm_files_recursively;
 use crate::mine::RecordBigram;
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::InstructionId;
+use std::time::Instant;
+use std::path::{Path, PathBuf};
+use std::fs;
+use std::collections::HashMap;
 
 
 pub fn subcommand_similar() {
@@ -19,6 +20,13 @@ pub fn subcommand_similar() {
     println!("number of rows in bigram.csv: {}", instruction_vec.len());
     let bigram_pairs = BigramPair::new(instruction_vec);
     println!("number of bigram pairs: {}", bigram_pairs.len());
+
+    let mut bigram_to_index = HashMap::<BigramPair,usize>::new();
+    for (index, bigram_pair) in bigram_pairs.iter().enumerate() {
+        bigram_to_index.insert(*bigram_pair, index);
+    }
+    // println!("bigram: {:?}", bigram_to_index);
+    println!("bigram_to_index length: {:?}", bigram_to_index.len());
 
     let dir_containing_programs: PathBuf = config.loda_programs_oeis_dir();
     let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
@@ -40,13 +48,15 @@ pub fn subcommand_similar() {
         };
         sum += parsed_program.instruction_vec.len();
 
-        let words = parsed_program.as_words();
+        let words: Vec<Word> = parsed_program.as_words();
+        
     }
     println!("number of rows total: {}", sum);
 
     println!("similar end, elapsed: {:?} ms", start_time.elapsed().as_millis());
 }
 
+#[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
 struct BigramPair {
     word0: Word,
     word1: Word,
@@ -102,6 +112,7 @@ fn load_program(path: &Path) -> Option<ParsedProgram> {
     Some(parsed_program)
 }
 
+#[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
 enum Word {
     Start,
     Stop,
