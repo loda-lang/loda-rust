@@ -11,6 +11,7 @@ use std::collections::HashSet;
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
+use bit_set::BitSet;
 
 const SIGNATURE_LENGTH: u8 = 30;
 
@@ -46,28 +47,40 @@ pub fn subcommand_similar() {
     println!("will process {} programs", number_of_paths);
 
     
-    let mut sum = 0;
+    let mut program_meta_vec = Vec::<ProgramMeta>::new();
     for path in paths {
-        let parsed_program: ParsedProgram = match load_program(&path) {
+        let program_meta = match analyze_program(&path, &bigram_to_index, &indexes_array) {
             Some(value) => value,
             None => {
                 continue;
             }
         };
-        sum += parsed_program.instruction_vec.len();
-
-        signature(&parsed_program, &bigram_to_index, &indexes_array);
+        program_meta_vec.push(program_meta);
     }
-    println!("number of rows total: {}", sum);
+    println!("number of program_meta items: {}", program_meta_vec.len());
 
     println!("similar end, elapsed: {:?} ms", start_time.elapsed().as_millis());
 }
 
-fn signature(parsed_program: &ParsedProgram, bigram_to_index: &HashMap<BigramPair,u16>, indexes_array: &IndexesArray) {
+fn analyze_program(path: &Path, bigram_to_index: &HashMap<BigramPair,u16>, indexes_array: &IndexesArray) -> Option<ProgramMeta> {
+    let parsed_program: ParsedProgram = match load_program(path) {
+        Some(value) => value,
+        None => {
+            return None;
+        }
+    };
+
+    let line_count_raw: usize = parsed_program.instruction_vec.len();
+    if line_count_raw > 300 {
+        println!("Skipped a program that is too long. path: {:?}", path);
+        return None;
+    }
+    let line_count = line_count_raw as u16;
+
     let words: Vec<Word> = parsed_program.as_words();
     let n = words.len();
     if n < 2 {
-        return;
+        return None;
     }
     let mut match_set = HashSet::<u16>::new();
     for i in 1..n {
@@ -85,8 +98,32 @@ fn signature(parsed_program: &ParsedProgram, bigram_to_index: &HashMap<BigramPai
     }
     // println!("match_set: {:?}", match_set);
 
-    
+    let signature: BitSet = indexes_array.compute_signature(&match_set);
+
+    let program_meta = ProgramMeta::new(
+        PathBuf::from(path),
+        line_count,
+        signature
+    );
+    Some(program_meta)
 }
+
+struct ProgramMeta {
+    path_input: PathBuf,
+    line_count: u16,
+    signature: BitSet,
+}
+
+impl ProgramMeta {
+    fn new(path_input: PathBuf, line_count: u16, signature: BitSet) -> Self {
+        Self {
+            path_input: path_input,
+            line_count: line_count,
+            signature: signature
+        }
+    }
+}
+
 
 struct IndexesArray {
     indexes_array: Vec<Vec<u16>>
@@ -106,6 +143,18 @@ impl IndexesArray {
         Self {
             indexes_array: indexes_array
         }
+    }
+
+    fn compute_signature(&self, match_set: &HashSet<u16>) -> BitSet {
+        let mut result = BitSet::new();
+        for indexes in &self.indexes_array {
+            for (key, value) in indexes.iter().enumerate() {
+                if match_set.contains(value) {
+                    result.insert(key);
+                }
+            }
+        }
+        result
     }
 }
 
