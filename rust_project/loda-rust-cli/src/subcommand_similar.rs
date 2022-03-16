@@ -21,6 +21,8 @@ pub fn subcommand_similar() {
     println!("similar begin");
 
     let config = Config::load();
+    let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
+    let output_rootdir: PathBuf = config.similarity_repository_oeis();
 
     let instruction_bigram_csv: PathBuf = config.cache_dir_histogram_instruction_bigram_file();
     let instruction_vec: Vec<RecordBigram> = RecordBigram::parse_csv(&instruction_bigram_csv).expect("Unable to load instruction bigram csv");
@@ -38,8 +40,7 @@ pub fn subcommand_similar() {
     let indexes_array = IndexesArray::new(bigram_pairs.len() as u16, SIGNATURE_LENGTH);
 
 
-    let dir_containing_programs: PathBuf = config.loda_programs_oeis_dir();
-    let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
+    let paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
     let number_of_paths = paths.len();
     if number_of_paths <= 0 {
         error!("Expected 1 or more programs, but there are no programs to analyze");
@@ -50,7 +51,7 @@ pub fn subcommand_similar() {
     
     let mut program_meta_vec = Vec::<ProgramMeta>::new();
     for path in paths {
-        let program_meta = match analyze_program(&path, &bigram_to_index, &indexes_array) {
+        let program_meta = match analyze_program(&path, &bigram_to_index, &indexes_array, &output_rootdir) {
             Some(value) => value,
             None => {
                 continue;
@@ -63,7 +64,12 @@ pub fn subcommand_similar() {
     println!("similar end, elapsed: {:?} ms", start_time.elapsed().as_millis());
 }
 
-fn analyze_program(path: &Path, bigram_to_index: &HashMap<BigramPair,u16>, indexes_array: &IndexesArray) -> Option<ProgramMeta> {
+fn analyze_program(
+    path: &Path, 
+    bigram_to_index: &HashMap<BigramPair,u16>, 
+    indexes_array: &IndexesArray, 
+    output_rootdir: &Path
+) -> Option<ProgramMeta> {
     let program_id: u32 = match program_id_from_path(path) {
         Some(value) => value,
         None => {
@@ -107,9 +113,12 @@ fn analyze_program(path: &Path, bigram_to_index: &HashMap<BigramPair,u16>, index
 
     let signature: BitSet = indexes_array.compute_signature(&match_set);
 
+    let path_output: PathBuf = ProgramMeta::path_to_output_file(program_id, output_rootdir);
+
     let program_meta = ProgramMeta::new(
         program_id,
         PathBuf::from(path),
+        path_output,
         line_count,
         signature
     );
@@ -119,18 +128,31 @@ fn analyze_program(path: &Path, bigram_to_index: &HashMap<BigramPair,u16>, index
 struct ProgramMeta {
     program_id: u32,
     path_input: PathBuf,
+    path_output: PathBuf,
     line_count: u16,
     signature: BitSet,
 }
 
 impl ProgramMeta {
-    fn new(program_id: u32, path_input: PathBuf, line_count: u16, signature: BitSet) -> Self {
+    fn new(program_id: u32, path_input: PathBuf, path_output: PathBuf, line_count: u16, signature: BitSet) -> Self {
         Self {
             program_id: program_id,
             path_input: path_input,
+            path_output: path_output,
             line_count: line_count,
             signature: signature
         }
+    }
+
+    // Construct a path: "/absolute/path/123/A123456_similarity_lsh.csv"
+    fn path_to_output_file(program_id: u32, rootdir: &Path) -> PathBuf {
+        let dir_index: u32 = program_id / 1000;
+        let dir_index_string: String = format!("{:0>3}", dir_index);
+        let filename_string: String = format!("A{:0>6}_similarity_lsh.csv", program_id);
+        let dirname = Path::new(&dir_index_string);
+        let filename = Path::new(&filename_string);
+        let pathbuf: PathBuf = rootdir.join(dirname).join(filename);
+        pathbuf
     }
 }
 

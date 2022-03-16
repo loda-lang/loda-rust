@@ -31,6 +31,9 @@ loda_submitted_by = "John Doe"
 
 # When mining with metrics enabled, this is the port that the metrics can be accessed.
 miner_metrics_listen_port = 8090
+
+# What loda programs are similar to each other.
+similarity_repository = "/Users/JOHNDOE/git/loda-identify-similar-programs"
 "#;
 
 
@@ -46,6 +49,7 @@ pub struct Config {
     loda_rust_mismatches: String,
     loda_submitted_by: String,
     miner_metrics_listen_port: u16,
+    similarity_repository: String,
 }
 
 impl Config {
@@ -228,6 +232,20 @@ impl Config {
         assert!(port <= 32767);
         return port;
     }
+
+    pub fn similarity_repository(&self) -> PathBuf {
+        let path = Path::new(&self.similarity_repository);
+        assert!(path.is_absolute());
+        assert!(path.is_dir());
+        PathBuf::from(path)
+    }
+
+    pub fn similarity_repository_oeis(&self) -> PathBuf {
+        let name = Path::new("oeis");
+        let path = self.similarity_repository().join(name);
+        assert!(path.is_dir());
+        path
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -241,6 +259,7 @@ struct ConfigInner {
     loda_rust_mismatches: String,
     loda_submitted_by: String,
     miner_metrics_listen_port: u16,
+    similarity_repository: String,
 }
 
 fn load_config_from_home_dir() -> Config {
@@ -281,6 +300,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf) -> Config {
         loda_rust_mismatches: inner.loda_rust_mismatches.clone(),
         loda_submitted_by: inner.loda_submitted_by.clone(),
         miner_metrics_listen_port: inner.miner_metrics_listen_port,
+        similarity_repository: inner.similarity_repository,
     }
 }
 
@@ -302,5 +322,6 @@ mod tests {
         assert_eq!(config.loda_rust_mismatches, "/Users/JOHNDOE/git/loda-rust/resources/programs/mismatch");
         assert_eq!(config.loda_submitted_by, "John Doe");
         assert_eq!(config.miner_metrics_listen_port, 8090);
+        assert_eq!(config.similarity_repository, "/Users/JOHNDOE/git/loda-identify-similar-programs");
     }
 }
