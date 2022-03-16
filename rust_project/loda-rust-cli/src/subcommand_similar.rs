@@ -1,5 +1,6 @@
 use crate::mine::find_asm_files_recursively;
 use crate::mine::RecordBigram;
+use crate::mine::program_id_from_path;
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::InstructionId;
@@ -63,6 +64,12 @@ pub fn subcommand_similar() {
 }
 
 fn analyze_program(path: &Path, bigram_to_index: &HashMap<BigramPair,u16>, indexes_array: &IndexesArray) -> Option<ProgramMeta> {
+    let program_id: u32 = match program_id_from_path(path) {
+        Some(value) => value,
+        None => {
+            return None;
+        }
+    };
     let parsed_program: ParsedProgram = match load_program(path) {
         Some(value) => value,
         None => {
@@ -101,6 +108,7 @@ fn analyze_program(path: &Path, bigram_to_index: &HashMap<BigramPair,u16>, index
     let signature: BitSet = indexes_array.compute_signature(&match_set);
 
     let program_meta = ProgramMeta::new(
+        program_id,
         PathBuf::from(path),
         line_count,
         signature
@@ -109,14 +117,16 @@ fn analyze_program(path: &Path, bigram_to_index: &HashMap<BigramPair,u16>, index
 }
 
 struct ProgramMeta {
+    program_id: u32,
     path_input: PathBuf,
     line_count: u16,
     signature: BitSet,
 }
 
 impl ProgramMeta {
-    fn new(path_input: PathBuf, line_count: u16, signature: BitSet) -> Self {
+    fn new(program_id: u32, path_input: PathBuf, line_count: u16, signature: BitSet) -> Self {
         Self {
+            program_id: program_id,
             path_input: path_input,
             line_count: line_count,
             signature: signature
