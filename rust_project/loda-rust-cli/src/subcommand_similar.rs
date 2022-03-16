@@ -13,8 +13,13 @@ use rand::seq::SliceRandom;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use bit_set::BitSet;
+use csv::WriterBuilder;
+use std::error::Error;
+use serde::Serialize;
 
 const SIGNATURE_LENGTH: u8 = 30;
+const MAX_NUMBER_OF_ROWS_IN_CSV_FILES: usize = 50;
+const INTERVAL_UNTIL_NEXT_PROGRESS: u128 = 1000;
 
 pub fn subcommand_similar() {
     let start_time = Instant::now();
@@ -60,6 +65,47 @@ pub fn subcommand_similar() {
         program_meta_vec.push(program_meta);
     }
     println!("number of program_meta items: {}", program_meta_vec.len());
+
+    let mut progress_time = Instant::now();
+    let max_index0: usize = program_meta_vec.len();
+    let mut bitset = BitSet::with_capacity(bigram_pairs.len() * 2);
+    let mut comparison_results = Vec::<ComparisonResult>::new();
+    comparison_results.reserve(program_meta_vec.len());
+    for (index0, program0) in program_meta_vec.iter().enumerate() {
+        let elapsed: u128 = progress_time.elapsed().as_millis();
+        if elapsed >= INTERVAL_UNTIL_NEXT_PROGRESS {
+            let percent: usize = (index0 * 100) / max_index0;
+            println!("progress: {}%  {} of {}", percent, index0 + 1, max_index0);
+            progress_time = Instant::now();
+        }
+        comparison_results.clear();
+        for (index1, program1) in program_meta_vec.iter().enumerate() {
+            if index0 == index1 {
+                continue;
+            }
+            bitset.clone_from(&program0.signature);
+            bitset.intersect_with(&program1.signature);
+            let overlap_count: u16 = bitset.len() as u16;
+            if overlap_count == 0 {
+                continue;
+            }
+            let comparison_result = ComparisonResult::new(program1.program_id, overlap_count);
+            comparison_results.push(comparison_result);
+        }
+        comparison_results.sort_by(|a, b| {
+            a.overlap_count.cmp(&b.overlap_count).reverse()
+                .then(a.program_id.cmp(&b.program_id))
+        });
+        comparison_results.truncate(MAX_NUMBER_OF_ROWS_IN_CSV_FILES);
+
+        match ComparisonResult::create_csv_file(&comparison_results, &program0.path_output) {
+            Ok(_) => {},
+            Err(error) => {
+                error!("Unable to create csv file. error: {:?}", error);
+                continue;
+            }
+        }
+    }
 
     println!("similar end, elapsed: {:?} ms", start_time.elapsed().as_millis());
 }
@@ -287,5 +333,35 @@ impl WordsFromProgram for ParsedProgram {
         words.insert(0, Word::Start);
         words.push(Word::Stop);
         words
+    }
+}
+
+#[derive(Serialize)]
+struct ComparisonResult {
+    #[serde(rename = "program id")]
+    program_id: u32,
+
+    #[serde(rename = "overlap")]
+    overlap_count: u16,
+}
+
+impl ComparisonResult {
+    fn new(program_id: u32, overlap_count: u16) -> Self {
+        Self {
+            program_id: program_id,
+            overlap_count: overlap_count,
+        }
+    }
+
+    fn create_csv_file(records: &Vec<ComparisonResult>, output_path: &Path) -> Result<(), Box<dyn Error>> {
+        let mut wtr = WriterBuilder::new()
+            .has_headers(true)
+            .delimiter(b';')
+            .from_path(output_path)?;
+        for record in records {
+            wtr.serialize(record)?;
+        }
+        wtr.flush()?;
+        Ok(())
     }
 }
