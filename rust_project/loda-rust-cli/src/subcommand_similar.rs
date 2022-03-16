@@ -229,6 +229,7 @@ impl IndexesArray {
             for (key, value) in indexes.iter().enumerate() {
                 if match_set.contains(value) {
                     result.insert(key);
+                    break;
                 }
             }
         }
