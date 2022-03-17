@@ -1,8 +1,8 @@
 use crate::common::{find_asm_files_recursively, program_id_from_asm_path};
 use crate::mine::RecordBigram;
+use crate::similar::Word;
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::config::Config;
-use loda_rust_core::parser::InstructionId;
 use std::time::Instant;
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -276,35 +276,6 @@ fn load_program(path: &Path) -> Option<ParsedProgram> {
         }
     };
     Some(parsed_program)
-}
-
-#[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
-enum Word {
-    Start,
-    Stop,
-    Instruction(InstructionId)
-}
-
-impl Word {
-    fn parse(raw: &str) -> Option<Word> {
-        match raw {
-            "START" => {
-                return Some(Word::Start);
-            },
-            "STOP" => {
-                return Some(Word::Stop);
-            },
-            _ => {}
-        }
-        match InstructionId::parse(raw, 1) {
-            Ok(instruction_id) => {
-                return Some(Word::Instruction(instruction_id));
-            },
-            Err(_) => {
-                return None;
-            }
-        }
-    }
 }
 
 trait WordsFromProgram {
