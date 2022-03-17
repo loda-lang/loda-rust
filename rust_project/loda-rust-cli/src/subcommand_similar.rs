@@ -55,7 +55,7 @@ pub fn subcommand_similar() {
     
     let mut program_meta_vec = Vec::<ProgramMeta>::new();
     for path in paths {
-        let program_meta = match analyze_program(&path, &bigram_to_index, &indexes_array, &output_rootdir) {
+        let program_meta = match analyze_program(&path, &bigram_to_index, &indexes_array) {
             Some(value) => value,
             None => {
                 continue;
@@ -96,8 +96,8 @@ pub fn subcommand_similar() {
                 .then(a.program_id.cmp(&b.program_id))
         });
         comparison_results.truncate(MAX_NUMBER_OF_ROWS_IN_CSV_FILES);
-
-        match ComparisonResult::create_csv_file(&comparison_results, &program0.path_output) {
+    
+        match OutputManager::create_csv_file(&comparison_results, program0.program_id, &output_rootdir) {
             Ok(_) => {},
             Err(error) => {
                 error!("Unable to create csv file. error: {:?}", error);
@@ -112,8 +112,7 @@ pub fn subcommand_similar() {
 fn analyze_program(
     path: &Path, 
     bigram_to_index: &HashMap<BigramPair,u16>, 
-    indexes_array: &IndexesArray, 
-    output_rootdir: &Path
+    indexes_array: &IndexesArray
 ) -> Option<ProgramMeta> {
     let program_id: u32 = match program_id_from_path(path) {
         Some(value) => value,
@@ -157,12 +156,9 @@ fn analyze_program(
 
     let signature: BitSet = indexes_array.compute_signature(&match_set);
 
-    let path_output: PathBuf = ProgramMeta::path_to_output_file(program_id, output_rootdir);
-
     let program_meta = ProgramMeta::new(
         program_id,
         PathBuf::from(path),
-        path_output,
         line_count,
         signature
     );
@@ -175,8 +171,6 @@ struct ProgramMeta {
     #[allow(dead_code)]
     path_input: PathBuf,
 
-    path_output: PathBuf,
-
     #[allow(dead_code)]
     line_count: u16,
 
@@ -184,25 +178,13 @@ struct ProgramMeta {
 }
 
 impl ProgramMeta {
-    fn new(program_id: u32, path_input: PathBuf, path_output: PathBuf, line_count: u16, signature: BitSet) -> Self {
+    fn new(program_id: u32, path_input: PathBuf, line_count: u16, signature: BitSet) -> Self {
         Self {
             program_id: program_id,
             path_input: path_input,
-            path_output: path_output,
             line_count: line_count,
             signature: signature
         }
-    }
-
-    // Construct a path: "/absolute/path/123/A123456_similarity_lsh.csv"
-    fn path_to_output_file(program_id: u32, rootdir: &Path) -> PathBuf {
-        let dir_index: u32 = program_id / 1000;
-        let dir_index_string: String = format!("{:0>3}", dir_index);
-        let filename_string: String = format!("A{:0>6}_similarity_lsh.csv", program_id);
-        let dirname = Path::new(&dir_index_string);
-        let filename = Path::new(&filename_string);
-        let pathbuf: PathBuf = rootdir.join(dirname).join(filename);
-        pathbuf
     }
 }
 
@@ -357,12 +339,37 @@ impl ComparisonResult {
             overlap_count: overlap_count,
         }
     }
+}
 
-    fn create_csv_file(records: &Vec<ComparisonResult>, output_path: &Path) -> Result<(), Box<dyn Error>> {
+struct OutputManager {}
+
+impl OutputManager {
+    fn create_csv_file(records: &Vec<ComparisonResult>, program_id: u32, output_rootdir: &Path) -> Result<(), Box<dyn Error>> {
+        let (dirname_string, filename_string) = Self::output_dir_and_file(program_id);
+        let dirname = Path::new(&dirname_string);
+        let filename = Path::new(&filename_string);
+        let path_output_dir: PathBuf = output_rootdir.join(dirname);
+        let path_output_file: PathBuf = path_output_dir.join(filename);
+        Self::create_csv_file_inner(records, &path_output_dir, &path_output_file)
+    }
+
+    // Used for construct a path like: "/absolute/path/123/A123456_similarity_lsh.csv"
+    fn output_dir_and_file(program_id: u32) -> (String, String) {
+        let dir_index: u32 = program_id / 1000;
+        let dir_index_string: String = format!("{:0>3}", dir_index);
+        let filename_string: String = format!("A{:0>6}_similarity_lsh.csv", program_id);
+        (dir_index_string, filename_string)
+    }
+
+    fn create_csv_file_inner(records: &Vec<ComparisonResult>, output_path_dir: &Path, output_path_file: &Path) -> Result<(), Box<dyn Error>> {
+        if !output_path_dir.is_dir() {
+            debug!("creating dir: {:?}", output_path_dir);
+            fs::create_dir(output_path_dir)?;
+        }
         let mut wtr = WriterBuilder::new()
             .has_headers(true)
             .delimiter(b';')
-            .from_path(output_path)?;
+            .from_path(output_path_file)?;
         for record in records {
             wtr.serialize(record)?;
         }
