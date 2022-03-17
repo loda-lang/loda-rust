@@ -1,6 +1,7 @@
 use crate::common::{find_asm_files_recursively, program_id_from_asm_path};
 use crate::common::RecordBigram;
 use crate::similar::Word;
+use crate::similar::WordPair;
 use crate::similar::WordsFromProgram;
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::config::Config;
@@ -32,7 +33,7 @@ pub fn subcommand_similar() {
     let instruction_vec: Vec<RecordBigram> = RecordBigram::parse_csv(&instruction_bigram_csv).expect("Unable to load instruction bigram csv");
     let number_of_bigram_rows: usize = instruction_vec.len();
     debug!("number of bigram rows: {}", number_of_bigram_rows);
-    let wordpair_vec = WordPair::new(instruction_vec);
+    let wordpair_vec = WordPair::convert(instruction_vec);
     assert!(wordpair_vec.len() == number_of_bigram_rows);
     let mut wordpair_to_index = HashMap::<WordPair,u16>::new();
     for (index, wordpair) in wordpair_vec.iter().enumerate() {
@@ -220,44 +221,6 @@ impl IndexesArray {
             }
         }
         result
-    }
-}
-
-#[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
-struct WordPair {
-    word0: Word,
-    word1: Word,
-}
-
-impl WordPair {
-    fn new(bigram_rows: Vec<RecordBigram>) -> Vec<WordPair> {
-        let mut wordpair_vec: Vec<WordPair> = vec!();
-        let mut number_of_parse_errors = 0;
-        for bigram_row in bigram_rows {
-            let word0 = match Word::parse(&bigram_row.word0) {
-                Some(value) => value,
-                None => {
-                    number_of_parse_errors += 1;
-                    continue;
-                }
-            };
-            let word1 = match Word::parse(&bigram_row.word1) {
-                Some(value) => value,
-                None => {
-                    number_of_parse_errors += 1;
-                    continue;
-                }
-            };
-            let pair = WordPair {
-                word0: word0,
-                word1: word1
-            };
-            wordpair_vec.push(pair);
-        }
-        if number_of_parse_errors > 0 {
-            error!("number of parse errors: {}", number_of_parse_errors);
-        }
-        wordpair_vec
     }
 }
 

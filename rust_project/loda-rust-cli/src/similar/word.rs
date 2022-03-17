@@ -1,9 +1,10 @@
 use loda_rust_core::parser::InstructionId;
+use std::fmt;
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
 pub enum Word {
-    Start,
-    Stop,
+    ProgramStart,
+    ProgramStop,
     Instruction(InstructionId)
 }
 
@@ -11,10 +12,10 @@ impl Word {
     pub fn parse(raw: &str) -> Option<Word> {
         match raw {
             "START" => {
-                return Some(Word::Start);
+                return Some(Word::ProgramStart);
             },
             "STOP" => {
-                return Some(Word::Stop);
+                return Some(Word::ProgramStop);
             },
             _ => {}
         }
@@ -29,28 +30,31 @@ impl Word {
     }
 }
 
+impl fmt::Display for Word {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::ProgramStart => write!(f, "START"),
+            Self::ProgramStop => write!(f, "STOP"),
+            Self::Instruction(instruction) => write!(f, "{}", instruction.shortname())
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn parse(input: &str) -> String {
-        let word: Word = match Word::parse(input) {
-            Some(value) => value,
-            None => return "NONE".to_string()
-        };
-        match word {
-            Word::Start => return "Start".to_string(),
-            Word::Stop => return "Stop".to_string(),
-            Word::Instruction(instruction) => {
-                return instruction.shortname().to_string();
-            }
+        match Word::parse(input) {
+            Some(word) => word.to_string(),
+            None => "NONE".to_string()
         }
     }
 
     #[test]
     fn test_10000_parse_success() {
-        assert_eq!(parse("START"), "Start");
-        assert_eq!(parse("STOP"), "Stop");
+        assert_eq!(parse("START"), "START");
+        assert_eq!(parse("STOP"), "STOP");
         assert_eq!(parse("mov"), "mov");
         assert_eq!(parse("add"), "add");
     }
