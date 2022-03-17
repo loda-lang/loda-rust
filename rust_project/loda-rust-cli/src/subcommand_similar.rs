@@ -23,7 +23,6 @@ const INTERVAL_UNTIL_NEXT_PROGRESS: u128 = 1000;
 
 pub fn subcommand_similar() {
     let start_time = Instant::now();
-    println!("similar begin");
 
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
@@ -31,18 +30,17 @@ pub fn subcommand_similar() {
 
     let instruction_bigram_csv: PathBuf = config.cache_dir_histogram_instruction_bigram_file();
     let instruction_vec: Vec<RecordBigram> = RecordBigram::parse_csv(&instruction_bigram_csv).expect("Unable to load instruction bigram csv");
-    println!("number of rows in bigram.csv: {}", instruction_vec.len());
+    let number_of_bigram_rows: usize = instruction_vec.len();
+    debug!("number of bigram rows: {}", number_of_bigram_rows);
     let bigram_pairs = BigramPair::new(instruction_vec);
-    println!("number of bigram pairs: {}", bigram_pairs.len());
-
+    assert!(bigram_pairs.len() == number_of_bigram_rows);
     let mut bigram_to_index = HashMap::<BigramPair,u16>::new();
     for (index, bigram_pair) in bigram_pairs.iter().enumerate() {
         bigram_to_index.insert(*bigram_pair, index as u16);
     }
-    // println!("bigram: {:?}", bigram_to_index);
-    println!("bigram_to_index length: {:?}", bigram_to_index.len());
+    assert!(bigram_to_index.len() == number_of_bigram_rows);
 
-    let indexes_array = IndexesArray::new(bigram_pairs.len() as u16, SIGNATURE_LENGTH);
+    let indexes_array = IndexesArray::new(number_of_bigram_rows as u16, SIGNATURE_LENGTH);
 
 
     let paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
@@ -68,7 +66,7 @@ pub fn subcommand_similar() {
 
     let mut progress_time = Instant::now();
     let max_index0: usize = program_meta_vec.len();
-    let mut bitset = BitSet::with_capacity(bigram_pairs.len() * 2);
+    let mut bitset = BitSet::with_capacity(number_of_bigram_rows);
     let mut comparison_results = Vec::<ComparisonResult>::new();
     comparison_results.reserve(program_meta_vec.len());
     for (index0, program0) in program_meta_vec.iter().enumerate() {
@@ -131,7 +129,7 @@ fn analyze_program(
 
     let line_count_raw: usize = parsed_program.instruction_vec.len();
     if line_count_raw > 300 {
-        println!("Skipped a program that is too long. path: {:?}", path);
+        error!("Skipped a program that is too long. path: {:?}", path);
         return None;
     }
     let line_count = line_count_raw as u16;
@@ -149,13 +147,12 @@ fn analyze_program(
         let index: u16 = match bigram_to_index.get(&pair) {
             Some(value) => *value,
             None => {
-                println!("Unrecognized bigram, not found in vocabulary. Skipping. {:?}", pair);
+                error!("Unrecognized bigram, not found in vocabulary. Skipping. {:?}", pair);
                 continue;
             }
         };
         match_set.insert(index);
     }
-    // println!("match_set: {:?}", match_set);
 
     let signature: BitSet = indexes_array.compute_signature(&match_set);
 
@@ -173,9 +170,15 @@ fn analyze_program(
 
 struct ProgramMeta {
     program_id: u32,
+
+    #[allow(dead_code)]
     path_input: PathBuf,
+
     path_output: PathBuf,
+
+    #[allow(dead_code)]
     line_count: u16,
+
     signature: BitSet,
 }
 
