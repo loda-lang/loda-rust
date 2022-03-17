@@ -1,4 +1,4 @@
-use crate::common::{find_asm_files_recursively, program_id_from_path};
+use crate::common::{find_asm_files_recursively, program_id_from_asm_path};
 use crate::mine::RecordBigram;
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::config::Config;
@@ -113,7 +113,7 @@ fn analyze_program(
     bigram_to_index: &HashMap<BigramPair,u16>, 
     indexes_array: &IndexesArray
 ) -> Option<ProgramMeta> {
-    let program_id: u32 = match program_id_from_path(path) {
+    let program_id: u32 = match program_id_from_asm_path(path) {
         Some(value) => value,
         None => {
             return None;
