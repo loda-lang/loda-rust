@@ -1,10 +1,9 @@
+use crate::common::{find_asm_files_recursively, program_ids_from_paths};
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use std::path::{Path, PathBuf};
 use std::error::Error;
 use super::load_program_ids_from_deny_file;
-use super::find_asm_files_recursively;
-use super::program_ids_from_paths;
 
 // What NOT to be mined!
 //

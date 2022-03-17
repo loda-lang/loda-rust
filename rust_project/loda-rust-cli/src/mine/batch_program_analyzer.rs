@@ -1,3 +1,4 @@
+use crate::common::{find_asm_files_recursively, program_id_from_path};
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::ParsedProgram;
@@ -6,8 +7,6 @@ use std::fs;
 use std::time::Instant;
 use std::rc::Rc;
 use core::cell::RefCell;
-use super::find_asm_files_recursively;
-use super::program_id_from_path;
 
 pub struct BatchProgramAnalyzerContext {
     pub program_id: u32,

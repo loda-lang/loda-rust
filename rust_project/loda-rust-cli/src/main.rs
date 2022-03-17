@@ -9,6 +9,7 @@ use std::str::FromStr;
 
 use loda_rust_core::control::*;
 
+mod common;
 mod mine;
 mod oeis;
 mod subcommand_dependencies;

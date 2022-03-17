@@ -1,6 +1,5 @@
-use crate::mine::find_asm_files_recursively;
+use crate::common::{find_asm_files_recursively, program_id_from_path};
 use crate::mine::RecordBigram;
-use crate::mine::program_id_from_path;
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::InstructionId;
