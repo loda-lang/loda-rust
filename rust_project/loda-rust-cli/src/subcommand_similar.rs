@@ -19,7 +19,8 @@ use std::error::Error;
 use serde::Serialize;
 
 const SIGNATURE_LENGTH: u8 = 30;
-const MAX_NUMBER_OF_ROWS_IN_CSV_FILES: usize = 50;
+const IGNORE_INPUT_PROGRAM_IF_INSTRUCTION_COUNT_EXCEEDS: usize = 300;
+const MAX_NUMBER_OF_ROWS_IN_OUTPUT_CSV_FILE: usize = 50;
 const INTERVAL_UNTIL_NEXT_PROGRESS: u128 = 1000;
 
 pub fn subcommand_similar() {
@@ -96,7 +97,7 @@ pub fn subcommand_similar() {
             a.overlap_count.cmp(&b.overlap_count).reverse()
                 .then(a.program_id.cmp(&b.program_id))
         });
-        comparison_results.truncate(MAX_NUMBER_OF_ROWS_IN_CSV_FILES);
+        comparison_results.truncate(MAX_NUMBER_OF_ROWS_IN_OUTPUT_CSV_FILE);
     
         match OutputManager::create_csv_file(&comparison_results, program0.program_id, &output_rootdir) {
             Ok(_) => {},
@@ -129,7 +130,7 @@ fn analyze_program(
     };
 
     let line_count_raw: usize = parsed_program.instruction_vec.len();
-    if line_count_raw > 300 {
+    if line_count_raw > IGNORE_INPUT_PROGRAM_IF_INSTRUCTION_COUNT_EXCEEDS {
         error!("Skipped a program that is too long. path: {:?}", path);
         return None;
     }
@@ -188,7 +189,6 @@ impl ProgramMeta {
         }
     }
 }
-
 
 struct IndexesArray {
     indexes_array: Vec<Vec<u16>>
