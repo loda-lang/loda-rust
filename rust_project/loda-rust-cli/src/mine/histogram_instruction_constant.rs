@@ -8,7 +8,7 @@ use serde::Deserialize;
 use rand::Rng;
 use rand::seq::SliceRandom;
 use loda_rust_core::parser::InstructionId;
-use super::parse_csv_data;
+use crate::common::parse_csv_data;
 
 type ValueAndWeight = (i32,u32);
 type ValueAndWeightVector = Vec<ValueAndWeight>;

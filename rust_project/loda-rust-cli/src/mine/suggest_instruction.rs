@@ -1,4 +1,4 @@
-use super::RecordTrigram;
+use crate::common::RecordTrigram;
 use loda_rust_core::parser::InstructionId;
 use std::collections::HashMap;
 use rand::Rng;

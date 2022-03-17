@@ -1,5 +1,5 @@
 use crate::common::{find_asm_files_recursively, program_id_from_asm_path};
-use crate::mine::RecordBigram;
+use crate::common::RecordBigram;
 use crate::similar::Word;
 use crate::similar::WordsFromProgram;
 use loda_rust_core::parser::ParsedProgram;
