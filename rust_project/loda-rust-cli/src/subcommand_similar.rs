@@ -43,7 +43,8 @@ pub fn subcommand_similar() {
     let indexes_array = IndexesArray::new(number_of_bigram_rows as u16, SIGNATURE_LENGTH);
 
 
-    let paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
+    let mut paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
+    paths.sort();
     let number_of_paths = paths.len();
     if number_of_paths <= 0 {
         error!("Expected 1 or more programs, but there are no programs to analyze");
