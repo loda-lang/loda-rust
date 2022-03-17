@@ -1,6 +1,7 @@
 use crate::common::{find_asm_files_recursively, program_id_from_asm_path};
 use crate::mine::RecordBigram;
 use crate::similar::Word;
+use crate::similar::WordsFromProgram;
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::config::Config;
 use std::time::Instant;
@@ -276,21 +277,6 @@ fn load_program(path: &Path) -> Option<ParsedProgram> {
         }
     };
     Some(parsed_program)
-}
-
-trait WordsFromProgram {
-    fn as_words(&self) -> Vec<Word>;
-}
-
-impl WordsFromProgram for ParsedProgram {
-    fn as_words(&self) -> Vec<Word> {
-        let mut words: Vec<Word> = self.instruction_ids().iter().map(|instruction_id| {
-            Word::Instruction(*instruction_id)
-        }).collect();
-        words.insert(0, Word::Start);
-        words.push(Word::Stop);
-        words
-    }
 }
 
 #[derive(Serialize)]
