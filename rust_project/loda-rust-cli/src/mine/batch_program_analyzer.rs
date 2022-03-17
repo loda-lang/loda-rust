@@ -1,3 +1,4 @@
+use crate::common::{find_asm_files_recursively, program_id_from_asm_path};
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::ParsedProgram;
@@ -6,8 +7,6 @@ use std::fs;
 use std::time::Instant;
 use std::rc::Rc;
 use core::cell::RefCell;
-use super::find_asm_files_recursively;
-use super::program_id_from_path;
 
 pub struct BatchProgramAnalyzerContext {
     pub program_id: u32,
@@ -70,7 +69,7 @@ impl BatchProgramAnalyzer {
     }
 
     fn analyze_program_file(&mut self, path_to_program: &PathBuf) {
-        let program_id: u32 = match program_id_from_path(&path_to_program) {
+        let program_id: u32 = match program_id_from_asm_path(&path_to_program) {
             Some(program_id) => program_id,
             None => {
                 debug!("Unable to extract program_id from {:?}", path_to_program);

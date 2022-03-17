@@ -5,15 +5,15 @@ use super::parse_csv_file;
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
-pub struct RecordTrigram {
+pub struct RecordSkipgram {
     pub count: u32,
     pub word0: String,
-    pub word1: String,
     pub word2: String,
 }
 
-impl RecordTrigram {
-    pub fn parse_csv(path: &Path) -> Result<Vec<RecordTrigram>, Box<dyn Error>> {
+impl RecordSkipgram {
+    #[allow(dead_code)]
+    pub fn parse_csv(path: &Path) -> Result<Vec<RecordSkipgram>, Box<dyn Error>> {
         parse_csv_file::parse_csv_file(path)
     }
 }
@@ -21,39 +21,39 @@ impl RecordTrigram {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mine::parse_csv_data;
+    use crate::common::parse_csv_data;
 
     #[test]
     fn test_10000_parse_ok() {
         let data = "\
-count;word0;word1;word2
-10976;lpe;mov;STOP
-10556;mov;lpb;sub
-10224;add;lpe;mov
+count;word0;word2
+24181;add;mov
+24069;mov;mov
+22644;mov;add
 ";
         let mut input: &[u8] = data.as_bytes();
-        let records: Vec<RecordTrigram> = parse_csv_data(&mut input).unwrap();
+        let records: Vec<RecordSkipgram> = parse_csv_data(&mut input).unwrap();
         let strings: Vec<String> = records.iter().map(|record| {
-            format!("{} {} {} {}", record.count, record.word0, record.word1, record.word2)
+            format!("{} {} {}", record.count, record.word0, record.word2)
         }).collect();
         let strings_joined: String = strings.join(",");
-        assert_eq!(strings_joined, "10976 lpe mov STOP,10556 mov lpb sub,10224 add lpe mov");
+        assert_eq!(strings_joined, "24181 add mov,24069 mov mov,22644 mov add");
     }
 
     #[test]
     fn test_10001_parse_ok() {
         let data = "\
-count;word0;word1;word2
-33031;0;0;0
-31497;0;0;STOP
-17270;1;1;1
+count;word0;word2
+56263;0;0
+37328;1;0
+31837;0;STOP
 ";
         let mut input: &[u8] = data.as_bytes();
-        let records: Vec<RecordTrigram> = parse_csv_data(&mut input).unwrap();
+        let records: Vec<RecordSkipgram> = parse_csv_data(&mut input).unwrap();
         let strings: Vec<String> = records.iter().map(|record| {
-            format!("{} {} {} {}", record.count, record.word0, record.word1, record.word2)
+            format!("{} {} {}", record.count, record.word0, record.word2)
         }).collect();
         let strings_joined: String = strings.join(",");
-        assert_eq!(strings_joined, "33031 0 0 0,31497 0 0 STOP,17270 1 1 1");
+        assert_eq!(strings_joined, "56263 0 0,37328 1 0,31837 0 STOP");
     }
 }

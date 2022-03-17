@@ -355,6 +355,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bit-set"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e11e16035ea35e4e5997b393eacbf6f63983188f7a2ad25bfb13465f5ad59de"
+dependencies = [
+ "bit-vec",
+]
+
+[[package]]
 name = "bit-vec"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1017,6 +1026,7 @@ dependencies = [
 name = "loda-rust-cli"
 version = "0.1.0"
 dependencies = [
+ "bit-set",
  "bloomfilter",
  "chrono",
  "clap",

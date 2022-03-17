@@ -1,4 +1,4 @@
-use super::RecordTrigram;
+use crate::common::RecordTrigram;
 use std::collections::HashMap;
 use rand::Rng;
 use rand::seq::SliceRandom;

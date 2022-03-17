@@ -1,11 +1,11 @@
+use crate::common::find_asm_files_recursively;
+use crate::common::RecordTrigram;
 use super::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, RecentProgramContainer, save_candidate_program};
 use super::{PreventFlooding, prevent_flooding_populate};
 use super::HistogramInstructionConstant;
-use super::RecordTrigram;
 use super::SuggestInstruction;
 use super::SuggestSource;
 use super::SuggestTarget;
-use super::find_asm_files_recursively;
 use super::{MinerThreadMessageToCoordinator, MetricEvent, Recorder};
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
