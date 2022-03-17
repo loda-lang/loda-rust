@@ -31,13 +31,13 @@ pub fn subcommand_similar() {
     let instruction_vec: Vec<RecordBigram> = RecordBigram::parse_csv(&instruction_bigram_csv).expect("Unable to load instruction bigram csv");
     let number_of_bigram_rows: usize = instruction_vec.len();
     debug!("number of bigram rows: {}", number_of_bigram_rows);
-    let bigram_pairs = BigramPair::new(instruction_vec);
-    assert!(bigram_pairs.len() == number_of_bigram_rows);
-    let mut bigram_to_index = HashMap::<BigramPair,u16>::new();
-    for (index, bigram_pair) in bigram_pairs.iter().enumerate() {
-        bigram_to_index.insert(*bigram_pair, index as u16);
+    let wordpair_vec = WordPair::new(instruction_vec);
+    assert!(wordpair_vec.len() == number_of_bigram_rows);
+    let mut wordpair_to_index = HashMap::<WordPair,u16>::new();
+    for (index, wordpair) in wordpair_vec.iter().enumerate() {
+        wordpair_to_index.insert(*wordpair, index as u16);
     }
-    assert!(bigram_to_index.len() == number_of_bigram_rows);
+    assert!(wordpair_to_index.len() == number_of_bigram_rows);
 
     let indexes_array = IndexesArray::new(number_of_bigram_rows as u16, SIGNATURE_LENGTH);
 
@@ -54,7 +54,7 @@ pub fn subcommand_similar() {
     
     let mut program_meta_vec = Vec::<ProgramMeta>::new();
     for path in paths {
-        let program_meta = match analyze_program(&path, &bigram_to_index, &indexes_array) {
+        let program_meta = match analyze_program(&path, &wordpair_to_index, &indexes_array) {
             Some(value) => value,
             None => {
                 continue;
@@ -110,7 +110,7 @@ pub fn subcommand_similar() {
 
 fn analyze_program(
     path: &Path, 
-    bigram_to_index: &HashMap<BigramPair,u16>, 
+    wordpair_to_index: &HashMap<WordPair,u16>, 
     indexes_array: &IndexesArray
 ) -> Option<ProgramMeta> {
     let program_id: u32 = match program_id_from_asm_path(path) {
@@ -142,11 +142,11 @@ fn analyze_program(
     for i in 1..n {
         let word0: Word = words[i-1];
         let word1: Word = words[i];
-        let pair = BigramPair { word0: word0, word1: word1 };
-        let index: u16 = match bigram_to_index.get(&pair) {
+        let wordpair = WordPair { word0: word0, word1: word1 };
+        let index: u16 = match wordpair_to_index.get(&wordpair) {
             Some(value) => *value,
             None => {
-                error!("Unrecognized bigram, not found in vocabulary. Skipping. {:?}", pair);
+                error!("Unrecognized bigram, not found in vocabulary. Skipping. {:?}", wordpair);
                 continue;
             }
         };
@@ -223,14 +223,14 @@ impl IndexesArray {
 }
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
-struct BigramPair {
+struct WordPair {
     word0: Word,
     word1: Word,
 }
 
-impl BigramPair {
-    fn new(bigram_rows: Vec<RecordBigram>) -> Vec<BigramPair> {
-        let mut bigram_pairs: Vec<BigramPair> = vec!();
+impl WordPair {
+    fn new(bigram_rows: Vec<RecordBigram>) -> Vec<WordPair> {
+        let mut wordpair_vec: Vec<WordPair> = vec!();
         let mut number_of_parse_errors = 0;
         for bigram_row in bigram_rows {
             let word0 = match Word::parse(&bigram_row.word0) {
@@ -247,16 +247,16 @@ impl BigramPair {
                     continue;
                 }
             };
-            let pair = BigramPair {
+            let pair = WordPair {
                 word0: word0,
                 word1: word1
             };
-            bigram_pairs.push(pair);
+            wordpair_vec.push(pair);
         }
         if number_of_parse_errors > 0 {
             error!("number of parse errors: {}", number_of_parse_errors);
         }
-        bigram_pairs
+        wordpair_vec
     }
 }
 
