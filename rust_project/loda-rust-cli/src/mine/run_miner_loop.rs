@@ -7,7 +7,7 @@ use super::SuggestInstruction;
 use super::SuggestSource;
 use super::SuggestTarget;
 use super::{MinerThreadMessageToCoordinator, MetricEvent, Recorder};
-use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
@@ -105,7 +105,7 @@ impl LoopMetrics {
 pub fn run_miner_loop(
     tx: Sender<MinerThreadMessageToCoordinator>,
     recorder: Box<dyn Recorder>,
-    loda_programs_oeis_dir: &PathBuf, 
+    mut dependency_manager: DependencyManager,
     mut funnel: Funnel,
     histogram_instruction_constant: Option<HistogramInstructionConstant>,
     mine_event_dir: &Path,
@@ -119,11 +119,6 @@ pub fn run_miner_loop(
     recent_program_container: RecentProgramContainer,
 ) {
     let mut rng = StdRng::seed_from_u64(initial_random_seed);
-
-    let mut dm = DependencyManager::new(
-        DependencyManagerFileSystemMode::System,
-        loda_programs_oeis_dir.clone(),
-    );
 
     let instruction_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(instruction_trigram_csv).expect("Unable to load instruction trigram csv");
     let mut suggest_instruction = SuggestInstruction::new();
@@ -147,7 +142,7 @@ pub fn run_miner_loop(
     println!("number of .asm files in total: {:?}", paths.len());
 
     let mut prevent_flooding = PreventFlooding::new();
-    prevent_flooding_populate(&mut prevent_flooding, &mut dm, &mut cache, paths);
+    prevent_flooding_populate(&mut prevent_flooding, &mut dependency_manager, &mut cache, paths);
     println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
 
     let mut genome = Genome::new();
@@ -237,7 +232,7 @@ pub fn run_miner_loop(
                     panic!("Unable to pick among available programs");
                 }
             };
-            let parsed_program: ParsedProgram = match genome.load_program(&dm, current_program_id) {
+            let parsed_program: ParsedProgram = match genome.load_program(&dependency_manager, current_program_id) {
                 Some(value) => value,
                 None => {
                     error!("Unable to parse available program");
@@ -267,8 +262,8 @@ pub fn run_miner_loop(
         // println!("#{} Current genome\n{}", iteration, genome);
     
         // Create program from genome
-        dm.reset();
-        let result_parse = dm.parse_stage2(
+        dependency_manager.reset();
+        let result_parse = dependency_manager.parse_stage2(
             ProgramId::ProgramWithoutId, 
             &genome.to_parsed_program()
         );

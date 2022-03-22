@@ -1,6 +1,7 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use super::{CheckFixedLengthSequence, Funnel, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, Recorder};
+use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 use std::sync::mpsc::Sender;
@@ -90,6 +91,11 @@ pub fn start_miner_loop(
         }
     };
 
+    let dependency_manager = DependencyManager::new(
+        DependencyManagerFileSystemMode::System,
+        loda_programs_oeis_dir,
+    );
+
     // Pick a random seed
     let mut rng = thread_rng();
     let initial_random_seed: u64 = rng.next_u64();
@@ -102,7 +108,7 @@ pub fn start_miner_loop(
     run_miner_loop(
         tx,
         recorder,
-        &loda_programs_oeis_dir,
+        dependency_manager,
         funnel,
         histogram_instruction_constant,
         &mine_event_dir,
