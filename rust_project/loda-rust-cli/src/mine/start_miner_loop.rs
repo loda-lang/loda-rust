@@ -1,6 +1,6 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
-use super::{CheckFixedLengthSequence, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, Recorder};
+use super::{CheckFixedLengthSequence, Funnel, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, Recorder};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 use std::sync::mpsc::Sender;
@@ -34,6 +34,12 @@ pub fn start_miner_loop(
     let checker20: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path20);
     let checker30: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path30);
     let checker40: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path40);
+    let funnel = Funnel::new(
+        checker10,
+        checker20,
+        checker30,
+        checker40,
+    );
 
     debug!("step2");
     let path_histogram: PathBuf = config.cache_dir_histogram_instruction_constant_file();
@@ -96,11 +102,8 @@ pub fn start_miner_loop(
     run_miner_loop(
         tx,
         recorder,
-        &loda_programs_oeis_dir, 
-        checker10, 
-        checker20,
-        checker30,
-        checker40,
+        &loda_programs_oeis_dir,
+        funnel,
         histogram_instruction_constant,
         &mine_event_dir,
         &loda_rust_mismatches,

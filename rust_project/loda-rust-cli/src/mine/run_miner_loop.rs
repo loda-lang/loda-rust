@@ -1,6 +1,6 @@
 use crate::common::find_asm_files_recursively;
 use crate::common::RecordTrigram;
-use super::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, RecentProgramContainer, save_candidate_program};
+use super::{Funnel, Genome, GenomeMutateContext, PopularProgramContainer, RecentProgramContainer, save_candidate_program};
 use super::{PreventFlooding, prevent_flooding_populate};
 use super::HistogramInstructionConstant;
 use super::SuggestInstruction;
@@ -106,10 +106,7 @@ pub fn run_miner_loop(
     tx: Sender<MinerThreadMessageToCoordinator>,
     recorder: Box<dyn Recorder>,
     loda_programs_oeis_dir: &PathBuf, 
-    checker10: CheckFixedLengthSequence, 
-    checker20: CheckFixedLengthSequence,
-    checker30: CheckFixedLengthSequence,
-    checker40: CheckFixedLengthSequence,
+    mut funnel: Funnel,
     histogram_instruction_constant: Option<HistogramInstructionConstant>,
     mine_event_dir: &Path,
     loda_rust_mismatches: &Path,
@@ -163,13 +160,6 @@ pub fn run_miner_loop(
         Some(suggest_instruction),
         Some(suggest_source),
         Some(suggest_target)
-    );
-
-    let mut funnel = Funnel::new(
-        checker10,
-        checker20,
-        checker30,
-        checker40,
     );
 
     let mut metric = LoopMetrics::new();
