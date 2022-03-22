@@ -1,7 +1,10 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
+use loda_rust_core::execute::ProgramCache;
 use crate::common::RecordTrigram;
+use crate::common::find_asm_files_recursively;
 use super::{CheckFixedLengthSequence, Funnel, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, Recorder};
+use super::{PreventFlooding, prevent_flooding_populate};
 use super::SuggestInstruction;
 use super::SuggestSource;
 use super::SuggestTarget;
@@ -107,7 +110,7 @@ pub fn start_miner_loop(
     let mut suggest_target = SuggestTarget::new();
     suggest_target.populate(&target_trigram_vec);
 
-    let dependency_manager = DependencyManager::new(
+    let mut dependency_manager = DependencyManager::new(
         DependencyManagerFileSystemMode::System,
         loda_programs_oeis_dir,
     );
@@ -116,6 +119,19 @@ pub fn start_miner_loop(
     let mut rng = thread_rng();
     let initial_random_seed: u64 = rng.next_u64();
     println!("random_seed = {}", initial_random_seed);
+
+    let mut cache = ProgramCache::new();
+
+    let mut paths0: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
+    let mut paths1: Vec<PathBuf> = find_asm_files_recursively(&loda_rust_mismatches);
+    let mut paths: Vec<PathBuf> = vec!();
+    paths.append(&mut paths0);
+    paths.append(&mut paths1);
+    println!("number of .asm files in total: {:?}", paths.len());
+
+    let mut prevent_flooding = PreventFlooding::new();
+    prevent_flooding_populate(&mut prevent_flooding, &mut dependency_manager, &mut cache, paths);
+    println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
 
     let val2 = MinerThreadMessageToCoordinator::ReadyForMining;
     tx.send(val2).unwrap();
@@ -128,7 +144,6 @@ pub fn start_miner_loop(
         funnel,
         histogram_instruction_constant,
         &mine_event_dir,
-        &loda_rust_mismatches,
         available_program_ids,
         initial_random_seed,
         popular_program_container,
@@ -136,5 +151,7 @@ pub fn start_miner_loop(
         suggest_instruction,
         suggest_source,
         suggest_target,
+        cache,
+        prevent_flooding,
     );
 }

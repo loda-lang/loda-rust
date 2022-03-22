@@ -1,6 +1,5 @@
-use crate::common::find_asm_files_recursively;
 use super::{Funnel, Genome, GenomeMutateContext, PopularProgramContainer, RecentProgramContainer, save_candidate_program};
-use super::{PreventFlooding, prevent_flooding_populate};
+use super::PreventFlooding;
 use super::HistogramInstructionConstant;
 use super::SuggestInstruction;
 use super::SuggestSource;
@@ -14,10 +13,10 @@ use loda_rust_core::execute::node_power::NodePowerLimit;
 use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
 use loda_rust_core::parser::ParsedProgram;
 use std::time::Instant;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::sync::mpsc::Sender;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
-use std::sync::mpsc::Sender;
 
 const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
 
@@ -108,7 +107,6 @@ pub fn run_miner_loop(
     mut funnel: Funnel,
     histogram_instruction_constant: Option<HistogramInstructionConstant>,
     mine_event_dir: &Path,
-    loda_rust_mismatches: &Path,
     available_program_ids: Vec<u32>,
     initial_random_seed: u64,
     popular_program_container: PopularProgramContainer,
@@ -116,21 +114,10 @@ pub fn run_miner_loop(
     suggest_instruction: SuggestInstruction,
     suggest_source: SuggestSource,
     suggest_target: SuggestTarget,
+    mut cache: ProgramCache,
+    mut prevent_flooding: PreventFlooding,
 ) {
     let mut rng = StdRng::seed_from_u64(initial_random_seed);
-
-    let mut cache = ProgramCache::new();
-
-    let mut paths0: Vec<PathBuf> = find_asm_files_recursively(mine_event_dir);
-    let mut paths1: Vec<PathBuf> = find_asm_files_recursively(loda_rust_mismatches);
-    let mut paths: Vec<PathBuf> = vec!();
-    paths.append(&mut paths0);
-    paths.append(&mut paths1);
-    println!("number of .asm files in total: {:?}", paths.len());
-
-    let mut prevent_flooding = PreventFlooding::new();
-    prevent_flooding_populate(&mut prevent_flooding, &mut dependency_manager, &mut cache, paths);
-    println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
 
     let mut genome = Genome::new();
 
