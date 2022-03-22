@@ -112,7 +112,6 @@ impl RunMinerLoop {
     pub fn loop_forever(&mut self) {
         let mut progress_time = Instant::now();
         loop {
-            self.metric.number_of_miner_loop_iterations += 1;
             let elapsed: u128 = progress_time.elapsed().as_millis();
             if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
                 self.submit_metrics();
@@ -169,6 +168,7 @@ impl RunMinerLoop {
     }
 
     fn execute_one_iteration(&mut self) {
+        self.metric.number_of_miner_loop_iterations += 1;
         if (self.iteration % 10) == 0 {
             self.reload = true;
         }
