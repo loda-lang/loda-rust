@@ -4,6 +4,7 @@ use crate::common::RecordTrigram;
 use super::{CheckFixedLengthSequence, Funnel, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, Recorder};
 use super::SuggestInstruction;
 use super::SuggestSource;
+use super::SuggestTarget;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
@@ -102,6 +103,10 @@ pub fn start_miner_loop(
     let mut suggest_source = SuggestSource::new();
     suggest_source.populate(&source_trigram_vec);
 
+    let target_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(&target_trigram_csv).expect("Unable to load target trigram csv");
+    let mut suggest_target = SuggestTarget::new();
+    suggest_target.populate(&target_trigram_vec);
+
     let dependency_manager = DependencyManager::new(
         DependencyManagerFileSystemMode::System,
         loda_programs_oeis_dir,
@@ -124,12 +129,12 @@ pub fn start_miner_loop(
         histogram_instruction_constant,
         &mine_event_dir,
         &loda_rust_mismatches,
-        &target_trigram_csv,
         available_program_ids,
         initial_random_seed,
         popular_program_container,
         recent_program_container,
         suggest_instruction,
         suggest_source,
+        suggest_target,
     );
 }
