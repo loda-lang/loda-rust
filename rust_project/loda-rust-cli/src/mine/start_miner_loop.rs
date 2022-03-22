@@ -3,14 +3,17 @@ use loda_rust_core::config::Config;
 use loda_rust_core::execute::ProgramCache;
 use crate::common::RecordTrigram;
 use crate::common::find_asm_files_recursively;
-use super::{CheckFixedLengthSequence, Funnel, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, Recorder};
+use super::{CheckFixedLengthSequence, Funnel, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, RunMinerLoop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, Recorder};
 use super::{PreventFlooding, prevent_flooding_populate};
+use super::{GenomeMutateContext, Genome};
 use super::SuggestInstruction;
 use super::SuggestSource;
 use super::SuggestTarget;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 use std::sync::mpsc::Sender;
 
 pub fn start_miner_loop(
@@ -118,6 +121,7 @@ pub fn start_miner_loop(
     // Pick a random seed
     let mut rng = thread_rng();
     let initial_random_seed: u64 = rng.next_u64();
+    let rng: StdRng = StdRng::seed_from_u64(initial_random_seed);
     println!("random_seed = {}", initial_random_seed);
 
     let mut cache = ProgramCache::new();
@@ -133,25 +137,34 @@ pub fn start_miner_loop(
     prevent_flooding_populate(&mut prevent_flooding, &mut dependency_manager, &mut cache, paths);
     println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
 
+    let context = GenomeMutateContext::new(
+        available_program_ids,
+        popular_program_container,
+        recent_program_container,
+        histogram_instruction_constant,
+        Some(suggest_instruction),
+        Some(suggest_source),
+        Some(suggest_target)
+    );
+    assert_eq!(context.has_available_programs(), true);
+
+    let genome = Genome::new();
+
     let val2 = MinerThreadMessageToCoordinator::ReadyForMining;
     tx.send(val2).unwrap();
 
     // Launch the miner
-    run_miner_loop(
+    let mut rml = RunMinerLoop::new(
         tx,
         recorder,
         dependency_manager,
         funnel,
-        histogram_instruction_constant,
         &mine_event_dir,
-        available_program_ids,
-        initial_random_seed,
-        popular_program_container,
-        recent_program_container,
-        suggest_instruction,
-        suggest_source,
-        suggest_target,
         cache,
         prevent_flooding,
+        context,
+        genome,
+        rng,
     );
+    rml.loop_forever();
 }

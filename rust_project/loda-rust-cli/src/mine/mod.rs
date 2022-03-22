@@ -49,7 +49,7 @@ pub use popular_program_container::PopularProgramContainer;
 pub use prevent_flooding::{PreventFlooding, PreventFloodingError};
 pub use prevent_flooding_populate::prevent_flooding_populate;
 pub use recent_program_container::RecentProgramContainer;
-pub use run_miner_loop::run_miner_loop;
+pub use run_miner_loop::RunMinerLoop;
 pub use save_candidate_program::save_candidate_program;
 pub use start_miner_loop::start_miner_loop;
 pub use suggest_instruction::SuggestInstruction;
