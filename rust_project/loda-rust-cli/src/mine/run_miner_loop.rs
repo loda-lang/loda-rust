@@ -65,6 +65,43 @@ impl TermComputer {
     }
 }
 
+struct LoopMetrics {
+    number_of_miner_loop_iterations: u64,
+    number_of_prevented_floodings: u64,
+    number_of_failed_genome_loads: u64,
+    number_of_failed_mutations: u64,
+    number_of_programs_that_cannot_parse: u64,
+    number_of_programs_without_output: u64,
+    number_of_compute_errors: u64,
+    number_of_candidate_programs: u64,
+}
+
+impl LoopMetrics {
+    fn new() -> Self {
+        Self {
+            number_of_miner_loop_iterations: 0,
+            number_of_prevented_floodings: 0,
+            number_of_failed_genome_loads: 0,
+            number_of_failed_mutations: 0,
+            number_of_programs_that_cannot_parse: 0,
+            number_of_programs_without_output: 0,
+            number_of_compute_errors: 0,
+            number_of_candidate_programs: 0
+        }
+    }
+
+    fn reset_metrics(&mut self) {
+        self.number_of_miner_loop_iterations = 0;
+        self.number_of_prevented_floodings = 0;
+        self.number_of_failed_mutations = 0;
+        self.number_of_programs_that_cannot_parse = 0;
+        self.number_of_programs_without_output = 0;
+        self.number_of_compute_errors = 0;
+        self.number_of_failed_genome_loads = 0;
+        self.number_of_candidate_programs = 0;
+    }  
+}
+
 pub fn run_miner_loop(
     tx: Sender<MinerThreadMessageToCoordinator>,
     recorder: Box<dyn Recorder>,
@@ -135,14 +172,7 @@ pub fn run_miner_loop(
         checker40,
     );
 
-    let mut metric_number_of_miner_loop_iterations: u64 = 0;
-    let mut metric_number_of_prevented_floodings: u64 = 0;
-    let mut metric_number_of_failed_genome_loads: u64 = 0;
-    let mut metric_number_of_failed_mutations: u64 = 0;
-    let mut metric_number_of_programs_that_cannot_parse: u64 = 0;
-    let mut metric_number_of_programs_without_output: u64 = 0;
-    let mut metric_number_of_compute_errors: u64 = 0;
-    let mut metric_number_of_candidate_programs: u64 = 0;
+    let mut metric = LoopMetrics::new();
 
     let mut progress_time = Instant::now();
     let mut iteration: usize = 0;
@@ -153,12 +183,12 @@ pub fn run_miner_loop(
 
     assert_eq!(context.has_available_programs(), true);
     loop {
-        metric_number_of_miner_loop_iterations += 1;
+        metric.number_of_miner_loop_iterations += 1;
 
         let elapsed: u128 = progress_time.elapsed().as_millis();
         if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
             {
-                let y: u64 = metric_number_of_miner_loop_iterations;
+                let y: u64 = metric.number_of_miner_loop_iterations;
                 let message = MinerThreadMessageToCoordinator::NumberOfIterations(y);
                 tx.send(message).unwrap();
             }
@@ -174,11 +204,11 @@ pub fn run_miner_loop(
             }
             {
                 let event = MetricEvent::Genome { 
-                    cannot_load: metric_number_of_failed_genome_loads,
-                    cannot_parse: metric_number_of_programs_that_cannot_parse,
-                    no_output: metric_number_of_programs_without_output,
-                    no_mutation: metric_number_of_failed_mutations,
-                    compute_error: metric_number_of_compute_errors,
+                    cannot_load: metric.number_of_failed_genome_loads,
+                    cannot_parse: metric.number_of_programs_that_cannot_parse,
+                    no_output: metric.number_of_programs_without_output,
+                    no_mutation: metric.number_of_failed_mutations,
+                    compute_error: metric.number_of_compute_errors,
                 };
                 recorder.record(&event);
             }
@@ -192,22 +222,15 @@ pub fn run_miner_loop(
             }
             {
                 let event = MetricEvent::General { 
-                    prevent_flooding: metric_number_of_prevented_floodings,
-                    candidate_program: metric_number_of_candidate_programs,
+                    prevent_flooding: metric.number_of_prevented_floodings,
+                    candidate_program: metric.number_of_candidate_programs,
                 };
                 recorder.record(&event);
             }
 
             funnel.reset_metrics();
             cache.reset_metrics();
-            metric_number_of_miner_loop_iterations = 0;
-            metric_number_of_prevented_floodings = 0;
-            metric_number_of_failed_mutations = 0;
-            metric_number_of_programs_that_cannot_parse = 0;
-            metric_number_of_programs_without_output = 0;
-            metric_number_of_compute_errors = 0;
-            metric_number_of_failed_genome_loads = 0;
-            metric_number_of_candidate_programs = 0;
+            metric.reset_metrics();
 
             progress_time = Instant::now();
         }
@@ -238,7 +261,7 @@ pub fn run_miner_loop(
             genome.clear_message_vec();
             let load_ok: bool = genome.insert_program(current_program_id, &current_parsed_program);
             if !load_ok {
-                metric_number_of_failed_genome_loads += 1;
+                metric.number_of_failed_genome_loads += 1;
                 continue;
             }
             reload = false;
@@ -247,7 +270,7 @@ pub fn run_miner_loop(
         iteration += 1;
         
         if !genome.mutate(&mut rng, &context) {
-            metric_number_of_failed_mutations += 1;
+            metric.number_of_failed_mutations += 1;
             continue;
         }
 
@@ -263,14 +286,14 @@ pub fn run_miner_loop(
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be parsed. {}", iteration, error);
-                metric_number_of_programs_that_cannot_parse += 1;
+                metric.number_of_programs_that_cannot_parse += 1;
                 continue;
             }
         };
 
         // If the program has no live output register, then pick the lowest live register.
         if !runner.mining_trick_attempt_fixing_the_output_register() {
-            metric_number_of_programs_without_output += 1;
+            metric.number_of_programs_without_output += 1;
             continue;
         }
 
@@ -280,7 +303,7 @@ pub fn run_miner_loop(
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_compute_errors += 1;
+                metric.number_of_compute_errors += 1;
                 continue;
             }
         };
@@ -296,7 +319,7 @@ pub fn run_miner_loop(
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_compute_errors += 1;
+                metric.number_of_compute_errors += 1;
                 continue;
             }
         };
@@ -308,7 +331,7 @@ pub fn run_miner_loop(
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_compute_errors += 1;
+                metric.number_of_compute_errors += 1;
                 continue;
             }
         };
@@ -320,7 +343,7 @@ pub fn run_miner_loop(
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_compute_errors += 1;
+                metric.number_of_compute_errors += 1;
                 continue;
             }
         };
@@ -330,7 +353,7 @@ pub fn run_miner_loop(
 
         if prevent_flooding.try_register(&terms40).is_err() {
             // debug!("prevented flooding");
-            metric_number_of_prevented_floodings += 1;
+            metric.number_of_prevented_floodings += 1;
             reload = true;
             continue;
         }
@@ -353,6 +376,6 @@ pub fn run_miner_loop(
             error!("Unable to save candidate program: {:?}", error);
             continue;
         }
-        metric_number_of_candidate_programs += 1;
+        metric.number_of_candidate_programs += 1;
     }
 }
