@@ -110,19 +110,15 @@ pub fn run_miner_loop(
     histogram_instruction_constant: Option<HistogramInstructionConstant>,
     mine_event_dir: &Path,
     loda_rust_mismatches: &Path,
-    source_trigram_csv: &Path,
     target_trigram_csv: &Path,
     available_program_ids: Vec<u32>,
     initial_random_seed: u64,
     popular_program_container: PopularProgramContainer,
     recent_program_container: RecentProgramContainer,
     suggest_instruction: SuggestInstruction,
+    suggest_source: SuggestSource,
 ) {
     let mut rng = StdRng::seed_from_u64(initial_random_seed);
-
-    let source_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(source_trigram_csv).expect("Unable to load source trigram csv");
-    let mut suggest_source = SuggestSource::new();
-    suggest_source.populate(&source_trigram_vec);
 
     let target_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(target_trigram_csv).expect("Unable to load target trigram csv");
     let mut suggest_target = SuggestTarget::new();
