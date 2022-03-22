@@ -58,7 +58,7 @@ impl TermComputer {
     }
 }
 
-struct LoopMetrics {
+struct MetricsRunMinerLoop {
     number_of_miner_loop_iterations: u64,
     number_of_prevented_floodings: u64,
     number_of_failed_genome_loads: u64,
@@ -69,7 +69,7 @@ struct LoopMetrics {
     number_of_candidate_programs: u64,
 }
 
-impl LoopMetrics {
+impl MetricsRunMinerLoop {
     fn new() -> Self {
         Self {
             number_of_miner_loop_iterations: 0,
@@ -106,6 +106,7 @@ pub struct RunMinerLoop {
     context: GenomeMutateContext,
     genome: Genome,
     rng: StdRng,
+    metric: MetricsRunMinerLoop,
 }
 
 impl RunMinerLoop {
@@ -121,6 +122,7 @@ impl RunMinerLoop {
         genome: Genome,
         rng: StdRng,
     ) -> Self {
+        let metric = MetricsRunMinerLoop::new();
         Self {
             tx: tx,
             recorder: recorder,
@@ -132,12 +134,11 @@ impl RunMinerLoop {
             context: context,
             genome: genome,
             rng: rng,
+            metric: metric
         }
     }
 
     pub fn loop_forever(&mut self) {
-        let mut metric = LoopMetrics::new();
-    
         let mut progress_time = Instant::now();
         let mut iteration: usize = 0;
         let mut reload: bool = true;
@@ -146,12 +147,12 @@ impl RunMinerLoop {
         let mut current_parsed_program = ParsedProgram::new();
     
         loop {
-            metric.number_of_miner_loop_iterations += 1;
+            self.metric.number_of_miner_loop_iterations += 1;
     
             let elapsed: u128 = progress_time.elapsed().as_millis();
             if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
                 {
-                    let y: u64 = metric.number_of_miner_loop_iterations;
+                    let y: u64 = self.metric.number_of_miner_loop_iterations;
                     let message = MinerThreadMessageToCoordinator::NumberOfIterations(y);
                     self.tx.send(message).unwrap();
                 }
@@ -167,11 +168,11 @@ impl RunMinerLoop {
                 }
                 {
                     let event = MetricEvent::Genome { 
-                        cannot_load: metric.number_of_failed_genome_loads,
-                        cannot_parse: metric.number_of_programs_that_cannot_parse,
-                        no_output: metric.number_of_programs_without_output,
-                        no_mutation: metric.number_of_failed_mutations,
-                        compute_error: metric.number_of_compute_errors,
+                        cannot_load: self.metric.number_of_failed_genome_loads,
+                        cannot_parse: self.metric.number_of_programs_that_cannot_parse,
+                        no_output: self.metric.number_of_programs_without_output,
+                        no_mutation: self.metric.number_of_failed_mutations,
+                        compute_error: self.metric.number_of_compute_errors,
                     };
                     self.recorder.record(&event);
                 }
@@ -185,15 +186,15 @@ impl RunMinerLoop {
                 }
                 {
                     let event = MetricEvent::General { 
-                        prevent_flooding: metric.number_of_prevented_floodings,
-                        candidate_program: metric.number_of_candidate_programs,
+                        prevent_flooding: self.metric.number_of_prevented_floodings,
+                        candidate_program: self.metric.number_of_candidate_programs,
                     };
                     self.recorder.record(&event);
                 }
     
                 self.funnel.reset_metrics();
                 self.cache.reset_metrics();
-                metric.reset_metrics();
+                self.metric.reset_metrics();
     
                 progress_time = Instant::now();
             }
@@ -224,7 +225,7 @@ impl RunMinerLoop {
                 self.genome.clear_message_vec();
                 let load_ok: bool = self.genome.insert_program(current_program_id, &current_parsed_program);
                 if !load_ok {
-                    metric.number_of_failed_genome_loads += 1;
+                    self.metric.number_of_failed_genome_loads += 1;
                     continue;
                 }
                 reload = false;
@@ -233,7 +234,7 @@ impl RunMinerLoop {
             iteration += 1;
             
             if !self.genome.mutate(&mut self.rng, &self.context) {
-                metric.number_of_failed_mutations += 1;
+                self.metric.number_of_failed_mutations += 1;
                 continue;
             }
     
@@ -249,14 +250,14 @@ impl RunMinerLoop {
                 Ok(value) => value,
                 Err(_error) => {
                     // debug!("iteration: {} cannot be parsed. {}", iteration, error);
-                    metric.number_of_programs_that_cannot_parse += 1;
+                    self.metric.number_of_programs_that_cannot_parse += 1;
                     continue;
                 }
             };
     
             // If the program has no live output register, then pick the lowest live register.
             if !runner.mining_trick_attempt_fixing_the_output_register() {
-                metric.number_of_programs_without_output += 1;
+                self.metric.number_of_programs_without_output += 1;
                 continue;
             }
     
@@ -266,7 +267,7 @@ impl RunMinerLoop {
                 Ok(value) => value,
                 Err(_error) => {
                     // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                    metric.number_of_compute_errors += 1;
+                    self.metric.number_of_compute_errors += 1;
                     continue;
                 }
             };
@@ -282,7 +283,7 @@ impl RunMinerLoop {
                 Ok(value) => value,
                 Err(_error) => {
                     // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                    metric.number_of_compute_errors += 1;
+                    self.metric.number_of_compute_errors += 1;
                     continue;
                 }
             };
@@ -294,7 +295,7 @@ impl RunMinerLoop {
                 Ok(value) => value,
                 Err(_error) => {
                     // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                    metric.number_of_compute_errors += 1;
+                    self.metric.number_of_compute_errors += 1;
                     continue;
                 }
             };
@@ -306,7 +307,7 @@ impl RunMinerLoop {
                 Ok(value) => value,
                 Err(_error) => {
                     // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                    metric.number_of_compute_errors += 1;
+                    self.metric.number_of_compute_errors += 1;
                     continue;
                 }
             };
@@ -316,7 +317,7 @@ impl RunMinerLoop {
     
             if self.prevent_flooding.try_register(&terms40).is_err() {
                 // debug!("prevented flooding");
-                metric.number_of_prevented_floodings += 1;
+                self.metric.number_of_prevented_floodings += 1;
                 reload = true;
                 continue;
             }
@@ -339,7 +340,7 @@ impl RunMinerLoop {
                 error!("Unable to save candidate program: {:?}", error);
                 continue;
             }
-            metric.number_of_candidate_programs += 1;
+            self.metric.number_of_candidate_programs += 1;
         }
     }
 }
