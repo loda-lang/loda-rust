@@ -1,6 +1,7 @@
 use super::{Funnel, Genome, GenomeMutateContext, save_candidate_program};
 use super::PreventFlooding;
 use super::{MinerThreadMessageToCoordinator, MetricEvent, Recorder};
+use super::metrics_run_miner_loop::MetricsRunMinerLoop;
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -56,43 +57,6 @@ impl TermComputer {
         }
         Ok(self.terms.clone())
     }
-}
-
-struct MetricsRunMinerLoop {
-    number_of_miner_loop_iterations: u64,
-    number_of_prevented_floodings: u64,
-    number_of_failed_genome_loads: u64,
-    number_of_failed_mutations: u64,
-    number_of_programs_that_cannot_parse: u64,
-    number_of_programs_without_output: u64,
-    number_of_compute_errors: u64,
-    number_of_candidate_programs: u64,
-}
-
-impl MetricsRunMinerLoop {
-    fn new() -> Self {
-        Self {
-            number_of_miner_loop_iterations: 0,
-            number_of_prevented_floodings: 0,
-            number_of_failed_genome_loads: 0,
-            number_of_failed_mutations: 0,
-            number_of_programs_that_cannot_parse: 0,
-            number_of_programs_without_output: 0,
-            number_of_compute_errors: 0,
-            number_of_candidate_programs: 0
-        }
-    }
-
-    fn reset_metrics(&mut self) {
-        self.number_of_miner_loop_iterations = 0;
-        self.number_of_prevented_floodings = 0;
-        self.number_of_failed_mutations = 0;
-        self.number_of_programs_that_cannot_parse = 0;
-        self.number_of_programs_without_output = 0;
-        self.number_of_compute_errors = 0;
-        self.number_of_failed_genome_loads = 0;
-        self.number_of_candidate_programs = 0;
-    }  
 }
 
 pub struct RunMinerLoop {

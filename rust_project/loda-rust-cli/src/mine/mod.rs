@@ -14,6 +14,7 @@ mod histogram_instruction_constant;
 mod load_program_ids_csv_file;
 mod metrics;
 mod metrics_prometheus;
+mod metrics_run_miner_loop;
 mod moving_average;
 mod popular_program_container;
 mod prevent_flooding;
