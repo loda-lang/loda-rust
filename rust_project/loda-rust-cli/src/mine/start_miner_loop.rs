@@ -1,6 +1,8 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
+use crate::common::RecordTrigram;
 use super::{CheckFixedLengthSequence, Funnel, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, Recorder};
+use super::SuggestInstruction;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
@@ -91,6 +93,10 @@ pub fn start_miner_loop(
         }
     };
 
+    let instruction_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(&instruction_trigram_csv).expect("Unable to load instruction trigram csv");
+    let mut suggest_instruction = SuggestInstruction::new();
+    suggest_instruction.populate(&instruction_trigram_vec);
+
     let dependency_manager = DependencyManager::new(
         DependencyManagerFileSystemMode::System,
         loda_programs_oeis_dir,
@@ -113,12 +119,12 @@ pub fn start_miner_loop(
         histogram_instruction_constant,
         &mine_event_dir,
         &loda_rust_mismatches,
-        &instruction_trigram_csv,
         &source_trigram_csv,
         &target_trigram_csv,
         available_program_ids,
         initial_random_seed,
         popular_program_container,
         recent_program_container,
+        suggest_instruction,
     );
 }
