@@ -119,7 +119,7 @@ impl Genome {
     }
 
     pub fn to_parsed_program(&self) -> ParsedProgram {
-        let mut instruction_vec: Vec<Instruction> = vec!();
+        let mut instruction_vec = Vec::<Instruction>::with_capacity(self.genome_vec.len());
 
         let mut line_number: usize = 0;
         for genome_item in self.genome_vec.iter() {
