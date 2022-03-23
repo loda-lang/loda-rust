@@ -22,9 +22,9 @@ struct TermComputer {
 }
 
 impl TermComputer {
-    fn create() -> Self {
+    fn new() -> Self {
         Self {
-            terms: vec!(),
+            terms: Vec::with_capacity(40),
             step_count: 0,
         }
     }
@@ -57,6 +57,11 @@ impl TermComputer {
         }
         Ok(self.terms.clone())
     }
+
+    fn reset(&mut self) {
+        self.terms.clear();
+        self.step_count = 0;
+    }
 }
 
 pub struct RunMinerLoop {
@@ -75,6 +80,7 @@ pub struct RunMinerLoop {
     current_parsed_program: ParsedProgram,
     iteration: usize,
     reload: bool,
+    term_computer: TermComputer,
 }
 
 impl RunMinerLoop {
@@ -106,6 +112,7 @@ impl RunMinerLoop {
             current_parsed_program: ParsedProgram::new(),
             iteration: 0,
             reload: true,
+            term_computer: TermComputer::new()
         }
     }
 
@@ -232,8 +239,8 @@ impl RunMinerLoop {
         }
 
         // Execute program
-        let mut term_computer = TermComputer::create();
-        let terms10: BigIntVec = match term_computer.compute(&mut self.cache, &runner, 10) {
+        self.term_computer.reset();
+        let terms10: BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 10) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
@@ -249,7 +256,7 @@ impl RunMinerLoop {
             return;
         }
 
-        let terms20: BigIntVec = match term_computer.compute(&mut self.cache, &runner, 20) {
+        let terms20: BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 20) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
@@ -261,7 +268,7 @@ impl RunMinerLoop {
             return;
         }
 
-        let terms30: BigIntVec = match term_computer.compute(&mut self.cache, &runner, 30) {
+        let terms30: BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 30) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
@@ -273,7 +280,7 @@ impl RunMinerLoop {
             return;
         }
 
-        let terms40: BigIntVec = match term_computer.compute(&mut self.cache, &runner, 40) {
+        let terms40: BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 40) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
