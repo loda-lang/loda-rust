@@ -1,13 +1,8 @@
-use crate::common::find_asm_files_recursively;
-use crate::common::RecordTrigram;
-use super::{CheckFixedLengthSequence, Funnel, Genome, GenomeMutateContext, PopularProgramContainer, RecentProgramContainer, save_candidate_program};
-use super::{PreventFlooding, prevent_flooding_populate};
-use super::HistogramInstructionConstant;
-use super::SuggestInstruction;
-use super::SuggestSource;
-use super::SuggestTarget;
+use super::{Funnel, Genome, GenomeMutateContext, save_candidate_program};
+use super::PreventFlooding;
 use super::{MinerThreadMessageToCoordinator, MetricEvent, Recorder};
-use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+use super::metrics_run_miner_loop::MetricsRunMinerLoop;
+use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
@@ -16,9 +11,8 @@ use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
 use loda_rust_core::parser::ParsedProgram;
 use std::time::Instant;
 use std::path::{Path, PathBuf};
-use rand::SeedableRng;
-use rand::rngs::StdRng;
 use std::sync::mpsc::Sender;
+use rand::rngs::StdRng;
 
 const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
 
@@ -65,274 +59,237 @@ impl TermComputer {
     }
 }
 
-pub fn run_miner_loop(
+pub struct RunMinerLoop {
     tx: Sender<MinerThreadMessageToCoordinator>,
     recorder: Box<dyn Recorder>,
-    loda_programs_oeis_dir: &PathBuf, 
-    checker10: &CheckFixedLengthSequence, 
-    checker20: &CheckFixedLengthSequence,
-    checker30: &CheckFixedLengthSequence,
-    checker40: &CheckFixedLengthSequence,
-    histogram_instruction_constant: Option<HistogramInstructionConstant>,
-    mine_event_dir: &Path,
-    loda_rust_mismatches: &Path,
-    instruction_trigram_csv: &Path,
-    source_trigram_csv: &Path,
-    target_trigram_csv: &Path,
-    available_program_ids: Vec<u32>,
-    initial_random_seed: u64,
-    popular_program_container: PopularProgramContainer,
-    recent_program_container: RecentProgramContainer,
-) {
-    let mut rng = StdRng::seed_from_u64(initial_random_seed);
+    dependency_manager: DependencyManager,
+    funnel: Funnel,
+    mine_event_dir: PathBuf,
+    cache: ProgramCache,
+    prevent_flooding: PreventFlooding,
+    context: GenomeMutateContext,
+    genome: Genome,
+    rng: StdRng,
+    metric: MetricsRunMinerLoop,
+    current_program_id: u64,
+    current_parsed_program: ParsedProgram,
+    iteration: usize,
+    reload: bool,
+}
 
-    let mut dm = DependencyManager::new(
-        DependencyManagerFileSystemMode::System,
-        loda_programs_oeis_dir.clone(),
-    );
-
-    let instruction_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(instruction_trigram_csv).expect("Unable to load instruction trigram csv");
-    let mut suggest_instruction = SuggestInstruction::new();
-    suggest_instruction.populate(&instruction_trigram_vec);
-
-    let source_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(source_trigram_csv).expect("Unable to load source trigram csv");
-    let mut suggest_source = SuggestSource::new();
-    suggest_source.populate(&source_trigram_vec);
-
-    let target_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(target_trigram_csv).expect("Unable to load target trigram csv");
-    let mut suggest_target = SuggestTarget::new();
-    suggest_target.populate(&target_trigram_vec);
-
-    let mut cache = ProgramCache::new();
-
-    let mut paths0: Vec<PathBuf> = find_asm_files_recursively(mine_event_dir);
-    let mut paths1: Vec<PathBuf> = find_asm_files_recursively(loda_rust_mismatches);
-    let mut paths: Vec<PathBuf> = vec!();
-    paths.append(&mut paths0);
-    paths.append(&mut paths1);
-    println!("number of .asm files in total: {:?}", paths.len());
-
-    let mut prevent_flooding = PreventFlooding::new();
-    prevent_flooding_populate(&mut prevent_flooding, &mut dm, &mut cache, paths);
-    println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
-
-    let mut genome = Genome::new();
-
-    let context = GenomeMutateContext::new(
-        available_program_ids,
-        popular_program_container,
-        recent_program_container,
-        histogram_instruction_constant,
-        Some(suggest_instruction),
-        Some(suggest_source),
-        Some(suggest_target)
-    );
-
-    let mut funnel = Funnel::new(
-        checker10,
-        checker20,
-        checker30,
-        checker40,
-    );
-
-    let mut metric_number_of_miner_loop_iterations: u64 = 0;
-    let mut metric_number_of_prevented_floodings: u64 = 0;
-    let mut metric_number_of_failed_genome_loads: u64 = 0;
-    let mut metric_number_of_failed_mutations: u64 = 0;
-    let mut metric_number_of_programs_that_cannot_parse: u64 = 0;
-    let mut metric_number_of_programs_without_output: u64 = 0;
-    let mut metric_number_of_compute_errors: u64 = 0;
-    let mut metric_number_of_candidate_programs: u64 = 0;
-
-    let mut progress_time = Instant::now();
-    let mut iteration: usize = 0;
-    let mut reload: bool = true;
-
-    let mut current_program_id: u64 = 0;
-    let mut current_parsed_program = ParsedProgram::new();
-
-    assert_eq!(context.has_available_programs(), true);
-    loop {
-        metric_number_of_miner_loop_iterations += 1;
-
-        let elapsed: u128 = progress_time.elapsed().as_millis();
-        if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
-            {
-                let y: u64 = metric_number_of_miner_loop_iterations;
-                let message = MinerThreadMessageToCoordinator::NumberOfIterations(y);
-                tx.send(message).unwrap();
-            }
-            {
-                let event = MetricEvent::Funnel { 
-                    basic: funnel.metric_number_of_candidates_with_basiccheck(),
-                    terms10: funnel.metric_number_of_candidates_with_10terms(),
-                    terms20: funnel.metric_number_of_candidates_with_20terms(),
-                    terms30: funnel.metric_number_of_candidates_with_30terms(),
-                    terms40: funnel.metric_number_of_candidates_with_40terms(),
-                };
-                recorder.record(&event);
-            }
-            {
-                let event = MetricEvent::Genome { 
-                    cannot_load: metric_number_of_failed_genome_loads,
-                    cannot_parse: metric_number_of_programs_that_cannot_parse,
-                    no_output: metric_number_of_programs_without_output,
-                    no_mutation: metric_number_of_failed_mutations,
-                    compute_error: metric_number_of_compute_errors,
-                };
-                recorder.record(&event);
-            }
-            {
-                let event = MetricEvent::Cache { 
-                    hit: cache.metric_hit(),
-                    miss_program_oeis: cache.metric_miss_for_program_oeis(),
-                    miss_program_without_id: cache.metric_miss_for_program_without_id(),
-                };
-                recorder.record(&event);
-            }
-            {
-                let event = MetricEvent::General { 
-                    prevent_flooding: metric_number_of_prevented_floodings,
-                    candidate_program: metric_number_of_candidate_programs,
-                };
-                recorder.record(&event);
-            }
-
-            funnel.reset_metrics();
-            cache.reset_metrics();
-            metric_number_of_miner_loop_iterations = 0;
-            metric_number_of_prevented_floodings = 0;
-            metric_number_of_failed_mutations = 0;
-            metric_number_of_programs_that_cannot_parse = 0;
-            metric_number_of_programs_without_output = 0;
-            metric_number_of_compute_errors = 0;
-            metric_number_of_failed_genome_loads = 0;
-            metric_number_of_candidate_programs = 0;
-
-            progress_time = Instant::now();
+impl RunMinerLoop {
+    pub fn new(
+        tx: Sender<MinerThreadMessageToCoordinator>,
+        recorder: Box<dyn Recorder>,
+        dependency_manager: DependencyManager,
+        funnel: Funnel,
+        mine_event_dir: &Path,
+        cache: ProgramCache,
+        prevent_flooding: PreventFlooding,
+        context: GenomeMutateContext,
+        genome: Genome,
+        rng: StdRng,
+    ) -> Self {
+        Self {
+            tx: tx,
+            recorder: recorder,
+            dependency_manager: dependency_manager,
+            funnel: funnel,
+            mine_event_dir: PathBuf::from(mine_event_dir),
+            cache: cache,
+            prevent_flooding: prevent_flooding,
+            context: context,
+            genome: genome,
+            rng: rng,
+            metric: MetricsRunMinerLoop::new(),
+            current_program_id: 0,
+            current_parsed_program: ParsedProgram::new(),
+            iteration: 0,
+            reload: true,
         }
+    }
 
-        if (iteration % 10) == 0 {
-            reload = true;
+    pub fn loop_forever(&mut self) {
+        let mut progress_time = Instant::now();
+        loop {
+            let elapsed: u128 = progress_time.elapsed().as_millis();
+            if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
+                self.submit_metrics();
+                progress_time = Instant::now();
+            }
+            self.execute_one_iteration();
         }
-        if (iteration % 50000) == 0 {
-            match context.choose_available_program(&mut rng) {
+    }
+
+    fn submit_metrics(&mut self) {
+        {
+            let y: u64 = self.metric.number_of_miner_loop_iterations;
+            let message = MinerThreadMessageToCoordinator::NumberOfIterations(y);
+            self.tx.send(message).unwrap();
+        }
+        {
+            let event = MetricEvent::Funnel { 
+                basic: self.funnel.metric_number_of_candidates_with_basiccheck(),
+                terms10: self.funnel.metric_number_of_candidates_with_10terms(),
+                terms20: self.funnel.metric_number_of_candidates_with_20terms(),
+                terms30: self.funnel.metric_number_of_candidates_with_30terms(),
+                terms40: self.funnel.metric_number_of_candidates_with_40terms(),
+            };
+            self.recorder.record(&event);
+        }
+        {
+            let event = MetricEvent::Genome { 
+                cannot_load: self.metric.number_of_failed_genome_loads,
+                cannot_parse: self.metric.number_of_programs_that_cannot_parse,
+                no_output: self.metric.number_of_programs_without_output,
+                no_mutation: self.metric.number_of_failed_mutations,
+                compute_error: self.metric.number_of_compute_errors,
+            };
+            self.recorder.record(&event);
+        }
+        {
+            let event = MetricEvent::Cache { 
+                hit: self.cache.metric_hit(),
+                miss_program_oeis: self.cache.metric_miss_for_program_oeis(),
+                miss_program_without_id: self.cache.metric_miss_for_program_without_id(),
+            };
+            self.recorder.record(&event);
+        }
+        {
+            let event = MetricEvent::General { 
+                prevent_flooding: self.metric.number_of_prevented_floodings,
+                candidate_program: self.metric.number_of_candidate_programs,
+            };
+            self.recorder.record(&event);
+        }
+        self.funnel.reset_metrics();
+        self.cache.reset_metrics();
+        self.metric.reset_metrics();
+    }
+
+    fn execute_one_iteration(&mut self) {
+        self.metric.number_of_miner_loop_iterations += 1;
+        if (self.iteration % 10) == 0 {
+            self.reload = true;
+        }
+        if (self.iteration % 50000) == 0 {
+            match self.context.choose_available_program(&mut self.rng) {
                 Some(program_id) => { 
-                    current_program_id = program_id as u64;
+                    self.current_program_id = program_id as u64;
                 },
                 None => {
                     panic!("Unable to pick among available programs");
                 }
             };
-            let parsed_program: ParsedProgram = match genome.load_program(&dm, current_program_id) {
+            let parsed_program: ParsedProgram = match self.genome.load_program(&self.dependency_manager, self.current_program_id) {
                 Some(value) => value,
                 None => {
                     error!("Unable to parse available program");
-                    reload = true;
-                    continue;
+                    self.reload = true;
+                    return;
                 }
             };
-            current_parsed_program = parsed_program;
+            self.current_parsed_program = parsed_program;
         }
-        if reload {
-            genome.clear_message_vec();
-            let load_ok: bool = genome.insert_program(current_program_id, &current_parsed_program);
+        if self.reload {
+            self.genome.clear_message_vec();
+            let load_ok: bool = self.genome.insert_program(self.current_program_id, &self.current_parsed_program);
             if !load_ok {
-                metric_number_of_failed_genome_loads += 1;
-                continue;
+                self.metric.number_of_failed_genome_loads += 1;
+                return;
             }
-            reload = false;
+            self.reload = false;
         }
 
-        iteration += 1;
+        self.iteration += 1;
         
-        if !genome.mutate(&mut rng, &context) {
-            metric_number_of_failed_mutations += 1;
-            continue;
+        if !self.genome.mutate(&mut self.rng, &self.context) {
+            self.metric.number_of_failed_mutations += 1;
+            return;
         }
 
-        // println!("#{} Current genome\n{}", iteration, genome);
+        // println!("#{} Current genome\n{}", iteration, self.genome);
     
         // Create program from genome
-        dm.reset();
-        let result_parse = dm.parse_stage2(
+        self.dependency_manager.reset();
+        let result_parse = self.dependency_manager.parse_stage2(
             ProgramId::ProgramWithoutId, 
-            &genome.to_parsed_program()
+            &self.genome.to_parsed_program()
         );
         let mut runner: ProgramRunner = match result_parse {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be parsed. {}", iteration, error);
-                metric_number_of_programs_that_cannot_parse += 1;
-                continue;
+                self.metric.number_of_programs_that_cannot_parse += 1;
+                return;
             }
         };
 
         // If the program has no live output register, then pick the lowest live register.
         if !runner.mining_trick_attempt_fixing_the_output_register() {
-            metric_number_of_programs_without_output += 1;
-            continue;
+            self.metric.number_of_programs_without_output += 1;
+            return;
         }
 
         // Execute program
         let mut term_computer = TermComputer::create();
-        let terms10: BigIntVec = match term_computer.compute(&mut cache, &runner, 10) {
+        let terms10: BigIntVec = match term_computer.compute(&mut self.cache, &runner, 10) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_compute_errors += 1;
-                continue;
+                self.metric.number_of_compute_errors += 1;
+                return;
             }
         };
         // println!("terms10: {:?}", terms10);
-        if !funnel.check_basic(&terms10) {
-            continue;
+        if !self.funnel.check_basic(&terms10) {
+            return;
         }
-        if !funnel.check10(&terms10) {
-            continue;
+        if !self.funnel.check10(&terms10) {
+            return;
         }
 
-        let terms20: BigIntVec = match term_computer.compute(&mut cache, &runner, 20) {
+        let terms20: BigIntVec = match term_computer.compute(&mut self.cache, &runner, 20) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_compute_errors += 1;
-                continue;
+                self.metric.number_of_compute_errors += 1;
+                return;
             }
         };
-        if !funnel.check20(&terms20) {
-            continue;
+        if !self.funnel.check20(&terms20) {
+            return;
         }
 
-        let terms30: BigIntVec = match term_computer.compute(&mut cache, &runner, 30) {
+        let terms30: BigIntVec = match term_computer.compute(&mut self.cache, &runner, 30) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_compute_errors += 1;
-                continue;
+                self.metric.number_of_compute_errors += 1;
+                return;
             }
         };
-        if !funnel.check30(&terms30) {
-            continue;
+        if !self.funnel.check30(&terms30) {
+            return;
         }
 
-        let terms40: BigIntVec = match term_computer.compute(&mut cache, &runner, 40) {
+        let terms40: BigIntVec = match term_computer.compute(&mut self.cache, &runner, 40) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
-                metric_number_of_compute_errors += 1;
-                continue;
+                self.metric.number_of_compute_errors += 1;
+                return;
             }
         };
-        if !funnel.check40(&terms40) {
-            continue;
+        if !self.funnel.check40(&terms40) {
+            return;
         }
 
-        if prevent_flooding.try_register(&terms40).is_err() {
+        if self.prevent_flooding.try_register(&terms40).is_err() {
             // debug!("prevented flooding");
-            metric_number_of_prevented_floodings += 1;
-            reload = true;
-            continue;
+            self.metric.number_of_prevented_floodings += 1;
+            self.reload = true;
+            return;
         }
 
         // Yay, this candidate program has 40 terms that are good.
@@ -342,17 +299,17 @@ pub fn run_miner_loop(
         serializer.append_empty_line();
         runner.serialize(&mut serializer);
         serializer.append_empty_line();
-        for message in genome.message_vec() {
+        for message in self.genome.message_vec() {
             serializer.append_comment(message);
         }
         serializer.append_empty_line();
         let candidate_program: String = serializer.to_string();
 
-        if let Err(error) = save_candidate_program(mine_event_dir, iteration, &candidate_program) {
-            println!("; GENOME\n{}", genome);
+        if let Err(error) = save_candidate_program(&self.mine_event_dir, self.iteration, &candidate_program) {
+            println!("; GENOME\n{}", self.genome);
             error!("Unable to save candidate program: {:?}", error);
-            continue;
+            return;
         }
-        metric_number_of_candidate_programs += 1;
+        self.metric.number_of_candidate_programs += 1;
     }
 }

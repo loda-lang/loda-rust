@@ -2,11 +2,11 @@ use super::CheckFixedLengthSequence;
 use loda_rust_core::util::Analyze;
 use loda_rust_core::util::BigIntVec;
 
-pub struct Funnel<'a> {
-    checker10: &'a CheckFixedLengthSequence,
-    checker20: &'a CheckFixedLengthSequence,
-    checker30: &'a CheckFixedLengthSequence,
-    checker40: &'a CheckFixedLengthSequence,
+pub struct Funnel {
+    checker10: CheckFixedLengthSequence,
+    checker20: CheckFixedLengthSequence,
+    checker30: CheckFixedLengthSequence,
+    checker40: CheckFixedLengthSequence,
 
     metric_number_of_candidates_with_basiccheck: u64,
     metric_number_of_candidates_with_10terms: u64,
@@ -15,12 +15,12 @@ pub struct Funnel<'a> {
     metric_number_of_candidates_with_40terms: u64,
 }
 
-impl<'a> Funnel<'a> {
+impl Funnel {
     pub fn new(
-        checker10: &'a CheckFixedLengthSequence, 
-        checker20: &'a CheckFixedLengthSequence,
-        checker30: &'a CheckFixedLengthSequence,
-        checker40: &'a CheckFixedLengthSequence,
+        checker10: CheckFixedLengthSequence, 
+        checker20: CheckFixedLengthSequence,
+        checker30: CheckFixedLengthSequence,
+        checker40: CheckFixedLengthSequence,
     ) -> Self {
         Self {
             checker10: checker10, 

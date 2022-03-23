@@ -1,8 +1,19 @@
 use loda_rust_core;
 use loda_rust_core::config::Config;
-use super::{CheckFixedLengthSequence, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, run_miner_loop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, Recorder};
+use loda_rust_core::execute::ProgramCache;
+use crate::common::RecordTrigram;
+use crate::common::find_asm_files_recursively;
+use super::{CheckFixedLengthSequence, Funnel, NamedCacheFile, load_program_ids_csv_file, PopularProgramContainer, RecentProgramContainer, RunMinerLoop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, Recorder};
+use super::{PreventFlooding, prevent_flooding_populate};
+use super::{GenomeMutateContext, Genome};
+use super::SuggestInstruction;
+use super::SuggestSource;
+use super::SuggestTarget;
+use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 use std::sync::mpsc::Sender;
 
 pub fn start_miner_loop(
@@ -34,6 +45,12 @@ pub fn start_miner_loop(
     let checker20: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path20);
     let checker30: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path30);
     let checker40: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path40);
+    let funnel = Funnel::new(
+        checker10,
+        checker20,
+        checker30,
+        checker40,
+    );
 
     debug!("step2");
     let path_histogram: PathBuf = config.cache_dir_histogram_instruction_constant_file();
@@ -84,32 +101,70 @@ pub fn start_miner_loop(
         }
     };
 
+    let instruction_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(&instruction_trigram_csv).expect("Unable to load instruction trigram csv");
+    let mut suggest_instruction = SuggestInstruction::new();
+    suggest_instruction.populate(&instruction_trigram_vec);
+
+    let source_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(&source_trigram_csv).expect("Unable to load source trigram csv");
+    let mut suggest_source = SuggestSource::new();
+    suggest_source.populate(&source_trigram_vec);
+
+    let target_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(&target_trigram_csv).expect("Unable to load target trigram csv");
+    let mut suggest_target = SuggestTarget::new();
+    suggest_target.populate(&target_trigram_vec);
+
+    let mut dependency_manager = DependencyManager::new(
+        DependencyManagerFileSystemMode::System,
+        loda_programs_oeis_dir,
+    );
+
     // Pick a random seed
     let mut rng = thread_rng();
     let initial_random_seed: u64 = rng.next_u64();
+    let rng: StdRng = StdRng::seed_from_u64(initial_random_seed);
     println!("random_seed = {}", initial_random_seed);
+
+    let mut cache = ProgramCache::new();
+
+    let mut paths0: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
+    let mut paths1: Vec<PathBuf> = find_asm_files_recursively(&loda_rust_mismatches);
+    let mut paths: Vec<PathBuf> = vec!();
+    paths.append(&mut paths0);
+    paths.append(&mut paths1);
+    println!("number of .asm files in total: {:?}", paths.len());
+
+    let mut prevent_flooding = PreventFlooding::new();
+    prevent_flooding_populate(&mut prevent_flooding, &mut dependency_manager, &mut cache, paths);
+    println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
+
+    let context = GenomeMutateContext::new(
+        available_program_ids,
+        popular_program_container,
+        recent_program_container,
+        histogram_instruction_constant,
+        Some(suggest_instruction),
+        Some(suggest_source),
+        Some(suggest_target)
+    );
+    assert_eq!(context.has_available_programs(), true);
+
+    let genome = Genome::new();
 
     let val2 = MinerThreadMessageToCoordinator::ReadyForMining;
     tx.send(val2).unwrap();
 
     // Launch the miner
-    run_miner_loop(
+    let mut rml = RunMinerLoop::new(
         tx,
         recorder,
-        &loda_programs_oeis_dir, 
-        &checker10, 
-        &checker20,
-        &checker30,
-        &checker40,
-        histogram_instruction_constant,
+        dependency_manager,
+        funnel,
         &mine_event_dir,
-        &loda_rust_mismatches,
-        &instruction_trigram_csv,
-        &source_trigram_csv,
-        &target_trigram_csv,
-        available_program_ids,
-        initial_random_seed,
-        popular_program_container,
-        recent_program_container,
+        cache,
+        prevent_flooding,
+        context,
+        genome,
+        rng,
     );
+    rml.loop_forever();
 }
