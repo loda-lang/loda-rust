@@ -6,7 +6,7 @@ use num_traits::Zero;
 fn perform_operation(x: &RegisterValue, y: &RegisterValue) -> Result<RegisterValue,EvalError> {
     let yy: &BigInt = &y.0;
     if yy.is_zero() {
-        debug!("NodeModulo, division by zero");
+        // debug!("NodeModulo, division by zero");
         return Err(EvalError::DivisionByZero);
     }
     let xx: &BigInt = &x.0;

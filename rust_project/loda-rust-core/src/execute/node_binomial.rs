@@ -31,7 +31,7 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue, limit: &NodeBinomialL
             NodeBinomialLimit::Unlimited => {},
             NodeBinomialLimit::LimitN(max_n) => {
                 if *input_n > max_n.to_bigint().unwrap() {
-                    debug!("too high a N value: bin({:?},{:?})", input_n, input_k);
+                    // debug!("too high a N value: bin({:?},{:?})", input_n, input_k);
                     return Err(BinomialError::TooHighNValue);
                 }
             }
@@ -55,7 +55,7 @@ fn perform_operation(x: &RegisterValue, y: &RegisterValue, limit: &NodeBinomialL
         NodeBinomialLimit::Unlimited => {},
         NodeBinomialLimit::LimitN(max_n) => {
             if input_n.abs() > max_n.to_bigint().unwrap() {
-                debug!("too low a N value: bin({:?},{:?})", input_n, input_k);
+                // debug!("too low a N value: bin({:?},{:?})", input_n, input_k);
                 return Err(BinomialError::TooLowNValue);
             }
         }

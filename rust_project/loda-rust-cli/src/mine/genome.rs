@@ -82,15 +82,14 @@ impl Genome {
     }
 
     pub fn insert_program(&mut self, program_id: u64, parsed_program: &ParsedProgram) -> bool {
-        self.replace_genome_with_parsed_program(&parsed_program);
-        debug!("loaded program_id: {:?}", program_id);
+        self.genome_vec.clear();
+        self.push_parsed_program_onto_genome(&parsed_program);
+        // debug!("loaded program_id: {:?}", program_id);
         self.message_vec.push(format!("template {:?}", program_id));
         return true;
     }
 
-    pub fn replace_genome_with_parsed_program(&mut self, parsed_program: &ParsedProgram) {
-        let mut genome_vec: Vec<GenomeItem> = vec!();
-
+    pub fn push_parsed_program_onto_genome(&mut self, parsed_program: &ParsedProgram) {
         for instruction in &parsed_program.instruction_vec {
 
             let mut target_parameter_value: i32 = 0;
@@ -112,10 +111,8 @@ impl Genome {
                 source_parameter_type,
                 source_parameter_value,
             );
-            genome_vec.push(genome_item);
+            self.genome_vec.push(genome_item);
         }
-
-        self.genome_vec = genome_vec;
     }
 
     pub fn to_parsed_program(&self) -> ParsedProgram {
