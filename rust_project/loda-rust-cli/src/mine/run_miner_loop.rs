@@ -29,7 +29,7 @@ impl TermComputer {
         }
     }
 
-    fn compute(&mut self, cache: &mut ProgramCache, runner: &ProgramRunner, count: usize) -> Result<BigIntVec, EvalError> {
+    fn compute(&mut self, cache: &mut ProgramCache, runner: &ProgramRunner, count: usize) -> Result<&BigIntVec, EvalError> {
         let step_count_limit: u64 = 10000;
         let node_register_limit = NodeRegisterLimit::LimitBits(32);
         let node_binomial_limit = NodeBinomialLimit::LimitN(20);
@@ -53,9 +53,9 @@ impl TermComputer {
                 node_power_limit.clone(),
                 cache
             )?;
-            self.terms.push(output.0.clone());
+            self.terms.push(output.0);
         }
-        Ok(self.terms.clone())
+        Ok(&self.terms)
     }
 
     fn reset(&mut self) {
@@ -240,7 +240,7 @@ impl RunMinerLoop {
 
         // Execute program
         self.term_computer.reset();
-        let terms10: BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 10) {
+        let terms10: &BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 10) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
@@ -249,14 +249,14 @@ impl RunMinerLoop {
             }
         };
         // println!("terms10: {:?}", terms10);
-        if !self.funnel.check_basic(&terms10) {
+        if !self.funnel.check_basic(terms10) {
             return;
         }
-        if !self.funnel.check10(&terms10) {
+        if !self.funnel.check10(terms10) {
             return;
         }
 
-        let terms20: BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 20) {
+        let terms20: &BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 20) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
@@ -264,11 +264,11 @@ impl RunMinerLoop {
                 return;
             }
         };
-        if !self.funnel.check20(&terms20) {
+        if !self.funnel.check20(terms20) {
             return;
         }
 
-        let terms30: BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 30) {
+        let terms30: &BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 30) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
@@ -276,11 +276,11 @@ impl RunMinerLoop {
                 return;
             }
         };
-        if !self.funnel.check30(&terms30) {
+        if !self.funnel.check30(terms30) {
             return;
         }
 
-        let terms40: BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 40) {
+        let terms40: &BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 40) {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
@@ -288,11 +288,11 @@ impl RunMinerLoop {
                 return;
             }
         };
-        if !self.funnel.check40(&terms40) {
+        if !self.funnel.check40(terms40) {
             return;
         }
 
-        if self.prevent_flooding.try_register(&terms40).is_err() {
+        if self.prevent_flooding.try_register(terms40).is_err() {
             // debug!("prevented flooding");
             self.metric.number_of_prevented_floodings += 1;
             self.reload = true;
@@ -302,7 +302,7 @@ impl RunMinerLoop {
         // Yay, this candidate program has 40 terms that are good.
         // Save a snapshot of this program to `$HOME/.loda-rust/mine-even/`
         let mut serializer = ProgramSerializer::new();
-        serializer.append_comment(bigintvec_to_string(&terms40));
+        serializer.append_comment(bigintvec_to_string(terms40));
         serializer.append_empty_line();
         runner.serialize(&mut serializer);
         serializer.append_empty_line();
