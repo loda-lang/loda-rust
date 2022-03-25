@@ -52,7 +52,7 @@ impl Genome {
             }
         };
         let program_id: u64 = program_id_u32 as u64;
-        let parsed_program: ParsedProgram = match self.load_program(dm, program_id) {
+        let parsed_program: ParsedProgram = match self.load_program_with_id(dm, program_id) {
             Some(value) => value,
             None => {
                 return false;
@@ -62,7 +62,7 @@ impl Genome {
         return self.insert_program(program_id, &parsed_program);
     }
 
-    pub fn load_program(&mut self, dm: &DependencyManager, program_id: u64) -> Option<ParsedProgram> {
+    pub fn load_program_with_id(&self, dm: &DependencyManager, program_id: u64) -> Option<ParsedProgram> {
         let path_to_program: PathBuf = dm.path_to_program(program_id);
         let contents: String = match fs::read_to_string(&path_to_program) {
             Ok(value) => value,
