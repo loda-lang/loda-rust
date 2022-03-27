@@ -6,7 +6,7 @@ use std::fmt;
 use rand::Rng;
 use rand::seq::SliceRandom;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -75,6 +75,24 @@ impl Genome {
             Ok(value) => value,
             Err(error) => {
                 error!("loading program_id: {:?}, something went wrong parsing the program: {:?}", program_id, error);
+                return None;
+            }
+        };
+        Some(parsed_program)
+    }
+
+    pub fn load_program_with_path(&self, path_to_program: &Path) -> Option<ParsedProgram> {
+        let contents: String = match fs::read_to_string(path_to_program) {
+            Ok(value) => value,
+            Err(error) => {
+                error!("load_program_with_path. Something went wrong reading the file: {:?}. path: {:?}", error, path_to_program);
+                return None;
+            }
+        };
+        let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&contents) {
+            Ok(value) => value,
+            Err(error) => {
+                error!("load_program_with_path. Something went wrong parsing the program: {:?}. path: {:?}", error, path_to_program);
                 return None;
             }
         };
