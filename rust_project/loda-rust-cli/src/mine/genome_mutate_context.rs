@@ -3,6 +3,7 @@ use super::SuggestInstruction;
 use super::{SuggestSource, SourceValue};
 use super::{SuggestTarget, TargetValue};
 use loda_rust_core::parser::InstructionId;
+use std::path::{Path, PathBuf};
 use rand::Rng;
 use rand::seq::SliceRandom;
 
@@ -14,6 +15,7 @@ pub struct GenomeMutateContext {
     suggest_instruction: Option<SuggestInstruction>,
     suggest_source: Option<SuggestSource>,
     suggest_target: Option<SuggestTarget>,
+    template_paths: Vec<PathBuf>,
 }
 
 impl GenomeMutateContext {
@@ -24,7 +26,8 @@ impl GenomeMutateContext {
         histogram_instruction_constant: Option<HistogramInstructionConstant>,
         suggest_instruction: Option<SuggestInstruction>,
         suggest_source: Option<SuggestSource>,
-        suggest_target: Option<SuggestTarget>
+        suggest_target: Option<SuggestTarget>,
+        template_paths: Vec<PathBuf>,
     ) -> Self {
         Self {
             available_program_ids: available_program_ids,
@@ -33,7 +36,8 @@ impl GenomeMutateContext {
             histogram_instruction_constant: histogram_instruction_constant,
             suggest_instruction: suggest_instruction,
             suggest_source: suggest_source,
-            suggest_target: suggest_target
+            suggest_target: suggest_target,
+            template_paths: template_paths,
         }
     }
 
@@ -54,6 +58,18 @@ impl GenomeMutateContext {
             }
         };
         Some(program_id)
+    }
+
+    pub fn choose_template_program_path<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<&Path> {
+        match self.template_paths.choose(rng) {
+            Some(path) => {
+                return Some(path);
+            },
+            None => {
+                // For a non-empty vector, this shouldn't happen.
+                return None;
+            }
+        };
     }
 
     pub fn choose_popular_program<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {

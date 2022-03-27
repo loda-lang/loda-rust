@@ -198,6 +198,44 @@ impl RunMinerLoop {
             };
             self.current_parsed_program = parsed_program;
         }
+        // if (self.iteration % 50000) == 0 {
+        //     match self.context.choose_available_program(&mut self.rng) {
+        //         Some(program_id) => { 
+        //             self.current_program_id = program_id as u64;
+        //         },
+        //         None => {
+        //             panic!("Unable to pick among available programs");
+        //         }
+        //     };
+        //     let parsed_program: ParsedProgram = match self.genome.load_program_with_id(&self.dependency_manager, self.current_program_id) {
+        //         Some(value) => value,
+        //         None => {
+        //             error!("Unable to parse available program");
+        //             self.reload = true;
+        //             return;
+        //         }
+        //     };
+        //     self.current_parsed_program = parsed_program;
+        // }
+        if (self.iteration % 100000) == 0 {
+            let path: &Path = match self.context.choose_template_program_path(&mut self.rng) {
+                Some(program_path) => program_path,
+                None => {
+                    panic!("Unable to pick among available programs");
+                }
+            };
+            let parsed_program: ParsedProgram = match self.genome.load_program_with_path(&path) {
+                Some(value) => value,
+                None => {
+                    error!("Unable to parse available program");
+                    self.reload = true;
+                    return;
+                }
+            };
+            // println!("load success: {:?}", path);
+            self.current_program_id = 0;
+            self.current_parsed_program = parsed_program;
+        }
         if self.reload {
             self.genome.clear_message_vec();
             let load_ok: bool = self.genome.insert_program(self.current_program_id, &self.current_parsed_program);

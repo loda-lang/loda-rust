@@ -101,6 +101,11 @@ pub fn start_miner_loop(
         }
     };
 
+    let template_programs_dir = loda_rust_repository.join(Path::new("resources/patterns"));
+    let mut template_paths: Vec<PathBuf> = find_asm_files_recursively(&template_programs_dir);
+    println!("paths: {:?}", template_paths);
+
+
     let instruction_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(&instruction_trigram_csv).expect("Unable to load instruction trigram csv");
     let mut suggest_instruction = SuggestInstruction::new();
     suggest_instruction.populate(&instruction_trigram_vec);
@@ -144,7 +149,8 @@ pub fn start_miner_loop(
         histogram_instruction_constant,
         Some(suggest_instruction),
         Some(suggest_source),
-        Some(suggest_target)
+        Some(suggest_target),
+        template_paths,
     );
     assert_eq!(context.has_available_programs(), true);
 
