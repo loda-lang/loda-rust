@@ -42,16 +42,30 @@ pub fn subcommand_pattern() {
 
     // Obtain the number of lines of all programs.
     let mut program_length_set = HashSet::<u16>::new();
-    for program_meta in program_meta_vec {
+    for program_meta in &program_meta_vec {
         program_length_set.insert(program_meta.line_count);
     }
     let mut program_length_vec: Vec<u16> = program_length_set.into_iter().collect();
     program_length_vec.sort();
     println!("line_count's: {:?}", program_length_vec);
 
-    
+    traverse_by_program_length(&program_length_vec, &program_meta_vec);
 
     println!("pattern, elapsed: {:?} ms", start_time.elapsed().as_millis());
+}
+
+fn traverse_by_program_length(program_length_vec: &Vec<u16>, program_meta_vec: &Vec<ProgramMeta>) {
+    for program_length in program_length_vec {
+        let programs_with_approx_same_length: Vec<&ProgramMeta> = 
+            program_meta_vec.iter()
+            .filter(|&pm| pm.line_count == *program_length)
+            .collect();
+        process_programs_with_approx_same_length(*program_length, &programs_with_approx_same_length);
+    }
+}
+
+fn process_programs_with_approx_same_length(program_length: u16, program_meta_vec: &Vec<&ProgramMeta>) {
+    println!("program_length: {:?}  number of programs: {:?}", program_length, program_meta_vec.len());
 }
 
 fn analyze_program(
