@@ -188,7 +188,7 @@ impl RunMinerLoop {
                     panic!("Unable to pick among available programs");
                 }
             };
-            let parsed_program: ParsedProgram = match self.genome.load_program(&self.dependency_manager, self.current_program_id) {
+            let parsed_program: ParsedProgram = match self.genome.load_program_with_id(&self.dependency_manager, self.current_program_id) {
                 Some(value) => value,
                 None => {
                     error!("Unable to parse available program");
