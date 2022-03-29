@@ -17,6 +17,7 @@ mod subcommand_dependencies;
 mod subcommand_evaluate;
 mod subcommand_install;
 mod subcommand_mine;
+mod subcommand_pattern;
 mod subcommand_similar;
 mod subcommand_update;
 
@@ -24,6 +25,7 @@ use subcommand_dependencies::subcommand_dependencies;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 use subcommand_install::subcommand_install;
 use subcommand_mine::{SubcommandMine,SubcommandMineParallelComputingMode,SubcommandMineMetricsMode};
+use subcommand_pattern::subcommand_pattern;
 use subcommand_similar::subcommand_similar;
 use subcommand_update::subcommand_update;
 
@@ -105,6 +107,10 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
             SubCommand::with_name("similar")
                 .about("Identify similar programs.")
         )
+        .subcommand(
+            SubCommand::with_name("pattern")
+                .about("Identify recurring patterns among similar programs.")
+        )
         .get_matches();
 
     if let Some(sub_m) = matches.subcommand_matches("evaluate") {
@@ -170,6 +176,11 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     if let Some(_sub_m) = matches.subcommand_matches("similar") {
         subcommand_similar();
+        return Ok(());
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("pattern") {
+        subcommand_pattern();
         return Ok(());
     }
 
