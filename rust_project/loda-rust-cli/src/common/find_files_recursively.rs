@@ -5,6 +5,10 @@ pub fn find_asm_files_recursively(rootdir: &Path) -> Vec<PathBuf> {
     find_files_recursively(rootdir, "asm")
 }
 
+pub fn find_csv_files_recursively(rootdir: &Path) -> Vec<PathBuf> {
+    find_files_recursively(rootdir, "csv")
+}
+
 fn find_files_recursively(rootdir: &Path, find_extension: &str) -> Vec<PathBuf> {
 
     fn is_hidden(entry: &DirEntry) -> bool {

@@ -6,7 +6,7 @@ mod parse_csv_skipgram;
 mod parse_csv_trigram;
 mod program_id_from_asm_path;
 
-pub use find_files_recursively::find_asm_files_recursively;
+pub use find_files_recursively::{find_asm_files_recursively, find_csv_files_recursively};
 pub use parse_csv_bigram::RecordBigram;
 pub use parse_csv_data::parse_csv_data;
 pub use parse_csv_file::parse_csv_file;

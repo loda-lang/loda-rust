@@ -1,10 +1,9 @@
-use crate::common::{find_asm_files_recursively, program_id_from_asm_path};
+use crate::common::{find_asm_files_recursively, find_csv_files_recursively, program_id_from_asm_path};
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::ParsedProgram;
 use std::time::Instant;
 use std::path::{Path, PathBuf};
 use std::fs;
-use std::collections::HashMap;
 use std::collections::HashSet;
 
 const PROGRAM_LENGTH_MINIMUM: usize = 1;
@@ -15,21 +14,30 @@ pub fn subcommand_pattern() {
 
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
-    let similarity_repository_rootdir: PathBuf = config.similarity_repository_oeis();
+    let similarity_repository_oeis_dir: PathBuf = config.similarity_repository_oeis();
 
-    let mut paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
-    paths.sort();
-    let number_of_paths = paths.len();
-    if number_of_paths <= 0 {
-        error!("Expected 1 or more programs, but there are no programs to analyze");
+    let mut similarity_csv_paths: Vec<PathBuf> = find_csv_files_recursively(&similarity_repository_oeis_dir);
+    similarity_csv_paths.sort();
+    let number_of_similarity_csv_paths = similarity_csv_paths.len();
+    if number_of_similarity_csv_paths <= 0 {
+        error!("Expected 1 or more similarity csv files, but there are none to analyze");
         return;
     }
-    println!("will process {} programs", number_of_paths);
+    println!("number of similarity csv files: {}", number_of_similarity_csv_paths);
+
+    let mut program_asm_paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
+    program_asm_paths.sort();
+    let number_of_program_asm_paths = program_asm_paths.len();
+    if number_of_program_asm_paths <= 0 {
+        error!("Expected 1 or more program asm files, but there are none to analyze");
+        return;
+    }
+    println!("number of program asm files: {}", number_of_program_asm_paths);
 
     // Parse all programs.
     // Ignoring too short/long programs.
     let mut program_meta_vec = Vec::<ProgramMeta>::new();
-    for path in paths {
+    for path in program_asm_paths {
         let program_meta = match analyze_program(&path) {
             Some(value) => value,
             None => {
