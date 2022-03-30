@@ -9,22 +9,14 @@ pub fn find_csv_files_recursively(rootdir: &Path) -> Vec<PathBuf> {
     find_files_recursively(rootdir, "csv")
 }
 
-fn find_files_recursively(rootdir: &Path, find_extension: &str) -> Vec<PathBuf> {
+fn find_files_recursively(rootdir: &Path, file_extension: &str) -> Vec<PathBuf> {
 
-    fn is_hidden(entry: &DirEntry, find_extension_inner: &str) -> bool {
+    fn is_hidden(entry: &DirEntry, file_extension_inner: &str) -> bool {
         if entry.file_type().is_file() {
             // If this is a file and it has the wrong extension, then ignore it
             if let Some(extension) = entry.path().extension() {
-                if extension != find_extension_inner {
+                if extension != file_extension_inner {
                     // debug!("ignore file {:?}", entry);
-                    return true
-                }
-            }
-        } else {
-            // If this is directory with same extension, then ignore traversing this directory
-            if let Some(extension) = entry.path().extension() {
-                if extension == find_extension_inner {
-                    // debug!("ignore dir {:?}", entry);
                     return true
                 }
             }
@@ -38,7 +30,7 @@ fn find_files_recursively(rootdir: &Path, find_extension: &str) -> Vec<PathBuf> 
     
     let walker = WalkDir::new(rootdir).into_iter();
     let mut paths: Vec<PathBuf> = vec!();
-    for entry in walker.filter_entry(|e| !is_hidden(e, find_extension)) {
+    for entry in walker.filter_entry(|e| !is_hidden(e, file_extension)) {
         let entry = match entry {
             Ok(value) => value,
             Err(_) => {
@@ -106,12 +98,14 @@ mod tests {
         let tempdir = tempfile::tempdir().unwrap();
         let basedir = PathBuf::from(&tempdir.path()).join("find_files_recursively_test_10003_ignore_dir_with_asm_extension");
         fs::create_dir(&basedir)?;
-        let dir0 = PathBuf::from(&basedir).join("ignore-this-dir.asm");
+        let dir0 = PathBuf::from(&basedir).join("ignore-this-dir-but-visit-its-children.asm");
         fs::create_dir(&dir0)?;
         let mut file0 = File::create(dir0.join("file0.asm"))?;
-        file0.write_all(b"I'm an asm file inside a dir named 'ignore-this-dir.asm', so I am to be ignored")?;
+        file0.write_all(b"I'm an asm file inside a dir named 'ignore-this-dir.asm'")?;
+        let mut file1 = File::create(dir0.join("file1.asm"))?;
+        file1.write_all(b"I'm also an asm file inside a dir named 'ignore-this-dir.asm'")?;
         let paths = find_asm_files_recursively(&basedir);
-        assert_eq!(paths.len(), 0);
+        assert_eq!(paths.len(), 2);
         Ok(())
     }
 
