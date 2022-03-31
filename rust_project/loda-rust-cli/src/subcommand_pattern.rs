@@ -11,6 +11,7 @@ use std::rc::Rc;
 
 const PROGRAM_LENGTH_MINIMUM: usize = 1;
 const PROGRAM_LENGTH_MAXIMUM: usize = 80;
+const MINIMUM_NUMBER_OF_SIMILAR_PROGRAMS_BEFORE_ITS_A_PATTERN: usize = 20;
 
 pub fn subcommand_pattern() {
     let start_time = Instant::now();
@@ -176,8 +177,7 @@ fn find_patterns(
         let similar_program_meta: Rc<ProgramMeta> = match program_id_to_program_meta_hashmap.get(&record.program_id) {
             Some(value) => Rc::clone(value),
             None => {
-                debug!("ignoring program: {}. there is no asm file.", program_id);
-                return;
+                continue;
             }
         };
     
@@ -192,7 +192,8 @@ fn find_patterns(
         }
     }
 
-    if highly_similar_programs.len() < 15 {
+    if highly_similar_programs.len() < MINIMUM_NUMBER_OF_SIMILAR_PROGRAMS_BEFORE_ITS_A_PATTERN {
+        debug!("ignoring program: {}. there are too few similar programs.", program_id);
         return;
     }
 
