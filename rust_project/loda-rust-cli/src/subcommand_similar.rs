@@ -1,4 +1,4 @@
-use crate::common::{find_asm_files_recursively, program_id_from_asm_path};
+use crate::common::{find_asm_files_recursively, program_id_from_path};
 use crate::common::RecordBigram;
 use crate::similar::Word;
 use crate::similar::WordPair;
@@ -130,7 +130,7 @@ fn analyze_program(
     wordpair_to_index: &HashMap<WordPair,u16>, 
     indexes_array: &IndexesArray
 ) -> Option<ProgramMeta> {
-    let program_id: u32 = match program_id_from_asm_path(path) {
+    let program_id: u32 = match program_id_from_path(path) {
         Some(value) => value,
         None => {
             return None;

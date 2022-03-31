@@ -1,4 +1,4 @@
-use crate::common::{find_asm_files_recursively, find_csv_files_recursively, program_id_from_asm_path};
+use crate::common::{find_asm_files_recursively, find_csv_files_recursively, program_id_from_path};
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::ParsedProgram;
 use std::time::Instant;
@@ -79,7 +79,7 @@ fn process_programs_with_approx_same_length(program_length: u16, program_meta_ve
 fn analyze_program(
     path: &Path, 
 ) -> Option<ProgramMeta> {
-    let program_id: u32 = match program_id_from_asm_path(path) {
+    let program_id: u32 = match program_id_from_path(path) {
         Some(value) => value,
         None => {
             return None;
