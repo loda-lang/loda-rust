@@ -1,7 +1,7 @@
 use crate::common::{find_asm_files_recursively, find_csv_files_recursively, program_id_from_path, parse_csv_file};
 use crate::pattern::RecordSimilar;
 use loda_rust_core::config::Config;
-use loda_rust_core::parser::ParsedProgram;
+use loda_rust_core::parser::{Instruction, InstructionParameter, ParameterType, ParsedProgram};
 use std::time::Instant;
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -118,9 +118,6 @@ fn process_programs_with_same_length(
 ) {
     println!("program_length: {:?}  number of programs: {:?}", program_length, program_meta_vec.len());
 
-    if program_length != 30 {
-        return;
-    }
     // Build a hashmap of programs with the same number of lines
     let mut program_id_to_program_meta_hashmap = ProgramIdToProgramMeta::new();
     for program_meta_item in program_meta_vec {
@@ -162,14 +159,42 @@ fn find_patterns(
     similarity_records: &Vec<RecordSimilar>, 
     program_id_to_program_meta_hashmap: &ProgramIdToProgramMeta,
 ) {
-    let program_meta = match program_id_to_program_meta_hashmap.get(&program_id) {
+    let original_program_meta: Rc<ProgramMeta> = match program_id_to_program_meta_hashmap.get(&program_id) {
         Some(value) => Rc::clone(value),
         None => {
-            error!("ignoring program: {}. there is no asm file.", program_id);
+            debug!("ignoring program: {}. there is no asm file.", program_id);
             return;
         }
     };
 
+    let mut number_of_similar_programs: usize = 0;
+    for record in similarity_records {
+        if record.overlap_count < 15 {
+            continue;
+        }
+
+        let similar_program_meta: Rc<ProgramMeta> = match program_id_to_program_meta_hashmap.get(&record.program_id) {
+            Some(value) => Rc::clone(value),
+            None => {
+                debug!("ignoring program: {}. there is no asm file.", program_id);
+                return;
+            }
+        };
+    
+        let similarity = ProgramMeta::measure_similarity(&original_program_meta, &similar_program_meta);
+        match similarity {
+            ProgramMetaSimilarity::NotSimilar => {
+                continue;
+            },
+            ProgramMetaSimilarity::SimilarWithDifferentConstants(_) => {
+                number_of_similar_programs += 1;
+            }
+        }
+    }
+
+    // if number_of_similar_programs > 20 {
+    //     println!("many similar with minor diffs to constants: {}", program_id);
+    // }
 }
 
 fn analyze_program(
@@ -216,6 +241,12 @@ fn load_program(path: &Path) -> Option<ParsedProgram> {
     Some(parsed_program)
 }
 
+enum ProgramMetaSimilarity {
+    NotSimilar,
+    SimilarWithDifferentConstants(usize),
+}
+
+
 struct ProgramMeta {
     program_id: u32,
     line_count: u16,
@@ -229,6 +260,62 @@ impl ProgramMeta {
             line_count: line_count,
             parsed_program: parsed_program,
         }
+    }
+
+    fn measure_similarity(pm0: &ProgramMeta, pm1: &ProgramMeta) -> ProgramMetaSimilarity {
+        let instruction_vec0 = &pm0.parsed_program.instruction_vec;
+        let instruction_vec1 = &pm1.parsed_program.instruction_vec;
+
+        // Reject if the number of instructions differs
+        if instruction_vec0.len() != instruction_vec1.len() {
+            return ProgramMetaSimilarity::NotSimilar;
+        }
+
+        // Reject if the instructions differs
+        for index in 0..instruction_vec0.len() {
+            if instruction_vec0[index].instruction_id != instruction_vec1[index].instruction_id {
+                return ProgramMetaSimilarity::NotSimilar;
+            }
+        }
+
+        let mut number_of_differencies: usize = 0;
+        for index in 0..instruction_vec0.len() {
+            let instruction0: &Instruction = &instruction_vec0[index];
+            let instruction1: &Instruction = &instruction_vec0[index];
+            let parameters0: &Vec<InstructionParameter> = &instruction0.parameter_vec;
+            let parameters1: &Vec<InstructionParameter> = &instruction1.parameter_vec;
+
+            // Reject if the number of parameters differs
+            if parameters0.len() != parameters1.len() {
+                return ProgramMetaSimilarity::NotSimilar;
+            }
+
+            for parameter_index in 0..parameters0.len() {
+                let parameter0: &InstructionParameter = &parameters0[parameter_index];
+                let parameter1: &InstructionParameter = &parameters1[parameter_index];
+
+                // Reject if the parameter type differs
+                if parameter0.parameter_type != parameter1.parameter_type {
+                    return ProgramMetaSimilarity::NotSimilar;
+                }
+
+                let is_same_value = parameter0.parameter_value == parameter1.parameter_value;
+
+                match parameter0.parameter_type {
+                    ParameterType::Constant => {
+                        if !is_same_value {
+                            number_of_differencies += 1;
+                        }
+                    },
+                    ParameterType::Register => {
+                        if !is_same_value {
+                            return ProgramMetaSimilarity::NotSimilar;
+                        }
+                    },
+                }
+            }
+        }
+        ProgramMetaSimilarity::SimilarWithDifferentConstants(number_of_differencies)
     }
 }
 
