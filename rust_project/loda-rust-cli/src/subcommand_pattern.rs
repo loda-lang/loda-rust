@@ -118,6 +118,10 @@ fn process_programs_with_same_length(
 ) {
     println!("program_length: {:?}  number of programs: {:?}", program_length, program_meta_vec.len());
 
+    if program_length != 10 {
+        return;
+    }
+
     // Build a hashmap of programs with the same number of lines
     let mut program_id_to_program_meta_hashmap = ProgramIdToProgramMeta::new();
     for program_meta_item in program_meta_vec {
@@ -167,12 +171,8 @@ fn find_patterns(
         }
     };
 
-    let mut number_of_similar_programs: usize = 0;
+    let mut highly_similar_programs = Vec::<Rc<ProgramMeta>>::with_capacity(25);
     for record in similarity_records {
-        if record.overlap_count < 15 {
-            continue;
-        }
-
         let similar_program_meta: Rc<ProgramMeta> = match program_id_to_program_meta_hashmap.get(&record.program_id) {
             Some(value) => Rc::clone(value),
             None => {
@@ -187,14 +187,18 @@ fn find_patterns(
                 continue;
             },
             ProgramMetaSimilarity::SimilarWithDifferentConstants(_) => {
-                number_of_similar_programs += 1;
+                highly_similar_programs.push(similar_program_meta);
             }
         }
     }
 
-    // if number_of_similar_programs > 20 {
-    //     println!("many similar with minor diffs to constants: {}", program_id);
-    // }
+    if highly_similar_programs.len() < 15 {
+        return;
+    }
+
+    let highly_similar_program_ids: Vec<u32> = highly_similar_programs.iter().map(|pm|pm.program_id).collect();
+
+    println!("program id: {} has many similar with minor diffs to constants: {:?}", program_id, highly_similar_program_ids);
 }
 
 fn analyze_program(
@@ -281,7 +285,7 @@ impl ProgramMeta {
         let mut number_of_differencies: usize = 0;
         for index in 0..instruction_vec0.len() {
             let instruction0: &Instruction = &instruction_vec0[index];
-            let instruction1: &Instruction = &instruction_vec0[index];
+            let instruction1: &Instruction = &instruction_vec1[index];
             let parameters0: &Vec<InstructionParameter> = &instruction0.parameter_vec;
             let parameters1: &Vec<InstructionParameter> = &instruction1.parameter_vec;
 
