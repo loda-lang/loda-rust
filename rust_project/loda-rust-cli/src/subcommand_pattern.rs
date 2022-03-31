@@ -1,4 +1,5 @@
-use crate::common::{find_asm_files_recursively, find_csv_files_recursively, program_id_from_path};
+use crate::common::{find_asm_files_recursively, find_csv_files_recursively, program_id_from_path, parse_csv_file};
+use crate::pattern::RecordSimilar;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::ParsedProgram;
 use std::time::Instant;
@@ -91,12 +92,14 @@ fn traverse_by_program_length(program_length_vec: &Vec<u16>, program_meta_vec: &
             program_meta_vec.iter()
             .filter(|&pm| pm.line_count == *program_length)
             .collect();
-        process_programs_with_approx_same_length(*program_length, &programs_with_approx_same_length, program_id_to_similarity_csv_file);
+        process_programs_with_same_length(*program_length, &programs_with_approx_same_length, program_id_to_similarity_csv_file);
     }
 }
 
-fn process_programs_with_approx_same_length(program_length: u16, program_meta_vec: &Vec<&ProgramMeta>, program_id_to_similarity_csv_file: &ProgramIdToSimilarityCSVFile) {
+fn process_programs_with_same_length(program_length: u16, program_meta_vec: &Vec<&ProgramMeta>, program_id_to_similarity_csv_file: &ProgramIdToSimilarityCSVFile) {
     println!("program_length: {:?}  number of programs: {:?}", program_length, program_meta_vec.len());
+
+    let mut number_of_records: usize = 0;
 
     for program_meta in program_meta_vec {
         let program_id: u32 = program_meta.program_id;
@@ -110,7 +113,18 @@ fn process_programs_with_approx_same_length(program_length: u16, program_meta_ve
             }
         };
 
+        // Parse the similarity csv file
+        let records: Vec<RecordSimilar> = match parse_csv_file(&csv_file.path) {
+            Ok(value) => value,
+            Err(error) => {
+                debug!("ignoring program_id: {}. cannot load csv file {:?}", program_id, error);
+                continue;
+            }
+        };
+        number_of_records += records.len();
+
     }
+    println!("total number of records: {}", number_of_records);
 }
 
 fn analyze_program(

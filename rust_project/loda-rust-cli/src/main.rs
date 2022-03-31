@@ -12,6 +12,7 @@ use loda_rust_core::control::*;
 mod common;
 mod mine;
 mod oeis;
+mod pattern;
 mod similar;
 mod subcommand_dependencies;
 mod subcommand_evaluate;
