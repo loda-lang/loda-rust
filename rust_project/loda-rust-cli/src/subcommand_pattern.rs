@@ -60,7 +60,7 @@ pub fn subcommand_pattern() {
 
     // Parse all programs.
     // Ignoring too short/long programs.
-    let mut program_meta_vec = Vec::<ProgramMeta>::new();
+    let mut program_meta_vec = Vec::<Rc<ProgramMeta>>::new();
     for path in program_asm_paths {
         let program_meta = match analyze_program(&path) {
             Some(value) => value,
@@ -68,7 +68,7 @@ pub fn subcommand_pattern() {
                 continue;
             }
         };
-        program_meta_vec.push(program_meta);
+        program_meta_vec.push(Rc::new(program_meta));
     }
     println!("number of program_meta items: {}", program_meta_vec.len());
 
@@ -81,25 +81,53 @@ pub fn subcommand_pattern() {
     program_length_vec.sort();
     println!("line_count's: {:?}", program_length_vec);
 
-    traverse_by_program_length(&program_length_vec, &program_meta_vec, &program_id_to_csv_hashmap);
+    traverse_by_program_length(
+        &program_length_vec, 
+        &program_meta_vec, 
+        &program_id_to_csv_hashmap
+    );
 
     println!("pattern, elapsed: {:?} ms", start_time.elapsed().as_millis());
 }
 
-fn traverse_by_program_length(program_length_vec: &Vec<u16>, program_meta_vec: &Vec<ProgramMeta>, program_id_to_similarity_csv_file: &ProgramIdToSimilarityCSVFile) {
+fn traverse_by_program_length(
+    program_length_vec: &Vec<u16>, 
+    program_meta_vec: &Vec<Rc<ProgramMeta>>, 
+    program_id_to_similarity_csv_file: &ProgramIdToSimilarityCSVFile,
+) {
     for program_length in program_length_vec {
-        let programs_with_approx_same_length: Vec<&ProgramMeta> = 
-            program_meta_vec.iter()
-            .filter(|&pm| pm.line_count == *program_length)
-            .collect();
-        process_programs_with_same_length(*program_length, &programs_with_approx_same_length, program_id_to_similarity_csv_file);
+        let mut programs_with_same_length = Vec::<Rc<ProgramMeta>>::new();
+        for program_meta in program_meta_vec {
+            if program_meta.line_count != *program_length {
+                continue;
+            }
+            programs_with_same_length.push(Rc::clone(program_meta));
+        }
+        process_programs_with_same_length(
+            *program_length, 
+            &programs_with_same_length, 
+            program_id_to_similarity_csv_file
+        );
     }
 }
 
-fn process_programs_with_same_length(program_length: u16, program_meta_vec: &Vec<&ProgramMeta>, program_id_to_similarity_csv_file: &ProgramIdToSimilarityCSVFile) {
+fn process_programs_with_same_length(
+    program_length: u16, 
+    program_meta_vec: &Vec<Rc<ProgramMeta>>, 
+    program_id_to_similarity_csv_file: &ProgramIdToSimilarityCSVFile
+) {
     println!("program_length: {:?}  number of programs: {:?}", program_length, program_meta_vec.len());
 
-    let mut number_of_records: usize = 0;
+    if program_length != 30 {
+        return;
+    }
+    // Build a hashmap of programs with the same number of lines
+    let mut program_id_to_program_meta_hashmap = ProgramIdToProgramMeta::new();
+    for program_meta_item in program_meta_vec {
+        program_id_to_program_meta_hashmap.insert(program_meta_item.program_id, Rc::clone(&program_meta_item));
+    }
+
+    let mut number_of_similarity_records: usize = 0;
 
     for program_meta in program_meta_vec {
         let program_id: u32 = program_meta.program_id;
@@ -114,17 +142,34 @@ fn process_programs_with_same_length(program_length: u16, program_meta_vec: &Vec
         };
 
         // Parse the similarity csv file
-        let records: Vec<RecordSimilar> = match parse_csv_file(&csv_file.path) {
+        let similarity_records: Vec<RecordSimilar> = match parse_csv_file(&csv_file.path) {
             Ok(value) => value,
             Err(error) => {
                 debug!("ignoring program_id: {}. cannot load csv file {:?}", program_id, error);
                 continue;
             }
         };
-        number_of_records += records.len();
+        number_of_similarity_records += similarity_records.len();
 
+        // Compare this program with each rows in the csv file
+        find_patterns(program_id, &similarity_records, &program_id_to_program_meta_hashmap);
     }
-    println!("total number of records: {}", number_of_records);
+    println!("total number of records: {}", number_of_similarity_records);
+}
+
+fn find_patterns(
+    program_id: u32, 
+    similarity_records: &Vec<RecordSimilar>, 
+    program_id_to_program_meta_hashmap: &ProgramIdToProgramMeta,
+) {
+    let program_meta = match program_id_to_program_meta_hashmap.get(&program_id) {
+        Some(value) => Rc::clone(value),
+        None => {
+            error!("ignoring program: {}. there is no asm file.", program_id);
+            return;
+        }
+    };
+
 }
 
 fn analyze_program(
@@ -186,6 +231,8 @@ impl ProgramMeta {
         }
     }
 }
+
+type ProgramIdToProgramMeta = HashMap::<u32, Rc::<ProgramMeta>>;
 
 struct SimilarityCSVFile {
     program_id: u32,
