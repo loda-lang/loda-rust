@@ -1,7 +1,7 @@
 use crate::common::{find_asm_files_recursively, find_csv_files_recursively, program_id_from_path, parse_csv_file};
 use crate::pattern::RecordSimilar;
 use loda_rust_core::config::Config;
-use loda_rust_core::parser::{Instruction, InstructionParameter, ParameterType, ParsedProgram};
+use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
 use std::time::Instant;
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -174,8 +174,18 @@ fn process_programs_with_same_length(
     // println!("total number of records: {}", number_of_similarity_records);
     println!("total number of patterns found: {}", accumulated.len());
 
-    for (lowest_program_id, program_id_set) in accumulated {
-        let save_result = save_pattern(program_length, lowest_program_id, &program_id_set, output_dir);
+    for (lowest_program_id, program_id_set) in &accumulated {
+        let save_result = save_pattern(program_length, *lowest_program_id, &program_id_set, output_dir);
+        match save_result {
+            Ok(_) => {},
+            Err(error) => {
+                error!("Unable to save result. {:?}", error);
+            }
+        }
+    }
+
+    for (lowest_program_id, program_id_set) in &accumulated {
+        let save_result = save_heatmap(program_length, *lowest_program_id, &program_id_set, &program_id_to_program_meta_hashmap, output_dir);
         match save_result {
             Ok(_) => {},
             Err(error) => {
@@ -185,13 +195,120 @@ fn process_programs_with_same_length(
     }
 }
 
+fn save_heatmap(
+    program_length: u16, 
+    lowest_program_id: u32, 
+    program_id_set: &HashSet<u32>, 
+    program_id_to_program_meta_hashmap: &ProgramIdToProgramMeta,
+    output_dir: &Path,
+) -> Result<(), Box<dyn Error>> {
+    let filename = format!("{}_{}_heatmap.txt", program_length, lowest_program_id);
+    let path: PathBuf = output_dir.join(Path::new(&filename));
+
+    let original_program_meta: Rc<ProgramMeta> = match program_id_to_program_meta_hashmap.get(&lowest_program_id) {
+        Some(value) => Rc::clone(value),
+        None => {
+            debug!("ignoring program: {}. there is no asm file.", lowest_program_id);
+            return Ok(());
+        }
+    };
+
+    let mut line_number_to_value_set = HashMap::<usize, HashSet<i64>>::new();
+
+    for program_id_item in program_id_set {
+        let similar_program_meta: Rc<ProgramMeta> = match program_id_to_program_meta_hashmap.get(&program_id_item) {
+            Some(value) => Rc::clone(value),
+            None => {
+                continue;
+            }
+        };
+
+        let instruction_vec0 = &original_program_meta.parsed_program.instruction_vec;
+        let instruction_vec1 = &similar_program_meta.parsed_program.instruction_vec;
+
+        // Reject if the number of instructions differs
+        if instruction_vec0.len() != instruction_vec1.len() {
+            continue;
+        }
+
+        // Reject if the instructions differs
+        for index in 0..instruction_vec0.len() {
+            if instruction_vec0[index].instruction_id != instruction_vec1[index].instruction_id {
+                continue;
+            }
+        }
+
+        for index in 0..instruction_vec0.len() {
+            let instruction0: &Instruction = &instruction_vec0[index];
+            let instruction1: &Instruction = &instruction_vec1[index];
+
+            // If the instructions have different constants
+            // then remember the line number and the constants.
+            let diff = ProgramMeta::instruction_diff_between_constants(instruction0, instruction1);
+            if let Some((constant0, constant1)) = diff {
+                let entry = line_number_to_value_set.entry(index).or_insert_with(|| HashSet::new());
+                entry.insert(constant0);
+                entry.insert(constant1);
+            }
+        }
+    }
+
+    let mut annotated_program = String::with_capacity(4000);
+    let instruction_vec = &original_program_meta.parsed_program.instruction_vec;
+    let mut indentation: usize = 0;
+    for index in 0..instruction_vec.len() {
+        let instruction: &Instruction = &instruction_vec[index];
+
+        if index > 0 {
+            annotated_program.push_str("\n");
+        }
+
+        // Indent nested loops
+        if instruction.instruction_id == InstructionId::LoopEnd {
+            if indentation > 0 {
+                indentation -= 1;
+            }
+        }
+        for _ in 0..indentation {
+            annotated_program.push_str("  ");
+        }
+        if instruction.instruction_id == InstructionId::LoopBegin {
+            indentation += 1;
+        }
+
+        // The instruction
+        annotated_program.push_str(&format!("{}", instruction));
+
+        let value_set: &HashSet<i64> = match line_number_to_value_set.get(&index) {
+            Some(value) => value,
+            None => {
+                continue;
+            }
+        };
+
+        annotated_program.push_str(" ; ");
+        annotated_program.push_str(&format!("count: {}", value_set.len()));
+    }
+
+    let mut content = String::with_capacity(4000);
+    content += &format!("; number of rows that mutate: {:?}\n", line_number_to_value_set.len());
+    content += "\n";
+    content += &annotated_program;
+    content += "\n";
+
+    let mut file = File::create(path)?;
+    file.write_all(content.as_bytes())?;
+
+    Ok(())
+}
+
 fn save_pattern(
     program_length: u16, 
     lowest_program_id: u32, 
     program_id_set: &HashSet<u32>, 
     output_dir: &Path,
 ) -> Result<(), Box<dyn Error>> {
-    let filename = format!("{}_{}.txt", program_length, lowest_program_id);
+    let filename = format!("{}_{}_overview.txt", program_length, lowest_program_id);
     let path: PathBuf = output_dir.join(Path::new(&filename));
 
     // Convert program_ids to a formatted string
@@ -200,7 +317,7 @@ fn save_pattern(
     let program_id_strings: Vec<String> = program_ids.iter().map(|program_id| format!("{}", program_id)).collect();
     let formatted_program_ids: String = program_id_strings.join("\n");
 
-    let mut content = String::new();
+    let mut content = String::with_capacity(4000);
     content += &format!("number of lines: {:?}\n", program_length);
     content += &format!("number of similar programs: {:?}\n", program_id_set.len());
     content += "\n\n";
@@ -389,6 +506,40 @@ impl ProgramMeta {
             }
         }
         ProgramMetaSimilarity::SimilarWithDifferentConstants(number_of_differencies)
+    }
+
+    fn instruction_diff_between_constants(instruction0: &Instruction, instruction1: &Instruction) -> Option<(i64, i64)> {
+        let parameters0: &Vec<InstructionParameter> = &instruction0.parameter_vec;
+        let parameters1: &Vec<InstructionParameter> = &instruction1.parameter_vec;
+
+        // Reject if the number of parameters differs
+        if parameters0.len() != parameters1.len() {
+            return None;
+        }
+
+        for parameter_index in 0..parameters0.len() {
+            let parameter0: &InstructionParameter = &parameters0[parameter_index];
+            let parameter1: &InstructionParameter = &parameters1[parameter_index];
+
+            // Reject if the parameter type differs
+            if parameter0.parameter_type != parameter1.parameter_type {
+                return None;
+            }
+            let is_same_value = parameter0.parameter_value == parameter1.parameter_value;
+            match parameter0.parameter_type {
+                ParameterType::Constant => {
+                    if !is_same_value {
+                        return Some((parameter0.parameter_value, parameter1.parameter_value));
+                    }
+                },
+                ParameterType::Register => {
+                    if !is_same_value {
+                        return None;
+                    }
+                },
+            }
+        }
+        None
     }
 }
 
