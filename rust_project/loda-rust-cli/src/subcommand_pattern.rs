@@ -11,6 +11,7 @@ use std::collections::HashSet;
 use std::collections::HashMap;
 use std::error::Error;
 use std::rc::Rc;
+use std::iter::FromIterator;
 
 const PROGRAM_LENGTH_MINIMUM: usize = 1;
 const PROGRAM_LENGTH_MAXIMUM: usize = 80;
@@ -174,15 +175,15 @@ fn process_programs_with_same_length(
     // println!("total number of records: {}", number_of_similarity_records);
     println!("total number of patterns found: {}", accumulated.len());
 
-    for (lowest_program_id, program_id_set) in &accumulated {
-        let save_result = save_pattern(program_length, *lowest_program_id, &program_id_set, output_dir);
-        match save_result {
-            Ok(_) => {},
-            Err(error) => {
-                error!("Unable to save result. {:?}", error);
-            }
-        }
-    }
+    // for (lowest_program_id, program_id_set) in &accumulated {
+    //     let save_result = save_pattern(program_length, *lowest_program_id, &program_id_set, output_dir);
+    //     match save_result {
+    //         Ok(_) => {},
+    //         Err(error) => {
+    //             error!("Unable to save result. {:?}", error);
+    //         }
+    //     }
+    // }
 
     for (lowest_program_id, program_id_set) in &accumulated {
         let save_result = save_heatmap(program_length, *lowest_program_id, &program_id_set, &program_id_to_program_meta_hashmap, output_dir);
@@ -202,7 +203,7 @@ fn save_heatmap(
     program_id_to_program_meta_hashmap: &ProgramIdToProgramMeta,
     output_dir: &Path,
 ) -> Result<(), Box<dyn Error>> {
-    let filename = format!("{}_{}_heatmap.txt", program_length, lowest_program_id);
+    let filename = format!("{}_{}.asm", program_length, lowest_program_id);
     let path: PathBuf = output_dir.join(Path::new(&filename));
 
     let original_program_meta: Rc<ProgramMeta> = match program_id_to_program_meta_hashmap.get(&lowest_program_id) {
@@ -256,6 +257,7 @@ fn save_heatmap(
     let mut annotated_program = String::with_capacity(4000);
     let instruction_vec = &original_program_meta.parsed_program.instruction_vec;
     let mut indentation: usize = 0;
+    let mut pretty_parameters = Vec::<String>::new();
     for index in 0..instruction_vec.len() {
         let instruction: &Instruction = &instruction_vec[index];
 
@@ -286,14 +288,41 @@ fn save_heatmap(
             }
         };
 
+        // The parameter index
+        let parameter_index = pretty_parameters.len();
         annotated_program.push_str(" ; ");
-        annotated_program.push_str(&format!("count: {}", value_set.len()));
+        annotated_program.push_str(&format!("source=parameter {}", parameter_index));
+
+        // Format the parameter values
+        let mut value_vec: Vec<&i64> = Vec::from_iter(value_set);
+        value_vec.sort();
+        let value_strings: Vec<String> = value_vec.iter().map(|value| format!("{}", value) ).collect();
+        let mut formatted_parameter = String::with_capacity(1000);
+        formatted_parameter.push_str(&format!("; parameter {}\n", parameter_index));
+        formatted_parameter.push_str(&format!("; number of unique values: {}\n", value_set.len()));
+        formatted_parameter.push_str("; value: ");
+        formatted_parameter.push_str(&value_strings.join(","));
+        pretty_parameters.push(formatted_parameter);
     }
 
+    // Convert program_ids to a formatted string
+    let mut program_ids: Vec<u32> = program_id_set.iter().map(|program_id| *program_id).collect();
+    program_ids.sort();
+    let program_id_strings: Vec<String> = program_ids.iter().map(|program_id| format!("{}", program_id)).collect();
+    let formatted_program_ids: String = program_id_strings.join(",");
+    
     let mut content = String::with_capacity(4000);
-    content += &format!("; number of rows that mutate: {:?}\n", line_number_to_value_set.len());
+    content += &format!("; number of lines: {:?}\n", program_length);
+    content += &format!("; number of similar programs: {:?}\n", program_id_set.len());
+    content += &format!("; number of parameters: {:?}\n", line_number_to_value_set.len());
     content += "\n";
     content += &annotated_program;
+    content += "\n\n";
+    content += &pretty_parameters.join("\n\n");
+    content += "\n\n";
+    content += "; similar programs\n";
+    content += "; program id: ";
+    content += &formatted_program_ids;
     content += "\n";
 
     let mut file = File::create(path)?;
