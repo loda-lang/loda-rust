@@ -23,7 +23,7 @@ pub fn subcommand_pattern() {
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
     let loda_identify_similar_programs_repository_oeis_dir: PathBuf = config.loda_identify_similar_programs_repository_oeis();
-    let output_dir: PathBuf = config.loda_patterns_repository_simple();
+    let output_dir: PathBuf = config.loda_patterns_repository_simple_constant();
 
     // Find all similarity CSV files.
     let mut similarity_csv_paths: Vec<PathBuf> = find_csv_files_recursively(&loda_identify_similar_programs_repository_oeis_dir);
@@ -203,9 +203,6 @@ fn save_heatmap(
     program_id_to_program_meta_hashmap: &ProgramIdToProgramMeta,
     output_dir: &Path,
 ) -> Result<(), Box<dyn Error>> {
-    let filename = format!("{}_{}.asm", program_length, lowest_program_id);
-    let path: PathBuf = output_dir.join(Path::new(&filename));
-
     let original_program_meta: Rc<ProgramMeta> = match program_id_to_program_meta_hashmap.get(&lowest_program_id) {
         Some(value) => Rc::clone(value),
         None => {
@@ -311,19 +308,27 @@ fn save_heatmap(
     let program_id_strings: Vec<String> = program_ids.iter().map(|program_id| format!("{}", program_id)).collect();
     let formatted_program_ids: String = program_id_strings.join(",");
     
+    // File content
     let mut content = String::with_capacity(4000);
-    content += &format!("; number of lines: {:?}\n", program_length);
-    content += &format!("; number of similar programs: {:?}\n", program_id_set.len());
-    content += &format!("; number of parameters: {:?}\n", line_number_to_value_set.len());
-    content += "\n";
     content += &annotated_program;
     content += "\n\n";
-    content += &pretty_parameters.join("\n\n");
-    content += "\n\n";
-    content += "; similar programs\n";
+    if !pretty_parameters.is_empty() {
+        content += &pretty_parameters.join("\n\n");
+        content += "\n\n";
+    }
+    content += "; programs with this pattern\n";
+    content += &format!("; number of programs: {:?}\n", program_id_set.len());
     content += "; program id: ";
     content += &formatted_program_ids;
     content += "\n";
+
+    // Version control of the found patterns.
+    // Ideally pick a filename that stays the same, no matter how many programs follow the same pattern.
+    // The number of lines in the patterns doesn't change.
+    // The number of parameters changes, if new programs starts making creative parameter changes.
+    // The OEIS sequence id of the lowest program. This changes if it has started using another pattern.
+    let filename = format!("lines{}_parameters{}_A{}.asm", program_length, line_number_to_value_set.len(), lowest_program_id);
+    let path: PathBuf = output_dir.join(Path::new(&filename));
 
     let mut file = File::create(path)?;
     file.write_all(content.as_bytes())?;

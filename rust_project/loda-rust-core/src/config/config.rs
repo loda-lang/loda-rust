@@ -258,8 +258,8 @@ impl Config {
         PathBuf::from(path)
     }
 
-    pub fn loda_patterns_repository_simple(&self) -> PathBuf {
-        let name = Path::new("simple");
+    pub fn loda_patterns_repository_simple_constant(&self) -> PathBuf {
+        let name = Path::new("simple_constant");
         let path = self.loda_patterns_repository().join(name);
         assert!(path.is_dir());
         path
