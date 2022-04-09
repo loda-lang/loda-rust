@@ -42,7 +42,7 @@ pub fn subcommand_similar() {
 
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
-    let output_rootdir: PathBuf = config.similarity_repository_oeis();
+    let output_rootdir: PathBuf = config.loda_identify_similar_programs_repository_oeis();
 
     let instruction_bigram_csv: PathBuf = config.cache_dir_histogram_instruction_bigram_file();
     let instruction_vec: Vec<RecordBigram> = RecordBigram::parse_csv(&instruction_bigram_csv).expect("Unable to load instruction bigram csv");
