@@ -98,21 +98,21 @@ pub fn subcommand_pattern() {
 }
 
 fn traverse_by_program_length(
-    program_length_vec: &Vec<u16>, 
+    line_count_vec: &Vec<u16>, 
     program_meta_vec: &Vec<Rc<ProgramMeta>>, 
     program_id_to_similarity_csv_file: &ProgramIdToSimilarityCSVFile,
     output_dir: &Path,
 ) {
-    for program_length in program_length_vec {
+    for line_count in line_count_vec {
         let mut programs_with_same_length = Vec::<Rc<ProgramMeta>>::new();
         for program_meta in program_meta_vec {
-            if program_meta.line_count != *program_length {
+            if program_meta.line_count != *line_count {
                 continue;
             }
             programs_with_same_length.push(Rc::clone(program_meta));
         }
         process_programs_with_same_length(
-            *program_length, 
+            *line_count, 
             &programs_with_same_length, 
             program_id_to_similarity_csv_file,
             output_dir,
