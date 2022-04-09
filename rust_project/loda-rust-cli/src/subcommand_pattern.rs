@@ -33,7 +33,7 @@ pub fn subcommand_pattern() {
         error!("Expected 1 or more similarity csv files, but there are none to analyze");
         return;
     }
-    println!("number of similarity csv files: {}", number_of_similarity_csv_paths);
+    debug!("number of similarity csv files: {}", number_of_similarity_csv_paths);
     let mut csv_vec = Vec::<Rc<SimilarityCSVFile>>::new();
     for path in similarity_csv_paths {
         let program_id: u32 = match program_id_from_path(&path) {
@@ -52,7 +52,7 @@ pub fn subcommand_pattern() {
         error!("Expected 1 or more similarity csv files, but there are none to analyze");
         return;
     }
-    println!("number of unique program_ids in csv hashmap: {:?}", number_of_items_in_csv_hashmap);
+    debug!("number of unique program_ids in csv hashmap: {:?}", number_of_items_in_csv_hashmap);
 
     // Find all programs.
     let mut program_asm_paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
@@ -62,7 +62,7 @@ pub fn subcommand_pattern() {
         error!("Expected 1 or more program asm files, but there are none to analyze");
         return;
     }
-    println!("number of program asm files: {}", number_of_program_asm_paths);
+    debug!("number of program asm files: {}", number_of_program_asm_paths);
 
     // Parse all programs.
     // Ignoring too short/long programs.
@@ -76,25 +76,25 @@ pub fn subcommand_pattern() {
         };
         program_meta_vec.push(Rc::new(program_meta));
     }
-    println!("number of program_meta items: {}", program_meta_vec.len());
+    debug!("number of program_meta items: {}", program_meta_vec.len());
 
     // Obtain the number of lines of all programs.
-    let mut program_length_set = HashSet::<u16>::new();
+    let mut line_count_set = HashSet::<u16>::new();
     for program_meta in &program_meta_vec {
-        program_length_set.insert(program_meta.line_count);
+        line_count_set.insert(program_meta.line_count);
     }
-    let mut program_length_vec: Vec<u16> = program_length_set.into_iter().collect();
-    program_length_vec.sort();
-    println!("line_count's: {:?}", program_length_vec);
+    let mut line_count_vec: Vec<u16> = line_count_set.into_iter().collect();
+    line_count_vec.sort();
+    debug!("line_count's: {:?}", line_count_vec);
 
     traverse_by_program_length(
-        &program_length_vec, 
+        &line_count_vec, 
         &program_meta_vec, 
         &program_id_to_csv_hashmap,
         &output_dir,
     );
 
-    println!("pattern, elapsed: {:?} ms", start_time.elapsed().as_millis());
+    println!("elapsed: {:?} ms", start_time.elapsed().as_millis());
 }
 
 fn traverse_by_program_length(
@@ -123,12 +123,12 @@ fn traverse_by_program_length(
 type ProgramIdToProgramIdSet = HashMap<u32, HashSet<u32>>;
 
 fn process_programs_with_same_length(
-    program_length: u16, 
+    line_count: u16, 
     program_meta_vec: &Vec<Rc<ProgramMeta>>, 
     program_id_to_similarity_csv_file: &ProgramIdToSimilarityCSVFile,
     output_dir: &Path,
 ) {
-    println!("program_length: {:?}  number of programs: {:?}", program_length, program_meta_vec.len());
+    println!("line count: {:?}  number of programs: {:?}", line_count, program_meta_vec.len());
 
     // Build a hashmap of programs with the same number of lines
     let mut program_id_to_program_meta_hashmap = ProgramIdToProgramMeta::new();
@@ -172,21 +172,11 @@ fn process_programs_with_same_length(
             &mut accumulated
         );
     }
-    // println!("total number of records: {}", number_of_similarity_records);
-    println!("total number of patterns found: {}", accumulated.len());
-
-    // for (lowest_program_id, program_id_set) in &accumulated {
-    //     let save_result = save_pattern(program_length, *lowest_program_id, &program_id_set, output_dir);
-    //     match save_result {
-    //         Ok(_) => {},
-    //         Err(error) => {
-    //             error!("Unable to save result. {:?}", error);
-    //         }
-    //     }
-    // }
+    debug!("number of records: {}", number_of_similarity_records);
+    println!("number of patterns: {}", accumulated.len());
 
     for (lowest_program_id, program_id_set) in &accumulated {
-        let save_result = save_heatmap(program_length, *lowest_program_id, &program_id_set, &program_id_to_program_meta_hashmap, output_dir);
+        let save_result = save_pattern(line_count, *lowest_program_id, &program_id_set, &program_id_to_program_meta_hashmap, output_dir);
         match save_result {
             Ok(_) => {},
             Err(error) => {
@@ -196,8 +186,8 @@ fn process_programs_with_same_length(
     }
 }
 
-fn save_heatmap(
-    program_length: u16, 
+fn save_pattern(
+    line_count: u16, 
     lowest_program_id: u32, 
     program_id_set: &HashSet<u32>, 
     program_id_to_program_meta_hashmap: &ProgramIdToProgramMeta,
@@ -327,38 +317,9 @@ fn save_heatmap(
     // The number of lines in the patterns doesn't change.
     // The number of parameters changes, if new programs starts making creative parameter changes.
     // The OEIS sequence id of the lowest program. This changes if it has started using another pattern.
-    let filename = format!("lines{}_parameters{}_A{}.asm", program_length, line_number_to_value_set.len(), lowest_program_id);
+    let filename = format!("lines{}_parameters{}_A{}.asm", line_count, line_number_to_value_set.len(), lowest_program_id);
     let path: PathBuf = output_dir.join(Path::new(&filename));
 
-    let mut file = File::create(path)?;
-    file.write_all(content.as_bytes())?;
-
-    Ok(())
-}
-
-fn save_pattern(
-    program_length: u16, 
-    lowest_program_id: u32, 
-    program_id_set: &HashSet<u32>, 
-    output_dir: &Path,
-) -> Result<(), Box<dyn Error>> {
-    let filename = format!("{}_{}_overview.txt", program_length, lowest_program_id);
-    let path: PathBuf = output_dir.join(Path::new(&filename));
-
-    // Convert program_ids to a formatted string
-    let mut program_ids: Vec<u32> = program_id_set.iter().map(|program_id| *program_id).collect();
-    program_ids.sort();
-    let program_id_strings: Vec<String> = program_ids.iter().map(|program_id| format!("{}", program_id)).collect();
-    let formatted_program_ids: String = program_id_strings.join("\n");
-
-    let mut content = String::with_capacity(4000);
-    content += &format!("number of lines: {:?}\n", program_length);
-    content += &format!("number of similar programs: {:?}\n", program_id_set.len());
-    content += "\n\n";
-    content += "programs ids\n\n";
-    content += &formatted_program_ids;
-    content += "\n";
-    
     let mut file = File::create(path)?;
     file.write_all(content.as_bytes())?;
 
