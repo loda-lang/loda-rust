@@ -23,7 +23,7 @@ pub fn subcommand_pattern() {
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
     let loda_identify_similar_programs_repository_oeis_dir: PathBuf = config.loda_identify_similar_programs_repository_oeis();
-    let output_dir: PathBuf = config.mine_event_dir();
+    let output_dir: PathBuf = config.loda_patterns_repository_simple();
 
     // Find all similarity CSV files.
     let mut similarity_csv_paths: Vec<PathBuf> = find_csv_files_recursively(&loda_identify_similar_programs_repository_oeis_dir);

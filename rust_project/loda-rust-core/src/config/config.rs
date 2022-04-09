@@ -34,6 +34,9 @@ miner_metrics_listen_port = 8090
 
 # What loda programs are similar to each other.
 loda_identify_similar_programs_repository = "/Users/JOHNDOE/git/loda-identify-similar-programs"
+
+# Patterns that are frequently used in loda programs.
+loda_patterns_repository = "/Users/JOHNDOE/git/loda-patterns"
 "#;
 
 
@@ -50,6 +53,7 @@ pub struct Config {
     loda_submitted_by: String,
     miner_metrics_listen_port: u16,
     loda_identify_similar_programs_repository: String,
+    loda_patterns_repository: String,
 }
 
 impl Config {
@@ -246,6 +250,20 @@ impl Config {
         assert!(path.is_dir());
         path
     }
+
+    pub fn loda_patterns_repository(&self) -> PathBuf {
+        let path = Path::new(&self.loda_patterns_repository);
+        assert!(path.is_absolute());
+        assert!(path.is_dir());
+        PathBuf::from(path)
+    }
+
+    pub fn loda_patterns_repository_simple(&self) -> PathBuf {
+        let name = Path::new("simple");
+        let path = self.loda_patterns_repository().join(name);
+        assert!(path.is_dir());
+        path
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -260,6 +278,7 @@ struct ConfigInner {
     loda_submitted_by: String,
     miner_metrics_listen_port: u16,
     loda_identify_similar_programs_repository: String,
+    loda_patterns_repository: String,
 }
 
 fn load_config_from_home_dir() -> Config {
@@ -301,6 +320,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf) -> Config {
         loda_submitted_by: inner.loda_submitted_by.clone(),
         miner_metrics_listen_port: inner.miner_metrics_listen_port,
         loda_identify_similar_programs_repository: inner.loda_identify_similar_programs_repository,
+        loda_patterns_repository: inner.loda_patterns_repository,
     }
 }
 
@@ -323,5 +343,6 @@ mod tests {
         assert_eq!(config.loda_submitted_by, "John Doe");
         assert_eq!(config.miner_metrics_listen_port, 8090);
         assert_eq!(config.loda_identify_similar_programs_repository, "/Users/JOHNDOE/git/loda-identify-similar-programs");
+        assert_eq!(config.loda_patterns_repository, "/Users/JOHNDOE/git/loda-patterns");
     }
 }
