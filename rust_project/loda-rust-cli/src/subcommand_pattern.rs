@@ -87,7 +87,7 @@ pub fn subcommand_pattern() {
     line_count_vec.sort();
     debug!("line_count's: {:?}", line_count_vec);
 
-    traverse_by_program_length(
+    traverse_by_line_count(
         &line_count_vec, 
         &program_meta_vec, 
         &program_id_to_csv_hashmap,
@@ -97,7 +97,7 @@ pub fn subcommand_pattern() {
     println!("elapsed: {:?} ms", start_time.elapsed().as_millis());
 }
 
-fn traverse_by_program_length(
+fn traverse_by_line_count(
     line_count_vec: &Vec<u16>, 
     program_meta_vec: &Vec<Rc<ProgramMeta>>, 
     program_id_to_similarity_csv_file: &ProgramIdToSimilarityCSVFile,
