@@ -1,4 +1,4 @@
-use crate::common::{find_asm_files_recursively, program_id_from_asm_path};
+use crate::common::{find_asm_files_recursively, program_id_from_path};
 use crate::common::RecordBigram;
 use crate::similar::Word;
 use crate::similar::WordPair;
@@ -42,7 +42,7 @@ pub fn subcommand_similar() {
 
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
-    let output_rootdir: PathBuf = config.similarity_repository_oeis();
+    let output_rootdir: PathBuf = config.loda_identify_similar_programs_repository_oeis();
 
     let instruction_bigram_csv: PathBuf = config.cache_dir_histogram_instruction_bigram_file();
     let instruction_vec: Vec<RecordBigram> = RecordBigram::parse_csv(&instruction_bigram_csv).expect("Unable to load instruction bigram csv");
@@ -130,7 +130,7 @@ fn analyze_program(
     wordpair_to_index: &HashMap<WordPair,u16>, 
     indexes_array: &IndexesArray
 ) -> Option<ProgramMeta> {
-    let program_id: u32 = match program_id_from_asm_path(path) {
+    let program_id: u32 = match program_id_from_path(path) {
         Some(value) => value,
         None => {
             return None;

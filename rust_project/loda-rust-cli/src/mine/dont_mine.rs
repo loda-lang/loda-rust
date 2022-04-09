@@ -1,4 +1,4 @@
-use crate::common::{find_asm_files_recursively, program_ids_from_asm_paths};
+use crate::common::{find_asm_files_recursively, program_ids_from_paths};
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use std::path::{Path, PathBuf};
@@ -44,7 +44,7 @@ impl DontMine {
     fn process_existing_programs(&self) -> Vec<u32> {
         let dir_containing_programs: PathBuf = self.config.loda_programs_oeis_dir();
         let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
-        let program_ids: Vec<u32> = program_ids_from_asm_paths(paths);
+        let program_ids: Vec<u32> = program_ids_from_paths(paths);
         println!("number of existing programs: {:?}", program_ids.len());
         program_ids
     }
@@ -52,7 +52,7 @@ impl DontMine {
     fn process_mismatches(&self) -> Vec<u32> {
         let dir_containing_mismatches: PathBuf = self.config.loda_rust_mismatches();
         let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_mismatches);
-        let program_ids: Vec<u32> = program_ids_from_asm_paths(paths);
+        let program_ids: Vec<u32> = program_ids_from_paths(paths);
         println!("number of mismatches: {:?}", program_ids.len());
         program_ids
     }

@@ -33,7 +33,10 @@ loda_submitted_by = "John Doe"
 miner_metrics_listen_port = 8090
 
 # What loda programs are similar to each other.
-similarity_repository = "/Users/JOHNDOE/git/loda-identify-similar-programs"
+loda_identify_similar_programs_repository = "/Users/JOHNDOE/git/loda-identify-similar-programs"
+
+# Patterns that are frequently used in loda programs.
+loda_patterns_repository = "/Users/JOHNDOE/git/loda-patterns"
 "#;
 
 
@@ -49,7 +52,8 @@ pub struct Config {
     loda_rust_mismatches: String,
     loda_submitted_by: String,
     miner_metrics_listen_port: u16,
-    similarity_repository: String,
+    loda_identify_similar_programs_repository: String,
+    loda_patterns_repository: String,
 }
 
 impl Config {
@@ -233,16 +237,30 @@ impl Config {
         return port;
     }
 
-    pub fn similarity_repository(&self) -> PathBuf {
-        let path = Path::new(&self.similarity_repository);
+    pub fn loda_identify_similar_programs_repository(&self) -> PathBuf {
+        let path = Path::new(&self.loda_identify_similar_programs_repository);
         assert!(path.is_absolute());
         assert!(path.is_dir());
         PathBuf::from(path)
     }
 
-    pub fn similarity_repository_oeis(&self) -> PathBuf {
+    pub fn loda_identify_similar_programs_repository_oeis(&self) -> PathBuf {
         let name = Path::new("oeis");
-        let path = self.similarity_repository().join(name);
+        let path = self.loda_identify_similar_programs_repository().join(name);
+        assert!(path.is_dir());
+        path
+    }
+
+    pub fn loda_patterns_repository(&self) -> PathBuf {
+        let path = Path::new(&self.loda_patterns_repository);
+        assert!(path.is_absolute());
+        assert!(path.is_dir());
+        PathBuf::from(path)
+    }
+
+    pub fn loda_patterns_repository_simple_constant(&self) -> PathBuf {
+        let name = Path::new("simple_constant");
+        let path = self.loda_patterns_repository().join(name);
         assert!(path.is_dir());
         path
     }
@@ -259,7 +277,8 @@ struct ConfigInner {
     loda_rust_mismatches: String,
     loda_submitted_by: String,
     miner_metrics_listen_port: u16,
-    similarity_repository: String,
+    loda_identify_similar_programs_repository: String,
+    loda_patterns_repository: String,
 }
 
 fn load_config_from_home_dir() -> Config {
@@ -300,7 +319,8 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf) -> Config {
         loda_rust_mismatches: inner.loda_rust_mismatches.clone(),
         loda_submitted_by: inner.loda_submitted_by.clone(),
         miner_metrics_listen_port: inner.miner_metrics_listen_port,
-        similarity_repository: inner.similarity_repository,
+        loda_identify_similar_programs_repository: inner.loda_identify_similar_programs_repository,
+        loda_patterns_repository: inner.loda_patterns_repository,
     }
 }
 
@@ -322,6 +342,7 @@ mod tests {
         assert_eq!(config.loda_rust_mismatches, "/Users/JOHNDOE/git/loda-rust/resources/programs/mismatch");
         assert_eq!(config.loda_submitted_by, "John Doe");
         assert_eq!(config.miner_metrics_listen_port, 8090);
-        assert_eq!(config.similarity_repository, "/Users/JOHNDOE/git/loda-identify-similar-programs");
+        assert_eq!(config.loda_identify_similar_programs_repository, "/Users/JOHNDOE/git/loda-identify-similar-programs");
+        assert_eq!(config.loda_patterns_repository, "/Users/JOHNDOE/git/loda-patterns");
     }
 }
