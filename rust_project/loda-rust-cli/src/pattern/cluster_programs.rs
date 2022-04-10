@@ -47,6 +47,30 @@ impl Clusters {
         }
     }
 
+    pub fn clusters_of_programids(&self) -> Vec<HashSet<u32>> {
+        let clusterid_to_programid = &self.programid_to_clusterid.transpose_key_value();
+        let mut result = Vec::<HashSet<u32>>::new();
+        for (_, value) in clusterid_to_programid {
+            result.push(value.clone());
+        }
+        result
+    }
+
+    pub fn lowest_program_id_in_set(program_id_set: &HashSet<u32>) -> Option<u32> {
+        if program_id_set.is_empty() {
+            return None;
+        }
+        let mut lowest_program_id: u32 = 0;
+        let mut index: usize = 0;
+        for program_id in program_id_set {
+            if index == 0 || *program_id < lowest_program_id {
+                lowest_program_id = *program_id;
+            }
+            index += 1;
+        }
+        Some(lowest_program_id)
+    }
+
     fn upsert_with_clusterid(&mut self, program_ids: &Vec<u32>, cluster_id: usize) {
         for program_id in program_ids {
             self.programid_to_clusterid.insert(*program_id, cluster_id);
@@ -109,6 +133,21 @@ impl ReplaceValue for ProgramIdToClusterId {
                 *value = new_value;
             }
         }
+    }
+}
+
+trait TransposeKeyValue {
+    fn transpose_key_value(&self) -> HashMap<usize, HashSet<u32>>;
+}
+
+impl TransposeKeyValue for ProgramIdToClusterId {
+    fn transpose_key_value(&self) -> HashMap<usize, HashSet<u32>> {
+        let mut result = HashMap::<usize, HashSet<u32>>::new();
+        for (key, value) in self {
+            let entry = result.entry(*value).or_insert_with(|| HashSet::new());
+            entry.insert(*key);
+        }
+        result
     }
 }
 
