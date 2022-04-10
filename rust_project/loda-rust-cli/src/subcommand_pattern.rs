@@ -1,5 +1,5 @@
 use crate::common::{find_asm_files_recursively, find_csv_files_recursively, program_id_from_path, parse_csv_file};
-use crate::pattern::RecordSimilar;
+use crate::pattern::{Clusters, RecordSimilar};
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
 use std::time::Instant;
@@ -121,8 +121,6 @@ fn traverse_by_line_count(
     }
 }
 
-type ProgramIdToProgramIdSet = HashMap<u32, HashSet<u32>>;
-
 fn process_programs_with_same_length(
     line_count: u16, 
     program_meta_vec: &Vec<Rc<ProgramMeta>>, 
@@ -138,10 +136,7 @@ fn process_programs_with_same_length(
     }
 
     let mut number_of_similarity_records: usize = 0;
-
-    // The key is the lowest program_id in the pattern
-    // The value is a hashset with the similar program_ids.
-    let mut accumulated = ProgramIdToProgramIdSet::new();
+    let mut clusters = Clusters::new();
 
     for program_meta in program_meta_vec {
         let program_id: u32 = program_meta.program_id;
@@ -170,14 +165,24 @@ fn process_programs_with_same_length(
             program_id, 
             &similarity_records, 
             &program_id_to_program_meta_hashmap,
-            &mut accumulated
+            &mut clusters
         );
     }
     debug!("number of records: {}", number_of_similarity_records);
-    println!("number of patterns: {}", accumulated.len());
 
-    for (lowest_program_id, program_id_set) in &accumulated {
-        let save_result = save_pattern(line_count, *lowest_program_id, &program_id_set, &program_id_to_program_meta_hashmap, output_dir);
+    let mut clusters_of_programids: Vec<HashSet<u32>> = clusters.clusters_of_programids();
+
+    // Keep only the patterns that repeats a lot.
+    // Eliminate patterns that rarely occurs.
+    let number_of_all_clusters: usize = clusters_of_programids.len();
+    clusters_of_programids.retain(|program_id_set| program_id_set.len() >= MINIMUM_NUMBER_OF_SIMILAR_PROGRAMS_BEFORE_ITS_A_PATTERN);
+    let number_of_patterns: usize = clusters_of_programids.len();
+
+    debug!("number of clusters: {}", number_of_all_clusters);
+    println!("number of patterns: {}", number_of_patterns);
+
+    for program_id_set in clusters_of_programids {
+        let save_result = save_pattern(line_count, &program_id_set, &program_id_to_program_meta_hashmap, output_dir);
         match save_result {
             Ok(_) => {},
             Err(error) => {
@@ -189,11 +194,17 @@ fn process_programs_with_same_length(
 
 fn save_pattern(
     line_count: u16, 
-    lowest_program_id: u32, 
     program_id_set: &HashSet<u32>, 
     program_id_to_program_meta_hashmap: &ProgramIdToProgramMeta,
     output_dir: &Path,
 ) -> Result<(), Box<dyn Error>> {
+    let lowest_program_id: u32 = match Clusters::lowest_program_id_in_set(program_id_set) {
+        Some(value) => value,
+        None => {
+            error!("unable to find lowest program id.");
+            return Ok(());
+        }
+    };
     let original_program_meta: Rc<ProgramMeta> = match program_id_to_program_meta_hashmap.get(&lowest_program_id) {
         Some(value) => Rc::clone(value),
         None => {
@@ -336,7 +347,7 @@ fn find_patterns(
     program_id: u32, 
     similarity_records: &Vec<RecordSimilar>, 
     program_id_to_program_meta_hashmap: &ProgramIdToProgramMeta,
-    accumulated: &mut ProgramIdToProgramIdSet,
+    clusters: &mut Clusters,
 ) {
     let original_program_meta: Rc<ProgramMeta> = match program_id_to_program_meta_hashmap.get(&program_id) {
         Some(value) => Rc::clone(value),
@@ -366,26 +377,12 @@ fn find_patterns(
         }
     }
 
-    if highly_similar_programs.len() < MINIMUM_NUMBER_OF_SIMILAR_PROGRAMS_BEFORE_ITS_A_PATTERN {
-        debug!("ignoring program: {}. there are too few similar programs.", program_id);
-        return;
-    }
-
     highly_similar_programs.push(original_program_meta);
 
-    let mut highly_similar_program_ids: Vec<u32> = highly_similar_programs.iter().map(|pm|pm.program_id).collect();
-    highly_similar_program_ids.sort();
+    let highly_similar_program_ids: Vec<u32> = highly_similar_programs.iter().map(|pm|pm.program_id).collect();
     // println!("program id: {} has many similar with minor diffs to constants: {:?}", program_id, highly_similar_program_ids);
 
-    // Extend an existing pattern.
-    // If no there is no existing pattern, then create a new pattern.
-    // Use the lowest program_id of this pattern as the key, so should other 
-    // patterns use the same program_id as their key, then the same pattern will be extended.
-    let lowest_program_id: u32 = *highly_similar_program_ids.first().unwrap();
-    let entry = accumulated.entry(lowest_program_id).or_insert_with(|| HashSet::new());
-    for highly_similar_program_id in highly_similar_program_ids {
-        entry.insert(highly_similar_program_id);
-    }
+    clusters.insert(&highly_similar_program_ids);
 }
 
 fn analyze_program(
