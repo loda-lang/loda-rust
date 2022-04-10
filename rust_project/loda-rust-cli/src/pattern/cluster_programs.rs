@@ -23,9 +23,18 @@ impl Clusters {
             self.current_cluster_id += 1;
             return;
         }
-        for clusterid in clusterids {
-            self.upsert_with_clusterid(&program_ids, clusterid);
+        let mut first_clusterid: usize = 0;
+        for clusterid in &clusterids {
+            first_clusterid = *clusterid;
+            self.upsert_with_clusterid(&program_ids, *clusterid);
             break;
+        }
+        if clusterids.len() < 2 {
+            return;
+        }
+        for clusterid in &clusterids {
+            // give all the programs the same clusterid
+            Self::replace_clusterid(&mut self.programid_to_clusterid, *clusterid, first_clusterid);
         }
     }
 
