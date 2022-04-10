@@ -42,7 +42,7 @@ impl Clusters {
             }
         }
         for clusterid in &clusterids {
-            // give all the programs the same clusterid
+            // assign all the programs the same clusterid
             Self::replace_clusterid(&mut self.programid_to_clusterid, *clusterid, lowest_clusterid);
         }
     }
@@ -57,18 +57,7 @@ impl Clusters {
     }
 
     pub fn lowest_program_id_in_set(program_id_set: &HashSet<u32>) -> Option<u32> {
-        if program_id_set.is_empty() {
-            return None;
-        }
-        let mut lowest_program_id: u32 = 0;
-        let mut index: usize = 0;
-        for program_id in program_id_set {
-            if index == 0 || *program_id < lowest_program_id {
-                lowest_program_id = *program_id;
-            }
-            index += 1;
-        }
-        Some(lowest_program_id)
+        program_id_set.lowest_value()
     }
 
     fn upsert_with_clusterid(&mut self, program_ids: &Vec<u32>, cluster_id: usize) {
@@ -151,6 +140,27 @@ impl TransposeKeyValue for ProgramIdToClusterId {
     }
 }
 
+trait LowestValue {
+    fn lowest_value(&self) -> Option<u32>;
+}
+
+impl LowestValue for HashSet<u32> {
+    fn lowest_value(&self) -> Option<u32> {
+        if self.is_empty() {
+            return None;
+        }
+        let mut lowest_value: u32 = 0;
+        let mut index: usize = 0;
+        for value in self {
+            if index == 0 || *value < lowest_value {
+                lowest_value = *value;
+            }
+            index += 1;
+        }
+        Some(lowest_value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -164,6 +174,16 @@ mod tests {
         clusters.insert(&vec![401,402]);
         clusters.insert(&vec![501,502]);
         clusters
+    }
+
+    fn mock_programid_to_clusterid() -> ProgramIdToClusterId {
+        let mut programid_to_clusterid = ProgramIdToClusterId::new();
+        programid_to_clusterid.insert(40, 1);
+        programid_to_clusterid.insert(45, 1);
+        programid_to_clusterid.insert(1113, 2);
+        programid_to_clusterid.insert(10051, 2);
+        programid_to_clusterid.insert(123456, 3);
+        programid_to_clusterid
     }
 
     #[test]
@@ -236,16 +256,6 @@ mod tests {
         assert_eq!(clusters.programid_to_clusterid.len(), 10);
     }
 
-    fn mock_programid_to_clusterid() -> ProgramIdToClusterId {
-        let mut programid_to_clusterid = ProgramIdToClusterId::new();
-        programid_to_clusterid.insert(40, 1);
-        programid_to_clusterid.insert(45, 1);
-        programid_to_clusterid.insert(1113, 2);
-        programid_to_clusterid.insert(10051, 2);
-        programid_to_clusterid.insert(123456, 3);
-        programid_to_clusterid
-    }
-
     fn clusterids_containing_programids_as_string(programid_to_clusterid: &ProgramIdToClusterId, program_ids: &Vec<u32>) -> String {
         let clusterid_set: HashSet<usize> = Clusters::clusterids_containing_programids(programid_to_clusterid, program_ids);
         let mut clusterid_vec = Vec::<usize>::from_iter(clusterid_set);
@@ -303,5 +313,27 @@ mod tests {
         assert_eq!(programid_to_clusterid.convert_to_string(), "40:5,45:5,1113:5,10051:5,123456:3");
         Clusters::replace_clusterid(&mut programid_to_clusterid, 3, 5);
         assert_eq!(programid_to_clusterid.convert_to_string(), "40:5,45:5,1113:5,10051:5,123456:5");
+    }
+
+    #[test]
+    fn test_40001_lowest_program_id_some() {
+        let program_ids: Vec<u32> = vec![99,999,7,1000,18,8];
+        let hashset: HashSet<u32> = HashSet::from_iter(program_ids.iter().cloned());
+        let result = Clusters::lowest_program_id_in_set(&hashset);
+        assert_eq!(result, Some(7));
+    }
+
+    #[test]
+    fn test_40002_lowest_program_id_none() {
+        let hashset: HashSet<u32> = HashSet::new();
+        let result = Clusters::lowest_program_id_in_set(&hashset);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_50001_transpose_key_value() {
+        let programid_to_clusterid: ProgramIdToClusterId = mock_programid_to_clusterid();
+        let clusterid_to_programid = programid_to_clusterid.transpose_key_value();
+        assert_eq!(clusterid_to_programid.len(), 3);
     }
 }
