@@ -17,6 +17,9 @@ impl Clusters {
     }
 
     fn insert(&mut self, program_ids: Vec<u32>) {
+        if program_ids.is_empty() {
+            return;
+        }
         let clusterids: HashSet<usize> = Self::clusterids_containing_programids(&self.programid_to_clusterid, &program_ids);
         if clusterids.is_empty() {
             self.upsert_with_clusterid(&program_ids, self.current_cluster_id);
@@ -182,6 +185,16 @@ mod tests {
         clusters.insert(vec![202,203,204,402]); // programids from two different clusters and new programids
         let after_merge = clusters.programid_to_clusterid.convert_to_string();
         assert_eq!(after_merge, "101:0,102:0,201:1,202:1,203:1,204:1,301:2,302:2,401:1,402:1,501:4,502:4");
+    }
+
+    #[test]
+    fn test_10006_insert_empty_array() {
+        let mut clusters = mock_clusters();
+        assert_eq!(clusters.current_cluster_id, 5);
+        assert_eq!(clusters.programid_to_clusterid.len(), 10);
+        clusters.insert(vec!());
+        assert_eq!(clusters.current_cluster_id, 5);
+        assert_eq!(clusters.programid_to_clusterid.len(), 10);
     }
 
     fn mock_programid_to_clusterid() -> ProgramIdToClusterId {
