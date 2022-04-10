@@ -16,6 +16,7 @@ use std::iter::FromIterator;
 const PROGRAM_LENGTH_MINIMUM: usize = 1;
 const PROGRAM_LENGTH_MAXIMUM: usize = 80;
 const MINIMUM_NUMBER_OF_SIMILAR_PROGRAMS_BEFORE_ITS_A_PATTERN: usize = 15;
+const DISCARD_PATTERNS_WITHOUT_ANY_PARAMETERS: bool = true;
 
 pub fn subcommand_pattern() {
     let start_time = Instant::now();
@@ -292,6 +293,11 @@ fn save_pattern(
         pretty_parameters.push(formatted_parameter);
     }
 
+    let number_of_parameters: usize = line_number_to_value_set.len();
+    if DISCARD_PATTERNS_WITHOUT_ANY_PARAMETERS && number_of_parameters == 0 {
+        return Ok(());
+    }
+
     // Convert program_ids to a formatted string
     let mut program_ids: Vec<u32> = program_id_set.iter().map(|program_id| *program_id).collect();
     program_ids.sort();
@@ -317,7 +323,7 @@ fn save_pattern(
     // The number of lines in the patterns doesn't change.
     // The number of parameters changes, if new programs starts making creative parameter changes.
     // The OEIS sequence id of the lowest program. This changes if it has started using another pattern.
-    let filename = format!("lines{}_parameters{}_A{}.asm", line_count, line_number_to_value_set.len(), lowest_program_id);
+    let filename = format!("lines{}_parameters{}_A{}.asm", line_count, number_of_parameters, lowest_program_id);
     let path: PathBuf = output_dir.join(Path::new(&filename));
 
     let mut file = File::create(path)?;
