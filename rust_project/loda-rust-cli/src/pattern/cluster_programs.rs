@@ -16,6 +16,9 @@ impl Clusters {
         }
     }
 
+    // Extend an existing pattern.
+    // If no there is no existing pattern, then create a new pattern.
+    // Merge the patterns if the program ids belong to different clusters.
     pub fn insert(&mut self, program_ids: &Vec<u32>) {
         if program_ids.is_empty() {
             return;
@@ -35,6 +38,7 @@ impl Clusters {
         if clusterids.len() < 2 {
             return;
         }
+        // Merge different clusters into a single cluster.
         let mut lowest_clusterid: usize = first_clusterid;
         for clusterid in &clusterids {
             if *clusterid < lowest_clusterid {
