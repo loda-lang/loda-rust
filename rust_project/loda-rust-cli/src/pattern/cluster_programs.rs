@@ -114,29 +114,6 @@ mod tests {
     use super::*;
     use std::iter::FromIterator;
 
-    #[test]
-    fn test_10000_insert_without_overlap() {
-        let mut clusters = Clusters::new();
-        assert_eq!(clusters.programid_to_clusterid.convert_to_string(), "");
-        clusters.insert(vec![101,102,103]);
-        assert_eq!(clusters.programid_to_clusterid.convert_to_string(), "101:0,102:0,103:0");
-        clusters.insert(vec![201,202,203,204]);
-        assert_eq!(clusters.programid_to_clusterid.convert_to_string(), "101:0,102:0,103:0,201:1,202:1,203:1,204:1");
-    }
-
-    #[test]
-    fn test_10001_insert_with_overlap_1() {
-        let mut clusters = Clusters::new();
-        clusters.insert(vec![101,102]);
-        clusters.insert(vec![201,202]);
-        clusters.insert(vec![301,302]);
-        let before_merge = clusters.programid_to_clusterid.convert_to_string();
-        assert_eq!(before_merge, "101:0,102:0,201:1,202:1,301:2,302:2");
-        clusters.insert(vec![102,302]); // merge 2 clusters into one cluster
-        let after_merge = clusters.programid_to_clusterid.convert_to_string();
-        assert_eq!(after_merge, "101:0,102:0,201:1,202:1,301:0,302:0");
-    }
-
     fn mock_clusters() -> Clusters {
         let mut clusters = Clusters::new();
         clusters.insert(vec![101,102]);
@@ -148,7 +125,27 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_insert_with_overlap_order_doesnt_matter1() {
+    fn test_10000_insert_separate_clusters() {
+        let mut clusters = Clusters::new();
+        assert_eq!(clusters.programid_to_clusterid.convert_to_string(), "");
+        clusters.insert(vec![101,102,103]);
+        assert_eq!(clusters.programid_to_clusterid.convert_to_string(), "101:0,102:0,103:0");
+        clusters.insert(vec![201,202,203,204]);
+        assert_eq!(clusters.programid_to_clusterid.convert_to_string(), "101:0,102:0,103:0,201:1,202:1,203:1,204:1");
+    }
+
+    #[test]
+    fn test_10001_insert_and_merge_clusters_simple() {
+        let mut clusters = mock_clusters();
+        let before_merge = clusters.programid_to_clusterid.convert_to_string();
+        assert_eq!(before_merge, "101:0,102:0,201:1,202:1,301:2,302:2,401:3,402:3,501:4,502:4");
+        clusters.insert(vec![102,302]); // merge 2 clusters into one cluster
+        let after_merge = clusters.programid_to_clusterid.convert_to_string();
+        assert_eq!(after_merge, "101:0,102:0,201:1,202:1,301:0,302:0,401:3,402:3,501:4,502:4");
+    }
+
+    #[test]
+    fn test_10002_insert_and_merge_clusters_order_doesnt_matter1() {
         let mut clusters = mock_clusters();
         let before_merge = clusters.programid_to_clusterid.convert_to_string();
         assert_eq!(before_merge, "101:0,102:0,201:1,202:1,301:2,302:2,401:3,402:3,501:4,502:4");
@@ -158,13 +155,33 @@ mod tests {
     }
 
     #[test]
-    fn test_10003_insert_with_overlap_order_doesnt_matter1() {
+    fn test_10003_insert_and_merge_clusters_order_doesnt_matter2() {
         let mut clusters = mock_clusters();
         let before_merge = clusters.programid_to_clusterid.convert_to_string();
         assert_eq!(before_merge, "101:0,102:0,201:1,202:1,301:2,302:2,401:3,402:3,501:4,502:4");
         clusters.insert(vec![502,302,101]); // merge 3 clusters into one cluster
         let after_merge = clusters.programid_to_clusterid.convert_to_string();
         assert_eq!(after_merge, "101:0,102:0,201:1,202:1,301:0,302:0,401:3,402:3,501:0,502:0");
+    }
+
+    #[test]
+    fn test_10004_insert_extend_existing_cluster() {
+        let mut clusters = mock_clusters();
+        let before_merge = clusters.programid_to_clusterid.convert_to_string();
+        assert_eq!(before_merge, "101:0,102:0,201:1,202:1,301:2,302:2,401:3,402:3,501:4,502:4");
+        clusters.insert(vec![202,203,204]); // extend the existing cluster with new programids
+        let after_merge = clusters.programid_to_clusterid.convert_to_string();
+        assert_eq!(after_merge, "101:0,102:0,201:1,202:1,203:1,204:1,301:2,302:2,401:3,402:3,501:4,502:4");
+    }
+
+    #[test]
+    fn test_10005_insert_extend_existing_cluster_and_merge_with_other_cluster() {
+        let mut clusters = mock_clusters();
+        let before_merge = clusters.programid_to_clusterid.convert_to_string();
+        assert_eq!(before_merge, "101:0,102:0,201:1,202:1,301:2,302:2,401:3,402:3,501:4,502:4");
+        clusters.insert(vec![202,203,204,402]); // programids from two different clusters and new programids
+        let after_merge = clusters.programid_to_clusterid.convert_to_string();
+        assert_eq!(after_merge, "101:0,102:0,201:1,202:1,203:1,204:1,301:2,302:2,401:1,402:1,501:4,502:4");
     }
 
     fn mock_programid_to_clusterid() -> ProgramIdToClusterId {
