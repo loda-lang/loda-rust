@@ -182,13 +182,7 @@ fn process_programs_with_same_length(
     println!("number of patterns: {}", number_of_patterns);
 
     for program_id_set in clusters_of_programids {
-        let lowest_program_id: u32 = match Clusters::lowest_program_id_in_set(&program_id_set) {
-            Some(value) => value,
-            None => {
-                continue;
-            }
-        };
-        let save_result = save_pattern(line_count, lowest_program_id, &program_id_set, &program_id_to_program_meta_hashmap, output_dir);
+        let save_result = save_pattern(line_count, &program_id_set, &program_id_to_program_meta_hashmap, output_dir);
         match save_result {
             Ok(_) => {},
             Err(error) => {
@@ -200,11 +194,17 @@ fn process_programs_with_same_length(
 
 fn save_pattern(
     line_count: u16, 
-    lowest_program_id: u32, 
     program_id_set: &HashSet<u32>, 
     program_id_to_program_meta_hashmap: &ProgramIdToProgramMeta,
     output_dir: &Path,
 ) -> Result<(), Box<dyn Error>> {
+    let lowest_program_id: u32 = match Clusters::lowest_program_id_in_set(program_id_set) {
+        Some(value) => value,
+        None => {
+            error!("unable to find lowest program id.");
+            return Ok(());
+        }
+    };
     let original_program_meta: Rc<ProgramMeta> = match program_id_to_program_meta_hashmap.get(&lowest_program_id) {
         Some(value) => Rc::clone(value),
         None => {
