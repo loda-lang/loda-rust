@@ -17,14 +17,26 @@ impl Clusters {
     }
 
     fn insert(&mut self, program_ids: Vec<u32>) {
-        self.upsert_with_clusterid(&program_ids, self.current_cluster_id);
-        self.current_cluster_id += 1;
+        let clusterids: HashSet<usize> = Self::clusterids_containing_programids(&self.programid_to_clusterid, &program_ids);
+        if clusterids.is_empty() {
+            self.upsert_with_clusterid(&program_ids, self.current_cluster_id);
+            self.current_cluster_id += 1;
+            return;
+        }
+        for clusterid in clusterids {
+            self.upsert_with_clusterid(&program_ids, clusterid);
+            break;
+        }
     }
 
     fn upsert_with_clusterid(&mut self, program_ids: &Vec<u32>, cluster_id: usize) {
         for program_id in program_ids {
             self.programid_to_clusterid.insert(*program_id, cluster_id);
         }
+    }
+
+    fn replace_clusterid(programid_to_clusterid: &mut ProgramIdToClusterId, old_clusterid: usize, new_clusterid: usize) {
+        programid_to_clusterid.replace_value(old_clusterid, new_clusterid);
     }
 
     fn clusterids_containing_programids(programid_to_clusterid: &ProgramIdToClusterId, program_ids: &Vec<u32>) -> HashSet<usize> {
@@ -39,6 +51,46 @@ impl Clusters {
             cluster_ids.insert(cluster_id);
         }
         return cluster_ids;
+    }
+}
+
+trait ConvertToString {
+    fn convert_to_string(&self) -> String;
+}
+
+impl ConvertToString for ProgramIdToClusterId {
+    fn convert_to_string(&self) -> String {
+        let mut program_ids: Vec<u32> = self.iter().map(|entry| *entry.0).collect();
+        program_ids.sort();
+        let mut strings = Vec::<String>::new();
+        for program_id in program_ids {
+            match self.get(&program_id) {
+                Some(clusterid) => {
+                    strings.push(format!("{}:{}", program_id, clusterid));
+                },
+                None => {
+                    strings.push("BOOM".to_string());
+                }
+            }
+        }
+        strings.join(",")
+    }
+}
+
+trait ReplaceValue {
+    fn replace_value(&mut self, old_value: usize, new_value: usize);
+}
+
+impl ReplaceValue for ProgramIdToClusterId {
+    fn replace_value(&mut self, old_value: usize, new_value: usize) {
+        if old_value == new_value {
+            return;
+        }
+        for (_, value) in self.iter_mut() {
+            if *value == old_value {
+                *value = new_value;
+            }
+        }
     }
 }
 
@@ -118,5 +170,16 @@ mod tests {
         let programids: Vec::<u32> = vec![40, 666];
         let clusterids = clusterids_containing_programids_as_string(&programid_to_clusterid, &programids);
         assert_eq!(clusterids, "1");
+    }
+
+    #[test]
+    fn test_30001_replace_clusterid() {
+        let mut programid_to_clusterid: ProgramIdToClusterId = mock_programid_to_clusterid();
+        Clusters::replace_clusterid(&mut programid_to_clusterid, 1, 5);
+        assert_eq!(programid_to_clusterid.convert_to_string(), "40:5,45:5,1113:2,10051:2,123456:3");
+        Clusters::replace_clusterid(&mut programid_to_clusterid, 2, 5);
+        assert_eq!(programid_to_clusterid.convert_to_string(), "40:5,45:5,1113:5,10051:5,123456:3");
+        Clusters::replace_clusterid(&mut programid_to_clusterid, 3, 5);
+        assert_eq!(programid_to_clusterid.convert_to_string(), "40:5,45:5,1113:5,10051:5,123456:5");
     }
 }
