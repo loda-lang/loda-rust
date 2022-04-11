@@ -1,7 +1,7 @@
 use crate::common::{find_asm_files_recursively, find_csv_files_recursively, program_id_from_path, parse_csv_file};
-use crate::pattern::{Clusters, ProgramSimilarity, RecordSimilar};
+use crate::pattern::{Clusters, instruction_diff_between_constants, ProgramSimilarity, RecordSimilar};
 use loda_rust_core::config::Config;
-use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
+use loda_rust_core::parser::{Instruction, InstructionId, ParsedProgram};
 use std::time::Instant;
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -244,7 +244,7 @@ fn save_pattern(
 
             // If the instructions have different constants
             // then remember the line number and the constants.
-            let diff = ProgramMeta::instruction_diff_between_constants(instruction0, instruction1);
+            let diff = instruction_diff_between_constants(instruction0, instruction1);
             if let Some((constant0, constant1)) = diff {
                 let entry = line_number_to_value_set.entry(index).or_insert_with(|| HashSet::new());
                 entry.insert(constant0);
@@ -445,40 +445,6 @@ impl ProgramMeta {
             line_count: line_count,
             parsed_program: parsed_program,
         }
-    }
-
-    fn instruction_diff_between_constants(instruction0: &Instruction, instruction1: &Instruction) -> Option<(i64, i64)> {
-        let parameters0: &Vec<InstructionParameter> = &instruction0.parameter_vec;
-        let parameters1: &Vec<InstructionParameter> = &instruction1.parameter_vec;
-
-        // Reject if the number of parameters differs
-        if parameters0.len() != parameters1.len() {
-            return None;
-        }
-
-        for parameter_index in 0..parameters0.len() {
-            let parameter0: &InstructionParameter = &parameters0[parameter_index];
-            let parameter1: &InstructionParameter = &parameters1[parameter_index];
-
-            // Reject if the parameter type differs
-            if parameter0.parameter_type != parameter1.parameter_type {
-                return None;
-            }
-            let is_same_value = parameter0.parameter_value == parameter1.parameter_value;
-            match parameter0.parameter_type {
-                ParameterType::Constant => {
-                    if !is_same_value {
-                        return Some((parameter0.parameter_value, parameter1.parameter_value));
-                    }
-                },
-                ParameterType::Register => {
-                    if !is_same_value {
-                        return None;
-                    }
-                },
-            }
-        }
-        None
     }
 }
 
