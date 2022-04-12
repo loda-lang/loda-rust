@@ -10,10 +10,10 @@ fn run_batch_program_analyzer() {
     let plugin_source_ngram = Rc::new(RefCell::new(AnalyzeSourceNgram::new()));
     let plugin_target_ngram = Rc::new(RefCell::new(AnalyzeTargetNgram::new()));
     let mut analyzer = BatchProgramAnalyzer::new();
-    // analyzer.register(plugin_instruction_ngram);
-    // analyzer.register(plugin_instruction_constant);
-    // analyzer.register(plugin_source_ngram);
-    // analyzer.register(plugin_target_ngram);
+    analyzer.register(plugin_instruction_ngram);
+    analyzer.register(plugin_instruction_constant);
+    analyzer.register(plugin_source_ngram);
+    analyzer.register(plugin_target_ngram);
     analyzer.register(plugin_program_complexity);
     analyzer.run();
 }
