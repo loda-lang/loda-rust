@@ -156,8 +156,14 @@ impl Config {
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_complexity_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("complexity.csv");
+    pub fn cache_dir_complexity_all_file(&self) -> PathBuf {
+        let path = self.cache_dir().join("complexity_all.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
+    pub fn cache_dir_complexity_dont_optimize_file(&self) -> PathBuf {
+        let path = self.cache_dir().join("complexity_dont_optimize.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }

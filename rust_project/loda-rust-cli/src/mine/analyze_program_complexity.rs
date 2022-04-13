@@ -24,15 +24,23 @@ enum ProgramComplexityClassification {
 }
 
 impl ProgramComplexityClassification {
-    fn classification(&self) -> String {
+    fn is_optimizable(&self) -> bool {
         match self {
-            ProgramComplexityClassification::SimpleAndShort => "0".to_string(),
-            ProgramComplexityClassification::SimpleWithoutLoops => "0".to_string(),
-            ProgramComplexityClassification::MediumWithLoops => "0".to_string(),
-            ProgramComplexityClassification::ComplexTwoOrMoreSeq => "1".to_string(),
-            ProgramComplexityClassification::ComplexNestedSeq => "1".to_string(),
-            ProgramComplexityClassification::ComplexAndLong => "1".to_string(),
-            ProgramComplexityClassification::ComplexOtherReasons => "1".to_string(),
+            ProgramComplexityClassification::SimpleAndShort => false,
+            ProgramComplexityClassification::SimpleWithoutLoops => false,
+            ProgramComplexityClassification::MediumWithLoops => false,
+            ProgramComplexityClassification::ComplexTwoOrMoreSeq => true,
+            ProgramComplexityClassification::ComplexNestedSeq => true,
+            ProgramComplexityClassification::ComplexAndLong => true,
+            ProgramComplexityClassification::ComplexOtherReasons => true,
+        }
+    }
+
+    fn optimizable_string(&self) -> String {
+        if self.is_optimizable() {
+            return "1".to_string();
+        } else {
+            return "0".to_string();
         }
     }
 
@@ -90,13 +98,13 @@ impl AnalyzeProgramComplexity {
         return ProgramComplexityClassification::ComplexOtherReasons;
     }
 
-    fn save_inner(&self) {
+    fn save_all(&self) {
         // Convert from dictionary to array
         let mut records = Vec::<RecordProgram>::new();
         for (key, value) in &self.classifications {
             let record = RecordProgram {
                 program_id: *key,
-                classification: value.classification(),
+                optimizable: value.optimizable_string(),
                 comment: value.comment()
             };
             records.push(record);
@@ -107,13 +115,35 @@ impl AnalyzeProgramComplexity {
         records.sort_unstable_by_key(|item| (item.program_id));
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.cache_dir_complexity_file();
+        let output_path: PathBuf = self.config.cache_dir_complexity_all_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
-                println!("saved complexity.csv");
+                println!("saved complexity_all.csv");
             },
             Err(error) => {
-                println!("cannot save complexity.csv error: {:?}", error);
+                println!("cannot save complexity_all.csv error: {:?}", error);
+            }
+        }
+    }
+
+    fn save_dont_optimize(&self) {
+        // Extract program ids of those programs that has little/no chance of being optimized
+        let mut program_ids = Vec::<u32>::new();
+        for (key, value) in &self.classifications {
+            if !value.is_optimizable() {
+                program_ids.push(*key);
+            }
+        }
+        program_ids.sort();
+
+        // Save as a CSV file
+        let output_path: PathBuf = self.config.cache_dir_complexity_dont_optimize_file();
+        match Self::create_csv_file_with_program_ids(&program_ids, &output_path) {
+            Ok(_) => {
+                println!("saved complexity_dont_optimize.csv");
+            },
+            Err(error) => {
+                println!("cannot save complexity_dont_optimize.csv error: {:?}", error);
             }
         }
     }
@@ -129,6 +159,17 @@ impl AnalyzeProgramComplexity {
         wtr.flush()?;
         Ok(())
     }
+
+    fn create_csv_file_with_program_ids(program_ids: &Vec<u32>, output_path: &Path) -> Result<(), Box<dyn Error>> {
+        let mut wtr = csv::Writer::from_path(output_path)?;
+        wtr.write_record(&["program id"])?;
+        for program_id in program_ids {
+            let s = format!("{:?}", program_id);
+            wtr.write_record(&[s])?;
+        }
+        wtr.flush()?;
+        Ok(())
+    }
 }
 
 impl BatchProgramAnalyzerPlugin for AnalyzeProgramComplexity {
@@ -139,7 +180,8 @@ impl BatchProgramAnalyzerPlugin for AnalyzeProgramComplexity {
     }
 
     fn save(&self) {
-        self.save_inner();
+        self.save_all();
+        self.save_dont_optimize();
     }
 }
 
@@ -208,7 +250,8 @@ impl HasTwoOrMoreSeq for ParsedProgram {
 struct RecordProgram {
     #[serde(rename = "program id")]
     program_id: u32,
-    classification: String,
+    #[serde(rename = "is optimizable")]
+    optimizable: String,
     comment: String,
 }
 
