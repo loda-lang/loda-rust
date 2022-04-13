@@ -21,8 +21,8 @@ fn run_batch_program_analyzer() {
 pub fn subcommand_update() {
     let start_time = Instant::now();
     println!("update begin");
-    DontMine::run();
     run_batch_program_analyzer();
+    DontMine::run();
     ValidatePrograms::run();
     PopulateBloomfilter::run();
     println!("update end, elapsed: {:?} ms", start_time.elapsed().as_millis());
