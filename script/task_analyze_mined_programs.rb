@@ -156,7 +156,8 @@ def analyze_candidate(candidate_program, program_id)
         if output =~ /^(\d+) .* expected/
             correct_term_count = $1.to_i
             puts "correct #{correct_term_count} terms, followed by mismatch"
-            File.delete(path)
+            path_deleted = path + "_deleted_different"
+            File.rename(path, path_deleted)
             
             # save to mismatch dir
             mismatch_name = "#{a_name}_#{correct_term_count}.asm"
@@ -185,7 +186,8 @@ candidate_programs.each do |candidate_program|
     
     if counter > 0
         # delete candidate program when it has been fully analyzed
-        File.delete(candidate_program.path)
+        path_deleted = candidate_program.path + "_deleted_candidate"
+        File.rename(candidate_program.path, path_deleted)
         raise 'yay'
     end
 end
