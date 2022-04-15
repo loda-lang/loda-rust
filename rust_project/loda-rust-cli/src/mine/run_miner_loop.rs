@@ -15,6 +15,7 @@ use std::sync::mpsc::Sender;
 use rand::rngs::StdRng;
 
 const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
+const MINIMUM_PROGRAM_LENGTH: usize = 2;
 
 struct TermComputer {
     terms: BigIntVec,
@@ -148,6 +149,7 @@ impl RunMinerLoop {
             let event = MetricEvent::Genome { 
                 cannot_load: self.metric.number_of_failed_genome_loads,
                 cannot_parse: self.metric.number_of_programs_that_cannot_parse,
+                too_short: self.metric.number_of_too_short_programs,
                 no_output: self.metric.number_of_programs_without_output,
                 no_mutation: self.metric.number_of_failed_mutations,
                 compute_error: self.metric.number_of_compute_errors,
@@ -217,11 +219,18 @@ impl RunMinerLoop {
 
         // println!("#{} Current genome\n{}", iteration, self.genome);
     
+        let genome_parsed_program: ParsedProgram = self.genome.to_parsed_program();
+        if genome_parsed_program.instruction_vec.len() < MINIMUM_PROGRAM_LENGTH {
+            self.metric.number_of_too_short_programs += 1;
+            self.reload = true;
+            return;
+        }
+
         // Create program from genome
         self.dependency_manager.reset();
         let result_parse = self.dependency_manager.parse_stage2(
             ProgramId::ProgramWithoutId, 
-            &self.genome.to_parsed_program()
+            &genome_parsed_program
         );
         let mut runner: ProgramRunner = match result_parse {
             Ok(value) => value,

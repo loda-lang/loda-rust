@@ -623,6 +623,12 @@
           "refId": "E"
         },
         {
+          "expr": "rate(lodarust_mine_reject_too_short_total[2s])",
+          "interval": "",
+          "legendFormat": "Too short",
+          "refId": "G"
+        },
+        {
           "expr": "rate(lodarust_mine_rejected_preventing_flooding_total[2s])",
           "interval": "",
           "legendFormat": "Prevented flooding",
@@ -679,7 +685,7 @@
     "list": []
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
@@ -700,5 +706,5 @@
   "timezone": "",
   "title": "LODA Rust",
   "uid": "DvVCV7fnz",
-  "version": 99
+  "version": 100
 }

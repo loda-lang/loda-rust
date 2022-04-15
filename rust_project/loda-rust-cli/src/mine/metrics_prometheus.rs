@@ -13,6 +13,7 @@ pub struct MetricsPrometheus {
     cache_miss_program_oeis: Counter,
     cache_miss_program_without_id: Counter,
     error_genome_load: Counter,
+    reject_too_short: Counter,
     reject_cannot_be_parsed: Counter,
     reject_no_output_register: Counter,
     reject_compute_error: Counter,
@@ -83,6 +84,13 @@ impl MetricsPrometheus {
             "error_genome_load",
             "Unable to load program into genome",
             Box::new(error_genome_load.clone()),
+        );
+
+        let reject_too_short = Counter::default();
+        sub_registry.register(
+            "reject_too_short",
+            "Rejected programs because they are too short",
+            Box::new(reject_too_short.clone()),
         );
 
         let reject_cannot_be_parsed = Counter::default();
@@ -164,6 +172,7 @@ impl MetricsPrometheus {
             cache_miss_program_oeis: cache_miss_program_oeis,
             cache_miss_program_without_id: cache_miss_program_without_id,
             error_genome_load: error_genome_load,
+            reject_too_short: reject_too_short,
             reject_cannot_be_parsed: reject_cannot_be_parsed,
             reject_no_output_register: reject_no_output_register,
             reject_compute_error: reject_compute_error,
@@ -193,9 +202,10 @@ impl Recorder for MetricsPrometheus {
                 self.cache_miss_program_oeis.inc_by(*miss_program_oeis);
                 self.cache_miss_program_without_id.inc_by(*miss_program_without_id);
             },
-            MetricEvent::Genome { cannot_load, cannot_parse, no_output, no_mutation, compute_error } => {
+            MetricEvent::Genome { cannot_load, cannot_parse, too_short, no_output, no_mutation, compute_error } => {
                 self.error_genome_load.inc_by(*cannot_load);
                 self.reject_cannot_be_parsed.inc_by(*cannot_parse);
+                self.reject_too_short.inc_by(*too_short);
                 self.reject_no_output_register.inc_by(*no_output);
                 self.reject_mutate_without_impact.inc_by(*no_mutation);
                 self.reject_compute_error.inc_by(*compute_error);

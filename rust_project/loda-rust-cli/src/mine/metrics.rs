@@ -14,6 +14,7 @@ pub enum MetricEvent {
     Genome {
         cannot_load: u64,
         cannot_parse: u64,
+        too_short: u64,
         no_output: u64,
         no_mutation: u64,
         compute_error: u64,
