@@ -29,14 +29,14 @@ impl DontMine {
             config: Config::load(),
             program_ids: vec!()
         };
-        // {
-        //     let program_ids: Vec<u32> = instance.process_existing_programs();
-        //     instance.program_ids.extend(program_ids);
-        // }
-        // {
-        //     let program_ids: Vec<u32> = instance.process_mismatches();
-        //     instance.program_ids.extend(program_ids);
-        // }
+        {
+            let program_ids: Vec<u32> = instance.process_existing_programs();
+            instance.program_ids.extend(program_ids);
+        }
+        {
+            let program_ids: Vec<u32> = instance.process_mismatches();
+            instance.program_ids.extend(program_ids);
+        }
         {
             let program_ids: Vec<u32> = instance.process_loda_programs_deny_file();
             instance.program_ids.extend(program_ids);
