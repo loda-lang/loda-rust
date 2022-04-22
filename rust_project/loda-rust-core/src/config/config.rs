@@ -78,6 +78,12 @@ impl Config {
         PathBuf::from(path)
     }
 
+    pub fn cache_dir_dependencies_file(&self) -> PathBuf {
+        let path = self.cache_dir().join("dependencies.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
     pub fn cache_dir_histogram_instruction_constant_file(&self) -> PathBuf {
         let path = self.cache_dir().join("histogram_instruction_constant.csv");
         assert!(path.is_absolute());

@@ -102,10 +102,10 @@ impl DontMine {
         let output_path: PathBuf = self.config.cache_dir_dont_mine_file();
         match Self::create_csv_file(&program_ids_sorted, &output_path) {
             Ok(_) => {
-                println!("save ok");
+                println!("saved dont_mine.csv");
             },
             Err(error) => {
-                println!("save error: {:?}", error);
+                println!("cannot save dont_mine.csv error: {:?}", error);
             }
         }
     }

@@ -141,10 +141,10 @@ impl AnalyzeInstructionConstant {
         let output_path: PathBuf = self.config.cache_dir_histogram_instruction_constant_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
-                println!("save ok");
+                println!("saved histogram_instruction_constant.csv");
             },
             Err(error) => {
-                println!("save error: {:?}", error);
+                println!("cannot save histogram_instruction_constant.csv error: {:?}", error);
             }
         }
     }

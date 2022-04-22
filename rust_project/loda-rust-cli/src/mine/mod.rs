@@ -1,3 +1,4 @@
+mod analyze_dependencies;
 mod analyze_instruction_constant;
 mod analyze_instruction_ngram;
 mod analyze_source_ngram;
@@ -30,6 +31,7 @@ mod suggest_target;
 mod thread_message_channel;
 mod validate_programs;
 
+pub use analyze_dependencies::AnalyzeDependencies;
 pub use analyze_instruction_constant::AnalyzeInstructionConstant;
 pub use analyze_instruction_ngram::AnalyzeInstructionNgram;
 pub use analyze_program_complexity::AnalyzeProgramComplexity;
