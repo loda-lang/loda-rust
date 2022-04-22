@@ -1,7 +1,7 @@
 use std::time::Instant;
 use std::rc::Rc;
 use core::cell::RefCell;
-use crate::mine::{AnalyzeDependencies, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, DontMine, PopulateBloomfilter, ValidatePrograms};
+use crate::mine::{AnalyzeDependencies, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, DontMine, PopulateBloomfilter, ValidatePrograms, compute_program_rank};
 
 fn run_batch_program_analyzer() {
     let plugin_dependencies = Rc::new(RefCell::new(AnalyzeDependencies::new()));
@@ -24,6 +24,7 @@ pub fn subcommand_update() {
     let start_time = Instant::now();
     println!("update begin");
     run_batch_program_analyzer();
+    compute_program_rank();
     DontMine::run();
     ValidatePrograms::run();
     PopulateBloomfilter::run();

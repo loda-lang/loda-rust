@@ -1044,6 +1044,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "simple-pagerank",
  "tempfile",
  "tide",
  "tokio",
@@ -1633,6 +1634,12 @@ checksum = "38aabbeafa6f6dead8cebf246fe9fae1f9215c8d29b3a69f93bd62a9e4a3dcd6"
 dependencies = [
  "event-listener",
 ]
+
+[[package]]
+name = "simple-pagerank"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47d2b6d15dfae728ed12a9d722c0b494cf85d2ba27f6e93443c7b3e6a614870f"
 
 [[package]]
 name = "siphasher"
