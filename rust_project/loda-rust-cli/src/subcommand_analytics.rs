@@ -21,13 +21,13 @@ fn run_batch_program_analyzer() {
     analyzer.run();
 }
 
-pub fn subcommand_update() {
+pub fn subcommand_analytics() {
     let start_time = Instant::now();
-    println!("update begin");
+    println!("analytics begin");
     run_batch_program_analyzer();
     compute_program_rank();
     DontMine::run();
     ValidatePrograms::run();
     PopulateBloomfilter::run();
-    println!("update end, elapsed: {:?} ms", start_time.elapsed().as_millis());
+    println!("analytics end, elapsed: {:?} ms", start_time.elapsed().as_millis());
 }
