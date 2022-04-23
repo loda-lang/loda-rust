@@ -5,6 +5,7 @@ mod analyze_source_ngram;
 mod analyze_program_complexity;
 mod analyze_target_ngram;
 mod batch_program_analyzer;
+mod validate_programs;
 
 pub use analyze_dependencies::AnalyzeDependencies;
 pub use analyze_instruction_constant::AnalyzeInstructionConstant;
@@ -13,3 +14,4 @@ pub use analyze_program_complexity::AnalyzeProgramComplexity;
 pub use analyze_source_ngram::AnalyzeSourceNgram;
 pub use analyze_target_ngram::AnalyzeTargetNgram;
 pub use batch_program_analyzer::{BatchProgramAnalyzer, BatchProgramAnalyzerContext, BatchProgramAnalyzerPlugin};
+pub use validate_programs::ValidatePrograms;

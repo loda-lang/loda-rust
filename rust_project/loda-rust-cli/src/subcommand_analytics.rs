@@ -1,8 +1,8 @@
 use std::time::Instant;
 use std::rc::Rc;
 use core::cell::RefCell;
-use crate::analytics::{AnalyzeDependencies, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer};
-use crate::mine::{DontMine, PopulateBloomfilter, ValidatePrograms, compute_program_rank};
+use crate::analytics::{AnalyzeDependencies, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, ValidatePrograms};
+use crate::mine::{DontMine, PopulateBloomfilter, compute_program_rank};
 
 fn run_batch_program_analyzer() {
     let plugin_dependencies = Rc::new(RefCell::new(AnalyzeDependencies::new()));

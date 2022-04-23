@@ -23,7 +23,6 @@ mod suggest_instruction;
 mod suggest_source;
 mod suggest_target;
 mod thread_message_channel;
-mod validate_programs;
 
 pub use check_fixed_length_sequence::{CheckFixedLengthSequence, NamedCacheFile, PopulateBloomfilter};
 pub use deny_file::load_program_ids_from_deny_file;
@@ -49,4 +48,3 @@ pub use suggest_instruction::SuggestInstruction;
 pub use suggest_source::{SuggestSource, SourceValue};
 pub use suggest_target::{SuggestTarget, TargetValue};
 pub use thread_message_channel::MinerThreadMessageToCoordinator;
-pub use validate_programs::ValidatePrograms;
