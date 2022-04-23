@@ -24,7 +24,7 @@ Run LODA programs in your browser. Examples to try out:
 
 # Contributing
 
-Christian Krause's [loda-cpp miner](https://github.com/loda-lang/loda-cpp) have discovered 35000 programs so far. You can run the miner on your computer, and submit the programs being found.
+Christian Krause's [loda-cpp miner](https://github.com/loda-lang/loda-cpp) have discovered 70000 programs so far. You can run the miner on your computer, and submit the programs being found.
 
 You can implement LODA programs for OEIS sequences that doesn't already have a LODA program.
 
