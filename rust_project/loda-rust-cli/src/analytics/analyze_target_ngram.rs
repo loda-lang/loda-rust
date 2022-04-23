@@ -231,7 +231,7 @@ impl AnalyzeTargetNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.cache_dir_histogram_target_unigram_file();
+        let output_path: PathBuf = self.config.analytics_dir_histogram_target_unigram_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("saved unigram.csv");
@@ -260,7 +260,7 @@ impl AnalyzeTargetNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.cache_dir_histogram_target_bigram_file();
+        let output_path: PathBuf = self.config.analytics_dir_histogram_target_bigram_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("saved bigram.csv");
@@ -290,7 +290,7 @@ impl AnalyzeTargetNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.cache_dir_histogram_target_trigram_file();
+        let output_path: PathBuf = self.config.analytics_dir_histogram_target_trigram_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("saved trigram.csv");
@@ -319,7 +319,7 @@ impl AnalyzeTargetNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.cache_dir_histogram_target_skipgram_file();
+        let output_path: PathBuf = self.config.analytics_dir_histogram_target_skipgram_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("saved skipgram.csv");

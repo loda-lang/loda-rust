@@ -65,7 +65,7 @@ impl DontMine {
     }
 
     fn process_dont_optimize(&self) -> Vec<u32> {
-        let path: PathBuf = self.config.cache_dir_complexity_dont_optimize_file();
+        let path: PathBuf = self.config.analytics_dir_complexity_dont_optimize_file();
         let program_ids: Vec<u32> = match load_program_ids_csv_file(&path) {
             Ok(value) => value,
             Err(error) => {
@@ -99,7 +99,7 @@ impl DontMine {
     fn save(&self) {
         let program_ids_sorted: Vec<u32> = Self::sort_and_remove_duplicates(&self.program_ids);
         println!("saving, number of program_ids: {:?}", program_ids_sorted.len());
-        let output_path: PathBuf = self.config.cache_dir_dont_mine_file();
+        let output_path: PathBuf = self.config.analytics_dir_dont_mine_file();
         match Self::create_csv_file(&program_ids_sorted, &output_path) {
             Ok(_) => {
                 println!("saved dont_mine.csv");

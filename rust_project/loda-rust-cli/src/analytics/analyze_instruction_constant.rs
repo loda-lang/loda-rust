@@ -138,7 +138,7 @@ impl AnalyzeInstructionConstant {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.cache_dir_histogram_instruction_constant_file();
+        let output_path: PathBuf = self.config.analytics_dir_histogram_instruction_constant_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("saved histogram_instruction_constant.csv");

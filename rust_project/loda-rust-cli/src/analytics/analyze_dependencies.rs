@@ -38,7 +38,7 @@ impl AnalyzeDependencies {
         records.sort_unstable_by_key(|item| (item.caller_program_id, item.callee_program_id));
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.cache_dir_dependencies_file();
+        let output_path: PathBuf = self.config.analytics_dir_dependencies_file();
         match Self::create_csv_file(&records, &output_path) {
             Ok(_) => {
                 println!("saved dependencies.csv");

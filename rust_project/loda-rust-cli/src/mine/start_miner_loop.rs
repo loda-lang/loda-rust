@@ -23,13 +23,13 @@ pub fn start_miner_loop(
     // Load config file
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
-    let cache_dir: PathBuf = config.cache_dir();
+    let analytics_dir: PathBuf = config.analytics_dir();
     let mine_event_dir: PathBuf = config.mine_event_dir();
     let loda_rust_repository: PathBuf = config.loda_rust_repository();
     let loda_rust_mismatches: PathBuf = config.loda_rust_mismatches();
-    let instruction_trigram_csv: PathBuf = config.cache_dir_histogram_instruction_trigram_file();
-    let source_trigram_csv: PathBuf = config.cache_dir_histogram_source_trigram_file();
-    let target_trigram_csv: PathBuf = config.cache_dir_histogram_target_trigram_file();
+    let instruction_trigram_csv: PathBuf = config.analytics_dir_histogram_instruction_trigram_file();
+    let source_trigram_csv: PathBuf = config.analytics_dir_histogram_source_trigram_file();
+    let target_trigram_csv: PathBuf = config.analytics_dir_histogram_target_trigram_file();
 
     // Load cached data
     debug!("step1");
@@ -37,10 +37,10 @@ pub fn start_miner_loop(
     let filename20: &str = NamedCacheFile::Bloom20Terms.filename();
     let filename30: &str = NamedCacheFile::Bloom30Terms.filename();
     let filename40: &str = NamedCacheFile::Bloom40Terms.filename();
-    let path10 = cache_dir.join(Path::new(filename10));
-    let path20 = cache_dir.join(Path::new(filename20));
-    let path30 = cache_dir.join(Path::new(filename30));
-    let path40 = cache_dir.join(Path::new(filename40));
+    let path10 = analytics_dir.join(Path::new(filename10));
+    let path20 = analytics_dir.join(Path::new(filename20));
+    let path30 = analytics_dir.join(Path::new(filename30));
+    let path40 = analytics_dir.join(Path::new(filename40));
     let checker10: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path10);
     let checker20: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path20);
     let checker30: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path30);
@@ -53,7 +53,7 @@ pub fn start_miner_loop(
     );
 
     debug!("step2");
-    let path_histogram: PathBuf = config.cache_dir_histogram_instruction_constant_file();
+    let path_histogram: PathBuf = config.analytics_dir_histogram_instruction_constant_file();
     let histogram_instruction_constant: Option<HistogramInstructionConstant>;
     if path_histogram.is_file() {
         histogram_instruction_constant = match HistogramInstructionConstant::load_csv_file(&path_histogram) {
@@ -74,7 +74,7 @@ pub fn start_miner_loop(
     debug!("step3");
 
     // Load the program_ids available for mining
-    let available_program_ids_file = cache_dir.join(Path::new("programs_valid.csv"));
+    let available_program_ids_file = analytics_dir.join(Path::new("programs_valid.csv"));
     let available_program_ids: Vec<u32> = match load_program_ids_csv_file(&available_program_ids_file) {
         Ok(value) => value,
         Err(error) => {

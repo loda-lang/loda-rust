@@ -96,8 +96,8 @@ impl ValidatePrograms {
         let config = Config::load();
         let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
 
-        let programs_valid_csv_file: PathBuf = config.cache_dir().join(Path::new("programs_valid.csv"));
-        let programs_invalid_csv_file: PathBuf = config.cache_dir().join(Path::new("programs_invalid.csv"));
+        let programs_valid_csv_file: PathBuf = config.analytics_dir().join(Path::new("programs_valid.csv"));
+        let programs_invalid_csv_file: PathBuf = config.analytics_dir().join(Path::new("programs_invalid.csv"));
 
         // Obtain paths to loda asm files
         let paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);

@@ -303,7 +303,7 @@ impl PopulateBloomfilter {
         println!("populate_bloomfilter begin");
         let config = Config::load();
         let oeis_stripped_file: PathBuf = config.oeis_stripped_file();
-        let cache_dir: PathBuf = config.cache_dir();
+        let cache_dir: PathBuf = config.analytics_dir();
         let program_ids_to_ignore: HashSet<u32> = Self::obtain_dontmine_program_ids();
         create_cache_files(&oeis_stripped_file, &cache_dir, &program_ids_to_ignore);
     
@@ -312,7 +312,7 @@ impl PopulateBloomfilter {
 
     fn obtain_dontmine_program_ids() -> HashSet<u32> {
         let config = Config::load();
-        let path = config.cache_dir_dont_mine_file();
+        let path = config.analytics_dir_dont_mine_file();
         let program_ids: Vec<u32> = match load_program_ids_csv_file(&path) {
             Ok(value) => value,
             Err(error) => {
