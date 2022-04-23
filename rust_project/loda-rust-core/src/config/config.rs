@@ -65,111 +65,117 @@ impl Config {
         load_config_from_home_dir()
     }
 
-    pub fn cache_dir(&self) -> PathBuf {
-        let name = Path::new("cache");
+    pub fn analytics_dir(&self) -> PathBuf {
+        let name = Path::new("analytics");
         let path = self.basedir.join(name);
         assert!(path.is_dir());
         path
     }
 
-    pub fn cache_dir_dont_mine_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("dont_mine.csv");
+    pub fn analytics_dir_dont_mine_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("dont_mine.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_dependencies_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("dependencies.csv");
+    pub fn analytics_dir_dependencies_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("dependencies.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_histogram_instruction_constant_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("histogram_instruction_constant.csv");
+    pub fn analytics_dir_program_rank_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("program_rank.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_histogram_instruction_unigram_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("histogram_instruction_unigram.csv");
+    pub fn analytics_dir_histogram_instruction_constant_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("histogram_instruction_constant.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_histogram_instruction_bigram_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("histogram_instruction_bigram.csv");
+    pub fn analytics_dir_histogram_instruction_unigram_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("histogram_instruction_unigram.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_histogram_instruction_trigram_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("histogram_instruction_trigram.csv");
+    pub fn analytics_dir_histogram_instruction_bigram_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("histogram_instruction_bigram.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_histogram_instruction_skipgram_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("histogram_instruction_skipgram.csv");
+    pub fn analytics_dir_histogram_instruction_trigram_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("histogram_instruction_trigram.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_histogram_target_unigram_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("histogram_target_unigram.csv");
+    pub fn analytics_dir_histogram_instruction_skipgram_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("histogram_instruction_skipgram.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_histogram_target_bigram_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("histogram_target_bigram.csv");
+    pub fn analytics_dir_histogram_target_unigram_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("histogram_target_unigram.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_histogram_target_trigram_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("histogram_target_trigram.csv");
+    pub fn analytics_dir_histogram_target_bigram_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("histogram_target_bigram.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_histogram_target_skipgram_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("histogram_target_skipgram.csv");
+    pub fn analytics_dir_histogram_target_trigram_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("histogram_target_trigram.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_histogram_source_unigram_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("histogram_source_unigram.csv");
+    pub fn analytics_dir_histogram_target_skipgram_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("histogram_target_skipgram.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_histogram_source_bigram_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("histogram_source_bigram.csv");
+    pub fn analytics_dir_histogram_source_unigram_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("histogram_source_unigram.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_histogram_source_trigram_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("histogram_source_trigram.csv");
+    pub fn analytics_dir_histogram_source_bigram_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("histogram_source_bigram.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_histogram_source_skipgram_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("histogram_source_skipgram.csv");
+    pub fn analytics_dir_histogram_source_trigram_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("histogram_source_trigram.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_complexity_all_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("complexity_all.csv");
+    pub fn analytics_dir_histogram_source_skipgram_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("histogram_source_skipgram.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
 
-    pub fn cache_dir_complexity_dont_optimize_file(&self) -> PathBuf {
-        let path = self.cache_dir().join("complexity_dont_optimize.csv");
+    pub fn analytics_dir_complexity_all_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("complexity_all.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
+    pub fn analytics_dir_complexity_dont_optimize_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("complexity_dont_optimize.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }

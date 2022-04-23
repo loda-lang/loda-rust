@@ -1,4 +1,4 @@
-# Installation guide for LODA Lab
+# Installation guide for "loda-rust"
 
 ## Step 1 - Rust language
 
@@ -52,19 +52,19 @@ A good place for this repository, is the `$HOME/git/loda-rust` dir.
 
 #### Step 3 B
 
-Compile the `rust_project` into an executable named `loda-lab`.
+Compile the `rust_project` into an executable named `loda-rust`.
 
 ```
 PROMPT> pwd
 /Users/JOHNDOE/git/loda-rust/rust_project
 PROMPT> cargo build --release
-PROMPT> cp target/release/loda-lab ..
+PROMPT> cp target/release/loda-rust ..
 ```
 
 #### Step 3 C
 
 ```
-PROMPT> loda-lab install
+PROMPT> loda-rust install
 ```
 
 This creates a `$HOME/.loda-rust` dir.
@@ -97,15 +97,15 @@ oeis_stripped_file = "/Users/JOHNDOE/.loda/oeis/stripped"
 
 #### Step 3 E
 
-Verify that LODA Lab really works, by computing [A000040, The prime numbers](https://oeis.org/A000040).
+Verify that "loda-rust" really works, by computing [A000040, The prime numbers](https://oeis.org/A000040).
 
 ```
-PROMPT> loda-lab eval 40
+PROMPT> loda-rust eval 40
 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71
 PROMPT>
 ```
 
 #### Step 3 Complete
 
-Finally `LODA Lab` is fully installed.
+Finally `loda-rust` is fully installed.
 

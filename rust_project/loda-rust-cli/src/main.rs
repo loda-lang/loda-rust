@@ -9,26 +9,27 @@ use std::str::FromStr;
 
 use loda_rust_core::control::*;
 
+mod analytics;
 mod common;
 mod mine;
 mod oeis;
 mod pattern;
 mod similar;
+mod subcommand_analytics;
 mod subcommand_dependencies;
 mod subcommand_evaluate;
 mod subcommand_install;
 mod subcommand_mine;
 mod subcommand_pattern;
 mod subcommand_similar;
-mod subcommand_update;
 
+use subcommand_analytics::subcommand_analytics;
 use subcommand_dependencies::subcommand_dependencies;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 use subcommand_install::subcommand_install;
 use subcommand_mine::{SubcommandMine,SubcommandMineParallelComputingMode,SubcommandMineMetricsMode};
 use subcommand_pattern::subcommand_pattern;
 use subcommand_similar::subcommand_similar;
-use subcommand_update::subcommand_update;
 
 extern crate clap;
 extern crate num_bigint;
@@ -86,7 +87,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         )
         // Experiments with mining new programs
         .subcommand(
-            SubCommand::with_name("update")
+            SubCommand::with_name("analytics")
                 .about("Prepare data needed for mining, by analyzing the existing programs.")
         )
         .subcommand(
@@ -151,8 +152,8 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    if let Some(_sub_m) = matches.subcommand_matches("update") {
-        subcommand_update();
+    if let Some(_sub_m) = matches.subcommand_matches("analytics") {
+        subcommand_analytics();
         return Ok(());
     }
 

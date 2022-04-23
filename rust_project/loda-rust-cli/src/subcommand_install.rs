@@ -47,7 +47,7 @@ pub fn subcommand_install() {
     }
 
     // Create `cache/` dir if needed.
-    if let Err(error) = create_cache_dir_in_basedir(&basedir) {
+    if let Err(error) = create_analytics_dir_in_basedir(&basedir) {
         error!("Unable to create 'cache' dir, error: {:?}", error);
         number_of_issues += 1;
     }
@@ -94,8 +94,8 @@ fn create_config_in_basedir(basedir: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-fn create_cache_dir_in_basedir(basedir: &Path) -> std::io::Result<()> {
-    let path: PathBuf = basedir.join(Path::new("cache"));
+fn create_analytics_dir_in_basedir(basedir: &Path) -> std::io::Result<()> {
+    let path: PathBuf = basedir.join(Path::new("analytics"));
     if path.is_dir() {
         return Ok(());
     }
