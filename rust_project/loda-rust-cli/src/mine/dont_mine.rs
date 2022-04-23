@@ -6,7 +6,7 @@ use std::error::Error;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use super::load_program_ids_from_deny_file;
-use super::load_program_ids_csv_file;
+use crate::common::load_program_ids_csv_file;
 
 // What NOT to be mined!
 //

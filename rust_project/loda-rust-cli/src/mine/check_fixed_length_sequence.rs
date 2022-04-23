@@ -1,6 +1,6 @@
 use loda_rust_core::util::BigIntVec;
 use loda_rust_core::config::Config;
-use super::load_program_ids_csv_file;
+use crate::common::load_program_ids_csv_file;
 use crate::oeis::stripped_sequence::*;
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;
