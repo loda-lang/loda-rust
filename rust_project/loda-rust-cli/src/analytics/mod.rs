@@ -5,6 +5,8 @@ mod analyze_source_ngram;
 mod analyze_program_complexity;
 mod analyze_target_ngram;
 mod batch_program_analyzer;
+mod deny_file;
+mod dont_mine;
 mod validate_programs;
 
 pub use analyze_dependencies::AnalyzeDependencies;
@@ -14,4 +16,6 @@ pub use analyze_program_complexity::AnalyzeProgramComplexity;
 pub use analyze_source_ngram::AnalyzeSourceNgram;
 pub use analyze_target_ngram::AnalyzeTargetNgram;
 pub use batch_program_analyzer::{BatchProgramAnalyzer, BatchProgramAnalyzerContext, BatchProgramAnalyzerPlugin};
+pub use deny_file::load_program_ids_from_deny_file;
+pub use dont_mine::DontMine;
 pub use validate_programs::ValidatePrograms;
