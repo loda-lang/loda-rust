@@ -3,11 +3,6 @@ file 'data/program_ids.csv' do
     ruby 'task_program_ids.rb'
 end
 
-desc 'obtain all the dependencies between programs, for use as input to PageRank algorithm'
-file 'data/caller_callee_pairs.csv' => ['data/loda-rust', 'data/program_ids.csv'] do
-    ruby 'task_caller_callee_pairs.rb'
-end
-
 desc 'obtain all the dependencies between programs, comma separated list'
 file 'data/caller_callee_list.csv' => ['data/loda-rust', 'data/program_ids.csv'] do
     ruby 'task_caller_callee_list.rb'
