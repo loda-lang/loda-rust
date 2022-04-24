@@ -33,11 +33,6 @@ file 'data/compare_loda_cpp_vs_loda_rust.csv' => ['data/terms_loda_rust.csv', 'd
     ruby 'task_compare_loda_cpp_vs_loda_rust.rb'
 end
 
-desc 'run the PageRank algorithm and ranking the most influential programs'
-file 'data/pagerank.csv' => ['data/program_ids.csv', 'data/caller_callee_pairs.csv'] do
-    ruby 'task_pagerank.rb'
-end
-
 desc "create a markdown document with the 100 most popular LODA programs"
 file 'data/top100.md' do
     ruby 'task_top100.rb'
