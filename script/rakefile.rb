@@ -39,7 +39,7 @@ file 'data/pagerank.csv' => ['data/program_ids.csv', 'data/caller_callee_pairs.c
 end
 
 desc "create a markdown document with the 100 most popular LODA programs"
-file 'data/top100.md' => ['data/pagerank.csv', 'data/caller_callee_pairs.csv'] do
+file 'data/top100.md' do
     ruby 'task_top100.rb'
 end
 

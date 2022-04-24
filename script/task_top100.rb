@@ -2,7 +2,7 @@
 
 =begin
 
-This script takes input from a `pagerank.csv` file, with this format:
+This script takes input from `analytics/program_rank.csv` file, with this format:
 
     program id;pagerank
     10051;0.0011710868
@@ -12,7 +12,7 @@ This script takes input from a `pagerank.csv` file, with this format:
     40;0.0004690897
     244049;0.0003187378
 
-This script takes input from a `caller_callee_pairs.csv` file, with this format:
+This script takes input from a `analytics/dependencies.csv` file, with this format:
 
     caller program id;callee program id
     73;232508
@@ -32,10 +32,9 @@ require 'set'
 require_relative 'config'
 
 OEIS_NAMES_FILE = Config.instance.oeis_names_file
-
-input_filename0 = 'data/pagerank.csv'
-input_filename1 = 'data/caller_callee_pairs.csv'
-output_filename = 'data/top100.md'
+INPUT_FILENAME0 = Config.instance.analytics_dir_dependencies_file
+INPUT_FILENAME1 = Config.instance.analytics_dir_program_rank_file
+OUTPUT_FILENAME = 'data/top100.md'
 
 top_x_limit = 100
 
@@ -280,7 +279,7 @@ oeis_number_of_refs = {
 
 # Obtain all the ranked program_ids
 ranked_program_ids = []
-CSV.foreach(input_filename0, col_sep: ";") do |row|
+CSV.foreach(INPUT_FILENAME0, col_sep: ";") do |row|
     col0 = row[0]
     program_id = col0.to_i
     next if program_id == 0
@@ -291,7 +290,7 @@ end
 # p ranked_program_ids
 
 program_id_dict = {}
-CSV.foreach(input_filename1, col_sep: ";") do |row|
+CSV.foreach(INPUT_FILENAME1, col_sep: ";") do |row|
     col0 = row[0]
     col1 = row[1]
     program_id0 = col0.to_i # caller
@@ -362,6 +361,6 @@ rows << ''
 
 output_content = rows.join("\n")
 # puts output_content
-IO.write(output_filename, output_content)
+IO.write(OUTPUT_FILENAME, output_content)
 
-puts "Ok, written #{rows.count} lines to file: #{output_filename}"
+puts "Ok, written #{rows.count} lines to file: #{OUTPUT_FILENAME}"
