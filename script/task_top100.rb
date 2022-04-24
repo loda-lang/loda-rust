@@ -351,8 +351,7 @@ end
 
 def program_link(program_id)
     a_name = oeis_a_name(program_id)
-    dir_name = "%03i" % (program_id / 1000)
-    "[#{a_name}](https://github.com/loda-lang/loda-programs/tree/main/oeis/#{dir_name}/#{a_name}.asm)"
+    "[#{a_name}](https://loda-lang.org/edit/?oeis=#{program_id})"
 end
 
 def oeis_link(program_id)
