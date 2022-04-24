@@ -13,7 +13,6 @@ Run `bundle install` to install the dependencies listed in the `Gemfile`.
 PROMPT> rake
 rake cleanup_mismatch_filenames              # clean up the inconsistent filenames in the dir for mismatches
 rake data/caller_callee_list.csv             # obtain all the dependencies between programs, comma separated list
-rake data/caller_callee_pairs.csv            # obtain all the dependencies between programs, for use as input to pagerank algorithm
 rake data/compare_loda_cpp_vs_loda_rust.csv  # compare terms between "loda-cpp" and "loda-rust"
 rake data/loda-rust                          # compiles the loda-rust executable
 rake data/most_called_programs.csv           # determine the most called programs

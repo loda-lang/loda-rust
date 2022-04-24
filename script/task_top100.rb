@@ -4,13 +4,13 @@
 
 This script takes input from `analytics/program_rank.csv` file, with this format:
 
-    program id;pagerank
-    10051;0.0011710868
-    10;0.0004871711
-    142;0.0004844773
-    5;0.0004742994
-    40;0.0004690897
-    244049;0.0003187378
+    program id;score
+    10051;533.2628
+    40;146.3573
+    203;44.7505
+    10;39.7436
+    5171;38.9892
+    6005;34.4878
 
 This script takes input from a `analytics/dependencies.csv` file, with this format:
 
