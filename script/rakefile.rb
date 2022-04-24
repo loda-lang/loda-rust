@@ -4,7 +4,7 @@ file 'data/program_ids.csv' do
 end
 
 desc 'obtain all the dependencies between programs, comma separated list'
-file 'data/caller_callee_list.csv' => ['data/loda-rust', 'data/program_ids.csv'] do
+file 'data/caller_callee_list.csv' do
     ruby 'task_caller_callee_list.rb'
 end
 
