@@ -2,17 +2,15 @@
 
 =begin
 
-This script takes input from a `program_ids.csv` file, with this format:
+This script takes input from a `analytics/dependencies.csv` file, with this format:
 
-    program id
-    4
-    5
-    7
-    8
-    10
-
-This script traverses all the programs inside the LODA program rootdir.
-Each program is a line in the CSV file, with it's dependencies listed.
+    caller program id;callee program id
+    73;232508
+    73;301657
+    134;22844
+    134;121381
+    134;246388
+    134;4082
 
 This script outputs a `caller_callee_list.csv` file, with this format:
 
@@ -26,48 +24,77 @@ This script outputs a `caller_callee_list.csv` file, with this format:
 =end
 
 require 'csv'
+require 'set'
+require_relative 'config'
 
-input_filename = 'data/program_ids.csv'
-output_filename = 'data/caller_callee_list.csv'
+INPUT_FILENAME = Config.instance.analytics_dir_dependencies_file
+OUTPUT_FILENAME = 'data/caller_callee_list.csv'
+
+class Graph
+    def initialize(direct_dependencies)
+        @direct_dependencies = direct_dependencies
+    end
+    
+    def indirect_dependencies(program_id)
+        result = Set.new
+        indirect_dependencies_inner(program_id, result)
+        result.delete(program_id)
+        return result
+    end
+    
+    def indirect_dependencies_inner(program_id, result)
+        if result.member?(program_id)
+            return
+        end
+        result.add(program_id)
+        set = @direct_dependencies[program_id]
+        if set == nil
+            return
+        end
+        set.each do |nested_program_id|
+            indirect_dependencies_inner(nested_program_id, result)
+        end
+    end
+end
 
 time_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
 # Obtain all the program_ids to be processed
-program_ids = []
-CSV.foreach(input_filename, col_sep: ";") do |row|
-    col0 = row[0]
-    program_id = col0.to_i
-    next if program_id == 0
-    program_ids << program_id
+dependency_edges = []
+CSV.foreach(INPUT_FILENAME, col_sep: ";") do |columns|
+    col0 = columns[0]
+    col1 = columns[1]
+    program_id0 = col0.to_i
+    program_id1 = col1.to_i
+    next if program_id0 == 0
+    next if program_id1 == 0
+    dependency_edges << [program_id0, program_id1]
 end
 
-# Status 
-count_success = 0
-count_failure = 0
-program_ids_count_minus1 = program_ids.count - 1
-if program_ids_count_minus1 == 0
-    program_ids_count_minus1 = 1
+# Resolve direct dependencies
+direct_dependencies_dict = {}
+dependency_edges.each do |caller_program_id, callee_program_id|
+    set = direct_dependencies_dict[caller_program_id] || Set.new
+    set.add(callee_program_id)
+    direct_dependencies_dict[caller_program_id] = set
+end
+program_ids_count = direct_dependencies_dict.count
+
+# Resolve indirect dependencies 
+graph = Graph.new(direct_dependencies_dict)
+dict = {}
+direct_dependencies_dict.keys.each do |program_id|
+    dict[program_id] = graph.indirect_dependencies(program_id)
 end
 
 # Generate output file
-CSV.open(output_filename, "wb", col_sep: ";") do |csv|
+CSV.open(OUTPUT_FILENAME, "wb", col_sep: ";") do |csv|
     csv << ["program id", "dependency count", "program ids"]
-    program_ids.each_with_index do |program_id, index|
-        output = `data/loda-rust dependencies #{program_id}`
-        output = output.strip
-        dependency_count = output.split(',').count
-        success = $?.success?
-        if success
-            count_success += 1
-            csv << [program_id.to_s, dependency_count.to_s, output]
-        else
-            count_failure += 1
-        end
-        if (index % 1000) == 0
-            percent = (100 * index) / program_ids_count_minus1
-            puts "PROGRESS: #{index} / #{program_ids.count}  percent: #{percent}"
-        end
-        # break if index == 10
+    dict.each do |program_id, callee_program_id_set|
+        callee_program_ids = callee_program_id_set.to_a.sort
+        callee_program_ids_string = callee_program_ids.join(",")
+        dependency_count = callee_program_ids.count
+        csv << [program_id.to_s, dependency_count.to_s, callee_program_ids_string]
     end
 end
 
@@ -76,6 +103,3 @@ time_end = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 time_elapsed = time_end - time_start
 time_elapsed_s = "%.3f" % time_elapsed
 puts "elapsed: #{time_elapsed_s}"
-
-puts "count_success: #{count_success}"
-puts "count_failure: #{count_failure}"
