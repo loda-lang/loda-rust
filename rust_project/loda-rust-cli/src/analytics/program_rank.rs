@@ -52,8 +52,12 @@ pub fn compute_program_rank() {
     }
     pr.calculate();
 
+    create_dependencies_csv_file(&pr, &output_path);
+}
+
+fn create_dependencies_csv_file(pagerank: &Pagerank::<&str>, output_path: &Path) {
     let mut rows = Vec::<ProgramRankResult>::new();
-    for node in pr.nodes() {
+    for node in pagerank.nodes() {
         let row = ProgramRankResult {
             program_id: node.0.to_string(),
             score: format!("{:.4}", node.1),
