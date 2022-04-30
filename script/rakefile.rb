@@ -3,16 +3,6 @@ file 'data/program_ids.csv' do
     ruby 'task_program_ids.rb'
 end
 
-desc 'obtain all the dependencies between programs, comma separated list'
-file 'data/caller_callee_list.csv' do
-    ruby 'task_caller_callee_list.rb'
-end
-
-desc 'determine the most called programs'
-file 'data/most_called_programs.csv' => 'data/caller_callee_list.csv' do
-    ruby 'task_most_called_programs.rb'
-end
-
 desc 'compute terms with "loda-rust"'
 file 'data/terms_loda_rust.csv' => ['data/loda-rust', 'data/program_ids.csv'] do
     ruby 'task_terms_loda_rust.rb'

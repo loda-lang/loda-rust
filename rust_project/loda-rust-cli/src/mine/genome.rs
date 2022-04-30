@@ -763,7 +763,7 @@ impl Genome {
     // Return `false` in case of failure.
     #[allow(dead_code)]
     pub fn mutate_call<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
-        // Identify GenomeItem's that use the `cal` instruction
+        // Identify GenomeItem's that use the `seq` instruction
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
             if *genome_item.instruction_id() == InstructionId::EvalSequence {
