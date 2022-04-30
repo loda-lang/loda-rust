@@ -85,7 +85,7 @@ pub fn start_miner_loop(
     println!("number_of_available_programs = {}", available_program_ids.len());
 
     // Load the clusters with popular/unpopular program ids
-    let program_popularity_file = loda_rust_repository.join(Path::new("resources/program_popularity.csv"));
+    let program_popularity_file = config.analytics_dir_program_popularity_file();
     let popular_program_container: PopularProgramContainer = match PopularProgramContainer::load(&program_popularity_file) {
         Ok(value) => value,
         Err(error) => {

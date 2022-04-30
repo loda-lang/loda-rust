@@ -18,7 +18,6 @@ rake data/loda-rust                          # compiles the loda-rust executable
 rake data/most_called_programs.csv           # determine the most called programs
 rake data/program_creation_dates.csv         # extract creation date for all programs
 rake data/program_ids.csv                    # obtain all the program ids
-rake data/program_popularity.csv             # extract the most popular programs
 rake data/terms_loda_cpp.csv                 # compute terms with "loda-cpp"
 rake data/terms_loda_rust.csv                # compute terms with "loda-rust"
 rake data/top100.md                          # create a markdown document with the 100 most popular LODA programs

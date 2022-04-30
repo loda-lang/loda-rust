@@ -43,11 +43,6 @@ file 'data/program_creation_dates.csv' do
     ruby 'task_program_creation_dates.rb'
 end
 
-desc "extract the most popular programs"
-file 'data/program_popularity.csv' do
-    ruby 'task_program_popularity.rb'
-end
-
 desc "clean up the inconsistent filenames in the dir for mismatches"
 task :cleanup_mismatch_filenames do
     ruby 'task_cleanup_mismatch_filenames.rb'
