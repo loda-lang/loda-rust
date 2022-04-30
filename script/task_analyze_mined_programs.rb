@@ -48,9 +48,9 @@ unless File.exist?(OEIS_STRIPPED_FILE)
     raise "No such file #{OEIS_STRIPPED_FILE}, cannot run script"
 end
 
-CACHE_DIR_DONT_MINE_FILE = Config.instance.cache_dir_dont_mine_file
-unless File.exist?(CACHE_DIR_DONT_MINE_FILE)
-    raise "No such file #{CACHE_DIR_DONT_MINE_FILE}, cannot run script"
+ANALYTICS_DIR_DONT_MINE_FILE = Config.instance.analytics_dir_dont_mine_file
+unless File.exist?(ANALYTICS_DIR_DONT_MINE_FILE)
+    raise "No such file #{ANALYTICS_DIR_DONT_MINE_FILE}, cannot run script"
 end
 
 def absolute_paths_for_all_programs(rootdir)
@@ -67,7 +67,7 @@ end
 puts "Number of programs to be analyzed: #{paths.count}"
 
 dontmine_program_id_set = Set.new
-CSV.foreach(CACHE_DIR_DONT_MINE_FILE, col_sep: ";") do |row|
+CSV.foreach(ANALYTICS_DIR_DONT_MINE_FILE, col_sep: ";") do |row|
     col0 = row[0]
     program_id = col0.to_i
     next if program_id == 0
