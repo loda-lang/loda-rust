@@ -128,6 +128,58 @@ end
 
 #p candidate_programs
 
+def loda_eval_steps(path_program)
+    command_output = `#{LODA_CPP_EXECUTABLE} eval #{path_program} -t 40 -s`
+    command_output.strip!
+    unless $?.success?
+        raise "loda eval step"
+    end
+    command_output.split(',').map { |s| s.to_i }
+end
+
+def compare_performance_lodasteps(path_program0, path_program1)
+    steps0 = loda_eval_steps(path_program0)
+    steps1 = loda_eval_steps(path_program1)
+    sum0 = steps0.sum
+    sum1 = steps1.sum
+    step0_less_than_step1 = 0
+    step0_same_step1 = 0
+    step0_greater_than_step1 = 0
+    identical = true
+    human_readable = ""
+    steps0.zip(steps1).each do |step0, step1|
+        comparison_symbol = " "
+        if step0 == step1
+            step0_same_step1 += 1
+            comparison_symbol = "="
+        end
+        if step0 > step1
+            step0_greater_than_step1 += 1
+            comparison_symbol = ">"
+            identical = false
+        end
+        if step0 < step1
+            step0_less_than_step1 += 1
+            comparison_symbol = "<"
+            identical = false
+        end
+        human_readable += ("%10i %s %10i\n" % [step0, comparison_symbol, step1])
+    end
+    human_readable += ("%10i %s %10i" % [sum0, " ", sum1])
+    if identical
+        return :same
+    end
+    puts human_readable
+    if sum0 == sum1
+        return :same
+    end
+    if sum0 < sum1
+        return :program0
+    else
+        return :program1
+    end
+end
+
 def path_for_oeis_program(program_id)
     filename = "A%06i.asm" % program_id
     dirname = "%03i" % (program_id / 1000)
@@ -138,6 +190,7 @@ def analyze_candidate(candidate_program, program_id)
     path = path_for_oeis_program(program_id)
     milliseconds = DateTime.now.strftime('%Q')
     path_original = path + "_original_#{milliseconds}"
+    path_reject = path + "_reject_#{milliseconds}"
     path_check_output = path + "_check_output"
     if File.exist?(path)
         puts "There already exist program: #{program_id}, Renaming from: #{path} to: #{path_original}"
@@ -168,8 +221,21 @@ def analyze_candidate(candidate_program, program_id)
     end
     check_output_content = IO.read(path_check_output)
     if check_output_content =~ /^ok$/
-        puts "This program matches all the terms"
-        return true
+        # Compare performance new program vs old program
+        comparision_id = compare_performance_lodasteps(path, path_original)
+
+        # If the new program is faster, then keep it, otherwise reject it.
+        if (comparision_id == :same) || (comparision_id == :program1)
+            puts "This program matches all the terms, but isn't better than the existing program. Rejecting this program."
+            File.rename(path, path_reject)
+            File.rename(path_original, path)
+            return false
+        end
+        if comparision_id == :program0
+            puts "This program matches all the terms. And it's faster than the old implementation. Keeping this program."
+            return true
+        end
+        raise "unknown comparison result #{comparison_id}"
     end
     unless check_output_content =~ /^(\d+) .* expected/
         raise "Regex didn't match. See bottom of the file: #{path_check_output} Perhaps 'loda check' have changed its output format."
