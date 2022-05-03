@@ -150,46 +150,58 @@ def analyze_candidate(candidate_program, program_id)
     output = `#{LODA_CPP_EXECUTABLE} check #{a_name} -b 0`
     output.strip!
     success = $?.success?
-    if success
-        puts "check success"
-        puts output
-        if output =~ /^(\d+) .* expected/
-            correct_term_count = $1.to_i
-            puts "correct #{correct_term_count} terms, followed by mismatch"
-            path_deleted = path + "_deleted_different"
-            File.rename(path, path_deleted)
-            
-            # save to mismatch dir
-            mismatch_name = "#{a_name}_#{correct_term_count}.asm"
-            mismatch_path = File.join(MINE_EVENT_DIR, mismatch_name)
-            IO.write(mismatch_path, IO.read(candidate_program.path))
-            return true
-        else
-            raise "regex didn't match"
-        end
-    else
+    if !success
         puts "check failure"
         puts output
         raise "check failure"
     end
+    puts "check success"
+    puts output
+    unless output =~ /^(\d+) .* expected/
+        raise "regex didn't match"
+    end
+    correct_term_count = $1.to_i
+    puts "correct #{correct_term_count} terms, followed by mismatch"
+    path_deleted = path + "_deleted_different"
+    File.rename(path, path_deleted)
+    
+    # save to mismatch dir
+    mismatch_name = "#{a_name}_#{correct_term_count}.asm"
+    mismatch_path = File.join(MINE_EVENT_DIR, mismatch_name)
+    IO.write(mismatch_path, IO.read(candidate_program.path))
+    return true
 end
 
-candidate_programs.each do |candidate_program|
+def process_candidate_program(candidate_program)
+    raise unless candidate_program.kind_of?(CandidateProgram)
     program_ids = candidate_program.oeis_ids
     puts "Checking: #{candidate_program.path}  candidate program_ids: #{program_ids}"
-    counter = 0
+    reject_candidate = true
     program_ids.each do |program_id|
         if analyze_candidate(candidate_program, program_id)
-            counter += 1
+            reject_candidate = false
         end
     end
     
-    if counter > 0
-        # delete candidate program when it has been fully analyzed
-        path_deleted = candidate_program.path + "_deleted_candidate"
-        File.rename(candidate_program.path, path_deleted)
-        raise 'yay'
+    if reject_candidate
+        puts "Reject candidate program. It doesn't match with all the terms or it's too slow"
+        return
+    end
+
+    # delete candidate program when it has been fully analyzed
+    path_deleted = candidate_program.path + "_deleted_candidate"
+    File.rename(candidate_program.path, path_deleted)
+    puts "Successfully mined a program"
+end
+
+def process_candidate_programs(candidate_programs)
+    if candidate_programs.empty?
+        raise "no candidate programs to process"
+    end
+    #candidate_programs = [candidate_programs.first]
+    candidate_programs.each do |candidate_program|
+        process_candidate_program(candidate_program)
     end
 end
 
-
+process_candidate_programs(candidate_programs)
