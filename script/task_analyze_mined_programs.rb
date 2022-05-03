@@ -220,6 +220,10 @@ def analyze_candidate(candidate_program, program_id)
         raise "loda check exit code"
     end
     check_output_content = IO.read(path_check_output)
+    if check_output_content =~ /^std::exception$/
+        puts "c++ exception occurred, probably due to overflow or cyclic dependency. see output: #{path_check_output}"
+        return false
+    end
     if check_output_content =~ /^ok$/
         # Compare performance new program vs old program
         comparision_id = compare_performance_lodasteps(path, path_original)
@@ -256,10 +260,10 @@ def process_candidate_program(candidate_program, dontmine_program_id_set)
     raise unless candidate_program.kind_of?(CandidateProgram)
     program_ids = candidate_program.oeis_ids
     if program_ids.empty?
-        puts "Ignoring candidate program. There isn't any candidate program ids for #{candidate_program.path}, this happes when there are less than 40 known terms in the stripped.zip file"
+        puts "Ignoring candidate program. There isn't any candidate program ids for '#{candidate_program.path}', this happes when there are less than 40 known terms in the stripped.zip file"
         return
     end
-    puts "Checking: #{candidate_program.path}  candidate program_ids: #{program_ids}"
+    puts "\n\nChecking: #{candidate_program.path}  candidate program_ids: #{program_ids}"
     reject_candidate = true
     program_ids.each do |program_id|
         # The "dont_mine.csv" holds program_ids of unwanted sequences, duplicates, protected programs and stuff that is not to be mined.
@@ -273,14 +277,17 @@ def process_candidate_program(candidate_program, dontmine_program_id_set)
         end
     end
     if reject_candidate
-        puts "Reject candidate program. It doesn't match with all the terms or it's too slow"
+        # Rename program when it has been fully analyzed
+        path_reject = candidate_program.path + "_status_reject"
+        File.rename(candidate_program.path, path_reject)
+        puts "Status: Rejecting bad program. #{path_reject}"
         return
     end
 
-    # delete candidate program when it has been fully analyzed
-    path_deleted = candidate_program.path + "_deleted_candidate"
-    File.rename(candidate_program.path, path_deleted)
-    puts "Successfully mined a program"
+    # Rename program when it has been fully analyzed
+    path_keep = candidate_program.path + "_status_keep"
+    File.rename(candidate_program.path, path_keep)
+    puts "Status: Keeping good program. #{path_keep}"
 end
 
 def process_candidate_programs(candidate_programs, dontmine_program_id_set)
