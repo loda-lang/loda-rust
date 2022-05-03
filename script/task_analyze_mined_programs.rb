@@ -115,9 +115,6 @@ File.new(OEIS_STRIPPED_FILE, "r").each_with_index do |line, index|
     program_id = $1.to_i
     all_terms = $2
     
-    # skip this line if the program_id is contained in the "dont_mine.csv", so that duplicate and unwanted sequences never gets submitted.
-    next if dontmine_program_id_set.include?(program_id)
-    
     candidate_programs.each do |candidate_program|
         if all_terms.start_with?(candidate_program.terms40)
             # puts "#{program_id} #{candidate_program.terms40}"
@@ -172,17 +169,26 @@ def analyze_candidate(candidate_program, program_id)
     return true
 end
 
-def process_candidate_program(candidate_program)
+def process_candidate_program(candidate_program, dontmine_program_id_set)
     raise unless candidate_program.kind_of?(CandidateProgram)
     program_ids = candidate_program.oeis_ids
+    if program_ids.empty?
+        puts "Unusual candidate program. There isn't any candidate program ids for #{candidate_program.path}, this may happen if it's contained in the don't mine file"
+        return
+    end
     puts "Checking: #{candidate_program.path}  candidate program_ids: #{program_ids}"
     reject_candidate = true
     program_ids.each do |program_id|
+        # The "dont_mine.csv" holds program_ids of unwanted sequences, duplicates, protected programs and stuff that is not to be mined.
+        if dontmine_program_id_set.include?(program_id)
+            puts "Skip candidate program id, which is contained in the 'dont_mine.csv' file. A#{program_id}"
+            next
+        end
         if analyze_candidate(candidate_program, program_id)
+            puts "This is a keeper a keeper. A#{program_id}"
             reject_candidate = false
         end
     end
-    
     if reject_candidate
         puts "Reject candidate program. It doesn't match with all the terms or it's too slow"
         return
@@ -194,14 +200,14 @@ def process_candidate_program(candidate_program)
     puts "Successfully mined a program"
 end
 
-def process_candidate_programs(candidate_programs)
+def process_candidate_programs(candidate_programs, dontmine_program_id_set)
     if candidate_programs.empty?
         raise "no candidate programs to process"
     end
     #candidate_programs = [candidate_programs.first]
     candidate_programs.each do |candidate_program|
-        process_candidate_program(candidate_program)
+        process_candidate_program(candidate_program, dontmine_program_id_set)
     end
 end
 
-process_candidate_programs(candidate_programs)
+process_candidate_programs(candidate_programs, dontmine_program_id_set)
