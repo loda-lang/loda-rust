@@ -105,9 +105,9 @@ puts "evaluate: count_success: #{count_success}  count_failure: #{count_failure}
 #p candidate_programs
 
 # Look up the 40 terms and gather the OEIS ids matches.
-approx_row_count = 350000
+approx_row_count = 400000
 File.new(OEIS_STRIPPED_FILE, "r").each_with_index do |line, index|
-    if (index % 10000) == 0
+    if (index % 50000) == 0
         percentage = (100 * index) / approx_row_count
         puts "progress %#{percentage}  #{index}/#{approx_row_count}"
     end
@@ -173,7 +173,7 @@ def process_candidate_program(candidate_program, dontmine_program_id_set)
     raise unless candidate_program.kind_of?(CandidateProgram)
     program_ids = candidate_program.oeis_ids
     if program_ids.empty?
-        puts "Unusual candidate program. There isn't any candidate program ids for #{candidate_program.path}, this may happen if it's contained in the don't mine file"
+        puts "Ignoring candidate program. There isn't any candidate program ids for #{candidate_program.path}, this happes when there are less than 40 known terms in the stripped.zip file"
         return
     end
     puts "Checking: #{candidate_program.path}  candidate program_ids: #{program_ids}"
