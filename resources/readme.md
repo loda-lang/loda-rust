@@ -20,22 +20,3 @@ PROMPT> rake data/program_creation_dates.csv
 PROMPT> cd ..
 PROMPT> cp script/data/program_creation_dates.csv resources/program_creation_dates.csv
 ```
-
-
-### The `program_popularity.csv` file
-
-The most/least used LODA programs.
-
-This is useful when randomly picking a fairly popular `program_id`.
-
-To rebuild this file follow these steps:
-
-```
-PROMPT> pwd
-/Users/JOHNDOE/git/loda-rust/script
-PROMPT> rake data/program_popularity.csv
-PROMPT> cd ..
-PROMPT> cp script/data/program_popularity.csv resources/program_popularity.csv
-```
-
-
