@@ -11,6 +11,7 @@ It looks for all the LODA assembly programs there are.
 require_relative 'config'
 require 'csv'
 require 'set'
+require 'date'
 
 class CandidateProgram
     attr_reader :path
@@ -135,27 +136,34 @@ end
 
 def analyze_candidate(candidate_program, program_id)
     path = path_for_oeis_program(program_id)
+    milliseconds = DateTime.now.strftime('%Q')
+    path_original = path + "_original_#{milliseconds}"
+    path_check_output = path + "_check_output"
     if File.exist?(path)
-        puts "ignoring #{program_id}, since there already is a program with that id. path: #{path}"
-        return false
+        puts "There already exist program: #{program_id}, Renaming from: #{path} to: #{path_original}"
+        File.rename(path, path_original)
+    else
+        puts "No existing program exist for: #{program_id}"
     end
     puts "Creating file: #{path}"
     IO.write(path, IO.read(candidate_program.path))
 
     a_name = "A%06i" % program_id
 
-    output = `#{LODA_CPP_EXECUTABLE} check #{a_name} -b 0`
-    output.strip!
-    success = $?.success?
-    if !success
-        puts "check failure"
-        puts output
-        raise "check failure"
+    command_output = `#{LODA_CPP_EXECUTABLE} check #{a_name} -b 0 > #{path_check_output}`
+    command_output.strip!
+    unless $?.success?
+        puts "loda check, expected exit code 0, but got exit code: #{$?}, see loda check output: #{path_check_output}"
+        puts command_output
+        raise "loda check exit code"
     end
-    puts "check success"
-    puts output
-    unless output =~ /^(\d+) .* expected/
-        raise "regex didn't match"
+    check_output_content = IO.read(path_check_output)
+    if check_output_content =~ /^ok$/
+        puts "This program matches all the terms"
+        return true
+    end
+    unless check_output_content =~ /^(\d+) .* expected/
+        raise "Regex didn't match. See bottom of the file: #{path_check_output} Perhaps 'loda check' have changed its output format."
     end
     correct_term_count = $1.to_i
     puts "correct #{correct_term_count} terms, followed by mismatch"
