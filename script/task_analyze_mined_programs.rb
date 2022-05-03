@@ -145,16 +145,25 @@ def analyze_candidate(candidate_program, program_id)
     else
         puts "No existing program exist for: #{program_id}"
     end
+    
+    loda_minimize_output = `#{LODA_CPP_EXECUTABLE} minimize #{candidate_program.path}`
+    loda_minimize_output = loda_minimize_output.strip + "\n"
+    unless $?.success?
+        puts "loda minimize, expected exit code 0, but got exit code: #{$?}, see loda check output: #{path_check_output}"
+        puts loda_minimize_output
+        raise "loda minimize exit code"
+    end
+    
     puts "Creating file: #{path}"
-    IO.write(path, IO.read(candidate_program.path))
+    IO.write(path, loda_minimize_output)
 
     a_name = "A%06i" % program_id
 
-    command_output = `#{LODA_CPP_EXECUTABLE} check #{a_name} -b 0 > #{path_check_output}`
-    command_output.strip!
+    loda_check_output = `#{LODA_CPP_EXECUTABLE} check #{a_name} -b 0 > #{path_check_output}`
+    loda_check_output.strip!
     unless $?.success?
         puts "loda check, expected exit code 0, but got exit code: #{$?}, see loda check output: #{path_check_output}"
-        puts command_output
+        puts loda_check_output
         raise "loda check exit code"
     end
     check_output_content = IO.read(path_check_output)
