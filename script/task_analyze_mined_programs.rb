@@ -221,7 +221,9 @@ def analyze_candidate(candidate_program, program_id)
     end
     check_output_content = IO.read(path_check_output)
     if check_output_content =~ /^std::exception$/
-        puts "c++ exception occurred, probably due to overflow or cyclic dependency. see output: #{path_check_output}"
+        puts "c++ exception occurred, probably due to overflow or cyclic dependency. see output: #{path_check_output}. Rejecting this program."
+        File.rename(path, path_reject)
+        File.rename(path_original, path)
         return false
     end
     if check_output_content =~ /^ok$/
