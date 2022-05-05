@@ -137,7 +137,7 @@ def loda_eval_steps(path_program)
     command_output.split(',').map { |s| s.to_i }
 end
 
-def compare_performance_lodasteps(path_program0, path_program1)
+def compare_performance_lodasteps(path_program0, path_program1, path_benchmark)
     steps0 = loda_eval_steps(path_program0)
     steps1 = loda_eval_steps(path_program1)
     sum0 = steps0.sum
@@ -146,7 +146,7 @@ def compare_performance_lodasteps(path_program0, path_program1)
     step0_same_step1 = 0
     step0_greater_than_step1 = 0
     identical = true
-    human_readable = ""
+    benchmark_rows = []
     steps0.zip(steps1).each do |step0, step1|
         comparison_symbol = " "
         if step0 == step1
@@ -163,21 +163,34 @@ def compare_performance_lodasteps(path_program0, path_program1)
             comparison_symbol = "<"
             identical = false
         end
-        human_readable += ("%10i %s %10i\n" % [step0, comparison_symbol, step1])
+        benchmark_rows << ("%10i %s %10i" % [step0, comparison_symbol, step1])
     end
-    human_readable += ("%10i %s %10i" % [sum0, " ", sum1])
-    if identical
-        return :same
+    benchmark_rows << ""
+    benchmark_rows << ("SUM: %10i %s %10i" % [sum0, " ", sum1])
+    result = :undecided
+    while true
+        if identical
+            result = :identical
+            break
+        end
+        if sum0 == sum1
+            result = :samesum
+            break
+        end
+        if sum0 < sum1
+            result = :program0
+            break
+        else
+            result = :program1
+            break
+        end
+        break
     end
-    puts human_readable
-    if sum0 == sum1
-        return :same
-    end
-    if sum0 < sum1
-        return :program0
-    else
-        return :program1
-    end
+    benchmark_rows << ""
+    benchmark_rows << "Result: #{result}"
+    content = benchmark_rows.join("\n") + "\n"
+    IO.write(path_benchmark, content)
+    result
 end
 
 def path_for_oeis_program(program_id)
@@ -191,12 +204,13 @@ def analyze_candidate(candidate_program, program_id)
     milliseconds = DateTime.now.strftime('%Q')
     path_original = path + "_original_#{milliseconds}"
     path_reject = path + "_reject_#{milliseconds}"
-    path_check_output = path + "_check_output"
+    path_check_output = path + "_check_output_#{milliseconds}"
+    path_benchmark = path + "_benchmark_#{milliseconds}"
     if File.exist?(path)
-        puts "There already exist program: #{program_id}, Renaming from: #{path} to: #{path_original}"
+        # puts "There already exist program: #{program_id}, Renaming from: #{path} to: #{path_original}"
         File.rename(path, path_original)
     else
-        puts "No existing program exist for: #{program_id}"
+        # puts "No existing program exist for: #{program_id}"
     end
     
     loda_minimize_output = `#{LODA_CPP_EXECUTABLE} minimize #{candidate_program.path}`
@@ -207,7 +221,7 @@ def analyze_candidate(candidate_program, program_id)
         raise "loda minimize exit code"
     end
     
-    puts "Creating file: #{path}"
+    # puts "Creating file: #{path}"
     IO.write(path, loda_minimize_output)
 
     a_name = "A%06i" % program_id
@@ -221,24 +235,24 @@ def analyze_candidate(candidate_program, program_id)
     end
     check_output_content = IO.read(path_check_output)
     if check_output_content =~ /^std::exception$/
-        puts "c++ exception occurred, probably due to overflow or cyclic dependency. see output: #{path_check_output}. Rejecting this program."
+        puts "Rejecting. c++ exception occurred, probably due to overflow or cyclic dependency. see output: #{path_check_output}."
         File.rename(path, path_reject)
         File.rename(path_original, path)
         return false
     end
     if check_output_content =~ /^ok$/
         # Compare performance new program vs old program
-        comparision_id = compare_performance_lodasteps(path, path_original)
+        comparision_id = compare_performance_lodasteps(path, path_original, path_benchmark)
 
         # If the new program is faster, then keep it, otherwise reject it.
-        if (comparision_id == :same) || (comparision_id == :program1)
-            puts "This program matches all the terms, but isn't better than the existing program. Rejecting this program."
+        if (comparision_id == :identical) || (comparision_id == :samesum) || (comparision_id == :program1)
+            puts "Rejecting. This program isn't better than the existing program."
             File.rename(path, path_reject)
             File.rename(path_original, path)
             return false
         end
         if comparision_id == :program0
-            puts "This program matches all the terms. And it's faster than the old implementation. Keeping this program."
+            puts "Keeping. This program is faster than the old implementation."
             return true
         end
         raise "unknown comparison result #{comparison_id}"
@@ -247,7 +261,7 @@ def analyze_candidate(candidate_program, program_id)
         raise "Regex didn't match. See bottom of the file: #{path_check_output} Perhaps 'loda check' have changed its output format."
     end
     correct_term_count = $1.to_i
-    puts "correct #{correct_term_count} terms, followed by mismatch"
+    puts "Keeping. This program is a mismatch, it has correct #{correct_term_count} terms, followed by mismatch"
     path_deleted = path + "_deleted_different"
     File.rename(path, path_deleted)
     
