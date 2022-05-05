@@ -129,7 +129,7 @@ end
 #p candidate_programs
 
 def loda_eval_steps(path_program)
-    command_output = `#{LODA_CPP_EXECUTABLE} eval #{path_program} -t 40 -s`
+    command_output = `#{LODA_CPP_EXECUTABLE} eval #{path_program} -t 60 -s`
     command_output.strip!
     unless $?.success?
         raise "loda eval step"
@@ -165,8 +165,6 @@ def compare_performance_lodasteps(path_program0, path_program1, path_benchmark)
         end
         benchmark_rows << ("%10i %s %10i" % [step0, comparison_symbol, step1])
     end
-    benchmark_rows << ""
-    benchmark_rows << ("SUM: %10i %s %10i" % [sum0, " ", sum1])
     result = :undecided
     while true
         if identical
@@ -186,9 +184,12 @@ def compare_performance_lodasteps(path_program0, path_program1, path_benchmark)
         end
         break
     end
-    benchmark_rows << ""
-    benchmark_rows << "Result: #{result}"
-    content = benchmark_rows.join("\n") + "\n"
+    benchmark_summary_rows = []
+    benchmark_summary_rows << "Result: #{result}"
+    benchmark_summary_rows << ""
+    benchmark_summary_rows << ("SUM: %10i %s %10i" % [sum0, " ", sum1])
+    rows = benchmark_summary_rows + benchmark_rows
+    content = rows.join("\n") + "\n"
     IO.write(path_benchmark, content)
     result
 end
@@ -206,7 +207,8 @@ def analyze_candidate(candidate_program, program_id)
     path_reject = path + "_reject_#{milliseconds}"
     path_check_output = path + "_check_output_#{milliseconds}"
     path_benchmark = path + "_benchmark_#{milliseconds}"
-    if File.exist?(path)
+    has_original_file = File.exist?(path)
+    if has_original_file
         # puts "There already exist program: #{program_id}, Renaming from: #{path} to: #{path_original}"
         File.rename(path, path_original)
     else
@@ -237,10 +239,17 @@ def analyze_candidate(candidate_program, program_id)
     if check_output_content =~ /^std::exception$/
         puts "Rejecting. c++ exception occurred, probably due to overflow or cyclic dependency. see output: #{path_check_output}."
         File.rename(path, path_reject)
-        File.rename(path_original, path)
+        if has_original_file
+            File.rename(path_original, path)
+        end
         return false
     end
     if check_output_content =~ /^ok$/
+        if !has_original_file
+            puts "Keeping. This program is new, there is no previous implementation."
+            return true
+        end
+        
         # Compare performance new program vs old program
         comparision_id = compare_performance_lodasteps(path, path_original, path_benchmark)
 
@@ -248,7 +257,9 @@ def analyze_candidate(candidate_program, program_id)
         if (comparision_id == :identical) || (comparision_id == :samesum) || (comparision_id == :program1)
             puts "Rejecting. This program isn't better than the existing program."
             File.rename(path, path_reject)
-            File.rename(path_original, path)
+            if has_original_file
+                File.rename(path_original, path)
+            end
             return false
         end
         if comparision_id == :program0
@@ -264,9 +275,12 @@ def analyze_candidate(candidate_program, program_id)
     puts "Keeping. This program is a mismatch, it has correct #{correct_term_count} terms, followed by mismatch"
     path_deleted = path + "_deleted_different"
     File.rename(path, path_deleted)
+    if has_original_file
+        File.rename(path_original, path)
+    end
     
     # save to mismatch dir
-    mismatch_name = "#{a_name}_#{correct_term_count}.asm"
+    mismatch_name = "#{a_name}_#{correct_term_count}_0.asm"
     mismatch_path = File.join(MINE_EVENT_DIR, mismatch_name)
     IO.write(mismatch_path, IO.read(candidate_program.path))
     return true
