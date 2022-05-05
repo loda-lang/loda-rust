@@ -2,6 +2,7 @@ use super::{GenomeItem, GenomeMutateContext, MutateValue, SourceValue, TargetVal
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use loda_rust_core::parser::ParsedProgram;
+use std::collections::HashSet;
 use std::fmt;
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -40,6 +41,24 @@ impl Genome {
             genome_vec: vec!(),
             message_vec: vec!(),
         }
+    }
+
+    pub fn depends_on_program_ids(&self) -> HashSet<u32> {
+        let mut program_ids = HashSet::<u32>::new();
+        for genome_item in &self.genome_vec {
+            if !genome_item.is_enabled() {
+                continue;
+            }
+            if *genome_item.instruction_id() != InstructionId::EvalSequence {
+                continue;
+            }
+            let program_id_raw: i32 = genome_item.source_value();
+            if program_id_raw < 0 {
+                continue;
+            }
+            program_ids.insert(program_id_raw as u32);
+        }
+        program_ids
     }
 
     #[allow(dead_code)]

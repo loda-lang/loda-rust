@@ -9,9 +9,11 @@ use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
 use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
 use loda_rust_core::parser::ParsedProgram;
-use std::time::Instant;
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use std::time::Instant;
 use rand::rngs::StdRng;
 
 const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
@@ -227,7 +229,7 @@ impl RunMinerLoop {
         }
 
         // Create program from genome
-        self.dependency_manager.reset();
+        // self.dependency_manager.reset();
         let result_parse = self.dependency_manager.parse_stage2(
             ProgramId::ProgramWithoutId, 
             &genome_parsed_program
@@ -298,6 +300,38 @@ impl RunMinerLoop {
             }
         };
         if !self.funnel.check40(terms40) {
+            return;
+        }
+
+        // Reject, if it's identical to one of the programs that this program depends on
+        let depends_on_program_ids: HashSet<u32> = self.genome.depends_on_program_ids();
+        let mut reject_self_dependency = false;
+        for program_id in depends_on_program_ids {
+            let program_runner: Rc::<ProgramRunner> = match self.dependency_manager.load(program_id as u64) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Cannot verify, failed to load program id {}, {:?}", program_id, error);
+                    continue;
+                }
+            };
+            let mut verify_term_computer = TermComputer::new();
+            let verify_terms40: &BigIntVec = match verify_term_computer.compute(&mut self.cache, &program_runner, 40) {
+                Ok(value) => value,
+                Err(error) => {
+                    debug!("Cannot verify, unable to run program id {}, {:?}", program_id, error);
+                    continue;
+                }
+            };
+            if terms40 == verify_terms40 {
+                // The candidate program seems to be generating the same terms
+                // as the program that it depends on.
+                debug!("Rejecting program with a dependency to itself. {}", program_id);
+                reject_self_dependency = true;
+                break;
+            }
+        }
+        if reject_self_dependency {
+            self.reload = true;
             return;
         }
 
