@@ -199,8 +199,7 @@ fn coordinator_thread_metrics_sink(rx: Receiver<MinerThreadMessageToCoordinator>
                 number_of_messages += 1;
             },
             Err(error) => {
-                println!("didn't receive any messages. error: {:?}", error);
-                continue;
+                panic!("didn't receive any messages. error: {:?}", error);
             }
         }
         let elapsed: u128 = progress_time.elapsed().as_millis();
@@ -230,8 +229,7 @@ fn coordinator_thread_metrics_prometheus(rx: Receiver<MinerThreadMessageToCoordi
                 message_processor.process_message(message);
             },
             Err(error) => {
-                println!("didn't receive any messages. error: {:?}", error);
-                continue;
+                panic!("didn't receive any messages. error: {:?}", error);
             }
         }
         // Fetch as many messages as possible
