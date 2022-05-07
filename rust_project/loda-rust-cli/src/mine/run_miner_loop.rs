@@ -303,6 +303,13 @@ impl RunMinerLoop {
             return;
         }
 
+        if self.prevent_flooding.try_register(terms40).is_err() {
+            // debug!("prevented flooding");
+            self.metric.number_of_prevented_floodings += 1;
+            self.reload = true;
+            return;
+        }
+
         // Reject, if it's identical to one of the programs that this program depends on
         let depends_on_program_ids: HashSet<u32> = self.genome.depends_on_program_ids();
         let mut reject_self_dependency = false;
@@ -335,12 +342,6 @@ impl RunMinerLoop {
             return;
         }
 
-        if self.prevent_flooding.try_register(terms40).is_err() {
-            // debug!("prevented flooding");
-            self.metric.number_of_prevented_floodings += 1;
-            self.reload = true;
-            return;
-        }
 
         // Yay, this candidate program has 40 terms that are good.
         // Save a snapshot of this program to `$HOME/.loda-rust/mine-even/`
