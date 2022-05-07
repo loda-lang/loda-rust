@@ -4,6 +4,7 @@ use loda_rust_core::execute::ProgramCache;
 use crate::common::RecordTrigram;
 use crate::common::find_asm_files_recursively;
 use crate::common::load_program_ids_csv_file;
+use crate::oeis::TermsToProgramIdSet;
 use super::{CheckFixedLengthSequence, Funnel, NamedCacheFile, PopularProgramContainer, RecentProgramContainer, RunMinerLoop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, Recorder};
 use super::{PreventFlooding, prevent_flooding_populate};
 use super::{GenomeMutateContext, Genome};
@@ -15,11 +16,13 @@ use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
+use std::sync::Arc;
 use std::sync::mpsc::Sender;
 
 pub fn start_miner_loop(
     tx: Sender<MinerThreadMessageToCoordinator>, 
-    recorder: Box<dyn Recorder + Send>
+    recorder: Box<dyn Recorder + Send>,
+    terms_to_program_id: Arc<TermsToProgramIdSet>
 ) {
     // Load config file
     let config = Config::load();
@@ -166,6 +169,7 @@ pub fn start_miner_loop(
         context,
         genome,
         rng,
+        terms_to_program_id,
     );
     rml.loop_forever();
 }

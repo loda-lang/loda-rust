@@ -2,6 +2,7 @@ use super::{Funnel, Genome, GenomeMutateContext, save_candidate_program};
 use super::PreventFlooding;
 use super::{MinerThreadMessageToCoordinator, MetricEvent, Recorder};
 use super::metrics_run_miner_loop::MetricsRunMinerLoop;
+use crate::oeis::TermsToProgramIdSet;
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -15,6 +16,7 @@ use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::time::Instant;
 use rand::rngs::StdRng;
+use std::sync::Arc;
 
 const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
 const MINIMUM_PROGRAM_LENGTH: usize = 2;
@@ -84,6 +86,7 @@ pub struct RunMinerLoop {
     iteration: usize,
     reload: bool,
     term_computer: TermComputer,
+    terms_to_program_id: Arc<TermsToProgramIdSet>,
 }
 
 impl RunMinerLoop {
@@ -98,6 +101,7 @@ impl RunMinerLoop {
         context: GenomeMutateContext,
         genome: Genome,
         rng: StdRng,
+        terms_to_program_id: Arc<TermsToProgramIdSet>
     ) -> Self {
         Self {
             tx: tx,
@@ -115,7 +119,8 @@ impl RunMinerLoop {
             current_parsed_program: ParsedProgram::new(),
             iteration: 0,
             reload: true,
-            term_computer: TermComputer::new()
+            term_computer: TermComputer::new(),
+            terms_to_program_id: terms_to_program_id,
         }
     }
 
@@ -342,6 +347,15 @@ impl RunMinerLoop {
             return;
         }
 
+        let key: String = bigintvec_to_string(terms40);
+        match self.terms_to_program_id.get(&key) {
+            Some(program_id_set) => {
+                println!("Found in oeis stripped file: {:?}", program_id_set);
+            },
+            None => {
+                println!("Not found in the oeis stripped file.");
+            }
+        }
 
         // Yay, this candidate program has 40 terms that are good.
         // Save a snapshot of this program to `$HOME/.loda-rust/mine-even/`
