@@ -15,7 +15,7 @@ pub fn load_terms_to_program_id_set(
     oeis_stripped_file: &Path,
     term_count: usize,
 ) -> Result<TermsToProgramIdSet, Box<dyn Error>> {
-    let file = File::open(oeis_stripped_file).unwrap();
+    let file = File::open(oeis_stripped_file)?;
     let mut reader = BufReader::new(file);
     build_terms_to_program_id_set(&mut reader, term_count)
 }
