@@ -1,5 +1,6 @@
 use super::{Funnel, Genome, GenomeMutateContext, save_candidate_program};
 use super::PreventFlooding;
+use super::compare_steps;
 use super::{MinerThreadMessageToCoordinator, MetricEvent, Recorder};
 use super::metrics_run_miner_loop::MetricsRunMinerLoop;
 use crate::oeis::TermsToProgramIdSet;
@@ -23,6 +24,7 @@ const MINIMUM_PROGRAM_LENGTH: usize = 2;
 
 struct TermComputer {
     terms: BigIntVec,
+    steps: Vec<u64>,
     step_count: u64,
 }
 
@@ -30,11 +32,12 @@ impl TermComputer {
     fn new() -> Self {
         Self {
             terms: Vec::with_capacity(40),
+            steps: Vec::with_capacity(40),
             step_count: 0,
         }
     }
 
-    fn compute(&mut self, cache: &mut ProgramCache, runner: &ProgramRunner, count: usize) -> Result<&BigIntVec, EvalError> {
+    fn compute(&mut self, cache: &mut ProgramCache, runner: &ProgramRunner, count: usize) -> Result<(), EvalError> {
         let step_count_limit: u64 = 10000;
         let node_register_limit = NodeRegisterLimit::LimitBits(32);
         let node_binomial_limit = NodeBinomialLimit::LimitN(20);
@@ -59,12 +62,14 @@ impl TermComputer {
                 cache
             )?;
             self.terms.push(output.0);
+            self.steps.push(self.step_count);
         }
-        Ok(&self.terms)
+        Ok(())
     }
 
     fn reset(&mut self) {
         self.terms.clear();
+        self.steps.clear();
         self.step_count = 0;
     }
 }
@@ -256,14 +261,15 @@ impl RunMinerLoop {
 
         // Execute program
         self.term_computer.reset();
-        let terms10: &BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 10) {
-            Ok(value) => value,
+        match self.term_computer.compute(&mut self.cache, &runner, 10) {
+            Ok(_) => {},
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
                 self.metric.number_of_compute_errors += 1;
                 return;
             }
-        };
+        }
+        let terms10: &BigIntVec = &self.term_computer.terms;
         // println!("terms10: {:?}", terms10);
         if !self.funnel.check_basic(terms10) {
             return;
@@ -272,38 +278,41 @@ impl RunMinerLoop {
             return;
         }
 
-        let terms20: &BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 20) {
-            Ok(value) => value,
+        match self.term_computer.compute(&mut self.cache, &runner, 20) {
+            Ok(_) => {},
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
                 self.metric.number_of_compute_errors += 1;
                 return;
             }
-        };
+        }
+        let terms20: &BigIntVec = &self.term_computer.terms;
         if !self.funnel.check20(terms20) {
             return;
         }
 
-        let terms30: &BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 30) {
-            Ok(value) => value,
+        match self.term_computer.compute(&mut self.cache, &runner, 30) {
+            Ok(_) => {},
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
                 self.metric.number_of_compute_errors += 1;
                 return;
             }
-        };
+        }
+        let terms30: &BigIntVec = &self.term_computer.terms;
         if !self.funnel.check30(terms30) {
             return;
         }
 
-        let terms40: &BigIntVec = match self.term_computer.compute(&mut self.cache, &runner, 40) {
-            Ok(value) => value,
+        match self.term_computer.compute(&mut self.cache, &runner, 40) {
+            Ok(_) => {},
             Err(_error) => {
                 // debug!("iteration: {} cannot be run. {:?}", iteration, error);
                 self.metric.number_of_compute_errors += 1;
                 return;
             }
-        };
+        }
+        let terms40: &BigIntVec = &self.term_computer.terms;
         if !self.funnel.check40(terms40) {
             return;
         }
@@ -327,13 +336,14 @@ impl RunMinerLoop {
                 }
             };
             let mut verify_term_computer = TermComputer::new();
-            let verify_terms40: &BigIntVec = match verify_term_computer.compute(&mut self.cache, &program_runner, 40) {
-                Ok(value) => value,
+            match verify_term_computer.compute(&mut self.cache, &program_runner, 40) {
+                Ok(_) => {},
                 Err(error) => {
                     debug!("Cannot verify, unable to run program id {}, {:?}", program_id, error);
                     continue;
                 }
-            };
+            }
+            let verify_terms40: &BigIntVec = &verify_term_computer.terms;
             if terms40 == verify_terms40 {
                 // The candidate program seems to be generating the same terms
                 // as the program that it depends on.
@@ -347,14 +357,84 @@ impl RunMinerLoop {
             return;
         }
 
+        // lookup in stripped.zip and find the corresponding program_ids
         let key: String = bigintvec_to_string(terms40);
-        match self.terms_to_program_id.get(&key) {
-            Some(program_id_set) => {
-                println!("Found in oeis stripped file: {:?}", program_id_set);
-            },
+        let corresponding_program_id_set: &HashSet<u32> = match self.terms_to_program_id.get(&key) {
+            Some(value) => value,
             None => {
-                println!("Not found in the oeis stripped file.");
+                error!("Rejected. Could not find the candiate in the oeis stripped file.");
+                self.reload = true;
+                return
             }
+        };
+        println!("Found corresponding program_id's: {:?}", corresponding_program_id_set);
+
+        let steps: &Vec<u64> = &self.term_computer.steps;
+        let steps_len: usize = steps.len();
+        let mut maybe_a_new_program = false;
+        let mut is_existing_program_with_better_performance = false;
+        for program_id in corresponding_program_id_set {
+            let program_runner: Rc::<ProgramRunner> = match self.dependency_manager.load(*program_id as u64) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Cannot verify, failed to load program id {}, {:?}", program_id, error);
+                    println!("Keep. Maybe a new program.");
+                    maybe_a_new_program = true;
+                    break;
+                }
+            };
+            let mut verify_term_computer = TermComputer::new();
+            match verify_term_computer.compute(&mut self.cache, &program_runner, 40) {
+                Ok(_) => {},
+                Err(error) => {
+                    debug!("Cannot verify, unable to run program id {}, {:?}", program_id, error);
+                    println!("Keep. Maybe a new program.");
+                    maybe_a_new_program = true;
+                    break;
+                }
+            };
+            let verify_terms40: &BigIntVec = &verify_term_computer.terms;
+            if terms40 != verify_terms40 {
+                debug!("Ignoring program with different terms. {}", program_id);
+                continue;
+            }
+            if verify_term_computer.steps.len() != steps_len {
+                error!("verify_term_computer.steps.len() {:?} should be the same as steps_len: {:?}", verify_term_computer.steps.len(), steps_len);
+                panic!("integrity problem. Length of the computed terms must be the same.");
+            }
+
+            let (count_program0, count_same, count_program1) = 
+                compare_steps(&steps, &verify_term_computer.steps);
+
+            if count_program0 > 0 && count_same == 0 && count_program1 == 0  {
+                println!("Keep. The new program is always faster than the old program.");
+                is_existing_program_with_better_performance = true;
+                break;
+            }
+            if count_program0 > 0 && count_same > 0 && count_program1 == 0  {
+                println!("Keep. The new program is faster or similar than the old program.");
+                is_existing_program_with_better_performance = true;
+                break;
+            }
+            if count_program0 == 0 && count_same > 0 && count_program1 == 0 {
+                println!("Reject. Identical performance as the existing program. {:?}", program_id);
+                continue;
+            }
+
+            // More blurry if performance is better
+            let sum_program0: u64 = self.term_computer.step_count;
+            let sum_program1: u64 = verify_term_computer.step_count;
+            if sum_program0 < sum_program1 {
+                println!("Keep. The new program is overall faster than the old program, but in some cases slower");
+                is_existing_program_with_better_performance = true;
+                break;
+            }
+        }
+        let keep_it = maybe_a_new_program || is_existing_program_with_better_performance;
+        if !keep_it {
+            println!("Reject. Worse performance than existing programs.");
+            self.reload = true;
+            return;
         }
 
         // Yay, this candidate program has 40 terms that are good.
