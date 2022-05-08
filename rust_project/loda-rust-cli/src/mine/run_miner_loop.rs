@@ -367,7 +367,7 @@ impl RunMinerLoop {
                 return
             }
         };
-        println!("Found corresponding program_id's: {:?}", corresponding_program_id_set);
+        debug!("Found corresponding program_id's: {:?}", corresponding_program_id_set);
 
         let steps: &Vec<u64> = &self.term_computer.steps;
         let steps_len: usize = steps.len();
@@ -378,7 +378,7 @@ impl RunMinerLoop {
                 Ok(value) => value,
                 Err(error) => {
                     error!("Cannot verify, failed to load program id {}, {:?}", program_id, error);
-                    println!("Keep. Maybe a new program.");
+                    debug!("Keep. Maybe a new program.");
                     maybe_a_new_program = true;
                     break;
                 }
@@ -388,7 +388,7 @@ impl RunMinerLoop {
                 Ok(_) => {},
                 Err(error) => {
                     debug!("Cannot verify, unable to run program id {}, {:?}", program_id, error);
-                    println!("Keep. Maybe a new program.");
+                    debug!("Keep. Maybe a new program.");
                     maybe_a_new_program = true;
                     break;
                 }
@@ -407,17 +407,17 @@ impl RunMinerLoop {
                 compare_steps(&steps, &verify_term_computer.steps);
 
             if count_program0 > 0 && count_same == 0 && count_program1 == 0  {
-                println!("Keep. The new program is always faster than the old program.");
+                debug!("Keep. The new program is always faster than the old program.");
                 is_existing_program_with_better_performance = true;
                 break;
             }
             if count_program0 > 0 && count_same > 0 && count_program1 == 0  {
-                println!("Keep. The new program is faster or similar than the old program.");
+                debug!("Keep. The new program is faster or similar than the old program.");
                 is_existing_program_with_better_performance = true;
                 break;
             }
             if count_program0 == 0 && count_same > 0 && count_program1 == 0 {
-                println!("Reject. Identical performance as the existing program. {:?}", program_id);
+                debug!("Reject. Identical performance as the existing program. {:?}", program_id);
                 continue;
             }
 
@@ -425,14 +425,14 @@ impl RunMinerLoop {
             let sum_program0: u64 = self.term_computer.step_count;
             let sum_program1: u64 = verify_term_computer.step_count;
             if sum_program0 < sum_program1 {
-                println!("Keep. The new program is overall faster than the old program, but in some cases slower");
+                debug!("Keep. The new program is overall faster than the old program, but in some cases slower");
                 is_existing_program_with_better_performance = true;
                 break;
             }
         }
         let keep_it = maybe_a_new_program || is_existing_program_with_better_performance;
         if !keep_it {
-            println!("Reject. Worse performance than existing programs.");
+            debug!("Reject. Worse performance than existing programs.");
             self.reload = true;
             return;
         }
