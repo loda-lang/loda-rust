@@ -676,7 +676,9 @@ impl Genome {
     #[allow(dead_code)]
     pub fn mutate_enabled<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
-        assert!(length > 0);
+        if length == 0 {
+            return false;
+        }
         let index: usize = rng.gen_range(0..length);
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
 
