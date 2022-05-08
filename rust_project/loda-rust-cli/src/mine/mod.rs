@@ -1,4 +1,5 @@
 mod check_fixed_length_sequence;
+mod compare_steps;
 mod funnel;
 mod genome;
 mod genome_item;
@@ -21,6 +22,7 @@ mod suggest_target;
 mod thread_message_channel;
 
 pub use check_fixed_length_sequence::{CheckFixedLengthSequence, NamedCacheFile, PopulateBloomfilter};
+pub use compare_steps::compare_steps;
 pub use funnel::Funnel;
 pub use genome_mutate_context::GenomeMutateContext;
 pub use genome::{Genome, MutateGenome};
