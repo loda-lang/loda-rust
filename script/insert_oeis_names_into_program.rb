@@ -25,12 +25,12 @@ end
 
 LODA_SUBMITTED_BY = Config.instance.loda_submitted_by
 
-# git: list new files only
+# git: obtain modified-files and new-file
 # https://stackoverflow.com/a/26891150/78336
 def absolute_paths_for_unstaged_files(repo_rootdir)
     paths1 = []
     Dir.chdir(repo_rootdir) do
-        result = `git ls-files -o  --exclude-standard`
+        result = `git ls-files --exclude-standard --modified --others`
         paths1 = result.split(/\n/)
     end
     paths2 = paths1.map do |path|
@@ -116,7 +116,7 @@ program_ids_set = program_ids.to_set
 puts "Will lookup names for these program ids: #{program_ids_set.to_a.sort}" 
 
 oeis_name_dict = {}
-approx_row_count = 350000
+approx_row_count = 400000
 File.new(OEIS_NAMES_FILE, "r").each_with_index do |line, index|
     if (index % 30000) == 0
         percentage = (100 * index) / approx_row_count
