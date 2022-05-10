@@ -102,7 +102,7 @@ def update_names_in_program_file(path, oeis_name_dict, loda_submitted_by)
     # if the length changes between old/new files in git, then it's time consuming to verify.
     original_content = read_original_file_from_repo(path)
     original_terms_comment = ""
-    original_content.scan(/^;\s*\d+\s*,\s*\d+.*$/) do |match|
+    original_content.scan(/^;\s*-?\d+\s*,\s*-?\d+.*$/) do |match|
         original_terms_comment = match.to_s
         break
     end
