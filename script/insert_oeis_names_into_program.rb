@@ -109,7 +109,6 @@ def update_names_in_program_file(path, oeis_name_dict, loda_submitted_by)
     
     terms_comment = original_terms_comment
     if terms_comment.empty?
-        puts "computing terms"
         terms = `loda eval #{oeis_id} -t 60`.strip
         terms_comment = "; #{terms}"
     end
