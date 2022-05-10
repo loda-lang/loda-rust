@@ -13,6 +13,11 @@ When encountering a `seq` instruction, then insert the corresponding oeis name.
 require 'set'
 require_relative 'config'
 
+LODA_PROGRAMS_REPO = Config.instance.loda_programs_repository
+unless File.exist?(LODA_PROGRAMS_REPO)
+    raise "No such dir #{LODA_PROGRAMS_REPO}, cannot run script"
+end
+
 LODA_PROGRAMS_OEIS = Config.instance.loda_programs_oeis
 unless File.exist?(LODA_PROGRAMS_OEIS)
     raise "No such dir #{LODA_PROGRAMS_OEIS}, cannot run script"
@@ -27,14 +32,14 @@ LODA_SUBMITTED_BY = Config.instance.loda_submitted_by
 
 # git: obtain modified-files and new-file
 # https://stackoverflow.com/a/26891150/78336
-def absolute_paths_for_unstaged_files(repo_rootdir)
+def absolute_paths_for_unstaged_files(dir_inside_repo)
     paths1 = []
-    Dir.chdir(repo_rootdir) do
+    Dir.chdir(dir_inside_repo) do
         result = `git ls-files --exclude-standard --modified --others`
         paths1 = result.split(/\n/)
     end
     paths2 = paths1.map do |path|
-        File.join(repo_rootdir, path)
+        File.join(dir_inside_repo, path)
     end
     paths2
 end
@@ -65,6 +70,17 @@ def extract_oeis_ids_from_program_files(paths)
         program_ids += extract_oeis_ids_from_program_file(path)
     end
     program_ids
+end
+
+def read_original_file_from_repo(path)
+    dir_inside_repo = LODA_PROGRAMS_REPO
+    file_content = nil
+    Dir.chdir(dir_inside_repo) do
+        path_relative_to_repo_root = `git ls-files --full-name #{path}`
+        path_relative_to_repo_root.strip!
+        file_content = `git show HEAD:#{path_relative_to_repo_root}`
+    end
+    file_content
 end
 
 def update_names_in_program_file(path, oeis_name_dict, loda_submitted_by)
