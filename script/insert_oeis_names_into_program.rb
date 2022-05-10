@@ -93,7 +93,27 @@ def update_names_in_program_file(path, oeis_name_dict, loda_submitted_by)
     program_name = oeis_name_dict[program_id]
 
     content = IO.read(path).strip
+    # Get rid of top comments and blank lines
+    content.gsub!(/^;.*\n/, '')
+    content.gsub!(/^\s*\n+/, "")
 
+    # extract terms from the original file in git
+    # in order to keep the noise as low as possible when diff'ing the files.
+    # if the length changes between old/new files in git, then it's time consuming to verify.
+    original_content = read_original_file_from_repo(path)
+    original_terms_comment = ""
+    original_content.scan(/^;\s*\d+\s*,\s*\d+.*$/) do |match|
+        original_terms_comment = match.to_s
+        break
+    end
+    
+    terms_comment = original_terms_comment
+    if terms_comment.empty?
+        puts "computing terms"
+        terms = `loda eval #{oeis_id} -t 60`.strip
+        terms_comment = "; #{terms}"
+    end
+    
     # Identify with `seq` instructions, and insert their corresponding sequence name.
     content.gsub!(/^\s*seq .*,\s*(\d+)$/) do |match|
         sequence_program_id = $1.to_i
@@ -104,6 +124,7 @@ def update_names_in_program_file(path, oeis_name_dict, loda_submitted_by)
     new_content = ""
     new_content += "; #{oeis_id}: #{program_name}\n"
     new_content += "; Submitted by #{loda_submitted_by}\n"
+    new_content += terms_comment + "\n\n"
     new_content += content
     new_content += "\n"
     
