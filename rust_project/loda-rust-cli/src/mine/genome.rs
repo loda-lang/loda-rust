@@ -399,7 +399,9 @@ impl Genome {
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     pub fn replace_target_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
-        assert!(length > 0);
+        if length < 1 {
+            return false;
+        }
         let index: usize = rng.gen_range(0..length);
 
         // Pick a random mutation
@@ -485,7 +487,9 @@ impl Genome {
     #[allow(dead_code)]
     pub fn replace_instruction_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
-        assert!(length > 0);
+        if length < 1 {
+            return false;
+        }
         let index: usize = rng.gen_range(0..length);
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
 
@@ -637,7 +641,9 @@ impl Genome {
     #[allow(dead_code)]
     pub fn mutate_source_type<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
-        assert!(length > 0);
+        if length < 1 {
+            return false;
+        }
         let index: usize = rng.gen_range(0..length);
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
 
@@ -676,7 +682,7 @@ impl Genome {
     #[allow(dead_code)]
     pub fn mutate_enabled<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
-        if length == 0 {
+        if length < 1 {
             return false;
         }
         let index: usize = rng.gen_range(0..length);
