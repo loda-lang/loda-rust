@@ -171,6 +171,10 @@ impl Genome {
         self.message_vec.clear();
     }
 
+    pub fn append_message(&mut self, message: String) {
+        self.message_vec.push(message);
+    }
+
     // Assign a pseudo random constant.
     //
     // There is a high probability that the picked constant is junk.

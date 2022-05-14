@@ -1,6 +1,6 @@
 use super::{Funnel, Genome, GenomeMutateContext, save_candidate_program};
 use super::PreventFlooding;
-use super::compare_steps;
+use super::{PerformanceClassifierResult, PerformanceClassifier};
 use super::{MinerThreadMessageToCoordinator, MetricEvent, Recorder};
 use super::metrics_run_miner_loop::MetricsRunMinerLoop;
 use crate::oeis::TermsToProgramIdSet;
@@ -371,6 +371,7 @@ impl RunMinerLoop {
 
         let steps: &Vec<u64> = &self.term_computer.steps;
         let steps_len: usize = steps.len();
+        let performance_classifier = PerformanceClassifier::new(10);
         let mut maybe_a_new_program = false;
         let mut is_existing_program_with_better_performance = false;
         for program_id in corresponding_program_id_set {
@@ -379,6 +380,7 @@ impl RunMinerLoop {
                 Err(error) => {
                     error!("Cannot verify, failed to load program id {}, {:?}", program_id, error);
                     debug!("Keep. Maybe a new program.");
+                    self.genome.append_message(format!("keep: maybe a new program. cannot load program {:?} with the same initial terms", program_id));
                     maybe_a_new_program = true;
                     break;
                 }
@@ -389,6 +391,7 @@ impl RunMinerLoop {
                 Err(error) => {
                     debug!("Cannot verify, unable to run program id {}, {:?}", program_id, error);
                     debug!("Keep. Maybe a new program.");
+                    self.genome.append_message(format!("keep: maybe a new program. cannot compute program {:?} with the same initial terms", program_id));
                     maybe_a_new_program = true;
                     break;
                 }
@@ -403,31 +406,47 @@ impl RunMinerLoop {
                 panic!("integrity problem. Length of the computed terms must be the same.");
             }
 
-            let (count_program0, count_same, count_program1) = 
-                compare_steps(&steps, &verify_term_computer.steps);
-
-            if count_program0 > 0 && count_same == 0 && count_program1 == 0  {
-                debug!("Keep. The new program is always faster than the old program.");
-                is_existing_program_with_better_performance = true;
-                break;
-            }
-            if count_program0 > 0 && count_same > 0 && count_program1 == 0  {
-                debug!("Keep. The new program is faster or similar than the old program.");
-                is_existing_program_with_better_performance = true;
-                break;
-            }
-            if count_program0 == 0 && count_same > 0 && count_program1 == 0 {
-                debug!("Reject. Identical performance as the existing program. {:?}", program_id);
+            let sum_program0: u64 = self.term_computer.step_count;
+            let sum_program1: u64 = verify_term_computer.step_count;
+            if sum_program0 >= sum_program1 {
+                debug!("Reject. The new program is slower or identical to the old program");
                 continue;
             }
 
-            // More blurry if performance is better
-            let sum_program0: u64 = self.term_computer.step_count;
-            let sum_program1: u64 = verify_term_computer.step_count;
-            if sum_program0 < sum_program1 {
-                debug!("Keep. The new program is overall faster than the old program, but in some cases slower");
-                is_existing_program_with_better_performance = true;
-                break;
+            let pcr: PerformanceClassifierResult = performance_classifier.analyze(&steps, &verify_term_computer.steps);
+            match pcr {
+                PerformanceClassifierResult::ErrorDifferentInputVectorLengths => {
+                    panic!("integrity problem. Length of the computed terms must be the same.");
+                },
+                PerformanceClassifierResult::ErrorTooShortInputVector => {
+                    panic!("integrity problem. The length of the first slice goes beyond the input length");
+                },
+                PerformanceClassifierResult::Identical => {
+                    debug!("Reject. Identical performance as the existing program. {:?}", program_id);
+                    continue;
+                },
+                PerformanceClassifierResult::NewProgramIsAlwaysFaster => {
+                    debug!("Keep. The new program is always faster than the old program.");
+                    self.genome.append_message(format!("keep: performance NewProgramIsAlwaysFaster than {:?}", program_id));
+                    is_existing_program_with_better_performance = true;
+                    break;
+                },
+                PerformanceClassifierResult::NewProgramIsEqualOrFaster => {
+                    debug!("Keep. The new program is faster or similar than the old program.");
+                    self.genome.append_message(format!("keep: performance NewProgramIsEqualOrFaster than {:?}", program_id));
+                    is_existing_program_with_better_performance = true;
+                    break;
+                },
+                PerformanceClassifierResult::NewProgramIsAlwaysFasterWhenSkippingTheFirstSlice => {
+                    debug!("Keep. The new program is faster when skipping the first slice");
+                    self.genome.append_message(format!("keep: performance NewProgramIsAlwaysFasterWhenSkippingTheFirstSlice than {:?}", program_id));
+                    is_existing_program_with_better_performance = true;
+                    break;
+                },
+                PerformanceClassifierResult::RejectNewProgram => {
+                    debug!("Reject. Worse performance than the existing program. {:?}", program_id);
+                    continue;
+                }
             }
         }
         let keep_it = maybe_a_new_program || is_existing_program_with_better_performance;
