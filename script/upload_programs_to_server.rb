@@ -57,11 +57,13 @@ def upload_content(file_path)
     if elapsed > 0.2
         puts "Upload of #{file_path} took a long time. elapsed #{elapsed} seconds."
     end
-    unless response.code.to_i == 200
-        puts "Expected http status code 200, but got #{response.code} from server. file_path: #{file_path}. response: #{response}"
+    status_code = response.code.to_i
+    upload_success = status_code == 200 || status_code == 201
+    unless upload_success
+        puts "Expected http status code 200 or 201, but got #{response.code} from server. file_path: #{file_path}. response: #{response}"
         return
     end
-    puts "Uploaded #{file_path}"
+    puts "Uploaded #{file_path}, status: #{status_code}"
 end
 
 start = Time.now
