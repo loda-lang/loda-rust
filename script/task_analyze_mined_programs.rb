@@ -143,49 +143,68 @@ def compare_performance_lodasteps(path_program0, path_program1, path_benchmark)
     sum0 = steps0.sum
     sum1 = steps1.sum
     step0_less_than_step1 = 0
+    last_slice_step0_greater_than_step1 = 0
     step0_same_step1 = 0
     step0_greater_than_step1 = 0
     identical = true
     benchmark_rows = []
-    steps0.zip(steps1).each do |step0, step1|
+    steps0.zip(steps1).each_with_index do |pair, index|
+        step0, step1 = pair
         comparison_symbol = " "
         if step0 == step1
             step0_same_step1 += 1
-            comparison_symbol = "="
+            comparison_symbol = " = "
         end
         if step0 > step1
             step0_greater_than_step1 += 1
-            comparison_symbol = ">"
+            comparison_symbol = "  >"
             identical = false
+            if index > 10
+                last_slice_step0_greater_than_step1 += 1
+            end
         end
         if step0 < step1
             step0_less_than_step1 += 1
-            comparison_symbol = "<"
+            comparison_symbol = "<  "
             identical = false
         end
         benchmark_rows << ("%10i %s %10i" % [step0, comparison_symbol, step1])
     end
     result = :undecided
+    reason = :undecided
     while true
         if identical
-            result = :identical
+            result = :program1
+            reason = "identical number of steps as the existing program"
             break
         end
         if sum0 == sum1
-            result = :samesum
+            result = :program1
+            reason = "same sum as the existing program"
+            break
+        end
+        if sum0 > sum1
+            result = :program1
+            reason = "total sum of new program is greater than existing program"
+            break
+        end
+        if last_slice_step0_greater_than_step1 > 0
+            result = :program1
+            reason = "total sum of new program is greater than existing program"
             break
         end
         if sum0 < sum1
             result = :program0
-            break
-        else
-            result = :program1
+            reason = "the new program is faster than the existing program"
             break
         end
+        result = :program1
+        reason = "uncaught scenario. Using existing program"
         break
     end
     benchmark_summary_rows = []
     benchmark_summary_rows << "Result: #{result}"
+    benchmark_summary_rows << "Reason: #{reason}"
     benchmark_summary_rows << ""
     benchmark_summary_rows << ("SUM: %10i %s %10i" % [sum0, " ", sum1])
     rows = benchmark_summary_rows + benchmark_rows
@@ -254,7 +273,7 @@ def analyze_candidate(candidate_program, program_id)
         comparision_id = compare_performance_lodasteps(path, path_original, path_benchmark)
 
         # If the new program is faster, then keep it, otherwise reject it.
-        if (comparision_id == :identical) || (comparision_id == :samesum) || (comparision_id == :program1)
+        if comparision_id == :program1
             puts "Rejecting. This program isn't better than the existing program."
             File.rename(path, path_reject)
             if has_original_file
