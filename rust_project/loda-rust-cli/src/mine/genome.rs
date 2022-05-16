@@ -1,4 +1,4 @@
-use super::{GenomeItem, GenomeMutateContext, MutateValue, SourceValue, TargetValue};
+use super::{GenomeItem, GenomeMutateContext, MutateEvalSequenceCategory, MutateValue, SourceValue, TargetValue};
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use loda_rust_core::parser::ParsedProgram;
@@ -27,7 +27,11 @@ pub enum MutateGenome {
     SwapRows,
     SwapAdjacentRows,
     InsertLoopBeginEnd,
-    CallAnotherProgram,
+    CallProgramWeightedByPopularity,
+    CallMostPopularProgram,
+    CallMediumPopularProgram,
+    CallLeastPopularProgram,
+    CallRecentProgram,
 }
 
 pub struct Genome {
@@ -793,7 +797,7 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure.
     #[allow(dead_code)]
-    pub fn mutate_call<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+    pub fn mutate_eval_sequence<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext, category: MutateEvalSequenceCategory) -> bool {
         // Identify GenomeItem's that use the `seq` instruction
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
@@ -811,9 +815,8 @@ impl Genome {
         // Mutate the call instruction, so it invokes the next program in the list.
         // If it reaches the end, then it picks the first program from the list.
         let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
-        // genome_item.mutate_pick_next_program(rng, context)
-        // genome_item.mutate_pick_popular_program(rng, context)
-        genome_item.mutate_pick_recent_program(rng, context)
+        // genome_item.mutate_pick_next_program(rng, context);
+        genome_item.mutate_eval_sequence_instruction(rng, context, category)
     }
 
     // Return `true` when the mutation was successful.
@@ -823,7 +826,7 @@ impl Genome {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             (MutateGenome::ReplaceInstructionWithoutHistogram, 10),
             (MutateGenome::ReplaceInstructionWithHistogram, 100),
-            (MutateGenome::InsertInstructionWithConstant, 200),
+            (MutateGenome::InsertInstructionWithConstant, 100),
             (MutateGenome::ReplaceSourceConstantWithoutHistogram, 10),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 100),
             (MutateGenome::SourceType, 1),
@@ -836,7 +839,11 @@ impl Genome {
             (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 10),
             (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallAnotherProgram, 1),
+            (MutateGenome::CallProgramWeightedByPopularity, 100),
+            (MutateGenome::CallMostPopularProgram, 1),
+            (MutateGenome::CallMediumPopularProgram, 200),
+            (MutateGenome::CallLeastPopularProgram, 1),
+            (MutateGenome::CallRecentProgram, 1),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
         self.message_vec.push(format!("mutation: {:?}", mutation));
@@ -885,10 +892,22 @@ impl Genome {
             },
             MutateGenome::InsertLoopBeginEnd => {
                 return self.mutate_insert_loop(rng);
+            },            
+            MutateGenome::CallProgramWeightedByPopularity => {
+                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::WeightedByPopularity);
             },
-            MutateGenome::CallAnotherProgram => {
-                return self.mutate_call(rng, context);
-            }
+            MutateGenome::CallMostPopularProgram => {
+                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::MostPopular);
+            },
+            MutateGenome::CallMediumPopularProgram => {
+                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::MediumPopular);
+            },
+            MutateGenome::CallLeastPopularProgram => {
+                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::LeastPopular);
+            },
+            MutateGenome::CallRecentProgram => {
+                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::Recent);
+            },
         }
     }
 }

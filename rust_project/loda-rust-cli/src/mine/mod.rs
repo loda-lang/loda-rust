@@ -25,7 +25,7 @@ pub use check_fixed_length_sequence::{CheckFixedLengthSequence, NamedCacheFile, 
 pub use funnel::Funnel;
 pub use genome_mutate_context::GenomeMutateContext;
 pub use genome::{Genome, MutateGenome};
-pub use genome_item::{GenomeItem, MutateValue};
+pub use genome_item::{GenomeItem, MutateEvalSequenceCategory, MutateValue};
 pub use histogram_instruction_constant::HistogramInstructionConstant;
 pub use metrics::{MetricEvent, Recorder, SinkRecorder};
 pub use metrics_prometheus::MetricsPrometheus;
