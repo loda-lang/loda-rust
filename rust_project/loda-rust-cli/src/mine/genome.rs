@@ -839,10 +839,10 @@ impl Genome {
             (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 10),
             (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallProgramWeightedByPopularity, 100),
+            (MutateGenome::CallProgramWeightedByPopularity, 10),
             (MutateGenome::CallMostPopularProgram, 1),
-            (MutateGenome::CallMediumPopularProgram, 200),
-            (MutateGenome::CallLeastPopularProgram, 1),
+            (MutateGenome::CallMediumPopularProgram, 1),
+            (MutateGenome::CallLeastPopularProgram, 200),
             (MutateGenome::CallRecentProgram, 1),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
