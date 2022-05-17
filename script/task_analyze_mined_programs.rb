@@ -247,7 +247,7 @@ def analyze_candidate(candidate_program, program_id)
 
     a_name = "A%06i" % program_id
 
-    loda_check_output = `timeout --verbose 60s #{LODA_CPP_EXECUTABLE} check #{a_name} -b 0 > #{path_check_output}`
+    loda_check_output = `timeout --verbose 120s #{LODA_CPP_EXECUTABLE} check #{a_name} -b 0 > #{path_check_output}`
     loda_check_output.strip!
     if $?.exitstatus == 124  # when the `timeout` command is triggered it returns status 124
         puts "Rejecting. It takes too long to check the terms of the new program."
