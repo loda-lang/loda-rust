@@ -159,7 +159,7 @@ def compare_performance_lodasteps(path_program0, path_program1, path_benchmark)
             step0_greater_than_step1 += 1
             comparison_symbol = "  >"
             identical = false
-            if index > 10
+            if index > 15
                 last_slice_step0_greater_than_step1 += 1
             end
         end
