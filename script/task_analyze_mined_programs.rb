@@ -138,8 +138,28 @@ def loda_eval_steps(path_program)
 end
 
 def compare_performance_lodasteps(path_program0, path_program1, path_benchmark)
-    steps0 = loda_eval_steps(path_program0)
-    steps1 = loda_eval_steps(path_program1)
+    steps0 = []
+    begin
+        steps0 = loda_eval_steps(path_program0)
+    rescue
+        puts "ERROR: loda_eval_steps with program0 at path: #{path_program0}"
+        puts "Rejecting the new program."
+        return :program1
+    end
+    steps1 = []
+    begin
+        steps1 = loda_eval_steps(path_program1)
+    rescue
+        puts "ERROR: loda_eval_steps with program1 at path: #{path_program1}"
+        reason = "Keeping the new program, since the existing program seems fragile."
+        result = :program0
+        puts reason
+        rows = []
+        rows << "Result: #{result}"
+        rows << "Reason: #{reason}"
+        IO.write(path_benchmark, "")
+        return result
+    end
     sum0 = steps0.sum
     sum1 = steps1.sum
     step0_less_than_step1 = 0
