@@ -38,6 +38,11 @@ task :cleanup_mismatch_filenames do
     ruby 'task_cleanup_mismatch_filenames.rb'
 end
 
+desc "clean up the footers of programs inside the dir for mismatches"
+task :cleanup_mismatch_footers do
+    ruby 'task_cleanup_mismatch_footers.rb'
+end
+
 task :default do
     system 'rake -T'
 end
