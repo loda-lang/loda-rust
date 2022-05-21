@@ -17,6 +17,3 @@ lpb $3
   add $1,$4
 lpe
 mov $0,$1
-
-; template 22790
-; mutation: InsertInstructionWithConstant

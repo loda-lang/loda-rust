@@ -8,15 +8,3 @@ div $2,452
 mov $4,10
 mod $0,10
 mov $0,$2
-
-; template 68079
-; mutation: InsertInstructionWithConstant
-; mutation: ReplaceTargetWithHistogram
-; mutation: ReplaceSourceConstantWithHistogram
-; mutation: ReplaceSourceConstantWithHistogram
-; mutation: ReplaceInstructionWithHistogram
-; mutation: ReplaceSourceConstantWithHistogram
-; mutation: SwapAdjacentRows
-; mutation: ReplaceInstructionWithHistogram
-; mutation: InsertInstructionWithConstant
-; mutation: ReplaceTargetWithHistogram
