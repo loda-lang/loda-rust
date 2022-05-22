@@ -29,14 +29,6 @@ impl DontMine {
             config: Config::load(),
             program_ids: vec!()
         };
-        // {
-        //     let program_ids: Vec<u32> = instance.process_existing_programs();
-        //     instance.program_ids.extend(program_ids);
-        // }
-        // {
-        //     let program_ids: Vec<u32> = instance.process_mismatches();
-        //     instance.program_ids.extend(program_ids);
-        // }
         {
             let program_ids: Vec<u32> = instance.process_loda_programs_deny_file();
             instance.program_ids.extend(program_ids);
@@ -48,6 +40,7 @@ impl DontMine {
         instance.save();
     }
 
+    #[allow(dead_code)]
     fn process_existing_programs(&self) -> Vec<u32> {
         let dir_containing_programs: PathBuf = self.config.loda_programs_oeis_dir();
         let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
@@ -56,6 +49,7 @@ impl DontMine {
         program_ids
     }
 
+    #[allow(dead_code)]
     fn process_mismatches(&self) -> Vec<u32> {
         let dir_containing_mismatches: PathBuf = self.config.loda_rust_mismatches();
         let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_mismatches);
