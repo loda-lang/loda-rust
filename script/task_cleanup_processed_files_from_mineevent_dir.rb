@@ -25,7 +25,7 @@ end
 
 # Identify all the files that are to be deleted
 files_to_be_deleted = absolute_paths_for_all_processed_programs(MINE_EVENT_DIR)
-puts "Number of files to be deleted from git: #{files_to_be_deleted.count}"
+puts "Number of files to be deleted from mine-event dir: #{files_to_be_deleted.count}"
 
 files_to_be_deleted.each do |path|
     File.delete(path)
