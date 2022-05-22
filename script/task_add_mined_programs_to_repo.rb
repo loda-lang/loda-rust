@@ -38,7 +38,7 @@ def absolute_paths_for_unstaged_files(dir_inside_repo)
 end
 
 unstaged_files = absolute_paths_for_unstaged_files(LODA_PROGRAMS_REPO)
-puts "Number of unstaged files: #{unstaged_files.count}"
+#puts "Number of unstaged files: #{unstaged_files.count}"
 
 files_to_be_added = []
 unstaged_files.each do |path|

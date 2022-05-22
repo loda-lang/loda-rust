@@ -43,6 +43,14 @@ task :cleanup_mismatch_footers do
     ruby 'task_cleanup_mismatch_footers.rb'
 end
 
+desc "Process the mined programs"
+task :process_mined_programs do
+    ruby 'task_analyze_mined_programs.rb'
+    ruby 'insert_oeis_names_into_program.rb'
+    ruby 'task_add_mined_programs_to_repo.rb'
+    ruby 'task_cleanup_temp_files_from_repo.rb'
+end
+
 task :default do
     system 'rake -T'
 end
