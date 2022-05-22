@@ -10,6 +10,21 @@ pub enum MutateValue {
     Assign(i32),
 }
 
+// Ideas for more categories:
+// Pick a recently created program.
+// Pick a recently modified program.
+// Pick a program that has not been modified for a long time.
+// Increment the program_id, to get to the next available program_id.
+// Pick a program with a similar name.
+// Pick a program that executes fast.
+pub enum MutateEvalSequenceCategory {
+    WeightedByPopularity,
+    MostPopular,
+    MediumPopular,
+    LeastPopular,
+    Recent,
+}
+
 #[derive(Debug)]
 pub struct GenomeItem {
     enabled: bool,
@@ -248,13 +263,13 @@ impl GenomeItem {
         true
     }
 
-    // Mutate the call instruction, so it invokes the next program in the list.
+    // Mutate the `seq` instruction, so it invokes the next program in the list.
     // If it reaches the end, then it picks the first program from the list.
     #[allow(dead_code)]
     pub fn mutate_pick_next_program<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
-        let is_call = self.instruction_id == InstructionId::EvalSequence;
-        if !is_call {
-            // Only a call instruction can be modified.
+        let is_seq = self.instruction_id == InstructionId::EvalSequence;
+        if !is_seq {
+            // Only a `seq` instruction can be modified.
             return false;
         }
         let available_program_ids: &Vec<u32> = context.available_program_ids();
@@ -295,51 +310,25 @@ impl GenomeItem {
         }
     }
 
-    // Mutate the call instruction, so it invokes a random popular program.
+    // Mutate the `seq` instruction, so it invokes a random program.
     #[allow(dead_code)]
-    pub fn mutate_pick_popular_program<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
-        let is_call = self.instruction_id == InstructionId::EvalSequence;
-        if !is_call {
-            // Only a call instruction can be modified.
+    pub fn mutate_eval_sequence_instruction<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext, category: MutateEvalSequenceCategory) -> bool {
+        let is_seq = self.instruction_id == InstructionId::EvalSequence;
+        if !is_seq {
+            // Only a `seq` instruction can be modified.
             return false;
         }
-        let new_program_id: u32 = match context.choose_popular_program(rng) {
+        let chosen_program_id: Option<u32> = match category {
+            MutateEvalSequenceCategory::WeightedByPopularity => context.choose_weighted_by_popularity(rng),
+            MutateEvalSequenceCategory::MostPopular => context.choose_most_popular(rng),
+            MutateEvalSequenceCategory::MediumPopular => context.choose_medium_popular(rng),
+            MutateEvalSequenceCategory::LeastPopular => context.choose_least_popular(rng),
+            MutateEvalSequenceCategory::Recent => context.choose_recent_program(rng)
+        };
+        let new_program_id: u32 = match chosen_program_id {
             Some(value) => value,
             None => {
                 // The PopularProgramContainer is empty in some way.
-                return false;
-            }
-        };
-        let available_program_ids: &Vec<u32> = context.available_program_ids();
-        if !available_program_ids.contains(&new_program_id) {
-            // Picked a program that isn't among the available programs.
-            // This happens when the csv files are outdated with the latest LODA repository.
-            return false;
-        }
-        let current_soruce_value: i32 = self.source_value();
-        if current_soruce_value >= 0 {
-            let is_same = (current_soruce_value as u32) == new_program_id;
-            if is_same {
-                // Failed to pick a different program
-                return false;
-            }
-        }
-        // Successfully picked a new program
-        self.source_value = new_program_id as i32;
-        true
-    }
-
-    // Mutate the call instruction, so it invokes a random recent program.
-    pub fn mutate_pick_recent_program<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
-        let is_call = self.instruction_id == InstructionId::EvalSequence;
-        if !is_call {
-            // Only a call instruction can be modified.
-            return false;
-        }
-        let new_program_id: u32 = match context.choose_recent_program(rng) {
-            Some(value) => value,
-            None => {
-                // The RecentProgramContainer is empty in some way.
                 return false;
             }
         };

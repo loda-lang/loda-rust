@@ -1,7 +1,8 @@
-use super::{GenomeItem, GenomeMutateContext, MutateValue, SourceValue, TargetValue};
+use super::{GenomeItem, GenomeMutateContext, MutateEvalSequenceCategory, MutateValue, SourceValue, TargetValue};
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use loda_rust_core::parser::ParsedProgram;
+use std::collections::HashSet;
 use std::fmt;
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -26,7 +27,11 @@ pub enum MutateGenome {
     SwapRows,
     SwapAdjacentRows,
     InsertLoopBeginEnd,
-    CallAnotherProgram,
+    CallProgramWeightedByPopularity,
+    CallMostPopularProgram,
+    CallMediumPopularProgram,
+    CallLeastPopularProgram,
+    CallRecentProgram,
 }
 
 pub struct Genome {
@@ -40,6 +45,24 @@ impl Genome {
             genome_vec: vec!(),
             message_vec: vec!(),
         }
+    }
+
+    pub fn depends_on_program_ids(&self) -> HashSet<u32> {
+        let mut program_ids = HashSet::<u32>::new();
+        for genome_item in &self.genome_vec {
+            if !genome_item.is_enabled() {
+                continue;
+            }
+            if *genome_item.instruction_id() != InstructionId::EvalSequence {
+                continue;
+            }
+            let program_id_raw: i32 = genome_item.source_value();
+            if program_id_raw < 0 {
+                continue;
+            }
+            program_ids.insert(program_id_raw as u32);
+        }
+        program_ids
     }
 
     #[allow(dead_code)]
@@ -150,6 +173,10 @@ impl Genome {
 
     pub fn clear_message_vec(&mut self) {
         self.message_vec.clear();
+    }
+
+    pub fn append_message(&mut self, message: String) {
+        self.message_vec.push(message);
     }
 
     // Assign a pseudo random constant.
@@ -380,7 +407,9 @@ impl Genome {
     // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     pub fn replace_target_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
-        assert!(length > 0);
+        if length < 1 {
+            return false;
+        }
         let index: usize = rng.gen_range(0..length);
 
         // Pick a random mutation
@@ -466,7 +495,9 @@ impl Genome {
     #[allow(dead_code)]
     pub fn replace_instruction_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
-        assert!(length > 0);
+        if length < 1 {
+            return false;
+        }
         let index: usize = rng.gen_range(0..length);
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
 
@@ -618,7 +649,9 @@ impl Genome {
     #[allow(dead_code)]
     pub fn mutate_source_type<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
-        assert!(length > 0);
+        if length < 1 {
+            return false;
+        }
         let index: usize = rng.gen_range(0..length);
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
 
@@ -657,7 +690,9 @@ impl Genome {
     #[allow(dead_code)]
     pub fn mutate_enabled<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
-        assert!(length > 0);
+        if length < 1 {
+            return false;
+        }
         let index: usize = rng.gen_range(0..length);
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
 
@@ -762,7 +797,7 @@ impl Genome {
     // Return `true` when the mutation was successful.
     // Return `false` in case of failure.
     #[allow(dead_code)]
-    pub fn mutate_call<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+    pub fn mutate_eval_sequence<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext, category: MutateEvalSequenceCategory) -> bool {
         // Identify GenomeItem's that use the `seq` instruction
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
@@ -780,9 +815,8 @@ impl Genome {
         // Mutate the call instruction, so it invokes the next program in the list.
         // If it reaches the end, then it picks the first program from the list.
         let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
-        // genome_item.mutate_pick_next_program(rng, context)
-        // genome_item.mutate_pick_popular_program(rng, context)
-        genome_item.mutate_pick_recent_program(rng, context)
+        // genome_item.mutate_pick_next_program(rng, context);
+        genome_item.mutate_eval_sequence_instruction(rng, context, category)
     }
 
     // Return `true` when the mutation was successful.
@@ -790,22 +824,26 @@ impl Genome {
     #[allow(dead_code)]
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
-            (MutateGenome::ReplaceInstructionWithoutHistogram, 10),
+            (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
             (MutateGenome::ReplaceInstructionWithHistogram, 100),
-            (MutateGenome::InsertInstructionWithConstant, 200),
-            (MutateGenome::ReplaceSourceConstantWithoutHistogram, 10),
+            (MutateGenome::InsertInstructionWithConstant, 20),
+            (MutateGenome::ReplaceSourceConstantWithoutHistogram, 1),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 100),
             (MutateGenome::SourceType, 1),
-            (MutateGenome::SwapRegisters, 10),
-            (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 10),
+            (MutateGenome::SwapRegisters, 1),
+            (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 1),
             (MutateGenome::ReplaceSourceRegisterWithHistogram, 50),
-            (MutateGenome::ReplaceTargetWithoutHistogram, 5),
+            (MutateGenome::ReplaceTargetWithoutHistogram, 1),
             (MutateGenome::ReplaceTargetWithHistogram, 100),
             (MutateGenome::ToggleEnabled, 10),
             (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 10),
             (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallAnotherProgram, 1),
+            (MutateGenome::CallProgramWeightedByPopularity, 100),
+            (MutateGenome::CallMostPopularProgram, 10),
+            (MutateGenome::CallMediumPopularProgram, 1),
+            (MutateGenome::CallLeastPopularProgram, 1),
+            (MutateGenome::CallRecentProgram, 1),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
         self.message_vec.push(format!("mutation: {:?}", mutation));
@@ -854,10 +892,22 @@ impl Genome {
             },
             MutateGenome::InsertLoopBeginEnd => {
                 return self.mutate_insert_loop(rng);
+            },            
+            MutateGenome::CallProgramWeightedByPopularity => {
+                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::WeightedByPopularity);
             },
-            MutateGenome::CallAnotherProgram => {
-                return self.mutate_call(rng, context);
-            }
+            MutateGenome::CallMostPopularProgram => {
+                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::MostPopular);
+            },
+            MutateGenome::CallMediumPopularProgram => {
+                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::MediumPopular);
+            },
+            MutateGenome::CallLeastPopularProgram => {
+                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::LeastPopular);
+            },
+            MutateGenome::CallRecentProgram => {
+                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::Recent);
+            },
         }
     }
 }

@@ -56,8 +56,20 @@ impl GenomeMutateContext {
         Some(program_id)
     }
 
-    pub fn choose_popular_program<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
-        self.popular_program_container.choose(rng)
+    pub fn choose_weighted_by_popularity<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
+        self.popular_program_container.choose_weighted_by_popularity(rng)
+    }
+
+    pub fn choose_most_popular<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
+        self.popular_program_container.choose_most_popular(rng)
+    }
+
+    pub fn choose_medium_popular<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
+        self.popular_program_container.choose_medium_popular(rng)
+    }
+
+    pub fn choose_least_popular<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
+        self.popular_program_container.choose_least_popular(rng)
     }
 
     pub fn choose_recent_program<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {

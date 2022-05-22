@@ -55,7 +55,7 @@ impl PopularProgramContainer {
     }
 
     #[allow(dead_code)]
-    pub fn choose<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
+    pub fn choose_weighted_by_popularity<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
         let cluster_weight_vec: Vec<(usize,usize)> = vec![
             (0, 1), // Low probability for choosing an unpopular program.
             (1, 2),
@@ -85,6 +85,42 @@ impl PopularProgramContainer {
             }
         };
         Some(program_id)
+    }
+
+    fn choose_from_cluster<R: Rng + ?Sized>(&self, rng: &mut R, cluster_id: u8) -> Option<u32> {
+        assert!(self.cluster_program_ids.len() == (NUMBER_OF_CLUSTERS as usize));
+        assert!((cluster_id as usize) < self.cluster_program_ids.len());
+        let program_ids: &Vec<u32> = &self.cluster_program_ids[cluster_id as usize];
+        if program_ids.is_empty() {
+            // The CSV file is supposed to have several program_ids for every cluster_id.
+            // No matter what cluster_id is picked, there should be at least 1 program.
+            // Return None, in the unfortunate case there isn't any program_ids for the picked cluser_id.
+            return None;
+        }
+        let program_id: u32 = match program_ids.choose(rng) {
+            Some(program_id) => *program_id,
+            None => {
+                // For a non-empty vector, this shouldn't happen.
+                return None;
+            }
+        };
+        Some(program_id)
+    }
+
+    #[allow(dead_code)]
+    pub fn choose_most_popular<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
+        self.choose_from_cluster(rng, 9)
+    }
+
+    #[allow(dead_code)]
+    pub fn choose_medium_popular<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
+        let cluster_id: u8 = rng.gen_range(1..8);
+        self.choose_from_cluster(rng, cluster_id)
+    }
+
+    #[allow(dead_code)]
+    pub fn choose_least_popular<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
+        self.choose_from_cluster(rng, 0)
     }
 }
 

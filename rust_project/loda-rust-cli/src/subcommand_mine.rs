@@ -5,9 +5,11 @@ use std::time::Duration;
 use std::sync::mpsc::{channel, Receiver};
 use std::time::Instant;
 use std::convert::TryFrom;
+use std::path::PathBuf;
 use prometheus_client::encoding::text::encode;
 use prometheus_client::registry::Registry;
 use std::sync::{Arc, Mutex};
+use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
 
 extern crate num_cpus;
 
@@ -157,12 +159,28 @@ impl SubcommandMine {
         sender: std::sync::mpsc::Sender<MinerThreadMessageToCoordinator>, 
         recorder: Box<dyn Recorder + Send>
     ) {
+        let config: &Config = match &self.config {
+            Some(value) => &value,
+            None => {
+                panic!("Expected config file to have been read at this point");
+            }
+        };
+        let oeis_stripped_file: PathBuf = config.oeis_stripped_file();
+        let terms_to_program_id: TermsToProgramIdSet = match load_terms_to_program_id_set(&oeis_stripped_file, 40) {
+            Ok(value) => value,
+            Err(error) => {
+                panic!("Unable to load program ids. {:?}", error);
+            }
+        };
+        let terms_to_program_id_arc: Arc<TermsToProgramIdSet> = Arc::new(terms_to_program_id);
+    
         for worker_id in 0..self.number_of_minerworkers {
             println!("Spawn worker id: {}", worker_id);
             let sender_clone = sender.clone();
             let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
+            let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
             let _ = tokio::spawn(async move {
-                start_miner_loop(sender_clone, recorder_clone);
+                start_miner_loop(sender_clone, recorder_clone, terms_to_program_id_arc_clone);
             });
             thread::sleep(Duration::from_millis(2000));
         }
@@ -199,8 +217,7 @@ fn coordinator_thread_metrics_sink(rx: Receiver<MinerThreadMessageToCoordinator>
                 number_of_messages += 1;
             },
             Err(error) => {
-                println!("didn't receive any messages. error: {:?}", error);
-                continue;
+                panic!("didn't receive any messages. error: {:?}", error);
             }
         }
         let elapsed: u128 = progress_time.elapsed().as_millis();
@@ -230,8 +247,7 @@ fn coordinator_thread_metrics_prometheus(rx: Receiver<MinerThreadMessageToCoordi
                 message_processor.process_message(message);
             },
             Err(error) => {
-                println!("didn't receive any messages. error: {:?}", error);
-                continue;
+                panic!("didn't receive any messages. error: {:?}", error);
             }
         }
         // Fetch as many messages as possible
