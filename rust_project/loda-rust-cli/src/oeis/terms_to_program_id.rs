@@ -52,7 +52,6 @@ fn build_terms_to_program_id_set(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::iter::FromIterator;
 
     const INPUT_STRIPPED_SEQUENCE_MOCKDATA: &str = r#"
 # OEIS Sequence Data (http://oeis.org/stripped.gz)
