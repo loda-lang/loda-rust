@@ -11,7 +11,7 @@ class Config
     attr_reader :loda_cpp_executable
     attr_reader :oeis_stripped_file
     attr_reader :oeis_names_file
-    attr_reader :loda_rust_mismatches
+    attr_reader :loda_outlier_programs_repository
     attr_reader :loda_submitted_by
     
     def initialize
@@ -29,6 +29,7 @@ class Config
         @oeis_names_file = dict['oeis_names_file']
         @loda_rust_mismatches = dict['loda_rust_mismatches']
         @loda_submitted_by = dict['loda_submitted_by']
+        @loda_outlier_programs_repository = dict['loda_outlier_programs_repository']
     end
 
     def loda_programs_oeis
@@ -49,5 +50,9 @@ class Config
 
     def analytics_dir_program_rank_file
         File.join(@analytics_dir, 'program_rank.csv')
+    end
+
+    def loda_outlier_programs_repository_oeis_divergent
+        File.join(@loda_outlier_programs_repository, 'oeis_divergent')
     end
 end

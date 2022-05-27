@@ -17,7 +17,7 @@ use crate::common::load_program_ids_csv_file;
 // This is for duplicates in oeis and things to be ignored.
 //
 // If the same program is frequently turning up a false positive, then ignore it.
-// This is done by adding the program to the "mismatches" directory.
+// This is done by adding the program to the "loda_outlier_programs/oeis_divergent" directory.
 pub struct DontMine {
     config: Config,
     program_ids: Vec<u32>
@@ -50,9 +50,9 @@ impl DontMine {
     }
 
     #[allow(dead_code)]
-    fn process_mismatches(&self) -> Vec<u32> {
-        let dir_containing_mismatches: PathBuf = self.config.loda_rust_mismatches();
-        let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_mismatches);
+    fn process_oeis_divergents(&self) -> Vec<u32> {
+        let dir_containing_programs: PathBuf = self.config.loda_outlier_programs_repository_oeis_divergent();
+        let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
         let program_ids: Vec<u32> = program_ids_from_paths(paths);
         println!("number of mismatches: {:?}", program_ids.len());
         program_ids

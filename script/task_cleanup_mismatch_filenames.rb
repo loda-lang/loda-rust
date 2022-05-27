@@ -36,7 +36,7 @@ class FilenameWithRank
     end
 end
 
-LODA_RUST_MISMATCHES = Config.instance.loda_rust_mismatches
+LODA_RUST_MISMATCHES = Config.instance.loda_outlier_programs_repository_oeis_divergent
 unless Dir.exist?(LODA_RUST_MISMATCHES)
     raise "No such dir #{LODA_RUST_MISMATCHES}, cannot run script"
 end
