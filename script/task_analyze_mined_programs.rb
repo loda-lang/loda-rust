@@ -364,7 +364,7 @@ def process_candidate_program(candidate_program, dontmine_program_id_set)
             next
         end
         if analyze_candidate(candidate_program, program_id)
-            puts "This is a keeper a keeper. A#{program_id}"
+            puts "This is a keeper. A#{program_id}"
             reject_candidate = false
         end
     end
