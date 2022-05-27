@@ -54,7 +54,7 @@ unless File.exist?(ANALYTICS_DIR_DONT_MINE_FILE)
     raise "No such file #{ANALYTICS_DIR_DONT_MINE_FILE}, cannot run script"
 end
 
-LODA_RUST_MISMATCHES = Config.instance.loda_rust_mismatches
+LODA_RUST_MISMATCHES = Config.instance.loda_outlier_programs_repository_oeis_divergent
 unless Dir.exist?(LODA_RUST_MISMATCHES)
     raise "No such dir #{LODA_RUST_MISMATCHES}, cannot run script"
 end
@@ -332,20 +332,24 @@ def analyze_candidate(candidate_program, program_id)
     end
     
     # save to mismatch dir
-    mismatch_path = path_to_mismatch("#{a_name}_#{correct_term_count}", "asm")
+    mismatch_path = path_to_mismatch(program_id, correct_term_count)
     IO.write(mismatch_path, IO.read(candidate_program.path))
     return true
 end
 
-def path_to_mismatch(name, extension)
+def path_to_mismatch(program_id, correct_term_count)
+    name = "A%06i" % program_id
+    dirname = "%01i" % (program_id / 100000)
+    last_attempted_path = nil
     1000.times do |index|
-        filename = "#{name}_#{index}.#{extension}"
-        path = File.join(LODA_RUST_MISMATCHES, filename)
+        filename = "#{name}_#{correct_term_count}_#{index}.asm"
+        path = File.join(LODA_RUST_MISMATCHES, dirname, filename)
+        last_attempted_path = path
         if !File.exist?(path)
             return path
         end
     end
-    raise "Unable to create a unique path for mismatch. #{name}_xyz.#{extension}"
+    raise "Unable to create a unique path for mismatch. #{last_attempted_path}"
 end
 
 def process_candidate_program(candidate_program, dontmine_program_id_set)

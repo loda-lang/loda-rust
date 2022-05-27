@@ -30,7 +30,7 @@ pub fn start_miner_loop(
     let analytics_dir: PathBuf = config.analytics_dir();
     let mine_event_dir: PathBuf = config.mine_event_dir();
     let loda_rust_repository: PathBuf = config.loda_rust_repository();
-    let loda_rust_mismatches: PathBuf = config.loda_rust_mismatches();
+    let oeis_divergent_dir: PathBuf = config.loda_outlier_programs_repository_oeis_divergent();
     let instruction_trigram_csv: PathBuf = config.analytics_dir_histogram_instruction_trigram_file();
     let source_trigram_csv: PathBuf = config.analytics_dir_histogram_source_trigram_file();
     let target_trigram_csv: PathBuf = config.analytics_dir_histogram_target_trigram_file();
@@ -131,7 +131,7 @@ pub fn start_miner_loop(
     let mut cache = ProgramCache::new();
 
     let mut paths0: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
-    let mut paths1: Vec<PathBuf> = find_asm_files_recursively(&loda_rust_mismatches);
+    let mut paths1: Vec<PathBuf> = find_asm_files_recursively(&oeis_divergent_dir);
     let mut paths: Vec<PathBuf> = vec!();
     paths.append(&mut paths0);
     paths.append(&mut paths1);

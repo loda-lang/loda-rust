@@ -23,9 +23,6 @@ oeis_stripped_file = "/Users/JOHNDOE/loda/oeis/stripped"
 # Absolute path to the unzipped OEIS names file.
 oeis_names_file = "/Users/JOHNDOE/loda/oeis/names"
 
-# Absolute path to the dir that holds the accumulated mismatches.
-loda_rust_mismatches = "/Users/JOHNDOE/git/loda-rust/resources/programs/mismatch"
-
 # Who to be credited when discovering new programs.
 loda_submitted_by = "John Doe"
 
@@ -37,6 +34,9 @@ loda_identify_similar_programs_repository = "/Users/JOHNDOE/git/loda-identify-si
 
 # Patterns that are frequently used in loda programs.
 loda_patterns_repository = "/Users/JOHNDOE/git/loda-patterns"
+
+# Absolute path to the "loda-outlier-programs" repository dir.
+loda_outlier_programs_repository = "/Users/JOHNDOE/git/loda-outlier-programs"
 "#;
 
 
@@ -49,11 +49,11 @@ pub struct Config {
     loda_cpp_executable: String,
     oeis_stripped_file: String,
     oeis_names_file: String,
-    loda_rust_mismatches: String,
     loda_submitted_by: String,
     miner_metrics_listen_port: u16,
     loda_identify_similar_programs_repository: String,
     loda_patterns_repository: String,
+    loda_outlier_programs_repository: String,
 }
 
 impl Config {
@@ -249,13 +249,6 @@ impl Config {
         PathBuf::from(path)
     }
 
-    pub fn loda_rust_mismatches(&self) -> PathBuf {
-        let path = Path::new(&self.loda_rust_mismatches);
-        assert!(path.is_absolute());
-        assert!(path.is_dir());
-        PathBuf::from(path)
-    }
-
     pub fn loda_submitted_by(&self) -> String {
         self.loda_submitted_by.clone()
     }
@@ -294,6 +287,20 @@ impl Config {
         assert!(path.is_dir());
         path
     }
+
+    pub fn loda_outlier_programs_repository(&self) -> PathBuf {
+        let path = Path::new(&self.loda_outlier_programs_repository);
+        assert!(path.is_absolute());
+        assert!(path.is_dir());
+        PathBuf::from(path)
+    }
+
+    pub fn loda_outlier_programs_repository_oeis_divergent(&self) -> PathBuf {
+        let name = Path::new("oeis_divergent");
+        let path = self.loda_outlier_programs_repository().join(name);
+        assert!(path.is_dir());
+        path
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -304,11 +311,11 @@ struct ConfigInner {
     loda_cpp_repository: String,
     loda_cpp_executable: String,
     oeis_names_file: String,
-    loda_rust_mismatches: String,
     loda_submitted_by: String,
     miner_metrics_listen_port: u16,
     loda_identify_similar_programs_repository: String,
     loda_patterns_repository: String,
+    loda_outlier_programs_repository: String,
 }
 
 fn load_config_from_home_dir() -> Config {
@@ -346,11 +353,11 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf) -> Config {
         loda_rust_repository: inner.loda_rust_repository.clone(),
         loda_cpp_repository: inner.loda_cpp_repository.clone(),
         loda_cpp_executable: inner.loda_cpp_executable.clone(),
-        loda_rust_mismatches: inner.loda_rust_mismatches.clone(),
         loda_submitted_by: inner.loda_submitted_by.clone(),
         miner_metrics_listen_port: inner.miner_metrics_listen_port,
         loda_identify_similar_programs_repository: inner.loda_identify_similar_programs_repository,
         loda_patterns_repository: inner.loda_patterns_repository,
+        loda_outlier_programs_repository: inner.loda_outlier_programs_repository,
     }
 }
 
@@ -369,10 +376,10 @@ mod tests {
         assert_eq!(config.loda_rust_repository, "/Users/JOHNDOE/git/loda-rust");
         assert_eq!(config.loda_cpp_repository, "/Users/JOHNDOE/git/loda-cpp");
         assert_eq!(config.loda_cpp_executable, "/Users/JOHNDOE/loda/bin/loda");
-        assert_eq!(config.loda_rust_mismatches, "/Users/JOHNDOE/git/loda-rust/resources/programs/mismatch");
         assert_eq!(config.loda_submitted_by, "John Doe");
         assert_eq!(config.miner_metrics_listen_port, 8090);
         assert_eq!(config.loda_identify_similar_programs_repository, "/Users/JOHNDOE/git/loda-identify-similar-programs");
         assert_eq!(config.loda_patterns_repository, "/Users/JOHNDOE/git/loda-patterns");
+        assert_eq!(config.loda_outlier_programs_repository, "/Users/JOHNDOE/git/loda-outlier-programs");
     }
 }
