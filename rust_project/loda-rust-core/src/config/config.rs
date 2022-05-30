@@ -304,7 +304,7 @@ impl Config {
 }
 
 #[derive(Debug, Deserialize)]
-struct ConfigInner {
+struct ConfigFallback {
     loda_programs_repository: String,
     oeis_stripped_file: String,
     loda_rust_repository: String,
@@ -316,6 +316,21 @@ struct ConfigInner {
     loda_identify_similar_programs_repository: String,
     loda_patterns_repository: String,
     loda_outlier_programs_repository: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct ConfigCustom {
+    loda_programs_repository: Option<String>,
+    oeis_stripped_file: Option<String>,
+    loda_rust_repository: Option<String>,
+    loda_cpp_repository: Option<String>,
+    loda_cpp_executable: Option<String>,
+    oeis_names_file: Option<String>,
+    loda_submitted_by: Option<String>,
+    miner_metrics_listen_port: Option<u16>,
+    loda_identify_similar_programs_repository: Option<String>,
+    loda_patterns_repository: Option<String>,
+    loda_outlier_programs_repository: Option<String>,
 }
 
 fn load_config_from_home_dir() -> Config {
@@ -372,20 +387,33 @@ impl SimpleEnvironment {
 fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: PathBuf) -> Config {
     assert!(homedir.is_absolute());
     let simpleenv = SimpleEnvironment::new(homedir);
-    let inner: ConfigInner = toml::from_str(&toml_content).unwrap();
+    let fallback: ConfigFallback = toml::from_str(&DEFAULT_CONFIG).unwrap();
+    let custom: ConfigCustom = toml::from_str(&toml_content).unwrap();
+
+    let loda_programs_repository: String = custom.loda_programs_repository.unwrap_or(fallback.loda_programs_repository);
+    let oeis_stripped_file: String = custom.oeis_stripped_file.unwrap_or(fallback.oeis_stripped_file);
+    let loda_rust_repository: String = custom.loda_rust_repository.unwrap_or(fallback.loda_rust_repository);
+    let oeis_names_file: String = custom.oeis_names_file.unwrap_or(fallback.oeis_names_file);
+    let loda_cpp_repository: String = custom.loda_cpp_repository.unwrap_or(fallback.loda_cpp_repository);
+    let loda_cpp_executable: String = custom.loda_cpp_executable.unwrap_or(fallback.loda_cpp_executable);
+    let loda_submitted_by: String = custom.loda_submitted_by.unwrap_or(fallback.loda_submitted_by);
+    let miner_metrics_listen_port: u16 = custom.miner_metrics_listen_port.unwrap_or(fallback.miner_metrics_listen_port);
+    let loda_identify_similar_programs_repository: String = custom.loda_identify_similar_programs_repository.unwrap_or(fallback.loda_identify_similar_programs_repository);
+    let loda_patterns_repository: String = custom.loda_patterns_repository.unwrap_or(fallback.loda_patterns_repository);
+    let loda_outlier_programs_repository: String = custom.loda_outlier_programs_repository.unwrap_or(fallback.loda_outlier_programs_repository);
     Config {
         basedir: basedir,
-        loda_programs_repository: simpleenv.resolve_path(&inner.loda_programs_repository),
-        oeis_stripped_file: inner.oeis_stripped_file.clone(),
-        oeis_names_file: inner.oeis_names_file.clone(),
-        loda_rust_repository: inner.loda_rust_repository.clone(),
-        loda_cpp_repository: inner.loda_cpp_repository.clone(),
-        loda_cpp_executable: inner.loda_cpp_executable.clone(),
-        loda_submitted_by: inner.loda_submitted_by.clone(),
-        miner_metrics_listen_port: inner.miner_metrics_listen_port,
-        loda_identify_similar_programs_repository: inner.loda_identify_similar_programs_repository,
-        loda_patterns_repository: inner.loda_patterns_repository,
-        loda_outlier_programs_repository: inner.loda_outlier_programs_repository,
+        loda_programs_repository: simpleenv.resolve_path(&loda_programs_repository),
+        oeis_stripped_file: oeis_stripped_file.clone(),
+        oeis_names_file: oeis_names_file.clone(),
+        loda_rust_repository: loda_rust_repository.clone(),
+        loda_cpp_repository: loda_cpp_repository.clone(),
+        loda_cpp_executable: loda_cpp_executable.clone(),
+        loda_submitted_by: loda_submitted_by.clone(),
+        miner_metrics_listen_port: miner_metrics_listen_port,
+        loda_identify_similar_programs_repository: loda_identify_similar_programs_repository.clone(),
+        loda_patterns_repository: loda_patterns_repository.clone(),
+        loda_outlier_programs_repository: loda_outlier_programs_repository.clone(),
     }
 }
 
@@ -395,8 +423,6 @@ mod tests {
     use std::path::PathBuf;
     use std::fs;
     use std::error::Error;
-    use std::fs::File;
-    use std::io::prelude::*;
 
     #[test]
     fn test_10000_expand_homedir() -> Result<(), Box<dyn Error>> {
