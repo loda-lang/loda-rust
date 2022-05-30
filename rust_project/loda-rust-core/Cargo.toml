@@ -17,3 +17,6 @@ log = "0.4.14"
 serde = { version = "1.0.115", features = ["derive"] }
 toml = "0.5.8"
 lru = "0.6.5"
+
+[dev-dependencies]
+tempfile = "3.2.0"

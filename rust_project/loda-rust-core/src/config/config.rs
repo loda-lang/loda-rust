@@ -6,7 +6,7 @@ const DEFAULT_CONFIG: &'static str =
 r#"# Configuration for LODA Rust
 
 # Absolute path to the "loda-programs" repository dir.
-loda_programs_repository = "/Users/JOHNDOE/loda/programs"
+loda_programs_repository = "$HOME/loda/programs"
 
 # Absolute path to the "loda-cpp" repository dir.
 loda_cpp_repository = "/Users/JOHNDOE/git/loda-cpp"
@@ -43,7 +43,7 @@ loda_outlier_programs_repository = "/Users/JOHNDOE/git/loda-outlier-programs"
 #[derive(Debug)]
 pub struct Config {
     basedir: PathBuf,
-    loda_programs_repository: String,
+    loda_programs_repository: PathBuf,
     loda_rust_repository: String,
     loda_cpp_repository: String,
     loda_cpp_executable: String,
@@ -194,7 +194,7 @@ impl Config {
     }
 
     pub fn loda_programs_repository(&self) -> PathBuf {
-        let path = Path::new(&self.loda_programs_repository);
+        let path = &self.loda_programs_repository;
         assert!(path.is_absolute());
         assert!(path.is_dir());
         PathBuf::from(path)
@@ -340,14 +340,42 @@ fn load_config_from_home_dir() -> Config {
     }
 
     let toml_content: String = fs::read_to_string(path_to_config).unwrap();
-    config_from_toml_content(toml_content, basedir)
+    config_from_toml_content(toml_content, basedir, homedir)
 }
 
-fn config_from_toml_content(toml_content: String, basedir: PathBuf) -> Config {
+struct SimpleEnvironment {
+    homedir: PathBuf,
+}
+
+impl SimpleEnvironment {
+    fn new(homedir: PathBuf) -> Self {
+        assert!(homedir.is_absolute());
+        assert!(homedir.is_dir());
+        Self {
+            homedir: homedir
+        }
+    }
+
+    fn resolve_path(&self, path_raw: &String) -> PathBuf {
+        let path_relativeto_home: String = path_raw.replacen("$HOME/", "", 1);
+        let is_relativeto_home = path_relativeto_home.len() != path_raw.len();
+        if is_relativeto_home {
+            let relative_path = Path::new(&path_relativeto_home);
+            return self.homedir.join(relative_path);
+        }
+        let absolute_path = Path::new(&path_raw);
+        assert!(absolute_path.is_absolute());
+        PathBuf::from(absolute_path)
+    }
+}
+
+fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: PathBuf) -> Config {
+    assert!(homedir.is_absolute());
+    let simpleenv = SimpleEnvironment::new(homedir);
     let inner: ConfigInner = toml::from_str(&toml_content).unwrap();
     Config {
         basedir: basedir,
-        loda_programs_repository: inner.loda_programs_repository.clone(),
+        loda_programs_repository: simpleenv.resolve_path(&inner.loda_programs_repository),
         oeis_stripped_file: inner.oeis_stripped_file.clone(),
         oeis_names_file: inner.oeis_names_file.clone(),
         loda_rust_repository: inner.loda_rust_repository.clone(),
@@ -364,13 +392,76 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf) -> Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
+    use std::fs;
+    use std::error::Error;
+    use std::fs::File;
+    use std::io::prelude::*;
 
     #[test]
-    fn test_10000() {
+    fn test_10000_expand_homedir() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let homedir = PathBuf::from(&tempdir.path()).join("test_10000_expand_homedir");
+        fs::create_dir(&homedir)?;
+        let subdir = homedir.join("subdir");
+        let simpleenv = SimpleEnvironment::new(homedir);
+
+        // Act
+        let resolved_path: PathBuf = simpleenv.resolve_path(&"$HOME/subdir".to_string());
+
+        // Assert
+        let subdir_string: String = subdir.to_str().unwrap().to_string();
+        let resolved_string: String = resolved_path.to_str().unwrap().to_string();
+        assert_eq!(subdir_string, resolved_string);
+        assert_eq!(resolved_string.contains("$HOME"), false);
+        assert_eq!(resolved_string.ends_with("/subdir"), true);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_10001_absolute_path() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let homedir = PathBuf::from(&tempdir.path()).join("test_10001_absolute_path");
+        fs::create_dir(&homedir)?;
+
+        let subdir = homedir.join("subdir");
+
+        let simpleenv = SimpleEnvironment::new(homedir);
+        let subdir_string: String = subdir.to_str().unwrap().to_string();
+
+        // Act
+        let resolved_path: PathBuf = simpleenv.resolve_path(&subdir_string);
+
+        // Assert
+        let resolved_string: String = resolved_path.to_str().unwrap().to_string();
+        assert_eq!(subdir_string, resolved_string);
+        assert_eq!(resolved_string.contains("$HOME"), false);
+        assert_eq!(resolved_string.ends_with("/subdir"), true);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_10001() -> Result<(), Box<dyn Error>> {
+        let tempdir = tempfile::tempdir().unwrap();
+        let homedir = PathBuf::from(&tempdir.path()).join("test_10000");
+        fs::create_dir(&homedir)?;
+
         let basedir = PathBuf::from(Path::new("non-existing-basedir"));
-        let config: Config = config_from_toml_content(Config::default_config(), basedir);
+        let config: Config = config_from_toml_content(Config::default_config(), basedir, homedir);
+
+        let path: &Path = &config.loda_programs_repository;
+        let s: String = match path.to_str() {
+            Some(value) => value.to_string(),
+            None => "BOOM".to_string()
+        };
+        assert_eq!(s.ends_with("/loda/programs"), true);
+
         assert_eq!(config.basedir.to_str().unwrap(), "non-existing-basedir");
-        assert_eq!(config.loda_programs_repository, "/Users/JOHNDOE/loda/programs");
+        // assert_eq!(config.loda_programs_repository, "/Users/JOHNDOE/loda/programs");
         assert_eq!(config.oeis_stripped_file, "/Users/JOHNDOE/loda/oeis/stripped");
         assert_eq!(config.oeis_names_file, "/Users/JOHNDOE/loda/oeis/names");
         assert_eq!(config.loda_rust_repository, "/Users/JOHNDOE/git/loda-rust");
@@ -381,5 +472,7 @@ mod tests {
         assert_eq!(config.loda_identify_similar_programs_repository, "/Users/JOHNDOE/git/loda-identify-similar-programs");
         assert_eq!(config.loda_patterns_repository, "/Users/JOHNDOE/git/loda-patterns");
         assert_eq!(config.loda_outlier_programs_repository, "/Users/JOHNDOE/git/loda-outlier-programs");
+
+        Ok(())
     }
 }
