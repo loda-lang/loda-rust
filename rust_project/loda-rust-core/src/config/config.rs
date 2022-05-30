@@ -423,6 +423,7 @@ mod tests {
     use std::path::PathBuf;
     use std::fs;
     use std::error::Error;
+    use std::fmt;
 
     #[test]
     fn test_10000_expand_homedir() -> Result<(), Box<dyn Error>> {
@@ -470,8 +471,34 @@ mod tests {
         Ok(())
     }
 
+    #[derive(Clone, Debug)]
+    enum CheckSuffixError {
+        WrongSuffix(String)
+    }
+
+    impl fmt::Display for CheckSuffixError {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                CheckSuffixError::WrongSuffix(message) => {
+                    return write!(f, "CheckSuffixError: {}", message)
+                }
+            }
+        }
+    }
+
+    impl Error for CheckSuffixError {}
+
+    fn assert_has_suffix(path: &Path, expected_suffix: &str) -> Result<(), CheckSuffixError> {
+        let path_string: String = path.to_str().expect("Expected Some, but got None").to_string();
+        if !path_string.ends_with(expected_suffix) {
+            let message = format!("Expected suffix {:?}, but got {:?}", expected_suffix, path_string);
+            return Err(CheckSuffixError::WrongSuffix(message));
+        }
+        Ok(())
+    }
+
     #[test]
-    fn test_10001() -> Result<(), Box<dyn Error>> {
+    fn test_20000_fallback_config() -> Result<(), Box<dyn Error>> {
         let tempdir = tempfile::tempdir().unwrap();
         let homedir = PathBuf::from(&tempdir.path()).join("test_10000");
         fs::create_dir(&homedir)?;
@@ -479,16 +506,10 @@ mod tests {
         let basedir = PathBuf::from(Path::new("non-existing-basedir"));
         let config: Config = config_from_toml_content(Config::default_config(), basedir, homedir);
 
-        let path: &Path = &config.loda_programs_repository;
-        let s: String = match path.to_str() {
-            Some(value) => value.to_string(),
-            None => "BOOM".to_string()
-        };
-        assert_eq!(s.ends_with("/loda/programs"), true);
-
         assert_eq!(config.basedir.to_str().unwrap(), "non-existing-basedir");
         // assert_eq!(config.loda_programs_repository, "/Users/JOHNDOE/loda/programs");
         assert_eq!(config.oeis_stripped_file, "/Users/JOHNDOE/loda/oeis/stripped");
+        assert_has_suffix(&config.loda_programs_repository, "/loda/programs")?;
         assert_eq!(config.oeis_names_file, "/Users/JOHNDOE/loda/oeis/names");
         assert_eq!(config.loda_rust_repository, "/Users/JOHNDOE/git/loda-rust");
         assert_eq!(config.loda_cpp_repository, "/Users/JOHNDOE/git/loda-cpp");
