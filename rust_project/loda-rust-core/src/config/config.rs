@@ -18,7 +18,7 @@ loda_cpp_executable = "/Users/JOHNDOE/loda/bin/loda"
 loda_rust_repository = "/Users/JOHNDOE/git/loda-rust"
 
 # Absolute path to the unzipped OEIS stripped file.
-oeis_stripped_file = "/Users/JOHNDOE/loda/oeis/stripped"
+oeis_stripped_file = "$HOME/loda/oeis/stripped"
 
 # Absolute path to the unzipped OEIS names file.
 oeis_names_file = "/Users/JOHNDOE/loda/oeis/names"
@@ -47,7 +47,7 @@ pub struct Config {
     loda_rust_repository: String,
     loda_cpp_repository: String,
     loda_cpp_executable: String,
-    oeis_stripped_file: String,
+    oeis_stripped_file: PathBuf,
     oeis_names_file: String,
     loda_submitted_by: String,
     miner_metrics_listen_port: u16,
@@ -215,7 +215,7 @@ impl Config {
     }
 
     pub fn oeis_stripped_file(&self) -> PathBuf {
-        let path = Path::new(&self.oeis_stripped_file);
+        let path = &self.oeis_stripped_file;
         assert!(path.is_absolute());
         assert!(path.is_file());
         PathBuf::from(path)
@@ -404,7 +404,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
     Config {
         basedir: basedir,
         loda_programs_repository: simpleenv.resolve_path(&loda_programs_repository),
-        oeis_stripped_file: oeis_stripped_file.clone(),
+        oeis_stripped_file: simpleenv.resolve_path(&oeis_stripped_file),
         oeis_names_file: oeis_names_file.clone(),
         loda_rust_repository: loda_rust_repository.clone(),
         loda_cpp_repository: loda_cpp_repository.clone(),
@@ -507,9 +507,8 @@ mod tests {
         let config: Config = config_from_toml_content(Config::default_config(), basedir, homedir);
 
         assert_eq!(config.basedir.to_str().unwrap(), "non-existing-basedir");
-        // assert_eq!(config.loda_programs_repository, "/Users/JOHNDOE/loda/programs");
-        assert_eq!(config.oeis_stripped_file, "/Users/JOHNDOE/loda/oeis/stripped");
         assert_has_suffix(&config.loda_programs_repository, "/loda/programs")?;
+        assert_has_suffix(&config.oeis_stripped_file, "/loda/oeis/stripped")?;
         assert_eq!(config.oeis_names_file, "/Users/JOHNDOE/loda/oeis/names");
         assert_eq!(config.loda_rust_repository, "/Users/JOHNDOE/git/loda-rust");
         assert_eq!(config.loda_cpp_repository, "/Users/JOHNDOE/git/loda-cpp");
