@@ -498,9 +498,21 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_fallback_config() -> Result<(), Box<dyn Error>> {
+    fn test_20000_assert_has_suffix() -> Result<(), Box<dyn Error>> {
         let tempdir = tempfile::tempdir().unwrap();
-        let homedir = PathBuf::from(&tempdir.path()).join("test_20000_fallback_config");
+        let homedir = PathBuf::from(&tempdir.path()).join("test_20000_assert_has_suffix");
+        fs::create_dir(&homedir)?;
+        let result_ok = assert_has_suffix(&homedir, "/test_20000_assert_has_suffix");
+        assert!(result_ok.is_ok());
+        let result_err = assert_has_suffix(&homedir, "/no-such-thing");
+        assert!(result_err.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_30000_fallback_config() -> Result<(), Box<dyn Error>> {
+        let tempdir = tempfile::tempdir().unwrap();
+        let homedir = PathBuf::from(&tempdir.path()).join("test_30000_fallback_config");
         fs::create_dir(&homedir)?;
 
         let basedir = PathBuf::from(Path::new("non-existing-basedir"));
