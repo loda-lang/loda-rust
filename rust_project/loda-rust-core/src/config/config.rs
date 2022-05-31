@@ -9,19 +9,19 @@ r#"# Configuration for LODA Rust
 loda_programs_repository = "$HOME/loda/programs"
 
 # Absolute path to the "loda-cpp" repository dir.
-loda_cpp_repository = "/Users/JOHNDOE/git/loda-cpp"
+loda_cpp_repository = "$HOME/git/loda-cpp"
 
 # Absolute path to the "loda" executable file.
-loda_cpp_executable = "/Users/JOHNDOE/loda/bin/loda"
+loda_cpp_executable = "$HOME/loda/bin/loda"
 
 # Absolute path to the "loda-rust" repository dir.
-loda_rust_repository = "/Users/JOHNDOE/git/loda-rust"
+loda_rust_repository = "$HOME/git/loda-rust"
 
 # Absolute path to the unzipped OEIS stripped file.
 oeis_stripped_file = "$HOME/loda/oeis/stripped"
 
 # Absolute path to the unzipped OEIS names file.
-oeis_names_file = "/Users/JOHNDOE/loda/oeis/names"
+oeis_names_file = "$HOME/loda/oeis/names"
 
 # Who to be credited when discovering new programs.
 loda_submitted_by = "John Doe"
@@ -30,13 +30,13 @@ loda_submitted_by = "John Doe"
 miner_metrics_listen_port = 8090
 
 # What loda programs are similar to each other.
-loda_identify_similar_programs_repository = "/Users/JOHNDOE/git/loda-identify-similar-programs"
+loda_identify_similar_programs_repository = "$HOME/git/loda-identify-similar-programs"
 
 # Patterns that are frequently used in loda programs.
-loda_patterns_repository = "/Users/JOHNDOE/git/loda-patterns"
+loda_patterns_repository = "$HOME/git/loda-patterns"
 
 # Absolute path to the "loda-outlier-programs" repository dir.
-loda_outlier_programs_repository = "/Users/JOHNDOE/git/loda-outlier-programs"
+loda_outlier_programs_repository = "$HOME/git/loda-outlier-programs"
 "#;
 
 
@@ -44,16 +44,16 @@ loda_outlier_programs_repository = "/Users/JOHNDOE/git/loda-outlier-programs"
 pub struct Config {
     basedir: PathBuf,
     loda_programs_repository: PathBuf,
-    loda_rust_repository: String,
-    loda_cpp_repository: String,
-    loda_cpp_executable: String,
+    loda_rust_repository: PathBuf,
+    loda_cpp_repository: PathBuf,
+    loda_cpp_executable: PathBuf,
     oeis_stripped_file: PathBuf,
-    oeis_names_file: String,
+    oeis_names_file: PathBuf,
     loda_submitted_by: String,
     miner_metrics_listen_port: u16,
-    loda_identify_similar_programs_repository: String,
-    loda_patterns_repository: String,
-    loda_outlier_programs_repository: String,
+    loda_identify_similar_programs_repository: PathBuf,
+    loda_patterns_repository: PathBuf,
+    loda_outlier_programs_repository: PathBuf,
 }
 
 impl Config {
@@ -222,28 +222,28 @@ impl Config {
     }
 
     pub fn oeis_names_file(&self) -> PathBuf {
-        let path = Path::new(&self.oeis_names_file);
+        let path = &self.oeis_names_file;
         assert!(path.is_absolute());
         assert!(path.is_file());
         PathBuf::from(path)
     }
 
     pub fn loda_rust_repository(&self) -> PathBuf {
-        let path = Path::new(&self.loda_rust_repository);
+        let path = &self.loda_rust_repository;
         assert!(path.is_absolute());
         assert!(path.is_dir());
         PathBuf::from(path)
     }
 
     pub fn loda_cpp_repository(&self) -> PathBuf {
-        let path = Path::new(&self.loda_cpp_repository);
+        let path = &self.loda_cpp_repository;
         assert!(path.is_absolute());
         assert!(path.is_dir());
         PathBuf::from(path)
     }
 
     pub fn loda_cpp_executable(&self) -> PathBuf {
-        let path = Path::new(&self.loda_cpp_executable);
+        let path = &self.loda_cpp_executable;
         assert!(path.is_absolute());
         assert!(path.is_file());
         PathBuf::from(path)
@@ -261,7 +261,7 @@ impl Config {
     }
 
     pub fn loda_identify_similar_programs_repository(&self) -> PathBuf {
-        let path = Path::new(&self.loda_identify_similar_programs_repository);
+        let path = &self.loda_identify_similar_programs_repository;
         assert!(path.is_absolute());
         assert!(path.is_dir());
         PathBuf::from(path)
@@ -275,7 +275,7 @@ impl Config {
     }
 
     pub fn loda_patterns_repository(&self) -> PathBuf {
-        let path = Path::new(&self.loda_patterns_repository);
+        let path = &self.loda_patterns_repository;
         assert!(path.is_absolute());
         assert!(path.is_dir());
         PathBuf::from(path)
@@ -289,7 +289,7 @@ impl Config {
     }
 
     pub fn loda_outlier_programs_repository(&self) -> PathBuf {
-        let path = Path::new(&self.loda_outlier_programs_repository);
+        let path = &self.loda_outlier_programs_repository;
         assert!(path.is_absolute());
         assert!(path.is_dir());
         PathBuf::from(path)
@@ -405,15 +405,15 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
         basedir: basedir,
         loda_programs_repository: simpleenv.resolve_path(&loda_programs_repository),
         oeis_stripped_file: simpleenv.resolve_path(&oeis_stripped_file),
-        oeis_names_file: oeis_names_file.clone(),
-        loda_rust_repository: loda_rust_repository.clone(),
-        loda_cpp_repository: loda_cpp_repository.clone(),
-        loda_cpp_executable: loda_cpp_executable.clone(),
+        oeis_names_file: simpleenv.resolve_path(&oeis_names_file),
+        loda_rust_repository: simpleenv.resolve_path(&loda_rust_repository),
+        loda_cpp_repository: simpleenv.resolve_path(&loda_cpp_repository),
+        loda_cpp_executable: simpleenv.resolve_path(&loda_cpp_executable),
         loda_submitted_by: loda_submitted_by.clone(),
         miner_metrics_listen_port: miner_metrics_listen_port,
-        loda_identify_similar_programs_repository: loda_identify_similar_programs_repository.clone(),
-        loda_patterns_repository: loda_patterns_repository.clone(),
-        loda_outlier_programs_repository: loda_outlier_programs_repository.clone(),
+        loda_identify_similar_programs_repository: simpleenv.resolve_path(&loda_identify_similar_programs_repository),
+        loda_patterns_repository: simpleenv.resolve_path(&loda_patterns_repository),
+        loda_outlier_programs_repository: simpleenv.resolve_path(&loda_outlier_programs_repository),
     }
 }
 
@@ -500,7 +500,7 @@ mod tests {
     #[test]
     fn test_20000_fallback_config() -> Result<(), Box<dyn Error>> {
         let tempdir = tempfile::tempdir().unwrap();
-        let homedir = PathBuf::from(&tempdir.path()).join("test_10000");
+        let homedir = PathBuf::from(&tempdir.path()).join("test_20000_fallback_config");
         fs::create_dir(&homedir)?;
 
         let basedir = PathBuf::from(Path::new("non-existing-basedir"));
@@ -509,15 +509,15 @@ mod tests {
         assert_eq!(config.basedir.to_str().unwrap(), "non-existing-basedir");
         assert_has_suffix(&config.loda_programs_repository, "/loda/programs")?;
         assert_has_suffix(&config.oeis_stripped_file, "/loda/oeis/stripped")?;
-        assert_eq!(config.oeis_names_file, "/Users/JOHNDOE/loda/oeis/names");
-        assert_eq!(config.loda_rust_repository, "/Users/JOHNDOE/git/loda-rust");
-        assert_eq!(config.loda_cpp_repository, "/Users/JOHNDOE/git/loda-cpp");
-        assert_eq!(config.loda_cpp_executable, "/Users/JOHNDOE/loda/bin/loda");
+        assert_has_suffix(&config.oeis_names_file, "/loda/oeis/names")?;
+        assert_has_suffix(&config.loda_rust_repository, "/git/loda-rust")?;
+        assert_has_suffix(&config.loda_cpp_repository, "/git/loda-cpp")?;
+        assert_has_suffix(&config.loda_cpp_executable, "/loda/bin/loda")?;
         assert_eq!(config.loda_submitted_by, "John Doe");
         assert_eq!(config.miner_metrics_listen_port, 8090);
-        assert_eq!(config.loda_identify_similar_programs_repository, "/Users/JOHNDOE/git/loda-identify-similar-programs");
-        assert_eq!(config.loda_patterns_repository, "/Users/JOHNDOE/git/loda-patterns");
-        assert_eq!(config.loda_outlier_programs_repository, "/Users/JOHNDOE/git/loda-outlier-programs");
+        assert_has_suffix(&config.loda_identify_similar_programs_repository, "/git/loda-identify-similar-programs")?;
+        assert_has_suffix(&config.loda_patterns_repository, "/git/loda-patterns")?;
+        assert_has_suffix(&config.loda_outlier_programs_repository, "/git/loda-outlier-programs")?;
 
         Ok(())
     }
