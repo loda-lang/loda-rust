@@ -1,0 +1,34 @@
+# Configuration for LODA Rust
+
+# Absolute path to the "loda-programs" repository dir.
+loda_programs_repository = "$HOME/loda/programs"
+
+# Absolute path to the "loda-cpp" repository dir.
+loda_cpp_repository = "$HOME/git/loda-cpp"
+
+# Absolute path to the "loda" executable file.
+loda_cpp_executable = "$HOME/loda/bin/loda"
+
+# Absolute path to the "loda-rust" repository dir.
+loda_rust_repository = "$HOME/git/loda-rust"
+
+# Absolute path to the unzipped OEIS stripped file.
+oeis_stripped_file = "$HOME/loda/oeis/stripped"
+
+# Absolute path to the unzipped OEIS names file.
+oeis_names_file = "$HOME/loda/oeis/names"
+
+# Who to be credited when discovering new programs.
+loda_submitted_by = "John Doe"
+
+# When mining with metrics enabled, this is the port that the metrics can be accessed.
+miner_metrics_listen_port = 8090
+
+# What loda programs are similar to each other.
+loda_identify_similar_programs_repository = "$HOME/git/loda-identify-similar-programs"
+
+# Patterns that are frequently used in loda programs.
+loda_patterns_repository = "$HOME/git/loda-patterns"
+
+# Absolute path to the "loda-outlier-programs" repository dir.
+loda_outlier_programs_repository = "$HOME/git/loda-outlier-programs"

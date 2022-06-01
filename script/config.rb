@@ -1,40 +1,6 @@
 require 'toml'
 require 'singleton'
-
-DEFAULT_CONFIG = <<-TOML
-# Absolute path to the "loda-programs" repository dir.
-loda_programs_repository = "$HOME/loda/programs"
-
-# Absolute path to the "loda-cpp" repository dir.
-loda_cpp_repository = "$HOME/git/loda-cpp"
-
-# Absolute path to the "loda" executable file.
-loda_cpp_executable = "$HOME/loda/bin/loda"
-
-# Absolute path to the "loda-rust" repository dir.
-loda_rust_repository = "$HOME/git/loda-rust"
-
-# Absolute path to the unzipped OEIS stripped file.
-oeis_stripped_file = "$HOME/loda/oeis/stripped"
-
-# Absolute path to the unzipped OEIS names file.
-oeis_names_file = "$HOME/loda/oeis/names"
-
-# Who to be credited when discovering new programs.
-loda_submitted_by = "John Doe"
-
-# When mining with metrics enabled, this is the port that the metrics can be accessed.
-miner_metrics_listen_port = 8090
-
-# What loda programs are similar to each other.
-loda_identify_similar_programs_repository = "$HOME/git/loda-identify-similar-programs"
-
-# Patterns that are frequently used in loda programs.
-loda_patterns_repository = "$HOME/git/loda-patterns"
-
-# Absolute path to the "loda-outlier-programs" repository dir.
-loda_outlier_programs_repository = "$HOME/git/loda-outlier-programs"
-TOML
+require 'pathname'
 
 class Config
     include Singleton
@@ -50,12 +16,13 @@ class Config
     attr_reader :loda_submitted_by
     
     def initialize
+        rust_project_default_config = Config.pathname_to_default_config_toml_inside_rust_project
         name_dot_loda_rust = '.loda-rust'
         homedir = ENV['HOME']
         dot_loda_rust = File.join(homedir, name_dot_loda_rust)
         path = File.join(dot_loda_rust, 'config.toml')
         dict_custom = TOML.load_file(path)
-        dict_fallback = TOML.load(DEFAULT_CONFIG)
+        dict_fallback = TOML.load_file(rust_project_default_config)
         dict = dict_fallback.merge(dict_custom)
         
         @dot_loda_rust = dot_loda_rust
@@ -67,6 +34,30 @@ class Config
         @oeis_names_file = Config.resolve_path(dict, 'oeis_names_file', homedir)
         @loda_submitted_by = dict['loda_submitted_by']
         @loda_outlier_programs_repository = Config.resolve_path(dict, 'loda_outlier_programs_repository', homedir)
+    end
+    
+    def self.pathname_to_default_config_toml_inside_rust_project
+        path_from_root_to_default_config_toml = "rust_project/loda-rust-core/src/config/default_config.toml"
+        pathname = pathname_to_loda_rust_dir + path_from_root_to_default_config_toml
+        unless pathname.file?
+            raise "Unable to find #{pathname.inspect}"
+        end
+        pathname
+    end
+    
+    def self.pathname_to_loda_rust_dir
+        pn = Pathname.getwd
+        100.times do
+            name = pn.basename.to_s
+            if name == 'loda-rust'
+                return pn
+            end
+            pn = pn.parent
+            if pn == nil || pn.to_s == "/"
+                raise "Unable to find root dir of loda-rust repo"
+            end
+        end
+        raise "Too many attempts. Unable to find loda-rust repo"
     end
     
     def self.resolve_path(dict, key, homedir)
