@@ -17,7 +17,6 @@ mod pattern;
 mod similar;
 mod subcommand_analytics;
 mod subcommand_dependencies;
-mod subcommand_defaultconfig;
 mod subcommand_evaluate;
 mod subcommand_install;
 mod subcommand_mine;
@@ -26,7 +25,6 @@ mod subcommand_similar;
 
 use subcommand_analytics::subcommand_analytics;
 use subcommand_dependencies::subcommand_dependencies;
-use subcommand_defaultconfig::subcommand_defaultconfig;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 use subcommand_install::subcommand_install;
 use subcommand_mine::{SubcommandMine,SubcommandMineParallelComputingMode,SubcommandMineMetricsMode};
@@ -115,10 +113,6 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
             SubCommand::with_name("pattern")
                 .about("Identify recurring patterns among similar programs.")
         )
-        .subcommand(
-            SubCommand::with_name("default-config")
-                .about("Print the default config file.")
-        )
         .get_matches();
 
     if let Some(sub_m) = matches.subcommand_matches("evaluate") {
@@ -189,11 +183,6 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     if let Some(_sub_m) = matches.subcommand_matches("pattern") {
         subcommand_pattern();
-        return Ok(());
-    }
-
-    if let Some(_sub_m) = matches.subcommand_matches("default-config") {
-        subcommand_defaultconfig();
         return Ok(());
     }
 
