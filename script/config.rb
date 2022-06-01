@@ -1,5 +1,6 @@
 require 'toml'
 require 'singleton'
+require 'pathname'
 
 class Config
     include Singleton
@@ -15,21 +16,58 @@ class Config
     attr_reader :loda_submitted_by
     
     def initialize
+        rust_project_default_config = Config.pathname_to_default_config_toml_inside_rust_project
         name_dot_loda_rust = '.loda-rust'
-        dot_loda_rust = File.join(ENV['HOME'], name_dot_loda_rust)
+        homedir = ENV['HOME']
+        dot_loda_rust = File.join(homedir, name_dot_loda_rust)
         path = File.join(dot_loda_rust, 'config.toml')
-        dict = TOML.load_file(path)
+        dict_custom = TOML.load_file(path)
+        dict_fallback = TOML.load_file(rust_project_default_config)
+        dict = dict_fallback.merge(dict_custom)
         
         @dot_loda_rust = dot_loda_rust
         @analytics_dir = File.join(dot_loda_rust, 'analytics')
-        @loda_programs_repository = dict['loda_programs_repository']
-        @loda_cpp_repository = dict['loda_cpp_repository']
-        @loda_cpp_executable = dict['loda_cpp_executable']
-        @oeis_stripped_file = dict['oeis_stripped_file']
-        @oeis_names_file = dict['oeis_names_file']
-        @loda_rust_mismatches = dict['loda_rust_mismatches']
+        @loda_programs_repository = Config.resolve_path(dict, 'loda_programs_repository', homedir)
+        @loda_cpp_repository = Config.resolve_path(dict, 'loda_cpp_repository', homedir)
+        @loda_cpp_executable = Config.resolve_path(dict, 'loda_cpp_executable', homedir)
+        @oeis_stripped_file = Config.resolve_path(dict, 'oeis_stripped_file', homedir)
+        @oeis_names_file = Config.resolve_path(dict, 'oeis_names_file', homedir)
         @loda_submitted_by = dict['loda_submitted_by']
-        @loda_outlier_programs_repository = dict['loda_outlier_programs_repository']
+        @loda_outlier_programs_repository = Config.resolve_path(dict, 'loda_outlier_programs_repository', homedir)
+    end
+    
+    def self.pathname_to_default_config_toml_inside_rust_project
+        path_from_root_to_default_config_toml = "rust_project/loda-rust-core/src/config/default_config.toml"
+        pathname = pathname_to_loda_rust_dir + path_from_root_to_default_config_toml
+        unless pathname.file?
+            raise "Unable to find #{pathname.inspect}"
+        end
+        pathname
+    end
+    
+    def self.pathname_to_loda_rust_dir
+        pn = Pathname.getwd
+        100.times do
+            name = pn.basename.to_s
+            if name == 'loda-rust'
+                return pn
+            end
+            pn = pn.parent
+            if pn == nil || pn.to_s == "/"
+                raise "Unable to find root dir of loda-rust repo"
+            end
+        end
+        raise "Too many attempts. Unable to find loda-rust repo"
+    end
+    
+    def self.resolve_path(dict, key, homedir)
+        path = dict[key]
+        raise "config file has no path for key #{key.inspect}" if path == nil
+        path2 = path.gsub(/^[$]HOME\//, '')
+        if path2.length < path.length
+            return File.join(homedir, path2)
+        end
+        return path
     end
 
     def loda_programs_oeis

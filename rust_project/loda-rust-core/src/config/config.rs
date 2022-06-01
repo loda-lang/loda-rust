@@ -2,58 +2,22 @@ use std::path::{Path,PathBuf};
 use serde::Deserialize;
 use std::fs;
 
-const DEFAULT_CONFIG: &'static str =
-r#"# Configuration for LODA Rust
-
-# Absolute path to the "loda-programs" repository dir.
-loda_programs_repository = "/Users/JOHNDOE/loda/programs"
-
-# Absolute path to the "loda-cpp" repository dir.
-loda_cpp_repository = "/Users/JOHNDOE/git/loda-cpp"
-
-# Absolute path to the "loda" executable file.
-loda_cpp_executable = "/Users/JOHNDOE/loda/bin/loda"
-
-# Absolute path to the "loda-rust" repository dir.
-loda_rust_repository = "/Users/JOHNDOE/git/loda-rust"
-
-# Absolute path to the unzipped OEIS stripped file.
-oeis_stripped_file = "/Users/JOHNDOE/loda/oeis/stripped"
-
-# Absolute path to the unzipped OEIS names file.
-oeis_names_file = "/Users/JOHNDOE/loda/oeis/names"
-
-# Who to be credited when discovering new programs.
-loda_submitted_by = "John Doe"
-
-# When mining with metrics enabled, this is the port that the metrics can be accessed.
-miner_metrics_listen_port = 8090
-
-# What loda programs are similar to each other.
-loda_identify_similar_programs_repository = "/Users/JOHNDOE/git/loda-identify-similar-programs"
-
-# Patterns that are frequently used in loda programs.
-loda_patterns_repository = "/Users/JOHNDOE/git/loda-patterns"
-
-# Absolute path to the "loda-outlier-programs" repository dir.
-loda_outlier_programs_repository = "/Users/JOHNDOE/git/loda-outlier-programs"
-"#;
-
+const DEFAULT_CONFIG: &'static str = include_str!("default_config.toml");
 
 #[derive(Debug)]
 pub struct Config {
     basedir: PathBuf,
-    loda_programs_repository: String,
-    loda_rust_repository: String,
-    loda_cpp_repository: String,
-    loda_cpp_executable: String,
-    oeis_stripped_file: String,
-    oeis_names_file: String,
+    loda_programs_repository: PathBuf,
+    loda_rust_repository: PathBuf,
+    loda_cpp_repository: PathBuf,
+    loda_cpp_executable: PathBuf,
+    oeis_stripped_file: PathBuf,
+    oeis_names_file: PathBuf,
     loda_submitted_by: String,
     miner_metrics_listen_port: u16,
-    loda_identify_similar_programs_repository: String,
-    loda_patterns_repository: String,
-    loda_outlier_programs_repository: String,
+    loda_identify_similar_programs_repository: PathBuf,
+    loda_patterns_repository: PathBuf,
+    loda_outlier_programs_repository: PathBuf,
 }
 
 impl Config {
@@ -194,7 +158,7 @@ impl Config {
     }
 
     pub fn loda_programs_repository(&self) -> PathBuf {
-        let path = Path::new(&self.loda_programs_repository);
+        let path = &self.loda_programs_repository;
         assert!(path.is_absolute());
         assert!(path.is_dir());
         PathBuf::from(path)
@@ -215,35 +179,35 @@ impl Config {
     }
 
     pub fn oeis_stripped_file(&self) -> PathBuf {
-        let path = Path::new(&self.oeis_stripped_file);
+        let path = &self.oeis_stripped_file;
         assert!(path.is_absolute());
         assert!(path.is_file());
         PathBuf::from(path)
     }
 
     pub fn oeis_names_file(&self) -> PathBuf {
-        let path = Path::new(&self.oeis_names_file);
+        let path = &self.oeis_names_file;
         assert!(path.is_absolute());
         assert!(path.is_file());
         PathBuf::from(path)
     }
 
     pub fn loda_rust_repository(&self) -> PathBuf {
-        let path = Path::new(&self.loda_rust_repository);
+        let path = &self.loda_rust_repository;
         assert!(path.is_absolute());
         assert!(path.is_dir());
         PathBuf::from(path)
     }
 
     pub fn loda_cpp_repository(&self) -> PathBuf {
-        let path = Path::new(&self.loda_cpp_repository);
+        let path = &self.loda_cpp_repository;
         assert!(path.is_absolute());
         assert!(path.is_dir());
         PathBuf::from(path)
     }
 
     pub fn loda_cpp_executable(&self) -> PathBuf {
-        let path = Path::new(&self.loda_cpp_executable);
+        let path = &self.loda_cpp_executable;
         assert!(path.is_absolute());
         assert!(path.is_file());
         PathBuf::from(path)
@@ -261,7 +225,7 @@ impl Config {
     }
 
     pub fn loda_identify_similar_programs_repository(&self) -> PathBuf {
-        let path = Path::new(&self.loda_identify_similar_programs_repository);
+        let path = &self.loda_identify_similar_programs_repository;
         assert!(path.is_absolute());
         assert!(path.is_dir());
         PathBuf::from(path)
@@ -275,7 +239,7 @@ impl Config {
     }
 
     pub fn loda_patterns_repository(&self) -> PathBuf {
-        let path = Path::new(&self.loda_patterns_repository);
+        let path = &self.loda_patterns_repository;
         assert!(path.is_absolute());
         assert!(path.is_dir());
         PathBuf::from(path)
@@ -289,7 +253,7 @@ impl Config {
     }
 
     pub fn loda_outlier_programs_repository(&self) -> PathBuf {
-        let path = Path::new(&self.loda_outlier_programs_repository);
+        let path = &self.loda_outlier_programs_repository;
         assert!(path.is_absolute());
         assert!(path.is_dir());
         PathBuf::from(path)
@@ -304,7 +268,7 @@ impl Config {
 }
 
 #[derive(Debug, Deserialize)]
-struct ConfigInner {
+struct ConfigFallback {
     loda_programs_repository: String,
     oeis_stripped_file: String,
     loda_rust_repository: String,
@@ -316,6 +280,21 @@ struct ConfigInner {
     loda_identify_similar_programs_repository: String,
     loda_patterns_repository: String,
     loda_outlier_programs_repository: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct ConfigCustom {
+    loda_programs_repository: Option<String>,
+    oeis_stripped_file: Option<String>,
+    loda_rust_repository: Option<String>,
+    loda_cpp_repository: Option<String>,
+    loda_cpp_executable: Option<String>,
+    oeis_names_file: Option<String>,
+    loda_submitted_by: Option<String>,
+    miner_metrics_listen_port: Option<u16>,
+    loda_identify_similar_programs_repository: Option<String>,
+    loda_patterns_repository: Option<String>,
+    loda_outlier_programs_repository: Option<String>,
 }
 
 fn load_config_from_home_dir() -> Config {
@@ -340,46 +319,224 @@ fn load_config_from_home_dir() -> Config {
     }
 
     let toml_content: String = fs::read_to_string(path_to_config).unwrap();
-    config_from_toml_content(toml_content, basedir)
+    config_from_toml_content(toml_content, basedir, homedir)
 }
 
-fn config_from_toml_content(toml_content: String, basedir: PathBuf) -> Config {
-    let inner: ConfigInner = toml::from_str(&toml_content).unwrap();
+struct SimpleEnvironment {
+    homedir: PathBuf,
+}
+
+impl SimpleEnvironment {
+    fn new(homedir: PathBuf) -> Self {
+        assert!(homedir.is_absolute());
+        assert!(homedir.is_dir());
+        Self {
+            homedir: homedir
+        }
+    }
+
+    fn resolve_path(&self, path_raw: &String) -> PathBuf {
+        let path_relativeto_home: String = path_raw.replacen("$HOME/", "", 1);
+        let is_relativeto_home = path_relativeto_home.len() != path_raw.len();
+        if is_relativeto_home {
+            let relative_path = Path::new(&path_relativeto_home);
+            return self.homedir.join(relative_path);
+        }
+        let absolute_path = Path::new(&path_raw);
+        assert!(absolute_path.is_absolute());
+        PathBuf::from(absolute_path)
+    }
+}
+
+fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: PathBuf) -> Config {
+    assert!(homedir.is_absolute());
+    let simpleenv = SimpleEnvironment::new(homedir);
+    let fallback: ConfigFallback = toml::from_str(&DEFAULT_CONFIG).unwrap();
+    let custom: ConfigCustom = toml::from_str(&toml_content).unwrap();
+
+    let loda_programs_repository: String = custom.loda_programs_repository.unwrap_or(fallback.loda_programs_repository);
+    let oeis_stripped_file: String = custom.oeis_stripped_file.unwrap_or(fallback.oeis_stripped_file);
+    let loda_rust_repository: String = custom.loda_rust_repository.unwrap_or(fallback.loda_rust_repository);
+    let oeis_names_file: String = custom.oeis_names_file.unwrap_or(fallback.oeis_names_file);
+    let loda_cpp_repository: String = custom.loda_cpp_repository.unwrap_or(fallback.loda_cpp_repository);
+    let loda_cpp_executable: String = custom.loda_cpp_executable.unwrap_or(fallback.loda_cpp_executable);
+    let loda_submitted_by: String = custom.loda_submitted_by.unwrap_or(fallback.loda_submitted_by);
+    let miner_metrics_listen_port: u16 = custom.miner_metrics_listen_port.unwrap_or(fallback.miner_metrics_listen_port);
+    let loda_identify_similar_programs_repository: String = custom.loda_identify_similar_programs_repository.unwrap_or(fallback.loda_identify_similar_programs_repository);
+    let loda_patterns_repository: String = custom.loda_patterns_repository.unwrap_or(fallback.loda_patterns_repository);
+    let loda_outlier_programs_repository: String = custom.loda_outlier_programs_repository.unwrap_or(fallback.loda_outlier_programs_repository);
     Config {
         basedir: basedir,
-        loda_programs_repository: inner.loda_programs_repository.clone(),
-        oeis_stripped_file: inner.oeis_stripped_file.clone(),
-        oeis_names_file: inner.oeis_names_file.clone(),
-        loda_rust_repository: inner.loda_rust_repository.clone(),
-        loda_cpp_repository: inner.loda_cpp_repository.clone(),
-        loda_cpp_executable: inner.loda_cpp_executable.clone(),
-        loda_submitted_by: inner.loda_submitted_by.clone(),
-        miner_metrics_listen_port: inner.miner_metrics_listen_port,
-        loda_identify_similar_programs_repository: inner.loda_identify_similar_programs_repository,
-        loda_patterns_repository: inner.loda_patterns_repository,
-        loda_outlier_programs_repository: inner.loda_outlier_programs_repository,
+        loda_programs_repository: simpleenv.resolve_path(&loda_programs_repository),
+        oeis_stripped_file: simpleenv.resolve_path(&oeis_stripped_file),
+        oeis_names_file: simpleenv.resolve_path(&oeis_names_file),
+        loda_rust_repository: simpleenv.resolve_path(&loda_rust_repository),
+        loda_cpp_repository: simpleenv.resolve_path(&loda_cpp_repository),
+        loda_cpp_executable: simpleenv.resolve_path(&loda_cpp_executable),
+        loda_submitted_by: loda_submitted_by.clone(),
+        miner_metrics_listen_port: miner_metrics_listen_port,
+        loda_identify_similar_programs_repository: simpleenv.resolve_path(&loda_identify_similar_programs_repository),
+        loda_patterns_repository: simpleenv.resolve_path(&loda_patterns_repository),
+        loda_outlier_programs_repository: simpleenv.resolve_path(&loda_outlier_programs_repository),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
+    use std::fs;
+    use std::error::Error;
+    use std::fmt;
+    
+    #[test]
+    fn test_10000_expand_homedir() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let homedir = PathBuf::from(&tempdir.path()).join("test_10000_expand_homedir");
+        fs::create_dir(&homedir)?;
+        let subdir = homedir.join("subdir");
+        let simpleenv = SimpleEnvironment::new(homedir);
+
+        // Act
+        let resolved_path: PathBuf = simpleenv.resolve_path(&"$HOME/subdir".to_string());
+
+        // Assert
+        let subdir_string: String = subdir.to_str().unwrap().to_string();
+        let resolved_string: String = resolved_path.to_str().unwrap().to_string();
+        assert_eq!(subdir_string, resolved_string);
+        assert_eq!(resolved_string.contains("$HOME"), false);
+        assert_eq!(resolved_string.ends_with("/subdir"), true);
+        Ok(())
+    }
 
     #[test]
-    fn test_10000() {
+    fn test_10001_absolute_path() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let homedir = PathBuf::from(&tempdir.path()).join("test_10001_absolute_path");
+        fs::create_dir(&homedir)?;
+        let subdir = homedir.join("subdir");
+        let simpleenv = SimpleEnvironment::new(homedir);
+        let subdir_string: String = subdir.to_str().unwrap().to_string();
+
+        // Act
+        let resolved_path: PathBuf = simpleenv.resolve_path(&subdir_string);
+
+        // Assert
+        let resolved_string: String = resolved_path.to_str().unwrap().to_string();
+        assert_eq!(subdir_string, resolved_string);
+        assert_eq!(resolved_string.contains("$HOME"), false);
+        assert_eq!(resolved_string.ends_with("/subdir"), true);
+        Ok(())
+    }
+
+    #[derive(Clone, Debug)]
+    enum CheckSuffixError {
+        WrongSuffix(String)
+    }
+
+    impl fmt::Display for CheckSuffixError {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                CheckSuffixError::WrongSuffix(message) => {
+                    return write!(f, "CheckSuffixError: {}", message)
+                }
+            }
+        }
+    }
+
+    impl Error for CheckSuffixError {}
+
+    fn assert_has_suffix(path: &Path, expected_suffix: &str) -> Result<(), CheckSuffixError> {
+        let path_string: String = path.to_str().expect("Expected Some, but got None").to_string();
+        if !path_string.ends_with(expected_suffix) {
+            let message = format!("Expected suffix {:?}, but got {:?}", expected_suffix, path_string);
+            return Err(CheckSuffixError::WrongSuffix(message));
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_20000_assert_has_suffix() -> Result<(), Box<dyn Error>> {
+        let tempdir = tempfile::tempdir().unwrap();
+        let homedir = PathBuf::from(&tempdir.path()).join("test_20000_assert_has_suffix");
+        fs::create_dir(&homedir)?;
+        let result_ok = assert_has_suffix(&homedir, "/test_20000_assert_has_suffix");
+        assert!(result_ok.is_ok());
+        let result_err = assert_has_suffix(&homedir, "/no-such-thing");
+        assert!(result_err.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_30000_fallback_config() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let homedir = PathBuf::from(&tempdir.path()).join("test_30000_fallback_config");
+        fs::create_dir(&homedir)?;
         let basedir = PathBuf::from(Path::new("non-existing-basedir"));
-        let config: Config = config_from_toml_content(Config::default_config(), basedir);
+
+        // Act
+        let config: Config = config_from_toml_content(Config::default_config(), basedir, homedir);
+
+        // Assert
         assert_eq!(config.basedir.to_str().unwrap(), "non-existing-basedir");
-        assert_eq!(config.loda_programs_repository, "/Users/JOHNDOE/loda/programs");
-        assert_eq!(config.oeis_stripped_file, "/Users/JOHNDOE/loda/oeis/stripped");
-        assert_eq!(config.oeis_names_file, "/Users/JOHNDOE/loda/oeis/names");
-        assert_eq!(config.loda_rust_repository, "/Users/JOHNDOE/git/loda-rust");
-        assert_eq!(config.loda_cpp_repository, "/Users/JOHNDOE/git/loda-cpp");
-        assert_eq!(config.loda_cpp_executable, "/Users/JOHNDOE/loda/bin/loda");
+        assert_has_suffix(&config.loda_programs_repository, "/loda/programs")?;
+        assert_has_suffix(&config.oeis_stripped_file, "/loda/oeis/stripped")?;
+        assert_has_suffix(&config.oeis_names_file, "/loda/oeis/names")?;
+        assert_has_suffix(&config.loda_rust_repository, "/git/loda-rust")?;
+        assert_has_suffix(&config.loda_cpp_repository, "/git/loda-cpp")?;
+        assert_has_suffix(&config.loda_cpp_executable, "/loda/bin/loda")?;
         assert_eq!(config.loda_submitted_by, "John Doe");
         assert_eq!(config.miner_metrics_listen_port, 8090);
-        assert_eq!(config.loda_identify_similar_programs_repository, "/Users/JOHNDOE/git/loda-identify-similar-programs");
-        assert_eq!(config.loda_patterns_repository, "/Users/JOHNDOE/git/loda-patterns");
-        assert_eq!(config.loda_outlier_programs_repository, "/Users/JOHNDOE/git/loda-outlier-programs");
+        assert_has_suffix(&config.loda_identify_similar_programs_repository, "/git/loda-identify-similar-programs")?;
+        assert_has_suffix(&config.loda_patterns_repository, "/git/loda-patterns")?;
+        assert_has_suffix(&config.loda_outlier_programs_repository, "/git/loda-outlier-programs")?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_40000_custom_config_loda_submitted_by() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let homedir = PathBuf::from(&tempdir.path()).join("test_40000_custom_config_loda_submitted_by");
+        fs::create_dir(&homedir)?;
+        let content = 
+        r#"
+        loda_submitted_by = "Leonardo di ser Piero da Vinci"
+        "#;
+        let basedir = PathBuf::from(Path::new("non-existing-basedir"));
+
+        // Act
+        let config: Config = config_from_toml_content(content.to_string(), basedir, homedir);
+
+        // Assert
+        assert_eq!(config.loda_submitted_by, "Leonardo di ser Piero da Vinci");
+        Ok(())
+    }
+
+    #[test]
+    fn test_40001_custom_config_loda_programs_repository() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let homedir = PathBuf::from(&tempdir.path()).join("test_40001_custom_config_loda_programs_repository");
+        fs::create_dir(&homedir)?;
+        let repodir = homedir.join("the-loda-programs-repo");
+        fs::create_dir(&repodir)?;
+        let content = 
+        r#"
+        loda_programs_repository = "$HOME/the-loda-programs-repo"
+        "#;
+        let basedir = PathBuf::from(Path::new("non-existing-basedir"));
+
+        // Act
+        let config: Config = config_from_toml_content(content.to_string(), basedir, homedir);
+
+        // Assert
+        assert_has_suffix(&config.loda_programs_repository, "/the-loda-programs-repo")?;
+        assert!(config.loda_programs_repository.is_absolute());
+        assert!(config.loda_programs_repository.is_dir());
+        Ok(())
     }
 }
