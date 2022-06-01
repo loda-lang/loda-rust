@@ -388,7 +388,7 @@ mod tests {
     use std::fs;
     use std::error::Error;
     use std::fmt;
-
+    
     #[test]
     fn test_10000_expand_homedir() -> Result<(), Box<dyn Error>> {
         // Arrange
@@ -407,7 +407,6 @@ mod tests {
         assert_eq!(subdir_string, resolved_string);
         assert_eq!(resolved_string.contains("$HOME"), false);
         assert_eq!(resolved_string.ends_with("/subdir"), true);
-
         Ok(())
     }
 
@@ -417,9 +416,7 @@ mod tests {
         let tempdir = tempfile::tempdir().unwrap();
         let homedir = PathBuf::from(&tempdir.path()).join("test_10001_absolute_path");
         fs::create_dir(&homedir)?;
-
         let subdir = homedir.join("subdir");
-
         let simpleenv = SimpleEnvironment::new(homedir);
         let subdir_string: String = subdir.to_str().unwrap().to_string();
 
@@ -431,7 +428,6 @@ mod tests {
         assert_eq!(subdir_string, resolved_string);
         assert_eq!(resolved_string.contains("$HOME"), false);
         assert_eq!(resolved_string.ends_with("/subdir"), true);
-
         Ok(())
     }
 
@@ -475,13 +471,16 @@ mod tests {
 
     #[test]
     fn test_30000_fallback_config() -> Result<(), Box<dyn Error>> {
+        // Arrange
         let tempdir = tempfile::tempdir().unwrap();
         let homedir = PathBuf::from(&tempdir.path()).join("test_30000_fallback_config");
         fs::create_dir(&homedir)?;
-
         let basedir = PathBuf::from(Path::new("non-existing-basedir"));
+
+        // Act
         let config: Config = config_from_toml_content(Config::default_config(), basedir, homedir);
 
+        // Assert
         assert_eq!(config.basedir.to_str().unwrap(), "non-existing-basedir");
         assert_has_suffix(&config.loda_programs_repository, "/loda/programs")?;
         assert_has_suffix(&config.oeis_stripped_file, "/loda/oeis/stripped")?;
@@ -494,7 +493,50 @@ mod tests {
         assert_has_suffix(&config.loda_identify_similar_programs_repository, "/git/loda-identify-similar-programs")?;
         assert_has_suffix(&config.loda_patterns_repository, "/git/loda-patterns")?;
         assert_has_suffix(&config.loda_outlier_programs_repository, "/git/loda-outlier-programs")?;
+        Ok(())
+    }
 
+    #[test]
+    fn test_40000_custom_config_loda_submitted_by() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let homedir = PathBuf::from(&tempdir.path()).join("test_40000_custom_config_loda_submitted_by");
+        fs::create_dir(&homedir)?;
+        let content = 
+        r#"
+        loda_submitted_by = "Leonardo di ser Piero da Vinci"
+        "#;
+        let basedir = PathBuf::from(Path::new("non-existing-basedir"));
+
+        // Act
+        let config: Config = config_from_toml_content(content.to_string(), basedir, homedir);
+
+        // Assert
+        assert_eq!(config.loda_submitted_by, "Leonardo di ser Piero da Vinci");
+        Ok(())
+    }
+
+    #[test]
+    fn test_40001_custom_config_loda_programs_repository() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let homedir = PathBuf::from(&tempdir.path()).join("test_40001_custom_config_loda_programs_repository");
+        fs::create_dir(&homedir)?;
+        let repodir = homedir.join("the-loda-programs-repo");
+        fs::create_dir(&repodir)?;
+        let content = 
+        r#"
+        loda_programs_repository = "$HOME/the-loda-programs-repo"
+        "#;
+        let basedir = PathBuf::from(Path::new("non-existing-basedir"));
+
+        // Act
+        let config: Config = config_from_toml_content(content.to_string(), basedir, homedir);
+
+        // Assert
+        assert_has_suffix(&config.loda_programs_repository, "/the-loda-programs-repo")?;
+        assert!(config.loda_programs_repository.is_absolute());
+        assert!(config.loda_programs_repository.is_dir());
         Ok(())
     }
 }
