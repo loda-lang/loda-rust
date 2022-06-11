@@ -179,9 +179,10 @@ impl BatchProgramAnalyzerPlugin for AnalyzeProgramComplexity {
         true
     }
 
-    fn save(&self) {
+    fn save(&self) -> Result<(), Box<dyn Error>> {
         self.save_all();
         self.save_dont_optimize();
+        Ok(())
     }
 }
 

@@ -353,8 +353,9 @@ impl BatchProgramAnalyzerPlugin for AnalyzeTargetNgram {
         true
     }
 
-    fn save(&self) {
+    fn save(&self) -> Result<(), Box<dyn Error>> {
         self.save_inner();
+        Ok(())
     }
 }
 

@@ -69,8 +69,9 @@ impl BatchProgramAnalyzerPlugin for AnalyzeDependencies {
         true
     }
 
-    fn save(&self) {
+    fn save(&self) -> Result<(), Box<dyn Error>> {
         self.save_dependencies_csv();
+        Ok(())
     }
 }
 

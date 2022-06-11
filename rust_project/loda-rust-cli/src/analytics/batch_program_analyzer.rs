@@ -18,7 +18,7 @@ pub struct BatchProgramAnalyzerContext {
 
 pub trait BatchProgramAnalyzerPlugin {
     fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool;
-    fn save(&self);
+    fn save(&self) -> Result<(), Box<dyn Error>>;
 }
 
 pub type BatchProgramAnalyzerPluginItem = Rc<RefCell<dyn BatchProgramAnalyzerPlugin>>;
@@ -44,7 +44,7 @@ impl BatchProgramAnalyzer {
 
     pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
         self.analyze_all_program_files();
-        self.save_result_files();
+        self.save_result_files()?;
         Ok(())
     }
 
@@ -112,9 +112,10 @@ impl BatchProgramAnalyzer {
         }
     }
 
-    fn save_result_files(&self) {
+    fn save_result_files(&self) -> Result<(), Box<dyn Error>> {
         for plugin in self.plugin_vec.iter() {
-            plugin.borrow().save();
+            plugin.borrow().save()?;
         }
+        Ok(())
     }
 }
