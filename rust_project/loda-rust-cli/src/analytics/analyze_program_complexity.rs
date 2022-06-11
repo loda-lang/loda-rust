@@ -151,10 +151,10 @@ impl BatchProgramAnalyzerPlugin for AnalyzeProgramComplexity {
         "AnalyzeProgramComplexity"
     }
     
-    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
+    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> Result<(), Box<dyn Error>> {
         let classification = Self::classify(&context.parsed_program);
         self.classifications.insert(context.program_id, classification);
-        true
+        Ok(())
     }
 
     fn save(&self) -> Result<(), Box<dyn Error>> {

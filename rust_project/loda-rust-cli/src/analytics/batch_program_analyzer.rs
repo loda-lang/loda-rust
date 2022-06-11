@@ -21,7 +21,7 @@ pub struct BatchProgramAnalyzerContext {
 
 pub trait BatchProgramAnalyzerPlugin {
     fn human_readable_name(&self) -> &'static str;
-    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool;
+    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> Result<(), Box<dyn Error>>;
     fn save(&self) -> Result<(), Box<dyn Error>>;
     fn human_readable_summary(&self) -> String;
 }
@@ -48,26 +48,26 @@ impl BatchProgramAnalyzer {
     }
 
     pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
-        self.analyze_all_program_files();
+        self.analyze_all_program_files()?;
         self.save_result_files()?;
         self.save_summary()?;
         Ok(())
     }
 
-    fn analyze_all_program_files(&mut self) {
+    fn analyze_all_program_files(&mut self) -> Result<(), Box<dyn Error>> {
         let dir_containing_programs: PathBuf = self.config.loda_programs_oeis_dir();
         let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
         let number_of_paths = paths.len();
         if number_of_paths <= 0 {
             error!("Expected 1 or more programs, but there are no programs to analyze");
-            return;
+            return Ok(());
         }
 
         let pb = ProgressBar::new(number_of_paths as u64);
         println!("number of programs for the batch-program-analyzer: {:?}", paths.len());
         let start = Instant::now();
         for path in paths {
-            self.analyze_program_file(&path);
+            self.analyze_program_file(&path)?;
             pb.inc(1);
         }
         pb.finish_and_clear();
@@ -79,15 +79,16 @@ impl BatchProgramAnalyzer {
             HumanDuration(start.elapsed())
         );
         println!("number of program files that could not be loaded: {:?}", self.number_of_program_files_that_could_not_be_loaded);
+        Ok(())
     }
 
-    fn analyze_program_file(&mut self, path_to_program: &PathBuf) {
+    fn analyze_program_file(&mut self, path_to_program: &PathBuf) -> Result<(), Box<dyn Error>> {
         let program_id: u32 = match program_id_from_path(&path_to_program) {
             Some(program_id) => program_id,
             None => {
                 debug!("Unable to extract program_id from {:?}", path_to_program);
                 self.number_of_program_files_that_could_not_be_loaded += 1;
-                return;
+                return Ok(());
             }
         };
         let contents: String = match fs::read_to_string(&path_to_program) {
@@ -95,7 +96,7 @@ impl BatchProgramAnalyzer {
             Err(error) => {
                 debug!("loading program_id: {:?}, something went wrong reading the file: {:?}", program_id, error);
                 self.number_of_program_files_that_could_not_be_loaded += 1;
-                return;
+                return Ok(());
             }
         };
         let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&contents) {
@@ -103,7 +104,7 @@ impl BatchProgramAnalyzer {
             Err(error) => {
                 debug!("loading program_id: {:?}, something went wrong parsing the program: {:?}", program_id, error);
                 self.number_of_program_files_that_could_not_be_loaded += 1;
-                return;
+                return Ok(());
             }
         };
         let context = BatchProgramAnalyzerContext {
@@ -111,11 +112,9 @@ impl BatchProgramAnalyzer {
             parsed_program: parsed_program,
         };
         for plugin in self.plugin_vec.iter() {
-            let ok: bool = plugin.borrow_mut().analyze(&context);
-            if !ok {
-                break;
-            }
+            plugin.borrow_mut().analyze(&context)?;
         }
+        Ok(())
     }
 
     fn save_result_files(&self) -> Result<(), Box<dyn Error>> {

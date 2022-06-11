@@ -297,13 +297,13 @@ impl BatchProgramAnalyzerPlugin for AnalyzeTargetNgram {
         "AnalyzeTargetNgram"
     }
     
-    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
+    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> Result<(), Box<dyn Error>> {
         let words: Vec<String> = Self::extract_words(&context.parsed_program);
         self.populate_unigram(&words);
         self.populate_bigram(&words);
         self.populate_trigram(&words);
         self.populate_skipgram(&words);
-        true
+        Ok(())
     }
 
     fn save(&self) -> Result<(), Box<dyn Error>> {

@@ -37,10 +37,10 @@ impl BatchProgramAnalyzerPlugin for AnalyzeDependencies {
         "AnalyzeDependencies"
     }
 
-    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
+    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> Result<(), Box<dyn Error>> {
         let callee_program_ids: Vec<u32> = context.parsed_program.extract_program_ids();
         self.append_dependencies(context.program_id, callee_program_ids);
-        true
+        Ok(())
     }
 
     fn save(&self) -> Result<(), Box<dyn Error>> {

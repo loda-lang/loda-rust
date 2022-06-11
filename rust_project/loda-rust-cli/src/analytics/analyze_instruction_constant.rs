@@ -121,9 +121,9 @@ impl BatchProgramAnalyzerPlugin for AnalyzeInstructionConstant {
         "AnalyzeInstructionConstant"
     }
     
-    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
+    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> Result<(), Box<dyn Error>> {
         self.analyze_inner(context.program_id, &context.parsed_program);
-        true
+        Ok(())
     }
 
     fn save(&self) -> Result<(), Box<dyn Error>> {
