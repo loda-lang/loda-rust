@@ -1,5 +1,6 @@
 use crate::common::{find_asm_files_recursively, program_id_from_path};
 use loda_rust_core;
+use super::AnalyticsError;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::ParsedProgram;
 use std::path::{Path, PathBuf};
@@ -68,8 +69,8 @@ impl BatchProgramAnalyzer {
         self.line_writer.write_all(content.as_bytes())?;
 
         if number_of_paths <= 0 {
-            error!("Expected 1 or more programs, but there are no programs to analyze");
-            return Ok(());
+            let message = "Expected 1 or more programs, but there are no programs to analyze";
+            return Err(Box::new(AnalyticsError::BatchProgramAnalyzer(message.to_string())));
         }
 
         let pb = ProgressBar::new(number_of_paths as u64);
