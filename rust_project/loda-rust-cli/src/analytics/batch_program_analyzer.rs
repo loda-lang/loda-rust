@@ -44,9 +44,13 @@ impl BatchProgramAnalyzer {
     }
 
     pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
+        let path: PathBuf = self.config.analytics_dir().join(Path::new("batch_program_analyzer.txt"));
+        let file = File::create(path)?;
+        let mut line_writer: LineWriter<File> = LineWriter::new(file);
+
         self.analyze_all_program_files()?;
         self.save_result_files()?;
-        self.save_summary()?;
+        self.save_summary(&mut line_writer)?;
         Ok(())
     }
 
@@ -120,10 +124,7 @@ impl BatchProgramAnalyzer {
         Ok(())
     }
 
-    fn save_summary(&self) -> Result<(), Box<dyn Error>> {
-        let path: PathBuf = self.config.analytics_dir().join(Path::new("batch_program_analyzer.txt"));
-        let file = File::create(path)?;
-        let mut line_writer = LineWriter::new(file);
+    fn save_summary(&self, line_writer: &mut LineWriter<File>) -> Result<(), Box<dyn Error>> {
         for plugin in self.plugin_vec.iter() {
             let name: &str = plugin.borrow().plugin_name();
             let summary: String = plugin.borrow().human_readable_summary();
