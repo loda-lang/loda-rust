@@ -32,8 +32,6 @@ impl AnalyzeDependencies {
     }
 
     fn save_dependencies_csv(&self) {
-        println!("number of dependency: {}", self.dependencies.len());
-
         let mut records: Vec<RecordDependency> = self.dependencies.clone();
         records.sort_unstable_by_key(|item| (item.caller_program_id, item.callee_program_id));
 
@@ -63,6 +61,10 @@ impl AnalyzeDependencies {
 }
 
 impl BatchProgramAnalyzerPlugin for AnalyzeDependencies {
+    fn human_readable_name(&self) -> &'static str {
+        "AnalyzeDependencies"
+    }
+    
     fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
         let callee_program_ids: Vec<u32> = context.parsed_program.extract_program_ids();
         self.append_dependencies(context.program_id, callee_program_ids);
@@ -72,6 +74,10 @@ impl BatchProgramAnalyzerPlugin for AnalyzeDependencies {
     fn save(&self) -> Result<(), Box<dyn Error>> {
         self.save_dependencies_csv();
         Ok(())
+    }
+
+    fn human_readable_summary(&self) -> String {
+        format!("number of dependencies: {}", self.dependencies.len())
     }
 }
 

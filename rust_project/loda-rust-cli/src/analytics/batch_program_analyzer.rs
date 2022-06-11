@@ -8,6 +8,9 @@ use std::fs;
 use std::time::Instant;
 use std::rc::Rc;
 use core::cell::RefCell;
+use std::fs::File;
+use std::io::Write;
+use std::io::LineWriter;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
 
@@ -17,8 +20,10 @@ pub struct BatchProgramAnalyzerContext {
 }
 
 pub trait BatchProgramAnalyzerPlugin {
+    fn human_readable_name(&self) -> &'static str;
     fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool;
     fn save(&self) -> Result<(), Box<dyn Error>>;
+    fn human_readable_summary(&self) -> String;
 }
 
 pub type BatchProgramAnalyzerPluginItem = Rc<RefCell<dyn BatchProgramAnalyzerPlugin>>;
@@ -45,6 +50,7 @@ impl BatchProgramAnalyzer {
     pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
         self.analyze_all_program_files();
         self.save_result_files()?;
+        self.save_summary()?;
         Ok(())
     }
 
@@ -115,6 +121,19 @@ impl BatchProgramAnalyzer {
     fn save_result_files(&self) -> Result<(), Box<dyn Error>> {
         for plugin in self.plugin_vec.iter() {
             plugin.borrow().save()?;
+        }
+        Ok(())
+    }
+
+    fn save_summary(&self) -> Result<(), Box<dyn Error>> {
+        let path: PathBuf = self.config.analytics_dir().join(Path::new("batch_program_analyzer.txt"));
+        let file = File::create(path)?;
+        let mut line_writer = LineWriter::new(file);
+        for plugin in self.plugin_vec.iter() {
+            let name: &str = plugin.borrow().human_readable_name();
+            let summary: String = plugin.borrow().human_readable_summary();
+            let content = format!("{}\n{}\n\n", name.trim(), summary.trim());
+            line_writer.write_all(content.as_bytes())?;
         }
         Ok(())
     }

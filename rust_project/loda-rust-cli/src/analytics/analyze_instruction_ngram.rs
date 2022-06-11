@@ -123,12 +123,8 @@ impl AnalyzeInstructionNgram {
             histogram_skipgram: HashMap::new(),
         }
     }
-
+    
     fn save_inner(&self) {
-        println!("number of items in unigram: {:?}", self.histogram_unigram.len());
-        println!("number of items in bigram: {:?}", self.histogram_bigram.len());
-        println!("number of items in trigram: {:?}", self.histogram_trigram.len());
-        println!("number of items in skipgram: {:?}", self.histogram_skipgram.len());
         self.save_unigram();
         self.save_bigram();
         self.save_trigram();
@@ -344,6 +340,10 @@ impl AnalyzeInstructionNgram {
 }
 
 impl BatchProgramAnalyzerPlugin for AnalyzeInstructionNgram {
+    fn human_readable_name(&self) -> &'static str {
+        "AnalyzeInstructionNgram"
+    }
+    
     fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
         let words: Vec<String> = Self::extract_words(&context.parsed_program);
         self.populate_unigram(&words);
@@ -356,6 +356,16 @@ impl BatchProgramAnalyzerPlugin for AnalyzeInstructionNgram {
     fn save(&self) -> Result<(), Box<dyn Error>> {
         self.save_inner();
         Ok(())
+    }
+
+    fn human_readable_summary(&self) -> String {
+        let rows: Vec<String> = vec![
+            format!("number of items in unigram: {:?}", self.histogram_unigram.len()),
+            format!("number of items in bigram: {:?}", self.histogram_bigram.len()),
+            format!("number of items in trigram: {:?}", self.histogram_trigram.len()),
+            format!("number of items in skipgram: {:?}", self.histogram_skipgram.len()),
+        ];
+        rows.join("\n")
     }
 }
 

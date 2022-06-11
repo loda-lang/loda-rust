@@ -116,10 +116,6 @@ impl AnalyzeInstructionConstant {
     }
 
     fn save_inner(&self) {
-        println!("number of constants processed unsuccessful: {:?}", self.number_of_constant_processed_unsuccessful);
-        println!("number of constants processed successful: {:?}", self.number_of_constant_processed_successful);
-        println!("number of items in histogram: {:?}", self.histogram.len());
-
         // Convert from dictionary to array
         let mut records = Vec::<Record>::new();
         for (histogram_key, histogram_count) in &self.histogram {
@@ -163,6 +159,10 @@ impl AnalyzeInstructionConstant {
 }
 
 impl BatchProgramAnalyzerPlugin for AnalyzeInstructionConstant {
+    fn human_readable_name(&self) -> &'static str {
+        "AnalyzeInstructionConstant"
+    }
+    
     fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
         self.analyze_inner(context.program_id, &context.parsed_program);
         true
@@ -171,6 +171,15 @@ impl BatchProgramAnalyzerPlugin for AnalyzeInstructionConstant {
     fn save(&self) -> Result<(), Box<dyn Error>> {
         self.save_inner();
         Ok(())
+    }
+
+    fn human_readable_summary(&self) -> String {
+        let rows: Vec<String> = vec![
+            format!("number of constants processed unsuccessful: {:?}", self.number_of_constant_processed_unsuccessful),
+            format!("number of constants processed successful: {:?}", self.number_of_constant_processed_successful),
+            format!("number of items in histogram: {:?}", self.histogram.len())
+        ];
+        rows.join("\n")
     }
 }
 

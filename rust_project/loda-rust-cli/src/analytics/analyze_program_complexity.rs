@@ -173,6 +173,10 @@ impl AnalyzeProgramComplexity {
 }
 
 impl BatchProgramAnalyzerPlugin for AnalyzeProgramComplexity {
+    fn human_readable_name(&self) -> &'static str {
+        "AnalyzeProgramComplexity"
+    }
+    
     fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
         let classification = Self::classify(&context.parsed_program);
         self.classifications.insert(context.program_id, classification);
@@ -183,6 +187,10 @@ impl BatchProgramAnalyzerPlugin for AnalyzeProgramComplexity {
         self.save_all();
         self.save_dont_optimize();
         Ok(())
+    }
+
+    fn human_readable_summary(&self) -> String {
+        "ok".to_string()
     }
 }
 
