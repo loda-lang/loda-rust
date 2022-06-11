@@ -6,6 +6,7 @@ use crate::analytics::{AnalyzeDependencies, AnalyzeInstructionConstant, AnalyzeI
 use crate::mine::PopulateBloomfilter;
 
 fn run_batch_program_analyzer() -> Result<(), Box<dyn Error>> {
+    println!("run_batch_program_analyzer");
     let plugin_dependencies = Rc::new(RefCell::new(AnalyzeDependencies::new()));
     let plugin_instruction_ngram = Rc::new(RefCell::new(AnalyzeInstructionNgram::new()));
     let plugin_instruction_constant = Rc::new(RefCell::new(AnalyzeInstructionConstant::new()));
