@@ -7,6 +7,8 @@ use std::fs;
 use std::time::Instant;
 use std::rc::Rc;
 use core::cell::RefCell;
+use console::Style;
+use indicatif::{HumanDuration, ProgressBar};
 
 pub struct BatchProgramAnalyzerContext {
     pub program_id: u32,
@@ -52,19 +54,22 @@ impl BatchProgramAnalyzer {
             error!("Expected 1 or more programs, but there are no programs to analyze");
             return;
         }
-        let max_index: usize = number_of_paths - 1;
+
+        let pb = ProgressBar::new(number_of_paths as u64);
         println!("number of programs for the batch-program-analyzer: {:?}", paths.len());
-        let mut progress_time = Instant::now();
-        for (index, path) in paths.iter().enumerate() {
-            let elapsed: u128 = progress_time.elapsed().as_millis();
-            let is_last: bool = index == max_index;
-            if elapsed >= 1000 || is_last {
-                let percent: usize = (index * 100) / max_index;
-                println!("progress: {}%  {} of {}", percent, index + 1, number_of_paths);
-                progress_time = Instant::now();
-            }
+        let start = Instant::now();
+        for path in paths {
             self.analyze_program_file(&path);
+            pb.inc(1);
         }
+        pb.finish_and_clear();
+
+        let green_bold = Style::new().green().bold();        
+        println!(
+            "{:>12} batch-program-analyzer in {}",
+            green_bold.apply_to("Finished"),
+            HumanDuration(start.elapsed())
+        );
         println!("number of program files that could not be loaded: {:?}", self.number_of_program_files_that_could_not_be_loaded);
     }
 
