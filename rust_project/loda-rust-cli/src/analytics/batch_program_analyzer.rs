@@ -2,7 +2,8 @@ use crate::common::{find_asm_files_recursively, program_id_from_path};
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::ParsedProgram;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::error::Error;
 use std::fs;
 use std::time::Instant;
 use std::rc::Rc;
@@ -41,9 +42,10 @@ impl BatchProgramAnalyzer {
         self.plugin_vec.push(plugin);
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
         self.analyze_all_program_files();
         self.save_result_files();
+        Ok(())
     }
 
     fn analyze_all_program_files(&mut self) {

@@ -85,16 +85,7 @@ The outputted file: `programs_invalid.csv` has this format:
 pub struct ValidatePrograms {}
 
 impl ValidatePrograms {
-    pub fn run() {
-        match Self::run_inner() {
-            Ok(_) => {},
-            Err(err) => {
-                error!("Error occured while validating programs: {}", err);
-            }
-        }
-    }
-
-    fn run_inner() -> Result<(), Box<dyn Error>> {
+    pub fn run() -> Result<(), Box<dyn Error>> {
         let start = Instant::now();
         println!("validate_programs begin");
         let config = Config::load();
