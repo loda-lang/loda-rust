@@ -1,3 +1,4 @@
+mod create_csv_file;
 mod find_files_recursively;
 mod load_program_ids_csv_file;
 mod parse_csv_bigram;
@@ -7,6 +8,7 @@ mod parse_csv_skipgram;
 mod parse_csv_trigram;
 mod program_id_from_path;
 
+pub use create_csv_file::create_csv_file;
 pub use find_files_recursively::{find_asm_files_recursively, find_csv_files_recursively};
 pub use load_program_ids_csv_file::load_program_ids_csv_file;
 pub use parse_csv_bigram::RecordBigram;
