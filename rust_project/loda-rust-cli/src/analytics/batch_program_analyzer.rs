@@ -32,25 +32,30 @@ pub struct BatchProgramAnalyzer {
     config: Config,
     number_of_program_files_that_could_not_be_loaded: u32,
     plugin_vec: Vec<BatchProgramAnalyzerPluginItem>,
+    line_writer: LineWriter<File>,
 }
 
 impl BatchProgramAnalyzer {
-    pub fn new(plugin_vec: Vec<BatchProgramAnalyzerPluginItem>) -> Self {
-        Self {
-            config: Config::load(),
+    pub fn new(plugin_vec: Vec<BatchProgramAnalyzerPluginItem>) -> Result<BatchProgramAnalyzer, Box<dyn Error>> {
+        let config = Config::load();
+
+        let path: PathBuf = config.analytics_dir().join(Path::new("batch_program_analyzer.txt"));
+        let file = File::create(path)?;
+        let line_writer: LineWriter<File> = LineWriter::new(file);
+
+        let instance = BatchProgramAnalyzer {
+            config: config,
             number_of_program_files_that_could_not_be_loaded: 0,
             plugin_vec: plugin_vec,
-        }
+            line_writer: line_writer,
+        };
+        Ok(instance)
     }
 
     pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
-        let path: PathBuf = self.config.analytics_dir().join(Path::new("batch_program_analyzer.txt"));
-        let file = File::create(path)?;
-        let mut line_writer: LineWriter<File> = LineWriter::new(file);
-
         self.analyze_all_program_files()?;
         self.save_result_files()?;
-        self.save_summary(&mut line_writer)?;
+        self.save_summary()?;
         Ok(())
     }
 
@@ -58,13 +63,16 @@ impl BatchProgramAnalyzer {
         let dir_containing_programs: PathBuf = self.config.loda_programs_oeis_dir();
         let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
         let number_of_paths = paths.len();
+
+        let content = format!("Overview\nnumber of paths to be analyzed: {:?}\n", number_of_paths);
+        self.line_writer.write_all(content.as_bytes())?;
+
         if number_of_paths <= 0 {
             error!("Expected 1 or more programs, but there are no programs to analyze");
             return Ok(());
         }
 
         let pb = ProgressBar::new(number_of_paths as u64);
-        println!("number of programs for the batch-program-analyzer: {:?}", paths.len());
         let start = Instant::now();
         for path in paths {
             self.analyze_program_file(&path)?;
@@ -78,7 +86,10 @@ impl BatchProgramAnalyzer {
             green_bold.apply_to("Finished"),
             HumanDuration(start.elapsed())
         );
-        println!("number of program files that could not be loaded: {:?}", self.number_of_program_files_that_could_not_be_loaded);
+
+        let content = format!("number of program files that could not be loaded: {:?}\n\n", self.number_of_program_files_that_could_not_be_loaded);
+        self.line_writer.write_all(content.as_bytes())?;
+
         Ok(())
     }
 
@@ -124,12 +135,12 @@ impl BatchProgramAnalyzer {
         Ok(())
     }
 
-    fn save_summary(&self, line_writer: &mut LineWriter<File>) -> Result<(), Box<dyn Error>> {
+    fn save_summary(&mut self) -> Result<(), Box<dyn Error>> {
         for plugin in self.plugin_vec.iter() {
             let name: &str = plugin.borrow().plugin_name();
             let summary: String = plugin.borrow().human_readable_summary();
             let content = format!("{}\n{}\n\n", name.trim(), summary.trim());
-            line_writer.write_all(content.as_bytes())?;
+            self.line_writer.write_all(content.as_bytes())?;
         }
         Ok(())
     }

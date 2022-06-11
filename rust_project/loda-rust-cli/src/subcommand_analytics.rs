@@ -20,7 +20,7 @@ fn run_batch_program_analyzer() -> Result<(), Box<dyn Error>> {
         plugin_target_ngram,
         plugin_program_complexity,
     ];
-    let mut analyzer = BatchProgramAnalyzer::new(plugin_vec);
+    let mut analyzer = BatchProgramAnalyzer::new(plugin_vec)?;
     return analyzer.run();
 }
 
