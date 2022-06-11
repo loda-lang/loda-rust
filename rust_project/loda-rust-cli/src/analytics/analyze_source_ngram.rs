@@ -301,7 +301,7 @@ impl AnalyzeSourceNgram {
 }
 
 impl BatchProgramAnalyzerPlugin for AnalyzeSourceNgram {
-    fn human_readable_name(&self) -> &'static str {
+    fn plugin_name(&self) -> &'static str {
         "AnalyzeSourceNgram"
     }
     

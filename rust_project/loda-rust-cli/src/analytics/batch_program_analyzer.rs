@@ -20,7 +20,7 @@ pub struct BatchProgramAnalyzerContext {
 }
 
 pub trait BatchProgramAnalyzerPlugin {
-    fn human_readable_name(&self) -> &'static str;
+    fn plugin_name(&self) -> &'static str;
     fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> Result<(), Box<dyn Error>>;
     fn save(&self) -> Result<(), Box<dyn Error>>;
     fn human_readable_summary(&self) -> String;
@@ -129,7 +129,7 @@ impl BatchProgramAnalyzer {
         let file = File::create(path)?;
         let mut line_writer = LineWriter::new(file);
         for plugin in self.plugin_vec.iter() {
-            let name: &str = plugin.borrow().human_readable_name();
+            let name: &str = plugin.borrow().plugin_name();
             let summary: String = plugin.borrow().human_readable_summary();
             let content = format!("{}\n{}\n\n", name.trim(), summary.trim());
             line_writer.write_all(content.as_bytes())?;

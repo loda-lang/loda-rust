@@ -147,7 +147,7 @@ impl AnalyzeProgramComplexity {
 }
 
 impl BatchProgramAnalyzerPlugin for AnalyzeProgramComplexity {
-    fn human_readable_name(&self) -> &'static str {
+    fn plugin_name(&self) -> &'static str {
         "AnalyzeProgramComplexity"
     }
     

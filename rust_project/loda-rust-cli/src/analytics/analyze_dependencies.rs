@@ -33,7 +33,7 @@ impl AnalyzeDependencies {
 }
 
 impl BatchProgramAnalyzerPlugin for AnalyzeDependencies {
-    fn human_readable_name(&self) -> &'static str {
+    fn plugin_name(&self) -> &'static str {
         "AnalyzeDependencies"
     }
 

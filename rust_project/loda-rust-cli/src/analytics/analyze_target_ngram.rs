@@ -293,7 +293,7 @@ impl AnalyzeTargetNgram {
 }
 
 impl BatchProgramAnalyzerPlugin for AnalyzeTargetNgram {
-    fn human_readable_name(&self) -> &'static str {
+    fn plugin_name(&self) -> &'static str {
         "AnalyzeTargetNgram"
     }
     

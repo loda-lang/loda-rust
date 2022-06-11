@@ -117,7 +117,7 @@ impl AnalyzeInstructionConstant {
 }
 
 impl BatchProgramAnalyzerPlugin for AnalyzeInstructionConstant {
-    fn human_readable_name(&self) -> &'static str {
+    fn plugin_name(&self) -> &'static str {
         "AnalyzeInstructionConstant"
     }
     
