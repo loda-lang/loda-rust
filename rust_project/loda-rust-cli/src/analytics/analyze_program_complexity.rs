@@ -1,10 +1,10 @@
+use crate::common::create_csv_file;
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::{InstructionId, ParsedProgram};
 use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::collections::HashMap;
-use csv::WriterBuilder;
 use serde::Serialize;
 use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
@@ -98,7 +98,7 @@ impl AnalyzeProgramComplexity {
         return ProgramComplexityClassification::ComplexOtherReasons;
     }
 
-    fn save_all(&self) {
+    fn save_all(&self) -> Result<(), Box<dyn Error>> {
         // Convert from dictionary to array
         let mut records = Vec::<RecordProgram>::new();
         for (key, value) in &self.classifications {
@@ -116,17 +116,10 @@ impl AnalyzeProgramComplexity {
 
         // Save as a CSV file
         let output_path: PathBuf = self.config.analytics_dir_complexity_all_file();
-        match Self::create_csv_file(&records, &output_path) {
-            Ok(_) => {
-                println!("saved complexity_all.csv");
-            },
-            Err(error) => {
-                println!("cannot save complexity_all.csv error: {:?}", error);
-            }
-        }
+        create_csv_file(&records, &output_path)
     }
 
-    fn save_dont_optimize(&self) {
+    fn save_dont_optimize(&self) -> Result<(), Box<dyn Error>> {
         // Extract program ids of those programs that has little/no chance of being optimized
         let mut program_ids = Vec::<u32>::new();
         for (key, value) in &self.classifications {
@@ -138,26 +131,7 @@ impl AnalyzeProgramComplexity {
 
         // Save as a CSV file
         let output_path: PathBuf = self.config.analytics_dir_complexity_dont_optimize_file();
-        match Self::create_csv_file_with_program_ids(&program_ids, &output_path) {
-            Ok(_) => {
-                println!("saved complexity_dont_optimize.csv");
-            },
-            Err(error) => {
-                println!("cannot save complexity_dont_optimize.csv error: {:?}", error);
-            }
-        }
-    }
-
-    fn create_csv_file<S: Serialize>(records: &Vec<S>, output_path: &Path) -> Result<(), Box<dyn Error>> {
-        let mut wtr = WriterBuilder::new()
-            .has_headers(true)
-            .delimiter(b';')
-            .from_path(output_path)?;
-        for record in records {
-            wtr.serialize(record)?;
-        }
-        wtr.flush()?;
-        Ok(())
+        Self::create_csv_file_with_program_ids(&program_ids, &output_path)
     }
 
     fn create_csv_file_with_program_ids(program_ids: &Vec<u32>, output_path: &Path) -> Result<(), Box<dyn Error>> {
@@ -184,8 +158,8 @@ impl BatchProgramAnalyzerPlugin for AnalyzeProgramComplexity {
     }
 
     fn save(&self) -> Result<(), Box<dyn Error>> {
-        self.save_all();
-        self.save_dont_optimize();
+        self.save_all()?;
+        self.save_dont_optimize()?;
         Ok(())
     }
 
