@@ -35,16 +35,12 @@ pub struct BatchProgramAnalyzer {
 }
 
 impl BatchProgramAnalyzer {
-    pub fn new() -> Self {
+    pub fn new(plugin_vec: Vec<BatchProgramAnalyzerPluginItem>) -> Self {
         Self {
             config: Config::load(),
             number_of_program_files_that_could_not_be_loaded: 0,
-            plugin_vec: vec!(),
+            plugin_vec: plugin_vec,
         }
-    }
-
-    pub fn register(&mut self, plugin: BatchProgramAnalyzerPluginItem) {
-        self.plugin_vec.push(plugin);
     }
 
     pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
