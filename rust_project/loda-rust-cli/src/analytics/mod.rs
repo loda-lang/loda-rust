@@ -9,6 +9,7 @@ mod batch_program_analyzer;
 mod deny_file;
 mod dont_mine;
 mod program_rank;
+mod simple_log;
 mod validate_programs;
 
 pub use analytics_error::AnalyticsError;
@@ -22,4 +23,5 @@ pub use batch_program_analyzer::{BatchProgramAnalyzer, BatchProgramAnalyzerConte
 pub use deny_file::load_program_ids_from_deny_file;
 pub use dont_mine::DontMine;
 pub use program_rank::compute_program_rank;
+pub use simple_log::SimpleLog;
 pub use validate_programs::ValidatePrograms;
