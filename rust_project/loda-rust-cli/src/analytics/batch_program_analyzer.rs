@@ -1,17 +1,14 @@
 use crate::common::{find_asm_files_recursively, program_id_from_path};
 use loda_rust_core;
-use super::AnalyticsError;
+use super::{AnalyticsError, SimpleLog};
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::ParsedProgram;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::error::Error;
 use std::fs;
 use std::time::Instant;
 use std::rc::Rc;
 use core::cell::RefCell;
-use std::fs::File;
-use std::io::Write;
-use std::io::LineWriter;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
 
@@ -30,30 +27,24 @@ pub trait BatchProgramAnalyzerPlugin {
 pub type BatchProgramAnalyzerPluginItem = Rc<RefCell<dyn BatchProgramAnalyzerPlugin>>;
 
 pub struct BatchProgramAnalyzer {
+    simple_log: SimpleLog,
     config: Config,
     number_of_program_files_that_could_not_be_loaded: u32,
     plugin_vec: Vec<BatchProgramAnalyzerPluginItem>,
-    line_writer: LineWriter<File>,
 }
 
 impl BatchProgramAnalyzer {
-    pub fn new(plugin_vec: Vec<BatchProgramAnalyzerPluginItem>) -> Result<BatchProgramAnalyzer, Box<dyn Error>> {
-        let config = Config::load();
-
-        let path: PathBuf = config.analytics_dir().join(Path::new("batch_program_analyzer.txt"));
-        let file = File::create(path)?;
-        let line_writer: LineWriter<File> = LineWriter::new(file);
-
-        let instance = BatchProgramAnalyzer {
-            config: config,
+    pub fn new(plugin_vec: Vec<BatchProgramAnalyzerPluginItem>, simple_log: SimpleLog) -> Self {
+        Self {
+            simple_log: simple_log,
+            config: Config::load(),
             number_of_program_files_that_could_not_be_loaded: 0,
             plugin_vec: plugin_vec,
-            line_writer: line_writer,
-        };
-        Ok(instance)
+        }
     }
 
     pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
+        println!("batch_program_analyzer");
         self.analyze_all_program_files()?;
         self.save_result_files()?;
         self.save_summary()?;
@@ -65,8 +56,8 @@ impl BatchProgramAnalyzer {
         let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
         let number_of_paths = paths.len();
 
-        let content = format!("Overview\nnumber of paths to be analyzed: {:?}\n", number_of_paths);
-        self.line_writer.write_all(content.as_bytes())?;
+        let content = format!("BatchProgramAnalyzer\nnumber of paths to be analyzed: {:?}", number_of_paths);
+        self.simple_log.println(content);
 
         if number_of_paths <= 0 {
             let message = "Expected 1 or more programs, but there are no programs to analyze";
@@ -88,8 +79,8 @@ impl BatchProgramAnalyzer {
             HumanDuration(start.elapsed())
         );
 
-        let content = format!("number of program files that could not be loaded: {:?}\n\n", self.number_of_program_files_that_could_not_be_loaded);
-        self.line_writer.write_all(content.as_bytes())?;
+        let content = format!("number of program files that could not be loaded: {:?}", self.number_of_program_files_that_could_not_be_loaded);
+        self.simple_log.println(content);
 
         Ok(())
     }
@@ -140,8 +131,8 @@ impl BatchProgramAnalyzer {
         for plugin in self.plugin_vec.iter() {
             let name: &str = plugin.borrow().plugin_name();
             let summary: String = plugin.borrow().human_readable_summary();
-            let content = format!("{}\n{}\n\n", name.trim(), summary.trim());
-            self.line_writer.write_all(content.as_bytes())?;
+            let content = format!("\n{}\n{}\n", name.trim(), summary.trim());
+            self.simple_log.print(&content)?;
         }
         Ok(())
     }

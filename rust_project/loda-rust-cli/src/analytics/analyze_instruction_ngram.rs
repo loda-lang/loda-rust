@@ -1,11 +1,14 @@
 use crate::common::create_csv_file;
+use crate::common::RecordBigram;
+use crate::common::RecordTrigram;
+use crate::common::RecordSkipgram;
+use crate::common::RecordUnigram;
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::{InstructionId, ParsedProgram};
 use std::path::PathBuf;
 use std::error::Error;
 use std::collections::HashMap;
-use serde::Serialize;
 use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
 type HistogramBigramKey = (String,String);
@@ -323,32 +326,4 @@ impl BatchProgramAnalyzerPlugin for AnalyzeInstructionNgram {
         ];
         rows.join("\n")
     }
-}
-
-#[derive(Serialize)]
-struct RecordUnigram {
-    count: u32,
-    word: String,
-}
-
-#[derive(Serialize)]
-struct RecordBigram {
-    count: u32,
-    word0: String,
-    word1: String,
-}
-
-#[derive(Serialize)]
-struct RecordTrigram {
-    count: u32,
-    word0: String,
-    word1: String,
-    word2: String,
-}
-
-#[derive(Serialize)]
-struct RecordSkipgram {
-    count: u32,
-    word0: String,
-    word2: String,
 }
