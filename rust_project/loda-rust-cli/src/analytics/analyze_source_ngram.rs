@@ -1,10 +1,10 @@
+use crate::common::create_csv_file;
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::{InstructionParameter, ParsedProgram, ParameterType};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::error::Error;
 use std::collections::HashMap;
-use csv::WriterBuilder;
 use serde::Serialize;
 use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
@@ -121,17 +121,6 @@ impl AnalyzeSourceNgram {
         }
     }
 
-    fn save_inner(&self) {
-        println!("number of items in unigram: {:?}", self.histogram_unigram.len());
-        println!("number of items in bigram: {:?}", self.histogram_bigram.len());
-        println!("number of items in trigram: {:?}", self.histogram_trigram.len());
-        println!("number of items in skipgram: {:?}", self.histogram_skipgram.len());
-        self.save_unigram();
-        self.save_bigram();
-        self.save_trigram();
-        self.save_skipgram();
-    }
-
     fn extract_words(parsed_program: &ParsedProgram) -> Vec<String> {
         let mut words: Vec<String> = vec!();
         words.push("START".to_string());
@@ -222,7 +211,7 @@ impl AnalyzeSourceNgram {
         }
     }
 
-    fn save_unigram(&self) {
+    fn save_unigram(&self) -> Result<(), Box<dyn Error>> {
         // Convert from dictionary to array
         let mut records = Vec::<RecordUnigram>::new();
         for (histogram_key, histogram_count) in &self.histogram_unigram {
@@ -240,17 +229,10 @@ impl AnalyzeSourceNgram {
 
         // Save as a CSV file
         let output_path: PathBuf = self.config.analytics_dir_histogram_source_unigram_file();
-        match Self::create_csv_file(&records, &output_path) {
-            Ok(_) => {
-                println!("saved unigram.csv");
-            },
-            Err(error) => {
-                println!("cannot save unigram.csv error: {:?}", error);
-            }
-        }
+        create_csv_file(&records, &output_path)
     }
 
-    fn save_bigram(&self) {
+    fn save_bigram(&self) -> Result<(), Box<dyn Error>> {
         // Convert from dictionary to array
         let mut records = Vec::<RecordBigram>::new();
         for (histogram_key, histogram_count) in &self.histogram_bigram {
@@ -269,17 +251,10 @@ impl AnalyzeSourceNgram {
 
         // Save as a CSV file
         let output_path: PathBuf = self.config.analytics_dir_histogram_source_bigram_file();
-        match Self::create_csv_file(&records, &output_path) {
-            Ok(_) => {
-                println!("saved bigram.csv");
-            },
-            Err(error) => {
-                println!("cannot save bigram.csv error: {:?}", error);
-            }
-        }
+        create_csv_file(&records, &output_path)
     }
 
-    fn save_trigram(&self) {
+    fn save_trigram(&self) -> Result<(), Box<dyn Error>> {
         // Convert from dictionary to array
         let mut records = Vec::<RecordTrigram>::new();
         for (histogram_key, histogram_count) in &self.histogram_trigram {
@@ -299,17 +274,10 @@ impl AnalyzeSourceNgram {
 
         // Save as a CSV file
         let output_path: PathBuf = self.config.analytics_dir_histogram_source_trigram_file();
-        match Self::create_csv_file(&records, &output_path) {
-            Ok(_) => {
-                println!("saved trigram.csv");
-            },
-            Err(error) => {
-                println!("cannot save trigram.csv error: {:?}", error);
-            }
-        }
+        create_csv_file(&records, &output_path)
     }
 
-    fn save_skipgram(&self) {
+    fn save_skipgram(&self) -> Result<(), Box<dyn Error>> {
         // Convert from dictionary to array
         let mut records = Vec::<RecordSkipgram>::new();
         for (histogram_key, histogram_count) in &self.histogram_skipgram {
@@ -328,41 +296,40 @@ impl AnalyzeSourceNgram {
 
         // Save as a CSV file
         let output_path: PathBuf = self.config.analytics_dir_histogram_source_skipgram_file();
-        match Self::create_csv_file(&records, &output_path) {
-            Ok(_) => {
-                println!("saved skipgram.csv");
-            },
-            Err(error) => {
-                println!("cannot save skipgram.csv error: {:?}", error);
-            }
-        }
-    }
-
-    fn create_csv_file<S: Serialize>(records: &Vec<S>, output_path: &Path) -> Result<(), Box<dyn Error>> {
-        let mut wtr = WriterBuilder::new()
-            .has_headers(true)
-            .delimiter(b';')
-            .from_path(output_path)?;
-        for record in records {
-            wtr.serialize(record)?;
-        }
-        wtr.flush()?;
-        Ok(())
+        create_csv_file(&records, &output_path)
     }
 }
 
 impl BatchProgramAnalyzerPlugin for AnalyzeSourceNgram {
-    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
+    fn plugin_name(&self) -> &'static str {
+        "AnalyzeSourceNgram"
+    }
+    
+    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> Result<(), Box<dyn Error>> {
         let words: Vec<String> = Self::extract_words(&context.parsed_program);
         self.populate_unigram(&words);
         self.populate_bigram(&words);
         self.populate_trigram(&words);
         self.populate_skipgram(&words);
-        true
+        Ok(())
     }
 
-    fn save(&self) {
-        self.save_inner();
+    fn save(&self) -> Result<(), Box<dyn Error>> {
+        self.save_unigram()?;
+        self.save_bigram()?;
+        self.save_trigram()?;
+        self.save_skipgram()?;
+        Ok(())
+    }
+
+    fn human_readable_summary(&self) -> String {
+        let rows: Vec<String> = vec![
+            format!("number of items in unigram: {:?}", self.histogram_unigram.len()),
+            format!("number of items in bigram: {:?}", self.histogram_bigram.len()),
+            format!("number of items in trigram: {:?}", self.histogram_trigram.len()),
+            format!("number of items in skipgram: {:?}", self.histogram_skipgram.len()),
+        ];
+        rows.join("\n")
     }
 }
 

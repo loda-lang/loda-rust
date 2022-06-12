@@ -1,10 +1,9 @@
+use crate::common::create_csv_file;
 use loda_rust_core::config::Config;
 use simple_pagerank::Pagerank;
 use crate::common::parse_csv_file;
 use std::path::{Path, PathBuf};
-use std::error::Error;
 use serde::{Serialize, Deserialize};
-use csv::WriterBuilder;
 
 const HIGHEST_POPULARITY_VALUE: usize = 9;
 
@@ -15,19 +14,6 @@ struct RecordDependency {
     #[serde(rename = "callee program id")]
     target: u32,
 }
-
-fn create_csv_file<S: Serialize>(records: &Vec<S>, output_path: &Path) -> Result<(), Box<dyn Error>> {
-    let mut wtr = WriterBuilder::new()
-        .has_headers(true)
-        .delimiter(b';')
-        .from_path(output_path)?;
-    for record in records {
-        wtr.serialize(record)?;
-    }
-    wtr.flush()?;
-    Ok(())
-}
-
 
 pub fn compute_program_rank() {
     let config = Config::load();

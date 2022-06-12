@@ -153,8 +153,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("analytics") {
-        subcommand_analytics();
-        return Ok(());
+        return subcommand_analytics();
     }
 
     if let Some(sub_m) = matches.subcommand_matches("mine") {

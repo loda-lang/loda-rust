@@ -1,9 +1,9 @@
+use crate::common::create_csv_file;
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::{InstructionId, InstructionParameter, ParameterType, ParsedProgram};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::error::Error;
-use csv::WriterBuilder;
 use serde::Serialize;
 use std::convert::TryFrom;
 use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
@@ -30,47 +30,30 @@ impl AnalyzeDependencies {
             self.dependencies.push(record);
         }
     }
+}
 
-    fn save_dependencies_csv(&self) {
-        println!("number of dependency: {}", self.dependencies.len());
+impl BatchProgramAnalyzerPlugin for AnalyzeDependencies {
+    fn plugin_name(&self) -> &'static str {
+        "AnalyzeDependencies"
+    }
 
+    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> Result<(), Box<dyn Error>> {
+        let callee_program_ids: Vec<u32> = context.parsed_program.extract_program_ids();
+        self.append_dependencies(context.program_id, callee_program_ids);
+        Ok(())
+    }
+
+    fn save(&self) -> Result<(), Box<dyn Error>> {
         let mut records: Vec<RecordDependency> = self.dependencies.clone();
         records.sort_unstable_by_key(|item| (item.caller_program_id, item.callee_program_id));
 
         // Save as a CSV file
         let output_path: PathBuf = self.config.analytics_dir_dependencies_file();
-        match Self::create_csv_file(&records, &output_path) {
-            Ok(_) => {
-                println!("saved dependencies.csv");
-            },
-            Err(error) => {
-                println!("cannot save dependencies.csv error: {:?}", error);
-            }
-        }
+        create_csv_file(&records, &output_path)
     }
 
-    fn create_csv_file<S: Serialize>(records: &Vec<S>, output_path: &Path) -> Result<(), Box<dyn Error>> {
-        let mut wtr = WriterBuilder::new()
-            .has_headers(true)
-            .delimiter(b';')
-            .from_path(output_path)?;
-        for record in records {
-            wtr.serialize(record)?;
-        }
-        wtr.flush()?;
-        Ok(())
-    }
-}
-
-impl BatchProgramAnalyzerPlugin for AnalyzeDependencies {
-    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
-        let callee_program_ids: Vec<u32> = context.parsed_program.extract_program_ids();
-        self.append_dependencies(context.program_id, callee_program_ids);
-        true
-    }
-
-    fn save(&self) {
-        self.save_dependencies_csv();
+    fn human_readable_summary(&self) -> String {
+        format!("number of dependencies: {}", self.dependencies.len())
     }
 }
 

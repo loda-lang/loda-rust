@@ -1,10 +1,10 @@
+use crate::common::create_csv_file;
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::error::Error;
 use std::collections::HashMap;
-use csv::WriterBuilder;
 use serde::Serialize;
 use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
@@ -114,12 +114,19 @@ impl AnalyzeInstructionConstant {
         *counter += 1;
         true
     }
+}
 
-    fn save_inner(&self) {
-        println!("number of constants processed unsuccessful: {:?}", self.number_of_constant_processed_unsuccessful);
-        println!("number of constants processed successful: {:?}", self.number_of_constant_processed_successful);
-        println!("number of items in histogram: {:?}", self.histogram.len());
+impl BatchProgramAnalyzerPlugin for AnalyzeInstructionConstant {
+    fn plugin_name(&self) -> &'static str {
+        "AnalyzeInstructionConstant"
+    }
+    
+    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> Result<(), Box<dyn Error>> {
+        self.analyze_inner(context.program_id, &context.parsed_program);
+        Ok(())
+    }
 
+    fn save(&self) -> Result<(), Box<dyn Error>> {
         // Convert from dictionary to array
         let mut records = Vec::<Record>::new();
         for (histogram_key, histogram_count) in &self.histogram {
@@ -139,40 +146,18 @@ impl AnalyzeInstructionConstant {
 
         // Save as a CSV file
         let output_path: PathBuf = self.config.analytics_dir_histogram_instruction_constant_file();
-        match Self::create_csv_file(&records, &output_path) {
-            Ok(_) => {
-                println!("saved histogram_instruction_constant.csv");
-            },
-            Err(error) => {
-                println!("cannot save histogram_instruction_constant.csv error: {:?}", error);
-            }
-        }
+        create_csv_file(&records, &output_path)
     }
-    
-    fn create_csv_file(records: &Vec<Record>, output_path: &Path) -> Result<(), Box<dyn Error>> {
-        let mut wtr = WriterBuilder::new()
-            .has_headers(true)
-            .delimiter(b';')
-            .from_path(output_path)?;
-        for record in records {
-            wtr.serialize(record)?;
-        }
-        wtr.flush()?;
-        Ok(())
+
+    fn human_readable_summary(&self) -> String {
+        let rows: Vec<String> = vec![
+            format!("number of constants processed unsuccessful: {:?}", self.number_of_constant_processed_unsuccessful),
+            format!("number of constants processed successful: {:?}", self.number_of_constant_processed_successful),
+            format!("number of items in histogram: {:?}", self.histogram.len())
+        ];
+        rows.join("\n")
     }
 }
-
-impl BatchProgramAnalyzerPlugin for AnalyzeInstructionConstant {
-    fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> bool {
-        self.analyze_inner(context.program_id, &context.parsed_program);
-        true
-    }
-
-    fn save(&self) {
-        self.save_inner();
-    }
-}
-
 
 #[derive(Serialize)]
 struct Record {

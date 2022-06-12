@@ -15,6 +15,10 @@ use std::fmt;
 use std::fs::File;
 use std::io::Write;
 use std::io::LineWriter;
+use console::Style;
+use indicatif::{HumanDuration, ProgressBar};
+
+const NUMBER_OF_TERMS_TO_VALIDATE: u64 = 1;
 
 #[derive(Debug)]
 pub enum ValidateProgramError {
@@ -81,17 +85,8 @@ The outputted file: `programs_invalid.csv` has this format:
 pub struct ValidatePrograms {}
 
 impl ValidatePrograms {
-    pub fn run() {
-        match Self::run_inner() {
-            Ok(_) => {},
-            Err(err) => {
-                error!("Error occured while validating programs: {}", err);
-            }
-        }
-    }
-
-    fn run_inner() -> Result<(), Box<dyn Error>> {
-        let start_time = Instant::now();
+    pub fn run() -> Result<(), Box<dyn Error>> {
+        let start = Instant::now();
         println!("validate_programs begin");
         let config = Config::load();
         let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
@@ -105,7 +100,6 @@ impl ValidatePrograms {
         if number_of_paths <= 0 {
             return Err(Box::new(ValidateProgramError::NoPrograms));
         }
-        let max_index: usize = number_of_paths - 1;
         // debug!("number of paths: {:?}", number_of_paths);
 
         // Extract program_ids from paths
@@ -120,7 +114,7 @@ impl ValidatePrograms {
         // Create CSV file for invalid programs and their error message
         let file1 = File::create(programs_invalid_csv_file)?;
         let mut programs_invalid_csv = LineWriter::new(file1);
-        programs_invalid_csv.write_all(b"program id;error\n")?;
+        programs_invalid_csv.write_all(b"program id;error category;error message\n")?;
 
         // Run all the programs.
         // Reject the programs that is having difficulties running.
@@ -129,36 +123,31 @@ impl ValidatePrograms {
             loda_programs_oeis_dir,
         );
         let mut cache = ProgramCache::new();
-        let mut progress_time = Instant::now();
         let program_ids_len: usize = program_ids.len();
         let mut number_of_invalid_programs: u32 = 0;
         let mut valid_program_ids: HashSet<u32> = HashSet::new();
-        for (index, program_id) in program_ids.iter().enumerate() {
-            let elapsed: u128 = progress_time.elapsed().as_millis();
-            let is_last: bool = index == max_index;
-            if elapsed >= 1000 || is_last {
-                let percent: usize = (index * 100) / max_index;
-                println!("progress: {}%  {} of {}", percent, index + 1, program_ids_len);
-                progress_time = Instant::now();
-            }
-            let program_id64 = *program_id as u64;
+        let pb = ProgressBar::new(program_ids_len as u64);
+        for program_id in program_ids {
+            let program_id64 = program_id as u64;
             let program_runner: Rc::<ProgramRunner> = match dm.load(program_id64) {
                 Ok(value) => value,
                 Err(error) => {
                     // error!("Cannot load program {:?}: {:?}", program_id, error);
-                    let row = format!("{:?};{:?}\n", program_id, error);
+                    let row = format!("{:?};LOAD;{:?}\n", program_id, error);
                     programs_invalid_csv.write_all(row.as_bytes())?;
                     number_of_invalid_programs += 1;
+                    pb.inc(1);
                     continue;
                 }
             };
-            match program_runner.compute_terms(10, &mut cache) {
+            match program_runner.compute_terms(NUMBER_OF_TERMS_TO_VALIDATE, &mut cache) {
                 Ok(_) => {},
                 Err(error) => {
                     // error!("Cannot run program {:?}: {:?}", program_id, error);
-                    let row = format!("{:?};{:?}\n", program_id, error);
+                    let row = format!("{:?};COMPUTE;{:?}\n", program_id, error);
                     programs_invalid_csv.write_all(row.as_bytes())?;
                     number_of_invalid_programs += 1;
+                    pb.inc(1);
                     continue;
                 }
             }
@@ -166,11 +155,19 @@ impl ValidatePrograms {
             // Append status for programs to the csv file.
             let row = format!("{:?}\n", program_id);
             programs_valid_csv.write_all(row.as_bytes())?;
-            valid_program_ids.insert(*program_id);
+            valid_program_ids.insert(program_id);
+            pb.inc(1);
         }
+        pb.finish_and_clear();
+
+        let green_bold = Style::new().green().bold();        
+        println!(
+            "{:>12} validate-programs in {}",
+            green_bold.apply_to("Finished"),
+            HumanDuration(start.elapsed())
+        );
         println!("number of valid programs: {:?}", valid_program_ids.len());
         println!("number of invalid programs: {:?}", number_of_invalid_programs);
-        println!("validate_programs end. elapsed: {:?} ms", start_time.elapsed().as_millis());
 
         return Ok(());
     }
