@@ -1,6 +1,7 @@
 use crate::common::{find_asm_files_recursively, program_ids_from_paths};
 use loda_rust_core;
 use loda_rust_core::config::Config;
+use std::error::Error;
 use std::path::PathBuf;
 use std::collections::HashSet;
 use std::iter::FromIterator;
@@ -23,7 +24,7 @@ pub struct DontMine {
 }
 
 impl DontMine {
-    pub fn run() {
+    pub fn run() -> Result<(), Box<dyn Error>> {
         let mut instance = Self {
             config: Config::load(),
             program_ids: vec!()
@@ -36,7 +37,8 @@ impl DontMine {
             let program_ids: Vec<u32> = instance.process_dont_optimize();
             instance.program_ids.extend(program_ids);
         }
-        instance.save();
+        instance.save()?;
+        Ok(())
     }
 
     #[allow(dead_code)]
@@ -89,17 +91,10 @@ impl DontMine {
         program_ids_sorted
     }
 
-    fn save(&self) {
+    fn save(&self) -> Result<(), Box<dyn Error>> {
         let program_ids_sorted: Vec<u32> = Self::sort_and_remove_duplicates(&self.program_ids);
         println!("saving, number of program_ids: {:?}", program_ids_sorted.len());
         let output_path: PathBuf = self.config.analytics_dir_dont_mine_file();
-        match save_program_ids_csv_file(&program_ids_sorted, &output_path) {
-            Ok(_) => {
-                println!("saved dont_mine.csv");
-            },
-            Err(error) => {
-                println!("cannot save dont_mine.csv error: {:?}", error);
-            }
-        }
+        save_program_ids_csv_file(&program_ids_sorted, &output_path)
     }
 }

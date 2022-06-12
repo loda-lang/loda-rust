@@ -29,7 +29,7 @@ pub fn subcommand_analytics() -> Result<(), Box<dyn Error>> {
     let start_time = Instant::now();
     run_batch_program_analyzer()?;
     compute_program_rank();
-    DontMine::run();
+    DontMine::run()?;
     ValidatePrograms::run()?;
     PopulateBloomfilter::run();
     println!("analytics end, elapsed: {:?} ms", start_time.elapsed().as_millis());
