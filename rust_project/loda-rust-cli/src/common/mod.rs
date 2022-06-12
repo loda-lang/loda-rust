@@ -7,6 +7,7 @@ mod program_id_from_path;
 mod record_bigram;
 mod record_skipgram;
 mod record_trigram;
+mod record_unigram;
 
 pub use create_csv_file::create_csv_file;
 pub use find_files_recursively::{find_asm_files_recursively, find_csv_files_recursively};
@@ -17,3 +18,4 @@ pub use program_id_from_path::{program_id_from_path, program_ids_from_paths};
 pub use record_bigram::RecordBigram;
 pub use record_skipgram::RecordSkipgram;
 pub use record_trigram::RecordTrigram;
+pub use record_unigram::RecordUnigram;
