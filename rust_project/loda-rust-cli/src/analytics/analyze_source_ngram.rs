@@ -1,5 +1,6 @@
 use crate::common::create_csv_file;
 use crate::common::RecordBigram;
+use crate::common::RecordTrigram;
 use crate::common::RecordSkipgram;
 use loda_rust_core;
 use loda_rust_core::config::Config;
@@ -339,12 +340,4 @@ impl BatchProgramAnalyzerPlugin for AnalyzeSourceNgram {
 struct RecordUnigram {
     count: u32,
     word: String,
-}
-
-#[derive(Serialize)]
-struct RecordTrigram {
-    count: u32,
-    word0: String,
-    word1: String,
-    word2: String,
 }
