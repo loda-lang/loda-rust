@@ -44,6 +44,7 @@ impl BatchProgramAnalyzer {
     }
 
     pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
+        println!("batch_program_analyzer");
         self.analyze_all_program_files()?;
         self.save_result_files()?;
         self.save_summary()?;
@@ -78,8 +79,8 @@ impl BatchProgramAnalyzer {
             HumanDuration(start.elapsed())
         );
 
-        let content = format!("number of program files that could not be loaded: {:?}\n\n", self.number_of_program_files_that_could_not_be_loaded);
-        self.simple_log.print(&content)?;
+        let content = format!("number of program files that could not be loaded: {:?}", self.number_of_program_files_that_could_not_be_loaded);
+        self.simple_log.println(content);
 
         Ok(())
     }
@@ -130,7 +131,7 @@ impl BatchProgramAnalyzer {
         for plugin in self.plugin_vec.iter() {
             let name: &str = plugin.borrow().plugin_name();
             let summary: String = plugin.borrow().human_readable_summary();
-            let content = format!("{}\n{}\n\n", name.trim(), summary.trim());
+            let content = format!("\n{}\n{}\n", name.trim(), summary.trim());
             self.simple_log.print(&content)?;
         }
         Ok(())

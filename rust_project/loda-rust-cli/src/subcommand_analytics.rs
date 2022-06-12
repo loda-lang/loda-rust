@@ -8,7 +8,6 @@ use crate::analytics::{AnalyzeDependencies, AnalyzeInstructionConstant, AnalyzeI
 use crate::mine::PopulateBloomfilter;
 
 fn run_batch_program_analyzer(simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
-    println!("run_batch_program_analyzer");
     let plugin_dependencies = Rc::new(RefCell::new(AnalyzeDependencies::new()));
     let plugin_instruction_ngram = Rc::new(RefCell::new(AnalyzeInstructionNgram::new()));
     let plugin_instruction_constant = Rc::new(RefCell::new(AnalyzeInstructionConstant::new()));
@@ -36,7 +35,7 @@ pub fn subcommand_analytics() -> Result<(), Box<dyn Error>> {
     run_batch_program_analyzer(simple_log.clone())?;
     compute_program_rank();
     DontMine::run(simple_log.clone())?;
-    ValidatePrograms::run()?;
+    ValidatePrograms::run(simple_log.clone())?;
     PopulateBloomfilter::run();
 
     let content = format!("\nsubcommand_analytics finished, elapsed: {:?} ms", start_time.elapsed().as_millis());

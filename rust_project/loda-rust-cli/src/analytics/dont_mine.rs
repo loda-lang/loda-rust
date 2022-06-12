@@ -27,7 +27,7 @@ pub struct DontMine {
 
 impl DontMine {
     pub fn run(simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
-        simple_log.println("DontMine");
+        simple_log.println("\nDontMine");
 
         let mut instance = Self {
             simple_log: simple_log,

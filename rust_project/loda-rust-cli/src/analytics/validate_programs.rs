@@ -6,6 +6,7 @@ use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, Regist
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
+use super::SimpleLog;
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
 use std::error::Error;
@@ -85,9 +86,10 @@ The outputted file: `programs_invalid.csv` has this format:
 pub struct ValidatePrograms {}
 
 impl ValidatePrograms {
-    pub fn run() -> Result<(), Box<dyn Error>> {
+    pub fn run(simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
         let start = Instant::now();
-        println!("validate_programs begin");
+        simple_log.println("\nValidatePrograms");
+        println!("validate_programs");
         let config = Config::load();
         let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
 
@@ -100,11 +102,10 @@ impl ValidatePrograms {
         if number_of_paths <= 0 {
             return Err(Box::new(ValidateProgramError::NoPrograms));
         }
-        // debug!("number of paths: {:?}", number_of_paths);
-
         // Extract program_ids from paths
         let program_ids: Vec<u32> = program_ids_from_paths(paths);
-        println!("validate_programs, will analyze {:?} programs", program_ids.len());
+        let content = format!("number of programs to validate: {:?}", program_ids.len());
+        simple_log.println(content);
 
         // Create CSV file for valid program ids
         let file0 = File::create(programs_valid_csv_file)?;
@@ -166,8 +167,11 @@ impl ValidatePrograms {
             green_bold.apply_to("Finished"),
             HumanDuration(start.elapsed())
         );
-        println!("number of valid programs: {:?}", valid_program_ids.len());
-        println!("number of invalid programs: {:?}", number_of_invalid_programs);
+
+        let content = format!("number of valid programs: {:?}", valid_program_ids.len());
+        simple_log.println(content);
+        let content = format!("number of invalid programs: {:?}", number_of_invalid_programs);
+        simple_log.println(content);
 
         return Ok(());
     }
