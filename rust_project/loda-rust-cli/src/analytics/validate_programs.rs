@@ -1,4 +1,4 @@
-use crate::common::{find_asm_files_recursively, program_ids_from_paths};
+use crate::common::{find_asm_files_recursively, program_ids_from_paths, SimpleLog};
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
@@ -6,7 +6,6 @@ use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, Regist
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
-use super::SimpleLog;
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
 use std::error::Error;

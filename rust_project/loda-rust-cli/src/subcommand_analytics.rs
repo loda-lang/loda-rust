@@ -4,7 +4,8 @@ use std::rc::Rc;
 use core::cell::RefCell;
 use std::path::{Path, PathBuf};
 use loda_rust_core::config::Config;
-use crate::analytics::{AnalyzeDependencies, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, ValidatePrograms, compute_program_rank, SimpleLog};
+use crate::analytics::{AnalyzeDependencies, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, ValidatePrograms, compute_program_rank};
+use crate::common::SimpleLog;
 use crate::mine::PopulateBloomfilter;
 
 fn run_batch_program_analyzer(simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
