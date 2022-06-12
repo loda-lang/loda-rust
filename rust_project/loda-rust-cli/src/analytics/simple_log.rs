@@ -27,6 +27,12 @@ impl SimpleLog {
         Ok(instance)
     }
 
+    pub fn println<I: AsRef<str>>(&self, message: I) {
+        let content: String = message.as_ref().into();
+        let content2 = content + "\n";
+        self.print(&content2).expect("Unable to print");
+    }
+
     pub fn print(&self, content: &String) -> Result<(), Box<dyn Error>> {
         let mut state = self.state.lock().unwrap();
         state.line_writer.write_all(content.as_bytes())?;

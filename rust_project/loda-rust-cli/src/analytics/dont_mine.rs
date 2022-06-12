@@ -27,7 +27,7 @@ pub struct DontMine {
 
 impl DontMine {
     pub fn run(simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
-        simple_log.print(&"DontMine\n".to_string())?;
+        simple_log.println("DontMine");
 
         let mut instance = Self {
             simple_log: simple_log,
@@ -72,8 +72,8 @@ impl DontMine {
                 panic!("Unable to load the dont_optimize file. path: {:?} error: {:?}", path, error);
             }
         };
-        let content = format!("number of programs in the 'dont_optimize.csv' file: {:?}\n", program_ids.len());
-        self.simple_log.print(&content)?;
+        let content = format!("number of programs in the 'dont_optimize.csv' file: {:?}", program_ids.len());
+        self.simple_log.println(content);
         Ok(program_ids)
     }
 
@@ -86,8 +86,8 @@ impl DontMine {
                 return Ok(vec!());
             }
         };
-        let content = format!("number of programs in the 'deny.txt' file: {:?}\n", program_ids.len());
-        self.simple_log.print(&content)?;
+        let content = format!("number of programs in the 'deny.txt' file: {:?}", program_ids.len());
+        self.simple_log.println(content);
         Ok(program_ids)
     }
 
@@ -101,8 +101,8 @@ impl DontMine {
     fn save(&self) -> Result<(), Box<dyn Error>> {
         let program_ids_sorted: Vec<u32> = Self::sort_and_remove_duplicates(&self.program_ids);
 
-        let content = format!("number of 'dontmine' program_ids: {:?}\n", program_ids_sorted.len());
-        self.simple_log.print(&content)?;
+        let content = format!("number of 'dontmine' program_ids: {:?}", program_ids_sorted.len());
+        self.simple_log.println(content);
 
         let output_path: PathBuf = self.config.analytics_dir_dont_mine_file();
         save_program_ids_csv_file(&program_ids_sorted, &output_path)

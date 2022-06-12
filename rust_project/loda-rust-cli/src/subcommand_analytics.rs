@@ -39,7 +39,7 @@ pub fn subcommand_analytics() -> Result<(), Box<dyn Error>> {
     ValidatePrograms::run()?;
     PopulateBloomfilter::run();
 
-    let content = format!("\nsubcommand_analytics finished, elapsed: {:?} ms\n", start_time.elapsed().as_millis());
-    simple_log.print(&content)?;
+    let content = format!("\nsubcommand_analytics finished, elapsed: {:?} ms", start_time.elapsed().as_millis());
+    simple_log.println(content);
     Ok(())
 }

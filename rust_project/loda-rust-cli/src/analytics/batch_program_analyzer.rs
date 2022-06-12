@@ -55,8 +55,8 @@ impl BatchProgramAnalyzer {
         let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
         let number_of_paths = paths.len();
 
-        let content = format!("BatchProgramAnalyzer\nnumber of paths to be analyzed: {:?}\n", number_of_paths);
-        self.simple_log.print(&content)?;
+        let content = format!("BatchProgramAnalyzer\nnumber of paths to be analyzed: {:?}", number_of_paths);
+        self.simple_log.println(content);
 
         if number_of_paths <= 0 {
             let message = "Expected 1 or more programs, but there are no programs to analyze";
