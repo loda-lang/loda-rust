@@ -1,5 +1,6 @@
 use crate::common::create_csv_file;
 use crate::common::RecordBigram;
+use crate::common::RecordSkipgram;
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::{InstructionParameter, ParsedProgram, ParameterType};
@@ -345,12 +346,5 @@ struct RecordTrigram {
     count: u32,
     word0: String,
     word1: String,
-    word2: String,
-}
-
-#[derive(Serialize)]
-struct RecordSkipgram {
-    count: u32,
-    word0: String,
     word2: String,
 }
