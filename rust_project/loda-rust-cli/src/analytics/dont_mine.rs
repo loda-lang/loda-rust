@@ -8,7 +8,7 @@ use std::iter::FromIterator;
 use super::load_program_ids_from_deny_file;
 use crate::common::load_program_ids_csv_file;
 
-// What NOT to be mined!
+// This code determines what's NOT to be mined!
 //
 // If a sequence already has been mined, then it's no longer a top priority to mine it again.
 // This may change in the future.
