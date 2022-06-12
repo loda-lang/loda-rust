@@ -10,6 +10,18 @@ pub fn load_program_ids_csv_file(path: &Path) -> Result<Vec<u32>, Box<dyn Error>
     process_csv_data(&mut reader)
 }
 
+pub fn save_program_ids_csv_file(program_ids: &Vec<u32>, output_path: &Path) -> Result<(), Box<dyn Error>> {
+    let mut wtr = csv::Writer::from_path(output_path)?;
+    wtr.write_record(&["program id"])?;
+    for program_id in program_ids {
+        let s = format!("{:?}", program_id);
+        wtr.write_record(&[s])?;
+    }
+    wtr.flush()?;
+    Ok(())
+}
+
+
 #[derive(Debug, Deserialize)]
 struct RecordProgramId {
     #[serde(rename = "program id")]

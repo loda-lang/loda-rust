@@ -1,12 +1,11 @@
 use crate::common::{find_asm_files_recursively, program_ids_from_paths};
 use loda_rust_core;
 use loda_rust_core::config::Config;
-use std::path::{Path, PathBuf};
-use std::error::Error;
+use std::path::PathBuf;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use super::load_program_ids_from_deny_file;
-use crate::common::load_program_ids_csv_file;
+use crate::common::{load_program_ids_csv_file, save_program_ids_csv_file};
 
 // This code determines what's NOT to be mined!
 //
@@ -94,7 +93,7 @@ impl DontMine {
         let program_ids_sorted: Vec<u32> = Self::sort_and_remove_duplicates(&self.program_ids);
         println!("saving, number of program_ids: {:?}", program_ids_sorted.len());
         let output_path: PathBuf = self.config.analytics_dir_dont_mine_file();
-        match Self::create_csv_file(&program_ids_sorted, &output_path) {
+        match save_program_ids_csv_file(&program_ids_sorted, &output_path) {
             Ok(_) => {
                 println!("saved dont_mine.csv");
             },
@@ -102,16 +101,5 @@ impl DontMine {
                 println!("cannot save dont_mine.csv error: {:?}", error);
             }
         }
-    }
-    
-    fn create_csv_file(program_ids: &Vec<u32>, output_path: &Path) -> Result<(), Box<dyn Error>> {
-        let mut wtr = csv::Writer::from_path(output_path)?;
-        wtr.write_record(&["program id"])?;
-        for program_id in program_ids {
-            let s = format!("{:?}", program_id);
-            wtr.write_record(&[s])?;
-        }
-        wtr.flush()?;
-        Ok(())
     }
 }
