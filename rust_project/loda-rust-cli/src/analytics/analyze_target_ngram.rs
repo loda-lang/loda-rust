@@ -1,4 +1,5 @@
 use crate::common::create_csv_file;
+use crate::common::RecordBigram;
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::{InstructionParameter, ParsedProgram};
@@ -329,13 +330,6 @@ impl BatchProgramAnalyzerPlugin for AnalyzeTargetNgram {
 struct RecordUnigram {
     count: u32,
     word: String,
-}
-
-#[derive(Serialize)]
-struct RecordBigram {
-    count: u32,
-    word0: String,
-    word1: String,
 }
 
 #[derive(Serialize)]

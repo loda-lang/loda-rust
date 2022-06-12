@@ -1,10 +1,10 @@
 use std::error::Error;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 use super::parse_csv_file;
 
 #[allow(dead_code)]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct RecordBigram {
     pub count: u32,
     pub word0: String,
