@@ -37,7 +37,7 @@ pub fn subcommand_analytics() -> Result<(), Box<dyn Error>> {
     compute_program_rank();
     DontMine::run(simple_log.clone())?;
     ValidatePrograms::run(simple_log.clone())?;
-    PopulateBloomfilter::run();
+    PopulateBloomfilter::run(simple_log.clone())?;
 
     let content = format!("\nsubcommand_analytics finished, elapsed: {:?} ms", start_time.elapsed().as_millis());
     simple_log.println(content);
