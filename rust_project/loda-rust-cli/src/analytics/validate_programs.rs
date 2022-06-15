@@ -1,4 +1,4 @@
-use crate::common::{find_asm_files_recursively, program_ids_from_paths};
+use crate::common::{find_asm_files_recursively, program_ids_from_paths, SimpleLog};
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
@@ -6,7 +6,6 @@ use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, Regist
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
-use super::SimpleLog;
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
 use std::error::Error;
@@ -89,7 +88,7 @@ impl ValidatePrograms {
     pub fn run(simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
         let start = Instant::now();
         simple_log.println("\nValidatePrograms");
-        println!("validate_programs");
+        println!("Validate programs");
         let config = Config::load();
         let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
 
@@ -163,7 +162,7 @@ impl ValidatePrograms {
 
         let green_bold = Style::new().green().bold();        
         println!(
-            "{:>12} validate-programs in {}",
+            "{:>12} validated programs in {}",
             green_bold.apply_to("Finished"),
             HumanDuration(start.elapsed())
         );

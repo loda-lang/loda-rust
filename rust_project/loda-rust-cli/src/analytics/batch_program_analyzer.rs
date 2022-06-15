@@ -1,6 +1,6 @@
-use crate::common::{find_asm_files_recursively, program_id_from_path};
+use crate::common::{find_asm_files_recursively, program_id_from_path, SimpleLog};
 use loda_rust_core;
-use super::{AnalyticsError, SimpleLog};
+use super::AnalyticsError;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::ParsedProgram;
 use std::path::PathBuf;
@@ -44,7 +44,7 @@ impl BatchProgramAnalyzer {
     }
 
     pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
-        println!("batch_program_analyzer");
+        println!("Run batch-program-analyzer");
         self.analyze_all_program_files()?;
         self.save_result_files()?;
         self.save_summary()?;

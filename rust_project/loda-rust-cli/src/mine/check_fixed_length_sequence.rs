@@ -1,17 +1,20 @@
 use loda_rust_core::util::BigIntVec;
 use loda_rust_core::config::Config;
-use crate::common::load_program_ids_csv_file;
-use crate::oeis::stripped_sequence::*;
+use crate::common::{load_program_ids_csv_file, SimpleLog};
+use crate::oeis::{process_stripped_sequence_file, StrippedSequence};
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;
+use std::error::Error;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::BufReader;
 use std::io::prelude::*;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::time::Instant;
+use console::Style;
+use indicatif::{HumanDuration, ProgressBar};
 
 // As of january 2022, the OEIS contains around 350k sequences.
 // So an approx count of 400k and there should be room for them all.
@@ -138,29 +141,15 @@ impl NamedCacheFile {
     }
 }
 
-fn create_cache_files(oeis_stripped_file: &Path, cache_dir: &PathBuf, program_ids_to_ignore: &HashSet<u32>) {
-    assert!(oeis_stripped_file.is_absolute());
-    assert!(oeis_stripped_file.is_file());
-
-    let file = File::open(oeis_stripped_file).unwrap();
-    let filesize: usize = file.metadata().unwrap().len() as usize;
-    let mut reader = BufReader::new(file);
-    create_cache_files_inner(
-        &mut reader, 
-        filesize,
-        APPROX_BLOOM_ITEMS_COUNT, 
-        cache_dir, 
-        program_ids_to_ignore
-    );
-}
-
-fn create_cache_files_inner(
+fn create_cache_files(
+    simple_log: SimpleLog,
     oeis_stripped_file_reader: &mut dyn io::BufRead, 
     filesize: usize,
     bloom_items_count: usize,
     cache_dir: &PathBuf, 
     program_ids_to_ignore: &HashSet<u32>
 ) -> usize {
+    let start = Instant::now();
     let mut processor = SequenceProcessor::new();
     let x = &mut processor;
 
@@ -174,9 +163,12 @@ fn create_cache_files_inner(
     let bloom30_ref = &mut bloom30;
     let bloom40_ref = &mut bloom40;
 
-    let process_callback = |stripped_sequence: &StrippedSequence| {
+    simple_log.println(format!("number of bytes to be processed: {}", filesize));
+    let pb = ProgressBar::new(filesize as u64);
+    let process_callback = |stripped_sequence: &StrippedSequence, count_bytes: usize| {
         // debug!("call {:?}", stripped_sequence.sequence_number);
         (*x).counter += 1;
+        pb.set_position(count_bytes as u64);
 
         let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
         {
@@ -198,121 +190,106 @@ fn create_cache_files_inner(
     };
     let term_count: usize = 40;
     process_stripped_sequence_file(
+        simple_log.clone(),
         oeis_stripped_file_reader, 
-        filesize,
         term_count, 
         program_ids_to_ignore, 
-        true, 
         process_callback
     );
-    debug!("number of sequences processed: {:?}", processor.counter);
+    simple_log.println(format!("number of sequences processed: {:?}", processor.counter));
+    pb.finish_and_clear();
 
+    let green_bold = Style::new().green().bold();        
+    println!(
+        "{:>12} populated bloomfilter in {}",
+        green_bold.apply_to("Finished"),
+        HumanDuration(start.elapsed())
+    );
+
+    println!("Saving bloomfilter data");
+    let start2 = Instant::now();
+    let pb = ProgressBar::new(4);
     {
         let instance = CheckFixedLengthSequence::new(bloom10, term_count);
         let filename: &str = NamedCacheFile::Bloom10Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
-        println!("saving cache file: {:?}", destination_file);
         instance.save(&destination_file);
+        pb.inc(1);
     }
     {
         let instance = CheckFixedLengthSequence::new(bloom20, term_count);
         let filename: &str = NamedCacheFile::Bloom20Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
-        println!("saving cache file: {:?}", destination_file);
         instance.save(&destination_file);
+        pb.inc(1);
     }
     {
         let instance = CheckFixedLengthSequence::new(bloom30, term_count);
         let filename: &str = NamedCacheFile::Bloom30Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
-        println!("saving cache file: {:?}", destination_file);
         instance.save(&destination_file);
+        pb.inc(1);
     }
     {
         let instance = CheckFixedLengthSequence::new(bloom40, term_count);
         let filename: &str = NamedCacheFile::Bloom40Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
-        println!("saving cache file: {:?}", destination_file);
         instance.save(&destination_file);
+        pb.finish_and_clear();
     }
+    println!(
+        "{:>12} saved bloomfilter data in {}",
+        green_bold.apply_to("Finished"),
+        HumanDuration(start2.elapsed())
+    );
 
     // Number of sequences processed
     processor.counter
 }
 
-fn process_stripped_sequence_file<F>(
-    reader: &mut dyn io::BufRead, 
-    filesize: usize,
-    term_count: usize, 
-    program_ids_to_ignore: &HashSet<u32>, 
-    print_progress: bool, 
-    mut callback: F
-)
-    where F: FnMut(&StrippedSequence)
-{
-    assert!(filesize >= 1);
-    assert!(term_count >= 1);
-    assert!(term_count <= 100);
-    if print_progress {
-        println!("number of bytes to be processed: {}", filesize);
-    }
-    let mut count_callback: usize = 0;
-    let mut count_junk: usize = 0;
-    let mut count_tooshort: usize = 0;
-    let mut count_ignore: usize = 0;
-    let mut count_bytes: usize = 0;
-    let mut progress_time = Instant::now();
-    for line in reader.lines() {
-        let elapsed: u128 = progress_time.elapsed().as_millis();
-        if print_progress && elapsed >= 1000 {
-            let percent: usize = (count_bytes * 100) / filesize;
-            println!("progress: {}%  {} of {}", percent, count_bytes, filesize);
-            progress_time = Instant::now();
-        }
-        let line: String = line.unwrap();
-        count_bytes += line.len();
-        let stripped_sequence: StrippedSequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
-            Some(value) => value,
-            None => {
-                count_junk += 1;
-                continue;
-            }
-        };
-        if program_ids_to_ignore.contains(&stripped_sequence.sequence_number) {
-            count_ignore += 1;
-            continue;
-        }
-        if stripped_sequence.len() != term_count {
-            count_tooshort += 1;
-            continue;
-        }
-        callback(&stripped_sequence);
-        count_callback += 1;
-    }
-    debug!("count_sequences: {}", count_callback);
-    debug!("count_ignore: {}", count_ignore);
-    debug!("count_tooshort: {}", count_tooshort);
-    debug!("count_junk: {}", count_junk);
+pub struct PopulateBloomfilter {
+    config: Config,
+    simple_log: SimpleLog,
 }
 
-pub struct PopulateBloomfilter {}
-
 impl PopulateBloomfilter {
-    pub fn run() {
-        let start_time = Instant::now();
-        println!("populate_bloomfilter begin");
+    pub fn run(simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
         let config = Config::load();
-        let oeis_stripped_file: PathBuf = config.oeis_stripped_file();
-        let cache_dir: PathBuf = config.analytics_dir();
-        let program_ids_to_ignore: HashSet<u32> = Self::obtain_dontmine_program_ids();
-        create_cache_files(&oeis_stripped_file, &cache_dir, &program_ids_to_ignore);
-    
-        println!("populate_bloomfilter end, elapsed: {:?} ms", start_time.elapsed().as_millis());
+        let instance = Self {
+            config: config,
+            simple_log: simple_log
+        };
+        instance.run_inner()?;
+        Ok(())
     }
 
-    fn obtain_dontmine_program_ids() -> HashSet<u32> {
-        let config = Config::load();
-        let path = config.analytics_dir_dont_mine_file();
+    fn run_inner(&self) -> Result<(), Box<dyn Error>> {
+        self.simple_log.println("\nPopulateBloomfilter");
+        println!("Populate bloomfilter");
+
+        let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
+        assert!(oeis_stripped_file.is_absolute());
+        assert!(oeis_stripped_file.is_file());
+
+        let cache_dir: PathBuf = self.config.analytics_dir();
+        let program_ids_to_ignore: HashSet<u32> = self.obtain_dontmine_program_ids();
+
+        let file = File::open(oeis_stripped_file).unwrap();
+        let filesize: usize = file.metadata().unwrap().len() as usize;
+        let mut reader = BufReader::new(file);
+        create_cache_files(
+            self.simple_log.clone(),
+            &mut reader, 
+            filesize,
+            APPROX_BLOOM_ITEMS_COUNT, 
+            &cache_dir, 
+            &program_ids_to_ignore
+        );
+        Ok(())
+    }
+
+    fn obtain_dontmine_program_ids(&self) -> HashSet<u32> {
+        let path = self.config.analytics_dir_dont_mine_file();
         let program_ids: Vec<u32> = match load_program_ids_csv_file(&path) {
             Ok(value) => value,
             Err(error) => {
@@ -320,7 +297,7 @@ impl PopulateBloomfilter {
             }
         };
         let hashset: HashSet<u32> = HashSet::from_iter(program_ids.iter().cloned());
-        println!("loaded dontmine file. number of records: {}", hashset.len());
+        self.simple_log.println(format!("loaded dontmine file. number of records: {}", hashset.len()));
         hashset
     }
 }
@@ -375,7 +352,6 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
 
     fn create_checkfixedlengthsequence_inner(
         reader: &mut dyn io::BufRead, 
-        filesize: usize,
         term_count: usize, 
         program_ids_to_ignore: &HashSet<u32>, 
     ) -> CheckFixedLengthSequence
@@ -384,16 +360,15 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
         let false_positive_rate: f64 = 0.01;
         let mut bloom = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
         let bloom_ref = &mut bloom;
-        let process_callback = |stripped_sequence: &StrippedSequence| {
+        let process_callback = |stripped_sequence: &StrippedSequence, _count_bytes: usize| {
             let vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
             (*bloom_ref).set(vec);
         };
         process_stripped_sequence_file(
+            SimpleLog::sink(),
             reader, 
-            filesize,
             term_count, 
             program_ids_to_ignore, 
-            false, 
             process_callback
         );
         CheckFixedLengthSequence::new(bloom, term_count)
@@ -402,11 +377,9 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
     impl CheckFixedLengthSequence {
         fn new_mock() -> CheckFixedLengthSequence {
             let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
-            let filesize: usize = input.len();
             let hashset = HashSet::<u32>::new();
             create_checkfixedlengthsequence_inner(
                 &mut input, 
-                filesize,
                 5, 
                 &hashset
             )
@@ -480,25 +453,29 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
 
     #[test]
     fn test_30000_create_cache_files() {
+        // Arrange
         let dirname = "test_30000_create_cache_files";
         let tempdir = tempfile::tempdir().unwrap();
         let mut cache_dir = PathBuf::from(&tempdir.path());
         cache_dir.push(dirname);
         fs::create_dir(&cache_dir).unwrap();
-
-        // Create cache files
+        let simple_log = SimpleLog::sink();
         let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
         let filesize: usize = input.len();
         let hashset = HashSet::<u32>::new();
-        let number_of_sequences: usize = create_cache_files_inner(
+
+        // Act
+        let number_of_sequences: usize = create_cache_files(
+            simple_log,
             &mut input, 
             filesize,
             10,
             &cache_dir,
             &hashset
         );
-        assert_eq!(number_of_sequences, 2);
 
+        // Assert
+        assert_eq!(number_of_sequences, 2);
         // Check that all the cache files can be loaded
         let mut file_count: usize = 0;
         for item in NamedCacheFile::all() {

@@ -8,6 +8,7 @@ mod record_program_id;
 mod record_skipgram;
 mod record_trigram;
 mod record_unigram;
+mod simple_log;
 
 pub use create_csv_file::create_csv_file;
 pub use find_files_recursively::{find_asm_files_recursively, find_csv_files_recursively};
@@ -19,3 +20,4 @@ pub use record_program_id::{load_program_ids_csv_file, save_program_ids_csv_file
 pub use record_skipgram::RecordSkipgram;
 pub use record_trigram::RecordTrigram;
 pub use record_unigram::RecordUnigram;
+pub use simple_log::SimpleLog;

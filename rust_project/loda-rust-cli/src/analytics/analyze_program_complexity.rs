@@ -1,8 +1,8 @@
-use crate::common::create_csv_file;
+use crate::common::{create_csv_file, save_program_ids_csv_file};
 use loda_rust_core;
 use loda_rust_core::config::Config;
 use loda_rust_core::parser::{InstructionId, ParsedProgram};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::error::Error;
 use std::collections::HashMap;
 use serde::Serialize;
@@ -131,18 +131,7 @@ impl AnalyzeProgramComplexity {
 
         // Save as a CSV file
         let output_path: PathBuf = self.config.analytics_dir_complexity_dont_optimize_file();
-        Self::create_csv_file_with_program_ids(&program_ids, &output_path)
-    }
-
-    fn create_csv_file_with_program_ids(program_ids: &Vec<u32>, output_path: &Path) -> Result<(), Box<dyn Error>> {
-        let mut wtr = csv::Writer::from_path(output_path)?;
-        wtr.write_record(&["program id"])?;
-        for program_id in program_ids {
-            let s = format!("{:?}", program_id);
-            wtr.write_record(&[s])?;
-        }
-        wtr.flush()?;
-        Ok(())
+        save_program_ids_csv_file(&program_ids, &output_path)
     }
 }
 
