@@ -2,9 +2,11 @@ use std::io;
 use std::io::BufRead;
 use std::collections::HashSet;
 use std::time::Instant;
+use crate::common::SimpleLog;
 use super::{parse_stripped_sequence_line, StrippedSequence};
 
 pub fn process_stripped_sequence_file<F>(
+    simple_log: SimpleLog,
     reader: &mut dyn io::BufRead, 
     filesize: usize,
     term_count: usize, 
@@ -18,7 +20,7 @@ pub fn process_stripped_sequence_file<F>(
     assert!(term_count >= 1);
     assert!(term_count <= 100);
     if print_progress {
-        println!("number of bytes to be processed: {}", filesize);
+        simple_log.println(format!("number of bytes to be processed: {}", filesize));
     }
     let mut count_callback: usize = 0;
     let mut count_junk: usize = 0;
@@ -53,8 +55,8 @@ pub fn process_stripped_sequence_file<F>(
         callback(&stripped_sequence);
         count_callback += 1;
     }
-    debug!("count_sequences: {}", count_callback);
-    debug!("count_ignore: {}", count_ignore);
-    debug!("count_tooshort: {}", count_tooshort);
-    debug!("count_junk: {}", count_junk);
+    simple_log.println(format!("count_sequences: {}", count_callback));
+    simple_log.println(format!("count_ignore: {}", count_ignore));
+    simple_log.println(format!("count_tooshort: {}", count_tooshort));
+    simple_log.println(format!("count_junk: {}", count_junk));
 }
