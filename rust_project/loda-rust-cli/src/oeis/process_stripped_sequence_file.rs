@@ -7,20 +7,15 @@ use super::{parse_stripped_sequence_line, StrippedSequence};
 pub fn process_stripped_sequence_file<F>(
     simple_log: SimpleLog,
     reader: &mut dyn io::BufRead, 
-    filesize: usize,
     term_count: usize, 
     program_ids_to_ignore: &HashSet<u32>, 
-    print_progress: bool, 
     mut callback: F
 )
     where F: FnMut(&StrippedSequence, usize)
 {
-    assert!(filesize >= 1);
     assert!(term_count >= 1);
     assert!(term_count <= 100);
-    if print_progress {
-        simple_log.println(format!("number of bytes to be processed: {}", filesize));
-    }
+    
     let mut count_callback: usize = 0;
     let mut count_junk: usize = 0;
     let mut count_tooshort: usize = 0;
