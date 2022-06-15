@@ -13,6 +13,8 @@ use std::io::prelude::*;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::time::Instant;
+use console::Style;
+use indicatif::{HumanDuration, ProgressBar};
 
 // As of january 2022, the OEIS contains around 350k sequences.
 // So an approx count of 400k and there should be room for them all.
@@ -147,6 +149,7 @@ fn create_cache_files(
     cache_dir: &PathBuf, 
     program_ids_to_ignore: &HashSet<u32>
 ) -> usize {
+    let start = Instant::now();
     let mut processor = SequenceProcessor::new();
     let x = &mut processor;
 
@@ -160,9 +163,11 @@ fn create_cache_files(
     let bloom30_ref = &mut bloom30;
     let bloom40_ref = &mut bloom40;
 
-    let process_callback = |stripped_sequence: &StrippedSequence| {
+    let pb = ProgressBar::new(filesize as u64);
+    let process_callback = |stripped_sequence: &StrippedSequence, count_bytes: usize| {
         // debug!("call {:?}", stripped_sequence.sequence_number);
         (*x).counter += 1;
+        pb.set_position(count_bytes as u64);
 
         let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
         {
@@ -193,39 +198,51 @@ fn create_cache_files(
         process_callback
     );
     simple_log.println(format!("number of sequences processed: {:?}", processor.counter));
+    pb.finish_and_clear();
 
+    let green_bold = Style::new().green().bold();        
+    println!(
+        "{:>12} populated bloomfilter in {}",
+        green_bold.apply_to("Finished"),
+        HumanDuration(start.elapsed())
+    );
+
+    println!("Saving bloomfilter data");
+    let start2 = Instant::now();
+    let pb = ProgressBar::new(4);
     {
         let instance = CheckFixedLengthSequence::new(bloom10, term_count);
         let filename: &str = NamedCacheFile::Bloom10Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
-        println!("saving cache file: {:?}", destination_file);
-        simple_log.println(format!("saving cache file: {:?}", destination_file));
         instance.save(&destination_file);
+        pb.inc(1);
     }
     {
         let instance = CheckFixedLengthSequence::new(bloom20, term_count);
         let filename: &str = NamedCacheFile::Bloom20Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
-        println!("saving cache file: {:?}", destination_file);
-        simple_log.println(format!("saving cache file: {:?}", destination_file));
         instance.save(&destination_file);
+        pb.inc(1);
     }
     {
         let instance = CheckFixedLengthSequence::new(bloom30, term_count);
         let filename: &str = NamedCacheFile::Bloom30Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
-        println!("saving cache file: {:?}", destination_file);
-        simple_log.println(format!("saving cache file: {:?}", destination_file));
         instance.save(&destination_file);
+        pb.inc(1);
     }
     {
         let instance = CheckFixedLengthSequence::new(bloom40, term_count);
         let filename: &str = NamedCacheFile::Bloom40Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
-        println!("saving cache file: {:?}", destination_file);
-        simple_log.println(format!("saving cache file: {:?}", destination_file));
         instance.save(&destination_file);
+        pb.finish_and_clear();
     }
+    println!(
+        "{:>12} saved bloomfilter data in {}",
+        green_bold.apply_to("Finished"),
+        HumanDuration(start2.elapsed())
+    );
 
     // Number of sequences processed
     processor.counter
@@ -248,9 +265,8 @@ impl PopulateBloomfilter {
     }
 
     fn run_inner(&self) -> Result<(), Box<dyn Error>> {
-        let start_time = Instant::now();
         self.simple_log.println("\nPopulateBloomfilter");
-        println!("populate_bloomfilter");
+        println!("Populate bloomfilter");
 
         let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
         assert!(oeis_stripped_file.is_absolute());
@@ -270,7 +286,6 @@ impl PopulateBloomfilter {
             &cache_dir, 
             &program_ids_to_ignore
         );
-        self.simple_log.println(format!("populate_bloomfilter end, elapsed: {:?} ms", start_time.elapsed().as_millis()));
         Ok(())
     }
 
@@ -347,7 +362,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
         let false_positive_rate: f64 = 0.01;
         let mut bloom = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
         let bloom_ref = &mut bloom;
-        let process_callback = |stripped_sequence: &StrippedSequence| {
+        let process_callback = |stripped_sequence: &StrippedSequence, _count_bytes: usize| {
             let vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
             (*bloom_ref).set(vec);
         };

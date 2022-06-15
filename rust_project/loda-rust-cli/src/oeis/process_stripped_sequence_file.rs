@@ -1,7 +1,6 @@
 use std::io;
 use std::io::BufRead;
 use std::collections::HashSet;
-use std::time::Instant;
 use crate::common::SimpleLog;
 use super::{parse_stripped_sequence_line, StrippedSequence};
 
@@ -14,7 +13,7 @@ pub fn process_stripped_sequence_file<F>(
     print_progress: bool, 
     mut callback: F
 )
-    where F: FnMut(&StrippedSequence)
+    where F: FnMut(&StrippedSequence, usize)
 {
     assert!(filesize >= 1);
     assert!(term_count >= 1);
@@ -27,14 +26,7 @@ pub fn process_stripped_sequence_file<F>(
     let mut count_tooshort: usize = 0;
     let mut count_ignore: usize = 0;
     let mut count_bytes: usize = 0;
-    let mut progress_time = Instant::now();
     for line in reader.lines() {
-        let elapsed: u128 = progress_time.elapsed().as_millis();
-        if print_progress && elapsed >= 1000 {
-            let percent: usize = (count_bytes * 100) / filesize;
-            println!("progress: {}%  {} of {}", percent, count_bytes, filesize);
-            progress_time = Instant::now();
-        }
         let line: String = line.unwrap();
         count_bytes += line.len();
         let stripped_sequence: StrippedSequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
@@ -52,7 +44,7 @@ pub fn process_stripped_sequence_file<F>(
             count_tooshort += 1;
             continue;
         }
-        callback(&stripped_sequence);
+        callback(&stripped_sequence, count_bytes);
         count_callback += 1;
     }
     simple_log.println(format!("count_sequences: {}", count_callback));

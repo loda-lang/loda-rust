@@ -44,7 +44,7 @@ impl BatchProgramAnalyzer {
     }
 
     pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
-        println!("batch_program_analyzer");
+        println!("Run batch-program-analyzer");
         self.analyze_all_program_files()?;
         self.save_result_files()?;
         self.save_summary()?;
