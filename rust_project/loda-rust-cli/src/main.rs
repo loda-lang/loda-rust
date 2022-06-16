@@ -58,7 +58,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
                     Arg::with_name("terms")
                         .help("Number of sequence terms (default:20)")
                         .takes_value(true)
-                        .short("t")
+                        .short('t')
                         .long("terms")
                 )
                 .arg(
@@ -97,7 +97,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
                     Arg::with_name("parallel")
                         .help("Run as many miner instances as possible")
                         .takes_value(false)
-                        .short("p")
+                        .short('p')
                 )
                 .arg(
                     Arg::with_name("metrics")
