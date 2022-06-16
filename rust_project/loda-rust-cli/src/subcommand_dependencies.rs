@@ -1,6 +1,5 @@
-use loda_rust_core;
 use super::{DependencyManager,DependencyManagerFileSystemMode};
-use loda_rust_core::config::Config;
+use crate::config::Config;
 use std::path::PathBuf;
 
 pub fn subcommand_dependencies(program_id: u64) {

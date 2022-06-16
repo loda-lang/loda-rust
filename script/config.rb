@@ -37,7 +37,7 @@ class Config
     end
     
     def self.pathname_to_default_config_toml_inside_rust_project
-        path_from_root_to_default_config_toml = "rust_project/loda-rust-core/src/config/default_config.toml"
+        path_from_root_to_default_config_toml = "rust_project/loda-rust-cli/src/config/default_config.toml"
         pathname = pathname_to_loda_rust_dir + path_from_root_to_default_config_toml
         unless pathname.file?
             raise "Unable to find #{pathname.inspect}"

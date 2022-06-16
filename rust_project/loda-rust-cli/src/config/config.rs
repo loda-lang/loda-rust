@@ -185,6 +185,7 @@ impl Config {
         PathBuf::from(path)
     }
 
+    #[allow(dead_code)]
     pub fn oeis_names_file(&self) -> PathBuf {
         let path = &self.oeis_names_file;
         assert!(path.is_absolute());
@@ -199,6 +200,7 @@ impl Config {
         PathBuf::from(path)
     }
 
+    #[allow(dead_code)]
     pub fn loda_cpp_repository(&self) -> PathBuf {
         let path = &self.loda_cpp_repository;
         assert!(path.is_absolute());
@@ -206,6 +208,7 @@ impl Config {
         PathBuf::from(path)
     }
 
+    #[allow(dead_code)]
     pub fn loda_cpp_executable(&self) -> PathBuf {
         let path = &self.loda_cpp_executable;
         assert!(path.is_absolute());
@@ -213,6 +216,7 @@ impl Config {
         PathBuf::from(path)
     }
 
+    #[allow(dead_code)]
     pub fn loda_submitted_by(&self) -> String {
         self.loda_submitted_by.clone()
     }

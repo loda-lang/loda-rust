@@ -4,7 +4,7 @@ use crate::common::RecordTrigram;
 use crate::common::RecordSkipgram;
 use crate::common::RecordUnigram;
 use loda_rust_core;
-use loda_rust_core::config::Config;
+use crate::config::Config;
 use loda_rust_core::parser::{InstructionParameter, ParsedProgram};
 use std::path::PathBuf;
 use std::error::Error;

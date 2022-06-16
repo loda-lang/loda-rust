@@ -1,5 +1,5 @@
 use crate::common::create_csv_file;
-use loda_rust_core::config::Config;
+use crate::config::Config;
 use simple_pagerank::Pagerank;
 use crate::common::parse_csv_file;
 use std::path::{Path, PathBuf};

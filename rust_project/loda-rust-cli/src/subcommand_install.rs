@@ -1,5 +1,4 @@
-use loda_rust_core;
-use loda_rust_core::config::Config;
+use crate::config::Config;
 use std::path::{Path,PathBuf};
 use std::fs;
 use std::fs::File;

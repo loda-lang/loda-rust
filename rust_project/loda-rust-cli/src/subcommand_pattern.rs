@@ -1,6 +1,6 @@
 use crate::common::{find_asm_files_recursively, find_csv_files_recursively, program_id_from_path, parse_csv_file};
 use crate::pattern::{Clusters, instruction_diff_between_constants, ProgramSimilarity, RecordSimilar};
-use loda_rust_core::config::Config;
+use crate::config::Config;
 use loda_rust_core::parser::{Instruction, InstructionId, ParsedProgram};
 use std::time::Instant;
 use std::path::{Path, PathBuf};

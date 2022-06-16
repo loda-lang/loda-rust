@@ -1,5 +1,5 @@
 use loda_rust_core;
-use loda_rust_core::config::Config;
+use crate::config::Config;
 use loda_rust_core::execute::ProgramCache;
 use crate::common::RecordTrigram;
 use crate::common::find_asm_files_recursively;

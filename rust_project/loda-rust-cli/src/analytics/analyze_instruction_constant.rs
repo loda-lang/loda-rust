@@ -1,6 +1,6 @@
 use crate::common::create_csv_file;
+use crate::config::Config;
 use loda_rust_core;
-use loda_rust_core::config::Config;
 use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
 use std::path::PathBuf;
 use std::error::Error;

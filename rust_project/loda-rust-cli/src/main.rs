@@ -11,6 +11,7 @@ use loda_rust_core::control::*;
 
 mod analytics;
 mod common;
+mod config;
 mod mine;
 mod oeis;
 mod pattern;

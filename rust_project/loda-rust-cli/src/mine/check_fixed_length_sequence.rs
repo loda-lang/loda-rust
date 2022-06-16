@@ -1,5 +1,5 @@
 use loda_rust_core::util::BigIntVec;
-use loda_rust_core::config::Config;
+use crate::config::Config;
 use crate::common::{load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{process_stripped_sequence_file, StrippedSequence};
 use serde::{Serialize, Deserialize};
