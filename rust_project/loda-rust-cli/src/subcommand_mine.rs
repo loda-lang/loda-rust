@@ -1,5 +1,5 @@
 use crate::mine::{MinerThreadMessageToCoordinator, start_miner_loop, MovingAverage, MetricsPrometheus, Recorder, SinkRecorder};
-use loda_rust_core::config::Config;
+use crate::config::Config;
 use std::thread;
 use std::time::Duration;
 use std::sync::mpsc::{channel, Receiver};

@@ -1,6 +1,5 @@
 use crate::common::{find_asm_files_recursively, program_ids_from_paths, SimpleLog};
-use loda_rust_core;
-use loda_rust_core::config::Config;
+use crate::config::Config;
 use std::error::Error;
 use std::path::PathBuf;
 use std::collections::HashSet;

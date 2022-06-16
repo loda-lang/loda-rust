@@ -1,7 +1,7 @@
 use crate::common::{find_asm_files_recursively, program_id_from_path, SimpleLog};
 use loda_rust_core;
 use super::AnalyticsError;
-use loda_rust_core::config::Config;
+use crate::config::Config;
 use loda_rust_core::parser::ParsedProgram;
 use std::path::PathBuf;
 use std::error::Error;

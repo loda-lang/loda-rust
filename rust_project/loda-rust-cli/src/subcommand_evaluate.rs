@@ -7,7 +7,7 @@ use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, Regist
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
-use loda_rust_core::config::Config;
+use crate::config::Config;
 
 pub enum SubcommandEvaluateMode {
     PrintTerms,

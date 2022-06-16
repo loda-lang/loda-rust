@@ -4,7 +4,7 @@ use crate::similar::Word;
 use crate::similar::WordPair;
 use crate::similar::WordsFromProgram;
 use loda_rust_core::parser::ParsedProgram;
-use loda_rust_core::config::Config;
+use crate::config::Config;
 use std::time::Instant;
 use std::path::{Path, PathBuf};
 use std::fs;
