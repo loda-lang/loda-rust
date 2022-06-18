@@ -43,6 +43,26 @@ rollup v2.75.6
 ```
 
 
+## Install "typescript"
+
+```
+PROMPT> npm install -g typescript
+... installs stuff ...
+PROMPT> tsc --version
+Version 4.7.4
+```
+
+
+## Install "ts-node"
+
+```
+PROMPT> npm install -g ts-node
+... installs stuff ...
+PROMPT> ts-node --version
+v10.8.1
+```
+
+
 ## Install "CodeMirror"
 
 What is [CodeMirror](https://codemirror.net)
