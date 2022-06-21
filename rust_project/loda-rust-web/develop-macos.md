@@ -63,6 +63,18 @@ v10.8.1
 ```
 
 
+## Install "nodemon"
+
+What is [nodemon](https://nodemon.io/)
+
+```
+PROMPT> npm install -g nodemon
+... installs stuff ...
+PROMPT> nodemon --version
+2.0.16
+```
+
+
 ## Install "CodeMirror"
 
 What is [CodeMirror](https://codemirror.net)
