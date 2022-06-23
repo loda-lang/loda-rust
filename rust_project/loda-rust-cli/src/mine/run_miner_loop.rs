@@ -11,6 +11,8 @@ use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
 use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
 use loda_rust_core::parser::ParsedProgram;
+use num_bigint::BigInt;
+use num_traits::Zero;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -312,10 +314,25 @@ impl RunMinerLoop {
                 return;
             }
         }
-        let terms40: &BigIntVec = &self.term_computer.terms;
-        if !self.funnel.check40(terms40) {
+        let terms40clone: BigIntVec = self.term_computer.terms.clone();
+        let mut found: bool = false;
+        for i in 0..10 {
+            let terms40_with_wildcared: &BigIntVec = &self.term_computer.terms;
+            if !self.funnel.check40(terms40_with_wildcared) {
+                self.term_computer.terms[39 - i] = BigInt::zero();
+                continue;
+            }
+            if i > 0 {
+                println!("wildcard count: {}", i);
+            }
+            found = true;
+            break;
+        }
+        if !found {
             return;
         }
+        self.term_computer.terms = terms40clone;
+        let terms40: &BigIntVec = &self.term_computer.terms;
 
         if self.prevent_flooding.try_register(terms40).is_err() {
             // debug!("prevented flooding");
