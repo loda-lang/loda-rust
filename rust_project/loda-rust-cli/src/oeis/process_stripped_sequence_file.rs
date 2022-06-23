@@ -20,11 +20,12 @@ pub fn process_stripped_sequence_file<F>(
     let mut count_junk: usize = 0;
     let mut count_tooshort: usize = 0;
     let mut count_ignore: usize = 0;
+    let mut count_wildcard: usize = 0;
     let mut count_bytes: usize = 0;
     for line in reader.lines() {
         let line: String = line.unwrap();
         count_bytes += line.len();
-        let stripped_sequence: StrippedSequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
+        let mut stripped_sequence: StrippedSequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
             Some(value) => value,
             None => {
                 count_junk += 1;
@@ -34,6 +35,10 @@ pub fn process_stripped_sequence_file<F>(
         if program_ids_to_ignore.contains(&stripped_sequence.sequence_number) {
             count_ignore += 1;
             continue;
+        }
+        if term_count == 40 && stripped_sequence.len() >= 30 && stripped_sequence.len() < 40 {
+            count_wildcard += 1;
+            stripped_sequence.grow_to_length(40);
         }
         if stripped_sequence.len() != term_count {
             count_tooshort += 1;
@@ -45,5 +50,6 @@ pub fn process_stripped_sequence_file<F>(
     simple_log.println(format!("count_sequences: {}", count_callback));
     simple_log.println(format!("count_ignore: {}", count_ignore));
     simple_log.println(format!("count_tooshort: {}", count_tooshort));
+    simple_log.println(format!("count_wildcard: {}", count_wildcard));
     simple_log.println(format!("count_junk: {}", count_junk));
 }
