@@ -242,7 +242,6 @@ impl RunMinerLoop {
         }
 
         // Create program from genome
-        // self.dependency_manager.reset();
         let result_parse = self.dependency_manager.parse_stage2(
             ProgramId::ProgramWithoutId, 
             &genome_parsed_program
@@ -315,8 +314,16 @@ impl RunMinerLoop {
                 return;
             }
         }
-        let terms40clone: BigIntVec = self.term_computer.terms.clone();
+        let terms40_original: BigIntVec = self.term_computer.terms.clone();
+        if self.prevent_flooding.try_register(&terms40_original).is_err() {
+            // debug!("prevented flooding");
+            self.metric.number_of_prevented_floodings += 1;
+            self.reload = true;
+            return;
+        }
+
         let mut found: bool = false;
+        let mut number_of_wildcards: usize = 0;
         for i in 0..10 {
             let terms40_with_wildcared: &BigIntVec = &self.term_computer.terms;
             if !self.funnel.check40(terms40_with_wildcared) {
@@ -326,21 +333,14 @@ impl RunMinerLoop {
             if i > 0 {
                 println!("wildcard count: {}", i);
             }
+            number_of_wildcards = i;
             found = true;
             break;
         }
         if !found {
             return;
         }
-        self.term_computer.terms = terms40clone;
-        let terms40: &BigIntVec = &self.term_computer.terms;
-
-        if self.prevent_flooding.try_register(terms40).is_err() {
-            // debug!("prevented flooding");
-            self.metric.number_of_prevented_floodings += 1;
-            self.reload = true;
-            return;
-        }
+        let terms40_wildcard: &BigIntVec = &self.term_computer.terms;
 
         // Reject, if it's identical to one of the programs that this program depends on
         let depends_on_program_ids: HashSet<u32> = self.genome.depends_on_program_ids();
@@ -362,7 +362,7 @@ impl RunMinerLoop {
                 }
             }
             let verify_terms40: &BigIntVec = &verify_term_computer.terms;
-            if terms40 == verify_terms40 {
+            if terms40_original == *verify_terms40 {
                 // The candidate program seems to be generating the same terms
                 // as the program that it depends on.
                 // debug!("Rejecting program with a dependency to itself. {}", program_id);
@@ -377,16 +377,16 @@ impl RunMinerLoop {
         }
 
         // lookup in stripped.zip and find the corresponding program_ids
-        let key: String = bigintvec_to_string(terms40);
+        let key: String = bigintvec_to_string(terms40_wildcard);
         let corresponding_program_id_set: &HashSet<u32> = match self.terms_to_program_id.get(&key) {
             Some(value) => value,
             None => {
-                error!("Rejected. Could not find the candiate in the oeis stripped file.");
+                error!("Rejected. Could not find the candiate in the oeis stripped file. number_of_wildcards: {:?} key: {:?}", number_of_wildcards, key);
                 self.reload = true;
                 return
             }
         };
-        debug!("Found corresponding program_id's: {:?}", corresponding_program_id_set);
+        debug!("Found corresponding program_id's: {:?} number_of_wildcards: {:?}", corresponding_program_id_set, number_of_wildcards);
 
         let steps: &Vec<u64> = &self.term_computer.steps;
         let steps_len: usize = steps.len();
@@ -416,7 +416,7 @@ impl RunMinerLoop {
                 }
             };
             let verify_terms40: &BigIntVec = &verify_term_computer.terms;
-            if terms40 != verify_terms40 {
+            if terms40_original != *verify_terms40 {
                 debug!("Ignoring program with different terms. {}", program_id);
                 continue;
             }
@@ -475,10 +475,16 @@ impl RunMinerLoop {
             return;
         }
 
-        // Yay, this candidate program has 40 terms that are good.
+        if number_of_wildcards > 0 {
+            self.genome.append_message(format!("number of wildcards: {:?}", number_of_wildcards));
+        }
+
+        // Yay, this candidate program seems to be good.
+        // It's either an entirely new program.
+        // Or it's faster than the existing program.
         // Save a snapshot of this program to `$HOME/.loda-rust/mine-even/`
         let mut serializer = ProgramSerializer::new();
-        serializer.append_comment(bigintvec_to_string(terms40));
+        serializer.append_comment(bigintvec_to_string(&terms40_original));
         serializer.append_empty_line();
         runner.serialize(&mut serializer);
         serializer.append_empty_line();
