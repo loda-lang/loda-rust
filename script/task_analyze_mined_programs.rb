@@ -13,6 +13,8 @@ require 'csv'
 require 'set'
 require 'date'
 
+OEIS_STRIPPED_SKIP_PROGRAMS_WITH_FEWER_TERMS = 30
+
 class CandidateProgram
     attr_reader :path
     attr_reader :terms40
@@ -118,8 +120,13 @@ puts "evaluate: count_success: #{count_success}  count_failure: #{count_failure}
 
 #p candidate_programs
 
-# Look up the 40 terms and gather the OEIS ids matches.
+# Look up the initial terms in the stipped.zip file and gather the OEIS ids matches.
 approx_row_count = 400000
+number_of_too_short = 0
+number_of_shorter = 0
+number_of_exact = 0
+number_of_longer = 0
+number_of_prefix_matches = 0
 File.new(OEIS_STRIPPED_FILE, "r").each_with_index do |line, index|
     if (index % 50000) == 0
         percentage = (100 * index) / approx_row_count
@@ -129,8 +136,27 @@ File.new(OEIS_STRIPPED_FILE, "r").each_with_index do |line, index|
     program_id = $1.to_i
     all_terms = $2
     
+    # Limit to max 40 terms
+    terms_prefix_items = all_terms.split(',', 41).first(40)
+    terms_prefix = terms_prefix_items.join(',')
+    
+    if terms_prefix_items.count < OEIS_STRIPPED_SKIP_PROGRAMS_WITH_FEWER_TERMS
+        number_of_too_short += 1
+        next
+    end
+    if terms_prefix_items.count == 40
+        if all_terms == terms_prefix
+            number_of_exact += 1
+        else
+            number_of_longer += 1
+        end
+    else
+        number_of_shorter += 1
+    end
+    
     candidate_programs.each do |candidate_program|
-        if all_terms.start_with?(candidate_program.terms40)
+        if candidate_program.terms40.start_with?(terms_prefix)
+            number_of_prefix_matches += 1
             # puts "#{program_id} #{candidate_program.terms40}"
             candidate_program.append_oeis_id(program_id)
         end
@@ -139,6 +165,8 @@ File.new(OEIS_STRIPPED_FILE, "r").each_with_index do |line, index|
     # break if index > 20000
 end
 
+puts "stripped file: number of terms per row in stripped file: skiptooshort #{number_of_too_short}, fewerthan40 #{number_of_shorter}, exact40 #{number_of_exact}, morethan40 #{number_of_longer}"
+puts "stripped file: number_of_prefix_matches: #{number_of_prefix_matches}"
 #p candidate_programs
 
 def loda_eval_steps(path_program)
