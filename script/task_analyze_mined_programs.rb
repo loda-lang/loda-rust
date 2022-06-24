@@ -59,13 +59,21 @@ unless Dir.exist?(LODA_RUST_MISMATCHES)
     raise "No such dir #{LODA_RUST_MISMATCHES}, cannot run script"
 end
 
-def absolute_paths_for_all_programs(rootdir)
-    relative_paths = Dir.glob(File.join("**", "*.asm"), base: rootdir).sort
+def absolute_paths_for_programs_to_be_processed(rootdir)
+    relative_paths = Dir.glob(File.join("**", "*.asm"), base: rootdir)
+    count_all = relative_paths.count
+    relative_paths.filter! { |filename| filename !~ /[.](keep|reject)[.]asm/ }
+    count_after_filter = relative_paths.count
+    number_of_removed_paths = count_all - count_after_filter
+    if number_of_removed_paths > 0
+        puts "Ignoring #{number_of_removed_paths} programs that have already been analyzed"
+    end
+    relative_paths.sort!
     absolute_paths = relative_paths.map { |relative_path| File.join(rootdir, relative_path) }
     absolute_paths
 end
 
-paths = absolute_paths_for_all_programs(MINE_EVENT_DIR)
+paths = absolute_paths_for_programs_to_be_processed(MINE_EVENT_DIR)
 if paths.empty?
     puts "There are no pending programs to be processed."
     exit 0
