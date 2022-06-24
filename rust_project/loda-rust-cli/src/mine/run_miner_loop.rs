@@ -181,6 +181,7 @@ impl RunMinerLoop {
         {
             let event = MetricEvent::General { 
                 prevent_flooding: self.metric.number_of_prevented_floodings,
+                reject_self_dependency: self.metric.number_of_self_dependencies,
                 candidate_program: self.metric.number_of_candidate_programs,
             };
             self.recorder.record(&event);
@@ -370,6 +371,7 @@ impl RunMinerLoop {
             }
         }
         if reject_self_dependency {
+            self.metric.number_of_self_dependencies += 1;
             self.reload = true;
             return;
         }
