@@ -365,7 +365,7 @@ impl RunMinerLoop {
             if terms40 == verify_terms40 {
                 // The candidate program seems to be generating the same terms
                 // as the program that it depends on.
-                debug!("Rejecting program with a dependency to itself. {}", program_id);
+                // debug!("Rejecting program with a dependency to itself. {}", program_id);
                 reject_self_dependency = true;
                 break;
             }
