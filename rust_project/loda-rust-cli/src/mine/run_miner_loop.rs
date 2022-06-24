@@ -330,9 +330,6 @@ impl RunMinerLoop {
                 self.term_computer.terms[39 - i] = BigInt::zero();
                 continue;
             }
-            if i > 0 {
-                println!("wildcard count: {}", i);
-            }
             number_of_wildcards = i;
             found = true;
             break;

@@ -846,7 +846,7 @@ impl Genome {
             (MutateGenome::CallRecentProgram, 1),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
-        self.message_vec.push(format!("mutation: {:?}", mutation));
+        self.message_vec.push(format!("mutate: {:?}", mutation));
         match mutation {
             MutateGenome::ReplaceInstructionWithoutHistogram => {
                 return self.replace_instruction_without_histogram(rng);
