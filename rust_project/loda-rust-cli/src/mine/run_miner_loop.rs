@@ -301,9 +301,25 @@ impl RunMinerLoop {
                 return;
             }
         }
-        let terms30: &BigIntVec = &self.term_computer.terms;
-        if !self.funnel.check30(terms30) {
+        let terms30_original: BigIntVec = self.term_computer.terms.clone();
+        let mut funnel30_satisfied: bool = false;
+        let mut funnel30_number_of_wildcards: usize = 0;
+        for i in 0..10 {
+            let terms30_with_wildcared: &BigIntVec = &self.term_computer.terms;
+            if !self.funnel.check30(terms30_with_wildcared) {
+                self.term_computer.terms[29 - i] = BigInt::zero();
+                continue;
+            }
+            funnel30_number_of_wildcards = i;
+            funnel30_satisfied = true;
+            break;
+        }
+        self.term_computer.terms = terms30_original;
+        if !funnel30_satisfied {
             return;
+        }
+        if funnel30_number_of_wildcards > 0 {
+            println!("funnel30_number_of_wildcards: {}", funnel30_number_of_wildcards);
         }
 
         match self.term_computer.compute(&mut self.cache, &runner, 40) {
@@ -322,19 +338,19 @@ impl RunMinerLoop {
             return;
         }
 
-        let mut found: bool = false;
-        let mut number_of_wildcards: usize = 0;
-        for i in 0..10 {
+        let mut funnel40_satisfied: bool = false;
+        let mut funnel40_number_of_wildcards: usize = 0;
+        for i in 0..20 {
             let terms40_with_wildcared: &BigIntVec = &self.term_computer.terms;
             if !self.funnel.check40(terms40_with_wildcared) {
                 self.term_computer.terms[39 - i] = BigInt::zero();
                 continue;
             }
-            number_of_wildcards = i;
-            found = true;
+            funnel40_number_of_wildcards = i;
+            funnel40_satisfied = true;
             break;
         }
-        if !found {
+        if !funnel40_satisfied {
             return;
         }
         let terms40_wildcard: &BigIntVec = &self.term_computer.terms;
@@ -378,12 +394,12 @@ impl RunMinerLoop {
         let corresponding_program_id_set: &HashSet<u32> = match self.terms_to_program_id.get(&key) {
             Some(value) => value,
             None => {
-                error!("Rejected. Could not find the candiate in the oeis stripped file. number_of_wildcards: {:?} key: {:?}", number_of_wildcards, key);
+                error!("Rejected. Could not find the candiate in the oeis stripped file. number_of_wildcards: {:?} key: {:?}", funnel40_number_of_wildcards, key);
                 self.reload = true;
                 return
             }
         };
-        debug!("Found corresponding program_id's: {:?} number_of_wildcards: {:?}", corresponding_program_id_set, number_of_wildcards);
+        debug!("Found corresponding program_id's: {:?} number_of_wildcards: {:?}", corresponding_program_id_set, funnel40_number_of_wildcards);
 
         let steps: &Vec<u64> = &self.term_computer.steps;
         let steps_len: usize = steps.len();
@@ -472,8 +488,8 @@ impl RunMinerLoop {
             return;
         }
 
-        if number_of_wildcards > 0 {
-            self.genome.append_message(format!("number of wildcards: {:?}", number_of_wildcards));
+        if funnel40_number_of_wildcards > 0 {
+            self.genome.append_message(format!("number of wildcards: {:?}", funnel40_number_of_wildcards));
         }
 
         // Yay, this candidate program seems to be good.

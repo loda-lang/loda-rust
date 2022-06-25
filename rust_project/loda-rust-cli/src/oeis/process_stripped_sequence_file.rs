@@ -36,7 +36,7 @@ pub fn process_stripped_sequence_file<F>(
             count_ignore += 1;
             continue;
         }
-        if term_count == 40 && stripped_sequence.len() >= 30 && stripped_sequence.len() < 40 {
+        if term_count == 40 && stripped_sequence.len() >= 20 && stripped_sequence.len() < 40 {
             count_wildcard += 1;
             stripped_sequence.grow_to_length(40);
         }
