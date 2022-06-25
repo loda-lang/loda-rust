@@ -32,6 +32,18 @@ class CandidateProgram
         raise unless oeis_id.kind_of?(Integer)
         @oeis_ids << oeis_id
     end
+    
+    def path_with_status_extension(statusname)
+        @path.gsub(/[.]asm$/) { |capture| ".#{statusname}#{capture}" }
+    end
+
+    def path_reject
+        path_with_status_extension('reject')
+    end
+
+    def path_keep
+        path_with_status_extension('keep')
+    end
 end
 
 MINE_EVENT_DIR = Config.instance.dot_loda_rust_mine_event
@@ -413,16 +425,14 @@ def process_candidate_program(candidate_program, dontmine_program_id_set)
     end
     if reject_candidate
         # Rename program when it has been fully analyzed
-        path_reject = candidate_program.path + "_status_reject"
-        File.rename(candidate_program.path, path_reject)
-        puts "Status: Rejecting bad program. #{path_reject}"
+        File.rename(candidate_program.path, candidate_program.path_reject)
+        puts "Status: Rejecting bad program. #{candidate_program.path_reject}"
         return
     end
 
     # Rename program when it has been fully analyzed
-    path_keep = candidate_program.path + "_status_keep"
-    File.rename(candidate_program.path, path_keep)
-    puts "Status: Keeping good program. #{path_keep}"
+    File.rename(candidate_program.path, candidate_program.path_keep)
+    puts "Status: Keeping good program. #{candidate_program.path_keep}"
 end
 
 def process_candidate_programs(candidate_programs, dontmine_program_id_set)
