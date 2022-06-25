@@ -1,11 +1,11 @@
 #!/usr/bin/env ruby
 
 =begin
-This script removes ".asm_status_reject" and ".asm_status_keep" files.
+This script removes ".reject.asm" and ".keep.asm" files.
 
 After analyzing the mined programs, the "mine-event" dir is left with files like these:
-20220522-182722-410927334.asm_status_reject
-20220522-183346-423905535.asm_status_keep
+20220522-182722-410927334.reject.asm
+20220522-183346-423905535.keep.asm
 =end
 
 require_relative 'config'
@@ -16,9 +16,10 @@ unless Dir.exist?(MINE_EVENT_DIR)
 end
 
 def absolute_paths_for_all_processed_programs(rootdir)
-    relative_paths0 = Dir.glob(File.join("**", "*.asm_status_reject"), base: rootdir)
-    relative_paths1 = Dir.glob(File.join("**", "*.asm_status_keep"), base: rootdir)
-    relative_paths = (relative_paths0 + relative_paths1).sort
+    relative_paths = Dir.glob(File.join("**", "*.asm"), base: rootdir)
+    count_all = relative_paths.count
+    relative_paths.filter! { |filename| filename =~ /[.](keep|reject)[.]asm$/ }
+    relative_paths.sort!
     absolute_paths = relative_paths.map { |relative_path| File.join(rootdir, relative_path) }
     absolute_paths
 end

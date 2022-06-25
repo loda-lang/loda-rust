@@ -825,28 +825,28 @@ impl Genome {
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
-            (MutateGenome::ReplaceInstructionWithHistogram, 100),
-            (MutateGenome::InsertInstructionWithConstant, 20),
+            (MutateGenome::ReplaceInstructionWithHistogram, 5),
+            (MutateGenome::InsertInstructionWithConstant, 1),
             (MutateGenome::ReplaceSourceConstantWithoutHistogram, 1),
-            (MutateGenome::ReplaceSourceConstantWithHistogram, 100),
+            (MutateGenome::ReplaceSourceConstantWithHistogram, 30),
             (MutateGenome::SourceType, 1),
             (MutateGenome::SwapRegisters, 1),
             (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 1),
-            (MutateGenome::ReplaceSourceRegisterWithHistogram, 50),
+            (MutateGenome::ReplaceSourceRegisterWithHistogram, 30),
             (MutateGenome::ReplaceTargetWithoutHistogram, 1),
-            (MutateGenome::ReplaceTargetWithHistogram, 100),
+            (MutateGenome::ReplaceTargetWithHistogram, 30),
             (MutateGenome::ToggleEnabled, 10),
             (MutateGenome::SwapRows, 1),
-            (MutateGenome::SwapAdjacentRows, 10),
+            (MutateGenome::SwapAdjacentRows, 20),
             (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallProgramWeightedByPopularity, 100),
+            (MutateGenome::CallProgramWeightedByPopularity, 10),
             (MutateGenome::CallMostPopularProgram, 10),
-            (MutateGenome::CallMediumPopularProgram, 1),
-            (MutateGenome::CallLeastPopularProgram, 1),
+            (MutateGenome::CallMediumPopularProgram, 10),
+            (MutateGenome::CallLeastPopularProgram, 100),
             (MutateGenome::CallRecentProgram, 1),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
-        self.message_vec.push(format!("mutation: {:?}", mutation));
+        self.message_vec.push(format!("mutate: {:?}", mutation));
         match mutation {
             MutateGenome::ReplaceInstructionWithoutHistogram => {
                 return self.replace_instruction_without_histogram(rng);

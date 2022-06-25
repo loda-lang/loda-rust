@@ -1,4 +1,5 @@
 use num_bigint::BigInt;
+use num_traits::Zero;
 use std::fmt;
 use regex::Regex;
 use lazy_static::lazy_static;
@@ -23,6 +24,17 @@ impl StrippedSequence {
 
     pub fn len(&self) -> usize {
         self.bigint_vec.len()
+    }
+
+    pub fn grow_to_length(&mut self, length: usize) {
+        let original_length: usize = self.bigint_vec.len();
+        if original_length >= length {
+            return;
+        }
+        let count: usize = length - original_length;
+        for _ in 0..count {
+            self.bigint_vec.push(BigInt::zero());
+        }
     }
 }
 
@@ -171,5 +183,19 @@ A000040 ,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,
         }
         assert_eq!(line_count_sequences, 2);
         assert_eq!(line_count_junk, 5);
+    }
+
+    #[test]
+    fn test_10002_grow_to_length() {
+        // Arrange
+        let input = "A000040 ,2,3,5,7,11,13,17,19,23,";
+        let mut stripped_sequence: StrippedSequence = parse_stripped_sequence_line(&input.to_string(), None).unwrap();
+        assert_eq!(stripped_sequence.len(), 9);
+
+        // Act
+        stripped_sequence.grow_to_length(20);
+
+        // Assert
+        assert_eq!(stripped_sequence.to_string(), "40 2,3,5,7,11,13,17,19,23,0,0,0,0,0,0,0,0,0,0,0");
     }
 }

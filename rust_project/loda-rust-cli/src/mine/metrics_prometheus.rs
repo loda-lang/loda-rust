@@ -19,6 +19,7 @@ pub struct MetricsPrometheus {
     reject_compute_error: Counter,
     reject_mutate_without_impact: Counter,
     rejected_preventing_flooding: Counter,
+    reject_self_dependency: Counter,
     funnel_basic: Counter,
     funnel_10terms: Counter,
     funnel_20terms: Counter,
@@ -128,6 +129,13 @@ impl MetricsPrometheus {
             Box::new(rejected_preventing_flooding.clone()),
         );
 
+        let reject_self_dependency = Counter::default();
+        sub_registry.register(
+            "reject_self_dependency",
+            "Rejected programs because of circular dependency on themselves",
+            Box::new(reject_self_dependency.clone()),
+        );
+
         let funnel_basic = Counter::default();
         sub_registry.register(
             "funnel_basic",
@@ -178,6 +186,7 @@ impl MetricsPrometheus {
             reject_compute_error: reject_compute_error,
             reject_mutate_without_impact: reject_mutate_without_impact,
             rejected_preventing_flooding: rejected_preventing_flooding,
+            reject_self_dependency: reject_self_dependency,
             funnel_basic: funnel_basic,
             funnel_10terms: funnel_10terms,
             funnel_20terms: funnel_20terms,
@@ -210,8 +219,9 @@ impl Recorder for MetricsPrometheus {
                 self.reject_mutate_without_impact.inc_by(*no_mutation);
                 self.reject_compute_error.inc_by(*compute_error);
             },
-            MetricEvent::General { prevent_flooding, candidate_program } => {
+            MetricEvent::General { prevent_flooding, reject_self_dependency, candidate_program } => {
                 self.rejected_preventing_flooding.inc_by(*prevent_flooding);
+                self.reject_self_dependency.inc_by(*reject_self_dependency);
                 self.number_of_candidate_programs.inc_by(*candidate_program);
             },
         }

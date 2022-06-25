@@ -13,19 +13,36 @@ require 'csv'
 require 'set'
 require 'date'
 
+OEIS_STRIPPED_SKIP_PROGRAMS_WITH_FEWER_TERMS = 30
+
 class CandidateProgram
     attr_reader :path
     attr_reader :terms40
     attr_reader :oeis_ids
     
     def initialize(path, terms40)
+        raise unless path.kind_of?(String)
+        raise unless terms40.kind_of?(String)
         @path = path
         @terms40 = terms40
         @oeis_ids = []
     end
     
     def append_oeis_id(oeis_id)
+        raise unless oeis_id.kind_of?(Integer)
         @oeis_ids << oeis_id
+    end
+    
+    def path_with_status_extension(statusname)
+        @path.gsub(/[.]asm$/) { |capture| ".#{statusname}#{capture}" }
+    end
+
+    def path_reject
+        path_with_status_extension('reject')
+    end
+
+    def path_keep
+        path_with_status_extension('keep')
     end
 end
 
@@ -59,13 +76,21 @@ unless Dir.exist?(LODA_RUST_MISMATCHES)
     raise "No such dir #{LODA_RUST_MISMATCHES}, cannot run script"
 end
 
-def absolute_paths_for_all_programs(rootdir)
-    relative_paths = Dir.glob(File.join("**", "*.asm"), base: rootdir).sort
+def absolute_paths_for_programs_to_be_processed(rootdir)
+    relative_paths = Dir.glob(File.join("**", "*.asm"), base: rootdir)
+    count_all = relative_paths.count
+    relative_paths.filter! { |filename| filename !~ /[.](keep|reject)[.]asm$/ }
+    count_after_filter = relative_paths.count
+    number_of_removed_paths = count_all - count_after_filter
+    if number_of_removed_paths > 0
+        puts "Ignoring #{number_of_removed_paths} programs that have already been analyzed"
+    end
+    relative_paths.sort!
     absolute_paths = relative_paths.map { |relative_path| File.join(rootdir, relative_path) }
     absolute_paths
 end
 
-paths = absolute_paths_for_all_programs(MINE_EVENT_DIR)
+paths = absolute_paths_for_programs_to_be_processed(MINE_EVENT_DIR)
 if paths.empty?
     puts "There are no pending programs to be processed."
     exit 0
@@ -110,8 +135,13 @@ puts "evaluate: count_success: #{count_success}  count_failure: #{count_failure}
 
 #p candidate_programs
 
-# Look up the 40 terms and gather the OEIS ids matches.
+# Look up the initial terms in the stipped.zip file and gather the OEIS ids matches.
 approx_row_count = 400000
+number_of_too_short = 0
+number_of_shorter = 0
+number_of_exact = 0
+number_of_longer = 0
+number_of_prefix_matches = 0
 File.new(OEIS_STRIPPED_FILE, "r").each_with_index do |line, index|
     if (index % 50000) == 0
         percentage = (100 * index) / approx_row_count
@@ -121,8 +151,27 @@ File.new(OEIS_STRIPPED_FILE, "r").each_with_index do |line, index|
     program_id = $1.to_i
     all_terms = $2
     
+    # Limit to max 40 terms
+    terms_prefix_items = all_terms.split(',', 41).first(40)
+    terms_prefix = terms_prefix_items.join(',')
+    
+    if terms_prefix_items.count < OEIS_STRIPPED_SKIP_PROGRAMS_WITH_FEWER_TERMS
+        number_of_too_short += 1
+        next
+    end
+    if terms_prefix_items.count == 40
+        if all_terms == terms_prefix
+            number_of_exact += 1
+        else
+            number_of_longer += 1
+        end
+    else
+        number_of_shorter += 1
+    end
+    
     candidate_programs.each do |candidate_program|
-        if all_terms.start_with?(candidate_program.terms40)
+        if candidate_program.terms40.start_with?(terms_prefix)
+            number_of_prefix_matches += 1
             # puts "#{program_id} #{candidate_program.terms40}"
             candidate_program.append_oeis_id(program_id)
         end
@@ -131,6 +180,8 @@ File.new(OEIS_STRIPPED_FILE, "r").each_with_index do |line, index|
     # break if index > 20000
 end
 
+#puts "stripped file: number of terms per row in stripped file: skiptooshort #{number_of_too_short}, fewerthan40 #{number_of_shorter}, exact40 #{number_of_exact}, morethan40 #{number_of_longer}"
+puts "stripped file: number_of_prefix_matches: #{number_of_prefix_matches}"
 #p candidate_programs
 
 def loda_eval_steps(path_program)
@@ -374,23 +425,21 @@ def process_candidate_program(candidate_program, dontmine_program_id_set)
     end
     if reject_candidate
         # Rename program when it has been fully analyzed
-        path_reject = candidate_program.path + "_status_reject"
-        File.rename(candidate_program.path, path_reject)
-        puts "Status: Rejecting bad program. #{path_reject}"
+        File.rename(candidate_program.path, candidate_program.path_reject)
+        puts "Status: Rejecting bad program. #{candidate_program.path_reject}"
         return
     end
 
     # Rename program when it has been fully analyzed
-    path_keep = candidate_program.path + "_status_keep"
-    File.rename(candidate_program.path, path_keep)
-    puts "Status: Keeping good program. #{path_keep}"
+    File.rename(candidate_program.path, candidate_program.path_keep)
+    puts "Status: Keeping good program. #{candidate_program.path_keep}"
 end
 
 def process_candidate_programs(candidate_programs, dontmine_program_id_set)
     if candidate_programs.empty?
         raise "no candidate programs to process"
     end
-    #candidate_programs = [candidate_programs.first]
+    #candidate_programs = candidate_programs.first(10)
     candidate_programs.each do |candidate_program|
         process_candidate_program(candidate_program, dontmine_program_id_set)
     end

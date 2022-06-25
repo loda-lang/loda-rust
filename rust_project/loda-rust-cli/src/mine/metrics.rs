@@ -21,6 +21,7 @@ pub enum MetricEvent {
     },
     General {
         prevent_flooding: u64,
+        reject_self_dependency: u64,
         candidate_program: u64,
     }
 }
