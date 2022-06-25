@@ -79,7 +79,7 @@ end
 def absolute_paths_for_programs_to_be_processed(rootdir)
     relative_paths = Dir.glob(File.join("**", "*.asm"), base: rootdir)
     count_all = relative_paths.count
-    relative_paths.filter! { |filename| filename !~ /[.](keep|reject)[.]asm/ }
+    relative_paths.filter! { |filename| filename !~ /[.](keep|reject)[.]asm$/ }
     count_after_filter = relative_paths.count
     number_of_removed_paths = count_all - count_after_filter
     if number_of_removed_paths > 0
