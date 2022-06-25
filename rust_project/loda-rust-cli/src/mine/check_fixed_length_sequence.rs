@@ -188,11 +188,13 @@ fn create_cache_files(
             (*bloom40_ref).set(&vec);
         }
     };
+    let minimum_number_of_required_terms: usize = 20;
     let term_count: usize = 40;
     process_stripped_sequence_file(
         simple_log.clone(),
-        oeis_stripped_file_reader, 
-        term_count, 
+        oeis_stripped_file_reader,
+        minimum_number_of_required_terms,
+        term_count,
         program_ids_to_ignore, 
         process_callback
     );
@@ -351,7 +353,8 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
 "#;
 
     fn create_checkfixedlengthsequence_inner(
-        reader: &mut dyn io::BufRead, 
+        reader: &mut dyn io::BufRead,
+        minimum_number_of_required_terms: usize, 
         term_count: usize, 
         program_ids_to_ignore: &HashSet<u32>, 
     ) -> CheckFixedLengthSequence
@@ -367,6 +370,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
         process_stripped_sequence_file(
             SimpleLog::sink(),
             reader, 
+            minimum_number_of_required_terms,
             term_count, 
             program_ids_to_ignore, 
             process_callback
@@ -379,7 +383,8 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
             let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
             let hashset = HashSet::<u32>::new();
             create_checkfixedlengthsequence_inner(
-                &mut input, 
+                &mut input,
+                0,
                 5, 
                 &hashset
             )
