@@ -488,8 +488,11 @@ impl RunMinerLoop {
             return;
         }
 
+        if funnel30_number_of_wildcards > 0 {
+            self.genome.append_message(format!("funnel30 number of wildcards: {:?}", funnel30_number_of_wildcards));
+        }
         if funnel40_number_of_wildcards > 0 {
-            self.genome.append_message(format!("number of wildcards: {:?}", funnel40_number_of_wildcards));
+            self.genome.append_message(format!("funnel40 number of wildcards: {:?}", funnel40_number_of_wildcards));
         }
 
         // Yay, this candidate program seems to be good.
