@@ -439,7 +439,7 @@ def process_candidate_programs(candidate_programs, dontmine_program_id_set)
     if candidate_programs.empty?
         raise "no candidate programs to process"
     end
-    #candidate_programs = [candidate_programs.first]
+    #candidate_programs = candidate_programs.first(10)
     candidate_programs.each do |candidate_program|
         process_candidate_program(candidate_program, dontmine_program_id_set)
     end
