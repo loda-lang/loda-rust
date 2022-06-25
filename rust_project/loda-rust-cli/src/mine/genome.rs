@@ -826,11 +826,11 @@ impl Genome {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
             (MutateGenome::ReplaceInstructionWithHistogram, 50),
-            (MutateGenome::InsertInstructionWithConstant, 1),
+            (MutateGenome::InsertInstructionWithConstant, 20),
             (MutateGenome::ReplaceSourceConstantWithoutHistogram, 1),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 100),
             (MutateGenome::SourceType, 1),
-            (MutateGenome::SwapRegisters, 1),
+            (MutateGenome::SwapRegisters, 10),
             (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 1),
             (MutateGenome::ReplaceSourceRegisterWithHistogram, 100),
             (MutateGenome::ReplaceTargetWithoutHistogram, 1),
@@ -842,7 +842,7 @@ impl Genome {
             (MutateGenome::CallProgramWeightedByPopularity, 10),
             (MutateGenome::CallMostPopularProgram, 10),
             (MutateGenome::CallMediumPopularProgram, 30),
-            (MutateGenome::CallLeastPopularProgram, 30),
+            (MutateGenome::CallLeastPopularProgram, 50),
             (MutateGenome::CallRecentProgram, 1),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
