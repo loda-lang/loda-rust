@@ -26,7 +26,6 @@ impl StrippedSequence {
         self.bigint_vec.len()
     }
 
-    #[allow(dead_code)]
     pub fn grow_to_length(&mut self, length: usize) {
         let original_length: usize = self.bigint_vec.len();
         if original_length >= length {

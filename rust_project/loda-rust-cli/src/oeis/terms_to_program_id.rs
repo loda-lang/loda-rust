@@ -49,7 +49,7 @@ fn build_terms_to_program_id_set(
         let entry = terms_to_program_id.entry(key).or_insert_with(|| HashSet::new());
         entry.insert(stripped_sequence.sequence_number);
     }
-    println!("count_wildcard: {}", count_wildcard);
+    debug!("count_wildcard: {}", count_wildcard);
     debug!("number of items ignored: {}", count_junk);
     debug!("number of items in terms_to_program_id: {}", terms_to_program_id.len());
     Ok(terms_to_program_id)

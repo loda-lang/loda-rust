@@ -180,7 +180,7 @@ File.new(OEIS_STRIPPED_FILE, "r").each_with_index do |line, index|
     # break if index > 20000
 end
 
-puts "stripped file: number of terms per row in stripped file: skiptooshort #{number_of_too_short}, fewerthan40 #{number_of_shorter}, exact40 #{number_of_exact}, morethan40 #{number_of_longer}"
+#puts "stripped file: number of terms per row in stripped file: skiptooshort #{number_of_too_short}, fewerthan40 #{number_of_shorter}, exact40 #{number_of_exact}, morethan40 #{number_of_longer}"
 puts "stripped file: number_of_prefix_matches: #{number_of_prefix_matches}"
 #p candidate_programs
 
