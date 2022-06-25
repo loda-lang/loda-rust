@@ -49,9 +49,13 @@ task :process_mined_programs do
     ruby 'insert_oeis_names_into_program.rb'
     ruby 'task_add_mined_programs_to_repo.rb'
     ruby 'task_cleanup_temp_files_from_repo.rb'
-    ruby 'task_cleanup_processed_files_from_mineevent_dir.rb'
     ruby 'task_cleanup_mismatch_filenames.rb'
     ruby 'task_cleanup_mismatch_footers.rb'
+end
+
+desc "Remove already processed programs with suffix .keep.asm and .reject.asm"
+task :clean_mineevent_dir do
+    ruby 'task_cleanup_processed_files_from_mineevent_dir.rb'
 end
 
 task :default do
