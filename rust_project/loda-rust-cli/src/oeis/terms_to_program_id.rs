@@ -25,8 +25,9 @@ fn build_terms_to_program_id_set(
     term_count: usize,
 ) -> Result<TermsToProgramIdSet, Box<dyn Error>> {
     let mut terms_to_program_id = TermsToProgramIdSet::new();
+    let mut count_tooshort: usize = 0;
     let mut count_junk: usize = 0;
-    let mut count_wildcard: usize = 0;
+    let mut count_grow_to_term_count: usize = 0;
     for line in reader.lines() {
         let line: String = line.unwrap();
         let mut stripped_sequence: StrippedSequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
@@ -36,9 +37,13 @@ fn build_terms_to_program_id_set(
                 continue;
             }
         };
-        if term_count == 40 && stripped_sequence.len() >= 30 && stripped_sequence.len() < 40 {
-            count_wildcard += 1;
-            stripped_sequence.grow_to_length(40);
+        if stripped_sequence.len() < 20 {
+            count_tooshort += 1;
+            continue;
+        }
+        if stripped_sequence.len() < term_count {
+            count_grow_to_term_count += 1;
+            stripped_sequence.grow_to_length(term_count);
         }
         if stripped_sequence.len() != term_count {
             count_junk += 1;
@@ -49,7 +54,8 @@ fn build_terms_to_program_id_set(
         let entry = terms_to_program_id.entry(key).or_insert_with(|| HashSet::new());
         entry.insert(stripped_sequence.sequence_number);
     }
-    debug!("count_wildcard: {}", count_wildcard);
+    debug!("count_grow_to_term_count: {}", count_grow_to_term_count);
+    debug!("count_tooshort: {}", count_tooshort);
     debug!("number of items ignored: {}", count_junk);
     debug!("number of items in terms_to_program_id: {}", terms_to_program_id.len());
     Ok(terms_to_program_id)

@@ -394,7 +394,7 @@ impl RunMinerLoop {
         let corresponding_program_id_set: &HashSet<u32> = match self.terms_to_program_id.get(&key) {
             Some(value) => value,
             None => {
-                error!("Rejected. Could not find the candiate in the oeis stripped file. number_of_wildcards: {:?} key: {:?}", funnel40_number_of_wildcards, key);
+                error!("Rejected. Could not find the candiate in the oeis stripped file. funnel30_number_of_wildcards: {:?} funnel40_number_of_wildcards: {:?} key: {:?}", funnel30_number_of_wildcards, funnel40_number_of_wildcards, key);
                 self.reload = true;
                 return
             }
