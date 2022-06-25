@@ -13,7 +13,7 @@ require 'csv'
 require 'set'
 require 'date'
 
-OEIS_STRIPPED_SKIP_PROGRAMS_WITH_FEWER_TERMS = 30
+OEIS_STRIPPED_SKIP_PROGRAMS_WITH_FEWER_TERMS = 20
 
 class CandidateProgram
     attr_reader :path
