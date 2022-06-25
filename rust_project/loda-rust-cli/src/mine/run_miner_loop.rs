@@ -318,9 +318,6 @@ impl RunMinerLoop {
         if !funnel30_satisfied {
             return;
         }
-        if funnel30_number_of_wildcards > 0 {
-            println!("funnel30_number_of_wildcards: {}", funnel30_number_of_wildcards);
-        }
 
         match self.term_computer.compute(&mut self.cache, &runner, 40) {
             Ok(_) => {},
@@ -399,7 +396,7 @@ impl RunMinerLoop {
                 return
             }
         };
-        debug!("Found corresponding program_id's: {:?} number_of_wildcards: {:?}", corresponding_program_id_set, funnel40_number_of_wildcards);
+        debug!("Found corresponding program_id's: {:?} funnel30_number_of_wildcards: {:?} funnel40_number_of_wildcards: {:?}", corresponding_program_id_set, funnel30_number_of_wildcards, funnel40_number_of_wildcards);
 
         let steps: &Vec<u64> = &self.term_computer.steps;
         let steps_len: usize = steps.len();
