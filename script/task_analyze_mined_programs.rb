@@ -21,12 +21,15 @@ class CandidateProgram
     attr_reader :oeis_ids
     
     def initialize(path, terms40)
+        raise unless path.kind_of?(String)
+        raise unless terms40.kind_of?(String)
         @path = path
         @terms40 = terms40
         @oeis_ids = []
     end
     
     def append_oeis_id(oeis_id)
+        raise unless oeis_id.kind_of?(Integer)
         @oeis_ids << oeis_id
     end
 end
