@@ -18,6 +18,7 @@ pub fn process_stripped_sequence_file<F>(
     assert!(term_count <= 100);
     
     let mut count_bytes: usize = 0;
+    let mut count_lines: usize = 0;
     let mut count_junk: usize = 0;
     let mut count_callback: usize = 0;
     let mut count_tooshort: usize = 0;
@@ -26,6 +27,7 @@ pub fn process_stripped_sequence_file<F>(
     for line in reader.lines() {
         let line: String = line.unwrap();
         count_bytes += line.len();
+        count_lines += 1;
         let mut stripped_sequence: StrippedSequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
             Some(value) => value,
             None => {
@@ -49,6 +51,7 @@ pub fn process_stripped_sequence_file<F>(
         callback(&stripped_sequence, count_bytes);
         count_callback += 1;
     }
+    simple_log.println(format!("Number of lines in oeis 'stripped' file: {}", count_lines));
     simple_log.println(format!("count_callback: {}", count_callback));
     simple_log.println(format!("count_tooshort: {}", count_tooshort));
     simple_log.println(format!("count_ignored_program_id: {}", count_ignored_program_id));

@@ -163,7 +163,7 @@ fn create_cache_files(
     let bloom30_ref = &mut bloom30;
     let bloom40_ref = &mut bloom40;
 
-    simple_log.println(format!("number of bytes to be processed: {}", filesize));
+    simple_log.println(format!("oeis 'stripped' file size: {} bytes", filesize));
     let pb = ProgressBar::new(filesize as u64);
     let process_callback = |stripped_sequence: &StrippedSequence, count_bytes: usize| {
         // debug!("call {:?}", stripped_sequence.sequence_number);
@@ -198,7 +198,7 @@ fn create_cache_files(
         program_ids_to_ignore, 
         process_callback
     );
-    simple_log.println(format!("number of sequences processed: {:?}", processor.counter));
+    simple_log.println(format!("number of sequences stored in bloomfilter: {:?}", processor.counter));
     pb.finish_and_clear();
 
     let green_bold = Style::new().green().bold();        
