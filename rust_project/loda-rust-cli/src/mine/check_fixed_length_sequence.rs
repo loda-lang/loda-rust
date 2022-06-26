@@ -1,7 +1,7 @@
 use loda_rust_core::util::BigIntVec;
 use crate::config::Config;
 use crate::common::{load_program_ids_csv_file, SimpleLog};
-use crate::oeis::{process_stripped_sequence_file, StrippedSequence};
+use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;
 use std::error::Error;
@@ -190,14 +190,15 @@ fn create_cache_files(
     };
     let minimum_number_of_required_terms: usize = 10;
     let term_count: usize = 40;
-    process_stripped_sequence_file(
-        simple_log.clone(),
+    let mut stripped_sequence_processor = ProcessStrippedSequenceFile::new();
+    stripped_sequence_processor.execute(
         oeis_stripped_file_reader,
         minimum_number_of_required_terms,
         term_count,
         program_ids_to_ignore, 
         process_callback
     );
+    stripped_sequence_processor.print_summary(simple_log.clone());
     simple_log.println(format!("number of sequences stored in bloomfilter: {:?}", processor.counter));
     pb.finish_and_clear();
 
@@ -367,8 +368,8 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
             let vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
             (*bloom_ref).set(vec);
         };
-        process_stripped_sequence_file(
-            SimpleLog::sink(),
+        let mut processor = ProcessStrippedSequenceFile::new();
+        processor.execute(
             reader, 
             minimum_number_of_required_terms,
             term_count, 
