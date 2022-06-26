@@ -19,6 +19,8 @@ use rand::rngs::StdRng;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 
+const MINER_CACHE_CAPACITY: usize = 300000;
+
 pub fn start_miner_loop(
     tx: Sender<MinerThreadMessageToCoordinator>, 
     recorder: Box<dyn Recorder + Send>,
@@ -128,7 +130,7 @@ pub fn start_miner_loop(
     let rng: StdRng = StdRng::seed_from_u64(initial_random_seed);
     println!("random_seed = {}", initial_random_seed);
 
-    let mut cache = ProgramCache::new();
+    let mut cache = ProgramCache::with_capacity(MINER_CACHE_CAPACITY);
 
     let mut paths0: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
     let mut paths1: Vec<PathBuf> = find_asm_files_recursively(&oeis_divergent_dir);

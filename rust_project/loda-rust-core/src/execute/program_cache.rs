@@ -3,7 +3,7 @@ use num_bigint::BigInt;
 extern crate lru;
 use lru::LruCache;
 
-const CACHE_CAPACITY: usize = 3000;
+const DEFAULT_CACHE_CAPACITY: usize = 3000;
 
 #[derive(PartialEq, Eq, Hash)]
 struct CacheKey {
@@ -25,7 +25,11 @@ pub struct ProgramCache {
 
 impl ProgramCache {
     pub fn new() -> Self {
-        let cache: LruCache<CacheKey, CacheValue> = LruCache::new(CACHE_CAPACITY);
+        Self::with_capacity(DEFAULT_CACHE_CAPACITY)
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        let cache: LruCache<CacheKey, CacheValue> = LruCache::new(capacity);
         Self {
             cache: cache,
             metric_hit: 0,
