@@ -5,6 +5,7 @@ pub enum MetricEvent {
         terms20: u64,
         terms30: u64,
         terms40: u64,
+        false_positives: u64,
     },
     Cache { 
         hit: u64,

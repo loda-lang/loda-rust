@@ -156,6 +156,7 @@ impl RunMinerLoop {
                 terms20: self.funnel.metric_number_of_candidates_with_20terms(),
                 terms30: self.funnel.metric_number_of_candidates_with_30terms(),
                 terms40: self.funnel.metric_number_of_candidates_with_40terms(),
+                false_positives: self.metric.number_of_bloomfilter_false_positive,
             };
             self.recorder.record(&event);
         }
@@ -404,7 +405,8 @@ impl RunMinerLoop {
         let corresponding_program_id_set: &HashSet<u32> = match self.terms_to_program_id.get(&key) {
             Some(value) => value,
             None => {
-                error!("Rejected. Could not find the candiate in the oeis stripped file. funnel20_number_of_wildcards: {:?} funnel30_number_of_wildcards: {:?} funnel40_number_of_wildcards: {:?} key: {:?}", funnel20_number_of_wildcards, funnel30_number_of_wildcards, funnel40_number_of_wildcards, key);
+                debug!("Ignoring false-positive in bloomfilter funnel. Could not find the candiate in the oeis stripped file. funnel20_number_of_wildcards: {:?} funnel30_number_of_wildcards: {:?} funnel40_number_of_wildcards: {:?} key: {:?}", funnel20_number_of_wildcards, funnel30_number_of_wildcards, funnel40_number_of_wildcards, key);
+                self.metric.number_of_bloomfilter_false_positive += 1;
                 self.reload = true;
                 return
             }

@@ -2,6 +2,7 @@ pub struct MetricsRunMinerLoop {
     pub number_of_miner_loop_iterations: u64,
     pub number_of_prevented_floodings: u64,
     pub number_of_self_dependencies: u64,
+    pub number_of_bloomfilter_false_positive: u64,
     pub number_of_failed_genome_loads: u64,
     pub number_of_failed_mutations: u64,
     pub number_of_too_short_programs: u64,
@@ -17,6 +18,7 @@ impl MetricsRunMinerLoop {
             number_of_miner_loop_iterations: 0,
             number_of_prevented_floodings: 0,
             number_of_self_dependencies: 0,
+            number_of_bloomfilter_false_positive: 0,
             number_of_failed_genome_loads: 0,
             number_of_failed_mutations: 0,
             number_of_too_short_programs: 0,
@@ -31,6 +33,7 @@ impl MetricsRunMinerLoop {
         self.number_of_miner_loop_iterations = 0;
         self.number_of_prevented_floodings = 0;
         self.number_of_self_dependencies = 0;
+        self.number_of_bloomfilter_false_positive = 0;
         self.number_of_failed_mutations = 0;
         self.number_of_too_short_programs = 0;
         self.number_of_programs_that_cannot_parse = 0;
