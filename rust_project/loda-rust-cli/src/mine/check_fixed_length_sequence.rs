@@ -188,7 +188,7 @@ fn create_cache_files(
             (*bloom40_ref).set(&vec);
         }
     };
-    let minimum_number_of_required_terms: usize = 20;
+    let minimum_number_of_required_terms: usize = 10;
     let term_count: usize = 40;
     process_stripped_sequence_file(
         simple_log.clone(),

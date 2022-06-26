@@ -13,15 +13,17 @@ pub type TermsToProgramIdSet = HashMap::<String, HashSet<u32>>;
 
 pub fn load_terms_to_program_id_set(
     oeis_stripped_file: &Path,
+    minimum_number_of_required_terms: usize,
     term_count: usize,
 ) -> Result<TermsToProgramIdSet, Box<dyn Error>> {
     let file = File::open(oeis_stripped_file)?;
     let mut reader = BufReader::new(file);
-    build_terms_to_program_id_set(&mut reader, term_count)
+    build_terms_to_program_id_set(&mut reader, minimum_number_of_required_terms, term_count)
 }
 
 fn build_terms_to_program_id_set(
     reader: &mut dyn io::BufRead,
+    minimum_number_of_required_terms: usize,
     term_count: usize,
 ) -> Result<TermsToProgramIdSet, Box<dyn Error>> {
     let mut terms_to_program_id = TermsToProgramIdSet::new();
@@ -37,7 +39,7 @@ fn build_terms_to_program_id_set(
                 continue;
             }
         };
-        if stripped_sequence.len() < 20 {
+        if stripped_sequence.len() < minimum_number_of_required_terms {
             count_tooshort += 1;
             continue;
         }
@@ -92,7 +94,7 @@ A117093 ,2,3,5,7,11,13,16,17,18,19,23,28,29,30,31,37,38,39,40,41,43,47,53,58,59,
     #[test]
     fn test_10000_build_terms_to_program_id_set() -> Result<(), Box<dyn Error>> {
         let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
-        let dict = build_terms_to_program_id_set(&mut input, 5)?;
+        let dict = build_terms_to_program_id_set(&mut input, 0, 5)?;
         assert_eq!(dict.len(), 2);
         assert_eq!(lookup(&dict, "2,3,5,7,11"), "40,112088,117093");
         assert_eq!(lookup(&dict, "0,1,1,2,3"), "45");
