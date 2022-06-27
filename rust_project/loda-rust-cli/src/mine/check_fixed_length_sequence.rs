@@ -25,14 +25,12 @@ static APPROX_BLOOM_ITEMS_COUNT: usize = 400000;
 
 pub struct CheckFixedLengthSequence {
     bloom: Bloom::<BigIntVec>,
-    term_count: usize,
 }
 
 impl CheckFixedLengthSequence {
-    pub fn new(bloom: Bloom::<BigIntVec>, term_count: usize) -> Self {
+    pub fn new(bloom: Bloom::<BigIntVec>) -> Self {
         Self {
             bloom: bloom,
-            term_count: term_count,
         }
     }
 
@@ -68,7 +66,6 @@ impl CheckFixedLengthSequence {
 
     fn to_representation(&self) -> CheckFixedLengthSequenceInternalRepresentation {
         CheckFixedLengthSequenceInternalRepresentation {
-            term_count: self.term_count,
             bloom_bitmap: self.bloom.bitmap(),
             bloom_bitmap_bits: self.bloom.number_of_bits(),
             bloom_k_num: self.bloom.number_of_hash_functions(),
@@ -107,7 +104,6 @@ impl CheckFixedLengthSequence {
 // all the fields of the bloomfilter.
 #[derive(Serialize, Deserialize)]
 struct CheckFixedLengthSequenceInternalRepresentation {
-    term_count: usize,
     bloom_bitmap: Vec<u8>,
     bloom_bitmap_bits: u64,
     bloom_k_num: u32,
@@ -124,7 +120,6 @@ impl CheckFixedLengthSequenceInternalRepresentation {
         );
         CheckFixedLengthSequence {
             bloom: bloom,
-            term_count: self.term_count,
         }
     }
 }
@@ -233,28 +228,28 @@ fn create_cache_files(
     let start2 = Instant::now();
     let pb = ProgressBar::new(4);
     {
-        let instance = CheckFixedLengthSequence::new(bloom10, FunnelConfig::TERM_COUNT);
+        let instance = CheckFixedLengthSequence::new(bloom10);
         let filename: &str = NamedCacheFile::Bloom10Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
         instance.save(&destination_file);
         pb.inc(1);
     }
     {
-        let instance = CheckFixedLengthSequence::new(bloom20, FunnelConfig::TERM_COUNT);
+        let instance = CheckFixedLengthSequence::new(bloom20);
         let filename: &str = NamedCacheFile::Bloom20Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
         instance.save(&destination_file);
         pb.inc(1);
     }
     {
-        let instance = CheckFixedLengthSequence::new(bloom30, FunnelConfig::TERM_COUNT);
+        let instance = CheckFixedLengthSequence::new(bloom30);
         let filename: &str = NamedCacheFile::Bloom30Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
         instance.save(&destination_file);
         pb.inc(1);
     }
     {
-        let instance = CheckFixedLengthSequence::new(bloom40, FunnelConfig::TERM_COUNT);
+        let instance = CheckFixedLengthSequence::new(bloom40);
         let filename: &str = NamedCacheFile::Bloom40Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
         instance.save(&destination_file);
@@ -396,7 +391,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
             program_ids_to_ignore, 
             process_callback
         );
-        CheckFixedLengthSequence::new(bloom, term_count)
+        CheckFixedLengthSequence::new(bloom)
     }
 
     impl CheckFixedLengthSequence {
