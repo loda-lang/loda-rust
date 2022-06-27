@@ -19,10 +19,6 @@ use std::time::Instant;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
 
-// As of january 2022, the OEIS contains around 350k sequences.
-// So an approx count of 400k and there should be room for them all.
-static APPROX_BLOOM_ITEMS_COUNT: usize = 400000;
-
 pub struct CheckFixedLengthSequence {
     bloom: Bloom::<BigIntVec>,
 }
@@ -299,7 +295,7 @@ impl PopulateBloomfilter {
             self.simple_log.clone(),
             &mut reader, 
             filesize,
-            APPROX_BLOOM_ITEMS_COUNT, 
+            FunnelConfig::APPROX_BLOOM_ITEMS_COUNT, 
             &cache_dir, 
             &program_ids_to_ignore
         );
