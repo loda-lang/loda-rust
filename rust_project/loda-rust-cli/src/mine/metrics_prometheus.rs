@@ -25,6 +25,7 @@ pub struct MetricsPrometheus {
     funnel_20terms: Counter,
     funnel_30terms: Counter,
     funnel_40terms: Counter,
+    funnel_false_positive: Counter,
 }
 
 impl MetricsPrometheus {
@@ -171,6 +172,13 @@ impl MetricsPrometheus {
             Box::new(funnel_40terms.clone()),
         );
 
+        let funnel_false_positive = Counter::default();
+        sub_registry.register(
+            "funnel_false_positive",
+            "Number of false positives coming out of the funnel",
+            Box::new(funnel_false_positive.clone()),
+        );
+
         Self {
             number_of_workers: number_of_workers,
             number_of_iterations: number_of_iterations,
@@ -192,6 +200,7 @@ impl MetricsPrometheus {
             funnel_20terms: funnel_20terms,
             funnel_30terms: funnel_30terms,
             funnel_40terms: funnel_40terms,
+            funnel_false_positive: funnel_false_positive,
         }
     }
 }
@@ -199,12 +208,13 @@ impl MetricsPrometheus {
 impl Recorder for MetricsPrometheus {
     fn record(&self, event: &MetricEvent) {
         match event {
-            MetricEvent::Funnel { basic, terms10, terms20, terms30, terms40 } => {
+            MetricEvent::Funnel { basic, terms10, terms20, terms30, terms40, false_positives } => {
                 self.funnel_basic.inc_by(*basic);
                 self.funnel_10terms.inc_by(*terms10);
                 self.funnel_20terms.inc_by(*terms20);
                 self.funnel_30terms.inc_by(*terms30);
                 self.funnel_40terms.inc_by(*terms40);
+                self.funnel_false_positive.inc_by(*false_positives);
             },
             MetricEvent::Cache { hit, miss_program_oeis, miss_program_without_id } => {
                 self.cache_hit.inc_by(*hit);

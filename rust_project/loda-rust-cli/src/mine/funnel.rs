@@ -51,6 +51,7 @@ impl Funnel {
         true
     }
 
+    #[allow(dead_code)]
     pub fn check20(&mut self, terms: &BigIntVec) -> bool {
         if !self.checker20.check(terms) {
             return false;
@@ -59,6 +60,7 @@ impl Funnel {
         true
     }
 
+    #[allow(dead_code)]
     pub fn check30(&mut self, terms: &BigIntVec) -> bool {
         if !self.checker30.check(terms) {
             return false;
@@ -67,12 +69,37 @@ impl Funnel {
         true
     }
 
+    #[allow(dead_code)]
     pub fn check40(&mut self, terms: &BigIntVec) -> bool {
         if !self.checker40.check(terms) {
             return false;
         }
         self.metric_number_of_candidates_with_40terms += 1;
         true
+    }
+
+    pub fn check20_with_wildcards(&mut self, terms: &BigIntVec) -> Option<usize> {
+        let result: Option<usize> = self.checker20.check_with_wildcards(terms, 10);
+        if result.is_some() {
+            self.metric_number_of_candidates_with_20terms += 1;
+        }
+        result
+    }
+
+    pub fn check30_with_wildcards(&mut self, terms: &BigIntVec) -> Option<usize> {
+        let result: Option<usize> = self.checker30.check_with_wildcards(terms, 20);
+        if result.is_some() {
+            self.metric_number_of_candidates_with_30terms += 1;
+        }
+        result
+    }
+
+    pub fn mut_check40_with_wildcards(&mut self, terms: &mut BigIntVec) -> Option<usize> {
+        let result: Option<usize> = self.checker40.mut_check_with_wildcards(terms, 30);
+        if result.is_some() {
+            self.metric_number_of_candidates_with_40terms += 1;
+        }
+        result
     }
 
     pub fn metric_number_of_candidates_with_basiccheck(&self) -> u64 {

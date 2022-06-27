@@ -166,7 +166,7 @@ impl SubcommandMine {
             }
         };
         let oeis_stripped_file: PathBuf = config.oeis_stripped_file();
-        let terms_to_program_id: TermsToProgramIdSet = match load_terms_to_program_id_set(&oeis_stripped_file, 40) {
+        let terms_to_program_id: TermsToProgramIdSet = match load_terms_to_program_id_set(&oeis_stripped_file, 10, 40) {
             Ok(value) => value,
             Err(error) => {
                 panic!("Unable to load program ids. {:?}", error);

@@ -1,7 +1,9 @@
 use loda_rust_core::util::BigIntVec;
 use crate::config::Config;
 use crate::common::{load_program_ids_csv_file, SimpleLog};
-use crate::oeis::{process_stripped_sequence_file, StrippedSequence};
+use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
+use num_bigint::BigInt;
+use num_traits::Zero;
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;
 use std::error::Error;
@@ -41,6 +43,22 @@ impl CheckFixedLengthSequence {
     // if the integer sequences is known or unknown.
     pub fn check(&self, bigint_vec_ref: &BigIntVec) -> bool {
         self.bloom.check(bigint_vec_ref)
+    }
+
+    pub fn check_with_wildcards(&self, bigint_vec_ref: &BigIntVec, number_of_wildcards: usize) -> Option<usize> {
+        let mut bigint_vec: BigIntVec = bigint_vec_ref.clone();
+        self.mut_check_with_wildcards(&mut bigint_vec, number_of_wildcards)
+    }
+
+    pub fn mut_check_with_wildcards(&self, bigint_vec: &mut BigIntVec, number_of_wildcards: usize) -> Option<usize> {
+        let len = bigint_vec.len();
+        for i in 0..len.min(number_of_wildcards) {
+            if self.check(&bigint_vec) {
+                return Some(i);
+            }
+            bigint_vec[len - 1 - i] = BigInt::zero();
+        }
+        None
     }
 
     fn to_representation(&self) -> CheckFixedLengthSequenceInternalRepresentation {
@@ -163,10 +181,9 @@ fn create_cache_files(
     let bloom30_ref = &mut bloom30;
     let bloom40_ref = &mut bloom40;
 
-    simple_log.println(format!("number of bytes to be processed: {}", filesize));
+    simple_log.println(format!("oeis 'stripped' file size: {} bytes", filesize));
     let pb = ProgressBar::new(filesize as u64);
     let process_callback = |stripped_sequence: &StrippedSequence, count_bytes: usize| {
-        // debug!("call {:?}", stripped_sequence.sequence_number);
         (*x).counter += 1;
         pb.set_position(count_bytes as u64);
 
@@ -188,15 +205,18 @@ fn create_cache_files(
             (*bloom40_ref).set(&vec);
         }
     };
+    let minimum_number_of_required_terms: usize = 10;
     let term_count: usize = 40;
-    process_stripped_sequence_file(
-        simple_log.clone(),
-        oeis_stripped_file_reader, 
-        term_count, 
+    let mut stripped_sequence_processor = ProcessStrippedSequenceFile::new();
+    stripped_sequence_processor.execute(
+        oeis_stripped_file_reader,
+        minimum_number_of_required_terms,
+        term_count,
         program_ids_to_ignore, 
         process_callback
     );
-    simple_log.println(format!("number of sequences processed: {:?}", processor.counter));
+    stripped_sequence_processor.print_summary(simple_log.clone());
+    simple_log.println(format!("number of sequences stored in bloomfilter: {:?}", processor.counter));
     pb.finish_and_clear();
 
     let green_bold = Style::new().green().bold();        
@@ -351,7 +371,8 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
 "#;
 
     fn create_checkfixedlengthsequence_inner(
-        reader: &mut dyn io::BufRead, 
+        reader: &mut dyn io::BufRead,
+        minimum_number_of_required_terms: usize, 
         term_count: usize, 
         program_ids_to_ignore: &HashSet<u32>, 
     ) -> CheckFixedLengthSequence
@@ -364,9 +385,10 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
             let vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
             (*bloom_ref).set(vec);
         };
-        process_stripped_sequence_file(
-            SimpleLog::sink(),
+        let mut processor = ProcessStrippedSequenceFile::new();
+        processor.execute(
             reader, 
+            minimum_number_of_required_terms,
             term_count, 
             program_ids_to_ignore, 
             process_callback
@@ -379,7 +401,8 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
             let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
             let hashset = HashSet::<u32>::new();
             create_checkfixedlengthsequence_inner(
-                &mut input, 
+                &mut input,
+                0,
                 5, 
                 &hashset
             )

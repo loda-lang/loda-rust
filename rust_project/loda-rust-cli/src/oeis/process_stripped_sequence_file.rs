@@ -4,52 +4,76 @@ use std::collections::HashSet;
 use crate::common::SimpleLog;
 use super::{parse_stripped_sequence_line, StrippedSequence};
 
-pub fn process_stripped_sequence_file<F>(
-    simple_log: SimpleLog,
-    reader: &mut dyn io::BufRead, 
-    term_count: usize, 
-    program_ids_to_ignore: &HashSet<u32>, 
-    mut callback: F
-)
-    where F: FnMut(&StrippedSequence, usize)
-{
-    assert!(term_count >= 1);
-    assert!(term_count <= 100);
-    
-    let mut count_callback: usize = 0;
-    let mut count_junk: usize = 0;
-    let mut count_tooshort: usize = 0;
-    let mut count_ignore: usize = 0;
-    let mut count_wildcard: usize = 0;
-    let mut count_bytes: usize = 0;
-    for line in reader.lines() {
-        let line: String = line.unwrap();
-        count_bytes += line.len();
-        let mut stripped_sequence: StrippedSequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
-            Some(value) => value,
-            None => {
-                count_junk += 1;
+pub struct ProcessStrippedSequenceFile {
+    count_bytes: usize,
+    count_lines: usize,
+    count_junk: usize,
+    count_callback: usize,
+    count_tooshort: usize,
+    count_ignored_program_id: usize,
+    count_grow_to_term_count: usize,
+}
+
+impl ProcessStrippedSequenceFile {
+    pub fn new() -> Self {
+        Self {
+            count_bytes: 0,
+            count_lines: 0,
+            count_junk: 0,
+            count_callback: 0,
+            count_tooshort: 0,
+            count_ignored_program_id: 0,
+            count_grow_to_term_count: 0,
+        }        
+    }
+
+    pub fn print_summary(&self, simple_log: SimpleLog) {
+        simple_log.println(format!("Number of lines in oeis 'stripped' file: {}", self.count_lines));
+        simple_log.println(format!("count_callback: {}", self.count_callback));
+        simple_log.println(format!("count_tooshort: {}", self.count_tooshort));
+        simple_log.println(format!("count_ignored_program_id: {}", self.count_ignored_program_id));
+        simple_log.println(format!("count_grow_to_term_count: {}", self.count_grow_to_term_count));
+        simple_log.println(format!("count_junk: {}", self.count_junk));
+    }
+
+    pub fn execute<F>(
+        &mut self,
+        reader: &mut dyn io::BufRead,
+        minimum_number_of_required_terms: usize,
+        term_count: usize, 
+        program_ids_to_ignore: &HashSet<u32>, 
+        mut callback: F
+    )
+        where F: FnMut(&StrippedSequence, usize)
+    {
+        assert!(term_count >= 1);
+        assert!(term_count <= 100);
+        for line in reader.lines() {
+            let line: String = line.unwrap();
+            self.count_bytes += line.len();
+            self.count_lines += 1;
+            let mut stripped_sequence: StrippedSequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
+                Some(value) => value,
+                None => {
+                    self.count_junk += 1;
+                    continue;
+                }
+            };
+            if stripped_sequence.len() < minimum_number_of_required_terms {
+                self.count_tooshort += 1;
                 continue;
             }
-        };
-        if program_ids_to_ignore.contains(&stripped_sequence.sequence_number) {
-            count_ignore += 1;
-            continue;
+            if program_ids_to_ignore.contains(&stripped_sequence.sequence_number) {
+                self.count_ignored_program_id += 1;
+                continue;
+            }
+            if stripped_sequence.len() < term_count {
+                self.count_grow_to_term_count += 1;
+                stripped_sequence.grow_to_length(term_count);
+            }
+            assert!(stripped_sequence.len() == term_count);
+            callback(&stripped_sequence, self.count_bytes);
+            self.count_callback += 1;
         }
-        if term_count == 40 && stripped_sequence.len() >= 30 && stripped_sequence.len() < 40 {
-            count_wildcard += 1;
-            stripped_sequence.grow_to_length(40);
-        }
-        if stripped_sequence.len() != term_count {
-            count_tooshort += 1;
-            continue;
-        }
-        callback(&stripped_sequence, count_bytes);
-        count_callback += 1;
     }
-    simple_log.println(format!("count_sequences: {}", count_callback));
-    simple_log.println(format!("count_ignore: {}", count_ignore));
-    simple_log.println(format!("count_tooshort: {}", count_tooshort));
-    simple_log.println(format!("count_wildcard: {}", count_wildcard));
-    simple_log.println(format!("count_junk: {}", count_junk));
 }

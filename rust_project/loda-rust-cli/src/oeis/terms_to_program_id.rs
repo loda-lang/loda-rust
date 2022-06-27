@@ -1,9 +1,8 @@
 use loda_rust_core;
 use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
-use super::stripped_sequence::*;
+use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
 use std::io;
 use std::collections::{HashMap, HashSet};
-use std::io::BufRead;
 use std::error::Error;
 use std::path::Path;
 use std::fs::File;
@@ -13,44 +12,36 @@ pub type TermsToProgramIdSet = HashMap::<String, HashSet<u32>>;
 
 pub fn load_terms_to_program_id_set(
     oeis_stripped_file: &Path,
+    minimum_number_of_required_terms: usize,
     term_count: usize,
 ) -> Result<TermsToProgramIdSet, Box<dyn Error>> {
     let file = File::open(oeis_stripped_file)?;
     let mut reader = BufReader::new(file);
-    build_terms_to_program_id_set(&mut reader, term_count)
+    build_terms_to_program_id_set(&mut reader, minimum_number_of_required_terms, term_count)
 }
 
 fn build_terms_to_program_id_set(
-    reader: &mut dyn io::BufRead,
+    oeis_stripped_file_reader: &mut dyn io::BufRead,
+    minimum_number_of_required_terms: usize,
     term_count: usize,
 ) -> Result<TermsToProgramIdSet, Box<dyn Error>> {
     let mut terms_to_program_id = TermsToProgramIdSet::new();
-    let mut count_junk: usize = 0;
-    let mut count_wildcard: usize = 0;
-    for line in reader.lines() {
-        let line: String = line.unwrap();
-        let mut stripped_sequence: StrippedSequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
-            Some(value) => value,
-            None => {
-                count_junk += 1;
-                continue;
-            }
-        };
-        if term_count == 40 && stripped_sequence.len() >= 30 && stripped_sequence.len() < 40 {
-            count_wildcard += 1;
-            stripped_sequence.grow_to_length(40);
-        }
-        if stripped_sequence.len() != term_count {
-            count_junk += 1;
-            continue;
-        }
+
+    let callback = |stripped_sequence: &StrippedSequence, _| {
         let bigint_vec_ref: &BigIntVec = stripped_sequence.bigint_vec_ref();
         let key: String = bigintvec_to_string(bigint_vec_ref);
         let entry = terms_to_program_id.entry(key).or_insert_with(|| HashSet::new());
         entry.insert(stripped_sequence.sequence_number);
-    }
-    debug!("count_wildcard: {}", count_wildcard);
-    debug!("number of items ignored: {}", count_junk);
+    };
+    let mut processor = ProcessStrippedSequenceFile::new();
+    let program_ids_to_ignore = HashSet::<u32>::new();
+    processor.execute(
+        oeis_stripped_file_reader,
+        minimum_number_of_required_terms,
+        term_count,
+        &program_ids_to_ignore, 
+        callback
+    );
     debug!("number of items in terms_to_program_id: {}", terms_to_program_id.len());
     Ok(terms_to_program_id)
 }
@@ -86,7 +77,7 @@ A117093 ,2,3,5,7,11,13,16,17,18,19,23,28,29,30,31,37,38,39,40,41,43,47,53,58,59,
     #[test]
     fn test_10000_build_terms_to_program_id_set() -> Result<(), Box<dyn Error>> {
         let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
-        let dict = build_terms_to_program_id_set(&mut input, 5)?;
+        let dict = build_terms_to_program_id_set(&mut input, 0, 5)?;
         assert_eq!(dict.len(), 2);
         assert_eq!(lookup(&dict, "2,3,5,7,11"), "40,112088,117093");
         assert_eq!(lookup(&dict, "0,1,1,2,3"), "45");

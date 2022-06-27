@@ -11,8 +11,6 @@ use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
 use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
 use loda_rust_core::parser::ParsedProgram;
-use num_bigint::BigInt;
-use num_traits::Zero;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -156,6 +154,7 @@ impl RunMinerLoop {
                 terms20: self.funnel.metric_number_of_candidates_with_20terms(),
                 terms30: self.funnel.metric_number_of_candidates_with_30terms(),
                 terms40: self.funnel.metric_number_of_candidates_with_40terms(),
+                false_positives: self.metric.number_of_bloomfilter_false_positive,
             };
             self.recorder.record(&event);
         }
@@ -288,9 +287,16 @@ impl RunMinerLoop {
                 return;
             }
         }
-        let terms20: &BigIntVec = &self.term_computer.terms;
-        if !self.funnel.check20(terms20) {
-            return;
+        let funnel20result: Option<usize> = self.funnel.check20_with_wildcards(&self.term_computer.terms);
+        let funnel20_number_of_wildcards: usize;
+        match funnel20result {
+            Some(wildcard_count) => {
+                funnel20_number_of_wildcards = wildcard_count;
+            },
+            None => {
+                // terms is not contained in bloomfilter
+                return;
+            }
         }
 
         match self.term_computer.compute(&mut self.cache, &runner, 30) {
@@ -301,9 +307,16 @@ impl RunMinerLoop {
                 return;
             }
         }
-        let terms30: &BigIntVec = &self.term_computer.terms;
-        if !self.funnel.check30(terms30) {
-            return;
+        let funnel30result: Option<usize> = self.funnel.check30_with_wildcards(&self.term_computer.terms);
+        let funnel30_number_of_wildcards: usize;
+        match funnel30result {
+            Some(wildcard_count) => {
+                funnel30_number_of_wildcards = wildcard_count;
+            },
+            None => {
+                // terms is not contained in bloomfilter
+                return;
+            }
         }
 
         match self.term_computer.compute(&mut self.cache, &runner, 40) {
@@ -321,23 +334,19 @@ impl RunMinerLoop {
             self.reload = true;
             return;
         }
-
-        let mut found: bool = false;
-        let mut number_of_wildcards: usize = 0;
-        for i in 0..10 {
-            let terms40_with_wildcared: &BigIntVec = &self.term_computer.terms;
-            if !self.funnel.check40(terms40_with_wildcared) {
-                self.term_computer.terms[39 - i] = BigInt::zero();
-                continue;
+        let mut funnel40terms: BigIntVec = terms40_original.clone();
+        let funnel40result: Option<usize> = self.funnel.mut_check40_with_wildcards(&mut funnel40terms);
+        let funnel40_number_of_wildcards: usize;
+        match funnel40result {
+            Some(wildcard_count) => {
+                funnel40_number_of_wildcards = wildcard_count;
+            },
+            None => {
+                // terms is not contained in bloomfilter
+                return;
             }
-            number_of_wildcards = i;
-            found = true;
-            break;
         }
-        if !found {
-            return;
-        }
-        let terms40_wildcard: &BigIntVec = &self.term_computer.terms;
+        let terms40_wildcard: &BigIntVec = &funnel40terms;
 
         // Reject, if it's identical to one of the programs that this program depends on
         let depends_on_program_ids: HashSet<u32> = self.genome.depends_on_program_ids();
@@ -378,12 +387,13 @@ impl RunMinerLoop {
         let corresponding_program_id_set: &HashSet<u32> = match self.terms_to_program_id.get(&key) {
             Some(value) => value,
             None => {
-                error!("Rejected. Could not find the candiate in the oeis stripped file. number_of_wildcards: {:?} key: {:?}", number_of_wildcards, key);
+                debug!("Ignoring false-positive in bloomfilter funnel. Could not find the candiate in the oeis stripped file. funnel20_number_of_wildcards: {:?} funnel30_number_of_wildcards: {:?} funnel40_number_of_wildcards: {:?} key: {:?}", funnel20_number_of_wildcards, funnel30_number_of_wildcards, funnel40_number_of_wildcards, key);
+                self.metric.number_of_bloomfilter_false_positive += 1;
                 self.reload = true;
                 return
             }
         };
-        debug!("Found corresponding program_id's: {:?} number_of_wildcards: {:?}", corresponding_program_id_set, number_of_wildcards);
+        debug!("Found corresponding program_id's: {:?} funnel20_number_of_wildcards: {:?} funnel30_number_of_wildcards: {:?} funnel40_number_of_wildcards: {:?}", corresponding_program_id_set, funnel20_number_of_wildcards, funnel30_number_of_wildcards, funnel40_number_of_wildcards);
 
         let steps: &Vec<u64> = &self.term_computer.steps;
         let steps_len: usize = steps.len();
@@ -472,8 +482,14 @@ impl RunMinerLoop {
             return;
         }
 
-        if number_of_wildcards > 0 {
-            self.genome.append_message(format!("number of wildcards: {:?}", number_of_wildcards));
+        if funnel20_number_of_wildcards > 0 {
+            self.genome.append_message(format!("funnel20 number of wildcards: {:?}", funnel20_number_of_wildcards));
+        }
+        if funnel30_number_of_wildcards > 0 {
+            self.genome.append_message(format!("funnel30 number of wildcards: {:?}", funnel30_number_of_wildcards));
+        }
+        if funnel40_number_of_wildcards > 0 {
+            self.genome.append_message(format!("funnel40 number of wildcards: {:?}", funnel40_number_of_wildcards));
         }
 
         // Yay, this candidate program seems to be good.
