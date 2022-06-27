@@ -323,7 +323,8 @@ def analyze_candidate(candidate_program, program_id)
 
     a_name = "A%06i" % program_id
 
-    loda_check_output = `timeout --verbose 120s #{LODA_CPP_EXECUTABLE} check #{a_name} -b 0 > #{path_check_output}`
+    command = "timeout --verbose 120s #{LODA_CPP_EXECUTABLE} check #{a_name} -b 0 > #{path_check_output}"
+    loda_check_output = `#{command}`
     loda_check_output.strip!
     if $?.exitstatus == 124  # when the `timeout` command is triggered it returns status 124
         puts "Rejecting. It takes too long to check the terms of the new program."
@@ -339,8 +340,24 @@ def analyze_candidate(candidate_program, program_id)
         raise "loda check exit code"
     end
     check_output_content = IO.read(path_check_output)
+    if check_output_content =~ /^recursion detected$/
+        puts "Rejecting. Recursion detected. see output: #{path_check_output}"
+        File.rename(path, path_reject)
+        if has_original_file
+            File.rename(path_original, path)
+        end
+        return false
+    end
     if check_output_content =~ /^std::exception$/
-        puts "Rejecting. c++ exception occurred, probably due to overflow or cyclic dependency. see output: #{path_check_output}."
+        puts "Rejecting. c++ exception occurred, probably due to overflow or cyclic dependency. see output: #{path_check_output}. command: #{command}"
+        File.rename(path, path_reject)
+        if has_original_file
+            File.rename(path_original, path)
+        end
+        return false
+    end
+    if check_output_content =~ /^error$/
+        puts "Rejecting. Unknown error occurred, probably due to overflow or cyclic dependency. see output: #{path_check_output}. output: #{check_output_content} command: #{command}"
         File.rename(path, path_reject)
         if has_original_file
             File.rename(path_original, path)
@@ -372,7 +389,7 @@ def analyze_candidate(candidate_program, program_id)
         raise "unknown comparison result #{comparison_id}"
     end
     unless check_output_content =~ /^(\d+) .* expected/
-        raise "Regex didn't match. See bottom of the file: #{path_check_output} Perhaps 'loda check' have changed its output format."
+        raise "Regex didn't match. See bottom of the file: #{path_check_output} Perhaps 'loda check' have changed its output format. command: #{command}"
     end
     correct_term_count = $1.to_i
     puts "Keeping. This program is a mismatch, it has correct #{correct_term_count} terms, followed by mismatch"
