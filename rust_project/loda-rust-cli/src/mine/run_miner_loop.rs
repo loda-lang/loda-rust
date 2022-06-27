@@ -11,8 +11,6 @@ use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
 use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
 use loda_rust_core::parser::ParsedProgram;
-use num_bigint::BigInt;
-use num_traits::Zero;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -289,22 +287,16 @@ impl RunMinerLoop {
                 return;
             }
         }
-        let terms20_original: BigIntVec = self.term_computer.terms.clone();
-        let mut funnel20_satisfied: bool = false;
-        let mut funnel20_number_of_wildcards: usize = 0;
-        for i in 0..10 {
-            let terms20_with_wildcared: &BigIntVec = &self.term_computer.terms;
-            if !self.funnel.check20(terms20_with_wildcared) {
-                self.term_computer.terms[19 - i] = BigInt::zero();
-                continue;
+        let funnel20result: Option<usize> = self.funnel.check20_with_wildcards(&self.term_computer.terms);
+        let funnel20_number_of_wildcards: usize;
+        match funnel20result {
+            Some(wildcard_count) => {
+                funnel20_number_of_wildcards = wildcard_count;
+            },
+            None => {
+                // terms is not contained in bloomfilter
+                return;
             }
-            funnel20_number_of_wildcards = i;
-            funnel20_satisfied = true;
-            break;
-        }
-        self.term_computer.terms = terms20_original;
-        if !funnel20_satisfied {
-            return;
         }
 
         match self.term_computer.compute(&mut self.cache, &runner, 30) {
@@ -315,22 +307,16 @@ impl RunMinerLoop {
                 return;
             }
         }
-        let terms30_original: BigIntVec = self.term_computer.terms.clone();
-        let mut funnel30_satisfied: bool = false;
-        let mut funnel30_number_of_wildcards: usize = 0;
-        for i in 0..20 {
-            let terms30_with_wildcared: &BigIntVec = &self.term_computer.terms;
-            if !self.funnel.check30(terms30_with_wildcared) {
-                self.term_computer.terms[29 - i] = BigInt::zero();
-                continue;
+        let funnel30result: Option<usize> = self.funnel.check30_with_wildcards(&self.term_computer.terms);
+        let funnel30_number_of_wildcards: usize;
+        match funnel30result {
+            Some(wildcard_count) => {
+                funnel30_number_of_wildcards = wildcard_count;
+            },
+            None => {
+                // terms is not contained in bloomfilter
+                return;
             }
-            funnel30_number_of_wildcards = i;
-            funnel30_satisfied = true;
-            break;
-        }
-        self.term_computer.terms = terms30_original;
-        if !funnel30_satisfied {
-            return;
         }
 
         match self.term_computer.compute(&mut self.cache, &runner, 40) {
@@ -348,23 +334,19 @@ impl RunMinerLoop {
             self.reload = true;
             return;
         }
-
-        let mut funnel40_satisfied: bool = false;
-        let mut funnel40_number_of_wildcards: usize = 0;
-        for i in 0..30 {
-            let terms40_with_wildcared: &BigIntVec = &self.term_computer.terms;
-            if !self.funnel.check40(terms40_with_wildcared) {
-                self.term_computer.terms[39 - i] = BigInt::zero();
-                continue;
+        let mut funnel40terms: BigIntVec = terms40_original.clone();
+        let funnel40result: Option<usize> = self.funnel.mut_check40_with_wildcards(&mut funnel40terms);
+        let funnel40_number_of_wildcards: usize;
+        match funnel40result {
+            Some(wildcard_count) => {
+                funnel40_number_of_wildcards = wildcard_count;
+            },
+            None => {
+                // terms is not contained in bloomfilter
+                return;
             }
-            funnel40_number_of_wildcards = i;
-            funnel40_satisfied = true;
-            break;
         }
-        if !funnel40_satisfied {
-            return;
-        }
-        let terms40_wildcard: &BigIntVec = &self.term_computer.terms;
+        let terms40_wildcard: &BigIntVec = &funnel40terms;
 
         // Reject, if it's identical to one of the programs that this program depends on
         let depends_on_program_ids: HashSet<u32> = self.genome.depends_on_program_ids();

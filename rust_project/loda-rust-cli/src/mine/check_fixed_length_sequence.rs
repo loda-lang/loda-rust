@@ -2,6 +2,8 @@ use loda_rust_core::util::BigIntVec;
 use crate::config::Config;
 use crate::common::{load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
+use num_bigint::BigInt;
+use num_traits::Zero;
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;
 use std::error::Error;
@@ -41,6 +43,22 @@ impl CheckFixedLengthSequence {
     // if the integer sequences is known or unknown.
     pub fn check(&self, bigint_vec_ref: &BigIntVec) -> bool {
         self.bloom.check(bigint_vec_ref)
+    }
+
+    pub fn check_with_wildcards(&self, bigint_vec_ref: &BigIntVec, number_of_wildcards: usize) -> Option<usize> {
+        let mut bigint_vec: BigIntVec = bigint_vec_ref.clone();
+        self.mut_check_with_wildcards(&mut bigint_vec, number_of_wildcards)
+    }
+
+    pub fn mut_check_with_wildcards(&self, bigint_vec: &mut BigIntVec, number_of_wildcards: usize) -> Option<usize> {
+        let len = bigint_vec.len();
+        for i in 0..len.min(number_of_wildcards) {
+            if self.check(&bigint_vec) {
+                return Some(i);
+            }
+            bigint_vec[len - 1 - i] = BigInt::zero();
+        }
+        None
     }
 
     fn to_representation(&self) -> CheckFixedLengthSequenceInternalRepresentation {
@@ -166,7 +184,6 @@ fn create_cache_files(
     simple_log.println(format!("oeis 'stripped' file size: {} bytes", filesize));
     let pb = ProgressBar::new(filesize as u64);
     let process_callback = |stripped_sequence: &StrippedSequence, count_bytes: usize| {
-        // debug!("call {:?}", stripped_sequence.sequence_number);
         (*x).counter += 1;
         pb.set_position(count_bytes as u64);
 
