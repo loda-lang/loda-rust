@@ -1,4 +1,5 @@
 use loda_rust_core::util::BigIntVec;
+use super::FunnelConfig;
 use crate::config::Config;
 use crate::common::{load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
@@ -45,14 +46,18 @@ impl CheckFixedLengthSequence {
         self.bloom.check(bigint_vec_ref)
     }
 
-    pub fn check_with_wildcards(&self, bigint_vec_ref: &BigIntVec, number_of_wildcards: usize) -> Option<usize> {
+    pub fn check_with_wildcards(&self, bigint_vec_ref: &BigIntVec, minimum_number_of_required_terms: usize) -> Option<usize> {
         let mut bigint_vec: BigIntVec = bigint_vec_ref.clone();
-        self.mut_check_with_wildcards(&mut bigint_vec, number_of_wildcards)
+        self.mut_check_with_wildcards(&mut bigint_vec, minimum_number_of_required_terms)
     }
 
-    pub fn mut_check_with_wildcards(&self, bigint_vec: &mut BigIntVec, number_of_wildcards: usize) -> Option<usize> {
+    pub fn mut_check_with_wildcards(&self, bigint_vec: &mut BigIntVec, minimum_number_of_required_terms: usize) -> Option<usize> {
         let len = bigint_vec.len();
-        for i in 0..len.min(number_of_wildcards) {
+        if len < minimum_number_of_required_terms {
+            return None;
+        }
+        let number_of_wildcards: usize = len - minimum_number_of_required_terms;
+        for i in 0..number_of_wildcards {
             if self.check(&bigint_vec) {
                 return Some(i);
             }
@@ -205,13 +210,11 @@ fn create_cache_files(
             (*bloom40_ref).set(&vec);
         }
     };
-    let minimum_number_of_required_terms: usize = 10;
-    let term_count: usize = 40;
     let mut stripped_sequence_processor = ProcessStrippedSequenceFile::new();
     stripped_sequence_processor.execute(
         oeis_stripped_file_reader,
-        minimum_number_of_required_terms,
-        term_count,
+        FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS,
+        FunnelConfig::TERM_COUNT,
         program_ids_to_ignore, 
         process_callback
     );
@@ -230,28 +233,28 @@ fn create_cache_files(
     let start2 = Instant::now();
     let pb = ProgressBar::new(4);
     {
-        let instance = CheckFixedLengthSequence::new(bloom10, term_count);
+        let instance = CheckFixedLengthSequence::new(bloom10, FunnelConfig::TERM_COUNT);
         let filename: &str = NamedCacheFile::Bloom10Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
         instance.save(&destination_file);
         pb.inc(1);
     }
     {
-        let instance = CheckFixedLengthSequence::new(bloom20, term_count);
+        let instance = CheckFixedLengthSequence::new(bloom20, FunnelConfig::TERM_COUNT);
         let filename: &str = NamedCacheFile::Bloom20Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
         instance.save(&destination_file);
         pb.inc(1);
     }
     {
-        let instance = CheckFixedLengthSequence::new(bloom30, term_count);
+        let instance = CheckFixedLengthSequence::new(bloom30, FunnelConfig::TERM_COUNT);
         let filename: &str = NamedCacheFile::Bloom30Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
         instance.save(&destination_file);
         pb.inc(1);
     }
     {
-        let instance = CheckFixedLengthSequence::new(bloom40, term_count);
+        let instance = CheckFixedLengthSequence::new(bloom40, FunnelConfig::TERM_COUNT);
         let filename: &str = NamedCacheFile::Bloom40Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
         instance.save(&destination_file);

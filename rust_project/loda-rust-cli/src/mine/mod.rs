@@ -1,5 +1,6 @@
 mod check_fixed_length_sequence;
 mod funnel;
+mod funnel_config;
 mod genome;
 mod genome_item;
 mod genome_mutate_context;
@@ -23,6 +24,7 @@ mod thread_message_channel;
 
 pub use check_fixed_length_sequence::{CheckFixedLengthSequence, NamedCacheFile, PopulateBloomfilter};
 pub use funnel::Funnel;
+pub use funnel_config::FunnelConfig;
 pub use genome_mutate_context::GenomeMutateContext;
 pub use genome::{Genome, MutateGenome};
 pub use genome_item::{GenomeItem, MutateEvalSequenceCategory, MutateValue};
