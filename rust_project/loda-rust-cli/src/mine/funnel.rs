@@ -1,5 +1,6 @@
 use super::CheckFixedLengthSequence;
 use super::FunnelConfig;
+use super::WildcardChecker;
 use loda_rust_core::util::Analyze;
 use loda_rust_core::util::BigIntVec;
 

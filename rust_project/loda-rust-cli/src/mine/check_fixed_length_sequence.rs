@@ -1,10 +1,8 @@
 use loda_rust_core::util::BigIntVec;
-use super::FunnelConfig;
+use super::{FunnelConfig, WildcardChecker};
 use crate::config::Config;
 use crate::common::{load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
-use num_bigint::BigInt;
-use num_traits::Zero;
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;
 use std::error::Error;
@@ -40,26 +38,6 @@ impl CheckFixedLengthSequence {
         self.bloom.check(bigint_vec_ref)
     }
 
-    pub fn check_with_wildcards(&self, bigint_vec_ref: &BigIntVec, minimum_number_of_required_terms: usize) -> Option<usize> {
-        let mut bigint_vec: BigIntVec = bigint_vec_ref.clone();
-        self.mut_check_with_wildcards(&mut bigint_vec, minimum_number_of_required_terms)
-    }
-
-    pub fn mut_check_with_wildcards(&self, bigint_vec: &mut BigIntVec, minimum_number_of_required_terms: usize) -> Option<usize> {
-        let len = bigint_vec.len();
-        if len < minimum_number_of_required_terms {
-            return None;
-        }
-        let number_of_wildcards: usize = len - minimum_number_of_required_terms;
-        for i in 0..number_of_wildcards {
-            if self.check(&bigint_vec) {
-                return Some(i);
-            }
-            bigint_vec[len - 1 - i] = BigInt::zero();
-        }
-        None
-    }
-
     fn to_representation(&self) -> CheckFixedLengthSequenceInternalRepresentation {
         CheckFixedLengthSequenceInternalRepresentation {
             bloom_bitmap: self.bloom.bitmap(),
@@ -92,6 +70,12 @@ impl CheckFixedLengthSequence {
         file.read_to_string(&mut data).expect("Unable to read string");
         let representation: CheckFixedLengthSequenceInternalRepresentation = serde_json::from_str(&data).unwrap();
         representation.create_instance()
+    }
+}
+
+impl WildcardChecker for CheckFixedLengthSequence {
+    fn check(&self, bigint_vec_ref: &BigIntVec) -> bool {
+        self.check(bigint_vec_ref)
     }
 }
 

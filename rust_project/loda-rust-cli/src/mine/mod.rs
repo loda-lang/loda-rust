@@ -21,6 +21,7 @@ mod suggest_instruction;
 mod suggest_source;
 mod suggest_target;
 mod thread_message_channel;
+mod wildcard_checker;
 
 pub use check_fixed_length_sequence::{CheckFixedLengthSequence, NamedCacheFile, PopulateBloomfilter};
 pub use funnel::Funnel;
@@ -44,3 +45,4 @@ pub use suggest_instruction::SuggestInstruction;
 pub use suggest_source::{SuggestSource, SourceValue};
 pub use suggest_target::{SuggestTarget, TargetValue};
 pub use thread_message_channel::MinerThreadMessageToCoordinator;
+pub use wildcard_checker::WildcardChecker;
