@@ -13,6 +13,7 @@ require 'csv'
 require 'set'
 require 'date'
 
+# This correspond to the parameter in the rust project: FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS
 OEIS_STRIPPED_SKIP_PROGRAMS_WITH_FEWER_TERMS = 10
 
 class CandidateProgram

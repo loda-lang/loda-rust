@@ -1,4 +1,4 @@
-use crate::mine::{MinerThreadMessageToCoordinator, start_miner_loop, MovingAverage, MetricsPrometheus, Recorder, SinkRecorder};
+use crate::mine::{FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MovingAverage, MetricsPrometheus, Recorder, SinkRecorder};
 use crate::config::Config;
 use std::thread;
 use std::time::Duration;
@@ -166,7 +166,12 @@ impl SubcommandMine {
             }
         };
         let oeis_stripped_file: PathBuf = config.oeis_stripped_file();
-        let terms_to_program_id: TermsToProgramIdSet = match load_terms_to_program_id_set(&oeis_stripped_file, 10, 40) {
+        let load_result = load_terms_to_program_id_set(
+            &oeis_stripped_file, 
+            FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS, 
+            FunnelConfig::TERM_COUNT
+        );
+        let terms_to_program_id: TermsToProgramIdSet = match load_result {
             Ok(value) => value,
             Err(error) => {
                 panic!("Unable to load program ids. {:?}", error);
