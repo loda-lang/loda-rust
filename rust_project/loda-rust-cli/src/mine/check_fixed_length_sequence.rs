@@ -1,9 +1,8 @@
 use loda_rust_core::util::BigIntVec;
+use super::{FunnelConfig, WildcardChecker};
 use crate::config::Config;
 use crate::common::{load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
-use num_bigint::BigInt;
-use num_traits::Zero;
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;
 use std::error::Error;
@@ -18,20 +17,14 @@ use std::time::Instant;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
 
-// As of january 2022, the OEIS contains around 350k sequences.
-// So an approx count of 400k and there should be room for them all.
-static APPROX_BLOOM_ITEMS_COUNT: usize = 400000;
-
 pub struct CheckFixedLengthSequence {
     bloom: Bloom::<BigIntVec>,
-    term_count: usize,
 }
 
 impl CheckFixedLengthSequence {
-    pub fn new(bloom: Bloom::<BigIntVec>, term_count: usize) -> Self {
+    pub fn new(bloom: Bloom::<BigIntVec>) -> Self {
         Self {
             bloom: bloom,
-            term_count: term_count,
         }
     }
 
@@ -45,25 +38,8 @@ impl CheckFixedLengthSequence {
         self.bloom.check(bigint_vec_ref)
     }
 
-    pub fn check_with_wildcards(&self, bigint_vec_ref: &BigIntVec, number_of_wildcards: usize) -> Option<usize> {
-        let mut bigint_vec: BigIntVec = bigint_vec_ref.clone();
-        self.mut_check_with_wildcards(&mut bigint_vec, number_of_wildcards)
-    }
-
-    pub fn mut_check_with_wildcards(&self, bigint_vec: &mut BigIntVec, number_of_wildcards: usize) -> Option<usize> {
-        let len = bigint_vec.len();
-        for i in 0..len.min(number_of_wildcards) {
-            if self.check(&bigint_vec) {
-                return Some(i);
-            }
-            bigint_vec[len - 1 - i] = BigInt::zero();
-        }
-        None
-    }
-
     fn to_representation(&self) -> CheckFixedLengthSequenceInternalRepresentation {
         CheckFixedLengthSequenceInternalRepresentation {
-            term_count: self.term_count,
             bloom_bitmap: self.bloom.bitmap(),
             bloom_bitmap_bits: self.bloom.number_of_bits(),
             bloom_k_num: self.bloom.number_of_hash_functions(),
@@ -97,12 +73,17 @@ impl CheckFixedLengthSequence {
     }
 }
 
+impl WildcardChecker for CheckFixedLengthSequence {
+    fn check(&self, bigint_vec_ref: &BigIntVec) -> bool {
+        self.check(bigint_vec_ref)
+    }
+}
+
 // I cannot compile the dependency "bloomfilter" with "serde" feature enabled.
 // This is my kludgy workaround that can serialize/deserialize 
 // all the fields of the bloomfilter.
 #[derive(Serialize, Deserialize)]
 struct CheckFixedLengthSequenceInternalRepresentation {
-    term_count: usize,
     bloom_bitmap: Vec<u8>,
     bloom_bitmap_bits: u64,
     bloom_k_num: u32,
@@ -119,7 +100,6 @@ impl CheckFixedLengthSequenceInternalRepresentation {
         );
         CheckFixedLengthSequence {
             bloom: bloom,
-            term_count: self.term_count,
         }
     }
 }
@@ -205,13 +185,11 @@ fn create_cache_files(
             (*bloom40_ref).set(&vec);
         }
     };
-    let minimum_number_of_required_terms: usize = 10;
-    let term_count: usize = 40;
     let mut stripped_sequence_processor = ProcessStrippedSequenceFile::new();
     stripped_sequence_processor.execute(
         oeis_stripped_file_reader,
-        minimum_number_of_required_terms,
-        term_count,
+        FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS,
+        FunnelConfig::TERM_COUNT,
         program_ids_to_ignore, 
         process_callback
     );
@@ -230,28 +208,28 @@ fn create_cache_files(
     let start2 = Instant::now();
     let pb = ProgressBar::new(4);
     {
-        let instance = CheckFixedLengthSequence::new(bloom10, term_count);
+        let instance = CheckFixedLengthSequence::new(bloom10);
         let filename: &str = NamedCacheFile::Bloom10Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
         instance.save(&destination_file);
         pb.inc(1);
     }
     {
-        let instance = CheckFixedLengthSequence::new(bloom20, term_count);
+        let instance = CheckFixedLengthSequence::new(bloom20);
         let filename: &str = NamedCacheFile::Bloom20Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
         instance.save(&destination_file);
         pb.inc(1);
     }
     {
-        let instance = CheckFixedLengthSequence::new(bloom30, term_count);
+        let instance = CheckFixedLengthSequence::new(bloom30);
         let filename: &str = NamedCacheFile::Bloom30Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
         instance.save(&destination_file);
         pb.inc(1);
     }
     {
-        let instance = CheckFixedLengthSequence::new(bloom40, term_count);
+        let instance = CheckFixedLengthSequence::new(bloom40);
         let filename: &str = NamedCacheFile::Bloom40Terms.filename();
         let destination_file = cache_dir.join(Path::new(filename));
         instance.save(&destination_file);
@@ -301,7 +279,7 @@ impl PopulateBloomfilter {
             self.simple_log.clone(),
             &mut reader, 
             filesize,
-            APPROX_BLOOM_ITEMS_COUNT, 
+            FunnelConfig::APPROX_BLOOM_ITEMS_COUNT, 
             &cache_dir, 
             &program_ids_to_ignore
         );
@@ -393,7 +371,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
             program_ids_to_ignore, 
             process_callback
         );
-        CheckFixedLengthSequence::new(bloom, term_count)
+        CheckFixedLengthSequence::new(bloom)
     }
 
     impl CheckFixedLengthSequence {

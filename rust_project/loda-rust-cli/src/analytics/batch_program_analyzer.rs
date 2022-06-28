@@ -22,6 +22,12 @@ pub trait BatchProgramAnalyzerPlugin {
     fn analyze(&mut self, context: &BatchProgramAnalyzerContext) -> Result<(), Box<dyn Error>>;
     fn save(&self) -> Result<(), Box<dyn Error>>;
     fn human_readable_summary(&self) -> String;
+
+    fn format_summary(&self) -> String {
+        let name: &str = self.plugin_name();
+        let summary: String = self.human_readable_summary();
+        format!("\n{}\n{}\n", name.trim(), summary.trim())
+    }
 }
 
 pub type BatchProgramAnalyzerPluginItem = Rc<RefCell<dyn BatchProgramAnalyzerPlugin>>;
@@ -129,10 +135,8 @@ impl BatchProgramAnalyzer {
 
     fn save_summary(&mut self) -> Result<(), Box<dyn Error>> {
         for plugin in self.plugin_vec.iter() {
-            let name: &str = plugin.borrow().plugin_name();
-            let summary: String = plugin.borrow().human_readable_summary();
-            let content = format!("\n{}\n{}\n", name.trim(), summary.trim());
-            self.simple_log.print(&content)?;
+            let summary: String = plugin.borrow().format_summary();
+            self.simple_log.print(&summary)?;
         }
         Ok(())
     }

@@ -5,6 +5,18 @@ use regex::Regex;
 use lazy_static::lazy_static;
 use loda_rust_core::util::BigIntVec;
 
+// As of june 2022, the OEIS 'stripped' file contains ~360k sequences.
+//
+// Histogram of sequence lengths.
+//  0 ..  9:     0    9  115  632 1760 2750 3381 3504 4324 4560
+// 10 .. 19:  5401 4819 5086 5198 5861 7186 8170 6833 7117 7082
+// 20 .. 29:  8781 7666 6642 6126 5944 5492 5388 4945 5754 4826
+// 30 .. 39:  4966 3978 3765 3751 3841 3497 3962 3316 2985 3328
+// 40+     :  172129
+//
+// An 50/50 split is around 38 terms.
+// Half of the sequences are shorter than or equal to 38 terms.
+// The other half of the sequences are longer than 38 terms.
 pub struct StrippedSequence {
     pub sequence_number: u32,
     bigint_vec: BigIntVec,

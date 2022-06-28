@@ -1,4 +1,6 @@
 use super::CheckFixedLengthSequence;
+use super::FunnelConfig;
+use super::WildcardChecker;
 use loda_rust_core::util::Analyze;
 use loda_rust_core::util::BigIntVec;
 
@@ -79,7 +81,7 @@ impl Funnel {
     }
 
     pub fn check20_with_wildcards(&mut self, terms: &BigIntVec) -> Option<usize> {
-        let result: Option<usize> = self.checker20.check_with_wildcards(terms, 10);
+        let result: Option<usize> = self.checker20.check_with_wildcards(terms, FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS);
         if result.is_some() {
             self.metric_number_of_candidates_with_20terms += 1;
         }
@@ -87,7 +89,7 @@ impl Funnel {
     }
 
     pub fn check30_with_wildcards(&mut self, terms: &BigIntVec) -> Option<usize> {
-        let result: Option<usize> = self.checker30.check_with_wildcards(terms, 20);
+        let result: Option<usize> = self.checker30.check_with_wildcards(terms, FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS);
         if result.is_some() {
             self.metric_number_of_candidates_with_30terms += 1;
         }
@@ -95,7 +97,7 @@ impl Funnel {
     }
 
     pub fn mut_check40_with_wildcards(&mut self, terms: &mut BigIntVec) -> Option<usize> {
-        let result: Option<usize> = self.checker40.mut_check_with_wildcards(terms, 30);
+        let result: Option<usize> = self.checker40.mut_check_with_wildcards(terms, FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS);
         if result.is_some() {
             self.metric_number_of_candidates_with_40terms += 1;
         }

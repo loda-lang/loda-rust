@@ -1,6 +1,6 @@
 use std::io;
 use std::io::BufRead;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use crate::common::SimpleLog;
 use super::{parse_stripped_sequence_line, StrippedSequence};
 
@@ -12,6 +12,7 @@ pub struct ProcessStrippedSequenceFile {
     count_tooshort: usize,
     count_ignored_program_id: usize,
     count_grow_to_term_count: usize,
+    histogram_length: HashMap<usize,u32>,
 }
 
 impl ProcessStrippedSequenceFile {
@@ -24,6 +25,7 @@ impl ProcessStrippedSequenceFile {
             count_tooshort: 0,
             count_ignored_program_id: 0,
             count_grow_to_term_count: 0,
+            histogram_length: HashMap::new(),
         }        
     }
 
@@ -34,6 +36,15 @@ impl ProcessStrippedSequenceFile {
         simple_log.println(format!("count_ignored_program_id: {}", self.count_ignored_program_id));
         simple_log.println(format!("count_grow_to_term_count: {}", self.count_grow_to_term_count));
         simple_log.println(format!("count_junk: {}", self.count_junk));
+
+        let mut histogram_length_vec = Vec::<u32>::new();
+        for i in 1..41 {
+            match self.histogram_length.get(&i) {
+                Some(length) => { histogram_length_vec.push(*length); },
+                None => { histogram_length_vec.push(0); }
+            }
+        }
+        simple_log.println(format!("sequence_lengths: {:?}", histogram_length_vec));
     }
 
     pub fn execute<F>(
@@ -59,7 +70,10 @@ impl ProcessStrippedSequenceFile {
                     continue;
                 }
             };
-            if stripped_sequence.len() < minimum_number_of_required_terms {
+            let number_of_terms: usize = stripped_sequence.len();
+            let counter = self.histogram_length.entry(number_of_terms).or_insert(0);
+            *counter += 1;
+            if number_of_terms < minimum_number_of_required_terms {
                 self.count_tooshort += 1;
                 continue;
             }
@@ -67,7 +81,7 @@ impl ProcessStrippedSequenceFile {
                 self.count_ignored_program_id += 1;
                 continue;
             }
-            if stripped_sequence.len() < term_count {
+            if number_of_terms < term_count {
                 self.count_grow_to_term_count += 1;
                 stripped_sequence.grow_to_length(term_count);
             }
