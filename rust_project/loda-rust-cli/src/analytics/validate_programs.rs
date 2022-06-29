@@ -75,11 +75,19 @@ The outputted file: `programs_valid.csv` has this format:
 
 The outputted file: `programs_invalid.csv` has this format:
 
-    program id;error
-    21020;ParseProgram(ParseParameters(UnrecognizedParameterType(4)))
-    21100;ParseProgram(ParseParameters(UnrecognizedParameterType(6)))
-    21148;ParseProgram(ParseParameters(UnrecognizedParameterType(7)))
-    21292;ParseProgram(ParseParameters(UnrecognizedParameterType(5)))
+    program id
+    21020
+    21100
+    21148
+    21292
+
+The outputted file: `programs_invalid_verbose.csv` has this format:
+
+    program id;error category;error message
+    21020;LODA;ParseProgram(ParseParameters(UnrecognizedParameterType(4)))
+    21100;LODA;ParseProgram(ParseParameters(UnrecognizedParameterType(6)))
+    21148;LODA;ParseProgram(ParseParameters(UnrecognizedParameterType(7)))
+    21292;LODA;ParseProgram(ParseParameters(UnrecognizedParameterType(5)))
 
 */
 pub struct ValidatePrograms {}
@@ -93,6 +101,7 @@ impl ValidatePrograms {
         let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
         let programs_valid_csv_file: PathBuf = config.analytics_dir_programs_valid_file();
         let programs_invalid_csv_file: PathBuf = config.analytics_dir_programs_invalid_file();
+        let programs_invalid_verbose_csv_file: PathBuf = config.analytics_dir_programs_invalid_verbose_file();
 
         // Obtain paths to loda asm files
         let paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
@@ -110,10 +119,15 @@ impl ValidatePrograms {
         let mut programs_valid_csv = LineWriter::new(file0);
         programs_valid_csv.write_all(b"program id\n")?;
 
-        // Create CSV file for invalid programs and their error message
+        // Create CSV file for invalid program ids
         let file1 = File::create(programs_invalid_csv_file)?;
         let mut programs_invalid_csv = LineWriter::new(file1);
-        programs_invalid_csv.write_all(b"program id;error category;error message\n")?;
+        programs_invalid_csv.write_all(b"program id\n")?;
+
+        // Create CSV file for invalid programs and their error message
+        let file2 = File::create(programs_invalid_verbose_csv_file)?;
+        let mut programs_invalid_verbose_csv = LineWriter::new(file2);
+        programs_invalid_verbose_csv.write_all(b"program id;error category;error message\n")?;
 
         // Run all the programs.
         // Reject the programs that is having difficulties running.
@@ -132,8 +146,10 @@ impl ValidatePrograms {
                 Ok(value) => value,
                 Err(error) => {
                     // error!("Cannot load program {:?}: {:?}", program_id, error);
-                    let row = format!("{:?};LOAD;{:?}\n", program_id, error);
-                    programs_invalid_csv.write_all(row.as_bytes())?;
+                    let row_simple = format!("{:?}\n", program_id);
+                    programs_invalid_csv.write_all(row_simple.as_bytes())?;
+                    let row_verbose = format!("{:?};LOAD;{:?}\n", program_id, error);
+                    programs_invalid_verbose_csv.write_all(row_verbose.as_bytes())?;
                     number_of_invalid_programs += 1;
                     pb.inc(1);
                     continue;
@@ -143,8 +159,10 @@ impl ValidatePrograms {
                 Ok(_) => {},
                 Err(error) => {
                     // error!("Cannot run program {:?}: {:?}", program_id, error);
-                    let row = format!("{:?};COMPUTE;{:?}\n", program_id, error);
-                    programs_invalid_csv.write_all(row.as_bytes())?;
+                    let row_simple = format!("{:?}\n", program_id);
+                    programs_invalid_csv.write_all(row_simple.as_bytes())?;
+                    let row_verbose = format!("{:?};COMPUTE;{:?}\n", program_id, error);
+                    programs_invalid_verbose_csv.write_all(row_verbose.as_bytes())?;
                     number_of_invalid_programs += 1;
                     pb.inc(1);
                     continue;
