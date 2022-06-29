@@ -404,9 +404,8 @@ impl RunMinerLoop {
             let program_runner: Rc::<ProgramRunner> = match self.dependency_manager.load(*program_id as u64) {
                 Ok(value) => value,
                 Err(error) => {
-                    error!("Cannot verify, failed to load program id {}, {:?}", program_id, error);
-                    debug!("Keep. Maybe a new program.");
-                    self.genome.append_message(format!("keep: maybe a new program. cannot load program {:?} with the same initial terms", program_id));
+                    debug!("Keep. Maybe a new program. Cannot verify, failed to load program id {}, {:?}", program_id, error);
+                    self.genome.append_message(format!("keep: maybe a new program. cannot load program {:?} with the same initial terms. error: {:?}", program_id, error));
                     maybe_a_new_program = true;
                     break;
                 }
@@ -415,9 +414,8 @@ impl RunMinerLoop {
             match verify_term_computer.compute(&mut self.cache, &program_runner, 40) {
                 Ok(_) => {},
                 Err(error) => {
-                    debug!("Cannot verify, unable to run program id {}, {:?}", program_id, error);
-                    debug!("Keep. Maybe a new program.");
-                    self.genome.append_message(format!("keep: maybe a new program. cannot compute program {:?} with the same initial terms", program_id));
+                    debug!("Keep. Maybe a new program. Cannot verify, unable to run program id {}, {:?}", program_id, error);
+                    self.genome.append_message(format!("keep: maybe a new program. cannot compute program {:?} with the same initial terms. error: {:?}", program_id, error));
                     maybe_a_new_program = true;
                     break;
                 }
