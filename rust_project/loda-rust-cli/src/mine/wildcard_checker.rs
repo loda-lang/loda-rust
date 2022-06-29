@@ -123,13 +123,20 @@ mod tests {
     }
 
     #[test]
-    fn test_20003_check_with_wildcards_minium_required_terms() {
+    fn test_20003_check_with_wildcards_minium_required_terms1() {
         let checker = MockCheckerImpl::new(bigints(&[1,1,1,1,0,0,0]));
         assert_eq!(checker.check_with_wildcards(&bigints(&[1,1,1,1,0,0,0]), 5), Some(0));
         assert_eq!(checker.check_with_wildcards(&bigints(&[1,1,1,1,0,0,9]), 5), Some(1));
         assert_eq!(checker.check_with_wildcards(&bigints(&[1,1,1,1,0,9,9]), 5), Some(2));
         assert_eq!(checker.check_with_wildcards(&bigints(&[1,1,1,1,9,9,9]), 5), None);
         assert_eq!(checker.check_with_wildcards(&bigints(&[1,1,1,9,9,9,9]), 5), None);
+    }
+
+    #[test]
+    fn test_20004_check_with_wildcards_minium_required_terms2() {
+        let checker = MockCheckerImpl::new(bigints(&[1,2,3,4,5,6,7,9,10,0]));
+        assert_eq!(checker.check_with_wildcards(&bigints(&[1,2,3,4,5,6,7,9,10,0]), 10), Some(0));
+        assert_eq!(checker.check_with_wildcards(&bigints(&[1,2,3,4,5,6,7,9,10,12]), 10), None);
     }
 
     #[test]
