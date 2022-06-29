@@ -169,7 +169,7 @@ impl ValidatePrograms {
 
         let content = format!("number of valid programs: {:?}", valid_program_ids.len());
         simple_log.println(content);
-        let content = format!("number of invalid programs: {:?}", number_of_invalid_programs);
+        let content = format!("number of invalid programs: {:?}\n", number_of_invalid_programs);
         simple_log.println(content);
 
         return Ok(());
