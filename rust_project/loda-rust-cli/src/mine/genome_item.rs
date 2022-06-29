@@ -235,11 +235,6 @@ impl GenomeItem {
     }
 
     pub fn mutate_enabled(&mut self) -> bool {
-        let is_call = self.instruction_id == InstructionId::EvalSequence;
-        if is_call {
-            return false;
-        }
-
         // Prevent messing up loop begin/end.
         let is_loop = 
             self.instruction_id == InstructionId::LoopBegin || 
