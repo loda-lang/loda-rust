@@ -80,11 +80,11 @@ pub fn start_miner_loop(
     debug!("step3");
 
     // Load the program_ids available for mining
-    let available_program_ids_file = analytics_dir.join(Path::new("programs_valid.csv"));
-    let available_program_ids: Vec<u32> = match load_program_ids_csv_file(&available_program_ids_file) {
+    let programs_valid_file = config.analytics_dir_programs_valid_file();
+    let available_program_ids: Vec<u32> = match load_program_ids_csv_file(&programs_valid_file) {
         Ok(value) => value,
         Err(error) => {
-            panic!("Unable to load file. path: {:?} error: {:?}", available_program_ids_file, error);
+            panic!("Unable to load file. path: {:?} error: {:?}", programs_valid_file, error);
         }
     };
     println!("number_of_available_programs = {}", available_program_ids.len());

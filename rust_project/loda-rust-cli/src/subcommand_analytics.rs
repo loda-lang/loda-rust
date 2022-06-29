@@ -33,10 +33,10 @@ pub fn subcommand_analytics() -> Result<(), Box<dyn Error>> {
     let path: PathBuf = config.analytics_dir().join(Path::new("analytics_log.txt"));
     let simple_log = SimpleLog::new(&path)?;
     
+    ValidatePrograms::run(simple_log.clone())?;
     run_batch_program_analyzer(simple_log.clone())?;
     compute_program_rank();
     DontMine::run(simple_log.clone())?;
-    ValidatePrograms::run(simple_log.clone())?;
     PopulateBloomfilter::run(simple_log.clone())?;
 
     let content = format!("\nsubcommand_analytics finished, elapsed: {:?} ms", start_time.elapsed().as_millis());

@@ -1,8 +1,9 @@
-use crate::common::{find_asm_files_recursively, program_id_from_path, SimpleLog};
+use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, program_id_from_path, SimpleLog};
 use loda_rust_core;
 use super::AnalyticsError;
 use crate::config::Config;
 use loda_rust_core::parser::ParsedProgram;
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::error::Error;
 use std::fs;
@@ -35,7 +36,9 @@ pub type BatchProgramAnalyzerPluginItem = Rc<RefCell<dyn BatchProgramAnalyzerPlu
 pub struct BatchProgramAnalyzer {
     simple_log: SimpleLog,
     config: Config,
-    number_of_program_files_that_could_not_be_loaded: u32,
+    number_of_program_files_that_could_not_be_loaded: usize,
+    number_of_program_files_ignored: usize,
+    number_of_program_files_successfully_analyzed: usize,
     plugin_vec: Vec<BatchProgramAnalyzerPluginItem>,
 }
 
@@ -45,6 +48,8 @@ impl BatchProgramAnalyzer {
             simple_log: simple_log,
             config: Config::load(),
             number_of_program_files_that_could_not_be_loaded: 0,
+            number_of_program_files_ignored: 0,
+            number_of_program_files_successfully_analyzed: 0,
             plugin_vec: plugin_vec,
         }
     }
@@ -58,13 +63,15 @@ impl BatchProgramAnalyzer {
     }
 
     fn analyze_all_program_files(&mut self) -> Result<(), Box<dyn Error>> {
+        self.simple_log.println("BatchProgramAnalyzer");
+
+        let programs_invalid_file = self.config.analytics_dir_programs_invalid_file();
+        let invalid_program_ids: Vec<u32> = load_program_ids_csv_file(&programs_invalid_file)?;
+        let ignore_program_ids: HashSet<u32> = invalid_program_ids.into_iter().collect();
+    
         let dir_containing_programs: PathBuf = self.config.loda_programs_oeis_dir();
         let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
         let number_of_paths = paths.len();
-
-        let content = format!("BatchProgramAnalyzer\nnumber of paths to be analyzed: {:?}", number_of_paths);
-        self.simple_log.println(content);
-
         if number_of_paths <= 0 {
             let message = "Expected 1 or more programs, but there are no programs to analyze";
             return Err(Box::new(AnalyticsError::BatchProgramAnalyzer(message.to_string())));
@@ -73,7 +80,7 @@ impl BatchProgramAnalyzer {
         let pb = ProgressBar::new(number_of_paths as u64);
         let start = Instant::now();
         for path in paths {
-            self.analyze_program_file(&path)?;
+            self.analyze_program_file(&path, &ignore_program_ids)?;
             pb.inc(1);
         }
         pb.finish_and_clear();
@@ -85,13 +92,21 @@ impl BatchProgramAnalyzer {
             HumanDuration(start.elapsed())
         );
 
+        let content = format!("number of program files successfully analyzed: {:?}", self.number_of_program_files_successfully_analyzed);
+        self.simple_log.println(content);
         let content = format!("number of program files that could not be loaded: {:?}", self.number_of_program_files_that_could_not_be_loaded);
+        self.simple_log.println(content);
+        let content = format!("number of program files that was ignored: {:?}", self.number_of_program_files_ignored);
         self.simple_log.println(content);
 
         Ok(())
     }
 
-    fn analyze_program_file(&mut self, path_to_program: &PathBuf) -> Result<(), Box<dyn Error>> {
+    fn analyze_program_file(
+        &mut self, 
+        path_to_program: &PathBuf,
+        ignore_program_ids: &HashSet<u32>
+    ) -> Result<(), Box<dyn Error>> {
         let program_id: u32 = match program_id_from_path(&path_to_program) {
             Some(program_id) => program_id,
             None => {
@@ -100,6 +115,11 @@ impl BatchProgramAnalyzer {
                 return Ok(());
             }
         };
+        if ignore_program_ids.contains(&program_id) {
+            debug!("Ignoring program_id {:?}", program_id);
+            self.number_of_program_files_ignored += 1;
+            return Ok(());
+        }
         let contents: String = match fs::read_to_string(&path_to_program) {
             Ok(value) => value,
             Err(error) => {
@@ -123,6 +143,7 @@ impl BatchProgramAnalyzer {
         for plugin in self.plugin_vec.iter() {
             plugin.borrow_mut().analyze(&context)?;
         }
+        self.number_of_program_files_successfully_analyzed += 1;
         Ok(())
     }
 

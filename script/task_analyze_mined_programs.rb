@@ -148,7 +148,7 @@ File.new(OEIS_STRIPPED_FILE, "r").each_with_index do |line, index|
         percentage = (100 * index) / approx_row_count
         puts "progress %#{percentage}  #{index}/#{approx_row_count}"
     end
-    next unless line =~ /^A0*(\d+) ,(.+)$/
+    next unless line =~ /^A0*(\d+) ,(.+),$/
     program_id = $1.to_i
     all_terms = $2
     
