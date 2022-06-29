@@ -6,7 +6,7 @@ use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, Regist
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::collections::HashSet;
 use std::error::Error;
 use std::time::Instant;
@@ -91,9 +91,8 @@ impl ValidatePrograms {
         println!("Validate programs");
         let config = Config::load();
         let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
-
-        let programs_valid_csv_file: PathBuf = config.analytics_dir().join(Path::new("programs_valid.csv"));
-        let programs_invalid_csv_file: PathBuf = config.analytics_dir().join(Path::new("programs_invalid.csv"));
+        let programs_valid_csv_file: PathBuf = config.analytics_dir_programs_valid_file();
+        let programs_invalid_csv_file: PathBuf = config.analytics_dir_programs_invalid_file();
 
         // Obtain paths to loda asm files
         let paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
