@@ -10,15 +10,15 @@ use crate::mine::PopulateBloomfilter;
 
 fn run_batch_program_analyzer(simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
     let plugin_dependencies = Rc::new(RefCell::new(AnalyzeDependencies::new()));
-    let plugin_instruction_ngram = Rc::new(RefCell::new(AnalyzeInstructionNgram::new()));
     let plugin_instruction_constant = Rc::new(RefCell::new(AnalyzeInstructionConstant::new()));
-    let plugin_program_complexity = Rc::new(RefCell::new(AnalyzeProgramComplexity::new()));
+    let plugin_instruction_ngram = Rc::new(RefCell::new(AnalyzeInstructionNgram::new()));
     let plugin_source_ngram = Rc::new(RefCell::new(AnalyzeSourceNgram::new()));
     let plugin_target_ngram = Rc::new(RefCell::new(AnalyzeTargetNgram::new()));
+    let plugin_program_complexity = Rc::new(RefCell::new(AnalyzeProgramComplexity::new()));
     let plugin_vec: Vec<BatchProgramAnalyzerPluginItem> = vec![
         plugin_dependencies,
-        plugin_instruction_ngram,
         plugin_instruction_constant,
+        plugin_instruction_ngram,
         plugin_source_ngram,
         plugin_target_ngram,
         plugin_program_complexity,

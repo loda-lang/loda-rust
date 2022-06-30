@@ -319,11 +319,11 @@ impl BatchProgramAnalyzerPlugin for AnalyzeInstructionNgram {
 
     fn human_readable_summary(&self) -> String {
         let rows: Vec<String> = vec![
-            format!("number of items in unigram: {:?}", self.histogram_unigram.len()),
-            format!("number of items in bigram: {:?}", self.histogram_bigram.len()),
-            format!("number of items in trigram: {:?}", self.histogram_trigram.len()),
-            format!("number of items in skipgram: {:?}", self.histogram_skipgram.len()),
+            format!("unigram: {:?}", self.histogram_unigram.len()),
+            format!("bigram: {:?}", self.histogram_bigram.len()),
+            format!("trigram: {:?}", self.histogram_trigram.len()),
+            format!("skipgram: {:?}", self.histogram_skipgram.len()),
         ];
-        rows.join("\n")
+        rows.join(", ")
     }
 }
