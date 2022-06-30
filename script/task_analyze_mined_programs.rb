@@ -425,7 +425,8 @@ def process_candidate_program(candidate_program, dontmine_program_id_set)
     raise unless candidate_program.kind_of?(CandidateProgram)
     program_ids = candidate_program.oeis_ids
     if program_ids.empty?
-        puts "Ignoring candidate program. There isn't any candidate program ids for '#{candidate_program.path}', this happes when there are less than 40 known terms in the stripped.zip file"
+        puts "Ignoring candidate program. There isn't any candidate program ids for '#{candidate_program.path}', this happes when there are less than 40 known terms in the stripped.zip file, or when there is a cyclic dependency."
+        File.rename(candidate_program.path, candidate_program.path_reject)
         return
     end
     puts "\n\nChecking: #{candidate_program.path}  candidate program_ids: #{program_ids}"
