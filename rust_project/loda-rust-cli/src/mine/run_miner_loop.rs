@@ -351,8 +351,8 @@ impl RunMinerLoop {
         // Reject, if it's identical to one of the programs that this program depends on
         let depends_on_program_ids: HashSet<u32> = self.genome.depends_on_program_ids();
         let mut reject_self_dependency = false;
-        for program_id in depends_on_program_ids {
-            let program_runner: Rc::<ProgramRunner> = match self.dependency_manager.load(program_id as u64) {
+        for program_id in &depends_on_program_ids {
+            let program_runner: Rc::<ProgramRunner> = match self.dependency_manager.load(*program_id as u64) {
                 Ok(value) => value,
                 Err(error) => {
                     error!("Cannot verify, failed to load program id {}, {:?}", program_id, error);
@@ -393,6 +393,13 @@ impl RunMinerLoop {
                 return
             }
         };
+        let intersection: HashSet<&u32> = depends_on_program_ids.intersection(corresponding_program_id_set).collect();
+        if intersection.len() > 0 {
+            debug!("Ignoring self-dependency. There is this intersection: {:?}", intersection);
+            self.metric.number_of_self_dependencies += 1;
+            self.reload = true;
+            return
+        }
         debug!("Found corresponding program_id's: {:?} funnel20_number_of_wildcards: {:?} funnel30_number_of_wildcards: {:?} funnel40_number_of_wildcards: {:?}", corresponding_program_id_set, funnel20_number_of_wildcards, funnel30_number_of_wildcards, funnel40_number_of_wildcards);
 
         let steps: &Vec<u64> = &self.term_computer.steps;

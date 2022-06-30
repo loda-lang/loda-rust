@@ -4,6 +4,7 @@ use super::node_binomial::NodeBinomialLimit;
 use super::node_power::NodePowerLimit;
 use super::node_move::NodeMoveRegister;
 use std::collections::HashSet;
+use std::fmt;
 
 pub struct ProgramRunner {
     program_id: ProgramId,
@@ -197,5 +198,13 @@ impl ProgramRunner {
             }
         }
         string_vec.join(",")
+    }
+}
+
+impl fmt::Display for ProgramRunner {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut serializer = ProgramSerializer::new();
+        self.serialize(&mut serializer);
+        write!(f, "{}", serializer.to_string())
     }
 }
