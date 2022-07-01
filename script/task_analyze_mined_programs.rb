@@ -182,7 +182,7 @@ File.new(OEIS_STRIPPED_FILE, "r").each_with_index do |line, index|
 end
 
 #puts "stripped file: number of terms per row in stripped file: skiptooshort #{number_of_too_short}, fewerthan40 #{number_of_shorter}, exact40 #{number_of_exact}, morethan40 #{number_of_longer}"
-puts "stripped file: number_of_prefix_matches: #{number_of_prefix_matches}"
+#puts "stripped file: number_of_prefix_matches: #{number_of_prefix_matches}"
 #p candidate_programs
 
 def loda_eval_steps(path_program)
@@ -421,7 +421,7 @@ def path_to_mismatch(program_id, correct_term_count)
     raise "Unable to create a unique path for mismatch. #{last_attempted_path}"
 end
 
-def process_candidate_program(candidate_program, dontmine_program_id_set)
+def process_candidate_program(progress, candidate_program, dontmine_program_id_set)
     raise unless candidate_program.kind_of?(CandidateProgram)
     program_ids = candidate_program.oeis_ids
     if program_ids.empty?
@@ -429,7 +429,7 @@ def process_candidate_program(candidate_program, dontmine_program_id_set)
         File.rename(candidate_program.path, candidate_program.path_reject)
         return
     end
-    puts "\n\nChecking: #{candidate_program.path}  candidate program_ids: #{program_ids}"
+    puts "\n\nprogress #{progress} Checking: #{candidate_program.path}  candidate program_ids: #{program_ids}"
     reject_candidate = true
     program_ids.each do |program_id|
         # The "dont_mine.csv" holds program_ids of unwanted sequences, duplicates, protected programs and stuff that is not to be mined.
@@ -459,8 +459,10 @@ def process_candidate_programs(candidate_programs, dontmine_program_id_set)
         raise "no candidate programs to process"
     end
     #candidate_programs = candidate_programs.first(10)
-    candidate_programs.each do |candidate_program|
-        process_candidate_program(candidate_program, dontmine_program_id_set)
+    candidate_programs.each_with_index do |candidate_program, index|
+        percentage = index * 100 / candidate_programs.count
+        progress = "%#{percentage}  #{index}/#{candidate_programs.count}"
+        process_candidate_program(progress, candidate_program, dontmine_program_id_set)
     end
 end
 
