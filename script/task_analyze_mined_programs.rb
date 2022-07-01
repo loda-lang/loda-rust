@@ -310,7 +310,28 @@ def path_for_oeis_program(program_id)
     File.join(LODA_PROGRAMS_OEIS, dirname, filename)
 end
 
-def analyze_candidate(candidate_program, program_id)
+def path_to_mismatch(program_id, correct_term_count)
+    name = "A%06i" % program_id
+    dirname = "%01i" % (program_id / 100000)
+    last_attempted_path = nil
+    1000.times do |index|
+        filename = "#{name}_#{correct_term_count}_#{index}.asm"
+        path = File.join(LODA_RUST_MISMATCHES, dirname, filename)
+        last_attempted_path = path
+        if !File.exist?(path)
+            return path
+        end
+    end
+    raise "Unable to create a unique path for mismatch. #{last_attempted_path}"
+end
+
+def analyze_candidate(candidate_program, program_id, dontmine_program_id_set, invalid_program_id_set)
+    # The "dont_mine.csv" holds program_ids of unwanted sequences, duplicates, protected programs and stuff that is not to be mined.
+    if dontmine_program_id_set.include?(program_id)
+        puts "Skip candidate program id, which is contained in the 'dont_mine.csv' file. A#{program_id}"
+        return :reject
+    end
+
     path = path_for_oeis_program(program_id)
     milliseconds = DateTime.now.strftime('%Q')
     path_original = path + "_original_#{milliseconds}"
@@ -347,7 +368,7 @@ def analyze_candidate(candidate_program, program_id)
         if has_original_file
             File.rename(path_original, path)
         end
-        return false
+        return :reject
     end
     unless $?.success?
         puts "loda check, expected exit code 0, but got exit code: #{$?}, see loda check output: #{path_check_output}"
@@ -361,7 +382,7 @@ def analyze_candidate(candidate_program, program_id)
         if has_original_file
             File.rename(path_original, path)
         end
-        return false
+        return :reject
     end
     if check_output_content =~ /^std::exception$/
         puts "Rejecting. c++ exception occurred, probably due to overflow or cyclic dependency. see output: #{path_check_output}. command: #{command}"
@@ -369,12 +390,12 @@ def analyze_candidate(candidate_program, program_id)
         if has_original_file
             File.rename(path_original, path)
         end
-        return false
+        return :reject
     end
     if check_output_content =~ /^(?:ok|warning)$/
         if !has_original_file
             puts "Keeping. This program is new, there is no previous implementation."
-            return true
+            return :keep
         end
         
         # Compare performance new program vs old program
@@ -387,11 +408,11 @@ def analyze_candidate(candidate_program, program_id)
             if has_original_file
                 File.rename(path_original, path)
             end
-            return false
+            return :reject
         end
         if comparision_id == :program0
             puts "Keeping. This program is faster than the old implementation."
-            return true
+            return :keep
         end
         raise "unknown comparison result #{comparison_id}"
     end
@@ -407,7 +428,7 @@ def analyze_candidate(candidate_program, program_id)
         # save to mismatch dir
         mismatch_path = path_to_mismatch(program_id, correct_term_count)
         IO.write(mismatch_path, IO.read(candidate_program.path))
-        return true
+        return :keep
     end
     if check_output_content =~ /^error$/
         puts "Rejecting. Unknown error occurred, probably due to overflow or cyclic dependency. see output: #{path_check_output}. output: #{check_output_content} command: #{command}"
@@ -415,24 +436,9 @@ def analyze_candidate(candidate_program, program_id)
         if has_original_file
             File.rename(path_original, path)
         end
-        return false
+        return :reject
     end
     raise "Regex didn't match. See bottom of the file: #{path_check_output} Perhaps 'loda check' have changed its output format. command: #{command}"
-end
-
-def path_to_mismatch(program_id, correct_term_count)
-    name = "A%06i" % program_id
-    dirname = "%01i" % (program_id / 100000)
-    last_attempted_path = nil
-    1000.times do |index|
-        filename = "#{name}_#{correct_term_count}_#{index}.asm"
-        path = File.join(LODA_RUST_MISMATCHES, dirname, filename)
-        last_attempted_path = path
-        if !File.exist?(path)
-            return path
-        end
-    end
-    raise "Unable to create a unique path for mismatch. #{last_attempted_path}"
 end
 
 def process_candidate_program(progress, candidate_program, dontmine_program_id_set, invalid_program_id_set)
@@ -445,18 +451,20 @@ def process_candidate_program(progress, candidate_program, dontmine_program_id_s
     end
     puts "\n\nprogress #{progress} Checking: #{candidate_program.path}  candidate program_ids: #{program_ids}"
     reject_candidate = true
+    keep_program_ids = []
     program_ids.each do |program_id|
-        # The "dont_mine.csv" holds program_ids of unwanted sequences, duplicates, protected programs and stuff that is not to be mined.
-        if dontmine_program_id_set.include?(program_id)
-            puts "Skip candidate program id, which is contained in the 'dont_mine.csv' file. A#{program_id}"
+        status = analyze_candidate(candidate_program, program_id, dontmine_program_id_set, invalid_program_id_set)
+        if status == :keep
+            puts "This is a keeper. A#{program_id}"
+            keep_program_ids << program_id
             next
         end
-        if analyze_candidate(candidate_program, program_id)
-            puts "This is a keeper. A#{program_id}"
-            reject_candidate = false
+        if status == :reject
+            next
         end
+        raise "analyze_candidate returned an unknown status: #{status}"
     end
-    if reject_candidate
+    if keep_program_ids.empty?
         # Rename program when it has been fully analyzed
         File.rename(candidate_program.path, candidate_program.path_reject)
         puts "Status: Rejecting bad program. #{candidate_program.path_reject}"
@@ -465,7 +473,8 @@ def process_candidate_program(progress, candidate_program, dontmine_program_id_s
 
     # Rename program when it has been fully analyzed
     File.rename(candidate_program.path, candidate_program.path_keep)
-    puts "Status: Keeping good program. #{candidate_program.path_keep}"
+    pretty_keep_program_ids = keep_program_ids.map { |keep_program_id| "A#{keep_program_id}" }.join(',')
+    puts "Status: Keeping good program. #{candidate_program.path_keep}  corresponds to: #{pretty_keep_program_ids}"
 end
 
 def process_candidate_programs(candidate_programs, dontmine_program_id_set, invalid_program_id_set)
