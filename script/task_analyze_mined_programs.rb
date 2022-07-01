@@ -72,6 +72,11 @@ unless File.exist?(ANALYTICS_DIR_DONT_MINE_FILE)
     raise "No such file #{ANALYTICS_DIR_DONT_MINE_FILE}, cannot run script"
 end
 
+ANALYTICS_DIR_PROGRAMS_INVALID_FILE = Config.instance.analytics_dir_programs_invalid_file
+unless File.exist?(ANALYTICS_DIR_PROGRAMS_INVALID_FILE)
+    raise "No such file #{ANALYTICS_DIR_PROGRAMS_INVALID_FILE}, cannot run script"
+end
+
 LODA_RUST_MISMATCHES = Config.instance.loda_outlier_programs_repository_oeis_divergent
 unless Dir.exist?(LODA_RUST_MISMATCHES)
     raise "No such dir #{LODA_RUST_MISMATCHES}, cannot run script"
@@ -106,6 +111,15 @@ CSV.foreach(ANALYTICS_DIR_DONT_MINE_FILE, col_sep: ";") do |row|
     dontmine_program_id_set << program_id
 end
 puts "Number of items in dontmine file: #{dontmine_program_id_set.count}"
+
+invalid_program_id_set = Set.new
+CSV.foreach(ANALYTICS_DIR_PROGRAMS_INVALID_FILE, col_sep: ";") do |row|
+    col0 = row[0]
+    program_id = col0.to_i
+    next if program_id == 0
+    invalid_program_id_set << program_id
+end
+puts "Number of items in invalid program ids file: #{invalid_program_id_set.count}"
 
 # This script traverses all the programs inside the "mine-event" dir.
 # It evaluate all the LODA assembly programs, and obtain 40 terms.
@@ -421,7 +435,7 @@ def path_to_mismatch(program_id, correct_term_count)
     raise "Unable to create a unique path for mismatch. #{last_attempted_path}"
 end
 
-def process_candidate_program(progress, candidate_program, dontmine_program_id_set)
+def process_candidate_program(progress, candidate_program, dontmine_program_id_set, invalid_program_id_set)
     raise unless candidate_program.kind_of?(CandidateProgram)
     program_ids = candidate_program.oeis_ids
     if program_ids.empty?
@@ -454,7 +468,7 @@ def process_candidate_program(progress, candidate_program, dontmine_program_id_s
     puts "Status: Keeping good program. #{candidate_program.path_keep}"
 end
 
-def process_candidate_programs(candidate_programs, dontmine_program_id_set)
+def process_candidate_programs(candidate_programs, dontmine_program_id_set, invalid_program_id_set)
     if candidate_programs.empty?
         raise "no candidate programs to process"
     end
@@ -462,8 +476,8 @@ def process_candidate_programs(candidate_programs, dontmine_program_id_set)
     candidate_programs.each_with_index do |candidate_program, index|
         percentage = index * 100 / candidate_programs.count
         progress = "%#{percentage}  #{index}/#{candidate_programs.count}"
-        process_candidate_program(progress, candidate_program, dontmine_program_id_set)
+        process_candidate_program(progress, candidate_program, dontmine_program_id_set, invalid_program_id_set)
     end
 end
 
-process_candidate_programs(candidate_programs, dontmine_program_id_set)
+process_candidate_programs(candidate_programs, dontmine_program_id_set, invalid_program_id_set)
