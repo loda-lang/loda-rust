@@ -408,6 +408,12 @@ impl RunMinerLoop {
         let mut maybe_a_new_program = false;
         let mut is_existing_program_with_better_performance = false;
         for program_id in corresponding_program_id_set {
+            if self.context.is_program_id_invalid(*program_id) {
+                debug!("Keep. Maybe a new program. The program id {} is contained in 'programs_invalid.csv'", program_id);
+                self.genome.append_message(format!("keep: maybe a new program. The program id {} is contained in 'programs_invalid.csv'", program_id));
+                maybe_a_new_program = true;
+                break;
+            }
             let program_runner: Rc::<ProgramRunner> = match self.dependency_manager.load(*program_id as u64) {
                 Ok(value) => value,
                 Err(error) => {
