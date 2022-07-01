@@ -192,7 +192,7 @@ impl RunMinerLoop {
 
     fn execute_one_iteration(&mut self) {
         self.metric.number_of_miner_loop_iterations += 1;
-        if (self.iteration % 10) == 0 {
+        if (self.iteration % 20) == 0 {
             self.reload = true;
         }
         if (self.iteration % 50000) == 0 {
