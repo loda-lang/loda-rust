@@ -56,13 +56,13 @@ impl BatchProgramAnalyzer {
 
     pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
         println!("Run batch-program-analyzer");
-        self.analyze_all_program_files()?;
+        self.analyze_the_valid_program_files()?;
         self.save_result_files()?;
         self.save_summary()?;
         Ok(())
     }
 
-    fn analyze_all_program_files(&mut self) -> Result<(), Box<dyn Error>> {
+    fn analyze_the_valid_program_files(&mut self) -> Result<(), Box<dyn Error>> {
         self.simple_log.println("BatchProgramAnalyzer");
 
         let programs_invalid_file = self.config.analytics_dir_programs_invalid_file();
