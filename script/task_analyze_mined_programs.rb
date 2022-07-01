@@ -307,6 +307,7 @@ def compare_performance_lodasteps(path_program0, path_program1, path_benchmark)
 end
 
 def path_for_oeis_program(program_id)
+    raise unless program_id.kind_of?(Integer)
     filename = "A%06i.asm" % program_id
     dirname = "%03i" % (program_id / 1000)
     File.join(LODA_PROGRAMS_OEIS, dirname, filename)
@@ -327,7 +328,32 @@ def path_to_mismatch(program_id, correct_term_count)
     raise "Unable to create a unique path for mismatch. #{last_attempted_path}"
 end
 
+def determine_invalid_status(program_id)
+    raise unless program_id.kind_of?(Integer)
+    path = path_for_oeis_program(program_id)
+    if !File.exist?(path)
+        puts "Missing program A#{program_id}."
+        return :missingfile
+    end
+    filecontent = IO.read(path)
+    if filecontent =~ /[$][$]\d/
+        puts "The existing program A#{program_id} uses indirect memory adressing, which loda-rust cannot handle."
+        return :indirect
+    end
+    # redirect stderr to stdout using "2>&1"
+    command_output = `#{LODA_CPP_EXECUTABLE} eval #{path} -t 1 2>&1`
+    if command_output =~ /recursion detected/
+        puts "The existing program A#{program_id} has a recursive dependency. Deleting this program."
+        return :cyclicdependency
+    end
+    puts "The existing program A#{program_id} seems ok"
+    return :ok
+end
+
 def analyze_candidate(candidate_program, program_id, dontmine_program_id_set, invalid_program_id_set)
+    raise unless candidate_program.kind_of?(CandidateProgram)
+    raise unless program_id.kind_of?(Integer)
+
     # The "dont_mine.csv" holds program_ids of unwanted sequences, duplicates, protected programs and stuff that is not to be mined.
     if dontmine_program_id_set.include?(program_id)
         puts "Skip candidate program id, which is contained in the 'dont_mine.csv' file. A#{program_id}"
@@ -337,9 +363,27 @@ def analyze_candidate(candidate_program, program_id, dontmine_program_id_set, in
     path = path_for_oeis_program(program_id)
     milliseconds = DateTime.now.strftime('%Q')
     path_original = path + "_original_#{milliseconds}"
+    path_original_invalid = path + "_original_invalid_#{milliseconds}"
     path_reject = path + "_reject_#{milliseconds}"
     path_check_output = path + "_check_output_#{milliseconds}"
     path_benchmark = path + "_benchmark_#{milliseconds}"
+
+    if invalid_program_id_set.include?(program_id)
+        puts "Program id #{program_id} is listed in the 'programs_invalid.csv'"
+        invalid_status = determine_invalid_status(program_id)
+        case invalid_status
+        when :indirect, :cyclicdependency
+            puts "invalid_status: #{invalid_status}  Renaming original to #{path_original_invalid}"
+            File.rename(path, path_original_invalid)
+        when :missingfile
+            puts "invalid_status: #{invalid_status}  There is no original program."
+        when :ok
+            puts "invalid_status: #{invalid_status}  The original file seems to be ok."
+        else
+            raise "Unhandled invalid_status: #{invalid_status}"
+        end
+    end
+    
     has_original_file = File.exist?(path)
     if has_original_file
         # puts "There already exist program: #{program_id}, Renaming from: #{path} to: #{path_original}"
@@ -489,6 +533,7 @@ def process_candidate_programs(candidate_programs, dontmine_program_id_set, inva
         progress = "%#{percentage}  #{index}/#{candidate_programs.count}"
         process_candidate_program(progress, candidate_program, dontmine_program_id_set, invalid_program_id_set)
     end
+    puts
 end
 
 process_candidate_programs(candidate_programs, dontmine_program_id_set, invalid_program_id_set)
