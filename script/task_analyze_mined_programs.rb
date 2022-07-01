@@ -18,6 +18,7 @@ OEIS_STRIPPED_SKIP_PROGRAMS_WITH_FEWER_TERMS = 10
 
 class CandidateProgram
     attr_reader :path
+    attr_reader :filename
     attr_reader :terms40
     attr_reader :oeis_ids
     
@@ -27,6 +28,7 @@ class CandidateProgram
         @path = path
         @terms40 = terms40
         @oeis_ids = []
+        @filename = File.basename(path)
     end
     
     def append_oeis_id(oeis_id)
@@ -449,7 +451,7 @@ def process_candidate_program(progress, candidate_program, dontmine_program_id_s
         File.rename(candidate_program.path, candidate_program.path_reject)
         return
     end
-    puts "\n\nprogress #{progress} Checking: #{candidate_program.path}  candidate program_ids: #{program_ids}"
+    puts "\n\nprogress #{progress}  Analyzing: '#{candidate_program.filename}'  Possible program_ids: #{program_ids}"
     reject_candidate = true
     keep_program_ids = []
     program_ids.each do |program_id|
