@@ -40,7 +40,8 @@ Identify the programs that can safely be used by the miner.
 
 Mining is computationally expensive.
 The purpose of this function is to make mining less expensive,
-by identifying defunct programs, so that these program doesn't cause havoc during mining.
+by eliminating defunct programs before mining begins, 
+so that defunct programs doesn't sporadic cause havoc during mining.
 
 Usecase A:
 During mining, when mutating a `seq` instruction and assigning it a 
