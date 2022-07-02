@@ -1,3 +1,4 @@
+//! Translate from LODA source code to a program instance.
 mod create_program;
 mod instruction;
 mod instruction_id;
