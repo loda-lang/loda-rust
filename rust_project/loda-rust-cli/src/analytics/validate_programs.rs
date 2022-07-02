@@ -40,7 +40,7 @@ Identify the programs that can safely be used by the miner.
 
 Mining is computationally expensive.
 The purpose of this function is to make mining less expensive,
-by identifying defunct programs, so that these program doesn't break during mining.
+by identifying defunct programs, so that these program doesn't cause havoc during mining.
 
 Usecase A:
 During mining, when mutating a `seq` instruction and assigning it a 
@@ -54,7 +54,10 @@ During mining, when choosing a random program as template for mutations.
 Choosing a bad template, and much time can be wasted on error handling.
 Choosing a good template, and time is well spent.
 
-This function outputs two files: `programs_valid.csv`, `programs_invalid.csv`.
+This function outputs three files: 
+- `programs_valid.csv`
+- `programs_invalid.csv`
+- `programs_invalid_verbose.csv`
 
 This function runs all the programs inside the `loda-programs` repository.
 If a program can execute, then it gets appended to the valid file.
@@ -62,7 +65,7 @@ If a program can execute, then it gets appended to the valid file.
 If a program cannot execute or failes, then it goes to the invalid file.
 - programs that cannot parse.
 - programs with cyclic dependencies.
-- programs that fails to compute 10 terms.
+- programs that fails to compute NUMBER_OF_TERMS_TO_VALIDATE terms.
 
 The outputted file: `programs_valid.csv` has this format:
 
@@ -79,7 +82,7 @@ The outputted file: `programs_invalid.csv` has this format:
     21020
     21100
     21148
-    21292
+    306326
 
 The outputted file: `programs_invalid_verbose.csv` has this format:
 
@@ -87,7 +90,7 @@ The outputted file: `programs_invalid_verbose.csv` has this format:
     21020;LODA;ParseProgram(ParseParameters(UnrecognizedParameterType(4)))
     21100;LODA;ParseProgram(ParseParameters(UnrecognizedParameterType(6)))
     21148;LODA;ParseProgram(ParseParameters(UnrecognizedParameterType(7)))
-    21292;LODA;ParseProgram(ParseParameters(UnrecognizedParameterType(5)))
+    306326;COMPUTE;EvalSequenceWithNegativeParameter
 
 */
 pub struct ValidatePrograms {}
