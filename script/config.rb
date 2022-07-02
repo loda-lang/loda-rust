@@ -86,6 +86,10 @@ class Config
         File.join(@analytics_dir, 'dependencies.csv')
     end
 
+    def analytics_dir_programs_invalid_file
+        File.join(@analytics_dir, 'programs_invalid.csv')
+    end
+
     def analytics_dir_program_rank_file
         File.join(@analytics_dir, 'program_rank.csv')
     end

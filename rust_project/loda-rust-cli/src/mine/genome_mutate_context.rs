@@ -5,9 +5,11 @@ use super::{SuggestTarget, TargetValue};
 use loda_rust_core::parser::InstructionId;
 use rand::Rng;
 use rand::seq::SliceRandom;
+use std::collections::HashSet;
 
 pub struct GenomeMutateContext {
-    available_program_ids: Vec<u32>,
+    valid_program_ids: Vec<u32>,
+    invalid_program_ids: HashSet<u32>,
     popular_program_container: PopularProgramContainer,
     recent_program_container: RecentProgramContainer,
     histogram_instruction_constant: Option<HistogramInstructionConstant>,
@@ -18,7 +20,8 @@ pub struct GenomeMutateContext {
 
 impl GenomeMutateContext {
     pub fn new(
-        available_program_ids: Vec<u32>, 
+        valid_program_ids: Vec<u32>, 
+        invalid_program_ids: HashSet<u32>,
         popular_program_container: PopularProgramContainer, 
         recent_program_container: RecentProgramContainer,
         histogram_instruction_constant: Option<HistogramInstructionConstant>,
@@ -27,7 +30,8 @@ impl GenomeMutateContext {
         suggest_target: Option<SuggestTarget>
     ) -> Self {
         Self {
-            available_program_ids: available_program_ids,
+            valid_program_ids: valid_program_ids,
+            invalid_program_ids: invalid_program_ids,
             popular_program_container: popular_program_container,
             recent_program_container: recent_program_container,
             histogram_instruction_constant: histogram_instruction_constant,
@@ -37,16 +41,20 @@ impl GenomeMutateContext {
         }
     }
 
+    pub fn is_program_id_invalid(&self, program_id: u32) -> bool {
+        self.invalid_program_ids.contains(&program_id)
+    }
+
     pub fn available_program_ids(&self) -> &Vec<u32> {
-        &self.available_program_ids
+        &self.valid_program_ids
     }
 
     pub fn has_available_programs(&self) -> bool {
-        !self.available_program_ids.is_empty()
+        !self.valid_program_ids.is_empty()
     }
 
     pub fn choose_available_program<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
-        let program_id: u32 = match self.available_program_ids.choose(rng) {
+        let program_id: u32 = match self.valid_program_ids.choose(rng) {
             Some(program_id) => *program_id,
             None => {
                 // For a non-empty vector, this shouldn't happen.

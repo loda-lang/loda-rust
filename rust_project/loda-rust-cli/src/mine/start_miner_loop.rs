@@ -18,6 +18,7 @@ use rand::SeedableRng;
 use rand::rngs::StdRng;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
+use std::collections::HashSet;
 
 const MINER_CACHE_CAPACITY: usize = 300000;
 
@@ -79,15 +80,26 @@ pub fn start_miner_loop(
 
     debug!("step3");
 
-    // Load the program_ids available for mining
+    // Load the valid program_ids, that can execute.
     let programs_valid_file = config.analytics_dir_programs_valid_file();
-    let available_program_ids: Vec<u32> = match load_program_ids_csv_file(&programs_valid_file) {
+    let valid_program_ids: Vec<u32> = match load_program_ids_csv_file(&programs_valid_file) {
         Ok(value) => value,
         Err(error) => {
             panic!("Unable to load file. path: {:?} error: {:?}", programs_valid_file, error);
         }
     };
-    println!("number_of_available_programs = {}", available_program_ids.len());
+    println!("number_of_valid_program_ids = {}", valid_program_ids.len());
+
+    // Load the invalid program_ids, that are defunct, such as cannot execute, cyclic-dependency.
+    let programs_invalid_file = config.analytics_dir_programs_invalid_file();
+    let invalid_program_ids: Vec<u32> = match load_program_ids_csv_file(&programs_invalid_file) {
+        Ok(value) => value,
+        Err(error) => {
+            panic!("Unable to load file. path: {:?} error: {:?}", programs_invalid_file, error);
+        }
+    };
+    println!("number_of_invalid_program_ids = {}", invalid_program_ids.len());
+    let invalid_program_ids_hashset: HashSet<u32> = invalid_program_ids.into_iter().collect();
 
     // Load the clusters with popular/unpopular program ids
     let program_popularity_file = config.analytics_dir_program_popularity_file();
@@ -144,7 +156,8 @@ pub fn start_miner_loop(
     println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
 
     let context = GenomeMutateContext::new(
-        available_program_ids,
+        valid_program_ids,
+        invalid_program_ids_hashset,
         popular_program_container,
         recent_program_container,
         histogram_instruction_constant,

@@ -51,7 +51,7 @@ unstaged_files = absolute_paths_for_unstaged_new_files(LODA_PROGRAMS_REPO)
 files_to_be_deleted = []
 unstaged_files.each do |path|
     filename = File.basename(path)
-    if filename =~ /^A\d{6}.asm_(benchmark|check_output|original|reject)_\d+$/
+    if filename =~ /^A\d{6}.asm_(benchmark|check_output|original|original_invalid|reject)_\d+$/
         files_to_be_deleted << path
         next
     end
