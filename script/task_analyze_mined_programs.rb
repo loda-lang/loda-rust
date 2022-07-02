@@ -99,6 +99,7 @@ def absolute_paths_for_programs_to_be_processed(rootdir)
 end
 
 paths = absolute_paths_for_programs_to_be_processed(MINE_EVENT_DIR)
+#paths = paths.first(1000)
 if paths.empty?
     puts "There are no pending programs to be processed."
     exit 0
@@ -491,7 +492,7 @@ def process_candidate_program(progress, candidate_program, dontmine_program_id_s
     raise unless candidate_program.kind_of?(CandidateProgram)
     program_ids = candidate_program.oeis_ids
     if program_ids.empty?
-        puts "Ignoring candidate program. There isn't any candidate program ids for '#{candidate_program.path}', this happes when there are less than 40 known terms in the stripped.zip file, or when there is a cyclic dependency."
+        puts "Status: Rejecting '#{candidate_program.filename}'. Doesn't share initial terms with any sequence in the OEIS 'stipped' file."
         File.rename(candidate_program.path, candidate_program.path_reject)
         return
     end
