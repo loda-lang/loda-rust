@@ -830,7 +830,7 @@ impl Genome {
             (MutateGenome::ReplaceSourceConstantWithoutHistogram, 1),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 10),
             (MutateGenome::SourceType, 1),
-            (MutateGenome::SwapRegisters, 10),
+            (MutateGenome::SwapRegisters, 30),
             (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 1),
             (MutateGenome::ReplaceSourceRegisterWithHistogram, 10),
             (MutateGenome::ReplaceTargetWithoutHistogram, 1),
@@ -841,7 +841,7 @@ impl Genome {
             (MutateGenome::InsertLoopBeginEnd, 0),
             (MutateGenome::CallProgramWeightedByPopularity, 10),
             (MutateGenome::CallMostPopularProgram, 10),
-            (MutateGenome::CallMediumPopularProgram, 30),
+            (MutateGenome::CallMediumPopularProgram, 10),
             (MutateGenome::CallLeastPopularProgram, 100),
             (MutateGenome::CallRecentProgram, 1),
         ];
