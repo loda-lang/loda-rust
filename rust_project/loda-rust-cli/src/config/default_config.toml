@@ -33,19 +33,23 @@ loda_patterns_repository = "$HOME/git/loda-patterns"
 # Absolute path to the "loda-outlier-programs" repository dir.
 loda_outlier_programs_repository = "$HOME/git/loda-outlier-programs"
 
+# --- MINER CPU STRATEGY ---
+
+# Make use of all the cpu's.
+[miner_cpu_strategy]
+type = "max"
+
+# Only use half of available the cpu's.
+# [miner_cpu_strategy]
+# type = "half"
+
 # Only use 1 core. Useful for debugging. 
 # [miner_cpu_strategy]
 # type = "min"
 
 # Use specified number of core. 
 # Useful if auto-detect of number of cpus doesn't work.
-# Variant A
-[miner_cpu_strategy]
-type = "cpu"
-[miner_cpu_strategy.content]
-count = 8
-
-# Variant B
 # [miner_cpu_strategy]
 # type = "cpu"
-# content.count = 8
+# [miner_cpu_strategy.content]
+# count = 8

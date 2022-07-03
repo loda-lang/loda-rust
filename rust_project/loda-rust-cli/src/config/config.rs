@@ -4,9 +4,9 @@ use std::fs;
 
 const DEFAULT_CONFIG: &'static str = include_str!("default_config.toml");
 
-#[derive(Debug, PartialEq, Deserialize, Eq)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Eq)]
 #[serde(tag = "type", content = "content")]
-enum CPUStrategy {
+pub enum MinerCPUStrategy {
     #[serde(rename = "min")]
     Min,
     #[serde(rename = "half")]
@@ -31,7 +31,7 @@ pub struct Config {
     loda_identify_similar_programs_repository: PathBuf,
     loda_patterns_repository: PathBuf,
     loda_outlier_programs_repository: PathBuf,
-    miner_cpu_strategy: CPUStrategy,
+    miner_cpu_strategy: MinerCPUStrategy,
 }
 
 impl Config {
@@ -301,6 +301,10 @@ impl Config {
         assert!(path.is_dir());
         path
     }
+
+    pub fn miner_cpu_strategy(&self) -> MinerCPUStrategy {
+        self.miner_cpu_strategy.clone()
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -316,7 +320,7 @@ struct ConfigFallback {
     loda_identify_similar_programs_repository: String,
     loda_patterns_repository: String,
     loda_outlier_programs_repository: String,
-    miner_cpu_strategy: CPUStrategy,
+    miner_cpu_strategy: MinerCPUStrategy,
 }
 
 #[derive(Debug, Deserialize)]
@@ -332,7 +336,7 @@ struct ConfigCustom {
     loda_identify_similar_programs_repository: Option<String>,
     loda_patterns_repository: Option<String>,
     loda_outlier_programs_repository: Option<String>,
-    miner_cpu_strategy: Option<CPUStrategy>,
+    miner_cpu_strategy: Option<MinerCPUStrategy>,
 }
 
 fn load_config_from_home_dir() -> Config {
@@ -403,7 +407,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
     let loda_identify_similar_programs_repository: String = custom.loda_identify_similar_programs_repository.unwrap_or(fallback.loda_identify_similar_programs_repository);
     let loda_patterns_repository: String = custom.loda_patterns_repository.unwrap_or(fallback.loda_patterns_repository);
     let loda_outlier_programs_repository: String = custom.loda_outlier_programs_repository.unwrap_or(fallback.loda_outlier_programs_repository);
-    let miner_cpu_strategy: CPUStrategy = custom.miner_cpu_strategy.unwrap_or(fallback.miner_cpu_strategy);
+    let miner_cpu_strategy: MinerCPUStrategy = custom.miner_cpu_strategy.unwrap_or(fallback.miner_cpu_strategy);
     Config {
         basedir: basedir,
         loda_programs_repository: simpleenv.resolve_path(&loda_programs_repository),
@@ -533,16 +537,15 @@ mod tests {
         assert_has_suffix(&config.loda_identify_similar_programs_repository, "/git/loda-identify-similar-programs")?;
         assert_has_suffix(&config.loda_patterns_repository, "/git/loda-patterns")?;
         assert_has_suffix(&config.loda_outlier_programs_repository, "/git/loda-outlier-programs")?;
-        // assert_eq!(config.miner_cpu_strategy, CPUStrategy::Max);
-        assert_eq!(config.miner_cpu_strategy, CPUStrategy::CPU {count: 8});
+        assert_eq!(config.miner_cpu_strategy, MinerCPUStrategy::Max);
         Ok(())
     }
 
     #[test]
-    fn test_40000_custom_config_loda_submitted_by() -> Result<(), Box<dyn Error>> {
+    fn test_40000_override_loda_submitted_by() -> Result<(), Box<dyn Error>> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
-        let homedir = PathBuf::from(&tempdir.path()).join("test_40000_custom_config_loda_submitted_by");
+        let homedir = PathBuf::from(&tempdir.path()).join("test_40000_override_loda_submitted_by");
         fs::create_dir(&homedir)?;
         let content = 
         r#"
@@ -559,10 +562,10 @@ mod tests {
     }
 
     #[test]
-    fn test_40001_custom_config_loda_programs_repository() -> Result<(), Box<dyn Error>> {
+    fn test_40001_override_loda_programs_repository() -> Result<(), Box<dyn Error>> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
-        let homedir = PathBuf::from(&tempdir.path()).join("test_40001_custom_config_loda_programs_repository");
+        let homedir = PathBuf::from(&tempdir.path()).join("test_40001_override_loda_programs_repository");
         fs::create_dir(&homedir)?;
         let repodir = homedir.join("the-loda-programs-repo");
         fs::create_dir(&repodir)?;
@@ -579,6 +582,29 @@ mod tests {
         assert_has_suffix(&config.loda_programs_repository, "/the-loda-programs-repo")?;
         assert!(config.loda_programs_repository.is_absolute());
         assert!(config.loda_programs_repository.is_dir());
+        Ok(())
+    }
+
+    #[test]
+    fn test_40002_override_miner_cpu_strategy() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let homedir = PathBuf::from(&tempdir.path()).join("test_40002_override_miner_cpu_strategy");
+        fs::create_dir(&homedir)?;
+        let content = 
+        r#"
+        [miner_cpu_strategy]
+        type = "cpu"
+        [miner_cpu_strategy.content]
+        count = 8
+        "#;
+        let basedir = PathBuf::from(Path::new("non-existing-basedir"));
+
+        // Act
+        let config: Config = config_from_toml_content(content.to_string(), basedir, homedir);
+
+        // Assert
+        assert_eq!(config.miner_cpu_strategy, MinerCPUStrategy::CPU {count: 8});
         Ok(())
     }
 }
