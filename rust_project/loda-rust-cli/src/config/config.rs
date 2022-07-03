@@ -4,6 +4,19 @@ use std::fs;
 
 const DEFAULT_CONFIG: &'static str = include_str!("default_config.toml");
 
+#[derive(Debug, PartialEq, Deserialize, Eq)]
+#[serde(tag = "type", content = "content")]
+enum CPUStrategy {
+    #[serde(rename = "min")]
+    Min,
+    #[serde(rename = "half")]
+    Half,
+    #[serde(rename = "max")]
+    Max,
+    #[serde(rename = "cpu")]
+    CPU { count: u16 },
+}
+
 #[derive(Debug)]
 pub struct Config {
     basedir: PathBuf,
@@ -18,6 +31,7 @@ pub struct Config {
     loda_identify_similar_programs_repository: PathBuf,
     loda_patterns_repository: PathBuf,
     loda_outlier_programs_repository: PathBuf,
+    miner_cpu_strategy: CPUStrategy,
 }
 
 impl Config {
@@ -302,6 +316,7 @@ struct ConfigFallback {
     loda_identify_similar_programs_repository: String,
     loda_patterns_repository: String,
     loda_outlier_programs_repository: String,
+    miner_cpu_strategy: CPUStrategy,
 }
 
 #[derive(Debug, Deserialize)]
@@ -317,6 +332,7 @@ struct ConfigCustom {
     loda_identify_similar_programs_repository: Option<String>,
     loda_patterns_repository: Option<String>,
     loda_outlier_programs_repository: Option<String>,
+    miner_cpu_strategy: Option<CPUStrategy>,
 }
 
 fn load_config_from_home_dir() -> Config {
@@ -387,6 +403,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
     let loda_identify_similar_programs_repository: String = custom.loda_identify_similar_programs_repository.unwrap_or(fallback.loda_identify_similar_programs_repository);
     let loda_patterns_repository: String = custom.loda_patterns_repository.unwrap_or(fallback.loda_patterns_repository);
     let loda_outlier_programs_repository: String = custom.loda_outlier_programs_repository.unwrap_or(fallback.loda_outlier_programs_repository);
+    let miner_cpu_strategy: CPUStrategy = custom.miner_cpu_strategy.unwrap_or(fallback.miner_cpu_strategy);
     Config {
         basedir: basedir,
         loda_programs_repository: simpleenv.resolve_path(&loda_programs_repository),
@@ -400,6 +417,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
         loda_identify_similar_programs_repository: simpleenv.resolve_path(&loda_identify_similar_programs_repository),
         loda_patterns_repository: simpleenv.resolve_path(&loda_patterns_repository),
         loda_outlier_programs_repository: simpleenv.resolve_path(&loda_outlier_programs_repository),
+        miner_cpu_strategy: miner_cpu_strategy,
     }
 }
 
@@ -515,6 +533,8 @@ mod tests {
         assert_has_suffix(&config.loda_identify_similar_programs_repository, "/git/loda-identify-similar-programs")?;
         assert_has_suffix(&config.loda_patterns_repository, "/git/loda-patterns")?;
         assert_has_suffix(&config.loda_outlier_programs_repository, "/git/loda-outlier-programs")?;
+        // assert_eq!(config.miner_cpu_strategy, CPUStrategy::Max);
+        assert_eq!(config.miner_cpu_strategy, CPUStrategy::CPU {count: 8});
         Ok(())
     }
 
