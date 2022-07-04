@@ -357,8 +357,7 @@ def analyze_candidate(candidate_program, program_id, dontmine_program_id_set, in
 
     # The "dont_mine.csv" holds program_ids of unwanted sequences, duplicates, protected programs and stuff that is not to be mined.
     if dontmine_program_id_set.include?(program_id)
-        puts "Skip candidate program id, which is contained in the 'dont_mine.csv' file. A#{program_id}"
-        return :reject
+        puts "Maybe keep/reject. The candidate program is contained in the 'dont_mine.csv' file. A#{program_id}, Analyzing it anyways."
     end
 
     path = path_for_oeis_program(program_id)
