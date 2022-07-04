@@ -44,14 +44,18 @@ def absolute_paths_for_unstaged_files(dir_inside_repo)
     paths2
 end
 
-def absolute_paths_for_unstaged_programs
+def absolute_paths_for_unstaged_programs_that_exist
     paths1 = absolute_paths_for_unstaged_files(LODA_PROGRAMS_OEIS)
-    paths2 = paths1.filter { |path| path =~ /[.]asm$/ }
-    paths3 = paths2.filter { |path| path =~ /\boeis\b/ }
-    paths3
+    paths2 = paths1.filter { |path| File.exist?(path) }
+    paths3 = paths2.filter { |path| path =~ /[.]asm$/ }
+    paths4 = paths3.filter { |path| path =~ /\boeis\b/ }
+    paths4
 end
 
 def extract_oeis_ids_from_program_file(path)
+    unless File.exist?(path)
+        raise "file does not exist: #{path}"
+    end
     path =~ /\bA0*(\d+)[.]asm$/
     program_id = $1.to_i
     if program_id == 0
@@ -84,6 +88,9 @@ def read_original_file_from_repo(path)
 end
 
 def update_names_in_program_file(path, oeis_name_dict, loda_submitted_by)
+    unless File.exist?(path)
+        raise "file does not exist: #{path}"
+    end
     path =~ /\b(A0*(\d+))[.]asm$/
     oeis_id = $1
     program_id = $2.to_i
@@ -137,7 +144,7 @@ def update_names_in_program_files(paths, oeis_name_dict, loda_submitted_by)
     end
 end
 
-paths = absolute_paths_for_unstaged_programs
+paths = absolute_paths_for_unstaged_programs_that_exist
 #p paths
 if paths.empty?
     puts "There are no unstaged .asm files in this repository."
