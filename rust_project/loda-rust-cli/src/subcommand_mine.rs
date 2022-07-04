@@ -1,5 +1,5 @@
 use crate::mine::{FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MovingAverage, MetricsPrometheus, Recorder, SinkRecorder};
-use crate::config::Config;
+use crate::config::{Config, MinerCPUStrategy};
 use std::thread;
 use std::time::Duration;
 use std::sync::mpsc::{channel, Receiver};
@@ -19,75 +19,51 @@ pub enum SubcommandMineMetricsMode {
     RunMetricsServer,
 }
 
-pub enum SubcommandMineParallelComputingMode {
-    SingleInstance,
-    ParallelInstances,
-}
-
-impl SubcommandMineParallelComputingMode {
-    fn number_of_threads(&self) -> usize {
-        match self {
-            Self::SingleInstance => {
-                return 1;
-            },
-            Self::ParallelInstances => {
-                return Self::number_of_threads_in_parallel_mode();
-            }
-        }
-    }
-
-    fn number_of_threads_in_parallel_mode() -> usize {
-        let mut number_of_threads = num_cpus::get();
-        assert!(number_of_threads >= 1_usize);
-        assert!(number_of_threads < 1000_usize);
-
-        // Spawning too many threads, causes the miner performance too drop significantly.
-        // The simple solution: Use half as many threads as there are cores.
-        number_of_threads = number_of_threads / 2;
-
-        // Ensures that zero is never returned
-        number_of_threads.max(1)
-    }
-}
-
 type MyRegistry = std::sync::Arc<std::sync::Mutex<prometheus_client::registry::Registry<std::boxed::Box<dyn prometheus_client::encoding::text::SendEncodeMetric>>>>;
 
 pub struct SubcommandMine {
-    parallel_computing_mode: SubcommandMineParallelComputingMode,
     metrics_mode: SubcommandMineMetricsMode,
-    number_of_minerworkers: usize,
-    config: Option<Config>,
+    number_of_workers: usize,
+    config: Config,
 }
 
 impl SubcommandMine {
     pub fn new(
-        parallel_computing_mode: SubcommandMineParallelComputingMode,
         metrics_mode: SubcommandMineMetricsMode
     ) -> Self {
+        let config = Config::load();
+        let number_of_workers: usize = Self::number_of_workers(config.miner_cpu_strategy());
         Self {
-            parallel_computing_mode: parallel_computing_mode,
             metrics_mode: metrics_mode,
-            number_of_minerworkers: 1,
-            config: None
+            number_of_workers: number_of_workers,
+            config: config,
         }
     }
 
-    pub fn determine_number_of_minerworkers(&mut self) {
-        self.number_of_minerworkers = self.parallel_computing_mode.number_of_threads();
-    }
-
-    pub fn load_config(&mut self) {
-        self.config = Some(Config::load());
+    fn number_of_workers(miner_cpu_strategy: MinerCPUStrategy) -> usize {
+        if miner_cpu_strategy == MinerCPUStrategy::Min {
+            return 1;
+        }
+        let number_of_available_cpus: usize = num_cpus::get();
+        assert!(number_of_available_cpus >= 1_usize);
+        assert!(number_of_available_cpus < 1000_usize);
+        let number_of_threads: usize = match miner_cpu_strategy {
+            MinerCPUStrategy::Min => 1,
+            MinerCPUStrategy::Half => number_of_available_cpus / 2,
+            MinerCPUStrategy::Max => number_of_available_cpus,
+            MinerCPUStrategy::CPU { count } => count as usize,
+        };
+        // Ensures that zero is never returned
+        number_of_threads.max(1)
     }
 
     pub fn print_info(&self) {
         println!("metrics mode: {:?}", self.metrics_mode);
-        println!("Number of parallel miner instances: {}", self.number_of_minerworkers);
+        println!("Number of workers: {}", self.number_of_workers);
         print_info_about_start_conditions();
     }
 
     pub async fn run(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
-        assert!(self.config.is_some());
         match self.metrics_mode {
             SubcommandMineMetricsMode::NoMetricsServer => {
                 return self.run_without_metrics().await
@@ -116,20 +92,14 @@ impl SubcommandMine {
     }
 
     async fn run_with_prometheus_metrics(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
-        let config: &Config = match &self.config {
-            Some(value) => &value,
-            None => {
-                panic!("Expected config file to have been read at this point");
-            }
-        };
-        let listen_on_port: u16 = config.miner_metrics_listen_port();
+        let listen_on_port: u16 = self.config.miner_metrics_listen_port();
         println!("miner metrics can be downloaded here: http://localhost:{}/metrics", listen_on_port);
 
         let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
 
         let mut registry = <Registry>::default();
         let metrics = MetricsPrometheus::new(&mut registry);
-        metrics.number_of_workers.set(self.number_of_minerworkers as u64);
+        metrics.number_of_workers.set(self.number_of_workers as u64);
 
         let registry2: MyRegistry = Arc::new(Mutex::new(registry));
 
@@ -159,13 +129,7 @@ impl SubcommandMine {
         sender: std::sync::mpsc::Sender<MinerThreadMessageToCoordinator>, 
         recorder: Box<dyn Recorder + Send>
     ) {
-        let config: &Config = match &self.config {
-            Some(value) => &value,
-            None => {
-                panic!("Expected config file to have been read at this point");
-            }
-        };
-        let oeis_stripped_file: PathBuf = config.oeis_stripped_file();
+        let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
         let load_result = load_terms_to_program_id_set(
             &oeis_stripped_file, 
             FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS, 
@@ -179,7 +143,7 @@ impl SubcommandMine {
         };
         let terms_to_program_id_arc: Arc<TermsToProgramIdSet> = Arc::new(terms_to_program_id);
     
-        for worker_id in 0..self.number_of_minerworkers {
+        for worker_id in 0..self.number_of_workers {
             println!("Spawn worker id: {}", worker_id);
             let sender_clone = sender.clone();
             let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();

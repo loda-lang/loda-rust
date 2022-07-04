@@ -28,7 +28,7 @@ use subcommand_analytics::subcommand_analytics;
 use subcommand_dependencies::subcommand_dependencies;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 use subcommand_install::subcommand_install;
-use subcommand_mine::{SubcommandMine,SubcommandMineParallelComputingMode,SubcommandMineMetricsMode};
+use subcommand_mine::{SubcommandMine,SubcommandMineMetricsMode};
 use subcommand_pattern::subcommand_pattern;
 use subcommand_similar::subcommand_similar;
 
@@ -93,13 +93,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         )
         .subcommand(
             SubCommand::with_name("mine")
-                .about("Run a single miner instance")
-                .arg(
-                    Arg::with_name("parallel")
-                        .help("Run as many miner instances as possible")
-                        .takes_value(false)
-                        .short('p')
-                )
+                .about("Run the miner daemon process. Press CTRL-C to stop it.")
                 .arg(
                     Arg::with_name("metrics")
                         .long("metrics")
@@ -158,19 +152,12 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(sub_m) = matches.subcommand_matches("mine") {
-        let run_parallel: bool = sub_m.is_present("parallel");
-        let parallel_computing_mode: SubcommandMineParallelComputingMode = match run_parallel {
-            true => SubcommandMineParallelComputingMode::ParallelInstances,
-            false => SubcommandMineParallelComputingMode::SingleInstance
-        };
         let metrics: bool = sub_m.is_present("metrics");
         let metrics_mode: SubcommandMineMetricsMode = match metrics {
             true => SubcommandMineMetricsMode::RunMetricsServer,
             false => SubcommandMineMetricsMode::NoMetricsServer
         };
-        let mut instance = SubcommandMine::new(parallel_computing_mode, metrics_mode);
-        instance.determine_number_of_minerworkers();
-        instance.load_config();
+        let instance = SubcommandMine::new(metrics_mode);
         instance.print_info();
         instance.run().await?;
         return Ok(());
