@@ -49,9 +49,14 @@ unstaged_files = absolute_paths_for_unstaged_new_files(LODA_PROGRAMS_REPO)
 #puts "Number of unstaged files: #{unstaged_files.count}"
 
 files_to_be_deleted = []
+original_invalid_paths = []
 unstaged_files.each do |path|
     filename = File.basename(path)
-    if filename =~ /^A\d{6}.asm_(benchmark|check_output|original|original_invalid|reject)_\d+$/
+    if filename =~ /^A\d{6}.asm_original_invalid_\d+$/
+        original_invalid_paths << path
+        next
+    end
+    if filename =~ /^A\d{6}.asm_(benchmark|check_output|original|reject)_\d+$/
         files_to_be_deleted << path
         next
     end
@@ -61,6 +66,7 @@ unstaged_files.each do |path|
     end
 end
 puts "Number of files to be deleted from git: #{files_to_be_deleted.count}"
+puts "Number of 'original-invalid' files: #{original_invalid_paths.count}, #{original_invalid_paths}"
 
 files_to_be_deleted.each do |path|
     File.delete(path)
