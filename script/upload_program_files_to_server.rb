@@ -4,9 +4,15 @@ require 'net/http'
 require 'uri'
 
 ENDPOINT_UPLOAD_PROGRAM = "http://api.loda-lang.org/miner/v1/programs"
+FOOTER_WITH_MINER_PROFILE = "\n; Miner Profile: loda-rust\n"
 
 def upload_program_file_to_server(file_path)
     content = IO.read(file_path)
+
+    # Append footer to program for metrics
+    content.strip!
+    content += FOOTER_WITH_MINER_PROFILE
+
     header = {
         'Content-Type': 'application/octet-stream'
     }

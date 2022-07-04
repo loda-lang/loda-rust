@@ -1,3 +1,4 @@
+//! The BigIntVec is used everywhere.
 mod analyze;
 mod bigintvec;
 
