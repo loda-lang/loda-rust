@@ -394,7 +394,7 @@ impl RunMinerLoop {
             }
         };
         let intersection: HashSet<&u32> = depends_on_program_ids.intersection(corresponding_program_id_set).collect();
-        if intersection.len() > 0 {
+        if !intersection.is_empty() {
             debug!("Ignoring self-dependency. There is this intersection: {:?}", intersection);
             self.metric.number_of_self_dependencies += 1;
             self.reload = true;
