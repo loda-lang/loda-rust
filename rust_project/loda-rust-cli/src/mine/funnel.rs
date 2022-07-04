@@ -163,7 +163,7 @@ impl Funnel {
     }
 }
 
-fn is_possible_candidate_basic_checks(terms: &BigIntVec) -> bool {
+pub fn is_possible_candidate_basic_checks(terms: &BigIntVec) -> bool {
     if Analyze::count_unique(&terms) < 8 {
         // there are many results where all terms are just zeros.
         // there are many results where all terms are a constant value.
