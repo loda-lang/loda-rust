@@ -1,12 +1,10 @@
 use loda_rust_core;
 use crate::config::Config;
-use loda_rust_core::execute::ProgramCache;
 use crate::common::RecordTrigram;
-use crate::common::find_asm_files_recursively;
 use crate::common::load_program_ids_csv_file;
 use crate::oeis::TermsToProgramIdSet;
 use super::{CheckFixedLengthSequence, Funnel, NamedCacheFile, PopularProgramContainer, RecentProgramContainer, RunMinerLoop, HistogramInstructionConstant, MinerThreadMessageToCoordinator, Recorder};
-use super::{PreventFlooding, prevent_flooding_populate};
+use super::PreventFlooding;
 use super::{GenomeMutateContext, Genome};
 use super::SuggestInstruction;
 use super::SuggestSource;
@@ -16,16 +14,15 @@ use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
 use std::collections::HashSet;
-
-const MINER_CACHE_CAPACITY: usize = 300000;
 
 pub fn start_miner_loop(
     tx: Sender<MinerThreadMessageToCoordinator>, 
     recorder: Box<dyn Recorder + Send>,
-    terms_to_program_id: Arc<TermsToProgramIdSet>
+    terms_to_program_id: Arc<TermsToProgramIdSet>,
+    prevent_flooding: Arc<Mutex<PreventFlooding>>
 ) {
     // Load config file
     let config = Config::load();
@@ -33,7 +30,6 @@ pub fn start_miner_loop(
     let analytics_dir: PathBuf = config.analytics_dir();
     let mine_event_dir: PathBuf = config.mine_event_dir();
     let loda_rust_repository: PathBuf = config.loda_rust_repository();
-    let oeis_divergent_dir: PathBuf = config.loda_outlier_programs_repository_oeis_divergent();
     let instruction_trigram_csv: PathBuf = config.analytics_dir_histogram_instruction_trigram_file();
     let source_trigram_csv: PathBuf = config.analytics_dir_histogram_source_trigram_file();
     let target_trigram_csv: PathBuf = config.analytics_dir_histogram_target_trigram_file();
@@ -131,7 +127,7 @@ pub fn start_miner_loop(
     let mut suggest_target = SuggestTarget::new();
     suggest_target.populate(&target_trigram_vec);
 
-    let mut dependency_manager = DependencyManager::new(
+    let dependency_manager = DependencyManager::new(
         DependencyManagerFileSystemMode::System,
         loda_programs_oeis_dir,
     );
@@ -141,19 +137,6 @@ pub fn start_miner_loop(
     let initial_random_seed: u64 = rng.next_u64();
     let rng: StdRng = StdRng::seed_from_u64(initial_random_seed);
     println!("random_seed = {}", initial_random_seed);
-
-    let mut cache = ProgramCache::with_capacity(MINER_CACHE_CAPACITY);
-
-    let mut paths0: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
-    let mut paths1: Vec<PathBuf> = find_asm_files_recursively(&oeis_divergent_dir);
-    let mut paths: Vec<PathBuf> = vec!();
-    paths.append(&mut paths0);
-    paths.append(&mut paths1);
-    println!("number of .asm files in total: {:?}", paths.len());
-
-    let mut prevent_flooding = PreventFlooding::new();
-    prevent_flooding_populate(&mut prevent_flooding, &mut dependency_manager, &mut cache, paths);
-    println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
 
     let context = GenomeMutateContext::new(
         valid_program_ids,
@@ -179,7 +162,6 @@ pub fn start_miner_loop(
         dependency_manager,
         funnel,
         &mine_event_dir,
-        cache,
         prevent_flooding,
         context,
         genome,

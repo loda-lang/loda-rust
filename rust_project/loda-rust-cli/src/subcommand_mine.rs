@@ -1,5 +1,7 @@
 use crate::mine::{FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MovingAverage, MetricsPrometheus, Recorder, SinkRecorder};
 use crate::config::{Config, MinerCPUStrategy};
+use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+use loda_rust_core::execute::ProgramCache;
 use std::thread;
 use std::time::Duration;
 use std::sync::mpsc::{channel, Receiver};
@@ -10,8 +12,12 @@ use prometheus_client::encoding::text::encode;
 use prometheus_client::registry::Registry;
 use std::sync::{Arc, Mutex};
 use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
+use crate::mine::{PreventFlooding, prevent_flooding_populate};
+use crate::common::find_asm_files_recursively;
 
 extern crate num_cpus;
+
+const PREVENT_FLOODING_CACHE_CAPACITY: usize = 300000;
 
 #[derive(Debug)]
 pub enum SubcommandMineMetricsMode {
@@ -25,6 +31,7 @@ pub struct SubcommandMine {
     metrics_mode: SubcommandMineMetricsMode,
     number_of_workers: usize,
     config: Config,
+    prevent_flooding: Arc<Mutex<PreventFlooding>>,
 }
 
 impl SubcommandMine {
@@ -37,6 +44,7 @@ impl SubcommandMine {
             metrics_mode: metrics_mode,
             number_of_workers: number_of_workers,
             config: config,
+            prevent_flooding: Arc::new(Mutex::new(PreventFlooding::new())),
         }
     }
 
@@ -61,6 +69,32 @@ impl SubcommandMine {
         println!("metrics mode: {:?}", self.metrics_mode);
         println!("Number of workers: {}", self.number_of_workers);
         print_info_about_start_conditions();
+    }
+
+    pub fn populate_prevent_flooding_mechanism(&mut self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let loda_programs_oeis_dir: PathBuf = self.config.loda_programs_oeis_dir();
+        let mine_event_dir: PathBuf = self.config.mine_event_dir();
+        let oeis_divergent_dir: PathBuf = self.config.loda_outlier_programs_repository_oeis_divergent();
+    
+        let mut paths0: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
+        println!("number of .asm files in mine_event_dir: {:?}", paths0.len());
+        let mut paths1: Vec<PathBuf> = find_asm_files_recursively(&oeis_divergent_dir);
+        println!("number of .asm files in oeis_divergent_dir: {:?}", paths1.len());
+        let mut paths: Vec<PathBuf> = vec!();
+        paths.append(&mut paths0);
+        paths.append(&mut paths1);
+        println!("number of .asm files in total: {:?}", paths.len());
+    
+        let mut dependency_manager = DependencyManager::new(
+            DependencyManagerFileSystemMode::System,
+            loda_programs_oeis_dir,
+        );
+        let mut cache = ProgramCache::with_capacity(PREVENT_FLOODING_CACHE_CAPACITY);
+        let mut prevent_flooding = PreventFlooding::new();
+        prevent_flooding_populate(&mut prevent_flooding, &mut dependency_manager, &mut cache, paths);
+        println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
+        self.prevent_flooding = Arc::new(Mutex::new(prevent_flooding));
+        Ok(())
     }
 
     pub async fn run(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
@@ -148,8 +182,14 @@ impl SubcommandMine {
             let sender_clone = sender.clone();
             let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
             let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
+            let prevent_flooding_clone = self.prevent_flooding.clone();
             let _ = tokio::spawn(async move {
-                start_miner_loop(sender_clone, recorder_clone, terms_to_program_id_arc_clone);
+                start_miner_loop(
+                    sender_clone, 
+                    recorder_clone, 
+                    terms_to_program_id_arc_clone,
+                    prevent_flooding_clone
+                );
             });
             thread::sleep(Duration::from_millis(2000));
         }

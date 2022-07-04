@@ -17,10 +17,11 @@ use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::time::Instant;
 use rand::rngs::StdRng;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
 const MINIMUM_PROGRAM_LENGTH: usize = 2;
+const MINER_CACHE_CAPACITY: usize = 300000;
 
 struct TermComputer {
     terms: BigIntVec,
@@ -81,7 +82,7 @@ pub struct RunMinerLoop {
     funnel: Funnel,
     mine_event_dir: PathBuf,
     cache: ProgramCache,
-    prevent_flooding: PreventFlooding,
+    prevent_flooding: Arc<Mutex<PreventFlooding>>,
     context: GenomeMutateContext,
     genome: Genome,
     rng: StdRng,
@@ -101,8 +102,7 @@ impl RunMinerLoop {
         dependency_manager: DependencyManager,
         funnel: Funnel,
         mine_event_dir: &Path,
-        cache: ProgramCache,
-        prevent_flooding: PreventFlooding,
+        prevent_flooding: Arc<Mutex<PreventFlooding>>,
         context: GenomeMutateContext,
         genome: Genome,
         rng: StdRng,
@@ -114,7 +114,7 @@ impl RunMinerLoop {
             dependency_manager: dependency_manager,
             funnel: funnel,
             mine_event_dir: PathBuf::from(mine_event_dir),
-            cache: cache,
+            cache: ProgramCache::with_capacity(MINER_CACHE_CAPACITY),
             prevent_flooding: prevent_flooding,
             context: context,
             genome: genome,
@@ -328,11 +328,14 @@ impl RunMinerLoop {
             }
         }
         let terms40_original: BigIntVec = self.term_computer.terms.clone();
-        if self.prevent_flooding.try_register(&terms40_original).is_err() {
-            // debug!("prevented flooding");
-            self.metric.number_of_prevented_floodings += 1;
-            self.reload = true;
-            return;
+        {
+            let mut prevent_flooding = self.prevent_flooding.lock().unwrap();
+            if prevent_flooding.try_register(&terms40_original).is_err() {
+                // debug!("prevented flooding");
+                self.metric.number_of_prevented_floodings += 1;
+                self.reload = true;
+                return;
+            }
         }
         let mut funnel40terms: BigIntVec = terms40_original.clone();
         let funnel40result: Option<usize> = self.funnel.mut_check40_with_wildcards(&mut funnel40terms);
