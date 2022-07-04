@@ -825,7 +825,7 @@ impl Genome {
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
-            (MutateGenome::ReplaceInstructionWithHistogram, 200),
+            (MutateGenome::ReplaceInstructionWithHistogram, 20),
             (MutateGenome::InsertInstructionWithConstant, 100),
             (MutateGenome::ReplaceSourceConstantWithoutHistogram, 1),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 100),
@@ -841,7 +841,7 @@ impl Genome {
             (MutateGenome::InsertLoopBeginEnd, 0),
             (MutateGenome::CallProgramWeightedByPopularity, 5),
             (MutateGenome::CallMostPopularProgram, 20),
-            (MutateGenome::CallMediumPopularProgram, 10),
+            (MutateGenome::CallMediumPopularProgram, 100),
             (MutateGenome::CallLeastPopularProgram, 10),
             (MutateGenome::CallRecentProgram, 1),
         ];
