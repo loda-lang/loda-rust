@@ -107,8 +107,12 @@ impl HistogramStrippedFile {
         histogram: &mut HashMap::<i64,u32>,
     ) -> Result<(), Box<dyn Error>> {
         let start = Instant::now();
-        let mut extreme_count: u32 = 0;
+        let mut count_big: u32 = 0;
+        let mut count_small: u32 = 0;
+        let mut count_wildcard: u32 = 0;
         let pb = ProgressBar::new(filesize as u64);
+        let padding_value_i64: i64 = 0xC0FFEE;
+        let padding_value: BigInt = padding_value_i64.to_bigint().unwrap();
         let process_callback = |stripped_sequence: &StrippedSequence, count_bytes: usize| {
             pb.set_position(count_bytes as u64);
             let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
@@ -116,21 +120,25 @@ impl HistogramStrippedFile {
                 let key: i64 = match i64::try_from(value).ok() {
                     Some(value) => value,
                     None => {
-                        extreme_count += 1;
+                        count_big += 1;
                         continue;
                     }
                 };
+                if key == padding_value_i64 {
+                    count_wildcard += 1;
+                    continue;
+                }
                 if key.abs() > DISCARD_EXTREME_VALUES_BEYOND_THIS_LIMIT {
-                    extreme_count += 1;
+                    count_big += 1;
                     continue;
                 }
                 let counter = histogram.entry(key).or_insert(0);
                 *counter += 1;
+                count_small += 1;
             }
         };
         let program_ids_to_ignore = HashSet::<u32>::new();
         let mut stripped_sequence_processor = ProcessStrippedSequenceFile::new();
-        let padding_value: BigInt = 0xC0FFEE.to_bigint().unwrap();
         stripped_sequence_processor.execute(
             oeis_stripped_file_reader,
             FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS,
@@ -148,7 +156,9 @@ impl HistogramStrippedFile {
             HumanDuration(start.elapsed())
         );
     
-        simple_log.println(format!("Number of extreme values: {}", extreme_count));
+        simple_log.println(format!("Number of small values: {}", count_small));
+        simple_log.println(format!("Number of big values: {}", count_big));
+        simple_log.println(format!("Number of wildcard values: {}", count_wildcard));
         Ok(())
     }
 
