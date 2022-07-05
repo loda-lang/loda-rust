@@ -3,6 +3,7 @@ use crate::mine::FunnelConfig;
 use crate::config::Config;
 use crate::common::{create_csv_file, SimpleLog};
 use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
+use num_bigint::{BigInt, ToBigInt};
 use std::convert::TryFrom;
 use std::error::Error;
 use std::io;
@@ -25,8 +26,11 @@ static DISCARD_EXTREME_VALUES_BEYOND_THIS_LIMIT: i64 = 400;
 //
 // It should be a value that is rarely used, so that there are as
 // few false-positives as possible.
-// At the same time it shouldn't be a huge value, that would require
-// a BigInt instance.
+// At the same time it shouldn't be a huge value, like 0xCAFEBABE.
+// BigInt/String manipulation is expensive, and there is a lot of it,
+// thus the wildcard value should be as few bytes as possible, 
+// so there are fewer bytes to be allocated,
+// so there are fewer bytes to be compared.
 //
 // The most frequent occuring terms in the OEIS 'stripped' file are:
 // count;value
@@ -126,11 +130,13 @@ impl HistogramStrippedFile {
         };
         let program_ids_to_ignore = HashSet::<u32>::new();
         let mut stripped_sequence_processor = ProcessStrippedSequenceFile::new();
+        let padding_value: BigInt = 0xC0FFEE.to_bigint().unwrap();
         stripped_sequence_processor.execute(
             oeis_stripped_file_reader,
             FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS,
             FunnelConfig::TERM_COUNT,
-            &program_ids_to_ignore, 
+            &program_ids_to_ignore,
+            &padding_value,
             process_callback
         );
         pb.finish_and_clear();

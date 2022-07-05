@@ -1,5 +1,4 @@
 use num_bigint::BigInt;
-use num_traits::Zero;
 use std::fmt;
 use regex::Regex;
 use lazy_static::lazy_static;
@@ -38,14 +37,14 @@ impl StrippedSequence {
         self.bigint_vec.len()
     }
 
-    pub fn grow_to_length(&mut self, length: usize) {
+    pub fn grow_to_length(&mut self, length: usize, padding_value: &BigInt) {
         let original_length: usize = self.bigint_vec.len();
         if original_length >= length {
             return;
         }
         let count: usize = length - original_length;
         for _ in 0..count {
-            self.bigint_vec.push(BigInt::zero());
+            self.bigint_vec.push(padding_value.clone());
         }
     }
 }
@@ -142,6 +141,7 @@ pub fn parse_stripped_sequence_line(line: &String, max_term_count: Option<usize>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use num_traits::Zero;
 
     fn parse(input: &str) -> String {
         match parse_stripped_sequence_line(&input.to_string(), None) {
@@ -203,9 +203,10 @@ A000040 ,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,
         let input = "A000040 ,2,3,5,7,11,13,17,19,23,";
         let mut stripped_sequence: StrippedSequence = parse_stripped_sequence_line(&input.to_string(), None).unwrap();
         assert_eq!(stripped_sequence.len(), 9);
+        let padding_value = BigInt::zero();
 
         // Act
-        stripped_sequence.grow_to_length(20);
+        stripped_sequence.grow_to_length(20, &padding_value);
 
         // Assert
         assert_eq!(stripped_sequence.to_string(), "40 2,3,5,7,11,13,17,19,23,0,0,0,0,0,0,0,0,0,0,0");

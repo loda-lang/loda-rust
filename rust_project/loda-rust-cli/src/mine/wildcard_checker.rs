@@ -1,6 +1,5 @@
 use loda_rust_core::util::BigIntVec;
 use num_bigint::BigInt;
-use num_traits::Zero;
 
 pub trait WildcardChecker {
     // The LODA-RUST bloomfilter implements this function.
@@ -9,6 +8,8 @@ pub trait WildcardChecker {
     // If the bloomfilter doesn't contains the values, it sporadic returns true.
     // If the bloomfilter doesn't contains the values, it most of the time returns false.
     fn check(&self, bigint_vec_ref: &BigIntVec) -> bool;
+
+    fn bloomfilter_wildcard_value(&self) -> &BigInt;
 
     fn check_with_wildcards(&self, bigint_vec_ref: &BigIntVec, minimum_number_of_required_terms: usize) -> Option<usize> {
         let mut bigint_vec: BigIntVec = bigint_vec_ref.clone();
@@ -47,7 +48,7 @@ pub trait WildcardChecker {
         }
         let number_of_wildcards: usize = len - minimum_number_of_required_terms + 1;
         for i in 1..number_of_wildcards {
-            bigint_vec[len - i] = BigInt::zero();
+            bigint_vec[len - i] = self.bloomfilter_wildcard_value().clone();
             if self.check(&bigint_vec) {
                 return Some(i);
             }
@@ -60,22 +61,33 @@ pub trait WildcardChecker {
 mod tests {
     use super::*;
     use loda_rust_core::util::{bigintvec_to_string, i64vec_to_bigintvec, is_bigintvec_equal};
+    use num_traits::Zero;
 
     struct MockCheckerImpl {
         bigint_vec: BigIntVec,
+        bloomfilter_wildcard_value: BigInt,
     }
 
     impl MockCheckerImpl {
-        fn new(bigint_vec: BigIntVec) -> Self {
+        fn new_with_wildcard_value(bigint_vec: BigIntVec, bloomfilter_wildcard_value: BigInt) -> Self {
             Self {
                 bigint_vec: bigint_vec,
+                bloomfilter_wildcard_value: bloomfilter_wildcard_value
             }
+        }
+
+        fn new(bigint_vec: BigIntVec) -> Self {
+            Self::new_with_wildcard_value(bigint_vec, BigInt::zero())
         }
     }
 
     impl WildcardChecker for MockCheckerImpl {
         fn check(&self, bigint_vec_ref: &BigIntVec) -> bool {
             is_bigintvec_equal(&self.bigint_vec, bigint_vec_ref)
+        }
+
+        fn bloomfilter_wildcard_value(&self) -> &BigInt {
+            &self.bloomfilter_wildcard_value
         }
     }
 

@@ -1,6 +1,7 @@
 use loda_rust_core;
 use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
 use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
+use num_bigint::BigInt;
 use std::io;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
@@ -14,16 +15,23 @@ pub fn load_terms_to_program_id_set(
     oeis_stripped_file: &Path,
     minimum_number_of_required_terms: usize,
     term_count: usize,
+    padding_value: &BigInt, 
 ) -> Result<TermsToProgramIdSet, Box<dyn Error>> {
     let file = File::open(oeis_stripped_file)?;
     let mut reader = BufReader::new(file);
-    build_terms_to_program_id_set(&mut reader, minimum_number_of_required_terms, term_count)
+    build_terms_to_program_id_set(
+        &mut reader, 
+        minimum_number_of_required_terms, 
+        term_count,
+        padding_value
+    )
 }
 
 fn build_terms_to_program_id_set(
     oeis_stripped_file_reader: &mut dyn io::BufRead,
     minimum_number_of_required_terms: usize,
     term_count: usize,
+    padding_value: &BigInt, 
 ) -> Result<TermsToProgramIdSet, Box<dyn Error>> {
     let mut terms_to_program_id = TermsToProgramIdSet::new();
 
@@ -39,7 +47,8 @@ fn build_terms_to_program_id_set(
         oeis_stripped_file_reader,
         minimum_number_of_required_terms,
         term_count,
-        &program_ids_to_ignore, 
+        &program_ids_to_ignore,
+        padding_value, 
         callback
     );
     debug!("number of items in terms_to_program_id: {}", terms_to_program_id.len());
@@ -49,6 +58,7 @@ fn build_terms_to_program_id_set(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use num_traits::Zero;
 
     const INPUT_STRIPPED_SEQUENCE_MOCKDATA: &str = r#"
 # OEIS Sequence Data (http://oeis.org/stripped.gz)
@@ -76,8 +86,17 @@ A117093 ,2,3,5,7,11,13,16,17,18,19,23,28,29,30,31,37,38,39,40,41,43,47,53,58,59,
 
     #[test]
     fn test_10000_build_terms_to_program_id_set() -> Result<(), Box<dyn Error>> {
+        // Arrange
         let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
-        let dict = build_terms_to_program_id_set(&mut input, 0, 5)?;
+        let padding_value = BigInt::zero();
+        // Act
+        let dict = build_terms_to_program_id_set(
+            &mut input, 
+            0, 
+            5,
+            &padding_value
+        )?;
+        // Assert
         assert_eq!(dict.len(), 2);
         assert_eq!(lookup(&dict, "2,3,5,7,11"), "40,112088,117093");
         assert_eq!(lookup(&dict, "0,1,1,2,3"), "45");

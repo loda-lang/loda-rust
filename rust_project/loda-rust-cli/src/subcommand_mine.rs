@@ -2,6 +2,7 @@ use crate::mine::{FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loo
 use crate::config::{Config, MinerCPUStrategy};
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::ProgramCache;
+use num_bigint::{BigInt, ToBigInt};
 use std::thread;
 use std::time::Duration;
 use std::sync::mpsc::{channel, Receiver};
@@ -164,10 +165,12 @@ impl SubcommandMine {
         recorder: Box<dyn Recorder + Send>
     ) {
         let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
+        let padding_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
         let load_result = load_terms_to_program_id_set(
             &oeis_stripped_file, 
             FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS, 
-            FunnelConfig::TERM_COUNT
+            FunnelConfig::TERM_COUNT,
+            &padding_value
         );
         let terms_to_program_id: TermsToProgramIdSet = match load_result {
             Ok(value) => value,

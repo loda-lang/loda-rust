@@ -4,6 +4,7 @@ use crate::config::Config;
 use crate::mine::is_possible_candidate_basic_checks;
 use crate::common::{load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
+use num_bigint::{BigInt, ToBigInt};
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;
 use std::error::Error;
@@ -20,12 +21,15 @@ use indicatif::{HumanDuration, ProgressBar};
 
 pub struct CheckFixedLengthSequence {
     bloom: Bloom::<BigIntVec>,
+    bloomfilter_wildcard_value: BigInt,
 }
 
 impl CheckFixedLengthSequence {
     pub fn new(bloom: Bloom::<BigIntVec>) -> Self {
+        let wildcard_magic_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
         Self {
             bloom: bloom,
+            bloomfilter_wildcard_value: wildcard_magic_value
         }
     }
 
@@ -78,6 +82,10 @@ impl WildcardChecker for CheckFixedLengthSequence {
     fn check(&self, bigint_vec_ref: &BigIntVec) -> bool {
         self.check(bigint_vec_ref)
     }
+
+    fn bloomfilter_wildcard_value(&self) -> &BigInt {
+        &self.bloomfilter_wildcard_value
+    }
 }
 
 // I cannot compile the dependency "bloomfilter" with "serde" feature enabled.
@@ -99,8 +107,10 @@ impl CheckFixedLengthSequenceInternalRepresentation {
             self.bloom_k_num,
             self.bloom_sip_keys
         );
+        let wildcard_magic_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
         CheckFixedLengthSequence {
             bloom: bloom,
+            bloomfilter_wildcard_value: wildcard_magic_value,
         }
     }
 }
@@ -191,11 +201,13 @@ fn create_cache_files(
         (*x).counter += 1;
     };
     let mut stripped_sequence_processor = ProcessStrippedSequenceFile::new();
+    let padding_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
     stripped_sequence_processor.execute(
         oeis_stripped_file_reader,
         FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS,
         FunnelConfig::TERM_COUNT,
         program_ids_to_ignore, 
+        &padding_value,
         process_callback
     );
     stripped_sequence_processor.print_summary(simple_log.clone());
@@ -370,11 +382,13 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
             (*bloom_ref).set(vec);
         };
         let mut processor = ProcessStrippedSequenceFile::new();
+        let padding_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
         processor.execute(
             reader, 
             minimum_number_of_required_terms,
             term_count, 
             program_ids_to_ignore, 
+            &padding_value,
             process_callback
         );
         CheckFixedLengthSequence::new(bloom)
