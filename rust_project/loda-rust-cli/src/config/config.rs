@@ -152,6 +152,12 @@ impl Config {
         PathBuf::from(path)
     }
 
+    pub fn analytics_dir_histogram_oeis_stripped_file(&self) -> PathBuf {
+        let path = self.analytics_dir().join("histogram_oeis_stripped.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
     pub fn analytics_dir_complexity_all_file(&self) -> PathBuf {
         let path = self.analytics_dir().join("complexity_all.csv");
         assert!(path.is_absolute());

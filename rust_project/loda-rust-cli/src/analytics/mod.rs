@@ -8,6 +8,7 @@ mod analyze_target_ngram;
 mod batch_program_analyzer;
 mod deny_file;
 mod dont_mine;
+mod histogram_stripped_file;
 mod program_rank;
 mod validate_programs;
 
@@ -21,5 +22,6 @@ pub use analyze_target_ngram::AnalyzeTargetNgram;
 pub use batch_program_analyzer::{BatchProgramAnalyzer, BatchProgramAnalyzerContext, BatchProgramAnalyzerPlugin, BatchProgramAnalyzerPluginItem};
 pub use deny_file::load_program_ids_from_deny_file;
 pub use dont_mine::DontMine;
+pub use histogram_stripped_file::HistogramStrippedFile;
 pub use program_rank::compute_program_rank;
 pub use validate_programs::ValidatePrograms;
