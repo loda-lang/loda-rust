@@ -473,16 +473,6 @@
             "type": "prometheus",
             "uid": "FOz0SSf7k"
           },
-          "expr": "rate(lodarust_mine_funnel_basic_total[2s])",
-          "interval": "",
-          "legendFormat": "Basic",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "FOz0SSf7k"
-          },
           "expr": "rate(lodarust_mine_funnel_10terms_total[2s])",
           "interval": "",
           "legendFormat": "10 Terms",
@@ -802,7 +792,7 @@
     "list": []
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-15m",
     "to": "now"
   },
   "timepicker": {
@@ -823,6 +813,6 @@
   "timezone": "",
   "title": "LODA Rust",
   "uid": "DvVCV7fnz",
-  "version": 9,
+  "version": 10,
   "weekStart": ""
 }
