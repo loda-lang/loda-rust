@@ -18,4 +18,6 @@ impl FunnelConfig {
     // As of june 2022, the OEIS database contains around 360k sequences.
     // So an approx count of 400k and there should be room for the near future.
     pub const APPROX_BLOOM_ITEMS_COUNT: usize = 400000;
+
+    pub const WILDCARD_MAGIC_VALUE: i32 = -86;
 }

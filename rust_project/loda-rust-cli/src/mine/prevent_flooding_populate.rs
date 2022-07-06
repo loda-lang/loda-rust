@@ -7,6 +7,9 @@ use loda_rust_core::execute::node_power::NodePowerLimit;
 use loda_rust_core::util::BigIntVec;
 use std::fs;
 use std::path::PathBuf;
+use std::time::Instant;
+use console::Style;
+use indicatif::{HumanDuration, ProgressBar};
 
 trait ComputeTerms {
     fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError>;
@@ -14,7 +17,7 @@ trait ComputeTerms {
 
 impl ComputeTerms for ProgramRunner {
     fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError> {
-        let mut terms: BigIntVec = vec!();
+        let mut terms: BigIntVec = BigIntVec::with_capacity(count as usize);
         let step_count_limit: u64 = 10000;
         let node_register_limit = NodeRegisterLimit::LimitBits(32);
         let node_binomial_limit = NodeBinomialLimit::LimitN(20);
@@ -53,7 +56,10 @@ pub fn prevent_flooding_populate(prevent_flooding: &mut PreventFlooding, depende
     let mut number_of_runtime_errors: usize = 0;
     let mut number_of_already_registered_programs: usize = 0;
     let mut number_of_successfully_registered_programs: usize = 0;
+    let pb = ProgressBar::new(paths.len() as u64);
+    let start = Instant::now();
     for path in paths {
+        pb.inc(1);
         let contents: String = match fs::read_to_string(&path) {
             Ok(value) => value,
             Err(error) => {
@@ -86,5 +92,14 @@ pub fn prevent_flooding_populate(prevent_flooding: &mut PreventFlooding, depende
         number_of_successfully_registered_programs += 1;
     }
     let junk_count: usize = number_of_read_errors + number_of_parse_errors + number_of_runtime_errors + number_of_already_registered_programs;
+    pb.finish_and_clear();
+
+    let green_bold = Style::new().green().bold();        
+    println!(
+        "{:>12} prevent_flooding_populate in {}",
+        green_bold.apply_to("Finished"),
+        HumanDuration(start.elapsed())
+    );
+
     debug!("prevent flooding. Registered {} programs. Ignoring {} junk programs.", number_of_successfully_registered_programs, junk_count);
 }

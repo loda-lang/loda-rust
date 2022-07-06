@@ -4,7 +4,7 @@ use std::rc::Rc;
 use core::cell::RefCell;
 use std::path::{Path, PathBuf};
 use crate::config::Config;
-use crate::analytics::{AnalyzeDependencies, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, ValidatePrograms, compute_program_rank};
+use crate::analytics::{AnalyzeDependencies, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, ValidatePrograms, compute_program_rank};
 use crate::common::SimpleLog;
 use crate::mine::PopulateBloomfilter;
 
@@ -33,6 +33,7 @@ pub fn subcommand_analytics() -> Result<(), Box<dyn Error>> {
     let path: PathBuf = config.analytics_dir().join(Path::new("analytics_log.txt"));
     let simple_log = SimpleLog::new(&path)?;
     
+    HistogramStrippedFile::run(simple_log.clone())?;
     ValidatePrograms::run(simple_log.clone())?;
     run_batch_program_analyzer(simple_log.clone())?;
     compute_program_rank();
