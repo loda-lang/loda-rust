@@ -139,7 +139,7 @@ paths.each_with_index do |path, index|
         count_success += 1
         candidate_programs << CandidateProgram.new(path, output)
     else
-        puts "Couldn't eval program at path: #{path}"
+        puts "Couldn't eval program at path: #{path}, this can happen if the program has a missing dependency."
         puts output
         # puts "---B"
         count_failure += 1
