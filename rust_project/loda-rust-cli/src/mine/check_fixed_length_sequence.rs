@@ -161,7 +161,7 @@ fn create_cache_files(
     let mut processor = SequenceProcessor::new();
     let x = &mut processor;
 
-    let false_positive_rate: f64 = 0.01;
+    let false_positive_rate: f64 = FunnelConfig::BLOOMFILTER_FALSE_POSITIVE_RATE;
     let mut bloom10 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
     let mut bloom20 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
     let mut bloom30 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
@@ -291,7 +291,7 @@ impl PopulateBloomfilter {
             self.simple_log.clone(),
             &mut reader, 
             filesize,
-            FunnelConfig::APPROX_BLOOM_ITEMS_COUNT, 
+            FunnelConfig::BLOOMFILTER_CAPACITY, 
             &cache_dir, 
             &program_ids_to_ignore
         );

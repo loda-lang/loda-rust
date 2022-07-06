@@ -1,6 +1,6 @@
 use crate::mine::{FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MovingAverage, MetricsPrometheus, Recorder, SinkRecorder};
 use crate::config::{Config, MinerCPUStrategy};
-use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode};
 use loda_rust_core::execute::ProgramCache;
 use num_bigint::{BigInt, ToBigInt};
 use std::thread;
