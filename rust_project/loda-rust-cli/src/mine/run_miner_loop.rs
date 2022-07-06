@@ -272,9 +272,6 @@ impl RunMinerLoop {
         }
         let terms10: &BigIntVec = &self.term_computer.terms;
         // println!("terms10: {:?}", terms10);
-        if !self.funnel.check_basic(terms10) {
-            return;
-        }
         if !self.funnel.check10(terms10) {
             return;
         }
