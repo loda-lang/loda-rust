@@ -20,7 +20,6 @@ pub struct MetricsPrometheus {
     reject_mutate_without_impact: Counter,
     rejected_preventing_flooding: Counter,
     reject_self_dependency: Counter,
-    funnel_basic: Counter,
     funnel_10terms: Counter,
     funnel_20terms: Counter,
     funnel_30terms: Counter,
@@ -137,13 +136,6 @@ impl MetricsPrometheus {
             Box::new(reject_self_dependency.clone()),
         );
 
-        let funnel_basic = Counter::default();
-        sub_registry.register(
-            "funnel_basic",
-            "Number of programs that passed the basic funnel",
-            Box::new(funnel_basic.clone()),
-        );
-
         let funnel_10terms = Counter::default();
         sub_registry.register(
             "funnel_10terms",
@@ -195,7 +187,6 @@ impl MetricsPrometheus {
             reject_mutate_without_impact: reject_mutate_without_impact,
             rejected_preventing_flooding: rejected_preventing_flooding,
             reject_self_dependency: reject_self_dependency,
-            funnel_basic: funnel_basic,
             funnel_10terms: funnel_10terms,
             funnel_20terms: funnel_20terms,
             funnel_30terms: funnel_30terms,
@@ -208,8 +199,7 @@ impl MetricsPrometheus {
 impl Recorder for MetricsPrometheus {
     fn record(&self, event: &MetricEvent) {
         match event {
-            MetricEvent::Funnel { basic, terms10, terms20, terms30, terms40, false_positives } => {
-                self.funnel_basic.inc_by(*basic);
+            MetricEvent::Funnel { terms10, terms20, terms30, terms40, false_positives } => {
                 self.funnel_10terms.inc_by(*terms10);
                 self.funnel_20terms.inc_by(*terms20);
                 self.funnel_30terms.inc_by(*terms30);

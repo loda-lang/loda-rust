@@ -149,7 +149,6 @@ impl RunMinerLoop {
         }
         {
             let event = MetricEvent::Funnel { 
-                basic: self.funnel.metric_number_of_candidates_with_basiccheck(),
                 terms10: self.funnel.metric_number_of_candidates_with_10terms(),
                 terms20: self.funnel.metric_number_of_candidates_with_20terms(),
                 terms30: self.funnel.metric_number_of_candidates_with_30terms(),

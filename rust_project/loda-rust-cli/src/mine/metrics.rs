@@ -1,6 +1,5 @@
 pub enum MetricEvent {
     Funnel { 
-        basic: u64,
         terms10: u64,
         terms20: u64,
         terms30: u64,

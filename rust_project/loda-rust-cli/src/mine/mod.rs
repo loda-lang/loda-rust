@@ -24,7 +24,7 @@ mod thread_message_channel;
 mod wildcard_checker;
 
 pub use check_fixed_length_sequence::{CheckFixedLengthSequence, NamedCacheFile, PopulateBloomfilter};
-pub use funnel::{Funnel, is_possible_candidate_basic_checks};
+pub use funnel::Funnel;
 pub use funnel_config::FunnelConfig;
 pub use genome_mutate_context::GenomeMutateContext;
 pub use genome::{Genome, MutateGenome};

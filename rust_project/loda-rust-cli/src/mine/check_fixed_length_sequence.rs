@@ -1,7 +1,6 @@
 use loda_rust_core::util::BigIntVec;
 use super::{FunnelConfig, WildcardChecker};
 use crate::config::Config;
-use crate::mine::is_possible_candidate_basic_checks;
 use crate::common::{load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
 use num_bigint::{BigInt, ToBigInt};
@@ -173,7 +172,6 @@ fn create_cache_files(
     let bloom40_ref = &mut bloom40;
 
     simple_log.println(format!("oeis 'stripped' file size: {} bytes", filesize));
-    let mut number_of_sequences_rejected_with_basic_check: usize = 0;
     let pb = ProgressBar::new(filesize as u64);
     let process_callback = |stripped_sequence: &StrippedSequence, count_bytes: usize| {
         pb.set_position(count_bytes as u64);
@@ -181,9 +179,6 @@ fn create_cache_files(
         let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
         {
             let vec: BigIntVec = all_vec[0..10].to_vec();
-            if is_possible_candidate_basic_checks(&vec) {
-                number_of_sequences_rejected_with_basic_check += 1;
-            }
             (*bloom10_ref).set(&vec);
         }
         {
@@ -211,7 +206,6 @@ fn create_cache_files(
         process_callback
     );
     stripped_sequence_processor.print_summary(simple_log.clone());
-    simple_log.println(format!("number of sequences ignored due to basic check: {:?}", number_of_sequences_rejected_with_basic_check));
     simple_log.println(format!("number of sequences stored in bloomfilter: {:?}", processor.counter));
     pb.finish_and_clear();
 
