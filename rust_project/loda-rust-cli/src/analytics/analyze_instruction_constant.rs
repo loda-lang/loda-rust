@@ -12,32 +12,36 @@ type HistogramKey = (InstructionId,i32);
 
 static DISCARD_EXTREME_VALUES_BEYOND_THIS_LIMIT: i64 = 10000;
 
-// Creates a histogram about what constants goes with each instruction.
-//
-// The most used combo: `add $0,1` (addition by 1) and is used 38175 times.
-// Almost as popular combo: `sub $0,1` (subtract by 1) and is used 35075 times.
-// Less popular is the combo: `mul $0,-1` (multiply by -1) and is used 429 times.
-// The majority of constants are only used a single time.
-//
-// Traverses all the programs inside the "loda-programs/oeis" dir.
-//
-// There are programs with unwanted huge magic constants.
-// So too extreme values gets ignored.
-// 
-// This script outputs a `histogram_instruction_constant.csv` file, with this format:
-// 
-//     count;instruction;constant
-//     532;add;1
-//     531;sub;1
-//     308;mov;1
-//     252;mul;2
-//     167;div;2
-//     137;mov;2
-//     121;add;2
-//     98;pow;2
-//     78;cmp;0
-//     69;bin;2
-// 
+/// Creates a histogram about what constants goes with each instruction.
+///
+/// The most used combo: `add $0,1` (addition by 1) and is used 38175 times.
+/// 
+/// Almost as popular combo: `sub $0,1` (subtract by 1) and is used 35075 times.
+/// 
+/// Less popular is the combo: `mul $0,-1` (multiply by -1) and is used 429 times.
+/// 
+/// The majority of constants are only used a single time.
+///
+/// Traverses all the programs inside the `loda-programs/oeis` dir.
+///
+/// There are programs with unwanted huge magic constants.
+/// So too extreme values gets ignored.
+/// 
+/// This script outputs a `histogram_instruction_constant.csv` file, with this format:
+/// 
+/// ```csv
+/// count;instruction;constant
+/// 532;add;1
+/// 531;sub;1
+/// 308;mov;1
+/// 252;mul;2
+/// 167;div;2
+/// 137;mov;2
+/// 121;add;2
+/// 98;pow;2
+/// 78;cmp;0
+/// 69;bin;2
+/// ```
 pub struct AnalyzeInstructionConstant {
     config: Config,
     histogram: HashMap<HistogramKey,u32>,

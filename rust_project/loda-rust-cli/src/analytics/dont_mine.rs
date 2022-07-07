@@ -6,9 +6,9 @@ use std::collections::HashSet;
 use super::load_program_ids_from_deny_file;
 use crate::common::{load_program_ids_csv_file, save_program_ids_csv_file};
 
-// Generate the 'dontmine.csv' file.
-// 
-// These are the program ids that should NOT be mined.
+/// Generate the `dontmine.csv` file.
+/// 
+/// These are the program ids that should NOT be mined.
 pub struct DontMine {
     simple_log: SimpleLog,
     config: Config,
@@ -30,8 +30,8 @@ impl DontMine {
         Ok(())
     }
 
-    // Ignore simple programs, that doesn't have complex loops nor dependencies to other sequences.
-    // It doesn't make sense trying to optimize a program that is already well-optimized.
+    /// Ignore simple programs, that doesn't have complex loops nor dependencies to other sequences.
+    /// It doesn't make sense trying to optimize a program that is already well-optimized.
     fn extend_program_ids_with_dont_optimize_csv(&mut self) -> Result<(), Box<dyn Error>> {
         let path: PathBuf = self.config.analytics_dir_complexity_dont_optimize_file();
         let program_ids: Vec<u32> = load_program_ids_csv_file(&path)?;
@@ -41,8 +41,8 @@ impl DontMine {
         Ok(())
     }
 
-    // If a program is on the loda-programs deny.txt list, then ignore it.
-    // This is for duplicates in oeis and things to be ignored.
+    /// If a program is on the loda-programs `deny.txt` list, then ignore it.
+    /// This is for duplicates in oeis and things to be ignored.
     fn extend_program_ids_with_loda_programs_deny_txt(&mut self) -> Result<(), Box<dyn Error>> {
         let path = self.config.loda_programs_oeis_deny_file();
         let program_ids: Vec<u32> = load_program_ids_from_deny_file(&path)?;
@@ -52,8 +52,8 @@ impl DontMine {
         Ok(())
     }
 
-    // If the 'loda-programs' repo contains a program that is invalid,
-    // then we want to mine for the program anyways.
+    /// If the `loda-programs` repo contains a program that is invalid,
+    /// then we want to mine for the program anyways.
     fn remove_invalid_programs(&mut self) -> Result<(), Box<dyn Error>> {
         let path: PathBuf = self.config.analytics_dir_programs_invalid_file();
         let program_ids: Vec<u32> = load_program_ids_csv_file(&path)?;
