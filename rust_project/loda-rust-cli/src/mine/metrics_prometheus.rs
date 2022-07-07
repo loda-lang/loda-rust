@@ -25,6 +25,8 @@ pub struct MetricsPrometheus {
     funnel_30terms: Counter,
     funnel_40terms: Counter,
     funnel_false_positive: Counter,
+    dependency_manager_read_success: Counter,
+    dependency_manager_read_error: Counter,
 }
 
 impl MetricsPrometheus {
@@ -171,6 +173,20 @@ impl MetricsPrometheus {
             Box::new(funnel_false_positive.clone()),
         );
 
+        let dependency_manager_read_success = Counter::default();
+        sub_registry.register(
+            "dependency_manager_read_success",
+            "Read ok",
+            Box::new(dependency_manager_read_success.clone()),
+        );
+
+        let dependency_manager_read_error = Counter::default();
+        sub_registry.register(
+            "dependency_manager_read_error",
+            "Read error",
+            Box::new(dependency_manager_read_error.clone()),
+        );
+
         Self {
             number_of_workers: number_of_workers,
             number_of_iterations: number_of_iterations,
@@ -192,6 +208,8 @@ impl MetricsPrometheus {
             funnel_30terms: funnel_30terms,
             funnel_40terms: funnel_40terms,
             funnel_false_positive: funnel_false_positive,
+            dependency_manager_read_success: dependency_manager_read_success,
+            dependency_manager_read_error: dependency_manager_read_error,
         }
     }
 }
@@ -218,6 +236,10 @@ impl Recorder for MetricsPrometheus {
                 self.reject_no_output_register.inc_by(*no_output);
                 self.reject_mutate_without_impact.inc_by(*no_mutation);
                 self.reject_compute_error.inc_by(*compute_error);
+            },
+            MetricEvent::DependencyManager { read_success, read_error } => {
+                self.dependency_manager_read_success.inc_by(*read_success);
+                self.dependency_manager_read_error.inc_by(*read_error);
             },
             MetricEvent::General { prevent_flooding, reject_self_dependency, candidate_program } => {
                 self.rejected_preventing_flooding.inc_by(*prevent_flooding);

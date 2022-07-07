@@ -29,6 +29,19 @@
   "liveNow": false,
   "panels": [
     {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 27,
+      "panels": [],
+      "title": "Miner",
+      "type": "row"
+    },
+    {
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -43,7 +56,7 @@
         "h": 6,
         "w": 20,
         "x": 0,
-        "y": 0
+        "y": 1
       },
       "hiddenSeries": false,
       "id": 8,
@@ -146,7 +159,7 @@
         "h": 3,
         "w": 4,
         "x": 20,
-        "y": 0
+        "y": 1
       },
       "id": 15,
       "interval": "1s",
@@ -205,7 +218,7 @@
         "h": 4,
         "w": 4,
         "x": 20,
-        "y": 3
+        "y": 4
       },
       "id": 19,
       "options": {
@@ -249,7 +262,7 @@
         "h": 6,
         "w": 20,
         "x": 0,
-        "y": 6
+        "y": 7
       },
       "hiddenSeries": false,
       "id": 17,
@@ -360,7 +373,7 @@
         "h": 4,
         "w": 4,
         "x": 20,
-        "y": 7
+        "y": 8
       },
       "id": 13,
       "options": {
@@ -451,7 +464,7 @@
         "h": 5,
         "w": 20,
         "x": 0,
-        "y": 12
+        "y": 13
       },
       "id": 21,
       "interval": "2s",
@@ -587,7 +600,7 @@
         "h": 5,
         "w": 20,
         "x": 0,
-        "y": 17
+        "y": 18
       },
       "id": 23,
       "interval": "2s",
@@ -753,7 +766,7 @@
         "h": 5,
         "w": 20,
         "x": 0,
-        "y": 22
+        "y": 23
       },
       "id": 25,
       "options": {
@@ -782,6 +795,109 @@
       ],
       "title": "Mutation efficiency",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "FOz0SSf7k"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "log": 2,
+              "type": "log"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 20,
+        "x": 0,
+        "y": 28
+      },
+      "id": 29,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "FOz0SSf7k"
+          },
+          "editorMode": "builder",
+          "expr": "sum(rate(lodarust_mine_dependency_manager_read_success_total[$__rate_interval]))",
+          "legendFormat": "Read ok",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "FOz0SSf7k"
+          },
+          "editorMode": "builder",
+          "expr": "sum(rate(lodarust_mine_dependency_manager_read_error_total[$__rate_interval]))",
+          "hide": false,
+          "legendFormat": "Read error",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Dependency Manager",
+      "type": "timeseries"
     }
   ],
   "refresh": "5s",
@@ -792,7 +908,7 @@
     "list": []
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {
@@ -813,6 +929,6 @@
   "timezone": "",
   "title": "LODA Rust",
   "uid": "DvVCV7fnz",
-  "version": 10,
+  "version": 14,
   "weekStart": ""
 }

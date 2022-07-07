@@ -177,6 +177,13 @@ impl RunMinerLoop {
             self.recorder.record(&event);
         }
         {
+            let event = MetricEvent::DependencyManager {
+                read_success: self.dependency_manager.metric_read_success(),
+                read_error: self.dependency_manager.metric_read_error(),
+            };
+            self.recorder.record(&event);
+        }
+        {
             let event = MetricEvent::General { 
                 prevent_flooding: self.metric.number_of_prevented_floodings,
                 reject_self_dependency: self.metric.number_of_self_dependencies,
@@ -187,6 +194,7 @@ impl RunMinerLoop {
         self.funnel.reset_metrics();
         self.cache.reset_metrics();
         self.metric.reset_metrics();
+        self.dependency_manager.reset_metrics();
     }
 
     fn execute_one_iteration(&mut self) {

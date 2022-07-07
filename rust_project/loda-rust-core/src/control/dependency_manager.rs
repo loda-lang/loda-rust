@@ -87,7 +87,9 @@ pub struct DependencyManager {
     program_run_manager: ProgramRunnerManager,
     programids_currently_loading: HashSet<u64>,
     programid_dependencies: Vec<u64>,
-    virtual_filesystem: HashMap<u64, String>
+    virtual_filesystem: HashMap<u64, String>,
+    metric_read_success: u64,
+    metric_read_error: u64,
 }
 
 impl DependencyManager {
@@ -99,6 +101,8 @@ impl DependencyManager {
             programids_currently_loading: HashSet::new(),
             programid_dependencies: vec!(),
             virtual_filesystem: HashMap::new(),
+            metric_read_success: 0,
+            metric_read_error: 0,
         }        
     }
 
@@ -152,27 +156,31 @@ impl DependencyManager {
     }
 
     // Read a file from the actual file system.
-    fn system_read(&self, program_id: u64) -> Result<String, DependencyManagerError> {
+    fn system_read(&mut self, program_id: u64) -> Result<String, DependencyManagerError> {
         let path = self.path_to_program(program_id);
         let contents: String = match fs::read_to_string(&path) {
             Ok(value) => value,
             Err(io_error) => {
                 // Something went wrong reading the file.
+                self.metric_read_error += 1;
                 let error = CannotReadProgramFileError::new(program_id, io_error);
                 return Err(DependencyManagerError::CannotReadProgramFile(error));
             }
         };
+        self.metric_read_success += 1;
         Ok(contents)
     }
 
     // Read a file from a dictionary.
-    fn virtual_read(&self, program_id: u64) -> Result<String, DependencyManagerError> {
+    fn virtual_read(&mut self, program_id: u64) -> Result<String, DependencyManagerError> {
         let contents: String = match self.virtual_filesystem.get(&program_id) {
             Some(value) => value.clone(),
             None => {
+                self.metric_read_error += 1;
                 return Err(DependencyManagerError::CannotReadProgramFileFromVirtualFileSystem);
             }
         };
+        self.metric_read_success += 1;
         Ok(contents)
     }
 
@@ -245,6 +253,19 @@ impl DependencyManager {
 
     pub fn contains(&self, program_id: u64) -> bool {
         self.program_run_manager.contains(program_id)
+    }
+
+    pub fn reset_metrics(&mut self) {
+        self.metric_read_error = 0;
+        self.metric_read_success = 0;
+    }
+
+    pub fn metric_read_success(&self) -> u64 {
+        self.metric_read_success
+    }
+
+    pub fn metric_read_error(&self) -> u64 {
+        self.metric_read_error
     }
 }
 

@@ -19,6 +19,10 @@ pub enum MetricEvent {
         no_mutation: u64,
         compute_error: u64,
     },
+    DependencyManager {
+        read_success: u64,
+        read_error: u64,
+    },
     General {
         prevent_flooding: u64,
         reject_self_dependency: u64,
