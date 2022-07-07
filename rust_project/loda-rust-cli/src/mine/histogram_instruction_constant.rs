@@ -13,20 +13,23 @@ use crate::common::parse_csv_data;
 type ValueAndWeight = (i32,u32);
 type ValueAndWeightVector = Vec<ValueAndWeight>;
 
-// Instructions that takes a constant value.
-//
-// The most used combo: `add $0,1` (addition by 1)
-// Almost as popular combo: `sub $0,1` (subtract by 1)
-//
-// Usecase:
-// During mining, when mutating an `add` instruction.
-//
-// It's a time waster making poor choices of constants.
-// The miner originally picked random integers, but it was excruciating slow.
-//
-// Time can be saved this way. 
-// Before mining: analyze all programs and build a histogram.
-// During mining: make weighted choices from the histogram.
+/// Instructions that takes a constant value.
+///
+/// The most used combo: `add $0,1` (addition by 1)
+/// 
+/// Almost as popular combo: `sub $0,1` (subtract by 1)
+///
+/// Usecase:
+/// During mining, when mutating an `add` instruction.
+///
+/// It's a time waster making poor choices of constants.
+/// The miner originally picked random integers, but it was excruciating slow.
+///
+/// Time can be saved this way. 
+/// 
+/// Before mining: analyze all programs and build a histogram.
+/// 
+/// During mining: make weighted choices from the histogram.
 pub struct HistogramInstructionConstant {
     instruction_and_valueweightvector: HashMap<InstructionId, ValueAndWeightVector>
 }

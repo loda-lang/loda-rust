@@ -16,6 +16,20 @@ require 'date'
 # This correspond to the parameter in the rust project: FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS
 OEIS_STRIPPED_SKIP_PROGRAMS_WITH_FEWER_TERMS = 10
 
+class PathUtil
+    def self.path_with_status_extension(path, statusname)
+        path.gsub(/[.]asm$/) { |capture| ".#{statusname}#{capture}" }
+    end
+
+    def self.path_reject(path)
+        path_with_status_extension(path, 'reject')
+    end
+
+    def self.path_keep(path)
+        path_with_status_extension(path, 'keep')
+    end
+end
+
 class CandidateProgram
     attr_reader :path
     attr_reader :filename
@@ -36,16 +50,12 @@ class CandidateProgram
         @oeis_ids << oeis_id
     end
     
-    def path_with_status_extension(statusname)
-        @path.gsub(/[.]asm$/) { |capture| ".#{statusname}#{capture}" }
-    end
-
     def path_reject
-        path_with_status_extension('reject')
+        PathUtil.path_reject(@path)
     end
 
     def path_keep
-        path_with_status_extension('keep')
+        PathUtil.path_keep(@path)
     end
 end
 
@@ -139,15 +149,18 @@ paths.each_with_index do |path, index|
         count_success += 1
         candidate_programs << CandidateProgram.new(path, output)
     else
-        puts "Couldn't eval program at path: #{path}, this can happen if the program has a missing dependency."
-        puts output
-        # puts "---B"
+        filename = File.basename(path)
+        puts "Rejecting '#{filename}', Couldn't eval program at path: #{path}, this can happen if the program has a missing dependency."
+        if !output.empty?
+            puts output
+        end
+        path_reject = PathUtil.path_reject(path)
+        File.rename(path, path_reject)
         count_failure += 1
     end
     
     # break if index > 10
 end
-
 
 puts "evaluate: count_success: #{count_success}  count_failure: #{count_failure}"
 

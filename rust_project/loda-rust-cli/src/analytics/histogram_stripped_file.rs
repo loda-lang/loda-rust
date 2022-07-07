@@ -18,49 +18,52 @@ use indicatif::{HumanDuration, ProgressBar};
 
 static DISCARD_EXTREME_VALUES_BEYOND_THIS_LIMIT: i64 = 400;
 
-// This code identifies a good magic value for the bloomfilter.
-// It should not be a value that is used a lot, so any value from 
-// the top 100 most used terms will be a terrible choice.
-// I made the mistake of choosing zero as magic value, causing
-// +400.000 files to be generated in less than 20 minutes!
-//
-// It should be a value that is rarely used, so that there are as
-// few false-positives as possible.
-// At the same time it shouldn't be a huge value, like 0xCAFEBABE.
-// BigInt/String manipulation is expensive, and there is a lot of it,
-// thus the wildcard value should be as few bytes as possible, 
-// so there are fewer bytes to be allocated,
-// so there are fewer bytes to be compared.
-//
-// The most frequent occuring terms in the OEIS 'stripped' file are:
-// count;value
-// 3277144;0
-// 791230;1
-// 402661;2
-// 295319;3
-// 251879;4
-// 207336;5
-// 187158;6
-// 161854;7
-// 155826;8
-// 135863;9
-// 78968;10
-// snip
-// 39094;-1
-// snip
-// 13576;-2
-// snip
-// 8044;-3
-// snip
-// 85;-67
-// snip
-// 61;-86
-//
-// The value "-67" only occurs 85 times, and "-86" occurs 61 times,
-// so these may be good choice for a magic value.
-//
-// Number of extreme values: 4084887
-// That are outside the range [-400..+400].
+/// This code identifies a good magic value for the bloomfilter.
+/// It should not be a value that is used a lot, so any value from 
+/// the top 100 most used terms will be a terrible choice.
+/// I made the mistake of choosing zero as magic value, causing
+/// +400.000 files to be generated in less than 20 minutes!
+///
+/// It should be a value that is rarely used, so that there are as
+/// few false-positives as possible.
+/// At the same time it shouldn't be a huge value, like `0xCAFEBABE`.
+/// BigInt/String manipulation is expensive, and there is a lot of it,
+/// thus the wildcard value should be as few bytes as possible, 
+/// so there are fewer bytes to be allocated,
+/// so there are fewer bytes to be compared.
+///
+/// The most frequent occuring terms in the OEIS 'stripped' file are:
+///
+/// ```csv
+/// count;value
+/// 3277144;0
+/// 791230;1
+/// 402661;2
+/// 295319;3
+/// 251879;4
+/// 207336;5
+/// 187158;6
+/// 161854;7
+/// 155826;8
+/// 135863;9
+/// 78968;10
+/// snip
+/// 39094;-1
+/// snip
+/// 13576;-2
+/// snip
+/// 8044;-3
+/// snip
+/// 85;-67
+/// snip
+/// 61;-86
+/// ```
+///
+/// The value `-67` only occurs 85 times, and `-86` occurs 61 times,
+/// so these may be good choices for use as a magic value.
+///
+/// Number of extreme values: 4084887,
+/// that are outside the range -400 .. +400.
 pub struct HistogramStrippedFile {
     config: Config,
     simple_log: SimpleLog,

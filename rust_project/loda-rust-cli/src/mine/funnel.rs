@@ -3,36 +3,33 @@ use super::FunnelConfig;
 use super::WildcardChecker;
 use loda_rust_core::util::BigIntVec;
 
-// Funnel of bloomfilters for use during mining.
-//
-// Originally LODA-RUST could only mine for sequences that had 40 or more terms.
-// The OEIS 'stripped' file contains around 360k sequences of average length 38 terms.
-// So only half of the OEIS sequences got added to the bloomfilter.
-// Later, I added support for shorter than 40 terms sequences, 
-// by introducing a "Wildcard" magic value in the bloomfilter.
-// 
-// A potential candiate program must pass these 5 stages:
-// - basic
-// - 10 terms
-// - 20 terms
-// - 30 terms
-// - 40 terms
-//
-// The sooner a potential candidate program can be rejected,
-// the sooner it's possible to mutate the genome and try again.
-//
-// The "Wildcard" magic value is the zero value or `BigInt::zero()`.
-//
-// If there is a sequence that has only 33 terms in the OEIS 'stripped' file, 
-// then the first 33 terms are followed by 7 wildcard terms (zeroes).
-// This sequence can now be inserted into the bloomfilter.
-//
-// When wildcard-checking if a sequence is contained in the bloomfilter, it works like this:
-// When a candiate program passes 10terms, 20terms, 30terms bloomfilters, and gets rejected by the 40terms bloomfilter.
-// Then replace the last term with a wildcard symbol, and try again.
-// Then replace the second last term with a wildcard symbol, and try again.
-// Then replace the third last term with a wildcard symbol, and try again.
-// After around 10 attempts it can be determined if it's in the bloomfilter or not.
+/// Funnel of bloomfilters for use during mining.
+///
+/// Originally LODA-RUST could only mine for sequences that had 40 or more terms.
+/// The OEIS 'stripped' file contains around 360k sequences of average length 38 terms.
+/// So only half of the OEIS sequences got added to the bloomfilter.
+/// Later, I added support for shorter than 40 terms sequences, 
+/// by inserting a `WILDCARD_MAGIC_VALUE` into the bloomfilter.
+/// 
+/// A potential candiate program must fulfill these 4 stages:
+/// - 10 terms
+/// - 20 terms
+/// - 30 terms
+/// - 40 terms
+///
+/// The sooner a potential candidate program can be rejected,
+/// the sooner it's possible to mutate the genome and try again.
+///
+/// If there is a sequence that has only 33 terms in the OEIS 'stripped' file, 
+/// then the first 33 terms are followed by 7 wildcard terms (`WILDCARD_MAGIC_VALUE`).
+/// This sequence can now be inserted into the bloomfilter.
+///
+/// When wildcard-checking if a sequence is contained in the bloomfilter, it works like this:
+/// When a candiate program passes 10terms, 20terms, 30terms bloomfilters, and gets rejected by the 40terms bloomfilter.
+/// Then replace the last term with a wildcard symbol, and try again.
+/// Then replace the second last term with a wildcard symbol, and try again.
+/// Then replace the third last term with a wildcard symbol, and try again.
+/// After around 10 attempts it can be determined if it's in the bloomfilter or not.
 pub struct Funnel {
     checker10: CheckFixedLengthSequence,
     checker20: CheckFixedLengthSequence,

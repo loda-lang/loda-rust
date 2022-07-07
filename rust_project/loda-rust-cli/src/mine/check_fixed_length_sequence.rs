@@ -20,7 +20,7 @@ use indicatif::{HumanDuration, ProgressBar};
 
 pub struct CheckFixedLengthSequence {
     bloom: Bloom::<BigIntVec>,
-    bloomfilter_wildcard_value: BigInt,
+    bloomfilter_wildcard_magic_value: BigInt,
 }
 
 impl CheckFixedLengthSequence {
@@ -28,7 +28,7 @@ impl CheckFixedLengthSequence {
         let wildcard_magic_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
         Self {
             bloom: bloom,
-            bloomfilter_wildcard_value: wildcard_magic_value
+            bloomfilter_wildcard_magic_value: wildcard_magic_value
         }
     }
 
@@ -78,12 +78,12 @@ impl CheckFixedLengthSequence {
 }
 
 impl WildcardChecker for CheckFixedLengthSequence {
-    fn check(&self, bigint_vec_ref: &BigIntVec) -> bool {
+    fn bloomfilter_check(&self, bigint_vec_ref: &BigIntVec) -> bool {
         self.check(bigint_vec_ref)
     }
 
-    fn bloomfilter_wildcard_value(&self) -> &BigInt {
-        &self.bloomfilter_wildcard_value
+    fn bloomfilter_wildcard_magic_value(&self) -> &BigInt {
+        &self.bloomfilter_wildcard_magic_value
     }
 }
 
@@ -109,7 +109,7 @@ impl CheckFixedLengthSequenceInternalRepresentation {
         let wildcard_magic_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
         CheckFixedLengthSequence {
             bloom: bloom,
-            bloomfilter_wildcard_value: wildcard_magic_value,
+            bloomfilter_wildcard_magic_value: wildcard_magic_value,
         }
     }
 }
@@ -161,7 +161,7 @@ fn create_cache_files(
     let mut processor = SequenceProcessor::new();
     let x = &mut processor;
 
-    let false_positive_rate: f64 = 0.01;
+    let false_positive_rate: f64 = FunnelConfig::BLOOMFILTER_FALSE_POSITIVE_RATE;
     let mut bloom10 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
     let mut bloom20 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
     let mut bloom30 = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
@@ -291,7 +291,7 @@ impl PopulateBloomfilter {
             self.simple_log.clone(),
             &mut reader, 
             filesize,
-            FunnelConfig::APPROX_BLOOM_ITEMS_COUNT, 
+            FunnelConfig::BLOOMFILTER_CAPACITY, 
             &cache_dir, 
             &program_ids_to_ignore
         );
