@@ -20,7 +20,7 @@ use indicatif::{HumanDuration, ProgressBar};
 
 pub struct CheckFixedLengthSequence {
     bloom: Bloom::<BigIntVec>,
-    bloomfilter_wildcard_value: BigInt,
+    bloomfilter_wildcard_magic_value: BigInt,
 }
 
 impl CheckFixedLengthSequence {
@@ -28,7 +28,7 @@ impl CheckFixedLengthSequence {
         let wildcard_magic_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
         Self {
             bloom: bloom,
-            bloomfilter_wildcard_value: wildcard_magic_value
+            bloomfilter_wildcard_magic_value: wildcard_magic_value
         }
     }
 
@@ -78,12 +78,12 @@ impl CheckFixedLengthSequence {
 }
 
 impl WildcardChecker for CheckFixedLengthSequence {
-    fn check(&self, bigint_vec_ref: &BigIntVec) -> bool {
+    fn bloomfilter_check(&self, bigint_vec_ref: &BigIntVec) -> bool {
         self.check(bigint_vec_ref)
     }
 
-    fn bloomfilter_wildcard_value(&self) -> &BigInt {
-        &self.bloomfilter_wildcard_value
+    fn bloomfilter_wildcard_magic_value(&self) -> &BigInt {
+        &self.bloomfilter_wildcard_magic_value
     }
 }
 
@@ -109,7 +109,7 @@ impl CheckFixedLengthSequenceInternalRepresentation {
         let wildcard_magic_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
         CheckFixedLengthSequence {
             bloom: bloom,
-            bloomfilter_wildcard_value: wildcard_magic_value,
+            bloomfilter_wildcard_magic_value: wildcard_magic_value,
         }
     }
 }
