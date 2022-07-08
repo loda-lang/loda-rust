@@ -15,6 +15,26 @@ struct RecordDependency {
     target: u32,
 }
 
+/// Determine the popularity group which each program belong to.
+/// 
+/// The miner is more likely to call a popular program, eg. the Fibonacci program, or the sqrt2 function.
+/// 
+/// The miner is less likely to call an unpopular program, eg. an unreferenced program, or few insignificant references. 
+/// 
+/// This saves a `program_popularity.csv` file, with this format:
+/// 
+/// ```csv
+/// program id;popularity
+/// 5;9
+/// 6;9
+/// 8;8
+/// 10;9
+/// 15;9
+/// 30;4
+/// 31;8
+/// 32;9
+/// 33;6
+/// ```
 pub fn compute_program_rank() {
     let config = Config::load();
     let input_path: PathBuf = config.analytics_dir_dependencies_file();
@@ -73,26 +93,6 @@ struct ProgramPopularityItem {
     popularity: usize,
 }
 
-/// Determine the popularity group which each program_id belong to.
-/// 
-/// The miner is more likely to call a popular program_id, eg. the Fibonacci program, or the sqrt2 function.
-/// 
-/// The miner is less likely to call an unpopular program, eg. an unreferenced program, or few insignificant references. 
-/// 
-/// This saves a `program_popularity.csv` file, with this format:
-/// 
-/// ```
-/// program id;popularity
-/// 5;9
-/// 6;9
-/// 8;8
-/// 10;9
-/// 15;9
-/// 30;4
-/// 31;8
-/// 32;9
-/// 33;6
-/// ```
 fn create_popularity_csv_file(pagerank: &Pagerank::<u32>, output_path: &Path, highest_popularity_value: usize) {
     let mut program_score_items = Vec::<ProgramScoreItem>::new();
     for node in pagerank.nodes() {
