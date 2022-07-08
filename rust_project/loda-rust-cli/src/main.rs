@@ -86,7 +86,6 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
             SubCommand::with_name("install")
                 .about("Create the $HOME/.loda-rust directory")
         )
-        // Experiments with mining new programs
         .subcommand(
             SubCommand::with_name("analytics")
                 .about("Prepare data needed for mining, by analyzing the existing programs.")
@@ -158,6 +157,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
             false => SubcommandMineMetricsMode::NoMetricsServer
         };
         let mut instance = SubcommandMine::new(metrics_mode);
+        instance.check_prerequisits()?;
         instance.print_info();
         instance.populate_prevent_flooding_mechanism()?;
         instance.run().await?;

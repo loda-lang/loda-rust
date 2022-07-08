@@ -44,9 +44,8 @@ impl Config {
     }
 
     pub fn analytics_dir(&self) -> PathBuf {
-        let name = Path::new("analytics");
-        let path = self.basedir.join(name);
-        assert!(path.is_dir());
+        let path = self.basedir.join("analytics");
+        assert!(path.is_absolute());
         path
     }
 
@@ -191,7 +190,7 @@ impl Config {
     pub fn mine_event_dir(&self) -> PathBuf {
         let name = Path::new("mine-event");
         let path = self.basedir.join(name);
-        assert!(path.is_dir());
+        assert!(path.is_absolute());
         path
     }
 

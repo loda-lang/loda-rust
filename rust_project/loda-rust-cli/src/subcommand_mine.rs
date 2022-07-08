@@ -66,6 +66,20 @@ impl SubcommandMine {
         number_of_threads.max(1)
     }
 
+    pub fn check_prerequisits(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let path0 = self.config.analytics_dir();
+        if !path0.is_dir() {
+            error!("Could not find analytics dir at path: {:?}. Please run 'loda-rust analytics' to create this dir.", path0);
+            panic!("check_prerequisits - missing analytics_dir");
+        }
+        let path1 = self.config.mine_event_dir();
+        if !path1.is_dir() {
+            error!("Could not find mine_event_dir at path: {:?}. Please rerun 'loda-rust install' to create this dir.", path1);
+            panic!("check_prerequisits - missing mine_event_dir");
+        }
+        Ok(())
+    }
+
     pub fn print_info(&self) {
         println!("metrics mode: {:?}", self.metrics_mode);
         println!("Number of workers: {}", self.number_of_workers);
@@ -196,6 +210,7 @@ impl SubcommandMine {
             });
             thread::sleep(Duration::from_millis(2000));
         }
+        println!("\nPress CTRL-C to stop the miner.");
     }
 }
 
@@ -311,7 +326,6 @@ fn print_info_about_start_conditions() {
     }
     println!("[mining info]");
     println!("build_mode = {}", build_mode);
-    println!("\nPress CTRL-C to stop the miner.");
 }
 
 struct MessageProcessor {
