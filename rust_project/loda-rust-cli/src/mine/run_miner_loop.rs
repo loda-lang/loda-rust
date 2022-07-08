@@ -9,7 +9,7 @@ use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId,
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
-use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
+use loda_rust_core::util::{BigIntVec, BigIntVecToString};
 use loda_rust_core::parser::ParsedProgram;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -390,7 +390,7 @@ impl RunMinerLoop {
         }
 
         // lookup in stripped.zip and find the corresponding program_ids
-        let key: String = bigintvec_to_string(terms40_wildcard);
+        let key: String = terms40_wildcard.to_compact_comma_string();
         let corresponding_program_id_set: &HashSet<u32> = match self.terms_to_program_id.get(&key) {
             Some(value) => value,
             None => {
@@ -515,7 +515,7 @@ impl RunMinerLoop {
         // Or it's faster than the existing program.
         // Save a snapshot of this program to `$HOME/.loda-rust/mine-even/`
         let mut serializer = ProgramSerializer::new();
-        serializer.append_comment(bigintvec_to_string(&terms40_original));
+        serializer.append_comment(terms40_original.to_compact_comma_string());
         serializer.append_empty_line();
         runner.serialize(&mut serializer);
         serializer.append_empty_line();
