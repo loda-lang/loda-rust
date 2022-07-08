@@ -1,8 +1,8 @@
 # Using "loda-rust"
 
-Question: Can loda-rust update oeis index, and programs repository by itself?
+Question: Can loda-rust run by itself?
 
-Answer: Currently I’m doing it manually. Over time I hope to automate it.
+Answer: No, currently I’m doing it manually. Over time I want to automate it.
 
 My daily routine is something like this:
 
