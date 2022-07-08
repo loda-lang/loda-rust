@@ -1,5 +1,5 @@
 use loda_rust_core;
-use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
+use loda_rust_core::util::{BigIntVec, BigIntVecToString};
 use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
 use num_bigint::BigInt;
 use std::io;
@@ -37,7 +37,7 @@ fn build_terms_to_program_id_set(
 
     let callback = |stripped_sequence: &StrippedSequence, _| {
         let bigint_vec_ref: &BigIntVec = stripped_sequence.bigint_vec_ref();
-        let key: String = bigintvec_to_string(bigint_vec_ref);
+        let key: String = bigint_vec_ref.to_compact_comma_string();
         let entry = terms_to_program_id.entry(key).or_insert_with(|| HashSet::new());
         entry.insert(stripped_sequence.sequence_number);
     };

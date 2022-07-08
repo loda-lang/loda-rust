@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use loda_rust_core::util::{BigIntVec, bigintvec_to_string};
+use loda_rust_core::util::{BigIntVec, BigIntVecToString};
 
 // The `mine-event` dir can quickly get filled up with candidate programs
 // that output the same terms. I have experienced that 80k files was
@@ -27,7 +27,7 @@ impl PreventFlooding {
 
     #[allow(dead_code)]
     pub fn contains(&self, bigintvec: &BigIntVec) -> bool {
-        let s: String = bigintvec_to_string(&bigintvec);
+        let s: String = bigintvec.to_compact_comma_string();
         if self.hashset.contains(&s) {
             return true;
         }
@@ -35,7 +35,7 @@ impl PreventFlooding {
     }
 
     pub fn try_register(&mut self, bigintvec: &BigIntVec) -> Result<(), PreventFloodingError> {
-        let s: String = bigintvec_to_string(&bigintvec);
+        let s: String = bigintvec.to_compact_comma_string();
         if self.hashset.contains(&s) {
             // The `mine-event` dir already contains a program with these terms.
             return Err(PreventFloodingError::AlreadyRegistered);
@@ -54,12 +54,12 @@ impl PreventFlooding {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use loda_rust_core::util::i64vec_to_bigintvec;
+    use loda_rust_core::util::BigIntVecFromI64;
     
     #[test]
     fn test_10000_try_register() {
         let mut pf = PreventFlooding::new();
-        let bigintvec: BigIntVec = i64vec_to_bigintvec(vec![1, 2, 3, 4, 5]);
+        let bigintvec = BigIntVec::from_i64array(&[1, 2, 3, 4, 5]);
         assert_eq!(pf.try_register(&bigintvec).is_ok(), true);
         assert_eq!(pf.try_register(&bigintvec).is_ok(), false);
     }
@@ -67,12 +67,12 @@ mod tests {
     #[test]
     fn test_10001_contains() {
         let mut pf = PreventFlooding::new();
-        assert_eq!(pf.contains(&i64vec_to_bigintvec(vec![1, 1, 1, 1, 1])), false);
-        assert_eq!(pf.contains(&i64vec_to_bigintvec(vec![1, 2, 3, 4, 5])), false);
-        assert_eq!(pf.try_register(&i64vec_to_bigintvec(vec![1, 2, 3, 4, 5])).is_ok(), true);
-        assert_eq!(pf.try_register(&i64vec_to_bigintvec(vec![1, 1, 1, 1, 1])).is_ok(), true);
-        assert_eq!(pf.contains(&i64vec_to_bigintvec(vec![1, 1, 1, 1, 1])), true);
-        assert_eq!(pf.contains(&i64vec_to_bigintvec(vec![1, 2, 3, 4, 5])), true);
-        assert_eq!(pf.contains(&i64vec_to_bigintvec(vec![1984, 1984, 1984])), false);
+        assert_eq!(pf.contains(&BigIntVec::from_i64array(&[1, 1, 1, 1, 1])), false);
+        assert_eq!(pf.contains(&BigIntVec::from_i64array(&[1, 2, 3, 4, 5])), false);
+        assert_eq!(pf.try_register(&BigIntVec::from_i64array(&[1, 2, 3, 4, 5])).is_ok(), true);
+        assert_eq!(pf.try_register(&BigIntVec::from_i64array(&[1, 1, 1, 1, 1])).is_ok(), true);
+        assert_eq!(pf.contains(&BigIntVec::from_i64array(&[1, 1, 1, 1, 1])), true);
+        assert_eq!(pf.contains(&BigIntVec::from_i64array(&[1, 2, 3, 4, 5])), true);
+        assert_eq!(pf.contains(&BigIntVec::from_i64array(&[1984, 1984, 1984])), false);
     }
 }

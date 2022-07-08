@@ -56,7 +56,7 @@ pub trait WildcardChecker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use loda_rust_core::util::{bigintvec_to_string, i64vec_to_bigintvec, is_bigintvec_equal};
+    use loda_rust_core::util::{BigIntVecToString, BigIntVecFromI64, IsBigIntVecEqual};
     use num_traits::Zero;
 
     struct MockCheckerImpl {
@@ -79,7 +79,7 @@ mod tests {
 
     impl WildcardChecker for MockCheckerImpl {
         fn bloomfilter_check(&self, bigint_vec_ref: &BigIntVec) -> bool {
-            is_bigintvec_equal(&self.bigint_vec, bigint_vec_ref)
+            self.bigint_vec.is_bigintvec_equal(bigint_vec_ref)
         }
 
         fn bloomfilter_wildcard_magic_value(&self) -> &BigInt {
@@ -88,7 +88,7 @@ mod tests {
     }
 
     fn bigints(values: &[i64]) -> BigIntVec {
-        i64vec_to_bigintvec(values.to_vec())
+        BigIntVec::from_i64array(values)
     }
     
     #[test]
@@ -157,6 +157,6 @@ mod tests {
         assert_eq!(checker.mut_check_with_wildcards(&mut values, 0), Some(3));
 
         // Assert
-        assert_eq!(bigintvec_to_string(&values), "2,3,5,7,0,0,0");
+        assert_eq!(values.to_compact_comma_string(), "2,3,5,7,0,0,0");
     }
 }
