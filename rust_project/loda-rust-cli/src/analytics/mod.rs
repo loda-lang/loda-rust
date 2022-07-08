@@ -1,3 +1,4 @@
+//! Prepare data needed for mining, by analyzing the existing programs.
 mod analytics_error;
 mod analyze_dependencies;
 mod analyze_instruction_constant;

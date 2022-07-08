@@ -1,3 +1,4 @@
+//! Identify similar programs.
 mod word;
 mod wordpair;
 mod words_from_program;

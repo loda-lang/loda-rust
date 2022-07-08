@@ -29,8 +29,7 @@ static DISCARD_EXTREME_VALUES_BEYOND_THIS_LIMIT: i64 = 400;
 /// At the same time it shouldn't be a huge value, like `0xCAFEBABE`.
 /// BigInt/String manipulation is expensive, and there is a lot of it,
 /// thus the wildcard value should be as few bytes as possible, 
-/// so there are fewer bytes to be allocated,
-/// so there are fewer bytes to be compared.
+/// so there are fewer bytes to be allocated/compared.
 ///
 /// The most frequent occuring terms in the OEIS 'stripped' file are:
 ///
