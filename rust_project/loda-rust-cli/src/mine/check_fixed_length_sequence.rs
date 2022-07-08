@@ -334,12 +334,21 @@ mod tests {
     }
     
     #[test]
-    fn test_10001_bloomfilter_false_positive_rate() {
+    fn test_10001_bloomfilter_few_false_positive_rate() {
         let items_count: usize = 400000;
         let false_positive_rate: f64 = 0.01;
         let bloom = Bloom::<()>::new_for_fp_rate(items_count, false_positive_rate);
         assert_eq!(bloom.number_of_bits(), 3834024);
         assert_eq!(bloom.number_of_hash_functions(), 7);
+    }
+
+    #[test]
+    fn test_10001_bloomfilter_many_false_positives() {
+        let items_count: usize = 400000;
+        let false_positive_rate: f64 = 0.1;
+        let bloom = Bloom::<()>::new_for_fp_rate(items_count, false_positive_rate);
+        assert_eq!(bloom.number_of_bits(), 1917016);
+        assert_eq!(bloom.number_of_hash_functions(), 4);
     }
     
     #[test]
