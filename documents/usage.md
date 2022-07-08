@@ -19,12 +19,11 @@ snip .. takes around 2 hours for 400 candidate programs .. snip
 PROMPT>
 ```
 
-For 400 candidate programs, it takes around 2 hours to analyze the candate programs. 
-It determines: Is it the correct terms, is the program faster than the existing program.
+The `process_mined_programs` task determines: Does the program compute the correct terms, is the program faster than the existing program.
 It places the programs inside the `loda-programs` repo, but it doesn't do any commit.
 
 1. I manually inspect all diffs in the `loda-programs` repo. 
-2. Is it one-line that has been inserted with a `mod $0,12345`, then I discard it.
+2. Is it a single line that has been inserted ala `mod $0,12345`, then I discard it.
 3. Has magic constants been introduced, then I discard it.
 4. Then commit it with the commit message: "Updated programs".
 
@@ -36,4 +35,6 @@ snip .. takes about 20 seconds for 200 programs .. snip
 PROMPT>
 ```
 
-Now the programs have been uploaded to the loda-lang.org server.
+Now the programs have been uploaded to the loda-lang.org server, and is scheduled for further processing on the server.
+If the server determines that it's a new program or an improvement to an existing program, then it gets added to the `loda-programs` repo.
+In 24hours or so, it shows up next time when fetching the `loda-programs` repo.
