@@ -1,3 +1,4 @@
+//! The `loda-rust analytics` subcommand, populates histograms/bloomfilters.
 use std::error::Error;
 use std::time::Instant;
 use std::rc::Rc;

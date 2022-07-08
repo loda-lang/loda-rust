@@ -76,7 +76,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         .subcommand(
             SubCommand::with_name("dependencies")
                 .alias("deps")
-                .about("Dependencies of a program")
+                .about("Print all direct/indirect dependencies of a program")
                 .arg(
                     Arg::with_name("programid")
                         .required(true)

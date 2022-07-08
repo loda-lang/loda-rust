@@ -1,3 +1,4 @@
+//! The `loda-rust install` subcommand, creates a `~/.loda-rust` dir.
 use crate::config::Config;
 use std::path::{Path,PathBuf};
 use std::fs;

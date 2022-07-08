@@ -1,3 +1,4 @@
+//! The `loda-rust pattern` subcommand, identifies recurring patterns.
 use crate::common::{find_asm_files_recursively, find_csv_files_recursively, program_id_from_path, parse_csv_file};
 use crate::pattern::{Clusters, instruction_diff_between_constants, ProgramSimilarity, RecordSimilar};
 use crate::config::Config;
