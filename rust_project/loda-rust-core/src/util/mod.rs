@@ -1,6 +1,4 @@
-//! The BigIntVec is used everywhere.
-mod analyze;
+//! The `BigIntVec` is used everywhere in LODA-RUST.
 mod bigintvec;
 
-pub use analyze::Analyze;
-pub use bigintvec::{BigIntVec, IsBigIntVecEqual, BigIntVecFromI64, BigIntVecToString};
+pub use bigintvec::{BigIntVec, BigIntVecFromI64, BigIntVecToString, IsBigIntVecEqual};
