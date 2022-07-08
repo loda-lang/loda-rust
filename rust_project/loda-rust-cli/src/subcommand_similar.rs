@@ -23,20 +23,23 @@ const IGNORE_INPUT_PROGRAM_IF_INSTRUCTION_COUNT_EXCEEDS: usize = 300;
 const MAX_NUMBER_OF_ROWS_IN_OUTPUT_CSV_FILE: usize = 25;
 const INTERVAL_UNTIL_NEXT_PROGRESS: u128 = 1000;
 
-// What is LSH
-// https://en.wikipedia.org/wiki/Locality-sensitive_hashing
-//
-// My first attempt was slow. It was coded in ruby and took 8 hours to compute similarity 
-// for 1600 programs out of 41000 programs.
-// For this I used the unix `diff` tool for identifying the number of identical lines.
-// If there were more than 80% identical lines, then I added it to the csv file.
-// 
-// My second attempt was using LSH/minhash. It was coded in ruby.
-// All 41000 programs in the loda-programs repository can be traversed in about 2 hours.
-// 
-// My third attempt at finding similarity between programs. This time using Rust for better preformance.
-// And using the LSH/minhash algorithm.
-// All 67000 programs in the loda-programs repository can be traversed in about 7 minutes.
+/// Identify similar programs.
+/// 
+/// This code uses the [LSH/MinHash] algorithm.
+///
+/// My first attempt was slow. It was coded in ruby and took 8 hours to compute similarity 
+/// for 1600 programs out of 41000 programs.
+/// For this I used the unix diff tool for identifying the number of identical lines.
+/// If there were more than 80% identical lines, then I added it to the csv file.
+/// 
+/// My second attempt was using [LSH/MinHash]. It was coded in ruby.
+/// All 41000 programs in the loda-programs repository can be traversed in about 2 hours.
+/// 
+/// My third attempt at finding similarity between programs. This time using Rust for better preformance.
+/// And using the [LSH/MinHash] algorithm.
+/// All 67000 programs in the loda-programs repository can be traversed in about 7 minutes.
+///
+/// [LSH/MinHash]: https://en.wikipedia.org/wiki/MinHash
 pub fn subcommand_similar() {
     let start_time = Instant::now();
 

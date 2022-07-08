@@ -41,8 +41,9 @@ impl SuggestInstruction {
         }
     }
 
-    // If it's the beginning of the program then set prev_word to None.
-    // If it's the end of the program then set next_word to None.
+    /// If it's the beginning of the program then set `prev_word` to `None`.
+    /// 
+    /// If it's the end of the program then set `next_word` to `None`.
     #[allow(dead_code)]
     fn candidates(&self, prev_word: Option<InstructionId>, next_word: Option<InstructionId>) -> Option<&HistogramValue> {
         let word0: String = match prev_word {

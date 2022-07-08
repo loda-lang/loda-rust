@@ -179,12 +179,13 @@ impl Genome {
         self.message_vec.push(message);
     }
 
-    // Assign a pseudo random constant.
-    //
-    // There is a high probability that the picked constant is junk.
-    //
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
+    /// Assign a pseudo random constant.
+    ///
+    /// There is a high probability that the picked constant is junk.
+    ///
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
     #[allow(dead_code)]
     pub fn replace_source_constant_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         // Identify the instructions that use constants
@@ -232,23 +233,28 @@ impl Genome {
         genome_item.mutate_sanitize_program_row()
     }
 
-    // Assign a constant, by picking from a histogram.
-    // The histogram has knowledge about each instruction.
-    // If it's an `add` instruction, then the most used constant is 1.
-    // If it's a `mul` instruction, then the most used constant is 2.
-    // If it's a `cmp` instruction, then the most used constant is 0.
-    //
-    // There is a high probability that this function assigns a constant
-    // that is highly used across all programs.
-    //
-    // There is a low probablility that this function assigns a constant
-    // that is sporadic used across all programs.
-    //
-    // This function does not assign a constant that has never been
-    // used elsewhere. So it doesn't explore new never tried out magic constants.
-    //
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
+    /// Assign a constant, by picking from a histogram.
+    /// 
+    /// The histogram has knowledge about each instruction.
+    /// 
+    /// If it's an `add` instruction, then the most used constant is 1.
+    /// 
+    /// If it's a `mul` instruction, then the most used constant is 2.
+    /// 
+    /// If it's a `cmp` instruction, then the most used constant is 0.
+    ///
+    /// There is a high probability that this function assigns a constant
+    /// that is highly used across all programs.
+    ///
+    /// There is a low probablility that this function assigns a constant
+    /// that is sporadic used across all programs.
+    ///
+    /// This function does not assign a constant that has never been
+    /// used elsewhere. So it doesn't explore new never tried out magic constants.
+    ///
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
     #[allow(dead_code)]
     pub fn replace_source_constant_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Bail out if the histogram csv file hasn't been loaded.
@@ -300,8 +306,8 @@ impl Genome {
         genome_item.mutate_sanitize_program_row()
     }
 
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as no instructions that use a source_type=register, underflow, overflow.
+    /// Return `true` when the mutation was successful.
+    /// Return `false` in case of failure, such as no instructions that use a source_type=register, underflow, overflow.
     #[allow(dead_code)]
     pub fn replace_source_register_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         // Identify all the instructions that use source_type=register
@@ -347,8 +353,9 @@ impl Genome {
         SourceValue::Value(value)
     }
 
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     pub fn replace_source_register_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Bail out if the trigram.csv file hasn't been loaded.
         if !context.has_suggest_source() {
@@ -403,8 +410,9 @@ impl Genome {
         true
     }
     
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     pub fn replace_target_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         if length < 1 {
@@ -438,8 +446,9 @@ impl Genome {
         TargetValue::Value(value)
     }
 
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     pub fn replace_target_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Bail out if the trigram.csv file hasn't been loaded.
         if !context.has_suggest_target() {
@@ -490,8 +499,9 @@ impl Genome {
         true
     }
 
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     #[allow(dead_code)]
     pub fn replace_instruction_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
@@ -507,8 +517,9 @@ impl Genome {
         genome_item.mutate_sanitize_program_row()
     }
 
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     #[allow(dead_code)]
     pub fn replace_instruction_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Bail out if the trigram.csv file hasn't been loaded.
@@ -554,8 +565,9 @@ impl Genome {
         genome_item.mutate_sanitize_program_row()
     }
 
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     #[allow(dead_code)]
     pub fn insert_instruction_with_constant<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Bail out if the histogram csv file hasn't been loaded.
@@ -644,8 +656,9 @@ impl Genome {
         true
     }
 
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     #[allow(dead_code)]
     pub fn mutate_source_type<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
@@ -661,8 +674,9 @@ impl Genome {
         genome_item.mutate_sanitize_program_row()
     }
 
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     #[allow(dead_code)]
     pub fn mutate_swap_registers<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         // Identify all the instructions that use two registers
@@ -685,8 +699,9 @@ impl Genome {
         genome_item.mutate_sanitize_program_row()
     }
 
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     #[allow(dead_code)]
     pub fn mutate_enabled<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
@@ -702,8 +717,9 @@ impl Genome {
         genome_item.mutate_sanitize_program_row()
     }
 
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     #[allow(dead_code)]
     pub fn mutate_swap_rows<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
@@ -730,8 +746,9 @@ impl Genome {
         true
     }
 
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     #[allow(dead_code)]
     pub fn mutate_swap_adjacent_rows<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
@@ -753,8 +770,9 @@ impl Genome {
         true
     }
 
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     #[allow(dead_code)]
     pub fn mutate_insert_loop<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
@@ -794,8 +812,9 @@ impl Genome {
         true
     }
 
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure.
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure.
     #[allow(dead_code)]
     pub fn mutate_eval_sequence<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext, category: MutateEvalSequenceCategory) -> bool {
         // Identify GenomeItem's that use the `seq` instruction
@@ -819,8 +838,9 @@ impl Genome {
         genome_item.mutate_eval_sequence_instruction(rng, context, category)
     }
 
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure.
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure.
     #[allow(dead_code)]
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![

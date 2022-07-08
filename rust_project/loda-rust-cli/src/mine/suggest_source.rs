@@ -13,13 +13,19 @@ pub enum SourceValue {
 }
 
 impl SourceValue {
-    // Convert string to an integer
-    // Convert "42" to SourceValue::Value(42).
-    // Convert "START" to SourceValue::ProgramStart.
-    // Convert "STOP" to SourceValue::ProgramStop.
-    // Convert "CONST" to SourceValue::Constant.
-    // Convert "NONE" to SourceValue::None.
-    // Convert "JUNK" to Optional::None.
+    /// Convert string to an enum.
+    /// 
+    /// Convert "42" to `SourceValue::Value(42)`.
+    /// 
+    /// Convert "START" to `SourceValue::ProgramStart`.
+    /// 
+    /// Convert "STOP" to `SourceValue::ProgramStop`.
+    /// 
+    /// Convert "CONST" to `SourceValue::Constant`.
+    /// 
+    /// Convert "NONE" to `SourceValue::None`.
+    /// 
+    /// Convert "JUNK" to `Optional::None`.
     fn parse<S>(content: S) -> Option<SourceValue> where S: Into<String> {
         let s: String = content.into();
         match s.as_str() {
@@ -107,10 +113,13 @@ impl SuggestSource {
         }
     }
 
-    // If it's the beginning of the program then set prev_word to ProgramStart.
-    // If it's the end of the program then set next_word to ProgramStop.
-    // If it's a `lpb` (loop begin) instruction can have a 2nd parameter, then None may be used.
-    // If it's a `lpe` (loop end) instruction that has no parameters, then use None.
+    /// If it's the beginning of the program then set `prev_word` to `ProgramStart`.
+    /// 
+    /// If it's the end of the program then set `next_word` to `ProgramStop`.
+    /// 
+    /// If it's a `lpb` (loop begin) instruction can have a 2nd parameter, then `None` may be used.
+    /// 
+    /// If it's a `lpe` (loop end) instruction that has no parameters, then use `None`.
     #[allow(dead_code)]
     fn candidates(&self, prev_word: SourceValue, next_word: SourceValue) -> Option<&HistogramValue> {
         let key: HistogramKey = (prev_word, next_word);

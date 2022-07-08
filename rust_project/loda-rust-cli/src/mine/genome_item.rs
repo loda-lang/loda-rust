@@ -195,8 +195,9 @@ impl GenomeItem {
         status
     }
 
-    // Return `true` when the mutation was successful.
-    // Return `false` in case of failure, such as underflow, overflow.
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as underflow, overflow.
     pub fn mutate_value(&mut self, mutation: &MutateValue, mut value: i32) -> (bool, i32) {
         match mutation {
             MutateValue::Increment => {
@@ -258,8 +259,9 @@ impl GenomeItem {
         true
     }
 
-    // Mutate the `seq` instruction, so it invokes the next program in the list.
-    // If it reaches the end, then it picks the first program from the list.
+    /// Mutate the `seq` instruction, so it invokes the next program in the list.
+    /// 
+    /// If it reaches the end, then it picks the first program from the list.
     #[allow(dead_code)]
     pub fn mutate_pick_next_program<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let is_seq = self.instruction_id == InstructionId::EvalSequence;
@@ -305,7 +307,7 @@ impl GenomeItem {
         }
     }
 
-    // Mutate the `seq` instruction, so it invokes a random program.
+    /// Mutate the `seq` instruction, so it invokes a random program.
     #[allow(dead_code)]
     pub fn mutate_eval_sequence_instruction<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext, category: MutateEvalSequenceCategory) -> bool {
         let is_seq = self.instruction_id == InstructionId::EvalSequence;
