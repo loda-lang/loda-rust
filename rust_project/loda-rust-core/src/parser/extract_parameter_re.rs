@@ -2,7 +2,7 @@ use regex::Regex;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    // Extract one parameter from an instruction row
+    /// Extract one parameter from an instruction row
     pub static ref EXTRACT_PARAMETER_RE: Regex = Regex::new(
         "^([$]*)(-?\\d+)$"
     ).unwrap();

@@ -1,3 +1,4 @@
+//! Loader code for the OEIS 'stripped' file.
 mod process_stripped_sequence_file;
 mod stripped_sequence;
 mod terms_to_program_id;

@@ -1,3 +1,4 @@
+//! The `loda-rust pattern` subcommand, identifies recurring patterns.
 use crate::common::{find_asm_files_recursively, find_csv_files_recursively, program_id_from_path, parse_csv_file};
 use crate::pattern::{Clusters, instruction_diff_between_constants, ProgramSimilarity, RecordSimilar};
 use crate::config::Config;
@@ -18,6 +19,7 @@ const PROGRAM_LENGTH_MAXIMUM: usize = 80;
 const MINIMUM_NUMBER_OF_SIMILAR_PROGRAMS_BEFORE_ITS_A_PATTERN: usize = 15;
 const DISCARD_PATTERNS_WITHOUT_ANY_PARAMETERS: bool = true;
 
+/// Identify recurring patterns among similar programs.
 pub fn subcommand_pattern() {
     let start_time = Instant::now();
 

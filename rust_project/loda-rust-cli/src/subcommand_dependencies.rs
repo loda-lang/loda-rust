@@ -1,3 +1,4 @@
+//! The `loda-rust dependencies` subcommand, prints dependencies of a program.
 use super::{DependencyManager,DependencyManagerFileSystemMode};
 use crate::config::Config;
 use std::path::PathBuf;

@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
 
 lazy_static! {
-    // Extract the sequence number "123456" from a string like this "dir1/dir2/A123456.asm".
+    /// Extract the sequence number "123456" from a string like this "dir1/dir2/A123456.asm".
     static ref EXTRACT_SEQUENCE_NUMBER: Regex = Regex::new(
         "\\bA(\\d+)(?:\\D.*)?$"
     ).unwrap();

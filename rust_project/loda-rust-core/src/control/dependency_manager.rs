@@ -155,7 +155,7 @@ impl DependencyManager {
         Ok(())
     }
 
-    // Read a file from the actual file system.
+    /// Read a file from the actual file system.
     fn system_read(&mut self, program_id: u64) -> Result<String, DependencyManagerError> {
         let path = self.path_to_program(program_id);
         let contents: String = match fs::read_to_string(&path) {
@@ -171,7 +171,7 @@ impl DependencyManager {
         Ok(contents)
     }
 
-    // Read a file from a dictionary.
+    /// Read a file from a dictionary.
     fn virtual_read(&mut self, program_id: u64) -> Result<String, DependencyManagerError> {
         let contents: String = match self.virtual_filesystem.get(&program_id) {
             Some(value) => value.clone(),
@@ -232,7 +232,7 @@ impl DependencyManager {
         Ok(())
     }
 
-    // Construct a path: "/absolute/path/123/A123456.asm"
+    /// Construct a path, like this: `/absolute/path/123/A123456.asm`
     pub fn path_to_program(&self, program_id: u64) -> PathBuf {
         let dir_index: u64 = program_id / 1000;
         let dir_index_string: String = format!("{:0>3}", dir_index);

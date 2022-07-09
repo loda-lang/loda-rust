@@ -1,7 +1,7 @@
 use std::fmt;
 
-// A `RegisterIndex` can be in the range [0..255], so that it can be represented by an 8bit unsigned integer.
-// I can't imagine any OEIS sequences requiring an algorithm using more than 256 registers.
+/// A `RegisterIndex` can be in the range [0..255], so that it can be represented by an 8bit unsigned integer.
+/// I can't imagine any OEIS sequences requiring an algorithm using more than 256 registers.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, PartialOrd)]
 pub struct RegisterIndex(pub u8);
 

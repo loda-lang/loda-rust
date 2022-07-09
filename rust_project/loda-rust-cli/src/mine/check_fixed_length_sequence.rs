@@ -32,12 +32,12 @@ impl CheckFixedLengthSequence {
         }
     }
 
-    // Returns `false` if the integer sequence is unknown.
-    // The caller doesn't have to do any more checks.
-    //
-    // Returns `true` if the integer sequence is known or unknown.
-    // The caller will have to do more time consuming checks in order to determine 
-    // if the integer sequences is known or unknown.
+    /// Returns `false` if the integer sequence is unknown.
+    /// The caller doesn't have to do any more checks.
+    ///
+    /// Returns `true` if the integer sequence is known or unknown.
+    /// The caller will have to do more time consuming checks in order to determine 
+    /// if the integer sequences is known or unknown.
     pub fn check(&self, bigint_vec_ref: &BigIntVec) -> bool {
         self.bloom.check(bigint_vec_ref)
     }
@@ -334,7 +334,7 @@ mod tests {
     }
     
     #[test]
-    fn test_10001_bloomfilter_few_false_positive_rate() {
+    fn test_10001_bloomfilter_few_false_positives() {
         let items_count: usize = 400000;
         let false_positive_rate: f64 = 0.01;
         let bloom = Bloom::<()>::new_for_fp_rate(items_count, false_positive_rate);
@@ -343,7 +343,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_bloomfilter_many_false_positives() {
+    fn test_10002_bloomfilter_many_false_positives() {
         let items_count: usize = 400000;
         let false_positive_rate: f64 = 0.1;
         let bloom = Bloom::<()>::new_for_fp_rate(items_count, false_positive_rate);
@@ -352,7 +352,7 @@ mod tests {
     }
     
     #[test]
-    fn test_10002_bloomfilter_set_check_with_hash_of_string() {
+    fn test_10003_bloomfilter_set_check_with_hash_of_string() {
         let mut bloom = Bloom::<String>::new_for_fp_rate(100, 0.1);
         let key = "hello".to_string();
         assert_eq!(bloom.check(&key), false);

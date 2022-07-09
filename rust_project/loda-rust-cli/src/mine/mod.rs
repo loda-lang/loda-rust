@@ -1,3 +1,4 @@
+//! Mine for LODA programs by mutating until there is a match.
 mod check_fixed_length_sequence;
 mod funnel;
 mod funnel_config;

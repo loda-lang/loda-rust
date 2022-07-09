@@ -2,7 +2,7 @@ use regex::Regex;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    // Extract the instruction and its parameters, from a row of assembler code
+    /// Extract the instruction and its parameters, from a row of assembler code
     pub static ref EXTRACT_ROW_RE: Regex = Regex::new(
         "^[ \t]*([a-z]{2,5}\\b)(?:[ \t]+(.*))?$"
     ).unwrap();

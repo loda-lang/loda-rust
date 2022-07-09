@@ -1,3 +1,4 @@
+//! Read/write CSV files. CSV row types. Obtain filenames. Logging.
 mod create_csv_file;
 mod find_files_recursively;
 mod parse_csv_data;

@@ -1,3 +1,4 @@
+//! The `loda-rust eval` subcommand, evaluates terms of a program.
 use loda_rust_core;
 use std::time::Instant;
 use std::rc::Rc;

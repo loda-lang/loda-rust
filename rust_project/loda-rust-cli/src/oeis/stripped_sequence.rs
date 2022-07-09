@@ -69,7 +69,7 @@ impl fmt::Display for StrippedSequence {
 }
 
 lazy_static! {
-    // Extract the sequence number "123456" from a string like this "A123456 ".
+    /// Extract the sequence number "123456" from a string like this "A123456 ".
     static ref EXTRACT_SEQUENCE_NUMBER: Regex = Regex::new(
         "^A(\\d+)"
     ).unwrap();

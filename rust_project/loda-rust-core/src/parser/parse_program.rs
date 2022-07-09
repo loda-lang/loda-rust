@@ -59,8 +59,9 @@ impl From<ParseParametersError> for ParseProgramError {
 }
 
 impl ParsedProgram {
-    // Returns Ok if the program can be parsed.
-    // Returns Err if there is a problem during parsing.
+    /// Returns `Ok` if the program can be parsed.
+    /// 
+    /// Returns `Err` if there is a problem during parsing.
     pub fn parse_program(raw_input: &str) -> Result<ParsedProgram, ParseProgramError> {
         let re = &EXTRACT_ROW_RE;
         let mut instruction_vec: Vec<Instruction> = vec!();
@@ -105,8 +106,9 @@ impl ParsedProgram {
         Ok(parsed_program)
     }    
 
-    // The direct dependencies that this program depends on.
-    // This doesn't include the indirect dependencies.
+    /// The direct dependencies that this program depends on.
+    /// 
+    /// This doesn't include the indirect dependencies.
     #[allow(dead_code)]
     pub fn direct_dependencies(&self) -> Vec<u64> {
         let mut program_ids: Vec<u64> = vec!();

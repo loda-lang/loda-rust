@@ -78,7 +78,7 @@ fn register_index_from_parameter(instruction: &Instruction, parameter: &Instruct
 }
 
 impl Instruction {
-    // Loop end (lpe) takes zero parameters.
+    /// Loop end (lpe) takes zero parameters.
     fn expect_zero_parameters(&self) -> Result<(), CreateInstructionError> {
         if self.parameter_vec.len() != 0 {
             let err = CreateInstructionError {
@@ -90,7 +90,7 @@ impl Instruction {
         Ok(())
     }
 
-    // Loop begin (lpb) takes a required parameter and a 2nd optional parameter.
+    /// Loop begin (lpb) takes a required parameter and a 2nd optional parameter.
     fn expect_one_or_two_parameters(&self) -> Result<(), CreateInstructionError> {
         let len = self.parameter_vec.len();
         if len < 1 || len > 2 {
@@ -103,7 +103,7 @@ impl Instruction {
         Ok(())
     }
 
-    // The instruction `add $1,1` takes 2 parameters.
+    /// The instruction `add $1,1` takes 2 parameters.
     fn expect_two_parameters(&self) -> Result<(), CreateInstructionError> {
         if self.parameter_vec.len() != 2 {
             let err = CreateInstructionError {
@@ -465,7 +465,6 @@ impl From<CreateInstructionError> for CreateProgramError {
         CreateProgramError::CreateInstruction(err)
     }
 }
-
 
 pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgram, CreateProgramError> {
     validate_loops(instruction_vec)?;

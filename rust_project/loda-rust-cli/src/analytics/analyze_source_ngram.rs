@@ -15,96 +15,116 @@ type HistogramBigramKey = (String,String);
 type HistogramTrigramKey = (String,String,String);
 type HistogramSkipgramKey = (String,String);
 
-/*
-Creates csv files with unigram/bigram/trigram/skipgram with LODA source register/constants.
-https://en.wikipedia.org/wiki/N-gram
-
-This script traverses all the programs inside the "loda-programs/oeis" dir.
-It looks for all the LODA assembly programs there are.
-This script determines the most frequent combinations of source register/constants.
-
----
-
-This script outputs a `unigram.csv` file, with this format:
-
-    count;word
-    291363;CONST
-    80741;NONE
-    74575;0
-    61967;STOP
-    61967;START
-    57089;1
-    50819;2
-    29725;3
-
-Learnings from this unigram with LODA programs:
-Learning A: Source is most often a contant.
-Learning B: Often there is no source parameter, such as for loop begin `lpb $3` or loop end `lpe`.
-Learning C: The source register `$0` is most used.
-
----
-
-This script outputs a `bigram.csv` file, with this format:
-
-    count;word0;word1
-    107662;CONST;CONST
-    43147;0;CONST
-    42103;START;CONST
-    40569;CONST;NONE
-    38239;CONST;0
-    33260;NONE;CONST
-    31547;CONST;STOP
-    25079;CONST;1
-    21977;1;STOP
-    20578;CONST;2
-
-Learnings from this bigram with LODA programs:
-Learning A: Source constant is most likely to be followed by another source constant.
-Learning B: Source register `$0` is most likely to be followed by a source constant.
-Learning C: The program is most likely to start with a source constant.
-Learning D: The program is most likely to stop with a source constant.
-
----
-
-This script outputs a `trigram.csv` file, with this format:
-
-    count;word0;word1;word2
-    36000;CONST;CONST;CONST
-    23556;START;CONST;CONST
-    19935;CONST;NONE;CONST
-    19921;CONST;0;CONST
-    19376;0;CONST;CONST
-    17677;CONST;CONST;NONE
-    16321;CONST;CONST;STOP
-    11998;START;CONST;0
-    11679;START;0;CONST
-    11052;CONST;CONST;0
-
-Learnings from this trigram with LODA programs:
-Learning A: Three source contants in succession are most popular.
-Learning B: Programs often start with two source contants.
-Learning C: The source register `$0` is often surrounded by two source constants.
-
----
-
-This script outputs a `skipgram.csv` file, with this format:
-
-    count;word0;word2
-    99972;CONST;CONST
-    38355;START;CONST
-    35538;NONE;CONST
-    35059;CONST;NONE
-    30733;0;CONST
-    28197;CONST;STOP
-    24782;CONST;1
-    24108;CONST;2
-    21690;CONST;0
-
-Learnings from this skipgram with LODA programs:
-Learning A: Constant and some junk is usually followed by another constant.
-Learning B: Program start and some junk is usually followed a constant.
-Learning C: The `$0` and some junk is usually followed by a constant.
-*/
+/// Creates [N-gram] csv files with LODA source register/constants.
+/// 
+/// This script traverses all the programs inside the `loda-programs/oeis` dir.
+/// It looks for all the LODA assembly programs there are.
+/// This script determines the most frequent combinations of source register/constants.
+/// 
+/// ---
+/// 
+/// This script outputs a `unigram.csv` file, with this format:
+/// 
+/// ```csv
+/// count;word
+/// 291363;CONST
+/// 80741;NONE
+/// 74575;0
+/// 61967;STOP
+/// 61967;START
+/// 57089;1
+/// 50819;2
+/// 29725;3
+/// ```
+///
+/// Learnings from this unigram with LODA programs:
+/// 
+/// Learning A: Source is most often a contant.
+/// 
+/// Learning B: Often there is no source parameter, such as for loop begin `lpb $3` or loop end `lpe`.
+/// 
+/// Learning C: The source register `$0` is most used.
+/// 
+/// ---
+/// 
+/// This script outputs a `bigram.csv` file, with this format:
+/// 
+/// ```csv
+/// count;word0;word1
+/// 107662;CONST;CONST
+/// 43147;0;CONST
+/// 42103;START;CONST
+/// 40569;CONST;NONE
+/// 38239;CONST;0
+/// 33260;NONE;CONST
+/// 31547;CONST;STOP
+/// 25079;CONST;1
+/// 21977;1;STOP
+/// 20578;CONST;2
+/// ```
+/// 
+/// Learnings from this bigram with LODA programs:
+/// 
+/// Learning A: Source constant is most likely to be followed by another source constant.
+/// 
+/// Learning B: Source register `$0` is most likely to be followed by a source constant.
+/// 
+/// Learning C: The program is most likely to start with a source constant.
+/// 
+/// Learning D: The program is most likely to stop with a source constant.
+/// 
+/// ---
+/// 
+/// This script outputs a `trigram.csv` file, with this format:
+/// 
+/// ```csv
+/// count;word0;word1;word2
+/// 36000;CONST;CONST;CONST
+/// 23556;START;CONST;CONST
+/// 19935;CONST;NONE;CONST
+/// 19921;CONST;0;CONST
+/// 19376;0;CONST;CONST
+/// 17677;CONST;CONST;NONE
+/// 16321;CONST;CONST;STOP
+/// 11998;START;CONST;0
+/// 11679;START;0;CONST
+/// 11052;CONST;CONST;0
+/// ```
+/// 
+/// Learnings from this trigram with LODA programs:
+/// 
+/// Learning A: Three source contants in succession are most popular.
+/// 
+/// Learning B: Programs often start with two source contants.
+/// 
+/// Learning C: The source register `$0` is often surrounded by two source constants.
+/// 
+/// ---
+/// 
+/// This script outputs a `skipgram.csv` file, with this format:
+/// 
+/// ```csv
+/// count;word0;word2
+/// 99972;CONST;CONST
+/// 38355;START;CONST
+/// 35538;NONE;CONST
+/// 35059;CONST;NONE
+/// 30733;0;CONST
+/// 28197;CONST;STOP
+/// 24782;CONST;1
+/// 24108;CONST;2
+/// 21690;CONST;0
+/// ```
+/// 
+/// Learnings from this skipgram with LODA programs:
+/// 
+/// Learning A: Constant and some junk is usually followed by another constant.
+/// 
+/// Learning B: Program start and some junk is usually followed a constant.
+/// 
+/// Learning C: The `$0` and some junk is usually followed by a constant.
+/// 
+/// [N-gram]: <https://en.wikipedia.org/wiki/N-gram>
 pub struct AnalyzeSourceNgram {
     config: Config,
     histogram_unigram: HashMap<String,u32>,

@@ -94,9 +94,11 @@ impl Program {
         Ok(())
     }
 
-    // This helps determining the number of registers to allocate.
-    // If the highest register index used is 33.
-    // Then we know we have to allocate 34 regisers.
+    /// This helps determining the number of registers to allocate.
+    /// 
+    /// If the highest register index used is 33.
+    /// 
+    /// Then we know we have to allocate 34 regisers.
     pub fn max_register_index(&self) -> u8 {
         // Populate vector with register indexes that a program use
         let mut register_vec: Vec<RegisterIndex> = vec!();

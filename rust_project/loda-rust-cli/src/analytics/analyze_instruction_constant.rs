@@ -27,7 +27,7 @@ static DISCARD_EXTREME_VALUES_BEYOND_THIS_LIMIT: i64 = 10000;
 /// There are programs with unwanted huge magic constants.
 /// So too extreme values gets ignored.
 /// 
-/// This script outputs a `histogram_instruction_constant.csv` file, with this format:
+/// This outputs a `histogram_instruction_constant.csv` file, with this format:
 /// 
 /// ```csv
 /// count;instruction;constant

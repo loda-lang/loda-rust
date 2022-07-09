@@ -1,3 +1,4 @@
+//! Identify recurring patterns among similar programs.
 mod cluster_programs;
 mod instruction_diff_between_constants;
 mod measure_similarity;

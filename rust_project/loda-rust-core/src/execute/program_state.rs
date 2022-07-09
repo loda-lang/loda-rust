@@ -12,10 +12,10 @@ lazy_static! {
     static ref OUT_OF_BOUNDS_RETURN_VALUE: RegisterValue = RegisterValue::zero();
 }
 
-// The register 0 is for input data.
+/// The register 0 is for input data.
 const INPUT_REGISTER: usize = 0;
 
-// The register 0 is for output data.
+/// The register 0 is for output data.
 const OUTPUT_REGISTER: usize = 0;
 
 
@@ -100,7 +100,7 @@ impl ProgramState {
         return &self.register_vec[index];
     }    
 
-    // Read the value of register 0, the output register.
+    /// Read the value of register 0, the output register.
     pub fn get_output_value(&self) -> &RegisterValue {
         assert!(self.register_vec.len() >= 1);
         return &self.register_vec[OUTPUT_REGISTER];
@@ -114,7 +114,7 @@ impl ProgramState {
         self.register_vec[index] = register_value;
     }
 
-    // Write a value to register 0, the input register.
+    /// Write a value to register 0, the input register.
     pub fn set_input_value(&mut self, register_value: &RegisterValue) {
         assert!(self.register_vec.len() >= 1);
         self.register_vec[INPUT_REGISTER] = register_value.clone();
@@ -133,7 +133,7 @@ impl ProgramState {
         }
     }
 
-    // Make the internal state human readable
+    /// Make the internal state human readable
     pub fn register_vec_to_string(&self) -> String {
         let strings: Vec<String> = self.register_vec.iter().map(|register_value| {
             register_value.0.to_string()
@@ -142,10 +142,13 @@ impl ProgramState {
         format!("[{}]", strings_joined)
     }
 
-    // Compare a range of registers.
-    // Returns `true` if the range of registers have a lower value.
-    // Returns `false` if the range of registers have the same value or greater value, o.
-    // Returns `false` if a register is encountered with a negative value.
+    /// Compare a range of registers.
+    /// 
+    /// Returns `true` if the range of registers have a lower value.
+    /// 
+    /// Returns `false` if the range of registers have the same value or greater value.
+    /// 
+    /// Returns `false` if a register is encountered with a negative value.
     pub fn is_less_range(&self, other_state: &ProgramState, register_index: RegisterIndex, range_length: u8) -> bool {
         let vector_length: usize = self.register_vec.len();
         if vector_length != other_state.register_vec.len() {
@@ -176,8 +179,9 @@ impl ProgramState {
         false
     }
 
-    // Similar to `is_less_range()`, but with a range of 1.
-    // This function is simpler than its counterpart `is_less_range`.
+    /// Similar to `is_less_range()`, but with a range of 1.
+    /// 
+    /// This function is simpler than its counterpart `is_less_range`.
     pub fn is_less_single(&self, other_state: &ProgramState, register_index: RegisterIndex) -> bool {
         let vector_length: usize = self.register_vec.len();
         if vector_length != other_state.register_vec.len() {

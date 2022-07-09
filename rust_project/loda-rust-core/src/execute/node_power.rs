@@ -11,11 +11,15 @@ pub enum NodePowerLimit {
     LimitBits(u32)
 }
 
-// x raised to the power of y
-// x is the base value.
-// y is the power value.
-// Ruby: x ** y
-// Math syntax: x ^ y.
+/// x raised to the power of y
+/// 
+/// x is the base value.
+/// 
+/// y is the power value.
+/// 
+/// Ruby: x ** y
+/// 
+/// Math syntax: x ^ y.
 fn perform_operation(
     check: &BoxCheckValue, 
     limit: &NodePowerLimit,

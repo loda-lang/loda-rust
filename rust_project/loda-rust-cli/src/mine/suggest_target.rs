@@ -12,12 +12,17 @@ pub enum TargetValue {
 }
 
 impl TargetValue {
-    // Convert string to an integer
-    // Convert "42" to TargetValue::Value(42).
-    // Convert "START" to TargetValue::ProgramStart.
-    // Convert "STOP" to TargetValue::ProgramStop.
-    // Convert "NONE" to TargetValue::None.
-    // Convert "JUNK" to Optional::None.
+    /// Convert string to an enum.
+    /// 
+    /// Convert "42" to `TargetValue::Value(42)`.
+    /// 
+    /// Convert "START" to `TargetValue::ProgramStart`.
+    /// 
+    /// Convert "STOP" to `TargetValue::ProgramStop`.
+    /// 
+    /// Convert "NONE" to `TargetValue::None`.
+    /// 
+    /// Convert "JUNK" to `Optional::None`.
     fn parse<S>(content: S) -> Option<TargetValue> where S: Into<String> {
         let s: String = content.into();
         match s.as_str() {
@@ -101,9 +106,11 @@ impl SuggestTarget {
         }
     }
 
-    // If it's the beginning of the program then set prev_word to ProgramStart.
-    // If it's the end of the program then set next_word to ProgramStop.
-    // If it's a `lpe` (loop end) instruction that has no parameter, then use None.
+    /// If it's the beginning of the program then set `prev_word` to `ProgramStart`.
+    /// 
+    /// If it's the end of the program then set `next_word` to `ProgramStop`.
+    /// 
+    /// If it's a `lpe` (loop end) instruction that has no parameter, then use `None`.
     #[allow(dead_code)]
     fn candidates(&self, prev_word: TargetValue, next_word: TargetValue) -> Option<&HistogramValue> {
         let key: HistogramKey = (prev_word, next_word);

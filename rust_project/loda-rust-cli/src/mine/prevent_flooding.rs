@@ -1,15 +1,15 @@
 use std::collections::HashSet;
 use loda_rust_core::util::{BigIntVec, BigIntVecToString};
 
-// The `mine-event` dir can quickly get filled up with candidate programs
-// that output the same terms. I have experienced that 80k files was
-// created in a few seconds with nearly identical programs.
-//
-// This is a mechanism to prevent the `mine-event` dir from getting filled up.
-// The way it works. If there already is a program with the same terms in the `mine-event` dir,
-// then prevent the new program from being written to the dir.
-//
-// On load, the `mine-event` dir is scanned for what programs are there.
+/// The `mine-event` dir can quickly get filled up with candidate programs
+/// that output the same terms. I have experienced that 80k files was
+/// created in a few seconds with nearly identical programs.
+///
+/// This is a mechanism to prevent the `mine-event` dir from getting filled up.
+/// The way it works. If there already is a program with the same terms in the `mine-event` dir,
+/// then prevent the new program from being written to the dir.
+///
+/// On load, the `mine-event` dir is scanned for what programs are there.
 pub struct PreventFlooding {
     hashset: HashSet<String>,
 }
