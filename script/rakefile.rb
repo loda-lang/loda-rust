@@ -33,18 +33,12 @@ file 'data/program_creation_dates.csv' do
     ruby 'task_program_creation_dates.rb'
 end
 
-desc "clean up the inconsistent filenames in the dir for mismatches"
-task :cleanup_mismatch_filenames do
-    ruby 'task_cleanup_mismatch_filenames.rb'
-end
-
 desc "Process the mined programs"
 task :process_mined_programs do
     ruby 'task_analyze_mined_programs.rb'
     ruby 'insert_oeis_names_into_program.rb'
     ruby 'task_add_mined_programs_to_repo.rb'
     ruby 'task_cleanup_temp_files_from_repo.rb'
-    ruby 'task_cleanup_mismatch_filenames.rb'
     ruby 'task_maintenance_of_outlier_programs_repo.rb'
 end
 
