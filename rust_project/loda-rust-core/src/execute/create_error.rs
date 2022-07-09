@@ -1,10 +1,10 @@
 use std::error::Error;
 use std::fmt;
 
-// Errors that can be caught while creating the program.
+/// Errors that can be caught while creating the program.
 #[derive(Debug)]
 pub enum CreateError {
-    // The `clr` instruction.
+    /// The `clr` instruction.
     ClearRangeLengthMustBeNonNegative,
     ClearRangeLengthExceedsLimit,
 }

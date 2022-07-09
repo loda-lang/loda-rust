@@ -2,7 +2,7 @@ use regex::Regex;
 use lazy_static::lazy_static;
 use std::borrow::Cow;
 
-// Remove a "; comment" from an instruction row of an assembler program
+/// Remove a `; comment` from an instruction row of an assembler program
 pub fn remove_comment(input: &str) -> Cow<str> {
     lazy_static! {
         static ref REMOVE_COMMENT_RE: Regex = Regex::new(

@@ -119,16 +119,16 @@ impl ProgramRunner {
         self.live_registers().contains(&RegisterIndex(0))
     }
 
-    // While mining. Many programs gets rejected, because there is no connection from the 
-    // input register to the output register. These defunct programs can be turned into 
-    // working programs, by doing this trick:
-    //
-    // When detecting there is no live output register, then append a move instruction 
-    // that takes data from the lowest live register, and places it in the output register.
-    // There may still be something meaningful in one of the other live registers.
-    //
-    // When there is zero live registers, then there is no way to get to the output register, 
-    // and this program is truely defunct.
+    /// While mining. Many programs gets rejected, because there is no connection from the 
+    /// input register to the output register. These defunct programs can be turned into 
+    /// working programs, by doing this trick:
+    ///
+    /// When detecting there is no live output register, then append a move instruction 
+    /// that takes data from the lowest live register, and places it in the output register.
+    /// There may still be something meaningful in one of the other live registers.
+    ///
+    /// When there is zero live registers, then there is no way to get to the output register, 
+    /// and this program is truely defunct.
     pub fn mining_trick_attempt_fixing_the_output_register(&mut self) -> bool {
         let live_registers: HashSet<RegisterIndex> = self.live_registers();
         if live_registers.is_empty() {
