@@ -153,7 +153,7 @@ impl HistogramStrippedFile {
     
         let green_bold = Style::new().green().bold();        
         println!(
-            "{:>12} Histogram of OEIS 'stipped' file, in {}",
+            "{:>12} Histogram of OEIS 'stripped' file, in {}",
             green_bold.apply_to("Finished"),
             HumanDuration(start.elapsed())
         );

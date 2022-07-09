@@ -57,6 +57,6 @@ impl FunnelConfig {
     /// It frequently happens that there is a collision with the magic value and 
     /// the actual term value in OEIS. This is not a problem, since this yields more 
     /// false positives. The magic value doesn't harm the ability to check if a value 
-    /// is contained in the OEIS 'stipped' file.
+    /// is contained in the OEIS 'stripped' file.
     pub const WILDCARD_MAGIC_VALUE: i32 = -86;
 }
