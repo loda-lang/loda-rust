@@ -22,6 +22,7 @@ mod subcommand_evaluate;
 mod subcommand_install;
 mod subcommand_mine;
 mod subcommand_pattern;
+mod subcommand_postmine;
 mod subcommand_similar;
 
 use subcommand_analytics::subcommand_analytics;
@@ -30,6 +31,7 @@ use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 use subcommand_install::subcommand_install;
 use subcommand_mine::{SubcommandMine,SubcommandMineMetricsMode};
 use subcommand_pattern::subcommand_pattern;
+use subcommand_postmine::subcommand_postmine;
 use subcommand_similar::subcommand_similar;
 
 extern crate clap;
@@ -100,6 +102,10 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
                 )
         )
         .subcommand(
+            SubCommand::with_name("postmine")
+                .about("Validate the accumulated candiate programs for correctness and performance.")
+        )
+        .subcommand(
             SubCommand::with_name("similar")
                 .about("Identify similar programs.")
         )
@@ -162,6 +168,10 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         instance.populate_prevent_flooding_mechanism()?;
         instance.run().await?;
         return Ok(());
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("postmine") {
+        return subcommand_postmine();
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("similar") {
