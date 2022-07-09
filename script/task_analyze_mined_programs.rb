@@ -329,7 +329,7 @@ end
 
 def path_to_mismatch(program_id, correct_term_count)
     name = "A%06i" % program_id
-    dirname = "%01i" % (program_id / 100000)
+    dirname = "%03i" % (program_id / 1000)
     last_attempted_path = nil
     1000.times do |index|
         filename = "#{name}_#{correct_term_count}_#{index}.asm"
