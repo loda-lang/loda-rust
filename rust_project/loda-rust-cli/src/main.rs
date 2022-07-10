@@ -15,6 +15,7 @@ mod config;
 mod mine;
 mod oeis;
 mod pattern;
+mod postmine;
 mod similar;
 mod subcommand_analytics;
 mod subcommand_dependencies;
