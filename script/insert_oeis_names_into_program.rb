@@ -173,10 +173,16 @@ File.new(OEIS_NAMES_FILE, "r").each_with_index do |line, index|
     oeis_name_dict[program_id] = name
 end
 
+oeis_name_dict_set = oeis_name_dict.keys.to_set
+
 if oeis_name_dict.count != program_ids_set.count
+    puts "oeis_name_dict.count=#{oeis_name_dict.count} != program_ids_set.count=#{program_ids_set.count}"
     puts "oeis_name_dict: #{oeis_name_dict}"
     puts "program_ids_set: #{program_ids_set}"
-    raise "Inconsistency: Unable to lookup all program_ids"
+    common_set = oeis_name_dict_set & program_ids_set
+    difference_set = (oeis_name_dict_set - common_set) + (program_ids_set - common_set)
+    puts "difference_set: #{difference_set}"
+    raise "Inconsistency: Unable to lookup all program_ids. Please run `loda mine` to fetch the latest OEIS 'stripped' file."
 end
 
 update_names_in_program_files(paths, oeis_name_dict, LODA_SUBMITTED_BY)
