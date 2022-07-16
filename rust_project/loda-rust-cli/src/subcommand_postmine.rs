@@ -6,6 +6,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::collections::HashSet;
 use std::iter::FromIterator;
+use std::process::Command;
 
 struct SubcommandPostMine {
     config: Config,
@@ -48,7 +49,30 @@ impl SubcommandPostMine {
         println!("loaded invalid program_ids file. number of records: {}", hashset.len());
         self.invalid_program_ids_hashset = hashset;
         Ok(())
-    }    
+    }
+
+    fn eval_using_loda_cpp(&self) {
+        let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
+        assert!(loda_cpp_executable.is_absolute());
+        assert!(loda_cpp_executable.is_file());
+        for path in &self.paths_for_processing {
+            assert!(path.is_absolute());
+            assert!(path.is_file());
+            
+            let output = Command::new(&loda_cpp_executable)
+                .arg("eval")
+                .arg(path)
+                .arg("-t")
+                .arg("40")
+                .output()
+                .expect("failed to execute process: loda-cpp");
+
+            println!("status: {}", output.status);
+            println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+            println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+            break;
+        }
+    }
 }
 
 pub fn subcommand_postmine() -> Result<(), Box<dyn Error>> {
@@ -61,6 +85,8 @@ pub fn subcommand_postmine() -> Result<(), Box<dyn Error>> {
     
     instance.obtain_invalid_program_ids()?;
     println!("Number of programs in invalid programs id.csv: {}", instance.invalid_program_ids_hashset.len());
+
+    instance.eval_using_loda_cpp();
 
     Ok(())
 }

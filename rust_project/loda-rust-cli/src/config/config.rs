@@ -245,11 +245,9 @@ impl Config {
         PathBuf::from(path)
     }
 
-    #[allow(dead_code)]
     pub fn loda_cpp_executable(&self) -> PathBuf {
         let path = &self.loda_cpp_executable;
         assert!(path.is_absolute());
-        assert!(path.is_file());
         PathBuf::from(path)
     }
 
