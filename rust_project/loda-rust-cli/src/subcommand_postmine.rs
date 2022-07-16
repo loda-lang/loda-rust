@@ -1,12 +1,15 @@
 //! The `loda-rust postmine` subcommand, checks the mined programs for correctness and performance.
 use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
-use crate::postmine::find_pending_programs;
+use crate::postmine::{CandidateProgram, find_pending_programs};
 use std::error::Error;
 use std::path::PathBuf;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::process::Command;
+use std::time::Instant;
+use console::Style;
+use indicatif::{HumanDuration, ProgressBar};
 
 struct SubcommandPostMine {
     config: Config,
@@ -52,13 +55,20 @@ impl SubcommandPostMine {
     }
 
     fn eval_using_loda_cpp(&self) {
+        let start = Instant::now();
+
         let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
         assert!(loda_cpp_executable.is_absolute());
         assert!(loda_cpp_executable.is_file());
+
+        let number_of_pending_programs: usize = self.paths_for_processing.len();
+        let pb = ProgressBar::new(number_of_pending_programs as u64);
+
+        let mut candidate_programs = Vec::<CandidateProgram>::with_capacity(number_of_pending_programs);
         for path in &self.paths_for_processing {
             assert!(path.is_absolute());
             assert!(path.is_file());
-            
+
             let output = Command::new(&loda_cpp_executable)
                 .arg("eval")
                 .arg(path)
@@ -67,11 +77,28 @@ impl SubcommandPostMine {
                 .output()
                 .expect("failed to execute process: loda-cpp");
 
-            println!("status: {}", output.status);
-            println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
-            println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
-            break;
+            let output_stdout: String = String::from_utf8_lossy(&output.stdout).to_string();
+            let trimmed_output: String = output_stdout.trim_end().to_string();
+
+            // println!("status: {}", output.status);
+            // println!("stdout: {:?}", trimmed_output);
+            // println!("stderr: {:?}", String::from_utf8_lossy(&output.stderr));
+
+            let candidate_program = CandidateProgram::new(
+                PathBuf::from(path),
+                trimmed_output,
+            );
+            candidate_programs.push(candidate_program);
+            pb.inc(1);
         }
+        pb.finish_and_clear();
+    
+        let green_bold = Style::new().green().bold();        
+        println!(
+            "{:>12} Ran loda-cpp with pending programs, in {}",
+            green_bold.apply_to("Finished"),
+            HumanDuration(start.elapsed())
+        );
     }
 }
 
