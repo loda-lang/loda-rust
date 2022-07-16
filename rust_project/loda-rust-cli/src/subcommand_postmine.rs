@@ -1,7 +1,7 @@
 //! The `loda-rust postmine` subcommand, checks the mined programs for correctness and performance.
 use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
-use crate::postmine::{CandidateProgram, find_pending_programs};
+use crate::postmine::{CandidateProgram, find_pending_programs, PathUtil};
 use std::error::Error;
 use std::path::PathBuf;
 use std::collections::HashSet;
