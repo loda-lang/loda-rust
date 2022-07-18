@@ -76,7 +76,7 @@ impl SubcommandPostMine {
 
             let output = Command::new(&loda_cpp_executable)
                 .arg("eval")
-                .arg(candidate_program.path())
+                .arg(candidate_program.path_original())
                 .arg("-t")
                 .arg("40")
                 .output()

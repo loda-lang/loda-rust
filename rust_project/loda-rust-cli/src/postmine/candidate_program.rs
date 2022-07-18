@@ -1,11 +1,13 @@
-use crate::postmine::PostMineError;
+use crate::postmine::{PathUtil, PostMineError};
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fmt;
 use std::path::{Path, PathBuf};
 
 pub struct CandidateProgram {
-    path: PathBuf,
+    path_original: PathBuf,
+    path_keep: PathBuf,
+    path_reject: PathBuf,
     id_string: String,
     terms40: Option<String>,
 }
@@ -19,7 +21,9 @@ impl CandidateProgram {
         let id_string: String = id_osstr.to_string_lossy().to_string();
 
         let instance = Self {
-            path: PathBuf::from(path),
+            path_original: PathBuf::from(path),
+            path_keep: PathUtil::path_keep(path),
+            path_reject: PathUtil::path_reject(path),
             id_string: id_string,
             terms40: None,
         };
@@ -34,8 +38,16 @@ impl CandidateProgram {
         self.terms40 = Some(terms40);
     }
 
-    pub fn path(&self) -> &Path {
-        &self.path
+    pub fn path_original(&self) -> &Path {
+        &self.path_original
+    }
+
+    pub fn path_reject(&self) -> &Path {
+        &self.path_reject
+    }
+
+    pub fn path_keep(&self) -> &Path {
+        &self.path_keep
     }
 }
 
