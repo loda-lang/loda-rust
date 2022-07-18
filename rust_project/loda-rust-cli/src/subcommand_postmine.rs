@@ -65,6 +65,8 @@ impl SubcommandPostMine {
         let pb = ProgressBar::new(number_of_pending_programs as u64);
 
         let mut candidate_programs = Vec::<CandidateProgram>::with_capacity(number_of_pending_programs);
+        let mut count_success: usize = 0;
+        let mut count_failure: usize = 0;
         for path in &self.paths_for_processing {
             assert!(path.is_absolute());
             assert!(path.is_file());
@@ -79,11 +81,19 @@ impl SubcommandPostMine {
 
             let output_stdout: String = String::from_utf8_lossy(&output.stdout).to_string();
             let trimmed_output: String = output_stdout.trim_end().to_string();
-
             // println!("status: {}", output.status);
             // println!("stdout: {:?}", trimmed_output);
             // println!("stderr: {:?}", String::from_utf8_lossy(&output.stderr));
 
+            if !output.status.success() {
+                let msg = format!("Rejecting '{:?}' Couldn't eval program with loda-cpp, this can happen if the program has a missing dependency.", path.file_name());
+                pb.println(msg);
+                count_failure += 1;
+                pb.inc(1);
+                continue;
+            }
+
+            count_success += 1;
             let candidate_program = CandidateProgram::new(
                 PathBuf::from(path),
                 trimmed_output,
@@ -99,6 +109,9 @@ impl SubcommandPostMine {
             green_bold.apply_to("Finished"),
             HumanDuration(start.elapsed())
         );
+
+        println!("evaluate: count_success: {} count_failure: {}", count_success, count_failure);
+
     }
 }
 
