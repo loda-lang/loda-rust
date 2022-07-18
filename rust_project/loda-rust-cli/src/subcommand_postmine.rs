@@ -89,7 +89,9 @@ impl SubcommandPostMine {
             // println!("stderr: {:?}", String::from_utf8_lossy(&output.stderr));
 
             if !output.status.success() {
-                let msg = format!("Rejecting {} Couldn't eval program with loda-cpp, this can happen if the program has a missing dependency.", candidate_program);
+                let reason = "Couldn't eval program with loda-cpp, this can happen if the program has a missing dependency.";
+                let msg = format!("Rejecting {}, {}", candidate_program, reason);
+                candidate_program.perform_reject(reason)?;
                 pb.println(msg);
                 count_failure += 1;
                 pb.inc(1);
