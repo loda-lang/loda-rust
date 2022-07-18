@@ -54,7 +54,7 @@ impl SubcommandPostMine {
         Ok(())
     }
 
-    fn eval_using_loda_cpp(&self) {
+    fn eval_using_loda_cpp(&self) -> Result<(), Box<dyn Error>> {
         let start = Instant::now();
 
         let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
@@ -65,15 +65,18 @@ impl SubcommandPostMine {
         let pb = ProgressBar::new(number_of_pending_programs as u64);
 
         let mut candidate_programs = Vec::<CandidateProgram>::with_capacity(number_of_pending_programs);
+        for path in &self.paths_for_processing {
+            let candidate_program = CandidateProgram::new(path)?;
+            candidate_programs.push(candidate_program);
+        }
+
         let mut count_success: usize = 0;
         let mut count_failure: usize = 0;
-        for path in &self.paths_for_processing {
-            assert!(path.is_absolute());
-            assert!(path.is_file());
+        for mut candidate_program in candidate_programs {
 
             let output = Command::new(&loda_cpp_executable)
                 .arg("eval")
-                .arg(path)
+                .arg(candidate_program.path())
                 .arg("-t")
                 .arg("40")
                 .output()
@@ -86,7 +89,7 @@ impl SubcommandPostMine {
             // println!("stderr: {:?}", String::from_utf8_lossy(&output.stderr));
 
             if !output.status.success() {
-                let msg = format!("Rejecting '{:?}' Couldn't eval program with loda-cpp, this can happen if the program has a missing dependency.", path.file_name());
+                let msg = format!("Rejecting {} Couldn't eval program with loda-cpp, this can happen if the program has a missing dependency.", candidate_program);
                 pb.println(msg);
                 count_failure += 1;
                 pb.inc(1);
@@ -94,11 +97,7 @@ impl SubcommandPostMine {
             }
 
             count_success += 1;
-            let candidate_program = CandidateProgram::new(
-                PathBuf::from(path),
-                trimmed_output,
-            );
-            candidate_programs.push(candidate_program);
+            candidate_program.update_terms40(trimmed_output);
             pb.inc(1);
         }
         pb.finish_and_clear();
@@ -111,7 +110,7 @@ impl SubcommandPostMine {
         );
 
         println!("evaluate: count_success: {} count_failure: {}", count_success, count_failure);
-
+        Ok(())
     }
 }
 
@@ -126,7 +125,7 @@ pub fn subcommand_postmine() -> Result<(), Box<dyn Error>> {
     instance.obtain_invalid_program_ids()?;
     println!("Number of programs in invalid programs id.csv: {}", instance.invalid_program_ids_hashset.len());
 
-    instance.eval_using_loda_cpp();
+    instance.eval_using_loda_cpp()?;
 
     Ok(())
 }

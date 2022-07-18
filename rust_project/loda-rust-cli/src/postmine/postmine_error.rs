@@ -4,6 +4,7 @@ use std::fmt;
 #[derive(Debug, PartialEq)]
 pub enum PostMineError {
     NoPendingProgramsInMineEventDir,
+    UnableToExtractFilenameFromPath,
 }
 
 impl fmt::Display for PostMineError {
@@ -11,6 +12,8 @@ impl fmt::Display for PostMineError {
         match self {
             Self::NoPendingProgramsInMineEventDir =>
                 write!(f, "NoPendingProgramsInMineEventDir"),
+            Self::UnableToExtractFilenameFromPath =>
+                write!(f, "UnableToExtractFilenameFromPath"),
         }
     }
 }
