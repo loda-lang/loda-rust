@@ -841,12 +841,11 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure.
-    #[allow(dead_code)]
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
             (MutateGenome::ReplaceInstructionWithHistogram, 50),
-            (MutateGenome::InsertInstructionWithConstant, 100),
+            (MutateGenome::InsertInstructionWithConstant, 200),
             (MutateGenome::ReplaceSourceConstantWithoutHistogram, 1),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 50),
             (MutateGenome::SourceType, 1),
@@ -855,9 +854,9 @@ impl Genome {
             (MutateGenome::ReplaceSourceRegisterWithHistogram, 50),
             (MutateGenome::ReplaceTargetWithoutHistogram, 1),
             (MutateGenome::ReplaceTargetWithHistogram, 50),
-            (MutateGenome::ToggleEnabled, 10),
+            (MutateGenome::ToggleEnabled, 30),
             (MutateGenome::SwapRows, 1),
-            (MutateGenome::SwapAdjacentRows, 20),
+            (MutateGenome::SwapAdjacentRows, 10),
             (MutateGenome::InsertLoopBeginEnd, 0),
             (MutateGenome::CallProgramWeightedByPopularity, 5),
             (MutateGenome::CallMostPopularProgram, 100),
