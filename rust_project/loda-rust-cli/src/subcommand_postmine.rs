@@ -2,10 +2,15 @@
 use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
 use crate::postmine::{CandidateProgram, find_pending_programs, PathUtil};
-use std::error::Error;
-use std::path::PathBuf;
+use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
+use loda_rust_core::util::BigIntVec;
+use num_bigint::{BigInt, ToBigInt};
 use std::collections::HashSet;
+use std::error::Error;
+use std::fs::File;
+use std::io::BufReader;
 use std::iter::FromIterator;
+use std::path::PathBuf;
 use std::process::Command;
 use std::time::Instant;
 use console::Style;
@@ -20,6 +25,9 @@ struct SubcommandPostMine {
 }
 
 impl SubcommandPostMine {
+    const LOOKUP_TERM_COUNT: usize = 40;
+    const MINIMUM_NUMBER_OF_REQUIRED_TERMS: usize = 10;
+
     fn new() -> Self {
         Self {
             config: Config::load(),
@@ -78,12 +86,13 @@ impl SubcommandPostMine {
 
         let mut count_success: usize = 0;
         let mut count_failure: usize = 0;
+        let term_count = Self::LOOKUP_TERM_COUNT.to_string();
         for candidate_program in self.candidate_programs.iter_mut() {
             let output = Command::new(&loda_cpp_executable)
                 .arg("eval")
                 .arg(candidate_program.path_original())
                 .arg("-t")
-                .arg("40")
+                .arg(&term_count)
                 .output()
                 .expect("failed to execute process: loda-cpp");
 
@@ -119,21 +128,57 @@ impl SubcommandPostMine {
         println!("evaluate: count_success: {} count_failure: {}", count_success, count_failure);
         Ok(())
     }
+
+    /// Look up the initial terms in the OEIS `stripped` file and gather the corresponding program ids.
+    fn lookup_in_oeis_stripped_file(&mut self) -> Result<(), Box<dyn Error>> {
+        let start = Instant::now();
+        println!("Looking up in the OEIS 'stripped' file");
+
+        let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
+        assert!(oeis_stripped_file.is_absolute());
+        assert!(oeis_stripped_file.is_file());
+        let file = File::open(oeis_stripped_file)?;
+        let filesize: usize = file.metadata()?.len() as usize;
+        let mut oeis_stripped_file_reader = BufReader::new(file);
+
+        let pb = ProgressBar::new(filesize as u64);
+        let padding_value_i64: i64 = 0xC0FFEE;
+        let padding_value: BigInt = padding_value_i64.to_bigint().unwrap();
+        let process_callback = |stripped_sequence: &StrippedSequence, count_bytes: usize| {
+            pb.set_position(count_bytes as u64);
+            let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
+
+        };
+        let program_ids_to_ignore = HashSet::<u32>::new();
+        let mut stripped_sequence_processor = ProcessStrippedSequenceFile::new();
+        stripped_sequence_processor.execute(
+            &mut oeis_stripped_file_reader,
+            Self::MINIMUM_NUMBER_OF_REQUIRED_TERMS,
+            Self::LOOKUP_TERM_COUNT,
+            &program_ids_to_ignore,
+            &padding_value,
+            process_callback
+        );
+        pb.finish_and_clear();
+    
+        let green_bold = Style::new().green().bold();        
+        println!(
+            "{:>12} Lookups in the OEIS 'stripped' file, in {}",
+            green_bold.apply_to("Finished"),
+            HumanDuration(start.elapsed())
+        );
+
+        Ok(())
+    }
 }
 
 pub fn subcommand_postmine() -> Result<(), Box<dyn Error>> {
     let mut instance = SubcommandPostMine::new();
     instance.obtain_paths_for_processing()?;    
-    println!("Will process {} programs", instance.paths_for_processing.len());
     instance.populate_candidate_programs()?;
-
     instance.obtain_dontmine_program_ids()?;
-    println!("Number of programs in dontmine.csv: {}", instance.dontmine_hashset.len());
-    
     instance.obtain_invalid_program_ids()?;
-    println!("Number of programs in invalid programs id.csv: {}", instance.invalid_program_ids_hashset.len());
-
     instance.eval_using_loda_cpp()?;
-
+    instance.lookup_in_oeis_stripped_file()?;
     Ok(())
 }
