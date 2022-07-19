@@ -14,6 +14,7 @@ use indicatif::{HumanDuration, ProgressBar};
 struct SubcommandPostMine {
     config: Config,
     paths_for_processing: Vec<PathBuf>,
+    candidate_programs: Vec<CandidateProgram>,
     dontmine_hashset: HashSet<u32>,
     invalid_program_ids_hashset: HashSet<u32>,
 }
@@ -23,6 +24,7 @@ impl SubcommandPostMine {
         Self {
             config: Config::load(),
             paths_for_processing: vec!(),
+            candidate_programs: vec!(),
             dontmine_hashset: HashSet::new(),
             invalid_program_ids_hashset: HashSet::new()
         }
@@ -33,6 +35,16 @@ impl SubcommandPostMine {
         let paths_all: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
         let paths_for_processing: Vec<PathBuf> = find_pending_programs(&paths_all, true)?;
         self.paths_for_processing = paths_for_processing;
+        Ok(())
+    }
+
+    fn populate_candidate_programs(&mut self) -> Result<(), Box<dyn Error>> {
+        let mut candidate_programs = Vec::<CandidateProgram>::with_capacity(self.paths_for_processing.len());
+        for path in &self.paths_for_processing {
+            let candidate_program = CandidateProgram::new(path)?;
+            candidate_programs.push(candidate_program);
+        }
+        self.candidate_programs = candidate_programs;
         Ok(())
     }
 
@@ -54,26 +66,19 @@ impl SubcommandPostMine {
         Ok(())
     }
 
-    fn eval_using_loda_cpp(&self) -> Result<(), Box<dyn Error>> {
+    fn eval_using_loda_cpp(&mut self) -> Result<(), Box<dyn Error>> {
         let start = Instant::now();
 
         let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
         assert!(loda_cpp_executable.is_absolute());
         assert!(loda_cpp_executable.is_file());
 
-        let number_of_pending_programs: usize = self.paths_for_processing.len();
+        let number_of_pending_programs: usize = self.candidate_programs.len();
         let pb = ProgressBar::new(number_of_pending_programs as u64);
-
-        let mut candidate_programs = Vec::<CandidateProgram>::with_capacity(number_of_pending_programs);
-        for path in &self.paths_for_processing {
-            let candidate_program = CandidateProgram::new(path)?;
-            candidate_programs.push(candidate_program);
-        }
 
         let mut count_success: usize = 0;
         let mut count_failure: usize = 0;
-        for mut candidate_program in candidate_programs {
-
+        for candidate_program in self.candidate_programs.iter_mut() {
             let output = Command::new(&loda_cpp_executable)
                 .arg("eval")
                 .arg(candidate_program.path_original())
@@ -120,6 +125,7 @@ pub fn subcommand_postmine() -> Result<(), Box<dyn Error>> {
     let mut instance = SubcommandPostMine::new();
     instance.obtain_paths_for_processing()?;    
     println!("Will process {} programs", instance.paths_for_processing.len());
+    instance.populate_candidate_programs()?;
 
     instance.obtain_dontmine_program_ids()?;
     println!("Number of programs in dontmine.csv: {}", instance.dontmine_hashset.len());
