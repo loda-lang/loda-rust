@@ -1,3 +1,4 @@
+use loda_rust_core::util::BigIntVec;
 use crate::postmine::{PathUtil, PostMineError};
 use std::error::Error;
 use std::ffi::OsStr;
@@ -12,7 +13,7 @@ pub struct CandidateProgram {
     path_keep: PathBuf,
     path_reject: PathBuf,
     id_string: String,
-    terms40: Option<String>,
+    lodacpp_terms: BigIntVec,
 }
 
 impl CandidateProgram {
@@ -28,7 +29,7 @@ impl CandidateProgram {
             path_keep: PathUtil::path_keep(path),
             path_reject: PathUtil::path_reject(path),
             id_string: id_string,
-            terms40: None,
+            lodacpp_terms: vec!(),
         };
         Ok(instance)
     }
@@ -37,8 +38,8 @@ impl CandidateProgram {
         &self.id_string
     }
 
-    pub fn update_terms40(&mut self, terms40: String) {
-        self.terms40 = Some(terms40);
+    pub fn update_lodacpp_terms(&mut self, terms: BigIntVec) {
+        self.lodacpp_terms = terms;
     }
 
     pub fn path_original(&self) -> &Path {

@@ -103,9 +103,8 @@ impl SubcommandPostMine {
                 }
             };
 
-            let terms: String = evalok.stdout().to_string();
             count_success += 1;
-            candidate_program.update_terms40(terms);
+            candidate_program.update_lodacpp_terms(evalok.terms().clone());
             pb.inc(1);
         }
         pb.finish_and_clear();
