@@ -14,6 +14,7 @@ pub struct CandidateProgram {
     path_reject: PathBuf,
     id_string: String,
     lodacpp_terms: BigIntVec,
+    oeis_ids: Vec<u32>,
 }
 
 impl CandidateProgram {
@@ -30,6 +31,7 @@ impl CandidateProgram {
             path_reject: PathUtil::path_reject(path),
             id_string: id_string,
             lodacpp_terms: vec!(),
+            oeis_ids: vec!(),
         };
         Ok(instance)
     }
@@ -40,6 +42,14 @@ impl CandidateProgram {
 
     pub fn update_lodacpp_terms(&mut self, terms: BigIntVec) {
         self.lodacpp_terms = terms;
+    }
+
+    pub fn lodacpp_terms(&self) -> &BigIntVec {
+        &self.lodacpp_terms
+    }
+
+    pub fn append_oeis_id(&mut self, oeis_id: u32) {
+        self.oeis_ids.push(oeis_id);
     }
 
     pub fn path_original(&self) -> &Path {

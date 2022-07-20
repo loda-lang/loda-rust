@@ -135,10 +135,19 @@ impl SubcommandPostMine {
         let pb = ProgressBar::new(filesize as u64);
         let padding_value_i64: i64 = 0xC0FFEE;
         let padding_value: BigInt = padding_value_i64.to_bigint().unwrap();
+        let mut number_of_prefix_matches: usize = 0;
         let process_callback = |stripped_sequence: &StrippedSequence, count_bytes: usize| {
             pb.set_position(count_bytes as u64);
             let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
-
+            for candidate_program in self.candidate_programs.iter_mut() {
+                let terms: &BigIntVec = candidate_program.lodacpp_terms();
+                if terms.starts_with(all_vec) {
+                    // let s = format!("program: {} is possible match with A{}  number of identical terms: {}", candidate_program, stripped_sequence.sequence_number, all_vec.len());
+                    // pb.println(s);
+                    candidate_program.append_oeis_id(stripped_sequence.sequence_number);
+                    number_of_prefix_matches += 1;
+                }
+            }
         };
         let program_ids_to_ignore = HashSet::<u32>::new();
         let mut stripped_sequence_processor = ProcessStrippedSequenceFile::new();
@@ -148,6 +157,7 @@ impl SubcommandPostMine {
             Self::LOOKUP_TERM_COUNT,
             &program_ids_to_ignore,
             &padding_value,
+            false,
             process_callback
         );
         pb.finish_and_clear();
@@ -158,6 +168,8 @@ impl SubcommandPostMine {
             green_bold.apply_to("Finished"),
             HumanDuration(start.elapsed())
         );
+
+        println!("stripped file: number_of_prefix_matches: {}", number_of_prefix_matches);
 
         Ok(())
     }
