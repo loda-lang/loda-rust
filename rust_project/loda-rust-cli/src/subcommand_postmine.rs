@@ -1,9 +1,10 @@
 //! The `loda-rust postmine` subcommand, checks the mined programs for correctness and performance.
 use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
-use crate::postmine::{CandidateProgram, find_pending_programs, PathUtil};
+use crate::postmine::{CandidateProgram, find_pending_programs};
 use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
-use loda_rust_core::util::BigIntVec;
+use crate::lodacpp::{LodaCpp, LodaCppEvalError, LodaCppEvalOk};
+use loda_rust_core::util::{BigIntVec, BigIntVecToString};
 use num_bigint::{BigInt, ToBigInt};
 use std::collections::HashSet;
 use std::error::Error;
@@ -11,7 +12,6 @@ use std::fs::File;
 use std::io::BufReader;
 use std::iter::FromIterator;
 use std::path::PathBuf;
-use std::process::Command;
 use std::time::Instant;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
@@ -78,42 +78,34 @@ impl SubcommandPostMine {
         let start = Instant::now();
 
         let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
-        assert!(loda_cpp_executable.is_absolute());
-        assert!(loda_cpp_executable.is_file());
+        let lodacpp = LodaCpp::new(loda_cpp_executable);
 
         let number_of_pending_programs: usize = self.candidate_programs.len();
         let pb = ProgressBar::new(number_of_pending_programs as u64);
 
         let mut count_success: usize = 0;
         let mut count_failure: usize = 0;
-        let term_count = Self::LOOKUP_TERM_COUNT.to_string();
         for candidate_program in self.candidate_programs.iter_mut() {
-            let output = Command::new(&loda_cpp_executable)
-                .arg("eval")
-                .arg(candidate_program.path_original())
-                .arg("-t")
-                .arg(&term_count)
-                .output()
-                .expect("failed to execute process: loda-cpp");
+            let result = lodacpp.eval_with_path(
+                Self::LOOKUP_TERM_COUNT, 
+                &candidate_program.path_original()
+            );
+            let evalok: LodaCppEvalOk = match result {
+                Ok(value) => value,
+                Err(_error) => {
+                    let reason = "Couldn't eval program with loda-cpp, this can happen if the program has a missing dependency.";
+                    let msg = format!("Rejecting {}, {}", candidate_program, reason);
+                    candidate_program.perform_reject(reason)?;
+                    pb.println(msg);
+                    count_failure += 1;
+                    pb.inc(1);
+                    continue;
+                }
+            };
 
-            let output_stdout: String = String::from_utf8_lossy(&output.stdout).to_string();
-            let trimmed_output: String = output_stdout.trim_end().to_string();
-            // println!("status: {}", output.status);
-            // println!("stdout: {:?}", trimmed_output);
-            // println!("stderr: {:?}", String::from_utf8_lossy(&output.stderr));
-
-            if !output.status.success() {
-                let reason = "Couldn't eval program with loda-cpp, this can happen if the program has a missing dependency.";
-                let msg = format!("Rejecting {}, {}", candidate_program, reason);
-                candidate_program.perform_reject(reason)?;
-                pb.println(msg);
-                count_failure += 1;
-                pb.inc(1);
-                continue;
-            }
-
+            let terms: String = evalok.stdout().to_string();
             count_success += 1;
-            candidate_program.update_terms40(trimmed_output);
+            candidate_program.update_terms40(terms);
             pb.inc(1);
         }
         pb.finish_and_clear();
