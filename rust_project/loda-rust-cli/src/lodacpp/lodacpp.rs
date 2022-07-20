@@ -17,6 +17,9 @@ impl LodaCpp {
     }
 
     pub fn eval_with_path(&self, term_count: usize, loda_program_path: &Path) -> Result<LodaCppEvalOk, LodaCppEvalError> {
+        assert!(loda_program_path.is_absolute());
+        assert!(loda_program_path.is_file());
+        
         let output = Command::new(&self.loda_cpp_executable)
             .arg("eval")
             .arg(loda_program_path)
