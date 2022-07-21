@@ -8,7 +8,15 @@ use std::fs;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum State {
+    PendingProcessing,
+    Keep,
+    Reject,
+}
+
 pub struct CandidateProgram {
+    state: State,
     path_original: PathBuf,
     path_keep: PathBuf,
     path_reject: PathBuf,
@@ -26,6 +34,7 @@ impl CandidateProgram {
         let id_string: String = id_osstr.to_string_lossy().to_string();
 
         let instance = Self {
+            state: State::PendingProcessing,
             path_original: PathBuf::from(path),
             path_keep: PathUtil::path_keep(path),
             path_reject: PathUtil::path_reject(path),
@@ -38,6 +47,10 @@ impl CandidateProgram {
 
     pub fn id_string(&self) -> &String {
         &self.id_string
+    }
+
+    pub fn state(&self) -> State {
+        self.state
     }
 
     pub fn update_lodacpp_terms(&mut self, terms: BigIntVec) {
@@ -64,23 +77,31 @@ impl CandidateProgram {
         &self.path_keep
     }
 
-    pub fn perform_reject<I: AsRef<str>>(&self, reason_reject: I) -> Result<(), Box<dyn Error>> {
+    pub fn perform_reject<I: AsRef<str>>(&mut self, reason_reject: I) -> Result<(), Box<dyn Error>> {
+        if self.state != State::PendingProcessing {
+            return Err(Box::new(PostMineError::CannotMutateCandidateProgramWithAlreadyResolvedState));
+        }
         fs::rename(&self.path_original, &self.path_reject)?;
         let mut file = OpenOptions::new()
             .write(true)
             .append(true)
             .open(&self.path_reject)?;
         writeln!(file, "\n; reject-reason: {}", reason_reject.as_ref())?;
+        self.state = State::Reject;
         Ok(())
     }
 
-    pub fn perform_keep<I: AsRef<str>>(&self, reason_keep: I) -> Result<(), Box<dyn Error>> {
+    pub fn perform_keep<I: AsRef<str>>(&mut self, reason_keep: I) -> Result<(), Box<dyn Error>> {
+        if self.state != State::PendingProcessing {
+            return Err(Box::new(PostMineError::CannotMutateCandidateProgramWithAlreadyResolvedState));
+        }
         fs::rename(&self.path_original, &self.path_keep)?;
         let mut file = OpenOptions::new()
             .write(true)
             .append(true)
             .open(&self.path_keep)?;
         writeln!(file, "\n; keep-reason: {}", reason_keep.as_ref())?;
+        self.state = State::Keep;
         Ok(())
     }
 }
@@ -118,7 +139,7 @@ add $0,$1
         let mut input_file = File::create(&input_path)?;
         input_file.write_all(input_content.as_bytes())?;
         input_file.sync_all()?;
-        let candidate_program: CandidateProgram = CandidateProgram::new(&input_path)?;
+        let mut candidate_program: CandidateProgram = CandidateProgram::new(&input_path)?;
 
         // Act
         candidate_program.perform_reject("REJECT-REASON")?;
@@ -150,7 +171,7 @@ add $0,$1
         let mut input_file = File::create(&input_path)?;
         input_file.write_all(input_content.as_bytes())?;
         input_file.sync_all()?;
-        let candidate_program: CandidateProgram = CandidateProgram::new(&input_path)?;
+        let mut candidate_program: CandidateProgram = CandidateProgram::new(&input_path)?;
 
         // Act
         candidate_program.perform_keep("KEEP-REASON")?;

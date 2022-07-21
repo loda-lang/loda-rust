@@ -5,6 +5,7 @@ use std::fmt;
 pub enum PostMineError {
     NoPendingProgramsInMineEventDir,
     UnableToExtractFilenameFromPath,
+    CannotMutateCandidateProgramWithAlreadyResolvedState,
 }
 
 impl fmt::Display for PostMineError {
@@ -14,6 +15,8 @@ impl fmt::Display for PostMineError {
                 write!(f, "NoPendingProgramsInMineEventDir"),
             Self::UnableToExtractFilenameFromPath =>
                 write!(f, "UnableToExtractFilenameFromPath"),
+            Self::CannotMutateCandidateProgramWithAlreadyResolvedState =>
+                write!(f, "CannotMutateCandidateProgramWithAlreadyResolvedState"),
         }
     }
 }

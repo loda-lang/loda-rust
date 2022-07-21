@@ -1,7 +1,7 @@
 //! The `loda-rust postmine` subcommand, checks the mined programs for correctness and performance.
 use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
-use crate::postmine::{CandidateProgram, find_pending_programs};
+use crate::postmine::{CandidateProgram, find_pending_programs, State};
 use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
 use crate::lodacpp::{LodaCpp, LodaCppEvalError, LodaCppEvalOk};
 use loda_rust_core::util::{BigIntVec, BigIntVecToString};
@@ -173,6 +173,40 @@ impl SubcommandPostMine {
 
         Ok(())
     }
+
+    fn process_candidate_program(&self, pending_program: &CandidateProgram) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+
+    fn process_candidate_programs(&self) -> Result<(), Box<dyn Error>> {
+        let start = Instant::now();
+
+        let pending_programs: Vec<&CandidateProgram> = self.candidate_programs
+            .iter()
+            .filter(|candidate_program| candidate_program.state() == State::PendingProcessing)
+            .collect();
+        if pending_programs.is_empty() {
+            println!("no candidate programs to process");
+            return Ok(());
+        }
+
+        println!("Process pending programs");
+
+        let pb = ProgressBar::new(pending_programs.len() as u64);
+        for program in pending_programs {
+            self.process_candidate_program(program)?;
+            pb.inc(1);
+        }
+        pb.finish_and_clear();
+    
+        let green_bold = Style::new().green().bold();        
+        println!(
+            "{:>12} Processed all pending programs, in {}",
+            green_bold.apply_to("Finished"),
+            HumanDuration(start.elapsed())
+        );
+        Ok(())
+    }
 }
 
 pub fn subcommand_postmine() -> Result<(), Box<dyn Error>> {
@@ -183,5 +217,6 @@ pub fn subcommand_postmine() -> Result<(), Box<dyn Error>> {
     instance.obtain_invalid_program_ids()?;
     instance.eval_using_loda_cpp()?;
     instance.lookup_in_oeis_stripped_file()?;
+    instance.process_candidate_programs()?;
     Ok(())
 }
