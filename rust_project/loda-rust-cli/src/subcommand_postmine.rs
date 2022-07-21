@@ -171,10 +171,19 @@ impl SubcommandPostMine {
 
         println!("stripped file: number_of_prefix_matches: {}", number_of_prefix_matches);
 
-        Ok(())
-    }
+        // Reject programs that has not been assigned any OEIS ids
+        let programs_without_oeis_ids: Vec<&mut CandidateProgram> = self.candidate_programs
+            .iter_mut()
+            .filter(|candidate_program| candidate_program.is_oeis_ids_empty())
+            .collect();
+        if !programs_without_oeis_ids.is_empty() {
+            println!("number of programs without an oeis id: {}", programs_without_oeis_ids.len());
+        }
+        for candidate_program in programs_without_oeis_ids {
+            debug!("Rejected {}, where terms cannot be found in OEIS 'stripped' file", candidate_program);
+            candidate_program.perform_reject("Terms cannot be found in OEIS 'stripped' file")?;
+        }
 
-    fn process_candidate_program(&self, pending_program: &CandidateProgram) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 
@@ -205,6 +214,10 @@ impl SubcommandPostMine {
             green_bold.apply_to("Finished"),
             HumanDuration(start.elapsed())
         );
+        Ok(())
+    }
+
+    fn process_candidate_program(&self, pending_program: &CandidateProgram) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 }

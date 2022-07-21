@@ -65,6 +65,10 @@ impl CandidateProgram {
         self.oeis_ids.push(oeis_id);
     }
 
+    pub fn is_oeis_ids_empty(&self) -> bool {
+        self.oeis_ids.is_empty()
+    }
+
     pub fn path_original(&self) -> &Path {
         &self.path_original
     }
