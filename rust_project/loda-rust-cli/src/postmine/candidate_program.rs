@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
+use std::collections::HashSet;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum State {
@@ -22,7 +23,7 @@ pub struct CandidateProgram {
     path_reject: PathBuf,
     id_string: String,
     lodacpp_terms: BigIntVec,
-    oeis_ids: Vec<u32>,
+    oeis_ids: HashSet::<u32>,
 }
 
 impl CandidateProgram {
@@ -40,7 +41,7 @@ impl CandidateProgram {
             path_reject: PathUtil::path_reject(path),
             id_string: id_string,
             lodacpp_terms: vec!(),
-            oeis_ids: vec!(),
+            oeis_ids: HashSet::new(),
         };
         Ok(instance)
     }
@@ -62,11 +63,21 @@ impl CandidateProgram {
     }
 
     pub fn append_oeis_id(&mut self, oeis_id: u32) {
-        self.oeis_ids.push(oeis_id);
+        self.oeis_ids.insert(oeis_id);
     }
 
     pub fn is_oeis_ids_empty(&self) -> bool {
         self.oeis_ids.is_empty()
+    }
+
+    pub fn oeis_ids(&self) -> &HashSet<u32> {
+        &self.oeis_ids
+    }
+
+    pub fn oeis_id_vec(&self) -> Vec<u32> {
+        let mut program_ids_sorted: Vec<u32> = self.oeis_ids.clone().into_iter().collect();
+        program_ids_sorted.sort();
+        program_ids_sorted
     }
 
     pub fn path_original(&self) -> &Path {
