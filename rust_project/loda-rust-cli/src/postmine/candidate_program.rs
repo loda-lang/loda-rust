@@ -24,6 +24,7 @@ pub struct CandidateProgram {
     id_string: String,
     lodacpp_terms: BigIntVec,
     oeis_ids: HashSet::<u32>,
+    keep_program_ids: HashSet::<u32>,
 }
 
 impl CandidateProgram {
@@ -42,6 +43,7 @@ impl CandidateProgram {
             id_string: id_string,
             lodacpp_terms: vec!(),
             oeis_ids: HashSet::new(),
+            keep_program_ids: HashSet::new(),
         };
         Ok(instance)
     }
@@ -70,6 +72,7 @@ impl CandidateProgram {
         self.oeis_ids.is_empty()
     }
 
+    #[allow(dead_code)]
     pub fn oeis_ids(&self) -> &HashSet<u32> {
         &self.oeis_ids
     }
@@ -78,6 +81,26 @@ impl CandidateProgram {
         let mut program_ids_sorted: Vec<u32> = self.oeis_ids.clone().into_iter().collect();
         program_ids_sorted.sort();
         program_ids_sorted
+    }
+
+    pub fn keep_program_ids_insert(&mut self, program_id: u32) {
+        self.keep_program_ids.insert(program_id);
+    }
+
+    pub fn is_keep_program_ids_empty(&self) -> bool {
+        self.keep_program_ids.is_empty()
+    }
+
+    pub fn keep_program_id_vec(&self) -> Vec<u32> {
+        let mut program_ids_sorted: Vec<u32> = self.keep_program_ids.clone().into_iter().collect();
+        program_ids_sorted.sort();
+        program_ids_sorted
+    }
+
+    pub fn keep_program_ids_as_string(&self) -> String {
+        let program_ids: Vec<u32> = self.keep_program_id_vec();
+        let strings: Vec<String> = program_ids.iter().map(|program_id| format!("A{:0>6}", program_id)).collect();
+        strings.join(",")
     }
 
     pub fn path_original(&self) -> &Path {
@@ -118,6 +141,18 @@ impl CandidateProgram {
         writeln!(file, "\n; keep-reason: {}", reason_keep.as_ref())?;
         self.state = State::Keep;
         Ok(())
+    }
+
+    pub fn perform_keep_or_reject_based_result(&mut self) -> Result<(), Box<dyn Error>> {
+        if self.is_keep_program_ids_empty() {
+            self.perform_reject("Doesn't correspond to any known OEIS sequence")?;
+            return Ok(());
+        } else {
+            let keep_program_ids: String = self.keep_program_ids_as_string();
+            let keep_reason: String = format!("Corresponds to: {}", keep_program_ids);
+            self.perform_keep(keep_reason)?;
+            return Ok(())
+        }
     }
 }
 

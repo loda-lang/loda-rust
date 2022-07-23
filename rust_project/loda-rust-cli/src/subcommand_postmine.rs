@@ -175,7 +175,7 @@ impl SubcommandPostMine {
             HumanDuration(start.elapsed())
         );
 
-        println!("stripped file: number_of_prefix_matches: {}", number_of_prefix_matches);
+        debug!("stripped file: number_of_prefix_matches: {}", number_of_prefix_matches);
 
         // Reject programs that has not been assigned any OEIS ids
         let programs_without_oeis_ids: Vec<CandidateProgramItem> = self.candidate_programs
@@ -204,43 +204,44 @@ impl SubcommandPostMine {
             .map(|x| x.clone())
             .collect();
         if pending_programs.is_empty() {
-            println!("no candidate programs to process");
+            println!("There are no pending programs in the 'mine-event' dir. Stopping.");
             return Ok(());
         }
 
-        println!("Process pending programs");
+        let mut number_of_program_ids_to_be_analyzed: usize = 0;
+        for program in &pending_programs {
+            number_of_program_ids_to_be_analyzed += program.borrow().oeis_ids().len();
+        }
+        if number_of_program_ids_to_be_analyzed == 0 {
+            println!("There are no program ids to be analyzed. Stopping.");
+            return Ok(());
+        }
 
-        let pb = ProgressBar::new(pending_programs.len() as u64);
-        for program in pending_programs {
-            self.process_candidate_program(program)?;
-            pb.inc(1);
+        println!("Analyzing {} program ids", number_of_program_ids_to_be_analyzed);
+        let pb = ProgressBar::new(number_of_program_ids_to_be_analyzed as u64);
+        for candidate_program in pending_programs {
+            let possible_program_ids: Vec<u32> = candidate_program.borrow().oeis_id_vec();
+            for program_id in possible_program_ids {
+                self.analyze_candidate(candidate_program.clone(), program_id, pb.clone())?;
+                pb.inc(1);
+            }
+            candidate_program.borrow_mut().perform_keep_or_reject_based_result()?;
         }
         pb.finish_and_clear();
     
         let green_bold = Style::new().green().bold();        
         println!(
-            "{:>12} Processed all pending programs, in {}",
+            "{:>12} Analyzed pending programs, in {}",
             green_bold.apply_to("Finished"),
             HumanDuration(start.elapsed())
         );
         Ok(())
     }
 
-    fn process_candidate_program(&mut self, candidate_program: CandidateProgramItem) -> Result<(), Box<dyn Error>> {
-        let program_ids: Vec<u32> = candidate_program.borrow().oeis_id_vec();
-        if program_ids.is_empty() {
-            debug!("Rejected {}, where terms could not be found in OEIS 'stripped' file", candidate_program.borrow());
-            candidate_program.borrow_mut().perform_reject("process_candidate_program, Doesn't share initial terms with any sequence in the OEIS 'stripped' file.")?;
-            return Ok(());
-        }
-
-        for program_id in program_ids {
-            self.analyze_candidate(candidate_program.clone(), program_id)?;
-        }
-        Ok(())
-    }
-
-    fn analyze_candidate(&mut self, pending_program: CandidateProgramItem, program_id: u32) -> Result<(), Box<dyn Error>> {
+    fn analyze_candidate(&mut self, candidate_program: CandidateProgramItem, program_id: u32, progressbar: ProgressBar) -> Result<(), Box<dyn Error>> {
+        let oeis_id: String = format!("A{:0>6}", program_id);
+        let message = format!("analyzing {}, checking if it's {}", candidate_program.borrow(), oeis_id);
+        progressbar.println(message);
         Ok(())
     }
 }
