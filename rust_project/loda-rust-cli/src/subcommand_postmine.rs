@@ -13,13 +13,17 @@ use std::io::BufReader;
 use std::iter::FromIterator;
 use std::path::PathBuf;
 use std::time::Instant;
+use std::rc::Rc;
+use core::cell::RefCell;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
+
+type CandidateProgramItem = Rc<RefCell<CandidateProgram>>;
 
 struct SubcommandPostMine {
     config: Config,
     paths_for_processing: Vec<PathBuf>,
-    candidate_programs: Vec<CandidateProgram>,
+    candidate_programs: Vec<CandidateProgramItem>,
     dontmine_hashset: HashSet<u32>,
     invalid_program_ids_hashset: HashSet<u32>,
 }
@@ -47,10 +51,11 @@ impl SubcommandPostMine {
     }
 
     fn populate_candidate_programs(&mut self) -> Result<(), Box<dyn Error>> {
-        let mut candidate_programs = Vec::<CandidateProgram>::with_capacity(self.paths_for_processing.len());
+        let mut candidate_programs = Vec::<CandidateProgramItem>::with_capacity(self.paths_for_processing.len());
         for path in &self.paths_for_processing {
             let candidate_program = CandidateProgram::new(path)?;
-            candidate_programs.push(candidate_program);
+            let candidate_program_item = Rc::new(RefCell::new(candidate_program));
+            candidate_programs.push(candidate_program_item);
         }
         self.candidate_programs = candidate_programs;
         Ok(())
@@ -88,14 +93,14 @@ impl SubcommandPostMine {
         for candidate_program in self.candidate_programs.iter_mut() {
             let result = lodacpp.eval_with_path(
                 Self::LOOKUP_TERM_COUNT, 
-                &candidate_program.path_original()
+                candidate_program.borrow().path_original()
             );
             let evalok: LodaCppEvalOk = match result {
                 Ok(value) => value,
                 Err(_error) => {
                     let reason = "Couldn't eval program with loda-cpp, this can happen if the program has a missing dependency.";
-                    let msg = format!("Rejecting {}, {}", candidate_program, reason);
-                    candidate_program.perform_reject(reason)?;
+                    let msg = format!("Rejecting {}, {}", candidate_program.borrow(), reason);
+                    candidate_program.borrow_mut().perform_reject(reason)?;
                     pb.println(msg);
                     count_failure += 1;
                     pb.inc(1);
@@ -104,7 +109,7 @@ impl SubcommandPostMine {
             };
 
             count_success += 1;
-            candidate_program.update_lodacpp_terms(evalok.terms().clone());
+            candidate_program.borrow_mut().update_lodacpp_terms(evalok.terms().clone());
             pb.inc(1);
         }
         pb.finish_and_clear();
@@ -140,11 +145,12 @@ impl SubcommandPostMine {
             pb.set_position(count_bytes as u64);
             let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
             for candidate_program in self.candidate_programs.iter_mut() {
-                let terms: &BigIntVec = candidate_program.lodacpp_terms();
+                let mut candidate_program_mut = candidate_program.borrow_mut();
+                let terms: &BigIntVec = candidate_program_mut.lodacpp_terms();
                 if terms.starts_with(all_vec) {
                     // let s = format!("program: {} is possible match with A{}  number of identical terms: {}", candidate_program, stripped_sequence.sequence_number, all_vec.len());
                     // pb.println(s);
-                    candidate_program.append_oeis_id(stripped_sequence.sequence_number);
+                    candidate_program_mut.append_oeis_id(stripped_sequence.sequence_number);
                     number_of_prefix_matches += 1;
                 }
             }
@@ -172,27 +178,30 @@ impl SubcommandPostMine {
         println!("stripped file: number_of_prefix_matches: {}", number_of_prefix_matches);
 
         // Reject programs that has not been assigned any OEIS ids
-        let programs_without_oeis_ids: Vec<&mut CandidateProgram> = self.candidate_programs
-            .iter_mut()
-            .filter(|candidate_program| candidate_program.is_oeis_ids_empty())
+        let programs_without_oeis_ids: Vec<CandidateProgramItem> = self.candidate_programs
+            .iter()
+            .filter(|candidate_program| candidate_program.borrow().is_oeis_ids_empty())
+            .map(|x| x.clone())
             .collect();
+
         if !programs_without_oeis_ids.is_empty() {
             println!("number of programs without an oeis id: {}", programs_without_oeis_ids.len());
         }
         for candidate_program in programs_without_oeis_ids {
-            debug!("Rejected {}, where terms cannot be found in OEIS 'stripped' file", candidate_program);
-            candidate_program.perform_reject("Terms cannot be found in OEIS 'stripped' file")?;
+            debug!("Rejected {}, where terms cannot be found in OEIS 'stripped' file", candidate_program.borrow());
+            candidate_program.borrow_mut().perform_reject("lookup_in_oeis_stripped_file, Terms cannot be found in OEIS 'stripped' file")?;
         }
 
         Ok(())
     }
 
-    fn process_candidate_programs(&self) -> Result<(), Box<dyn Error>> {
+    fn process_candidate_programs(&mut self) -> Result<(), Box<dyn Error>> {
         let start = Instant::now();
 
-        let pending_programs: Vec<&CandidateProgram> = self.candidate_programs
+        let pending_programs: Vec<CandidateProgramItem> = self.candidate_programs
             .iter()
-            .filter(|candidate_program| candidate_program.state() == State::PendingProcessing)
+            .filter(|candidate_program| candidate_program.borrow().state() == State::PendingProcessing)
+            .map(|x| x.clone())
             .collect();
         if pending_programs.is_empty() {
             println!("no candidate programs to process");
@@ -217,7 +226,13 @@ impl SubcommandPostMine {
         Ok(())
     }
 
-    fn process_candidate_program(&self, pending_program: &CandidateProgram) -> Result<(), Box<dyn Error>> {
+    fn process_candidate_program(&mut self, candidate_program: CandidateProgramItem) -> Result<(), Box<dyn Error>> {
+        let program_ids: Vec<u32> = candidate_program.borrow().oeis_id_vec();
+        if program_ids.is_empty() {
+            debug!("Rejected {}, where terms could not be found in OEIS 'stripped' file", candidate_program.borrow());
+            candidate_program.borrow_mut().perform_reject("process_candidate_program, Doesn't share initial terms with any sequence in the OEIS 'stripped' file.")?;
+            return Ok(());
+        }
         Ok(())
     }
 }
