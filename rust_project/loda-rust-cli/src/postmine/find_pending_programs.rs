@@ -55,11 +55,11 @@ pub fn find_pending_programs(paths_inside_mineevent_dir: &Vec<PathBuf>, verbose:
         }
     }
     let number_of_paths = paths_for_processing.len();
-    if verbose {
-        println!("Number of pending programs: {}", number_of_paths);
-    }
     if number_of_paths <= 0 {
         return Err(Box::new(PostMineError::NoPendingProgramsInMineEventDir));
+    }
+    if verbose {
+        println!("Number of pending programs: {}", number_of_paths);
     }
     paths_for_processing.sort();
     Ok(paths_for_processing)
