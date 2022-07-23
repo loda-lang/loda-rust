@@ -233,6 +233,14 @@ impl SubcommandPostMine {
             candidate_program.borrow_mut().perform_reject("process_candidate_program, Doesn't share initial terms with any sequence in the OEIS 'stripped' file.")?;
             return Ok(());
         }
+
+        for program_id in program_ids {
+            self.analyze_candidate(candidate_program.clone(), program_id)?;
+        }
+        Ok(())
+    }
+
+    fn analyze_candidate(&mut self, pending_program: CandidateProgramItem, program_id: u32) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 }
