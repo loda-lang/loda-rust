@@ -1,5 +1,6 @@
 use loda_rust_core::util::BigIntVec;
 use crate::postmine::{PathUtil, PostMineError};
+use crate::oeis::OeisId;
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fmt;
@@ -23,7 +24,7 @@ pub struct CandidateProgram {
     path_reject: PathBuf,
     id_string: String,
     lodacpp_terms: BigIntVec,
-    oeis_ids: HashSet::<u32>,
+    oeis_ids: HashSet::<OeisId>,
     keep_program_ids: HashSet::<u32>,
 }
 
@@ -64,7 +65,7 @@ impl CandidateProgram {
         &self.lodacpp_terms
     }
 
-    pub fn append_oeis_id(&mut self, oeis_id: u32) {
+    pub fn append_oeis_id(&mut self, oeis_id: OeisId) {
         self.oeis_ids.insert(oeis_id);
     }
 
@@ -73,12 +74,12 @@ impl CandidateProgram {
     }
 
     #[allow(dead_code)]
-    pub fn oeis_ids(&self) -> &HashSet<u32> {
+    pub fn oeis_ids(&self) -> &HashSet<OeisId> {
         &self.oeis_ids
     }
 
-    pub fn oeis_id_vec(&self) -> Vec<u32> {
-        let mut program_ids_sorted: Vec<u32> = self.oeis_ids.clone().into_iter().collect();
+    pub fn oeis_id_vec(&self) -> Vec<OeisId> {
+        let mut program_ids_sorted: Vec<OeisId> = self.oeis_ids.clone().into_iter().collect();
         program_ids_sorted.sort();
         program_ids_sorted
     }

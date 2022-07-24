@@ -2,7 +2,7 @@
 use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
 use crate::postmine::{CandidateProgram, find_pending_programs, State};
-use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
+use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
 use crate::lodacpp::{LodaCpp, LodaCppEvalError, LodaCppEvalOk};
 use loda_rust_core::util::{BigIntVec, BigIntVecToString};
 use num_bigint::{BigInt, ToBigInt};
@@ -150,7 +150,8 @@ impl SubcommandPostMine {
                 if terms.starts_with(all_vec) {
                     // let s = format!("program: {} is possible match with A{}  number of identical terms: {}", candidate_program, stripped_sequence.sequence_number, all_vec.len());
                     // pb.println(s);
-                    candidate_program_mut.append_oeis_id(stripped_sequence.sequence_number);
+                    let oeis_id = OeisId::from(stripped_sequence.sequence_number);
+                    candidate_program_mut.append_oeis_id(oeis_id);
                     number_of_prefix_matches += 1;
                 }
             }
@@ -220,9 +221,9 @@ impl SubcommandPostMine {
         println!("Analyzing {} program ids", number_of_program_ids_to_be_analyzed);
         let pb = ProgressBar::new(number_of_program_ids_to_be_analyzed as u64);
         for candidate_program in pending_programs {
-            let possible_program_ids: Vec<u32> = candidate_program.borrow().oeis_id_vec();
-            for program_id in possible_program_ids {
-                self.analyze_candidate(candidate_program.clone(), program_id, pb.clone())?;
+            let possible_oeis_ids: Vec<OeisId> = candidate_program.borrow().oeis_id_vec();
+            for possible_oeis_id in possible_oeis_ids {
+                self.analyze_candidate(candidate_program.clone(), possible_oeis_id, pb.clone())?;
                 pb.inc(1);
             }
             candidate_program.borrow_mut().perform_keep_or_reject_based_result()?;
@@ -238,8 +239,7 @@ impl SubcommandPostMine {
         Ok(())
     }
 
-    fn analyze_candidate(&mut self, candidate_program: CandidateProgramItem, program_id: u32, progressbar: ProgressBar) -> Result<(), Box<dyn Error>> {
-        let oeis_id: String = format!("A{:0>6}", program_id);
+    fn analyze_candidate(&mut self, candidate_program: CandidateProgramItem, oeis_id: OeisId, progressbar: ProgressBar) -> Result<(), Box<dyn Error>> {
         let message = format!("analyzing {}, checking if it's {}", candidate_program.borrow(), oeis_id);
         progressbar.println(message);
         Ok(())
