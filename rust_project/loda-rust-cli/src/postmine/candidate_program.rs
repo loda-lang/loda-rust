@@ -24,7 +24,7 @@ pub struct CandidateProgram {
     path_reject: PathBuf,
     id_string: String,
     lodacpp_terms: BigIntVec,
-    oeis_ids: HashSet::<OeisId>,
+    possible_ids: HashSet::<OeisId>,
     keep_program_ids: HashSet::<u32>,
 }
 
@@ -43,7 +43,7 @@ impl CandidateProgram {
             path_reject: PathUtil::path_reject(path),
             id_string: id_string,
             lodacpp_terms: vec!(),
-            oeis_ids: HashSet::new(),
+            possible_ids: HashSet::new(),
             keep_program_ids: HashSet::new(),
         };
         Ok(instance)
@@ -65,21 +65,20 @@ impl CandidateProgram {
         &self.lodacpp_terms
     }
 
-    pub fn append_oeis_id(&mut self, oeis_id: OeisId) {
-        self.oeis_ids.insert(oeis_id);
+    pub fn possible_id_insert(&mut self, oeis_id: OeisId) {
+        self.possible_ids.insert(oeis_id);
     }
 
-    pub fn is_oeis_ids_empty(&self) -> bool {
-        self.oeis_ids.is_empty()
+    pub fn is_possible_ids_empty(&self) -> bool {
+        self.possible_ids.is_empty()
     }
 
-    #[allow(dead_code)]
-    pub fn oeis_ids(&self) -> &HashSet<OeisId> {
-        &self.oeis_ids
+    pub fn possible_ids(&self) -> &HashSet<OeisId> {
+        &self.possible_ids
     }
 
-    pub fn oeis_id_vec(&self) -> Vec<OeisId> {
-        let mut program_ids_sorted: Vec<OeisId> = self.oeis_ids.clone().into_iter().collect();
+    pub fn possible_id_vec(&self) -> Vec<OeisId> {
+        let mut program_ids_sorted: Vec<OeisId> = self.possible_ids.clone().into_iter().collect();
         program_ids_sorted.sort();
         program_ids_sorted
     }

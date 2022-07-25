@@ -151,7 +151,7 @@ impl SubcommandPostMine {
                     // let s = format!("program: {} is possible match with A{}  number of identical terms: {}", candidate_program, stripped_sequence.sequence_number, all_vec.len());
                     // pb.println(s);
                     let oeis_id = OeisId::from(stripped_sequence.sequence_number);
-                    candidate_program_mut.append_oeis_id(oeis_id);
+                    candidate_program_mut.possible_id_insert(oeis_id);
                     number_of_prefix_matches += 1;
                 }
             }
@@ -181,7 +181,7 @@ impl SubcommandPostMine {
         // Reject programs that has not been assigned any OEIS ids
         let programs_without_oeis_ids: Vec<CandidateProgramItem> = self.candidate_programs
             .iter()
-            .filter(|candidate_program| candidate_program.borrow().is_oeis_ids_empty())
+            .filter(|candidate_program| candidate_program.borrow().is_possible_ids_empty())
             .map(|x| x.clone())
             .collect();
 
@@ -211,7 +211,7 @@ impl SubcommandPostMine {
 
         let mut number_of_program_ids_to_be_analyzed: usize = 0;
         for program in &pending_programs {
-            number_of_program_ids_to_be_analyzed += program.borrow().oeis_ids().len();
+            number_of_program_ids_to_be_analyzed += program.borrow().possible_ids().len();
         }
         if number_of_program_ids_to_be_analyzed == 0 {
             println!("There are no program ids to be analyzed. Stopping.");
@@ -221,7 +221,7 @@ impl SubcommandPostMine {
         println!("Analyzing {} program ids", number_of_program_ids_to_be_analyzed);
         let pb = ProgressBar::new(number_of_program_ids_to_be_analyzed as u64);
         for candidate_program in pending_programs {
-            let possible_oeis_ids: Vec<OeisId> = candidate_program.borrow().oeis_id_vec();
+            let possible_oeis_ids: Vec<OeisId> = candidate_program.borrow().possible_id_vec();
             for possible_oeis_id in possible_oeis_ids {
                 self.analyze_candidate(candidate_program.clone(), possible_oeis_id, pb.clone())?;
                 pb.inc(1);
@@ -242,6 +242,7 @@ impl SubcommandPostMine {
     fn analyze_candidate(&mut self, candidate_program: CandidateProgramItem, oeis_id: OeisId, progressbar: ProgressBar) -> Result<(), Box<dyn Error>> {
         let message = format!("analyzing {}, checking if it's {}", candidate_program.borrow(), oeis_id);
         progressbar.println(message);
+        // candidate_program.borrow_mut().keep_program_ids_insert(program_id);
         Ok(())
     }
 }
