@@ -3,7 +3,7 @@ use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
 use crate::postmine::{CandidateProgram, find_pending_programs, State};
 use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
-use crate::lodacpp::{LodaCpp, LodaCppEvalError, LodaCppEvalOk};
+use crate::lodacpp::{LodaCpp, LodaCppEvalWithPath, LodaCppEvalOk};
 use loda_rust_core::util::{BigIntVec, BigIntVecToString};
 use num_bigint::{BigInt, ToBigInt};
 use std::collections::HashSet;
