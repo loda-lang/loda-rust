@@ -140,7 +140,7 @@ impl SubcommandPostMine {
         let pb = ProgressBar::new(filesize as u64);
         let padding_value_i64: i64 = 0xC0FFEE;
         let padding_value: BigInt = padding_value_i64.to_bigint().unwrap();
-        let mut number_of_prefix_matches: usize = 0;
+        let mut number_of_possible_matches: usize = 0;
         let process_callback = |stripped_sequence: &StrippedSequence, count_bytes: usize| {
             pb.set_position(count_bytes as u64);
             let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
@@ -152,7 +152,7 @@ impl SubcommandPostMine {
                     // pb.println(s);
                     let oeis_id = OeisId::from(stripped_sequence.sequence_number);
                     candidate_program_mut.possible_id_insert(oeis_id);
-                    number_of_prefix_matches += 1;
+                    number_of_possible_matches += 1;
                 }
             }
         };
@@ -176,19 +176,19 @@ impl SubcommandPostMine {
             HumanDuration(start.elapsed())
         );
 
-        debug!("stripped file: number_of_prefix_matches: {}", number_of_prefix_matches);
+        debug!("found number of possible matches: {}", number_of_possible_matches);
 
         // Reject programs that has not been assigned any OEIS ids
-        let programs_without_oeis_ids: Vec<CandidateProgramItem> = self.candidate_programs
+        let programs_without_possible_ids: Vec<CandidateProgramItem> = self.candidate_programs
             .iter()
             .filter(|candidate_program| candidate_program.borrow().is_possible_ids_empty())
             .map(|x| x.clone())
             .collect();
 
-        if !programs_without_oeis_ids.is_empty() {
-            println!("number of programs without an oeis id: {}", programs_without_oeis_ids.len());
+        if !programs_without_possible_ids.is_empty() {
+            println!("number of programs without possible ids: {}", programs_without_possible_ids.len());
         }
-        for candidate_program in programs_without_oeis_ids {
+        for candidate_program in programs_without_possible_ids {
             debug!("Rejected {}, where terms cannot be found in OEIS 'stripped' file", candidate_program.borrow());
             candidate_program.borrow_mut().perform_reject("lookup_in_oeis_stripped_file, Terms cannot be found in OEIS 'stripped' file")?;
         }
@@ -221,9 +221,9 @@ impl SubcommandPostMine {
         println!("Analyzing {} program ids", number_of_program_ids_to_be_analyzed);
         let pb = ProgressBar::new(number_of_program_ids_to_be_analyzed as u64);
         for candidate_program in pending_programs {
-            let possible_oeis_ids: Vec<OeisId> = candidate_program.borrow().possible_id_vec();
-            for possible_oeis_id in possible_oeis_ids {
-                self.analyze_candidate(candidate_program.clone(), possible_oeis_id, pb.clone())?;
+            let possible_ids: Vec<OeisId> = candidate_program.borrow().possible_id_vec();
+            for possible_id in possible_ids {
+                self.analyze_candidate(candidate_program.clone(), possible_id, pb.clone())?;
                 pb.inc(1);
             }
             candidate_program.borrow_mut().perform_keep_or_reject_based_result()?;
@@ -239,8 +239,8 @@ impl SubcommandPostMine {
         Ok(())
     }
 
-    fn analyze_candidate(&mut self, candidate_program: CandidateProgramItem, oeis_id: OeisId, progressbar: ProgressBar) -> Result<(), Box<dyn Error>> {
-        let message = format!("analyzing {}, checking if it's {}", candidate_program.borrow(), oeis_id);
+    fn analyze_candidate(&mut self, candidate_program: CandidateProgramItem, possible_id: OeisId, progressbar: ProgressBar) -> Result<(), Box<dyn Error>> {
+        let message = format!("analyzing {}, checking if it's {}", candidate_program.borrow(), possible_id);
         progressbar.println(message);
         // candidate_program.borrow_mut().keep_program_ids_insert(program_id);
         Ok(())
