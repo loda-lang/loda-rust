@@ -3,7 +3,7 @@ use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
 use crate::postmine::{CandidateProgram, find_pending_programs, State};
 use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
-use crate::lodacpp::{LodaCpp, LodaCppEvalWithPath, LodaCppEvalOk};
+use crate::lodacpp::{LodaCpp, LodaCppEvalWithPath, LodaCppEvalOk, LodaCppMinimize};
 use loda_rust_core::util::{BigIntVec, BigIntVecToString};
 use num_bigint::{BigInt, ToBigInt};
 use std::collections::HashSet;
@@ -221,11 +221,14 @@ impl SubcommandPostMine {
         println!("Analyzing {} program ids", number_of_program_ids_to_be_analyzed);
         let pb = ProgressBar::new(number_of_program_ids_to_be_analyzed as u64);
         for candidate_program in pending_programs {
+            self.prepare_minimized_program_for_analysis(candidate_program.clone())?;
+
             let possible_ids: Vec<OeisId> = candidate_program.borrow().possible_id_vec();
             for possible_id in possible_ids {
                 self.analyze_candidate(candidate_program.clone(), possible_id, pb.clone())?;
                 pb.inc(1);
             }
+
             candidate_program.borrow_mut().perform_keep_or_reject_based_result()?;
         }
         pb.finish_and_clear();
@@ -236,6 +239,22 @@ impl SubcommandPostMine {
             green_bold.apply_to("Finished"),
             HumanDuration(start.elapsed())
         );
+        Ok(())
+    }
+
+    fn prepare_minimized_program_for_analysis(&mut self, candidate_program: CandidateProgramItem) -> Result<(), Box<dyn Error>> {
+        let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
+        let lodacpp = LodaCpp::new(loda_cpp_executable);
+        let result = lodacpp.minimize(&candidate_program.borrow().path_original());
+        match result {
+            Ok(value) => {
+                // debug!("minimized program successfully:\n{}", value);
+                candidate_program.borrow_mut().assign_minimized_program(value);
+            },
+            Err(error) => {
+                error!("Unable to minimize program: {:?}", error);
+            }
+        }
         Ok(())
     }
 

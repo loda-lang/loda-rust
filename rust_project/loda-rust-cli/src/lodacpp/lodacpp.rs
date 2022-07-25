@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+#[derive(Debug)]
 pub struct LodaCpp {
     loda_cpp_executable: PathBuf,
 }
@@ -18,6 +19,7 @@ impl LodaCpp {
     }
 }
 
+#[derive(Debug)]
 pub struct LodaCppError {
     stdout: String,
 }

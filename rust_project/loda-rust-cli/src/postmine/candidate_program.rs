@@ -26,6 +26,7 @@ pub struct CandidateProgram {
     lodacpp_terms: BigIntVec,
     possible_ids: HashSet::<OeisId>,
     keep_ids: HashSet::<OeisId>,
+    minimized_program: String,
 }
 
 impl CandidateProgram {
@@ -45,6 +46,7 @@ impl CandidateProgram {
             lodacpp_terms: vec!(),
             possible_ids: HashSet::new(),
             keep_ids: HashSet::new(),
+            minimized_program: String::new(),
         };
         Ok(instance)
     }
@@ -101,6 +103,10 @@ impl CandidateProgram {
         let ids: Vec<OeisId> = self.keep_id_vec();
         let strings: Vec<String> = ids.iter().map(|id| id.a_number()).collect();
         strings.join(",")
+    }
+
+    pub fn assign_minimized_program(&mut self, minimized_program: String) {
+        self.minimized_program = minimized_program;
     }
 
     pub fn path_original(&self) -> &Path {
