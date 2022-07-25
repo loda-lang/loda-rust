@@ -240,7 +240,7 @@ impl SubcommandPostMine {
     }
 
     fn analyze_candidate(&mut self, candidate_program: CandidateProgramItem, possible_id: OeisId, progressbar: ProgressBar) -> Result<(), Box<dyn Error>> {
-        let message = format!("analyzing {}, checking if it's {}", candidate_program.borrow(), possible_id);
+        let message = format!("Comparing {} with {}", candidate_program.borrow(), possible_id);
         progressbar.println(message);
         // candidate_program.borrow_mut().keep_program_ids_insert(program_id);
         Ok(())

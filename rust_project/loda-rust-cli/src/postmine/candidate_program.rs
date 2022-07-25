@@ -25,7 +25,7 @@ pub struct CandidateProgram {
     id_string: String,
     lodacpp_terms: BigIntVec,
     possible_ids: HashSet::<OeisId>,
-    keep_program_ids: HashSet::<u32>,
+    keep_ids: HashSet::<OeisId>,
 }
 
 impl CandidateProgram {
@@ -44,7 +44,7 @@ impl CandidateProgram {
             id_string: id_string,
             lodacpp_terms: vec!(),
             possible_ids: HashSet::new(),
-            keep_program_ids: HashSet::new(),
+            keep_ids: HashSet::new(),
         };
         Ok(instance)
     }
@@ -65,8 +65,8 @@ impl CandidateProgram {
         &self.lodacpp_terms
     }
 
-    pub fn possible_id_insert(&mut self, oeis_id: OeisId) {
-        self.possible_ids.insert(oeis_id);
+    pub fn possible_id_insert(&mut self, id: OeisId) {
+        self.possible_ids.insert(id);
     }
 
     pub fn is_possible_ids_empty(&self) -> bool {
@@ -78,28 +78,28 @@ impl CandidateProgram {
     }
 
     pub fn possible_id_vec(&self) -> Vec<OeisId> {
-        let mut program_ids_sorted: Vec<OeisId> = self.possible_ids.clone().into_iter().collect();
-        program_ids_sorted.sort();
-        program_ids_sorted
+        let mut ids: Vec<OeisId> = self.possible_ids.clone().into_iter().collect();
+        ids.sort();
+        ids
     }
 
-    pub fn keep_program_ids_insert(&mut self, program_id: u32) {
-        self.keep_program_ids.insert(program_id);
+    pub fn keep_id_insert(&mut self, id: OeisId) {
+        self.keep_ids.insert(id);
     }
 
-    pub fn is_keep_program_ids_empty(&self) -> bool {
-        self.keep_program_ids.is_empty()
+    pub fn is_keep_ids_empty(&self) -> bool {
+        self.keep_ids.is_empty()
     }
 
-    pub fn keep_program_id_vec(&self) -> Vec<u32> {
-        let mut program_ids_sorted: Vec<u32> = self.keep_program_ids.clone().into_iter().collect();
-        program_ids_sorted.sort();
-        program_ids_sorted
+    pub fn keep_id_vec(&self) -> Vec<OeisId> {
+        let mut ids: Vec<OeisId> = self.keep_ids.clone().into_iter().collect();
+        ids.sort();
+        ids
     }
 
     pub fn keep_program_ids_as_string(&self) -> String {
-        let program_ids: Vec<u32> = self.keep_program_id_vec();
-        let strings: Vec<String> = program_ids.iter().map(|program_id| format!("A{:0>6}", program_id)).collect();
+        let ids: Vec<OeisId> = self.keep_id_vec();
+        let strings: Vec<String> = ids.iter().map(|id| id.a_number()).collect();
         strings.join(",")
     }
 
@@ -144,7 +144,7 @@ impl CandidateProgram {
     }
 
     pub fn perform_keep_or_reject_based_result(&mut self) -> Result<(), Box<dyn Error>> {
-        if self.is_keep_program_ids_empty() {
+        if self.is_keep_ids_empty() {
             self.perform_reject("Doesn't correspond to any known OEIS sequence")?;
             return Ok(());
         } else {
