@@ -11,7 +11,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
 use std::iter::FromIterator;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 use std::rc::Rc;
 use core::cell::RefCell;
@@ -26,6 +26,7 @@ struct SubcommandPostMine {
     candidate_programs: Vec<CandidateProgramItem>,
     dontmine_hashset: HashSet<u32>,
     invalid_program_ids_hashset: HashSet<u32>,
+    loda_programs_oeis_dir: PathBuf,
 }
 
 impl SubcommandPostMine {
@@ -33,12 +34,15 @@ impl SubcommandPostMine {
     const MINIMUM_NUMBER_OF_REQUIRED_TERMS: usize = 10;
 
     fn new() -> Self {
+        let config = Config::load();
+        let loda_programs_oeis_dir = config.loda_programs_oeis_dir(); 
         Self {
-            config: Config::load(),
+            config: config,
             paths_for_processing: vec!(),
             candidate_programs: vec!(),
             dontmine_hashset: HashSet::new(),
-            invalid_program_ids_hashset: HashSet::new()
+            invalid_program_ids_hashset: HashSet::new(),
+            loda_programs_oeis_dir: loda_programs_oeis_dir,
         }
     }
 
@@ -258,6 +262,17 @@ impl SubcommandPostMine {
         Ok(())
     }
 
+    /// Construct a path, like this: `/absolute/path/123/A123456.asm`
+    fn path_for_oeis_program(&self, program_id: OeisId) -> PathBuf {
+        let dir_index: u32 = program_id.raw() / 1000;
+        let dir_index_string: String = format!("{:0>3}", dir_index);
+        let filename_string: String = format!("{}.asm", program_id.a_number());
+        let dirname = Path::new(&dir_index_string);
+        let filename = Path::new(&filename_string);
+        let pathbuf: PathBuf = self.loda_programs_oeis_dir.join(dirname).join(filename);
+        pathbuf
+    }
+    
     fn analyze_candidate(&mut self, candidate_program: CandidateProgramItem, possible_id: OeisId, progressbar: ProgressBar) -> Result<(), Box<dyn Error>> {
         let message = format!("Comparing {} with {}", candidate_program.borrow(), possible_id);
         progressbar.println(message);

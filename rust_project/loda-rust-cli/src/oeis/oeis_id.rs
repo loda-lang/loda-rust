@@ -9,6 +9,10 @@ impl OeisId {
     pub fn a_number(&self) -> String {
         format!("A{:0>6}", self.0)
     }
+
+    pub fn raw(&self) -> u32 {
+        self.0
+    }
 }
 
 impl Ord for OeisId {
@@ -54,7 +58,15 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_a_number() {
+    fn test_20000_raw() {
+        assert_eq!(OeisId::from(45).raw(), 45);
+        assert_eq!(OeisId::from(10051).raw(), 10051);
+        assert_eq!(OeisId::from(354995).raw(), 354995);
+        assert_eq!(OeisId::from(999123456).raw(), 999123456);
+    }
+
+    #[test]
+    fn test_30000_a_number() {
         assert_eq!(OeisId::from(45).a_number(), "A000045");
         assert_eq!(OeisId::from(10051).a_number(), "A010051");
         assert_eq!(OeisId::from(354995).a_number(), "A354995");
@@ -62,13 +74,13 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_format() {
+    fn test_40000_format() {
         assert_eq!(format!("{}", OeisId::from(45)), "A000045");
         assert_eq!(format!("{:?}", OeisId::from(45)), "OeisId(45)");
     }
 
     #[test]
-    fn test_40000_hashset() {
+    fn test_50000_hashset() {
         let mut oeis_ids = HashSet::<OeisId>::new();
         oeis_ids.insert(OeisId::from(45));
         oeis_ids.insert(OeisId::from(10051));
@@ -78,7 +90,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_sorting() {
+    fn test_60000_sorting() {
         // Arrange
         let mut oeis_ids: Vec::<OeisId> = vec![
             OeisId::from(45),
