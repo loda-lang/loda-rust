@@ -194,6 +194,13 @@ impl Config {
         path
     }
 
+    pub fn postmine_dir(&self) -> PathBuf {
+        let name = Path::new("postmine");
+        let path = self.basedir.join(name);
+        assert!(path.is_absolute());
+        path
+    }
+
     pub fn loda_programs_repository(&self) -> PathBuf {
         let path = &self.loda_programs_repository;
         assert!(path.is_absolute());
