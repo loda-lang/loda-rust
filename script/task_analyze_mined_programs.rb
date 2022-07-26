@@ -490,7 +490,7 @@ def analyze_candidate(candidate_program, program_id, dontmine_program_id_set, in
         return :keep
     end
     if check_output_content =~ /^error$/
-        puts "Rejecting. Unknown error occurred, probably due to overflow or cyclic dependency. see output: #{path_check_output}. output: #{check_output_content} command: #{command}"
+        puts "Rejecting. Unknown error occurred, probably due to overflow, cyclic dependency or exceeding max number of cycles. see output: #{path_check_output}. output: #{check_output_content} command: #{command}"
         File.rename(path, path_reject)
         if has_original_file
             File.rename(path_original, path)
