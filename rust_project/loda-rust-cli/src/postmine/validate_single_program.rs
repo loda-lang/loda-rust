@@ -246,4 +246,36 @@ boom $0,0 ; no instruction named "boom"
         assert_eq!(format_result(result), "ERROR-LOAD");
         Ok(())
     }
+
+    #[test]
+    fn test_50000_indirect_is_unsupported_by_lodarust() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let basedir = PathBuf::from(&tempdir.path()).join("test_50000_indirect_is_unsupported_by_lodarust");
+        fs::create_dir(&basedir)?;
+        let validate_single_program = ValidateSingleProgram::new(basedir.clone());
+        let input_path: PathBuf = basedir.join("19840101-054915-1251916462.asm");
+
+        let input_content = 
+r#"
+lpb $0
+  mov $$0,$2 ; indirect memory access is not yet supported in LODA-RUST
+  mov $2,1
+  sub $0,$2
+lpe
+mov $0,$10
+add $0,1
+mod $0,2
+"#;
+        let mut input_file = File::create(&input_path)?;
+        input_file.write_all(input_content.as_bytes())?;
+        input_file.sync_all()?;
+
+        // Act
+        let result = validate_single_program.run(&input_path);
+
+        // Assert
+        assert_eq!(format_result(result), "ERROR-LOAD");
+        Ok(())
+    }
 }
