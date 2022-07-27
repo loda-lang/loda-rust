@@ -1,7 +1,7 @@
 //! The `loda-rust postmine` subcommand, checks the mined programs for correctness and performance.
 use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
-use crate::postmine::{CandidateProgram, find_pending_programs, State};
+use crate::postmine::{CandidateProgram, find_pending_programs, State, ValidateSingleProgram, ValidateSingleProgramError};
 use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
 use crate::lodacpp::{LodaCpp, LodaCppEvalWithPath, LodaCppEvalOk, LodaCppMinimize};
 use loda_rust_core::util::{BigIntVec, BigIntVecToString};
@@ -286,8 +286,17 @@ impl SubcommandPostMine {
 
         let path: PathBuf = self.path_for_oeis_program(possible_id);
         if self.invalid_program_ids_hashset.contains(&possible_id) {
-            let message = format!("Program id {} is listed in the 'programs_invalid.csv'", possible_id);
+            let message = format!("Program {} is listed in the 'programs_invalid.csv'", possible_id);
             progressbar.println(message);
+            let result = ValidateSingleProgram::run(possible_id, &path);
+            match result {
+                Ok(_) => {
+                    println!("The file in loda-programs repo {} seems ok, despite being listed in 'programs_invalid.csv'", possible_id);
+                },
+                Err(error) => {
+                    println!("The file in loda-programs repo {} has problems: {}", possible_id, error);
+                }
+            }
         }
 
         let has_original_file: bool = path.is_file();
