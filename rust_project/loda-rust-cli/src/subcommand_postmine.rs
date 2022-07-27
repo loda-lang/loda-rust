@@ -27,6 +27,7 @@ struct SubcommandPostMine {
     dontmine_hashset: HashSet<OeisId>,
     invalid_program_ids_hashset: HashSet<OeisId>,
     loda_programs_oeis_dir: PathBuf,
+    validate_single_program: ValidateSingleProgram,
 }
 
 impl SubcommandPostMine {
@@ -35,7 +36,8 @@ impl SubcommandPostMine {
 
     fn new() -> Self {
         let config = Config::load();
-        let loda_programs_oeis_dir = config.loda_programs_oeis_dir(); 
+        let loda_programs_oeis_dir = config.loda_programs_oeis_dir();
+        let validate_single_program = ValidateSingleProgram::new(loda_programs_oeis_dir.clone());
         Self {
             config: config,
             paths_for_processing: vec!(),
@@ -43,6 +45,7 @@ impl SubcommandPostMine {
             dontmine_hashset: HashSet::new(),
             invalid_program_ids_hashset: HashSet::new(),
             loda_programs_oeis_dir: loda_programs_oeis_dir,
+            validate_single_program: validate_single_program,
         }
     }
 
@@ -288,7 +291,7 @@ impl SubcommandPostMine {
         if self.invalid_program_ids_hashset.contains(&possible_id) {
             let message = format!("Program {} is listed in the 'programs_invalid.csv'", possible_id);
             progressbar.println(message);
-            let result = ValidateSingleProgram::run(possible_id, &path);
+            let result = self.validate_single_program.run(&path);
             match result {
                 Ok(_) => {
                     println!("The file in loda-programs repo {} seems ok, despite being listed in 'programs_invalid.csv'", possible_id);
