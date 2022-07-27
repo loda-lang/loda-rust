@@ -25,7 +25,7 @@ struct SubcommandPostMine {
     paths_for_processing: Vec<PathBuf>,
     candidate_programs: Vec<CandidateProgramItem>,
     dontmine_hashset: HashSet<OeisId>,
-    invalid_program_ids_hashset: HashSet<u32>,
+    invalid_program_ids_hashset: HashSet<OeisId>,
     loda_programs_oeis_dir: PathBuf,
 }
 
@@ -77,8 +77,9 @@ impl SubcommandPostMine {
 
     fn obtain_invalid_program_ids(&mut self) -> Result<(), Box<dyn Error>> {
         let path = self.config.analytics_dir_programs_invalid_file();
-        let program_ids: Vec<u32> = load_program_ids_csv_file(&path)?;
-        let hashset: HashSet<u32> = HashSet::from_iter(program_ids.iter().cloned());
+        let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)?;
+        let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();
+        let hashset: HashSet<OeisId> = HashSet::from_iter(program_ids.iter().cloned());
         println!("loaded invalid program_ids file. number of records: {}", hashset.len());
         self.invalid_program_ids_hashset = hashset;
         Ok(())
@@ -283,7 +284,16 @@ impl SubcommandPostMine {
             progressbar.println(message);
         }
 
-        let path = self.path_for_oeis_program(possible_id);
+        let path: PathBuf = self.path_for_oeis_program(possible_id);
+        if self.invalid_program_ids_hashset.contains(&possible_id) {
+            let message = format!("Program id {} is listed in the 'programs_invalid.csv'", possible_id);
+            progressbar.println(message);
+        }
+
+        let has_original_file: bool = path.is_file();
+        if has_original_file {
+            // debug!("There already exist program: {}, Renaming from: {} to: {}", possible_id, path, path_original);
+        }
         // candidate_program.borrow_mut().keep_program_ids_insert(program_id);
         Ok(())
     }
