@@ -24,7 +24,7 @@ struct SubcommandPostMine {
     config: Config,
     paths_for_processing: Vec<PathBuf>,
     candidate_programs: Vec<CandidateProgramItem>,
-    dontmine_hashset: HashSet<u32>,
+    dontmine_hashset: HashSet<OeisId>,
     invalid_program_ids_hashset: HashSet<u32>,
     loda_programs_oeis_dir: PathBuf,
 }
@@ -67,8 +67,9 @@ impl SubcommandPostMine {
 
     fn obtain_dontmine_program_ids(&mut self) -> Result<(), Box<dyn Error>> {
         let path = self.config.analytics_dir_dont_mine_file();
-        let program_ids: Vec<u32> = load_program_ids_csv_file(&path)?;
-        let hashset: HashSet<u32> = HashSet::from_iter(program_ids.iter().cloned());
+        let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)?;
+        let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();
+        let hashset: HashSet<OeisId> = HashSet::from_iter(program_ids.iter().cloned());
         println!("loaded dontmine file. number of records: {}", hashset.len());
         self.dontmine_hashset = hashset;
         Ok(())
@@ -276,6 +277,13 @@ impl SubcommandPostMine {
     fn analyze_candidate(&mut self, candidate_program: CandidateProgramItem, possible_id: OeisId, progressbar: ProgressBar) -> Result<(), Box<dyn Error>> {
         let message = format!("Comparing {} with {}", candidate_program.borrow(), possible_id);
         progressbar.println(message);
+
+        if self.dontmine_hashset.contains(&possible_id) {
+            let message = format!("Maybe keep/reject. The candidate program is contained in the 'dont_mine.csv' file. {}, Analyzing it anyways.", possible_id);
+            progressbar.println(message);
+        }
+
+        let path = self.path_for_oeis_program(possible_id);
         // candidate_program.borrow_mut().keep_program_ids_insert(program_id);
         Ok(())
     }
