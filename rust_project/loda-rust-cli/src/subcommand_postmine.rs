@@ -31,6 +31,7 @@ struct SubcommandPostMine {
     invalid_program_ids_hashset: HashSet<OeisId>,
     loda_programs_oeis_dir: PathBuf,
     validate_single_program: ValidateSingleProgram,
+    iteration: usize,
 }
 
 impl SubcommandPostMine {
@@ -56,6 +57,7 @@ impl SubcommandPostMine {
             invalid_program_ids_hashset: HashSet::new(),
             loda_programs_oeis_dir: loda_programs_oeis_dir,
             validate_single_program: validate_single_program,
+            iteration: 0,
         };
         Ok(instance)
     }
@@ -294,8 +296,58 @@ impl SubcommandPostMine {
         let pathbuf: PathBuf = self.loda_programs_oeis_dir.join(dirname).join(filename);
         pathbuf
     }
+
+    fn remove_existing_loda_program(&mut self, program_id: OeisId, source_path: &Path, remove_reason: String) -> Result<(), Box<dyn Error>> {
+        info!("removing existing loda program: {} reason: {}", program_id, remove_reason);
+        let destination_name = format!("iteration{}_remove_existing_{}.asm", self.iteration, program_id);
+        let destination_path: PathBuf = self.path_timestamped_postmine_dir.join(destination_name);
+        fs::rename(source_path, &destination_path)?;
+        Ok(())
+    }
+
+    fn remove_existing_loda_program_if_its_invalid(&mut self, program_id: OeisId, path: &Path) -> Result<(), Box<dyn Error>> {
+        let error = match self.validate_single_program.run(path) {
+            Ok(_) => {
+                debug!("The existing file in loda-programs repo {} seems ok", program_id);
+                return Ok(());
+            },
+            Err(error) => error
+        };
+        if let Some(vsp_error) = error.downcast_ref::<ValidateSingleProgramError>() {
+            match vsp_error {
+                ValidateSingleProgramError::MissingFile => {
+                    debug!("There is no existing file in loda-programs repo for: {}", program_id);
+                    return Ok(());
+                },
+                ValidateSingleProgramError::IndirectMemoryAccess => {
+                    let reason = format!("The existing program {} in loda-programs repo uses indirect memory access, which LODA-RUST doesn't yet support.", program_id);
+                    self.remove_existing_loda_program(program_id, path, reason)?;
+                    return Ok(());
+                },
+                ValidateSingleProgramError::CyclicDependency => {
+                    let reason = format!("The existing program {} in loda-programs repo has a cyclic dependency and cannot be loaded.", program_id);
+                    self.remove_existing_loda_program(program_id, path, reason)?;
+                    return Ok(());
+                },
+                ValidateSingleProgramError::Load => {
+                    let reason = format!("The existing program {} in loda-programs repo cannot be loaded for other reasons.", program_id);
+                    self.remove_existing_loda_program(program_id, path, reason)?;
+                    return Ok(());
+                },
+                ValidateSingleProgramError::Run => {
+                    let reason = format!("The existing program {} in loda-programs repo cannot run.", program_id);
+                    self.remove_existing_loda_program(program_id, path, reason)?;
+                    return Ok(());
+                }
+            }
+        }
+        error!("The file in loda-programs repo {} has problems: {}", program_id, error);
+        Err(error)
+    }
     
     fn analyze_candidate(&mut self, candidate_program: CandidateProgramItem, possible_id: OeisId, progressbar: ProgressBar) -> Result<(), Box<dyn Error>> {
+        self.iteration += 1;
+
         let message = format!("Comparing {} with {}", candidate_program.borrow(), possible_id);
         progressbar.println(message);
 
@@ -303,21 +355,15 @@ impl SubcommandPostMine {
             let message = format!("Maybe keep/reject. The candidate program is contained in the 'dont_mine.csv' file. {}, Analyzing it anyways.", possible_id);
             progressbar.println(message);
         }
-
-        let path: PathBuf = self.path_for_oeis_program(possible_id);
+    
         if self.invalid_program_ids_hashset.contains(&possible_id) {
             let message = format!("Program {} is listed in the 'programs_invalid.csv'", possible_id);
             progressbar.println(message);
-            let result = self.validate_single_program.run(&path);
-            match result {
-                Ok(_) => {
-                    println!("The file in loda-programs repo {} seems ok, despite being listed in 'programs_invalid.csv'", possible_id);
-                },
-                Err(error) => {
-                    println!("The file in loda-programs repo {} has problems: {}", possible_id, error);
-                }
-            }
         }
+
+        let path: PathBuf = self.path_for_oeis_program(possible_id);
+
+        self.remove_existing_loda_program_if_its_invalid(possible_id, &path)?;
 
         let has_original_file: bool = path.is_file();
         if has_original_file {
