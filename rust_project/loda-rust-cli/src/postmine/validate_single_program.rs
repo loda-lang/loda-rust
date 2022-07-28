@@ -1,4 +1,5 @@
-use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode};
+use loda_rust_core::control::{DependencyManager, DependencyManagerError, DependencyManagerFileSystemMode};
+use loda_rust_core::parser::{ParseProgramError, ParseParametersError};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
@@ -13,6 +14,7 @@ const NUMBER_OF_TERMS_TO_VALIDATE: u64 = 1;
 #[derive(Debug)]
 pub enum ValidateSingleProgramError {
     MissingFile,
+    IndirectMemoryAccess,
     Load,
     Run,
 }
@@ -23,6 +25,7 @@ impl fmt::Display for ValidateSingleProgramError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::MissingFile => write!(f, "Missing program"),
+            Self::IndirectMemoryAccess => write!(f, "The program uses indirect memory adressing, which loda-rust does not yet support."),
             Self::Load => write!(f, "The program cannot be loaded."),
             Self::Run => write!(f, "The program cannot be run."),
         }
@@ -41,24 +44,24 @@ impl ValidateSingleProgram {
     }
 
     pub fn run(&self, program_path: &Path) -> Result<(), Box<dyn Error>> {
+        // Load the program
         if !program_path.is_file() {
-            error!("Missing program {:?}.", program_path);
+            debug!("Missing program {:?}.", program_path);
             return Err(Box::new(ValidateSingleProgramError::MissingFile));
         }
-
         let program_contents: String = match fs::read_to_string(&program_path) {
             Ok(value) => value,
             Err(io_error) => {
-                error!("Something went wrong reading the file. {:?}", io_error);
+                debug!("Something went wrong reading the file. {:?}", io_error);
                 return Err(Box::new(ValidateSingleProgramError::Load));
             }
         };
 
+        // Parse the program
         let mut dm = DependencyManager::new(
             DependencyManagerFileSystemMode::System,
             self.loda_programs_oeis_dir.clone(),
         );
-
         let result_parse = dm.parse(
             ProgramId::ProgramWithoutId, 
             &program_contents
@@ -66,21 +69,64 @@ impl ValidateSingleProgram {
         let program_runner: ProgramRunner = match result_parse {
             Ok(value) => value,
             Err(error) => {
-                error!("Cannot parse program {:?}: {:?}", program_path, error);
+                // Determine if this program contains double-dollar parameters,
+                // since LODA-RUST does not yet support the double-dollar parameter type.
+                // Example: `mov $$0,$2`
+                if error.uses_indirect_memory_access() {
+                    debug!("Encountered a project that uses double-dollar parameter types: {:?} error: {:?}", program_path, error);
+                    return Err(Box::new(ValidateSingleProgramError::IndirectMemoryAccess));
+                }
+
+                debug!("Cannot parse program {:?}: {:?}", program_path, error);
                 return Err(Box::new(ValidateSingleProgramError::Load));
             }
         };
 
+        // Eval 1 term with the program
         let mut cache = ProgramCache::new();
         match program_runner.compute_terms(NUMBER_OF_TERMS_TO_VALIDATE, &mut cache) {
             Ok(_) => {},
             Err(error) => {
-                error!("Cannot run program {:?}: {:?}", program_path, error);
+                debug!("Cannot run program {:?}: {:?}", program_path, error);
                 return Err(Box::new(ValidateSingleProgramError::Run));
             }
         }
-        println!("The existing program {:?} seems ok", program_path);
+
+        debug!("The existing program {:?} seems ok", program_path);
         Ok(())
+    }
+}
+
+trait UsesIndirectMemoryAccess {
+    /// Determines if it's an error related to `indirect memory access`.
+    /// As of July 2022, LODA-RUST does not yet support LODA-CPP's `$$` parameter type.
+    fn uses_indirect_memory_access(&self) -> bool;
+}
+
+impl UsesIndirectMemoryAccess for DependencyManagerError {
+    fn uses_indirect_memory_access(&self) -> bool {
+        if let DependencyManagerError::ParseProgram(error) = self {
+            return error.uses_indirect_memory_access();
+        }
+        false
+    }
+}
+
+impl UsesIndirectMemoryAccess for ParseProgramError {
+    fn uses_indirect_memory_access(&self) -> bool {
+        if let ParseProgramError::ParseParameters(error) = self {
+            return error.uses_indirect_memory_access();
+        }
+        false
+    }
+}
+
+impl UsesIndirectMemoryAccess for ParseParametersError {
+    fn uses_indirect_memory_access(&self) -> bool {
+        if let ParseParametersError::UnrecognizedParameterType(_raw_input_line) = self {
+            return true;
+        }
+        false
     }
 }
 
@@ -144,6 +190,9 @@ mod tests {
                 ValidateSingleProgramError::MissingFile => {
                     return "ERROR-MISSING-FILE".to_string();
                 },
+                ValidateSingleProgramError::IndirectMemoryAccess => {
+                    return "ERROR-INDIRECT-MEMORY-ACCESS".to_string();
+                }
                 ValidateSingleProgramError::Load => {
                     return "ERROR-LOAD".to_string();
                 },
@@ -259,7 +308,7 @@ boom $0,0 ; no instruction named "boom"
         let input_content = 
 r#"
 lpb $0
-  mov $$0,$2 ; indirect memory access is not yet supported in LODA-RUST
+  mov $$0,$2 ; indirect memory access is not yet supported by LODA-RUST
   mov $2,1
   sub $0,$2
 lpe
@@ -275,7 +324,7 @@ mod $0,2
         let result = validate_single_program.run(&input_path);
 
         // Assert
-        assert_eq!(format_result(result), "ERROR-LOAD");
+        assert_eq!(format_result(result), "ERROR-INDIRECT-MEMORY-ACCESS");
         Ok(())
     }
 }
