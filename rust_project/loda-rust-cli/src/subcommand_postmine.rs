@@ -6,8 +6,10 @@ use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
 use crate::lodacpp::{LodaCpp, LodaCppEvalWithPath, LodaCppEvalOk, LodaCppMinimize};
 use loda_rust_core::util::{BigIntVec, BigIntVecToString};
 use num_bigint::{BigInt, ToBigInt};
+use chrono::{DateTime, Utc};
 use std::collections::HashSet;
 use std::error::Error;
+use std::fs;
 use std::fs::File;
 use std::io::BufReader;
 use std::iter::FromIterator;
@@ -22,6 +24,7 @@ type CandidateProgramItem = Rc<RefCell<CandidateProgram>>;
 
 struct SubcommandPostMine {
     config: Config,
+    path_timestamped_postmine_dir: PathBuf,
     paths_for_processing: Vec<PathBuf>,
     candidate_programs: Vec<CandidateProgramItem>,
     dontmine_hashset: HashSet<OeisId>,
@@ -34,19 +37,33 @@ impl SubcommandPostMine {
     const LOOKUP_TERM_COUNT: usize = 40;
     const MINIMUM_NUMBER_OF_REQUIRED_TERMS: usize = 10;
 
-    fn new() -> Self {
+    fn new() -> Result<Self, Box<dyn Error>> {
         let config = Config::load();
         let loda_programs_oeis_dir = config.loda_programs_oeis_dir();
         let validate_single_program = ValidateSingleProgram::new(loda_programs_oeis_dir.clone());
-        Self {
+
+        // Create dir in which the postmine can store its temp files
+        let dirname: String = Self::format_timestamped_postmine_dirname();
+        let path_timestamped_postmine_dir: PathBuf = config.postmine_dir().join(dirname);
+        fs::create_dir(&path_timestamped_postmine_dir)?;
+
+        let instance = Self {
             config: config,
+            path_timestamped_postmine_dir: path_timestamped_postmine_dir,
             paths_for_processing: vec!(),
             candidate_programs: vec!(),
             dontmine_hashset: HashSet::new(),
             invalid_program_ids_hashset: HashSet::new(),
             loda_programs_oeis_dir: loda_programs_oeis_dir,
             validate_single_program: validate_single_program,
-        }
+        };
+        Ok(instance)
+    }
+
+    /// Format dirname ala `19841231-235959-postmine`
+    fn format_timestamped_postmine_dirname() -> String {
+        let now: DateTime<Utc> = Utc::now();
+        format!("{}-postmine", now.format("%Y%m%d-%H%M%S"))
     }
 
     fn obtain_paths_for_processing(&mut self) -> Result<(), Box<dyn Error>> {
@@ -312,7 +329,7 @@ impl SubcommandPostMine {
 }
 
 pub fn subcommand_postmine() -> Result<(), Box<dyn Error>> {
-    let mut instance = SubcommandPostMine::new();
+    let mut instance = SubcommandPostMine::new()?;
     instance.obtain_paths_for_processing()?;    
     instance.populate_candidate_programs()?;
     instance.obtain_dontmine_program_ids()?;
