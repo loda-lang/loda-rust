@@ -15,6 +15,7 @@ const NUMBER_OF_TERMS_TO_VALIDATE: u64 = 1;
 pub enum ValidateSingleProgramError {
     MissingFile,
     IndirectMemoryAccess,
+    CyclicDependency,
     Load,
     Run,
 }
@@ -26,6 +27,7 @@ impl fmt::Display for ValidateSingleProgramError {
         match self {
             Self::MissingFile => write!(f, "Missing program"),
             Self::IndirectMemoryAccess => write!(f, "The program uses indirect memory adressing, which loda-rust does not yet support."),
+            Self::CyclicDependency => write!(f, "The program has a cyclic dependency."),
             Self::Load => write!(f, "The program cannot be loaded."),
             Self::Run => write!(f, "The program cannot be run."),
         }
@@ -77,6 +79,15 @@ impl ValidateSingleProgram {
                     return Err(Box::new(ValidateSingleProgramError::IndirectMemoryAccess));
                 }
 
+                // Detect programs that have cyclic dependencies.
+                if error.is_cyclic_dependency() {
+                    debug!("Detected a cyclic dependency: {:?} error: {:?}", program_path, error);
+                    return Err(Box::new(ValidateSingleProgramError::CyclicDependency));
+                }
+
+                // Cannot parse program for other reasons such as
+                // Unknown instructions, invalid instruction parameters
+                // Unbalanced loop begin/end.
                 debug!("Cannot parse program {:?}: {:?}", program_path, error);
                 return Err(Box::new(ValidateSingleProgramError::Load));
             }
@@ -129,6 +140,21 @@ impl UsesIndirectMemoryAccess for ParseParametersError {
         false
     }
 }
+
+trait IsCyclicDependency {
+    /// Determines if it's an error related to `cyclic dependency`.
+    fn is_cyclic_dependency(&self) -> bool;
+}
+
+impl IsCyclicDependency for DependencyManagerError {
+    fn is_cyclic_dependency(&self) -> bool {
+        if let DependencyManagerError::CyclicDependency(_program_id) = self {
+            return true;
+        }
+        false
+    }
+}
+
 
 trait ComputeTerms {
     fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<(), Box<dyn Error>>;
@@ -192,7 +218,10 @@ mod tests {
                 },
                 ValidateSingleProgramError::IndirectMemoryAccess => {
                     return "ERROR-INDIRECT-MEMORY-ACCESS".to_string();
-                }
+                },
+                ValidateSingleProgramError::CyclicDependency => {
+                    return "ERROR-CYCLIC-DEPENDENCY".to_string();
+                },
                 ValidateSingleProgramError::Load => {
                     return "ERROR-LOAD".to_string();
                 },
@@ -325,6 +354,33 @@ mod $0,2
 
         // Assert
         assert_eq!(format_result(result), "ERROR-INDIRECT-MEMORY-ACCESS");
+        Ok(())
+    }
+
+    #[test]
+    fn test_60000_cyclic_dependency() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let basedir = PathBuf::from(&tempdir.path()).join("test_60000_cyclic_dependency");
+        fs::create_dir(&basedir)?;
+        let dir000 = basedir.join("000");
+        fs::create_dir(&dir000)?;
+        let validate_single_program = ValidateSingleProgram::new(basedir.clone());
+        let input_path: PathBuf = dir000.join("A000045.asm");
+
+        let input_content = 
+r#"
+seq $0,45 ; This program depends on itself
+"#;
+        let mut input_file = File::create(&input_path)?;
+        input_file.write_all(input_content.as_bytes())?;
+        input_file.sync_all()?;
+
+        // Act
+        let result = validate_single_program.run(&input_path);
+
+        // Assert
+        assert_eq!(format_result(result), "ERROR-CYCLIC-DEPENDENCY");
         Ok(())
     }
 }
