@@ -228,21 +228,26 @@ impl SubcommandPostMine {
         Ok(())
     }
 
-    fn process_candidate_programs(&mut self) -> Result<(), Box<dyn Error>> {
-        let start = Instant::now();
-
+    fn pending_candidate_programs(&self) -> Vec<CandidateProgramItem> {
         let pending_programs: Vec<CandidateProgramItem> = self.candidate_programs
             .iter()
             .filter(|candidate_program| candidate_program.borrow().state() == State::PendingProcessing)
             .map(|x| x.clone())
             .collect();
-        if pending_programs.is_empty() {
-            println!("There are no pending programs in the 'mine-event' dir. Stopping.");
+        pending_programs
+    }
+
+    fn process_candidate_programs(&mut self) -> Result<(), Box<dyn Error>> {
+        let start = Instant::now();
+
+        let candidate_programs: Vec<CandidateProgramItem> = self.pending_candidate_programs();
+        if candidate_programs.is_empty() {
+            println!("There are no pending candidate programs in the 'mine-event' dir. Stopping.");
             return Ok(());
         }
 
         let mut number_of_program_ids_to_be_analyzed: usize = 0;
-        for program in &pending_programs {
+        for program in &candidate_programs {
             number_of_program_ids_to_be_analyzed += program.borrow().possible_ids().len();
         }
         if number_of_program_ids_to_be_analyzed == 0 {
@@ -252,7 +257,7 @@ impl SubcommandPostMine {
 
         println!("Analyzing {} program ids", number_of_program_ids_to_be_analyzed);
         let pb = ProgressBar::new(number_of_program_ids_to_be_analyzed as u64);
-        for candidate_program in pending_programs {
+        for candidate_program in candidate_programs {
             self.prepare_minimized_program_for_analysis(candidate_program.clone())?;
 
             let possible_ids: Vec<OeisId> = candidate_program.borrow().possible_id_vec();
