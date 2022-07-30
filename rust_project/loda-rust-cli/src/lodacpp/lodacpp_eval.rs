@@ -1,16 +1,16 @@
 use super::{LodaCpp, LodaCppError, LodaCppEvalOk};
 use std::path::Path;
-use std::process::{Child, Command, Output, Stdio};
+use std::process::{Child, Command, ExitStatus, Output, Stdio};
 use std::error::Error;
 use std::time::Duration;
 use wait_timeout::ChildExt;
 
 pub trait LodaCppEvalWithPath {
-    fn eval_with_path(&self, term_count: usize, loda_program_path: &Path) -> Result<LodaCppEvalOk, Box<dyn Error>>;
+    fn eval_with_path(&self, term_count: usize, loda_program_path: &Path, time_limit: Duration) -> Result<LodaCppEvalOk, Box<dyn Error>>;
 }
 
 impl LodaCppEvalWithPath for LodaCpp {
-    fn eval_with_path(&self, term_count: usize, loda_program_path: &Path) -> Result<LodaCppEvalOk, Box<dyn Error>> {
+    fn eval_with_path(&self, term_count: usize, loda_program_path: &Path, time_limit: Duration) -> Result<LodaCppEvalOk, Box<dyn Error>> {
         assert!(loda_program_path.is_absolute());
         assert!(loda_program_path.is_file());
         
@@ -23,15 +23,18 @@ impl LodaCppEvalWithPath for LodaCpp {
             .spawn()
             .expect("failed to execute process: loda-cpp");
 
-        let time_limit = Duration::from_secs(1);
-        // let time_limit = Duration::from_millis(1);
-        let optional_exit_code: Option<i32> = match child.wait_timeout(time_limit).unwrap() {
+        let optional_exit_status: Option<ExitStatus> = child
+            .wait_timeout(time_limit)
+            .expect("unable to 'wait_timeout' for child process");
+
+        let optional_exit_code: Option<i32> = match optional_exit_status {
             Some(exit_status) => {
                 debug!("exited with status: {:?}", exit_status);
                 exit_status.code()
             },
             None => {
                 // child hasn't exited yet
+                error!("Killing loda-cpp, eval {} terms, exceeded time limit: {:?}, loda_program_path: {:?}", term_count, time_limit, loda_program_path);
                 debug!("kill");
                 child.kill()?;
                 debug!("wait");

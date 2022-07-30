@@ -14,7 +14,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use std::rc::Rc;
 use core::cell::RefCell;
 use console::Style;
@@ -37,6 +37,7 @@ struct SubcommandPostMine {
 impl SubcommandPostMine {
     const LOOKUP_TERM_COUNT: usize = 40;
     const MINIMUM_NUMBER_OF_REQUIRED_TERMS: usize = 10;
+    const LODACPP_EVAL_TIME_LIMIT_IN_SECONDS: u64 = 10;
 
     fn new() -> Result<Self, Box<dyn Error>> {
         let config = Config::load();
@@ -109,6 +110,7 @@ impl SubcommandPostMine {
 
     fn eval_using_loda_cpp(&mut self) -> Result<(), Box<dyn Error>> {
         let start = Instant::now();
+        let time_limit = Duration::from_secs(Self::LODACPP_EVAL_TIME_LIMIT_IN_SECONDS);
 
         let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
         let lodacpp = LodaCpp::new(loda_cpp_executable);
@@ -121,7 +123,8 @@ impl SubcommandPostMine {
         for candidate_program in self.candidate_programs.iter_mut() {
             let result = lodacpp.eval_with_path(
                 Self::LOOKUP_TERM_COUNT, 
-                candidate_program.borrow().path_original()
+                candidate_program.borrow().path_original(),
+                time_limit
             );
             let evalok: LodaCppEvalOk = match result {
                 Ok(value) => value,
