@@ -38,6 +38,7 @@ impl SubcommandPostMine {
     const LOOKUP_TERM_COUNT: usize = 40;
     const MINIMUM_NUMBER_OF_REQUIRED_TERMS: usize = 10;
     const LODACPP_EVAL_TIME_LIMIT_IN_SECONDS: u64 = 10;
+    const LODACPP_MINIMIZE_TIME_LIMIT_IN_SECONDS: u64 = 5;
 
     fn new() -> Result<Self, Box<dyn Error>> {
         let config = Config::load();
@@ -276,7 +277,8 @@ impl SubcommandPostMine {
     fn prepare_minimized_program_for_analysis(&mut self, candidate_program: CandidateProgramItem) -> Result<(), Box<dyn Error>> {
         let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
         let lodacpp = LodaCpp::new(loda_cpp_executable);
-        let result = lodacpp.minimize(&candidate_program.borrow().path_original());
+        let time_limit = Duration::from_secs(Self::LODACPP_MINIMIZE_TIME_LIMIT_IN_SECONDS);
+        let result = lodacpp.minimize(&candidate_program.borrow().path_original(), time_limit);
         match result {
             Ok(value) => {
                 // debug!("minimized program successfully:\n{}", value);
@@ -284,6 +286,7 @@ impl SubcommandPostMine {
             },
             Err(error) => {
                 error!("Unable to minimize program: {:?}", error);
+                panic!();
             }
         }
         Ok(())

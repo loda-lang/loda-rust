@@ -1,7 +1,7 @@
 use super::{LodaCpp, LodaCppError, LodaCppEvalOk};
+use std::error::Error;
 use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Output, Stdio};
-use std::error::Error;
 use std::time::Duration;
 use wait_timeout::ChildExt;
 
