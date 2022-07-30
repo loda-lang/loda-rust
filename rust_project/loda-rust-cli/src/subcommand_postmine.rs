@@ -237,6 +237,52 @@ impl SubcommandPostMine {
         pending_programs
     }
 
+    fn minimize_candidate_programs(&mut self) -> Result<(), Box<dyn Error>> {
+        let start = Instant::now();
+
+        let candidate_programs: Vec<CandidateProgramItem> = self.pending_candidate_programs();
+        if candidate_programs.is_empty() {
+            println!("There are no pending candidate programs in the 'mine-event' dir. Stopping.");
+            return Ok(());
+        }
+
+        let number_of_candidate_programs: usize = candidate_programs.len();
+        println!("Minimizing {} programs", number_of_candidate_programs);
+        let pb = ProgressBar::new(number_of_candidate_programs as u64);
+        for candidate_program in candidate_programs {
+            self.minimize_candidate_program(candidate_program.clone())?;
+            pb.inc(1);
+        }
+        pb.finish_and_clear();
+    
+        let green_bold = Style::new().green().bold();        
+        println!(
+            "{:>12} Minimized programs, in {}",
+            green_bold.apply_to("Finished"),
+            HumanDuration(start.elapsed())
+        );
+        Ok(())
+    }
+
+    fn minimize_candidate_program(&mut self, candidate_program: CandidateProgramItem) -> Result<(), Box<dyn Error>> {
+        let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
+        let lodacpp = LodaCpp::new(loda_cpp_executable);
+        let time_limit = Duration::from_secs(Self::LODACPP_MINIMIZE_TIME_LIMIT_IN_SECONDS);
+        let result = lodacpp.minimize(&candidate_program.borrow().path_original(), time_limit);
+        match result {
+            Ok(value) => {
+                // debug!("minimized program successfully:\n{}", value);
+                candidate_program.borrow_mut().assign_minimized_program(value);
+            },
+            Err(error) => {
+                let reason = format!("Unable to minimize program: {:?}", error);
+                // debug!("program: {:?}, rejection reason {}", candidate_program.borrow().path_original(), reason);
+                candidate_program.borrow_mut().perform_reject(reason)?;
+            }
+        }
+        Ok(())
+    }
+
     fn process_candidate_programs(&mut self) -> Result<(), Box<dyn Error>> {
         let start = Instant::now();
 
@@ -258,8 +304,6 @@ impl SubcommandPostMine {
         println!("Analyzing {} program ids", number_of_program_ids_to_be_analyzed);
         let pb = ProgressBar::new(number_of_program_ids_to_be_analyzed as u64);
         for candidate_program in candidate_programs {
-            self.prepare_minimized_program_for_analysis(candidate_program.clone())?;
-
             let possible_ids: Vec<OeisId> = candidate_program.borrow().possible_id_vec();
             for possible_id in possible_ids {
                 self.analyze_candidate(candidate_program.clone(), possible_id, pb.clone())?;
@@ -276,24 +320,6 @@ impl SubcommandPostMine {
             green_bold.apply_to("Finished"),
             HumanDuration(start.elapsed())
         );
-        Ok(())
-    }
-
-    fn prepare_minimized_program_for_analysis(&mut self, candidate_program: CandidateProgramItem) -> Result<(), Box<dyn Error>> {
-        let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
-        let lodacpp = LodaCpp::new(loda_cpp_executable);
-        let time_limit = Duration::from_secs(Self::LODACPP_MINIMIZE_TIME_LIMIT_IN_SECONDS);
-        let result = lodacpp.minimize(&candidate_program.borrow().path_original(), time_limit);
-        match result {
-            Ok(value) => {
-                // debug!("minimized program successfully:\n{}", value);
-                candidate_program.borrow_mut().assign_minimized_program(value);
-            },
-            Err(error) => {
-                error!("Unable to minimize program: {:?}", error);
-                panic!();
-            }
-        }
         Ok(())
     }
 
@@ -393,6 +419,7 @@ pub fn subcommand_postmine() -> Result<(), Box<dyn Error>> {
     instance.obtain_invalid_program_ids()?;
     instance.eval_using_loda_cpp()?;
     instance.lookup_in_oeis_stripped_file()?;
+    instance.minimize_candidate_programs()?;
     instance.process_candidate_programs()?;
     Ok(())
 }
