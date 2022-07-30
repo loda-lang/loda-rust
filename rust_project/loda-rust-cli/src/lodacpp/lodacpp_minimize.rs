@@ -1,13 +1,14 @@
+use super::{LodaCpp, LodaCppError};
+use std::error::Error;
 use std::path::Path;
 use std::process::Command;
-use super::{LodaCpp, LodaCppError};
 
 pub trait LodaCppMinimize {
-    fn minimize(&self, loda_program_path: &Path) -> Result<String, LodaCppError>;
+    fn minimize(&self, loda_program_path: &Path) -> Result<String, Box<dyn Error>>;
 }
 
 impl LodaCppMinimize for LodaCpp {
-    fn minimize(&self, loda_program_path: &Path) -> Result<String, LodaCppError> {
+    fn minimize(&self, loda_program_path: &Path) -> Result<String, Box<dyn Error>> {
         assert!(loda_program_path.is_absolute());
         assert!(loda_program_path.is_file());
         
@@ -24,7 +25,7 @@ impl LodaCppMinimize for LodaCpp {
         // println!("stderr: {:?}", String::from_utf8_lossy(&output.stderr));
 
         if !output.status.success() {
-            return Err(LodaCppError::new(trimmed_output));
+            return Err(Box::new(LodaCppError::NonZeroExitCode));
         }
 
         Ok(trimmed_output + "\n")

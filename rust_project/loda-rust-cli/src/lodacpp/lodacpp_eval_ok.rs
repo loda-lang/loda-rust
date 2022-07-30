@@ -20,7 +20,7 @@ impl LodaCppEvalOk {
         let trimmed_output: String = raw_output_from_lodacpp.trim().to_string();
         if trimmed_output.is_empty() {
             error!("No output to parse.");
-            return Err(Box::new(LodaCppError::new(trimmed_output)));
+            return Err(Box::new(LodaCppError::NoOutput));
         }
         let term_strings = trimmed_output.split(",");
         let mut terms_bigintvec = BigIntVec::with_capacity(term_count);
@@ -30,7 +30,7 @@ impl LodaCppEvalOk {
                 Some(value) => value,
                 None => {
                     error!("Unable to parse a number as BigInt. '{}'", term_string);
-                    return Err(Box::new(LodaCppError::new(trimmed_output)));
+                    return Err(Box::new(LodaCppError::Parse));
                 }
             };
             terms_bigintvec.push(bigint);

@@ -1,3 +1,4 @@
+//! Integration with the `loda-cpp` executable.
 mod lodacpp;
 mod lodacpp_eval;
 mod lodacpp_eval_ok;

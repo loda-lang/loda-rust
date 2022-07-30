@@ -125,8 +125,8 @@ impl SubcommandPostMine {
             );
             let evalok: LodaCppEvalOk = match result {
                 Ok(value) => value,
-                Err(_error) => {
-                    let reason = "Couldn't eval program with loda-cpp, this can happen if the program has a missing dependency.";
+                Err(error) => {
+                    let reason = format!("Couldn't eval program with loda-cpp, {:?}", error);
                     let msg = format!("Rejecting {}, {}", candidate_program.borrow(), reason);
                     candidate_program.borrow_mut().perform_reject(reason)?;
                     pb.println(msg);

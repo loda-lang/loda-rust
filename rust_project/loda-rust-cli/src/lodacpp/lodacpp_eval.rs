@@ -1,6 +1,6 @@
 use super::{LodaCpp, LodaCppError, LodaCppEvalOk};
 use std::path::Path;
-use std::process::{Command, Child, Stdio};
+use std::process::{Child, Command, Output, Stdio};
 use std::error::Error;
 use std::time::Duration;
 use wait_timeout::ChildExt;
@@ -25,41 +25,33 @@ impl LodaCppEvalWithPath for LodaCpp {
 
         let time_limit = Duration::from_secs(1);
         // let time_limit = Duration::from_millis(1);
-        let optional_status_code: Option<i32> = match child.wait_timeout(time_limit).unwrap() {
-            Some(status) => {
-                println!("exited with status: {:?}", status);
-                status.code()
+        let optional_exit_code: Option<i32> = match child.wait_timeout(time_limit).unwrap() {
+            Some(exit_status) => {
+                debug!("exited with status: {:?}", exit_status);
+                exit_status.code()
             },
             None => {
                 // child hasn't exited yet
-                println!("killing");
-                child.kill().unwrap();
-                child.wait().unwrap().code()
+                debug!("kill");
+                child.kill()?;
+                debug!("wait");
+                child.wait()?;
+                debug!("killed successfully");
+                return Err(Box::new(LodaCppError::Timeout));
             }
         };
 
-        let output = child
+        let output: Output = child
             .wait_with_output()
             .expect("failed to wait on child");
 
         let output_stdout: String = String::from_utf8_lossy(&output.stdout).to_string();
-        let trimmed_output: String = output_stdout.trim_end().to_string();
-        // println!("status: {}", output.status);
-        // println!("stdout: {:?}", trimmed_output);
-        // println!("stderr: {:?}", String::from_utf8_lossy(&output.stderr));
 
-        let status_code: i32 = match optional_status_code {
-            Some(code) => {
-                println!("Did get status code {:?}", code);
-                code
-            },
-            None => {
-                println!("Didn't get a status code");
-                panic!();
-            }
-        };
-        if status_code != 0 {
-            return Err(Box::new(LodaCppError::new(trimmed_output)));
+        if optional_exit_code != Some(0) {
+            error!("Expected exit_code: 0, but got exit_code: {:?}", optional_exit_code);
+            error!("stdout: {:?}", output_stdout);
+            error!("stderr: {:?}", String::from_utf8_lossy(&output.stderr));
+            return Err(Box::new(LodaCppError::NonZeroExitCode));
         }
 
         LodaCppEvalOk::parse(&output_stdout, term_count)
