@@ -1,17 +1,16 @@
+use super::{LodaCpp, LodaCppError, LodaCppEvalOk};
 use std::path::Path;
 use std::process::{Command, Child, Stdio};
-use wait_timeout::ChildExt;
+use std::error::Error;
 use std::time::Duration;
-use num_bigint::BigInt;
-use loda_rust_core::util::BigIntVec;
-use super::{LodaCpp, LodaCppError};
+use wait_timeout::ChildExt;
 
 pub trait LodaCppEvalWithPath {
-    fn eval_with_path(&self, term_count: usize, loda_program_path: &Path) -> Result<LodaCppEvalOk, LodaCppError>;
+    fn eval_with_path(&self, term_count: usize, loda_program_path: &Path) -> Result<LodaCppEvalOk, Box<dyn Error>>;
 }
 
 impl LodaCppEvalWithPath for LodaCpp {
-    fn eval_with_path(&self, term_count: usize, loda_program_path: &Path) -> Result<LodaCppEvalOk, LodaCppError> {
+    fn eval_with_path(&self, term_count: usize, loda_program_path: &Path) -> Result<LodaCppEvalOk, Box<dyn Error>> {
         assert!(loda_program_path.is_absolute());
         assert!(loda_program_path.is_file());
         
@@ -60,47 +59,9 @@ impl LodaCppEvalWithPath for LodaCpp {
             }
         };
         if status_code != 0 {
-            return Err(LodaCppError::new(trimmed_output));
+            return Err(Box::new(LodaCppError::new(trimmed_output)));
         }
 
-        let term_strings = trimmed_output.split(",");
-        let mut terms_bigintvec = BigIntVec::with_capacity(term_count);
-        for term_string in term_strings {
-            let bytes: &[u8] = term_string.as_bytes();
-            let bigint: BigInt = match BigInt::parse_bytes(bytes, 10) {
-                Some(value) => value,
-                None => {
-                    error!("Unable to parse a number as BigInt. '{}'", term_string);
-                    return Err(LodaCppError::new(trimmed_output));
-                }
-            };
-            terms_bigintvec.push(bigint);
-        };
-
-        Ok(LodaCppEvalOk::new(trimmed_output, terms_bigintvec))
-    }
-}
-
-pub struct LodaCppEvalOk {
-    stdout: String,
-    terms: BigIntVec,
-}
-
-impl LodaCppEvalOk {
-    fn new(stdout: String, terms: BigIntVec) -> Self {
-        Self {
-            stdout: stdout,
-            terms: terms,
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn stdout(&self) -> &String {
-        &self.stdout
-    }
-
-    #[allow(dead_code)]
-    pub fn terms(&self) -> &BigIntVec {
-        &self.terms
+        LodaCppEvalOk::parse(&output_stdout, term_count)
     }
 }

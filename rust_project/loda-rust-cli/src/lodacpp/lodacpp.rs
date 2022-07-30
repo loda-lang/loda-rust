@@ -1,3 +1,4 @@
+use std::fmt;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
@@ -34,5 +35,13 @@ impl LodaCppError {
     #[allow(dead_code)]
     pub fn stdout(&self) -> &String {
         &self.stdout
+    }
+}
+
+impl std::error::Error for LodaCppError {}
+
+impl fmt::Display for LodaCppError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "LodaCppError")
     }
 }
