@@ -4,14 +4,12 @@ use num_bigint::BigInt;
 use std::error::Error;
 
 pub struct LodaCppEvalOk {
-    stdout: String,
     terms: BigIntVec,
 }
 
 impl LodaCppEvalOk {
-    fn new(stdout: String, terms: BigIntVec) -> Self {
+    fn new(terms: BigIntVec) -> Self {
         Self {
-            stdout: stdout,
             terms: terms,
         }
     }
@@ -35,12 +33,7 @@ impl LodaCppEvalOk {
             };
             terms_bigintvec.push(bigint);
         };
-        Ok(LodaCppEvalOk::new(trimmed_output, terms_bigintvec))
-    }
-
-    #[allow(dead_code)]
-    pub fn stdout(&self) -> &String {
-        &self.stdout
+        Ok(LodaCppEvalOk::new(terms_bigintvec))
     }
 
     #[allow(dead_code)]
