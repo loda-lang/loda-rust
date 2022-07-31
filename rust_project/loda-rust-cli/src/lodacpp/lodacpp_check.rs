@@ -18,7 +18,6 @@ impl LodaCppCheck for LodaCpp {
             .arg("check")
             .arg(loda_program_path)
             .arg("-b")
-            .arg("0")
             .stdout(Stdio::piped())
             .spawn()
             .expect("failed to execute process: loda-cpp");
