@@ -6,7 +6,7 @@ use lazy_static::lazy_static;
 use std::ffi::OsStr;
 
 lazy_static! {
-    /// Determine if the filename contains `keep` or `reject`
+    /// Determine if the file extension is `.keep.asm` or `.reject.asm`
     static ref ALREADY_PROCESSED: Regex = Regex::new(
         "[.](?:keep|reject)[.]asm$"
     ).unwrap();
