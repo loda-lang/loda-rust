@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
 use crate::postmine::{CandidateProgram, find_pending_programs, State, ValidateSingleProgram, ValidateSingleProgramError};
 use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
-use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppEvalWithPath, LodaCppEvalTerms, LodaCppMinimize};
+use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use loda_rust_core::util::BigIntVec;
 use num_bigint::{BigInt, ToBigInt};
 use chrono::{DateTime, Utc};
@@ -141,7 +141,7 @@ impl PostMine {
         let mut count_success: usize = 0;
         let mut count_failure: usize = 0;
         for candidate_program in self.candidate_programs.iter_mut() {
-            let result = lodacpp.eval_with_path(
+            let result = lodacpp.eval_terms(
                 Self::LOOKUP_TERM_COUNT, 
                 candidate_program.borrow().path_original(),
                 time_limit

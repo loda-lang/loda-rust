@@ -5,12 +5,12 @@ use std::process::{Child, Command, ExitStatus, Output, Stdio};
 use std::time::Duration;
 use wait_timeout::ChildExt;
 
-pub trait LodaCppEvalWithPath {
-    fn eval_with_path(&self, term_count: usize, loda_program_path: &Path, time_limit: Duration) -> Result<LodaCppEvalTerms, Box<dyn Error>>;
+pub trait LodaCppEvalTermsExecute {
+    fn eval_terms(&self, term_count: usize, loda_program_path: &Path, time_limit: Duration) -> Result<LodaCppEvalTerms, Box<dyn Error>>;
 }
 
-impl LodaCppEvalWithPath for LodaCpp {
-    fn eval_with_path(&self, term_count: usize, loda_program_path: &Path, time_limit: Duration) -> Result<LodaCppEvalTerms, Box<dyn Error>> {
+impl LodaCppEvalTermsExecute for LodaCpp {
+    fn eval_terms(&self, term_count: usize, loda_program_path: &Path, time_limit: Duration) -> Result<LodaCppEvalTerms, Box<dyn Error>> {
         assert!(loda_program_path.is_absolute());
         assert!(loda_program_path.is_file());
         
