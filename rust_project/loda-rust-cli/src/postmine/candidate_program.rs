@@ -22,7 +22,7 @@ pub struct CandidateProgram {
     path_original: PathBuf,
     path_keep: PathBuf,
     path_reject: PathBuf,
-    id_string: String,
+    filename_original: String,
     lodacpp_terms: BigIntVec,
     possible_ids: HashSet::<OeisId>,
     keep_ids: HashSet::<OeisId>,
@@ -34,15 +34,15 @@ impl CandidateProgram {
         assert!(path.is_absolute());
         assert!(path.is_file());
 
-        let id_osstr: &OsStr = path.file_name().ok_or(PostMineError::UnableToExtractFilenameFromPath)?;
-        let id_string: String = id_osstr.to_string_lossy().to_string();
+        let filename_osstr: &OsStr = path.file_name().ok_or(PostMineError::UnableToExtractFilenameFromPath)?;
+        let filename_original: String = filename_osstr.to_string_lossy().to_string();
 
         let instance = Self {
             state: State::PendingProcessing,
             path_original: PathBuf::from(path),
             path_keep: PathUtil::path_keep(path),
             path_reject: PathUtil::path_reject(path),
-            id_string: id_string,
+            filename_original: filename_original,
             lodacpp_terms: vec!(),
             possible_ids: HashSet::new(),
             keep_ids: HashSet::new(),
@@ -51,8 +51,8 @@ impl CandidateProgram {
         Ok(instance)
     }
 
-    pub fn id_string(&self) -> &String {
-        &self.id_string
+    pub fn filename_original(&self) -> &String {
+        &self.filename_original
     }
 
     pub fn state(&self) -> State {
@@ -164,7 +164,7 @@ impl CandidateProgram {
 
 impl fmt::Display for CandidateProgram {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "'{}'", self.id_string)
+        write!(f, "'{}'", self.filename_original)
     }
 }
 
@@ -177,10 +177,34 @@ mod tests {
     use std::fs::File;
 
     #[test]
-    fn test_10000_perform_reject() -> Result<(), Box<dyn Error>> {
+    fn test_10000_filename_original() -> Result<(), Box<dyn Error>> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
-        let basedir = PathBuf::from(&tempdir.path()).join("test_10000_perform_reject");
+        let basedir = PathBuf::from(&tempdir.path()).join("test_10000_filename_original");
+        fs::create_dir(&basedir)?;
+        let input_path: PathBuf = basedir.join("19840101-054915-1251916462.asm");
+
+        let input_content = 
+r#"; A123456
+mul $0,2
+"#;
+        let mut input_file = File::create(&input_path)?;
+        input_file.write_all(input_content.as_bytes())?;
+        input_file.sync_all()?;
+
+        // Act
+        let candidate_program: CandidateProgram = CandidateProgram::new(&input_path)?;
+
+        // Assert
+        assert_eq!(candidate_program.filename_original(), "19840101-054915-1251916462.asm");
+        Ok(())
+    }
+
+    #[test]
+    fn test_20000_perform_reject() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let basedir = PathBuf::from(&tempdir.path()).join("test_20000_perform_reject");
         fs::create_dir(&basedir)?;
         let input_path: PathBuf = basedir.join("19840101-054915-1251916462.asm");
 
@@ -209,10 +233,10 @@ add $0,$1
     }
 
     #[test]
-    fn test_10001_perform_keep() -> Result<(), Box<dyn Error>> {
+    fn test_20001_perform_keep() -> Result<(), Box<dyn Error>> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
-        let basedir = PathBuf::from(&tempdir.path()).join("test_10001_perform_keep");
+        let basedir = PathBuf::from(&tempdir.path()).join("test_20001_perform_keep");
         fs::create_dir(&basedir)?;
         let input_path: PathBuf = basedir.join("19840101-054915-1251916462.asm");
 
