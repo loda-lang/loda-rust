@@ -23,6 +23,10 @@ impl LodaCppEvalTerms {
         let term_strings = trimmed_output.split(",");
         let mut terms_bigintvec = BigIntVec::with_capacity(term_count);
         for term_string in term_strings {
+            if term_string.starts_with("+") {
+                error!("Positive number should not start with plus symbol. '{}'", term_string);
+                return Err(Box::new(LodaCppError::ParseTerms));
+            }
             let bytes: &[u8] = term_string.as_bytes();
             let bigint: BigInt = match BigInt::parse_bytes(bytes, 10) {
                 Some(value) => value,
@@ -73,6 +77,7 @@ mod tests {
         assert_eq!(parse("\n  42\t  "), "42");
         assert_eq!(parse("0"), "0");
         assert_eq!(parse("0,0"), "0,0");
+        assert_eq!(parse("0000555"), "555");
     }
     
     #[test]
@@ -82,5 +87,6 @@ mod tests {
         assert_eq!(parse(" \n "), "ERROR NoOutput");
         assert_eq!(parse("1,2,overflow"), "ERROR ParseTerms");
         assert_eq!(parse("c++ exception"), "ERROR ParseTerms");
+        assert_eq!(parse("+123"), "ERROR ParseTerms");
     }
 }

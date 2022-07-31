@@ -1,4 +1,4 @@
-use super::{LodaCpp, LodaCppError, LodaCppEvalTerms};
+use super::{LodaCpp, LodaCppError, LodaCppEvalSteps};
 use std::error::Error;
 use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Output, Stdio};
@@ -6,11 +6,11 @@ use std::time::Duration;
 use wait_timeout::ChildExt;
 
 pub trait LodaCppEvalStepsExecute {
-    fn eval_steps(&self, term_count: usize, loda_program_path: &Path, time_limit: Duration) -> Result<LodaCppEvalTerms, Box<dyn Error>>;
+    fn eval_steps(&self, term_count: usize, loda_program_path: &Path, time_limit: Duration) -> Result<LodaCppEvalSteps, Box<dyn Error>>;
 }
 
 impl LodaCppEvalStepsExecute for LodaCpp {
-    fn eval_steps(&self, term_count: usize, loda_program_path: &Path, time_limit: Duration) -> Result<LodaCppEvalTerms, Box<dyn Error>> {
+    fn eval_steps(&self, term_count: usize, loda_program_path: &Path, time_limit: Duration) -> Result<LodaCppEvalSteps, Box<dyn Error>> {
         assert!(loda_program_path.is_absolute());
         assert!(loda_program_path.is_file());
         
@@ -58,6 +58,6 @@ impl LodaCppEvalStepsExecute for LodaCpp {
             return Err(Box::new(LodaCppError::NonZeroExitCode));
         }
 
-        LodaCppEvalTerms::parse(&output_stdout, term_count)
+        LodaCppEvalSteps::parse(&output_stdout, term_count)
     }
 }
