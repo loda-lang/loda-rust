@@ -28,7 +28,7 @@ impl LodaCppEvalTerms {
                 Some(value) => value,
                 None => {
                     error!("Unable to parse a number as BigInt. '{}'", term_string);
-                    return Err(Box::new(LodaCppError::Parse));
+                    return Err(Box::new(LodaCppError::ParseTerms));
                 }
             };
             terms_bigintvec.push(bigint);

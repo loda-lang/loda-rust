@@ -4,7 +4,7 @@ use std::fmt;
 pub enum LodaCppError {
     NonZeroExitCode,
     NoOutput,
-    Parse,
+    ParseTerms,
     Timeout,
 }
 
@@ -15,7 +15,7 @@ impl fmt::Display for LodaCppError {
         match self {
             Self::NonZeroExitCode => write!(f, "Non-zero exit code"),
             Self::NoOutput => write!(f, "No output from loda-cpp"),
-            Self::Parse => write!(f, "Cannot parse the output from loda-cpp"),
+            Self::ParseTerms => write!(f, "Cannot extract terms from from loda-cpp output"),
             Self::Timeout => write!(f, "Timeout"),
         }
     }
