@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
 use crate::postmine::{CandidateProgram, find_pending_programs, State, ValidateSingleProgram, ValidateSingleProgramError};
 use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
-use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppEvalWithPath, LodaCppEvalOk, LodaCppMinimize};
+use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppEvalWithPath, LodaCppEvalTerms, LodaCppMinimize};
 use loda_rust_core::util::BigIntVec;
 use num_bigint::{BigInt, ToBigInt};
 use chrono::{DateTime, Utc};
@@ -146,7 +146,7 @@ impl PostMine {
                 candidate_program.borrow().path_original(),
                 time_limit
             );
-            let evalok: LodaCppEvalOk = match result {
+            let evalterms: LodaCppEvalTerms = match result {
                 Ok(value) => value,
                 Err(error) => {
                     let reason = format!("Couldn't eval program with loda-cpp, {:?}", error);
@@ -160,7 +160,7 @@ impl PostMine {
             };
 
             count_success += 1;
-            candidate_program.borrow_mut().update_lodacpp_terms(evalok.terms().clone());
+            candidate_program.borrow_mut().update_lodacpp_terms(evalterms.terms().clone());
             pb.inc(1);
         }
         pb.finish_and_clear();

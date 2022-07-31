@@ -3,18 +3,18 @@ use loda_rust_core::util::BigIntVec;
 use num_bigint::BigInt;
 use std::error::Error;
 
-pub struct LodaCppEvalOk {
+pub struct LodaCppEvalTerms {
     terms: BigIntVec,
 }
 
-impl LodaCppEvalOk {
+impl LodaCppEvalTerms {
     fn new(terms: BigIntVec) -> Self {
         Self {
             terms: terms,
         }
     }
 
-    pub fn parse(raw_output_from_lodacpp: &String, term_count: usize) -> Result<LodaCppEvalOk, Box<dyn Error>> {
+    pub fn parse(raw_output_from_lodacpp: &String, term_count: usize) -> Result<LodaCppEvalTerms, Box<dyn Error>> {
         let trimmed_output: String = raw_output_from_lodacpp.trim().to_string();
         if trimmed_output.is_empty() {
             error!("No output to parse.");
@@ -33,7 +33,7 @@ impl LodaCppEvalOk {
             };
             terms_bigintvec.push(bigint);
         };
-        Ok(LodaCppEvalOk::new(terms_bigintvec))
+        Ok(LodaCppEvalTerms::new(terms_bigintvec))
     }
 
     #[allow(dead_code)]
@@ -49,7 +49,7 @@ mod tests {
 
     fn parse(input: &str) -> String {
         let s = input.to_string();
-        let eval_ok: LodaCppEvalOk = match LodaCppEvalOk::parse(&s, 0) {
+        let eval_ok: LodaCppEvalTerms = match LodaCppEvalTerms::parse(&s, 0) {
             Ok(value) => value,
             Err(error) => {
                 if let Some(lodacpp_error) = error.downcast_ref::<LodaCppError>() {
