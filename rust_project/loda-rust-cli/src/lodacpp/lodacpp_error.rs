@@ -1,11 +1,12 @@
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum LodaCppError {
     NonZeroExitCode,
     NoOutput,
-    ParseTerms,
     Timeout,
+    ParseTerms,
+    ParseSteps,
 }
 
 impl std::error::Error for LodaCppError {}
@@ -15,8 +16,9 @@ impl fmt::Display for LodaCppError {
         match self {
             Self::NonZeroExitCode => write!(f, "Non-zero exit code"),
             Self::NoOutput => write!(f, "No output from loda-cpp"),
-            Self::ParseTerms => write!(f, "Cannot extract terms from from loda-cpp output"),
             Self::Timeout => write!(f, "Timeout"),
+            Self::ParseTerms => write!(f, "Cannot extract terms from from loda-cpp output"),
+            Self::ParseSteps => write!(f, "Cannot extract steps from from loda-cpp output"),
         }
     }
 }

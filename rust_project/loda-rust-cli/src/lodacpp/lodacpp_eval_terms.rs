@@ -49,16 +49,22 @@ mod tests {
 
     fn parse(input: &str) -> String {
         let s = input.to_string();
-        let eval_ok: LodaCppEvalTerms = match LodaCppEvalTerms::parse(&s, 0) {
+        let evalterms: LodaCppEvalTerms = match LodaCppEvalTerms::parse(&s, 0) {
             Ok(value) => value,
             Err(error) => {
                 if let Some(lodacpp_error) = error.downcast_ref::<LodaCppError>() {
+                    if LodaCppError::NoOutput == *lodacpp_error {
+                        return "ERROR NoOutput".to_string();
+                    }
+                    if LodaCppError::ParseTerms == *lodacpp_error {
+                        return "ERROR ParseTerms".to_string();
+                    }
                     return format!("ERROR LODACPP: {:?}", lodacpp_error);
                 }
                 return format!("ERROR OTHER: {:?}", error);
             }
         };
-        eval_ok.terms().to_compact_comma_string()
+        evalterms.terms().to_compact_comma_string()
     }
 
     #[test]
@@ -71,10 +77,10 @@ mod tests {
     
     #[test]
     fn test_20000_parse_error() {
-        assert!(parse("").starts_with("ERROR LODACPP"));
-        assert!(parse(" ").starts_with("ERROR LODACPP"));
-        assert!(parse(" \n ").starts_with("ERROR LODACPP"));
-        assert!(parse("1,2,overflow").starts_with("ERROR LODACPP"));
-        assert!(parse("c++ exception").starts_with("ERROR LODACPP"));
+        assert_eq!(parse(""), "ERROR NoOutput");
+        assert_eq!(parse(" "), "ERROR NoOutput");
+        assert_eq!(parse(" \n "), "ERROR NoOutput");
+        assert_eq!(parse("1,2,overflow"), "ERROR ParseTerms");
+        assert_eq!(parse("c++ exception"), "ERROR ParseTerms");
     }
 }
