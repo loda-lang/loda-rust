@@ -109,6 +109,10 @@ impl CandidateProgram {
         self.minimized_program = minimized_program;
     }
 
+    pub fn minimized_program(&self) -> &String {
+        &self.minimized_program
+    }
+
     pub fn path_original(&self) -> &Path {
         &self.path_original
     }

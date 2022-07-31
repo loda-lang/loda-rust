@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
 use crate::postmine::{CandidateProgram, find_pending_programs, State, ValidateSingleProgram, ValidateSingleProgramError};
 use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
-use crate::lodacpp::{LodaCpp, LodaCppEvalWithPath, LodaCppEvalOk, LodaCppMinimize};
+use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppEvalWithPath, LodaCppEvalOk, LodaCppMinimize};
 use loda_rust_core::util::BigIntVec;
 use num_bigint::{BigInt, ToBigInt};
 use chrono::{DateTime, Utc};
@@ -10,6 +10,7 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::fs;
 use std::fs::File;
+use std::io::prelude::*;
 use std::io::BufReader;
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
@@ -38,6 +39,7 @@ impl PostMine {
     const MINIMUM_NUMBER_OF_REQUIRED_TERMS: usize = 10;
     const LODACPP_EVAL_TIME_LIMIT_IN_SECONDS: u64 = 10;
     const LODACPP_MINIMIZE_TIME_LIMIT_IN_SECONDS: u64 = 5;
+    const LODACPP_CHECK_TIME_LIMIT_IN_SECONDS: u64 = 120;
 
     pub fn run() -> Result<(), Box<dyn Error>> {
         let mut instance = Self::new()?;
@@ -422,6 +424,36 @@ impl PostMine {
         let has_original_file: bool = path.is_file();
         if has_original_file {
             // debug!("There already exist program: {}, Renaming from: {} to: {}", possible_id, path, path_original);
+        }
+
+        // Save the minimized program to disk
+        let check_filename = format!("iteration{}_{}", self.iteration, candidate_program.borrow().filename_original());
+        let check_path: PathBuf = self.path_timestamped_postmine_dir.join(check_filename);
+
+        // Prefix with a-number
+        let file_content: String = format!(
+            "; {}:\n\n{}\n", 
+            possible_id.a_number(), 
+            candidate_program.borrow().minimized_program()
+        );
+
+        let mut check_file = File::create(&check_path)?;
+        check_file.write_all(file_content.as_bytes())?;
+        check_file.sync_all()?;
+        debug!("Created file: {:?}", check_path);
+    
+        // Execute `loda-check check <PATH> -b 0`
+        let time_limit = Duration::from_secs(Self::LODACPP_CHECK_TIME_LIMIT_IN_SECONDS);
+        let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
+        let lodacpp = LodaCpp::new(loda_cpp_executable);
+        let result = lodacpp.check(&check_path, time_limit);
+        match result {
+            Ok(value) => {
+                debug!("checked program successfully:\n{}", value);
+            },
+            Err(error) => {
+                debug!("Unable to check program: {:?}", error);
+            }
         }
 
         // candidate_program.borrow_mut().keep_program_ids_insert(program_id);
