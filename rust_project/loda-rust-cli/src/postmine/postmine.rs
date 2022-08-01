@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
 use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
-use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppEvalStepsExecute, LodaCppEvalSteps, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
+use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use super::{CandidateProgram, CompareTwoPrograms, find_pending_programs, State, ValidateSingleProgram, ValidateSingleProgramError};
 use loda_rust_core::util::BigIntVec;
 use num_bigint::{BigInt, ToBigInt};
@@ -443,32 +443,40 @@ impl PostMine {
             // debug!("There already exist program: {}, Renaming from: {} to: {}", possible_id, path, path_original);
         }
 
-        // Save the minimized program to disk
-        let check_filename = format!("iteration{}_{}", self.iteration, candidate_program.borrow().filename_original());
-        let check_path: PathBuf = self.path_timestamped_postmine_dir.join(check_filename);
+        let check_program_filename = format!("iteration{}_{}", self.iteration, candidate_program.borrow().filename_original());
+        let check_program_path: PathBuf = self.path_timestamped_postmine_dir.join(check_program_filename);
 
+        let check_output_filename = format!("iteration{}_check_output.txt", self.iteration);
+        let check_output_path: PathBuf = self.path_timestamped_postmine_dir.join(check_output_filename);
+        
         // Prefix with a-number
         let file_content: String = format!(
             "; {}:\n\n{}\n", 
             possible_id.a_number(), 
             candidate_program.borrow().minimized_program()
         );
-
-        let mut check_file = File::create(&check_path)?;
-        check_file.write_all(file_content.as_bytes())?;
-        check_file.sync_all()?;
-        debug!("Created file: {:?}", check_path);
+        
+        // Save the minimized program to disk
+        let mut check_program_file = File::create(&check_program_path)?;
+        check_program_file.write_all(file_content.as_bytes())?;
+        check_program_file.sync_all()?;
+        debug!("Created program file: {:?}", check_program_path);
     
         // Execute `loda-check check <PATH> -b`
         let time_limit = Duration::from_secs(Self::LODACPP_CHECK_TIME_LIMIT_IN_SECONDS);
         let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
         let lodacpp = LodaCpp::new(loda_cpp_executable);
-        debug!("will check {:?}, time_limit: {:?}", check_path, time_limit);
-        let result = lodacpp.check(&check_path, time_limit);
-        debug!("did check {:?}", check_path);
+        debug!("will check {:?}, time_limit: {:?}", check_program_path, time_limit);
+        let result = lodacpp.check(&check_program_path, time_limit);
+        debug!("did check {:?}", check_program_path);
         match result {
             Ok(value) => {
                 debug!("checked program successfully:\n{}", value);
+
+                let mut check_output_file = File::create(&check_output_path)?;
+                check_output_file.write_all(value.as_bytes())?;
+                check_output_file.sync_all()?;
+                debug!("Wrote output from loda-cpp check to file: {:?}", check_output_path);
             },
             Err(error) => {
                 debug!("Unable to check program: {:?}", error);
