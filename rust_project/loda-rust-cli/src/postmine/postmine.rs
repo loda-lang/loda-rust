@@ -1,8 +1,8 @@
 use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
-use crate::postmine::{CandidateProgram, find_pending_programs, State, ValidateSingleProgram, ValidateSingleProgramError};
 use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
-use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
+use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppEvalStepsExecute, LodaCppEvalSteps, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
+use super::{CandidateProgram, CompareTwoPrograms, find_pending_programs, State, ValidateSingleProgram, ValidateSingleProgramError};
 use loda_rust_core::util::BigIntVec;
 use num_bigint::{BigInt, ToBigInt};
 use chrono::{DateTime, Utc};
@@ -40,6 +40,8 @@ impl PostMine {
     const LODACPP_EVAL_TIME_LIMIT_IN_SECONDS: u64 = 10;
     const LODACPP_MINIMIZE_TIME_LIMIT_IN_SECONDS: u64 = 5;
     const LODACPP_CHECK_TIME_LIMIT_IN_SECONDS: u64 = 120;
+    const LODACPP_COMPARE_NUMBER_OF_TERM_COUNT: usize = 60;
+    const LODACPP_STEPS_TIME_LIMIT_IN_SECONDS: u64 = 120;
 
     pub fn run() -> Result<(), Box<dyn Error>> {
         let mut instance = Self::new()?;
@@ -342,6 +344,21 @@ impl PostMine {
         Ok(())
     }
 
+    fn compare_performance_lodasteps(&self, path_program0: &Path, path_program1: &Path, path_benchmark: &Path) {
+        let time_limit = Duration::from_secs(Self::LODACPP_STEPS_TIME_LIMIT_IN_SECONDS);
+        let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
+        let lodacpp = LodaCpp::new(loda_cpp_executable);
+        let instance = CompareTwoPrograms::new();
+        instance.compare(
+            &lodacpp,    
+            path_program0, 
+            path_program1, 
+            path_benchmark, 
+            time_limit,
+            Self::LODACPP_COMPARE_NUMBER_OF_TERM_COUNT
+        );
+    }
+
     /// Construct a path, like this: `/absolute/path/123/A123456.asm`
     fn path_for_oeis_program(&self, program_id: OeisId) -> PathBuf {
         let dir_index: u32 = program_id.raw() / 1000;
@@ -442,11 +459,13 @@ impl PostMine {
         check_file.sync_all()?;
         debug!("Created file: {:?}", check_path);
     
-        // Execute `loda-check check <PATH> -b 0`
+        // Execute `loda-check check <PATH> -b`
         let time_limit = Duration::from_secs(Self::LODACPP_CHECK_TIME_LIMIT_IN_SECONDS);
         let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
         let lodacpp = LodaCpp::new(loda_cpp_executable);
+        debug!("will check {:?}, time_limit: {:?}", check_path, time_limit);
         let result = lodacpp.check(&check_path, time_limit);
+        debug!("did check {:?}", check_path);
         match result {
             Ok(value) => {
                 debug!("checked program successfully:\n{}", value);
