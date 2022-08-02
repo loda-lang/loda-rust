@@ -7,17 +7,29 @@ use std::process::{Child, Command, ExitStatus, Output, Stdio};
 use std::time::Duration;
 use wait_timeout::ChildExt;
 
+#[derive(Debug)]
+pub enum LodaCppCheckStatus {
+    FullMatch,
+    PartialMatch,
+}
+
+#[derive(Debug)]
+pub struct LodaCppCheckResult {
+    pub status: LodaCppCheckStatus,
+    pub number_of_correct_terms: u32,
+}
+
 pub trait LodaCppCheck {
-    fn perform_check(&self, loda_program_path: &Path, time_limit: Duration) -> Result<(), Box<dyn Error>>;
-    fn perform_check_and_save_output(&self, loda_program_path: &Path, time_limit: Duration, save_output_to_path: &Path) -> Result<(), Box<dyn Error>>;
+    fn perform_check(&self, loda_program_path: &Path, time_limit: Duration) -> Result<LodaCppCheckResult, Box<dyn Error>>;
+    fn perform_check_and_save_output(&self, loda_program_path: &Path, time_limit: Duration, save_output_to_path: &Path) -> Result<LodaCppCheckResult, Box<dyn Error>>;
 }
 
 impl LodaCppCheck for LodaCpp {
-    fn perform_check(&self, loda_program_path: &Path, time_limit: Duration) -> Result<(), Box<dyn Error>> {
+    fn perform_check(&self, loda_program_path: &Path, time_limit: Duration) -> Result<LodaCppCheckResult, Box<dyn Error>> {
         lodacpp_perform_check_impl(&self, loda_program_path, time_limit, None)
     }
 
-    fn perform_check_and_save_output(&self, loda_program_path: &Path, time_limit: Duration, save_output_to_path: &Path) -> Result<(), Box<dyn Error>> {
+    fn perform_check_and_save_output(&self, loda_program_path: &Path, time_limit: Duration, save_output_to_path: &Path) -> Result<LodaCppCheckResult, Box<dyn Error>> {
         lodacpp_perform_check_impl(&self, loda_program_path, time_limit, Some(save_output_to_path))
     }
 }
@@ -27,7 +39,7 @@ fn lodacpp_perform_check_impl(
     loda_program_path: &Path, 
     time_limit: Duration,
     optional_save_output_to_path: Option<&Path>
-) -> Result<(), Box<dyn Error>> {
+) -> Result<LodaCppCheckResult, Box<dyn Error>> {
     debug!("will perform check of {:?}, time_limit: {:?}", loda_program_path, time_limit);
 
     assert!(loda_program_path.is_absolute());
@@ -52,7 +64,7 @@ fn lodacpp_perform_check_impl(
         },
         None => {
             // child hasn't exited yet
-            error!("Killing loda-cpp, check program, exceeded time limit: {:?}, loda_program_path: {:?}", time_limit, loda_program_path);
+            error!("Killing 'loda-cpp check', exceeded {:?} time limit, loda_program_path: {:?}", time_limit, loda_program_path);
             debug!("kill");
             child.kill()?;
             debug!("wait");
@@ -81,5 +93,9 @@ fn lodacpp_perform_check_impl(
         return Err(Box::new(LodaCppError::NonZeroExitCode));
     }
 
-    Ok(())
+    let result = LodaCppCheckResult {
+        status: LodaCppCheckStatus::FullMatch,
+        number_of_correct_terms: 0,
+    };
+    Ok(result)
 }

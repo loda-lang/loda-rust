@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
 use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
-use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
+use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use super::{CandidateProgram, CompareTwoPrograms, find_pending_programs, State, ValidateSingleProgram, ValidateSingleProgramError};
 use loda_rust_core::util::BigIntVec;
 use num_bigint::{BigInt, ToBigInt};
@@ -468,8 +468,8 @@ impl PostMine {
         let lodacpp = LodaCpp::new(loda_cpp_executable);
         let result = lodacpp.perform_check_and_save_output(&check_program_path, time_limit, &check_output_path);
         match result {
-            Ok(_) => {
-                debug!("checked program ok");
+            Ok(value) => {
+                debug!("checked program: {:?}", value);
             },
             Err(error) => {
                 debug!("Unable to check program: {:?}", error);
