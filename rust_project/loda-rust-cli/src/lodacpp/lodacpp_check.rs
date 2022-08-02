@@ -1,13 +1,58 @@
-use super::{LodaCpp, LodaCppError};
+use super::LodaCppError;
 use std::error::Error;
-use std::fs::File;
-use std::io::prelude::*;
-use std::path::Path;
-use std::process::{Child, Command, ExitStatus, Output, Stdio};
-use std::time::Duration;
-use wait_timeout::ChildExt;
+use regex::Regex;
+use lazy_static::lazy_static;
+use std::io;
+use std::io::BufRead;
 
-#[derive(Debug)]
+lazy_static! {
+    // Extract the `term index` from `loda-cpp check` output.
+    static ref EXTRACT_TERM_INDEX: Regex = Regex::new(
+        "^(\\d+) \\d+$"
+    ).unwrap();
+}
+
+fn parse_line<S: AsRef<str>>(line: S) -> Option<u32> {
+    let line: &str = line.as_ref();
+    let re = &EXTRACT_TERM_INDEX;
+    let captures = match re.captures(line) {
+        Some(value) => value,
+        None => {
+            return None;
+        }
+    };
+    let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
+    let number_of_correct_terms: u32 = match capture1.parse::<u32>() {
+        Ok(value) => value,
+        Err(_error) => {
+            return None;
+        }
+    };
+    Some(number_of_correct_terms)
+}
+
+fn extract_number_of_correct_terms(input: &str) -> u32 {
+    let mut input_u8: &[u8] = input.as_bytes();
+    let reader: &mut dyn io::BufRead = &mut input_u8;
+    let mut last_term_index: u32 = 0;
+    let mut current_line_number: u32 = 0;
+    for line in reader.lines() {
+        current_line_number += 1;
+        let line: String = match line {
+            Ok(value) => value,
+            Err(error) => {
+                error!("Problem reading line #{:?}. {:?}", current_line_number, error);
+                continue;
+            }
+        };
+        if let Some(term_index) = parse_line(&line) {
+            last_term_index = term_index;
+        }
+    }
+    last_term_index + 1
+}
+
+#[derive(Debug, PartialEq)]
 pub enum LodaCppCheckStatus {
     FullMatch,
     PartialMatch,
@@ -19,83 +64,95 @@ pub struct LodaCppCheckResult {
     pub number_of_correct_terms: u32,
 }
 
-pub trait LodaCppCheck {
-    fn perform_check(&self, loda_program_path: &Path, time_limit: Duration) -> Result<LodaCppCheckResult, Box<dyn Error>>;
-    fn perform_check_and_save_output(&self, loda_program_path: &Path, time_limit: Duration, save_output_to_path: &Path) -> Result<LodaCppCheckResult, Box<dyn Error>>;
-}
-
-impl LodaCppCheck for LodaCpp {
-    fn perform_check(&self, loda_program_path: &Path, time_limit: Duration) -> Result<LodaCppCheckResult, Box<dyn Error>> {
-        lodacpp_perform_check_impl(&self, loda_program_path, time_limit, None)
-    }
-
-    fn perform_check_and_save_output(&self, loda_program_path: &Path, time_limit: Duration, save_output_to_path: &Path) -> Result<LodaCppCheckResult, Box<dyn Error>> {
-        lodacpp_perform_check_impl(&self, loda_program_path, time_limit, Some(save_output_to_path))
-    }
-}
-
-fn lodacpp_perform_check_impl(
-    loda_cpp: &LodaCpp, 
-    loda_program_path: &Path, 
-    time_limit: Duration,
-    optional_save_output_to_path: Option<&Path>
-) -> Result<LodaCppCheckResult, Box<dyn Error>> {
-    debug!("will perform check of {:?}, time_limit: {:?}", loda_program_path, time_limit);
-
-    assert!(loda_program_path.is_absolute());
-    assert!(loda_program_path.is_file());
-
-    let mut child: Child = Command::new(loda_cpp.loda_cpp_executable())
-        .arg("check")
-        .arg(loda_program_path)
-        .arg("-b")
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("failed to execute process: loda-cpp");
-
-    let optional_exit_status: Option<ExitStatus> = child
-        .wait_timeout(time_limit)
-        .expect("unable to 'wait_timeout' for child process");
-
-    let optional_exit_code: Option<i32> = match optional_exit_status {
-        Some(exit_status) => {
-            debug!("exited with status: {:?}", exit_status);
-            exit_status.code()
-        },
-        None => {
-            // child hasn't exited yet
-            error!("Killing 'loda-cpp check', exceeded {:?} time limit, loda_program_path: {:?}", time_limit, loda_program_path);
-            debug!("kill");
-            child.kill()?;
-            debug!("wait");
-            child.wait()?;
-            debug!("killed successfully");
-            return Err(Box::new(LodaCppError::Timeout));
+impl LodaCppCheckResult {
+    pub fn parse<S: AsRef<str>>(input_raw: S) -> Result<LodaCppCheckResult, Box<dyn Error>> {
+        let input_raw: &str = input_raw.as_ref();
+        let input_trimmed: &str = input_raw.trim();
+        if input_trimmed.ends_with("ok") {
+            let number_of_correct_terms: u32 = extract_number_of_correct_terms(&input_trimmed);
+            return Ok(Self {
+                status: LodaCppCheckStatus::FullMatch,
+                number_of_correct_terms: number_of_correct_terms,
+            });
         }
-    };
+        if input_trimmed.ends_with("error") {
+            let number_of_correct_terms: u32 = extract_number_of_correct_terms(&input_trimmed);
+            return Ok(Self {
+                status: LodaCppCheckStatus::PartialMatch,
+                number_of_correct_terms: number_of_correct_terms,
+            });
+        }
+        Err(Box::new(LodaCppError::ParseCheck))
+    }
+}
 
-    let output: Output = child
-        .wait_with_output()
-        .expect("failed to wait on child");
 
-    let output_stdout: String = String::from_utf8_lossy(&output.stdout).to_string();
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    if let Some(save_output_to_path) = optional_save_output_to_path {
-        debug!("Saving 'loda-cpp check' output to file: {:?}", save_output_to_path);
-        let mut file = File::create(save_output_to_path)?;
-        file.write_all(output_stdout.as_bytes())?;
+    #[test]
+    fn test_10000_parse_line_some() {
+        assert_eq!(parse_line("0 0"), Some(0));
+        assert_eq!(parse_line("42 100"), Some(42));
+        assert_eq!(parse_line("10000 1"), Some(10000));
     }
 
-    if optional_exit_code != Some(0) {
-        error!("Expected exit_code: 0, but got exit_code: {:?}", optional_exit_code);
-        error!("stdout: {:?}", output_stdout);
-        error!("stderr: {:?}", String::from_utf8_lossy(&output.stderr));
-        return Err(Box::new(LodaCppError::NonZeroExitCode));
+    #[test]
+    fn test_10001_parse_line_none() {
+        assert_eq!(parse_line("-1 100"), None);
+        assert_eq!(parse_line("ok"), None);
+        assert_eq!(parse_line("error"), None);
+        assert_eq!(parse_line("123 456 -> expected 500"), None);
     }
 
-    let result = LodaCppCheckResult {
-        status: LodaCppCheckStatus::FullMatch,
-        number_of_correct_terms: 0,
-    };
-    Ok(result)
+    #[test]
+    fn test_20000_parse_ok() {
+        // Arrange
+        let content = 
+r#"
+0 1
+1 30
+2 21
+3 77
+4 93
+5 87
+ok
+"#;
+
+        // Act
+        let result = LodaCppCheckResult::parse(content).expect("Should be able to parse ok");
+
+        // Assert
+        assert_eq!(result.status, LodaCppCheckStatus::FullMatch);
+        assert_eq!(result.number_of_correct_terms, 6);
+    }    
+
+    #[test]
+    fn test_30000_parse_error() {
+        // Arrange
+        let content = 
+r#"
+0 2
+1 1
+2 0
+3 1
+4 0
+5 0
+6 1
+7 0
+8 1
+9 0
+10 0
+11 9 -> expected 5
+error
+"#;
+
+        // Act
+        let result = LodaCppCheckResult::parse(content).expect("Should be able to parse ok");
+
+        // Assert
+        assert_eq!(result.status, LodaCppCheckStatus::PartialMatch);
+        assert_eq!(result.number_of_correct_terms, 11);
+    }    
 }

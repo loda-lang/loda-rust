@@ -470,9 +470,13 @@ impl PostMine {
         match result {
             Ok(value) => {
                 debug!("checked program: {:?}", value);
+                let message = format!("check success: {:?}", value);
+                progressbar.println(message);
             },
             Err(error) => {
                 debug!("Unable to check program: {:?}", error);
+                let message = format!("check error: {:?}", error);
+                progressbar.println(message);
             }
         }
 
