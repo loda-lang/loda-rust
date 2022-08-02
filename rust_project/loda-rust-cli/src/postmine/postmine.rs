@@ -446,7 +446,7 @@ impl PostMine {
         let check_program_filename = format!("iteration{}_{}", self.iteration, candidate_program.borrow().filename_original());
         let check_program_path: PathBuf = self.path_timestamped_postmine_dir.join(check_program_filename);
 
-        let check_output_filename = format!("iteration{}_check_output.txt", self.iteration);
+        let check_output_filename = format!("iteration{}_loda_check.txt", self.iteration);
         let check_output_path: PathBuf = self.path_timestamped_postmine_dir.join(check_output_filename);
         
         // Prefix with a-number
@@ -466,17 +466,10 @@ impl PostMine {
         let time_limit = Duration::from_secs(Self::LODACPP_CHECK_TIME_LIMIT_IN_SECONDS);
         let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
         let lodacpp = LodaCpp::new(loda_cpp_executable);
-        debug!("will check {:?}, time_limit: {:?}", check_program_path, time_limit);
-        let result = lodacpp.check(&check_program_path, time_limit);
-        debug!("did check {:?}", check_program_path);
+        let result = lodacpp.perform_check_and_save_output(&check_program_path, time_limit, &check_output_path);
         match result {
-            Ok(value) => {
-                debug!("checked program successfully:\n{}", value);
-
-                let mut check_output_file = File::create(&check_output_path)?;
-                check_output_file.write_all(value.as_bytes())?;
-                check_output_file.sync_all()?;
-                debug!("Wrote output from loda-cpp check to file: {:?}", check_output_path);
+            Ok(_) => {
+                debug!("checked program ok");
             },
             Err(error) => {
                 debug!("Unable to check program: {:?}", error);
