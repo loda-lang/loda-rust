@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::common::{find_asm_files_recursively, load_program_ids_csv_file};
+use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use super::{CandidateProgram, CompareTwoPrograms, find_pending_programs, State, ValidateSingleProgram, ValidateSingleProgramError};
@@ -421,17 +421,24 @@ impl PostMine {
     fn analyze_candidate(&mut self, candidate_program: CandidateProgramItem, possible_id: OeisId, progressbar: ProgressBar) -> Result<(), Box<dyn Error>> {
         self.iteration += 1;
 
-        let message = format!("Comparing {} with {}", candidate_program.borrow(), possible_id);
-        progressbar.println(message);
+        let log_filename = format!("iteration{}_log.txt", self.iteration);
+        let log_path: PathBuf = self.path_timestamped_postmine_dir.join(log_filename);
+        let simple_log = SimpleLog::new(&log_path)?;
 
+        let message = format!("Comparing {} with {}", candidate_program.borrow(), possible_id);
+        progressbar.println(message.clone());
+        simple_log.println(message);
+    
         if self.dontmine_hashset.contains(&possible_id) {
             let message = format!("Maybe keep/reject. The candidate program is contained in the 'dont_mine.csv' file. {}, Analyzing it anyways.", possible_id);
-            progressbar.println(message);
+            // progressbar.println(message.clone());
+            simple_log.println(message);
         }
     
         if self.invalid_program_ids_hashset.contains(&possible_id) {
             let message = format!("Program {} is listed in the 'programs_invalid.csv'", possible_id);
-            progressbar.println(message);
+            // progressbar.println(message.clone());
+            simple_log.println(message);
         }
 
         let path: PathBuf = self.path_for_oeis_program(possible_id);
@@ -443,7 +450,7 @@ impl PostMine {
             // debug!("There already exist program: {}, Renaming from: {} to: {}", possible_id, path, path_original);
         }
 
-        let check_program_filename = format!("iteration{}_{}", self.iteration, candidate_program.borrow().filename_original());
+        let check_program_filename = format!("iteration{}_program.asm", self.iteration);
         let check_program_path: PathBuf = self.path_timestamped_postmine_dir.join(check_program_filename);
 
         let check_output_filename = format!("iteration{}_loda_check.txt", self.iteration);
@@ -460,7 +467,7 @@ impl PostMine {
         let mut check_program_file = File::create(&check_program_path)?;
         check_program_file.write_all(file_content.as_bytes())?;
         check_program_file.sync_all()?;
-        debug!("Created program file: {:?}", check_program_path);
+        // debug!("Created program file: {:?}", check_program_path);
     
         // Execute `loda-check check <PATH> -b`
         let time_limit = Duration::from_secs(Self::LODACPP_CHECK_TIME_LIMIT_IN_SECONDS);
@@ -469,14 +476,16 @@ impl PostMine {
         let result = lodacpp.perform_check_and_save_output(&check_program_path, time_limit, &check_output_path);
         match result {
             Ok(value) => {
-                debug!("checked program: {:?}", value);
+                // debug!("checked program: {:?}", value);
                 let message = format!("check success: {:?}", value);
-                progressbar.println(message);
+                // progressbar.println(message.clone());
+                simple_log.println(message);
             },
             Err(error) => {
-                debug!("Unable to check program: {:?}", error);
+                // debug!("Unable to check program: {:?}", error);
                 let message = format!("check error: {:?}", error);
-                progressbar.println(message);
+                // progressbar.println(message.clone());
+                simple_log.println(message);
             }
         }
 
