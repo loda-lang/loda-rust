@@ -426,7 +426,7 @@ impl PostMine {
         let simple_log = SimpleLog::new(&log_path)?;
 
         let message = format!("Comparing {} with {}", candidate_program.borrow(), possible_id);
-        progressbar.println(message.clone());
+        // progressbar.println(message.clone());
         simple_log.println(message);
     
         if self.dontmine_hashset.contains(&possible_id) {

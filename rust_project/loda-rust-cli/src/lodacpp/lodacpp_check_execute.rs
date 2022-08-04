@@ -52,8 +52,7 @@ fn lodacpp_perform_check_impl(
         },
         None => {
             // child hasn't exited yet
-            error!("Killing 'loda-cpp check', exceeded {:?} time limit, loda_program_path: {:?}", time_limit, loda_program_path);
-            debug!("kill");
+            debug!("Killing 'loda-cpp check', exceeded {:?} time limit, loda_program_path: {:?}", time_limit, loda_program_path);
             child.kill()?;
             debug!("wait");
             child.wait()?;
