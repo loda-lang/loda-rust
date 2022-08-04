@@ -24,6 +24,7 @@ type CandidateProgramItem = Rc<RefCell<CandidateProgram>>;
 
 pub struct PostMine {
     config: Config,
+    lodacpp: LodaCpp,
     path_timestamped_postmine_dir: PathBuf,
     paths_for_processing: Vec<PathBuf>,
     candidate_programs: Vec<CandidateProgramItem>,
@@ -71,8 +72,12 @@ impl PostMine {
         let path_timestamped_postmine_dir: PathBuf = config.postmine_dir().join(dirname);
         fs::create_dir(&path_timestamped_postmine_dir)?;
 
+        let loda_cpp_executable: PathBuf = config.loda_cpp_executable();
+        let lodacpp = LodaCpp::new(loda_cpp_executable);
+
         let instance = Self {
             config: config,
+            lodacpp: lodacpp,
             path_timestamped_postmine_dir: path_timestamped_postmine_dir,
             paths_for_processing: vec!(),
             candidate_programs: vec!(),
@@ -134,16 +139,13 @@ impl PostMine {
         let start = Instant::now();
         let time_limit = Duration::from_secs(Self::LODACPP_EVAL_TIME_LIMIT_IN_SECONDS);
 
-        let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
-        let lodacpp = LodaCpp::new(loda_cpp_executable);
-
         let number_of_pending_programs: usize = self.candidate_programs.len();
         let pb = ProgressBar::new(number_of_pending_programs as u64);
 
         let mut count_success: usize = 0;
         let mut count_failure: usize = 0;
         for candidate_program in self.candidate_programs.iter_mut() {
-            let result = lodacpp.eval_terms(
+            let result = self.lodacpp.eval_terms(
                 Self::LOOKUP_TERM_COUNT, 
                 candidate_program.borrow().path_original(),
                 time_limit
@@ -286,10 +288,8 @@ impl PostMine {
     }
 
     fn minimize_candidate_program(&mut self, candidate_program: CandidateProgramItem) -> Result<(), Box<dyn Error>> {
-        let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
-        let lodacpp = LodaCpp::new(loda_cpp_executable);
         let time_limit = Duration::from_secs(Self::LODACPP_MINIMIZE_TIME_LIMIT_IN_SECONDS);
-        let result = lodacpp.minimize(&candidate_program.borrow().path_original(), time_limit);
+        let result = self.lodacpp.minimize(&candidate_program.borrow().path_original(), time_limit);
         match result {
             Ok(value) => {
                 // debug!("minimized program successfully:\n{}", value);
@@ -346,11 +346,9 @@ impl PostMine {
 
     fn compare_performance_lodasteps(&self, path_program0: &Path, path_program1: &Path, path_benchmark: &Path) -> CompareTwoProgramsResult {
         let time_limit = Duration::from_secs(Self::LODACPP_STEPS_TIME_LIMIT_IN_SECONDS);
-        let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
-        let lodacpp = LodaCpp::new(loda_cpp_executable);
         let instance = CompareTwoPrograms::new();
         let result: CompareTwoProgramsResult = instance.compare(
-            &lodacpp,    
+            &self.lodacpp,    
             path_program0, 
             path_program1, 
             path_benchmark, 
@@ -442,11 +440,11 @@ impl PostMine {
             simple_log.println(message);
         }
 
-        let path: PathBuf = self.path_for_oeis_program(possible_id);
+        let oeis_program_path: PathBuf = self.path_for_oeis_program(possible_id);
 
-        self.remove_existing_loda_program_if_its_invalid(possible_id, &path)?;
+        self.remove_existing_loda_program_if_its_invalid(possible_id, &oeis_program_path)?;
 
-        let has_original_file: bool = path.is_file();
+        let has_original_file: bool = oeis_program_path.is_file();
         if has_original_file {
             // debug!("There already exist program: {}, Renaming from: {} to: {}", possible_id, path, path_original);
         }
@@ -456,6 +454,9 @@ impl PostMine {
 
         let check_output_filename = format!("iteration{}_loda_check.txt", self.iteration);
         let check_output_path: PathBuf = self.path_timestamped_postmine_dir.join(check_output_filename);
+        
+        let compare_output_filename = format!("iteration{}_compare.txt", self.iteration);
+        let compare_output_path: PathBuf = self.path_timestamped_postmine_dir.join(compare_output_filename);
         
         // Prefix with a-number
         let file_content: String = format!(
@@ -472,9 +473,7 @@ impl PostMine {
     
         // Execute `loda-check check <PATH> -b`
         let time_limit = Duration::from_secs(Self::LODACPP_CHECK_TIME_LIMIT_IN_SECONDS);
-        let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
-        let lodacpp = LodaCpp::new(loda_cpp_executable);
-        let okerr = lodacpp.perform_check_and_save_output(&check_program_path, time_limit, &check_output_path);
+        let okerr = self.lodacpp.perform_check_and_save_output(&check_program_path, time_limit, &check_output_path);
         let check_result: LodaCppCheckResult = match okerr {
             Ok(value) => {
                 // debug!("checked program: {:?}", value);
@@ -496,7 +495,12 @@ impl PostMine {
                 self.process_partial_match(simple_log.clone());
             },
             LodaCppCheckStatus::FullMatch => {
-                self.process_full_match(simple_log.clone());
+                self.process_full_match(
+                    simple_log.clone(),
+                    &check_program_path,
+                    &oeis_program_path,
+                    &compare_output_path
+                );
             }
         }
 
@@ -507,8 +511,16 @@ impl PostMine {
         simple_log.println("process_partial_match");
     }
     
-    fn process_full_match(&self, simple_log: SimpleLog) {
+    fn process_full_match(&self, simple_log: SimpleLog, path_program0: &Path, path_program1: &Path, path_benchmark: &Path) {
         simple_log.println("process_full_match");
+
+        let compare_result: CompareTwoProgramsResult = self.compare_performance_lodasteps(
+            path_program0, 
+            path_program1,
+            path_benchmark
+        );
+        let message = format!("process_full_match: compare result: {:?}", compare_result);
+        simple_log.println(message);
 
         // candidate_program.borrow_mut().keep_program_ids_insert(program_id);
     }
