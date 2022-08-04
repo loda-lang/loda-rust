@@ -473,23 +473,42 @@ impl PostMine {
         let time_limit = Duration::from_secs(Self::LODACPP_CHECK_TIME_LIMIT_IN_SECONDS);
         let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
         let lodacpp = LodaCpp::new(loda_cpp_executable);
-        let result = lodacpp.perform_check_and_save_output(&check_program_path, time_limit, &check_output_path);
-        match result {
+        let okerr = lodacpp.perform_check_and_save_output(&check_program_path, time_limit, &check_output_path);
+        let check_result: LodaCppCheckResult = match okerr {
             Ok(value) => {
                 // debug!("checked program: {:?}", value);
                 let message = format!("check success: {:?}", value);
                 // progressbar.println(message.clone());
                 simple_log.println(message);
+                value
             },
             Err(error) => {
                 // debug!("Unable to check program: {:?}", error);
                 let message = format!("check error: {:?}", error);
                 // progressbar.println(message.clone());
                 simple_log.println(message);
+                return Ok(());
+            }
+        };
+        match check_result.status {
+            LodaCppCheckStatus::PartialMatch => {
+                self.process_partial_match(simple_log.clone());
+            },
+            LodaCppCheckStatus::FullMatch => {
+                self.process_full_match(simple_log.clone());
             }
         }
 
-        // candidate_program.borrow_mut().keep_program_ids_insert(program_id);
         Ok(())
+    }
+    
+    fn process_partial_match(&self, simple_log: SimpleLog) {
+        simple_log.println("process_partial_match");
+    }
+    
+    fn process_full_match(&self, simple_log: SimpleLog) {
+        simple_log.println("process_full_match");
+
+        // candidate_program.borrow_mut().keep_program_ids_insert(program_id);
     }
 }
