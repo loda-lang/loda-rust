@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
-use super::{CandidateProgram, CompareTwoPrograms, find_pending_programs, State, ValidateSingleProgram, ValidateSingleProgramError};
+use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, State, ValidateSingleProgram, ValidateSingleProgramError};
 use loda_rust_core::util::BigIntVec;
 use num_bigint::{BigInt, ToBigInt};
 use chrono::{DateTime, Utc};
@@ -344,12 +344,12 @@ impl PostMine {
         Ok(())
     }
 
-    fn compare_performance_lodasteps(&self, path_program0: &Path, path_program1: &Path, path_benchmark: &Path) {
+    fn compare_performance_lodasteps(&self, path_program0: &Path, path_program1: &Path, path_benchmark: &Path) -> CompareTwoProgramsResult {
         let time_limit = Duration::from_secs(Self::LODACPP_STEPS_TIME_LIMIT_IN_SECONDS);
         let loda_cpp_executable: PathBuf = self.config.loda_cpp_executable();
         let lodacpp = LodaCpp::new(loda_cpp_executable);
         let instance = CompareTwoPrograms::new();
-        instance.compare(
+        let result: CompareTwoProgramsResult = instance.compare(
             &lodacpp,    
             path_program0, 
             path_program1, 
@@ -357,6 +357,7 @@ impl PostMine {
             time_limit,
             Self::LODACPP_COMPARE_NUMBER_OF_TERM_COUNT
         );
+        result
     }
 
     /// Construct a path, like this: `/absolute/path/123/A123456.asm`

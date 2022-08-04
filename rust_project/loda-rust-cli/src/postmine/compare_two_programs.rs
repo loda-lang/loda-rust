@@ -3,6 +3,12 @@ use std::error::Error;
 use std::path::Path;
 use std::time::Duration;
 
+#[derive(Debug, PartialEq)]
+pub enum CompareTwoProgramsResult {
+    Program0,
+    Program1,
+}
+
 pub struct CompareTwoPrograms {}
 
 impl CompareTwoPrograms {
@@ -10,7 +16,7 @@ impl CompareTwoPrograms {
         Self {}
     }
 
-    pub fn compare(&self, lodacpp: &LodaCpp, path_program0: &Path, path_program1: &Path, path_benchmark: &Path, time_limit: Duration, term_count: usize) {
+    pub fn compare(&self, lodacpp: &LodaCpp, path_program0: &Path, path_program1: &Path, path_benchmark: &Path, time_limit: Duration, term_count: usize) -> CompareTwoProgramsResult {
         let result0 = lodacpp.eval_steps(
             term_count,
             &path_program0, 
@@ -38,5 +44,6 @@ impl CompareTwoPrograms {
                 debug!("Unable to compute steps for program1: {:?}", error);
             }
         }
+        CompareTwoProgramsResult::Program0
     }
 }
