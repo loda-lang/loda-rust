@@ -344,18 +344,17 @@ impl PostMine {
         Ok(())
     }
 
-    fn compare_performance_lodasteps(&self, path_program0: &Path, path_program1: &Path, path_benchmark: &Path) -> CompareTwoProgramsResult {
+    fn compare_performance_lodasteps(&self, path_program0: &Path, path_program1: &Path, path_benchmark: &Path) -> Result<CompareTwoProgramsResult, Box<dyn Error>> {
         let time_limit = Duration::from_secs(Self::LODACPP_STEPS_TIME_LIMIT_IN_SECONDS);
         let instance = CompareTwoPrograms::new();
-        let result: CompareTwoProgramsResult = instance.compare(
+        instance.compare(
             &self.lodacpp,    
             path_program0, 
             path_program1, 
             path_benchmark, 
             time_limit,
             Self::LODACPP_COMPARE_NUMBER_OF_TERM_COUNT
-        );
-        result
+        )
     }
 
     /// Construct a path, like this: `/absolute/path/123/A123456.asm`
@@ -514,13 +513,21 @@ impl PostMine {
     fn process_full_match(&self, simple_log: SimpleLog, path_program0: &Path, path_program1: &Path, path_benchmark: &Path) {
         simple_log.println("process_full_match");
 
-        let compare_result: CompareTwoProgramsResult = self.compare_performance_lodasteps(
+        let compare_result = self.compare_performance_lodasteps(
             path_program0, 
             path_program1,
             path_benchmark
         );
-        let message = format!("process_full_match: compare result: {:?}", compare_result);
-        simple_log.println(message);
+        match compare_result {
+            Ok(value) => {
+                let message = format!("process_full_match: compare result ok: {:?}", value);
+                simple_log.println(message);
+            },
+            Err(error) => {
+                let message = format!("process_full_match: compare result error: {:?}", error);
+                simple_log.println(message);
+            }
+        }
 
         // candidate_program.borrow_mut().keep_program_ids_insert(program_id);
     }
