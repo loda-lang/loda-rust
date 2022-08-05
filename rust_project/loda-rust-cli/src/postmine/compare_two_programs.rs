@@ -30,7 +30,7 @@ impl CompareTwoPrograms {
     ) -> Result<CompareTwoProgramsResult, Box<dyn Error>> {
         let mut file = File::create(path_comparison)?;
 
-        writeln!(&mut file, "program0, measuring steps: {:?}", path_program0);
+        writeln!(&mut file, "program0, measuring steps: {:?}", path_program0)?;
         let start0 = Instant::now();
         let result0 = lodacpp.eval_steps(
             term_count,
@@ -38,21 +38,25 @@ impl CompareTwoPrograms {
             time_limit
         );
         let elapsed0: u128 = start0.elapsed().as_millis();
-        let steps0: LodaCppEvalSteps = match result0 {
+        let result_steps0: LodaCppEvalSteps = match result0 {
             Ok(value) => {
                 // debug!("program0 steps:\n{:?}", value.steps());
-                writeln!(&mut file, "program0, elapsed: {:?}ms", elapsed0);
-                writeln!(&mut file, "program0, steps\n{:?}", value.steps());
+                writeln!(&mut file, "program0, elapsed: {:?}ms", elapsed0)?;
+                // writeln!(&mut file, "program0, steps\n{:?}", value.steps())?;
                 value
             },
             Err(error) => {
                 // error!("Unable to compute steps for program0: {:?}", error);
-                writeln!(&mut file, "Unable to compute steps for program0: {:?}", error);
+                writeln!(&mut file, "Unable to compute steps for program0: {:?}", error)?;
                 return Ok(CompareTwoProgramsResult::Program1);
             }
         };
+        if result_steps0.steps().len() != term_count {
+            writeln!(&mut file, "ERROR: Problem with program0. Expected {} steps, but got {}", term_count, result_steps0.steps().len())?;
+            return Ok(CompareTwoProgramsResult::Program1);
+        }
         
-        writeln!(&mut file, "\n\nprogram1, measuring steps: {:?}", path_program1);
+        writeln!(&mut file, "\n\nprogram1, measuring steps: {:?}", path_program1)?;
         let start1 = Instant::now();
         let result1 = lodacpp.eval_steps(
             term_count,
@@ -60,21 +64,58 @@ impl CompareTwoPrograms {
             time_limit
         );
         let elapsed1: u128 = start1.elapsed().as_millis();
-        let steps1: LodaCppEvalSteps = match result1 {
+        let result_steps1: LodaCppEvalSteps = match result1 {
             Ok(value) => {
                 // debug!("program1 steps:\n{:?}", value.steps());
-                writeln!(&mut file, "program1, elapsed: {:?}ms", elapsed1);
-                writeln!(&mut file, "program1, steps\n{:?}", value.steps());
+                writeln!(&mut file, "program1, elapsed: {:?}ms", elapsed1)?;
+                // writeln!(&mut file, "program1, steps\n{:?}", value.steps())?;
                 value
             },
             Err(error) => {
                 // debug!("Unable to compute steps for program1: {:?}", error);
-                writeln!(&mut file, "Unable to compute steps for program1: {:?}", error);
+                writeln!(&mut file, "Unable to compute steps for program1: {:?}", error)?;
                 return Ok(CompareTwoProgramsResult::Program0);
             }
         };
+        if result_steps1.steps().len() != term_count {
+            writeln!(&mut file, "ERROR: Problem with program1. Expected {} steps, but got {}", term_count, result_steps1.steps().len())?;
+            return Ok(CompareTwoProgramsResult::Program0);
+        }
 
-        write!(&mut file, "\n\nComparing terms");
+        write!(&mut file, "\n\nComparing terms:\nprogram0 vs program1\n")?;
+
+        let step_items0: &Vec<u64> = result_steps0.steps();
+        let step_items1: &Vec<u64> = result_steps1.steps();
+        assert!(step_items0.len() == step_items1.len());
+
+        let mut step0_less_than_step1: usize = 0;
+        let mut last_slice_step0_greater_than_step1: usize = 0;
+        let mut step0_same_step1: usize = 0;
+        let mut step0_greater_than_step1: usize = 0;
+        let mut identical: bool = true;
+        for index in 0..step_items0.len() {
+            let step0: u64 = step_items0[index];
+            let step1: u64 = step_items1[index];
+            let mut comparison_symbol = " ";
+            if step0 == step1 {
+                step0_same_step1 += 1;
+                comparison_symbol = " = ";
+            }
+            if step0 > step1 {
+                step0_greater_than_step1 += 1;
+                comparison_symbol = "  >";
+                identical = false;
+                if index > 15 {
+                    last_slice_step0_greater_than_step1 += 1;
+                }
+            }
+            if step0 < step1 {
+                step0_less_than_step1 += 1;
+                comparison_symbol = "<  ";
+                identical = false;
+            }
+            writeln!(&mut file, "{:>10} {} {}", step0, comparison_symbol, step1)?;
+        }
 
         Ok(CompareTwoProgramsResult::Program0)
     }
