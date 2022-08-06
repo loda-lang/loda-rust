@@ -496,10 +496,12 @@ impl PostMine {
             LodaCppCheckStatus::FullMatch => {
                 self.process_full_match(
                     simple_log.clone(),
+                    candidate_program,
+                    possible_id,
                     &check_program_path,
                     &oeis_program_path,
                     &compare_output_path
-                );
+                )?;
             }
         }
 
@@ -510,25 +512,49 @@ impl PostMine {
         simple_log.println("process_partial_match");
     }
     
-    fn process_full_match(&self, simple_log: SimpleLog, path_program0: &Path, path_program1: &Path, path_benchmark: &Path) {
+    fn process_full_match(
+        &self, 
+        simple_log: SimpleLog, 
+        candidate_program: CandidateProgramItem, 
+        possible_id: OeisId, 
+        path_program0: &Path, 
+        path_program1: &Path, 
+        path_benchmark: &Path
+    ) -> Result<(), Box<dyn Error>> {
         simple_log.println("process_full_match");
 
-        let compare_result = self.compare_performance_lodasteps(
+
+        let ok_error = self.compare_performance_lodasteps(
             path_program0, 
             path_program1,
             path_benchmark
         );
-        match compare_result {
+        let result: CompareTwoProgramsResult = match ok_error {
             Ok(value) => {
                 let message = format!("process_full_match: compare result ok: {:?}", value);
                 simple_log.println(message);
+                value
             },
             Err(error) => {
                 let message = format!("process_full_match: compare result error: {:?}", error);
                 simple_log.println(message);
+                return Ok(());
+            }
+        };
+
+        // If the new program is faster, then keep it, otherwise reject it.
+        match result {
+            CompareTwoProgramsResult::Program0 => {
+                simple_log.println("Keeping. This program is faster than the old implementation.");
+            },
+            CompareTwoProgramsResult::Program1 => {
+                simple_log.println("Rejecting. This program isn't better than the existing program.");
+                return Ok(());
             }
         }
 
-        // candidate_program.borrow_mut().keep_program_ids_insert(program_id);
+        fs::copy(path_program0, path_program1)?;
+        candidate_program.borrow_mut().keep_id_insert(possible_id);
+        Ok(())
     }
 }
