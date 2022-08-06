@@ -88,21 +88,25 @@ impl CompareTwoPrograms {
         let step_items1: &Vec<u64> = result_steps1.steps();
         assert!(step_items0.len() == step_items1.len());
 
-        let mut step0_less_than_step1: usize = 0;
+        let sum0: usize = step_items0.iter().map(|&x| x as usize).sum();
+        let sum1: usize = step_items1.iter().map(|&x| x as usize).sum();
+        writeln!(&mut file, "sum0: {}  sum1: {}", sum0, sum1)?;
+
+        // let mut step0_less_than_step1: usize = 0;
         let mut last_slice_step0_greater_than_step1: usize = 0;
-        let mut step0_same_step1: usize = 0;
-        let mut step0_greater_than_step1: usize = 0;
+        // let mut step0_same_step1: usize = 0;
+        // let mut step0_greater_than_step1: usize = 0;
         let mut identical: bool = true;
         for index in 0..step_items0.len() {
             let step0: u64 = step_items0[index];
             let step1: u64 = step_items1[index];
             let mut comparison_symbol = " ";
             if step0 == step1 {
-                step0_same_step1 += 1;
+                // step0_same_step1 += 1;
                 comparison_symbol = " = ";
             }
             if step0 > step1 {
-                step0_greater_than_step1 += 1;
+                // step0_greater_than_step1 += 1;
                 comparison_symbol = "  >";
                 identical = false;
                 if index > 15 {
@@ -110,13 +114,34 @@ impl CompareTwoPrograms {
                 }
             }
             if step0 < step1 {
-                step0_less_than_step1 += 1;
+                // step0_less_than_step1 += 1;
                 comparison_symbol = "<  ";
                 identical = false;
             }
             writeln!(&mut file, "{:>10} {} {}", step0, comparison_symbol, step1)?;
         }
 
+        if identical {
+            writeln!(&mut file, "identical number of steps as the existing program. Keep the existing program.")?;
+            return Ok(CompareTwoProgramsResult::Program1);
+        }
+        if sum0 == sum1 {
+            writeln!(&mut file, "same sum as the existing program. Keep the existing program.")?;
+            return Ok(CompareTwoProgramsResult::Program1);
+        }
+        if sum0 > sum1 {
+            writeln!(&mut file, "total sum of new program is greater than existing program. Keep the existing program.")?;
+            return Ok(CompareTwoProgramsResult::Program1);
+        }
+        if last_slice_step0_greater_than_step1 > 0 {
+            writeln!(&mut file, "last slice of the new program is greater than existing program. Keep the existing program.")?;
+            return Ok(CompareTwoProgramsResult::Program1);
+        }
+        if sum0 < sum1 {
+            writeln!(&mut file, "the new program is faster than the existing program. Keep the new program.")?;
+            return Ok(CompareTwoProgramsResult::Program0);
+        }
+        writeln!(&mut file, "uncaught scenario. Using existing program")?;
         Ok(CompareTwoProgramsResult::Program0)
     }
 }
