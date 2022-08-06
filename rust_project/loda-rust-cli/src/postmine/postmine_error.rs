@@ -6,6 +6,7 @@ pub enum PostMineError {
     NoPendingProgramsInMineEventDir,
     UnableToExtractFilenameFromPath,
     CannotMutateCandidateProgramWithAlreadyResolvedState,
+    CannotConstructUniqueFilenameForMismatch,
 }
 
 impl fmt::Display for PostMineError {
@@ -17,6 +18,8 @@ impl fmt::Display for PostMineError {
                 write!(f, "Unable to extract filename from path"),
             Self::CannotMutateCandidateProgramWithAlreadyResolvedState =>
                 write!(f, "Cannot mutate candidate program with already resolved state"),
+            Self::CannotConstructUniqueFilenameForMismatch =>
+                write!(f, "Cannot construct a unique filename for a mismatch program"),
         }
     }
 }

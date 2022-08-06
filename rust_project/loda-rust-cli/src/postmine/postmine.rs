@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
-use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, State, ValidateSingleProgram, ValidateSingleProgramError};
+use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, PostMineError, State, ValidateSingleProgram, ValidateSingleProgramError};
 use loda_rust_core::util::BigIntVec;
 use num_bigint::{BigInt, ToBigInt};
 use chrono::{DateTime, Utc};
@@ -31,6 +31,7 @@ pub struct PostMine {
     dontmine_hashset: HashSet<OeisId>,
     invalid_program_ids_hashset: HashSet<OeisId>,
     loda_programs_oeis_dir: PathBuf,
+    loda_outlier_programs_repository_oeis_divergent: PathBuf,
     validate_single_program: ValidateSingleProgram,
     iteration: usize,
 }
@@ -75,6 +76,8 @@ impl PostMine {
         let loda_cpp_executable: PathBuf = config.loda_cpp_executable();
         let lodacpp = LodaCpp::new(loda_cpp_executable);
 
+        let loda_outlier_programs_repository_oeis_divergent: PathBuf = config.loda_outlier_programs_repository_oeis_divergent();
+
         let instance = Self {
             config: config,
             lodacpp: lodacpp,
@@ -84,6 +87,7 @@ impl PostMine {
             dontmine_hashset: HashSet::new(),
             invalid_program_ids_hashset: HashSet::new(),
             loda_programs_oeis_dir: loda_programs_oeis_dir,
+            loda_outlier_programs_repository_oeis_divergent: loda_outlier_programs_repository_oeis_divergent,
             validate_single_program: validate_single_program,
             iteration: 0,
         };
@@ -368,6 +372,20 @@ impl PostMine {
         pathbuf
     }
 
+    fn path_to_mismatch(&self, program_id: OeisId, correct_term_count: usize) -> Result<PathBuf, Box<dyn Error>> {
+        let dir_index: u32 = program_id.raw() / 1000;
+        let dir_index_string: String = format!("{:0>3}", dir_index);
+        let name = program_id.a_number();
+        for index in 0..1000 {
+            let filename = format!("{}_{}_{}.asm", name, correct_term_count, index);
+            let pathbuf: PathBuf = self.loda_outlier_programs_repository_oeis_divergent.join(&dir_index_string).join(filename);
+            if !pathbuf.is_file() {
+                return Ok(pathbuf);
+            }
+        }
+        Err(Box::new(PostMineError::CannotConstructUniqueFilenameForMismatch))
+    }
+
     fn remove_existing_loda_program(&mut self, program_id: OeisId, source_path: &Path, remove_reason: String) -> Result<(), Box<dyn Error>> {
         info!("removing existing loda program: {} reason: {}", program_id, remove_reason);
         let destination_name = format!("iteration{}_remove_existing_{}.asm", self.iteration, program_id);
@@ -491,7 +509,13 @@ impl PostMine {
         };
         match check_result.status {
             LodaCppCheckStatus::PartialMatch => {
-                self.process_partial_match(simple_log.clone());
+                self.process_partial_match(
+                    simple_log.clone(),
+                    candidate_program,
+                    &check_program_path,
+                    possible_id,
+                    check_result.number_of_correct_terms
+                );
             },
             LodaCppCheckStatus::FullMatch => {
                 self.process_full_match(
@@ -508,8 +532,20 @@ impl PostMine {
         Ok(())
     }
     
-    fn process_partial_match(&self, simple_log: SimpleLog) {
-        simple_log.println("process_partial_match");
+    fn process_partial_match(
+        &self, 
+        simple_log: SimpleLog, 
+        candidate_program: CandidateProgramItem, 
+        path_program0: &Path, 
+        program_id: OeisId, 
+        number_of_correct_terms: u32
+    ) -> Result<(), Box<dyn Error>> {
+        let mismatch_path: PathBuf = self.path_to_mismatch(program_id, number_of_correct_terms as usize)?;
+        let message = format!("Keeping. This program is a mismatch, it has correct {} terms, followed by mismatch. Saving at: {:?}", number_of_correct_terms, mismatch_path);
+        simple_log.println(message);
+        fs::copy(path_program0, mismatch_path)?;
+        candidate_program.borrow_mut().keep_id_insert(program_id);
+        Ok(())
     }
     
     fn process_full_match(
