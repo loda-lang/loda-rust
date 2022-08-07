@@ -515,7 +515,7 @@ impl PostMine {
                     &check_program_path,
                     possible_id,
                     check_result.number_of_correct_terms
-                );
+                )?;
             },
             LodaCppCheckStatus::FullMatch => {
                 self.process_full_match(
@@ -559,7 +559,6 @@ impl PostMine {
     ) -> Result<(), Box<dyn Error>> {
         simple_log.println("process_full_match");
 
-
         let ok_error = self.compare_performance_lodasteps(
             path_program0, 
             path_program1,
@@ -581,7 +580,7 @@ impl PostMine {
         // If the new program is faster, then keep it, otherwise reject it.
         match result {
             CompareTwoProgramsResult::Program0 => {
-                simple_log.println("Keeping. This program is faster than the old implementation.");
+                simple_log.println("Keeping. This new program is an improvement.");
             },
             CompareTwoProgramsResult::Program1 => {
                 simple_log.println("Rejecting. This program isn't better than the existing program.");

@@ -28,7 +28,12 @@ impl CompareTwoPrograms {
         time_limit: Duration, 
         term_count: usize
     ) -> Result<CompareTwoProgramsResult, Box<dyn Error>> {
+        assert!(path_program0.is_file());
         let mut file = File::create(path_comparison)?;
+        if !path_program1.is_file() {
+            writeln!(&mut file, "Keeping. This program is new, there is no previous implementation.")?;
+            return Ok(CompareTwoProgramsResult::Program0);
+        }
 
         writeln!(&mut file, "program0, measuring steps: {:?}", path_program0)?;
         let start0 = Instant::now();
