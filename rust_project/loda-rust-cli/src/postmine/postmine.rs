@@ -68,10 +68,18 @@ impl PostMine {
         let loda_programs_oeis_dir = config.loda_programs_oeis_dir();
         let validate_single_program = ValidateSingleProgram::new(loda_programs_oeis_dir.clone());
 
+        // Ensure that the `postmine` dir exist
+        let postmine_dir_path: PathBuf = config.postmine_dir();
+        if !postmine_dir_path.is_dir() {
+            fs::create_dir(&postmine_dir_path)?;
+        }
+        assert!(postmine_dir_path.is_dir());
+
         // Create dir in which the postmine can store its temp files
         let dirname: String = Self::format_timestamped_postmine_dirname();
-        let path_timestamped_postmine_dir: PathBuf = config.postmine_dir().join(dirname);
+        let path_timestamped_postmine_dir: PathBuf = postmine_dir_path.join(dirname);
         fs::create_dir(&path_timestamped_postmine_dir)?;
+        assert!(path_timestamped_postmine_dir.is_dir());
 
         let loda_cpp_executable: PathBuf = config.loda_cpp_executable();
         let lodacpp = LodaCpp::new(loda_cpp_executable);
@@ -100,6 +108,9 @@ impl PostMine {
         format!("{}-postmine", now.format("%Y%m%d-%H%M%S"))
     }
 
+    /// Processes all the pending programs inside the `mine-event` dir.
+    /// It looks for all the LODA assembly programs there are.
+    /// If programs already contain `keep` or `reject` then the files are ignored.
     fn obtain_paths_for_processing(&mut self) -> Result<(), Box<dyn Error>> {
         let mine_event_dir: PathBuf = self.config.mine_event_dir();
         let paths_all: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
