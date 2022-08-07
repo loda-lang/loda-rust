@@ -46,9 +46,9 @@ pub fn subcommand_install() {
         number_of_issues += 1;
     }
 
-    // Create `cache/` dir if needed.
+    // Create `analytics/` dir if needed.
     if let Err(error) = create_analytics_dir_in_basedir(&basedir) {
-        error!("Unable to create 'cache' dir, error: {:?}", error);
+        error!("Unable to create 'analytics' dir, error: {:?}", error);
         number_of_issues += 1;
     }
 
