@@ -37,6 +37,7 @@ pub struct PostMine {
 }
 
 impl PostMine {
+    const LIMIT_NUMBER_OF_PROGRAMS_FOR_PROCESSING: usize = 100;
     const LOOKUP_TERM_COUNT: usize = 40;
     const MINIMUM_NUMBER_OF_REQUIRED_TERMS: usize = 10;
     const LODACPP_EVAL_TIME_LIMIT_IN_SECONDS: u64 = 10;
@@ -114,7 +115,13 @@ impl PostMine {
     fn obtain_paths_for_processing(&mut self) -> Result<(), Box<dyn Error>> {
         let mine_event_dir: PathBuf = self.config.mine_event_dir();
         let paths_all: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
-        let paths_for_processing: Vec<PathBuf> = find_pending_programs(&paths_all, true)?;
+        let mut paths_for_processing: Vec<PathBuf> = find_pending_programs(&paths_all, true)?;
+        let length0: usize = paths_for_processing.len();
+        paths_for_processing.truncate(Self::LIMIT_NUMBER_OF_PROGRAMS_FOR_PROCESSING);
+        let length1: usize = paths_for_processing.len();
+        if length0 != length1 {
+            println!("Found {} pending programs. Truncating to {}.", length0, length1);
+        }
         self.paths_for_processing = paths_for_processing;
         Ok(())
     }
