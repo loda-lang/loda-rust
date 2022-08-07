@@ -49,6 +49,7 @@ fn build_terms_to_program_id_set(
         term_count,
         &program_ids_to_ignore,
         padding_value, 
+        true,
         callback
     );
     debug!("number of items in terms_to_program_id: {}", terms_to_program_id.len());

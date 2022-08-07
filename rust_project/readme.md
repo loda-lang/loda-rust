@@ -41,6 +41,27 @@ PROMPT> RUST_BACKTRACE=1 cargo run -- eval 79 -t 64
 PROMPT> cargo build -p loda-rust-cli --release
 PROMPT> ./target/release/loda-rust analytics
 PROMPT> ./target/release/loda-rust mine
+press CTRL-C to stop
+```
+
+Let the miner run for an hour, and look at what gets accumulated inside the dir: `~/.loda-rust/mine-event`.
+
+```
+PROMPT> ls ~/.loda-rust/mine-event
+20220726-043330-1120651120.asm
+20220726-043416-1113532221.asm
+20220726-044026-1131813741.asm
+SNIP
+20220726-045337-1188715008.asm
+20220726-045934-1194346349.asm
+20220726-050337-1211159643.asm
+PROMPT> 
+```
+
+When there are 100 items in the dir `~/.loda-rust/mine-event`, then it's time for running `loda-rust postmine`.
+
+```
+PROMPT> ./target/release/loda-rust postmine
 ```
 
 

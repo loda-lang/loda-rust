@@ -37,6 +37,7 @@ simple-pagerank = "0.2.0"
 indicatif = "0.16.2"
 console = "0.15.0"
 toml = "0.5.9"
+wait-timeout = "0.2.0"
 
 [dev-dependencies]
 tempfile = "3.3.0"

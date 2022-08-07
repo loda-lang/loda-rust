@@ -841,28 +841,27 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure.
-    #[allow(dead_code)]
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
-            (MutateGenome::ReplaceInstructionWithHistogram, 20),
-            (MutateGenome::InsertInstructionWithConstant, 100),
+            (MutateGenome::ReplaceInstructionWithHistogram, 50),
+            (MutateGenome::InsertInstructionWithConstant, 200),
             (MutateGenome::ReplaceSourceConstantWithoutHistogram, 1),
-            (MutateGenome::ReplaceSourceConstantWithHistogram, 100),
+            (MutateGenome::ReplaceSourceConstantWithHistogram, 50),
             (MutateGenome::SourceType, 1),
-            (MutateGenome::SwapRegisters, 30),
+            (MutateGenome::SwapRegisters, 10),
             (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 1),
-            (MutateGenome::ReplaceSourceRegisterWithHistogram, 100),
+            (MutateGenome::ReplaceSourceRegisterWithHistogram, 50),
             (MutateGenome::ReplaceTargetWithoutHistogram, 1),
-            (MutateGenome::ReplaceTargetWithHistogram, 100),
-            (MutateGenome::ToggleEnabled, 20),
+            (MutateGenome::ReplaceTargetWithHistogram, 50),
+            (MutateGenome::ToggleEnabled, 30),
             (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 10),
             (MutateGenome::InsertLoopBeginEnd, 0),
             (MutateGenome::CallProgramWeightedByPopularity, 5),
-            (MutateGenome::CallMostPopularProgram, 20),
+            (MutateGenome::CallMostPopularProgram, 100),
             (MutateGenome::CallMediumPopularProgram, 100),
-            (MutateGenome::CallLeastPopularProgram, 10),
+            (MutateGenome::CallLeastPopularProgram, 100),
             (MutateGenome::CallRecentProgram, 1),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;

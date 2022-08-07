@@ -194,6 +194,13 @@ impl Config {
         path
     }
 
+    pub fn postmine_dir(&self) -> PathBuf {
+        let name = Path::new("postmine");
+        let path = self.basedir.join(name);
+        assert!(path.is_absolute());
+        path
+    }
+
     pub fn loda_programs_repository(&self) -> PathBuf {
         let path = &self.loda_programs_repository;
         assert!(path.is_absolute());
@@ -245,11 +252,9 @@ impl Config {
         PathBuf::from(path)
     }
 
-    #[allow(dead_code)]
     pub fn loda_cpp_executable(&self) -> PathBuf {
         let path = &self.loda_cpp_executable;
         assert!(path.is_absolute());
-        assert!(path.is_file());
         PathBuf::from(path)
     }
 

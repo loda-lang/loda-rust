@@ -203,6 +203,7 @@ fn create_cache_files(
         FunnelConfig::TERM_COUNT,
         program_ids_to_ignore, 
         &padding_value,
+        true,
         process_callback
     );
     stripped_sequence_processor.print_summary(simple_log.clone());
@@ -392,6 +393,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
             term_count, 
             program_ids_to_ignore, 
             &padding_value,
+            true,
             process_callback
         );
         CheckFixedLengthSequence::new(bloom)

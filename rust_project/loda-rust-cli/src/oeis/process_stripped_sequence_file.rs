@@ -54,7 +54,8 @@ impl ProcessStrippedSequenceFile {
         minimum_number_of_required_terms: usize,
         term_count: usize, 
         program_ids_to_ignore: &HashSet<u32>,
-        padding_value: &BigInt, 
+        padding_value: &BigInt,
+        should_grow_to_length: bool, 
         mut callback: F
     )
         where F: FnMut(&StrippedSequence, usize)
@@ -83,11 +84,13 @@ impl ProcessStrippedSequenceFile {
                 self.count_ignored_program_id += 1;
                 continue;
             }
-            if number_of_terms < term_count {
-                self.count_grow_to_term_count += 1;
-                stripped_sequence.grow_to_length(term_count, padding_value);
+            if should_grow_to_length {
+                if number_of_terms < term_count {
+                    self.count_grow_to_term_count += 1;
+                    stripped_sequence.grow_to_length(term_count, padding_value);
+                }
+                assert!(stripped_sequence.len() == term_count);
             }
-            assert!(stripped_sequence.len() == term_count);
             callback(&stripped_sequence, self.count_bytes);
             self.count_callback += 1;
         }
@@ -138,7 +141,8 @@ A117093 ,2,3,5,7,11,13,16,17,18,19,23,28,29,30,31,37,38,39,40,41,43,47,53,58,59,
             minimum_number_of_required_terms,
             term_count,
             &program_ids_to_ignore,
-            &padding_value, 
+            &padding_value,
+            true, 
             callback
         );
 

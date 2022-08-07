@@ -147,6 +147,7 @@ impl HistogramStrippedFile {
             FunnelConfig::TERM_COUNT,
             &program_ids_to_ignore,
             &padding_value,
+            true,
             process_callback
         );
         pb.finish_and_clear();
