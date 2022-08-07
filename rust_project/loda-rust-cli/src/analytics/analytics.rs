@@ -1,12 +1,13 @@
-use std::error::Error;
-use std::time::Instant;
-use std::rc::Rc;
-use core::cell::RefCell;
-use std::path::{Path, PathBuf};
 use crate::config::Config;
 use crate::analytics::{AnalyzeDependencies, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, ValidatePrograms, compute_program_rank};
 use crate::common::SimpleLog;
 use crate::mine::PopulateBloomfilter;
+use std::error::Error;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::rc::Rc;
+use std::time::Instant;
+use core::cell::RefCell;
 
 pub struct Analytics {}
 
@@ -14,8 +15,16 @@ impl Analytics {
     pub fn run() -> Result<(), Box<dyn Error>> {
         let start_time = Instant::now();
         let config = Config::load();
-        let path: PathBuf = config.analytics_dir().join(Path::new("analytics_log.txt"));
-        let simple_log = SimpleLog::new(&path)?;
+
+        // Ensure that the `analytics` dir exist
+        let analytics_dir_path: PathBuf = config.analytics_dir();
+        if !analytics_dir_path.is_dir() {
+            fs::create_dir(&analytics_dir_path)?;
+        }
+        assert!(analytics_dir_path.is_dir());
+
+        let logfile_path: PathBuf = analytics_dir_path.join(Path::new("analytics_log.txt"));
+        let simple_log = SimpleLog::new(&logfile_path)?;
         
         HistogramStrippedFile::run(simple_log.clone())?;
         ValidatePrograms::run(simple_log.clone())?;
