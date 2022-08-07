@@ -34,7 +34,7 @@ file 'data/program_creation_dates.csv' do
 end
 
 desc "Process the mined programs"
-task :process_mined_programs do
+task :process_mined_programs => 'data/loda-rust' do
     ruby 'task_analyze_mined_programs.rb'
     ruby 'insert_oeis_names_into_program.rb'
     ruby 'task_add_mined_programs_to_repo.rb'

@@ -101,8 +101,8 @@ impl PostMine {
     }
 
     fn obtain_paths_for_processing(&mut self) -> Result<(), Box<dyn Error>> {
-        let postmine_dir: PathBuf = self.config.postmine_dir();
-        let paths_all: Vec<PathBuf> = find_asm_files_recursively(&postmine_dir);
+        let mine_event_dir: PathBuf = self.config.mine_event_dir();
+        let paths_all: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
         let paths_for_processing: Vec<PathBuf> = find_pending_programs(&paths_all, true)?;
         self.paths_for_processing = paths_for_processing;
         Ok(())
