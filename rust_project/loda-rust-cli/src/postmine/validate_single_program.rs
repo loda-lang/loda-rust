@@ -75,7 +75,7 @@ impl ValidateSingleProgram {
                 // since LODA-RUST does not yet support the double-dollar parameter type.
                 // Example: `mov $$0,$2`
                 if error.uses_indirect_memory_access() {
-                    debug!("Encountered a project that uses double-dollar parameter types: {:?} error: {:?}", program_path, error);
+                    debug!("Encountered a program that uses double-dollar parameter types: {:?} error: {:?}", program_path, error);
                     return Err(Box::new(ValidateSingleProgramError::IndirectMemoryAccess));
                 }
 
