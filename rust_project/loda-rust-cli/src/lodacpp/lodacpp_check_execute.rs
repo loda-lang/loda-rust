@@ -1,4 +1,4 @@
-use super::{LodaCpp, LodaCppError, LodaCppCheckResult, LodaCppCheckStatus};
+use super::{LodaCpp, LodaCppError, LodaCppCheckResult};
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;

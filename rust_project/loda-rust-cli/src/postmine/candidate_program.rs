@@ -51,6 +51,7 @@ impl CandidateProgram {
         Ok(instance)
     }
 
+    #[allow(dead_code)]
     pub fn filename_original(&self) -> &String {
         &self.filename_original
     }
@@ -117,10 +118,12 @@ impl CandidateProgram {
         &self.path_original
     }
 
+    #[allow(dead_code)]
     pub fn path_reject(&self) -> &Path {
         &self.path_reject
     }
 
+    #[allow(dead_code)]
     pub fn path_keep(&self) -> &Path {
         &self.path_keep
     }

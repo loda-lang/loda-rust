@@ -434,7 +434,7 @@ impl PostMine {
         Err(error)
     }
     
-    fn analyze_candidate(&mut self, candidate_program: CandidateProgramItem, possible_id: OeisId, progressbar: ProgressBar) -> Result<(), Box<dyn Error>> {
+    fn analyze_candidate(&mut self, candidate_program: CandidateProgramItem, possible_id: OeisId, _progressbar: ProgressBar) -> Result<(), Box<dyn Error>> {
         self.iteration += 1;
 
         let log_filename = format!("iteration{}_log.txt", self.iteration);
