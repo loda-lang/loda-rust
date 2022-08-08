@@ -1,9 +1,9 @@
 //! Read/write CSV files. CSV row types. Obtain filenames. Logging.
 mod create_csv_file;
 mod find_files_recursively;
+mod oeis_id_from_path;
 mod parse_csv_data;
 mod parse_csv_file;
-mod program_id_from_path;
 mod record_bigram;
 mod record_program_id;
 mod record_skipgram;
@@ -13,9 +13,9 @@ mod simple_log;
 
 pub use create_csv_file::create_csv_file;
 pub use find_files_recursively::{find_asm_files_recursively, find_csv_files_recursively};
+pub use oeis_id_from_path::{oeis_id_from_path, program_id_from_path, oeis_ids_from_paths, program_ids_from_paths};
 pub use parse_csv_data::parse_csv_data;
 pub use parse_csv_file::parse_csv_file;
-pub use program_id_from_path::{program_id_from_path, program_ids_from_paths};
 pub use record_bigram::RecordBigram;
 pub use record_program_id::{load_program_ids_csv_file, save_program_ids_csv_file};
 pub use record_skipgram::RecordSkipgram;
