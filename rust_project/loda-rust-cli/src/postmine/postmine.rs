@@ -366,19 +366,6 @@ impl PostMine {
         Ok(())
     }
 
-    fn compare_performance_lodasteps(&self, path_program0: &Path, path_program1: &Path, path_benchmark: &Path) -> Result<CompareTwoProgramsResult, Box<dyn Error>> {
-        let time_limit = Duration::from_secs(Self::LODACPP_STEPS_TIME_LIMIT_IN_SECONDS);
-        let instance = CompareTwoPrograms::new();
-        instance.compare(
-            &self.lodacpp,    
-            path_program0, 
-            path_program1, 
-            path_benchmark, 
-            time_limit,
-            Self::LODACPP_COMPARE_NUMBER_OF_TERM_COUNT
-        )
-    }
-
     /// Construct a path, like this: `/absolute/path/123/A123456.asm`
     fn path_for_oeis_program(&self, program_id: OeisId) -> PathBuf {
         let dir_index: u32 = program_id.raw() / 1000;
@@ -508,8 +495,8 @@ impl PostMine {
     
         // Execute `loda-check check <PATH> -b`
         let time_limit = Duration::from_secs(Self::LODACPP_CHECK_TIME_LIMIT_IN_SECONDS);
-        let okerr = self.lodacpp.perform_check_and_save_output(&check_program_path, time_limit, &check_output_path);
-        let check_result: LodaCppCheckResult = match okerr {
+        let ok_error = self.lodacpp.perform_check_and_save_output(&check_program_path, time_limit, &check_output_path);
+        let check_result: LodaCppCheckResult = match ok_error {
             Ok(value) => {
                 // debug!("checked program: {:?}", value);
                 let message = format!("check success: {:?}", value);
@@ -542,7 +529,8 @@ impl PostMine {
                     possible_id,
                     &check_program_path,
                     &oeis_program_path,
-                    &compare_output_path
+                    &compare_output_path,
+                    check_result.number_of_correct_terms as usize
                 )?;
             }
         }
@@ -573,15 +561,32 @@ impl PostMine {
         possible_id: OeisId, 
         path_program0: &Path, 
         path_program1: &Path, 
-        path_benchmark: &Path
+        path_benchmark: &Path,
+        number_of_correct_terms: usize
     ) -> Result<(), Box<dyn Error>> {
-        simple_log.println("process_full_match");
+        if number_of_correct_terms < Self::MINIMUM_NUMBER_OF_REQUIRED_TERMS {
+            let message = format!("process_full_match: Rejecting program with too few terms. Expected {} terms, but got {} terms.", number_of_correct_terms, Self::MINIMUM_NUMBER_OF_REQUIRED_TERMS);
+            simple_log.println(message);
+            return Ok(());
+        }
 
-        let ok_error = self.compare_performance_lodasteps(
+        // Don't attempt to compute more terms than what the b-file already contains
+        // since this can cause huge numbers.
+        let term_count: usize = Self::LODACPP_COMPARE_NUMBER_OF_TERM_COUNT.min(number_of_correct_terms);
+        let message = format!("process_full_match: will compare steps count for {} terms.", term_count);
+        simple_log.println(message);
+
+        let time_limit = Duration::from_secs(Self::LODACPP_STEPS_TIME_LIMIT_IN_SECONDS);
+        let instance = CompareTwoPrograms::new();
+        let ok_error = instance.compare(
+            &self.lodacpp,    
             path_program0, 
-            path_program1,
-            path_benchmark
+            path_program1, 
+            path_benchmark, 
+            time_limit,
+            term_count
         );
+
         let result: CompareTwoProgramsResult = match ok_error {
             Ok(value) => {
                 let message = format!("process_full_match: compare result ok: {:?}", value);
