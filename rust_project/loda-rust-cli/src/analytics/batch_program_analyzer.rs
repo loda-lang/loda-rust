@@ -1,4 +1,4 @@
-use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, program_id_from_path, SimpleLog};
+use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, oeis_id_from_path, SimpleLog};
 use loda_rust_core;
 use super::AnalyticsError;
 use crate::config::Config;
@@ -107,8 +107,8 @@ impl BatchProgramAnalyzer {
         path_to_program: &PathBuf,
         ignore_program_ids: &HashSet<u32>
     ) -> Result<(), Box<dyn Error>> {
-        let program_id: u32 = match program_id_from_path(&path_to_program) {
-            Some(program_id) => program_id,
+        let program_id: u32 = match oeis_id_from_path(&path_to_program) {
+            Some(oeis_id) => oeis_id.raw(),
             None => {
                 debug!("Unable to extract program_id from {:?}", path_to_program);
                 self.number_of_program_files_that_could_not_be_loaded += 1;

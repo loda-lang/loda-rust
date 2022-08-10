@@ -1,5 +1,5 @@
 //! The `loda-rust pattern` subcommand, identifies recurring patterns.
-use crate::common::{find_asm_files_recursively, find_csv_files_recursively, program_id_from_path, parse_csv_file};
+use crate::common::{find_asm_files_recursively, find_csv_files_recursively, oeis_id_from_path, parse_csv_file};
 use crate::pattern::{Clusters, instruction_diff_between_constants, ProgramSimilarity, RecordSimilar};
 use crate::config::Config;
 use loda_rust_core::parser::{Instruction, InstructionId, ParsedProgram};
@@ -39,8 +39,8 @@ pub fn subcommand_pattern() {
     debug!("number of similarity csv files: {}", number_of_similarity_csv_paths);
     let mut csv_vec = Vec::<Rc<SimilarityCSVFile>>::new();
     for path in similarity_csv_paths {
-        let program_id: u32 = match program_id_from_path(&path) {
-            Some(value) => value,
+        let program_id: u32 = match oeis_id_from_path(&path) {
+            Some(oeis_id) => oeis_id.raw(),
             None => { continue; }
         };
         let instance = SimilarityCSVFile::new(program_id, path);
@@ -393,8 +393,8 @@ fn find_patterns(
 fn analyze_program(
     path: &Path, 
 ) -> Option<ProgramMeta> {
-    let program_id: u32 = match program_id_from_path(path) {
-        Some(value) => value,
+    let program_id: u32 = match oeis_id_from_path(path) {
+        Some(oeis_id) => oeis_id.raw(),
         None => {
             return None;
         }
