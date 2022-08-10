@@ -67,6 +67,7 @@ pub fn oeis_ids_from_paths(paths: Vec<PathBuf>) -> Vec<OeisId> {
     oeis_ids
 }
 
+#[allow(dead_code)]
 pub fn program_ids_from_paths(paths: Vec<PathBuf>) -> Vec<u32> {
     let oeis_ids: Vec<OeisId> = oeis_ids_from_paths(paths);
     oeis_ids.iter().map(|oeis_id| oeis_id.raw()).collect()

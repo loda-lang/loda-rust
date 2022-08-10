@@ -1,4 +1,5 @@
-use crate::common::{find_asm_files_recursively, program_ids_from_paths, SimpleLog};
+use crate::common::{find_asm_files_recursively, oeis_ids_from_paths, SimpleLog};
+use crate::oeis::OeisId;
 use loda_rust_core;
 use crate::config::Config;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
@@ -113,9 +114,9 @@ impl ValidatePrograms {
         if number_of_paths <= 0 {
             return Err(Box::new(ValidateProgramError::NoPrograms));
         }
-        // Extract program_ids from paths
-        let program_ids: Vec<u32> = program_ids_from_paths(paths);
-        let content = format!("number of programs to validate: {:?}", program_ids.len());
+        // Extract oeis_ids from paths
+        let oeis_ids: Vec<OeisId> = oeis_ids_from_paths(paths);
+        let content = format!("number of programs to validate: {:?}", oeis_ids.len());
         simple_log.println(content);
 
         // Create CSV file for valid program ids
@@ -140,19 +141,19 @@ impl ValidatePrograms {
             loda_programs_oeis_dir,
         );
         let mut cache = ProgramCache::new();
-        let program_ids_len: usize = program_ids.len();
+        let oeis_ids_len: usize = oeis_ids.len();
         let mut number_of_invalid_programs: u32 = 0;
-        let mut valid_program_ids: HashSet<u32> = HashSet::new();
-        let pb = ProgressBar::new(program_ids_len as u64);
-        for program_id in program_ids {
-            let program_id64 = program_id as u64;
+        let mut valid_program_ids: HashSet<OeisId> = HashSet::new();
+        let pb = ProgressBar::new(oeis_ids_len as u64);
+        for oeis_id in oeis_ids {
+            let program_id64 = oeis_id.raw() as u64;
             let program_runner: Rc::<ProgramRunner> = match dm.load(program_id64) {
                 Ok(value) => value,
                 Err(error) => {
-                    // error!("Cannot load program {:?}: {:?}", program_id, error);
-                    let row_simple = format!("{:?}\n", program_id);
+                    // error!("Cannot load program {:?}: {:?}", oeis_id, error);
+                    let row_simple = format!("{:?}\n", oeis_id.raw());
                     programs_invalid_csv.write_all(row_simple.as_bytes())?;
-                    let row_verbose = format!("{:?};LOAD;{:?}\n", program_id, error);
+                    let row_verbose = format!("{:?};LOAD;{:?}\n", oeis_id.raw(), error);
                     programs_invalid_verbose_csv.write_all(row_verbose.as_bytes())?;
                     number_of_invalid_programs += 1;
                     pb.inc(1);
@@ -162,10 +163,10 @@ impl ValidatePrograms {
             match program_runner.compute_terms(NUMBER_OF_TERMS_TO_VALIDATE, &mut cache) {
                 Ok(_) => {},
                 Err(error) => {
-                    // error!("Cannot run program {:?}: {:?}", program_id, error);
-                    let row_simple = format!("{:?}\n", program_id);
+                    // error!("Cannot run program {:?}: {:?}", oeis_id, error);
+                    let row_simple = format!("{:?}\n", oeis_id.raw());
                     programs_invalid_csv.write_all(row_simple.as_bytes())?;
-                    let row_verbose = format!("{:?};COMPUTE;{:?}\n", program_id, error);
+                    let row_verbose = format!("{:?};COMPUTE;{:?}\n", oeis_id.raw(), error);
                     programs_invalid_verbose_csv.write_all(row_verbose.as_bytes())?;
                     number_of_invalid_programs += 1;
                     pb.inc(1);
@@ -174,9 +175,9 @@ impl ValidatePrograms {
             }
 
             // Append status for programs to the csv file.
-            let row = format!("{:?}\n", program_id);
+            let row = format!("{:?}\n", oeis_id.raw());
             programs_valid_csv.write_all(row.as_bytes())?;
-            valid_program_ids.insert(program_id);
+            valid_program_ids.insert(oeis_id);
             pb.inc(1);
         }
         pb.finish_and_clear();
