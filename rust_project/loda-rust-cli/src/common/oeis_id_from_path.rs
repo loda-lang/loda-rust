@@ -40,6 +40,7 @@ pub fn oeis_id_from_path(path: &Path) -> Option<OeisId> {
     return Some(OeisId::from(sequence_number));
 }
 
+#[allow(dead_code)]
 pub fn program_id_from_path(path: &Path) -> Option<u32> {
     match oeis_id_from_path(path) {
         Some(oeis_id) => {
