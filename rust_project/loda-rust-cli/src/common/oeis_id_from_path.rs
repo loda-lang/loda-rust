@@ -40,18 +40,6 @@ pub fn oeis_id_from_path(path: &Path) -> Option<OeisId> {
     return Some(OeisId::from(sequence_number));
 }
 
-#[allow(dead_code)]
-pub fn program_id_from_path(path: &Path) -> Option<u32> {
-    match oeis_id_from_path(path) {
-        Some(oeis_id) => {
-            return Some(oeis_id.raw());
-        }
-        None => {
-            return None;
-        }
-    }
-}
-
 pub fn oeis_ids_from_paths(paths: Vec<PathBuf>) -> Vec<OeisId> {
     let mut oeis_ids: Vec<OeisId> = vec!();
     for path in paths {
@@ -67,13 +55,6 @@ pub fn oeis_ids_from_paths(paths: Vec<PathBuf>) -> Vec<OeisId> {
     oeis_ids.sort();
     oeis_ids
 }
-
-#[allow(dead_code)]
-pub fn program_ids_from_paths(paths: Vec<PathBuf>) -> Vec<u32> {
-    let oeis_ids: Vec<OeisId> = oeis_ids_from_paths(paths);
-    oeis_ids.iter().map(|oeis_id| oeis_id.raw()).collect()
-}
-
 
 #[cfg(test)]
 mod tests {
@@ -105,32 +86,6 @@ mod tests {
         assert_eq!(parse_oeis_id("junk/X000040.asm"), "NONE");
     }
 
-    fn parse_program_id(input: &str) -> String {
-        let path = Path::new(input);
-        match program_id_from_path(&path) {
-            Some(program_id) => return format!("{:?}", program_id),
-            None => return "NONE".to_string()
-        }
-    }
-
-    #[test]
-    fn test_10001_program_id_from_path() {
-        assert_eq!(parse_program_id("dir/dir/A0.csv"), "0");
-        assert_eq!(parse_program_id("dir/dir/A1.asm"), "1");
-        assert_eq!(parse_program_id("dir/dir/A000040.csv"), "40");
-        assert_eq!(parse_program_id("dir/dir/A123456.asm"), "123456");
-        assert_eq!(parse_program_id("A172330_90_0.csv"), "172330");
-        assert_eq!(parse_program_id("dir/dir/A323130_63_4.asm"), "323130");
-        assert_eq!(parse_program_id("A172330ignore.csv"), "172330");
-        assert_eq!(parse_program_id("A100 A200 A300.asm"), "100");
-        assert_eq!(parse_program_id("# comment"), "NONE");
-        assert_eq!(parse_program_id("Ajunk"), "NONE");
-        assert_eq!(parse_program_id("A junk"), "NONE");
-        assert_eq!(parse_program_id("junk/_A000040.asm"), "NONE");
-        assert_eq!(parse_program_id("junk/B000040.csv"), "NONE");
-        assert_eq!(parse_program_id("junk/X000040.asm"), "NONE");
-    }
-
     #[test]
     fn test_20000_oeis_ids_from_paths() {
         let input: Vec<PathBuf> = vec![
@@ -140,16 +95,5 @@ mod tests {
         ];
         let oeis_ids: Vec<OeisId> = oeis_ids_from_paths(input);
         assert_eq!(oeis_ids, vec![OeisId::from(45), OeisId::from(112088), OeisId::from(123456)]);
-    }
-
-    #[test]
-    fn test_20001_program_ids_from_paths() {
-        let input: Vec<PathBuf> = vec![
-            PathBuf::from("dir/A123456.asm"),
-            PathBuf::from("dir/A000045.csv"),
-            PathBuf::from("dir/A112088_test.asm"),
-        ];
-        let program_ids: Vec<u32> = program_ids_from_paths(input);
-        assert_eq!(program_ids, vec![45, 112088, 123456]);
     }
 }
