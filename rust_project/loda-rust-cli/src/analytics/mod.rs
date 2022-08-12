@@ -1,4 +1,5 @@
 //! Prepare data needed for mining, by analyzing the existing programs.
+mod analytics;
 mod analytics_error;
 mod analyze_dependencies;
 mod analyze_instruction_constant;
@@ -13,6 +14,7 @@ mod histogram_stripped_file;
 mod program_rank;
 mod validate_programs;
 
+pub use analytics::Analytics;
 pub use analytics_error::AnalyticsError;
 pub use analyze_dependencies::AnalyzeDependencies;
 pub use analyze_instruction_constant::AnalyzeInstructionConstant;
