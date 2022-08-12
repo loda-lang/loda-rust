@@ -369,14 +369,15 @@ impl PostMine {
     }
 
     /// Construct a path, like this: `/absolute/path/123/A123456.asm`
-    fn path_for_oeis_program(&self, program_id: OeisId) -> PathBuf {
+    fn path_for_oeis_program(&self, program_id: OeisId) -> ParentDirAndChildFile {
+        assert!(self.loda_programs_oeis_dir.is_dir());
+        assert!(self.loda_programs_oeis_dir.is_absolute());
         let dir_index: u32 = program_id.raw() / 1000;
         let dir_index_string: String = format!("{:0>3}", dir_index);
         let filename_string: String = format!("{}.asm", program_id.a_number());
-        let dirname = Path::new(&dir_index_string);
-        let filename = Path::new(&filename_string);
-        let pathbuf: PathBuf = self.loda_programs_oeis_dir.join(dirname).join(filename);
-        pathbuf
+        let dir_path: PathBuf = self.loda_programs_oeis_dir.join(dir_index_string);
+        let file_path: PathBuf = dir_path.join(filename_string);
+        ParentDirAndChildFile::new(dir_path, file_path)
     }
 
     /// Construct a path, like this: `/absolute/path//041/A041009_30_0.asm`
@@ -468,14 +469,9 @@ impl PostMine {
             simple_log.println(message);
         }
 
-        let oeis_program_path: PathBuf = self.path_for_oeis_program(possible_id);
+        let oeis_program_path: ParentDirAndChildFile = self.path_for_oeis_program(possible_id);
 
-        self.remove_existing_loda_program_if_its_invalid(possible_id, &oeis_program_path)?;
-
-        let has_original_file: bool = oeis_program_path.is_file();
-        if has_original_file {
-            // debug!("There already exist program: {}, Renaming from: {} to: {}", possible_id, path, path_original);
-        }
+        self.remove_existing_loda_program_if_its_invalid(possible_id, oeis_program_path.child_file())?;
 
         let check_program_filename = format!("iteration{}_program.asm", self.iteration);
         let check_program_path: PathBuf = self.path_timestamped_postmine_dir.join(check_program_filename);
@@ -534,7 +530,7 @@ impl PostMine {
                     candidate_program,
                     possible_id,
                     &check_program_path,
-                    &oeis_program_path,
+                    oeis_program_path,
                     &compare_output_path,
                     check_result.number_of_correct_terms as usize
                 )?;
@@ -567,7 +563,7 @@ impl PostMine {
         candidate_program: CandidateProgramItem, 
         possible_id: OeisId, 
         path_program0: &Path, 
-        path_program1: &Path, 
+        path_program1: ParentDirAndChildFile, 
         path_benchmark: &Path,
         number_of_correct_terms: usize
     ) -> Result<(), Box<dyn Error>> {
@@ -588,7 +584,7 @@ impl PostMine {
         let ok_error = instance.compare(
             &self.lodacpp,    
             path_program0, 
-            path_program1, 
+            path_program1.child_file(), 
             path_benchmark, 
             time_limit,
             term_count
@@ -617,8 +613,8 @@ impl PostMine {
                 return Ok(());
             }
         }
-
-        fs::copy(path_program0, path_program1)?;
+        path_program1.create_parent_dir()?;
+        fs::copy(path_program0, path_program1.child_file())?;
         candidate_program.borrow_mut().keep_id_insert(possible_id);
         Ok(())
     }
