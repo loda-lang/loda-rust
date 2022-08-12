@@ -71,6 +71,7 @@ fn lodacpp_perform_check_impl(
         debug!("Saving 'loda-cpp check' output to file: {:?}", save_output_to_path);
         let mut file = File::create(save_output_to_path)?;
         file.write_all(output_stdout.as_bytes())?;
+        debug!("did save output");
     }
 
     if optional_exit_code != Some(0) {
