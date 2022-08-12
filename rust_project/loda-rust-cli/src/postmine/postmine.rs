@@ -86,6 +86,8 @@ impl PostMine {
         let lodacpp = LodaCpp::new(loda_cpp_executable);
 
         let loda_outlier_programs_repository_oeis_divergent: PathBuf = config.loda_outlier_programs_repository_oeis_divergent();
+        assert!(loda_outlier_programs_repository_oeis_divergent.is_absolute());
+        assert!(loda_outlier_programs_repository_oeis_divergent.is_dir());
 
         let instance = Self {
             config: config,
@@ -378,12 +380,23 @@ impl PostMine {
     }
 
     fn path_to_mismatch(&self, program_id: OeisId, correct_term_count: usize) -> Result<PathBuf, Box<dyn Error>> {
+        assert!(self.loda_outlier_programs_repository_oeis_divergent.is_dir());
+        assert!(self.loda_outlier_programs_repository_oeis_divergent.is_absolute());
         let dir_index: u32 = program_id.raw() / 1000;
         let dir_index_string: String = format!("{:0>3}", dir_index);
+        let dir_index_pathbuf: PathBuf = self.loda_outlier_programs_repository_oeis_divergent.join(&dir_index_string);
+        if !dir_index_pathbuf.is_dir() {
+            match fs::create_dir(&dir_index_pathbuf) {
+                Ok(_) => {},
+                Err(error) => {
+                    panic!("Unable to create directory: {:?}, program_id: {:?}, error: {:?}", dir_index_pathbuf, program_id, error);
+                }
+            }    
+        }
         let name = program_id.a_number();
         for index in 0..1000 {
             let filename = format!("{}_{}_{}.asm", name, correct_term_count, index);
-            let pathbuf: PathBuf = self.loda_outlier_programs_repository_oeis_divergent.join(&dir_index_string).join(filename);
+            let pathbuf: PathBuf = dir_index_pathbuf.join(filename);
             if !pathbuf.is_file() {
                 return Ok(pathbuf);
             }
@@ -505,7 +518,7 @@ impl PostMine {
                 value
             },
             Err(error) => {
-                // debug!("Unable to check program: {:?}", error);
+                debug!("Unable to check program: {:?} at path: {:?}", error, &check_program_path);
                 let message = format!("check error: {:?}", error);
                 // progressbar.println(message.clone());
                 simple_log.println(message);
