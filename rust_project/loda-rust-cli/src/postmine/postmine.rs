@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
-use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, PostMineError, State, ValidateSingleProgram, ValidateSingleProgramError};
+use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, ValidateSingleProgram, ValidateSingleProgramError};
 use loda_rust_core::util::BigIntVec;
 use num_bigint::{BigInt, ToBigInt};
 use chrono::{DateTime, Utc};
@@ -379,26 +379,19 @@ impl PostMine {
         pathbuf
     }
 
-    fn path_to_mismatch(&self, program_id: OeisId, correct_term_count: usize) -> Result<PathBuf, Box<dyn Error>> {
+    /// Construct a path, like this: `/absolute/path//041/A041009_30_0.asm`
+    fn path_to_mismatch(&self, program_id: OeisId, correct_term_count: usize) -> Result<ParentDirAndChildFile, Box<dyn Error>> {
         assert!(self.loda_outlier_programs_repository_oeis_divergent.is_dir());
         assert!(self.loda_outlier_programs_repository_oeis_divergent.is_absolute());
         let dir_index: u32 = program_id.raw() / 1000;
         let dir_index_string: String = format!("{:0>3}", dir_index);
-        let dir_index_pathbuf: PathBuf = self.loda_outlier_programs_repository_oeis_divergent.join(&dir_index_string);
-        if !dir_index_pathbuf.is_dir() {
-            match fs::create_dir(&dir_index_pathbuf) {
-                Ok(_) => {},
-                Err(error) => {
-                    panic!("Unable to create directory: {:?}, program_id: {:?}, error: {:?}", dir_index_pathbuf, program_id, error);
-                }
-            }    
-        }
+        let dir_path: PathBuf = self.loda_outlier_programs_repository_oeis_divergent.join(&dir_index_string);
         let name = program_id.a_number();
         for index in 0..1000 {
             let filename = format!("{}_{}_{}.asm", name, correct_term_count, index);
-            let pathbuf: PathBuf = dir_index_pathbuf.join(filename);
-            if !pathbuf.is_file() {
-                return Ok(pathbuf);
+            let file_path: PathBuf = dir_path.join(filename);
+            if !file_path.is_file() {
+                return Ok(ParentDirAndChildFile::new(dir_path, file_path))
             }
         }
         Err(Box::new(PostMineError::CannotConstructUniqueFilenameForMismatch))
@@ -559,10 +552,11 @@ impl PostMine {
         program_id: OeisId, 
         number_of_correct_terms: u32
     ) -> Result<(), Box<dyn Error>> {
-        let mismatch_path: PathBuf = self.path_to_mismatch(program_id, number_of_correct_terms as usize)?;
-        let message = format!("Keeping. This program is a mismatch, it has correct {} terms, followed by mismatch. Saving at: {:?}", number_of_correct_terms, mismatch_path);
+        let mismatch_path: ParentDirAndChildFile = self.path_to_mismatch(program_id, number_of_correct_terms as usize)?;
+        mismatch_path.create_parent_dir()?;
+        let message = format!("Keeping. This program is a mismatch, it has correct {} terms, followed by mismatch. Saving at: {:?}", number_of_correct_terms, mismatch_path.child_file());
         simple_log.println(message);
-        fs::copy(path_program0, mismatch_path)?;
+        fs::copy(path_program0, mismatch_path.child_file())?;
         candidate_program.borrow_mut().keep_id_insert(program_id);
         Ok(())
     }
