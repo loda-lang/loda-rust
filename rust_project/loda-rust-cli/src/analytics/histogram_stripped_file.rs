@@ -2,7 +2,7 @@ use loda_rust_core::util::BigIntVec;
 use crate::mine::FunnelConfig;
 use crate::config::Config;
 use crate::common::{create_csv_file, SimpleLog};
-use crate::oeis::{ProcessStrippedFile, StrippedRow};
+use crate::oeis::{OeisId, ProcessStrippedFile, StrippedRow};
 use num_bigint::{BigInt, ToBigInt};
 use std::convert::TryFrom;
 use std::error::Error;
@@ -139,13 +139,13 @@ impl HistogramStrippedFile {
                 count_small += 1;
             }
         };
-        let program_ids_to_ignore = HashSet::<u32>::new();
+        let oeis_ids_to_ignore = HashSet::<OeisId>::new();
         let mut stripped_sequence_processor = ProcessStrippedFile::new();
         stripped_sequence_processor.execute(
             oeis_stripped_file_reader,
             FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS,
             FunnelConfig::TERM_COUNT,
-            &program_ids_to_ignore,
+            &oeis_ids_to_ignore,
             &padding_value,
             true,
             process_callback

@@ -1,3 +1,4 @@
+use super::OeisId;
 use num_bigint::BigInt;
 use std::fmt;
 use regex::Regex;
@@ -22,7 +23,7 @@ use loda_rust_core::util::BigIntVec;
 /// 
 /// The other half of the sequences are longer than 38 terms.
 pub struct StrippedRow {
-    pub sequence_number: u32,
+    oeis_id: OeisId,
     bigint_vec: BigIntVec,
 }
 
@@ -31,11 +32,15 @@ impl StrippedRow {
         parse_stripped_row(line, max_term_count)
     }
 
-    pub fn new(sequence_number: u32, bigint_vec: BigIntVec) -> Self {
+    pub fn new(oeis_id: OeisId, bigint_vec: BigIntVec) -> Self {
         Self {
-            sequence_number: sequence_number,
+            oeis_id: oeis_id,
             bigint_vec: bigint_vec,
         }
+    }
+
+    pub fn oeis_id(&self) -> OeisId {
+        self.oeis_id
     }
 
     pub fn bigint_vec_ref(&self) -> &BigIntVec {
@@ -68,7 +73,7 @@ impl fmt::Display for StrippedRow {
             true => "",
             false => " "
         };
-        write!(f, "{}{}{}", self.sequence_number, spacer, strings_joined)
+        write!(f, "{}{}{}", self.oeis_id().a_number(), spacer, strings_joined)
     }
 }
 
@@ -112,6 +117,7 @@ fn parse_stripped_row(line: &String, max_term_count: Option<usize>) -> Option<St
             return None;
         }
     };
+    let oeis_id: OeisId = OeisId::from(sequence_number);
 
     // Process the following columns
     let max_term_count_inner: usize = match max_term_count {
@@ -142,8 +148,7 @@ fn parse_stripped_row(line: &String, max_term_count: Option<usize>) -> Option<St
         bigint_vec.push(bigint);
     }
 
-    let seq = StrippedRow::new(sequence_number, bigint_vec);
-    return Some(seq);
+    Some(StrippedRow::new(oeis_id, bigint_vec))
 }
 
 
@@ -154,14 +159,14 @@ mod tests {
 
     fn parse(input: &str) -> String {
         match StrippedRow::parse(&input.to_string(), None) {
-            Some(stripped_sequence) => return stripped_sequence.to_string(),
+            Some(value) => return value.to_string(),
             None => return "NONE".to_string()
         }
     }
 
     fn parse_with_limit(input: &str, max_term_count: usize) -> String {
         match StrippedRow::parse(&input.to_string(), Some(max_term_count)) {
-            Some(stripped_sequence) => return stripped_sequence.to_string(),
+            Some(value) => return value.to_string(),
             None => return "NONE".to_string()
         }
     }
@@ -172,10 +177,10 @@ mod tests {
         assert_eq!(parse("# comment"), "NONE");
         assert_eq!(parse("Ajunk"), "NONE");
         assert_eq!(parse("A junk"), "NONE");
-        assert_eq!(parse("A000040 ,2,3,5,7,11,13,17,19,23,"), "40 2,3,5,7,11,13,17,19,23");
-        assert_eq!(parse_with_limit("A000040 ,2,3,5,7,11,13,17,19,23,", 0), "40");
-        assert_eq!(parse_with_limit("A000040 ,2,3,5,7,11,13,17,19,23,", 2), "40 2,3");
-        assert_eq!(parse_with_limit("A000040 ,2,3,5,", 8), "40 2,3,5");
+        assert_eq!(parse("A000040 ,2,3,5,7,11,13,17,19,23,"), "A000040 2,3,5,7,11,13,17,19,23");
+        assert_eq!(parse_with_limit("A000040 ,2,3,5,7,11,13,17,19,23,", 0), "A000040");
+        assert_eq!(parse_with_limit("A000040 ,2,3,5,7,11,13,17,19,23,", 2), "A000040 2,3");
+        assert_eq!(parse_with_limit("A000040 ,2,3,5,", 8), "A000040 2,3,5");
     }
 
     const INPUT_STRIPPED_SEQUENCE_DATA: &str = r#"
@@ -210,14 +215,14 @@ A000040 ,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,
     fn test_10002_grow_to_length() {
         // Arrange
         let input = "A000040 ,2,3,5,7,11,13,17,19,23,";
-        let mut stripped_sequence: StrippedRow = StrippedRow::parse(&input.to_string(), None).unwrap();
-        assert_eq!(stripped_sequence.len(), 9);
+        let mut row: StrippedRow = StrippedRow::parse(&input.to_string(), None).unwrap();
+        assert_eq!(row.len(), 9);
         let padding_value = BigInt::zero();
 
         // Act
-        stripped_sequence.grow_to_length(20, &padding_value);
+        row.grow_to_length(20, &padding_value);
 
         // Assert
-        assert_eq!(stripped_sequence.to_string(), "40 2,3,5,7,11,13,17,19,23,0,0,0,0,0,0,0,0,0,0,0");
+        assert_eq!(row.to_string(), "A000040 2,3,5,7,11,13,17,19,23,0,0,0,0,0,0,0,0,0,0,0");
     }
 }

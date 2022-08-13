@@ -1,6 +1,6 @@
 use loda_rust_core;
 use loda_rust_core::util::{BigIntVec, BigIntVecToString};
-use super::{ProcessStrippedFile, StrippedRow};
+use super::{OeisId, ProcessStrippedFile, StrippedRow};
 use num_bigint::BigInt;
 use std::io;
 use std::collections::{HashMap, HashSet};
@@ -35,19 +35,19 @@ fn build_terms_to_program_id_set(
 ) -> Result<TermsToProgramIdSet, Box<dyn Error>> {
     let mut terms_to_program_id = TermsToProgramIdSet::new();
 
-    let callback = |stripped_sequence: &StrippedRow, _| {
-        let bigint_vec_ref: &BigIntVec = stripped_sequence.bigint_vec_ref();
+    let callback = |row: &StrippedRow, _| {
+        let bigint_vec_ref: &BigIntVec = row.bigint_vec_ref();
         let key: String = bigint_vec_ref.to_compact_comma_string();
         let entry = terms_to_program_id.entry(key).or_insert_with(|| HashSet::new());
-        entry.insert(stripped_sequence.sequence_number);
+        entry.insert(row.oeis_id().raw());
     };
     let mut processor = ProcessStrippedFile::new();
-    let program_ids_to_ignore = HashSet::<u32>::new();
+    let oeis_ids_to_ignore = HashSet::<OeisId>::new();
     processor.execute(
         oeis_stripped_file_reader,
         minimum_number_of_required_terms,
         term_count,
-        &program_ids_to_ignore,
+        &oeis_ids_to_ignore,
         padding_value, 
         true,
         callback

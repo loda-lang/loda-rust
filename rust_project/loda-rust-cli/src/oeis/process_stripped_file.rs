@@ -1,9 +1,9 @@
+use super::{OeisId, StrippedRow};
+use crate::common::SimpleLog;
 use std::io;
 use std::io::BufRead;
 use std::collections::{HashMap, HashSet};
 use num_bigint::BigInt;
-use crate::common::SimpleLog;
-use super::StrippedRow;
 
 pub struct ProcessStrippedFile {
     count_bytes: usize,
@@ -54,7 +54,7 @@ impl ProcessStrippedFile {
         reader: &mut dyn io::BufRead,
         minimum_number_of_required_terms: usize,
         term_count: usize, 
-        program_ids_to_ignore: &HashSet<u32>,
+        oeis_ids_to_ignore: &HashSet<OeisId>,
         padding_value: &BigInt,
         should_grow_to_length: bool, 
         mut callback: F
@@ -81,7 +81,7 @@ impl ProcessStrippedFile {
                 self.count_tooshort += 1;
                 continue;
             }
-            if program_ids_to_ignore.contains(&row.sequence_number) {
+            if oeis_ids_to_ignore.contains(&row.oeis_id()) {
                 self.count_ignored_program_id += 1;
                 continue;
             }
@@ -125,13 +125,13 @@ A117093 ,2,3,5,7,11,13,16,17,18,19,23,28,29,30,31,37,38,39,40,41,43,47,53,58,59,
 
         let mut callback_items = Vec::<String>::new();
         let callback = |row: &StrippedRow, _| {
-            callback_items.push(format!("{}", row.sequence_number));
+            callback_items.push(format!("{}", row.oeis_id().raw()));
         };
         let minimum_number_of_required_terms = 8;
         let term_count = 20;
-        let mut program_ids_to_ignore = HashSet::<u32>::new();
-        program_ids_to_ignore.insert(45);
-        program_ids_to_ignore.insert(112088);
+        let mut oeis_ids_to_ignore = HashSet::<OeisId>::new();
+        oeis_ids_to_ignore.insert(OeisId::from(45));
+        oeis_ids_to_ignore.insert(OeisId::from(112088));
 
         let padding_value = BigInt::zero();
         let mut processor = ProcessStrippedFile::new();
@@ -141,7 +141,7 @@ A117093 ,2,3,5,7,11,13,16,17,18,19,23,28,29,30,31,37,38,39,40,41,43,47,53,58,59,
             &mut input,
             minimum_number_of_required_terms,
             term_count,
-            &program_ids_to_ignore,
+            &oeis_ids_to_ignore,
             &padding_value,
             true, 
             callback

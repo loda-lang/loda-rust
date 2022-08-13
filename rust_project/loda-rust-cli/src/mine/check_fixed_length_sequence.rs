@@ -2,7 +2,7 @@ use loda_rust_core::util::BigIntVec;
 use super::{FunnelConfig, WildcardChecker};
 use crate::config::Config;
 use crate::common::{load_program_ids_csv_file, SimpleLog};
-use crate::oeis::{ProcessStrippedFile, StrippedRow};
+use crate::oeis::{OeisId, ProcessStrippedFile, StrippedRow};
 use num_bigint::{BigInt, ToBigInt};
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;
@@ -155,7 +155,7 @@ fn create_cache_files(
     filesize: usize,
     bloom_items_count: usize,
     cache_dir: &PathBuf, 
-    program_ids_to_ignore: &HashSet<u32>
+    oeis_ids_to_ignore: &HashSet<OeisId>
 ) -> usize {
     let start = Instant::now();
     let mut processor = SequenceProcessor::new();
@@ -201,7 +201,7 @@ fn create_cache_files(
         oeis_stripped_file_reader,
         FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS,
         FunnelConfig::TERM_COUNT,
-        program_ids_to_ignore, 
+        oeis_ids_to_ignore, 
         &padding_value,
         true,
         process_callback
@@ -283,7 +283,7 @@ impl PopulateBloomfilter {
         assert!(oeis_stripped_file.is_file());
 
         let cache_dir: PathBuf = self.config.analytics_dir();
-        let program_ids_to_ignore: HashSet<u32> = self.obtain_dontmine_program_ids();
+        let oeis_ids_to_ignore: HashSet<OeisId> = self.obtain_dontmine_program_ids();
 
         let file = File::open(oeis_stripped_file).unwrap();
         let filesize: usize = file.metadata().unwrap().len() as usize;
@@ -294,12 +294,12 @@ impl PopulateBloomfilter {
             filesize,
             FunnelConfig::BLOOMFILTER_CAPACITY, 
             &cache_dir, 
-            &program_ids_to_ignore
+            &oeis_ids_to_ignore
         );
         Ok(())
     }
 
-    fn obtain_dontmine_program_ids(&self) -> HashSet<u32> {
+    fn obtain_dontmine_program_ids(&self) -> HashSet<OeisId> {
         let path = self.config.analytics_dir_dont_mine_file();
         let program_ids: Vec<u32> = match load_program_ids_csv_file(&path) {
             Ok(value) => value,
@@ -307,7 +307,8 @@ impl PopulateBloomfilter {
                 panic!("Unable to load the dontmine file. path: {:?} error: {:?}", path, error);
             }
         };
-        let hashset: HashSet<u32> = HashSet::from_iter(program_ids.iter().cloned());
+        let oeis_ids: Vec<OeisId> = program_ids.iter().map(|program_id| OeisId::from(*program_id)).collect();
+        let hashset: HashSet<OeisId> = HashSet::from_iter(oeis_ids.iter().cloned());
         self.simple_log.println(format!("loaded dontmine file. number of records: {}", hashset.len()));
         hashset
     }
@@ -374,7 +375,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
         reader: &mut dyn io::BufRead,
         minimum_number_of_required_terms: usize, 
         term_count: usize, 
-        program_ids_to_ignore: &HashSet<u32>, 
+        oeis_ids_to_ignore: &HashSet<OeisId>, 
     ) -> CheckFixedLengthSequence
     {
         let items_count: usize = 400000;
@@ -391,7 +392,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
             reader, 
             minimum_number_of_required_terms,
             term_count, 
-            program_ids_to_ignore, 
+            oeis_ids_to_ignore, 
             &padding_value,
             true,
             process_callback
@@ -402,7 +403,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
     impl CheckFixedLengthSequence {
         fn new_mock() -> CheckFixedLengthSequence {
             let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
-            let hashset = HashSet::<u32>::new();
+            let hashset = HashSet::<OeisId>::new();
             create_checkfixedlengthsequence_inner(
                 &mut input,
                 0,
@@ -488,7 +489,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
         let simple_log = SimpleLog::sink();
         let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
         let filesize: usize = input.len();
-        let hashset = HashSet::<u32>::new();
+        let hashset = HashSet::<OeisId>::new();
 
         // Act
         let number_of_sequences: usize = create_cache_files(

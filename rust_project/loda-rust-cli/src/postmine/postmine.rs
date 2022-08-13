@@ -220,28 +220,27 @@ impl PostMine {
         let padding_value_i64: i64 = 0xC0FFEE;
         let padding_value: BigInt = padding_value_i64.to_bigint().unwrap();
         let mut number_of_possible_matches: usize = 0;
-        let process_callback = |stripped_sequence: &StrippedRow, count_bytes: usize| {
+        let process_callback = |row: &StrippedRow, count_bytes: usize| {
             pb.set_position(count_bytes as u64);
-            let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
+            let all_vec: &BigIntVec = row.bigint_vec_ref();
             for candidate_program in self.candidate_programs.iter_mut() {
                 let mut candidate_program_mut = candidate_program.borrow_mut();
                 let terms: &BigIntVec = candidate_program_mut.lodacpp_terms();
                 if terms.starts_with(all_vec) {
                     // let s = format!("program: {} is possible match with A{}  number of identical terms: {}", candidate_program, stripped_sequence.sequence_number, all_vec.len());
                     // pb.println(s);
-                    let oeis_id = OeisId::from(stripped_sequence.sequence_number);
-                    candidate_program_mut.possible_id_insert(oeis_id);
+                    candidate_program_mut.possible_id_insert(row.oeis_id());
                     number_of_possible_matches += 1;
                 }
             }
         };
-        let program_ids_to_ignore = HashSet::<u32>::new();
+        let oeis_ids_to_ignore = HashSet::<OeisId>::new();
         let mut stripped_sequence_processor = ProcessStrippedFile::new();
         stripped_sequence_processor.execute(
             &mut oeis_stripped_file_reader,
             Self::MINIMUM_NUMBER_OF_REQUIRED_TERMS,
             Self::LOOKUP_TERM_COUNT,
-            &program_ids_to_ignore,
+            &oeis_ids_to_ignore,
             &padding_value,
             false,
             process_callback
