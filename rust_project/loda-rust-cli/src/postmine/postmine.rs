@@ -222,12 +222,12 @@ impl PostMine {
         let mut number_of_possible_matches: usize = 0;
         let process_callback = |row: &StrippedRow, count_bytes: usize| {
             pb.set_position(count_bytes as u64);
-            let all_vec: &BigIntVec = row.terms();
+            let stripped_terms: &BigIntVec = row.terms();
             for candidate_program in self.candidate_programs.iter_mut() {
                 let mut candidate_program_mut = candidate_program.borrow_mut();
                 let terms: &BigIntVec = candidate_program_mut.lodacpp_terms();
-                if terms.starts_with(all_vec) {
-                    // let s = format!("program: {} is possible match with A{}  number of identical terms: {}", candidate_program, stripped_sequence.sequence_number, all_vec.len());
+                if terms.starts_with(stripped_terms) {
+                    // let s = format!("program: {} is possible match with A{}  number of identical terms: {}", candidate_program, row.oeis_id, stripped_terms.len());
                     // pb.println(s);
                     candidate_program_mut.possible_id_insert(row.oeis_id());
                     number_of_possible_matches += 1;
