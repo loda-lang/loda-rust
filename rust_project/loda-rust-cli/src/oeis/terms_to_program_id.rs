@@ -1,6 +1,6 @@
 use loda_rust_core;
 use loda_rust_core::util::{BigIntVec, BigIntVecToString};
-use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
+use super::{ProcessStrippedFile, StrippedSequence};
 use num_bigint::BigInt;
 use std::io;
 use std::collections::{HashMap, HashSet};
@@ -41,7 +41,7 @@ fn build_terms_to_program_id_set(
         let entry = terms_to_program_id.entry(key).or_insert_with(|| HashSet::new());
         entry.insert(stripped_sequence.sequence_number);
     };
-    let mut processor = ProcessStrippedSequenceFile::new();
+    let mut processor = ProcessStrippedFile::new();
     let program_ids_to_ignore = HashSet::<u32>::new();
     processor.execute(
         oeis_stripped_file_reader,

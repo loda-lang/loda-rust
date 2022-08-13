@@ -5,7 +5,7 @@ use num_bigint::BigInt;
 use crate::common::SimpleLog;
 use super::{parse_stripped_sequence_line, StrippedSequence};
 
-pub struct ProcessStrippedSequenceFile {
+pub struct ProcessStrippedFile {
     count_bytes: usize,
     count_lines: usize,
     count_junk: usize,
@@ -16,7 +16,7 @@ pub struct ProcessStrippedSequenceFile {
     histogram_length: HashMap<usize,u32>,
 }
 
-impl ProcessStrippedSequenceFile {
+impl ProcessStrippedFile {
     pub fn new() -> Self {
         Self {
             count_bytes: 0,
@@ -31,7 +31,7 @@ impl ProcessStrippedSequenceFile {
     }
 
     pub fn print_summary(&self, simple_log: SimpleLog) {
-        simple_log.println(format!("Number of lines in oeis 'stripped' file: {}", self.count_lines));
+        simple_log.println(format!("Number of rows in oeis 'stripped' file: {}", self.count_lines));
         simple_log.println(format!("count_callback: {}", self.count_callback));
         simple_log.println(format!("count_tooshort: {}", self.count_tooshort));
         simple_log.println(format!("count_ignored_program_id: {}", self.count_ignored_program_id));
@@ -48,6 +48,7 @@ impl ProcessStrippedSequenceFile {
         simple_log.println(format!("sequence_lengths: {:?}", histogram_length_vec));
     }
 
+    /// Traverse all the rows of the OEIS `stripped` file.
     pub fn execute<F>(
         &mut self,
         reader: &mut dyn io::BufRead,
@@ -133,7 +134,7 @@ A117093 ,2,3,5,7,11,13,16,17,18,19,23,28,29,30,31,37,38,39,40,41,43,47,53,58,59,
         program_ids_to_ignore.insert(112088);
 
         let padding_value = BigInt::zero();
-        let mut processor = ProcessStrippedSequenceFile::new();
+        let mut processor = ProcessStrippedFile::new();
 
         // Act
         processor.execute(

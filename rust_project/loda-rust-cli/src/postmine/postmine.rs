@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, SimpleLog};
-use crate::oeis::{OeisId, ProcessStrippedSequenceFile, StrippedSequence};
+use crate::oeis::{OeisId, ProcessStrippedFile, StrippedSequence};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, ValidateSingleProgram, ValidateSingleProgramError};
 use loda_rust_core::util::BigIntVec;
@@ -236,7 +236,7 @@ impl PostMine {
             }
         };
         let program_ids_to_ignore = HashSet::<u32>::new();
-        let mut stripped_sequence_processor = ProcessStrippedSequenceFile::new();
+        let mut stripped_sequence_processor = ProcessStrippedFile::new();
         stripped_sequence_processor.execute(
             &mut oeis_stripped_file_reader,
             Self::MINIMUM_NUMBER_OF_REQUIRED_TERMS,

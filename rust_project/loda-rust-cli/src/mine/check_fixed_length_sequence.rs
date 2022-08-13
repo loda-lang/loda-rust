@@ -2,7 +2,7 @@ use loda_rust_core::util::BigIntVec;
 use super::{FunnelConfig, WildcardChecker};
 use crate::config::Config;
 use crate::common::{load_program_ids_csv_file, SimpleLog};
-use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
+use crate::oeis::{ProcessStrippedFile, StrippedSequence};
 use num_bigint::{BigInt, ToBigInt};
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;
@@ -195,7 +195,7 @@ fn create_cache_files(
         }
         (*x).counter += 1;
     };
-    let mut stripped_sequence_processor = ProcessStrippedSequenceFile::new();
+    let mut stripped_sequence_processor = ProcessStrippedFile::new();
     let padding_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
     stripped_sequence_processor.execute(
         oeis_stripped_file_reader,
@@ -385,7 +385,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
             let vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
             (*bloom_ref).set(vec);
         };
-        let mut processor = ProcessStrippedSequenceFile::new();
+        let mut processor = ProcessStrippedFile::new();
         let padding_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
         processor.execute(
             reader, 
