@@ -24,7 +24,7 @@ use loda_rust_core::util::BigIntVec;
 /// The other half of the sequences are longer than 38 terms.
 pub struct StrippedRow {
     oeis_id: OeisId,
-    bigint_vec: BigIntVec,
+    terms: BigIntVec,
 }
 
 impl StrippedRow {
@@ -32,10 +32,10 @@ impl StrippedRow {
         parse_stripped_row(line, max_term_count)
     }
 
-    pub fn new(oeis_id: OeisId, bigint_vec: BigIntVec) -> Self {
+    pub fn new(oeis_id: OeisId, terms: BigIntVec) -> Self {
         Self {
             oeis_id: oeis_id,
-            bigint_vec: bigint_vec,
+            terms: terms,
         }
     }
 
@@ -43,29 +43,29 @@ impl StrippedRow {
         self.oeis_id
     }
 
-    pub fn bigint_vec_ref(&self) -> &BigIntVec {
-        &self.bigint_vec
+    pub fn terms(&self) -> &BigIntVec {
+        &self.terms
     }
 
     pub fn len(&self) -> usize {
-        self.bigint_vec.len()
+        self.terms.len()
     }
 
     pub fn grow_to_length(&mut self, length: usize, padding_value: &BigInt) {
-        let original_length: usize = self.bigint_vec.len();
+        let original_length: usize = self.terms.len();
         if original_length >= length {
             return;
         }
         let count: usize = length - original_length;
         for _ in 0..count {
-            self.bigint_vec.push(padding_value.clone());
+            self.terms.push(padding_value.clone());
         }
     }
 }
 
 impl fmt::Display for StrippedRow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let strings: Vec<String> = self.bigint_vec.iter().map(|bigint| {
+        let strings: Vec<String> = self.terms.iter().map(|bigint| {
             bigint.to_string()
         }).collect();
         let strings_joined: String = strings.join(",");
@@ -124,7 +124,7 @@ fn parse_stripped_row(line: &String, max_term_count: Option<usize>) -> Option<St
         Some(value) => value,
         None => usize::MAX
     };
-    let mut bigint_vec: BigIntVec = vec!();
+    let mut terms: BigIntVec = vec!();
     for _ in 0..max_term_count_inner {
         let string = match iter.next() {
             Some(value) => value,
@@ -138,17 +138,17 @@ fn parse_stripped_row(line: &String, max_term_count: Option<usize>) -> Option<St
             break;
         }
         let bytes: &[u8] = string.as_bytes();
-        let bigint: BigInt = match BigInt::parse_bytes(bytes, 10) {
+        let term: BigInt = match BigInt::parse_bytes(bytes, 10) {
             Some(value) => value,
             None => {
                 error!("Unable to parse a number as BigInt. '{}'", string);
                 return None;
             }
         };
-        bigint_vec.push(bigint);
+        terms.push(term);
     }
 
-    Some(StrippedRow::new(oeis_id, bigint_vec))
+    Some(StrippedRow::new(oeis_id, terms))
 }
 
 

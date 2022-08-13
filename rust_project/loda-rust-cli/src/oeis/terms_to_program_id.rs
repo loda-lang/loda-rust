@@ -1,5 +1,5 @@
 use loda_rust_core;
-use loda_rust_core::util::{BigIntVec, BigIntVecToString};
+use loda_rust_core::util::BigIntVecToString;
 use super::{OeisId, ProcessStrippedFile, StrippedRow};
 use num_bigint::BigInt;
 use std::io;
@@ -36,8 +36,7 @@ fn build_terms_to_program_id_set(
     let mut terms_to_program_id = TermsToProgramIdSet::new();
 
     let callback = |row: &StrippedRow, _| {
-        let bigint_vec_ref: &BigIntVec = row.bigint_vec_ref();
-        let key: String = bigint_vec_ref.to_compact_comma_string();
+        let key: String = row.terms().to_compact_comma_string();
         let entry = terms_to_program_id.entry(key).or_insert_with(|| HashSet::new());
         entry.insert(row.oeis_id().raw());
     };

@@ -222,7 +222,7 @@ impl PostMine {
         let mut number_of_possible_matches: usize = 0;
         let process_callback = |row: &StrippedRow, count_bytes: usize| {
             pb.set_position(count_bytes as u64);
-            let all_vec: &BigIntVec = row.bigint_vec_ref();
+            let all_vec: &BigIntVec = row.terms();
             for candidate_program in self.candidate_programs.iter_mut() {
                 let mut candidate_program_mut = candidate_program.borrow_mut();
                 let terms: &BigIntVec = candidate_program_mut.lodacpp_terms();

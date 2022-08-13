@@ -117,7 +117,7 @@ impl HistogramStrippedFile {
         let padding_value: BigInt = padding_value_i64.to_bigint().unwrap();
         let process_callback = |stripped_sequence: &StrippedRow, count_bytes: usize| {
             pb.set_position(count_bytes as u64);
-            let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
+            let all_vec: &BigIntVec = stripped_sequence.terms();
             for value in all_vec {
                 let key: i64 = match i64::try_from(value).ok() {
                     Some(value) => value,
