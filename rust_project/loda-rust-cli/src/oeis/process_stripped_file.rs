@@ -3,7 +3,7 @@ use std::io::BufRead;
 use std::collections::{HashMap, HashSet};
 use num_bigint::BigInt;
 use crate::common::SimpleLog;
-use super::{parse_stripped_sequence_line, StrippedSequence};
+use super::StrippedRow;
 
 pub struct ProcessStrippedFile {
     count_bytes: usize,
@@ -59,7 +59,7 @@ impl ProcessStrippedFile {
         should_grow_to_length: bool, 
         mut callback: F
     )
-        where F: FnMut(&StrippedSequence, usize)
+        where F: FnMut(&StrippedRow, usize)
     {
         assert!(term_count >= 1);
         assert!(term_count <= 100);
@@ -67,32 +67,32 @@ impl ProcessStrippedFile {
             let line: String = line.unwrap();
             self.count_bytes += line.len();
             self.count_lines += 1;
-            let mut stripped_sequence: StrippedSequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
+            let mut row: StrippedRow = match StrippedRow::parse(&line, Some(term_count)) {
                 Some(value) => value,
                 None => {
                     self.count_junk += 1;
                     continue;
                 }
             };
-            let number_of_terms: usize = stripped_sequence.len();
+            let number_of_terms: usize = row.len();
             let counter = self.histogram_length.entry(number_of_terms).or_insert(0);
             *counter += 1;
             if number_of_terms < minimum_number_of_required_terms {
                 self.count_tooshort += 1;
                 continue;
             }
-            if program_ids_to_ignore.contains(&stripped_sequence.sequence_number) {
+            if program_ids_to_ignore.contains(&row.sequence_number) {
                 self.count_ignored_program_id += 1;
                 continue;
             }
             if should_grow_to_length {
                 if number_of_terms < term_count {
                     self.count_grow_to_term_count += 1;
-                    stripped_sequence.grow_to_length(term_count, padding_value);
+                    row.grow_to_length(term_count, padding_value);
                 }
-                assert!(stripped_sequence.len() == term_count);
+                assert!(row.len() == term_count);
             }
-            callback(&stripped_sequence, self.count_bytes);
+            callback(&row, self.count_bytes);
             self.count_callback += 1;
         }
     }
@@ -124,8 +124,8 @@ A117093 ,2,3,5,7,11,13,16,17,18,19,23,28,29,30,31,37,38,39,40,41,43,47,53,58,59,
         let mut input: &[u8] = INPUT_MOCKDATA.as_bytes();
 
         let mut callback_items = Vec::<String>::new();
-        let callback = |stripped_sequence: &StrippedSequence, _| {
-            callback_items.push(format!("{}", stripped_sequence.sequence_number));
+        let callback = |row: &StrippedRow, _| {
+            callback_items.push(format!("{}", row.sequence_number));
         };
         let minimum_number_of_required_terms = 8;
         let term_count = 20;

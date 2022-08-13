@@ -2,7 +2,7 @@ use loda_rust_core::util::BigIntVec;
 use crate::mine::FunnelConfig;
 use crate::config::Config;
 use crate::common::{create_csv_file, SimpleLog};
-use crate::oeis::{ProcessStrippedFile, StrippedSequence};
+use crate::oeis::{ProcessStrippedFile, StrippedRow};
 use num_bigint::{BigInt, ToBigInt};
 use std::convert::TryFrom;
 use std::error::Error;
@@ -115,7 +115,7 @@ impl HistogramStrippedFile {
         let pb = ProgressBar::new(filesize as u64);
         let padding_value_i64: i64 = 0xC0FFEE;
         let padding_value: BigInt = padding_value_i64.to_bigint().unwrap();
-        let process_callback = |stripped_sequence: &StrippedSequence, count_bytes: usize| {
+        let process_callback = |stripped_sequence: &StrippedRow, count_bytes: usize| {
             pb.set_position(count_bytes as u64);
             let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
             for value in all_vec {

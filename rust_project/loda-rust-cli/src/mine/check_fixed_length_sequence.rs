@@ -2,7 +2,7 @@ use loda_rust_core::util::BigIntVec;
 use super::{FunnelConfig, WildcardChecker};
 use crate::config::Config;
 use crate::common::{load_program_ids_csv_file, SimpleLog};
-use crate::oeis::{ProcessStrippedFile, StrippedSequence};
+use crate::oeis::{ProcessStrippedFile, StrippedRow};
 use num_bigint::{BigInt, ToBigInt};
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;
@@ -173,7 +173,7 @@ fn create_cache_files(
 
     simple_log.println(format!("oeis 'stripped' file size: {} bytes", filesize));
     let pb = ProgressBar::new(filesize as u64);
-    let process_callback = |stripped_sequence: &StrippedSequence, count_bytes: usize| {
+    let process_callback = |stripped_sequence: &StrippedRow, count_bytes: usize| {
         pb.set_position(count_bytes as u64);
         
         let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
@@ -381,7 +381,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
         let false_positive_rate: f64 = 0.01;
         let mut bloom = Bloom::<BigIntVec>::new_for_fp_rate(items_count, false_positive_rate);
         let bloom_ref = &mut bloom;
-        let process_callback = |stripped_sequence: &StrippedSequence, _count_bytes: usize| {
+        let process_callback = |stripped_sequence: &StrippedRow, _count_bytes: usize| {
             let vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
             (*bloom_ref).set(vec);
         };

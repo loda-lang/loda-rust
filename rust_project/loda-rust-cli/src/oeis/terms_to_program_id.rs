@@ -1,6 +1,6 @@
 use loda_rust_core;
 use loda_rust_core::util::{BigIntVec, BigIntVecToString};
-use super::{ProcessStrippedFile, StrippedSequence};
+use super::{ProcessStrippedFile, StrippedRow};
 use num_bigint::BigInt;
 use std::io;
 use std::collections::{HashMap, HashSet};
@@ -35,7 +35,7 @@ fn build_terms_to_program_id_set(
 ) -> Result<TermsToProgramIdSet, Box<dyn Error>> {
     let mut terms_to_program_id = TermsToProgramIdSet::new();
 
-    let callback = |stripped_sequence: &StrippedSequence, _| {
+    let callback = |stripped_sequence: &StrippedRow, _| {
         let bigint_vec_ref: &BigIntVec = stripped_sequence.bigint_vec_ref();
         let key: String = bigint_vec_ref.to_compact_comma_string();
         let entry = terms_to_program_id.entry(key).or_insert_with(|| HashSet::new());

@@ -21,12 +21,16 @@ use loda_rust_core::util::BigIntVec;
 /// Half of the sequences are shorter than or equal to 38 terms.
 /// 
 /// The other half of the sequences are longer than 38 terms.
-pub struct StrippedSequence {
+pub struct StrippedRow {
     pub sequence_number: u32,
     bigint_vec: BigIntVec,
 }
 
-impl StrippedSequence {
+impl StrippedRow {
+    pub fn parse(line: &String, max_term_count: Option<usize>) -> Option<Self> {
+        parse_stripped_row(line, max_term_count)
+    }
+
     pub fn new(sequence_number: u32, bigint_vec: BigIntVec) -> Self {
         Self {
             sequence_number: sequence_number,
@@ -54,7 +58,7 @@ impl StrippedSequence {
     }
 }
 
-impl fmt::Display for StrippedSequence {
+impl fmt::Display for StrippedRow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let strings: Vec<String> = self.bigint_vec.iter().map(|bigint| {
             bigint.to_string()
@@ -75,7 +79,7 @@ lazy_static! {
     ).unwrap();
 }
 
-pub fn parse_stripped_sequence_line(line: &String, max_term_count: Option<usize>) -> Option<StrippedSequence> {
+fn parse_stripped_row(line: &String, max_term_count: Option<usize>) -> Option<StrippedRow> {
     if !line.starts_with("A") {
         return None;            
     }
@@ -138,7 +142,7 @@ pub fn parse_stripped_sequence_line(line: &String, max_term_count: Option<usize>
         bigint_vec.push(bigint);
     }
 
-    let seq = StrippedSequence::new(sequence_number, bigint_vec);
+    let seq = StrippedRow::new(sequence_number, bigint_vec);
     return Some(seq);
 }
 
@@ -149,14 +153,14 @@ mod tests {
     use num_traits::Zero;
 
     fn parse(input: &str) -> String {
-        match parse_stripped_sequence_line(&input.to_string(), None) {
+        match StrippedRow::parse(&input.to_string(), None) {
             Some(stripped_sequence) => return stripped_sequence.to_string(),
             None => return "NONE".to_string()
         }
     }
 
     fn parse_with_limit(input: &str, max_term_count: usize) -> String {
-        match parse_stripped_sequence_line(&input.to_string(), Some(max_term_count)) {
+        match StrippedRow::parse(&input.to_string(), Some(max_term_count)) {
             Some(stripped_sequence) => return stripped_sequence.to_string(),
             None => return "NONE".to_string()
         }
@@ -189,7 +193,7 @@ A000040 ,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,
         let mut line_count_sequences: usize = 0;
         let mut line_count_junk: usize = 0;
         for line in s.lines() {
-            match parse_stripped_sequence_line(&line.to_string(), Some(5)) {
+            match StrippedRow::parse(&line.to_string(), Some(5)) {
                 Some(_) => { 
                     line_count_sequences += 1;
                 },
@@ -206,7 +210,7 @@ A000040 ,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,
     fn test_10002_grow_to_length() {
         // Arrange
         let input = "A000040 ,2,3,5,7,11,13,17,19,23,";
-        let mut stripped_sequence: StrippedSequence = parse_stripped_sequence_line(&input.to_string(), None).unwrap();
+        let mut stripped_sequence: StrippedRow = StrippedRow::parse(&input.to_string(), None).unwrap();
         assert_eq!(stripped_sequence.len(), 9);
         let padding_value = BigInt::zero();
 

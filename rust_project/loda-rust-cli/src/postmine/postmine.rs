@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, SimpleLog};
-use crate::oeis::{OeisId, ProcessStrippedFile, StrippedSequence};
+use crate::oeis::{OeisId, ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, ValidateSingleProgram, ValidateSingleProgramError};
 use loda_rust_core::util::BigIntVec;
@@ -220,7 +220,7 @@ impl PostMine {
         let padding_value_i64: i64 = 0xC0FFEE;
         let padding_value: BigInt = padding_value_i64.to_bigint().unwrap();
         let mut number_of_possible_matches: usize = 0;
-        let process_callback = |stripped_sequence: &StrippedSequence, count_bytes: usize| {
+        let process_callback = |stripped_sequence: &StrippedRow, count_bytes: usize| {
             pb.set_position(count_bytes as u64);
             let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
             for candidate_program in self.candidate_programs.iter_mut() {
