@@ -102,7 +102,7 @@ mod tests {
     use super::*;
     use num_traits::Zero;
     
-    const INPUT_STRIPPED_SEQUENCE_MOCKDATA: &str = r#"
+    const INPUT_MOCKDATA: &str = r#"
 # OEIS Sequence Data (http://oeis.org/stripped.gz)
 # Last Modified: January 32 01:01 UTC 1984
 # Use of this content is governed by the
@@ -120,7 +120,7 @@ A117093 ,2,3,5,7,11,13,16,17,18,19,23,28,29,30,31,37,38,39,40,41,43,47,53,58,59,
     #[test]
     fn test_10000_execute() {
         // Arrange
-        let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
+        let mut input: &[u8] = INPUT_MOCKDATA.as_bytes();
 
         let mut callback_items = Vec::<String>::new();
         let callback = |stripped_sequence: &StrippedSequence, _| {
