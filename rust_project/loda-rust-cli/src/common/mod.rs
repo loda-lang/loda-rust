@@ -2,6 +2,7 @@
 mod create_csv_file;
 mod find_files_recursively;
 mod oeis_id_from_path;
+mod oeis_ids_from_programs;
 mod parse_csv_data;
 mod parse_csv_file;
 mod record_bigram;
@@ -14,6 +15,7 @@ mod simple_log;
 pub use create_csv_file::create_csv_file;
 pub use find_files_recursively::{find_asm_files_recursively, find_csv_files_recursively};
 pub use oeis_id_from_path::{oeis_id_from_path, oeis_ids_from_paths};
+pub use oeis_ids_from_programs::{oeis_ids_from_program, oeis_ids_from_programs};
 pub use parse_csv_data::parse_csv_data;
 pub use parse_csv_file::parse_csv_file;
 pub use record_bigram::RecordBigram;

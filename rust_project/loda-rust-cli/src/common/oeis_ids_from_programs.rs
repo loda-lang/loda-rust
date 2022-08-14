@@ -1,21 +1,11 @@
-use loda_rust_core::control::{DependencyManager, DependencyManagerError, DependencyManagerFileSystemMode};
-use loda_rust_core::parser::{ParsedProgram, ParseProgramError, ParseParametersError};
-use loda_rust_core::parser::{create_program, CreatedProgram, CreateProgramError};
-use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, Program, ProgramId, ProgramRunner, ProgramRunnerManager, RegisterValue, RunMode};
-use loda_rust_core::execute::NodeRegisterLimit;
-use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
-use loda_rust_core::execute::node_power::NodePowerLimit;
-use crate::common::oeis_id_from_path;
+use loda_rust_core::parser::ParsedProgram;
 use crate::oeis::{OeisId, OeisIdHashSet};
-use std::collections::HashSet;
-use std::error::Error;
 use std::path::{Path, PathBuf};
-use std::fmt;
 use std::fs;
 use std::convert::TryFrom;
 use anyhow::Context;
 
-pub fn extract_oeis_ids_from_program(program_path: &Path) -> anyhow::Result<OeisIdHashSet> {
+pub fn oeis_ids_from_program(program_path: &Path) -> anyhow::Result<OeisIdHashSet> {
     // Load asm file
     let program_contents: String = fs::read_to_string(&program_path)
         .with_context(|| format!("Read program from {:?}", &program_path))?;
@@ -44,14 +34,15 @@ pub fn extract_oeis_ids_from_program(program_path: &Path) -> anyhow::Result<Oeis
     Ok(oeis_ids)
 }
 
-// def extract_oeis_ids_from_program_files(paths)
-//     program_ids = []
-//     paths.each do |path|
-//         let oeis_id: OeisId = oeis_id_from_path(program_path);
-//         program_ids += extract_oeis_ids_from_program_file(path)
-//     end
-//     program_ids
-// end
+pub fn oeis_ids_from_programs(paths: Vec<PathBuf>) -> anyhow::Result<OeisIdHashSet> {
+    let mut oeis_ids = OeisIdHashSet::new();
+    for path in paths {
+        let new_oeis_ids: OeisIdHashSet = oeis_ids_from_program(&path)
+            .with_context(|| format!("Extract oeis ids from program: {:?}", path))?;
+        oeis_ids.extend(&new_oeis_ids);
+    }
+    Ok(oeis_ids)
+}
 
 #[cfg(test)]
 mod tests {
@@ -61,10 +52,10 @@ mod tests {
     use std::io::prelude::*;
     
     #[test]
-    fn test_10000_extract_oeis_ids_from_program_ok() -> Result<(), Box<dyn Error>> {
+    fn test_10000_oeis_ids_from_program_ok() -> Result<(), Box<dyn Error>> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
-        let basedir = PathBuf::from(&tempdir.path()).join("test_10000_extract_oeis_ids_from_program_ok");
+        let basedir = PathBuf::from(&tempdir.path()).join("test_10000_oeis_ids_from_program_ok");
         fs::create_dir(&basedir)?;
         let input_path: PathBuf = basedir.join("A026233.asm");
 
@@ -83,7 +74,7 @@ mov $0,$1
         input_file.write_all(input_content.as_bytes())?;
 
         // Act
-        let oeis_ids: OeisIdHashSet = extract_oeis_ids_from_program(&input_path)?;
+        let oeis_ids: OeisIdHashSet = oeis_ids_from_program(&input_path)?;
 
         // Assert
         let mut expected = OeisIdHashSet::new();
@@ -94,15 +85,15 @@ mov $0,$1
     }
 
     #[test]
-    fn test_10001_extract_oeis_ids_from_program_missing_file() -> Result<(), Box<dyn Error>> {
+    fn test_10001_oeis_ids_from_program_missing_file() -> Result<(), Box<dyn Error>> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
-        let basedir = PathBuf::from(&tempdir.path()).join("test_10001_extract_oeis_ids_from_program_missing_file");
+        let basedir = PathBuf::from(&tempdir.path()).join("test_10001_oeis_ids_from_program_missing_file");
         fs::create_dir(&basedir)?;
         let input_path: PathBuf = basedir.join("non-existing.asm");
 
         // Act
-        let result = extract_oeis_ids_from_program(&input_path);
+        let result = oeis_ids_from_program(&input_path);
 
         // Assert
         let error = result.expect_err("should fail");
@@ -112,10 +103,10 @@ mov $0,$1
     }
 
     #[test]
-    fn test_10002_extract_oeis_ids_from_program_parse_error() -> Result<(), Box<dyn Error>> {
+    fn test_10002_oeis_ids_from_program_parse_error() -> Result<(), Box<dyn Error>> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
-        let basedir = PathBuf::from(&tempdir.path()).join("test_10002_extract_oeis_ids_from_program_parse_error");
+        let basedir = PathBuf::from(&tempdir.path()).join("test_10002_oeis_ids_from_program_parse_error");
         fs::create_dir(&basedir)?;
         let input_path: PathBuf = basedir.join("A000040.asm");
 
@@ -127,7 +118,7 @@ boom $0,3 ; non-existing instruction
         input_file.write_all(input_content.as_bytes())?;
 
         // Act
-        let result = extract_oeis_ids_from_program(&input_path);
+        let result = oeis_ids_from_program(&input_path);
 
         // Assert
         let error = result.expect_err("should fail");
