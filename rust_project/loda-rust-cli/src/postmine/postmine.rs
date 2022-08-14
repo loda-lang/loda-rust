@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, SimpleLog};
-use crate::oeis::{OeisId, ProcessStrippedFile, StrippedRow};
+use crate::oeis::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, ValidateSingleProgram, ValidateSingleProgramError};
 use loda_rust_core::util::BigIntVec;
@@ -28,8 +28,8 @@ pub struct PostMine {
     path_timestamped_postmine_dir: PathBuf,
     paths_for_processing: Vec<PathBuf>,
     candidate_programs: Vec<CandidateProgramItem>,
-    dontmine_hashset: HashSet<OeisId>,
-    invalid_program_ids_hashset: HashSet<OeisId>,
+    dontmine_hashset: OeisIdHashSet,
+    invalid_program_ids_hashset: OeisIdHashSet,
     loda_programs_oeis_dir: PathBuf,
     loda_outlier_programs_repository_oeis_divergent: PathBuf,
     validate_single_program: ValidateSingleProgram,
@@ -143,7 +143,7 @@ impl PostMine {
         let path = self.config.analytics_dir_dont_mine_file();
         let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)?;
         let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();
-        let hashset: HashSet<OeisId> = HashSet::from_iter(program_ids.iter().cloned());
+        let hashset: OeisIdHashSet = HashSet::from_iter(program_ids.iter().cloned());
         println!("loaded dontmine file. number of records: {}", hashset.len());
         self.dontmine_hashset = hashset;
         Ok(())
@@ -153,7 +153,7 @@ impl PostMine {
         let path = self.config.analytics_dir_programs_invalid_file();
         let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)?;
         let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();
-        let hashset: HashSet<OeisId> = HashSet::from_iter(program_ids.iter().cloned());
+        let hashset: OeisIdHashSet = HashSet::from_iter(program_ids.iter().cloned());
         println!("loaded invalid program_ids file. number of records: {}", hashset.len());
         self.invalid_program_ids_hashset = hashset;
         Ok(())

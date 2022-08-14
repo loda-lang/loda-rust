@@ -1,4 +1,4 @@
-use super::{NameRow, OeisId};
+use super::{NameRow, OeisId, OeisIdHashSet};
 use crate::common::SimpleLog;
 use std::io;
 use std::io::BufRead;
@@ -34,7 +34,7 @@ impl ProcessNamesFile {
     pub fn execute<F>(
         &mut self,
         reader: &mut dyn io::BufRead,
-        oeis_ids_to_ignore: &HashSet<OeisId>,
+        oeis_ids_to_ignore: &OeisIdHashSet,
         mut callback: F
     )
         where F: FnMut(&NameRow, usize)

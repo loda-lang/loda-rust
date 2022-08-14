@@ -7,7 +7,7 @@ mod stripped_row;
 mod terms_to_program_id;
 
 pub use name_row::NameRow;
-pub use oeis_id::OeisId;
+pub use oeis_id::{OeisId, OeisIdHashSet};
 pub use process_names_file::ProcessNamesFile;
 pub use process_stripped_file::ProcessStrippedFile;
 pub use stripped_row::StrippedRow;

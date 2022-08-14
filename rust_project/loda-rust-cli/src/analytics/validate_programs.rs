@@ -1,5 +1,5 @@
 use crate::common::{find_asm_files_recursively, oeis_ids_from_paths, SimpleLog};
-use crate::oeis::OeisId;
+use crate::oeis::{OeisId, OeisIdHashSet};
 use loda_rust_core;
 use crate::config::Config;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
@@ -143,7 +143,7 @@ impl ValidatePrograms {
         let mut cache = ProgramCache::new();
         let oeis_ids_len: usize = oeis_ids.len();
         let mut number_of_invalid_programs: u32 = 0;
-        let mut valid_program_ids: HashSet<OeisId> = HashSet::new();
+        let mut valid_program_ids: OeisIdHashSet = HashSet::new();
         let pb = ProgressBar::new(oeis_ids_len as u64);
         for oeis_id in oeis_ids {
             let program_id64 = oeis_id.raw() as u64;

@@ -6,7 +6,7 @@ use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
 use crate::common::oeis_id_from_path;
-use crate::oeis::OeisId;
+use crate::oeis::{OeisId, OeisIdHashSet};
 use std::collections::HashSet;
 use std::error::Error;
 use std::path::{Path, PathBuf};
@@ -14,8 +14,6 @@ use std::fmt;
 use std::fs;
 use std::convert::TryFrom;
 use anyhow::Context;
-
-pub type OeisIdHashSet = HashSet<OeisId>;
 
 pub fn extract_oeis_ids_from_program(program_path: &Path) -> anyhow::Result<OeisIdHashSet> {
     // Load asm file

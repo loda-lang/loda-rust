@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::fmt;
+use std::collections::HashSet;
 
 #[derive(Clone, Copy, Debug, Eq, Hash)]
 pub struct OeisId(u32);
@@ -45,11 +46,11 @@ impl fmt::Display for OeisId {
     }
 }
 
+pub type OeisIdHashSet = HashSet<OeisId>;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
 
     #[test]
     fn test_10000_from() {
@@ -81,7 +82,7 @@ mod tests {
 
     #[test]
     fn test_50000_hashset() {
-        let mut oeis_ids = HashSet::<OeisId>::new();
+        let mut oeis_ids = OeisIdHashSet::new();
         oeis_ids.insert(OeisId::from(45));
         oeis_ids.insert(OeisId::from(10051));
         assert_eq!(oeis_ids.len(), 2);

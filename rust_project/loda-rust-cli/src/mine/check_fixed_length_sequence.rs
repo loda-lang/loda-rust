@@ -2,7 +2,7 @@ use loda_rust_core::util::BigIntVec;
 use super::{FunnelConfig, WildcardChecker};
 use crate::config::Config;
 use crate::common::{load_program_ids_csv_file, SimpleLog};
-use crate::oeis::{OeisId, ProcessStrippedFile, StrippedRow};
+use crate::oeis::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use num_bigint::{BigInt, ToBigInt};
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;
@@ -155,7 +155,7 @@ fn create_cache_files(
     filesize: usize,
     bloom_items_count: usize,
     cache_dir: &PathBuf, 
-    oeis_ids_to_ignore: &HashSet<OeisId>
+    oeis_ids_to_ignore: &OeisIdHashSet
 ) -> usize {
     let start = Instant::now();
     let mut processor = SequenceProcessor::new();
@@ -283,7 +283,7 @@ impl PopulateBloomfilter {
         assert!(oeis_stripped_file.is_file());
 
         let cache_dir: PathBuf = self.config.analytics_dir();
-        let oeis_ids_to_ignore: HashSet<OeisId> = self.obtain_dontmine_program_ids();
+        let oeis_ids_to_ignore: OeisIdHashSet = self.obtain_dontmine_program_ids();
 
         let file = File::open(oeis_stripped_file).unwrap();
         let filesize: usize = file.metadata().unwrap().len() as usize;
@@ -299,7 +299,7 @@ impl PopulateBloomfilter {
         Ok(())
     }
 
-    fn obtain_dontmine_program_ids(&self) -> HashSet<OeisId> {
+    fn obtain_dontmine_program_ids(&self) -> OeisIdHashSet {
         let path = self.config.analytics_dir_dont_mine_file();
         let program_ids: Vec<u32> = match load_program_ids_csv_file(&path) {
             Ok(value) => value,
@@ -308,7 +308,7 @@ impl PopulateBloomfilter {
             }
         };
         let oeis_ids: Vec<OeisId> = program_ids.iter().map(|program_id| OeisId::from(*program_id)).collect();
-        let hashset: HashSet<OeisId> = HashSet::from_iter(oeis_ids.iter().cloned());
+        let hashset: OeisIdHashSet = HashSet::from_iter(oeis_ids.iter().cloned());
         self.simple_log.println(format!("loaded dontmine file. number of records: {}", hashset.len()));
         hashset
     }
@@ -375,7 +375,7 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
         reader: &mut dyn io::BufRead,
         minimum_number_of_required_terms: usize, 
         term_count: usize, 
-        oeis_ids_to_ignore: &HashSet<OeisId>, 
+        oeis_ids_to_ignore: &OeisIdHashSet,
     ) -> CheckFixedLengthSequence
     {
         let items_count: usize = 400000;

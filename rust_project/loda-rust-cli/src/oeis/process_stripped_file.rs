@@ -1,8 +1,8 @@
-use super::{OeisId, StrippedRow};
+use super::{OeisId, OeisIdHashSet, StrippedRow};
 use crate::common::SimpleLog;
 use std::io;
 use std::io::BufRead;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use num_bigint::BigInt;
 
 pub struct ProcessStrippedFile {
@@ -54,7 +54,7 @@ impl ProcessStrippedFile {
         reader: &mut dyn io::BufRead,
         minimum_number_of_required_terms: usize,
         term_count: usize, 
-        oeis_ids_to_ignore: &HashSet<OeisId>,
+        oeis_ids_to_ignore: &OeisIdHashSet,
         padding_value: &BigInt,
         should_grow_to_length: bool, 
         mut callback: F
@@ -129,7 +129,7 @@ A117093 ,2,3,5,7,11,13,16,17,18,19,23,28,29,30,31,37,38,39,40,41,43,47,53,58,59,
         };
         let minimum_number_of_required_terms = 8;
         let term_count = 20;
-        let mut oeis_ids_to_ignore = HashSet::<OeisId>::new();
+        let mut oeis_ids_to_ignore = OeisIdHashSet::new();
         oeis_ids_to_ignore.insert(OeisId::from(45));
         oeis_ids_to_ignore.insert(OeisId::from(112088));
 
