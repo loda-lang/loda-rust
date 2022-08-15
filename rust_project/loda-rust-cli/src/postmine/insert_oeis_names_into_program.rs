@@ -1,13 +1,19 @@
 use crate::config::Config;
 use crate::common::{oeis_ids_from_paths, oeis_ids_from_programs};
-use crate::oeis::{OeisId, OeisIdHashSet};
-use std::collections::HashSet;
+use crate::oeis::{NameRow, OeisId, OeisIdHashSet, ProcessNamesFile};
+use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use anyhow::Context;
 use std::process::{Child, Command, ExitStatus, Output, Stdio};
 use std::env;
 use std::error::Error;
+use std::fs::File;
+use std::io;
+use std::io::BufReader;
+use std::time::{Duration, Instant};
+use console::Style;
+use indicatif::{HumanDuration, ProgressBar};
 
 // git: obtain modified-files and new-file
 // https://stackoverflow.com/a/26891150/78336
@@ -66,6 +72,46 @@ fn oeis_ids_from_programs_and_paths(paths: &Vec<PathBuf>) -> anyhow::Result<Oeis
     Ok(result_hashset)
 }
 
+type OeisIdNameMap = HashMap<OeisId,String>;
+
+fn batch_lookup_names(
+    reader: &mut dyn io::BufRead,
+    filesize: usize,
+    oeis_ids: &OeisIdHashSet
+) -> Result<OeisIdNameMap, Box<dyn Error>> {
+    let start = Instant::now();
+    println!("Looking up in the OEIS 'names' file");
+
+    let mut oeis_id_name_map = OeisIdNameMap::new();
+    let pb = ProgressBar::new(filesize as u64);
+    let callback = |row: &NameRow, count_bytes: usize| {
+        pb.set_position(count_bytes as u64);
+        if oeis_ids.contains(&row.oeis_id()) {
+            let message = format!("{}: {}", row.oeis_id().a_number(), row.name());
+            pb.println(message);
+            oeis_id_name_map.insert(row.oeis_id(), row.name().to_string());
+        }
+    };
+    
+    let oeis_ids_to_ignore = OeisIdHashSet::new();
+    let mut processor = ProcessNamesFile::new();
+    processor.execute(
+        reader, 
+        &oeis_ids_to_ignore,
+        callback
+    );
+    pb.finish_and_clear();
+
+    let green_bold = Style::new().green().bold();        
+    println!(
+        "{:>12} Lookups in the OEIS 'names' file, in {}",
+        green_bold.apply_to("Finished"),
+        HumanDuration(start.elapsed())
+    );
+
+    Ok(oeis_id_name_map)
+}
+
 pub fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
@@ -73,10 +119,19 @@ pub fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
     let paths: Vec<PathBuf> = git_absolute_paths_for_unstaged_files(&loda_programs_oeis_dir)?;
     println!("paths: {:?}", paths);
 
-    let oeis_ids = oeis_ids_from_programs_and_paths(&paths)?;
+    let oeis_ids: OeisIdHashSet = oeis_ids_from_programs_and_paths(&paths)?;
     println!("oeis_ids: {:?}", oeis_ids);
 
-    // let oeisid_to_name = batch_lookup_names(oeis_ids)?;
-    // update_names_in_program_files(paths, oeisid_to_name)?;
+    let oeis_names_file: PathBuf = config.oeis_names_file();
+    let file = File::open(oeis_names_file).unwrap();
+    let filesize: usize = file.metadata().unwrap().len() as usize;
+    let mut reader = BufReader::new(file);
+    let oeis_id_name_map: OeisIdNameMap = batch_lookup_names(
+        &mut reader,
+        filesize,
+        &oeis_ids
+    )?;
+    
+    // update_names_in_program_files(paths, oeis_id_name_map)?;
     Ok(())
 }
