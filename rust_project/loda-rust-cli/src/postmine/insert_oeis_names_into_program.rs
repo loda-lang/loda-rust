@@ -1,17 +1,21 @@
 use crate::config::Config;
-use crate::common::{oeis_ids_from_paths, oeis_ids_from_programs};
+use crate::common::{oeis_id_from_path, oeis_ids_from_paths, oeis_ids_from_programs};
 use crate::oeis::{NameRow, OeisId, OeisIdHashSet, ProcessNamesFile};
+use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer};
+use loda_rust_core::parser::ParsedProgram;
+use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use std::collections::{HashMap, HashSet};
-use std::iter::FromIterator;
-use std::path::{Path, PathBuf};
-use anyhow::Context;
-use std::process::{Child, Command, ExitStatus, Output, Stdio};
 use std::env;
 use std::error::Error;
+use std::fs;
 use std::fs::File;
 use std::io;
 use std::io::BufReader;
-use std::time::{Duration, Instant};
+use std::iter::FromIterator;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Output};
+use std::time::Instant;
+use anyhow::Context;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
 
@@ -112,9 +116,82 @@ fn batch_lookup_names(
     Ok(oeis_id_name_map)
 }
 
+fn update_names_in_program_file(
+    program_path: &Path,
+    oeis_id_name_map: &OeisIdNameMap,
+    loda_submitted_by: &String
+) -> anyhow::Result<()> {
+    let program_contents: String = fs::read_to_string(program_path)
+        .with_context(|| format!("Read program from {:?}", program_path))?;
+
+    let program_oeis_id: Option<OeisId> = oeis_id_from_path(program_path);
+
+    let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&program_contents) {
+        Ok(value) => value,
+        Err(error) => {
+            return Err(anyhow::anyhow!("Parse program from {:?} error: {:?}", &program_path, error));
+        }
+    };
+
+    // Don't load dependencies from the file system
+    let mut dm = DependencyManager::new(
+        DependencyManagerFileSystemMode::Virtual,
+        PathBuf::from("non-existing-dir"),
+    );
+    for (oeis_id, _name) in &*oeis_id_name_map {
+        let program_id: u64 = oeis_id.raw() as u64;
+        dm.virtual_filesystem_insert_file(program_id, "".to_string());
+    }
+
+    // Create program from instructions
+    let result_parse = dm.parse_stage2(
+        ProgramId::ProgramWithoutId, 
+        &parsed_program
+    );
+    let runner: ProgramRunner = match result_parse {
+        Ok(value) => value,
+        Err(error) => {
+            return Err(anyhow::anyhow!("parse_stage2 with program {:?} error: {:?}", &program_path, error));
+        }
+    };
+
+    let mut serializer = ProgramSerializer::new();
+
+    // Insert the sequence name
+    if let Some(oeis_id) = program_oeis_id {
+        let optional_name: Option<&String> = oeis_id_name_map.get(&oeis_id);
+        let mut resolved_name: String = "Missing sequence name".to_string();
+        if let Some(name) = optional_name {
+            resolved_name = name.clone();
+        }
+        serializer.append_comment(format!("{}: {}", oeis_id, resolved_name));
+    }
+    serializer.append_comment(format!("Submitted by {}", loda_submitted_by));
+
+    serializer.append_empty_line();
+    runner.serialize(&mut serializer);
+    serializer.append_empty_line();
+    let formatted_program: String = serializer.to_string();
+    println!("-----\n{}", formatted_program);
+
+    Ok(())
+}
+
+fn update_names_in_program_files(
+    paths: &Vec<PathBuf>,
+    oeis_id_name_map: &OeisIdNameMap,
+    loda_submitted_by: &String
+) -> Result<(), Box<dyn Error>> {
+    for path in paths {
+        update_names_in_program_file(path, oeis_id_name_map, loda_submitted_by)?;
+    }
+    Ok(())
+}
+
 pub fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
+    let loda_submitted_by: String = config.loda_submitted_by();
 
     let paths: Vec<PathBuf> = git_absolute_paths_for_unstaged_files(&loda_programs_oeis_dir)?;
     println!("paths: {:?}", paths);
@@ -132,6 +209,10 @@ pub fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
         &oeis_ids
     )?;
     
-    // update_names_in_program_files(paths, oeis_id_name_map)?;
+    update_names_in_program_files(
+        &paths, 
+        &oeis_id_name_map,
+        &loda_submitted_by
+    )?;
     Ok(())
 }
