@@ -1,6 +1,6 @@
 use loda_rust_core;
 use loda_rust_core::util::BigIntVecToString;
-use super::{OeisId, ProcessStrippedFile, StrippedRow};
+use super::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use num_bigint::BigInt;
 use std::io;
 use std::collections::{HashMap, HashSet};
@@ -41,7 +41,7 @@ fn build_terms_to_program_id_set(
         entry.insert(row.oeis_id().raw());
     };
     let mut processor = ProcessStrippedFile::new();
-    let oeis_ids_to_ignore = HashSet::<OeisId>::new();
+    let oeis_ids_to_ignore = OeisIdHashSet::new();
     processor.execute(
         oeis_stripped_file_reader,
         minimum_number_of_required_terms,
