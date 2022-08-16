@@ -21,6 +21,7 @@ mod similar;
 mod subcommand_analytics;
 mod subcommand_dependencies;
 mod subcommand_evaluate;
+mod subcommand_insertnames;
 mod subcommand_install;
 mod subcommand_mine;
 mod subcommand_pattern;
@@ -31,6 +32,7 @@ use subcommand_analytics::subcommand_analytics;
 use subcommand_dependencies::subcommand_dependencies;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 use subcommand_install::subcommand_install;
+use subcommand_insertnames::subcommand_insertnames;
 use subcommand_mine::{SubcommandMine,SubcommandMineMetricsMode};
 use subcommand_pattern::subcommand_pattern;
 use subcommand_postmine::subcommand_postmine;
@@ -108,6 +110,10 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
                 .about("Validate the accumulated candiate programs for correctness and performance.")
         )
         .subcommand(
+            SubCommand::with_name("names")
+                .about("Insert sequence names into the mined programs.")
+        )
+        .subcommand(
             SubCommand::with_name("similar")
                 .about("Identify similar programs.")
         )
@@ -174,6 +180,10 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     if let Some(_sub_m) = matches.subcommand_matches("postmine") {
         return subcommand_postmine();
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("names") {
+        return subcommand_insertnames();
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("similar") {

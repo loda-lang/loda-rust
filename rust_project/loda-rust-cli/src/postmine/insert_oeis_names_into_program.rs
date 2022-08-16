@@ -289,7 +289,7 @@ fn update_names_in_program_files(
     Ok(())
 }
 
-pub fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
+fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
     let oeis_names_file: PathBuf = config.oeis_names_file();
@@ -335,4 +335,13 @@ pub fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
         &loda_submitted_by
     )?;
     Ok(())
+}
+
+pub struct InsertNames {}
+
+impl InsertNames {
+    pub fn run() -> Result<(), Box<dyn Error>> {
+        insert_oeis_names()?;
+        Ok(())
+    }
 }
