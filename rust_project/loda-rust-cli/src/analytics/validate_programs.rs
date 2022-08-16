@@ -115,7 +115,7 @@ impl ValidatePrograms {
             return Err(Box::new(ValidateProgramError::NoPrograms));
         }
         // Extract oeis_ids from paths
-        let oeis_ids: Vec<OeisId> = oeis_ids_from_paths(paths);
+        let oeis_ids: Vec<OeisId> = oeis_ids_from_paths(&paths);
         let content = format!("number of programs to validate: {:?}", oeis_ids.len());
         simple_log.println(content);
 

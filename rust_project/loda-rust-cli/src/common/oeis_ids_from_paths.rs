@@ -40,10 +40,10 @@ pub fn oeis_id_from_path(path: &Path) -> Option<OeisId> {
     return Some(OeisId::from(sequence_number));
 }
 
-pub fn oeis_ids_from_paths(paths: Vec<PathBuf>) -> Vec<OeisId> {
+pub fn oeis_ids_from_paths(paths: &Vec<PathBuf>) -> Vec<OeisId> {
     let mut oeis_ids: Vec<OeisId> = vec!();
     for path in paths {
-        let oeis_id: OeisId = match oeis_id_from_path(&path) {
+        let oeis_id: OeisId = match oeis_id_from_path(path) {
             Some(oeis_id) => oeis_id,
             None => {
                 warn!("Unable to extract oeis_id from {:?}", path);
@@ -93,7 +93,7 @@ mod tests {
             PathBuf::from("dir/A000045.csv"),
             PathBuf::from("dir/A112088_test.asm"),
         ];
-        let oeis_ids: Vec<OeisId> = oeis_ids_from_paths(input);
+        let oeis_ids: Vec<OeisId> = oeis_ids_from_paths(&input);
         assert_eq!(oeis_ids, vec![OeisId::from(45), OeisId::from(112088), OeisId::from(123456)]);
     }
 }
