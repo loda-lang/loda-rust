@@ -1,9 +1,10 @@
 use crate::config::Config;
 use crate::common::{oeis_id_from_path, oeis_ids_from_paths, oeis_ids_from_programs};
-use crate::oeis::{NameRow, OeisId, OeisIdHashSet, ProcessNamesFile};
+use crate::oeis::{NameRow, OeisId, OeisIdHashSet, ProcessNamesFile, ProcessStrippedFile, StrippedRow};
 use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer, ProgramSerializerContext};
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+use loda_rust_core::util::BigIntVecToString;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::env;
@@ -19,6 +20,8 @@ use std::time::Instant;
 use anyhow::Context;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
+use num_bigint::BigInt;
+use num_traits::Zero;
 
 // git: obtain modified-files and new-file
 // https://stackoverflow.com/a/26891150/78336
@@ -117,6 +120,55 @@ fn batch_lookup_names(
     Ok(oeis_id_name_map)
 }
 
+type OeisIdTermsMap = HashMap<OeisId,String>;
+
+fn batch_lookup_terms(
+    reader: &mut dyn io::BufRead,
+    filesize: usize,
+    oeis_ids: &OeisIdHashSet
+) -> Result<OeisIdTermsMap, Box<dyn Error>> {
+    let start = Instant::now();
+    println!("Looking up in the OEIS 'stripped' file");
+
+    let mut oeis_id_terms_map = OeisIdTermsMap::new();
+    let pb = ProgressBar::new(filesize as u64);
+    let callback = |row: &StrippedRow, count_bytes: usize| {
+        pb.set_position(count_bytes as u64);
+        if oeis_ids.contains(&row.oeis_id()) {
+            let terms: String = row.terms().to_compact_comma_string();
+            let message = format!("{}: {}", row.oeis_id().a_number(), terms);
+            pb.println(message);
+            oeis_id_terms_map.insert(row.oeis_id(), terms);
+        }
+    };
+    
+    let minimum_number_of_required_terms: usize = 1;
+    let term_count: usize = 100;
+
+    let oeis_ids_to_ignore = OeisIdHashSet::new();
+    let mut processor = ProcessStrippedFile::new();
+    let padding_value: BigInt = BigInt::zero();
+    processor.execute(
+        reader, 
+        minimum_number_of_required_terms,
+        term_count, 
+        &oeis_ids_to_ignore,
+        &padding_value,
+        false,
+        callback
+    );
+    pb.finish_and_clear();
+
+    let green_bold = Style::new().green().bold();        
+    println!(
+        "{:>12} Lookups in the OEIS 'stripped' file, in {}",
+        green_bold.apply_to("Finished"),
+        HumanDuration(start.elapsed())
+    );
+
+    Ok(oeis_id_terms_map)
+}
+
 struct MyProgramSerializerContext {
     oeis_id_name_map: OeisIdNameMap
 }
@@ -154,6 +206,7 @@ impl ProgramSerializerContext for MyProgramSerializerContext {
 
 fn update_names_in_program_file(
     program_path: &Path,
+    oeis_id_terms_map: &OeisIdTermsMap,
     oeis_id_name_map: &OeisIdNameMap,
     loda_submitted_by: &String
 ) -> anyhow::Result<()> {
@@ -210,6 +263,15 @@ fn update_names_in_program_file(
     }
     serializer.append_comment(format!("Submitted by {}", loda_submitted_by));
 
+    if let Some(oeis_id) = program_oeis_id {
+        let optional_terms: Option<&String> = oeis_id_terms_map.get(&oeis_id);
+        let mut resolved_terms: String = "Missing sequence terms".to_string();
+        if let Some(terms) = optional_terms {
+            resolved_terms = terms.clone();
+        }
+        serializer.append_comment(resolved_terms);
+    }
+
     serializer.append_empty_line();
     runner.serialize(&mut serializer);
     serializer.append_empty_line();
@@ -221,11 +283,17 @@ fn update_names_in_program_file(
 
 fn update_names_in_program_files(
     paths: &Vec<PathBuf>,
+    oeis_id_terms_map: &OeisIdTermsMap,
     oeis_id_name_map: &OeisIdNameMap,
     loda_submitted_by: &String
 ) -> Result<(), Box<dyn Error>> {
     for path in paths {
-        update_names_in_program_file(path, oeis_id_name_map, loda_submitted_by)?;
+        update_names_in_program_file(
+            path, 
+            oeis_id_terms_map,
+            oeis_id_name_map, 
+            loda_submitted_by
+        )?;
     }
     Ok(())
 }
@@ -233,6 +301,8 @@ fn update_names_in_program_files(
 pub fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
+    let oeis_names_file: PathBuf = config.oeis_names_file();
+    let oeis_stripped_file: PathBuf = config.oeis_stripped_file();
     let loda_submitted_by: String = config.loda_submitted_by();
 
     let paths: Vec<PathBuf> = git_absolute_paths_for_unstaged_files(&loda_programs_oeis_dir)?;
@@ -241,18 +311,27 @@ pub fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
     let oeis_ids: OeisIdHashSet = oeis_ids_from_programs_and_paths(&paths)?;
     println!("oeis_ids: {:?}", oeis_ids);
 
-    let oeis_names_file: PathBuf = config.oeis_names_file();
-    let file = File::open(oeis_names_file).unwrap();
-    let filesize: usize = file.metadata().unwrap().len() as usize;
-    let mut reader = BufReader::new(file);
+    let file0 = File::open(oeis_stripped_file).unwrap();
+    let filesize0: usize = file0.metadata().unwrap().len() as usize;
+    let mut reader0 = BufReader::new(file0);
+    let oeis_id_terms_map: OeisIdTermsMap = batch_lookup_terms(
+        &mut reader0,
+        filesize0,
+        &oeis_ids
+    )?;
+    
+    let file1 = File::open(oeis_names_file).unwrap();
+    let filesize1: usize = file1.metadata().unwrap().len() as usize;
+    let mut reader1 = BufReader::new(file1);
     let oeis_id_name_map: OeisIdNameMap = batch_lookup_names(
-        &mut reader,
-        filesize,
+        &mut reader1,
+        filesize1,
         &oeis_ids
     )?;
     
     update_names_in_program_files(
         &paths, 
+        &oeis_id_terms_map,
         &oeis_id_name_map,
         &loda_submitted_by
     )?;
