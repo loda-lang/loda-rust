@@ -1,4 +1,4 @@
-use crate::common::{find_asm_files_recursively, oeis_ids_from_paths, SimpleLog};
+use crate::common::{find_asm_files_recursively, oeis_ids_from_paths, ToOeisIdVec, SimpleLog};
 use crate::oeis::{OeisId, OeisIdHashSet};
 use loda_rust_core;
 use crate::config::Config;
@@ -115,7 +115,8 @@ impl ValidatePrograms {
             return Err(Box::new(ValidateProgramError::NoPrograms));
         }
         // Extract oeis_ids from paths
-        let oeis_ids: Vec<OeisId> = oeis_ids_from_paths(&paths);
+        let oeis_ids_hashset: OeisIdHashSet = oeis_ids_from_paths(&paths);
+        let oeis_ids: Vec<OeisId> = oeis_ids_hashset.sorted_vec();
         let content = format!("number of programs to validate: {:?}", oeis_ids.len());
         simple_log.println(content);
 

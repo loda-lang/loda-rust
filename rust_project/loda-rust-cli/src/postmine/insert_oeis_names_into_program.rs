@@ -74,8 +74,8 @@ fn git_absolute_paths_for_unstaged_files(dir_inside_repo: &Path) -> anyhow::Resu
 fn oeis_ids_from_programs_and_paths(paths: &Vec<PathBuf>) -> anyhow::Result<OeisIdHashSet> {
     let oeis_ids0: OeisIdHashSet = oeis_ids_from_programs(paths)
         .with_context(|| format!("Unable to extract oeis ids from {} programs.", paths.len()))?;
-    let oeis_ids1: Vec<OeisId> = oeis_ids_from_paths(paths);
-    let mut result_hashset: OeisIdHashSet = HashSet::from_iter(oeis_ids1.iter().cloned());
+    let oeis_ids1: OeisIdHashSet = oeis_ids_from_paths(paths);
+    let mut result_hashset: OeisIdHashSet = oeis_ids1.clone();
     result_hashset.extend(oeis_ids0);
     Ok(result_hashset)
 }
