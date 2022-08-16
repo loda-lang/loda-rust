@@ -34,7 +34,7 @@ pub fn oeis_ids_from_program(program_path: &Path) -> anyhow::Result<OeisIdHashSe
     Ok(oeis_ids)
 }
 
-pub fn oeis_ids_from_programs(paths: Vec<PathBuf>) -> anyhow::Result<OeisIdHashSet> {
+pub fn oeis_ids_from_programs(paths: &Vec<PathBuf>) -> anyhow::Result<OeisIdHashSet> {
     let mut oeis_ids = OeisIdHashSet::new();
     for path in paths {
         let new_oeis_ids: OeisIdHashSet = oeis_ids_from_program(&path)
