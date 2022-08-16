@@ -5,7 +5,7 @@ use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer, Progr
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::util::BigIntVecToString;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::env;
 use std::error::Error;
@@ -13,7 +13,6 @@ use std::fs;
 use std::fs::File;
 use std::io;
 use std::io::BufReader;
-use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::time::Instant;

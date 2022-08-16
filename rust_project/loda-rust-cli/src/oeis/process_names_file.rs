@@ -1,8 +1,7 @@
-use super::{NameRow, OeisId, OeisIdHashSet};
+use super::{NameRow, OeisIdHashSet};
 use crate::common::SimpleLog;
 use std::io;
 use std::io::BufRead;
-use std::collections::HashSet;
 
 pub struct ProcessNamesFile {
     count_bytes: usize,
@@ -23,6 +22,7 @@ impl ProcessNamesFile {
         }        
     }
 
+    #[allow(dead_code)]
     pub fn print_summary(&self, simple_log: SimpleLog) {
         simple_log.println(format!("Number of rows in oeis 'names' file: {}", self.count_lines));
         simple_log.println(format!("count_callback: {}", self.count_callback));
@@ -63,7 +63,9 @@ impl ProcessNamesFile {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+    use std::collections::HashSet;
+    use crate::oeis::OeisId;
+
     const INPUT_MOCKDATA: &str = r#"
 # OEIS Sequence Names (http://oeis.org/names.gz)
 # Last Modified: Sol 15 00:02 IFC 1984

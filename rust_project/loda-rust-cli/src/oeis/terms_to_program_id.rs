@@ -1,6 +1,6 @@
 use loda_rust_core;
 use loda_rust_core::util::BigIntVecToString;
-use super::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
+use super::{OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use num_bigint::BigInt;
 use std::io;
 use std::collections::{HashMap, HashSet};
