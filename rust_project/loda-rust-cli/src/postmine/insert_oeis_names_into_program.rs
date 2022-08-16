@@ -71,15 +71,6 @@ fn git_absolute_paths_for_unstaged_files(dir_inside_repo: &Path) -> anyhow::Resu
 //     paths4
 // end
 
-fn oeis_ids_from_programs_and_paths(paths: &Vec<PathBuf>) -> anyhow::Result<OeisIdHashSet> {
-    let oeis_ids0: OeisIdHashSet = oeis_ids_from_programs(paths)
-        .with_context(|| format!("Unable to extract oeis ids from {} programs.", paths.len()))?;
-    let oeis_ids1: OeisIdHashSet = oeis_ids_from_paths(paths);
-    let mut result_hashset: OeisIdHashSet = oeis_ids1.clone();
-    result_hashset.extend(oeis_ids0);
-    Ok(result_hashset)
-}
-
 type OeisIdNameMap = HashMap<OeisId,String>;
 
 fn batch_lookup_names(
@@ -308,25 +299,33 @@ pub fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
     let paths: Vec<PathBuf> = git_absolute_paths_for_unstaged_files(&loda_programs_oeis_dir)?;
     println!("paths: {:?}", paths);
 
-    let oeis_ids: OeisIdHashSet = oeis_ids_from_programs_and_paths(&paths)?;
-    println!("oeis_ids: {:?}", oeis_ids);
+    let oeis_ids_programs: OeisIdHashSet = oeis_ids_from_programs(&paths)
+        .with_context(|| format!("Unable to extract oeis ids from {} programs.", paths.len()))?;
 
+    let oeis_ids_paths: OeisIdHashSet = oeis_ids_from_paths(&paths);
+
+    let mut oeis_ids_name: OeisIdHashSet = oeis_ids_programs.clone();
+    oeis_ids_name.extend(oeis_ids_paths.clone());
+    println!("oeis_ids_name: {:?}", oeis_ids_name);
+
+    // Obtain terms for oeis_ids_paths
     let file0 = File::open(oeis_stripped_file).unwrap();
     let filesize0: usize = file0.metadata().unwrap().len() as usize;
     let mut reader0 = BufReader::new(file0);
     let oeis_id_terms_map: OeisIdTermsMap = batch_lookup_terms(
         &mut reader0,
         filesize0,
-        &oeis_ids
+        &oeis_ids_paths
     )?;
     
+    // Obtain names for UNION(oeis_ids_paths, oeis_ids_programs)
     let file1 = File::open(oeis_names_file).unwrap();
     let filesize1: usize = file1.metadata().unwrap().len() as usize;
     let mut reader1 = BufReader::new(file1);
     let oeis_id_name_map: OeisIdNameMap = batch_lookup_names(
         &mut reader1,
         filesize1,
-        &oeis_ids
+        &oeis_ids_name
     )?;
     
     update_names_in_program_files(
