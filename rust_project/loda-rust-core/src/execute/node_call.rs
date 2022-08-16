@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use super::{EvalError, ProgramCache, Node, RegisterIndex, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
+use super::{EvalError, ProgramSerializerContext, ProgramCache, Node, RegisterIndex, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
 use super::PerformCheckValue;
 use num_traits::Signed;
 
@@ -31,6 +31,14 @@ impl NodeCallConstant {
 impl Node for NodeCallConstant {
     fn formatted_instruction(&self) -> String {
         format!("seq {},{}", self.target, self.program_id)
+    }
+
+    fn formatted_instruction_advanced(&self, context: &dyn ProgramSerializerContext) -> Option<String> {
+        let name: Option<String> = context.sequence_name_for_oeis_id(self.program_id);
+        if let Some(name) = name {
+            return Some(format!("seq {},{} ; {}", self.target, self.program_id, name));
+        }
+        None
     }
 
     fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {

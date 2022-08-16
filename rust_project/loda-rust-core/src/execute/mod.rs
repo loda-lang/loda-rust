@@ -15,6 +15,7 @@ mod register_index;
 mod register_value;
 mod run_mode;
 mod program_serializer;
+mod program_serializer_context;
 
 use check_value::*;
 pub use create_error::CreateError;
@@ -25,6 +26,7 @@ pub use program_runner_manager::ProgramRunnerManager;
 pub use program_state::ProgramState;
 pub use program_cache::{CacheValue, ProgramCache};
 pub use program_serializer::ProgramSerializer;
+pub use program_serializer_context::ProgramSerializerContext;
 pub use run_mode::RunMode;
 pub use eval_error::{EvalError, ValidateCallError};
 pub use node::{BoxNode, Node};

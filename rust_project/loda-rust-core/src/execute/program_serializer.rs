@@ -1,4 +1,26 @@
+use super::ProgramSerializerContext;
+
+struct DummyProgramSerializerContext {
+}
+
+impl DummyProgramSerializerContext {
+    fn new() -> Self {
+        Self {
+        }
+    }
+}
+
+impl ProgramSerializerContext for DummyProgramSerializerContext {
+    fn sequence_name_for_oeis_id(&self, oeis_id: u64) -> Option<String> {
+        if oeis_id == 40 {
+            return Some(String::from("The prime numbers"));
+        }
+        None
+    }
+}
+
 pub struct ProgramSerializer {
+    context: Box<dyn ProgramSerializerContext>,
     indentation: usize,
     rows: Vec<String>,
 }
@@ -6,9 +28,18 @@ pub struct ProgramSerializer {
 impl ProgramSerializer {
     pub fn new() -> Self {
         Self {
+            context: Box::new(DummyProgramSerializerContext::new()),
             indentation: 0,
             rows: vec!(),
         }
+    }
+
+    pub fn context(&self) -> &dyn ProgramSerializerContext {
+        self.context.as_ref()
+    }
+
+    pub fn set_context(&mut self, new_context: Box<dyn ProgramSerializerContext>) {
+        self.context = new_context;
     }
 
     pub fn indent_increment(&mut self) {
