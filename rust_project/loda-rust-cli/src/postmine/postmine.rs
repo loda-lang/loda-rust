@@ -37,7 +37,7 @@ pub struct PostMine {
 }
 
 impl PostMine {
-    const LIMIT_NUMBER_OF_PROGRAMS_FOR_PROCESSING: usize = 100;
+    const LIMIT_NUMBER_OF_PROGRAMS_FOR_PROCESSING: usize = 30;
     const LOOKUP_TERM_COUNT: usize = 40;
     const MINIMUM_NUMBER_OF_REQUIRED_TERMS: usize = 10;
     const LODACPP_EVAL_TIME_LIMIT_IN_SECONDS: u64 = 10;
