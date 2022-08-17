@@ -5,6 +5,7 @@ use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer, Progr
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::util::BigIntVecToString;
+use super::{PathTermsMap, terms_from_programs};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::env;
@@ -297,6 +298,10 @@ fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
 
     let paths: Vec<PathBuf> = git_absolute_paths_for_unstaged_files(&loda_programs_oeis_dir)?;
     println!("paths: {:?}", paths);
+
+    let path_terms_map: PathTermsMap = terms_from_programs(&paths)
+        .with_context(|| format!("Unable to extract terms from programs."))?;
+    println!("path_terms_map: {:?}", path_terms_map);
 
     let oeis_ids_programs: OeisIdHashSet = oeis_ids_from_programs(&paths)
         .with_context(|| format!("Unable to extract oeis ids from {} programs.", paths.len()))?;
