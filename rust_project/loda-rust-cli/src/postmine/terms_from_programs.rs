@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use anyhow::Context;
@@ -12,7 +13,7 @@ lazy_static! {
     ).unwrap();
 }
 
-/// Extract the first `terms coment` from a program
+/// Extract the first `terms comment` from a program
 /// 
 /// Returns None if there is no `terms comment`.
 pub fn terms_from_program(program_path: &Path) -> anyhow::Result<Option<String>> {
@@ -30,11 +31,17 @@ pub fn terms_from_program(program_path: &Path) -> anyhow::Result<Option<String>>
     Ok(Some(terms_string))
 }
 
-pub fn terms_from_programs(paths: &Vec<PathBuf>) -> anyhow::Result<()> {
+pub type PathTermsMap = HashMap::<PathBuf,String>;
+
+/// Populate a `HashMap` with terms extracted from programs.
+pub fn terms_from_programs(paths: &Vec<PathBuf>) -> anyhow::Result<PathTermsMap> {
+    let mut path_terms_map = PathTermsMap::with_capacity(paths.len());
     for path in paths {
-        terms_from_program(&path)?;
+        if let Some(terms) = terms_from_program(&path)? {
+            path_terms_map.insert(PathBuf::from(path), terms);
+        }
     }
-    Ok(())
+    Ok(path_terms_map)
 }
 
 #[cfg(test)]

@@ -17,5 +17,5 @@ pub use parent_dir_and_child_file::ParentDirAndChildFile;
 pub use path_util::PathUtil;
 pub use postmine::PostMine;
 pub use postmine_error::PostMineError;
-pub use terms_from_programs::{terms_from_program, terms_from_programs};
+pub use terms_from_programs::{PathTermsMap, terms_from_program, terms_from_programs};
 pub use validate_single_program::{ValidateSingleProgram, ValidateSingleProgramError};
