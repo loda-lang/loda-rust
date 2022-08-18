@@ -14,6 +14,7 @@ use std::fs;
 use std::fs::File;
 use std::io;
 use std::io::BufReader;
+use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::time::Instant;
@@ -273,7 +274,11 @@ fn update_names_in_program_file(
     runner.serialize(&mut serializer);
     serializer.append_empty_line();
     let formatted_program: String = serializer.to_string();
-    println!("-----\n{}", formatted_program);
+
+    // Replace the existing file
+    debug!("updated program: {:?}", program_path);
+    let mut output_file = File::create(&program_path)?;
+    output_file.write_all(formatted_program.as_bytes())?;
 
     Ok(())
 }
@@ -367,6 +372,8 @@ fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
         &oeis_id_name_map,
         &loda_submitted_by
     )?;
+
+    debug!("Successfully updated {} programs", paths.len());
     Ok(())
 }
 
