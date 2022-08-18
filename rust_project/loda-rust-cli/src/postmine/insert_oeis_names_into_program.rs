@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::common::{oeis_id_from_path, oeis_ids_from_paths, oeis_ids_from_programs};
+use crate::common::{oeis_id_from_path, oeis_ids_from_programs};
 use crate::oeis::{NameRow, OeisId, OeisIdHashSet, ProcessNamesFile, ProcessStrippedFile, StrippedRow};
 use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer, ProgramSerializerContext};
 use loda_rust_core::parser::ParsedProgram;
@@ -193,11 +193,17 @@ fn update_names_in_program_file(
     oeis_id_name_map: &OeisIdNameMap,
     loda_submitted_by: &String
 ) -> anyhow::Result<()> {
+    let optional_program_oeis_id: Option<OeisId> = oeis_id_from_path(program_path);
+    let program_oeis_id: OeisId = match optional_program_oeis_id {
+        Some(value) => value,
+        None => {
+            return Err(anyhow::anyhow!("Expected path to contain an OeisId, but got none from path {:?}", &program_path));
+        }
+    };
+
     let program_contents: String = fs::read_to_string(program_path)
         .with_context(|| format!("Read program from {:?}", program_path))?;
-
-    let program_oeis_id: Option<OeisId> = oeis_id_from_path(program_path);
-
+    
     let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&program_contents) {
         Ok(value) => value,
         Err(error) => {
@@ -236,24 +242,22 @@ fn update_names_in_program_file(
     serializer.set_context(Box::new(context));
 
     // Insert the sequence name
-    if let Some(oeis_id) = program_oeis_id {
-        let optional_name: Option<&String> = oeis_id_name_map.get(&oeis_id);
-        let mut resolved_name: String = "Missing sequence name".to_string();
-        if let Some(name) = optional_name {
-            resolved_name = name.clone();
-        }
-        serializer.append_comment(format!("{}: {}", oeis_id, resolved_name));
+    let optional_name: Option<&String> = oeis_id_name_map.get(&program_oeis_id);
+    let mut resolved_name: String = "Missing sequence name".to_string();
+    if let Some(name) = optional_name {
+        resolved_name = name.clone();
     }
+    serializer.append_comment(format!("{}: {}", program_oeis_id, resolved_name));
+
+    // Submitted by Euler
     serializer.append_comment(format!("Submitted by {}", loda_submitted_by));
 
-    if let Some(oeis_id) = program_oeis_id {
-        let optional_terms: Option<&String> = oeis_id_terms_map.get(&oeis_id);
-        let mut resolved_terms: String = "Missing sequence terms".to_string();
-        if let Some(terms) = optional_terms {
-            resolved_terms = terms.clone();
-        }
-        serializer.append_comment(resolved_terms);
+    let optional_terms: Option<&String> = oeis_id_terms_map.get(&program_oeis_id);
+    let mut resolved_terms: String = "Missing sequence terms".to_string();
+    if let Some(terms) = optional_terms {
+        resolved_terms = terms.clone();
     }
+    serializer.append_comment(resolved_terms);
 
     serializer.append_empty_line();
     runner.serialize(&mut serializer);
@@ -289,12 +293,29 @@ fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
     let loda_submitted_by: String = config.loda_submitted_by();
 
     let unfiltered_paths: Vec<PathBuf> = git_absolute_paths_for_unstaged_files(&loda_programs_oeis_dir)?;
-    let paths: Vec<PathBuf> = filter_asm_files(&unfiltered_paths);
+    let filtered_paths: Vec<PathBuf> = filter_asm_files(&unfiltered_paths);
+
+    // Collect paths and corresponding OeisId.
+    let mut path_oeis_id_map = HashMap::<PathBuf, OeisId>::new();
+    let mut paths = Vec::<PathBuf>::new();
+    for path in &filtered_paths {
+        let oeis_id: OeisId = match oeis_id_from_path(path) {
+            Some(oeis_id) => oeis_id,
+            None => {
+                error!("Ignoring file. Unable to extract oeis_id from {:?}", path);
+                continue;
+            }
+        };
+        paths.push(PathBuf::from(path));
+        path_oeis_id_map.insert(PathBuf::from(path), oeis_id);
+    }
     if paths.len() != unfiltered_paths.len() {
         debug!("filtered out some paths. unfiltered_paths.len: {} paths.len: {}", unfiltered_paths.len(), paths.len());
         debug!("unfiltered_paths: {:?}", unfiltered_paths);
     }
-    println!("paths: {:?}", paths);
+    println!("number of programs for processing: {:?}", paths.len());
+    debug!("paths: {:?}", paths);
+    let oeis_ids_paths: OeisIdHashSet = path_oeis_id_map.into_values().collect();
 
     let path_terms_map: PathTermsMap = terms_from_programs(&paths)
         .with_context(|| format!("Unable to extract terms from programs."))?;
@@ -302,8 +323,6 @@ fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
 
     let oeis_ids_programs: OeisIdHashSet = oeis_ids_from_programs(&paths)
         .with_context(|| format!("Unable to extract oeis ids from {} programs.", paths.len()))?;
-
-    let oeis_ids_paths: OeisIdHashSet = oeis_ids_from_paths(&paths);
 
     let mut oeis_ids_name: OeisIdHashSet = oeis_ids_programs.clone();
     oeis_ids_name.extend(oeis_ids_paths.clone());

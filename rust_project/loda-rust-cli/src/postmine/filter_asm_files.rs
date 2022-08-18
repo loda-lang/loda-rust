@@ -27,6 +27,7 @@ impl FilterPathExtension for PathBuf {
         false    
     }
 
+    /// Rough sanity check - are we really inside the `loda-programs` repo's `oeis` dir
     fn is_containing_oeis(&self) -> bool {
         let path_string: String = self.to_string_lossy().to_string();
         if path_string.contains("oeis") {
