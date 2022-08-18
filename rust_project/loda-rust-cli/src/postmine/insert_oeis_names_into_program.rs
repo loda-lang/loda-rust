@@ -78,8 +78,8 @@ fn batch_lookup_names(
     let callback = |row: &NameRow, count_bytes: usize| {
         pb.set_position(count_bytes as u64);
         if oeis_ids.contains(&row.oeis_id()) {
-            let message = format!("{}: {}", row.oeis_id().a_number(), row.name());
-            pb.println(message);
+            // let message = format!("{}: {}", row.oeis_id().a_number(), row.name());
+            // pb.println(message);
             oeis_id_name_map.insert(row.oeis_id(), row.name().to_string());
         }
     };
@@ -119,8 +119,8 @@ fn batch_lookup_terms(
         pb.set_position(count_bytes as u64);
         if oeis_ids.contains(&row.oeis_id()) {
             let terms: String = row.terms().to_compact_comma_string();
-            let message = format!("{}: {}", row.oeis_id().a_number(), terms);
-            pb.println(message);
+            // let message = format!("{}: {}", row.oeis_id().a_number(), terms);
+            // pb.println(message);
             oeis_id_terms_map.insert(row.oeis_id(), terms);
         }
     };
@@ -189,6 +189,7 @@ impl ProgramSerializerContext for MyProgramSerializerContext {
 
 fn update_names_in_program_file(
     program_path: &Path,
+    path_terms_map: &PathTermsMap,
     oeis_id_terms_map: &OeisIdTermsMap,
     oeis_id_name_map: &OeisIdNameMap,
     loda_submitted_by: &String
@@ -252,10 +253,19 @@ fn update_names_in_program_file(
     // Submitted by Euler
     serializer.append_comment(format!("Submitted by {}", loda_submitted_by));
 
-    let optional_terms: Option<&String> = oeis_id_terms_map.get(&program_oeis_id);
-    let mut resolved_terms: String = "Missing sequence terms".to_string();
+    // Prefer using the terms of the original program file, as they are.
+    let mut optional_terms: Option<&String> = path_terms_map.get(program_path);
+    if optional_terms == None {
+        // If no comment with terms could be found,
+        // then use take the terms from the OEIS 'stripped' file.
+        optional_terms = oeis_id_terms_map.get(&program_oeis_id);
+    }
+    let resolved_terms: String;
     if let Some(terms) = optional_terms {
         resolved_terms = terms.clone();
+    } else {
+        error!("Unable to resolve terms for the program: {:?}", program_path);
+        resolved_terms = "Missing sequence terms".to_string();
     }
     serializer.append_comment(resolved_terms);
 
@@ -270,13 +280,15 @@ fn update_names_in_program_file(
 
 fn update_names_in_program_files(
     paths: &Vec<PathBuf>,
+    path_terms_map: &PathTermsMap,
     oeis_id_terms_map: &OeisIdTermsMap,
     oeis_id_name_map: &OeisIdNameMap,
     loda_submitted_by: &String
 ) -> Result<(), Box<dyn Error>> {
     for path in paths {
         update_names_in_program_file(
-            path, 
+            path,
+            path_terms_map,
             oeis_id_terms_map,
             oeis_id_name_map, 
             loda_submitted_by
@@ -319,16 +331,16 @@ fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
 
     let path_terms_map: PathTermsMap = terms_from_programs(&paths)
         .with_context(|| format!("Unable to extract terms from programs."))?;
-    println!("path_terms_map: {:?}", path_terms_map);
+        debug!("path_terms_map: {:?}", path_terms_map);
 
     let oeis_ids_programs: OeisIdHashSet = oeis_ids_from_programs(&paths)
         .with_context(|| format!("Unable to extract oeis ids from {} programs.", paths.len()))?;
 
     let mut oeis_ids_name: OeisIdHashSet = oeis_ids_programs.clone();
     oeis_ids_name.extend(oeis_ids_paths.clone());
-    println!("oeis_ids_name: {:?}", oeis_ids_name);
+    debug!("oeis_ids_name: {:?}", oeis_ids_name);
 
-    // Obtain terms for oeis_ids_paths
+    // Obtain terms from the OEIS 'stripped' FILE
     let file0 = File::open(oeis_stripped_file).unwrap();
     let filesize0: usize = file0.metadata().unwrap().len() as usize;
     let mut reader0 = BufReader::new(file0);
@@ -350,6 +362,7 @@ fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
     
     update_names_in_program_files(
         &paths, 
+        &path_terms_map,
         &oeis_id_terms_map,
         &oeis_id_name_map,
         &loda_submitted_by
