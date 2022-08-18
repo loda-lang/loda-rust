@@ -5,7 +5,7 @@ use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer, Progr
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::util::BigIntVecToString;
-use super::{PathTermsMap, terms_from_programs};
+use super::{PathTermsMap, terms_from_programs, filter_asm_files};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::env;
@@ -62,14 +62,6 @@ fn git_absolute_paths_for_unstaged_files(dir_inside_repo: &Path) -> anyhow::Resu
     }
     Ok(paths)
 }
-
-// def absolute_paths_for_unstaged_programs_that_exist
-//     paths1 = absolute_paths_for_unstaged_files(LODA_PROGRAMS_OEIS)
-//     paths2 = paths1.filter { |path| File.exist?(path) }
-//     paths3 = paths2.filter { |path| path =~ /[.]asm$/ }
-//     paths4 = paths3.filter { |path| path =~ /\boeis\b/ }
-//     paths4
-// end
 
 type OeisIdNameMap = HashMap<OeisId,String>;
 
@@ -296,7 +288,12 @@ fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
     let oeis_stripped_file: PathBuf = config.oeis_stripped_file();
     let loda_submitted_by: String = config.loda_submitted_by();
 
-    let paths: Vec<PathBuf> = git_absolute_paths_for_unstaged_files(&loda_programs_oeis_dir)?;
+    let unfiltered_paths: Vec<PathBuf> = git_absolute_paths_for_unstaged_files(&loda_programs_oeis_dir)?;
+    let paths: Vec<PathBuf> = filter_asm_files(&unfiltered_paths);
+    if paths.len() != unfiltered_paths.len() {
+        debug!("filtered out some paths. unfiltered_paths.len: {} paths.len: {}", unfiltered_paths.len(), paths.len());
+        debug!("unfiltered_paths: {:?}", unfiltered_paths);
+    }
     println!("paths: {:?}", paths);
 
     let path_terms_map: PathTermsMap = terms_from_programs(&paths)
