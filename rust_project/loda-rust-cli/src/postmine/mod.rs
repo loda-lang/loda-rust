@@ -1,4 +1,5 @@
 mod batch_lookup_names;
+mod batch_lookup_terms;
 mod candidate_program;
 mod compare_two_programs;
 mod filter_asm_files;
@@ -13,6 +14,7 @@ mod terms_from_programs;
 mod validate_single_program;
 
 pub use batch_lookup_names::batch_lookup_names;
+pub use batch_lookup_terms::batch_lookup_terms;
 pub use candidate_program::{CandidateProgram, State};
 pub use compare_two_programs::{CompareTwoPrograms, CompareTwoProgramsResult};
 pub use filter_asm_files::filter_asm_files;
