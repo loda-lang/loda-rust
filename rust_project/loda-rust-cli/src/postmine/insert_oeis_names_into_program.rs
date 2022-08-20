@@ -1,12 +1,11 @@
 use crate::config::Config;
 use crate::common::{oeis_id_from_path, oeis_ids_from_programs, OeisIdStringMap};
 use crate::oeis::{OeisId, OeisIdHashSet};
-use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer, ProgramSerializerContext};
+use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer};
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
-use super::{batch_lookup_names, batch_lookup_terms, filter_asm_files, git_absolute_paths_for_unstaged_files, PathTermsMap, terms_from_programs};
+use super::{batch_lookup_names, batch_lookup_terms, filter_asm_files, git_absolute_paths_for_unstaged_files, PathTermsMap, ProgramSerializerContextWithSequenceName, terms_from_programs};
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::error::Error;
 use std::fs;
 use std::fs::File;
@@ -14,41 +13,6 @@ use std::io::BufReader;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use anyhow::Context;
-
-struct MyProgramSerializerContext {
-    oeis_id_name_map: OeisIdStringMap
-}
-
-impl MyProgramSerializerContext {
-    fn new(oeis_id_name_map: OeisIdStringMap) -> Self {
-        Self {
-            oeis_id_name_map: oeis_id_name_map
-        }
-    }
-}
-
-impl ProgramSerializerContext for MyProgramSerializerContext {
-    fn sequence_name_for_oeis_id(&self, oeis_id_u64: u64) -> Option<String> {
-        let oeis_id: OeisId = match u32::try_from(oeis_id_u64) {
-            Ok(oeis_id_raw) => {
-                OeisId::from(oeis_id_raw)
-            },
-            Err(_error) => {
-                return None;
-            }
-        };
-        match self.oeis_id_name_map.get(&oeis_id) {
-            Some(name_ref) => {
-                let sequence_name: String = name_ref.clone();
-                return Some(sequence_name);
-            },
-            None => {
-                return None;
-            }
-        }
-    }
-}
-
 
 fn update_names_in_program_file(
     program_path: &Path,
@@ -102,7 +66,7 @@ fn update_names_in_program_file(
     // Pass on the `oeis_id_name_map` all the way to the formatting code
     // of the `seq` instruction, so that the sequence name can be inserted as a comment.
     // Like this: `seq $2,40 ; The prime numbers.`
-    let context = MyProgramSerializerContext::new(oeis_id_name_map.clone());
+    let context = ProgramSerializerContextWithSequenceName::new(oeis_id_name_map.clone());
     serializer.set_context(Box::new(context));
 
     // Insert the sequence name
