@@ -1,11 +1,11 @@
 use crate::config::Config;
 use crate::common::{oeis_id_from_path, oeis_ids_from_programs, OeisIdStringMap};
-use crate::oeis::{NameRow, OeisId, OeisIdHashSet, ProcessNamesFile, ProcessStrippedFile, StrippedRow};
+use crate::oeis::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer, ProgramSerializerContext};
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::util::BigIntVecToString;
-use super::{filter_asm_files, git_absolute_paths_for_unstaged_files, PathTermsMap, terms_from_programs};
+use super::{batch_lookup_names, filter_asm_files, git_absolute_paths_for_unstaged_files, PathTermsMap, terms_from_programs};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::error::Error;
@@ -21,44 +21,6 @@ use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
 use num_bigint::BigInt;
 use num_traits::Zero;
-
-fn batch_lookup_names(
-    reader: &mut dyn io::BufRead,
-    filesize: usize,
-    oeis_ids: &OeisIdHashSet
-) -> Result<OeisIdStringMap, Box<dyn Error>> {
-    let start = Instant::now();
-    println!("Looking up in the OEIS 'names' file");
-
-    let mut oeis_id_name_map = OeisIdStringMap::new();
-    let pb = ProgressBar::new(filesize as u64);
-    let callback = |row: &NameRow, count_bytes: usize| {
-        pb.set_position(count_bytes as u64);
-        if oeis_ids.contains(&row.oeis_id()) {
-            // let message = format!("{}: {}", row.oeis_id().a_number(), row.name());
-            // pb.println(message);
-            oeis_id_name_map.insert(row.oeis_id(), row.name().to_string());
-        }
-    };
-    
-    let oeis_ids_to_ignore = OeisIdHashSet::new();
-    let mut processor = ProcessNamesFile::new();
-    processor.execute(
-        reader, 
-        &oeis_ids_to_ignore,
-        callback
-    );
-    pb.finish_and_clear();
-
-    let green_bold = Style::new().green().bold();        
-    println!(
-        "{:>12} Lookups in the OEIS 'names' file, in {}",
-        green_bold.apply_to("Finished"),
-        HumanDuration(start.elapsed())
-    );
-
-    Ok(oeis_id_name_map)
-}
 
 fn batch_lookup_terms(
     reader: &mut dyn io::BufRead,
