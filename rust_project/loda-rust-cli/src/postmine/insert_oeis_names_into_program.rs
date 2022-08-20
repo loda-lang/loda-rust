@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::common::{oeis_id_from_path, oeis_ids_from_programs};
+use crate::common::{oeis_id_from_path, oeis_ids_from_programs, OeisIdStringMap};
 use crate::oeis::{NameRow, OeisId, OeisIdHashSet, ProcessNamesFile, ProcessStrippedFile, StrippedRow};
 use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer, ProgramSerializerContext};
 use loda_rust_core::parser::ParsedProgram;
@@ -22,17 +22,15 @@ use indicatif::{HumanDuration, ProgressBar};
 use num_bigint::BigInt;
 use num_traits::Zero;
 
-type OeisIdNameMap = HashMap<OeisId,String>;
-
 fn batch_lookup_names(
     reader: &mut dyn io::BufRead,
     filesize: usize,
     oeis_ids: &OeisIdHashSet
-) -> Result<OeisIdNameMap, Box<dyn Error>> {
+) -> Result<OeisIdStringMap, Box<dyn Error>> {
     let start = Instant::now();
     println!("Looking up in the OEIS 'names' file");
 
-    let mut oeis_id_name_map = OeisIdNameMap::new();
+    let mut oeis_id_name_map = OeisIdStringMap::new();
     let pb = ProgressBar::new(filesize as u64);
     let callback = |row: &NameRow, count_bytes: usize| {
         pb.set_position(count_bytes as u64);
@@ -62,17 +60,15 @@ fn batch_lookup_names(
     Ok(oeis_id_name_map)
 }
 
-type OeisIdTermsMap = HashMap<OeisId,String>;
-
 fn batch_lookup_terms(
     reader: &mut dyn io::BufRead,
     filesize: usize,
     oeis_ids: &OeisIdHashSet
-) -> Result<OeisIdTermsMap, Box<dyn Error>> {
+) -> Result<OeisIdStringMap, Box<dyn Error>> {
     let start = Instant::now();
     println!("Looking up in the OEIS 'stripped' file");
 
-    let mut oeis_id_terms_map = OeisIdTermsMap::new();
+    let mut oeis_id_terms_map = OeisIdStringMap::new();
     let pb = ProgressBar::new(filesize as u64);
     let callback = |row: &StrippedRow, count_bytes: usize| {
         pb.set_position(count_bytes as u64);
@@ -112,11 +108,11 @@ fn batch_lookup_terms(
 }
 
 struct MyProgramSerializerContext {
-    oeis_id_name_map: OeisIdNameMap
+    oeis_id_name_map: OeisIdStringMap
 }
 
 impl MyProgramSerializerContext {
-    fn new(oeis_id_name_map: OeisIdNameMap) -> Self {
+    fn new(oeis_id_name_map: OeisIdStringMap) -> Self {
         Self {
             oeis_id_name_map: oeis_id_name_map
         }
@@ -149,8 +145,8 @@ impl ProgramSerializerContext for MyProgramSerializerContext {
 fn update_names_in_program_file(
     program_path: &Path,
     path_terms_map: &PathTermsMap,
-    oeis_id_terms_map: &OeisIdTermsMap,
-    oeis_id_name_map: &OeisIdNameMap,
+    oeis_id_terms_map: &OeisIdStringMap,
+    oeis_id_name_map: &OeisIdStringMap,
     loda_submitted_by: &String
 ) -> anyhow::Result<()> {
     let optional_program_oeis_id: Option<OeisId> = oeis_id_from_path(program_path);
@@ -244,8 +240,8 @@ fn update_names_in_program_file(
 fn update_names_in_program_files(
     paths: &Vec<PathBuf>,
     path_terms_map: &PathTermsMap,
-    oeis_id_terms_map: &OeisIdTermsMap,
-    oeis_id_name_map: &OeisIdNameMap,
+    oeis_id_terms_map: &OeisIdStringMap,
+    oeis_id_name_map: &OeisIdStringMap,
     loda_submitted_by: &String
 ) -> Result<(), Box<dyn Error>> {
     for path in paths {
@@ -307,7 +303,7 @@ fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
     let file0 = File::open(oeis_stripped_file).unwrap();
     let filesize0: usize = file0.metadata().unwrap().len() as usize;
     let mut reader0 = BufReader::new(file0);
-    let oeis_id_terms_map: OeisIdTermsMap = batch_lookup_terms(
+    let oeis_id_terms_map: OeisIdStringMap = batch_lookup_terms(
         &mut reader0,
         filesize0,
         &oeis_ids_paths
@@ -317,7 +313,7 @@ fn insert_oeis_names() -> Result<(), Box<dyn Error>> {
     let file1 = File::open(oeis_names_file).unwrap();
     let filesize1: usize = file1.metadata().unwrap().len() as usize;
     let mut reader1 = BufReader::new(file1);
-    let oeis_id_name_map: OeisIdNameMap = batch_lookup_names(
+    let oeis_id_name_map: OeisIdStringMap = batch_lookup_names(
         &mut reader1,
         filesize1,
         &oeis_ids_name

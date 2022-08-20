@@ -4,6 +4,7 @@ mod find_files_recursively;
 mod oeis_ids_from_paths;
 mod oeis_ids_from_programs;
 mod oeis_ids_sorted;
+mod oeis_id_string_map;
 mod parse_csv_data;
 mod parse_csv_file;
 mod record_bigram;
@@ -18,6 +19,7 @@ pub use find_files_recursively::{find_asm_files_recursively, find_csv_files_recu
 pub use oeis_ids_from_paths::{oeis_id_from_path, oeis_ids_from_paths};
 pub use oeis_ids_from_programs::{oeis_ids_from_program, oeis_ids_from_programs};
 pub use oeis_ids_sorted::ToOeisIdVec;
+pub use oeis_id_string_map::OeisIdStringMap;
 pub use parse_csv_data::parse_csv_data;
 pub use parse_csv_file::parse_csv_file;
 pub use record_bigram::RecordBigram;
