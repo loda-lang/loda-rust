@@ -1,7 +1,9 @@
 use crate::config::Config;
+use crate::common::{oeis_id_from_path, oeis_ids_from_program_string, oeis_ids_from_programs, OeisIdStringMap};
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
+use super::{batch_lookup_names};
 use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, ValidateSingleProgram, ValidateSingleProgramError};
 use loda_rust_core::util::BigIntVec;
 use num_bigint::{BigInt, ToBigInt};
@@ -30,6 +32,7 @@ pub struct PostMine {
     candidate_programs: Vec<CandidateProgramItem>,
     dontmine_hashset: OeisIdHashSet,
     invalid_program_ids_hashset: OeisIdHashSet,
+    oeis_id_name_map: OeisIdStringMap,
     loda_programs_oeis_dir: PathBuf,
     loda_outlier_programs_repository_oeis_divergent: PathBuf,
     validate_single_program: ValidateSingleProgram,
@@ -97,6 +100,7 @@ impl PostMine {
             candidate_programs: vec!(),
             dontmine_hashset: HashSet::new(),
             invalid_program_ids_hashset: HashSet::new(),
+            oeis_id_name_map: OeisIdStringMap::new(),
             loda_programs_oeis_dir: loda_programs_oeis_dir,
             loda_outlier_programs_repository_oeis_divergent: loda_outlier_programs_repository_oeis_divergent,
             validate_single_program: validate_single_program,
@@ -324,6 +328,41 @@ impl PostMine {
                 candidate_program.borrow_mut().perform_reject(reason)?;
             }
         }
+        Ok(())
+    }
+
+    fn extract_corresponding_names(&mut self) -> Result<(), Box<dyn Error>> {
+        let oeis_names_file: PathBuf = self.config.oeis_names_file();
+
+        let mut oeis_ids = OeisIdHashSet::new();
+        for candidate_program in &self.candidate_programs {
+            oeis_ids.extend(candidate_program.borrow().possible_ids());
+        }
+
+        for candidate_program in &self.candidate_programs {
+            let program: String = candidate_program.borrow().minimized_program().clone();
+            let program_oeis_ids: OeisIdHashSet = match oeis_ids_from_program_string(&program) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Unable to extract all OeisId's from minimized version of this program: {:?} error: {:?}", candidate_program.borrow().path_original(), error);
+                    continue;
+                }
+            };
+            oeis_ids.extend(program_oeis_ids);
+        }
+        println!("!!!!!!! oeis_ids: {:?}", oeis_ids);
+        panic!("boom");
+
+        // Obtain names for UNION(oeis_ids_paths, oeis_ids_programs)
+        let file1 = File::open(oeis_names_file).unwrap();
+        let filesize1: usize = file1.metadata().unwrap().len() as usize;
+        let mut reader1 = BufReader::new(file1);
+        let oeis_id_name_map: OeisIdStringMap = batch_lookup_names(
+            &mut reader1,
+            filesize1,
+            &oeis_ids
+        )?;
+        self.oeis_id_name_map = oeis_id_name_map;
         Ok(())
     }
 
