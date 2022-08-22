@@ -17,7 +17,7 @@ mod simple_log;
 pub use create_csv_file::create_csv_file;
 pub use find_files_recursively::{find_asm_files_recursively, find_csv_files_recursively};
 pub use oeis_ids_from_paths::{oeis_id_from_path, oeis_ids_from_paths};
-pub use oeis_ids_from_programs::{oeis_ids_from_program, oeis_ids_from_programs};
+pub use oeis_ids_from_programs::{oeis_ids_from_program_string, oeis_ids_from_program, oeis_ids_from_programs};
 pub use oeis_ids_sorted::ToOeisIdVec;
 pub use oeis_id_string_map::OeisIdStringMap;
 pub use parse_csv_data::parse_csv_data;

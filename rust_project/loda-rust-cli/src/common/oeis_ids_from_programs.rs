@@ -5,16 +5,12 @@ use std::fs;
 use std::convert::TryFrom;
 use anyhow::Context;
 
-pub fn oeis_ids_from_program(program_path: &Path) -> anyhow::Result<OeisIdHashSet> {
-    // Load asm file
-    let program_contents: String = fs::read_to_string(&program_path)
-        .with_context(|| format!("Read program from {:?}", &program_path))?;
-
+pub fn oeis_ids_from_program_string(program_contents: &str) -> anyhow::Result<OeisIdHashSet> {
     // Convert file content to a program
-    let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&program_contents) {
+    let parsed_program: ParsedProgram = match ParsedProgram::parse_program(program_contents) {
         Ok(value) => value,
         Err(error) => {
-            return Err(anyhow::anyhow!("Parse program from {:?} error: {:?}", &program_path, error));
+            return Err(anyhow::anyhow!("Parse program. error: {:?}", error));
         }
     };
 
@@ -27,10 +23,18 @@ pub fn oeis_ids_from_program(program_path: &Path) -> anyhow::Result<OeisIdHashSe
                 oeis_ids.insert(OeisId::from(oeis_id_raw));
             },
             Err(error) => {
-                return Err(anyhow::anyhow!("Value is outside than what OeisId can represent. program_path: {:?} error: {:?}", &program_path, error));
+                return Err(anyhow::anyhow!("Value is outside than what OeisId can represent. error: {:?}", error));
             }
         }
     }
+    Ok(oeis_ids)
+}
+
+pub fn oeis_ids_from_program(program_path: &Path) -> anyhow::Result<OeisIdHashSet> {
+    let program_contents: String = fs::read_to_string(&program_path)
+        .with_context(|| format!("Read program from {:?}", &program_path))?;
+    let oeis_ids: OeisIdHashSet = oeis_ids_from_program_string(&program_contents)
+        .with_context(|| format!("Parse program from {:?}", &program_path))?;
     Ok(oeis_ids)
 }
 
@@ -52,10 +56,49 @@ mod tests {
     use std::io::prelude::*;
     
     #[test]
-    fn test_10000_oeis_ids_from_program_ok() -> Result<(), Box<dyn Error>> {
+    fn test_10000_oeis_ids_from_program_string_ok() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let input_content = 
+r#"
+; A002314: Minimal integer square root of -1 modulo p, where p is the n-th prime of the form 4k+1.
+seq $0,152680 ; a(n) = 4*A005098(n) = A002144(n) - 1.
+seq $0,70669 ; Smallest m in range 2..n-1 such that m^4 == 1 mod n, or 1 if no such number exists.
+"#;
+
+        // Act
+        let oeis_ids: OeisIdHashSet = oeis_ids_from_program_string(&input_content)?;
+
+        // Assert
+        let mut expected = OeisIdHashSet::new();
+        expected.insert(OeisId::from(152680));
+        expected.insert(OeisId::from(70669));
+        assert_eq!(oeis_ids, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn test_10001_oeis_ids_from_program_string_parse_error() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let input_content = 
+r#"
+boom $0,3 ; non-existing instruction
+"#;
+
+        // Act
+        let result = oeis_ids_from_program_string(&input_content);
+
+        // Assert
+        let error = result.expect_err("should fail");
+        let error_message: String = error.to_string();
+        assert_eq!(error_message.contains("Parse program"), true);
+        Ok(())
+    }
+
+    #[test]
+    fn test_20000_oeis_ids_from_program_ok() -> Result<(), Box<dyn Error>> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
-        let basedir = PathBuf::from(&tempdir.path()).join("test_10000_oeis_ids_from_program_ok");
+        let basedir = PathBuf::from(&tempdir.path()).join("test_20000_oeis_ids_from_program_ok");
         fs::create_dir(&basedir)?;
         let input_path: PathBuf = basedir.join("A026233.asm");
 
@@ -85,10 +128,10 @@ mov $0,$1
     }
 
     #[test]
-    fn test_10001_oeis_ids_from_program_missing_file() -> Result<(), Box<dyn Error>> {
+    fn test_20001_oeis_ids_from_program_missing_file() -> Result<(), Box<dyn Error>> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
-        let basedir = PathBuf::from(&tempdir.path()).join("test_10001_oeis_ids_from_program_missing_file");
+        let basedir = PathBuf::from(&tempdir.path()).join("test_20001_oeis_ids_from_program_missing_file");
         fs::create_dir(&basedir)?;
         let input_path: PathBuf = basedir.join("non-existing.asm");
 
@@ -103,10 +146,10 @@ mov $0,$1
     }
 
     #[test]
-    fn test_10002_oeis_ids_from_program_parse_error() -> Result<(), Box<dyn Error>> {
+    fn test_20002_oeis_ids_from_program_parse_error() -> Result<(), Box<dyn Error>> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
-        let basedir = PathBuf::from(&tempdir.path()).join("test_10002_oeis_ids_from_program_parse_error");
+        let basedir = PathBuf::from(&tempdir.path()).join("test_20002_oeis_ids_from_program_parse_error");
         fs::create_dir(&basedir)?;
         let input_path: PathBuf = basedir.join("A000040.asm");
 
