@@ -27,6 +27,7 @@ type CandidateProgramItem = Rc<RefCell<CandidateProgram>>;
 
 pub struct PostMine {
     config: Config,
+    loda_submitted_by: String,
     lodacpp: LodaCpp,
     path_timestamped_postmine_dir: PathBuf,
     paths_for_processing: Vec<PathBuf>,
@@ -93,8 +94,11 @@ impl PostMine {
         assert!(loda_outlier_programs_repository_oeis_divergent.is_absolute());
         assert!(loda_outlier_programs_repository_oeis_divergent.is_dir());
 
+        let loda_submitted_by: String = config.loda_submitted_by();
+
         let instance = Self {
             config: config,
+            loda_submitted_by: loda_submitted_by,
             lodacpp: lodacpp,
             path_timestamped_postmine_dir: path_timestamped_postmine_dir,
             paths_for_processing: vec!(),
