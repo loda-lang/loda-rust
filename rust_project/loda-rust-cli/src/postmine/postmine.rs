@@ -21,6 +21,7 @@ use std::rc::Rc;
 use core::cell::RefCell;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
+use anyhow::Context;
 
 type CandidateProgramItem = Rc<RefCell<CandidateProgram>>;
 
@@ -331,37 +332,47 @@ impl PostMine {
         Ok(())
     }
 
-    fn extract_corresponding_names(&mut self) -> Result<(), Box<dyn Error>> {
+    fn extract_corresponding_names(&mut self) -> anyhow::Result<()> {
         let oeis_names_file: PathBuf = self.config.oeis_names_file();
 
-        let mut oeis_ids = OeisIdHashSet::new();
+        let mut oeis_ids_paths = OeisIdHashSet::new();
         for candidate_program in &self.candidate_programs {
-            oeis_ids.extend(candidate_program.borrow().possible_ids());
+            oeis_ids_paths.extend(candidate_program.borrow().possible_ids());
         }
-
+        println!("extract_corresponding_names. oeis_ids_paths: {:?}", oeis_ids_paths);
+        
+        let mut oeis_ids_programs = OeisIdHashSet::new();
         for candidate_program in &self.candidate_programs {
             let program: String = candidate_program.borrow().minimized_program().clone();
-            let program_oeis_ids: OeisIdHashSet = match oeis_ids_from_program_string(&program) {
+            let oeis_ids: OeisIdHashSet = match oeis_ids_from_program_string(&program) {
                 Ok(value) => value,
                 Err(error) => {
-                    error!("Unable to extract all OeisId's from minimized version of this program: {:?} error: {:?}", candidate_program.borrow().path_original(), error);
-                    continue;
+                    return Err(anyhow::anyhow!("Unable to extract all OeisId's from minimized version of this program: {:?} error: {:?}", candidate_program.borrow().path_original(), error));
                 }
             };
-            oeis_ids.extend(program_oeis_ids);
+            oeis_ids_programs.extend(oeis_ids);
         }
-        println!("!!!!!!! oeis_ids: {:?}", oeis_ids);
-        panic!("boom");
+        println!("extract_corresponding_names. oeis_ids_programs: {:?}", oeis_ids_programs);
 
-        // Obtain names for UNION(oeis_ids_paths, oeis_ids_programs)
-        let file1 = File::open(oeis_names_file).unwrap();
-        let filesize1: usize = file1.metadata().unwrap().len() as usize;
-        let mut reader1 = BufReader::new(file1);
+        // UNION(oeis_ids_paths, oeis_ids_programs)
+        let mut oeis_ids = OeisIdHashSet::new();
+        oeis_ids.extend(oeis_ids_paths);
+        oeis_ids.extend(oeis_ids_programs);
+        println!("extract_corresponding_names. will look up names for {} sequences", oeis_ids.len());
+
+        // Lookup sequence names
+        let file = File::open(oeis_names_file)
+            .context("extract_corresponding_names open file")?;
+        let metadata: fs::Metadata = file.metadata()
+            .context("extract_corresponding_names file metadata")?;
+        let filesize: usize = metadata.len() as usize;
+        let mut reader = BufReader::new(file);
         let oeis_id_name_map: OeisIdStringMap = batch_lookup_names(
-            &mut reader1,
-            filesize1,
+            &mut reader,
+            filesize,
             &oeis_ids
-        )?;
+        ).map_err(|e| anyhow::anyhow!("Unable to lookup names for OeisId's. error: {:?}", e))?;
+        println!("oeis_id_name_map: {:?}", oeis_id_name_map);
         self.oeis_id_name_map = oeis_id_name_map;
         Ok(())
     }
