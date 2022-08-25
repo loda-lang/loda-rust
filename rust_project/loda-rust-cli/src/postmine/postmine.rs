@@ -3,9 +3,13 @@ use crate::common::{oeis_id_from_path, oeis_ids_from_program_string, oeis_ids_fr
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
-use super::{batch_lookup_names};
+use super::{batch_lookup_names, ProgramSerializerContextWithSequenceName, terms_from_programs, terms_from_program};
 use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, ValidateSingleProgram, ValidateSingleProgramError};
+use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer};
+use loda_rust_core::parser::ParsedProgram;
+use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::util::BigIntVec;
+use loda_rust_core::util::BigIntVecToString;
 use num_bigint::{BigInt, ToBigInt};
 use chrono::{DateTime, Utc};
 use std::collections::HashSet;
@@ -65,6 +69,13 @@ impl PostMine {
         self.eval_using_loda_cpp()?;
         self.lookup_in_oeis_stripped_file()?;
         self.minimize_candidate_programs()?;
+        match self.obtain_sequence_names() {
+            Ok(_) => {},
+            Err(error) => {
+                println!("Unable to extract names: {:?}", error);
+                panic!("Unable to extract names");
+            }
+        }
         self.process_candidate_programs()?;
         Ok(())
     }
@@ -512,7 +523,7 @@ impl PostMine {
         &mut self, 
         candidate_program: CandidateProgramItem, 
         possible_id: OeisId, 
-        progressbar: ProgressBar
+        _progressbar: ProgressBar
     ) -> anyhow::Result<()> {
         self.iteration += 1;
 
@@ -538,7 +549,13 @@ impl PostMine {
         }
 
         let oeis_program_path: ParentDirAndChildFile = self.path_for_oeis_program(possible_id);
-
+        let terms_from_oeis_program: Option<String>;
+        if oeis_program_path.child_file().is_file() {
+            terms_from_oeis_program = terms_from_program(&oeis_program_path.child_file())
+                .map_err(|e| anyhow::anyhow!("Unable to extract terms-comment from the existing program. path: {:?} error: {:?}", oeis_program_path, e))?;
+        } else {
+            terms_from_oeis_program = None;
+        }
         self.remove_existing_loda_program_if_its_invalid(possible_id, oeis_program_path.child_file())
             .map_err(|e| anyhow::anyhow!("Unable to remove existing invalid program. path: {:?} error: {:?}", oeis_program_path, e))?;
 
@@ -551,14 +568,80 @@ impl PostMine {
         let compare_output_filename = format!("iteration{}_compare.txt", self.iteration);
         let compare_output_path: PathBuf = self.path_timestamped_postmine_dir.join(compare_output_filename);
         
-        // Prefix with a-number
-        let file_content: String = format!(
-            "; {}:\n\n{}\n", 
-            possible_id.a_number(), 
-            candidate_program.borrow().minimized_program()
+
+        let program_contents: String = candidate_program.borrow().minimized_program().clone();
+
+        let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&program_contents) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("Parse program from {:?} error: {:?}", &oeis_program_path, error));
+            }
+        };
+    
+        // Don't load dependencies from the file system
+        let mut dm = DependencyManager::new(
+            DependencyManagerFileSystemMode::Virtual,
+            PathBuf::from("non-existing-dir"),
         );
+        for (oeis_id, _name) in &self.oeis_id_name_map {
+            let program_id: u64 = oeis_id.raw() as u64;
+            dm.virtual_filesystem_insert_file(program_id, "".to_string());
+        }
+    
+        // Create program from instructions
+        let result_parse = dm.parse_stage2(
+            ProgramId::ProgramWithoutId, 
+            &parsed_program
+        );
+        let runner: ProgramRunner = match result_parse {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("parse_stage2 with program {:?} error: {:?}", &oeis_program_path, error));
+            }
+        };
+
+        let mut serializer = ProgramSerializer::new();
+
+        // Pass on the `oeis_id_name_map` all the way to the formatting code
+        // of the `seq` instruction, so that the sequence name can be inserted as a comment.
+        // Like this: `seq $2,40 ; The prime numbers.`
+        let context = ProgramSerializerContextWithSequenceName::new(self.oeis_id_name_map.clone());
+        serializer.set_context(Box::new(context));
+    
+        // Insert the sequence name
+        let optional_name: Option<&String> = self.oeis_id_name_map.get(&possible_id);
+        let mut resolved_name: String = "Missing sequence name".to_string();
+        if let Some(name) = optional_name {
+            resolved_name = name.clone();
+        }
+        serializer.append_comment(format!("{}: {}", possible_id, resolved_name));
+    
+        // Submitted by Euler
+        serializer.append_comment(format!("Submitted by {}", self.loda_submitted_by));
+    
+        // Prefer using the terms of the original program file, as they are.
+        // so that terms don't show up as a git-diff.
+        let mut optional_terms: Option<String> = terms_from_oeis_program.clone();
+        if optional_terms == None {
+            // If no comment with terms could be found,
+            // then use the terms from the candidate program.
+            let terms: String = candidate_program.borrow().lodacpp_terms().to_compact_comma_string();
+            optional_terms = Some(terms);
+        }
+        let resolved_terms: String;
+        if let Some(terms) = optional_terms {
+            resolved_terms = terms.clone();
+        } else {
+            return Err(anyhow::anyhow!("Unable to resolve terms for the program: {:?}", &oeis_program_path));
+        }
+        serializer.append_comment(resolved_terms);
+    
+        serializer.append_empty_line();
+        runner.serialize(&mut serializer);
+        serializer.append_empty_line();
+        let file_content: String = serializer.to_string();
         
-        // Save the minimized program to disk
+        // Save the program to disk
         let mut check_program_file = File::create(&check_program_path)?;
         check_program_file.write_all(file_content.as_bytes())?;
         check_program_file.sync_all()?;
