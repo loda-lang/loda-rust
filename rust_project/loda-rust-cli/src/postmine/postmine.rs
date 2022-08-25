@@ -361,10 +361,10 @@ impl PostMine {
         println!("extract_corresponding_names. will look up names for {} sequences", oeis_ids.len());
 
         // Lookup sequence names
-        let file = File::open(oeis_names_file)
-            .context("extract_corresponding_names open file")?;
+        let file = File::open(&oeis_names_file)
+            .with_context(|| format!("Failed to open OEIS 'names' file: {:?}", oeis_names_file))?;
         let metadata: fs::Metadata = file.metadata()
-            .context("extract_corresponding_names file metadata")?;
+            .with_context(|| format!("Failed to extract metadata for OEIS 'names' file: {:?}", oeis_names_file))?;
         let filesize: usize = metadata.len() as usize;
         let mut reader = BufReader::new(file);
         let oeis_id_name_map: OeisIdStringMap = batch_lookup_names(
