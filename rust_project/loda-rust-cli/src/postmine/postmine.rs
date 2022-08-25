@@ -3,7 +3,7 @@ use crate::common::{oeis_id_from_path, oeis_ids_from_program_string, oeis_ids_fr
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
-use super::{batch_lookup_names, ProgramSerializerContextWithSequenceName, terms_from_programs, terms_from_program};
+use super::{batch_lookup_names, batch_lookup_terms, ProgramSerializerContextWithSequenceName, terms_from_programs, terms_from_program};
 use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, ValidateSingleProgram, ValidateSingleProgramError};
 use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer};
 use loda_rust_core::parser::ParsedProgram;
@@ -39,6 +39,7 @@ pub struct PostMine {
     dontmine_hashset: OeisIdHashSet,
     invalid_program_ids_hashset: OeisIdHashSet,
     oeis_id_name_map: OeisIdStringMap,
+    oeis_id_terms_map: OeisIdStringMap,
     loda_programs_oeis_dir: PathBuf,
     loda_outlier_programs_repository_oeis_divergent: PathBuf,
     validate_single_program: ValidateSingleProgram,
@@ -46,8 +47,9 @@ pub struct PostMine {
 }
 
 impl PostMine {
-    const LIMIT_NUMBER_OF_PROGRAMS_FOR_PROCESSING: usize = 30;
-    const LOOKUP_TERM_COUNT: usize = 40;
+    const LIMIT_NUMBER_OF_PROGRAMS_FOR_PROCESSING: usize = 2;
+    const MAX_LOOKUP_TERM_COUNT: usize = 100;
+    const EVAL_TERM_COUNT: usize = 40;
     const MINIMUM_NUMBER_OF_REQUIRED_TERMS: usize = 10;
     const LODACPP_EVAL_TIME_LIMIT_IN_SECONDS: u64 = 10;
     const LODACPP_MINIMIZE_TIME_LIMIT_IN_SECONDS: u64 = 5;
@@ -117,6 +119,7 @@ impl PostMine {
             dontmine_hashset: HashSet::new(),
             invalid_program_ids_hashset: HashSet::new(),
             oeis_id_name_map: OeisIdStringMap::new(),
+            oeis_id_terms_map: OeisIdStringMap::new(),
             loda_programs_oeis_dir: loda_programs_oeis_dir,
             loda_outlier_programs_repository_oeis_divergent: loda_outlier_programs_repository_oeis_divergent,
             validate_single_program: validate_single_program,
@@ -190,7 +193,7 @@ impl PostMine {
         let mut count_failure: usize = 0;
         for candidate_program in self.candidate_programs.iter_mut() {
             let result = self.lodacpp.eval_terms(
-                Self::LOOKUP_TERM_COUNT, 
+                Self::EVAL_TERM_COUNT, 
                 candidate_program.borrow().path_original(),
                 time_limit
             );
@@ -236,22 +239,33 @@ impl PostMine {
         let filesize: usize = file.metadata()?.len() as usize;
         let mut oeis_stripped_file_reader = BufReader::new(file);
 
+        let mut oeis_id_terms_map = OeisIdStringMap::new();
+
         let pb = ProgressBar::new(filesize as u64);
         let padding_value_i64: i64 = 0xC0FFEE;
         let padding_value: BigInt = padding_value_i64.to_bigint().unwrap();
         let mut number_of_possible_matches: usize = 0;
         let process_callback = |row: &StrippedRow, count_bytes: usize| {
             pb.set_position(count_bytes as u64);
-            let stripped_terms: &BigIntVec = row.terms();
+            let mut stripped_terms: BigIntVec = row.terms().clone();
+            stripped_terms.truncate(Self::EVAL_TERM_COUNT);
+            let mut is_possible_match = false;
             for candidate_program in self.candidate_programs.iter_mut() {
                 let mut candidate_program_mut = candidate_program.borrow_mut();
                 let terms: &BigIntVec = candidate_program_mut.lodacpp_terms();
-                if terms.starts_with(stripped_terms) {
+                if terms.starts_with(&stripped_terms) {
                     // let s = format!("program: {} is possible match with A{}  number of identical terms: {}", candidate_program, row.oeis_id, stripped_terms.len());
                     // pb.println(s);
                     candidate_program_mut.possible_id_insert(row.oeis_id());
                     number_of_possible_matches += 1;
+                    is_possible_match = true;
                 }
+            }
+            if is_possible_match {
+                let terms: String = row.terms().to_compact_comma_string();
+                // let message = format!("{}: {}", row.oeis_id().a_number(), terms);
+                // pb.println(message);
+                oeis_id_terms_map.insert(row.oeis_id(), terms);
             }
         };
         let oeis_ids_to_ignore = HashSet::<OeisId>::new();
@@ -259,7 +273,7 @@ impl PostMine {
         stripped_sequence_processor.execute(
             &mut oeis_stripped_file_reader,
             Self::MINIMUM_NUMBER_OF_REQUIRED_TERMS,
-            Self::LOOKUP_TERM_COUNT,
+            Self::MAX_LOOKUP_TERM_COUNT,
             &oeis_ids_to_ignore,
             &padding_value,
             false,
@@ -275,6 +289,9 @@ impl PostMine {
         );
 
         debug!("found number of possible matches: {}", number_of_possible_matches);
+        
+        debug!("number of items in oeis_id_terms_map: {}", oeis_id_terms_map.len());
+        self.oeis_id_terms_map = oeis_id_terms_map;
 
         // Reject programs that has not been assigned any OEIS ids
         let programs_without_possible_ids: Vec<CandidateProgramItem> = self.candidate_programs
@@ -623,10 +640,20 @@ impl PostMine {
         // so that terms don't show up as a git-diff.
         let mut optional_terms: Option<String> = terms_from_oeis_program.clone();
         if optional_terms == None {
-            // If no comment with terms could be found,
-            // then use the terms from the candidate program.
+            // If it's a newly discovered program without any previous program
+            // then there is no term-comment.
+            // Of if it's an existing program where comment with terms can be found,
+            // then use take the terms from the OEIS 'stripped' file.
+            if let Some(terms) = self.oeis_id_terms_map.get(&possible_id) {
+                optional_terms = Some(terms.clone());
+                simple_log.println("Using terms from the OEIS stripped file");
+            }
+        }
+        if optional_terms == None {
+            // Fallback using the terms from the candidate program
             let terms: String = candidate_program.borrow().lodacpp_terms().to_compact_comma_string();
             optional_terms = Some(terms);
+            simple_log.println("Fallback using terms from the candidate program");
         }
         let resolved_terms: String;
         if let Some(terms) = optional_terms {
