@@ -508,12 +508,18 @@ impl PostMine {
         Err(error)
     }
     
-    fn analyze_candidate(&mut self, candidate_program: CandidateProgramItem, possible_id: OeisId, _progressbar: ProgressBar) -> Result<(), Box<dyn Error>> {
+    fn analyze_candidate(
+        &mut self, 
+        candidate_program: CandidateProgramItem, 
+        possible_id: OeisId, 
+        progressbar: ProgressBar
+    ) -> anyhow::Result<()> {
         self.iteration += 1;
 
         let log_filename = format!("iteration{}_log.txt", self.iteration);
         let log_path: PathBuf = self.path_timestamped_postmine_dir.join(log_filename);
-        let simple_log = SimpleLog::new(&log_path)?;
+        let simple_log = SimpleLog::new(&log_path)
+            .map_err(|e| anyhow::anyhow!("Unable to create log file at path: {:?}. error: {:?}", log_path, e))?;
 
         let message = format!("Comparing {} with {}", candidate_program.borrow(), possible_id);
         // progressbar.println(message.clone());
@@ -533,7 +539,8 @@ impl PostMine {
 
         let oeis_program_path: ParentDirAndChildFile = self.path_for_oeis_program(possible_id);
 
-        self.remove_existing_loda_program_if_its_invalid(possible_id, oeis_program_path.child_file())?;
+        self.remove_existing_loda_program_if_its_invalid(possible_id, oeis_program_path.child_file())
+            .map_err(|e| anyhow::anyhow!("Unable to remove existing invalid program. path: {:?} error: {:?}", oeis_program_path, e))?;
 
         let check_program_filename = format!("iteration{}_program.asm", self.iteration);
         let check_program_path: PathBuf = self.path_timestamped_postmine_dir.join(check_program_filename);
@@ -609,9 +616,12 @@ impl PostMine {
         path_program0: &Path, 
         program_id: OeisId, 
         number_of_correct_terms: u32
-    ) -> Result<(), Box<dyn Error>> {
-        let mismatch_path: ParentDirAndChildFile = self.path_to_mismatch(program_id, number_of_correct_terms as usize)?;
-        mismatch_path.create_parent_dir()?;
+    ) -> anyhow::Result<()> {
+        let mismatch_path: ParentDirAndChildFile = self.path_to_mismatch(program_id, number_of_correct_terms as usize)
+            .map_err(|e| anyhow::anyhow!("Unable to construct mistmatc_path. program_id: {:?} error: {:?}", program_id, e))?;
+        mismatch_path.create_parent_dir()
+            .map_err(|e| anyhow::anyhow!("Unable to create parent dir for mismatch. program_id: {:?} error: {:?}", program_id, e))?;
+
         let message = format!("Keeping. This program is a mismatch, it has correct {} terms, followed by mismatch. Saving at: {:?}", number_of_correct_terms, mismatch_path.child_file());
         simple_log.println(message);
         fs::copy(path_program0, mismatch_path.child_file())?;
@@ -628,7 +638,7 @@ impl PostMine {
         path_program1: ParentDirAndChildFile, 
         path_benchmark: &Path,
         number_of_correct_terms: usize
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> anyhow::Result<()> {
         if number_of_correct_terms < Self::MINIMUM_NUMBER_OF_REQUIRED_TERMS {
             let message = format!("process_full_match: Rejecting program with too few terms. Expected {} terms, but got {} terms.", number_of_correct_terms, Self::MINIMUM_NUMBER_OF_REQUIRED_TERMS);
             simple_log.println(message);
@@ -675,7 +685,8 @@ impl PostMine {
                 return Ok(());
             }
         }
-        path_program1.create_parent_dir()?;
+        path_program1.create_parent_dir()
+            .map_err(|e| anyhow::anyhow!("Unable to create parent dir for matching program. program_id: {:?} error: {:?}", possible_id, e))?;
         fs::copy(path_program0, path_program1.child_file())?;
         candidate_program.borrow_mut().keep_id_insert(possible_id);
         Ok(())
