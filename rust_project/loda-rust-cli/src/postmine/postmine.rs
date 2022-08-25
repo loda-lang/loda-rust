@@ -332,15 +332,22 @@ impl PostMine {
         Ok(())
     }
 
-    fn extract_corresponding_names(&mut self) -> anyhow::Result<()> {
-        let oeis_names_file: PathBuf = self.config.oeis_names_file();
-
-        let mut oeis_ids_paths = OeisIdHashSet::new();
-        for candidate_program in &self.candidate_programs {
-            oeis_ids_paths.extend(candidate_program.borrow().possible_ids());
+    fn obtain_sequence_names(&mut self) -> anyhow::Result<()> {
+        if self.candidate_programs.is_empty() {
+            return Ok(());
         }
-        println!("extract_corresponding_names. oeis_ids_paths: {:?}", oeis_ids_paths);
+
+        // Extract possible OeisId's
+        let mut oeis_ids_possible = OeisIdHashSet::new();
+        for candidate_program in &self.candidate_programs {
+            oeis_ids_possible.extend(candidate_program.borrow().possible_ids());
+        }
+        if oeis_ids_possible.is_empty() {
+            warn!("None of the {} candidate programs have not been assigned possible_ids.", self.candidate_programs.len());
+        }
+        debug!("obtain_sequence_names. oeis_ids_possible: {:?}", oeis_ids_possible);
         
+        // Extract OeisId's from program source code
         let mut oeis_ids_programs = OeisIdHashSet::new();
         for candidate_program in &self.candidate_programs {
             let program: String = candidate_program.borrow().minimized_program().clone();
@@ -352,15 +359,16 @@ impl PostMine {
             };
             oeis_ids_programs.extend(oeis_ids);
         }
-        println!("extract_corresponding_names. oeis_ids_programs: {:?}", oeis_ids_programs);
+        debug!("obtain_sequence_names. oeis_ids_programs: {:?}", oeis_ids_programs);
 
-        // UNION(oeis_ids_paths, oeis_ids_programs)
+        // UNION(oeis_ids_possible, oeis_ids_programs)
         let mut oeis_ids = OeisIdHashSet::new();
-        oeis_ids.extend(oeis_ids_paths);
+        oeis_ids.extend(oeis_ids_possible);
         oeis_ids.extend(oeis_ids_programs);
-        println!("extract_corresponding_names. will look up names for {} sequences", oeis_ids.len());
+        debug!("obtain_sequence_names. will look up names for {} sequences", oeis_ids.len());
 
         // Lookup sequence names
+        let oeis_names_file: PathBuf = self.config.oeis_names_file();
         let file = File::open(&oeis_names_file)
             .with_context(|| format!("Failed to open OEIS 'names' file: {:?}", oeis_names_file))?;
         let metadata: fs::Metadata = file.metadata()
@@ -372,7 +380,8 @@ impl PostMine {
             filesize,
             &oeis_ids
         ).map_err(|e| anyhow::anyhow!("Unable to lookup names for OeisId's. error: {:?}", e))?;
-        println!("oeis_id_name_map: {:?}", oeis_id_name_map);
+        debug!("oeis_id_name_map: {:?}", oeis_id_name_map);
+        println!("obtained {} sequence names", oeis_id_name_map.len());
         self.oeis_id_name_map = oeis_id_name_map;
         Ok(())
     }
