@@ -1,3 +1,4 @@
+//! Post-processing of mined programs, check terms, resolve names.
 mod batch_lookup_names;
 mod batch_lookup_terms;
 mod candidate_program;

@@ -5,7 +5,7 @@ use regex::Regex;
 use lazy_static::lazy_static;
 use loda_rust_core::util::BigIntVec;
 
-/// As of July 2022, the OEIS 'stripped' file contains ~360k sequences.
+/// As of August 2022, the OEIS 'stripped' file contains ~360k sequences.
 ///
 /// Histogram of sequence lengths.
 ///

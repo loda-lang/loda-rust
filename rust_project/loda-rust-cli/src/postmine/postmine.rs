@@ -26,6 +26,21 @@ use anyhow::Context;
 
 type CandidateProgramItem = Rc<RefCell<CandidateProgram>>;
 
+/// Process the pending programs inside the `mine-event` dir.
+/// 
+/// Ignores programs that have already been processed.
+/// 
+/// If the mined program is faster than what's already 
+/// inside `loda-programs` repo. Then it's a keeper and get added to the repo.
+/// the input file gets renamed to `20220826-210221-120462594.keep.asm`
+/// 
+/// If the mined program is shares lots of terms with OEIS sequences,
+/// but isn't quite a full match, then it gets added to the `oeis_divergent` repo. 
+/// This is also a keeper.
+/// the input file gets renamed to `20220826-210221-120462594.keep.asm`
+/// 
+/// Rejection, there are lots of ways the mined program is not a keeper.
+/// then the input file gets renamed to `20220826-210851-140750305.reject.asm`
 pub struct PostMine {
     config: Config,
     loda_submitted_by: String,
