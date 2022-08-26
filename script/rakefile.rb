@@ -36,7 +36,6 @@ end
 desc "Process the mined programs"
 task :process_mined_programs => 'data/loda-rust' do
     ruby 'task_analyze_mined_programs.rb'
-    ruby 'insert_oeis_names_into_program.rb'
     ruby 'task_add_mined_programs_to_repo.rb'
     ruby 'task_cleanup_temp_files_from_repo.rb'
     ruby 'task_maintenance_of_outlier_programs_repo.rb'
