@@ -1,6 +1,6 @@
 use loda_rust_core::util::BigIntVec;
 use crate::postmine::{PathUtil, PostMineError};
-use crate::oeis::OeisId;
+use crate::oeis::{OeisId, OeisIdHashSet};
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fmt;
@@ -24,8 +24,8 @@ pub struct CandidateProgram {
     path_reject: PathBuf,
     filename_original: String,
     lodacpp_terms: BigIntVec,
-    possible_ids: HashSet::<OeisId>,
-    keep_ids: HashSet::<OeisId>,
+    possible_ids: OeisIdHashSet,
+    keep_ids: OeisIdHashSet,
     minimized_program: String,
 }
 
@@ -76,7 +76,7 @@ impl CandidateProgram {
         self.possible_ids.is_empty()
     }
 
-    pub fn possible_ids(&self) -> &HashSet<OeisId> {
+    pub fn possible_ids(&self) -> &OeisIdHashSet {
         &self.possible_ids
     }
 

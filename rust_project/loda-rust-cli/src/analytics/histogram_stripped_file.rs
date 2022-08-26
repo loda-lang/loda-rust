@@ -2,7 +2,7 @@ use loda_rust_core::util::BigIntVec;
 use crate::mine::FunnelConfig;
 use crate::config::Config;
 use crate::common::{create_csv_file, SimpleLog};
-use crate::oeis::{ProcessStrippedSequenceFile, StrippedSequence};
+use crate::oeis::{OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use num_bigint::{BigInt, ToBigInt};
 use std::convert::TryFrom;
 use std::error::Error;
@@ -10,7 +10,7 @@ use std::io;
 use std::path::PathBuf;
 use std::fs::File;
 use std::io::BufReader;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::time::Instant;
 use serde::Serialize;
 use console::Style;
@@ -115,9 +115,9 @@ impl HistogramStrippedFile {
         let pb = ProgressBar::new(filesize as u64);
         let padding_value_i64: i64 = 0xC0FFEE;
         let padding_value: BigInt = padding_value_i64.to_bigint().unwrap();
-        let process_callback = |stripped_sequence: &StrippedSequence, count_bytes: usize| {
+        let process_callback = |stripped_sequence: &StrippedRow, count_bytes: usize| {
             pb.set_position(count_bytes as u64);
-            let all_vec: &BigIntVec = stripped_sequence.bigint_vec_ref();
+            let all_vec: &BigIntVec = stripped_sequence.terms();
             for value in all_vec {
                 let key: i64 = match i64::try_from(value).ok() {
                     Some(value) => value,
@@ -139,13 +139,13 @@ impl HistogramStrippedFile {
                 count_small += 1;
             }
         };
-        let program_ids_to_ignore = HashSet::<u32>::new();
-        let mut stripped_sequence_processor = ProcessStrippedSequenceFile::new();
+        let oeis_ids_to_ignore = OeisIdHashSet::new();
+        let mut stripped_sequence_processor = ProcessStrippedFile::new();
         stripped_sequence_processor.execute(
             oeis_stripped_file_reader,
             FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS,
             FunnelConfig::TERM_COUNT,
-            &program_ids_to_ignore,
+            &oeis_ids_to_ignore,
             &padding_value,
             true,
             process_callback

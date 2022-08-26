@@ -1,15 +1,23 @@
-use super::{ProgramCache, ProgramRunnerManager, ProgramSerializer, ProgramState, RegisterIndex, EvalError, ValidateCallError};
+use super::{ProgramCache, ProgramRunnerManager, ProgramSerializer, ProgramSerializerContext, ProgramState, RegisterIndex, EvalError, ValidateCallError};
 use std::collections::HashSet;
 
 pub trait Node {
     fn formatted_instruction(&self) -> String;
+
+    fn formatted_instruction_advanced(&self, _context: &dyn ProgramSerializerContext) -> Option<String> {
+        None
+    }
 
     /// Generate a human readable version of the program
     /// Append the instruction to the program.
     /// For most nodes, this is irrelevant, so this does nothing by default.
     /// However for loop instructions, there is indentation to deal with.
     fn serialize(&self, serializer: &mut ProgramSerializer) {
-        serializer.append_raw(self.formatted_instruction());
+        if let Some(text) = self.formatted_instruction_advanced(serializer.context()) {
+            serializer.append_raw(text);
+        } else {
+            serializer.append_raw(self.formatted_instruction());
+        }
     }
 
     /// Execute the primary operation of this node.

@@ -1,4 +1,4 @@
-use crate::oeis::OeisId;
+use crate::oeis::{OeisId, OeisIdHashSet};
 use regex::Regex;
 use lazy_static::lazy_static;
 use std::path::{Path, PathBuf};
@@ -40,19 +40,18 @@ pub fn oeis_id_from_path(path: &Path) -> Option<OeisId> {
     return Some(OeisId::from(sequence_number));
 }
 
-pub fn oeis_ids_from_paths(paths: Vec<PathBuf>) -> Vec<OeisId> {
-    let mut oeis_ids: Vec<OeisId> = vec!();
+pub fn oeis_ids_from_paths(paths: &Vec<PathBuf>) -> OeisIdHashSet {
+    let mut oeis_ids = OeisIdHashSet::new();
     for path in paths {
-        let oeis_id: OeisId = match oeis_id_from_path(&path) {
+        let oeis_id: OeisId = match oeis_id_from_path(path) {
             Some(oeis_id) => oeis_id,
             None => {
                 warn!("Unable to extract oeis_id from {:?}", path);
                 continue;
             }
         };
-        oeis_ids.push(oeis_id);
+        oeis_ids.insert(oeis_id);
     }
-    oeis_ids.sort();
     oeis_ids
 }
 
@@ -88,12 +87,21 @@ mod tests {
 
     #[test]
     fn test_20000_oeis_ids_from_paths() {
+        // Arrange
         let input: Vec<PathBuf> = vec![
             PathBuf::from("dir/A123456.asm"),
             PathBuf::from("dir/A000045.csv"),
             PathBuf::from("dir/A112088_test.asm"),
         ];
-        let oeis_ids: Vec<OeisId> = oeis_ids_from_paths(input);
-        assert_eq!(oeis_ids, vec![OeisId::from(45), OeisId::from(112088), OeisId::from(123456)]);
+
+        // Act
+        let actual: OeisIdHashSet = oeis_ids_from_paths(&input);
+
+        // Assert
+        let mut expected = OeisIdHashSet::new();
+        expected.insert(OeisId::from(45));
+        expected.insert(OeisId::from(123456));
+        expected.insert(OeisId::from(112088));
+        assert_eq!(actual, expected);
     }
 }

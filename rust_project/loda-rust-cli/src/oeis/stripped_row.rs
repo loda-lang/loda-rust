@@ -1,10 +1,11 @@
+use super::OeisId;
 use num_bigint::BigInt;
 use std::fmt;
 use regex::Regex;
 use lazy_static::lazy_static;
 use loda_rust_core::util::BigIntVec;
 
-/// As of July 2022, the OEIS 'stripped' file contains ~360k sequences.
+/// As of August 2022, the OEIS 'stripped' file contains ~360k sequences.
 ///
 /// Histogram of sequence lengths.
 ///
@@ -21,42 +22,50 @@ use loda_rust_core::util::BigIntVec;
 /// Half of the sequences are shorter than or equal to 38 terms.
 /// 
 /// The other half of the sequences are longer than 38 terms.
-pub struct StrippedSequence {
-    pub sequence_number: u32,
-    bigint_vec: BigIntVec,
+pub struct StrippedRow {
+    oeis_id: OeisId,
+    terms: BigIntVec,
 }
 
-impl StrippedSequence {
-    pub fn new(sequence_number: u32, bigint_vec: BigIntVec) -> Self {
+impl StrippedRow {
+    pub fn parse(line: &String, max_term_count: Option<usize>) -> Option<Self> {
+        parse_stripped_row(line, max_term_count)
+    }
+
+    pub fn new(oeis_id: OeisId, terms: BigIntVec) -> Self {
         Self {
-            sequence_number: sequence_number,
-            bigint_vec: bigint_vec,
+            oeis_id: oeis_id,
+            terms: terms,
         }
     }
 
-    pub fn bigint_vec_ref(&self) -> &BigIntVec {
-        &self.bigint_vec
+    pub fn oeis_id(&self) -> OeisId {
+        self.oeis_id
+    }
+
+    pub fn terms(&self) -> &BigIntVec {
+        &self.terms
     }
 
     pub fn len(&self) -> usize {
-        self.bigint_vec.len()
+        self.terms.len()
     }
 
     pub fn grow_to_length(&mut self, length: usize, padding_value: &BigInt) {
-        let original_length: usize = self.bigint_vec.len();
+        let original_length: usize = self.terms.len();
         if original_length >= length {
             return;
         }
         let count: usize = length - original_length;
         for _ in 0..count {
-            self.bigint_vec.push(padding_value.clone());
+            self.terms.push(padding_value.clone());
         }
     }
 }
 
-impl fmt::Display for StrippedSequence {
+impl fmt::Display for StrippedRow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let strings: Vec<String> = self.bigint_vec.iter().map(|bigint| {
+        let strings: Vec<String> = self.terms.iter().map(|bigint| {
             bigint.to_string()
         }).collect();
         let strings_joined: String = strings.join(",");
@@ -64,7 +73,7 @@ impl fmt::Display for StrippedSequence {
             true => "",
             false => " "
         };
-        write!(f, "{}{}{}", self.sequence_number, spacer, strings_joined)
+        write!(f, "{}{}{}", self.oeis_id().a_number(), spacer, strings_joined)
     }
 }
 
@@ -75,7 +84,7 @@ lazy_static! {
     ).unwrap();
 }
 
-pub fn parse_stripped_sequence_line(line: &String, max_term_count: Option<usize>) -> Option<StrippedSequence> {
+fn parse_stripped_row(line: &String, max_term_count: Option<usize>) -> Option<StrippedRow> {
     if !line.starts_with("A") {
         return None;            
     }
@@ -108,13 +117,14 @@ pub fn parse_stripped_sequence_line(line: &String, max_term_count: Option<usize>
             return None;
         }
     };
+    let oeis_id: OeisId = OeisId::from(sequence_number);
 
     // Process the following columns
     let max_term_count_inner: usize = match max_term_count {
         Some(value) => value,
         None => usize::MAX
     };
-    let mut bigint_vec: BigIntVec = vec!();
+    let mut terms: BigIntVec = vec!();
     for _ in 0..max_term_count_inner {
         let string = match iter.next() {
             Some(value) => value,
@@ -128,18 +138,17 @@ pub fn parse_stripped_sequence_line(line: &String, max_term_count: Option<usize>
             break;
         }
         let bytes: &[u8] = string.as_bytes();
-        let bigint: BigInt = match BigInt::parse_bytes(bytes, 10) {
+        let term: BigInt = match BigInt::parse_bytes(bytes, 10) {
             Some(value) => value,
             None => {
                 error!("Unable to parse a number as BigInt. '{}'", string);
                 return None;
             }
         };
-        bigint_vec.push(bigint);
+        terms.push(term);
     }
 
-    let seq = StrippedSequence::new(sequence_number, bigint_vec);
-    return Some(seq);
+    Some(StrippedRow::new(oeis_id, terms))
 }
 
 
@@ -149,15 +158,15 @@ mod tests {
     use num_traits::Zero;
 
     fn parse(input: &str) -> String {
-        match parse_stripped_sequence_line(&input.to_string(), None) {
-            Some(stripped_sequence) => return stripped_sequence.to_string(),
+        match StrippedRow::parse(&input.to_string(), None) {
+            Some(value) => return value.to_string(),
             None => return "NONE".to_string()
         }
     }
 
     fn parse_with_limit(input: &str, max_term_count: usize) -> String {
-        match parse_stripped_sequence_line(&input.to_string(), Some(max_term_count)) {
-            Some(stripped_sequence) => return stripped_sequence.to_string(),
+        match StrippedRow::parse(&input.to_string(), Some(max_term_count)) {
+            Some(value) => return value.to_string(),
             None => return "NONE".to_string()
         }
     }
@@ -168,10 +177,10 @@ mod tests {
         assert_eq!(parse("# comment"), "NONE");
         assert_eq!(parse("Ajunk"), "NONE");
         assert_eq!(parse("A junk"), "NONE");
-        assert_eq!(parse("A000040 ,2,3,5,7,11,13,17,19,23,"), "40 2,3,5,7,11,13,17,19,23");
-        assert_eq!(parse_with_limit("A000040 ,2,3,5,7,11,13,17,19,23,", 0), "40");
-        assert_eq!(parse_with_limit("A000040 ,2,3,5,7,11,13,17,19,23,", 2), "40 2,3");
-        assert_eq!(parse_with_limit("A000040 ,2,3,5,", 8), "40 2,3,5");
+        assert_eq!(parse("A000040 ,2,3,5,7,11,13,17,19,23,"), "A000040 2,3,5,7,11,13,17,19,23");
+        assert_eq!(parse_with_limit("A000040 ,2,3,5,7,11,13,17,19,23,", 0), "A000040");
+        assert_eq!(parse_with_limit("A000040 ,2,3,5,7,11,13,17,19,23,", 2), "A000040 2,3");
+        assert_eq!(parse_with_limit("A000040 ,2,3,5,", 8), "A000040 2,3,5");
     }
 
     const INPUT_STRIPPED_SEQUENCE_DATA: &str = r#"
@@ -189,7 +198,7 @@ A000040 ,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,
         let mut line_count_sequences: usize = 0;
         let mut line_count_junk: usize = 0;
         for line in s.lines() {
-            match parse_stripped_sequence_line(&line.to_string(), Some(5)) {
+            match StrippedRow::parse(&line.to_string(), Some(5)) {
                 Some(_) => { 
                     line_count_sequences += 1;
                 },
@@ -206,14 +215,14 @@ A000040 ,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,
     fn test_10002_grow_to_length() {
         // Arrange
         let input = "A000040 ,2,3,5,7,11,13,17,19,23,";
-        let mut stripped_sequence: StrippedSequence = parse_stripped_sequence_line(&input.to_string(), None).unwrap();
-        assert_eq!(stripped_sequence.len(), 9);
+        let mut row: StrippedRow = StrippedRow::parse(&input.to_string(), None).unwrap();
+        assert_eq!(row.len(), 9);
         let padding_value = BigInt::zero();
 
         // Act
-        stripped_sequence.grow_to_length(20, &padding_value);
+        row.grow_to_length(20, &padding_value);
 
         // Assert
-        assert_eq!(stripped_sequence.to_string(), "40 2,3,5,7,11,13,17,19,23,0,0,0,0,0,0,0,0,0,0,0");
+        assert_eq!(row.to_string(), "A000040 2,3,5,7,11,13,17,19,23,0,0,0,0,0,0,0,0,0,0,0");
     }
 }

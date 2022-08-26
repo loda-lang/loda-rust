@@ -1,17 +1,32 @@
+//! Post-processing of mined programs, check terms, resolve names.
+mod batch_lookup_names;
+mod batch_lookup_terms;
 mod candidate_program;
 mod compare_two_programs;
-mod validate_single_program;
+mod filter_asm_files;
 mod find_pending_programs;
+mod format_program;
+mod git_absolute_paths_for_unstaged_files;
 mod parent_dir_and_child_file;
 mod path_util;
 mod postmine;
 mod postmine_error;
+mod program_serializer_context_with_sequence_name;
+mod terms_from_programs;
+mod validate_single_program;
 
+pub use batch_lookup_names::batch_lookup_names;
+pub use batch_lookup_terms::batch_lookup_terms;
 pub use candidate_program::{CandidateProgram, State};
 pub use compare_two_programs::{CompareTwoPrograms, CompareTwoProgramsResult};
+pub use filter_asm_files::filter_asm_files;
 pub use find_pending_programs::find_pending_programs;
+pub use format_program::FormatProgram;
+pub use git_absolute_paths_for_unstaged_files::git_absolute_paths_for_unstaged_files;
 pub use parent_dir_and_child_file::ParentDirAndChildFile;
 pub use path_util::PathUtil;
 pub use postmine::PostMine;
 pub use postmine_error::PostMineError;
+pub use program_serializer_context_with_sequence_name::ProgramSerializerContextWithSequenceName;
+pub use terms_from_programs::{PathTermsMap, terms_from_program, terms_from_programs};
 pub use validate_single_program::{ValidateSingleProgram, ValidateSingleProgramError};

@@ -1,11 +1,11 @@
+use super::{OeisIdHashSet, StrippedRow};
+use crate::common::SimpleLog;
 use std::io;
 use std::io::BufRead;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use num_bigint::BigInt;
-use crate::common::SimpleLog;
-use super::{parse_stripped_sequence_line, StrippedSequence};
 
-pub struct ProcessStrippedSequenceFile {
+pub struct ProcessStrippedFile {
     count_bytes: usize,
     count_lines: usize,
     count_junk: usize,
@@ -16,7 +16,7 @@ pub struct ProcessStrippedSequenceFile {
     histogram_length: HashMap<usize,u32>,
 }
 
-impl ProcessStrippedSequenceFile {
+impl ProcessStrippedFile {
     pub fn new() -> Self {
         Self {
             count_bytes: 0,
@@ -31,7 +31,7 @@ impl ProcessStrippedSequenceFile {
     }
 
     pub fn print_summary(&self, simple_log: SimpleLog) {
-        simple_log.println(format!("Number of lines in oeis 'stripped' file: {}", self.count_lines));
+        simple_log.println(format!("Number of rows in oeis 'stripped' file: {}", self.count_lines));
         simple_log.println(format!("count_callback: {}", self.count_callback));
         simple_log.println(format!("count_tooshort: {}", self.count_tooshort));
         simple_log.println(format!("count_ignored_program_id: {}", self.count_ignored_program_id));
@@ -48,17 +48,18 @@ impl ProcessStrippedSequenceFile {
         simple_log.println(format!("sequence_lengths: {:?}", histogram_length_vec));
     }
 
+    /// Traverse all the rows of the OEIS `stripped` file.
     pub fn execute<F>(
         &mut self,
         reader: &mut dyn io::BufRead,
         minimum_number_of_required_terms: usize,
         term_count: usize, 
-        program_ids_to_ignore: &HashSet<u32>,
+        oeis_ids_to_ignore: &OeisIdHashSet,
         padding_value: &BigInt,
         should_grow_to_length: bool, 
         mut callback: F
     )
-        where F: FnMut(&StrippedSequence, usize)
+        where F: FnMut(&StrippedRow, usize)
     {
         assert!(term_count >= 1);
         assert!(term_count <= 100);
@@ -66,32 +67,32 @@ impl ProcessStrippedSequenceFile {
             let line: String = line.unwrap();
             self.count_bytes += line.len();
             self.count_lines += 1;
-            let mut stripped_sequence: StrippedSequence = match parse_stripped_sequence_line(&line, Some(term_count)) {
+            let mut row: StrippedRow = match StrippedRow::parse(&line, Some(term_count)) {
                 Some(value) => value,
                 None => {
                     self.count_junk += 1;
                     continue;
                 }
             };
-            let number_of_terms: usize = stripped_sequence.len();
+            let number_of_terms: usize = row.len();
             let counter = self.histogram_length.entry(number_of_terms).or_insert(0);
             *counter += 1;
             if number_of_terms < minimum_number_of_required_terms {
                 self.count_tooshort += 1;
                 continue;
             }
-            if program_ids_to_ignore.contains(&stripped_sequence.sequence_number) {
+            if oeis_ids_to_ignore.contains(&row.oeis_id()) {
                 self.count_ignored_program_id += 1;
                 continue;
             }
             if should_grow_to_length {
                 if number_of_terms < term_count {
                     self.count_grow_to_term_count += 1;
-                    stripped_sequence.grow_to_length(term_count, padding_value);
+                    row.grow_to_length(term_count, padding_value);
                 }
-                assert!(stripped_sequence.len() == term_count);
+                assert!(row.len() == term_count);
             }
-            callback(&stripped_sequence, self.count_bytes);
+            callback(&row, self.count_bytes);
             self.count_callback += 1;
         }
     }
@@ -101,8 +102,9 @@ impl ProcessStrippedSequenceFile {
 mod tests {
     use super::*;
     use num_traits::Zero;
+    use crate::oeis::OeisId;
     
-    const INPUT_STRIPPED_SEQUENCE_MOCKDATA: &str = r#"
+    const INPUT_MOCKDATA: &str = r#"
 # OEIS Sequence Data (http://oeis.org/stripped.gz)
 # Last Modified: January 32 01:01 UTC 1984
 # Use of this content is governed by the
@@ -120,27 +122,27 @@ A117093 ,2,3,5,7,11,13,16,17,18,19,23,28,29,30,31,37,38,39,40,41,43,47,53,58,59,
     #[test]
     fn test_10000_execute() {
         // Arrange
-        let mut input: &[u8] = INPUT_STRIPPED_SEQUENCE_MOCKDATA.as_bytes();
+        let mut input: &[u8] = INPUT_MOCKDATA.as_bytes();
 
         let mut callback_items = Vec::<String>::new();
-        let callback = |stripped_sequence: &StrippedSequence, _| {
-            callback_items.push(format!("{}", stripped_sequence.sequence_number));
+        let callback = |row: &StrippedRow, _| {
+            callback_items.push(format!("{}", row.oeis_id().raw()));
         };
         let minimum_number_of_required_terms = 8;
         let term_count = 20;
-        let mut program_ids_to_ignore = HashSet::<u32>::new();
-        program_ids_to_ignore.insert(45);
-        program_ids_to_ignore.insert(112088);
+        let mut oeis_ids_to_ignore = OeisIdHashSet::new();
+        oeis_ids_to_ignore.insert(OeisId::from(45));
+        oeis_ids_to_ignore.insert(OeisId::from(112088));
 
         let padding_value = BigInt::zero();
-        let mut processor = ProcessStrippedSequenceFile::new();
+        let mut processor = ProcessStrippedFile::new();
 
         // Act
         processor.execute(
             &mut input,
             minimum_number_of_required_terms,
             term_count,
-            &program_ids_to_ignore,
+            &oeis_ids_to_ignore,
             &padding_value,
             true, 
             callback
