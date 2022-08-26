@@ -130,3 +130,101 @@ impl FormatProgram {
         Ok(file_content)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::error::Error;
+
+    #[test]
+    fn test_10000_format_program_minimal() -> Result<(), Box<dyn Error>> {
+        let program = "mul $0,-1".to_string();
+        let fp = FormatProgram::new(program);
+        let formatted_program: String = fp.build()?;
+        assert_eq!(formatted_program, "\nmul $0,-1\n");
+        Ok(())
+    }
+
+    #[test]
+    fn test_20000_format_program_submitted_by() -> Result<(), Box<dyn Error>> {
+        let program = "mul $0,-1".to_string();
+        let mut fp = FormatProgram::new(program);
+        fp.loda_submitted_by("Euler".to_string());
+        let formatted_program: String = fp.build()?;
+        assert_eq!(formatted_program, "; Submitted by Euler\n\nmul $0,-1\n");
+        Ok(())
+    }
+
+    #[test]
+    fn test_30000_format_program_terms() -> Result<(), Box<dyn Error>> {
+        let program = "mul $0,-1".to_string();
+        let mut fp = FormatProgram::new(program);
+        fp.terms("1,2,3,4,5,6".to_string());
+        let formatted_program: String = fp.build()?;
+        assert_eq!(formatted_program, "; 1,2,3,4,5,6\n\nmul $0,-1\n");
+        Ok(())
+    }
+
+    #[test]
+    fn test_40000_format_program_sequence_name() -> Result<(), Box<dyn Error>> {
+        let mut oeis_id_name_map = OeisIdStringMap::new();
+        oeis_id_name_map.insert(OeisId::from(40), "The primes".to_string());
+        let program = "mul $0,-1".to_string();
+        let mut fp = FormatProgram::new(program);
+        fp.program_oeis_id(OeisId::from(40));
+        fp.oeis_id_name_map(oeis_id_name_map);
+        let formatted_program: String = fp.build()?;
+        assert_eq!(formatted_program, "; A000040: The primes\n\nmul $0,-1\n");
+        Ok(())
+    }
+
+    #[test]
+    fn test_40000_format_program_seq_instructions() -> Result<(), Box<dyn Error>> {
+        let mut oeis_id_name_map = OeisIdStringMap::new();
+        oeis_id_name_map.insert(OeisId::from(45), "Fibonacci".to_string());
+        let program = "seq $0,45".to_string();
+        let mut fp = FormatProgram::new(program);
+        fp.oeis_id_name_map(oeis_id_name_map);
+        let formatted_program: String = fp.build()?;
+        assert_eq!(formatted_program, "\nseq $0,45 ; Fibonacci\n");
+        Ok(())
+    }
+
+    #[test]
+    fn test_50000_format_program_trim_comments_and_blanks() -> Result<(), Box<dyn Error>> {
+        let program = "; ignore\n   mul $0,-1 ; ignore\n\n; ignore".to_string();
+        let fp = FormatProgram::new(program);
+        let formatted_program: String = fp.build()?;
+        assert_eq!(formatted_program, "\nmul $0,-1\n");
+        Ok(())
+    }
+
+    #[test]
+    fn test_90000_format_program_everything() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let mut oeis_id_name_map = OeisIdStringMap::new();
+        oeis_id_name_map.insert(OeisId::from(40), "The primes".to_string());
+        oeis_id_name_map.insert(OeisId::from(72677), "a(n) = prime(prime(n)+1)".to_string());
+        let program = "seq $0,40\nseq $0,40".to_string();
+        let mut fp = FormatProgram::new(program);
+        fp.program_oeis_id(OeisId::from(72677));
+        fp.oeis_id_name_map(oeis_id_name_map);
+        fp.loda_submitted_by("Euler".to_string());
+        fp.terms("5,7,13,19,37,43,61,71,89".to_string());
+
+        // Act
+        let actual: String = fp.build()?;
+
+        // Assert
+        let expected = 
+r#"; A072677: a(n) = prime(prime(n)+1)
+; Submitted by Euler
+; 5,7,13,19,37,43,61,71,89
+
+seq $0,40 ; The primes
+seq $0,40 ; The primes
+"#;
+        assert_eq!(actual, expected);
+        Ok(())
+    }
+}
