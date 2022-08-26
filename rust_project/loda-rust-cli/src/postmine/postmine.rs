@@ -1,9 +1,9 @@
 use crate::config::Config;
-use crate::common::{oeis_id_from_path, oeis_ids_from_program_string, oeis_ids_from_programs, OeisIdStringMap};
+use crate::common::{oeis_ids_from_program_string, OeisIdStringMap};
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
-use super::{batch_lookup_names, batch_lookup_terms, ProgramSerializerContextWithSequenceName, terms_from_programs, terms_from_program};
+use super::{batch_lookup_names, ProgramSerializerContextWithSequenceName, terms_from_program};
 use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, ValidateSingleProgram, ValidateSingleProgramError};
 use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer};
 use loda_rust_core::parser::ParsedProgram;
