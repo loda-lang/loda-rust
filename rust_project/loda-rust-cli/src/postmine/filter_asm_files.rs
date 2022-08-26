@@ -5,6 +5,7 @@ use std::path::PathBuf;
 /// 
 /// We don't care about `*.md`, `*.txt`, `*.png` files.
 /// So if there is a change to the `README.md` then it doesn't get through this filter.
+#[allow(dead_code)]
 pub fn filter_asm_files(paths1: &Vec<PathBuf>) -> Vec<PathBuf> {
     let paths2: Vec<&PathBuf> = paths1.iter().filter(|path| 
         path.is_file() && path.is_extension_asm() && path.is_containing_oeis()

@@ -30,6 +30,7 @@ pub fn oeis_ids_from_program_string(program_contents: &str) -> anyhow::Result<Oe
     Ok(oeis_ids)
 }
 
+#[allow(dead_code)]
 pub fn oeis_ids_from_program(program_path: &Path) -> anyhow::Result<OeisIdHashSet> {
     let program_contents: String = fs::read_to_string(&program_path)
         .with_context(|| format!("Read program from {:?}", &program_path))?;
@@ -38,6 +39,7 @@ pub fn oeis_ids_from_program(program_path: &Path) -> anyhow::Result<OeisIdHashSe
     Ok(oeis_ids)
 }
 
+#[allow(dead_code)]
 pub fn oeis_ids_from_programs(paths: &Vec<PathBuf>) -> anyhow::Result<OeisIdHashSet> {
     let mut oeis_ids = OeisIdHashSet::new();
     for path in paths {

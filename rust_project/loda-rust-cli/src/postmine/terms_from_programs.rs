@@ -31,9 +31,11 @@ pub fn terms_from_program(program_path: &Path) -> anyhow::Result<Option<String>>
     Ok(Some(terms_string))
 }
 
+#[allow(dead_code)]
 pub type PathTermsMap = HashMap::<PathBuf,String>;
 
 /// Populate a `HashMap` with terms extracted from programs.
+#[allow(dead_code)]
 pub fn terms_from_programs(paths: &Vec<PathBuf>) -> anyhow::Result<PathTermsMap> {
     let mut path_terms_map = PathTermsMap::with_capacity(paths.len());
     for path in paths {

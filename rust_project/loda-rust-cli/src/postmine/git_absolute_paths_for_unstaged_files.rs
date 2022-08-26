@@ -5,6 +5,7 @@ use anyhow::Context;
 
 // git: obtain modified-files and new-file
 // https://stackoverflow.com/a/26891150/78336
+#[allow(dead_code)]
 pub fn git_absolute_paths_for_unstaged_files(dir_inside_repo: &Path) -> anyhow::Result<Vec<PathBuf>> {
     let original_path: PathBuf = env::current_dir()
         .context("get current dir")?;

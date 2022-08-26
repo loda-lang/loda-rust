@@ -9,6 +9,7 @@ use indicatif::{HumanDuration, ProgressBar};
 use num_bigint::BigInt;
 use num_traits::Zero;
 
+#[allow(dead_code)]
 pub fn batch_lookup_terms(
     reader: &mut dyn io::BufRead,
     filesize: usize,
