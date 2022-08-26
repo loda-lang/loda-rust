@@ -173,7 +173,7 @@ impl PostMine {
         let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)?;
         let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();
         let hashset: OeisIdHashSet = HashSet::from_iter(program_ids.iter().cloned());
-        println!("loaded dontmine file. number of records: {}", hashset.len());
+        debug!("loaded dontmine file. number of records: {}", hashset.len());
         self.dontmine_hashset = hashset;
         Ok(())
     }    
@@ -183,7 +183,7 @@ impl PostMine {
         let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)?;
         let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();
         let hashset: OeisIdHashSet = HashSet::from_iter(program_ids.iter().cloned());
-        println!("loaded invalid program_ids file. number of records: {}", hashset.len());
+        debug!("loaded invalid program_ids file. number of records: {}", hashset.len());
         self.invalid_program_ids_hashset = hashset;
         Ok(())
     }
@@ -229,7 +229,10 @@ impl PostMine {
             HumanDuration(start.elapsed())
         );
 
-        println!("evaluate: count_success: {} count_failure: {}", count_success, count_failure);
+        debug!("evaluate: count_success: {}", count_success);
+        if count_failure > 0 {
+            error!("evaluate: count_failure: {}", count_failure);
+        }
         Ok(())
     }
 
@@ -336,7 +339,7 @@ impl PostMine {
         }
 
         let number_of_candidate_programs: usize = candidate_programs.len();
-        println!("Minimizing {} programs", number_of_candidate_programs);
+        println!("Minimizing programs");
         let pb = ProgressBar::new(number_of_candidate_programs as u64);
         for candidate_program in candidate_programs {
             self.minimize_candidate_program(candidate_program.clone())?;
@@ -418,8 +421,7 @@ impl PostMine {
             filesize,
             &oeis_ids
         ).map_err(|e| anyhow::anyhow!("Unable to lookup names for OeisId's. error: {:?}", e))?;
-        debug!("oeis_id_name_map: {:?}", oeis_id_name_map);
-        println!("obtained {} sequence names", oeis_id_name_map.len());
+        debug!("obtained {} sequence names", oeis_id_name_map.len());
         self.oeis_id_name_map = oeis_id_name_map;
         Ok(())
     }
