@@ -3,11 +3,8 @@ use crate::common::{oeis_ids_from_program_string, OeisIdStringMap};
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
-use super::{batch_lookup_names, ProgramSerializerContextWithSequenceName, terms_from_program};
+use super::{batch_lookup_names, terms_from_program, FormatProgram};
 use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, ValidateSingleProgram, ValidateSingleProgramError};
-use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer};
-use loda_rust_core::parser::ParsedProgram;
-use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::util::BigIntVec;
 use loda_rust_core::util::BigIntVecToString;
 use num_bigint::{BigInt, ToBigInt};
@@ -530,6 +527,11 @@ impl PostMine {
         Err(error)
     }
     
+    /// Decide wether to keep or reject a candidate program.
+    /// 
+    /// Determines if the candidate program is correct.
+    /// 
+    /// Determines if the candidate program is an improvement over an eventual existing program.
     fn analyze_candidate(
         &mut self, 
         candidate_program: CandidateProgramItem, 
@@ -579,57 +581,6 @@ impl PostMine {
         let compare_output_filename = format!("iteration{}_compare.txt", self.iteration);
         let compare_output_path: PathBuf = self.path_timestamped_postmine_dir.join(compare_output_filename);
         
-
-        let program_contents: String = candidate_program.borrow().minimized_program().clone();
-
-        let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&program_contents) {
-            Ok(value) => value,
-            Err(error) => {
-                return Err(anyhow::anyhow!("Parse program from {:?} error: {:?}", &oeis_program_path, error));
-            }
-        };
-    
-        // Don't load dependencies from the file system
-        let mut dm = DependencyManager::new(
-            DependencyManagerFileSystemMode::Virtual,
-            PathBuf::from("non-existing-dir"),
-        );
-        for (oeis_id, _name) in &self.oeis_id_name_map {
-            let program_id: u64 = oeis_id.raw() as u64;
-            dm.virtual_filesystem_insert_file(program_id, "".to_string());
-        }
-    
-        // Create program from instructions
-        let result_parse = dm.parse_stage2(
-            ProgramId::ProgramWithoutId, 
-            &parsed_program
-        );
-        let runner: ProgramRunner = match result_parse {
-            Ok(value) => value,
-            Err(error) => {
-                return Err(anyhow::anyhow!("parse_stage2 with program {:?} error: {:?}", &oeis_program_path, error));
-            }
-        };
-
-        let mut serializer = ProgramSerializer::new();
-
-        // Pass on the `oeis_id_name_map` all the way to the formatting code
-        // of the `seq` instruction, so that the sequence name can be inserted as a comment.
-        // Like this: `seq $2,40 ; The prime numbers.`
-        let context = ProgramSerializerContextWithSequenceName::new(self.oeis_id_name_map.clone());
-        serializer.set_context(Box::new(context));
-    
-        // Insert the sequence name
-        let optional_name: Option<&String> = self.oeis_id_name_map.get(&possible_id);
-        let mut resolved_name: String = "Missing sequence name".to_string();
-        if let Some(name) = optional_name {
-            resolved_name = name.clone();
-        }
-        serializer.append_comment(format!("{}: {}", possible_id, resolved_name));
-    
-        // Submitted by Euler
-        serializer.append_comment(format!("Submitted by {}", self.loda_submitted_by));
-    
         // Prefer using the terms of the original program file, as they are.
         // so that terms don't show up as a git-diff.
         let mut optional_terms: Option<String> = terms_from_oeis_program.clone();
@@ -655,12 +606,17 @@ impl PostMine {
         } else {
             return Err(anyhow::anyhow!("Unable to resolve terms for the program: {:?}", &oeis_program_path));
         }
-        serializer.append_comment(resolved_terms);
-    
-        serializer.append_empty_line();
-        runner.serialize(&mut serializer);
-        serializer.append_empty_line();
-        let file_content: String = serializer.to_string();
+
+        let program_contents: String = candidate_program.borrow().minimized_program().clone();
+
+        // Format the program
+        let mut fp = FormatProgram::new(program_contents.clone());
+        fp.program_oeis_id(possible_id);
+        fp.loda_submitted_by(self.loda_submitted_by.clone());
+        fp.oeis_id_name_map(self.oeis_id_name_map.clone());
+        fp.program_path(oeis_program_path.child_file());
+        fp.terms(resolved_terms.clone());
+        let file_content: String = fp.build()?;
         
         // Save the program to disk
         let mut check_program_file = File::create(&check_program_path)?;
