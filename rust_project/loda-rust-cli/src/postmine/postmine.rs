@@ -71,13 +71,7 @@ impl PostMine {
         self.eval_using_loda_cpp()?;
         self.lookup_in_oeis_stripped_file()?;
         self.minimize_candidate_programs()?;
-        match self.obtain_sequence_names() {
-            Ok(_) => {},
-            Err(error) => {
-                println!("Unable to extract names: {:?}", error);
-                panic!("Unable to extract names");
-            }
-        }
+        self.obtain_sequence_names()?;
         self.process_candidate_programs()?;
         Ok(())
     }
