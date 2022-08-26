@@ -626,7 +626,9 @@ impl PostMine {
     
         // Execute `loda-check check <PATH> -b`
         let time_limit = Duration::from_secs(Self::LODACPP_CHECK_TIME_LIMIT_IN_SECONDS);
+        let check_start = Instant::now();
         let ok_error = self.lodacpp.perform_check_and_save_output(&check_program_path, time_limit, &check_output_path);
+        simple_log.println(format!("check - elapsed {}", HumanDuration(check_start.elapsed())));
         let check_result: LodaCppCheckResult = match ok_error {
             Ok(value) => {
                 // debug!("checked program: {:?}", value);
