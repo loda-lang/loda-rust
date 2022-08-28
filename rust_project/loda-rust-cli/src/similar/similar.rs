@@ -17,12 +17,13 @@ use rand::rngs::StdRng;
 use bit_set::BitSet;
 use csv::WriterBuilder;
 use serde::Serialize;
+use console::Style;
+use indicatif::{HumanDuration, ProgressBar};
 use anyhow::Context;
 
 const SIGNATURE_LENGTH: u8 = 30;
 const IGNORE_INPUT_PROGRAM_IF_INSTRUCTION_COUNT_EXCEEDS: usize = 300;
 const MAX_NUMBER_OF_ROWS_IN_OUTPUT_CSV_FILE: usize = 25;
-const INTERVAL_UNTIL_NEXT_PROGRESS: u128 = 1000;
 
 /// Identify similar programs.
 /// 
@@ -92,7 +93,6 @@ impl Similar {
     
         let indexes_array = IndexesArray::new(number_of_bigram_rows as u16, SIGNATURE_LENGTH);
     
-    
         let mut paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
         paths.sort();
         let number_of_paths = paths.len();
@@ -100,60 +100,80 @@ impl Similar {
             error!("Expected 1 or more programs, but there are no programs to analyze");
             return Ok(());
         }
-        println!("will process {} programs", number_of_paths);
     
-        
         let mut program_meta_vec = Vec::<ProgramMeta>::new();
-        for path in paths {
-            let program_meta = match self.analyze_program(&path, &wordpair_to_index, &indexes_array) {
-                Some(value) => value,
-                None => {
-                    continue;
-                }
-            };
-            program_meta_vec.push(program_meta);
+        {
+            let content = format!("will process {} programs\n\n", number_of_paths);
+            self.simple_log.println(content);
+
+            let start = Instant::now();
+            println!("Creating signatures of programs");
+            let pb = ProgressBar::new(paths.len() as u64);
+            for path in paths {
+                pb.inc(1);
+                let program_meta = match self.analyze_program(&path, &wordpair_to_index, &indexes_array) {
+                    Some(value) => value,
+                    None => {
+                        continue;
+                    }
+                };
+                program_meta_vec.push(program_meta);
+            }
+            pb.finish_and_clear();
+            let green_bold = Style::new().green().bold();        
+            println!(
+                "{:>12} Created signatures, in {}",
+                green_bold.apply_to("Finished"),
+                HumanDuration(start.elapsed())
+            );
+            let content = format!("\n\nnumber of program_meta items: {}", program_meta_vec.len());
+            self.simple_log.println(content);    
         }
-        println!("number of program_meta items: {}", program_meta_vec.len());
-    
-        let mut progress_time = Instant::now();
-        let max_index0: usize = program_meta_vec.len();
-        let mut bitset = BitSet::with_capacity(number_of_bigram_rows);
-        let mut comparison_results = Vec::<ComparisonResult>::new();
-        comparison_results.reserve(program_meta_vec.len());
-        for (index0, program0) in program_meta_vec.iter().enumerate() {
-            let elapsed: u128 = progress_time.elapsed().as_millis();
-            if elapsed >= INTERVAL_UNTIL_NEXT_PROGRESS {
-                let percent: usize = (index0 * 100) / max_index0;
-                println!("progress: {}%  {} of {}", percent, index0 + 1, max_index0);
-                progress_time = Instant::now();
-            }
-            comparison_results.clear();
-            for (index1, program1) in program_meta_vec.iter().enumerate() {
-                if index0 == index1 {
-                    continue;
+       
+        {
+            let start = Instant::now();
+            println!("Finding similarities between NxN signatures");
+            let mut bitset = BitSet::with_capacity(number_of_bigram_rows);
+            let mut comparison_results = Vec::<ComparisonResult>::new();
+            comparison_results.reserve(program_meta_vec.len());
+            let pb = ProgressBar::new(program_meta_vec.len() as u64);
+            for (index0, program0) in program_meta_vec.iter().enumerate() {
+                pb.inc(1);
+                comparison_results.clear();
+                for (index1, program1) in program_meta_vec.iter().enumerate() {
+                    if index0 == index1 {
+                        continue;
+                    }
+                    bitset.clone_from(&program0.signature);
+                    bitset.intersect_with(&program1.signature);
+                    let overlap_count: u16 = bitset.len() as u16;
+                    if overlap_count == 0 {
+                        continue;
+                    }
+                    let comparison_result = ComparisonResult::new(program1.program_id, overlap_count);
+                    comparison_results.push(comparison_result);
                 }
-                bitset.clone_from(&program0.signature);
-                bitset.intersect_with(&program1.signature);
-                let overlap_count: u16 = bitset.len() as u16;
-                if overlap_count == 0 {
-                    continue;
-                }
-                let comparison_result = ComparisonResult::new(program1.program_id, overlap_count);
-                comparison_results.push(comparison_result);
+                comparison_results.sort_by(|a, b| {
+                    a.overlap_count.cmp(&b.overlap_count).reverse()
+                        .then(a.program_id.cmp(&b.program_id))
+                });
+                comparison_results.truncate(MAX_NUMBER_OF_ROWS_IN_OUTPUT_CSV_FILE);
+            
+                OutputManager::create_csv_file(&comparison_results, program0.program_id, &self.similar_programs)
+                    .with_context(|| format!("Failed to create csv file for program id: {:?}", program0.program_id))?;
             }
-            comparison_results.sort_by(|a, b| {
-                a.overlap_count.cmp(&b.overlap_count).reverse()
-                    .then(a.program_id.cmp(&b.program_id))
-            });
-            comparison_results.truncate(MAX_NUMBER_OF_ROWS_IN_OUTPUT_CSV_FILE);
+            pb.finish_and_clear();
         
-            OutputManager::create_csv_file(&comparison_results, program0.program_id, &self.similar_programs)
-                .with_context(|| format!("Failed to create csv file for program id: {:?}", program0.program_id))?;
+            let green_bold = Style::new().green().bold();        
+            println!(
+                "{:>12} Found similarities, in {}",
+                green_bold.apply_to("Finished"),
+                HumanDuration(start.elapsed())
+            );
         }
     
         let content = format!("similar end, elapsed: {:?} ms", start_time.elapsed().as_millis());
-        self.simple_log.println(&content);
-        println!("{}", &content);
+        self.simple_log.println(content);
 
         Ok(())
     }
