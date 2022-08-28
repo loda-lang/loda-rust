@@ -1,6 +1,8 @@
 //! The `loda-rust similar` subcommand, identifies similar programs.
 use crate::common::{find_asm_files_recursively, oeis_id_from_path};
 use crate::common::RecordBigram;
+use crate::common::SimpleLog;
+use crate::oeis::OeisId;
 use super::{Word, WordPair, WordsFromProgram};
 use loda_rust_core::parser::ParsedProgram;
 use crate::config::Config;
@@ -39,27 +41,44 @@ const INTERVAL_UNTIL_NEXT_PROGRESS: u128 = 1000;
 /// All 95000 programs in the loda-programs repository can be traversed in 9 minutes.
 ///
 /// [LSH/MinHash]: https://en.wikipedia.org/wiki/MinHash
-pub struct Similar {}
+pub struct Similar {
+    simple_log: SimpleLog,
+    config: Config,
+    similar_programs: PathBuf,
+}
 
 impl Similar {
     pub fn run() -> anyhow::Result<()> {
-        let start_time = Instant::now();
-
         let config = Config::load();
         if !config.analytics_dir().is_dir() {
             return Err(anyhow::anyhow!("Missing dir: {:?}, Please run 'loda-rust analytics' and try again.", config.analytics_dir()));
         }
 
-        let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
-        
         // Ensure that the `similar-programs` dir exist
         let similar_programs: PathBuf = config.similar_programs();
         if !similar_programs.is_dir() {
             fs::create_dir(&similar_programs)
                 .with_context(|| format!("Could not create dir: {:?}", similar_programs))?;
         }
+
+        let log_path: PathBuf = similar_programs.join(Path::new("similar_log.txt"));
+        let simple_log = SimpleLog::new(&log_path)
+            .map_err(|e| anyhow::anyhow!("Unable to create log file at path: {:?}. error: {:?}", log_path, e))?;
     
-        let instruction_bigram_csv: PathBuf = config.analytics_dir_histogram_instruction_bigram_file();
+        let mut instance = Self {
+            simple_log: simple_log,
+            config: config,
+            similar_programs: similar_programs,
+        };
+        instance.run_inner()
+    }
+
+    fn run_inner(&mut self) -> anyhow::Result<()> {
+        let start_time = Instant::now();
+
+        let loda_programs_oeis_dir: PathBuf = self.config.loda_programs_oeis_dir();
+        
+        let instruction_bigram_csv: PathBuf = self.config.analytics_dir_histogram_instruction_bigram_file();
         let instruction_vec: Vec<RecordBigram> = RecordBigram::parse_csv(&instruction_bigram_csv).expect("Unable to load instruction bigram csv");
         let number_of_bigram_rows: usize = instruction_vec.len();
         debug!("number of bigram rows: {}", number_of_bigram_rows);
@@ -86,7 +105,7 @@ impl Similar {
         
         let mut program_meta_vec = Vec::<ProgramMeta>::new();
         for path in paths {
-            let program_meta = match analyze_program(&path, &wordpair_to_index, &indexes_array) {
+            let program_meta = match self.analyze_program(&path, &wordpair_to_index, &indexes_array) {
                 Some(value) => value,
                 None => {
                     continue;
@@ -128,69 +147,95 @@ impl Similar {
             });
             comparison_results.truncate(MAX_NUMBER_OF_ROWS_IN_OUTPUT_CSV_FILE);
         
-            OutputManager::create_csv_file(&comparison_results, program0.program_id, &similar_programs)
+            OutputManager::create_csv_file(&comparison_results, program0.program_id, &self.similar_programs)
                 .with_context(|| format!("Failed to create csv file for program id: {:?}", program0.program_id))?;
         }
     
-        println!("similar end, elapsed: {:?} ms", start_time.elapsed().as_millis());
+        let content = format!("similar end, elapsed: {:?} ms", start_time.elapsed().as_millis());
+        self.simple_log.println(&content);
+        println!("{}", &content);
+
         Ok(())
     }
-}
 
-fn analyze_program(
-    path: &Path, 
-    wordpair_to_index: &HashMap<WordPair,u16>, 
-    indexes_array: &IndexesArray
-) -> Option<ProgramMeta> {
-    let program_id: u32 = match oeis_id_from_path(path) {
-        Some(oeis_id) => oeis_id.raw(),
-        None => {
-            return None;
-        }
-    };
-    let parsed_program: ParsedProgram = match load_program(path) {
-        Some(value) => value,
-        None => {
-            return None;
-        }
-    };
-
-    let line_count_raw: usize = parsed_program.instruction_vec.len();
-    if line_count_raw > IGNORE_INPUT_PROGRAM_IF_INSTRUCTION_COUNT_EXCEEDS {
-        error!("Skipped a program that is too long. path: {:?}", path);
-        return None;
-    }
-    let line_count = line_count_raw as u16;
-
-    let words: Vec<Word> = parsed_program.as_words();
-    let n = words.len();
-    if n < 2 {
-        return None;
-    }
-    let mut match_set = HashSet::<u16>::new();
-    for i in 1..n {
-        let word0: Word = words[i-1];
-        let word1: Word = words[i];
-        let wordpair = WordPair { word0: word0, word1: word1 };
-        let index: u16 = match wordpair_to_index.get(&wordpair) {
-            Some(value) => *value,
+    fn analyze_program(
+        &mut self,
+        path: &Path, 
+        wordpair_to_index: &HashMap<WordPair,u16>, 
+        indexes_array: &IndexesArray
+    ) -> Option<ProgramMeta> {
+        let oeis_id: OeisId = match oeis_id_from_path(path) {
+            Some(value) => value,
             None => {
-                error!("Unrecognized bigram, not found in vocabulary. Skipping. {:?}", wordpair);
-                continue;
+                return None;
             }
         };
-        match_set.insert(index);
+        let program_id: u32 = oeis_id.raw();
+
+        let parsed_program: ParsedProgram = match Self::load_program(path) {
+            Ok(value) => value,
+            Err(error) => {
+                let content = format!("Skipped program: {} path: {:?} error: {:?}", oeis_id.a_number(), path, error);
+                self.simple_log.println(&content);    
+                return None;
+            }
+        };
+    
+        let line_count_raw: usize = parsed_program.instruction_vec.len();
+        if line_count_raw > IGNORE_INPUT_PROGRAM_IF_INSTRUCTION_COUNT_EXCEEDS {
+            error!("Skipped a program that is too long. path: {:?}", path);
+            let content = format!("Skipped a program that is too long. path: {:?}", path);
+            self.simple_log.println(&content);    
+            return None;
+        }
+        let line_count = line_count_raw as u16;
+    
+        let words: Vec<Word> = parsed_program.as_words();
+        let n = words.len();
+        if n < 2 {
+            return None;
+        }
+        let mut match_set = HashSet::<u16>::new();
+        for i in 1..n {
+            let word0: Word = words[i-1];
+            let word1: Word = words[i];
+            let wordpair = WordPair { word0: word0, word1: word1 };
+            let index: u16 = match wordpair_to_index.get(&wordpair) {
+                Some(value) => *value,
+                None => {
+                    error!("Unrecognized bigram, not found in vocabulary. Skipping. {:?}", wordpair);
+                    continue;
+                }
+            };
+            match_set.insert(index);
+        }
+    
+        let signature: BitSet = indexes_array.compute_signature(&match_set);
+    
+        let program_meta = ProgramMeta::new(
+            program_id,
+            PathBuf::from(path),
+            line_count,
+            signature
+        );
+        Some(program_meta)
     }
 
-    let signature: BitSet = indexes_array.compute_signature(&match_set);
-
-    let program_meta = ProgramMeta::new(
-        program_id,
-        PathBuf::from(path),
-        line_count,
-        signature
-    );
-    Some(program_meta)
+    fn load_program(path: &Path) -> anyhow::Result<ParsedProgram> {
+        let contents: String = match fs::read_to_string(path) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("load program, error: {:?} path: {:?}", error, path));
+            }
+        };
+        let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&contents) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("load program, error: {:?} path: {:?}", error, path));
+            }
+        };
+        Ok(parsed_program)
+    }
 }
 
 struct ProgramMeta {
@@ -248,24 +293,6 @@ impl IndexesArray {
         }
         result
     }
-}
-
-fn load_program(path: &Path) -> Option<ParsedProgram> {
-    let contents: String = match fs::read_to_string(path) {
-        Ok(value) => value,
-        Err(error) => {
-            error!("load program, error: {:?} path: {:?}", error, path);
-            return None;
-        }
-    };
-    let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&contents) {
-        Ok(value) => value,
-        Err(error) => {
-            error!("load program, error: {:?} path: {:?}", error, path);
-            return None;
-        }
-    };
-    Some(parsed_program)
 }
 
 #[derive(Serialize)]
