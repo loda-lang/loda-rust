@@ -26,6 +26,7 @@ mod subcommand_mine;
 mod subcommand_pattern;
 mod subcommand_postmine;
 mod subcommand_similar;
+mod subcommand_test;
 
 use subcommand_analytics::subcommand_analytics;
 use subcommand_dependencies::subcommand_dependencies;
@@ -35,6 +36,7 @@ use subcommand_mine::{SubcommandMine,SubcommandMineMetricsMode};
 use subcommand_pattern::subcommand_pattern;
 use subcommand_postmine::subcommand_postmine;
 use subcommand_similar::subcommand_similar;
+use subcommand_test::SubcommandTest;
 
 extern crate clap;
 extern crate num_bigint;
@@ -115,6 +117,10 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
             SubCommand::with_name("pattern")
                 .about("Identify recurring patterns among similar programs.")
         )
+        .subcommand(
+            SubCommand::with_name("test-integration-with-lodacpp")
+                .about("Verify that integration with the 'lodacpp' executable is working.")
+        )
         .get_matches();
 
     if let Some(sub_m) = matches.subcommand_matches("evaluate") {
@@ -184,6 +190,10 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     if let Some(_sub_m) = matches.subcommand_matches("pattern") {
         subcommand_pattern();
         return Ok(());
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("test-integration-with-lodacpp") {
+        return SubcommandTest::test_integration_with_lodacpp();
     }
 
     panic!("No arguments provided");
