@@ -42,84 +42,86 @@ extern crate clap;
 extern crate num_bigint;
 extern crate num_traits;
 
-use clap::{App, AppSettings, Arg, SubCommand};
+use clap::{Arg, Command};
 
 #[tokio::main]
 async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     // Initialize logging from the `RUST_LOG` environment variable.
     env_logger::init();
 
-    let matches = App::new("loda-rust")
+    let matches = Command::new("loda-rust")
         .version("0.0.1")
         .about("Experimental tool")
-        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .arg_required_else_help(true)
+        .subcommand_required(true)
         .subcommand(
-            SubCommand::with_name("evaluate")
+            Command::new("evaluate")
                 .alias("eval")
                 .about("Evaluate a program")
                 .arg(
-                    Arg::with_name("programid")
+                    Arg::new("programid")
                         .required(true)
                 )
                 .arg(
-                    Arg::with_name("terms")
+                    Arg::new("terms")
                         .help("Number of sequence terms (default:20)")
                         .takes_value(true)
                         .short('t')
                         .long("terms")
                 )
                 .arg(
-                    Arg::with_name("steps")
+                    Arg::new("steps")
                         .help("Show the number of steps used for computing a term")
                         .long("steps")
                 )
                 .arg(
-                    Arg::with_name("debug")
+                    Arg::new("debug")
                         .help("Inspect the internal state during execute")
                         .long("debug")
                 )
         )
         .subcommand(
-            SubCommand::with_name("dependencies")
+            Command::new("dependencies")
                 .alias("deps")
                 .about("Print all direct/indirect dependencies of a program")
                 .arg(
-                    Arg::with_name("programid")
+                    Arg::new("programid")
                         .required(true)
                 )
         )
         .subcommand(
-            SubCommand::with_name("install")
+            Command::new("install")
                 .about("Create the $HOME/.loda-rust directory")
         )
         .subcommand(
-            SubCommand::with_name("analytics")
+            Command::new("analytics")
                 .about("Prepare data needed for mining, by analyzing the existing programs.")
         )
         .subcommand(
-            SubCommand::with_name("mine")
+            Command::new("mine")
                 .about("Run the miner daemon process. Press CTRL-C to stop it.")
                 .arg(
-                    Arg::with_name("metrics")
+                    Arg::new("metrics")
                         .long("metrics")
                         .help("Run a metrics server on localhost:8090 (can be overwritten in the config file)")
                 )
         )
         .subcommand(
-            SubCommand::with_name("postmine")
+            Command::new("postmine")
                 .about("Validate the accumulated candiate programs for correctness and performance.")
         )
         .subcommand(
-            SubCommand::with_name("similar")
+            Command::new("similar")
                 .about("Identify similar programs.")
         )
         .subcommand(
-            SubCommand::with_name("pattern")
+            Command::new("pattern")
                 .about("Identify recurring patterns among similar programs.")
         )
         .subcommand(
-            SubCommand::with_name("test-integration-with-lodacpp")
+            Command::new("test-integration-with-lodacpp")
                 .about("Verify that integration with the 'lodacpp' executable is working.")
+                .hide(true)
         )
         .get_matches();
 
