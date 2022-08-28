@@ -25,11 +25,11 @@ pub fn subcommand_pattern() {
 
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
-    let loda_identify_similar_programs_repository_oeis_dir: PathBuf = config.loda_identify_similar_programs_repository_oeis();
+    let similar_programs: PathBuf = config.similar_programs();
     let output_dir: PathBuf = config.loda_patterns_repository_simple_constant();
 
     // Find all similarity CSV files.
-    let mut similarity_csv_paths: Vec<PathBuf> = find_csv_files_recursively(&loda_identify_similar_programs_repository_oeis_dir);
+    let mut similarity_csv_paths: Vec<PathBuf> = find_csv_files_recursively(&similar_programs);
     similarity_csv_paths.sort();
     let number_of_similarity_csv_paths = similarity_csv_paths.len();
     if number_of_similarity_csv_paths <= 0 {

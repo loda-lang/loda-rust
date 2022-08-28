@@ -14,8 +14,8 @@ use rand::SeedableRng;
 use rand::rngs::StdRng;
 use bit_set::BitSet;
 use csv::WriterBuilder;
-use std::error::Error;
 use serde::Serialize;
+use anyhow::Context;
 
 const SIGNATURE_LENGTH: u8 = 30;
 const IGNORE_INPUT_PROGRAM_IF_INSTRUCTION_COUNT_EXCEEDS: usize = 300;
@@ -26,28 +26,38 @@ const INTERVAL_UNTIL_NEXT_PROGRESS: u128 = 1000;
 /// 
 /// This code uses the [LSH/MinHash] algorithm.
 ///
-/// My first attempt was slow. It was coded in ruby and took 8 hours to compute similarity 
+/// My first attempt was slow. It was coded in Ruby and took 8 hours to compute similarity 
 /// for 1600 programs out of 41000 programs.
 /// For this I used the unix diff tool for identifying the number of identical lines.
 /// If there were more than 80% identical lines, then I added it to the csv file.
 /// 
-/// My second attempt was using [LSH/MinHash]. It was coded in ruby.
-/// All 41000 programs in the loda-programs repository can be traversed in about 2 hours.
+/// My second attempt was using [LSH/MinHash]. It was coded in Ruby.
+/// All 41000 programs in the loda-programs repository can be traversed in 2 hours.
 /// 
 /// My third attempt at finding similarity between programs. This time using Rust for better preformance.
 /// And using the [LSH/MinHash] algorithm.
-/// All 67000 programs in the loda-programs repository can be traversed in about 7 minutes.
+/// All 95000 programs in the loda-programs repository can be traversed in 9 minutes.
 ///
 /// [LSH/MinHash]: https://en.wikipedia.org/wiki/MinHash
 pub struct Similar {}
 
 impl Similar {
-    pub fn run() -> Result<(), Box<dyn Error>> {
+    pub fn run() -> anyhow::Result<()> {
         let start_time = Instant::now();
 
         let config = Config::load();
+        if !config.analytics_dir().is_dir() {
+            return Err(anyhow::anyhow!("Missing dir: {:?}, Please run 'loda-rust analytics' and try again.", config.analytics_dir()));
+        }
+
         let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
-        let output_rootdir: PathBuf = config.loda_identify_similar_programs_repository_oeis();
+        
+        // Ensure that the `similar-programs` dir exist
+        let similar_programs: PathBuf = config.similar_programs();
+        if !similar_programs.is_dir() {
+            fs::create_dir(&similar_programs)
+                .with_context(|| format!("Could not create dir: {:?}", similar_programs))?;
+        }
     
         let instruction_bigram_csv: PathBuf = config.analytics_dir_histogram_instruction_bigram_file();
         let instruction_vec: Vec<RecordBigram> = RecordBigram::parse_csv(&instruction_bigram_csv).expect("Unable to load instruction bigram csv");
@@ -118,13 +128,8 @@ impl Similar {
             });
             comparison_results.truncate(MAX_NUMBER_OF_ROWS_IN_OUTPUT_CSV_FILE);
         
-            match OutputManager::create_csv_file(&comparison_results, program0.program_id, &output_rootdir) {
-                Ok(_) => {},
-                Err(error) => {
-                    error!("Unable to create csv file. error: {:?}", error);
-                    continue;
-                }
-            }
+            OutputManager::create_csv_file(&comparison_results, program0.program_id, &similar_programs)
+                .with_context(|| format!("Failed to create csv file for program id: {:?}", program0.program_id))?;
         }
     
         println!("similar end, elapsed: {:?} ms", start_time.elapsed().as_millis());
@@ -284,13 +289,15 @@ impl ComparisonResult {
 struct OutputManager {}
 
 impl OutputManager {
-    fn create_csv_file(records: &Vec<ComparisonResult>, program_id: u32, output_rootdir: &Path) -> Result<(), Box<dyn Error>> {
+    fn create_csv_file(records: &Vec<ComparisonResult>, program_id: u32, output_rootdir: &Path) -> anyhow::Result<()> {
         let (dirname_string, filename_string) = Self::output_dir_and_file(program_id);
         let dirname = Path::new(&dirname_string);
         let filename = Path::new(&filename_string);
         let path_output_dir: PathBuf = output_rootdir.join(dirname);
         let path_output_file: PathBuf = path_output_dir.join(filename);
         Self::create_csv_file_inner(records, &path_output_dir, &path_output_file)
+            .with_context(|| format!("Save csv file at: {:?}", path_output_file))?;
+        Ok(())
     }
 
     // Used for construct a path like: "/absolute/path/123/A123456_similarity_lsh.csv"
@@ -301,10 +308,10 @@ impl OutputManager {
         (dir_index_string, filename_string)
     }
 
-    fn create_csv_file_inner(records: &Vec<ComparisonResult>, output_path_dir: &Path, output_path_file: &Path) -> Result<(), Box<dyn Error>> {
+    fn create_csv_file_inner(records: &Vec<ComparisonResult>, output_path_dir: &Path, output_path_file: &Path) -> anyhow::Result<()> {
         if !output_path_dir.is_dir() {
-            debug!("creating dir: {:?}", output_path_dir);
-            fs::create_dir(output_path_dir)?;
+            fs::create_dir(output_path_dir)
+                .with_context(|| format!("Could not create dir: {:?}", output_path_dir))?;
         }
         let mut wtr = WriterBuilder::new()
             .has_headers(true)

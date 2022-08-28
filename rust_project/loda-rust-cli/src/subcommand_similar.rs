@@ -3,5 +3,6 @@ use crate::similar::Similar;
 use std::error::Error;
 
 pub fn subcommand_similar() -> Result<(), Box<dyn Error>> {
-    Similar::run()
+    Similar::run()?;
+    Ok(())
 }

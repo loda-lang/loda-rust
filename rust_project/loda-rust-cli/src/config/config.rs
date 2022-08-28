@@ -28,7 +28,6 @@ pub struct Config {
     oeis_names_file: PathBuf,
     loda_submitted_by: String,
     miner_metrics_listen_port: u16,
-    loda_identify_similar_programs_repository: PathBuf,
     loda_patterns_repository: PathBuf,
     loda_outlier_programs_repository: PathBuf,
     miner_cpu_strategy: MinerCPUStrategy,
@@ -270,18 +269,10 @@ impl Config {
         return port;
     }
 
-    pub fn loda_identify_similar_programs_repository(&self) -> PathBuf {
-        let path = &self.loda_identify_similar_programs_repository;
+    pub fn similar_programs(&self) -> PathBuf {
+        let path = self.basedir.join("similar-programs");
         assert!(path.is_absolute());
-        assert!(path.is_dir());
         PathBuf::from(path)
-    }
-
-    pub fn loda_identify_similar_programs_repository_oeis(&self) -> PathBuf {
-        let name = Path::new("oeis");
-        let path = self.loda_identify_similar_programs_repository().join(name);
-        assert!(path.is_dir());
-        path
     }
 
     pub fn loda_patterns_repository(&self) -> PathBuf {
@@ -327,7 +318,6 @@ struct ConfigFallback {
     oeis_names_file: String,
     loda_submitted_by: String,
     miner_metrics_listen_port: u16,
-    loda_identify_similar_programs_repository: String,
     loda_patterns_repository: String,
     loda_outlier_programs_repository: String,
     miner_cpu_strategy: MinerCPUStrategy,
@@ -343,7 +333,6 @@ struct ConfigCustom {
     oeis_names_file: Option<String>,
     loda_submitted_by: Option<String>,
     miner_metrics_listen_port: Option<u16>,
-    loda_identify_similar_programs_repository: Option<String>,
     loda_patterns_repository: Option<String>,
     loda_outlier_programs_repository: Option<String>,
     miner_cpu_strategy: Option<MinerCPUStrategy>,
@@ -414,7 +403,6 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
     let loda_cpp_executable: String = custom.loda_cpp_executable.unwrap_or(fallback.loda_cpp_executable);
     let loda_submitted_by: String = custom.loda_submitted_by.unwrap_or(fallback.loda_submitted_by);
     let miner_metrics_listen_port: u16 = custom.miner_metrics_listen_port.unwrap_or(fallback.miner_metrics_listen_port);
-    let loda_identify_similar_programs_repository: String = custom.loda_identify_similar_programs_repository.unwrap_or(fallback.loda_identify_similar_programs_repository);
     let loda_patterns_repository: String = custom.loda_patterns_repository.unwrap_or(fallback.loda_patterns_repository);
     let loda_outlier_programs_repository: String = custom.loda_outlier_programs_repository.unwrap_or(fallback.loda_outlier_programs_repository);
     let miner_cpu_strategy: MinerCPUStrategy = custom.miner_cpu_strategy.unwrap_or(fallback.miner_cpu_strategy);
@@ -428,7 +416,6 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
         loda_cpp_executable: simpleenv.resolve_path(&loda_cpp_executable),
         loda_submitted_by: loda_submitted_by.clone(),
         miner_metrics_listen_port: miner_metrics_listen_port,
-        loda_identify_similar_programs_repository: simpleenv.resolve_path(&loda_identify_similar_programs_repository),
         loda_patterns_repository: simpleenv.resolve_path(&loda_patterns_repository),
         loda_outlier_programs_repository: simpleenv.resolve_path(&loda_outlier_programs_repository),
         miner_cpu_strategy: miner_cpu_strategy,
@@ -544,7 +531,6 @@ mod tests {
         assert_has_suffix(&config.loda_cpp_executable, "/loda/bin/loda")?;
         assert_eq!(config.loda_submitted_by, "John Doe");
         assert_eq!(config.miner_metrics_listen_port, 8090);
-        assert_has_suffix(&config.loda_identify_similar_programs_repository, "/git/loda-identify-similar-programs")?;
         assert_has_suffix(&config.loda_patterns_repository, "/git/loda-patterns")?;
         assert_has_suffix(&config.loda_outlier_programs_repository, "/git/loda-outlier-programs")?;
         assert_eq!(config.miner_cpu_strategy, MinerCPUStrategy::Max);
