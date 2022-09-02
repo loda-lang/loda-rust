@@ -31,10 +31,10 @@ type CandidateProgramItem = Rc<RefCell<CandidateProgram>>;
 /// Ignores programs that have already been processed.
 /// 
 /// If the mined program is faster than what's already 
-/// inside `loda-programs` repo. Then it's a keeper and get added to the repo.
+/// inside `loda-programs` repo. Then it's a keeper and gets added to the repo.
 /// the input file gets renamed to `20220826-210221-120462594.keep.asm`
 /// 
-/// If the mined program is shares lots of terms with OEIS sequences,
+/// If the mined program is sharing lots of terms with OEIS sequences,
 /// but isn't quite a full match, then it gets added to the `oeis_divergent` repo. 
 /// This is also a keeper.
 /// the input file gets renamed to `20220826-210221-120462594.keep.asm`

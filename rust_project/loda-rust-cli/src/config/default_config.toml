@@ -24,9 +24,6 @@ loda_submitted_by = "John Doe"
 # When mining with metrics enabled, this is the port that the metrics can be accessed.
 miner_metrics_listen_port = 8090
 
-# What loda programs are similar to each other.
-loda_identify_similar_programs_repository = "$HOME/git/loda-identify-similar-programs"
-
 # Patterns that are frequently used in loda programs.
 loda_patterns_repository = "$HOME/git/loda-patterns"
 

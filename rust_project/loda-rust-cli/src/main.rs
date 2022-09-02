@@ -185,8 +185,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("similar") {
-        subcommand_similar();
-        return Ok(());
+        return subcommand_similar();
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("pattern") {
