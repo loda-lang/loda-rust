@@ -26,7 +26,7 @@ impl SubcommandTest {
         println!("path: {:?}", path);
 
         let time_limit = Duration::from_secs(LODACPP_CHECK_TIME_LIMIT_IN_SECONDS);
-        let ok_error = lodacpp.perform_check(path, time_limit);
+        let ok_error = lodacpp.perform_check2(path, time_limit);
         println!("ok_error: {:?}", ok_error);
 
         Ok(())
