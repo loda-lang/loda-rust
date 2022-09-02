@@ -3,7 +3,7 @@ use crate::common::{oeis_ids_from_program_string, OeisIdStringMap};
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
-use super::{batch_lookup_names, terms_from_program, FormatProgram};
+use super::{batch_lookup_names, terms_from_program, FormatProgram, path_for_oeis_program};
 use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, ValidateSingleProgram, ValidateSingleProgramError};
 use loda_rust_core::util::BigIntVec;
 use loda_rust_core::util::BigIntVecToString;
@@ -468,14 +468,7 @@ impl PostMine {
 
     /// Construct a path, like this: `/absolute/path/123/A123456.asm`
     fn path_for_oeis_program(&self, program_id: OeisId) -> ParentDirAndChildFile {
-        assert!(self.loda_programs_oeis_dir.is_dir());
-        assert!(self.loda_programs_oeis_dir.is_absolute());
-        let dir_index: u32 = program_id.raw() / 1000;
-        let dir_index_string: String = format!("{:0>3}", dir_index);
-        let filename_string: String = format!("{}.asm", program_id.a_number());
-        let dir_path: PathBuf = self.loda_programs_oeis_dir.join(dir_index_string);
-        let file_path: PathBuf = dir_path.join(filename_string);
-        ParentDirAndChildFile::new(dir_path, file_path)
+        path_for_oeis_program(&self.loda_programs_oeis_dir, program_id)
     }
 
     /// Construct a path, like this: `/absolute/path//041/A041009_30_0.asm`
