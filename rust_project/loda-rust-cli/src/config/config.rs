@@ -42,6 +42,10 @@ impl Config {
         load_config_from_home_dir()
     }
 
+    pub fn basedir(&self) -> PathBuf {
+        PathBuf::from(&self.basedir)
+    }
+
     pub fn analytics_dir(&self) -> PathBuf {
         let path = self.basedir.join("analytics");
         assert!(path.is_absolute());
