@@ -94,7 +94,7 @@ fn lodacpp_perform_check_impl_command(
         return Err(Box::new(LodaCppError::NonZeroExitCode));
     }
 
-    LodaCppCheckResult::parse(&output_stdout)
+    LodaCppCheckResult::parse(&output_stdout, false)
 }
 
 fn lodacpp_perform_check_impl_subprocess(

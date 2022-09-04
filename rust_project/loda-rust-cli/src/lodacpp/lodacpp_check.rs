@@ -56,6 +56,7 @@ fn extract_number_of_correct_terms(input: &str) -> u32 {
 pub enum LodaCppCheckStatus {
     FullMatch,
     PartialMatch,
+    Timeout,
 }
 
 #[derive(Debug)]
@@ -65,7 +66,7 @@ pub struct LodaCppCheckResult {
 }
 
 impl LodaCppCheckResult {
-    pub fn parse<S: AsRef<str>>(input_raw: S) -> Result<LodaCppCheckResult, Box<dyn Error>> {
+    pub fn parse<S: AsRef<str>>(input_raw: S, process_did_timeout: bool) -> Result<LodaCppCheckResult, Box<dyn Error>> {
         let input_raw: &str = input_raw.as_ref();
         let input_trimmed: &str = input_raw.trim();
         if input_trimmed.ends_with("ok") {
@@ -79,6 +80,13 @@ impl LodaCppCheckResult {
             let number_of_correct_terms: u32 = extract_number_of_correct_terms(&input_trimmed);
             return Ok(Self {
                 status: LodaCppCheckStatus::PartialMatch,
+                number_of_correct_terms: number_of_correct_terms,
+            });
+        }
+        if process_did_timeout {
+            let number_of_correct_terms: u32 = extract_number_of_correct_terms(&input_trimmed);
+            return Ok(Self {
+                status: LodaCppCheckStatus::Timeout,
                 number_of_correct_terms: number_of_correct_terms,
             });
         }
@@ -121,7 +129,7 @@ ok
 "#;
 
         // Act
-        let result = LodaCppCheckResult::parse(content).expect("Should be able to parse ok");
+        let result = LodaCppCheckResult::parse(content, false).expect("Should be able to parse ok");
 
         // Assert
         assert_eq!(result.status, LodaCppCheckStatus::FullMatch);
@@ -149,10 +157,32 @@ error
 "#;
 
         // Act
-        let result = LodaCppCheckResult::parse(content).expect("Should be able to parse ok");
+        let result = LodaCppCheckResult::parse(content, false).expect("Should be able to parse ok");
 
         // Assert
         assert_eq!(result.status, LodaCppCheckStatus::PartialMatch);
         assert_eq!(result.number_of_correct_terms, 11);
+    }    
+
+    #[test]
+    fn test_40000_parse_timeout() {
+        // Arrange
+        let content = 
+r#"
+0 2
+1 1
+2 0
+3 1
+4 0
+5 0
+6 1
+"#;
+
+        // Act
+        let result = LodaCppCheckResult::parse(content, true).expect("Should be able to parse ok");
+
+        // Assert
+        assert_eq!(result.status, LodaCppCheckStatus::Timeout);
+        assert_eq!(result.number_of_correct_terms, 7);
     }    
 }
