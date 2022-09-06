@@ -3,9 +3,11 @@ use crate::oeis::OeisId;
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus};
 use crate::config::Config;
 use crate::postmine::{ParentDirAndChildFile, path_for_oeis_program};
-use std::time::Duration;
 use std::error::Error;
+use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
+use anyhow::Context;
 
 pub struct SubcommandTest {}
 
@@ -43,6 +45,8 @@ impl SubcommandTest {
         if check_result.status != LodaCppCheckStatus::FullMatch {
             return Err(anyhow::anyhow!("Problem with {}. Expected 'loda check {:?}' to be a full match, but got {:?}. output_file: {:?}", oeis_id.a_number(), program_path, check_result, output_file));
         }
+        fs::remove_file(&output_file)
+            .with_context(|| format!("Unable to delete temporary file: {:?}", &output_file))?;
         Ok(())
     }
 
@@ -72,6 +76,8 @@ impl SubcommandTest {
         if check_result.status != LodaCppCheckStatus::Timeout {
             return Err(anyhow::anyhow!("Problem with {}. Expected 'loda check {:?}' to be timeout, but got {:?}. output_file: {:?}", oeis_id.a_number(), program_path, check_result, output_file));
         }
+        fs::remove_file(&output_file)
+            .with_context(|| format!("Unable to delete temporary file: {:?}", &output_file))?;
         Ok(())
     }
 }
