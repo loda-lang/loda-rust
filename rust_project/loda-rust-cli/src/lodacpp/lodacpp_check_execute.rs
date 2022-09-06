@@ -6,16 +6,16 @@ use subprocess::{Popen, PopenConfig, Redirection};
 use std::ffi::OsStr;
 
 pub trait LodaCppCheck {
-    fn perform_check_and_save_output2(&self, loda_program_path: &Path, time_limit: Duration, save_output_to_path: &Path) -> anyhow::Result<LodaCppCheckResult>;
+    fn perform_check_and_save_output(&self, loda_program_path: &Path, time_limit: Duration, save_output_to_path: &Path) -> anyhow::Result<LodaCppCheckResult>;
 }
 
 impl LodaCppCheck for LodaCpp {
-    fn perform_check_and_save_output2(&self, loda_program_path: &Path, time_limit: Duration, save_output_to_path: &Path) -> anyhow::Result<LodaCppCheckResult> {
-        lodacpp_perform_check_impl_subprocess(&self, loda_program_path, time_limit, save_output_to_path)
+    fn perform_check_and_save_output(&self, loda_program_path: &Path, time_limit: Duration, save_output_to_path: &Path) -> anyhow::Result<LodaCppCheckResult> {
+        lodacpp_perform_check_impl(&self, loda_program_path, time_limit, save_output_to_path)
     }
 }
 
-fn lodacpp_perform_check_impl_subprocess(
+fn lodacpp_perform_check_impl(
     loda_cpp: &LodaCpp, 
     loda_program_path: &Path, 
     time_limit: Duration,

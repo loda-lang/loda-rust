@@ -35,7 +35,7 @@ impl SubcommandTest {
         debug!("program_path: {:?}", program_path);
 
         // Act
-        let ok_error = lodacpp.perform_check_and_save_output2(program_path, time_limit, &output_file);
+        let ok_error = lodacpp.perform_check_and_save_output(program_path, time_limit, &output_file);
 
         // Assert
         debug!("ok_error: {:?}", ok_error);
@@ -64,7 +64,7 @@ impl SubcommandTest {
         debug!("program_path: {:?}", program_path);
 
         // Act
-        let ok_error = lodacpp.perform_check_and_save_output2(program_path, time_limit, &output_file);
+        let ok_error = lodacpp.perform_check_and_save_output(program_path, time_limit, &output_file);
 
         // Assert
         debug!("ok_error: {:?}", ok_error);
