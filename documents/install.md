@@ -10,7 +10,7 @@ Verify that Rust really works
 
 ```
 PROMPT> cargo --version
-cargo 1.48.0 (65cbdd2dc 1984-12-29)
+cargo 1.63.0 (fd9c4297c 2022-07-01)
 ```
 
 
