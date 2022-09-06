@@ -22,7 +22,6 @@ pub struct Config {
     basedir: PathBuf,
     loda_programs_repository: PathBuf,
     loda_rust_repository: PathBuf,
-    loda_cpp_repository: PathBuf,
     loda_cpp_executable: PathBuf,
     oeis_stripped_file: PathBuf,
     oeis_names_file: PathBuf,
@@ -247,14 +246,6 @@ impl Config {
         PathBuf::from(path)
     }
 
-    #[allow(dead_code)]
-    pub fn loda_cpp_repository(&self) -> PathBuf {
-        let path = &self.loda_cpp_repository;
-        assert!(path.is_absolute());
-        assert!(path.is_dir());
-        PathBuf::from(path)
-    }
-
     pub fn loda_cpp_executable(&self) -> PathBuf {
         let path = &self.loda_cpp_executable;
         assert!(path.is_absolute());
@@ -317,7 +308,6 @@ struct ConfigFallback {
     loda_programs_repository: String,
     oeis_stripped_file: String,
     loda_rust_repository: String,
-    loda_cpp_repository: String,
     loda_cpp_executable: String,
     oeis_names_file: String,
     loda_submitted_by: String,
@@ -332,7 +322,6 @@ struct ConfigCustom {
     loda_programs_repository: Option<String>,
     oeis_stripped_file: Option<String>,
     loda_rust_repository: Option<String>,
-    loda_cpp_repository: Option<String>,
     loda_cpp_executable: Option<String>,
     oeis_names_file: Option<String>,
     loda_submitted_by: Option<String>,
@@ -403,7 +392,6 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
     let oeis_stripped_file: String = custom.oeis_stripped_file.unwrap_or(fallback.oeis_stripped_file);
     let loda_rust_repository: String = custom.loda_rust_repository.unwrap_or(fallback.loda_rust_repository);
     let oeis_names_file: String = custom.oeis_names_file.unwrap_or(fallback.oeis_names_file);
-    let loda_cpp_repository: String = custom.loda_cpp_repository.unwrap_or(fallback.loda_cpp_repository);
     let loda_cpp_executable: String = custom.loda_cpp_executable.unwrap_or(fallback.loda_cpp_executable);
     let loda_submitted_by: String = custom.loda_submitted_by.unwrap_or(fallback.loda_submitted_by);
     let miner_metrics_listen_port: u16 = custom.miner_metrics_listen_port.unwrap_or(fallback.miner_metrics_listen_port);
@@ -416,7 +404,6 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
         oeis_stripped_file: simpleenv.resolve_path(&oeis_stripped_file),
         oeis_names_file: simpleenv.resolve_path(&oeis_names_file),
         loda_rust_repository: simpleenv.resolve_path(&loda_rust_repository),
-        loda_cpp_repository: simpleenv.resolve_path(&loda_cpp_repository),
         loda_cpp_executable: simpleenv.resolve_path(&loda_cpp_executable),
         loda_submitted_by: loda_submitted_by.clone(),
         miner_metrics_listen_port: miner_metrics_listen_port,
@@ -531,7 +518,6 @@ mod tests {
         assert_has_suffix(&config.oeis_stripped_file, "/loda/oeis/stripped")?;
         assert_has_suffix(&config.oeis_names_file, "/loda/oeis/names")?;
         assert_has_suffix(&config.loda_rust_repository, "/git/loda-rust")?;
-        assert_has_suffix(&config.loda_cpp_repository, "/git/loda-cpp")?;
         assert_has_suffix(&config.loda_cpp_executable, "/loda/bin/loda")?;
         assert_eq!(config.loda_submitted_by, "John Doe");
         assert_eq!(config.miner_metrics_listen_port, 8090);
