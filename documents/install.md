@@ -1,6 +1,25 @@
 # Installation guide for "loda-rust"
 
-## Step 1 - Rust language
+## Prerequisites
+
+Computer with 64 bit cpu.
+
+LODA-CPP doesn't run on Raspberry Pi 4 with armv7l cpu (32bit).
+
+
+## Step 1 - Install LODA Cpp
+
+Follow the [Install guide for LODA](https://loda-lang.org/install/).
+
+Verify that LODA Cpp really works
+
+```
+PROMPT> loda eval A40
+2,3,5,7,11,13,17,19,23,29
+```
+
+
+## Step 2 - Rust language
 
 On macOS/Linux you may want to use your package manager.
 
@@ -12,34 +31,6 @@ Verify that Rust really works
 PROMPT> cargo --version
 cargo 1.63.0 (fd9c4297c 2022-07-01)
 ```
-
-
-## Step 2 - LODA repositories
-
-The `LODA Rust` project depends on the `LODA` project. So first install LODA.
-
-#### Step 2 A
-
-Check out [loda-programs](https://github.com/loda-lang/loda-programs) on your computer.
-
-A good place for this repository, is the `$HOME/git/loda-programs` dir.
-
-#### Step 2 B
-
-Check out [loda-cpp](https://github.com/loda-lang/loda-cpp) on your computer.
-
-A good place for this repository, is the `$HOME/git/loda-cpp` dir.
-
-#### Step 2 C
-
-Follow the `loda-cpp` project install instructions.
-
-LODA creates a `$HOME/.loda` dir.
-
-#### Step 2 Complete
-
-So far so good. LODA is installed.
-
 
 
 ## Step 3 - LODA Rust repository
@@ -73,16 +64,11 @@ This creates a `$HOME/.loda-rust` dir.
 
 Manually edit the configuration file `$HOME/.loda-rust/config.toml`.
 
-Here you must update the paths, so they refer to where LODA is installed on your computer.
+Here you must update the paths, so they refer to where LODA Cpp is installed on your computer.
 
 Manually modify this parameter, so it points to the "loda-programs" repository dir.
 ```
-loda_programs_repository = "/Users/JOHNDOE/git/loda-programs"
-```
-
-Manually modify this parameter, so it points to the LODA Cpp repository dir.
-```
-loda_cpp_repository = "/Users/JOHNDOE/git/loda-cpp"
+loda_programs_repository = "/Users/JOHNDOE/loda/programs"
 ```
 
 Manually modify this parameter, so it points to the LODA Rust repository dir.
@@ -92,7 +78,7 @@ loda_rust_repository = "/Users/JOHNDOE/git/loda-rust"
 
 Manually modify this parameter, so it points to the unzipped OEIS stripped file.
 ```
-oeis_stripped_file = "/Users/JOHNDOE/.loda/oeis/stripped"
+oeis_stripped_file = "/Users/JOHNDOE/loda/oeis/stripped"
 ```
 
 #### Step 3 E
