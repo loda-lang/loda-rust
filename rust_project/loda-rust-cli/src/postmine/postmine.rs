@@ -3,7 +3,7 @@ use crate::common::{oeis_ids_from_program_string, OeisIdStringMap};
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
-use super::{batch_lookup_names, terms_from_program, FormatProgram};
+use super::{batch_lookup_names, terms_from_program, FormatProgram, path_for_oeis_program};
 use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, ValidateSingleProgram, ValidateSingleProgramError};
 use loda_rust_core::util::BigIntVec;
 use loda_rust_core::util::BigIntVecToString;
@@ -468,14 +468,7 @@ impl PostMine {
 
     /// Construct a path, like this: `/absolute/path/123/A123456.asm`
     fn path_for_oeis_program(&self, program_id: OeisId) -> ParentDirAndChildFile {
-        assert!(self.loda_programs_oeis_dir.is_dir());
-        assert!(self.loda_programs_oeis_dir.is_absolute());
-        let dir_index: u32 = program_id.raw() / 1000;
-        let dir_index_string: String = format!("{:0>3}", dir_index);
-        let filename_string: String = format!("{}.asm", program_id.a_number());
-        let dir_path: PathBuf = self.loda_programs_oeis_dir.join(dir_index_string);
-        let file_path: PathBuf = dir_path.join(filename_string);
-        ParentDirAndChildFile::new(dir_path, file_path)
+        path_for_oeis_program(&self.loda_programs_oeis_dir, program_id)
     }
 
     /// Construct a path, like this: `/absolute/path//041/A041009_30_0.asm`
@@ -663,15 +656,6 @@ impl PostMine {
             }
         };
         match check_result.status {
-            LodaCppCheckStatus::PartialMatch => {
-                self.process_partial_match(
-                    simple_log.clone(),
-                    candidate_program,
-                    &check_program_path,
-                    possible_id,
-                    check_result.number_of_correct_terms
-                )?;
-            },
             LodaCppCheckStatus::FullMatch => {
                 self.process_full_match(
                     simple_log.clone(),
@@ -682,29 +666,27 @@ impl PostMine {
                     &compare_output_path,
                     check_result.number_of_correct_terms as usize
                 )?;
-            }
+            },
+            LodaCppCheckStatus::PartialMatch => {
+                self.process_partial_match(
+                    simple_log.clone(),
+                    candidate_program,
+                    &check_program_path,
+                    possible_id,
+                    check_result.number_of_correct_terms
+                )?;
+            },
+            LodaCppCheckStatus::Timeout => {
+                self.process_timeout(
+                    simple_log.clone(),
+                    candidate_program,
+                    &check_program_path,
+                    possible_id,
+                    check_result.number_of_correct_terms
+                )?;
+            },
         }
 
-        Ok(())
-    }
-    
-    fn process_partial_match(
-        &self, 
-        simple_log: SimpleLog, 
-        candidate_program: CandidateProgramItem, 
-        path_program0: &Path, 
-        program_id: OeisId, 
-        number_of_correct_terms: u32
-    ) -> anyhow::Result<()> {
-        let mismatch_path: ParentDirAndChildFile = self.path_to_mismatch(program_id, number_of_correct_terms as usize)
-            .map_err(|e| anyhow::anyhow!("Unable to construct mistmatc_path. program_id: {:?} error: {:?}", program_id, e))?;
-        mismatch_path.create_parent_dir()
-            .map_err(|e| anyhow::anyhow!("Unable to create parent dir for mismatch. program_id: {:?} error: {:?}", program_id, e))?;
-
-        let message = format!("Keeping. This program is a mismatch, it has correct {} terms, followed by mismatch. Saving at: {:?}", number_of_correct_terms, mismatch_path.child_file());
-        simple_log.println(message);
-        fs::copy(path_program0, mismatch_path.child_file())?;
-        candidate_program.borrow_mut().keep_id_insert(program_id);
         Ok(())
     }
     
@@ -770,4 +752,45 @@ impl PostMine {
         candidate_program.borrow_mut().keep_id_insert(possible_id);
         Ok(())
     }
+
+    fn process_partial_match(
+        &self, 
+        simple_log: SimpleLog, 
+        candidate_program: CandidateProgramItem, 
+        path_program0: &Path, 
+        program_id: OeisId, 
+        number_of_correct_terms: u32
+    ) -> anyhow::Result<()> {
+        let mismatch_path: ParentDirAndChildFile = self.path_to_mismatch(program_id, number_of_correct_terms as usize)
+            .map_err(|e| anyhow::anyhow!("Unable to construct mismatch_path. program_id: {:?} error: {:?}", program_id, e))?;
+        mismatch_path.create_parent_dir()
+            .map_err(|e| anyhow::anyhow!("Unable to create parent dir for mismatch. program_id: {:?} error: {:?}", program_id, e))?;
+
+        let message = format!("Keeping. This program is a mismatch, it has correct {} terms, followed by mismatch. Saving at: {:?}", number_of_correct_terms, mismatch_path.child_file());
+        simple_log.println(message);
+        fs::copy(path_program0, mismatch_path.child_file())?;
+        candidate_program.borrow_mut().keep_id_insert(program_id);
+        Ok(())
+    }
+
+    fn process_timeout(
+        &self, 
+        simple_log: SimpleLog, 
+        candidate_program: CandidateProgramItem, 
+        path_program0: &Path, 
+        program_id: OeisId, 
+        number_of_correct_terms: u32
+    ) -> anyhow::Result<()> {
+        let mismatch_path: ParentDirAndChildFile = self.path_to_mismatch(program_id, number_of_correct_terms as usize)
+            .map_err(|e| anyhow::anyhow!("Unable to construct mismatch_path. program_id: {:?} error: {:?}", program_id, e))?;
+        mismatch_path.create_parent_dir()
+            .map_err(|e| anyhow::anyhow!("Unable to create parent dir for mismatch. program_id: {:?} error: {:?}", program_id, e))?;
+
+        let message = format!("Keeping. Timeout while checking this program. Undecided if this is a match or a mismatch. It has correct {} terms. Saving at: {:?}", number_of_correct_terms, mismatch_path.child_file());
+        simple_log.println(message);
+        fs::copy(path_program0, mismatch_path.child_file())?;
+        candidate_program.borrow_mut().keep_id_insert(program_id);
+        Ok(())
+    }
+    
 }
