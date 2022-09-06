@@ -8,7 +8,6 @@ class Config
     attr_reader :dot_loda_rust
     attr_reader :analytics_dir
     attr_reader :loda_programs_repository
-    attr_reader :loda_cpp_repository
     attr_reader :loda_cpp_executable
     attr_reader :oeis_stripped_file
     attr_reader :oeis_names_file
@@ -28,7 +27,6 @@ class Config
         @dot_loda_rust = dot_loda_rust
         @analytics_dir = File.join(dot_loda_rust, 'analytics')
         @loda_programs_repository = Config.resolve_path(dict, 'loda_programs_repository', homedir)
-        @loda_cpp_repository = Config.resolve_path(dict, 'loda_cpp_repository', homedir)
         @loda_cpp_executable = Config.resolve_path(dict, 'loda_cpp_executable', homedir)
         @oeis_stripped_file = Config.resolve_path(dict, 'oeis_stripped_file', homedir)
         @oeis_names_file = Config.resolve_path(dict, 'oeis_names_file', homedir)

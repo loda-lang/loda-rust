@@ -3,9 +3,6 @@
 # Absolute path to the "loda-programs" repository dir.
 loda_programs_repository = "$HOME/loda/programs"
 
-# Absolute path to the "loda-cpp" repository dir.
-loda_cpp_repository = "$HOME/git/loda-cpp"
-
 # Absolute path to the "loda" executable file.
 loda_cpp_executable = "$HOME/loda/bin/loda"
 
