@@ -1,10 +1,17 @@
 use crate::lodacpp::{LodaCpp, LodaCppEvalStepsExecute, LodaCppEvalSteps};
+use crate::common::SimpleLog;
 use std::error::Error;
 use std::path::Path;
 use std::time::Duration;
 use std::time::Instant;
 use std::fs::File;
 use std::io::Write;
+
+pub enum StatusOfExistingProgram {
+    CompareNewWithExisting,
+    NoExistingProgram,
+    IgnoreExistingProgram { ignore_reason: String },
+}
 
 #[derive(Debug, PartialEq)]
 pub enum CompareTwoProgramsResult {
@@ -21,20 +28,53 @@ impl CompareTwoPrograms {
 
     pub fn compare(
         &self, 
+        simple_log: SimpleLog,
         lodacpp: &LodaCpp, 
         path_program0: &Path, 
-        path_program1: &Path, 
+        path_program1: &Path,
+        status_of_existing_program: StatusOfExistingProgram,
         path_comparison: &Path, 
         time_limit: Duration, 
         term_count: usize
     ) -> Result<CompareTwoProgramsResult, Box<dyn Error>> {
         assert!(path_program0.is_file());
-        let mut file = File::create(path_comparison)?;
-        if !path_program1.is_file() {
-            writeln!(&mut file, "Keeping. This program is new, there is no previous implementation.")?;
-            return Ok(CompareTwoProgramsResult::Program0);
-        }
 
+        match status_of_existing_program {
+            StatusOfExistingProgram::NoExistingProgram => {
+                simple_log.println("compare_two_programs: Keeping. This is a new program. There is no previous implementation.");
+                return Ok(CompareTwoProgramsResult::Program0);
+            },
+            StatusOfExistingProgram::IgnoreExistingProgram { ignore_reason } => {
+                simple_log.println(format!("compare_two_programs: Keeping the mined program. There is a problem with the previous implementation: {}", ignore_reason));
+                return Ok(CompareTwoProgramsResult::Program0);
+            },
+            StatusOfExistingProgram::CompareNewWithExisting => {
+                simple_log.println("compare_two_programs: Comparing new program with existing program, and choosing the best.");
+                return self.compare_new_with_existing(
+                    lodacpp, 
+                    path_program0, 
+                    path_program1, 
+                    path_comparison, 
+                    time_limit, 
+                    term_count
+                );
+            }
+        }
+    }
+
+    pub fn compare_new_with_existing(
+        &self, 
+        lodacpp: &LodaCpp, 
+        path_program0: &Path, 
+        path_program1: &Path,
+        path_comparison: &Path, 
+        time_limit: Duration, 
+        term_count: usize
+    ) -> Result<CompareTwoProgramsResult, Box<dyn Error>> {
+        assert!(path_program0.is_file());
+        assert!(path_program1.is_file());
+
+        let mut file = File::create(path_comparison)?;
         writeln!(&mut file, "program0, measuring steps: {:?}", path_program0)?;
         let start0 = Instant::now();
         let result0 = lodacpp.eval_steps(
@@ -146,7 +186,8 @@ impl CompareTwoPrograms {
             writeln!(&mut file, "the new program is faster than the existing program. Keep the new program.")?;
             return Ok(CompareTwoProgramsResult::Program0);
         }
+        error!("uncaught scenario. Using existing program");
         writeln!(&mut file, "uncaught scenario. Using existing program")?;
-        Ok(CompareTwoProgramsResult::Program0)
+        Ok(CompareTwoProgramsResult::Program1)
     }
 }
