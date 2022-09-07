@@ -4,7 +4,7 @@ use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, Simpl
 use crate::oeis::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use super::{batch_lookup_names, terms_from_program, FormatProgram, path_for_oeis_program};
-use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, ValidateSingleProgram, ValidateSingleProgramError};
+use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, ValidateSingleProgram};
 use loda_rust_core::util::BigIntVec;
 use loda_rust_core::util::BigIntVecToString;
 use num_bigint::{BigInt, ToBigInt};
@@ -498,6 +498,10 @@ impl PostMine {
     }
 
     fn remove_existing_loda_program_if_its_invalid(&mut self, program_id: OeisId, path: &Path) -> Result<(), Box<dyn Error>> {
+        if !path.is_file() {
+            debug!("There is no existing file in loda-programs repo for: {}", program_id);
+            return Ok(());
+        }
         let error = match self.validate_single_program.run(path) {
             Ok(_) => {
                 debug!("The existing file in loda-programs repo {} seems ok", program_id);
@@ -505,36 +509,9 @@ impl PostMine {
             },
             Err(error) => error
         };
-        if let Some(vsp_error) = error.downcast_ref::<ValidateSingleProgramError>() {
-            match vsp_error {
-                ValidateSingleProgramError::MissingFile => {
-                    debug!("There is no existing file in loda-programs repo for: {}", program_id);
-                    return Ok(());
-                },
-                ValidateSingleProgramError::IndirectMemoryAccess => {
-                    let reason = format!("The existing program {} in loda-programs repo uses indirect memory access, which LODA-RUST doesn't yet support.", program_id);
-                    self.remove_existing_loda_program(program_id, path, reason)?;
-                    return Ok(());
-                },
-                ValidateSingleProgramError::CyclicDependency => {
-                    let reason = format!("The existing program {} in loda-programs repo has a cyclic dependency and cannot be loaded.", program_id);
-                    self.remove_existing_loda_program(program_id, path, reason)?;
-                    return Ok(());
-                },
-                ValidateSingleProgramError::Load => {
-                    let reason = format!("The existing program {} in loda-programs repo cannot be loaded for other reasons.", program_id);
-                    self.remove_existing_loda_program(program_id, path, reason)?;
-                    return Ok(());
-                },
-                ValidateSingleProgramError::Run => {
-                    let reason = format!("The existing program {} in loda-programs repo cannot run.", program_id);
-                    self.remove_existing_loda_program(program_id, path, reason)?;
-                    return Ok(());
-                }
-            }
-        }
-        error!("The file in loda-programs repo {} has problems: {}", program_id, error);
-        Err(error)
+        let reason = format!("The existing program {} in loda-programs repo. error: {:?}", program_id, error);
+        self.remove_existing_loda_program(program_id, path, reason)?;
+        return Ok(());
     }
     
     /// Decide wether to keep or reject a candidate program.

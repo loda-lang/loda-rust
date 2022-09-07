@@ -6,33 +6,10 @@ use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
 use std::error::Error;
 use std::path::{Path, PathBuf};
-use std::fmt;
 use std::fs;
+use anyhow::Context;
 
 const NUMBER_OF_TERMS_TO_VALIDATE: u64 = 1;
-
-#[derive(Debug)]
-pub enum ValidateSingleProgramError {
-    MissingFile,
-    IndirectMemoryAccess,
-    CyclicDependency,
-    Load,
-    Run,
-}
-
-impl std::error::Error for ValidateSingleProgramError {}
-
-impl fmt::Display for ValidateSingleProgramError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::MissingFile => write!(f, "Missing program"),
-            Self::IndirectMemoryAccess => write!(f, "The program uses indirect memory adressing, which loda-rust does not yet support."),
-            Self::CyclicDependency => write!(f, "The program has a cyclic dependency."),
-            Self::Load => write!(f, "The program cannot be loaded."),
-            Self::Run => write!(f, "The program cannot be run."),
-        }
-    }
-}
 
 pub struct ValidateSingleProgram {
     loda_programs_oeis_dir: PathBuf,
@@ -45,19 +22,13 @@ impl ValidateSingleProgram {
         }
     }
 
-    pub fn run(&self, program_path: &Path) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self, program_path: &Path) -> anyhow::Result<()> {
         // Load the program
         if !program_path.is_file() {
-            debug!("Missing program {:?}.", program_path);
-            return Err(Box::new(ValidateSingleProgramError::MissingFile));
+            anyhow::bail!("Missing program: {:?}", program_path);
         }
-        let program_contents: String = match fs::read_to_string(&program_path) {
-            Ok(value) => value,
-            Err(io_error) => {
-                debug!("Something went wrong reading the file. {:?}", io_error);
-                return Err(Box::new(ValidateSingleProgramError::Load));
-            }
-        };
+        let program_contents: String = fs::read_to_string(&program_path)
+            .with_context(|| format!("The program cannot be loaded: {:?}", program_path))?;
 
         // Parse the program
         let mut dm = DependencyManager::new(
@@ -75,21 +46,18 @@ impl ValidateSingleProgram {
                 // since LODA-RUST does not yet support the double-dollar parameter type.
                 // Example: `mov $$0,$2`
                 if error.uses_indirect_memory_access() {
-                    debug!("Encountered a program that uses double-dollar parameter types: {:?} error: {:?}", program_path, error);
-                    return Err(Box::new(ValidateSingleProgramError::IndirectMemoryAccess));
+                    anyhow::bail!("The program uses indirect memory adressing, which loda-rust does not yet support: {:?} error: {:?}", program_path, error);
                 }
 
                 // Detect programs that have cyclic dependencies.
                 if error.is_cyclic_dependency() {
-                    debug!("Detected a cyclic dependency: {:?} error: {:?}", program_path, error);
-                    return Err(Box::new(ValidateSingleProgramError::CyclicDependency));
+                    anyhow::bail!("The program has a cyclic dependency: {:?} error: {:?}", program_path, error);
                 }
 
                 // Cannot parse program for other reasons such as
                 // Unknown instructions, invalid instruction parameters
                 // Unbalanced loop begin/end.
-                debug!("Cannot parse program {:?}: {:?}", program_path, error);
-                return Err(Box::new(ValidateSingleProgramError::Load));
+                anyhow::bail!("The program cannot be loaded: {:?} error: {:?}", program_path, error);
             }
         };
 
@@ -98,12 +66,11 @@ impl ValidateSingleProgram {
         match program_runner.compute_terms(NUMBER_OF_TERMS_TO_VALIDATE, &mut cache) {
             Ok(_) => {},
             Err(error) => {
-                debug!("Cannot run program {:?}: {:?}", program_path, error);
-                return Err(Box::new(ValidateSingleProgramError::Run));
+                anyhow::bail!("The program cannot be run: {:?} error: {:?}", program_path, error);
             }
         }
 
-        debug!("The existing program {:?} seems ok", program_path);
+        // The program seems ok
         Ok(())
     }
 }
@@ -200,41 +167,11 @@ mod tests {
     use super::*;
     use std::path::PathBuf;
     use std::fs;
-    use std::error::Error;
     use std::fs::File;
     use std::io::prelude::*;
 
-    fn format_result(result: Result<(), Box<dyn Error>>) -> String {
-        let error = match result {
-            Ok(_) => {
-                return "OK".to_string();
-            },
-            Err(error) => error
-        };
-        if let Some(vsp_error) = error.downcast_ref::<ValidateSingleProgramError>() {
-            match vsp_error {
-                ValidateSingleProgramError::MissingFile => {
-                    return "ERROR-MISSING-FILE".to_string();
-                },
-                ValidateSingleProgramError::IndirectMemoryAccess => {
-                    return "ERROR-INDIRECT-MEMORY-ACCESS".to_string();
-                },
-                ValidateSingleProgramError::CyclicDependency => {
-                    return "ERROR-CYCLIC-DEPENDENCY".to_string();
-                },
-                ValidateSingleProgramError::Load => {
-                    return "ERROR-LOAD".to_string();
-                },
-                ValidateSingleProgramError::Run => {
-                    return "ERROR-RUN".to_string();
-                }
-            }
-        }
-        format!("UNKNOWN-ERROR: {:?}", error)
-    }
-
     #[test]
-    fn test_10000_valid_ok() -> Result<(), Box<dyn Error>> {
+    fn test_10000_valid_ok() -> anyhow::Result<()> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
         let basedir = PathBuf::from(&tempdir.path()).join("test_10000_valid_ok");
@@ -251,15 +188,14 @@ mul $0,2 ; multiply by 2 is fine
         input_file.sync_all()?;
 
         // Act
-        let result = validate_single_program.run(&input_path);
+        validate_single_program.run(&input_path).expect("Is not supposed to fail");
 
         // Assert
-        assert_eq!(format_result(result), "OK");
         Ok(())
     }
 
     #[test]
-    fn test_20000_missing_file() -> Result<(), Box<dyn Error>> {
+    fn test_20000_missing_file() -> anyhow::Result<()> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
         let basedir = PathBuf::from(&tempdir.path()).join("test_20000_missing_file");
@@ -268,15 +204,15 @@ mul $0,2 ; multiply by 2 is fine
         let input_path: PathBuf = basedir.join("non-existing.asm");
 
         // Act
-        let result = validate_single_program.run(&input_path);
+        let error = validate_single_program.run(&input_path).expect_err("Is supposed to fail");
 
         // Assert
-        assert_eq!(format_result(result), "ERROR-MISSING-FILE");
+        assert!(error.to_string().starts_with("Missing program"));
         Ok(())
     }
 
     #[test]
-    fn test_30000_cannot_run() -> Result<(), Box<dyn Error>> {
+    fn test_30000_cannot_run() -> anyhow::Result<()> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
         let basedir = PathBuf::from(&tempdir.path()).join("test_30000_cannot_run");
@@ -293,15 +229,15 @@ div $0,0 ; division by zero
         input_file.sync_all()?;
 
         // Act
-        let result = validate_single_program.run(&input_path);
+        let error = validate_single_program.run(&input_path).expect_err("Is supposed to fail");
 
         // Assert
-        assert_eq!(format_result(result), "ERROR-RUN");
+        assert!(error.to_string().starts_with("The program cannot be run"));
         Ok(())
     }
 
     #[test]
-    fn test_40000_cannot_load() -> Result<(), Box<dyn Error>> {
+    fn test_40000_cannot_load() -> anyhow::Result<()> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
         let basedir = PathBuf::from(&tempdir.path()).join("test_40000_cannot_load");
@@ -318,15 +254,15 @@ boom $0,0 ; no instruction named "boom"
         input_file.sync_all()?;
 
         // Act
-        let result = validate_single_program.run(&input_path);
+        let error = validate_single_program.run(&input_path).expect_err("Is supposed to fail");
 
         // Assert
-        assert_eq!(format_result(result), "ERROR-LOAD");
+        assert!(error.to_string().starts_with("The program cannot be loaded"));
         Ok(())
     }
 
     #[test]
-    fn test_50000_indirect_is_unsupported_by_lodarust() -> Result<(), Box<dyn Error>> {
+    fn test_50000_indirect_is_unsupported_by_lodarust() -> anyhow::Result<()> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
         let basedir = PathBuf::from(&tempdir.path()).join("test_50000_indirect_is_unsupported_by_lodarust");
@@ -350,15 +286,15 @@ mod $0,2
         input_file.sync_all()?;
 
         // Act
-        let result = validate_single_program.run(&input_path);
+        let error = validate_single_program.run(&input_path).expect_err("Is supposed to fail");
 
         // Assert
-        assert_eq!(format_result(result), "ERROR-INDIRECT-MEMORY-ACCESS");
+        assert!(error.to_string().starts_with("The program uses indirect memory adressing"));
         Ok(())
     }
 
     #[test]
-    fn test_60000_cyclic_dependency() -> Result<(), Box<dyn Error>> {
+    fn test_60000_cyclic_dependency() -> anyhow::Result<()> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
         let basedir = PathBuf::from(&tempdir.path()).join("test_60000_cyclic_dependency");
@@ -377,10 +313,10 @@ seq $0,45 ; This program depends on itself
         input_file.sync_all()?;
 
         // Act
-        let result = validate_single_program.run(&input_path);
+        let error = validate_single_program.run(&input_path).expect_err("Is supposed to fail");
 
         // Assert
-        assert_eq!(format_result(result), "ERROR-CYCLIC-DEPENDENCY");
+        assert!(error.to_string().starts_with("The program has a cyclic dependency"));
         Ok(())
     }
 }

@@ -31,4 +31,4 @@ pub use postmine::PostMine;
 pub use postmine_error::PostMineError;
 pub use program_serializer_context_with_sequence_name::ProgramSerializerContextWithSequenceName;
 pub use terms_from_programs::{PathTermsMap, terms_from_program, terms_from_programs};
-pub use validate_single_program::{ValidateSingleProgram, ValidateSingleProgramError};
+pub use validate_single_program::ValidateSingleProgram;
