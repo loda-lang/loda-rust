@@ -713,10 +713,10 @@ impl PostMine {
         // If the new program is faster, then keep it, otherwise reject it.
         match result {
             CompareTwoProgramsResult::Program0 => {
-                simple_log.println("Keeping. This new program is an improvement.");
+                simple_log.println("Keeping. The new program is an improvement.");
             },
             CompareTwoProgramsResult::Program1 => {
-                simple_log.println("Rejecting. This program isn't better than the existing program.");
+                simple_log.println("Rejecting. The new program isn't better than the existing program.");
                 return Ok(());
             }
         }
