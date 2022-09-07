@@ -146,7 +146,8 @@ impl CompareTwoPrograms {
             writeln!(&mut file, "the new program is faster than the existing program. Keep the new program.")?;
             return Ok(CompareTwoProgramsResult::Program0);
         }
+        error!("uncaught scenario. Using existing program");
         writeln!(&mut file, "uncaught scenario. Using existing program")?;
-        Ok(CompareTwoProgramsResult::Program0)
+        Ok(CompareTwoProgramsResult::Program1)
     }
 }
