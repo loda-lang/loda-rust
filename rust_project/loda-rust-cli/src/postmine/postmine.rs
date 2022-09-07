@@ -4,7 +4,7 @@ use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, Simpl
 use crate::oeis::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use super::{batch_lookup_names, terms_from_program, FormatProgram, path_for_oeis_program};
-use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, ValidateSingleProgram};
+use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, StatusOfExistingProgram, ValidateSingleProgram};
 use loda_rust_core::util::BigIntVec;
 use loda_rust_core::util::BigIntVecToString;
 use num_bigint::{BigInt, ToBigInt};
@@ -489,29 +489,22 @@ impl PostMine {
         Err(Box::new(PostMineError::CannotConstructUniqueFilenameForMismatch))
     }
 
-    fn remove_existing_loda_program(&mut self, program_id: OeisId, source_path: &Path, remove_reason: String) -> Result<(), Box<dyn Error>> {
-        info!("removing existing loda program: {} reason: {}", program_id, remove_reason);
-        let destination_name = format!("iteration{}_remove_existing_{}.asm", self.iteration, program_id);
-        let destination_path: PathBuf = self.path_timestamped_postmine_dir.join(destination_name);
-        fs::rename(source_path, &destination_path)?;
-        Ok(())
-    }
-
-    fn remove_existing_loda_program_if_its_invalid(&mut self, program_id: OeisId, path: &Path) -> Result<(), Box<dyn Error>> {
+    fn determine_status_of_existing_program(&self, program_id: OeisId, path: &Path) -> StatusOfExistingProgram {
         if !path.is_file() {
             debug!("There is no existing file in loda-programs repo for: {}", program_id);
-            return Ok(());
+            return StatusOfExistingProgram::NoExistingProgram;
         }
-        let error = match self.validate_single_program.run(path) {
+        match self.validate_single_program.run(path) {
             Ok(_) => {
                 debug!("The existing file in loda-programs repo {} seems ok", program_id);
-                return Ok(());
+                return StatusOfExistingProgram::CompareNewWithExisting;
             },
-            Err(error) => error
+            Err(error) => {
+                debug!("The existing program {} in loda-programs repo. error: {:?}", program_id, error);
+                let reason = format!("There is a problem with the existing program {} in loda-programs repo. error: {:?}", program_id.a_number(), error);
+                return StatusOfExistingProgram::IgnoreExistingProgram { ignore_reason: reason };
+            }
         };
-        let reason = format!("The existing program {} in loda-programs repo. error: {:?}", program_id, error);
-        self.remove_existing_loda_program(program_id, path, reason)?;
-        return Ok(());
     }
     
     /// Decide wether to keep or reject a candidate program.
@@ -556,8 +549,8 @@ impl PostMine {
         } else {
             terms_from_oeis_program = None;
         }
-        self.remove_existing_loda_program_if_its_invalid(possible_id, oeis_program_path.child_file())
-            .map_err(|e| anyhow::anyhow!("Unable to remove existing invalid program. path: {:?} error: {:?}", oeis_program_path, e))?;
+
+        let status_of_existing_program: StatusOfExistingProgram = self.determine_status_of_existing_program(possible_id, oeis_program_path.child_file());
 
         let check_program_filename = format!("iteration{}_program.asm", self.iteration);
         let check_program_path: PathBuf = self.path_timestamped_postmine_dir.join(check_program_filename);
@@ -639,7 +632,8 @@ impl PostMine {
                     candidate_program,
                     possible_id,
                     &check_program_path,
-                    oeis_program_path,
+                    &oeis_program_path,
+                    status_of_existing_program,
                     &compare_output_path,
                     check_result.number_of_correct_terms as usize
                 )?;
@@ -666,19 +660,20 @@ impl PostMine {
 
         Ok(())
     }
-    
+
     fn process_full_match(
         &self, 
         simple_log: SimpleLog, 
         candidate_program: CandidateProgramItem, 
         possible_id: OeisId, 
         path_program0: &Path, 
-        path_program1: ParentDirAndChildFile, 
-        path_benchmark: &Path,
+        path_program1: &ParentDirAndChildFile,
+        status_of_existing_program: StatusOfExistingProgram,
+        path_comparison: &Path,
         number_of_correct_terms: usize
     ) -> anyhow::Result<()> {
         if number_of_correct_terms < Self::MINIMUM_NUMBER_OF_REQUIRED_TERMS {
-            let message = format!("process_full_match: Rejecting program with too few terms. Expected {} terms, but got {} terms.", number_of_correct_terms, Self::MINIMUM_NUMBER_OF_REQUIRED_TERMS);
+            let message = format!("process_full_match: Rejecting program with too few terms. Expected {} or more terms, but got {} terms.", Self::MINIMUM_NUMBER_OF_REQUIRED_TERMS, number_of_correct_terms);
             simple_log.println(message);
             return Ok(());
         }
@@ -692,10 +687,12 @@ impl PostMine {
         let time_limit = Duration::from_secs(Self::LODACPP_STEPS_TIME_LIMIT_IN_SECONDS);
         let instance = CompareTwoPrograms::new();
         let ok_error = instance.compare(
+            simple_log.clone(),
             &self.lodacpp,    
             path_program0, 
-            path_program1.child_file(), 
-            path_benchmark, 
+            path_program1.child_file(),
+            status_of_existing_program,
+            path_comparison, 
             time_limit,
             term_count
         );

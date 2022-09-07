@@ -19,7 +19,7 @@ mod validate_single_program;
 pub use batch_lookup_names::batch_lookup_names;
 pub use batch_lookup_terms::batch_lookup_terms;
 pub use candidate_program::{CandidateProgram, State};
-pub use compare_two_programs::{CompareTwoPrograms, CompareTwoProgramsResult};
+pub use compare_two_programs::{CompareTwoPrograms, CompareTwoProgramsResult, StatusOfExistingProgram};
 pub use filter_asm_files::filter_asm_files;
 pub use find_pending_programs::find_pending_programs;
 pub use format_program::FormatProgram;
