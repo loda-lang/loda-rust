@@ -7,7 +7,6 @@ pub enum LodaCppError {
     Timeout,
     ParseTerms,
     ParseSteps,
-    ParseCheck,
 }
 
 impl std::error::Error for LodaCppError {}
@@ -20,7 +19,6 @@ impl fmt::Display for LodaCppError {
             Self::Timeout => write!(f, "Timeout"),
             Self::ParseTerms => write!(f, "Cannot extract terms from loda-cpp output"),
             Self::ParseSteps => write!(f, "Cannot extract steps from loda-cpp output"),
-            Self::ParseCheck => write!(f, "Cannot interpret output from loda-cpp check"),
         }
     }
 }

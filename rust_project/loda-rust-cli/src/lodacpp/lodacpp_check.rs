@@ -1,5 +1,3 @@
-use super::LodaCppError;
-use std::error::Error;
 use regex::Regex;
 use lazy_static::lazy_static;
 use std::io;
@@ -66,31 +64,37 @@ pub struct LodaCppCheckResult {
 }
 
 impl LodaCppCheckResult {
-    pub fn parse<S: AsRef<str>>(input_raw: S, process_did_timeout: bool) -> Result<LodaCppCheckResult, Box<dyn Error>> {
+    pub fn parse<S: AsRef<str>>(input_raw: S, process_did_timeout: bool) -> anyhow::Result<LodaCppCheckResult> {
         let input_raw: &str = input_raw.as_ref();
         let input_trimmed: &str = input_raw.trim();
-        if input_trimmed.ends_with("ok") {
-            let number_of_correct_terms: u32 = extract_number_of_correct_terms(&input_trimmed);
-            return Ok(Self {
-                status: LodaCppCheckStatus::FullMatch,
-                number_of_correct_terms: number_of_correct_terms,
-            });
-        }
-        if input_trimmed.ends_with("error") {
-            let number_of_correct_terms: u32 = extract_number_of_correct_terms(&input_trimmed);
+        let number_of_correct_terms: u32 = extract_number_of_correct_terms(&input_trimmed);
+        if input_trimmed.ends_with("error") || input_trimmed.contains("verflow") {
+            // When it's an `error` or `Overflow in cell`
             return Ok(Self {
                 status: LodaCppCheckStatus::PartialMatch,
                 number_of_correct_terms: number_of_correct_terms,
             });
         }
+        if input_trimmed.ends_with("ok") || input_trimmed.ends_with("warning") {
+            // When the entire b-file has been matched.
+            return Ok(Self {
+                status: LodaCppCheckStatus::FullMatch,
+                number_of_correct_terms: number_of_correct_terms,
+            });
+        }
         if process_did_timeout {
-            let number_of_correct_terms: u32 = extract_number_of_correct_terms(&input_trimmed);
+            // When the command `loda-cpp check` exceeded the time limit, eg. 2 minutes,
+            // so it's undecided wether it's a full match or partial match.
             return Ok(Self {
                 status: LodaCppCheckStatus::Timeout,
                 number_of_correct_terms: number_of_correct_terms,
             });
         }
-        Err(Box::new(LodaCppError::ParseCheck))
+        // Fallback
+        return Ok(Self {
+            status: LodaCppCheckStatus::PartialMatch,
+            number_of_correct_terms: number_of_correct_terms,
+        });
     }
 }
 
@@ -115,7 +119,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_parse_ok() {
+    fn test_20000_parse_full_match() {
         // Arrange
         let content = 
 r#"
@@ -129,7 +133,7 @@ ok
 "#;
 
         // Act
-        let result = LodaCppCheckResult::parse(content, false).expect("Should be able to parse ok");
+        let result = LodaCppCheckResult::parse(content, false).expect("Should be able to parse");
 
         // Assert
         assert_eq!(result.status, LodaCppCheckStatus::FullMatch);
@@ -137,7 +141,28 @@ ok
     }    
 
     #[test]
-    fn test_30000_parse_error() {
+    fn test_20001_parse_full_match() {
+        // Arrange
+        let content = 
+r#"
+0 1
+1 30
+2 21
+3 77
+4 93
+warning
+"#;
+
+        // Act
+        let result = LodaCppCheckResult::parse(content, false).expect("Should be able to parse");
+
+        // Assert
+        assert_eq!(result.status, LodaCppCheckStatus::FullMatch);
+        assert_eq!(result.number_of_correct_terms, 5);
+    }    
+
+    #[test]
+    fn test_30000_parse_partial_match() {
         // Arrange
         let content = 
 r#"
@@ -157,11 +182,34 @@ error
 "#;
 
         // Act
-        let result = LodaCppCheckResult::parse(content, false).expect("Should be able to parse ok");
+        let result = LodaCppCheckResult::parse(content, false).expect("Should be able to parse");
 
         // Assert
         assert_eq!(result.status, LodaCppCheckStatus::PartialMatch);
         assert_eq!(result.number_of_correct_terms, 11);
+    }    
+
+    #[test]
+    fn test_30001_parse_partial_match() {
+        // Arrange
+        let content = 
+r#"
+0 2
+1 1
+2 30
+3 600
+4 379
+5 601
+Overflow in cell $2; last operation: mul $2,2
+warning
+"#;
+
+        // Act
+        let result = LodaCppCheckResult::parse(content, false).expect("Should be able to parse");
+
+        // Assert
+        assert_eq!(result.status, LodaCppCheckStatus::PartialMatch);
+        assert_eq!(result.number_of_correct_terms, 6);
     }    
 
     #[test]
@@ -179,7 +227,7 @@ r#"
 "#;
 
         // Act
-        let result = LodaCppCheckResult::parse(content, true).expect("Should be able to parse ok");
+        let result = LodaCppCheckResult::parse(content, true).expect("Should be able to parse");
 
         // Assert
         assert_eq!(result.status, LodaCppCheckStatus::Timeout);

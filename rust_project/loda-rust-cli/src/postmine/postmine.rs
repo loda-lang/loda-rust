@@ -4,7 +4,7 @@ use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, Simpl
 use crate::oeis::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use super::{batch_lookup_names, terms_from_program, FormatProgram, path_for_oeis_program};
-use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, PostMineError, State, StatusOfExistingProgram, ValidateSingleProgram};
+use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, State, StatusOfExistingProgram, ValidateSingleProgram};
 use loda_rust_core::util::BigIntVec;
 use loda_rust_core::util::BigIntVecToString;
 use num_bigint::{BigInt, ToBigInt};
@@ -471,22 +471,43 @@ impl PostMine {
         path_for_oeis_program(&self.loda_programs_oeis_dir, program_id)
     }
 
-    /// Construct a path, like this: `/absolute/path//041/A041009_30_0.asm`
-    fn path_to_mismatch(&self, program_id: OeisId, correct_term_count: usize) -> Result<ParentDirAndChildFile, Box<dyn Error>> {
+    /// Construct a path, like this: `/absolute/path//041/A041009_30_5.asm`
+    fn path_to_mismatch(&self, oeis_id: OeisId, correct_term_count: usize) -> anyhow::Result<ParentDirAndChildFile> {
+        self.unique_path_for_saving_into_loda_outlier_programs(oeis_id, correct_term_count, "")
+    }
+
+    /// Construct a path, like this: `/absolute/path//041/A041009_timeout_33333_5.asm`
+    /// 
+    /// The `A041009` is the OeisId.
+    /// 
+    /// The `timeout` indicates that `loda check` exceeded the time limit, and thus it's
+    /// undecided if this is a full match or a partial match.
+    /// 
+    /// The `33333` is the number of terms that are correct.
+    /// 
+    /// The `5` is the index that prevents the name from clashing with similar names.
+    fn path_to_timeout(&self, oeis_id: OeisId, correct_term_count: usize) -> anyhow::Result<ParentDirAndChildFile> {
+        self.unique_path_for_saving_into_loda_outlier_programs(oeis_id, correct_term_count, "_timeout")
+    }
+
+    /// The destination path, where to mined program is saved.
+    /// There are already lots of programs with similar names.
+    /// In order to ensure the name is unique, an index gets incremented until a name becomes available.
+    fn unique_path_for_saving_into_loda_outlier_programs(&self, oeis_id: OeisId, correct_term_count: usize, name_suffix: &str) -> anyhow::Result<ParentDirAndChildFile> {
         assert!(self.loda_outlier_programs_repository_oeis_divergent.is_dir());
         assert!(self.loda_outlier_programs_repository_oeis_divergent.is_absolute());
-        let dir_index: u32 = program_id.raw() / 1000;
+        let dir_index: u32 = oeis_id.raw() / 1000;
         let dir_index_string: String = format!("{:0>3}", dir_index);
         let dir_path: PathBuf = self.loda_outlier_programs_repository_oeis_divergent.join(&dir_index_string);
-        let name = program_id.a_number();
+        let name = oeis_id.a_number();
         for index in 0..1000 {
-            let filename = format!("{}_{}_{}.asm", name, correct_term_count, index);
+            let filename = format!("{}{}_{}_{}.asm", name, name_suffix, correct_term_count, index);
             let file_path: PathBuf = dir_path.join(filename);
             if !file_path.is_file() {
                 return Ok(ParentDirAndChildFile::new(dir_path, file_path))
             }
         }
-        Err(Box::new(PostMineError::CannotConstructUniqueFilenameForMismatch))
+        Err(anyhow::anyhow!("loda_outlier_programs repo: Cannot construct unique filename for {:?}", oeis_id.a_number()))
     }
 
     fn determine_status_of_existing_program(&self, program_id: OeisId, path: &Path) -> StatusOfExistingProgram {
@@ -735,14 +756,13 @@ impl PostMine {
         program_id: OeisId, 
         number_of_correct_terms: u32
     ) -> anyhow::Result<()> {
-        let mismatch_path: ParentDirAndChildFile = self.path_to_mismatch(program_id, number_of_correct_terms as usize)
-            .map_err(|e| anyhow::anyhow!("Unable to construct mismatch_path. program_id: {:?} error: {:?}", program_id, e))?;
-        mismatch_path.create_parent_dir()
-            .map_err(|e| anyhow::anyhow!("Unable to create parent dir for mismatch. program_id: {:?} error: {:?}", program_id, e))?;
+        let destination_path: ParentDirAndChildFile = self.path_to_mismatch(program_id, number_of_correct_terms as usize)?;
+        destination_path.create_parent_dir()
+            .map_err(|e| anyhow::anyhow!("process_partial_match: Unable to create parent dir. program_id: {:?} error: {:?}", program_id, e))?;
 
-        let message = format!("Keeping. This program is a mismatch, it has correct {} terms, followed by mismatch. Saving at: {:?}", number_of_correct_terms, mismatch_path.child_file());
+        let message = format!("Keeping. This program is a mismatch, it has correct {} terms, followed by mismatch. Saving at: {:?}", number_of_correct_terms, destination_path.child_file());
         simple_log.println(message);
-        fs::copy(path_program0, mismatch_path.child_file())?;
+        fs::copy(path_program0, destination_path.child_file())?;
         candidate_program.borrow_mut().keep_id_insert(program_id);
         Ok(())
     }
@@ -752,19 +772,17 @@ impl PostMine {
         simple_log: SimpleLog, 
         candidate_program: CandidateProgramItem, 
         path_program0: &Path, 
-        program_id: OeisId, 
+        oeis_id: OeisId, 
         number_of_correct_terms: u32
     ) -> anyhow::Result<()> {
-        let mismatch_path: ParentDirAndChildFile = self.path_to_mismatch(program_id, number_of_correct_terms as usize)
-            .map_err(|e| anyhow::anyhow!("Unable to construct mismatch_path. program_id: {:?} error: {:?}", program_id, e))?;
-        mismatch_path.create_parent_dir()
-            .map_err(|e| anyhow::anyhow!("Unable to create parent dir for mismatch. program_id: {:?} error: {:?}", program_id, e))?;
+        let destination_path: ParentDirAndChildFile = self.path_to_timeout(oeis_id, number_of_correct_terms as usize)?;
+        destination_path.create_parent_dir()
+            .map_err(|e| anyhow::anyhow!("process_timeout: Unable to create parent dir. oeis_id: {:?} error: {:?}", oeis_id, e))?;
 
-        let message = format!("Keeping. Timeout while checking this program. Undecided if this is a match or a mismatch. It has correct {} terms. Saving at: {:?}", number_of_correct_terms, mismatch_path.child_file());
+        let message = format!("Keeping. Timeout while checking this program. Undecided if this is a full match or a partial match. It has correct {} terms. Saving at: {:?}", number_of_correct_terms, destination_path.child_file());
         simple_log.println(message);
-        fs::copy(path_program0, mismatch_path.child_file())?;
-        candidate_program.borrow_mut().keep_id_insert(program_id);
+        fs::copy(path_program0, destination_path.child_file())?;
+        candidate_program.borrow_mut().keep_id_insert(oeis_id);
         Ok(())
     }
-    
 }
