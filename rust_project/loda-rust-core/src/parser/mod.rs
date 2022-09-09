@@ -7,7 +7,7 @@ mod parse;
 mod parse_parameters;
 mod parse_program;
 
-pub use create_program::{CreatedProgram, CreateProgramError, create_program};
+pub use create_program::{CreateInstructionError, CreateInstructionErrorType, CreatedProgram, CreateProgramError, create_program};
 pub use instruction::{Instruction, InstructionParameter};
 pub use instruction_id::{InstructionId, ParseInstructionIdError};
 pub use parameter_type::ParameterType;
