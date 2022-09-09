@@ -12,6 +12,8 @@ mod program_runner;
 mod program_runner_manager;
 mod program_state;
 mod register_index;
+mod register_index_and_type;
+mod register_type;
 mod register_value;
 mod run_mode;
 mod program_serializer;
@@ -32,6 +34,8 @@ pub use eval_error::{EvalError, ValidateCallError};
 pub use node::{BoxNode, Node};
 pub use node_loop_shared::NodeLoopLimit;
 pub use register_index::RegisterIndex;
+pub use register_index_and_type::RegisterIndexAndType;
+pub use register_type::RegisterType;
 pub use register_value::RegisterValue;
 pub use node_register_limit::NodeRegisterLimit;
 
