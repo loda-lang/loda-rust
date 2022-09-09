@@ -12,6 +12,7 @@ impl fmt::Display for InstructionParameter {
         let prefix: &str = match self.parameter_type {
             ParameterType::Constant => "",
             ParameterType::Register => "$",
+            ParameterType::Indirect => "$$",
         };
         write!(f, "{}{}", prefix, self.parameter_value)
     }

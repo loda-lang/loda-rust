@@ -160,6 +160,9 @@ impl AnalyzeSourceNgram {
                 ParameterType::Register => {
                     let parameter_value: i64 = parameter.parameter_value;
                     words.push(format!("{:?}", parameter_value));
+                },
+                ParameterType::Indirect => {
+                    // skip rows with $$ parameters
                 }
             }
         }

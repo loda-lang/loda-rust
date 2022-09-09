@@ -139,7 +139,7 @@ mod tests {
     fn test_10005_parameter_type() {
         assert_eq!(process("$$$$0"), "UnrecognizedParameterType(1)");
         assert_eq!(process("$$$0"), "UnrecognizedParameterType(1)");
-        assert_eq!(process("$$0"), "UnrecognizedParameterType(1)");
+        assert_eq!(process("$$0"), "$$0");
         assert_eq!(process("$0"), "$0");
         assert_eq!(process("0"), "0");
     }

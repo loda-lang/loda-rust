@@ -4,6 +4,7 @@ use std::str::FromStr;
 pub enum ParameterType {
     Constant,
     Register,
+    Indirect,
 }
 
 impl ParameterType {
@@ -11,6 +12,7 @@ impl ParameterType {
         match self {
             ParameterType::Constant => "",
             ParameterType::Register => "$",
+            ParameterType::Indirect => "$$",
         }
     }
 }
@@ -22,6 +24,7 @@ impl FromStr for ParameterType {
         match input {
             ""   => Ok(ParameterType::Constant),
             "$"  => Ok(ParameterType::Register),
+            "$$"  => Ok(ParameterType::Indirect),
             _    => Err(()),
         }
     }

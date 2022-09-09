@@ -231,6 +231,10 @@ impl GenomeItem {
             ParameterType::Register => {
                 self.source_type = ParameterType::Constant;
             },
+            ParameterType::Indirect => {
+                // Don't mutate a row with indirect memory access
+                return false;
+            },
         }
         true
     }
@@ -395,6 +399,10 @@ impl GenomeItem {
                             self.source_value = (self.target_value + 1) % 5;
                             return false;
                         }
+                    },
+                    ParameterType::Indirect => {
+                        // don't mutate a row that uses indirect
+                        return false;
                     }
                 }
             },
@@ -415,6 +423,10 @@ impl GenomeItem {
                             self.source_value = (self.target_value + 1) % 5;
                             return false;
                         }
+                    },
+                    ParameterType::Indirect => {
+                        // don't mutate a row that uses indirect
+                        return false;
                     }
                 }
             },
@@ -435,6 +447,10 @@ impl GenomeItem {
                             self.source_value = (self.target_value + 1) % 5;
                             return false;
                         }
+                    },
+                    ParameterType::Indirect => {
+                        // don't mutate a row that uses indirect
+                        return false;
                     }
                 }
             },
@@ -459,6 +475,10 @@ impl GenomeItem {
                             self.source_value = (self.target_value + 1) % 5;
                             return false;
                         }
+                    },
+                    ParameterType::Indirect => {
+                        // don't mutate a row that uses indirect
+                        return false;
                     }
                 }
             },
@@ -479,6 +499,10 @@ impl GenomeItem {
                             self.source_value = (self.target_value + 1) % 5;
                             return false;
                         }
+                    },
+                    ParameterType::Indirect => {
+                        // don't mutate a row that uses indirect
+                        return false;
                     }
                 }
             },
@@ -511,6 +535,10 @@ impl GenomeItem {
                             self.source_value = (self.target_value + 1) % 5;
                             return false;
                         }
+                    },
+                    ParameterType::Indirect => {
+                        // don't mutate a row that uses indirect
+                        return false;
                     }
                 }
             },
@@ -528,6 +556,10 @@ impl GenomeItem {
                     },
                     ParameterType::Register => {
                         self.source_type = ParameterType::Constant;
+                        return false;
+                    },
+                    ParameterType::Indirect => {
+                        // don't mutate a row that uses indirect
                         return false;
                     }
                 }
@@ -567,6 +599,28 @@ impl GenomeItem {
                     parameter_type: ParameterType::Register,
                     parameter_value: self.target_value.abs() as i64,
                 };
+                // let parameter0: InstructionParameter;
+                // match self.target_type {
+                //     ParameterType::Constant => {
+                //         // target can never be a constant
+                //         parameter0 = InstructionParameter {
+                //             parameter_type: ParameterType::Constant,
+                //             parameter_value: self.target_value as i64,
+                //         };
+                //     },
+                //     ParameterType::Register => {
+                //         parameter0 = InstructionParameter {
+                //             parameter_type: ParameterType::Register,
+                //             parameter_value: (self.target_value.abs()) as i64,
+                //         };
+                //     },
+                //     ParameterType::Indirect => {
+                //         parameter0 = InstructionParameter {
+                //             parameter_type: ParameterType::Indirect,
+                //             parameter_value: (self.target_value.abs()) as i64,
+                //         };
+                //     },
+                // }
 
                 let parameter1: InstructionParameter;
                 match self.source_type {
@@ -581,7 +635,13 @@ impl GenomeItem {
                             parameter_type: ParameterType::Register,
                             parameter_value: (self.source_value.abs()) as i64,
                         };
-                    }
+                    },
+                    ParameterType::Indirect => {
+                        parameter1 = InstructionParameter {
+                            parameter_type: ParameterType::Indirect,
+                            parameter_value: (self.source_value.abs()) as i64,
+                        };
+                    },
                 }
                 return vec![parameter0, parameter1];
             }

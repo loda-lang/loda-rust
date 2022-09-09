@@ -29,6 +29,11 @@ pub fn instruction_diff_between_constants(instruction0: &Instruction, instructio
                     return None;
                 }
             },
+            ParameterType::Indirect => {
+                if !is_same_value {
+                    return None;
+                }
+            },
         }
     }
     None

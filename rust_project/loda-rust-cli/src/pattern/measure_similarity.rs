@@ -53,6 +53,11 @@ impl ProgramSimilarity {
                             return ProgramSimilarity::NotSimilar;
                         }
                     },
+                    ParameterType::Indirect => {
+                        if !is_same_value {
+                            return ProgramSimilarity::NotSimilar;
+                        }
+                    }
                 }
             }
         }

@@ -313,6 +313,9 @@ fn create_two_parameter_node(instruction: &Instruction) -> Result<BoxNode, Creat
                 register_index1,
             );
             return Ok(node_wrapped);
+        },
+        ParameterType::Indirect => {
+            panic!("TODO: indirect");
         }
     }
 }
@@ -393,6 +396,9 @@ fn node_loop_range_parameter(instruction: &Instruction, parameter: &InstructionP
         },
         ParameterType::Register => {
             return node_loop_range_parameter_register(instruction, parameter);
+        },
+        ParameterType::Indirect => {
+            panic!("Indirect");
         }
     }
 }
