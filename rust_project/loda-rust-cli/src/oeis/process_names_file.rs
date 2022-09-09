@@ -1,4 +1,5 @@
-use super::{NameRow, OeisIdHashSet};
+use loda_rust_core::oeis::OeisIdHashSet;
+use super::NameRow;
 use crate::common::SimpleLog;
 use std::io;
 use std::io::BufRead;
@@ -64,7 +65,7 @@ impl ProcessNamesFile {
 mod tests {
     use super::*;
     use std::collections::HashSet;
-    use crate::oeis::OeisId;
+    use loda_rust_core::oeis::OeisId;
 
     const INPUT_MOCKDATA: &str = r#"
 # OEIS Sequence Names (http://oeis.org/names.gz)

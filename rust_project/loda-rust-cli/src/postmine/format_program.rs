@@ -1,6 +1,6 @@
 use crate::common::OeisIdStringMap;
-use crate::oeis::OeisId;
 use super::ProgramSerializerContextWithSequenceName;
+use loda_rust_core::oeis::OeisId;
 use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer};
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};

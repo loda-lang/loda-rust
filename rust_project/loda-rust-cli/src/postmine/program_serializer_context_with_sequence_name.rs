@@ -1,5 +1,5 @@
 use crate::common::OeisIdStringMap;
-use crate::oeis::OeisId;
+use loda_rust_core::oeis::OeisId;
 use loda_rust_core::execute::ProgramSerializerContext;
 use std::convert::TryFrom;
 

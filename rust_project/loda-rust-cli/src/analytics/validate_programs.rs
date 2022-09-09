@@ -1,5 +1,5 @@
 use crate::common::{find_asm_files_recursively, oeis_ids_from_paths, ToOeisIdVec, SimpleLog};
-use crate::oeis::{OeisId, OeisIdHashSet};
+use loda_rust_core::oeis::{OeisId, OeisIdHashSet};
 use loda_rust_core;
 use crate::config::Config;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};

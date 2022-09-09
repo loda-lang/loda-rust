@@ -1,4 +1,4 @@
-use crate::oeis::OeisId;
+use loda_rust_core::oeis::OeisId;
 use super::ParentDirAndChildFile;
 use std::path::{Path, PathBuf};
 

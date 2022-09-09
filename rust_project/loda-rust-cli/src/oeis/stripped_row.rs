@@ -1,4 +1,4 @@
-use super::OeisId;
+use loda_rust_core::oeis::OeisId;
 use num_bigint::BigInt;
 use std::fmt;
 use regex::Regex;

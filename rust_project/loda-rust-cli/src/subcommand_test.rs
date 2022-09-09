@@ -1,8 +1,8 @@
 //! The `loda-rust test-xyz` subcommands, runs automated tests.
-use crate::oeis::OeisId;
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus};
 use crate::config::Config;
 use crate::postmine::{ParentDirAndChildFile, path_for_oeis_program};
+use loda_rust_core::oeis::OeisId;
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
