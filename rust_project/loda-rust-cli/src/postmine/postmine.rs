@@ -476,16 +476,16 @@ impl PostMine {
         self.unique_path_for_saving_into_loda_outlier_programs(oeis_id, correct_term_count, "")
     }
 
-    /// Construct a path, like this: `/absolute/path//041/A041009_33333_5_timeout.asm`
+    /// Construct a path, like this: `/absolute/path//041/A041009_timeout_33333_5.asm`
     /// 
     /// The `A041009` is the OeisId.
+    /// 
+    /// The `timeout` indicates that `loda check` exceeded the time limit, and thus it's
+    /// undecided if this is a full match or a partial match.
     /// 
     /// The `33333` is the number of terms that are correct.
     /// 
     /// The `5` is the index that prevents the name from clashing with similar names.
-    /// 
-    /// The `_timeout` indicates that `loda check` exceeded the time limit, and thus it's
-    /// undecided if this is a full match or a partial match.
     fn path_to_timeout(&self, oeis_id: OeisId, correct_term_count: usize) -> anyhow::Result<ParentDirAndChildFile> {
         self.unique_path_for_saving_into_loda_outlier_programs(oeis_id, correct_term_count, "_timeout")
     }
@@ -493,7 +493,7 @@ impl PostMine {
     /// The destination path, where to mined program is saved.
     /// There are already lots of programs with similar names.
     /// In order to ensure the name is unique, an index gets incremented until a name becomes available.
-    fn unique_path_for_saving_into_loda_outlier_programs(&self, oeis_id: OeisId, correct_term_count: usize, suffix: &str) -> anyhow::Result<ParentDirAndChildFile> {
+    fn unique_path_for_saving_into_loda_outlier_programs(&self, oeis_id: OeisId, correct_term_count: usize, name_suffix: &str) -> anyhow::Result<ParentDirAndChildFile> {
         assert!(self.loda_outlier_programs_repository_oeis_divergent.is_dir());
         assert!(self.loda_outlier_programs_repository_oeis_divergent.is_absolute());
         let dir_index: u32 = oeis_id.raw() / 1000;
@@ -501,7 +501,7 @@ impl PostMine {
         let dir_path: PathBuf = self.loda_outlier_programs_repository_oeis_divergent.join(&dir_index_string);
         let name = oeis_id.a_number();
         for index in 0..1000 {
-            let filename = format!("{}_{}_{}{}.asm", name, correct_term_count, index, suffix);
+            let filename = format!("{}{}_{}_{}.asm", name, name_suffix, correct_term_count, index);
             let file_path: PathBuf = dir_path.join(filename);
             if !file_path.is_file() {
                 return Ok(ParentDirAndChildFile::new(dir_path, file_path))
