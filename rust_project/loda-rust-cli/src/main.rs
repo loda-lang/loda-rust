@@ -33,7 +33,7 @@ use subcommand_dependencies::subcommand_dependencies;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 use subcommand_install::subcommand_install;
 use subcommand_mine::{SubcommandMine,SubcommandMineMetricsMode};
-use subcommand_pattern::subcommand_pattern;
+use subcommand_pattern::SubcommandPattern;
 use subcommand_postmine::subcommand_postmine;
 use subcommand_similar::subcommand_similar;
 use subcommand_test::SubcommandTest;
@@ -117,6 +117,11 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         .subcommand(
             Command::new("pattern")
                 .about("Identify recurring patterns among similar programs.")
+                .arg(
+                    Arg::new("verbose")
+                        .help("Append verbose details to the patterns.")
+                        .long("verbose")
+                )
         )
         .subcommand(
             Command::new("test-integration-with-lodacpp")
@@ -188,8 +193,9 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         return subcommand_similar();
     }
 
-    if let Some(_sub_m) = matches.subcommand_matches("pattern") {
-        subcommand_pattern();
+    if let Some(sub_m) = matches.subcommand_matches("pattern") {
+        let append_verbose_details: bool = sub_m.is_present("verbose");
+        SubcommandPattern::run(append_verbose_details);
         return Ok(());
     }
 
