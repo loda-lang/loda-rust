@@ -1,7 +1,7 @@
 use std::fmt;
 use super::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use super::validate_loops::*;
-use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, RegisterValue, Program};
+use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, RegisterType, RegisterValue, Program};
 use crate::execute::node_add::*;
 use crate::execute::node_binomial::*;
 use crate::execute::node_call::*;
@@ -193,10 +193,18 @@ impl Instruction {
     fn create_node_with_register_and_register(&self, target_it: RegisterIndexAndType, source_it: RegisterIndexAndType) -> BoxNode {
         // TODO: deal with target_it.register_type
         // TODO: deal with source_it.register_type
-        let target: RegisterIndex = target_it.register_index;
-        let source: RegisterIndex = source_it.register_index;
+        let target: RegisterIndex = target_it.register_index.clone();
+        let source: RegisterIndex = source_it.register_index.clone();
         match &self.instruction_id {
             InstructionId::Move => {
+                let use_indirect0 = target_it.register_type == RegisterType::Indirect;
+                let use_indirect1 = source_it.register_type == RegisterType::Indirect;
+                let _use_advanced = use_indirect0 || use_indirect1;
+                // if use_advanced {
+                //     let node = NodeMoveAdvanced::new(target_it.clone(), source_it.clone());
+                //     let node_wrapped = Box::new(node);
+                //     return node_wrapped;
+                // }
                 let node = NodeMoveRegister::new(target, source);
                 let node_wrapped = Box::new(node);
                 return node_wrapped;
@@ -393,6 +401,7 @@ fn node_loop_range_parameter(instruction: &Instruction, parameter: &InstructionP
             return node_loop_range_parameter_register(instruction, parameter);
         },
         ParameterType::Indirect => {
+            // TODO: deal with indirect
             panic!("Indirect");
         }
     }

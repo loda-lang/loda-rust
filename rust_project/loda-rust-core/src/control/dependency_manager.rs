@@ -498,4 +498,11 @@ mod tests {
         assert_eq!(runner.live_registers().len(), 0);
         assert_eq!(runner.has_live_registers(), false);
     }
+
+    // #[test]
+    // fn test_50000_parametertype_indirect1() {
+    //     let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect1");
+    //     let runner: Rc::<ProgramRunner> = dm.load(15736).unwrap();
+    //     assert_eq!(runner.inspect(12), "1,1,1,1,1,1,1,1,1,1,1,0");
+    // }
 }
