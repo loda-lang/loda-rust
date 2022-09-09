@@ -1,3 +1,3 @@
-sub $1,$0
-sub $1,1
-seq $1,27 ; invoking the natural numbers, with a negative parameter.
+mul $0,-1
+sub $0,1
+seq $0,27 ; invoking the natural numbers, with a negative parameter.
