@@ -1,7 +1,7 @@
 use std::fmt;
 use super::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use super::validate_loops::*;
-use crate::execute::{BoxNode, RegisterIndex, RegisterValue, Program};
+use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, RegisterValue, Program};
 use crate::execute::node_add::*;
 use crate::execute::node_binomial::*;
 use crate::execute::node_call::*;
@@ -57,35 +57,6 @@ impl fmt::Display for CreateInstructionError {
     }
 }
 
-fn register_index_from_parameter(instruction: &Instruction, parameter: &InstructionParameter) 
-    -> Result<RegisterIndex, CreateInstructionError> 
-{
-    if parameter.parameter_type != ParameterType::Register {
-        let err = CreateInstructionError {
-            line_number: instruction.line_number,
-            error_type: CreateInstructionErrorType::ParameterMustBeRegister,
-        };
-        return Err(err);
-    }
-    let parameter_value: i64 = parameter.parameter_value;
-    if parameter_value < 0 {
-        let err = CreateInstructionError {
-            line_number: instruction.line_number,
-            error_type: CreateInstructionErrorType::RegisterIndexMustBeNonNegative,
-        };
-        return Err(err);
-    }
-    if parameter_value > 255 {
-        let err = CreateInstructionError {
-            line_number: instruction.line_number,
-            error_type: CreateInstructionErrorType::RegisterIndexTooHigh,
-        };
-        return Err(err);
-    }
-    let register_index_value: u8 = parameter_value as u8;
-    Ok(RegisterIndex(register_index_value))
-}
-
 impl Instruction {
     /// Loop end (lpe) takes zero parameters.
     fn expect_zero_parameters(&self) -> Result<(), CreateInstructionError> {
@@ -124,7 +95,9 @@ impl Instruction {
         Ok(())
     }
 
-    fn create_node_with_register_and_constant(&self, target: RegisterIndex, source: RegisterValue) -> Result<BoxNode, CreateInstructionError> {
+    fn create_node_with_register_and_constant(&self, target_it: RegisterIndexAndType, source: RegisterValue) -> Result<BoxNode, CreateInstructionError> {
+        // TODO: deal with target_it.register_type
+        let target: RegisterIndex = target_it.register_index;
         match &self.instruction_id {
             InstructionId::Move => {
                 let node = NodeMoveConstant::new(target, source);
@@ -217,7 +190,11 @@ impl Instruction {
         }
     }
 
-    fn create_node_with_register_and_register(&self, target: RegisterIndex, source: RegisterIndex) -> BoxNode {
+    fn create_node_with_register_and_register(&self, target_it: RegisterIndexAndType, source_it: RegisterIndexAndType) -> BoxNode {
+        // TODO: deal with target_it.register_type
+        // TODO: deal with source_it.register_type
+        let target: RegisterIndex = target_it.register_index;
+        let source: RegisterIndex = source_it.register_index;
         match &self.instruction_id {
             InstructionId::Move => {
                 let node = NodeMoveRegister::new(target, source);
@@ -305,26 +282,31 @@ fn create_two_parameter_node(instruction: &Instruction) -> Result<BoxNode, Creat
     instruction.expect_two_parameters()?;
 
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
-    let register_index0 = register_index_from_parameter(instruction, parameter0)?;
+    let register0 = RegisterIndexAndType::from_parameter(instruction, parameter0)?;
 
     let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
     match parameter1.parameter_type {
         ParameterType::Constant => {
             return instruction.create_node_with_register_and_constant(
-                register_index0,
+                register0,
                 RegisterValue::from_i64(parameter1.parameter_value)
             );
         },
         ParameterType::Register => {
-            let register_index1 = register_index_from_parameter(instruction, parameter1)?;
+            let register1 = RegisterIndexAndType::from_parameter(instruction, parameter1)?;
             let node_wrapped = instruction.create_node_with_register_and_register(
-                register_index0,
-                register_index1,
+                register0,
+                register1,
             );
             return Ok(node_wrapped);
         },
         ParameterType::Indirect => {
-            panic!("TODO: indirect");
+            let register1 = RegisterIndexAndType::from_parameter(instruction, parameter1)?;
+            let node_wrapped = instruction.create_node_with_register_and_register(
+                register0,
+                register1,
+            );
+            return Ok(node_wrapped);
         }
     }
 }
@@ -333,7 +315,9 @@ fn create_call_node(instruction: &Instruction) -> Result<BoxNode, CreateInstruct
     instruction.expect_two_parameters()?;
 
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
-    let register_index0 = register_index_from_parameter(instruction, parameter0)?;
+    let register0 = RegisterIndexAndType::from_parameter(instruction, parameter0)?;
+    let register_index0 = register0.register_index;
+    // TODO: deal with indirect register type in register0
 
     let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
     if parameter1.parameter_type != ParameterType::Constant {
@@ -393,7 +377,9 @@ fn node_loop_range_parameter_constant(instruction: &Instruction, parameter: &Ins
 }
 
 fn node_loop_range_parameter_register(instruction: &Instruction, parameter: &InstructionParameter) -> Result<LoopType, CreateInstructionError> {
-    let register_index: RegisterIndex = register_index_from_parameter(instruction, parameter)?;
+    let register = RegisterIndexAndType::from_parameter(instruction, parameter)?;
+    let register_index: RegisterIndex = register.register_index;
+    // TODO: deal with indirect register type in register
     let loop_type = LoopType::RangeLengthFromRegister(register_index);
     return Ok(loop_type);
 }
@@ -421,7 +407,9 @@ fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstr
     instruction.expect_one_or_two_parameters()?;
 
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
-    let register_index0 = register_index_from_parameter(instruction, parameter0)?;
+    let register0 = RegisterIndexAndType::from_parameter(instruction, parameter0)?;
+    let register_index0 = register0.register_index;
+    // TODO: deal with indirect register type in register0
 
     let loop_type: LoopType;
     if instruction.parameter_vec.len() == 2 {
