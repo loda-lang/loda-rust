@@ -534,4 +534,20 @@ mod tests {
         let runner: Rc::<ProgramRunner> = dm.load(25238).unwrap();
         assert_eq!(runner.inspect(10), "3,1,3,10,36,137,543,2219,9285,39587");
     }
+
+    // #[test]
+    // fn test_50002_parametertype_indirect3() {
+    //     let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect3");
+    //     dm.enable_parameter_type_indirect();
+    //     let runner: Rc::<ProgramRunner> = dm.load(159631).unwrap();
+    //     assert_eq!(runner.inspect(10), "1,1,1,2,1,1,1,2,2,1");
+    // }
+
+    // #[test]
+    // fn test_50003_parametertype_indirect4() {
+    //     let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect4");
+    //     dm.enable_parameter_type_indirect();
+    //     let runner: Rc::<ProgramRunner> = dm.load(41).unwrap();
+    //     assert_eq!(runner.inspect(12), "1,1,2,3,5,7,11,15,22,30,42,56");
+    // }
 }

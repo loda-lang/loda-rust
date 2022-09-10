@@ -225,6 +225,14 @@ impl Instruction {
                 return node_wrapped;
             },
             InstructionId::Multiply => {
+                let use_indirect0 = target_it.register_type == RegisterType::Indirect;
+                let use_indirect1 = source_it.register_type == RegisterType::Indirect;
+                let use_advanced = use_indirect0 || use_indirect1;
+                if use_advanced {
+                    let node = NodeMultiplyAdvanced::new(target_it.clone(), source_it.clone());
+                    let node_wrapped = Box::new(node);
+                    return node_wrapped;
+                }
                 let node = NodeMultiplyRegister::new(target, source);
                 let node_wrapped = Box::new(node);
                 return node_wrapped;
