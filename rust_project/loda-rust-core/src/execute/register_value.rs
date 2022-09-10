@@ -27,6 +27,10 @@ impl RegisterValue {
     pub fn to_i64(&self) -> i64 {
         self.0.to_i64().unwrap()
     }
+
+    pub fn try_to_i64(&self) -> Option<i64> {
+        self.0.to_i64()
+    }
 }
 
 impl fmt::Display for RegisterValue {

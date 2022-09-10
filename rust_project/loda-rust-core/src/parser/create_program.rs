@@ -199,12 +199,12 @@ impl Instruction {
             InstructionId::Move => {
                 let use_indirect0 = target_it.register_type == RegisterType::Indirect;
                 let use_indirect1 = source_it.register_type == RegisterType::Indirect;
-                let _use_advanced = use_indirect0 || use_indirect1;
-                // if use_advanced {
-                //     let node = NodeMoveAdvanced::new(target_it.clone(), source_it.clone());
-                //     let node_wrapped = Box::new(node);
-                //     return node_wrapped;
-                // }
+                let use_advanced = use_indirect0 || use_indirect1;
+                if use_advanced {
+                    let node = NodeMoveAdvanced::new(target_it.clone(), source_it.clone());
+                    let node_wrapped = Box::new(node);
+                    return node_wrapped;
+                }
                 let node = NodeMoveRegister::new(target, source);
                 let node_wrapped = Box::new(node);
                 return node_wrapped;

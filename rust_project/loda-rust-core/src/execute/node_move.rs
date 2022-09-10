@@ -41,8 +41,25 @@ impl Node for NodeMoveAdvanced {
                 state.set_register_value(self.target.register_index.clone(), tmp_value);
             },
             RegisterType::Indirect => {
+                let reg_value: &RegisterValue = state.get_register_value_ref(&self.target.register_index);
+                let reg_value2: Option<i64> = reg_value.try_to_i64();
+
                 // TODO: deal with indirect
-                panic!("boom indirect target");
+                match reg_value2 {
+                    Some(value) => {
+                        if value < 0 {
+                            panic!("indirect target out of range, too low");
+                        }
+                        if value > 255 {
+                            panic!("indirect target out of range, too high");
+                        }
+                        let reg_index: u8 = value as u8;
+                        state.set_register_value(RegisterIndex(reg_index), tmp_value);
+                    },
+                    None => {
+                        panic!("indirect target out of range, not an i64");
+                    }
+                }
             }
         }
         Ok(())
@@ -52,6 +69,9 @@ impl Node for NodeMoveAdvanced {
         // TODO: deal with indirect
         register_vec.push(self.target.register_index.clone());
         register_vec.push(self.source.register_index.clone());
+        for i in 0..255 {
+            register_vec.push(RegisterIndex(i));
+        }
     }
     
     fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
