@@ -4,7 +4,7 @@ use std::path::{Path,PathBuf};
 use std::collections::HashSet;
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::parser::{ParsedProgram, ParseProgramError, create_program, CreatedProgram, CreateProgramError};
+use crate::parser::{ParsedProgram, ParseProgramError, contain_parameter_type_indirect, create_program, CreatedProgram, CreateProgramError};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 
 #[derive(Debug, PartialEq)]
@@ -55,6 +55,7 @@ pub enum DependencyManagerError {
     ParseProgram(ParseProgramError),
     CreateProgram(CreateProgramError),
     LookupProgramId,
+    IndirectMemoryAccessNotEnabled,
 }
 
 impl fmt::Display for DependencyManagerError {
@@ -72,6 +73,8 @@ impl fmt::Display for DependencyManagerError {
                 write!(f, "Failed to create program. error: {}", error),
             Self::LookupProgramId =>
                 write!(f, "Failed to lookup the program id"),
+            Self::IndirectMemoryAccessNotEnabled =>
+                write!(f, "Indirect memory access is not enabled"),
         }
     }
 }
@@ -82,6 +85,7 @@ pub enum DependencyManagerFileSystemMode {
 }
 
 pub struct DependencyManager {
+    enable_parameter_type_indirect: bool,
     file_system_mode: DependencyManagerFileSystemMode,
     loda_programs_oeis_dir: PathBuf,
     program_run_manager: ProgramRunnerManager,
@@ -95,6 +99,7 @@ pub struct DependencyManager {
 impl DependencyManager {
     pub fn new(file_system_mode: DependencyManagerFileSystemMode, loda_programs_oeis_dir: PathBuf) -> Self {
         Self {
+            enable_parameter_type_indirect: false,
             file_system_mode: file_system_mode,
             loda_programs_oeis_dir: loda_programs_oeis_dir,
             program_run_manager: ProgramRunnerManager::new(),
@@ -104,6 +109,16 @@ impl DependencyManager {
             metric_read_success: 0,
             metric_read_error: 0,
         }        
+    }
+
+    /// Enable experimental support for indirect memory access.
+    /// 
+    /// Examples of instructions with `ParameterType::Indirect`:
+    /// - `mul $7,$$9` 
+    /// - `mov $$9,$3`
+    /// - `add $$1,2`
+    pub fn enable_parameter_type_indirect(&mut self) {
+        self.enable_parameter_type_indirect = true;
     }
 
     pub fn reset(&mut self) {
@@ -193,6 +208,11 @@ impl DependencyManager {
                 return Err(DependencyManagerError::ParseProgram(error));
             }
         };
+        if !self.enable_parameter_type_indirect {
+            if contain_parameter_type_indirect(&parsed_program.instruction_vec) {
+                return Err(DependencyManagerError::IndirectMemoryAccessNotEnabled);
+            }
+        }
         self.parse_stage2(program_id, &parsed_program)
     }
 
@@ -502,6 +522,7 @@ mod tests {
     #[test]
     fn test_50000_parametertype_indirect1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect1");
+        dm.enable_parameter_type_indirect();
         let runner: Rc::<ProgramRunner> = dm.load(15736).unwrap();
         assert_eq!(runner.inspect(12), "1,1,1,1,1,1,1,1,1,1,1,0");
     }
@@ -509,6 +530,7 @@ mod tests {
     #[test]
     fn test_50001_parametertype_indirect2() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect2");
+        dm.enable_parameter_type_indirect();
         let runner: Rc::<ProgramRunner> = dm.load(25238).unwrap();
         assert_eq!(runner.inspect(10), "3,1,3,10,36,137,543,2219,9285,39587");
     }
