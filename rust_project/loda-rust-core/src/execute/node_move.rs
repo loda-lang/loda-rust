@@ -70,7 +70,7 @@ impl Node for NodeMoveAdvanced {
         // TODO: deal with indirect
         register_vec.push(self.target.register_index.clone());
         register_vec.push(self.source.register_index.clone());
-        for i in 0..255 {
+        for i in 0..=254 {
             register_vec.push(RegisterIndex(i));
         }
     }
