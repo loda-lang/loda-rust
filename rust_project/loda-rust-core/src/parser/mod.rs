@@ -1,4 +1,5 @@
 //! Translate from LODA source code to a program instance.
+mod contain_parameter_type_indirect;
 mod create_program;
 mod instruction;
 mod instruction_id;
@@ -7,6 +8,7 @@ mod parse;
 mod parse_parameters;
 mod parse_program;
 
+pub use contain_parameter_type_indirect::contain_parameter_type_indirect;
 pub use create_program::{CreateInstructionError, CreateInstructionErrorType, CreatedProgram, CreateProgramError, create_program};
 pub use instruction::{Instruction, InstructionParameter};
 pub use instruction_id::{InstructionId, ParseInstructionIdError};
