@@ -45,6 +45,7 @@ impl Node for NodeMoveAdvanced {
                 let reg_value2: Option<i64> = reg_value.try_to_i64();
 
                 // TODO: deal with indirect
+                let register_index: RegisterIndex;
                 match reg_value2 {
                     Some(value) => {
                         if value < 0 {
@@ -53,13 +54,13 @@ impl Node for NodeMoveAdvanced {
                         if value > 255 {
                             panic!("indirect target out of range, too high");
                         }
-                        let reg_index: u8 = value as u8;
-                        state.set_register_value(RegisterIndex(reg_index), tmp_value);
+                        register_index = RegisterIndex(value as u8)
                     },
                     None => {
                         panic!("indirect target out of range, not an i64");
                     }
                 }
+                state.set_register_value(register_index, tmp_value);
             }
         }
         Ok(())
