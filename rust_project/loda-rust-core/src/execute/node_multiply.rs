@@ -1,4 +1,4 @@
-use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterValue};
+use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterIndexAndType, RegisterType, RegisterValue};
 use super::{BoxCheckValue, PerformCheckValue};
 use std::collections::HashSet;
 use num_bigint::BigInt;
@@ -15,6 +15,117 @@ fn perform_operation(check: &BoxCheckValue, x: &RegisterValue, y: &RegisterValue
     check.output(&zz)?;
 
     Ok(RegisterValue(zz))
+}
+
+pub struct NodeMultiplyAdvanced {
+    target: RegisterIndexAndType,
+    source: RegisterIndexAndType,
+}
+
+impl NodeMultiplyAdvanced {
+    pub fn new(target: RegisterIndexAndType, source: RegisterIndexAndType) -> Self {
+        Self {
+            target: target,
+            source: source,
+        }
+    }
+}
+
+impl Node for NodeMultiplyAdvanced {
+    fn formatted_instruction(&self) -> String {
+        format!("mov {},{}", self.target, self.source)
+    }
+
+    fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
+        let mut tmp_value: RegisterValue;
+        match self.source.register_type {
+            RegisterType::Direct => {
+                let value: &RegisterValue = state.get_register_value_ref(&self.source.register_index);
+                tmp_value = value.clone();
+            },
+            RegisterType::Indirect => {
+                // TODO: deal with indirect
+                // let value: &RegisterValue = state.get_register_value_ref(&self.source.register_index);
+                // // TODO: convert from value to register index
+                // let value2: &RegisterValue = state.get_register_value_ref(value);
+                // tmp_value = value2.clone();
+                let reg_value: &RegisterValue = state.get_register_value_ref(&self.source.register_index);
+                let reg_value2: Option<i64> = reg_value.try_to_i64();
+
+                // TODO: deal with indirect
+                let register_index: RegisterIndex;
+                match reg_value2 {
+                    Some(value) => {
+                        if value < 0 {
+                            panic!("indirect source out of range, too low");
+                        }
+                        if value > 255 {
+                            panic!("indirect source out of range, too high");
+                        }
+                        register_index = RegisterIndex(value as u8)
+                    },
+                    None => {
+                        panic!("indirect source out of range, not an i64");
+                    }
+                }
+                let value: &RegisterValue = state.get_register_value_ref(&register_index);
+                tmp_value = value.clone();
+                // panic!("boom indirect source");
+            }
+        }
+
+        let lhs: &RegisterValue = state.get_register_value_ref(&self.target.register_index);
+        let rhs: &RegisterValue = &tmp_value; //state.get_register_value_ref(&self.source.register_index);
+        tmp_value = perform_operation(state.check_value(), lhs, rhs)?;
+
+        match self.target.register_type {
+            RegisterType::Direct => {
+                state.set_register_value(self.target.register_index.clone(), tmp_value);
+            },
+            RegisterType::Indirect => {
+                let reg_value: &RegisterValue = state.get_register_value_ref(&self.target.register_index);
+                let reg_value2: Option<i64> = reg_value.try_to_i64();
+
+                // TODO: deal with indirect
+                let register_index: RegisterIndex;
+                match reg_value2 {
+                    Some(value) => {
+                        if value < 0 {
+                            panic!("indirect target out of range, too low");
+                        }
+                        if value > 255 {
+                            panic!("indirect target out of range, too high");
+                        }
+                        register_index = RegisterIndex(value as u8)
+                    },
+                    None => {
+                        panic!("indirect target out of range, not an i64");
+                    }
+                }
+                state.set_register_value(register_index, tmp_value);
+            }
+        }
+        Ok(())
+    }
+
+    fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
+        // TODO: deal with indirect
+        register_vec.push(self.target.register_index.clone());
+        register_vec.push(self.source.register_index.clone());
+        for i in 0..=254 {
+            register_vec.push(RegisterIndex(i));
+        }
+    }
+    
+    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+        // TODO: deal with indirect
+        if register_set.contains(&self.source.register_index) {
+            register_set.insert(self.target.register_index.clone());
+        } else {
+            // Overwrite content of the target register a non-live register.
+            register_set.remove(&self.target.register_index);
+        }
+    }
 }
 
 pub struct NodeMultiplyRegister {
