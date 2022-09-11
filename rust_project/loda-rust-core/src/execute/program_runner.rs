@@ -172,7 +172,7 @@ impl ProgramRunner {
     pub fn inspect_advanced(&self, count: u64, cache: &mut ProgramCache) -> String {
         assert!(count < 0x7fff_ffff_ffff_ffff);
         let mut string_vec: Vec<String> = vec!();
-        let step_count_limit: u64 = 10000;
+        let step_count_limit: u64 = 30000;
         let mut step_count: u64 = 0;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
