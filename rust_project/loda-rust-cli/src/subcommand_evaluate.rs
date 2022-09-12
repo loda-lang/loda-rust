@@ -28,6 +28,7 @@ pub fn subcommand_evaluate(
         DependencyManagerFileSystemMode::System,
         loda_programs_oeis_dir,
     );
+    dm.enable_parameter_type_indirect();
     let program_runner: Rc::<ProgramRunner> = match dm.load(program_id) {
         Ok(value) => value,
         Err(error) => {
