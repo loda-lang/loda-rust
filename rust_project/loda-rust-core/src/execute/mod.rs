@@ -43,6 +43,7 @@ pub use semantics::Semantics;
 
 pub mod node_add;
 pub mod node_binomial;
+pub mod node_calc;
 pub mod node_call;
 pub mod node_clear;
 pub mod node_compare;
