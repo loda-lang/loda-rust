@@ -18,6 +18,7 @@ mod register_value;
 mod run_mode;
 mod program_serializer;
 mod program_serializer_context;
+mod semantics;
 
 use check_value::*;
 pub use create_error::CreateError;
@@ -33,11 +34,12 @@ pub use run_mode::RunMode;
 pub use eval_error::{EvalError, ValidateCallError};
 pub use node::{BoxNode, Node};
 pub use node_loop_shared::NodeLoopLimit;
+pub use node_register_limit::NodeRegisterLimit;
 pub use register_index::RegisterIndex;
 pub use register_index_and_type::RegisterIndexAndType;
 pub use register_type::RegisterType;
 pub use register_value::RegisterValue;
-pub use node_register_limit::NodeRegisterLimit;
+pub use semantics::Semantics;
 
 pub mod node_add;
 pub mod node_binomial;
