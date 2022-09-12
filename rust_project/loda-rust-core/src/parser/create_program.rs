@@ -586,7 +586,7 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 program.push_boxed(node);
             },
             InstructionId::Compare => {
-                let node = create_two_parameter_node_legacy(&instruction)?;
+                let node = create_two_parameter_node(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Clear => {
@@ -594,11 +594,11 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 program.push_boxed(node);
             },
             InstructionId::Max => {
-                let node = create_two_parameter_node_legacy(&instruction)?;
+                let node = create_two_parameter_node(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Min => {
-                let node = create_two_parameter_node_legacy(&instruction)?;
+                let node = create_two_parameter_node(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::EvalSequence => {

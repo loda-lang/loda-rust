@@ -2,6 +2,7 @@ use super::EvalError;
 use num_bigint::BigInt;
 use num_traits::Signed;
 use num_traits::Zero;
+use num_traits::One;
 
 pub struct Semantics {}
 
@@ -59,7 +60,20 @@ impl Semantics {
     // TODO: pow
     // TODO: gcd
     // TODO: bin
-    // TODO: cmp
-    // TODO: min
-    // TODO: max
+
+    pub fn compare(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        if x == y {
+            return Ok(BigInt::one());
+        } else {
+            return Ok(BigInt::zero());
+        }
+    }
+
+    pub fn min(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        Ok(x.min(y).clone())
+    }
+
+    pub fn max(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        Ok(x.max(y).clone())
+    }
 }
