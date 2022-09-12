@@ -4,6 +4,7 @@ use super::validate_loops::*;
 use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, RegisterType, RegisterValue, Program};
 use crate::execute::node_add::*;
 use crate::execute::node_binomial::*;
+use crate::execute::node_calc::*;
 use crate::execute::node_call::*;
 use crate::execute::node_clear::*;
 use crate::execute::node_compare::*;
@@ -294,7 +295,21 @@ impl Instruction {
     }
 }
 
+fn create_two_parameter_node_calc(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
+    instruction.expect_two_parameters()?;
+    let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
+    let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
+    let node = NodeCalc::new(instruction.instruction_id.clone(), parameter0.clone(), parameter1.clone());
+    let node_wrapped = Box::new(node);
+    return Ok(node_wrapped);
+}
+
 fn create_two_parameter_node(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
+    // create_two_parameter_node_legacy(instruction)
+    create_two_parameter_node_calc(instruction)
+}
+
+fn create_two_parameter_node_legacy(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
     instruction.expect_two_parameters()?;
 
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
@@ -539,7 +554,7 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 program.push_boxed(node);
             },
             InstructionId::Power => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_two_parameter_node_legacy(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Multiply => {
@@ -559,7 +574,7 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 program.push_boxed(node);
             },
             InstructionId::GCD => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_two_parameter_node_legacy(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Truncate => {
@@ -567,23 +582,23 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 program.push_boxed(node);
             },
             InstructionId::Binomial => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_two_parameter_node_legacy(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Compare => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_two_parameter_node_legacy(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Clear => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_two_parameter_node_legacy(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Max => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_two_parameter_node_legacy(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Min => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_two_parameter_node_legacy(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::EvalSequence => {
