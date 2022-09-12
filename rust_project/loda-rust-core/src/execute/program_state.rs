@@ -3,7 +3,8 @@ use super::node_binomial::NodeBinomialLimit;
 use super::node_power::NodePowerLimit;
 use super::NodeRegisterLimit;
 use super::BoxCheckValue;
-use num_bigint::BigInt;
+use crate::parser::{InstructionParameter, ParameterType};
+use num_bigint::{BigInt, ToBigInt};
 use num_traits::Signed;
 use std::cmp::Ordering;
 use lazy_static::lazy_static;
@@ -98,7 +99,91 @@ impl ProgramState {
             return &OUT_OF_BOUNDS_RETURN_VALUE;
         }    
         return &self.register_vec[index];
-    }    
+    }
+
+    fn register_index_from(&self, value: i64) -> Result<RegisterIndex, EvalError> {
+        if value < 0 {
+            debug!("value out of range, too low");
+            return Err(EvalError::CannotConvertBigIntToRegisterIndex);
+        }
+        if value > 255 {
+            debug!("value out of range, too high");
+            return Err(EvalError::CannotConvertBigIntToRegisterIndex);
+        }
+        Ok(RegisterIndex(value as u8))
+    }
+    
+    pub fn get(&self, parameter: &InstructionParameter, get_address: bool) -> Result<BigInt, EvalError> {
+        match parameter.parameter_type {
+            ParameterType::Constant => {
+                if get_address {
+                    return Err(EvalError::CannotGetAddressOfConstant);
+                }
+                match parameter.parameter_value.to_bigint() {
+                    Some(value) => { return Ok(value); },
+                    None => { return Err(EvalError::CannotConvertParameterValueToBigInt); }
+                }
+            },
+            ParameterType::Register => {
+                if get_address {
+                    match parameter.parameter_value.to_bigint() {
+                        Some(value) => { return Ok(value); }
+                        None => { return Err(EvalError::CannotConvertParameterValueToBigInt); }
+                    }
+                }
+                let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
+                let value: &RegisterValue = self.get_register_value_ref(&index);
+                let inner_value: BigInt = value.0.clone();
+                return Ok(inner_value);
+            },
+            ParameterType::Indirect => {
+                let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
+                let value: &RegisterValue = self.get_register_value_ref(&index);
+                if get_address {
+                    let inner_value: BigInt = value.0.clone();
+                    return Ok(inner_value);
+                }
+                let optional_inner_value: Option<i64> = value.try_to_i64();
+                let inner_value: i64 = match optional_inner_value {
+                    Some(value) => value,
+                    None => {
+                        return Err(EvalError::CannotConvertBigIntToRegisterIndex);
+                    }
+                };
+                let index2: RegisterIndex = self.register_index_from(inner_value)?;
+                let value2: &RegisterValue = self.get_register_value_ref(&index2);
+                let inner_value: BigInt = value2.0.clone();
+                return Ok(inner_value);
+            }
+        }
+    }
+    
+    pub fn set(&mut self, parameter: &InstructionParameter, set_value: BigInt) -> Result<(), EvalError> {
+        match parameter.parameter_type {
+            ParameterType::Constant => {
+                return Err(EvalError::CannotSetValueOfConstant);
+            },
+            ParameterType::Register => {
+                let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
+                self.set_register_value(index, RegisterValue(set_value));
+                return Ok(());
+            },
+            ParameterType::Indirect => {
+                let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
+                let value: &RegisterValue = self.get_register_value_ref(&index);
+                let optional_inner_value: Option<i64> = value.try_to_i64();
+                let inner_value: i64 = match optional_inner_value {
+                    Some(value) => value,
+                    None => {
+                        return Err(EvalError::CannotConvertBigIntToRegisterIndex);
+                    }
+                };
+                let index2: RegisterIndex = self.register_index_from(inner_value)?;
+                self.set_register_value(index2, RegisterValue(set_value));
+                return Ok(());
+            }
+        }
+    }
 
     /// Read the value of register 0, the output register.
     pub fn get_output_value(&self) -> &RegisterValue {

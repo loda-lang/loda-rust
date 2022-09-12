@@ -38,6 +38,13 @@ pub enum EvalError {
 
     /// Using way too many cpu cycles
     StepCountExceededLimit,
+
+    // When attempting to use a constant as the first parameter for an instruction
+    CannotGetAddressOfConstant,
+    CannotSetValueOfConstant,
+    CannotConvertParameterValueToBigInt,
+    CannotConvertBigIntToRegisterIndex,
+    UnsupportedInstruction,
 }
 
 impl fmt::Display for EvalError {
@@ -64,7 +71,17 @@ impl fmt::Display for EvalError {
             Self::LoopCountExceededLimit => 
                 write!(f, "Loop count exceeded limit, stuck in a loop that takes way too long time to compute"),
             Self::StepCountExceededLimit => 
-                write!(f, "Step count exceeded limit, using way too many cpu cycles")
+                write!(f, "Step count exceeded limit, using way too many cpu cycles"),
+            Self::CannotGetAddressOfConstant => 
+                write!(f, "Cannot get address of a constant"),
+            Self::CannotSetValueOfConstant => 
+                write!(f, "Cannot set value of a constant"),
+            Self::CannotConvertParameterValueToBigInt => 
+                write!(f, "Cannot convert parameter value to BigInt"),
+            Self::CannotConvertBigIntToRegisterIndex => 
+                write!(f, "Cannot convert BigInt to register index"),
+            Self::UnsupportedInstruction => 
+                write!(f, "Unsupported instruction"),
         }
     }
 }
