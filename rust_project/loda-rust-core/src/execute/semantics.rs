@@ -1,8 +1,9 @@
-use super::EvalError;
+use super::{EvalError, semantic_binomial, semantic_power};
 use num_bigint::BigInt;
 use num_traits::Signed;
 use num_traits::Zero;
 use num_traits::One;
+use num_integer::Integer;
 
 pub struct Semantics {}
 
@@ -56,11 +57,20 @@ impl Semantics {
         }
         Ok(x % y)
     }
-    
-    // TODO: pow
-    // TODO: gcd
-    // TODO: bin
 
+    pub fn power(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        semantic_power(x, y)
+    }
+    
+    pub fn gcd(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        // https://en.wikipedia.org/wiki/Binary_GCD_algorithm
+        Ok(x.gcd(y))
+    }
+    
+    pub fn binomial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        semantic_binomial(x, y)
+    }
+    
     pub fn compare(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         if x == y {
             return Ok(BigInt::one());

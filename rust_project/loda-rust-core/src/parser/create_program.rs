@@ -554,7 +554,7 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 program.push_boxed(node);
             },
             InstructionId::Power => {
-                let node = create_two_parameter_node_legacy(&instruction)?;
+                let node = create_two_parameter_node(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Multiply => {
@@ -574,7 +574,7 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 program.push_boxed(node);
             },
             InstructionId::GCD => {
-                let node = create_two_parameter_node_legacy(&instruction)?;
+                let node = create_two_parameter_node(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Truncate => {
@@ -582,7 +582,7 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 program.push_boxed(node);
             },
             InstructionId::Binomial => {
-                let node = create_two_parameter_node_legacy(&instruction)?;
+                let node = create_two_parameter_node(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Compare => {
