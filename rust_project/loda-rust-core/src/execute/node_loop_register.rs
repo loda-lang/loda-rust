@@ -1,4 +1,4 @@
-use super::{EvalError, Node, NodeLoopLimit, Program, ProgramCache, ProgramSerializer, ProgramState, ProgramRunnerManager, RegisterIndex, RegisterValue, RunMode, ValidateCallError};
+use super::{EvalError, Node, NodeLoopLimit, Program, ProgramCache, ProgramSerializer, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError};
 use std::collections::HashSet;
 use num_bigint::{BigInt, ToBigInt};
 use num_traits::{ToPrimitive, Signed};

@@ -5,7 +5,6 @@ use super::node_power::NodePowerLimit;
 use super::node_move::NodeMoveRegister;
 use std::collections::HashSet;
 use std::fmt;
-use num_bigint::BigInt;
 
 pub struct ProgramRunner {
     program_id: ProgramId,

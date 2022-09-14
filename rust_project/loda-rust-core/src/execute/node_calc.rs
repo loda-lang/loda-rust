@@ -1,11 +1,9 @@
-use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex, RegisterIndexAndType, RegisterType, RegisterValue};
-use super::{BoxCheckValue, PerformCheckValue};
+use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex};
 use super::Semantics;
-use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
+use crate::parser::{InstructionId, InstructionParameter, ParameterType};
 use std::collections::HashSet;
 use std::convert::TryFrom;
 use num_bigint::BigInt;
-use num_traits::Zero;
 
 pub struct NodeCalc {
     instruction_id: InstructionId,

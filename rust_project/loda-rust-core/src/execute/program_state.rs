@@ -50,20 +50,10 @@ impl ProgramState {
         node_loop_limit: NodeLoopLimit,
         node_power_limit: NodePowerLimit
     ) -> Self {
-        // Register 0 is for input value
-        // Register 0 is for output value
-        // So there must be a least 1 register.
-        let register_count: u8 = u8::max(register_count, 1);
-
-        let mut register_vec: Vec<RegisterValue> = vec!();
-        // for _ in 0..register_count {
-        //     register_vec.push(RegisterValue::zero());
-        // }
-
         let check_value: BoxCheckValue = node_register_limit.create_boxed_check_value();
 
         Self {
-            register_vec: register_vec,
+            register_vec: vec!(),
             memory_full: HashMap::new(),
             step_count: 0,
             run_mode: run_mode,
@@ -134,18 +124,6 @@ impl ProgramState {
         Ok(self.get_u64(address_u64))
     }
 
-    fn register_index_from(&self, value: i64) -> Result<RegisterIndex, EvalError> {
-        if value < 0 {
-            debug!("value out of range, too low");
-            return Err(EvalError::CannotConvertBigIntToRegisterIndex);
-        }
-        if value > 255 {
-            debug!("value out of range, too high");
-            return Err(EvalError::CannotConvertBigIntToRegisterIndex);
-        }
-        Ok(RegisterIndex(value as u8))
-    }
-    
     pub fn get(&self, parameter: &InstructionParameter, get_address: bool) -> Result<BigInt, EvalError> {
         match parameter.parameter_type {
             ParameterType::Constant => {
@@ -165,31 +143,14 @@ impl ProgramState {
                     }
                 }
                 let inner_value: &BigInt = self.get_i64(parameter.parameter_value)?;
-                // let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
-                // let value: &RegisterValue = self.get_register_value_ref(&index);
-                // let inner_value: BigInt = value.0.clone();
                 return Ok(inner_value.clone());
             },
             ParameterType::Indirect => {
                 let inner_value: &BigInt = self.get_i64(parameter.parameter_value)?;
-
-                // let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
-                // let value: &RegisterValue = self.get_register_value_ref(&index);
                 if get_address {
-                    // let inner_value: BigInt = value.0.clone();
                     return Ok(inner_value.clone());
                 }
-                // let optional_inner_value: Option<i64> = value.try_to_i64();
-                // let inner_value: i64 = match optional_inner_value {
-                //     Some(value) => value,
-                //     None => {
-                //         return Err(EvalError::CannotConvertBigIntToRegisterIndex);
-                //     }
-                // };
                 let inner_value2: &BigInt = self.get_bigint(inner_value)?;
-                // let index2: RegisterIndex = self.register_index_from(inner_value)?;
-                // let value2: &RegisterValue = self.get_register_value_ref(&index2);
-                // let inner_value: BigInt = value2.0.clone();
                 return Ok(inner_value2.clone());
             }
         }
@@ -202,26 +163,12 @@ impl ProgramState {
             },
             ParameterType::Register => {
                 self.set_i64(parameter.parameter_value, set_value)?;
-                // let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
-                // self.set_register_value(index, RegisterValue(set_value));
                 return Ok(());
             },
             ParameterType::Indirect => {
                 let address_ref: &BigInt = self.get_i64(parameter.parameter_value)?;
                 let address: BigInt = address_ref.clone();
                 self.set_bigint(&address, set_value)?;
-
-                // let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
-                // let value: &RegisterValue = self.get_register_value_ref(&index);
-                // let optional_inner_value: Option<i64> = value.try_to_i64();
-                // let inner_value: i64 = match optional_inner_value {
-                //     Some(value) => value,
-                //     None => {
-                //         return Err(EvalError::CannotConvertBigIntToRegisterIndex);
-                //     }
-                // };
-                // let index2: RegisterIndex = self.register_index_from(inner_value)?;
-                // self.set_register_value(index2, RegisterValue(set_value));
                 return Ok(());
             }
         }
@@ -342,69 +289,12 @@ impl ProgramState {
         false
     }
 
-    pub fn is_less_range_legacy(&self, other_state: &ProgramState, register_index: RegisterIndex, range_length: u8) -> bool {
-        let vector_length: usize = self.register_vec.len();
-        if vector_length != other_state.register_vec.len() {
-            panic!("inconsistency. The vector lengths must be the same");
-        }
-        let start_index: usize = register_index.0 as usize;
-        for i in 0..(range_length as usize) {
-            let index: usize = start_index + i;
-            if index >= vector_length {
-                // Reached end of the vector
-                return false;
-            }
-            let a: &RegisterValue = &self.register_vec[index];
-            let a_value: &BigInt = &a.0;
-            if a_value.is_negative() {
-                // Negative value encountered
-                return false;
-            }
-            let b: &RegisterValue = &other_state.register_vec[index];
-            let b_value: &BigInt = &b.0;
-            let ordering: Ordering = a_value.cmp(&b_value);
-            match ordering {
-                Ordering::Less => return true,
-                Ordering::Greater => return false,
-                Ordering::Equal => continue,
-            }
-        }
-        false
-    }
-
     /// Similar to `is_less_range()`, but with a range of 1.
     /// 
     /// This function is simpler than its counterpart `is_less_range`.
     pub fn is_less_single(&self, other_state: &ProgramState, register_index: RegisterIndex) -> bool {
         // panic!("TODO: replace u8 addresses with u64");
         self.is_less_range(other_state, register_index, 1)
-    }
-
-    pub fn is_less_single_legacy(&self, other_state: &ProgramState, register_index: RegisterIndex) -> bool {
-        // panic!("TODO: replace u8 addresses with u64");
-        let vector_length: usize = self.register_vec.len();
-        if vector_length != other_state.register_vec.len() {
-            panic!("inconsistency. The vector lengths must be the same");
-        }
-        let index: usize = register_index.0 as usize;
-        if index >= vector_length {
-            // Reached end of the vector
-            return false;
-        }
-        let a: &RegisterValue = &self.register_vec[index];
-        let a_value: &BigInt = &a.0;
-        if a_value.is_negative() {
-            // Negative value encountered
-            return false;
-        }
-        let b: &RegisterValue = &other_state.register_vec[index];
-        let b_value: &BigInt = &b.0;
-        let ordering: Ordering = a_value.cmp(&b_value);
-        match ordering {
-            Ordering::Less => return true,
-            Ordering::Greater => return false,
-            Ordering::Equal => return false,
-        }
     }
 }
 

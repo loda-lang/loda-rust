@@ -8,7 +8,7 @@ use num_integer::Integer;
 pub struct Semantics {}
 
 impl Semantics {
-    pub fn move_value(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+    pub fn move_value(_x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         Ok(y.clone())
     }
 
