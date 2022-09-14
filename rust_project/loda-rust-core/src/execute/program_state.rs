@@ -16,10 +16,10 @@ lazy_static! {
 }
 
 /// The register 0 is for input data.
-const INPUT_REGISTER: usize = 0;
+const INPUT_REGISTER: u64 = 0;
 
 /// The register 0 is for output data.
-const OUTPUT_REGISTER: usize = 0;
+const OUTPUT_REGISTER: u64 = 0;
 
 
 const MAX_NUMBER_OF_REGISTERS: u64 = 10000;
@@ -163,29 +163,33 @@ impl ProgramState {
                         None => { return Err(EvalError::CannotConvertParameterValueToBigInt); }
                     }
                 }
-                let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
-                let value: &RegisterValue = self.get_register_value_ref(&index);
-                let inner_value: BigInt = value.0.clone();
-                return Ok(inner_value);
+                let inner_value: &BigInt = self.get_i64(parameter.parameter_value)?;
+                // let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
+                // let value: &RegisterValue = self.get_register_value_ref(&index);
+                // let inner_value: BigInt = value.0.clone();
+                return Ok(inner_value.clone());
             },
             ParameterType::Indirect => {
-                let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
-                let value: &RegisterValue = self.get_register_value_ref(&index);
+                let inner_value: &BigInt = self.get_i64(parameter.parameter_value)?;
+
+                // let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
+                // let value: &RegisterValue = self.get_register_value_ref(&index);
                 if get_address {
-                    let inner_value: BigInt = value.0.clone();
-                    return Ok(inner_value);
+                    // let inner_value: BigInt = value.0.clone();
+                    return Ok(inner_value.clone());
                 }
-                let optional_inner_value: Option<i64> = value.try_to_i64();
-                let inner_value: i64 = match optional_inner_value {
-                    Some(value) => value,
-                    None => {
-                        return Err(EvalError::CannotConvertBigIntToRegisterIndex);
-                    }
-                };
-                let index2: RegisterIndex = self.register_index_from(inner_value)?;
-                let value2: &RegisterValue = self.get_register_value_ref(&index2);
-                let inner_value: BigInt = value2.0.clone();
-                return Ok(inner_value);
+                // let optional_inner_value: Option<i64> = value.try_to_i64();
+                // let inner_value: i64 = match optional_inner_value {
+                //     Some(value) => value,
+                //     None => {
+                //         return Err(EvalError::CannotConvertBigIntToRegisterIndex);
+                //     }
+                // };
+                let inner_value2: &BigInt = self.get_bigint(inner_value)?;
+                // let index2: RegisterIndex = self.register_index_from(inner_value)?;
+                // let value2: &RegisterValue = self.get_register_value_ref(&index2);
+                // let inner_value: BigInt = value2.0.clone();
+                return Ok(inner_value2.clone());
             }
         }
     }
@@ -196,32 +200,46 @@ impl ProgramState {
                 return Err(EvalError::CannotSetValueOfConstant);
             },
             ParameterType::Register => {
-                let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
-                self.set_register_value(index, RegisterValue(set_value));
+                self.set_i64(parameter.parameter_value, set_value)?;
+                // let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
+                // self.set_register_value(index, RegisterValue(set_value));
                 return Ok(());
             },
             ParameterType::Indirect => {
-                let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
-                let value: &RegisterValue = self.get_register_value_ref(&index);
-                let optional_inner_value: Option<i64> = value.try_to_i64();
-                let inner_value: i64 = match optional_inner_value {
-                    Some(value) => value,
-                    None => {
-                        return Err(EvalError::CannotConvertBigIntToRegisterIndex);
-                    }
-                };
-                let index2: RegisterIndex = self.register_index_from(inner_value)?;
-                self.set_register_value(index2, RegisterValue(set_value));
+                let address_ref: &BigInt = self.get_i64(parameter.parameter_value)?;
+                let address: BigInt = address_ref.clone();
+                self.set_bigint(&address, set_value)?;
+
+                // let index: RegisterIndex = self.register_index_from(parameter.parameter_value)?;
+                // let value: &RegisterValue = self.get_register_value_ref(&index);
+                // let optional_inner_value: Option<i64> = value.try_to_i64();
+                // let inner_value: i64 = match optional_inner_value {
+                //     Some(value) => value,
+                //     None => {
+                //         return Err(EvalError::CannotConvertBigIntToRegisterIndex);
+                //     }
+                // };
+                // let index2: RegisterIndex = self.register_index_from(inner_value)?;
+                // self.set_register_value(index2, RegisterValue(set_value));
                 return Ok(());
             }
         }
     }
 
     /// Read the value of register 0, the output register.
-    pub fn get_output_value(&self) -> &RegisterValue {
+    pub fn get_output_value_bigint(&self) -> &BigInt {
+        self.get_u64(OUTPUT_REGISTER)
+    }
+    
+    pub fn get_output_value(&self) -> RegisterValue {
+        let output_value: &BigInt = self.get_output_value_bigint();
+        RegisterValue(output_value.clone())
+    }    
+
+    pub fn get_output_value_legacy(&self) -> &RegisterValue {
         // panic!("TODO: replace u8 addresses with u64");
         assert!(self.register_vec.len() >= 1);
-        return &self.register_vec[OUTPUT_REGISTER];
+        return &self.register_vec[OUTPUT_REGISTER as usize];
     }    
 
     pub fn set_bigint(&mut self, address: &BigInt, value: BigInt) -> Result<(), EvalError> {
@@ -260,9 +278,7 @@ impl ProgramState {
 
     /// Write a value to register 0, the input register.
     pub fn set_input_value(&mut self, register_value: &RegisterValue) {
-        // panic!("TODO: replace u8 addresses with u64");
-        assert!(self.register_vec.len() >= 1);
-        self.register_vec[INPUT_REGISTER] = register_value.clone();
+        self.set_u64(INPUT_REGISTER, register_value.0.clone());
     }
    
     pub fn set_register_range_to_zero(&mut self, register_index: RegisterIndex, count: u8) {

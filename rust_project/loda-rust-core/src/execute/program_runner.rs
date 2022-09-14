@@ -5,6 +5,7 @@ use super::node_power::NodePowerLimit;
 use super::node_move::NodeMoveRegister;
 use std::collections::HashSet;
 use std::fmt;
+use num_bigint::BigInt;
 
 pub struct ProgramRunner {
     program_id: ProgramId,
@@ -76,7 +77,7 @@ impl ProgramRunner {
         }
         
         // In case run succeeded, then return output.
-        let output: RegisterValue = state.get_output_value().clone();
+        let output: RegisterValue = state.get_output_value();
 
         // Update cache
         match self.program_id {
