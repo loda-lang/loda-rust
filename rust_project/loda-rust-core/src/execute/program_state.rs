@@ -279,7 +279,7 @@ impl ProgramState {
 
     /// Write a value to register 0, the input register.
     pub fn set_input_value(&mut self, register_value: &RegisterValue) {
-        self.set_u64(INPUT_REGISTER, register_value.0.clone());
+        self.memory_full.insert(INPUT_REGISTER, register_value.0.clone());
     }
    
     pub fn set_register_range_to_zero(&mut self, register_index: RegisterIndex, count: u8) {
