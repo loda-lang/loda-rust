@@ -8,6 +8,7 @@ use num_bigint::{BigInt, ToBigInt};
 use num_traits::{Signed, ToPrimitive, Zero};
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::iter::FromIterator;
 use lazy_static::lazy_static;
 
 lazy_static! {
@@ -314,6 +315,26 @@ impl ProgramState {
     /// Returns `false` if a register is encountered with a negative value.
     pub fn is_less_range(&self, other_state: &ProgramState, register_index: RegisterIndex, range_length: u8) -> bool {
         // panic!("TODO: replace u8 addresses with u64");
+        let start_index: u64 = register_index.0 as u64;
+        for i in 0..range_length {
+            let index: u64 = start_index + (i as u64);
+            let a_value: &BigInt = self.get_u64(index);
+            if a_value.is_negative() {
+                // Negative value encountered
+                return false;
+            }
+            let b_value: &BigInt = other_state.get_u64(index);
+            let ordering: Ordering = a_value.cmp(&b_value);
+            match ordering {
+                Ordering::Less => return true,
+                Ordering::Greater => return false,
+                Ordering::Equal => continue,
+            }
+        }
+        false
+    }
+
+    pub fn is_less_range_legacy(&self, other_state: &ProgramState, register_index: RegisterIndex, range_length: u8) -> bool {
         let vector_length: usize = self.register_vec.len();
         if vector_length != other_state.register_vec.len() {
             panic!("inconsistency. The vector lengths must be the same");
@@ -347,6 +368,11 @@ impl ProgramState {
     /// 
     /// This function is simpler than its counterpart `is_less_range`.
     pub fn is_less_single(&self, other_state: &ProgramState, register_index: RegisterIndex) -> bool {
+        // panic!("TODO: replace u8 addresses with u64");
+        self.is_less_range(other_state, register_index, 1)
+    }
+
+    pub fn is_less_single_legacy(&self, other_state: &ProgramState, register_index: RegisterIndex) -> bool {
         // panic!("TODO: replace u8 addresses with u64");
         let vector_length: usize = self.register_vec.len();
         if vector_length != other_state.register_vec.len() {

@@ -11,6 +11,7 @@ pub struct NodeLoopRegister {
 
 impl NodeLoopRegister {
     pub fn new(register_start: RegisterIndex, register_with_range_length: RegisterIndex, program: Program) -> Self {
+        //panic!("TODO: replace u8 addresses with u64");
         Self {
             register_start: register_start,
             register_with_range_length: register_with_range_length,
@@ -42,8 +43,7 @@ impl Node for NodeLoopRegister {
         let max_range_length_bigint: BigInt = 255.to_bigint().unwrap();
 
         //panic!("TODO: replace u8 addresses with u64");
-        let initial_value: &RegisterValue = state.get_register_value_ref(&self.register_with_range_length);
-        let initial_value_inner: &BigInt = &initial_value.0;
+        let initial_value_inner: &BigInt = state.get_u64(self.register_with_range_length.0 as u64);
         let initial_range_length: u8;
         if initial_value_inner.is_positive() {
             if initial_value_inner > &max_range_length_bigint {
@@ -71,8 +71,7 @@ impl Node for NodeLoopRegister {
             self.program.run(state, cache)?;
 
             //panic!("TODO: replace u8 addresses with u64");
-            let value: &RegisterValue = state.get_register_value_ref(&self.register_with_range_length);
-            let value_inner: &BigInt = &value.0;
+            let value_inner: &BigInt = state.get_u64(self.register_with_range_length.0 as u64);
             let range_length: u8;
             if value_inner.is_positive() {
                 if value_inner > &max_range_length_bigint {
