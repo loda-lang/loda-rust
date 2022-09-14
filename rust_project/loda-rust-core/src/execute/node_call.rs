@@ -45,6 +45,7 @@ impl Node for NodeCallConstant {
         if !self.link_established {
             panic!("No link have been establish. This node cannot do its job.");
         }
+        //panic!("TODO: replace u8 addresses with u64");
         let input: &RegisterValue = state.get_register_value_ref(&self.target);
 
         if input.0.is_negative() {
@@ -90,6 +91,7 @@ impl Node for NodeCallConstant {
         state.check_value().output(&output.0)?;
 
         // In case run succeeded, then pass on the outputted value.
+        //panic!("TODO: replace u8 addresses with u64");
         state.set_register_value(self.target.clone(), output);
         Ok(())
     }

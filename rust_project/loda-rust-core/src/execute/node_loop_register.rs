@@ -41,6 +41,7 @@ impl Node for NodeLoopRegister {
 
         let max_range_length_bigint: BigInt = 255.to_bigint().unwrap();
 
+        //panic!("TODO: replace u8 addresses with u64");
         let initial_value: &RegisterValue = state.get_register_value_ref(&self.register_with_range_length);
         let initial_value_inner: &BigInt = &initial_value.0;
         let initial_range_length: u8;
@@ -69,6 +70,7 @@ impl Node for NodeLoopRegister {
 
             self.program.run(state, cache)?;
 
+            //panic!("TODO: replace u8 addresses with u64");
             let value: &RegisterValue = state.get_register_value_ref(&self.register_with_range_length);
             let value_inner: &BigInt = &value.0;
             let range_length: u8;
