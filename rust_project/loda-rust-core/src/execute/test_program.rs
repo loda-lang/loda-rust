@@ -63,13 +63,6 @@ mov $0,$1"#;
     }
 
     #[test]
-    fn test_10002_max_register_index() {
-        let program = program_a000045();
-        let actual: u8 = program.max_register_index();
-        assert_eq!(actual, 3);
-    }
-
-    #[test]
     fn test_10003_run() {
         let program = program_a000045();
         let runner = ProgramRunner::new(

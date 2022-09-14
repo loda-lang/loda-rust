@@ -93,28 +93,4 @@ impl Program {
         }
         Ok(())
     }
-
-    /// This helps determining the number of registers to allocate.
-    /// 
-    /// If the highest register index used is 33.
-    /// 
-    /// Then we know we have to allocate 34 regisers.
-    pub fn max_register_index(&self) -> u8 {
-        // Populate vector with register indexes that a program use
-        let mut register_vec: Vec<RegisterIndex> = vec!();
-        self.accumulate_register_indexes(&mut register_vec);
-
-        // Max value in the vector
-        let indexes: Vec<u8> = register_vec.iter().map(|register_index| {
-            register_index.0
-        }).collect();
-        match indexes.iter().max() {
-            Some(value) => {
-                return value.clone();
-            },
-            None => {
-                return 0;
-            }
-        }
-    }
 }

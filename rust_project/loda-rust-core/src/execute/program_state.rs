@@ -56,9 +56,9 @@ impl ProgramState {
         let register_count: u8 = u8::max(register_count, 1);
 
         let mut register_vec: Vec<RegisterValue> = vec!();
-        for _ in 0..register_count {
-            register_vec.push(RegisterValue::zero());
-        }
+        // for _ in 0..register_count {
+        //     register_vec.push(RegisterValue::zero());
+        // }
 
         let check_value: BoxCheckValue = node_register_limit.create_boxed_check_value();
 
@@ -577,39 +577,39 @@ mod tests {
             // compare 1 register
             let state0 = mock_program_state();
             let mut state1 = mock_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(50));
+            set_value_not_failable(&mut state1, 0, 50);
             assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), false);
         }
         {
             // compare 1 register
             let mut state0 = mock_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-50));
+            set_value_not_failable(&mut state0, 0, -50);
             let mut state1 = mock_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(49));
+            set_value_not_failable(&mut state1, 0, 49);
             assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), false);
         }
         {
             // compare 1 register
             let mut state0 = mock_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-50));
+            set_value_not_failable(&mut state0, 0, -50);
             let mut state1 = mock_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
+            set_value_not_failable(&mut state1, 0, -49);
             assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), false);
         }
         {
             // compare 1 register
             let mut state0 = mock_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
+            set_value_not_failable(&mut state0, 0, -49);
             let mut state1 = mock_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(50));
+            set_value_not_failable(&mut state1, 0, 50);
             assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), false);
         }
         {
             // compare 1 register
             let mut state0 = mock_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
+            set_value_not_failable(&mut state0, 0, -49);
             let mut state1 = mock_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-50));
+            set_value_not_failable(&mut state1, 0, -50);
             assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), false);
         }
     }
@@ -666,44 +666,44 @@ mod tests {
         }
         {
             let mut state0 = empty_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(51));
+            set_value_not_failable(&mut state0, 0, 51);
             let mut state1 = empty_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(50));
+            set_value_not_failable(&mut state1, 0, 50);
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
         }
         {
             let mut state0 = empty_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(50));
+            set_value_not_failable(&mut state0, 0, 50);
             let mut state1 = empty_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(50));
+            set_value_not_failable(&mut state1, 0, 50);
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
         }
         {
             let mut state0 = empty_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-50));
+            set_value_not_failable(&mut state0, 0, -50);
             let mut state1 = empty_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(49));
+            set_value_not_failable(&mut state1, 0, 49);
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
         }
         {
             let mut state0 = empty_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-50));
+            set_value_not_failable(&mut state0, 0, -50);
             let mut state1 = empty_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
+            set_value_not_failable(&mut state1, 0, -49);
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
         }
         {
             let mut state0 = empty_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
+            set_value_not_failable(&mut state0, 0, -49);
             let mut state1 = empty_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(50));
+            set_value_not_failable(&mut state1, 0, 50);
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
         }
         {
             let mut state0 = empty_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-49));
+            set_value_not_failable(&mut state0, 0, -49);
             let mut state1 = empty_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(-50));
+            set_value_not_failable(&mut state1, 0, -50);
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
         }
     }

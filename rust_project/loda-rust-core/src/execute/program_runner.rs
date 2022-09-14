@@ -15,14 +15,10 @@ pub struct ProgramRunner {
 
 impl ProgramRunner {
     pub fn new(program_id: ProgramId, program: Program) -> Self {
-        // Determine the number of registeres to allocate before running the program
-        let max_register_index: u8 = program.max_register_index();
-        let register_count: u8 = max_register_index + 1;
-
         Self {
             program_id: program_id,
             program: program,
-            register_count: register_count,
+            register_count: 0,
         }
     }
 
@@ -131,6 +127,7 @@ impl ProgramRunner {
     /// When there is zero live registers, then there is no way to get to the output register, 
     /// and this program is truely defunct.
     pub fn mining_trick_attempt_fixing_the_output_register(&mut self) -> bool {
+        // panic!("TODO: replace u8 addresses with u64");
         let live_registers: HashSet<RegisterIndex> = self.live_registers();
         if live_registers.is_empty() {
             // There is no live registers to pick from.
@@ -155,10 +152,6 @@ impl ProgramRunner {
         let node = NodeMoveRegister::new(target, source);
         let node_wrapped = Box::new(node);
         self.program.push_boxed(node_wrapped);
-
-        // Determine the number of registeres to allocate before running the program
-        let max_register_index: u8 = self.program.max_register_index();
-        self.register_count = max_register_index + 1;
 
         true
     }

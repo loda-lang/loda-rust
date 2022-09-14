@@ -3,6 +3,7 @@ use super::{BoxCheckValue, PerformCheckValue};
 use super::Semantics;
 use crate::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use std::collections::HashSet;
+use std::convert::TryFrom;
 use num_bigint::BigInt;
 use num_traits::Zero;
 
@@ -60,10 +61,19 @@ impl Node for NodeCalc {
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
         // TODO: deal with indirect
-        // register_vec.push(self.target.register_index.clone());
-        // register_vec.push(self.source.register_index.clone());
-        for i in 0..=254 {
-            register_vec.push(RegisterIndex(i));
+        match self.target.parameter_type {
+            ParameterType::Register | ParameterType::Indirect => {
+                let value: u8 = u8::try_from(self.target.parameter_value).unwrap_or(255);
+                register_vec.push(RegisterIndex(value));
+            },
+            ParameterType::Constant => {}
+        }
+        match self.source.parameter_type {
+            ParameterType::Register | ParameterType::Indirect => {
+                let value: u8 = u8::try_from(self.target.parameter_value).unwrap_or(255);
+                register_vec.push(RegisterIndex(value));
+            },
+            ParameterType::Constant => {}
         }
     }
     
