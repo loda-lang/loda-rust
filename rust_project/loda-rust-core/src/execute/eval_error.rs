@@ -44,6 +44,10 @@ pub enum EvalError {
     CannotSetValueOfConstant,
     CannotConvertParameterValueToBigInt,
     CannotConvertBigIntToRegisterIndex,
+    CannotConvertBigIntToAddress,
+    CannotConvertI64ToAddress,
+    AddressIsOutsideMaxCapacity,
+    AddressWithNegativeValue,
     UnsupportedInstruction,
 }
 
@@ -80,6 +84,14 @@ impl fmt::Display for EvalError {
                 write!(f, "Cannot convert parameter value to BigInt"),
             Self::CannotConvertBigIntToRegisterIndex => 
                 write!(f, "Cannot convert BigInt to register index"),
+            Self::CannotConvertBigIntToAddress => 
+                write!(f, "Cannot convert BigInt to address"),
+            Self::CannotConvertI64ToAddress => 
+                write!(f, "Cannot convert i64 to address"),
+            Self::AddressIsOutsideMaxCapacity => 
+                write!(f, "Memory address is outside the number of registers"),
+            Self::AddressWithNegativeValue => 
+                write!(f, "Memory address with negative value"),
             Self::UnsupportedInstruction => 
                 write!(f, "Unsupported instruction"),
         }

@@ -5,12 +5,14 @@ use super::NodeRegisterLimit;
 use super::BoxCheckValue;
 use crate::parser::{InstructionParameter, ParameterType};
 use num_bigint::{BigInt, ToBigInt};
-use num_traits::Signed;
+use num_traits::{Signed, ToPrimitive, Zero};
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use lazy_static::lazy_static;
 
 lazy_static! {
     static ref OUT_OF_BOUNDS_RETURN_VALUE: RegisterValue = RegisterValue::zero();
+    static ref BIGINT_ZERO: BigInt = BigInt::zero();
 }
 
 /// The register 0 is for input data.
@@ -20,9 +22,13 @@ const INPUT_REGISTER: usize = 0;
 const OUTPUT_REGISTER: usize = 0;
 
 
+const MAX_NUMBER_OF_REGISTERS: u64 = 10000;
+
+
 #[derive(Clone)]
 pub struct ProgramState {
     register_vec: Vec<RegisterValue>,
+    memory_full: HashMap<u64, BigInt>,
     step_count: u64,
     run_mode: RunMode,
     step_count_limit: u64,
@@ -57,6 +63,7 @@ impl ProgramState {
 
         Self {
             register_vec: register_vec,
+            memory_full: HashMap::new(),
             step_count: 0,
             run_mode: run_mode,
             step_count_limit: step_count_limit,
@@ -93,12 +100,37 @@ impl ProgramState {
     }
 
     pub fn get_register_value_ref(&self, register_index: &RegisterIndex) -> &RegisterValue {
+        // panic!("TODO: replace u8 addresses with u64");
         let index = register_index.0 as usize;
         if index >= self.register_vec.len() {
             // Accessing a register outside bounds always returns zero
             return &OUT_OF_BOUNDS_RETURN_VALUE;
         }    
         return &self.register_vec[index];
+    }
+
+    pub fn get_u64(&self, address: u64) -> &BigInt {
+        match self.memory_full.get(&address) {
+            Some(value) => { return value; },
+            None => { return &BIGINT_ZERO; }
+        }
+    }
+
+    pub fn get_i64(&self, address: i64) -> Result<&BigInt, EvalError> {
+        if address < 0 {
+            return Err(EvalError::CannotConvertI64ToAddress);
+        }
+        Ok(self.get_u64(address as u64))
+    }
+
+    pub fn get_bigint(&self, address: &BigInt) -> Result<&BigInt, EvalError> {
+        let address_u64: u64 = match address.to_u64() {
+            Some(value) => value,
+            None => {
+                return Err(EvalError::CannotConvertBigIntToAddress);
+            }
+        };
+        Ok(self.get_u64(address_u64))
     }
 
     fn register_index_from(&self, value: i64) -> Result<RegisterIndex, EvalError> {
@@ -187,11 +219,38 @@ impl ProgramState {
 
     /// Read the value of register 0, the output register.
     pub fn get_output_value(&self) -> &RegisterValue {
+        // panic!("TODO: replace u8 addresses with u64");
         assert!(self.register_vec.len() >= 1);
         return &self.register_vec[OUTPUT_REGISTER];
     }    
 
+    pub fn set_bigint(&mut self, address: &BigInt, value: BigInt) -> Result<(), EvalError> {
+        let address_u64: u64 = match address.to_u64() {
+            Some(value) => value,
+            None => {
+                return Err(EvalError::CannotConvertBigIntToAddress);
+            }
+        };
+        self.set_u64(address_u64, value)
+    }
+
+    pub fn set_i64(&mut self, address: i64, value: BigInt) -> Result<(), EvalError> {
+        if address < 0 {
+            return Err(EvalError::AddressWithNegativeValue);
+        }
+        self.set_u64(address as u64, value)
+    }
+
+    pub fn set_u64(&mut self, address: u64, value: BigInt) -> Result<(), EvalError> {
+        if address >= MAX_NUMBER_OF_REGISTERS {
+            return Err(EvalError::AddressIsOutsideMaxCapacity);
+        }
+        self.memory_full.insert(address, value);
+        Ok(())
+    }
+
     pub fn set_register_value(&mut self, register_index: RegisterIndex, register_value: RegisterValue) {
+        // panic!("TODO: replace u8 addresses with u64");
         let index = register_index.0 as usize;
         if index >= self.register_vec.len() {
             panic!("set_register_value. index is outside the number of registers.");
@@ -201,11 +260,13 @@ impl ProgramState {
 
     /// Write a value to register 0, the input register.
     pub fn set_input_value(&mut self, register_value: &RegisterValue) {
+        // panic!("TODO: replace u8 addresses with u64");
         assert!(self.register_vec.len() >= 1);
         self.register_vec[INPUT_REGISTER] = register_value.clone();
     }
    
     pub fn set_register_range_to_zero(&mut self, register_index: RegisterIndex, count: u8) {
+        // panic!("TODO: replace u8 addresses with u64");
         let number_of_registers: usize = self.register_vec.len(); 
         let mut index = register_index.0 as usize;
         for _ in 0..count {
@@ -220,6 +281,7 @@ impl ProgramState {
 
     /// Make the internal state human readable
     pub fn register_vec_to_string(&self) -> String {
+        // panic!("TODO: replace u8 addresses with u64");
         let strings: Vec<String> = self.register_vec.iter().map(|register_value| {
             register_value.0.to_string()
         }).collect();
@@ -235,6 +297,7 @@ impl ProgramState {
     /// 
     /// Returns `false` if a register is encountered with a negative value.
     pub fn is_less_range(&self, other_state: &ProgramState, register_index: RegisterIndex, range_length: u8) -> bool {
+        // panic!("TODO: replace u8 addresses with u64");
         let vector_length: usize = self.register_vec.len();
         if vector_length != other_state.register_vec.len() {
             panic!("inconsistency. The vector lengths must be the same");
@@ -268,6 +331,7 @@ impl ProgramState {
     /// 
     /// This function is simpler than its counterpart `is_less_range`.
     pub fn is_less_single(&self, other_state: &ProgramState, register_index: RegisterIndex) -> bool {
+        // panic!("TODO: replace u8 addresses with u64");
         let vector_length: usize = self.register_vec.len();
         if vector_length != other_state.register_vec.len() {
             panic!("inconsistency. The vector lengths must be the same");
