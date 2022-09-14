@@ -284,14 +284,9 @@ impl ProgramState {
    
     pub fn set_register_range_to_zero(&mut self, register_index: RegisterIndex, count: u8) {
         // panic!("TODO: replace u8 addresses with u64");
-        let number_of_registers: usize = self.register_vec.len(); 
-        let mut index = register_index.0 as usize;
+        let mut index = register_index.0 as u64;
         for _ in 0..count {
-            if index >= number_of_registers {
-                // Do nothing when the index is outside the number of registers.
-                return;
-            }
-            self.register_vec[index] = RegisterValue::zero();
+            self.memory_full.remove(&index);
             index += 1;
         }
     }
@@ -299,9 +294,22 @@ impl ProgramState {
     /// Make the internal state human readable
     pub fn register_vec_to_string(&self) -> String {
         // panic!("TODO: replace u8 addresses with u64");
-        let strings: Vec<String> = self.register_vec.iter().map(|register_value| {
-            register_value.0.to_string()
-        }).collect();
+        let key_refs: Vec<&u64> = Vec::from_iter(self.memory_full.keys());
+        let mut keys: Vec<u64> = key_refs.iter().map(|&key| *key).collect();
+        keys.sort();
+
+        let mut strings = Vec::<String>::new();
+        for key in keys {
+            match self.memory_full.get(&key) {
+                Some(value) => {
+                    strings.push(format!("{}:{}", key, value));
+                },
+                None => {
+                    strings.push(format!("{}:N/A", key));
+                }
+            }
+        }
+
         let strings_joined: String = strings.join(",");
         format!("[{}]", strings_joined)
     }
@@ -428,6 +436,11 @@ impl ProgramState {
 mod tests {
     use super::*;
 
+    fn set_value_not_failable(state: &mut ProgramState, address: u64, value: i64) {
+        let value_bigint = value.to_bigint().expect("should not fail");
+        state.set_u64(address, value_bigint).expect("should not fail");
+    }
+
     fn mock_program_state() -> ProgramState {
         let mut state = ProgramState::new(
             4, 
@@ -438,10 +451,10 @@ mod tests {
             NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         );
-        state.set_register_value(RegisterIndex(0), RegisterValue::from_i64(100));
-        state.set_register_value(RegisterIndex(1), RegisterValue::from_i64(101));
-        state.set_register_value(RegisterIndex(2), RegisterValue::from_i64(102));
-        state.set_register_value(RegisterIndex(3), RegisterValue::from_i64(103));
+        set_value_not_failable(&mut state, 0, 100);
+        set_value_not_failable(&mut state, 1, 101);
+        set_value_not_failable(&mut state, 2, 102);
+        set_value_not_failable(&mut state, 3, 103);
         state
     }
 
@@ -460,7 +473,7 @@ mod tests {
     #[test]
     fn test_10000_register_vec_to_string() {
         let state = mock_program_state();
-        assert_eq!(state.register_vec_to_string(), "[100,101,102,103]");
+        assert_eq!(state.register_vec_to_string(), "[0:100,1:101,2:102,3:103]");
     }
 
     #[test]
@@ -474,7 +487,7 @@ mod tests {
             NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         );
-        assert_eq!(state.register_vec_to_string(), "[0]")
+        assert_eq!(state.register_vec_to_string(), "[]")
     }
 
     #[test]
@@ -488,7 +501,7 @@ mod tests {
             NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         );
-        assert_eq!(state.register_vec_to_string(), "[0]")
+        assert_eq!(state.register_vec_to_string(), "[]")
     }
 
     #[test]
@@ -497,31 +510,31 @@ mod tests {
             // clear 0 registers is the same as doing nothing
             let mut state = mock_program_state();
             state.set_register_range_to_zero(RegisterIndex(1), 0);
-            assert_eq!(state.register_vec_to_string(), "[100,101,102,103]");
+            assert_eq!(state.register_vec_to_string(), "[0:100,1:101,2:102,3:103]");
         }
         {
             // clear inside the range
             let mut state = mock_program_state();
             state.set_register_range_to_zero(RegisterIndex(1), 2);
-            assert_eq!(state.register_vec_to_string(), "[100,0,0,103]");
+            assert_eq!(state.register_vec_to_string(), "[0:100,3:103]");
         }
         {
             // clear inside the range
             let mut state = mock_program_state();
             state.set_register_range_to_zero(RegisterIndex(3), 1);
-            assert_eq!(state.register_vec_to_string(), "[100,101,102,0]");
+            assert_eq!(state.register_vec_to_string(), "[0:100,1:101,2:102]");
         }
         {
             // clear starting inside the range, and ending outside the range
             let mut state = mock_program_state();
             state.set_register_range_to_zero(RegisterIndex(3), 2);
-            assert_eq!(state.register_vec_to_string(), "[100,101,102,0]");
+            assert_eq!(state.register_vec_to_string(), "[0:100,1:101,2:102]");
         }
         {
             // clear outside range, is the same as doing nothing
             let mut state = mock_program_state();
             state.set_register_range_to_zero(RegisterIndex(100), 1);
-            assert_eq!(state.register_vec_to_string(), "[100,101,102,103]");
+            assert_eq!(state.register_vec_to_string(), "[0:100,1:101,2:102,3:103]");
         }
     }
 
@@ -607,35 +620,35 @@ mod tests {
             // compare 1 register
             let state0 = empty_program_state();
             let mut state1 = empty_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(1));
+            set_value_not_failable(&mut state1, 0, 1);
             assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), true);
         }
         {
             // compare 2 registers
             let state0 = empty_program_state();
             let mut state1 = empty_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(1));
+            set_value_not_failable(&mut state1, 0, 1);
             assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 2), true);
         }
         {
             // compare 2 registers
             let state0 = empty_program_state();
             let mut state1 = empty_program_state();
-            state1.set_register_value(RegisterIndex(1), RegisterValue::from_i64(1));
+            set_value_not_failable(&mut state1, 1, 1);
             assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 2), true);
         }
         {
             // compare 4 registers
             let state0 = mock_program_state();
             let mut state1 = mock_program_state();
-            state1.set_register_value(RegisterIndex(3), RegisterValue::from_i64(104));
+            set_value_not_failable(&mut state1, 3, 104);
             assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 4), true);
         }
         {
             // compare 4 registers, across end of vector boundary
             let state0 = mock_program_state();
             let mut state1 = mock_program_state();
-            state1.set_register_value(RegisterIndex(3), RegisterValue::from_i64(104));
+            set_value_not_failable(&mut state1, 3, 104);
             assert_eq!(state0.is_less_range(&state1, RegisterIndex(2), 4), true);
         }
     }
@@ -700,34 +713,34 @@ mod tests {
         {
             let state0 = empty_program_state();
             let mut state1 = empty_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(1));
+            set_value_not_failable(&mut state1, 0, 1);
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
         }
         {
             let mut state0 = empty_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(1));
+            set_value_not_failable(&mut state0, 0, 1);
             let mut state1 = empty_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(2));
+            set_value_not_failable(&mut state1, 0, 2);
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
         }
         {
             let mut state0 = empty_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(1));
+            set_value_not_failable(&mut state0, 0, 1);
             let mut state1 = empty_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(100));
+            set_value_not_failable(&mut state1, 0, 100);
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
         }
         {
             let state0 = empty_program_state();
             let mut state1 = empty_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(100));
+            set_value_not_failable(&mut state1, 0, 100);
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
         }
         {
             let mut state0 = empty_program_state();
-            state0.set_register_value(RegisterIndex(0), RegisterValue::from_i64(99));
+            set_value_not_failable(&mut state0, 0, 99);
             let mut state1 = empty_program_state();
-            state1.set_register_value(RegisterIndex(0), RegisterValue::from_i64(100));
+            set_value_not_failable(&mut state1, 0, 100);
             assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
         }
     }

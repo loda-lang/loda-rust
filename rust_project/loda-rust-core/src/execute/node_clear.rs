@@ -82,8 +82,7 @@ impl Node for NodeClearRegister {
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         //panic!("TODO: replace u8 addresses with u64");
-        let value: &RegisterValue = state.get_register_value_ref(&self.register_with_clear_count);
-        let value_inner: &BigInt = &value.0;
+        let value_inner: &BigInt = state.get_u64(self.register_with_clear_count.0 as u64);
         let clear_count: u8;
         let max_clear_count_bigint: BigInt = 255.to_bigint().unwrap();
         if value_inner.is_positive() {
