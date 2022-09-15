@@ -87,6 +87,7 @@ impl ProgramState {
     }
 
     pub fn get_register_value_ref(&self, _register_index: &RegisterIndex) -> &RegisterValue {
+        error!("get_register_value_ref is to be removed");
         panic!("TODO: replace u8 addresses with u64");
     }
 
@@ -175,6 +176,7 @@ impl ProgramState {
     }    
 
     pub fn get_output_value_legacy(&self) -> &RegisterValue {
+        error!("get_output_value_legacy is to be removed");
         panic!("TODO: replace u8 addresses with u64");
     }    
 
@@ -204,6 +206,7 @@ impl ProgramState {
     }
 
     pub fn set_register_value(&mut self, _register_index: RegisterIndex, _register_value: RegisterValue) {
+        error!("set_register_value is to be removed");
         panic!("TODO: replace u8 addresses with u64");
     }
 
