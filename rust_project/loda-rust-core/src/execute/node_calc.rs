@@ -60,14 +60,14 @@ impl Node for NodeCalc {
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
         // TODO: deal with indirect
         match self.target.parameter_type {
-            ParameterType::Register | ParameterType::Indirect => {
+            ParameterType::Direct | ParameterType::Indirect => {
                 let value: u64 = u64::try_from(self.target.parameter_value).unwrap_or(255);
                 register_vec.push(RegisterIndex(value));
             },
             ParameterType::Constant => {}
         }
         match self.source.parameter_type {
-            ParameterType::Register | ParameterType::Indirect => {
+            ParameterType::Direct | ParameterType::Indirect => {
                 let value: u64 = u64::try_from(self.target.parameter_value).unwrap_or(255);
                 register_vec.push(RegisterIndex(value));
             },

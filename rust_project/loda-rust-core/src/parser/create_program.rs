@@ -323,7 +323,7 @@ fn create_two_parameter_node_legacy(instruction: &Instruction) -> Result<BoxNode
                 RegisterValue::from_i64(parameter1.parameter_value)
             );
         },
-        ParameterType::Register => {
+        ParameterType::Direct => {
             let register1 = RegisterIndexAndType::from_parameter(instruction, parameter1)?;
             let node_wrapped = instruction.create_node_with_register_and_register(
                 register0,
@@ -420,7 +420,7 @@ fn node_loop_range_parameter(instruction: &Instruction, parameter: &InstructionP
         ParameterType::Constant => {
             return node_loop_range_parameter_constant(instruction, parameter);
         },
-        ParameterType::Register => {
+        ParameterType::Direct => {
             return node_loop_range_parameter_register(instruction, parameter);
         },
         ParameterType::Indirect => {

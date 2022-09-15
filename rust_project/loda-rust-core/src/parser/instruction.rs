@@ -20,7 +20,7 @@ impl fmt::Display for InstructionParameter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let prefix: &str = match self.parameter_type {
             ParameterType::Constant => "",
-            ParameterType::Register => "$",
+            ParameterType::Direct => "$",
             ParameterType::Indirect => "$$",
         };
         write!(f, "{}{}", prefix, self.parameter_value)

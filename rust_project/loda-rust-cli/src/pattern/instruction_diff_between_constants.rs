@@ -24,7 +24,7 @@ pub fn instruction_diff_between_constants(instruction0: &Instruction, instructio
                     return Some((parameter0.parameter_value, parameter1.parameter_value));
                 }
             },
-            ParameterType::Register => {
+            ParameterType::Direct => {
                 if !is_same_value {
                     return None;
                 }

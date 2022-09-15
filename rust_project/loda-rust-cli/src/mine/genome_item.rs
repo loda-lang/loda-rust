@@ -51,7 +51,7 @@ impl GenomeItem {
             enabled: true,
             instruction_id: InstructionId::Move,
             target_value: target_value,
-            source_type: ParameterType::Register,
+            source_type: ParameterType::Direct,
             source_value: source_value,
         }
     }
@@ -226,9 +226,9 @@ impl GenomeItem {
         }
         match self.source_type {
             ParameterType::Constant => {
-                self.source_type = ParameterType::Register;
+                self.source_type = ParameterType::Direct;
             },
-            ParameterType::Register => {
+            ParameterType::Direct => {
                 self.source_type = ParameterType::Constant;
             },
             ParameterType::Indirect => {
@@ -373,7 +373,7 @@ impl GenomeItem {
         }
 
         // Prevent too extreme register index for source
-        if self.source_type == ParameterType::Register {
+        if self.source_type == ParameterType::Direct {
             let new_register = self.source_value % 5;
             if self.source_value != new_register {
                 self.source_value = new_register;
@@ -394,7 +394,7 @@ impl GenomeItem {
                             return false;
                         }
                     },
-                    ParameterType::Register => {
+                    ParameterType::Direct => {
                         if self.source_value == self.target_value {
                             self.source_value = (self.target_value + 1) % 5;
                             return false;
@@ -418,7 +418,7 @@ impl GenomeItem {
                             return false;
                         }
                     },
-                    ParameterType::Register => {
+                    ParameterType::Direct => {
                         if self.source_value == self.target_value {
                             self.source_value = (self.target_value + 1) % 5;
                             return false;
@@ -442,7 +442,7 @@ impl GenomeItem {
                             return false;
                         }
                     },
-                    ParameterType::Register => {
+                    ParameterType::Direct => {
                         if self.source_value == self.target_value {
                             self.source_value = (self.target_value + 1) % 5;
                             return false;
@@ -470,7 +470,7 @@ impl GenomeItem {
                             return false;
                         }
                     },
-                    ParameterType::Register => {
+                    ParameterType::Direct => {
                         if self.source_value == self.target_value {
                             self.source_value = (self.target_value + 1) % 5;
                             return false;
@@ -494,7 +494,7 @@ impl GenomeItem {
                             return false;
                         }
                     },
-                    ParameterType::Register => {
+                    ParameterType::Direct => {
                         if self.source_value == self.target_value {
                             self.source_value = (self.target_value + 1) % 5;
                             return false;
@@ -530,7 +530,7 @@ impl GenomeItem {
                             return false;
                         }
                     },
-                    ParameterType::Register => {
+                    ParameterType::Direct => {
                         if self.source_value == self.target_value {
                             self.source_value = (self.target_value + 1) % 5;
                             return false;
@@ -554,7 +554,7 @@ impl GenomeItem {
                             return false;
                         }
                     },
-                    ParameterType::Register => {
+                    ParameterType::Direct => {
                         self.source_type = ParameterType::Constant;
                         return false;
                     },
@@ -575,7 +575,7 @@ impl GenomeItem {
                 // For now don't care about the source type/value.
                 // Maybe in the future support source type/value.
                 let parameter = InstructionParameter {
-                    parameter_type: ParameterType::Register,
+                    parameter_type: ParameterType::Direct,
                     parameter_value: self.target_value.abs() as i64,
                 };
                 return vec![parameter];
@@ -585,7 +585,7 @@ impl GenomeItem {
             },
             InstructionId::EvalSequence => {
                 let parameter0 = InstructionParameter {
-                    parameter_type: ParameterType::Register,
+                    parameter_type: ParameterType::Direct,
                     parameter_value: self.target_value.abs() as i64,
                 };
                 let parameter1 = InstructionParameter {
@@ -596,7 +596,7 @@ impl GenomeItem {
             },
             _ => {
                 let parameter0 = InstructionParameter {
-                    parameter_type: ParameterType::Register,
+                    parameter_type: ParameterType::Direct,
                     parameter_value: self.target_value.abs() as i64,
                 };
                 // let parameter0: InstructionParameter;
@@ -608,9 +608,9 @@ impl GenomeItem {
                 //             parameter_value: self.target_value as i64,
                 //         };
                 //     },
-                //     ParameterType::Register => {
+                //     ParameterType::Direct => {
                 //         parameter0 = InstructionParameter {
-                //             parameter_type: ParameterType::Register,
+                //             parameter_type: ParameterType::Direct,
                 //             parameter_value: (self.target_value.abs()) as i64,
                 //         };
                 //     },
@@ -630,9 +630,9 @@ impl GenomeItem {
                             parameter_value: self.source_value as i64,
                         };
                     },
-                    ParameterType::Register => {
+                    ParameterType::Direct => {
                         parameter1 = InstructionParameter {
-                            parameter_type: ParameterType::Register,
+                            parameter_type: ParameterType::Direct,
                             parameter_value: (self.source_value.abs()) as i64,
                         };
                     },

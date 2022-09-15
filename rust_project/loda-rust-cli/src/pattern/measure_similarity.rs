@@ -48,7 +48,7 @@ impl ProgramSimilarity {
                             number_of_differencies += 1;
                         }
                     },
-                    ParameterType::Register => {
+                    ParameterType::Direct => {
                         if !is_same_value {
                             return ProgramSimilarity::NotSimilar;
                         }

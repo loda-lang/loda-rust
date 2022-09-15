@@ -22,7 +22,7 @@ impl RegisterIndexAndType {
                 );
                 return Err(err);
             },
-            ParameterType::Register => {
+            ParameterType::Direct => {
                 register_type = RegisterType::Direct;
             },
             ParameterType::Indirect => {

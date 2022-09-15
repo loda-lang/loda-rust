@@ -135,7 +135,7 @@ impl ProgramState {
                     None => { return Err(EvalError::CannotConvertParameterValueToBigInt); }
                 }
             },
-            ParameterType::Register => {
+            ParameterType::Direct => {
                 if get_address {
                     match parameter.parameter_value.to_bigint() {
                         Some(value) => { return Ok(value); }
@@ -161,7 +161,7 @@ impl ProgramState {
             ParameterType::Constant => {
                 return Err(EvalError::CannotSetValueOfConstant);
             },
-            ParameterType::Register => {
+            ParameterType::Direct => {
                 self.set_i64(parameter.parameter_value, set_value)?;
                 return Ok(());
             },

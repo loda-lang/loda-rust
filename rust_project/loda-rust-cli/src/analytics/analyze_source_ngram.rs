@@ -157,7 +157,7 @@ impl AnalyzeSourceNgram {
                 ParameterType::Constant => {
                     words.push("CONST".to_string());
                 },
-                ParameterType::Register => {
+                ParameterType::Direct => {
                     let parameter_value: i64 = parameter.parameter_value;
                     words.push(format!("{:?}", parameter_value));
                 },

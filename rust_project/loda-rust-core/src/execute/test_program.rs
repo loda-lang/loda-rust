@@ -17,15 +17,15 @@ mod tests {
         // Fibonacci integer sequence
         // https://github.com/loda-lang/loda-programs/blob/main/oeis/000/A000045.asm
         let mut program_inner = Program::new();
-        program_inner.push(node_calc(InstructionId::Subtract, ParameterType::Register, 0, ParameterType::Constant, 1));
-        program_inner.push(node_calc(InstructionId::Move, ParameterType::Register, 2, ParameterType::Register, 1));
-        program_inner.push(node_calc(InstructionId::Add, ParameterType::Register, 1, ParameterType::Register, 3));
-        program_inner.push(node_calc(InstructionId::Move, ParameterType::Register, 3, ParameterType::Register, 2));
+        program_inner.push(node_calc(InstructionId::Subtract, ParameterType::Direct, 0, ParameterType::Constant, 1));
+        program_inner.push(node_calc(InstructionId::Move, ParameterType::Direct, 2, ParameterType::Direct, 1));
+        program_inner.push(node_calc(InstructionId::Add, ParameterType::Direct, 1, ParameterType::Direct, 3));
+        program_inner.push(node_calc(InstructionId::Move, ParameterType::Direct, 3, ParameterType::Direct, 2));
     
         let mut program = Program::new();
-        program.push(node_calc(InstructionId::Move, ParameterType::Register, 3, ParameterType::Constant, 1));
+        program.push(node_calc(InstructionId::Move, ParameterType::Direct, 3, ParameterType::Constant, 1));
         program.push(NodeLoopSimple::new(RegisterIndex(0), program_inner));
-        program.push(node_calc(InstructionId::Move, ParameterType::Register, 0, ParameterType::Register, 1));
+        program.push(node_calc(InstructionId::Move, ParameterType::Direct, 0, ParameterType::Direct, 1));
         program
     }
 
@@ -77,8 +77,8 @@ mov $0,$1"#;
         {
             // This program makes no calls to other programs
             let mut this_program = Program::new();
-            this_program.push(node_calc(InstructionId::Add, ParameterType::Register, 0, ParameterType::Register, 0));
-            this_program.push(node_calc(InstructionId::Subtract, ParameterType::Register, 0, ParameterType::Constant, 1));
+            this_program.push(node_calc(InstructionId::Add, ParameterType::Direct, 0, ParameterType::Direct, 0));
+            this_program.push(node_calc(InstructionId::Subtract, ParameterType::Direct, 0, ParameterType::Constant, 1));
 
             // Programs without NodeCall cannot have problems with calls
             assert_eq!(this_program.validate_call_nodes().is_ok(), true);
