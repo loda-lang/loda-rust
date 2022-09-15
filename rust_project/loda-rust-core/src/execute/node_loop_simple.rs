@@ -30,7 +30,7 @@ impl Node for NodeLoopSimple {
 
     fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
         if state.run_mode() == RunMode::Verbose {
-            let snapshot = state.register_vec_to_string();
+            let snapshot = state.memory_full_to_string();
             let instruction = self.formatted_instruction();
             println!("{:12} {} => {}", instruction, snapshot, snapshot);
         }

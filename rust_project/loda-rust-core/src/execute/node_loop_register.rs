@@ -35,7 +35,7 @@ impl Node for NodeLoopRegister {
 
     fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
         if state.run_mode() == RunMode::Verbose {
-            let snapshot = state.register_vec_to_string();
+            let snapshot = state.memory_full_to_string();
             let instruction = self.formatted_instruction();
             println!("{:12} {} => {}", instruction, snapshot, snapshot);
         }
@@ -106,8 +106,8 @@ impl Node for NodeLoopRegister {
             if !is_less {
 
                 if state.run_mode() == RunMode::Verbose {
-                    let before = state.register_vec_to_string();
-                    let after = old_state.register_vec_to_string();
+                    let before = state.memory_full_to_string();
+                    let after = old_state.memory_full_to_string();
                     println!("{:12} {} => {}  break", "lpe", before, after);
                 }
 
@@ -129,8 +129,8 @@ impl Node for NodeLoopRegister {
                 }
             }
             if state.run_mode() == RunMode::Verbose {
-                let before = state.register_vec_to_string();
-                let after = old_state.register_vec_to_string();
+                let before = state.memory_full_to_string();
+                let after = old_state.memory_full_to_string();
                 println!("{:12} {} => {}  continue", "lpe", before, after);
             }
         }

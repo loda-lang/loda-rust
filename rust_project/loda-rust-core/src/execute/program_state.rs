@@ -222,8 +222,7 @@ impl ProgramState {
     }
 
     /// Make the internal state human readable
-    pub fn register_vec_to_string(&self) -> String {
-        // panic!("TODO: replace u8 addresses with u64");
+    pub fn memory_full_to_string(&self) -> String {
         let key_refs: Vec<&u64> = Vec::from_iter(self.memory_full.keys());
         let mut keys: Vec<u64> = key_refs.iter().map(|&key| *key).collect();
         keys.sort();
@@ -342,9 +341,9 @@ mod tests {
     }
 
     #[test]
-    fn test_10000_register_vec_to_string() {
+    fn test_10000_memory_full_to_string() {
         let state = mock_program_state();
-        assert_eq!(state.register_vec_to_string(), "[0:100,1:101,2:102,3:103]");
+        assert_eq!(state.memory_full_to_string(), "[0:100,1:101,2:102,3:103]");
     }
 
     #[test]
@@ -357,7 +356,7 @@ mod tests {
             NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         );
-        assert_eq!(state.register_vec_to_string(), "[]")
+        assert_eq!(state.memory_full_to_string(), "[]")
     }
 
     #[test]
@@ -370,7 +369,7 @@ mod tests {
             NodeLoopLimit::Unlimited,
             NodePowerLimit::Unlimited,
         );
-        assert_eq!(state.register_vec_to_string(), "[]")
+        assert_eq!(state.memory_full_to_string(), "[]")
     }
 
     #[test]
@@ -379,31 +378,31 @@ mod tests {
             // clear 0 registers is the same as doing nothing
             let mut state = mock_program_state();
             state.set_register_range_to_zero(RegisterIndex(1), 0);
-            assert_eq!(state.register_vec_to_string(), "[0:100,1:101,2:102,3:103]");
+            assert_eq!(state.memory_full_to_string(), "[0:100,1:101,2:102,3:103]");
         }
         {
             // clear inside the range
             let mut state = mock_program_state();
             state.set_register_range_to_zero(RegisterIndex(1), 2);
-            assert_eq!(state.register_vec_to_string(), "[0:100,3:103]");
+            assert_eq!(state.memory_full_to_string(), "[0:100,3:103]");
         }
         {
             // clear inside the range
             let mut state = mock_program_state();
             state.set_register_range_to_zero(RegisterIndex(3), 1);
-            assert_eq!(state.register_vec_to_string(), "[0:100,1:101,2:102]");
+            assert_eq!(state.memory_full_to_string(), "[0:100,1:101,2:102]");
         }
         {
             // clear starting inside the range, and ending outside the range
             let mut state = mock_program_state();
             state.set_register_range_to_zero(RegisterIndex(3), 2);
-            assert_eq!(state.register_vec_to_string(), "[0:100,1:101,2:102]");
+            assert_eq!(state.memory_full_to_string(), "[0:100,1:101,2:102]");
         }
         {
             // clear outside range, is the same as doing nothing
             let mut state = mock_program_state();
             state.set_register_range_to_zero(RegisterIndex(100), 1);
-            assert_eq!(state.register_vec_to_string(), "[0:100,1:101,2:102,3:103]");
+            assert_eq!(state.memory_full_to_string(), "[0:100,1:101,2:102,3:103]");
         }
     }
 

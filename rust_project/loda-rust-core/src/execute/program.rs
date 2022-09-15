@@ -46,9 +46,9 @@ impl Program {
 
     pub fn run_verbose(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
         for node in &self.node_vec {
-            let before = state.register_vec_to_string();
+            let before = state.memory_full_to_string();
             node.eval(state, cache)?;
-            let after = state.register_vec_to_string();
+            let after = state.memory_full_to_string();
             let instruction: String = node.formatted_instruction();
             if !instruction.is_empty() {
                 println!("{:12} {} => {}", instruction, before, after);
