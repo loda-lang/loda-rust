@@ -19,6 +19,12 @@ pub enum EvalError {
     /// When a mathematical function is evaluated outside of its domain of definition.
     DivisionByZero,
 
+    /// I have seen a huge backtrace in `BigInt` multiplication code.
+    /// So now I have added a limit to how big numbers are to be multiplied.
+    MultiplicationExceededLimit,
+
+    AddSubtractExceededLimit,
+
     /// Binomial with N >= 34 and the result value can no longer fit into a 32bit integer.
     /// Binomial with N >= 67 and the result value can no longer fit into a 64bit integer.
     /// During mining, it can be a time waster computing binomial with huge values.
@@ -62,6 +68,10 @@ impl fmt::Display for EvalError {
                 write!(f, "Eval sequence with a negative parameter"),
             Self::DivisionByZero => 
                 write!(f, "Division by zero"),
+            Self::MultiplicationExceededLimit => 
+                write!(f, "Multiplication is outside limit"),
+            Self::AddSubtractExceededLimit => 
+                write!(f, "Add/Subtract is outside limit"),
             Self::BinomialDomainError => 
                 write!(f, "Binomial domain error"),
             Self::PowerZeroDivision => 

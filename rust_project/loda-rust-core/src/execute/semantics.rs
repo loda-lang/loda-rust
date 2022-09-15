@@ -1,9 +1,15 @@
 use super::{EvalError, semantic_binomial, semantic_power};
-use num_bigint::BigInt;
+use num_bigint::{BigInt, ToBigInt};
 use num_traits::Signed;
 use num_traits::Zero;
 use num_traits::One;
 use num_integer::Integer;
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref MULTIPLICATION_LIMIT: BigInt = (0xffff_ffff_ffff as i64).to_bigint().unwrap();
+    static ref ADD_SUB_LIMIT: BigInt = (0xffff_ffff_ffff as i64).to_bigint().unwrap();
+}
 
 pub struct Semantics {}
 
@@ -13,14 +19,32 @@ impl Semantics {
     }
 
     pub fn add(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        if &x.abs() > &ADD_SUB_LIMIT {
+            return Err(EvalError::MultiplicationExceededLimit);
+        }
+        if &y.abs() > &ADD_SUB_LIMIT {
+            return Err(EvalError::MultiplicationExceededLimit);
+        }
         Ok(x + y)
     }
 
     pub fn subtract(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        if &x.abs() > &ADD_SUB_LIMIT {
+            return Err(EvalError::MultiplicationExceededLimit);
+        }
+        if &y.abs() > &ADD_SUB_LIMIT {
+            return Err(EvalError::MultiplicationExceededLimit);
+        }
         Ok(x - y)
     }
 
     pub fn truncate(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        if &x.abs() > &ADD_SUB_LIMIT {
+            return Err(EvalError::MultiplicationExceededLimit);
+        }
+        if &y.abs() > &ADD_SUB_LIMIT {
+            return Err(EvalError::MultiplicationExceededLimit);
+        }
         let value: BigInt = x - y;
         if !value.is_positive() {
             return Ok(BigInt::zero());
@@ -29,6 +53,12 @@ impl Semantics {
     }
     
     pub fn multiply(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        if &x.abs() > &MULTIPLICATION_LIMIT {
+            return Err(EvalError::MultiplicationExceededLimit);
+        }
+        if &y.abs() > &MULTIPLICATION_LIMIT {
+            return Err(EvalError::MultiplicationExceededLimit);
+        }
         Ok(x * y)
     }
 
