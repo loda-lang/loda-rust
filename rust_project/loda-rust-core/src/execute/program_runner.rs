@@ -9,7 +9,6 @@ use std::fmt;
 pub struct ProgramRunner {
     program_id: ProgramId,
     program: Program,
-    register_count: u8,
 }
 
 impl ProgramRunner {
@@ -17,7 +16,6 @@ impl ProgramRunner {
         Self {
             program_id: program_id,
             program: program,
-            register_count: 0,
         }
     }
 
@@ -48,7 +46,6 @@ impl ProgramRunner {
 
         // Initial state
         let mut state = ProgramState::new(
-            self.register_count, 
             run_mode, 
             step_count_limit, 
             node_register_limit,

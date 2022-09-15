@@ -42,7 +42,6 @@ pub struct ProgramState {
 
 impl ProgramState {
     pub fn new(
-        register_count: u8, 
         run_mode: RunMode, 
         step_count_limit: u64, 
         node_register_limit: NodeRegisterLimit,
@@ -333,7 +332,6 @@ mod tests {
 
     fn mock_program_state() -> ProgramState {
         let mut state = ProgramState::new(
-            4, 
             RunMode::Silent, 
             1000, 
             NodeRegisterLimit::Unlimited,
@@ -350,7 +348,6 @@ mod tests {
 
     fn empty_program_state() -> ProgramState {
         ProgramState::new(
-            4, 
             RunMode::Silent, 
             1000, 
             NodeRegisterLimit::Unlimited,
@@ -369,7 +366,6 @@ mod tests {
     #[test]
     fn test_10001_initialize_with_too_few_registers() {
         let state = ProgramState::new(
-            0, 
             RunMode::Silent, 
             1000, 
             NodeRegisterLimit::Unlimited,
@@ -383,7 +379,6 @@ mod tests {
     #[test]
     fn test_10002_initialize_with_the_minimum_number_of_registers() {
         let state = ProgramState::new(
-            1, 
             RunMode::Silent, 
             1000,
             NodeRegisterLimit::Unlimited,
