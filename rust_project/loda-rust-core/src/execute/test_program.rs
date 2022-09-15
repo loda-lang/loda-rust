@@ -53,12 +53,12 @@ mov $0,$1"#;
         let mut register_vec: Vec<RegisterIndex> = vec!();
         program.accumulate_register_indexes(&mut register_vec);
 
-        let mut indexes: Vec<u8> = register_vec.iter().map(|register_index| {
+        let mut indexes: Vec<u64> = register_vec.iter().map(|register_index| {
             register_index.0
         }).collect();
         indexes.sort();
         indexes.dedup();
-        let expected: Vec<u8> = [0, 1, 2, 3].to_vec();
+        let expected: Vec<u64> = [0, 1, 2, 3].to_vec();
         assert_eq!(indexes, expected);
     }
 

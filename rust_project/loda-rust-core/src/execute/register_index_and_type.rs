@@ -37,15 +37,7 @@ impl RegisterIndexAndType {
             );
             return Err(err);
         }
-        if parameter_value > 255 {
-            let err = CreateInstructionError::new(
-                instruction.line_number,
-                CreateInstructionErrorType::RegisterIndexTooHigh,
-            );
-            return Err(err);
-        }
-        let register_index_value: u8 = parameter_value as u8;
-        let register_index = RegisterIndex(register_index_value);
+        let register_index = RegisterIndex(parameter_value as u64);
         Ok(RegisterIndexAndType {
             register_index: register_index,
             register_type: register_type

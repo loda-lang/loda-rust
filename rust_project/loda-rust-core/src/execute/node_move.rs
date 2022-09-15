@@ -41,26 +41,27 @@ impl Node for NodeMoveAdvanced {
                 state.set_register_value(self.target.register_index.clone(), tmp_value);
             },
             RegisterType::Indirect => {
-                let reg_value: &RegisterValue = state.get_register_value_ref(&self.target.register_index);
-                let reg_value2: Option<i64> = reg_value.try_to_i64();
+                panic!("boom indirect target");
+                // let reg_value: &RegisterValue = state.get_register_value_ref(&self.target.register_index);
+                // let reg_value2: Option<i64> = reg_value.try_to_i64();
 
-                // TODO: deal with indirect
-                let register_index: RegisterIndex;
-                match reg_value2 {
-                    Some(value) => {
-                        if value < 0 {
-                            panic!("indirect target out of range, too low");
-                        }
-                        if value > 255 {
-                            panic!("indirect target out of range, too high");
-                        }
-                        register_index = RegisterIndex(value as u8)
-                    },
-                    None => {
-                        panic!("indirect target out of range, not an i64");
-                    }
-                }
-                state.set_register_value(register_index, tmp_value);
+                // // TODO: deal with indirect
+                // let register_index: RegisterIndex;
+                // match reg_value2 {
+                //     Some(value) => {
+                //         if value < 0 {
+                //             panic!("indirect target out of range, too low");
+                //         }
+                //         if value > 255 {
+                //             panic!("indirect target out of range, too high");
+                //         }
+                //         register_index = RegisterIndex(value as u8)
+                //     },
+                //     None => {
+                //         panic!("indirect target out of range, not an i64");
+                //     }
+                // }
+                // state.set_register_value(register_index, tmp_value);
             }
         }
         Ok(())
@@ -70,9 +71,9 @@ impl Node for NodeMoveAdvanced {
         // TODO: deal with indirect
         register_vec.push(self.target.register_index.clone());
         register_vec.push(self.source.register_index.clone());
-        for i in 0..=254 {
-            register_vec.push(RegisterIndex(i));
-        }
+        // for i in 0..=254 {
+        //     register_vec.push(RegisterIndex(i));
+        // }
     }
     
     fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {

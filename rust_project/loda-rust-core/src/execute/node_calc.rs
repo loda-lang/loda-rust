@@ -61,14 +61,14 @@ impl Node for NodeCalc {
         // TODO: deal with indirect
         match self.target.parameter_type {
             ParameterType::Register | ParameterType::Indirect => {
-                let value: u8 = u8::try_from(self.target.parameter_value).unwrap_or(255);
+                let value: u64 = u64::try_from(self.target.parameter_value).unwrap_or(255);
                 register_vec.push(RegisterIndex(value));
             },
             ParameterType::Constant => {}
         }
         match self.source.parameter_type {
             ParameterType::Register | ParameterType::Indirect => {
-                let value: u8 = u8::try_from(self.target.parameter_value).unwrap_or(255);
+                let value: u64 = u64::try_from(self.target.parameter_value).unwrap_or(255);
                 register_vec.push(RegisterIndex(value));
             },
             ParameterType::Constant => {}

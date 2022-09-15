@@ -49,14 +49,14 @@ impl Node for NodeClearConstant {
     }
 
     fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
-        let initial_register = self.target.0 as usize;
-        for i in 0..(self.clear_count as usize) {
-            let register = initial_register + i;
-            if register > 255 {
-                continue;
-            }
-            let register_index = RegisterIndex(register as u8);
+        let mut index: u64 = self.target.0;
+        for _ in 0..(self.clear_count) {
+            let register_index = RegisterIndex(index);
             register_set.remove(&register_index);
+            if index == u64::MAX {
+                break;
+            }
+            index += 1;
         }
     }    
 }
