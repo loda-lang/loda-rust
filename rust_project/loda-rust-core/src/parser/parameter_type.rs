@@ -11,7 +11,7 @@ impl ParameterType {
     pub fn prefix(&self) -> &str {
         match self {
             ParameterType::Constant => "",
-            ParameterType::Direct => "$",
+            ParameterType::Direct   => "$",
             ParameterType::Indirect => "$$",
         }
     }
@@ -24,7 +24,7 @@ impl FromStr for ParameterType {
         match input {
             ""   => Ok(ParameterType::Constant),
             "$"  => Ok(ParameterType::Direct),
-            "$$"  => Ok(ParameterType::Indirect),
+            "$$" => Ok(ParameterType::Indirect),
             _    => Err(()),
         }
     }

@@ -22,20 +22,20 @@ impl NodeCalc {
 
     fn calc(&self, target: &BigInt, source: &BigInt) -> Result<BigInt, EvalError> {
         match self.instruction_id {
-            InstructionId::Move => Semantics::move_value(target, source),
-            InstructionId::Add => Semantics::add(target, source),
+            InstructionId::Move     => Semantics::move_value(target, source),
+            InstructionId::Add      => Semantics::add(target, source),
             InstructionId::Subtract => Semantics::subtract(target, source),
             InstructionId::Truncate => Semantics::truncate(target, source),
             InstructionId::Multiply => Semantics::multiply(target, source),
-            InstructionId::Divide => Semantics::divide(target, source),
+            InstructionId::Divide   => Semantics::divide(target, source),
             InstructionId::DivideIf => Semantics::divide_if(target, source),
-            InstructionId::Modulo => Semantics::modulo(target, source),
-            InstructionId::Power => Semantics::power(target, source),
-            InstructionId::GCD => Semantics::gcd(target, source),
+            InstructionId::Modulo   => Semantics::modulo(target, source),
+            InstructionId::Power    => Semantics::power(target, source),
+            InstructionId::GCD      => Semantics::gcd(target, source),
             InstructionId::Binomial => Semantics::binomial(target, source),
-            InstructionId::Compare => Semantics::compare(target, source),
-            InstructionId::Min => Semantics::min(target, source),
-            InstructionId::Max => Semantics::max(target, source),
+            InstructionId::Compare  => Semantics::compare(target, source),
+            InstructionId::Min      => Semantics::min(target, source),
+            InstructionId::Max      => Semantics::max(target, source),
             _ => {
                 error!("unsupported instruction: {:?}", self.instruction_id);
                 return Err(EvalError::UnsupportedInstruction);
