@@ -12,7 +12,6 @@ use std::iter::FromIterator;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref OUT_OF_BOUNDS_RETURN_VALUE: RegisterValue = RegisterValue::zero();
     static ref BIGINT_ZERO: BigInt = BigInt::zero();
 }
 
@@ -87,7 +86,7 @@ impl ProgramState {
         self.run_mode
     }
 
-    pub fn get_register_value_ref(&self, register_index: &RegisterIndex) -> &RegisterValue {
+    pub fn get_register_value_ref(&self, _register_index: &RegisterIndex) -> &RegisterValue {
         panic!("TODO: replace u8 addresses with u64");
     }
 
@@ -204,7 +203,7 @@ impl ProgramState {
         Ok(())
     }
 
-    pub fn set_register_value(&mut self, register_index: RegisterIndex, register_value: RegisterValue) {
+    pub fn set_register_value(&mut self, _register_index: RegisterIndex, _register_value: RegisterValue) {
         panic!("TODO: replace u8 addresses with u64");
     }
 

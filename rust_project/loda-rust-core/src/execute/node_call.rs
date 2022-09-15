@@ -1,18 +1,19 @@
 use std::rc::Rc;
 use super::{EvalError, ProgramSerializerContext, ProgramCache, Node, RegisterIndex, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
 use super::PerformCheckValue;
+use crate::parser::InstructionParameter;
 use num_bigint::BigInt;
 use num_traits::Signed;
 
 pub struct NodeCallConstant {
-    target: RegisterIndex,
+    target: InstructionParameter,
     program_id: u64,
     program_runner_rc: Rc::<ProgramRunner>,
     link_established: bool,
 }
 
 impl NodeCallConstant {
-    pub fn new(target: RegisterIndex, program_id: u64) -> Self {
+    pub fn new(target: InstructionParameter, program_id: u64) -> Self {
         let dummy_program = Program::new();
         let program_runner = ProgramRunner::new(
             ProgramId::ProgramWithoutId,
@@ -47,7 +48,7 @@ impl Node for NodeCallConstant {
             panic!("No link have been establish. This node cannot do its job.");
         }
         //panic!("TODO: replace u8 addresses with u64");
-        let input: &BigInt = state.get_u64(self.target.0 as u64);
+        let input: BigInt = state.get(&self.target, false)?;
 
         if input.is_negative() {
             // Prevent calling other programs with a negative parameter.
@@ -59,7 +60,7 @@ impl Node for NodeCallConstant {
         }
 
         // Abort if the input value is beyond the limit (optional)
-        state.check_value().input(input)?;
+        state.check_value().input(&input)?;
 
         let step_count_limit: u64 = state.step_count_limit();
         let mut step_count: u64 = state.step_count();
@@ -93,13 +94,17 @@ impl Node for NodeCallConstant {
         state.check_value().output(&output.0)?;
 
         // In case run succeeded, then pass on the outputted value.
-        //panic!("TODO: replace u8 addresses with u64");
-        state.set_u64(self.target.0 as u64, output.0)?;
+        state.set(&self.target, output.0)?;
         Ok(())
     }
 
     fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
-        register_vec.push(self.target.clone());
+        let value: i64 = self.target.parameter_value;
+        if value < 0 {
+            error!("Expected target with a non-negative parameter_value, but got a negative value");
+            return;
+        }
+        register_vec.push(RegisterIndex(value as u64));
     }
 
     fn update_call(&mut self, program_manager: &mut ProgramRunnerManager) {

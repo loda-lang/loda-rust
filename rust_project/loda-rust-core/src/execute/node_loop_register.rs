@@ -22,7 +22,7 @@ impl NodeLoopRegister {
 
 impl Node for NodeLoopRegister {
     fn formatted_instruction(&self) -> String {
-        format!("lpb {},{}", self.register_start, self.register_with_range_length)
+        format!("lpb ${},{}", self.register_start, self.register_with_range_length)
     }
 
     fn serialize(&self, serializer: &mut ProgramSerializer) {

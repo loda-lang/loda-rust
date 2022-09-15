@@ -346,9 +346,11 @@ fn create_call_node(instruction: &Instruction) -> Result<BoxNode, CreateInstruct
     instruction.expect_two_parameters()?;
 
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
-    let register0 = RegisterIndexAndType::from_parameter(instruction, parameter0)?;
-    let register_index0 = register0.register_index;
-    // TODO: deal with indirect register type in register0
+
+    // Checks that parameter0 is good.
+    // Bail out if parameter0 is ParameterType::Constant.
+    // Bail out if parameter0 is a negative value.
+    let _register0 = RegisterIndexAndType::from_parameter(instruction, parameter0)?;
 
     let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
     if parameter1.parameter_type != ParameterType::Constant {
@@ -368,7 +370,7 @@ fn create_call_node(instruction: &Instruction) -> Result<BoxNode, CreateInstruct
     let program_id = parameter1.parameter_value as u64;
 
     let node = NodeCallConstant::new(
-        register_index0,
+        parameter0.clone(),
         program_id,
     );
     let node_wrapped = Box::new(node);

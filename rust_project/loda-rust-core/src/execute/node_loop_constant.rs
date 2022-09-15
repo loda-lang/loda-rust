@@ -9,6 +9,7 @@ pub struct NodeLoopConstant {
 
 impl NodeLoopConstant {
     pub fn new(register_start: RegisterIndex, range_length: u8, program: Program) -> Self {
+        //panic!("TODO: replace u8 addresses with u64");
         Self {
             register_start: register_start,
             range_length: range_length,
@@ -19,7 +20,7 @@ impl NodeLoopConstant {
 
 impl Node for NodeLoopConstant {
     fn formatted_instruction(&self) -> String {
-        format!("lpb {},{}", self.register_start, self.range_length)
+        format!("lpb ${},{}", self.register_start, self.range_length)
     }
 
     fn serialize(&self, serializer: &mut ProgramSerializer) {

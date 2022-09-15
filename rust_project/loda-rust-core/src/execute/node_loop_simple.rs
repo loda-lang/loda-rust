@@ -17,7 +17,7 @@ impl NodeLoopSimple {
 
 impl Node for NodeLoopSimple {
     fn formatted_instruction(&self) -> String {
-        format!("lpb {}", self.register)
+        format!("lpb ${}", self.register)
     }
 
     fn serialize(&self, serializer: &mut ProgramSerializer) {

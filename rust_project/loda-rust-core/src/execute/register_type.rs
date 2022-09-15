@@ -5,9 +5,9 @@ pub enum RegisterType {
 }
 
 impl RegisterType {
-    pub fn register_prefix(&self) -> &str {
+    pub fn prefix(&self) -> &str {
         match self {
-            RegisterType::Direct => "$",
+            RegisterType::Direct   => "$",
             RegisterType::Indirect => "$$"
         }
     }

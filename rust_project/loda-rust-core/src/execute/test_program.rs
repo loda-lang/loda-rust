@@ -86,7 +86,7 @@ mov $0,$1"#;
         {
             // This program calls another program (A000045)
             let mut this_program = Program::new();
-            this_program.push(NodeCallConstant::new(RegisterIndex(0), 45));
+            this_program.push(NodeCallConstant::new(InstructionParameter::new(ParameterType::Direct, 0), 45));
 
             // Initially the NodeCall has no link with the A000045 program
             assert_eq!(this_program.validate_call_nodes().is_ok(), false);

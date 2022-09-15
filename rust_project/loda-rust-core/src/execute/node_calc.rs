@@ -75,7 +75,7 @@ impl Node for NodeCalc {
         }
     }
     
-    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
+    fn live_register_indexes(&self, _register_set: &mut HashSet<RegisterIndex>) {
         // TODO: deal with indirect
         // if register_set.contains(&self.source.register_index) {
         //     register_set.insert(self.target.register_index.clone());

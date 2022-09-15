@@ -47,6 +47,6 @@ impl RegisterIndexAndType {
 
 impl fmt::Display for RegisterIndexAndType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}{}", self.register_type.register_prefix(), self.register_index)
+        write!(f, "{}{}", self.register_type.prefix(), self.register_index)
     }
 }
