@@ -28,7 +28,6 @@ const MAX_NUMBER_OF_REGISTERS: u64 = 10000;
 
 #[derive(Clone)]
 pub struct ProgramState {
-    register_vec: Vec<RegisterValue>,
     memory_full: HashMap<u64, BigInt>,
     step_count: u64,
     run_mode: RunMode,
@@ -52,7 +51,6 @@ impl ProgramState {
         let check_value: BoxCheckValue = node_register_limit.create_boxed_check_value();
 
         Self {
-            register_vec: vec!(),
             memory_full: HashMap::new(),
             step_count: 0,
             run_mode: run_mode,
@@ -90,13 +88,7 @@ impl ProgramState {
     }
 
     pub fn get_register_value_ref(&self, register_index: &RegisterIndex) -> &RegisterValue {
-        // panic!("TODO: replace u8 addresses with u64");
-        let index = register_index.0 as usize;
-        if index >= self.register_vec.len() {
-            // Accessing a register outside bounds always returns zero
-            return &OUT_OF_BOUNDS_RETURN_VALUE;
-        }    
-        return &self.register_vec[index];
+        panic!("TODO: replace u8 addresses with u64");
     }
 
     pub fn get_u64(&self, address: u64) -> &BigInt {
@@ -184,9 +176,7 @@ impl ProgramState {
     }    
 
     pub fn get_output_value_legacy(&self) -> &RegisterValue {
-        // panic!("TODO: replace u8 addresses with u64");
-        assert!(self.register_vec.len() >= 1);
-        return &self.register_vec[OUTPUT_REGISTER as usize];
+        panic!("TODO: replace u8 addresses with u64");
     }    
 
     pub fn set_bigint(&mut self, address: &BigInt, value: BigInt) -> Result<(), EvalError> {
@@ -215,12 +205,7 @@ impl ProgramState {
     }
 
     pub fn set_register_value(&mut self, register_index: RegisterIndex, register_value: RegisterValue) {
-        // panic!("TODO: replace u8 addresses with u64");
-        let index = register_index.0 as usize;
-        if index >= self.register_vec.len() {
-            panic!("set_register_value. index is outside the number of registers.");
-        }
-        self.register_vec[index] = register_value;
+        panic!("TODO: replace u8 addresses with u64");
     }
 
     /// Write a value to register 0, the input register.
