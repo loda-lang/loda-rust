@@ -4,8 +4,8 @@ mod tests {
     use super::super::{Program, ProgramId, ProgramRunner, ProgramRunnerManager, ProgramSerializer, RegisterIndex};
     use crate::parser::{InstructionId, InstructionParameter, ParameterType};
     use super::super::node_calc::*;
-    use super::super::node_call::*;
     use super::super::node_loop_simple::*;
+    use super::super::node_seq::*;
     
     fn node_calc(instruction_id: InstructionId, parameter0_type: ParameterType, parameter0_value: i64, parameter1_type: ParameterType, parameter1_value: i64) -> NodeCalc {
         let parameter0 = InstructionParameter::new(parameter0_type, parameter0_value);
@@ -86,7 +86,7 @@ mov $0,$1"#;
         {
             // This program calls another program (A000045)
             let mut this_program = Program::new();
-            this_program.push(NodeCallConstant::new(InstructionParameter::new(ParameterType::Direct, 0), 45));
+            this_program.push(NodeSeq::new(InstructionParameter::new(ParameterType::Direct, 0), 45));
 
             // Initially the NodeCall has no link with the A000045 program
             assert_eq!(this_program.validate_call_nodes().is_ok(), false);

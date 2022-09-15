@@ -5,14 +5,14 @@ use crate::parser::InstructionParameter;
 use num_bigint::BigInt;
 use num_traits::Signed;
 
-pub struct NodeCallConstant {
+pub struct NodeSeq {
     target: InstructionParameter,
     program_id: u64,
     program_runner_rc: Rc::<ProgramRunner>,
     link_established: bool,
 }
 
-impl NodeCallConstant {
+impl NodeSeq {
     pub fn new(target: InstructionParameter, program_id: u64) -> Self {
         let dummy_program = Program::new();
         let program_runner = ProgramRunner::new(
@@ -30,7 +30,7 @@ impl NodeCallConstant {
     }
 }
 
-impl Node for NodeCallConstant {
+impl Node for NodeSeq {
     fn formatted_instruction(&self) -> String {
         format!("seq {},{}", self.target, self.program_id)
     }

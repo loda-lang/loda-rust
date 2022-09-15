@@ -5,7 +5,6 @@ use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, RegisterType,
 use crate::execute::node_add::*;
 use crate::execute::node_binomial::*;
 use crate::execute::node_calc::*;
-use crate::execute::node_call::*;
 use crate::execute::node_clear::*;
 use crate::execute::node_compare::*;
 use crate::execute::node_divide::*;
@@ -20,6 +19,7 @@ use crate::execute::node_modulo::*;
 use crate::execute::node_move::*;
 use crate::execute::node_multiply::*;
 use crate::execute::node_power::*;
+use crate::execute::node_seq::*;
 use crate::execute::node_subtract::*;
 use crate::execute::node_truncate::*;
 
@@ -369,7 +369,7 @@ fn create_call_node(instruction: &Instruction) -> Result<BoxNode, CreateInstruct
     }
     let program_id = parameter1.parameter_value as u64;
 
-    let node = NodeCallConstant::new(
+    let node = NodeSeq::new(
         parameter0.clone(),
         program_id,
     );
