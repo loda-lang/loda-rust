@@ -3,6 +3,9 @@ use num_bigint::BigInt;
 use num_traits::{ToPrimitive, One, Zero, Signed};
 use num_integer::Integer;
 
+// Ensure that the result of pow doesn't exceed the limit
+const POWER_MAX_BITS: u128 = 30;
+
 /// x raised to the power of y
 /// 
 /// x is the base value.
@@ -64,6 +67,14 @@ pub fn semantic_power(
             return Err(EvalError::PowerExponentTooHigh);
         }
     };
+
+    // There is no floating point logarithm for BigInt.
+    // so it's a rough estimate of the number of bits in the result.
+    let result_size: u128 = (base.bits() as u128) * (exponent_u32 as u128);
+    if result_size > POWER_MAX_BITS {
+        // debug!("power exceeded limit");
+        return Err(EvalError::PowerExceededLimit);
+    }
 
     let result: BigInt = base.pow(exponent_u32);
     Ok(result)

@@ -1,7 +1,12 @@
 use super::EvalError;
 use num_integer::{binomial, Integer};
-use num_bigint::BigInt;
+use num_bigint::{BigInt, ToBigInt};
 use num_traits::{Zero, One, Signed};
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref BINOMIAL_MAX_N: BigInt = 20.to_bigint().unwrap();
+}
 
 pub fn semantic_binomial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
     let input_n: &BigInt = x;
@@ -9,6 +14,11 @@ pub fn semantic_binomial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
 
     // positive n or zero
     if input_n.is_zero() || input_n.is_positive() {
+        if input_n > &BINOMIAL_MAX_N {
+            // debug!("too high a N value: bin({:?},{:?})", input_n, input_k);
+            return Err(EvalError::BinomialDomainError);
+        }
+
         if input_k.is_negative() || input_k > input_n {
             return Ok(BigInt::zero());
         }
@@ -22,6 +32,11 @@ pub fn semantic_binomial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         }
         let value: BigInt = binomial(n, k);
         return Ok(value);
+    }
+
+    if &input_n.abs() > &BINOMIAL_MAX_N {
+        // debug!("too low a N value: bin({:?},{:?})", input_n, input_k);
+        return Err(EvalError::BinomialDomainError);
     }
 
     let mut n: BigInt = input_n.clone();
