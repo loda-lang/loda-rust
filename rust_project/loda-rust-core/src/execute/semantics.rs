@@ -7,8 +7,8 @@ use num_integer::Integer;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref MULTIPLICATION_LIMIT: BigInt = (0xffff_ffff_ffff as i64).to_bigint().unwrap();
-    static ref ADD_SUB_LIMIT: BigInt = (0xffff_ffff_ffff as i64).to_bigint().unwrap();
+    static ref MULTIPLICATION_LIMIT: BigInt = (0xff_ffff_ffff_ffff as i64).to_bigint().unwrap();
+    static ref ADD_SUB_LIMIT: BigInt = (0xff_ffff_ffff_ffff as i64).to_bigint().unwrap();
 }
 
 pub struct Semantics {}
