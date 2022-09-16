@@ -35,6 +35,7 @@ impl ValidateSingleProgram {
             DependencyManagerFileSystemMode::System,
             self.loda_programs_oeis_dir.clone(),
         );
+        dm.enable_parameter_type_indirect();
         let result_parse = dm.parse(
             ProgramId::ProgramWithoutId, 
             &program_contents

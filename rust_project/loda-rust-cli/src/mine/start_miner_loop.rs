@@ -127,10 +127,11 @@ pub fn start_miner_loop(
     let mut suggest_target = SuggestTarget::new();
     suggest_target.populate(&target_trigram_vec);
 
-    let dependency_manager = DependencyManager::new(
+    let mut dependency_manager = DependencyManager::new(
         DependencyManagerFileSystemMode::System,
         loda_programs_oeis_dir,
     );
+    dependency_manager.enable_parameter_type_indirect();
 
     // Pick a random seed
     let mut rng = thread_rng();
