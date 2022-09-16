@@ -1,27 +1,13 @@
 use std::fmt;
 use super::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use super::validate_loops::*;
-use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, RegisterType, RegisterValue, Program};
-use crate::execute::node_add::*;
-use crate::execute::node_binomial::*;
+use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, Program};
 use crate::execute::node_calc::*;
 use crate::execute::node_clear::*;
-use crate::execute::node_compare::*;
-use crate::execute::node_divide::*;
-use crate::execute::node_divideif::*;
-use crate::execute::node_gcd::*;
 use crate::execute::node_loop_constant::*;
 use crate::execute::node_loop_register::*;
 use crate::execute::node_loop_simple::*;
-use crate::execute::node_max::*;
-use crate::execute::node_min::*;
-use crate::execute::node_modulo::*;
-use crate::execute::node_move::*;
-use crate::execute::node_multiply::*;
-use crate::execute::node_power::*;
 use crate::execute::node_seq::*;
-use crate::execute::node_subtract::*;
-use crate::execute::node_truncate::*;
 
 #[derive(Debug, PartialEq)]
 pub enum CreateInstructionErrorType {
@@ -95,207 +81,9 @@ impl Instruction {
         }
         Ok(())
     }
-
-    fn create_node_with_register_and_constant(&self, target_it: RegisterIndexAndType, source: RegisterValue) -> Result<BoxNode, CreateInstructionError> {
-        // TODO: deal with target_it.register_type
-        let target: RegisterIndex = target_it.register_index;
-        match &self.instruction_id {
-            InstructionId::Move => {
-                let node = NodeMoveConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Add => {
-                let node = NodeAddConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Subtract => {
-                let node = NodeSubtractConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Power => {
-                let node = NodePowerConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Multiply => {
-                let node = NodeMultiplyConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Divide => {
-                let node = NodeDivideConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::DivideIf => {
-                let node = NodeDivideIfConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Modulo => {
-                let node = NodeModuloConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::GCD => {
-                let node = NodeGCDConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Truncate => {
-                let node = NodeTruncateConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Binomial => {
-                let node = NodeBinomialConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Compare => {
-                let node = NodeCompareConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Max => {
-                let node = NodeMaxConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Min => {
-                let node = NodeMinConstant::new(target, source);
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            InstructionId::Clear => {
-                let node = match NodeClearConstant::create(target, source) {
-                    Ok(value) => value,
-                    Err(create_error) => {
-                        error!("NodeClearConstant::create() instruction: {:?} returned: {:?}", self, create_error);
-                        let err = CreateInstructionError {
-                            line_number: self.line_number,
-                            error_type: CreateInstructionErrorType::NodeCreateError,
-                        };
-                        return Err(err);
-                    }
-                };
-                let node_wrapped = Box::new(node);
-                return Ok(node_wrapped);
-            },
-            _ => {
-                panic!("unhandled instruction: {:?}", self.instruction_id);
-            }
-        }
-    }
-
-    fn create_node_with_register_and_register(&self, target_it: RegisterIndexAndType, source_it: RegisterIndexAndType) -> BoxNode {
-        // TODO: deal with target_it.register_type
-        // TODO: deal with source_it.register_type
-        let target: RegisterIndex = target_it.register_index.clone();
-        let source: RegisterIndex = source_it.register_index.clone();
-        match &self.instruction_id {
-            InstructionId::Move => {
-                let use_indirect0 = target_it.register_type == RegisterType::Indirect;
-                let use_indirect1 = source_it.register_type == RegisterType::Indirect;
-                let use_advanced = use_indirect0 || use_indirect1;
-                if use_advanced {
-                    let node = NodeMoveAdvanced::new(target_it.clone(), source_it.clone());
-                    let node_wrapped = Box::new(node);
-                    return node_wrapped;
-                }
-                let node = NodeMoveRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            InstructionId::Add => {
-                let node = NodeAddRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            InstructionId::Subtract => {
-                let node = NodeSubtractRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            InstructionId::Power => {
-                let node = NodePowerRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            InstructionId::Multiply => {
-                let use_indirect0 = target_it.register_type == RegisterType::Indirect;
-                let use_indirect1 = source_it.register_type == RegisterType::Indirect;
-                let use_advanced = use_indirect0 || use_indirect1;
-                if use_advanced {
-                    let node = NodeMultiplyAdvanced::new(target_it.clone(), source_it.clone());
-                    let node_wrapped = Box::new(node);
-                    return node_wrapped;
-                }
-                let node = NodeMultiplyRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            InstructionId::Divide => {
-                let node = NodeDivideRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            InstructionId::DivideIf => {
-                let node = NodeDivideIfRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            InstructionId::Modulo => {
-                let node = NodeModuloRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            InstructionId::GCD => {
-                let node = NodeGCDRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            InstructionId::Truncate => {
-                let node = NodeTruncateRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            InstructionId::Binomial => {
-                let node = NodeBinomialRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            InstructionId::Compare => {
-                let node = NodeCompareRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            InstructionId::Max => {
-                let node = NodeMaxRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            InstructionId::Min => {
-                let node = NodeMinRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            InstructionId::Clear => {
-                let node = NodeClearRegister::new(target, source);
-                let node_wrapped = Box::new(node);
-                return node_wrapped;
-            },
-            _ => {
-                panic!("unhandled instruction: {:?}", self.instruction_id);
-            }
-        }
-    }
 }
 
-fn create_two_parameter_node_clear(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
+fn create_node_clear(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
     instruction.expect_two_parameters()?;
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
     let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
@@ -304,7 +92,7 @@ fn create_two_parameter_node_clear(instruction: &Instruction) -> Result<BoxNode,
     return Ok(node_wrapped);
 }
 
-fn create_two_parameter_node_calc(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
+fn create_node_calc(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
     instruction.expect_two_parameters()?;
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
     let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
@@ -313,45 +101,7 @@ fn create_two_parameter_node_calc(instruction: &Instruction) -> Result<BoxNode, 
     return Ok(node_wrapped);
 }
 
-fn create_two_parameter_node(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
-    // create_two_parameter_node_legacy(instruction)
-    create_two_parameter_node_calc(instruction)
-}
-
-fn create_two_parameter_node_legacy(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
-    instruction.expect_two_parameters()?;
-
-    let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
-    let register0 = RegisterIndexAndType::from_parameter(instruction, parameter0)?;
-
-    let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
-    match parameter1.parameter_type {
-        ParameterType::Constant => {
-            return instruction.create_node_with_register_and_constant(
-                register0,
-                RegisterValue::from_i64(parameter1.parameter_value)
-            );
-        },
-        ParameterType::Direct => {
-            let register1 = RegisterIndexAndType::from_parameter(instruction, parameter1)?;
-            let node_wrapped = instruction.create_node_with_register_and_register(
-                register0,
-                register1,
-            );
-            return Ok(node_wrapped);
-        },
-        ParameterType::Indirect => {
-            let register1 = RegisterIndexAndType::from_parameter(instruction, parameter1)?;
-            let node_wrapped = instruction.create_node_with_register_and_register(
-                register0,
-                register1,
-            );
-            return Ok(node_wrapped);
-        }
-    }
-}
-
-fn create_call_node(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
+fn create_node_seq(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
     instruction.expect_two_parameters()?;
 
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
@@ -553,67 +303,67 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 }
             },
             InstructionId::Move => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_node_calc(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Add => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_node_calc(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Subtract => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_node_calc(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Power => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_node_calc(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Multiply => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_node_calc(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Divide => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_node_calc(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::DivideIf => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_node_calc(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Modulo => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_node_calc(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::GCD => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_node_calc(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Truncate => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_node_calc(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Binomial => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_node_calc(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Compare => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_node_calc(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Clear => {
-                let node = create_two_parameter_node_clear(&instruction)?;
+                let node = create_node_clear(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Max => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_node_calc(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Min => {
-                let node = create_two_parameter_node(&instruction)?;
+                let node = create_node_calc(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::EvalSequence => {
-                let node = create_call_node(&instruction)?;
+                let node = create_node_seq(&instruction)?;
                 program.push_boxed(node);
             },
         }
