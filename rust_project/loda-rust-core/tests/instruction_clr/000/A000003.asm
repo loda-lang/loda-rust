@@ -7,6 +7,8 @@ mov $3,$0
 
 mov $12,13
 mov $13,2
+; ACT-BEGIN
 clr $1,$$12 ; Even more complicated way of writing: clr $1,2
+; ACT-END
 
 mov $0,$$10
