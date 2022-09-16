@@ -566,4 +566,28 @@ mod tests {
         let runner: Rc::<ProgramRunner> = dm.load(344348).unwrap();
         assert_eq!(runner.inspect(12), "0,0,0,0,3,2,1,0,5,4,1,9");
     }
+
+    #[test]
+    fn test_60000_instruction_clr_with_constant() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
+        dm.enable_parameter_type_indirect();
+        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
+        assert_eq!(runner.inspect(4), "100,0,0,103");
+    }
+
+    #[test]
+    fn test_60001_instruction_clr_with_direct() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
+        dm.enable_parameter_type_indirect();
+        let runner: Rc::<ProgramRunner> = dm.load(2).unwrap();
+        assert_eq!(runner.inspect(4), "100,0,0,103");
+    }
+
+    #[test]
+    fn test_60002_instruction_clr_with_indirect() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
+        dm.enable_parameter_type_indirect();
+        let runner: Rc::<ProgramRunner> = dm.load(3).unwrap();
+        assert_eq!(runner.inspect(4), "100,0,0,103");
+    }
 }

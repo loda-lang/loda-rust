@@ -295,6 +295,15 @@ impl Instruction {
     }
 }
 
+fn create_two_parameter_node_clear(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
+    instruction.expect_two_parameters()?;
+    let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
+    let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
+    let node = NodeClear::new(parameter0.clone(), parameter1.clone());
+    let node_wrapped = Box::new(node);
+    return Ok(node_wrapped);
+}
+
 fn create_two_parameter_node_calc(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
     instruction.expect_two_parameters()?;
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
@@ -592,7 +601,7 @@ pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgr
                 program.push_boxed(node);
             },
             InstructionId::Clear => {
-                let node = create_two_parameter_node_legacy(&instruction)?;
+                let node = create_two_parameter_node_clear(&instruction)?;
                 program.push_boxed(node);
             },
             InstructionId::Max => {

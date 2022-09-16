@@ -215,13 +215,18 @@ impl ProgramState {
         self.memory_full.insert(INPUT_REGISTER, register_value.0.clone());
     }
    
-    pub fn set_register_range_to_zero(&mut self, register_index: RegisterIndex, count: u8) {
+    pub fn set_register_range_to_zero(&mut self, register_index: RegisterIndex, count: u64) -> Result<(), EvalError> {
         // panic!("TODO: replace u8 addresses with u64");
         let mut index = register_index.0 as u64;
+        let sum: u128 = (index as u128) + (count as u128);
+        if sum >= (MAX_NUMBER_OF_REGISTERS as u128) {
+            return Err(EvalError::AddressIsOutsideMaxCapacity);
+        }
         for _ in 0..count {
             self.memory_full.remove(&index);
             index += 1;
         }
+        Ok(())
     }
 
     /// Make the internal state human readable
@@ -380,31 +385,31 @@ mod tests {
         {
             // clear 0 registers is the same as doing nothing
             let mut state = mock_program_state();
-            state.set_register_range_to_zero(RegisterIndex(1), 0);
+            state.set_register_range_to_zero(RegisterIndex(1), 0).expect("should not fail");
             assert_eq!(state.memory_full_to_string(), "[0:100,1:101,2:102,3:103]");
         }
         {
             // clear inside the range
             let mut state = mock_program_state();
-            state.set_register_range_to_zero(RegisterIndex(1), 2);
+            state.set_register_range_to_zero(RegisterIndex(1), 2).expect("should not fail");
             assert_eq!(state.memory_full_to_string(), "[0:100,3:103]");
         }
         {
             // clear inside the range
             let mut state = mock_program_state();
-            state.set_register_range_to_zero(RegisterIndex(3), 1);
+            state.set_register_range_to_zero(RegisterIndex(3), 1).expect("should not fail");
             assert_eq!(state.memory_full_to_string(), "[0:100,1:101,2:102]");
         }
         {
             // clear starting inside the range, and ending outside the range
             let mut state = mock_program_state();
-            state.set_register_range_to_zero(RegisterIndex(3), 2);
+            state.set_register_range_to_zero(RegisterIndex(3), 2).expect("should not fail");
             assert_eq!(state.memory_full_to_string(), "[0:100,1:101,2:102]");
         }
         {
             // clear outside range, is the same as doing nothing
             let mut state = mock_program_state();
-            state.set_register_range_to_zero(RegisterIndex(100), 1);
+            state.set_register_range_to_zero(RegisterIndex(100), 1).expect("should not fail");
             assert_eq!(state.memory_full_to_string(), "[0:100,1:101,2:102,3:103]");
         }
     }
