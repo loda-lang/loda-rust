@@ -1,3 +1,4 @@
+use loda_rust_core::execute::RegisterType;
 use loda_rust_core::parser::{InstructionId, InstructionParameter, ParameterType};
 use super::GenomeMutateContext;
 use rand::Rng;
@@ -29,16 +30,18 @@ pub enum MutateEvalSequenceCategory {
 pub struct GenomeItem {
     enabled: bool,
     instruction_id: InstructionId,
+    target_type: RegisterType,
     target_value: i32,
     source_type: ParameterType,
     source_value: i32,
 }
 
 impl GenomeItem {
-    pub fn new(instruction_id: InstructionId, target_value: i32, source_type: ParameterType, source_value: i32) -> Self {
+    pub fn new(instruction_id: InstructionId, target_type: RegisterType, target_value: i32, source_type: ParameterType, source_value: i32) -> Self {
         Self {
             enabled: true,
             instruction_id: instruction_id,
+            target_type: target_type,
             target_value: target_value,
             source_type: source_type,
             source_value: source_value,
@@ -50,6 +53,7 @@ impl GenomeItem {
         Self {
             enabled: true,
             instruction_id: InstructionId::Move,
+            target_type: RegisterType::Direct,
             target_value: target_value,
             source_type: ParameterType::Direct,
             source_value: source_value,
@@ -61,6 +65,7 @@ impl GenomeItem {
         Self {
             enabled: true,
             instruction_id: instruction_id,
+            target_type: RegisterType::Direct,
             target_value: target_value,
             source_type: ParameterType::Constant,
             source_value: source_value,
@@ -595,32 +600,21 @@ impl GenomeItem {
                 return vec![parameter0, parameter1];
             },
             _ => {
-                let parameter0 = InstructionParameter {
-                    parameter_type: ParameterType::Direct,
-                    parameter_value: self.target_value.abs() as i64,
-                };
-                // let parameter0: InstructionParameter;
-                // match self.target_type {
-                //     ParameterType::Constant => {
-                //         // target can never be a constant
-                //         parameter0 = InstructionParameter {
-                //             parameter_type: ParameterType::Constant,
-                //             parameter_value: self.target_value as i64,
-                //         };
-                //     },
-                //     ParameterType::Direct => {
-                //         parameter0 = InstructionParameter {
-                //             parameter_type: ParameterType::Direct,
-                //             parameter_value: (self.target_value.abs()) as i64,
-                //         };
-                //     },
-                //     ParameterType::Indirect => {
-                //         parameter0 = InstructionParameter {
-                //             parameter_type: ParameterType::Indirect,
-                //             parameter_value: (self.target_value.abs()) as i64,
-                //         };
-                //     },
-                // }
+                let parameter0: InstructionParameter;
+                match self.target_type {
+                    RegisterType::Direct => {
+                        parameter0 = InstructionParameter {
+                            parameter_type: ParameterType::Direct,
+                            parameter_value: (self.target_value.abs()) as i64,
+                        };
+                    },
+                    RegisterType::Indirect => {
+                        parameter0 = InstructionParameter {
+                            parameter_type: ParameterType::Indirect,
+                            parameter_value: (self.target_value.abs()) as i64,
+                        };
+                    },
+                }
 
                 let parameter1: InstructionParameter;
                 match self.source_type {
