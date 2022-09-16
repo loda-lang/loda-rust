@@ -6,6 +6,7 @@ use lazy_static::lazy_static;
 
 lazy_static! {
     static ref BINOMIAL_MAX_N: BigInt = 20.to_bigint().unwrap();
+    static ref BINOMIAL_MAX_INTERNAL_VALUE: BigInt = (0xffff_ffff_ffff as i64).to_bigint().unwrap();
 }
 
 pub fn semantic_binomial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
@@ -79,6 +80,10 @@ pub fn semantic_binomial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
     while i < k {
         let n_minus_i: BigInt = n.clone() - i.clone();
         value *= n_minus_i;
+        if &value.abs() > &BINOMIAL_MAX_INTERNAL_VALUE {
+            // debug!("too high an internal value: bin({:?},{:?}) value: {:?}", input_n, input_k, value);
+            return Err(EvalError::BinomialDomainError);
+        }
         i += 1;
         value = value / i.clone();
     }
