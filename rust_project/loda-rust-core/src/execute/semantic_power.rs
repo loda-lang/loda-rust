@@ -4,7 +4,7 @@ use num_traits::{ToPrimitive, One, Zero, Signed};
 use num_integer::Integer;
 
 // Ensure that the result of pow doesn't exceed the limit
-const POWER_MAX_BITS: u128 = 30;
+const POWER_MAX_BITS: u128 = 100;
 
 /// x raised to the power of y
 /// 
@@ -64,6 +64,7 @@ pub fn semantic_power(
         Some(value) => value,
         None => {
             // NodePower `exponent` is higher than a 32bit unsigned integer. This is beyond what the pow() function can handle.
+            // debug!("power exponent exceeded 32bits: {}", exponent);
             return Err(EvalError::PowerExponentTooHigh);
         }
     };
@@ -72,7 +73,7 @@ pub fn semantic_power(
     // so it's a rough estimate of the number of bits in the result.
     let result_size: u128 = (base.bits() as u128) * (exponent_u32 as u128);
     if result_size > POWER_MAX_BITS {
-        // debug!("power exceeded limit");
+        // debug!("power result size exceeded max bits: {}", result_size);
         return Err(EvalError::PowerExceededLimit);
     }
 
