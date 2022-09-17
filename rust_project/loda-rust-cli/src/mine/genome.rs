@@ -125,6 +125,8 @@ impl Genome {
                     target_value = parameter.parameter_value as i32;
                     if parameter.parameter_type == ParameterType::Indirect {
                         target_type = RegisterType::Indirect;
+                    } else {
+                        target_type = RegisterType::Direct;
                     }
                 }
                 if index == 1 {
