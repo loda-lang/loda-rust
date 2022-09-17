@@ -5,8 +5,8 @@ use num_traits::{Zero, One, Signed};
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref BINOMIAL_MAX_N: BigInt = 20.to_bigint().unwrap();
-    static ref BINOMIAL_MAX_INTERNAL_VALUE: BigInt = (0xffff_ffff_ffff_ffff as i128).to_bigint().unwrap();
+    static ref BINOMIAL_MAX_N: BigInt = 50.to_bigint().unwrap();
+    static ref BINOMIAL_MAX_INTERNAL_VALUE: BigInt = (0xffff_ffff_ffff_ffff_ffff_ffff as i128).to_bigint().unwrap();
 }
 
 pub fn semantic_binomial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
