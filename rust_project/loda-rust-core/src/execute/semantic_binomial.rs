@@ -4,9 +4,10 @@ use num_bigint::{BigInt, ToBigInt};
 use num_traits::{Zero, One, Signed};
 use lazy_static::lazy_static;
 
+const BINOMIAL_INTERNAL_VALUE_BITS: u64 = 96;
+
 lazy_static! {
     static ref BINOMIAL_MAX_N: BigInt = 50.to_bigint().unwrap();
-    static ref BINOMIAL_MAX_INTERNAL_VALUE: BigInt = (0xffff_ffff_ffff_ffff_ffff_ffff as i128).to_bigint().unwrap();
 }
 
 pub fn semantic_binomial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
@@ -80,7 +81,7 @@ pub fn semantic_binomial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
     while i < k {
         let n_minus_i: BigInt = n.clone() - i.clone();
         value *= n_minus_i;
-        if &value.abs() > &BINOMIAL_MAX_INTERNAL_VALUE {
+        if value.bits() > BINOMIAL_INTERNAL_VALUE_BITS {
             // debug!("too high an internal value: bin({:?},{:?}) value: {:?}", input_n, input_k, value);
             return Err(EvalError::BinomialDomainError);
         }
