@@ -5,6 +5,8 @@ use rand::Rng;
 use rand::seq::SliceRandom;
 use std::fmt;
 
+const SANITIZE_MAX_NUMBER_OF_REGISTERS: i32 = 20;
+
 pub enum MutateValue {
     Increment,
     Decrement,
@@ -370,7 +372,7 @@ impl GenomeItem {
 
         // Prevent too extreme register index for target
         {
-            let new_register = self.target_value % 5;
+            let new_register = self.target_value % SANITIZE_MAX_NUMBER_OF_REGISTERS;
             if self.target_value != new_register {
                 self.target_value = new_register;
                 status = false;
@@ -379,7 +381,7 @@ impl GenomeItem {
 
         // Prevent too extreme register index for source
         if self.source_type == ParameterType::Direct {
-            let new_register = self.source_value % 5;
+            let new_register = self.source_value % SANITIZE_MAX_NUMBER_OF_REGISTERS;
             if self.source_value != new_register {
                 self.source_value = new_register;
                 status = false;
