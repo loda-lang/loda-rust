@@ -21,7 +21,7 @@ pub enum EvalError {
 
     /// I have seen a huge backtrace in `BigInt` multiplication code.
     /// So now I have added a limit to how big numbers are to be multiplied.
-    MultiplicationExceededLimit,
+    MultipliplyExceededLimit,
 
     AddSubtractExceededLimit,
 
@@ -71,8 +71,8 @@ impl fmt::Display for EvalError {
                 write!(f, "Eval sequence with a negative parameter"),
             Self::DivisionByZero => 
                 write!(f, "Division by zero"),
-            Self::MultiplicationExceededLimit => 
-                write!(f, "Multiplication is outside limit"),
+            Self::MultipliplyExceededLimit => 
+                write!(f, "Multiply is outside limit"),
             Self::AddSubtractExceededLimit => 
                 write!(f, "Add/Subtract is outside limit"),
             Self::BinomialDomainError => 
