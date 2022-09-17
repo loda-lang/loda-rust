@@ -589,10 +589,22 @@ impl GenomeItem {
                 return vec!();
             },
             InstructionId::EvalSequence => {
-                let parameter0 = InstructionParameter {
-                    parameter_type: ParameterType::Direct,
-                    parameter_value: self.target_value.abs() as i64,
-                };
+                let parameter0: InstructionParameter;
+                match self.target_type {
+                    RegisterType::Direct => {
+                        parameter0 = InstructionParameter {
+                            parameter_type: ParameterType::Direct,
+                            parameter_value: (self.target_value.abs()) as i64,
+                        };
+                    },
+                    RegisterType::Indirect => {
+                        parameter0 = InstructionParameter {
+                            parameter_type: ParameterType::Indirect,
+                            parameter_value: (self.target_value.abs()) as i64,
+                        };
+                    },
+                }
+
                 let parameter1 = InstructionParameter {
                     parameter_type: ParameterType::Constant,
                     parameter_value: (self.source_value.abs()) as i64,
