@@ -651,9 +651,10 @@ impl fmt::Display for GenomeItem {
         } else {
             line_prefix = "; ";
         }
-        write!(f, "{}{} ${},{}{}", 
+        write!(f, "{}{} {}{},{}{}", 
             line_prefix,
             self.instruction_id.shortname(), 
+            self.target_type.prefix(),
             self.target_value, 
             self.source_type.prefix(), 
             self.source_value
