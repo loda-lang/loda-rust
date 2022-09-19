@@ -175,6 +175,10 @@ mod tests {
         assert_eq!(process("boom $1"), "ParseInstructionId(UnrecognizedInstructionId(1))");
         assert_eq!(process("mov $x"), "ParseParameters(UnrecognizedParameter(1))");
         assert_eq!(process("mov $$$3,4"), "ParseParameters(UnrecognizedParameterType(1))");
+        assert_eq!(process("mov $-3,0"), "ParseParameters(NegativeValueNotAllowedForThisParameterType(1))");
+        assert_eq!(process("mov $1,$-3"), "ParseParameters(NegativeValueNotAllowedForThisParameterType(1))");
+        assert_eq!(process("mov $0,00"), "ParseParameters(StrictIncorrectParameterValue(1))");
+        assert_eq!(process("mov $00,-0"), "ParseParameters(StrictIncorrectParameterValue(1))");
     }
     
     #[test]
@@ -184,8 +188,8 @@ mod tests {
         assert_eq!(process("mov 3,1"), "mov 3,1");
         assert_eq!(process("mov 3,$1"), "mov 3,$1");
         assert_eq!(process("mov 3,$$1"), "mov 3,$$1");
-        assert_eq!(process("mov $-3,0"), "mov $-3,0");
-        assert_eq!(process("mov $1,$-3"), "mov $1,$-3");
+        assert_eq!(process("mov 0,0"), "mov 0,0");
+        assert_eq!(process("mov -3,1"), "mov -3,1");
     }
 
     #[test]
