@@ -1,10 +1,5 @@
 use std::fmt;
-use super::extract_row_re::EXTRACT_ROW_RE;
-use super::instruction_id::{InstructionId,ParseInstructionIdError};
-use super::instruction::{Instruction,InstructionParameter};
-use super::parameter_type::ParameterType;
-use super::parse_parameters::*;
-use super::remove_comment::remove_comment;
+use super::{EXTRACT_ROW_RE,InstructionId,ParseInstructionIdError,Instruction,InstructionParameter,ParameterType,ParseParametersError,parse_parameters,remove_comment};
 
 #[derive(Clone)]
 pub struct ParsedProgram {
