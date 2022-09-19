@@ -50,28 +50,17 @@ impl GenomeItem {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn new_move_register(target_value: i32, source_value: i32) -> Self {
-        Self {
-            enabled: true,
-            instruction_id: InstructionId::Move,
-            target_type: RegisterType::Direct,
-            target_value: target_value,
-            source_type: ParameterType::Direct,
-            source_value: source_value,
+    pub fn contains_indirect_memory_access(&self) -> bool {
+        if !self.enabled {
+            return false;
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn new_instruction_with_const(instruction_id: InstructionId, target_value: i32, source_value: i32) -> Self {
-        Self {
-            enabled: true,
-            instruction_id: instruction_id,
-            target_type: RegisterType::Direct,
-            target_value: target_value,
-            source_type: ParameterType::Constant,
-            source_value: source_value,
+        if self.target_type == RegisterType::Indirect {
+            return true;
         }
+        if self.source_type == ParameterType::Indirect {
+            return true;
+        }
+        false
     }
 
     pub fn is_enabled(&self) -> bool {

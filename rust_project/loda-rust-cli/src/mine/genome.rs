@@ -48,6 +48,15 @@ impl Genome {
         }
     }
 
+    pub fn contains_indirect_memory_access(&self) -> bool {
+        for genome_item in &self.genome_vec {
+            if genome_item.contains_indirect_memory_access() {
+                return true;
+            }
+        }
+        false
+    }
+
     pub fn depends_on_program_ids(&self) -> HashSet<u32> {
         let mut program_ids = HashSet::<u32>::new();
         for genome_item in &self.genome_vec {
