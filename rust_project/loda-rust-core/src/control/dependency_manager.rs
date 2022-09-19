@@ -568,6 +568,14 @@ mod tests {
     }
 
     #[test]
+    fn test_50006_parametertype_indirect7() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect7");
+        dm.enable_parameter_type_indirect();
+        let runner: Rc::<ProgramRunner> = dm.load(103627).unwrap();
+        assert_eq!(runner.inspect(13), "0,1,0,1,1,1,2,1,2,3,1,3,4");
+    }
+
+    #[test]
     fn test_60000_instruction_clr_with_constant() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
         dm.enable_parameter_type_indirect();
