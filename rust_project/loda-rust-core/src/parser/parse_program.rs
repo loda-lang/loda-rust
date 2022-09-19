@@ -133,6 +133,18 @@ impl ParsedProgram {
             instruction.instruction_id
         }).collect()
     }
+
+    /// Determines if a program uses `ParameterType::Indirect`
+    pub fn contain_parameter_type_indirect(&self) -> bool {
+        for instruction in &self.instruction_vec {
+            for parameter in &instruction.parameter_vec {
+                if parameter.parameter_type == ParameterType::Indirect {
+                    return true
+                }
+            }
+        }
+        false
+    }
 }
 
 #[cfg(test)]
@@ -223,5 +235,22 @@ mod tests {
             InstructionId::LoopEnd
         ];
         assert_eq!(parsed_program.instruction_ids(), expected);
+    }
+
+    #[test]
+    fn test_10006_contain_parameter_type_indirect() {
+        {
+            let parsed_program: ParsedProgram = ParsedProgram::parse_program(
+                "seq $1,40 ; fibonacci\nseq $2,40; fib again!\nseq $3,10\nseq $4,45").unwrap();
+            assert_eq!(parsed_program.contain_parameter_type_indirect(), false);
+        }
+        {
+            let parsed_program: ParsedProgram = ParsedProgram::parse_program("mov $$1,5").unwrap();
+            assert_eq!(parsed_program.contain_parameter_type_indirect(), true);
+        }
+        {
+            let parsed_program: ParsedProgram = ParsedProgram::parse_program("mov $1,$$1").unwrap();
+            assert_eq!(parsed_program.contain_parameter_type_indirect(), true);
+        }
     }
 }

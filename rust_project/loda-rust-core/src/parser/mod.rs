@@ -1,5 +1,4 @@
 //! Translate from LODA source code to a program instance.
-mod contain_parameter_type_indirect;
 mod create_program;
 mod extract_row_re;
 mod instruction;
@@ -11,7 +10,6 @@ mod parse_parameters;
 mod parse_program;
 mod remove_comment;
 
-pub use contain_parameter_type_indirect::contain_parameter_type_indirect;
 pub use create_program::{CreateInstructionError, CreateInstructionErrorType, CreatedProgram, CreateProgramError, create_program};
 pub use extract_row_re::EXTRACT_ROW_RE;
 pub use instruction::Instruction;

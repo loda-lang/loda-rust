@@ -4,7 +4,7 @@ use std::path::{Path,PathBuf};
 use std::collections::HashSet;
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::parser::{ParsedProgram, ParseProgramError, contain_parameter_type_indirect, create_program, CreatedProgram, CreateProgramError};
+use crate::parser::{ParsedProgram, ParseProgramError, create_program, CreatedProgram, CreateProgramError};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 
 #[derive(Debug, PartialEq)]
@@ -209,7 +209,7 @@ impl DependencyManager {
             }
         };
         if !self.enable_parameter_type_indirect {
-            if contain_parameter_type_indirect(&parsed_program.instruction_vec) {
+            if parsed_program.contain_parameter_type_indirect() {
                 return Err(DependencyManagerError::IndirectMemoryAccessNotEnabled);
             }
         }
