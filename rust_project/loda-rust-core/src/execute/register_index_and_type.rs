@@ -50,3 +50,26 @@ impl fmt::Display for RegisterIndexAndType {
         write!(f, "{}{}", self.register_type.prefix(), self.register_index)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_10000_fmt_direct() {
+        let instance = RegisterIndexAndType {
+            register_index: RegisterIndex(42),
+            register_type: RegisterType::Direct,
+        };
+        assert_eq!(instance.to_string(), "$42");
+    }
+
+    #[test]
+    fn test_10001_fmt_indirect() {
+        let instance = RegisterIndexAndType {
+            register_index: RegisterIndex(123),
+            register_type: RegisterType::Indirect,
+        };
+        assert_eq!(instance.to_string(), "$$123");
+    }
+}
