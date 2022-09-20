@@ -10,14 +10,45 @@ use num_integer::Integer;
 const MULTIPLY_BITS: u64 = 96;
 const ADD_SUB_BITS: u64 = 96;
 
-pub struct Semantics {}
+pub trait Semantics {
+    fn move_value(&self, _x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
 
-impl Semantics {
-    pub fn move_value(_x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+    fn add(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+
+    fn subtract(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+
+    fn truncate(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    
+    fn multiply(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+
+    fn divide(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+
+    fn divide_if(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+
+    fn modulo(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+
+    fn power(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    
+    fn gcd(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    
+    fn binomial(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+    
+    fn compare(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+
+    fn min(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+
+    fn max(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
+
+}
+
+pub struct SemanticsImpl {}
+
+impl Semantics for SemanticsImpl {
+    fn move_value(&self, _x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         Ok(y.clone())
     }
 
-    pub fn add(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+    fn add(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         if x.bits() > ADD_SUB_BITS {
             return Err(EvalError::AddSubtractExceededLimit);
         }
@@ -27,7 +58,7 @@ impl Semantics {
         Ok(x + y)
     }
 
-    pub fn subtract(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+    fn subtract(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         if x.bits() > ADD_SUB_BITS {
             return Err(EvalError::AddSubtractExceededLimit);
         }
@@ -37,7 +68,7 @@ impl Semantics {
         Ok(x - y)
     }
 
-    pub fn truncate(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+    fn truncate(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         if x.bits() > ADD_SUB_BITS {
             return Err(EvalError::AddSubtractExceededLimit);
         }
@@ -51,7 +82,7 @@ impl Semantics {
         Ok(value)
     }
     
-    pub fn multiply(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+    fn multiply(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         if x.bits() > MULTIPLY_BITS {
             return Err(EvalError::MultipliplyExceededLimit);
         }
@@ -61,14 +92,14 @@ impl Semantics {
         Ok(x * y)
     }
 
-    pub fn divide(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+    fn divide(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         if y.is_zero() {
             return Err(EvalError::DivisionByZero);
         }
         Ok(x / y)
     }
 
-    pub fn divide_if(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+    fn divide_if(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         if y.is_zero() {
             return Ok(x.clone());
         }
@@ -80,31 +111,31 @@ impl Semantics {
         }
     }
 
-    pub fn modulo(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+    fn modulo(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         if y.is_zero() {
             return Err(EvalError::DivisionByZero);
         }
         Ok(x % y)
     }
 
-    pub fn power(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+    fn power(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         let result: Result<BigInt, SemanticPowerError> = semantic_power::SEMANTIC_POWER_CONFIG_LIMIT_SMALL.compute_power(x, y);
         let value = result?;
         Ok(value)
     }
     
-    pub fn gcd(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+    fn gcd(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         // https://en.wikipedia.org/wiki/Binary_GCD_algorithm
         Ok(x.gcd(y))
     }
     
-    pub fn binomial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+    fn binomial(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         let result: Result<BigInt, SemanticBinomialError> = semantic_binomial::SEMANTIC_BINOMIAL_CONFIG_LIMIT_SMALL.compute_binomial(x, y);
         let value = result?;
         Ok(value)
     }
     
-    pub fn compare(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+    fn compare(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         if x == y {
             return Ok(BigInt::one());
         } else {
@@ -112,11 +143,11 @@ impl Semantics {
         }
     }
 
-    pub fn min(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+    fn min(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         Ok(x.min(y).clone())
     }
 
-    pub fn max(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+    fn max(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         Ok(x.max(y).clone())
     }
 }

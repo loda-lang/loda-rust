@@ -41,7 +41,7 @@ pub use register_index::RegisterIndex;
 pub use register_index_and_type::RegisterIndexAndType;
 pub use register_type::RegisterType;
 pub use register_value::RegisterValue;
-pub use semantics::Semantics;
+pub use semantics::{Semantics, SemanticsImpl};
 pub use semantic_binomial::{SemanticBinomialConfig, SemanticBinomialError};
 pub use semantic_power::{SemanticPowerConfig, SemanticPowerError};
 

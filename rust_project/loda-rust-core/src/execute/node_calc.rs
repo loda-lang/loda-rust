@@ -1,5 +1,5 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex};
-use super::Semantics;
+use super::{Semantics, SemanticsImpl};
 use crate::parser::{InstructionId, InstructionParameter, ParameterType};
 use std::collections::HashSet;
 use std::convert::TryFrom;
@@ -21,21 +21,22 @@ impl NodeCalc {
     }
 
     fn calc(&self, target: &BigInt, source: &BigInt) -> Result<BigInt, EvalError> {
+        let semantics = SemanticsImpl {};
         match self.instruction_id {
-            InstructionId::Move     => Semantics::move_value(target, source),
-            InstructionId::Add      => Semantics::add(target, source),
-            InstructionId::Subtract => Semantics::subtract(target, source),
-            InstructionId::Truncate => Semantics::truncate(target, source),
-            InstructionId::Multiply => Semantics::multiply(target, source),
-            InstructionId::Divide   => Semantics::divide(target, source),
-            InstructionId::DivideIf => Semantics::divide_if(target, source),
-            InstructionId::Modulo   => Semantics::modulo(target, source),
-            InstructionId::Power    => Semantics::power(target, source),
-            InstructionId::GCD      => Semantics::gcd(target, source),
-            InstructionId::Binomial => Semantics::binomial(target, source),
-            InstructionId::Compare  => Semantics::compare(target, source),
-            InstructionId::Min      => Semantics::min(target, source),
-            InstructionId::Max      => Semantics::max(target, source),
+            InstructionId::Move     => semantics.move_value(target, source),
+            InstructionId::Add      => semantics.add(target, source),
+            InstructionId::Subtract => semantics.subtract(target, source),
+            InstructionId::Truncate => semantics.truncate(target, source),
+            InstructionId::Multiply => semantics.multiply(target, source),
+            InstructionId::Divide   => semantics.divide(target, source),
+            InstructionId::DivideIf => semantics.divide_if(target, source),
+            InstructionId::Modulo   => semantics.modulo(target, source),
+            InstructionId::Power    => semantics.power(target, source),
+            InstructionId::GCD      => semantics.gcd(target, source),
+            InstructionId::Binomial => semantics.binomial(target, source),
+            InstructionId::Compare  => semantics.compare(target, source),
+            InstructionId::Min      => semantics.min(target, source),
+            InstructionId::Max      => semantics.max(target, source),
             _ => {
                 error!("unsupported instruction: {:?}", self.instruction_id);
                 return Err(EvalError::UnsupportedInstruction);
