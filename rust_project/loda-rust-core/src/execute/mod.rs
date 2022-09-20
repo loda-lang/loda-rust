@@ -43,7 +43,7 @@ pub use register_type::RegisterType;
 pub use register_value::RegisterValue;
 pub use semantics::Semantics;
 pub use semantic_binomial::{SemanticBinomialConfig, SemanticBinomialError};
-pub use semantic_power::semantic_power;
+pub use semantic_power::{SemanticPowerConfig, SemanticPowerError};
 
 pub mod node_add;
 pub mod node_binomial;

@@ -1,4 +1,5 @@
-use super::semantic_binomial::{SemanticBinomialConfig, SemanticBinomialError};
+use super::{SemanticBinomialConfig, SemanticBinomialError};
+use super::{SemanticPowerConfig, SemanticPowerError};
 use super::{EvalError, semantic_binomial, semantic_power};
 use num_bigint::BigInt;
 use num_traits::Signed;
@@ -87,7 +88,9 @@ impl Semantics {
     }
 
     pub fn power(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        semantic_power(x, y)
+        let result: Result<BigInt, SemanticPowerError> = semantic_power::SEMANTIC_POWER_CONFIG_LIMIT_SMALL.compute_power(x, y);
+        let value = result?;
+        Ok(value)
     }
     
     pub fn gcd(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
