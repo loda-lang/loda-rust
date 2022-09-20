@@ -1,3 +1,4 @@
+use super::semantic_binomial::{SemanticBinomialConfig, SemanticBinomialError};
 use super::{EvalError, semantic_binomial, semantic_power};
 use num_bigint::BigInt;
 use num_traits::Signed;
@@ -95,7 +96,9 @@ impl Semantics {
     }
     
     pub fn binomial(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        semantic_binomial(x, y)
+        let result: Result<BigInt, SemanticBinomialError> = semantic_binomial::SEMANTIC_BINOMIAL_CONFIG_LIMIT_SMALL.compute_binomial(x, y);
+        let value = result?;
+        Ok(value)
     }
     
     pub fn compare(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {

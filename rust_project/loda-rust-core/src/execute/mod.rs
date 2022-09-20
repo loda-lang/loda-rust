@@ -42,7 +42,7 @@ pub use register_index_and_type::RegisterIndexAndType;
 pub use register_type::RegisterType;
 pub use register_value::RegisterValue;
 pub use semantics::Semantics;
-pub use semantic_binomial::semantic_binomial;
+pub use semantic_binomial::{SemanticBinomialConfig, SemanticBinomialError};
 pub use semantic_power::semantic_power;
 
 pub mod node_add;
