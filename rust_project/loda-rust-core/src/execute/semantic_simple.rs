@@ -1,6 +1,6 @@
 use super::EvalError;
 use num_bigint::BigInt;
-use num_traits::{ToPrimitive, One, Zero, Signed};
+use num_traits::{One, Zero, Signed};
 use num_integer::Integer;
 use lazy_static::lazy_static;
 
