@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use super::{EvalError, ProgramSerializerContext, ProgramCache, Node, RegisterIndex, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
+use super::{EvalError, ProgramSerializerContext, ProgramCache, Node, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
 use super::PerformCheckValue;
 use crate::parser::InstructionParameter;
 use num_bigint::BigInt;
@@ -96,15 +96,6 @@ impl Node for NodeSeq {
         // In case run succeeded, then pass on the outputted value.
         state.set(&self.target, output.0)?;
         Ok(())
-    }
-
-    fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
-        let value: i64 = self.target.parameter_value;
-        if value < 0 {
-            error!("Expected target with a non-negative parameter_value, but got a negative value");
-            return;
-        }
-        register_vec.push(RegisterIndex(value as u64));
     }
 
     fn update_call(&mut self, program_manager: &mut ProgramRunnerManager) {

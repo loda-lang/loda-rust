@@ -80,11 +80,6 @@ impl Node for NodeLoopConstant {
         Ok(())
     }
 
-    fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
-        // Loop doesn't modify any registers
-        self.program.accumulate_register_indexes(register_vec);
-    }
-
     fn update_call(&mut self, program_manager: &mut ProgramRunnerManager) {
         self.program.update_call(program_manager);
     }

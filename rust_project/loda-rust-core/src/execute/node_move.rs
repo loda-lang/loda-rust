@@ -25,9 +25,4 @@ impl Node for NodeMoveRegister {
         state.set_register_value(self.target.clone(), tmp_value);
         Ok(())
     }
-
-    fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
-        register_vec.push(self.target.clone());
-        register_vec.push(self.source.clone());
-    }
 }

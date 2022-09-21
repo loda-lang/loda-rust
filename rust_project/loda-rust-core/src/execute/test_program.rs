@@ -49,22 +49,7 @@ mov $0,$1"#;
     }
 
     #[test]
-    fn test_10001_accumulate_register_indexes() {
-        let program = program_a000045();
-        let mut register_vec: Vec<RegisterIndex> = vec!();
-        program.accumulate_register_indexes(&mut register_vec);
-
-        let mut indexes: Vec<u64> = register_vec.iter().map(|register_index| {
-            register_index.0
-        }).collect();
-        indexes.sort();
-        indexes.dedup();
-        let expected: Vec<u64> = [0, 1, 2, 3].to_vec();
-        assert_eq!(indexes, expected);
-    }
-
-    #[test]
-    fn test_10003_run() {
+    fn test_10001_run() {
         let program = program_a000045();
         let runner = ProgramRunner::new(
             ProgramId::ProgramWithoutId,
@@ -74,7 +59,7 @@ mov $0,$1"#;
     }
 
     #[test]
-    fn test_10004_validate_call_nodes() {
+    fn test_10002_validate_call_nodes() {
         {
             // This program makes no calls to other programs
             let mut this_program = Program::new();

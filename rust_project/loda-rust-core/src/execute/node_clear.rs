@@ -46,10 +46,4 @@ impl Node for NodeClear {
         state.set_register_range_to_zero(RegisterIndex(target_u64), source_u64)?;
         Ok(())
     }
-
-    fn accumulate_register_indexes(&self, _register_vec: &mut Vec<RegisterIndex>) {
-        // This operation does not affect the number of registers to be allocated.
-        // The default value of an uninitialized register is zero.
-        // And accessing a register outside the allocated registers just yields zero.
-    }
 }

@@ -1,7 +1,6 @@
-use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex};
+use super::{EvalError, ProgramCache, Node, ProgramState};
 use super::{Semantics, SemanticsWithoutLimits, SemanticsWithSmallLimits};
-use crate::parser::{InstructionId, InstructionParameter, ParameterType};
-use std::convert::TryFrom;
+use crate::parser::{InstructionId, InstructionParameter};
 use num_bigint::BigInt;
 
 pub enum NodeCalcSemanticMode {
@@ -72,23 +71,5 @@ impl Node for NodeCalc {
         let value: BigInt = self.calc(&target, &source)?;
         state.set(&self.target, value)?;
         Ok(())
-    }
-
-    fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
-        // TODO: deal with indirect
-        match self.target.parameter_type {
-            ParameterType::Direct | ParameterType::Indirect => {
-                let value: u64 = u64::try_from(self.target.parameter_value).unwrap_or(255);
-                register_vec.push(RegisterIndex(value));
-            },
-            ParameterType::Constant => {}
-        }
-        match self.source.parameter_type {
-            ParameterType::Direct | ParameterType::Indirect => {
-                let value: u64 = u64::try_from(self.target.parameter_value).unwrap_or(255);
-                register_vec.push(RegisterIndex(value));
-            },
-            ParameterType::Constant => {}
-        }
     }
 }

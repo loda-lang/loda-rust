@@ -1,4 +1,4 @@
-use super::{BoxNode, EvalError, Node, ProgramCache, ProgramRunnerManager, ProgramSerializer, ProgramState, RegisterIndex, RunMode, ValidateCallError};
+use super::{BoxNode, EvalError, Node, ProgramCache, ProgramRunnerManager, ProgramSerializer, ProgramState, RunMode, ValidateCallError};
 
 type BoxNodeVec = Vec<BoxNode>;
 
@@ -55,12 +55,6 @@ impl Program {
             state.increment_step_count()?;
         }
         Ok(())
-    }
-
-    pub fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
-        for node in &self.node_vec {
-            node.accumulate_register_indexes(register_vec);
-        }
     }
 
     pub fn update_call(&mut self, program_manager: &mut ProgramRunnerManager) {
