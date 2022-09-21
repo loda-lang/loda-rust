@@ -1,5 +1,4 @@
 use super::{EvalError, Node, NodeLoopLimit, Program, ProgramCache, ProgramSerializer, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError};
-use std::collections::HashSet;
 
 pub struct NodeLoopConstant {
     register_start: RegisterIndex,
@@ -86,10 +85,6 @@ impl Node for NodeLoopConstant {
         self.program.accumulate_register_indexes(register_vec);
     }
 
-    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
-        self.program.live_register_indexes(register_set);
-    }
-    
     fn update_call(&mut self, program_manager: &mut ProgramRunnerManager) {
         self.program.update_call(program_manager);
     }

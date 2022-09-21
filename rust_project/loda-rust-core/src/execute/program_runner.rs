@@ -1,8 +1,7 @@
-use super::{EvalError, NodeLoopLimit, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterIndex, RegisterValue, RunMode};
+use super::{EvalError, NodeLoopLimit, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterValue, RunMode};
 use super::NodeRegisterLimit;
 use super::node_binomial::NodeBinomialLimit;
 use super::node_power::NodePowerLimit;
-use std::collections::HashSet;
 use std::fmt;
 
 pub struct ProgramRunner {
@@ -97,13 +96,6 @@ impl ProgramRunner {
 
     pub fn serialize(&self, serializer: &mut ProgramSerializer) {
         self.program.serialize(serializer);
-    }
-
-    pub fn live_registers(&self) -> HashSet<RegisterIndex> {
-        let mut register_set: HashSet<RegisterIndex> = HashSet::new();
-        register_set.insert(RegisterIndex(0));
-        self.program.live_register_indexes(&mut register_set);
-        register_set
     }
 
     #[cfg(test)]

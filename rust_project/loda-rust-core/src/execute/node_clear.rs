@@ -1,6 +1,5 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex};
 use crate::parser::InstructionParameter;
-use std::collections::HashSet;
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Signed, Zero};
 
@@ -53,7 +52,4 @@ impl Node for NodeClear {
         // The default value of an uninitialized register is zero.
         // And accessing a register outside the allocated registers just yields zero.
     }
-
-    fn live_register_indexes(&self, _register_set: &mut HashSet<RegisterIndex>) {
-    }    
 }

@@ -1,7 +1,6 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex};
 use super::{Semantics, SemanticsWithoutLimits, SemanticsWithSmallLimits};
 use crate::parser::{InstructionId, InstructionParameter, ParameterType};
-use std::collections::HashSet;
 use std::convert::TryFrom;
 use num_bigint::BigInt;
 
@@ -91,15 +90,5 @@ impl Node for NodeCalc {
             },
             ParameterType::Constant => {}
         }
-    }
-    
-    fn live_register_indexes(&self, _register_set: &mut HashSet<RegisterIndex>) {
-        // TODO: deal with indirect
-        // if register_set.contains(&self.source.register_index) {
-        //     register_set.insert(self.target.register_index.clone());
-        // } else {
-        //     // Overwrite content of the target register a non-live register.
-        //     register_set.remove(&self.target.register_index);
-        // }
     }
 }

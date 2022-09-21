@@ -433,48 +433,6 @@ mod tests {
     }
 
     #[test]
-    fn test_30001_live_register1() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/live_register1");
-        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
-        assert_eq!(runner.live_registers().len(), 1);
-    }
-
-    // #[test]
-    // fn test_30002_live_register2() {
-    //     let mut dm: DependencyManager = dependency_manager_mock("tests/live_register2");
-    //     let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
-    //     assert_eq!(runner.live_registers().len(), 0);
-    // }
-
-    // #[test]
-    // fn test_30003_live_register3() {
-    //     let mut dm: DependencyManager = dependency_manager_mock("tests/live_register3");
-    //     let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
-    //     assert_eq!(runner.live_registers().len(), 3);
-    // }
-
-    // #[test]
-    // fn test_30004_live_register4() {
-    //     let mut dm: DependencyManager = dependency_manager_mock("tests/live_register4");
-    //     let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
-    //     assert_eq!(runner.live_registers().len(), 0);
-    // }
-
-    // #[test]
-    // fn test_30005_live_register5() {
-    //     let mut dm: DependencyManager = dependency_manager_mock("tests/live_register5");
-    //     let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
-    //     assert_eq!(runner.live_registers().len(), 2);
-    // }
-
-    #[test]
-    fn test_30006_live_register6() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/live_register6");
-        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
-        assert_eq!(runner.live_registers().len(), 1);
-    }
-
-    #[test]
     fn test_50000_parametertype_indirect1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect1");
         dm.enable_parameter_type_indirect();
