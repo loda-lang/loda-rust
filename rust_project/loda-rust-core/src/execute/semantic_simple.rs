@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 lazy_static! {
     pub static ref SEMANTIC_SIMPLE_CONFIG_UNLIMITED: SemanticSimpleConfigUnlimited = SemanticSimpleConfigUnlimited {};
 
-    pub static ref SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL: SemanticSimpleConfigLimited = SemanticSimpleConfigLimited::new(96, 96);
+    pub static ref SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL: SemanticSimpleConfigLimited = SemanticSimpleConfigLimited::new(96);
 }
 
 #[derive(Debug)]
@@ -29,20 +29,17 @@ impl From<SemanticSimpleError> for EvalError {
 
 pub trait SemanticSimpleConfig {
     // #[inline(always)]
-    fn input_max_bits(&self) -> Option<u64>;
-
-    // #[inline(always)]
-    fn output_max_bits(&self) -> Option<u64>;
+    fn value_max_bits(&self) -> Option<u64>;
 
     fn compute_add(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
-        if let Some(input_max_bits) = self.input_max_bits() {
-            if x.bits() >= input_max_bits || y.bits() >= input_max_bits {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
                 return Err(SemanticSimpleError::InputOutOfRange);
             }
         }
         let z: BigInt = x + y;
-        if let Some(output_max_bits) = self.output_max_bits() {
-            if z.bits() >= output_max_bits {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if z.bits() >= value_max_bits {
                 return Err(SemanticSimpleError::OutputOutOfRange);
             }
         }
@@ -50,14 +47,14 @@ pub trait SemanticSimpleConfig {
     }
 
     fn compute_subtract(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
-        if let Some(input_max_bits) = self.input_max_bits() {
-            if x.bits() >= input_max_bits || y.bits() >= input_max_bits {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
                 return Err(SemanticSimpleError::InputOutOfRange);
             }
         }
         let z: BigInt = x - y;
-        if let Some(output_max_bits) = self.output_max_bits() {
-            if z.bits() >= output_max_bits {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if z.bits() >= value_max_bits {
                 return Err(SemanticSimpleError::OutputOutOfRange);
             }
         }
@@ -65,8 +62,8 @@ pub trait SemanticSimpleConfig {
     }
 
     fn compute_truncate(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
-        if let Some(input_max_bits) = self.input_max_bits() {
-            if x.bits() >= input_max_bits || y.bits() >= input_max_bits {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
                 return Err(SemanticSimpleError::InputOutOfRange);
             }
         }
@@ -74,8 +71,8 @@ pub trait SemanticSimpleConfig {
         if !z.is_positive() {
             return Ok(BigInt::zero());
         }
-        if let Some(output_max_bits) = self.output_max_bits() {
-            if z.bits() >= output_max_bits {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if z.bits() >= value_max_bits {
                 return Err(SemanticSimpleError::OutputOutOfRange);
             }
         }
@@ -83,14 +80,14 @@ pub trait SemanticSimpleConfig {
     }
 
     fn compute_multiply(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
-        if let Some(input_max_bits) = self.input_max_bits() {
-            if x.bits() >= input_max_bits || y.bits() >= input_max_bits {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
                 return Err(SemanticSimpleError::InputOutOfRange);
             }
         }
         let z: BigInt = x * y;
-        if let Some(output_max_bits) = self.output_max_bits() {
-            if z.bits() >= output_max_bits {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if z.bits() >= value_max_bits {
                 return Err(SemanticSimpleError::OutputOutOfRange);
             }
         }
@@ -98,8 +95,8 @@ pub trait SemanticSimpleConfig {
     }
 
     fn compute_divide(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
-        if let Some(input_max_bits) = self.input_max_bits() {
-            if x.bits() >= input_max_bits || y.bits() >= input_max_bits {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
                 return Err(SemanticSimpleError::InputOutOfRange);
             }
         }
@@ -110,8 +107,8 @@ pub trait SemanticSimpleConfig {
     }
 
     fn compute_divide_if(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
-        if let Some(input_max_bits) = self.input_max_bits() {
-            if x.bits() >= input_max_bits || y.bits() >= input_max_bits {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
                 return Err(SemanticSimpleError::InputOutOfRange);
             }
         }
@@ -127,8 +124,8 @@ pub trait SemanticSimpleConfig {
     }
 
     fn compute_modulo(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
-        if let Some(input_max_bits) = self.input_max_bits() {
-            if x.bits() >= input_max_bits || y.bits() >= input_max_bits {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
                 return Err(SemanticSimpleError::InputOutOfRange);
             }
         }
@@ -142,36 +139,26 @@ pub trait SemanticSimpleConfig {
 pub struct SemanticSimpleConfigUnlimited {}
 
 impl SemanticSimpleConfig for SemanticSimpleConfigUnlimited {
-    fn input_max_bits(&self) -> Option<u64> {
-        None
-    }
-
-    fn output_max_bits(&self) -> Option<u64> {
+    fn value_max_bits(&self) -> Option<u64> {
         None
     }
 }
 
 pub struct SemanticSimpleConfigLimited {
-    input_max_bits: u64,
-    output_max_bits: u64,
+    value_max_bits: u64,
 }
 
 impl SemanticSimpleConfigLimited {
-    fn new(input_max_bits: u64, output_max_bits: u64) -> Self {
+    fn new(value_max_bits: u64) -> Self {
         Self {
-            input_max_bits: input_max_bits,
-            output_max_bits: output_max_bits,
+            value_max_bits: value_max_bits,
         }
     }
 }
 
 impl SemanticSimpleConfig for SemanticSimpleConfigLimited {
-    fn input_max_bits(&self) -> Option<u64> {
-        Some(self.input_max_bits)
-    }
-
-    fn output_max_bits(&self) -> Option<u64> {
-        Some(self.output_max_bits)
+    fn value_max_bits(&self) -> Option<u64> {
+        Some(self.value_max_bits)
     }
 }
 
@@ -211,8 +198,7 @@ mod tests {
     }
 
     fn compute_add(left: i64, right: i64) -> String {
-        let limit: u64 = 32;
-        let config = SemanticSimpleConfigLimited::new(limit, limit);
+        let config = SemanticSimpleConfigLimited::new(32);
         compute(&config, ComputeMode::Add, left, right)
     }
 
@@ -245,8 +231,7 @@ mod tests {
     }
 
     fn compute_subtract(left: i64, right: i64) -> String {
-        let limit: u64 = 32;
-        let config = SemanticSimpleConfigLimited::new(limit, limit);
+        let config = SemanticSimpleConfigLimited::new(32);
         compute(&config, ComputeMode::Subtract, left, right)
     }
 
@@ -279,8 +264,7 @@ mod tests {
     }
 
     fn compute_truncate(left: i64, right: i64) -> String {
-        let limit: u64 = 32;
-        let config = SemanticSimpleConfigLimited::new(limit, limit);
+        let config = SemanticSimpleConfigLimited::new(32);
         compute(&config, ComputeMode::Truncate, left, right)
     }
 
@@ -315,8 +299,7 @@ mod tests {
     }
 
     fn compute_multiply(left: i64, right: i64) -> String {
-        let limit: u64 = 32;
-        let config = SemanticSimpleConfigLimited::new(limit, limit);
+        let config = SemanticSimpleConfigLimited::new(32);
         compute(&config, ComputeMode::Multiply, left, right)
     }
 
@@ -358,8 +341,7 @@ mod tests {
     }
 
     fn compute_divide(left: i64, right: i64) -> String {
-        let limit: u64 = 32;
-        let config = SemanticSimpleConfigLimited::new(limit, limit);
+        let config = SemanticSimpleConfigLimited::new(32);
         compute(&config, ComputeMode::Divide, left, right)
     }
 
@@ -420,8 +402,7 @@ mod tests {
     }
 
     fn compute_divideif(left: i64, right: i64) -> String {
-        let limit: u64 = 32;
-        let config = SemanticSimpleConfigLimited::new(limit, limit);
+        let config = SemanticSimpleConfigLimited::new(32);
         compute(&config, ComputeMode::DivideIf, left, right)
     }
 
@@ -466,8 +447,7 @@ mod tests {
     }
 
     fn compute_modulo(left: i64, right: i64) -> String {
-        let limit: u64 = 32;
-        let config = SemanticSimpleConfigLimited::new(limit, limit);
+        let config = SemanticSimpleConfigLimited::new(32);
         compute(&config, ComputeMode::Modulo, left, right)
     }
 
