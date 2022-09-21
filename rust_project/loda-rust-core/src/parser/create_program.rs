@@ -96,6 +96,7 @@ fn create_node_calc(instruction: &Instruction) -> Result<BoxNode, CreateInstruct
     instruction.expect_two_parameters()?;
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
     let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
+    // TODO: switch between unlimited, and small limits, depending on the current mode
     let semantic_mode = NodeCalcSemanticMode::SmallLimits;
     let node = NodeCalc::new(semantic_mode, instruction.instruction_id.clone(), parameter0.clone(), parameter1.clone());
     let node_wrapped = Box::new(node);

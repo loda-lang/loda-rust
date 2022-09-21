@@ -53,7 +53,6 @@ pub mod node_clear;
 pub mod node_loop_constant;
 pub mod node_loop_register;
 pub mod node_loop_simple;
-pub mod node_move;
 pub mod node_power;
 pub mod node_seq;
 pub mod test_program;
