@@ -1,14 +1,11 @@
 use super::{SemanticBinomialConfig, SemanticBinomialError};
 use super::{SemanticPowerConfig, SemanticPowerError};
-use super::{EvalError, semantic_binomial, semantic_power};
+use super::{SemanticSimpleConfig, SemanticSimpleError};
+use super::{EvalError, semantic_binomial, semantic_power, semantic_simple};
 use num_bigint::BigInt;
-use num_traits::Signed;
 use num_traits::Zero;
 use num_traits::One;
 use num_integer::Integer;
-
-const MULTIPLY_BITS: u64 = 96;
-const ADD_SUB_BITS: u64 = 96;
 
 pub trait Semantics {
     fn move_value(&self, _x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
@@ -49,47 +46,27 @@ impl Semantics for SemanticsImpl {
     }
 
     fn add(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        if x.bits() > ADD_SUB_BITS {
-            return Err(EvalError::AddSubtractExceededLimit);
-        }
-        if y.bits() > ADD_SUB_BITS {
-            return Err(EvalError::AddSubtractExceededLimit);
-        }
-        Ok(x + y)
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_add(x, y);
+        let value = result?;
+        Ok(value)
     }
 
     fn subtract(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        if x.bits() > ADD_SUB_BITS {
-            return Err(EvalError::AddSubtractExceededLimit);
-        }
-        if y.bits() > ADD_SUB_BITS {
-            return Err(EvalError::AddSubtractExceededLimit);
-        }
-        Ok(x - y)
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_subtract(x, y);
+        let value = result?;
+        Ok(value)
     }
 
     fn truncate(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        if x.bits() > ADD_SUB_BITS {
-            return Err(EvalError::AddSubtractExceededLimit);
-        }
-        if y.bits() > ADD_SUB_BITS {
-            return Err(EvalError::AddSubtractExceededLimit);
-        }
-        let value: BigInt = x - y;
-        if !value.is_positive() {
-            return Ok(BigInt::zero());
-        }
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_truncate(x, y);
+        let value = result?;
         Ok(value)
     }
     
     fn multiply(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        if x.bits() > MULTIPLY_BITS {
-            return Err(EvalError::MultipliplyExceededLimit);
-        }
-        if y.bits() > MULTIPLY_BITS {
-            return Err(EvalError::MultipliplyExceededLimit);
-        }
-        Ok(x * y)
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_multiply(x, y);
+        let value = result?;
+        Ok(value)
     }
 
     fn divide(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
