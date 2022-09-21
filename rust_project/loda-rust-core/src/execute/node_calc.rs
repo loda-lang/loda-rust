@@ -1,5 +1,5 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex};
-use super::{Semantics, SemanticsImpl};
+use super::{Semantics, SemanticsWithoutLimits, SemanticsWithSmallLimits};
 use crate::parser::{InstructionId, InstructionParameter, ParameterType};
 use std::collections::HashSet;
 use std::convert::TryFrom;
@@ -21,7 +21,8 @@ impl NodeCalc {
     }
 
     fn calc(&self, target: &BigInt, source: &BigInt) -> Result<BigInt, EvalError> {
-        let semantics = SemanticsImpl {};
+        // let semantics = SemanticsWithoutLimits {};
+        let semantics = SemanticsWithSmallLimits {};
         match self.instruction_id {
             InstructionId::Move     => Ok(source.clone()),
             InstructionId::Add      => semantics.add(target, source),

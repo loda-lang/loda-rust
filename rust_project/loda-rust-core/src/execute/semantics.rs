@@ -20,9 +20,91 @@ pub trait Semantics {
     fn max(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
 }
 
-pub struct SemanticsImpl {}
+pub struct SemanticsWithoutLimits {}
 
-impl Semantics for SemanticsImpl {
+impl Semantics for SemanticsWithoutLimits {
+    fn add(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_add(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn subtract(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_subtract(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn truncate(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_truncate(x, y);
+        let value = result?;
+        Ok(value)
+    }
+    
+    fn multiply(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_multiply(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn divide(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_divide(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn divide_if(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_divide_if(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn modulo(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_modulo(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn power(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticPowerError> = semantic_power::SEMANTIC_POWER_CONFIG_UNLIMITED.compute_power(x, y);
+        let value = result?;
+        Ok(value)
+    }
+    
+    fn gcd(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_gcd(x, y);
+        let value = result?;
+        Ok(value)
+    }
+    
+    fn binomial(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticBinomialError> = semantic_binomial::SEMANTIC_BINOMIAL_CONFIG_UNLIMITED.compute_binomial(x, y);
+        let value = result?;
+        Ok(value)
+    }
+    
+    fn compare(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_compare(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn min(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_min(x, y);
+        let value = result?;
+        Ok(value)
+    }
+
+    fn max(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_max(x, y);
+        let value = result?;
+        Ok(value)
+    }
+}
+
+pub struct SemanticsWithSmallLimits {}
+
+impl Semantics for SemanticsWithSmallLimits {
     fn add(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_add(x, y);
         let value = result?;
