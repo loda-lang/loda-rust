@@ -10,7 +10,8 @@ mod tests {
     fn node_calc(instruction_id: InstructionId, parameter0_type: ParameterType, parameter0_value: i64, parameter1_type: ParameterType, parameter1_value: i64) -> NodeCalc {
         let parameter0 = InstructionParameter::new(parameter0_type, parameter0_value);
         let parameter1 = InstructionParameter::new(parameter1_type, parameter1_value);
-        NodeCalc::new(instruction_id, parameter0, parameter1)
+        let semantic_mode = NodeCalcSemanticMode::SmallLimits;
+        NodeCalc::new(semantic_mode, instruction_id, parameter0, parameter1)
     }
 
     fn program_a000045() -> Program {

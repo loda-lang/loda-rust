@@ -5,15 +5,22 @@ use std::collections::HashSet;
 use std::convert::TryFrom;
 use num_bigint::BigInt;
 
+pub enum NodeCalcSemanticMode {
+    Unlimited,
+    SmallLimits,
+}
+
 pub struct NodeCalc {
+    semantic_mode: NodeCalcSemanticMode,
     instruction_id: InstructionId,
     target: InstructionParameter,
     source: InstructionParameter,
 }
 
 impl NodeCalc {
-    pub fn new(instruction_id: InstructionId, target: InstructionParameter, source: InstructionParameter) -> Self {
+    pub fn new(semantic_mode: NodeCalcSemanticMode, instruction_id: InstructionId, target: InstructionParameter, source: InstructionParameter) -> Self {
         Self {
+            semantic_mode: semantic_mode,
             instruction_id: instruction_id,
             target: target,
             source: source,
@@ -21,8 +28,19 @@ impl NodeCalc {
     }
 
     fn calc(&self, target: &BigInt, source: &BigInt) -> Result<BigInt, EvalError> {
-        // let semantics = SemanticsWithoutLimits {};
-        let semantics = SemanticsWithSmallLimits {};
+        match self.semantic_mode {
+            NodeCalcSemanticMode::Unlimited => {
+                let semantics = SemanticsWithoutLimits {};
+                return self.calc_inner(target, source, &semantics)
+            },
+            NodeCalcSemanticMode::SmallLimits => {
+                let semantics = SemanticsWithSmallLimits {};
+                return self.calc_inner(target, source, &semantics)
+            },
+        }
+    }
+
+    fn calc_inner<S: Semantics>(&self, target: &BigInt, source: &BigInt, semantics: &S) -> Result<BigInt, EvalError> {
         match self.instruction_id {
             InstructionId::Move     => Ok(source.clone()),
             InstructionId::Add      => semantics.add(target, source),
