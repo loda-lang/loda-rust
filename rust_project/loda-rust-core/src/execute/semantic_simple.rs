@@ -157,6 +157,24 @@ pub trait SemanticSimpleConfig {
             return Ok(BigInt::zero());
         }
     }
+
+    fn compute_min(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        Ok(x.min(y).clone())
+    }
+
+    fn compute_max(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        Ok(x.max(y).clone())
+    }
 }
 
 pub struct SemanticSimpleConfigUnlimited {}
@@ -200,6 +218,8 @@ mod tests {
         Modulo,
         GCD,
         Compare,
+        Min,
+        Max,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
@@ -215,6 +235,8 @@ mod tests {
             ComputeMode::Modulo   => config.compute_modulo(&x, &y),
             ComputeMode::GCD      => config.compute_gcd(&x, &y),
             ComputeMode::Compare  => config.compute_compare(&x, &y),
+            ComputeMode::Min      => config.compute_min(&x, &y),
+            ComputeMode::Max      => config.compute_max(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
@@ -505,7 +527,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80000_gcd_basics() {
+    fn test_80000_gcd_basic() {
         assert_eq!(compute_gcd(0, 0), "0");
         assert_eq!(compute_gcd(0, 1), "1");
         assert_eq!(compute_gcd(1, 0), "1");
@@ -553,6 +575,34 @@ mod tests {
         assert_eq!(compute_compare(0, -0x80000000), "InputOutOfRange");
         assert_eq!(compute_compare(0x80000000, 0x80000000), "InputOutOfRange");
         assert_eq!(compute_compare(-0x80000000, -0x80000000), "InputOutOfRange");
+    }
+
+    fn compute_min(left: i64, right: i64) -> String {
+        let config = SemanticSimpleConfigLimited::new(32);
+        compute(&config, ComputeMode::Min, left, right)
+    }
+
+    #[test]
+    fn test_100000_min() {
+        assert_eq!(compute_min(100, 900), "100");
+        assert_eq!(compute_min(1001, -1), "-1");
+        assert_eq!(compute_min(-1, -1), "-1");
+        assert_eq!(compute_min(100, -100), "-100");
+        assert_eq!(compute_min(-100, 100), "-100");
+    }
+
+    fn compute_max(left: i64, right: i64) -> String {
+        let config = SemanticSimpleConfigLimited::new(32);
+        compute(&config, ComputeMode::Max, left, right)
+    }
+
+    #[test]
+    fn test_110000_max() {
+        assert_eq!(compute_max(100, 900), "900");
+        assert_eq!(compute_max(1001, -1), "1001");
+        assert_eq!(compute_max(-1, -1), "-1");
+        assert_eq!(compute_max(100, -100), "100");
+        assert_eq!(compute_max(-100, 100), "100");
     }
 
 }

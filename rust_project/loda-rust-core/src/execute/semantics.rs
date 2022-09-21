@@ -95,10 +95,14 @@ impl Semantics for SemanticsImpl {
     }
 
     fn min(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        Ok(x.min(y).clone())
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_min(x, y);
+        let value = result?;
+        Ok(value)
     }
 
     fn max(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        Ok(x.max(y).clone())
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_max(x, y);
+        let value = result?;
+        Ok(value)
     }
 }
