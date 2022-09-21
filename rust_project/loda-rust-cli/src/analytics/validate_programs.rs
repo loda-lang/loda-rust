@@ -141,7 +141,6 @@ impl ValidatePrograms {
             DependencyManagerFileSystemMode::System,
             loda_programs_oeis_dir,
         );
-        dm.enable_parameter_type_indirect();
         let mut cache = ProgramCache::new();
         let oeis_ids_len: usize = oeis_ids.len();
         let mut number_of_invalid_programs: u32 = 0;

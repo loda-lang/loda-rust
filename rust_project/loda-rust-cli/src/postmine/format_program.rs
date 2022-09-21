@@ -75,7 +75,6 @@ impl FormatProgram {
             DependencyManagerFileSystemMode::Virtual,
             PathBuf::from("non-existing-dir"),
         );
-        dm.enable_parameter_type_indirect();
         for (oeis_id, _name) in &self.oeis_id_name_map {
             let program_id: u64 = oeis_id.raw() as u64;
             dm.virtual_filesystem_insert_file(program_id, "".to_string());

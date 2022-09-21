@@ -85,7 +85,6 @@ pub enum DependencyManagerFileSystemMode {
 }
 
 pub struct DependencyManager {
-    enable_parameter_type_indirect: bool,
     file_system_mode: DependencyManagerFileSystemMode,
     loda_programs_oeis_dir: PathBuf,
     program_run_manager: ProgramRunnerManager,
@@ -99,7 +98,6 @@ pub struct DependencyManager {
 impl DependencyManager {
     pub fn new(file_system_mode: DependencyManagerFileSystemMode, loda_programs_oeis_dir: PathBuf) -> Self {
         Self {
-            enable_parameter_type_indirect: false,
             file_system_mode: file_system_mode,
             loda_programs_oeis_dir: loda_programs_oeis_dir,
             program_run_manager: ProgramRunnerManager::new(),
@@ -109,16 +107,6 @@ impl DependencyManager {
             metric_read_success: 0,
             metric_read_error: 0,
         }        
-    }
-
-    /// Enable experimental support for indirect memory access.
-    /// 
-    /// Examples of instructions with `ParameterType::Indirect`:
-    /// - `mul $7,$$9` 
-    /// - `mov $$9,$3`
-    /// - `add $$1,2`
-    pub fn enable_parameter_type_indirect(&mut self) {
-        self.enable_parameter_type_indirect = true;
     }
 
     pub fn reset(&mut self) {
@@ -208,11 +196,6 @@ impl DependencyManager {
                 return Err(DependencyManagerError::ParseProgram(error));
             }
         };
-        if !self.enable_parameter_type_indirect {
-            if parsed_program.contain_parameter_type_indirect() {
-                return Err(DependencyManagerError::IndirectMemoryAccessNotEnabled);
-            }
-        }
         self.parse_stage2(program_id, &parsed_program)
     }
 
@@ -435,7 +418,6 @@ mod tests {
     #[test]
     fn test_50000_parametertype_indirect1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect1");
-        dm.enable_parameter_type_indirect();
         let runner: Rc::<ProgramRunner> = dm.load(15736).unwrap();
         assert_eq!(runner.inspect(12), "1,1,1,1,1,1,1,1,1,1,1,0");
     }
@@ -443,7 +425,6 @@ mod tests {
     #[test]
     fn test_50001_parametertype_indirect2() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect2");
-        dm.enable_parameter_type_indirect();
         let runner: Rc::<ProgramRunner> = dm.load(25238).unwrap();
         assert_eq!(runner.inspect(10), "3,1,3,10,36,137,543,2219,9285,39587");
     }
@@ -451,7 +432,6 @@ mod tests {
     #[test]
     fn test_50002_parametertype_indirect3() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect3");
-        dm.enable_parameter_type_indirect();
         let runner: Rc::<ProgramRunner> = dm.load(159631).unwrap();
         assert_eq!(runner.inspect(10), "1,1,1,2,1,1,1,2,2,1");
     }
@@ -459,7 +439,6 @@ mod tests {
     #[test]
     fn test_50003_parametertype_indirect4() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect4");
-        dm.enable_parameter_type_indirect();
         let runner: Rc::<ProgramRunner> = dm.load(41).unwrap();
         assert_eq!(runner.inspect(12), "1,1,2,3,5,7,11,15,22,30,42,56");
     }
@@ -467,7 +446,6 @@ mod tests {
     #[test]
     fn test_50004_parametertype_indirect5() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect5");
-        dm.enable_parameter_type_indirect();
         let runner: Rc::<ProgramRunner> = dm.load(355497).unwrap();
         assert_eq!(runner.inspect(12), "0,4,10,11,12,13,14,15,16,17,18,19");
     }
@@ -475,7 +453,6 @@ mod tests {
     #[test]
     fn test_50005_parametertype_indirect6() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect6");
-        dm.enable_parameter_type_indirect();
         let runner: Rc::<ProgramRunner> = dm.load(344348).unwrap();
         assert_eq!(runner.inspect(12), "0,0,0,0,3,2,1,0,5,4,1,9");
     }
@@ -483,7 +460,6 @@ mod tests {
     #[test]
     fn test_50006_parametertype_indirect7() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect7");
-        dm.enable_parameter_type_indirect();
         let runner: Rc::<ProgramRunner> = dm.load(103627).unwrap();
         assert_eq!(runner.inspect(13), "0,1,0,1,1,1,2,1,2,3,1,3,4");
     }
@@ -491,7 +467,6 @@ mod tests {
     #[test]
     fn test_60000_instruction_clr_with_constant() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
-        dm.enable_parameter_type_indirect();
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.inspect(4), "100,0,0,103");
     }
@@ -499,7 +474,6 @@ mod tests {
     #[test]
     fn test_60001_instruction_clr_with_direct() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
-        dm.enable_parameter_type_indirect();
         let runner: Rc::<ProgramRunner> = dm.load(2).unwrap();
         assert_eq!(runner.inspect(4), "100,0,0,103");
     }
@@ -507,7 +481,6 @@ mod tests {
     #[test]
     fn test_60002_instruction_clr_with_indirect() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
-        dm.enable_parameter_type_indirect();
         let runner: Rc::<ProgramRunner> = dm.load(3).unwrap();
         assert_eq!(runner.inspect(4), "100,0,0,103");
     }
@@ -515,7 +488,6 @@ mod tests {
     #[test]
     fn test_60003_instruction_clr_with_indirect() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
-        dm.enable_parameter_type_indirect();
         let runner: Rc::<ProgramRunner> = dm.load(4).unwrap();
         assert_eq!(runner.inspect(4), "100,0,0,103");
     }

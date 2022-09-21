@@ -48,6 +48,7 @@ impl Genome {
         }
     }
 
+    #[allow(dead_code)]
     pub fn contains_indirect_memory_access(&self) -> bool {
         for genome_item in &self.genome_vec {
             if genome_item.contains_indirect_memory_access() {
