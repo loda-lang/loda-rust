@@ -21,6 +21,7 @@ mod program_serializer_context;
 mod semantics;
 mod semantic_binomial;
 mod semantic_power;
+mod semantic_simple;
 
 use check_value::*;
 pub use create_error::CreateError;
@@ -44,6 +45,7 @@ pub use register_value::RegisterValue;
 pub use semantics::{Semantics, SemanticsImpl};
 pub use semantic_binomial::{SemanticBinomialConfig, SemanticBinomialError};
 pub use semantic_power::{SemanticPowerConfig, SemanticPowerError};
+pub use semantic_simple::{SemanticSimpleConfig, SemanticSimpleError};
 
 pub mod node_add;
 pub mod node_binomial;
