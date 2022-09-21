@@ -144,6 +144,19 @@ pub trait SemanticSimpleConfig {
         // https://en.wikipedia.org/wiki/Binary_GCD_algorithm
         Ok(x.gcd(y))
     }
+
+    fn compute_compare(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        if x == y {
+            return Ok(BigInt::one());
+        } else {
+            return Ok(BigInt::zero());
+        }
+    }
 }
 
 pub struct SemanticSimpleConfigUnlimited {}
@@ -186,6 +199,7 @@ mod tests {
         DivideIf,
         Modulo,
         GCD,
+        Compare,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
@@ -200,6 +214,7 @@ mod tests {
             ComputeMode::DivideIf => config.compute_divide_if(&x, &y),
             ComputeMode::Modulo   => config.compute_modulo(&x, &y),
             ComputeMode::GCD      => config.compute_gcd(&x, &y),
+            ComputeMode::Compare  => config.compute_compare(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
@@ -514,6 +529,30 @@ mod tests {
         assert_eq!(compute_gcd(-0x80000000, -0x80000000), "InputOutOfRange");
         assert_eq!(compute_gcd(1, 0x80000000), "InputOutOfRange");
         assert_eq!(compute_gcd(1, -0x80000000), "InputOutOfRange");
+    }
+
+    fn compute_compare(left: i64, right: i64) -> String {
+        let config = SemanticSimpleConfigLimited::new(32);
+        compute(&config, ComputeMode::Compare, left, right)
+    }
+
+    #[test]
+    fn test_90000_compare_basic() {
+        assert_eq!(compute_compare(100, 100), "1");
+        assert_eq!(compute_compare(-33, -33), "1");
+        assert_eq!(compute_compare(-1, 1), "0");
+        assert_eq!(compute_compare(100, -100), "0");
+        assert_eq!(compute_compare(0, 1), "0");
+    }
+
+    #[test]
+    fn test_90001_compare_outofrange() {
+        assert_eq!(compute_compare(0x80000000, 0), "InputOutOfRange");
+        assert_eq!(compute_compare(-0x80000000, 0), "InputOutOfRange");
+        assert_eq!(compute_compare(0, 0x80000000), "InputOutOfRange");
+        assert_eq!(compute_compare(0, -0x80000000), "InputOutOfRange");
+        assert_eq!(compute_compare(0x80000000, 0x80000000), "InputOutOfRange");
+        assert_eq!(compute_compare(-0x80000000, -0x80000000), "InputOutOfRange");
     }
 
 }

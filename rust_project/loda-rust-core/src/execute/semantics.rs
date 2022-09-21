@@ -3,8 +3,6 @@ use super::{SemanticPowerConfig, SemanticPowerError};
 use super::{SemanticSimpleConfig, SemanticSimpleError};
 use super::{EvalError, semantic_binomial, semantic_power, semantic_simple};
 use num_bigint::BigInt;
-use num_traits::Zero;
-use num_traits::One;
 
 pub trait Semantics {
     fn move_value(&self, _x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
@@ -91,11 +89,9 @@ impl Semantics for SemanticsImpl {
     }
     
     fn compare(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        if x == y {
-            return Ok(BigInt::one());
-        } else {
-            return Ok(BigInt::zero());
-        }
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_compare(x, y);
+        let value = result?;
+        Ok(value)
     }
 
     fn min(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
