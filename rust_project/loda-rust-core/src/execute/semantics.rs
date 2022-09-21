@@ -5,37 +5,22 @@ use super::{EvalError, semantic_binomial, semantic_power, semantic_simple};
 use num_bigint::BigInt;
 use num_traits::Zero;
 use num_traits::One;
-use num_integer::Integer;
 
 pub trait Semantics {
     fn move_value(&self, _x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
-
     fn add(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
-
     fn subtract(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
-
     fn truncate(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
-    
     fn multiply(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
-
     fn divide(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
-
     fn divide_if(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
-
     fn modulo(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
-
     fn power(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
-    
     fn gcd(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
-    
     fn binomial(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
-    
     fn compare(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
-
     fn min(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
-
     fn max(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
-
 }
 
 pub struct SemanticsImpl {}
@@ -94,8 +79,9 @@ impl Semantics for SemanticsImpl {
     }
     
     fn gcd(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        // https://en.wikipedia.org/wiki/Binary_GCD_algorithm
-        Ok(x.gcd(y))
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_gcd(x, y);
+        let value = result?;
+        Ok(value)
     }
     
     fn binomial(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {

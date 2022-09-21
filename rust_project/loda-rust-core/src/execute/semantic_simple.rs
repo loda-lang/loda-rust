@@ -134,6 +134,16 @@ pub trait SemanticSimpleConfig {
         }
         Ok(x % y)
     }
+
+    fn compute_gcd(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(value_max_bits) = self.value_max_bits() {
+            if x.bits() >= value_max_bits || y.bits() >= value_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        // https://en.wikipedia.org/wiki/Binary_GCD_algorithm
+        Ok(x.gcd(y))
+    }
 }
 
 pub struct SemanticSimpleConfigUnlimited {}
@@ -175,6 +185,7 @@ mod tests {
         Divide,
         DivideIf,
         Modulo,
+        GCD,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
@@ -188,6 +199,7 @@ mod tests {
             ComputeMode::Divide   => config.compute_divide(&x, &y),
             ComputeMode::DivideIf => config.compute_divide_if(&x, &y),
             ComputeMode::Modulo   => config.compute_modulo(&x, &y),
+            ComputeMode::GCD      => config.compute_gcd(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
@@ -470,6 +482,38 @@ mod tests {
         assert_eq!(compute_modulo(-999,  10), "-9");
         assert_eq!(compute_modulo(-999, -10), "-9");
         assert_eq!(compute_modulo( 999, -10), "9");
+    }
+
+    fn compute_gcd(left: i64, right: i64) -> String {
+        let config = SemanticSimpleConfigLimited::new(32);
+        compute(&config, ComputeMode::GCD, left, right)
+    }
+
+    #[test]
+    fn test_80000_gcd_basics() {
+        assert_eq!(compute_gcd(0, 0), "0");
+        assert_eq!(compute_gcd(0, 1), "1");
+        assert_eq!(compute_gcd(1, 0), "1");
+        assert_eq!(compute_gcd(1, 1), "1");
+        assert_eq!(compute_gcd(2, 2), "2");
+        assert_eq!(compute_gcd(6, 4), "2");
+        assert_eq!(compute_gcd(100, 55), "5");
+        assert_eq!(compute_gcd(-100, 55), "5");
+        assert_eq!(compute_gcd(-100, -55), "5");
+        assert_eq!(compute_gcd(-100, 1), "1");
+        assert_eq!(compute_gcd(43, 41), "1");
+        assert_eq!(compute_gcd(100, 0), "100");
+        assert_eq!(compute_gcd(-100, 0), "100");
+    }
+
+    #[test]
+    fn test_80001_gcd_outofrange() {
+        assert_eq!(compute_gcd(0x80000000, 1), "InputOutOfRange");
+        assert_eq!(compute_gcd(-0x80000000, 1), "InputOutOfRange");
+        assert_eq!(compute_gcd(0x80000000, 0x80000000), "InputOutOfRange");
+        assert_eq!(compute_gcd(-0x80000000, -0x80000000), "InputOutOfRange");
+        assert_eq!(compute_gcd(1, 0x80000000), "InputOutOfRange");
+        assert_eq!(compute_gcd(1, -0x80000000), "InputOutOfRange");
     }
 
 }
