@@ -23,7 +23,7 @@ impl NodeCalc {
     fn calc(&self, target: &BigInt, source: &BigInt) -> Result<BigInt, EvalError> {
         let semantics = SemanticsImpl {};
         match self.instruction_id {
-            InstructionId::Move     => semantics.move_value(target, source),
+            InstructionId::Move     => Ok(source.clone()),
             InstructionId::Add      => semantics.add(target, source),
             InstructionId::Subtract => semantics.subtract(target, source),
             InstructionId::Truncate => semantics.truncate(target, source),

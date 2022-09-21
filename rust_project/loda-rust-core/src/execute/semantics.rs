@@ -5,7 +5,6 @@ use super::{EvalError, semantic_binomial, semantic_power, semantic_simple};
 use num_bigint::BigInt;
 
 pub trait Semantics {
-    fn move_value(&self, _x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn add(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn subtract(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
     fn truncate(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError>;
@@ -24,10 +23,6 @@ pub trait Semantics {
 pub struct SemanticsImpl {}
 
 impl Semantics for SemanticsImpl {
-    fn move_value(&self, _x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        Ok(y.clone())
-    }
-
     fn add(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
         let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_add(x, y);
         let value = result?;
