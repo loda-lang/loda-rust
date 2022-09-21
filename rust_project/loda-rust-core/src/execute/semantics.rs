@@ -82,10 +82,9 @@ impl Semantics for SemanticsImpl {
     }
 
     fn modulo(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        if y.is_zero() {
-            return Err(EvalError::DivisionByZero);
-        }
-        Ok(x % y)
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_modulo(x, y);
+        let value = result?;
+        Ok(value)
     }
 
     fn power(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {

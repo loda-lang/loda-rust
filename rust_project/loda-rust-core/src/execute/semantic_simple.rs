@@ -125,6 +125,18 @@ pub trait SemanticSimpleConfig {
             return Ok(x.clone());
         }
     }
+
+    fn compute_modulo(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(input_max_bits) = self.input_max_bits() {
+            if x.bits() >= input_max_bits || y.bits() >= input_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        if y.is_zero() {
+            return Err(SemanticSimpleError::DivisionByZero);
+        }
+        Ok(x % y)
+    }
 }
 
 pub struct SemanticSimpleConfigUnlimited {}
@@ -175,6 +187,7 @@ mod tests {
         Multiply,
         Divide,
         DivideIf,
+        Modulo,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
@@ -187,6 +200,7 @@ mod tests {
             ComputeMode::Multiply => config.compute_multiply(&x, &y),
             ComputeMode::Divide   => config.compute_divide(&x, &y),
             ComputeMode::DivideIf => config.compute_divide_if(&x, &y),
+            ComputeMode::Modulo   => config.compute_modulo(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
@@ -449,6 +463,33 @@ mod tests {
         assert_eq!(compute_divideif(1, -0x80000000), "InputOutOfRange");
         assert_eq!(compute_divideif(1, 0x80000001), "InputOutOfRange");
         assert_eq!(compute_divideif(1, -0x80000001), "InputOutOfRange");
+    }
+
+    fn compute_modulo(left: i64, right: i64) -> String {
+        let limit: u64 = 32;
+        let config = SemanticSimpleConfigLimited::new(limit, limit);
+        compute(&config, ComputeMode::Modulo, left, right)
+    }
+
+    #[test]
+    fn test_70000_modulo() {
+        assert_eq!(compute_modulo(100, 0), "DivisionByZero");
+        assert_eq!(compute_modulo(-100, 0), "DivisionByZero");
+        assert_eq!(compute_modulo(50, 10), "0");
+        assert_eq!(compute_modulo(100, 1), "0");
+        assert_eq!(compute_modulo(-1, -1), "0");
+        assert_eq!(compute_modulo(3, -3), "0");
+        assert_eq!(compute_modulo(-3, 3), "0");
+        assert_eq!(compute_modulo(99, 99), "0");
+        assert_eq!(compute_modulo(99, -99), "0");
+        assert_eq!(compute_modulo(-99, 99), "0");
+        assert_eq!(compute_modulo(-99, -99), "0");
+        assert_eq!(compute_modulo(10, 3), "1");
+        assert_eq!(compute_modulo(99, 10), "9");
+        assert_eq!(compute_modulo( 999,  10), "9");
+        assert_eq!(compute_modulo(-999,  10), "-9");
+        assert_eq!(compute_modulo(-999, -10), "-9");
+        assert_eq!(compute_modulo( 999, -10), "9");
     }
 
 }
