@@ -86,11 +86,6 @@ impl ProgramState {
         self.run_mode
     }
 
-    pub fn get_register_value_ref(&self, _register_index: &RegisterIndex) -> &RegisterValue {
-        error!("get_register_value_ref is to be removed");
-        panic!("TODO: replace u8 addresses with u64");
-    }
-
     pub fn get_u64(&self, address: u64) -> &BigInt {
         match self.memory_full.get(&address) {
             Some(value) => { return value; },
@@ -175,11 +170,6 @@ impl ProgramState {
         RegisterValue(output_value.clone())
     }    
 
-    pub fn get_output_value_legacy(&self) -> &RegisterValue {
-        error!("get_output_value_legacy is to be removed");
-        panic!("TODO: replace u8 addresses with u64");
-    }    
-
     pub fn set_bigint(&mut self, address: &BigInt, value: BigInt) -> Result<(), EvalError> {
         let address_u64: u64 = match address.to_u64() {
             Some(value) => value,
@@ -203,11 +193,6 @@ impl ProgramState {
         }
         self.memory_full.insert(address, value);
         Ok(())
-    }
-
-    pub fn set_register_value(&mut self, _register_index: RegisterIndex, _register_value: RegisterValue) {
-        error!("set_register_value is to be removed");
-        panic!("TODO: replace u8 addresses with u64");
     }
 
     /// Write a value to register 0, the input register.
