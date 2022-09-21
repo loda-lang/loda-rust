@@ -30,32 +30,30 @@ impl NodeCalc {
     fn calc(&self, target: &BigInt, source: &BigInt) -> Result<BigInt, EvalError> {
         match self.semantic_mode {
             NodeCalcSemanticMode::Unlimited => {
-                let semantics = SemanticsWithoutLimits {};
-                return self.calc_inner(target, source, &semantics)
+                return self.calc_with_semantics::<SemanticsWithoutLimits>(target, source)
             },
             NodeCalcSemanticMode::SmallLimits => {
-                let semantics = SemanticsWithSmallLimits {};
-                return self.calc_inner(target, source, &semantics)
+                return self.calc_with_semantics::<SemanticsWithSmallLimits>(target, source)
             },
         }
     }
 
-    fn calc_inner<S: Semantics>(&self, target: &BigInt, source: &BigInt, semantics: &S) -> Result<BigInt, EvalError> {
+    fn calc_with_semantics<S: Semantics>(&self, target: &BigInt, source: &BigInt) -> Result<BigInt, EvalError> {
         match self.instruction_id {
             InstructionId::Move     => Ok(source.clone()),
-            InstructionId::Add      => semantics.add(target, source),
-            InstructionId::Subtract => semantics.subtract(target, source),
-            InstructionId::Truncate => semantics.truncate(target, source),
-            InstructionId::Multiply => semantics.multiply(target, source),
-            InstructionId::Divide   => semantics.divide(target, source),
-            InstructionId::DivideIf => semantics.divide_if(target, source),
-            InstructionId::Modulo   => semantics.modulo(target, source),
-            InstructionId::Power    => semantics.power(target, source),
-            InstructionId::GCD      => semantics.gcd(target, source),
-            InstructionId::Binomial => semantics.binomial(target, source),
-            InstructionId::Compare  => semantics.compare(target, source),
-            InstructionId::Min      => semantics.min(target, source),
-            InstructionId::Max      => semantics.max(target, source),
+            InstructionId::Add      => S::add(target, source),
+            InstructionId::Subtract => S::subtract(target, source),
+            InstructionId::Truncate => S::truncate(target, source),
+            InstructionId::Multiply => S::multiply(target, source),
+            InstructionId::Divide   => S::divide(target, source),
+            InstructionId::DivideIf => S::divide_if(target, source),
+            InstructionId::Modulo   => S::modulo(target, source),
+            InstructionId::Power    => S::power(target, source),
+            InstructionId::GCD      => S::gcd(target, source),
+            InstructionId::Binomial => S::binomial(target, source),
+            InstructionId::Compare  => S::compare(target, source),
+            InstructionId::Min      => S::min(target, source),
+            InstructionId::Max      => S::max(target, source),
             _ => {
                 error!("unsupported instruction: {:?}", self.instruction_id);
                 return Err(EvalError::UnsupportedInstruction);
