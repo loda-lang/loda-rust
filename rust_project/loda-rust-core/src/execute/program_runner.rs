@@ -2,7 +2,6 @@ use super::{EvalError, NodeLoopLimit, ProgramCache, Program, ProgramId, ProgramS
 use super::NodeRegisterLimit;
 use super::node_binomial::NodeBinomialLimit;
 use super::node_power::NodePowerLimit;
-use super::node_move::NodeMoveRegister;
 use std::collections::HashSet;
 use std::fmt;
 
@@ -105,51 +104,6 @@ impl ProgramRunner {
         register_set.insert(RegisterIndex(0));
         self.program.live_register_indexes(&mut register_set);
         register_set
-    }
-
-    #[allow(dead_code)]
-    pub fn has_live_registers(&self) -> bool {
-        self.live_registers().contains(&RegisterIndex(0))
-    }
-
-    /// While mining. Many programs gets rejected, because there is no connection from the 
-    /// input register to the output register. These defunct programs can be turned into 
-    /// working programs, by doing this trick:
-    ///
-    /// When detecting there is no live output register, then append a move instruction 
-    /// that takes data from the lowest live register, and places it in the output register.
-    /// There may still be something meaningful in one of the other live registers.
-    ///
-    /// When there is zero live registers, then there is no way to get to the output register, 
-    /// and this program is truely defunct.
-    pub fn mining_trick_attempt_fixing_the_output_register(&mut self) -> bool {
-        // panic!("TODO: replace u8 addresses with u64");
-        let live_registers: HashSet<RegisterIndex> = self.live_registers();
-        if live_registers.is_empty() {
-            // There is no live registers to pick from.
-            return false;
-        }
-        let target: RegisterIndex = RegisterIndex(0);
-        if live_registers.contains(&target) {
-            // There is live data in the output register.
-            // No need to apply the trick.
-            return true;
-        }
-
-        // There is no live data in the output register.
-        // Append a `mov` instruction to the program that moves 
-        // data to the output register.
-
-        // Pick the lowest register index from the hash.
-        let source: RegisterIndex = live_registers.into_iter()
-            .min_by(|a, b| a.partial_cmp(&b).expect("Found a NaN"))
-            .expect("There was no minimum");
-
-        let node = NodeMoveRegister::new(target, source);
-        let node_wrapped = Box::new(node);
-        self.program.push_boxed(node_wrapped);
-
-        true
     }
 
     #[cfg(test)]

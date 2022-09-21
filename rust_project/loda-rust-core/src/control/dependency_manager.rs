@@ -437,7 +437,6 @@ mod tests {
         let mut dm: DependencyManager = dependency_manager_mock("tests/live_register1");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.live_registers().len(), 1);
-        assert_eq!(runner.has_live_registers(), true);
     }
 
     // #[test]
@@ -445,7 +444,6 @@ mod tests {
     //     let mut dm: DependencyManager = dependency_manager_mock("tests/live_register2");
     //     let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
     //     assert_eq!(runner.live_registers().len(), 0);
-    //     assert_eq!(runner.has_live_registers(), false);
     // }
 
     // #[test]
@@ -453,7 +451,6 @@ mod tests {
     //     let mut dm: DependencyManager = dependency_manager_mock("tests/live_register3");
     //     let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
     //     assert_eq!(runner.live_registers().len(), 3);
-    //     assert_eq!(runner.has_live_registers(), true);
     // }
 
     // #[test]
@@ -461,7 +458,6 @@ mod tests {
     //     let mut dm: DependencyManager = dependency_manager_mock("tests/live_register4");
     //     let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
     //     assert_eq!(runner.live_registers().len(), 0);
-    //     assert_eq!(runner.has_live_registers(), false);
     // }
 
     // #[test]
@@ -469,7 +465,6 @@ mod tests {
     //     let mut dm: DependencyManager = dependency_manager_mock("tests/live_register5");
     //     let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
     //     assert_eq!(runner.live_registers().len(), 2);
-    //     assert_eq!(runner.has_live_registers(), true);
     // }
 
     #[test]
@@ -477,47 +472,7 @@ mod tests {
         let mut dm: DependencyManager = dependency_manager_mock("tests/live_register6");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.live_registers().len(), 1);
-        assert_eq!(runner.has_live_registers(), true);
     }
-
-    // #[test]
-    // fn test_40001_mining_trick_attempt_fixing_the_output_register1() {
-    //     const PROGRAM: &str = r#"
-    //     mov $5,$0
-    //     mov $0,0
-    //     "#;
-    //     let mut dm = DependencyManager::new(
-    //         DependencyManagerFileSystemMode::System,
-    //         PathBuf::from("non-existing-dir"),
-    //     );
-    //     let source_code: String = PROGRAM.to_string();
-    //     let mut runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, &source_code).unwrap();
-    //     assert_eq!(runner.live_registers().len(), 1);
-    //     assert_eq!(runner.has_live_registers(), false);
-    //     assert_eq!(runner.mining_trick_attempt_fixing_the_output_register(), true);
-    //     assert_eq!(runner.live_registers().len(), 2);
-    //     assert_eq!(runner.has_live_registers(), true);
-    // }
-
-    // #[test]
-    // fn test_40002_mining_trick_attempt_fixing_the_output_register2() {
-    //     const PROGRAM: &str = r#"
-    //     mov $5,$0
-    //     mov $0,0
-    //     mul $5,0
-    //     "#;
-    //     let mut dm = DependencyManager::new(
-    //         DependencyManagerFileSystemMode::System,
-    //         PathBuf::from("non-existing-dir"),
-    //     );
-    //     let source_code: String = PROGRAM.to_string();
-    //     let mut runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, &source_code).unwrap();
-    //     assert_eq!(runner.live_registers().len(), 0);
-    //     assert_eq!(runner.has_live_registers(), false);
-    //     assert_eq!(runner.mining_trick_attempt_fixing_the_output_register(), false);
-    //     assert_eq!(runner.live_registers().len(), 0);
-    //     assert_eq!(runner.has_live_registers(), false);
-    // }
 
     #[test]
     fn test_50000_parametertype_indirect1() {

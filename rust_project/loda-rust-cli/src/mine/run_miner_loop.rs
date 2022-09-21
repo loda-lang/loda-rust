@@ -252,7 +252,7 @@ impl RunMinerLoop {
             ProgramId::ProgramWithoutId, 
             &genome_parsed_program
         );
-        let mut runner: ProgramRunner = match result_parse {
+        let runner: ProgramRunner = match result_parse {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be parsed. {}", iteration, error);
@@ -260,12 +260,6 @@ impl RunMinerLoop {
                 return;
             }
         };
-
-        // If the program has no live output register, then pick the lowest live register.
-        if !runner.mining_trick_attempt_fixing_the_output_register() {
-            self.metric.number_of_programs_without_output += 1;
-            return;
-        }
 
         // Execute program
         self.term_computer.reset();
