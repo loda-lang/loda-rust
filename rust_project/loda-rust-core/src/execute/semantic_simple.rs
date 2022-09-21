@@ -14,13 +14,15 @@ lazy_static! {
 pub enum SemanticSimpleError {
     InputOutOfRange,
     OutputOutOfRange,
+    DivisionByZero,
 }
 
 impl From<SemanticSimpleError> for EvalError {
     fn from(error: SemanticSimpleError) -> EvalError {
         match error {
-            SemanticSimpleError::InputOutOfRange => EvalError::InputOutOfRange,
+            SemanticSimpleError::InputOutOfRange  => EvalError::InputOutOfRange,
             SemanticSimpleError::OutputOutOfRange => EvalError::OutputOutOfRange,
+            SemanticSimpleError::DivisionByZero   => EvalError::DivisionByZero,
         }
     }
 }
@@ -94,6 +96,35 @@ pub trait SemanticSimpleConfig {
         }
         Ok(z)
     }
+
+    fn compute_divide(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(input_max_bits) = self.input_max_bits() {
+            if x.bits() >= input_max_bits || y.bits() >= input_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        if y.is_zero() {
+            return Err(SemanticSimpleError::DivisionByZero);
+        }
+        Ok(x / y)
+    }
+
+    fn compute_divide_if(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, SemanticSimpleError> {
+        if let Some(input_max_bits) = self.input_max_bits() {
+            if x.bits() >= input_max_bits || y.bits() >= input_max_bits {
+                return Err(SemanticSimpleError::InputOutOfRange);
+            }
+        }
+        if y.is_zero() {
+            return Ok(x.clone());
+        }
+        let remain: BigInt = x % y;
+        if remain.is_zero() {
+            return Ok(x / y);
+        } else {
+            return Ok(x.clone());
+        }
+    }
 }
 
 pub struct SemanticSimpleConfigUnlimited {}
@@ -142,6 +173,8 @@ mod tests {
         Subtract,
         Truncate,
         Multiply,
+        Divide,
+        DivideIf,
     }
 
     fn compute(config: &dyn SemanticSimpleConfig, mode: ComputeMode, left: i64, right: i64) -> String {
@@ -152,12 +185,14 @@ mod tests {
             ComputeMode::Subtract => config.compute_subtract(&x, &y),
             ComputeMode::Truncate => config.compute_truncate(&x, &y),
             ComputeMode::Multiply => config.compute_multiply(&x, &y),
+            ComputeMode::Divide   => config.compute_divide(&x, &y),
+            ComputeMode::DivideIf => config.compute_divide_if(&x, &y),
         };
         match result {
             Ok(value) => return value.to_string(),
-            Err(SemanticSimpleError::InputOutOfRange) => return "InputOutOfRange".to_string(),
+            Err(SemanticSimpleError::InputOutOfRange)  => return "InputOutOfRange".to_string(),
             Err(SemanticSimpleError::OutputOutOfRange) => return "OutputOutOfRange".to_string(),
-            Err(error) => return format!("{:?}", error),
+            Err(SemanticSimpleError::DivisionByZero)   => return "DivisionByZero".to_string(),
         }
     }
 
@@ -306,6 +341,114 @@ mod tests {
             assert_eq!(compute_multiply(-0x10, -0x8000000), "OutputOutOfRange");
             assert_eq!(compute_multiply(0x10, -0x8000000), "OutputOutOfRange");
         }
+    }
+
+    fn compute_divide(left: i64, right: i64) -> String {
+        let limit: u64 = 32;
+        let config = SemanticSimpleConfigLimited::new(limit, limit);
+        compute(&config, ComputeMode::Divide, left, right)
+    }
+
+    #[test]
+    fn test_50000_divide_by0() {
+        assert_eq!(compute_divide(100, 0), "DivisionByZero");
+        assert_eq!(compute_divide(-100, 0), "DivisionByZero");
+    }
+
+    #[test]
+    fn test_50001_divide_by1() {
+        assert_eq!(compute_divide(-100, 1), "-100");
+        assert_eq!(compute_divide(0, 1), "0");
+        assert_eq!(compute_divide(100, 1), "100");
+        assert_eq!(compute_divide(-1, -1), "1");
+        assert_eq!(compute_divide(0, -1), "0");
+        assert_eq!(compute_divide(1, -1), "-1");
+    }
+
+    #[test]
+    fn test_50002_divide_by2() {
+        assert_eq!(compute_divide(-10, 2), "-5");
+        assert_eq!(compute_divide(-9, 2), "-4");
+        assert_eq!(compute_divide(-4, 2), "-2");
+        assert_eq!(compute_divide(-3, 2), "-1");
+        assert_eq!(compute_divide(-2, 2), "-1");
+        assert_eq!(compute_divide(-1, 2), "0");
+        assert_eq!(compute_divide(0, 2), "0");
+        assert_eq!(compute_divide(1, 2), "0");
+        assert_eq!(compute_divide(2, 2), "1");
+        assert_eq!(compute_divide(3, 2), "1");
+        assert_eq!(compute_divide(4, 2), "2");
+        assert_eq!(compute_divide(9, 2), "4");
+        assert_eq!(compute_divide(10, 2), "5");
+    }
+
+    #[test]
+    fn test_50003_divide_big_values() {
+        assert_eq!(compute_divide(50, 10), "5");
+        assert_eq!(compute_divide(3, -3), "-1");
+        assert_eq!(compute_divide(-3, 3), "-1");
+    }
+
+    #[test]
+    fn test_50004_divide_inputoutofrange() {
+        assert_eq!(compute_divide(0x7fffffff, 0x7fffffff), "1");
+        assert_eq!(compute_divide(-0x7fffffff, -0x7fffffff), "1");
+        assert_eq!(compute_divide(0x80000000, 1), "InputOutOfRange");
+        assert_eq!(compute_divide(-0x80000000, 1), "InputOutOfRange");
+        assert_eq!(compute_divide(0x80000001, 2), "InputOutOfRange");
+        assert_eq!(compute_divide(-0x80000001, 2), "InputOutOfRange");
+        assert_eq!(compute_divide(1, 0x7fffffff), "0");
+        assert_eq!(compute_divide(1, -0x7fffffff), "0");
+        assert_eq!(compute_divide(1, 0x80000000), "InputOutOfRange");
+        assert_eq!(compute_divide(1, -0x80000000), "InputOutOfRange");
+        assert_eq!(compute_divide(1, 0x80000001), "InputOutOfRange");
+        assert_eq!(compute_divide(1, -0x80000001), "InputOutOfRange");
+    }
+
+    fn compute_divideif(left: i64, right: i64) -> String {
+        let limit: u64 = 32;
+        let config = SemanticSimpleConfigLimited::new(limit, limit);
+        compute(&config, ComputeMode::DivideIf, left, right)
+    }
+
+    #[test]
+    fn test_60000_divideif_remainder_zero() {
+        assert_eq!(compute_divideif(50, 10), "5");
+        assert_eq!(compute_divideif(100, 1), "100");
+        assert_eq!(compute_divideif(42, -1), "-42");
+        assert_eq!(compute_divideif(-1, -1), "1");
+        assert_eq!(compute_divideif(3, -3), "-1");
+        assert_eq!(compute_divideif(-3, 3), "-1");
+    }
+
+    #[test]
+    fn test_60001_divideif_cannot_be_divided() {
+        assert_eq!(compute_divideif(33, 10), "33");
+        assert_eq!(compute_divideif(100, 33), "100");
+        assert_eq!(compute_divideif(-100, -33), "-100");
+    }
+
+    #[test]
+    fn test_60002_divideif_divisionbyzero() {
+        assert_eq!(compute_divideif(100, 0), "100");
+        assert_eq!(compute_divideif(0, 0), "0");
+        assert_eq!(compute_divideif(-100, 0), "-100");
+    }
+
+    #[test]
+    fn test_60003_divideif_inputoutofrange() {
+        assert_eq!(compute_divideif(0x7fffffff, 0x7fffffff), "1");
+        assert_eq!(compute_divideif(-0x7fffffff, -0x7fffffff), "1");
+        assert_eq!(compute_divideif(0x80000000, 1), "InputOutOfRange");
+        assert_eq!(compute_divideif(-0x80000000, 1), "InputOutOfRange");
+        assert_eq!(compute_divideif(0x80000001, 2), "InputOutOfRange");
+        assert_eq!(compute_divideif(-0x80000001, 2), "InputOutOfRange");
+        assert_eq!(compute_divideif(1, 0x7fffffff), "1");
+        assert_eq!(compute_divideif(1, -0x7fffffff), "1");
+        assert_eq!(compute_divideif(1, 0x80000000), "InputOutOfRange");
+        assert_eq!(compute_divideif(1, -0x80000000), "InputOutOfRange");
+        assert_eq!(compute_divideif(1, 0x80000001), "InputOutOfRange");
+        assert_eq!(compute_divideif(1, -0x80000001), "InputOutOfRange");
     }
 
 }

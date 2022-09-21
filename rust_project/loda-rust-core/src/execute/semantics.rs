@@ -70,22 +70,15 @@ impl Semantics for SemanticsImpl {
     }
 
     fn divide(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        if y.is_zero() {
-            return Err(EvalError::DivisionByZero);
-        }
-        Ok(x / y)
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_divide(x, y);
+        let value = result?;
+        Ok(value)
     }
 
     fn divide_if(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        if y.is_zero() {
-            return Ok(x.clone());
-        }
-        let remain: BigInt = x % y;
-        if remain.is_zero() {
-            return Ok(x / y);
-        } else {
-            return Ok(x.clone());
-        }
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_divide_if(x, y);
+        let value = result?;
+        Ok(value)
     }
 
     fn modulo(&self, x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
