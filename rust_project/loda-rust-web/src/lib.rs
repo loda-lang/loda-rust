@@ -21,7 +21,6 @@ use std::collections::HashSet;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
-use loda_rust_core::execute::node_power::NodePowerLimit;
 use loda_rust_core::parser::ParsedProgram;
 
 
@@ -139,7 +138,6 @@ impl MyPrintTerms for ProgramRunner {
                 step_count_limit,
                 NodeRegisterLimit::Unlimited,
                 NodeLoopLimit::Unlimited,
-                NodePowerLimit::Unlimited,
                 &mut cache
             );
             let output: RegisterValue = match result_run {
@@ -339,7 +337,6 @@ impl WebDependencyManagerInner {
             step_count_limit,
             NodeRegisterLimit::Unlimited,
             NodeLoopLimit::Unlimited,
-            NodePowerLimit::Unlimited,
             &mut self.cache
         );
         let output: RegisterValue = match result_run {

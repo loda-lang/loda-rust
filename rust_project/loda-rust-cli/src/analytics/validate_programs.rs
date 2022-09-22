@@ -5,7 +5,6 @@ use crate::config::Config;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
-use loda_rust_core::execute::node_power::NodePowerLimit;
 use std::path::PathBuf;
 use std::collections::HashSet;
 use std::error::Error;
@@ -221,7 +220,6 @@ impl ComputeTerms for ProgramRunner {
                 step_count_limit,
                 NodeRegisterLimit::Unlimited,
                 NodeLoopLimit::Unlimited,
-                NodePowerLimit::Unlimited,
                 cache
             );
             let _ = match result_run {

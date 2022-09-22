@@ -1,6 +1,5 @@
 use super::{EvalError, NodeLoopLimit, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterValue, RunMode};
 use super::NodeRegisterLimit;
-use super::node_power::NodePowerLimit;
 use std::fmt;
 
 pub struct ProgramRunner {
@@ -24,7 +23,6 @@ impl ProgramRunner {
         step_count_limit: u64, 
         node_register_limit: NodeRegisterLimit, 
         node_loop_limit: NodeLoopLimit,
-        node_power_limit: NodePowerLimit, 
         cache: &mut ProgramCache
     ) -> Result<RegisterValue, EvalError> {
         let step_count_before: u64 = *step_count;
@@ -46,7 +44,6 @@ impl ProgramRunner {
             step_count_limit, 
             node_register_limit,
             node_loop_limit,
-            node_power_limit,
         );
         state.set_step_count(step_count_before);
         state.set_input_value(input);
@@ -116,7 +113,6 @@ impl ProgramRunner {
                 step_count_limit,
                 NodeRegisterLimit::Unlimited,
                 NodeLoopLimit::Unlimited,
-                NodePowerLimit::Unlimited,
                 cache,
             );
             match result {

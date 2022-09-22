@@ -1,5 +1,4 @@
 use super::{EvalError, NodeLoopLimit, RegisterIndex, RegisterValue, RunMode};
-use super::node_power::NodePowerLimit;
 use super::NodeRegisterLimit;
 use super::BoxCheckValue;
 use crate::parser::{InstructionParameter, ParameterType};
@@ -32,7 +31,6 @@ pub struct ProgramState {
     step_count_limit: u64,
     node_register_limit: NodeRegisterLimit,
     node_loop_limit: NodeLoopLimit,
-    node_power_limit: NodePowerLimit,
     check_value: BoxCheckValue,
 }
 
@@ -42,7 +40,6 @@ impl ProgramState {
         step_count_limit: u64, 
         node_register_limit: NodeRegisterLimit,
         node_loop_limit: NodeLoopLimit,
-        node_power_limit: NodePowerLimit
     ) -> Self {
         let check_value: BoxCheckValue = node_register_limit.create_boxed_check_value();
 
@@ -53,7 +50,6 @@ impl ProgramState {
             step_count_limit: step_count_limit,
             node_register_limit: node_register_limit,
             node_loop_limit: node_loop_limit,
-            node_power_limit: node_power_limit,
             check_value: check_value,
         }
     }
@@ -68,10 +64,6 @@ impl ProgramState {
 
     pub fn node_loop_limit(&self) -> &NodeLoopLimit {
         &self.node_loop_limit
-    }
-
-    pub fn node_power_limit(&self) -> &NodePowerLimit {
-        &self.node_power_limit
     }
 
     pub fn run_mode(&self) -> RunMode {
@@ -304,7 +296,6 @@ mod tests {
             1000, 
             NodeRegisterLimit::Unlimited,
             NodeLoopLimit::Unlimited,
-            NodePowerLimit::Unlimited,
         );
         set_value_not_failable(&mut state, 0, 100);
         set_value_not_failable(&mut state, 1, 101);
@@ -319,7 +310,6 @@ mod tests {
             1000, 
             NodeRegisterLimit::Unlimited,
             NodeLoopLimit::Unlimited,
-            NodePowerLimit::Unlimited,
         )
     }
 
@@ -336,7 +326,6 @@ mod tests {
             1000, 
             NodeRegisterLimit::Unlimited,
             NodeLoopLimit::Unlimited,
-            NodePowerLimit::Unlimited,
         );
         assert_eq!(state.memory_full_to_string(), "[]")
     }
@@ -348,7 +337,6 @@ mod tests {
             1000,
             NodeRegisterLimit::Unlimited,
             NodeLoopLimit::Unlimited,
-            NodePowerLimit::Unlimited,
         );
         assert_eq!(state.memory_full_to_string(), "[]")
     }

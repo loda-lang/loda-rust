@@ -2,7 +2,6 @@ use loda_rust_core::control::{DependencyManager, DependencyManagerError, Depende
 use loda_rust_core::parser::{ParseProgramError, ParseParametersError};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
-use loda_rust_core::execute::node_power::NodePowerLimit;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -145,7 +144,6 @@ impl ComputeTerms for ProgramRunner {
                 step_count_limit,
                 NodeRegisterLimit::Unlimited,
                 NodeLoopLimit::Unlimited,
-                NodePowerLimit::Unlimited,
                 cache
             );
             let _ = match result_run {
