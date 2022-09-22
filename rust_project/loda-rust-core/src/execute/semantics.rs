@@ -54,7 +54,7 @@ impl Semantics for SemanticsWithoutLimits {
     }
 
     fn divide_if(x: &BigInt, y: &BigInt) -> Result<BigInt, EvalError> {
-        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_LIMIT_SMALL.compute_divide_if(x, y);
+        let result: Result<BigInt, SemanticSimpleError> = semantic_simple::SEMANTIC_SIMPLE_CONFIG_UNLIMITED.compute_divide_if(x, y);
         let value = result?;
         Ok(value)
     }
