@@ -252,7 +252,6 @@ impl ProgramState {
     /// 
     /// This function is simpler than its counterpart `is_less_range`.
     pub fn is_less_single(&self, other_state: &ProgramState, register_index: RegisterIndex) -> bool {
-        // panic!("TODO: replace u8 addresses with u64");
         self.is_less_range(other_state, register_index, 1)
     }
 }
