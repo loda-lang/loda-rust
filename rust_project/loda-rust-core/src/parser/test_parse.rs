@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::execute::{Program, ProgramCache, ProgramId, ProgramRunner, ProgramRunnerManager};
+    use crate::execute::node_calc::NodeCalcSemanticMode;
     use crate::parser::{ParsedProgram, CreateProgram, ParseError};
     
     const INPUT_A000045: &str = r#"
@@ -196,7 +197,7 @@ mod tests {
     /// This function does not resolve dependencies.
     fn parse(input: &str) -> Result<Program, ParseError> {
       let parsed_program: ParsedProgram = ParsedProgram::parse_program(input)?;
-      let create_program = CreateProgram::new();
+      let create_program = CreateProgram::new(NodeCalcSemanticMode::Unlimited);
       let program: Program = create_program.create_program(&parsed_program.instruction_vec)?;
       Ok(program)
     }

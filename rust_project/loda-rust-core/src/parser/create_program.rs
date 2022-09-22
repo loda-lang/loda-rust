@@ -254,10 +254,9 @@ pub struct CreateProgram {
 }
 
 impl CreateProgram {
-    pub fn new() -> Self {
-        // TODO: switch between unlimited, and small limits, depending on the current mode
+    pub fn new(node_calc_semantic_mode: NodeCalcSemanticMode) -> Self {
         Self {
-            node_calc_semantic_mode: NodeCalcSemanticMode::SmallLimits,
+            node_calc_semantic_mode: node_calc_semantic_mode,
         }
     }
 

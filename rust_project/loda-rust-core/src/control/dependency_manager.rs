@@ -4,8 +4,10 @@ use std::path::{Path,PathBuf};
 use std::collections::HashSet;
 use std::collections::HashMap;
 use std::rc::Rc;
+use crate::execute::node_calc::NodeCalcSemanticMode;
 use crate::parser::{ParsedProgram, ParseProgramError, CreateProgram, CreateProgramError};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
+use super::ExecuteProfile;
 
 #[derive(Debug, PartialEq)]
 pub struct CyclicDependencyError {
@@ -87,6 +89,7 @@ pub enum DependencyManagerFileSystemMode {
 pub struct DependencyManager {
     file_system_mode: DependencyManagerFileSystemMode,
     loda_programs_oeis_dir: PathBuf,
+    execute_profile: ExecuteProfile,
     program_run_manager: ProgramRunnerManager,
     programids_currently_loading: HashSet<u64>,
     programid_dependencies: Vec<u64>,
@@ -100,6 +103,7 @@ impl DependencyManager {
         Self {
             file_system_mode: file_system_mode,
             loda_programs_oeis_dir: loda_programs_oeis_dir,
+            execute_profile: ExecuteProfile::Unlimited,
             program_run_manager: ProgramRunnerManager::new(),
             programids_currently_loading: HashSet::new(),
             programid_dependencies: vec!(),
@@ -107,6 +111,10 @@ impl DependencyManager {
             metric_read_success: 0,
             metric_read_error: 0,
         }        
+    }
+
+    pub fn set_execute_profile(&mut self, execute_profile: ExecuteProfile) {
+        self.execute_profile = execute_profile;
     }
 
     pub fn reset(&mut self) {
@@ -202,7 +210,11 @@ impl DependencyManager {
     pub fn parse_stage2(&mut self, program_id: ProgramId, parsed_program: &ParsedProgram) -> 
         Result<ProgramRunner, DependencyManagerError> 
     {
-        let create_program = CreateProgram::new();
+        let node_calc_semantic_mode: NodeCalcSemanticMode = match self.execute_profile {
+            ExecuteProfile::Unlimited => NodeCalcSemanticMode::Unlimited,
+            ExecuteProfile::SmallLimits => NodeCalcSemanticMode::SmallLimits
+        };
+        let create_program = CreateProgram::new(node_calc_semantic_mode);
         let mut program: Program = match create_program.create_program(&parsed_program.instruction_vec) {
             Ok(value) => value,
             Err(error) => {
