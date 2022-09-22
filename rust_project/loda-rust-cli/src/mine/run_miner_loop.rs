@@ -7,7 +7,6 @@ use crate::oeis::TermsToProgramIdSet;
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
-use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
 use loda_rust_core::execute::node_power::NodePowerLimit;
 use loda_rust_core::util::{BigIntVec, BigIntVecToString};
 use loda_rust_core::parser::ParsedProgram;
@@ -41,7 +40,6 @@ impl TermComputer {
     fn compute(&mut self, cache: &mut ProgramCache, runner: &ProgramRunner, count: usize) -> Result<(), EvalError> {
         let step_count_limit: u64 = 10000;
         let node_register_limit = NodeRegisterLimit::LimitBits(32);
-        let node_binomial_limit = NodeBinomialLimit::LimitN(20);
         let node_loop_limit = NodeLoopLimit::LimitCount(1000);
         let node_power_limit = NodePowerLimit::LimitBits(30);
         loop {
@@ -57,7 +55,6 @@ impl TermComputer {
                 &mut self.step_count, 
                 step_count_limit, 
                 node_register_limit.clone(),
-                node_binomial_limit.clone(),
                 node_loop_limit.clone(),
                 node_power_limit.clone(),
                 cache
