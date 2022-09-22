@@ -264,115 +264,123 @@ impl From<CreateInstructionError> for CreateProgramError {
     }
 }
 
-pub fn create_program(instruction_vec: &Vec<Instruction>) -> Result<CreatedProgram, CreateProgramError> {
-    validate_loops(instruction_vec)?;
+pub struct CreateProgram {}
 
-    let mut stack_vec: Vec<(Program, LoopScope)> = vec!();
-    let mut program = Program::new();
-    for instruction in instruction_vec {
-        let id: InstructionId = instruction.instruction_id.clone();
-        match id {
-            InstructionId::LoopBegin => {
-                let loopscope: LoopScope = process_loopbegin(&instruction)?;
-                stack_vec.push((program, loopscope));
-                program = Program::new();
-            },
-            InstructionId::LoopEnd => {
-                instruction.expect_zero_parameters()?;
-                let stack_item: (Program, LoopScope) = match stack_vec.pop() {
-                    Some(value) => value,
-                    None => {
-                        return Err(CreateProgramError::CannotPopEmptyStack);
-                    }
-                };
-                let program_parent: Program = stack_item.0;
-                let loopscope: LoopScope = stack_item.1;
-
-                let loop_register: RegisterIndex = loopscope.register;
-                let program_child: Program = program;
-                program = program_parent;
-
-                match loopscope.loop_type {
-                    LoopType::Simple => {
-                        program.push(NodeLoopSimple::new(loop_register, program_child));
-                    },
-                    LoopType::RangeLengthWithConstant(range_length) => {
-                        program.push(NodeLoopConstant::new(loop_register, range_length, program_child));
-                    },
-                    LoopType::RangeLengthFromRegister(register_with_range_length) => {
-                        program.push(NodeLoopRegister::new(loop_register, register_with_range_length, program_child));
-                    }
-                }
-            },
-            InstructionId::Move => {
-                let node = create_node_calc(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::Add => {
-                let node = create_node_calc(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::Subtract => {
-                let node = create_node_calc(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::Power => {
-                let node = create_node_calc(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::Multiply => {
-                let node = create_node_calc(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::Divide => {
-                let node = create_node_calc(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::DivideIf => {
-                let node = create_node_calc(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::Modulo => {
-                let node = create_node_calc(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::GCD => {
-                let node = create_node_calc(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::Truncate => {
-                let node = create_node_calc(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::Binomial => {
-                let node = create_node_calc(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::Compare => {
-                let node = create_node_calc(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::Clear => {
-                let node = create_node_clear(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::Max => {
-                let node = create_node_calc(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::Min => {
-                let node = create_node_calc(&instruction)?;
-                program.push_boxed(node);
-            },
-            InstructionId::EvalSequence => {
-                let node = create_node_seq(&instruction)?;
-                program.push_boxed(node);
-            },
-        }
+impl CreateProgram {
+    pub fn new() -> Self {
+        Self {}
     }
 
-    let created_program = CreatedProgram {
-        program: program,
-    };
-    Ok(created_program)
+    pub fn create_program(&self, instruction_vec: &Vec<Instruction>) -> Result<CreatedProgram, CreateProgramError> {
+        validate_loops(instruction_vec)?;
+    
+        let mut stack_vec: Vec<(Program, LoopScope)> = vec!();
+        let mut program = Program::new();
+        for instruction in instruction_vec {
+            let id: InstructionId = instruction.instruction_id.clone();
+            match id {
+                InstructionId::LoopBegin => {
+                    let loopscope: LoopScope = process_loopbegin(&instruction)?;
+                    stack_vec.push((program, loopscope));
+                    program = Program::new();
+                },
+                InstructionId::LoopEnd => {
+                    instruction.expect_zero_parameters()?;
+                    let stack_item: (Program, LoopScope) = match stack_vec.pop() {
+                        Some(value) => value,
+                        None => {
+                            return Err(CreateProgramError::CannotPopEmptyStack);
+                        }
+                    };
+                    let program_parent: Program = stack_item.0;
+                    let loopscope: LoopScope = stack_item.1;
+    
+                    let loop_register: RegisterIndex = loopscope.register;
+                    let program_child: Program = program;
+                    program = program_parent;
+    
+                    match loopscope.loop_type {
+                        LoopType::Simple => {
+                            program.push(NodeLoopSimple::new(loop_register, program_child));
+                        },
+                        LoopType::RangeLengthWithConstant(range_length) => {
+                            program.push(NodeLoopConstant::new(loop_register, range_length, program_child));
+                        },
+                        LoopType::RangeLengthFromRegister(register_with_range_length) => {
+                            program.push(NodeLoopRegister::new(loop_register, register_with_range_length, program_child));
+                        }
+                    }
+                },
+                InstructionId::Move => {
+                    let node = create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::Add => {
+                    let node = create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::Subtract => {
+                    let node = create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::Power => {
+                    let node = create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::Multiply => {
+                    let node = create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::Divide => {
+                    let node = create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::DivideIf => {
+                    let node = create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::Modulo => {
+                    let node = create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::GCD => {
+                    let node = create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::Truncate => {
+                    let node = create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::Binomial => {
+                    let node = create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::Compare => {
+                    let node = create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::Clear => {
+                    let node = create_node_clear(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::Max => {
+                    let node = create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::Min => {
+                    let node = create_node_calc(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::EvalSequence => {
+                    let node = create_node_seq(&instruction)?;
+                    program.push_boxed(node);
+                },
+            }
+        }
+    
+        let created_program = CreatedProgram {
+            program: program,
+        };
+        Ok(created_program)
+    }    
 }

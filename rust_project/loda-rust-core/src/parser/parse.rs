@@ -35,12 +35,11 @@ impl From<CreateProgramError> for ParseError {
     }
 }
 
-
-#[allow(dead_code)]
 pub fn parse(input: &str) -> Result<ParseResult, ParseError> {
     let parsed_program: ParsedProgram = ParsedProgram::parse_program(input)?;
 
-    let created_program: CreatedProgram = create_program(&parsed_program.instruction_vec)?;
+    let create_program = CreateProgram::new();
+    let created_program: CreatedProgram = create_program.create_program(&parsed_program.instruction_vec)?;
 
     Ok(ParseResult {
         created_program: created_program,
