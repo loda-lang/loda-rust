@@ -9,6 +9,8 @@ pub enum ParseParametersError {
     UnrecognizedParameter(usize),
     UnrecognizedParameterType(usize),
     UnrecognizedParameterValue(usize),
+    StrictIncorrectParameterValue(usize),
+    NegativeValueNotAllowedForThisParameterType(usize),
 }
 
 impl fmt::Display for ParseParametersError {
@@ -22,6 +24,10 @@ impl fmt::Display for ParseParametersError {
                 write!(f, "Unrecognized parameter type in line {}", line_number),
             Self::UnrecognizedParameterValue(line_number) => 
                 write!(f, "Unrecognized parameter value in line {}", line_number),
+            Self::StrictIncorrectParameterValue(line_number) => 
+                write!(f, "Strict incorrect parameter value in line {}", line_number),
+            Self::NegativeValueNotAllowedForThisParameterType(line_number) => 
+                write!(f, "Negative parameter value not allowed for this parameter type (Direct/Indirect) in line {}", line_number),
         }
     }
 }
@@ -36,7 +42,7 @@ pub fn parse_parameters(parameter_string_raw: &str, line_number: usize)
     }
 
     let re = &EXTRACT_PARAMETER_RE;
-    let mut parameter_vec: Vec<InstructionParameter> = vec!();
+    let mut parameter_vec = Vec::<InstructionParameter>::with_capacity(2);
     for split_item in parameter_string_trimmed.split(",") {
         let trimmed_split_item = split_item.trim();
         if trimmed_split_item.is_empty() {
@@ -64,6 +70,23 @@ pub fn parse_parameters(parameter_string_raw: &str, line_number: usize)
                 return Err(ParseParametersError::UnrecognizedParameterValue(line_number));
             }
         };
+
+        // Reject redundant leading zeroes, such as `0001`.
+        // Reject redundant minus prefix `-0`.
+        if parameter_value.to_string() != capture2 {
+            return Err(ParseParametersError::StrictIncorrectParameterValue(line_number));
+        }
+
+        // Allow negative constants.
+        // Reject negative addresses, such as `$-123` and `$$-4`.
+        let check_negative: bool = match parameter_type {
+            ParameterType::Direct | ParameterType::Indirect => true,
+            ParameterType::Constant => false
+        };
+        if check_negative && parameter_value < 0 {
+            return Err(ParseParametersError::NegativeValueNotAllowedForThisParameterType(line_number));
+        }
+
         let parameter = InstructionParameter {
             parameter_type: parameter_type,
             parameter_value: parameter_value,
@@ -139,8 +162,34 @@ mod tests {
     fn test_10005_parameter_type() {
         assert_eq!(process("$$$$0"), "UnrecognizedParameterType(1)");
         assert_eq!(process("$$$0"), "UnrecognizedParameterType(1)");
-        assert_eq!(process("$$0"), "UnrecognizedParameterType(1)");
+        assert_eq!(process("$$0"), "$$0");
         assert_eq!(process("$0"), "$0");
         assert_eq!(process("0"), "0");
+    }
+
+    #[test]
+    fn test_10006_leading_zeros() {
+        assert_eq!(process("0"), "0");
+        assert_eq!(process("-0"), "StrictIncorrectParameterValue(1)");
+        assert_eq!(process("0000"), "StrictIncorrectParameterValue(1)");
+        assert_eq!(process("0001"), "StrictIncorrectParameterValue(1)");
+        assert_eq!(process("-0000"), "StrictIncorrectParameterValue(1)");
+        assert_eq!(process("-0001"), "StrictIncorrectParameterValue(1)");
+        assert_eq!(process("$-00"), "StrictIncorrectParameterValue(1)");
+        assert_eq!(process("$-01"), "StrictIncorrectParameterValue(1)");
+        assert_eq!(process("$01"), "StrictIncorrectParameterValue(1)");
+        assert_eq!(process("$$-00"), "StrictIncorrectParameterValue(1)");
+        assert_eq!(process("$$-01"), "StrictIncorrectParameterValue(1)");
+        assert_eq!(process("$$01"), "StrictIncorrectParameterValue(1)");
+    }
+    
+    #[test]
+    fn test_10008_negative_values() {
+        assert_eq!(process("-0"), "StrictIncorrectParameterValue(1)");
+        assert_eq!(process("$-0"), "StrictIncorrectParameterValue(1)");
+        assert_eq!(process("$$-0"), "StrictIncorrectParameterValue(1)");
+        assert_eq!(process("-12"), "-12");
+        assert_eq!(process("$-12"), "NegativeValueNotAllowedForThisParameterType(1)");
+        assert_eq!(process("$$-12"), "NegativeValueNotAllowedForThisParameterType(1)");
     }
 }

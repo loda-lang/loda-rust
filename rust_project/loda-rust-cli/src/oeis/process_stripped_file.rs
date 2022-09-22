@@ -1,4 +1,5 @@
-use super::{OeisIdHashSet, StrippedRow};
+use loda_rust_core::oeis::OeisIdHashSet;
+use super::StrippedRow;
 use crate::common::SimpleLog;
 use std::io;
 use std::io::BufRead;
@@ -102,7 +103,7 @@ impl ProcessStrippedFile {
 mod tests {
     use super::*;
     use num_traits::Zero;
-    use crate::oeis::OeisId;
+    use loda_rust_core::oeis::OeisId;
     
     const INPUT_MOCKDATA: &str = r#"
 # OEIS Sequence Data (http://oeis.org/stripped.gz)

@@ -1,6 +1,6 @@
 use loda_rust_core::util::BigIntVec;
+use loda_rust_core::oeis::{OeisId, OeisIdHashSet};
 use crate::postmine::{PathUtil, PostMineError};
-use crate::oeis::{OeisId, OeisIdHashSet};
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fmt;

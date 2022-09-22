@@ -1,21 +1,5 @@
 use std::fmt;
-use super::{InstructionId, ParameterType};
-
-#[derive(Clone, Debug)]
-pub struct InstructionParameter {
-    pub parameter_type: ParameterType,
-    pub parameter_value: i64,
-}
-
-impl fmt::Display for InstructionParameter {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let prefix: &str = match self.parameter_type {
-            ParameterType::Constant => "",
-            ParameterType::Register => "$",
-        };
-        write!(f, "{}{}", prefix, self.parameter_value)
-    }
-}
+use super::{InstructionId, InstructionParameter};
 
 #[derive(Clone, Debug)]
 pub struct Instruction {

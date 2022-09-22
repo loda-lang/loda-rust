@@ -1,4 +1,4 @@
-use crate::oeis::{OeisId, OeisIdHashSet};
+use loda_rust_core::oeis::{OeisId, OeisIdHashSet};
 use std::iter::FromIterator;
 
 pub trait ToOeisIdVec {

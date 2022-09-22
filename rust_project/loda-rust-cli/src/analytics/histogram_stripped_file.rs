@@ -1,8 +1,9 @@
 use loda_rust_core::util::BigIntVec;
+use loda_rust_core::oeis::OeisIdHashSet;
 use crate::mine::FunnelConfig;
 use crate::config::Config;
 use crate::common::{create_csv_file, SimpleLog};
-use crate::oeis::{OeisIdHashSet, ProcessStrippedFile, StrippedRow};
+use crate::oeis::{ProcessStrippedFile, StrippedRow};
 use num_bigint::{BigInt, ToBigInt};
 use std::convert::TryFrom;
 use std::error::Error;

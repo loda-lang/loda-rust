@@ -1,4 +1,4 @@
-use crate::oeis::{OeisId, OeisIdHashSet};
+use loda_rust_core::oeis::{OeisId, OeisIdHashSet};
 use regex::Regex;
 use lazy_static::lazy_static;
 use std::path::{Path, PathBuf};

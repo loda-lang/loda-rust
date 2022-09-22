@@ -2,8 +2,6 @@ use super::PreventFlooding;
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
-use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
-use loda_rust_core::execute::node_power::NodePowerLimit;
 use loda_rust_core::util::BigIntVec;
 use std::fs;
 use std::path::PathBuf;
@@ -20,9 +18,7 @@ impl ComputeTerms for ProgramRunner {
         let mut terms: BigIntVec = BigIntVec::with_capacity(count as usize);
         let step_count_limit: u64 = 10000;
         let node_register_limit = NodeRegisterLimit::LimitBits(32);
-        let node_binomial_limit = NodeBinomialLimit::LimitN(20);
         let node_loop_limit = NodeLoopLimit::LimitCount(1000);
-        let node_power_limit = NodePowerLimit::LimitBits(30);
         let mut _step_count: u64 = 0;
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
@@ -32,9 +28,7 @@ impl ComputeTerms for ProgramRunner {
                 &mut _step_count, 
                 step_count_limit, 
                 node_register_limit.clone(),
-                node_binomial_limit.clone(),
                 node_loop_limit.clone(),
-                node_power_limit.clone(),
                 cache
             )?;
             terms.push(output.0.clone());

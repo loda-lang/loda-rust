@@ -1,5 +1,6 @@
+use loda_rust_core::oeis::OeisIdHashSet;
 use crate::common::OeisIdStringMap;
-use crate::oeis::{NameRow, OeisIdHashSet, ProcessNamesFile};
+use crate::oeis::{NameRow, ProcessNamesFile};
 use std::error::Error;
 use std::io;
 use std::time::Instant;

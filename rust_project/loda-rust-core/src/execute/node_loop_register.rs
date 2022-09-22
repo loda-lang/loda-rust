@@ -1,5 +1,4 @@
-use super::{EvalError, Node, NodeLoopLimit, Program, ProgramCache, ProgramSerializer, ProgramState, ProgramRunnerManager, RegisterIndex, RegisterValue, RunMode, ValidateCallError};
-use std::collections::HashSet;
+use super::{EvalError, Node, NodeLoopLimit, Program, ProgramCache, ProgramSerializer, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError};
 use num_bigint::{BigInt, ToBigInt};
 use num_traits::{ToPrimitive, Signed};
 
@@ -11,6 +10,7 @@ pub struct NodeLoopRegister {
 
 impl NodeLoopRegister {
     pub fn new(register_start: RegisterIndex, register_with_range_length: RegisterIndex, program: Program) -> Self {
+        //panic!("TODO: replace u8 addresses with u64");
         Self {
             register_start: register_start,
             register_with_range_length: register_with_range_length,
@@ -21,7 +21,7 @@ impl NodeLoopRegister {
 
 impl Node for NodeLoopRegister {
     fn formatted_instruction(&self) -> String {
-        format!("lpb {},{}", self.register_start, self.register_with_range_length)
+        format!("lpb ${},{}", self.register_start, self.register_with_range_length)
     }
 
     fn serialize(&self, serializer: &mut ProgramSerializer) {
@@ -34,15 +34,15 @@ impl Node for NodeLoopRegister {
 
     fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
         if state.run_mode() == RunMode::Verbose {
-            let snapshot = state.register_vec_to_string();
+            let snapshot = state.memory_full_to_string();
             let instruction = self.formatted_instruction();
             println!("{:12} {} => {}", instruction, snapshot, snapshot);
         }
 
         let max_range_length_bigint: BigInt = 255.to_bigint().unwrap();
 
-        let initial_value: &RegisterValue = state.get_register_value_ref(&self.register_with_range_length);
-        let initial_value_inner: &BigInt = &initial_value.0;
+        //panic!("TODO: replace u8 addresses with u64");
+        let initial_value_inner: &BigInt = state.get_u64(self.register_with_range_length.0 as u64);
         let initial_range_length: u8;
         if initial_value_inner.is_positive() {
             if initial_value_inner > &max_range_length_bigint {
@@ -69,8 +69,8 @@ impl Node for NodeLoopRegister {
 
             self.program.run(state, cache)?;
 
-            let value: &RegisterValue = state.get_register_value_ref(&self.register_with_range_length);
-            let value_inner: &BigInt = &value.0;
+            //panic!("TODO: replace u8 addresses with u64");
+            let value_inner: &BigInt = state.get_u64(self.register_with_range_length.0 as u64);
             let range_length: u8;
             if value_inner.is_positive() {
                 if value_inner > &max_range_length_bigint {
@@ -105,8 +105,8 @@ impl Node for NodeLoopRegister {
             if !is_less {
 
                 if state.run_mode() == RunMode::Verbose {
-                    let before = state.register_vec_to_string();
-                    let after = old_state.register_vec_to_string();
+                    let before = state.memory_full_to_string();
+                    let after = old_state.memory_full_to_string();
                     println!("{:12} {} => {}  break", "lpe", before, after);
                 }
 
@@ -128,21 +128,12 @@ impl Node for NodeLoopRegister {
                 }
             }
             if state.run_mode() == RunMode::Verbose {
-                let before = state.register_vec_to_string();
-                let after = old_state.register_vec_to_string();
+                let before = state.memory_full_to_string();
+                let after = old_state.memory_full_to_string();
                 println!("{:12} {} => {}  continue", "lpe", before, after);
             }
         }
         Ok(())
-    }
-
-    fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
-        // Loop doesn't modify any registers
-        self.program.accumulate_register_indexes(register_vec);
-    }
-
-    fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
-        self.program.live_register_indexes(register_set);
     }
 
     fn update_call(&mut self, program_manager: &mut ProgramRunnerManager) {

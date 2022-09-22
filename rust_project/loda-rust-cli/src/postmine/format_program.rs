@@ -1,6 +1,6 @@
 use crate::common::OeisIdStringMap;
-use crate::oeis::OeisId;
 use super::ProgramSerializerContextWithSequenceName;
+use loda_rust_core::oeis::OeisId;
 use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer};
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
@@ -179,7 +179,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_format_program_seq_instructions() -> Result<(), Box<dyn Error>> {
+    fn test_40001_format_program_seq_instructions() -> Result<(), Box<dyn Error>> {
         let mut oeis_id_name_map = OeisIdStringMap::new();
         oeis_id_name_map.insert(OeisId::from(45), "Fibonacci".to_string());
         let program = "seq $0,45".to_string();
@@ -196,6 +196,15 @@ mod tests {
         let fp = FormatProgram::new(program);
         let formatted_program: String = fp.build()?;
         assert_eq!(formatted_program, "\nmul $0,-1\n");
+        Ok(())
+    }
+
+    #[test]
+    fn test_50000_format_program_parameter_type_indirect() -> Result<(), Box<dyn Error>> {
+        let program = "add $$0,1\n\n\nmul $1,$$0".to_string();
+        let fp = FormatProgram::new(program);
+        let formatted_program: String = fp.build()?;
+        assert_eq!(formatted_program, "\nadd $$0,1\nmul $1,$$0\n");
         Ok(())
     }
 

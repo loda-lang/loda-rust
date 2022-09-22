@@ -2,8 +2,6 @@ use loda_rust_core::control::{DependencyManager, DependencyManagerError, Depende
 use loda_rust_core::parser::{ParseProgramError, ParseParametersError};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
-use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
-use loda_rust_core::execute::node_power::NodePowerLimit;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -145,9 +143,7 @@ impl ComputeTerms for ProgramRunner {
                 &mut step_count, 
                 step_count_limit,
                 NodeRegisterLimit::Unlimited,
-                NodeBinomialLimit::Unlimited,
                 NodeLoopLimit::Unlimited,
-                NodePowerLimit::Unlimited,
                 cache
             );
             let _ = match result_run {
@@ -171,10 +167,10 @@ mod tests {
     use std::io::prelude::*;
 
     #[test]
-    fn test_10000_valid_ok() -> anyhow::Result<()> {
+    fn test_10000_valid_ok_direct() -> anyhow::Result<()> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
-        let basedir = PathBuf::from(&tempdir.path()).join("test_10000_valid_ok");
+        let basedir = PathBuf::from(&tempdir.path()).join("test_10000_valid_ok_direct");
         fs::create_dir(&basedir)?;
         let validate_single_program = ValidateSingleProgram::new(basedir.clone());
         let input_path: PathBuf = basedir.join("19840101-054915-1251916462.asm");
@@ -182,6 +178,37 @@ mod tests {
         let input_content = 
 r#"
 mul $0,2 ; multiply by 2 is fine
+"#;
+        let mut input_file = File::create(&input_path)?;
+        input_file.write_all(input_content.as_bytes())?;
+        input_file.sync_all()?;
+
+        // Act
+        validate_single_program.run(&input_path).expect("Is not supposed to fail");
+
+        // Assert
+        Ok(())
+    }
+
+    #[test]
+    fn test_10001_valid_ok_indirect() -> anyhow::Result<()> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let basedir = PathBuf::from(&tempdir.path()).join("test_10001_valid_ok_indirect");
+        fs::create_dir(&basedir)?;
+        let validate_single_program = ValidateSingleProgram::new(basedir.clone());
+        let input_path: PathBuf = basedir.join("19840101-054915-1251916462.asm");
+
+        let input_content = 
+r#"
+lpb $0
+  mov $$0,$2 ; indirect memory access
+  mov $2,1
+  sub $0,$2
+lpe
+mov $0,$10
+add $0,1
+mod $0,2
 "#;
         let mut input_file = File::create(&input_path)?;
         input_file.write_all(input_content.as_bytes())?;
@@ -262,39 +289,7 @@ boom $0,0 ; no instruction named "boom"
     }
 
     #[test]
-    fn test_50000_indirect_is_unsupported_by_lodarust() -> anyhow::Result<()> {
-        // Arrange
-        let tempdir = tempfile::tempdir().unwrap();
-        let basedir = PathBuf::from(&tempdir.path()).join("test_50000_indirect_is_unsupported_by_lodarust");
-        fs::create_dir(&basedir)?;
-        let validate_single_program = ValidateSingleProgram::new(basedir.clone());
-        let input_path: PathBuf = basedir.join("19840101-054915-1251916462.asm");
-
-        let input_content = 
-r#"
-lpb $0
-  mov $$0,$2 ; indirect memory access is not yet supported by LODA-RUST
-  mov $2,1
-  sub $0,$2
-lpe
-mov $0,$10
-add $0,1
-mod $0,2
-"#;
-        let mut input_file = File::create(&input_path)?;
-        input_file.write_all(input_content.as_bytes())?;
-        input_file.sync_all()?;
-
-        // Act
-        let error = validate_single_program.run(&input_path).expect_err("Is supposed to fail");
-
-        // Assert
-        assert!(error.to_string().starts_with("The program uses indirect memory adressing"));
-        Ok(())
-    }
-
-    #[test]
-    fn test_60000_cyclic_dependency() -> anyhow::Result<()> {
+    fn test_50000_cyclic_dependency() -> anyhow::Result<()> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
         let basedir = PathBuf::from(&tempdir.path()).join("test_60000_cyclic_dependency");

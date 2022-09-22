@@ -6,8 +6,6 @@ use std::path::PathBuf;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
-use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
-use loda_rust_core::execute::node_power::NodePowerLimit;
 use crate::config::Config;
 
 pub enum SubcommandEvaluateMode {
@@ -73,9 +71,7 @@ impl PrintTermsStepsDebug for ProgramRunner {
                 &mut step_count, 
                 step_count_limit,
                 NodeRegisterLimit::Unlimited,
-                NodeBinomialLimit::Unlimited,
                 NodeLoopLimit::Unlimited,
-                NodePowerLimit::Unlimited,
                 &mut cache
             );
             let output: RegisterValue = match result_run {
@@ -114,9 +110,7 @@ impl PrintTermsStepsDebug for ProgramRunner {
                 &mut step_count, 
                 step_count_limit,
                 NodeRegisterLimit::Unlimited,
-                NodeBinomialLimit::Unlimited,
                 NodeLoopLimit::Unlimited,
-                NodePowerLimit::Unlimited,
                 &mut cache,
             );
             if let Err(error) = result_run {
@@ -150,9 +144,7 @@ impl PrintTermsStepsDebug for ProgramRunner {
                 &mut step_count, 
                 step_count_limit,
                 NodeRegisterLimit::Unlimited,
-                NodeBinomialLimit::Unlimited,
                 NodeLoopLimit::Unlimited,
-                NodePowerLimit::Unlimited,
                 &mut cache,
             );
             let output: RegisterValue = match result_run {

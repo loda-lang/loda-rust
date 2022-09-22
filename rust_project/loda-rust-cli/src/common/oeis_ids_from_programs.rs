@@ -1,5 +1,5 @@
 use loda_rust_core::parser::ParsedProgram;
-use crate::oeis::{OeisId, OeisIdHashSet};
+use loda_rust_core::oeis::{OeisId, OeisIdHashSet};
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::convert::TryFrom;

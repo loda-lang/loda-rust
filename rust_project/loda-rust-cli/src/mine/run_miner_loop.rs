@@ -7,8 +7,6 @@ use crate::oeis::TermsToProgramIdSet;
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, ProgramSerializer, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
-use loda_rust_core::execute::node_binomial::NodeBinomialLimit;
-use loda_rust_core::execute::node_power::NodePowerLimit;
 use loda_rust_core::util::{BigIntVec, BigIntVecToString};
 use loda_rust_core::parser::ParsedProgram;
 use std::collections::HashSet;
@@ -41,9 +39,7 @@ impl TermComputer {
     fn compute(&mut self, cache: &mut ProgramCache, runner: &ProgramRunner, count: usize) -> Result<(), EvalError> {
         let step_count_limit: u64 = 10000;
         let node_register_limit = NodeRegisterLimit::LimitBits(32);
-        let node_binomial_limit = NodeBinomialLimit::LimitN(20);
         let node_loop_limit = NodeLoopLimit::LimitCount(1000);
-        let node_power_limit = NodePowerLimit::LimitBits(30);
         loop {
             let length: usize = self.terms.len();
             if length >= count {
@@ -57,9 +53,7 @@ impl TermComputer {
                 &mut self.step_count, 
                 step_count_limit, 
                 node_register_limit.clone(),
-                node_binomial_limit.clone(),
                 node_loop_limit.clone(),
-                node_power_limit.clone(),
                 cache
             )?;
             self.terms.push(output.0);
@@ -252,7 +246,7 @@ impl RunMinerLoop {
             ProgramId::ProgramWithoutId, 
             &genome_parsed_program
         );
-        let mut runner: ProgramRunner = match result_parse {
+        let runner: ProgramRunner = match result_parse {
             Ok(value) => value,
             Err(_error) => {
                 // debug!("iteration: {} cannot be parsed. {}", iteration, error);
@@ -260,12 +254,6 @@ impl RunMinerLoop {
                 return;
             }
         };
-
-        // If the program has no live output register, then pick the lowest live register.
-        if !runner.mining_trick_attempt_fixing_the_output_register() {
-            self.metric.number_of_programs_without_output += 1;
-            return;
-        }
 
         // Execute program
         self.term_computer.reset();

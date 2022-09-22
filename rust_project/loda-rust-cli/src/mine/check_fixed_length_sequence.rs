@@ -1,8 +1,9 @@
 use loda_rust_core::util::BigIntVec;
+use loda_rust_core::oeis::{OeisId, OeisIdHashSet};
 use super::{FunnelConfig, WildcardChecker};
 use crate::config::Config;
 use crate::common::{load_program_ids_csv_file, SimpleLog};
-use crate::oeis::{OeisId, OeisIdHashSet, ProcessStrippedFile, StrippedRow};
+use crate::oeis::{ProcessStrippedFile, StrippedRow};
 use num_bigint::{BigInt, ToBigInt};
 use serde::{Serialize, Deserialize};
 use bloomfilter::*;

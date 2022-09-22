@@ -2,10 +2,10 @@
 use crate::common::{find_asm_files_recursively, oeis_id_from_path};
 use crate::common::RecordBigram;
 use crate::common::SimpleLog;
-use crate::oeis::OeisId;
 use super::{Word, WordPair, WordsFromProgram};
-use loda_rust_core::parser::ParsedProgram;
 use crate::config::Config;
+use loda_rust_core::parser::ParsedProgram;
+use loda_rust_core::oeis::OeisId;
 use std::time::Instant;
 use std::path::{Path, PathBuf};
 use std::fs;

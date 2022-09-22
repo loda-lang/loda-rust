@@ -19,6 +19,12 @@ pub enum EvalError {
     /// When a mathematical function is evaluated outside of its domain of definition.
     DivisionByZero,
 
+    /// I have seen a huge backtrace in `BigInt` multiplication code.
+    /// So now I have added a limit to how big numbers are to be multiplied.
+    MultipliplyExceededLimit,
+
+    AddSubtractExceededLimit,
+
     /// Binomial with N >= 34 and the result value can no longer fit into a 32bit integer.
     /// Binomial with N >= 67 and the result value can no longer fit into a 64bit integer.
     /// During mining, it can be a time waster computing binomial with huge values.
@@ -36,8 +42,22 @@ pub enum EvalError {
     /// Stuck in a loop that takes way too long time to compute
     LoopCountExceededLimit,
 
+    /// Clear instruction with a too high value
+    ClearRangeLengthExceedsLimit,
+
     /// Using way too many cpu cycles
     StepCountExceededLimit,
+
+    // When attempting to use a constant as the first parameter for an instruction
+    CannotGetAddressOfConstant,
+    CannotSetValueOfConstant,
+    CannotConvertParameterValueToBigInt,
+    CannotConvertBigIntToRegisterIndex,
+    CannotConvertBigIntToAddress,
+    CannotConvertI64ToAddress,
+    AddressIsOutsideMaxCapacity,
+    AddressWithNegativeValue,
+    UnsupportedInstruction,
 }
 
 impl fmt::Display for EvalError {
@@ -51,6 +71,10 @@ impl fmt::Display for EvalError {
                 write!(f, "Eval sequence with a negative parameter"),
             Self::DivisionByZero => 
                 write!(f, "Division by zero"),
+            Self::MultipliplyExceededLimit => 
+                write!(f, "Multiply is outside limit"),
+            Self::AddSubtractExceededLimit => 
+                write!(f, "Add/Subtract is outside limit"),
             Self::BinomialDomainError => 
                 write!(f, "Binomial domain error"),
             Self::PowerZeroDivision => 
@@ -63,8 +87,28 @@ impl fmt::Display for EvalError {
                 write!(f, "Loop range length exceeded limit"),
             Self::LoopCountExceededLimit => 
                 write!(f, "Loop count exceeded limit, stuck in a loop that takes way too long time to compute"),
+            Self::ClearRangeLengthExceedsLimit => 
+                write!(f, "Instruction 'clr' range length exceeded limit"),
             Self::StepCountExceededLimit => 
-                write!(f, "Step count exceeded limit, using way too many cpu cycles")
+                write!(f, "Step count exceeded limit, using way too many cpu cycles"),
+            Self::CannotGetAddressOfConstant => 
+                write!(f, "Cannot get address of a constant"),
+            Self::CannotSetValueOfConstant => 
+                write!(f, "Cannot set value of a constant"),
+            Self::CannotConvertParameterValueToBigInt => 
+                write!(f, "Cannot convert parameter value to BigInt"),
+            Self::CannotConvertBigIntToRegisterIndex => 
+                write!(f, "Cannot convert BigInt to register index"),
+            Self::CannotConvertBigIntToAddress => 
+                write!(f, "Cannot convert BigInt to address"),
+            Self::CannotConvertI64ToAddress => 
+                write!(f, "Cannot convert i64 to address"),
+            Self::AddressIsOutsideMaxCapacity => 
+                write!(f, "Memory address is outside the number of registers"),
+            Self::AddressWithNegativeValue => 
+                write!(f, "Memory address with negative value"),
+            Self::UnsupportedInstruction => 
+                write!(f, "Unsupported instruction"),
         }
     }
 }

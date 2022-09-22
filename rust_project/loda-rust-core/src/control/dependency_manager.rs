@@ -4,8 +4,10 @@ use std::path::{Path,PathBuf};
 use std::collections::HashSet;
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::parser::{ParsedProgram, ParseProgramError, create_program, CreatedProgram, CreateProgramError};
+use crate::execute::node_calc::NodeCalcSemanticMode;
+use crate::parser::{ParsedProgram, ParseProgramError, CreateProgram, CreateProgramError};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
+use super::ExecuteProfile;
 
 #[derive(Debug, PartialEq)]
 pub struct CyclicDependencyError {
@@ -55,6 +57,7 @@ pub enum DependencyManagerError {
     ParseProgram(ParseProgramError),
     CreateProgram(CreateProgramError),
     LookupProgramId,
+    IndirectMemoryAccessNotEnabled,
 }
 
 impl fmt::Display for DependencyManagerError {
@@ -72,6 +75,8 @@ impl fmt::Display for DependencyManagerError {
                 write!(f, "Failed to create program. error: {}", error),
             Self::LookupProgramId =>
                 write!(f, "Failed to lookup the program id"),
+            Self::IndirectMemoryAccessNotEnabled =>
+                write!(f, "Indirect memory access is not enabled"),
         }
     }
 }
@@ -84,6 +89,7 @@ pub enum DependencyManagerFileSystemMode {
 pub struct DependencyManager {
     file_system_mode: DependencyManagerFileSystemMode,
     loda_programs_oeis_dir: PathBuf,
+    execute_profile: ExecuteProfile,
     program_run_manager: ProgramRunnerManager,
     programids_currently_loading: HashSet<u64>,
     programid_dependencies: Vec<u64>,
@@ -97,6 +103,7 @@ impl DependencyManager {
         Self {
             file_system_mode: file_system_mode,
             loda_programs_oeis_dir: loda_programs_oeis_dir,
+            execute_profile: ExecuteProfile::Unlimited,
             program_run_manager: ProgramRunnerManager::new(),
             programids_currently_loading: HashSet::new(),
             programid_dependencies: vec!(),
@@ -104,6 +111,10 @@ impl DependencyManager {
             metric_read_success: 0,
             metric_read_error: 0,
         }        
+    }
+
+    pub fn set_execute_profile(&mut self, execute_profile: ExecuteProfile) {
+        self.execute_profile = execute_profile;
     }
 
     pub fn reset(&mut self) {
@@ -199,13 +210,17 @@ impl DependencyManager {
     pub fn parse_stage2(&mut self, program_id: ProgramId, parsed_program: &ParsedProgram) -> 
         Result<ProgramRunner, DependencyManagerError> 
     {
-        let created_program: CreatedProgram = match create_program(&parsed_program.instruction_vec) {
+        let node_calc_semantic_mode: NodeCalcSemanticMode = match self.execute_profile {
+            ExecuteProfile::Unlimited => NodeCalcSemanticMode::Unlimited,
+            ExecuteProfile::SmallLimits => NodeCalcSemanticMode::SmallLimits
+        };
+        let create_program = CreateProgram::new(node_calc_semantic_mode);
+        let mut program: Program = match create_program.create_program(&parsed_program.instruction_vec) {
             Ok(value) => value,
             Err(error) => {
                 return Err(DependencyManagerError::CreateProgram(error));
             }
         };
-        let mut program: Program = created_program.program;
     
         self.load_dependencies(&mut program, &program_id)?;
 
@@ -398,104 +413,94 @@ mod tests {
         assert_eq!(error.program_id(), 668);
     }
 
-    // #[test]
-    // fn test_20001_call_with_negative_parameter1() {
-    //     let mut dm: DependencyManager = dependency_manager_mock("tests/call_with_negative_parameter1");
-    //     let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
-    //     assert_eq!(runner.inspect(10), "BOOM");
-    // }
-
-    // #[test]
-    // fn test_20002_call_with_negative_parameter2() {
-    //     let mut dm: DependencyManager = dependency_manager_mock("tests/call_with_negative_parameter2");
-    //     let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
-    //     assert_eq!(runner.inspect(10), "BOOM");
-    // }
-
     #[test]
-    fn test_30001_live_register1() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/live_register1");
-        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
-        assert_eq!(runner.live_registers().len(), 1);
-        assert_eq!(runner.has_live_registers(), true);
-    }
-
-    #[test]
-    fn test_30002_live_register2() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/live_register2");
+    fn test_20001_call_with_negative_parameter1() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/call_with_negative_parameter1");
         let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
-        assert_eq!(runner.live_registers().len(), 0);
-        assert_eq!(runner.has_live_registers(), false);
+        assert_eq!(runner.inspect(10), "BOOM");
     }
 
     #[test]
-    fn test_30003_live_register3() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/live_register3");
-        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
-        assert_eq!(runner.live_registers().len(), 3);
-        assert_eq!(runner.has_live_registers(), true);
-    }
-
-    #[test]
-    fn test_30004_live_register4() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/live_register4");
+    fn test_20002_call_with_negative_parameter2() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/call_with_negative_parameter2");
         let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
-        assert_eq!(runner.live_registers().len(), 0);
-        assert_eq!(runner.has_live_registers(), false);
+        assert_eq!(runner.inspect(10), "BOOM");
     }
 
     #[test]
-    fn test_30005_live_register5() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/live_register5");
+    fn test_50000_parametertype_indirect1() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect1");
+        let runner: Rc::<ProgramRunner> = dm.load(15736).unwrap();
+        assert_eq!(runner.inspect(12), "1,1,1,1,1,1,1,1,1,1,1,0");
+    }
+
+    #[test]
+    fn test_50001_parametertype_indirect2() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect2");
+        let runner: Rc::<ProgramRunner> = dm.load(25238).unwrap();
+        assert_eq!(runner.inspect(10), "3,1,3,10,36,137,543,2219,9285,39587");
+    }
+
+    #[test]
+    fn test_50002_parametertype_indirect3() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect3");
+        let runner: Rc::<ProgramRunner> = dm.load(159631).unwrap();
+        assert_eq!(runner.inspect(10), "1,1,1,2,1,1,1,2,2,1");
+    }
+
+    #[test]
+    fn test_50003_parametertype_indirect4() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect4");
+        let runner: Rc::<ProgramRunner> = dm.load(41).unwrap();
+        assert_eq!(runner.inspect(12), "1,1,2,3,5,7,11,15,22,30,42,56");
+    }
+
+    #[test]
+    fn test_50004_parametertype_indirect5() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect5");
+        let runner: Rc::<ProgramRunner> = dm.load(355497).unwrap();
+        assert_eq!(runner.inspect(12), "0,4,10,11,12,13,14,15,16,17,18,19");
+    }
+
+    #[test]
+    fn test_50005_parametertype_indirect6() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect6");
+        let runner: Rc::<ProgramRunner> = dm.load(344348).unwrap();
+        assert_eq!(runner.inspect(12), "0,0,0,0,3,2,1,0,5,4,1,9");
+    }
+
+    #[test]
+    fn test_50006_parametertype_indirect7() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect7");
+        let runner: Rc::<ProgramRunner> = dm.load(103627).unwrap();
+        assert_eq!(runner.inspect(13), "0,1,0,1,1,1,2,1,2,3,1,3,4");
+    }
+
+    #[test]
+    fn test_60000_instruction_clr_with_constant() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
-        assert_eq!(runner.live_registers().len(), 2);
-        assert_eq!(runner.has_live_registers(), true);
+        assert_eq!(runner.inspect(4), "100,0,0,103");
     }
 
     #[test]
-    fn test_30006_live_register6() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/live_register6");
-        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
-        assert_eq!(runner.live_registers().len(), 1);
-        assert_eq!(runner.has_live_registers(), true);
+    fn test_60001_instruction_clr_with_direct() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
+        let runner: Rc::<ProgramRunner> = dm.load(2).unwrap();
+        assert_eq!(runner.inspect(4), "100,0,0,103");
     }
 
     #[test]
-    fn test_40001_mining_trick_attempt_fixing_the_output_register1() {
-        const PROGRAM: &str = r#"
-        mov $5,$0
-        mov $0,0
-        "#;
-        let mut dm = DependencyManager::new(
-            DependencyManagerFileSystemMode::System,
-            PathBuf::from("non-existing-dir"),
-        );
-        let source_code: String = PROGRAM.to_string();
-        let mut runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, &source_code).unwrap();
-        assert_eq!(runner.live_registers().len(), 1);
-        assert_eq!(runner.has_live_registers(), false);
-        assert_eq!(runner.mining_trick_attempt_fixing_the_output_register(), true);
-        assert_eq!(runner.live_registers().len(), 2);
-        assert_eq!(runner.has_live_registers(), true);
+    fn test_60002_instruction_clr_with_indirect() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
+        let runner: Rc::<ProgramRunner> = dm.load(3).unwrap();
+        assert_eq!(runner.inspect(4), "100,0,0,103");
     }
 
     #[test]
-    fn test_40002_mining_trick_attempt_fixing_the_output_register2() {
-        const PROGRAM: &str = r#"
-        mov $5,$0
-        mov $0,0
-        mul $5,0
-        "#;
-        let mut dm = DependencyManager::new(
-            DependencyManagerFileSystemMode::System,
-            PathBuf::from("non-existing-dir"),
-        );
-        let source_code: String = PROGRAM.to_string();
-        let mut runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, &source_code).unwrap();
-        assert_eq!(runner.live_registers().len(), 0);
-        assert_eq!(runner.has_live_registers(), false);
-        assert_eq!(runner.mining_trick_attempt_fixing_the_output_register(), false);
-        assert_eq!(runner.live_registers().len(), 0);
-        assert_eq!(runner.has_live_registers(), false);
+    fn test_60003_instruction_clr_with_indirect() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
+        let runner: Rc::<ProgramRunner> = dm.load(4).unwrap();
+        assert_eq!(runner.inspect(4), "100,0,0,103");
     }
 }

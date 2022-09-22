@@ -9,7 +9,7 @@ use super::{GenomeMutateContext, Genome};
 use super::SuggestInstruction;
 use super::SuggestSource;
 use super::SuggestTarget;
-use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
 use std::path::{Path, PathBuf};
 use rand::{RngCore, thread_rng};
 use rand::SeedableRng;
@@ -127,10 +127,11 @@ pub fn start_miner_loop(
     let mut suggest_target = SuggestTarget::new();
     suggest_target.populate(&target_trigram_vec);
 
-    let dependency_manager = DependencyManager::new(
+    let mut dependency_manager = DependencyManager::new(
         DependencyManagerFileSystemMode::System,
         loda_programs_oeis_dir,
     );
+    dependency_manager.set_execute_profile(ExecuteProfile::SmallLimits);
 
     // Pick a random seed
     let mut rng = thread_rng();

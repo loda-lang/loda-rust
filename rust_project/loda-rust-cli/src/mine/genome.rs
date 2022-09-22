@@ -1,5 +1,6 @@
 use super::{GenomeItem, GenomeMutateContext, MutateEvalSequenceCategory, MutateValue, SourceValue, TargetValue};
 use loda_rust_core::control::DependencyManager;
+use loda_rust_core::execute::RegisterType;
 use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use loda_rust_core::parser::ParsedProgram;
 use std::collections::HashSet;
@@ -45,6 +46,16 @@ impl Genome {
             genome_vec: vec!(),
             message_vec: vec!(),
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn contains_indirect_memory_access(&self) -> bool {
+        for genome_item in &self.genome_vec {
+            if genome_item.contains_indirect_memory_access() {
+                return true;
+            }
+        }
+        false
     }
 
     pub fn depends_on_program_ids(&self) -> HashSet<u32> {
@@ -115,24 +126,31 @@ impl Genome {
     pub fn push_parsed_program_onto_genome(&mut self, parsed_program: &ParsedProgram) {
         for instruction in &parsed_program.instruction_vec {
 
-            let mut target_parameter_value: i32 = 0;
-            let mut source_parameter_type: ParameterType = ParameterType::Constant;
-            let mut source_parameter_value: i32 = 0;
+            let mut target_type = RegisterType::Direct;
+            let mut target_value: i32 = 0;
+            let mut source_type: ParameterType = ParameterType::Constant;
+            let mut source_value: i32 = 0;
             for (index, parameter) in instruction.parameter_vec.iter().enumerate() {
                 if index == 0 {
-                    target_parameter_value = parameter.parameter_value as i32;
+                    target_value = parameter.parameter_value as i32;
+                    if parameter.parameter_type == ParameterType::Indirect {
+                        target_type = RegisterType::Indirect;
+                    } else {
+                        target_type = RegisterType::Direct;
+                    }
                 }
                 if index == 1 {
-                    source_parameter_value = parameter.parameter_value as i32;
-                    source_parameter_type = parameter.parameter_type.clone();
+                    source_value = parameter.parameter_value as i32;
+                    source_type = parameter.parameter_type.clone();
                 }
             }
         
             let genome_item = GenomeItem::new(
                 instruction.instruction_id.clone(),
-                target_parameter_value,
-                source_parameter_type,
-                source_parameter_value,
+                target_type,
+                target_value,
+                source_type,
+                source_value,
             );
             self.genome_vec.push(genome_item);
         }
@@ -313,7 +331,7 @@ impl Genome {
         // Identify all the instructions that use source_type=register
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.source_type() == ParameterType::Register {
+            if *genome_item.source_type() == ParameterType::Direct {
                 indexes.push(index);
             }
         }
@@ -646,6 +664,7 @@ impl Genome {
 
         let genome_item = GenomeItem::new(
             suggested_instruction_id, 
+            RegisterType::Direct,
             target_value, 
             ParameterType::Constant, 
             source_value
@@ -682,7 +701,7 @@ impl Genome {
         // Identify all the instructions that use two registers
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.source_type() == ParameterType::Register {
+            if *genome_item.source_type() == ParameterType::Direct {
                 indexes.push(index);
             }
         }
@@ -790,6 +809,7 @@ impl Genome {
             let index: usize = index0.max(index1);
             let item = GenomeItem::new(
                 InstructionId::LoopEnd, 
+                RegisterType::Direct,
                 0, 
                 ParameterType::Constant, 
                 0
@@ -802,6 +822,7 @@ impl Genome {
             let index: usize = index0.min(index1);
             let item = GenomeItem::new(
                 InstructionId::LoopBegin,
+                RegisterType::Direct,
                 rng.gen_range(0..5) as i32,
                 ParameterType::Constant,
                 1

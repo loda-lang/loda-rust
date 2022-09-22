@@ -1,5 +1,4 @@
-use super::{BoxNode, EvalError, Node, ProgramCache, ProgramRunnerManager, ProgramSerializer, ProgramState, RegisterIndex, RunMode, ValidateCallError};
-use std::collections::HashSet;
+use super::{BoxNode, EvalError, Node, ProgramCache, ProgramRunnerManager, ProgramSerializer, ProgramState, RunMode, ValidateCallError};
 
 type BoxNodeVec = Vec<BoxNode>;
 
@@ -46,9 +45,14 @@ impl Program {
 
     pub fn run_verbose(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
         for node in &self.node_vec {
-            let before = state.register_vec_to_string();
-            node.eval(state, cache)?;
-            let after = state.register_vec_to_string();
+            let before = state.memory_full_to_string();
+            let result = node.eval(state, cache);
+            if let Err(error) = result {
+                let instruction: String = node.formatted_instruction();
+                println!("{:12} {} => ERROR: {:?}", instruction, before, error);
+                return Err(error);
+            }
+            let after = state.memory_full_to_string();
             let instruction: String = node.formatted_instruction();
             if !instruction.is_empty() {
                 println!("{:12} {} => {}", instruction, before, after);
@@ -58,23 +62,6 @@ impl Program {
         Ok(())
     }
 
-    pub fn accumulate_register_indexes(&self, register_vec: &mut Vec<RegisterIndex>) {
-        for node in &self.node_vec {
-            node.accumulate_register_indexes(register_vec);
-        }
-    }
-
-    pub fn live_register_indexes(&self, register_set: &mut HashSet<RegisterIndex>) {
-        for node in &self.node_vec {
-            if register_set.is_empty() {
-                // No registers with meaningful data
-                // It's junk from now on, so it's wasteful doing more checking.
-                return;
-            }
-            node.live_register_indexes(register_set);
-        }
-    }
-    
     pub fn update_call(&mut self, program_manager: &mut ProgramRunnerManager) {
         for node in &mut self.node_vec {
             node.update_call(program_manager);
@@ -92,29 +79,5 @@ impl Program {
             node.validate_call_nodes()?;
         }
         Ok(())
-    }
-
-    /// This helps determining the number of registers to allocate.
-    /// 
-    /// If the highest register index used is 33.
-    /// 
-    /// Then we know we have to allocate 34 regisers.
-    pub fn max_register_index(&self) -> u8 {
-        // Populate vector with register indexes that a program use
-        let mut register_vec: Vec<RegisterIndex> = vec!();
-        self.accumulate_register_indexes(&mut register_vec);
-
-        // Max value in the vector
-        let indexes: Vec<u8> = register_vec.iter().map(|register_index| {
-            register_index.0
-        }).collect();
-        match indexes.iter().max() {
-            Some(value) => {
-                return value.clone();
-            },
-            None => {
-                return 0;
-            }
-        }
     }
 }

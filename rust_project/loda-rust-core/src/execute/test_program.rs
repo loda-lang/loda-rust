@@ -1,26 +1,32 @@
 
 #[cfg(test)]
 mod tests {
-    use super::super::{Program, ProgramId, ProgramRunner, ProgramRunnerManager, ProgramSerializer, RegisterIndex, RegisterValue};
-    use super::super::node_add::*;
-    use super::super::node_call::*;
+    use super::super::{Program, ProgramId, ProgramRunner, ProgramRunnerManager, ProgramSerializer, RegisterIndex};
+    use crate::parser::{InstructionId, InstructionParameter, ParameterType};
+    use super::super::node_calc::*;
     use super::super::node_loop_simple::*;
-    use super::super::node_move::*;
-    use super::super::node_subtract::*;
+    use super::super::node_seq::*;
+    
+    fn node_calc(instruction_id: InstructionId, parameter0_type: ParameterType, parameter0_value: i64, parameter1_type: ParameterType, parameter1_value: i64) -> NodeCalc {
+        let parameter0 = InstructionParameter::new(parameter0_type, parameter0_value);
+        let parameter1 = InstructionParameter::new(parameter1_type, parameter1_value);
+        let semantic_mode = NodeCalcSemanticMode::SmallLimits;
+        NodeCalc::new(semantic_mode, instruction_id, parameter0, parameter1)
+    }
 
     fn program_a000045() -> Program {
         // Fibonacci integer sequence
         // https://github.com/loda-lang/loda-programs/blob/main/oeis/000/A000045.asm
         let mut program_inner = Program::new();
-        program_inner.push(NodeSubtractConstant::new(RegisterIndex(0), RegisterValue::one()));
-        program_inner.push(NodeMoveRegister::new(RegisterIndex(2), RegisterIndex(1)));
-        program_inner.push(NodeAddRegister::new(RegisterIndex(1), RegisterIndex(3)));
-        program_inner.push(NodeMoveRegister::new(RegisterIndex(3), RegisterIndex(2)));
+        program_inner.push(node_calc(InstructionId::Subtract, ParameterType::Direct, 0, ParameterType::Constant, 1));
+        program_inner.push(node_calc(InstructionId::Move, ParameterType::Direct, 2, ParameterType::Direct, 1));
+        program_inner.push(node_calc(InstructionId::Add, ParameterType::Direct, 1, ParameterType::Direct, 3));
+        program_inner.push(node_calc(InstructionId::Move, ParameterType::Direct, 3, ParameterType::Direct, 2));
     
         let mut program = Program::new();
-        program.push(NodeMoveConstant::new(RegisterIndex(3), RegisterValue::one()));
+        program.push(node_calc(InstructionId::Move, ParameterType::Direct, 3, ParameterType::Constant, 1));
         program.push(NodeLoopSimple::new(RegisterIndex(0), program_inner));
-        program.push(NodeMoveRegister::new(RegisterIndex(0), RegisterIndex(1)));
+        program.push(node_calc(InstructionId::Move, ParameterType::Direct, 0, ParameterType::Direct, 1));
         program
     }
 
@@ -43,29 +49,7 @@ mov $0,$1"#;
     }
 
     #[test]
-    fn test_10001_accumulate_register_indexes() {
-        let program = program_a000045();
-        let mut register_vec: Vec<RegisterIndex> = vec!();
-        program.accumulate_register_indexes(&mut register_vec);
-
-        let mut indexes: Vec<u8> = register_vec.iter().map(|register_index| {
-            register_index.0
-        }).collect();
-        indexes.sort();
-        indexes.dedup();
-        let expected: Vec<u8> = [0, 1, 2, 3].to_vec();
-        assert_eq!(indexes, expected);
-    }
-
-    #[test]
-    fn test_10002_max_register_index() {
-        let program = program_a000045();
-        let actual: u8 = program.max_register_index();
-        assert_eq!(actual, 3);
-    }
-
-    #[test]
-    fn test_10003_run() {
+    fn test_10001_run() {
         let program = program_a000045();
         let runner = ProgramRunner::new(
             ProgramId::ProgramWithoutId,
@@ -75,12 +59,12 @@ mov $0,$1"#;
     }
 
     #[test]
-    fn test_10004_validate_call_nodes() {
+    fn test_10002_validate_call_nodes() {
         {
             // This program makes no calls to other programs
             let mut this_program = Program::new();
-            this_program.push(NodeAddRegister::new(RegisterIndex(0), RegisterIndex(0)));
-            this_program.push(NodeSubtractConstant::new(RegisterIndex(0), RegisterValue::one()));
+            this_program.push(node_calc(InstructionId::Add, ParameterType::Direct, 0, ParameterType::Direct, 0));
+            this_program.push(node_calc(InstructionId::Subtract, ParameterType::Direct, 0, ParameterType::Constant, 1));
 
             // Programs without NodeCall cannot have problems with calls
             assert_eq!(this_program.validate_call_nodes().is_ok(), true);
@@ -88,7 +72,7 @@ mov $0,$1"#;
         {
             // This program calls another program (A000045)
             let mut this_program = Program::new();
-            this_program.push(NodeCallConstant::new(RegisterIndex(0), 45));
+            this_program.push(NodeSeq::new(InstructionParameter::new(ParameterType::Direct, 0), 45));
 
             // Initially the NodeCall has no link with the A000045 program
             assert_eq!(this_program.validate_call_nodes().is_ok(), false);

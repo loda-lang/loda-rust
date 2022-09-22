@@ -1,5 +1,6 @@
+use loda_rust_core::oeis::OeisIdHashSet;
 use crate::common::OeisIdStringMap;
-use crate::oeis::{OeisIdHashSet, ProcessStrippedFile, StrippedRow};
+use crate::oeis::{ProcessStrippedFile, StrippedRow};
 use loda_rust_core::util::BigIntVecToString;
 use std::error::Error;
 use std::io;

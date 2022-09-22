@@ -1,10 +1,5 @@
 use std::fmt;
-use super::extract_row_re::EXTRACT_ROW_RE;
-use super::instruction_id::{InstructionId,ParseInstructionIdError};
-use super::instruction::{Instruction,InstructionParameter};
-use super::parameter_type::ParameterType;
-use super::parse_parameters::*;
-use super::remove_comment::remove_comment;
+use super::{EXTRACT_ROW_RE,InstructionId,ParseInstructionIdError,Instruction,InstructionParameter,ParameterType,ParseParametersError,parse_parameters,remove_comment};
 
 #[derive(Clone)]
 pub struct ParsedProgram {
@@ -138,6 +133,18 @@ impl ParsedProgram {
             instruction.instruction_id
         }).collect()
     }
+
+    /// Determines if a program uses `ParameterType::Indirect`
+    pub fn contain_parameter_type_indirect(&self) -> bool {
+        for instruction in &self.instruction_vec {
+            for parameter in &instruction.parameter_vec {
+                if parameter.parameter_type == ParameterType::Indirect {
+                    return true
+                }
+            }
+        }
+        false
+    }
 }
 
 #[cfg(test)]
@@ -170,6 +177,7 @@ mod tests {
         assert_eq!(process("mov $1,2\nmov $3,$4"), "mov $1,2\nmov $3,$4");
         assert_eq!(process("  mov  $1, -2\n\tmov $3\t, $44"), "mov $1,-2\nmov $3,$44");
         assert_eq!(process("\tmov $1,2 ; comment"), "mov $1,2");
+        assert_eq!(process("add $$1,2\nsub $2,$$1"), "add $$1,2\nsub $2,$$1");
     }
 
     #[test]
@@ -178,10 +186,26 @@ mod tests {
         assert_eq!(process("mov$0"), "SyntaxError(1)");
         assert_eq!(process("boom $1"), "ParseInstructionId(UnrecognizedInstructionId(1))");
         assert_eq!(process("mov $x"), "ParseParameters(UnrecognizedParameter(1))");
+        assert_eq!(process("mov $$$3,4"), "ParseParameters(UnrecognizedParameterType(1))");
+        assert_eq!(process("mov $-3,0"), "ParseParameters(NegativeValueNotAllowedForThisParameterType(1))");
+        assert_eq!(process("mov $1,$-3"), "ParseParameters(NegativeValueNotAllowedForThisParameterType(1))");
+        assert_eq!(process("mov $0,00"), "ParseParameters(StrictIncorrectParameterValue(1))");
+        assert_eq!(process("mov $00,-0"), "ParseParameters(StrictIncorrectParameterValue(1))");
+    }
+    
+    #[test]
+    fn test_10003_junk_that_parses_ok() {
+        // The parser has no validation to reject these junk instructions.
+        // Validation takes place in a later stage.
+        assert_eq!(process("mov 3,1"), "mov 3,1");
+        assert_eq!(process("mov 3,$1"), "mov 3,$1");
+        assert_eq!(process("mov 3,$$1"), "mov 3,$$1");
+        assert_eq!(process("mov 0,0"), "mov 0,0");
+        assert_eq!(process("mov -3,1"), "mov -3,1");
     }
 
     #[test]
-    fn test_10003_direct_dependencies() {
+    fn test_10004_direct_dependencies() {
         {
             let parsed_program: ParsedProgram = ParsedProgram::parse_program(
                 "seq $1,40 ; fibonacci\nseq $2,40; fib again!\nseq $3,10\nseq $4,45").unwrap();
@@ -200,7 +224,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10004_instruction_ids() {
+    fn test_10005_instruction_ids() {
         let parsed_program: ParsedProgram = ParsedProgram::parse_program(
             "mov $1,$0\nlpb $0\ndiv $1,2\nsub $0,$1\nlpe").unwrap();
         let expected = vec![
@@ -211,5 +235,22 @@ mod tests {
             InstructionId::LoopEnd
         ];
         assert_eq!(parsed_program.instruction_ids(), expected);
+    }
+
+    #[test]
+    fn test_10006_contain_parameter_type_indirect() {
+        {
+            let parsed_program: ParsedProgram = ParsedProgram::parse_program(
+                "seq $1,40 ; fibonacci\nseq $2,40; fib again!\nseq $3,10\nseq $4,45").unwrap();
+            assert_eq!(parsed_program.contain_parameter_type_indirect(), false);
+        }
+        {
+            let parsed_program: ParsedProgram = ParsedProgram::parse_program("mov $$1,5").unwrap();
+            assert_eq!(parsed_program.contain_parameter_type_indirect(), true);
+        }
+        {
+            let parsed_program: ParsedProgram = ParsedProgram::parse_program("mov $1,$$1").unwrap();
+            assert_eq!(parsed_program.contain_parameter_type_indirect(), true);
+        }
     }
 }
