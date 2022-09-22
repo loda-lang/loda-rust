@@ -36,7 +36,8 @@ impl From<CreateProgramError> for ParseError {
     }
 }
 
-pub fn parse(input: &str) -> Result<ParseResult, ParseError> {
+#[cfg(test)]
+pub fn simple_parse(input: &str) -> Result<ParseResult, ParseError> {
     let parsed_program: ParsedProgram = ParsedProgram::parse_program(input)?;
 
     let create_program = CreateProgram::new();

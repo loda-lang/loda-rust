@@ -2,6 +2,7 @@
 mod tests {
     use crate::execute::{ProgramCache, ProgramId, ProgramRunner, ProgramRunnerManager};
     use super::super::parse::*;
+    use super::super::parse::simple_parse;
     
     const INPUT_A000045: &str = r#"
     ; A000045: Fibonacci numbers
@@ -191,6 +192,10 @@ mod tests {
     sub $1,2
     mov $0,$1
     "#;
+
+    pub fn parse(input: &str) -> Result<ParseResult, ParseError> {
+      simple_parse(input)
+    }
 
     #[test]
     fn test_10000_fibonacci() {
