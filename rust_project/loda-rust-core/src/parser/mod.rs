@@ -16,7 +16,7 @@ pub use instruction::Instruction;
 pub use instruction_id::{InstructionId, ParseInstructionIdError};
 pub use instruction_parameter::InstructionParameter;
 pub use parameter_type::ParameterType;
-pub use parse::{ParseResult, ParseError};
+pub use parse::ParseError;
 pub use parse_parameters::{ParseParametersError, parse_parameters};
 pub use parse_program::{ParsedProgram, ParseProgramError};
 pub use remove_comment::remove_comment;

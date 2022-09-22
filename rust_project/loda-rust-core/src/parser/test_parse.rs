@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::execute::{ProgramCache, ProgramId, ProgramRunner, ProgramRunnerManager};
+    use crate::execute::{Program, ProgramCache, ProgramId, ProgramRunner, ProgramRunnerManager};
     use super::super::parse::*;
     use super::super::parse::simple_parse;
     
@@ -193,7 +193,7 @@ mod tests {
     mov $0,$1
     "#;
 
-    pub fn parse(input: &str) -> Result<ParseResult, ParseError> {
+    pub fn parse(input: &str) -> Result<Program, ParseError> {
       simple_parse(input)
     }
 
@@ -201,8 +201,7 @@ mod tests {
     fn test_10000_fibonacci() {
         let result = parse(INPUT_A000045);
         assert_eq!(result.is_ok(), true);
-        let parse = result.unwrap();
-        let program = parse.program;
+        let program = result.unwrap();
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(45),
           program
@@ -214,8 +213,7 @@ mod tests {
     fn test_10001_powers_of_2() {
         let result = parse(INPUT_A000079);
         assert_eq!(result.is_ok(), true);
-        let parse = result.unwrap();
-        let program = parse.program;
+        let program = result.unwrap();
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(79),
           program
@@ -226,8 +224,7 @@ mod tests {
     fn program_that_calls_another_program() -> ProgramRunner {
         let result0 = parse(INPUT_A000079);
         assert_eq!(result0.is_ok(), true);
-        let parse0 = result0.unwrap();
-        let program0 = parse0.program;
+        let program0 = result0.unwrap();
         let runner0 = ProgramRunner::new(
           ProgramId::ProgramOEIS(79),
           program0
@@ -245,9 +242,7 @@ mod tests {
     
         let result1 = parse(input);
         assert_eq!(result1.is_ok(), true);
-        let parse1 = result1.unwrap();
-
-        let mut program = parse1.program;
+        let mut program = result1.unwrap();
 
         // Obtain a list of dependencies.
         let mut program_id_vec: Vec<u64> = vec!();
@@ -295,8 +290,7 @@ mod tests {
     fn test_10004_loop_restoring_previous_state_a000196() {
         let result = parse(INPUT_A000196);
         assert_eq!(result.is_ok(), true);
-        let parse = result.unwrap();
-        let program = parse.program;
+        let program = result.unwrap();
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(196),
           program
@@ -308,8 +302,7 @@ mod tests {
     fn test_10005_loop_restoring_previous_state_a005131() {
         let result = parse(INPUT_A005131);
         assert_eq!(result.is_ok(), true);
-        let parse = result.unwrap();
-        let program = parse.program;
+        let program = result.unwrap();
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(5131),
           program
@@ -321,8 +314,7 @@ mod tests {
     fn test_10006_clear_memory_range_with_constant() {
         let result = parse(INPUT_A002624);
         assert_eq!(result.is_ok(), true);
-        let parse = result.unwrap();
-        let program = parse.program;
+        let program = result.unwrap();
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(2624),
           program
@@ -334,8 +326,7 @@ mod tests {
     fn test_10007_clear_memory_range_with_register() {
         let result = parse(INPUT_A002791);
         assert_eq!(result.is_ok(), true);
-        let parse = result.unwrap();
-        let program = parse.program;
+        let program = result.unwrap();
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(2791),
           program
@@ -347,8 +338,7 @@ mod tests {
     fn test_10008_use_of_power_instruction() {
         let result = parse(INPUT_A284429);
         assert_eq!(result.is_ok(), true);
-        let parse = result.unwrap();
-        let program = parse.program;
+        let program = result.unwrap();
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(284429),
           program
@@ -360,8 +350,7 @@ mod tests {
     fn test_10009_use_of_loop_with_contant_greater_than_one() {
         let result = parse(INPUT_A007958);
         assert_eq!(result.is_ok(), true);
-        let parse = result.unwrap();
-        let program = parse.program;
+        let program = result.unwrap();
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(7958),
           program
@@ -373,8 +362,7 @@ mod tests {
     fn test_10010_use_of_loop_with_range_length_from_register1() {
         let result = parse(INPUT_A253472);
         assert_eq!(result.is_ok(), true);
-        let parse = result.unwrap();
-        let program = parse.program;
+        let program = result.unwrap();
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(253472),
           program
@@ -386,8 +374,7 @@ mod tests {
     fn test_10011_use_of_loop_with_range_length_from_register2() {
         let result = parse(INPUT_A206735);
         assert_eq!(result.is_ok(), true);
-        let parse = result.unwrap();
-        let program = parse.program;
+        let program = result.unwrap();
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(206735),
           program
