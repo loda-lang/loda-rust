@@ -3,6 +3,7 @@ use super::{Semantics, SemanticsWithoutLimits, SemanticsWithSmallLimits};
 use crate::parser::{InstructionId, InstructionParameter};
 use num_bigint::BigInt;
 
+#[derive(Clone, Copy, Debug)]
 pub enum NodeCalcSemanticMode {
     Unlimited,
     SmallLimits,

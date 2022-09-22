@@ -92,17 +92,6 @@ fn create_node_clear(instruction: &Instruction) -> Result<BoxNode, CreateInstruc
     return Ok(node_wrapped);
 }
 
-fn create_node_calc(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
-    instruction.expect_two_parameters()?;
-    let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
-    let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
-    // TODO: switch between unlimited, and small limits, depending on the current mode
-    let semantic_mode = NodeCalcSemanticMode::SmallLimits;
-    let node = NodeCalc::new(semantic_mode, instruction.instruction_id.clone(), parameter0.clone(), parameter1.clone());
-    let node_wrapped = Box::new(node);
-    return Ok(node_wrapped);
-}
-
 fn create_node_seq(instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
     instruction.expect_two_parameters()?;
 
@@ -260,11 +249,16 @@ impl From<CreateInstructionError> for CreateProgramError {
     }
 }
 
-pub struct CreateProgram {}
+pub struct CreateProgram {
+    node_calc_semantic_mode: NodeCalcSemanticMode,
+}
 
 impl CreateProgram {
     pub fn new() -> Self {
-        Self {}
+        // TODO: switch between unlimited, and small limits, depending on the current mode
+        Self {
+            node_calc_semantic_mode: NodeCalcSemanticMode::SmallLimits,
+        }
     }
 
     pub fn create_program(&self, instruction_vec: &Vec<Instruction>) -> Result<Program, CreateProgramError> {
@@ -308,51 +302,51 @@ impl CreateProgram {
                     }
                 },
                 InstructionId::Move => {
-                    let node = create_node_calc(&instruction)?;
+                    let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
                 InstructionId::Add => {
-                    let node = create_node_calc(&instruction)?;
+                    let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
                 InstructionId::Subtract => {
-                    let node = create_node_calc(&instruction)?;
+                    let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
                 InstructionId::Power => {
-                    let node = create_node_calc(&instruction)?;
+                    let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
                 InstructionId::Multiply => {
-                    let node = create_node_calc(&instruction)?;
+                    let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
                 InstructionId::Divide => {
-                    let node = create_node_calc(&instruction)?;
+                    let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
                 InstructionId::DivideIf => {
-                    let node = create_node_calc(&instruction)?;
+                    let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
                 InstructionId::Modulo => {
-                    let node = create_node_calc(&instruction)?;
+                    let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
                 InstructionId::GCD => {
-                    let node = create_node_calc(&instruction)?;
+                    let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
                 InstructionId::Truncate => {
-                    let node = create_node_calc(&instruction)?;
+                    let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
                 InstructionId::Binomial => {
-                    let node = create_node_calc(&instruction)?;
+                    let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
                 InstructionId::Compare => {
-                    let node = create_node_calc(&instruction)?;
+                    let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
                 InstructionId::Clear => {
@@ -360,11 +354,11 @@ impl CreateProgram {
                     program.push_boxed(node);
                 },
                 InstructionId::Max => {
-                    let node = create_node_calc(&instruction)?;
+                    let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
                 InstructionId::Min => {
-                    let node = create_node_calc(&instruction)?;
+                    let node = self.create_node_calc(&instruction)?;
                     program.push_boxed(node);
                 },
                 InstructionId::EvalSequence => {
@@ -376,4 +370,18 @@ impl CreateProgram {
     
         Ok(program)
     }    
+
+    fn create_node_calc(&self, instruction: &Instruction) -> Result<BoxNode, CreateInstructionError> {
+        instruction.expect_two_parameters()?;
+        let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
+        let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
+        let node = NodeCalc::new(
+            self.node_calc_semantic_mode, 
+            instruction.instruction_id.clone(), 
+            parameter0.clone(), 
+            parameter1.clone()
+        );
+        let node_wrapped = Box::new(node);
+        return Ok(node_wrapped);
+    }
 }
