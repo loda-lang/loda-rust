@@ -1,9 +1,10 @@
 use std::fmt;
 use super::create_program::*;
 use super::parse_program::*;
+use crate::execute::Program;
 
 pub struct ParseResult {
-    pub created_program: CreatedProgram,
+    pub program: Program,
 }
 
 #[derive(Debug)]
@@ -39,9 +40,9 @@ pub fn parse(input: &str) -> Result<ParseResult, ParseError> {
     let parsed_program: ParsedProgram = ParsedProgram::parse_program(input)?;
 
     let create_program = CreateProgram::new();
-    let created_program: CreatedProgram = create_program.create_program(&parsed_program.instruction_vec)?;
+    let program: Program = create_program.create_program(&parsed_program.instruction_vec)?;
 
     Ok(ParseResult {
-        created_program: created_program,
+        program: program,
     })
 }

@@ -197,7 +197,7 @@ mod tests {
         let result = parse(INPUT_A000045);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
-        let program = parse.created_program.program;
+        let program = parse.program;
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(45),
           program
@@ -210,7 +210,7 @@ mod tests {
         let result = parse(INPUT_A000079);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
-        let program = parse.created_program.program;
+        let program = parse.program;
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(79),
           program
@@ -222,7 +222,7 @@ mod tests {
         let result0 = parse(INPUT_A000079);
         assert_eq!(result0.is_ok(), true);
         let parse0 = result0.unwrap();
-        let program0 = parse0.created_program.program;
+        let program0 = parse0.program;
         let runner0 = ProgramRunner::new(
           ProgramId::ProgramOEIS(79),
           program0
@@ -242,7 +242,7 @@ mod tests {
         assert_eq!(result1.is_ok(), true);
         let parse1 = result1.unwrap();
 
-        let mut program = parse1.created_program.program;
+        let mut program = parse1.program;
 
         // Obtain a list of dependencies.
         let mut program_id_vec: Vec<u64> = vec!();
@@ -291,7 +291,7 @@ mod tests {
         let result = parse(INPUT_A000196);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
-        let program = parse.created_program.program;
+        let program = parse.program;
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(196),
           program
@@ -304,7 +304,7 @@ mod tests {
         let result = parse(INPUT_A005131);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
-        let program = parse.created_program.program;
+        let program = parse.program;
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(5131),
           program
@@ -317,7 +317,7 @@ mod tests {
         let result = parse(INPUT_A002624);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
-        let program = parse.created_program.program;
+        let program = parse.program;
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(2624),
           program
@@ -330,7 +330,7 @@ mod tests {
         let result = parse(INPUT_A002791);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
-        let program = parse.created_program.program;
+        let program = parse.program;
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(2791),
           program
@@ -343,7 +343,7 @@ mod tests {
         let result = parse(INPUT_A284429);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
-        let program = parse.created_program.program;
+        let program = parse.program;
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(284429),
           program
@@ -356,7 +356,7 @@ mod tests {
         let result = parse(INPUT_A007958);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
-        let program = parse.created_program.program;
+        let program = parse.program;
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(7958),
           program
@@ -369,7 +369,7 @@ mod tests {
         let result = parse(INPUT_A253472);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
-        let program = parse.created_program.program;
+        let program = parse.program;
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(253472),
           program
@@ -382,7 +382,7 @@ mod tests {
         let result = parse(INPUT_A206735);
         assert_eq!(result.is_ok(), true);
         let parse = result.unwrap();
-        let program = parse.created_program.program;
+        let program = parse.program;
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(206735),
           program

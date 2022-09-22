@@ -228,10 +228,6 @@ fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstr
     Ok(ls)
 }
 
-pub struct CreatedProgram {
-    pub program: Program,
-}
-
 #[derive(Debug, PartialEq)]
 pub enum CreateProgramError {
     ValidateLoops(ValidateLoopError),
@@ -271,7 +267,7 @@ impl CreateProgram {
         Self {}
     }
 
-    pub fn create_program(&self, instruction_vec: &Vec<Instruction>) -> Result<CreatedProgram, CreateProgramError> {
+    pub fn create_program(&self, instruction_vec: &Vec<Instruction>) -> Result<Program, CreateProgramError> {
         validate_loops(instruction_vec)?;
     
         let mut stack_vec: Vec<(Program, LoopScope)> = vec!();
@@ -378,9 +374,6 @@ impl CreateProgram {
             }
         }
     
-        let created_program = CreatedProgram {
-            program: program,
-        };
-        Ok(created_program)
+        Ok(program)
     }    
 }

@@ -4,7 +4,7 @@ use std::path::{Path,PathBuf};
 use std::collections::HashSet;
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::parser::{ParsedProgram, ParseProgramError, CreateProgram, CreatedProgram, CreateProgramError};
+use crate::parser::{ParsedProgram, ParseProgramError, CreateProgram, CreateProgramError};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 
 #[derive(Debug, PartialEq)]
@@ -203,13 +203,12 @@ impl DependencyManager {
         Result<ProgramRunner, DependencyManagerError> 
     {
         let create_program = CreateProgram::new();
-        let created_program: CreatedProgram = match create_program.create_program(&parsed_program.instruction_vec) {
+        let mut program: Program = match create_program.create_program(&parsed_program.instruction_vec) {
             Ok(value) => value,
             Err(error) => {
                 return Err(DependencyManagerError::CreateProgram(error));
             }
         };
-        let mut program: Program = created_program.program;
     
         self.load_dependencies(&mut program, &program_id)?;
 
