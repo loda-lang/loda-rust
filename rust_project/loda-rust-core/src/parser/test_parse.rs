@@ -1,8 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::execute::{Program, ProgramCache, ProgramId, ProgramRunner, ProgramRunnerManager};
-    use super::super::parse::*;
-    use super::super::parse::simple_parse;
+    use crate::parser::{ParsedProgram, CreateProgram, ParseError};
     
     const INPUT_A000045: &str = r#"
     ; A000045: Fibonacci numbers
@@ -193,8 +192,13 @@ mod tests {
     mov $0,$1
     "#;
 
-    pub fn parse(input: &str) -> Result<Program, ParseError> {
-      simple_parse(input)
+    /// This function can parse simple programs, without the `seq` instruction.
+    /// This function does not resolve dependencies.
+    fn parse(input: &str) -> Result<Program, ParseError> {
+      let parsed_program: ParsedProgram = ParsedProgram::parse_program(input)?;
+      let create_program = CreateProgram::new();
+      let program: Program = create_program.create_program(&parsed_program.instruction_vec)?;
+      Ok(program)
     }
 
     #[test]
