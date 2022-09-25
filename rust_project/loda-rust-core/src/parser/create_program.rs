@@ -1,7 +1,7 @@
 use std::fmt;
 use super::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use super::validate_loops::*;
-use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, Program};
+use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, Program, LOOP_RANGE_MAX_BITS};
 use crate::execute::node_calc::*;
 use crate::execute::node_clear::*;
 use crate::execute::node_loop_constant::*;
@@ -129,7 +129,7 @@ fn create_node_seq(instruction: &Instruction) -> Result<BoxNode, CreateInstructi
 
 enum LoopType {
     Simple,
-    RangeLengthWithConstant(u8),
+    RangeLengthWithConstant(u64),
     RangeLengthFromRegister(RegisterIndex),
 }
 
@@ -141,14 +141,14 @@ fn node_loop_range_parameter_constant(instruction: &Instruction, parameter: &Ins
         };
         return Err(err);
     }
-    if parameter.parameter_value > 255 {
+    let range_length: u64 = parameter.parameter_value as u64;
+    if range_length >= (2 ^ LOOP_RANGE_MAX_BITS) {
         let err = CreateInstructionError {
             line_number: instruction.line_number,
             error_type: CreateInstructionErrorType::LoopWithConstantRangeIsTooHigh,
         };
         return Err(err);
     }
-    let range_length: u8 = parameter.parameter_value as u8;
     if range_length == 0 {
         debug!("Loop begin with constant=0. Same as a NOP, does nothing.");
     }

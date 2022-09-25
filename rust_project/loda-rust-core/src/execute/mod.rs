@@ -36,7 +36,7 @@ pub use program_serializer_context::ProgramSerializerContext;
 pub use run_mode::RunMode;
 pub use eval_error::{EvalError, ValidateCallError};
 pub use node::{BoxNode, Node};
-pub use node_loop_shared::NodeLoopLimit;
+pub use node_loop_shared::{NodeLoopLimit, LOOP_RANGE_MAX_BITS};
 pub use node_register_limit::NodeRegisterLimit;
 pub use register_index::RegisterIndex;
 pub use register_index_and_type::RegisterIndexAndType;

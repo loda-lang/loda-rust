@@ -185,8 +185,7 @@ impl ProgramState {
     }
    
     pub fn set_register_range_to_zero(&mut self, register_index: RegisterIndex, count: u64) -> Result<(), EvalError> {
-        // panic!("TODO: replace u8 addresses with u64");
-        let mut index = register_index.0 as u64;
+        let mut index = register_index.0;
         let sum: u128 = (index as u128) + (count as u128);
         if sum >= (MAX_NUMBER_OF_REGISTERS as u128) {
             return Err(EvalError::AddressIsOutsideMaxCapacity);
@@ -227,11 +226,10 @@ impl ProgramState {
     /// Returns `false` if the range of registers have the same value or greater value.
     /// 
     /// Returns `false` if a register is encountered with a negative value.
-    pub fn is_less_range(&self, other_state: &ProgramState, register_index: RegisterIndex, range_length: u8) -> bool {
-        // panic!("TODO: replace u8 addresses with u64");
-        let start_index: u64 = register_index.0 as u64;
+    pub fn is_less_range(&self, other_state: &ProgramState, register_index: RegisterIndex, range_length: u64) -> bool {
+        let start_index: u64 = register_index.0;
         for i in 0..range_length {
-            let index: u64 = start_index + (i as u64);
+            let index: u64 = start_index + i;
             let a_value: &BigInt = self.get_u64(index);
             if a_value.is_negative() {
                 // Negative value encountered
@@ -378,7 +376,7 @@ mod tests {
     fn test_30000_is_less_range_returns_false() {
         {
             // compare 0 registers
-            let zero_length: u8 = 0;
+            let zero_length: u64 = 0;
             let state = empty_program_state();
             assert_eq!(state.is_less_range(&state, RegisterIndex(0), zero_length), false);
         }
@@ -399,15 +397,15 @@ mod tests {
         }
         {
             // compare 4 registers
-            let crazy_index_out_of_bounds = RegisterIndex(100);
+            let crazy_high_index = RegisterIndex(1000);
             let state = mock_program_state();
-            assert_eq!(state.is_less_range(&state, crazy_index_out_of_bounds, 4), false);
+            assert_eq!(state.is_less_range(&state, crazy_high_index, 4), false);
         }
         {
             // compare a crazy number of registers
-            let crazy_length_out_of_bounds: u8 = 100;
+            let crazy_length: u64 = 1000;
             let state = mock_program_state();
-            assert_eq!(state.is_less_range(&state, RegisterIndex(0), crazy_length_out_of_bounds), false);
+            assert_eq!(state.is_less_range(&state, RegisterIndex(0), crazy_length), false);
         }
         {
             // compare 1 register
