@@ -372,24 +372,24 @@ mod tests {
     }
 
     #[test]
-    fn test_10201_load_detect_cycle1() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle1");
+    fn test_10201_instruction_seq_detect_cycle1() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_seq_detect_cycle1");
         let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
         let error: &CyclicDependencyError = dm_error.expect_cyclic_dependency();
         assert_eq!(error.program_id, 666);
     }
 
     #[test]
-    fn test_10202_load_detect_cycle2() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle2");
+    fn test_10202_instruction_seq_detect_cycle2() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_seq_detect_cycle2");
         let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
         let error: &CyclicDependencyError = dm_error.expect_cyclic_dependency();
         assert_eq!(error.program_id, 666);
     }
 
     #[test]
-    fn test_10203_load_detect_cycle3() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle3");
+    fn test_10203_instruction_seq_detect_cycle3() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_seq_detect_cycle3");
         let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
         let error: &CyclicDependencyError = dm_error.expect_cyclic_dependency();
         assert_eq!(error.program_id, 666);
@@ -406,8 +406,8 @@ mod tests {
         }
     }
     #[test]
-    fn test_10301_load_detect_missing1() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_missing1");
+    fn test_10301_instruction_seq_detect_missing1() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_seq_detect_missing1");
         let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
         let error: &CannotReadProgramFileError = dm_error.expect_cannot_read_program_file();
         assert_eq!(error.program_id(), 668);
