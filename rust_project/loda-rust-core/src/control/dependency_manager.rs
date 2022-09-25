@@ -428,6 +428,13 @@ mod tests {
     }
 
     #[test]
+    fn test_20003_instruction_seq_with_parametertype_indirect() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_seq_with_parametertype_indirect");
+        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
+        assert_eq!(runner.inspect(6), "1,2,3,4,5,6");
+    }
+
+    #[test]
     fn test_50000_parametertype_indirect1() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect1");
         let runner: Rc::<ProgramRunner> = dm.load(15736).unwrap();
@@ -474,13 +481,6 @@ mod tests {
         let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect7");
         let runner: Rc::<ProgramRunner> = dm.load(103627).unwrap();
         assert_eq!(runner.inspect(13), "0,1,0,1,1,1,2,1,2,3,1,3,4");
-    }
-
-    #[test]
-    fn test_50007_parametertype_indirect8() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect8");
-        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
-        assert_eq!(runner.inspect(6), "1,2,3,4,5,6");
     }
 
     #[test]
