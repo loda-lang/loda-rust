@@ -477,6 +477,13 @@ mod tests {
     }
 
     #[test]
+    fn test_50007_parametertype_indirect8() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/parametertype_indirect8");
+        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
+        assert_eq!(runner.inspect(6), "1,2,3,4,5,6");
+    }
+
+    #[test]
     fn test_60000_instruction_clr_with_constant() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
