@@ -1,11 +1,10 @@
-use super::{EvalError, Node, NodeLoopLimit, ProgramCache, Program, ProgramRunnerManager, ProgramSerializer, ProgramState, RunMode, ValidateCallError, RegisterIndex, RegisterIndexAndType};
+use super::{EvalError, Node, NodeLoopLimit, ProgramCache, Program, ProgramRunnerManager, ProgramSerializer, ProgramState, RunMode, ValidateCallError, RegisterIndexAndType};
 use crate::parser::{Instruction, InstructionParameter, ParameterType};
 use super::compiletime_error::*;
 use num_bigint::BigInt;
-use num_traits::{ToPrimitive, Signed, Zero};
+use num_traits::{ToPrimitive, Signed};
 
 pub struct NodeLoopSlow {
-    instruction: Instruction,
     target: InstructionParameter,
     source: InstructionParameter,
     program: Program,
@@ -26,7 +25,6 @@ impl NodeLoopSlow {
         }
 
         let instance = Self {
-            instruction: instruction,
             target: target,
             source: source,
             program: program,
@@ -57,25 +55,23 @@ impl Node for NodeLoopSlow {
 
         let limit: NodeLoopLimit = state.node_loop_limit().clone();
         let mut cycles = 0;
-        let mut range_length: u64 = u64::max_value();
         loop {
             let old_state: ProgramState = state.clone();
 
-            self.program.run(state, cache)?;
-
-            let target: BigInt = state.get(&self.target, true)?;
-            let target_u64: u64 = match target.to_u64() {
+            let old_target: BigInt = state.get(&self.target, true)?;
+            let old_target_u64: u64 = match old_target.to_u64() {
                 Some(value) => value,
                 None => {
                     return Err(EvalError::CannotConvertBigIntToAddress);
                 }
             };
 
-            let source: BigInt = state.get(&self.source, false)?;
-            if source.is_positive() {
-                match source.to_u64() {
+            let old_source: BigInt = state.get(&self.source, false)?;
+            let old_range_length: u64;
+            if old_source.is_positive() {
+                match old_source.to_u64() {
                     Some(value) => {
-                        range_length = u64::min(value, range_length);
+                        old_range_length = value;
                     },
                     None => {
                         return Err(EvalError::LoopRangeLengthExceededLimit);
@@ -83,19 +79,49 @@ impl Node for NodeLoopSlow {
                 };
             } else {
                 // `lpb` instruction with source being negative or zero. Does nothing.
-                range_length = 0;
+                old_range_length = 0;
             }
+
+            self.program.run(state, cache)?;
     
+            let new_target: BigInt = state.get(&self.target, true)?;
+            let new_target_u64: u64 = match new_target.to_u64() {
+                Some(value) => value,
+                None => {
+                    return Err(EvalError::CannotConvertBigIntToAddress);
+                }
+            };
+
+            let new_source: BigInt = state.get(&self.source, false)?;
+            let new_range_length: u64;
+            if new_source.is_positive() {
+                match new_source.to_u64() {
+                    Some(value) => {
+                        new_range_length = value;
+                    },
+                    None => {
+                        return Err(EvalError::LoopRangeLengthExceededLimit);
+                    }
+                };
+            } else {
+                // `lpb` instruction with source being negative or zero. Does nothing.
+                new_range_length = 0;
+            }
+
+            let range_length: u64 = u64::min(new_range_length, old_range_length);
+
             if state.run_mode() == RunMode::Verbose {
-                println!("LOOP: target={}, range={}", target_u64, range_length);
+                println!("LOOP: old_target={}, old_range={}", old_target_u64, old_range_length);
+                println!("LOOP: new_target={}, new_range={}", new_target_u64, new_range_length);
 
                 let snapshot0 = old_state.memory_full_to_string();
                 let snapshot1 = state.memory_full_to_string();
                 println!("LOOP: old={} new={}", snapshot0, snapshot1);
             }
-            let is_less: bool = state.is_less_range(
+            let is_less: bool = state.is_less_twostartindexes_range(
                 &old_state, 
-                RegisterIndex(target_u64), 
+                new_target_u64, 
+                old_target_u64, 
                 range_length
             );
 

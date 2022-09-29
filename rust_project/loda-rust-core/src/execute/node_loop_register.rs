@@ -100,7 +100,7 @@ impl Node for NodeLoopRegister {
 
             let is_less: bool = state.is_less_range(
                 &old_state, 
-                self.register_start.clone(),
+                self.register_start.0,
                 currently_smallest_range_length
             );
             if state.run_mode() == RunMode::Verbose {

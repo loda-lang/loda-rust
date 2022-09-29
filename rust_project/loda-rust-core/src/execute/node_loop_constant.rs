@@ -45,7 +45,7 @@ impl Node for NodeLoopConstant {
 
             let is_less: bool = state.is_less_range(
                 &old_state, 
-                self.register_start.clone(), 
+                self.register_start.0, 
                 self.range_length
             );
 
