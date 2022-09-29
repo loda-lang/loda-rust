@@ -580,4 +580,44 @@ mod tests {
             assert_eq!(state0.is_less_single(&state1, 0), true);
         }
     }
+
+    #[test]
+    fn test_40000_is_less_twostartindexes_range_length1() {
+        {
+            let mut state0 = empty_program_state();
+            set_value_not_failable(&mut state0, 0, 100);
+            let mut state1 = empty_program_state();
+            set_value_not_failable(&mut state1, 10, 100);
+            assert_eq!(state0.is_less_twostartindexes_range(&state1, 0, 10, 1), false);
+        }
+        {
+            let mut state0 = empty_program_state();
+            set_value_not_failable(&mut state0, 0, 99);
+            let mut state1 = empty_program_state();
+            set_value_not_failable(&mut state1, 10, 100);
+            assert_eq!(state0.is_less_twostartindexes_range(&state1, 0, 10, 1), true);
+        }
+    }
+
+    #[test]
+    fn test_40001_is_less_twostartindexes_range_length2() {
+        {
+            let mut state0 = empty_program_state();
+            set_value_not_failable(&mut state0, 0, 100);
+            set_value_not_failable(&mut state0, 1, 100);
+            let mut state1 = empty_program_state();
+            set_value_not_failable(&mut state1, 10, 100);
+            set_value_not_failable(&mut state1, 11, 100);
+            assert_eq!(state0.is_less_twostartindexes_range(&state1, 0, 10, 2), false);
+        }
+        {
+            let mut state0 = empty_program_state();
+            set_value_not_failable(&mut state0, 0, 100);
+            set_value_not_failable(&mut state0, 1, 99);
+            let mut state1 = empty_program_state();
+            set_value_not_failable(&mut state1, 10, 100);
+            set_value_not_failable(&mut state1, 11, 100);
+            assert_eq!(state0.is_less_twostartindexes_range(&state1, 0, 10, 2), true);
+        }
+    }
 }
