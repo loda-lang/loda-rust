@@ -2,13 +2,12 @@ use super::{EvalError, Node, NodeLoopLimit, Program, ProgramCache, ProgramSerial
 
 pub struct NodeLoopConstant {
     register_start: RegisterIndex,
-    range_length: u8,
+    range_length: u64,
     program: Program,
 }
 
 impl NodeLoopConstant {
-    pub fn new(register_start: RegisterIndex, range_length: u8, program: Program) -> Self {
-        //panic!("TODO: replace u8 addresses with u64");
+    pub fn new(register_start: RegisterIndex, range_length: u64, program: Program) -> Self {
         Self {
             register_start: register_start,
             range_length: range_length,
@@ -46,7 +45,7 @@ impl Node for NodeLoopConstant {
 
             let is_less: bool = state.is_less_range(
                 &old_state, 
-                self.register_start.clone(), 
+                self.register_start.0, 
                 self.range_length
             );
 

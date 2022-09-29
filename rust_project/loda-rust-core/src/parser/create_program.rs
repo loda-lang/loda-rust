@@ -1,57 +1,23 @@
-use std::fmt;
 use super::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use super::validate_loops::*;
-use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, Program};
+use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, RegisterType, Program, LOOP_RANGE_MAX_BITS};
 use crate::execute::node_calc::*;
 use crate::execute::node_clear::*;
 use crate::execute::node_loop_constant::*;
 use crate::execute::node_loop_register::*;
 use crate::execute::node_loop_simple::*;
+use crate::execute::node_loop_slow::*;
 use crate::execute::node_seq::*;
-
-#[derive(Debug, PartialEq)]
-pub enum CreateInstructionErrorType {
-    ExpectZeroParameters,
-    ExpectOneOrTwoParameters,
-    ExpectTwoParameters,
-    ParameterMustBeRegister,
-    ParameterMustBeConstant,
-    ConstantMustBeNonNegative,
-    LoopWithConstantRangeIsTooHigh,
-    RegisterIndexMustBeNonNegative,
-    RegisterIndexTooHigh,
-    NodeCreateError,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct CreateInstructionError {
-    line_number: usize,
-    error_type: CreateInstructionErrorType,
-}
-
-impl CreateInstructionError {
-    pub fn new(line_number: usize, error_type: CreateInstructionErrorType) -> Self {
-        Self {
-            line_number: line_number,
-            error_type: error_type
-        }
-    }
-}
-
-impl fmt::Display for CreateInstructionError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?} in line {}", self.error_type, self.line_number)
-    }
-}
+use crate::execute::compiletime_error::*;
 
 impl Instruction {
     /// Loop end (lpe) takes zero parameters.
     fn expect_zero_parameters(&self) -> Result<(), CreateInstructionError> {
         if self.parameter_vec.len() != 0 {
-            let err = CreateInstructionError {
-                line_number: self.line_number,
-                error_type: CreateInstructionErrorType::ExpectZeroParameters,
-            };
+            let err = CreateInstructionError::new(
+                self.line_number,
+                CreateInstructionErrorType::ExpectZeroParameters,
+            );
             return Err(err);
         }
         Ok(())
@@ -61,10 +27,10 @@ impl Instruction {
     fn expect_one_or_two_parameters(&self) -> Result<(), CreateInstructionError> {
         let len = self.parameter_vec.len();
         if len < 1 || len > 2 {
-            let err = CreateInstructionError {
-                line_number: self.line_number,
-                error_type: CreateInstructionErrorType::ExpectOneOrTwoParameters,
-            };
+            let err = CreateInstructionError::new(
+                self.line_number,
+                CreateInstructionErrorType::ExpectOneOrTwoParameters,
+            );
             return Err(err);
         }
         Ok(())
@@ -73,10 +39,10 @@ impl Instruction {
     /// The instruction `add $1,1` takes 2 parameters.
     fn expect_two_parameters(&self) -> Result<(), CreateInstructionError> {
         if self.parameter_vec.len() != 2 {
-            let err = CreateInstructionError {
-                line_number: self.line_number,
-                error_type: CreateInstructionErrorType::ExpectTwoParameters,
-            };
+            let err = CreateInstructionError::new(
+                self.line_number,
+                CreateInstructionErrorType::ExpectTwoParameters,
+            );
             return Err(err);
         }
         Ok(())
@@ -104,17 +70,17 @@ fn create_node_seq(instruction: &Instruction) -> Result<BoxNode, CreateInstructi
 
     let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
     if parameter1.parameter_type != ParameterType::Constant {
-        let err = CreateInstructionError {
-            line_number: instruction.line_number,
-            error_type: CreateInstructionErrorType::ParameterMustBeConstant,
-        };
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::ParameterMustBeConstant,
+        );
         return Err(err);
     }
     if parameter1.parameter_value < 0 {
-        let err = CreateInstructionError {
-            line_number: instruction.line_number,
-            error_type: CreateInstructionErrorType::ConstantMustBeNonNegative,
-        };
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::ConstantMustBeNonNegative,
+        );
         return Err(err);
     }
     let program_id = parameter1.parameter_value as u64;
@@ -128,27 +94,39 @@ fn create_node_seq(instruction: &Instruction) -> Result<BoxNode, CreateInstructi
 }
 
 enum LoopType {
+    /// When dealing with `ParameterType::Indirect` that are non-trivial to optimize.
+    /// It's slow since nothing can be assumed about the `target` register and `source` register.
+    Slow { instruction: Instruction },
+
+    /// Optimized where `target` is `ParameterType::Direct` and `source` always has a `range_length=1`.
+    /// This is the most popular type of loop.
     Simple,
-    RangeLengthWithConstant(u8),
+
+    /// Optimized where `target` is `ParameterType::Direct` and `source` is `ParameterType::Constant`.
+    /// Popularity is medium.
+    RangeLengthWithConstant(u64),
+
+    /// Optimized where `target` is `ParameterType::Direct` and `source` is `ParameterType::Direct`.
+    /// Popularity is low.
     RangeLengthFromRegister(RegisterIndex),
 }
 
 fn node_loop_range_parameter_constant(instruction: &Instruction, parameter: &InstructionParameter) -> Result<LoopType, CreateInstructionError> {
     if parameter.parameter_value < 0 {
-        let err = CreateInstructionError {
-            line_number: instruction.line_number,
-            error_type: CreateInstructionErrorType::ConstantMustBeNonNegative,
-        };
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::ConstantMustBeNonNegative,
+        );
         return Err(err);
     }
-    if parameter.parameter_value > 255 {
-        let err = CreateInstructionError {
-            line_number: instruction.line_number,
-            error_type: CreateInstructionErrorType::LoopWithConstantRangeIsTooHigh,
-        };
+    let range_length: u64 = parameter.parameter_value as u64;
+    if range_length >= (2 ^ LOOP_RANGE_MAX_BITS) {
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::LoopWithConstantRangeIsTooHigh,
+        );
         return Err(err);
     }
-    let range_length: u8 = parameter.parameter_value as u8;
     if range_length == 0 {
         debug!("Loop begin with constant=0. Same as a NOP, does nothing.");
     }
@@ -162,7 +140,6 @@ fn node_loop_range_parameter_constant(instruction: &Instruction, parameter: &Ins
 fn node_loop_range_parameter_register(instruction: &Instruction, parameter: &InstructionParameter) -> Result<LoopType, CreateInstructionError> {
     let register = RegisterIndexAndType::from_parameter(instruction, parameter)?;
     let register_index: RegisterIndex = register.register_index;
-    // TODO: deal with indirect register type in register
     let loop_type = LoopType::RangeLengthFromRegister(register_index);
     return Ok(loop_type);
 }
@@ -176,8 +153,8 @@ fn node_loop_range_parameter(instruction: &Instruction, parameter: &InstructionP
             return node_loop_range_parameter_register(instruction, parameter);
         },
         ParameterType::Indirect => {
-            // TODO: deal with indirect
-            panic!("Indirect");
+            let loop_type = LoopType::Slow { instruction: instruction.clone() };
+            return Ok(loop_type);
         }
     }
 }
@@ -193,7 +170,14 @@ fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstr
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
     let register0 = RegisterIndexAndType::from_parameter(instruction, parameter0)?;
     let register_index0 = register0.register_index;
-    // TODO: deal with indirect register type in register0
+
+    if register0.register_type == RegisterType::Indirect {
+        let ls = LoopScope {
+            register: register_index0,
+            loop_type: LoopType::Slow { instruction: instruction.clone() },
+        };
+        return Ok(ls)
+    }
 
     let loop_type: LoopType;
     if instruction.parameter_vec.len() == 2 {
@@ -215,38 +199,6 @@ fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstr
         loop_type: loop_type,
     };
     Ok(ls)
-}
-
-#[derive(Debug, PartialEq)]
-pub enum CreateProgramError {
-    ValidateLoops(ValidateLoopError),
-    CreateInstruction(CreateInstructionError),
-    CannotPopEmptyStack,
-}
-
-impl fmt::Display for CreateProgramError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Self::ValidateLoops(ref err) => 
-                write!(f, "ValidateLoops error: {}", err),
-            Self::CreateInstruction(ref err) => 
-                write!(f, "CreateInstruction error: {}", err),
-            Self::CannotPopEmptyStack => 
-                write!(f, "Mismatch between loop begins and loop ends. stack is empty."),
-        }
-    }
-}
-
-impl From<ValidateLoopError> for CreateProgramError {
-    fn from(err: ValidateLoopError) -> CreateProgramError {
-        CreateProgramError::ValidateLoops(err)
-    }
-}
-
-impl From<CreateInstructionError> for CreateProgramError {
-    fn from(err: CreateInstructionError) -> CreateProgramError {
-        CreateProgramError::CreateInstruction(err)
-    }
 }
 
 pub struct CreateProgram {
@@ -289,6 +241,10 @@ impl CreateProgram {
                     program = program_parent;
     
                     match loopscope.loop_type {
+                        LoopType::Slow { instruction } => {
+                            let node = NodeLoopSlow::new(instruction, program_child)?;
+                            program.push(node);
+                        },
                         LoopType::Simple => {
                             program.push(NodeLoopSimple::new(loop_register, program_child));
                         },

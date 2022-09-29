@@ -185,8 +185,7 @@ impl ProgramState {
     }
    
     pub fn set_register_range_to_zero(&mut self, register_index: RegisterIndex, count: u64) -> Result<(), EvalError> {
-        // panic!("TODO: replace u8 addresses with u64");
-        let mut index = register_index.0 as u64;
+        let mut index = register_index.0;
         let sum: u128 = (index as u128) + (count as u128);
         if sum >= (MAX_NUMBER_OF_REGISTERS as u128) {
             return Err(EvalError::AddressIsOutsideMaxCapacity);
@@ -227,17 +226,14 @@ impl ProgramState {
     /// Returns `false` if the range of registers have the same value or greater value.
     /// 
     /// Returns `false` if a register is encountered with a negative value.
-    pub fn is_less_range(&self, other_state: &ProgramState, register_index: RegisterIndex, range_length: u8) -> bool {
-        // panic!("TODO: replace u8 addresses with u64");
-        let start_index: u64 = register_index.0 as u64;
+    pub fn is_less_twostartindexes_range(&self, other_state: &ProgramState, start_index0: u64, start_index1: u64, range_length: u64) -> bool {
         for i in 0..range_length {
-            let index: u64 = start_index + (i as u64);
-            let a_value: &BigInt = self.get_u64(index);
+            let a_value: &BigInt = self.get_u64(start_index0 + i);
             if a_value.is_negative() {
                 // Negative value encountered
                 return false;
             }
-            let b_value: &BigInt = other_state.get_u64(index);
+            let b_value: &BigInt = other_state.get_u64(start_index1 + i);
             let ordering: Ordering = a_value.cmp(&b_value);
             match ordering {
                 Ordering::Less => return true,
@@ -248,11 +244,15 @@ impl ProgramState {
         false
     }
 
+    pub fn is_less_range(&self, other_state: &ProgramState, start_index: u64, range_length: u64) -> bool {
+        self.is_less_twostartindexes_range(other_state, start_index, start_index, range_length)
+    }
+
     /// Similar to `is_less_range()`, but with a range of 1.
     /// 
     /// This function is simpler than its counterpart `is_less_range`.
-    pub fn is_less_single(&self, other_state: &ProgramState, register_index: RegisterIndex) -> bool {
-        self.is_less_range(other_state, register_index, 1)
+    pub fn is_less_single(&self, other_state: &ProgramState, start_index: u64) -> bool {
+        self.is_less_range(other_state, start_index, 1)
     }
 }
 
@@ -378,43 +378,43 @@ mod tests {
     fn test_30000_is_less_range_returns_false() {
         {
             // compare 0 registers
-            let zero_length: u8 = 0;
+            let zero_length: u64 = 0;
             let state = empty_program_state();
-            assert_eq!(state.is_less_range(&state, RegisterIndex(0), zero_length), false);
+            assert_eq!(state.is_less_range(&state, 0, zero_length), false);
         }
         {
             // compare 1 register
             let state = empty_program_state();
-            assert_eq!(state.is_less_range(&state, RegisterIndex(0), 1), false);
+            assert_eq!(state.is_less_range(&state, 0, 1), false);
         }
         {
             // compare 4 registers
             let state = empty_program_state();
-            assert_eq!(state.is_less_range(&state, RegisterIndex(0), 4), false);
+            assert_eq!(state.is_less_range(&state, 0, 4), false);
         }
         {
             // compare 4 registers
             let state = mock_program_state();
-            assert_eq!(state.is_less_range(&state, RegisterIndex(0), 4), false);
+            assert_eq!(state.is_less_range(&state, 0, 4), false);
         }
         {
             // compare 4 registers
-            let crazy_index_out_of_bounds = RegisterIndex(100);
+            let crazy_high_index = 1000;
             let state = mock_program_state();
-            assert_eq!(state.is_less_range(&state, crazy_index_out_of_bounds, 4), false);
+            assert_eq!(state.is_less_range(&state, crazy_high_index, 4), false);
         }
         {
             // compare a crazy number of registers
-            let crazy_length_out_of_bounds: u8 = 100;
+            let crazy_length: u64 = 1000;
             let state = mock_program_state();
-            assert_eq!(state.is_less_range(&state, RegisterIndex(0), crazy_length_out_of_bounds), false);
+            assert_eq!(state.is_less_range(&state, 0, crazy_length), false);
         }
         {
             // compare 1 register
             let state0 = mock_program_state();
             let mut state1 = mock_program_state();
             set_value_not_failable(&mut state1, 0, 50);
-            assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), false);
+            assert_eq!(state0.is_less_range(&state1, 0, 1), false);
         }
         {
             // compare 1 register
@@ -422,7 +422,7 @@ mod tests {
             set_value_not_failable(&mut state0, 0, -50);
             let mut state1 = mock_program_state();
             set_value_not_failable(&mut state1, 0, 49);
-            assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), false);
+            assert_eq!(state0.is_less_range(&state1, 0, 1), false);
         }
         {
             // compare 1 register
@@ -430,7 +430,7 @@ mod tests {
             set_value_not_failable(&mut state0, 0, -50);
             let mut state1 = mock_program_state();
             set_value_not_failable(&mut state1, 0, -49);
-            assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), false);
+            assert_eq!(state0.is_less_range(&state1, 0, 1), false);
         }
         {
             // compare 1 register
@@ -438,7 +438,7 @@ mod tests {
             set_value_not_failable(&mut state0, 0, -49);
             let mut state1 = mock_program_state();
             set_value_not_failable(&mut state1, 0, 50);
-            assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), false);
+            assert_eq!(state0.is_less_range(&state1, 0, 1), false);
         }
         {
             // compare 1 register
@@ -446,7 +446,7 @@ mod tests {
             set_value_not_failable(&mut state0, 0, -49);
             let mut state1 = mock_program_state();
             set_value_not_failable(&mut state1, 0, -50);
-            assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), false);
+            assert_eq!(state0.is_less_range(&state1, 0, 1), false);
         }
     }
 
@@ -457,35 +457,35 @@ mod tests {
             let state0 = empty_program_state();
             let mut state1 = empty_program_state();
             set_value_not_failable(&mut state1, 0, 1);
-            assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 1), true);
+            assert_eq!(state0.is_less_range(&state1, 0, 1), true);
         }
         {
             // compare 2 registers
             let state0 = empty_program_state();
             let mut state1 = empty_program_state();
             set_value_not_failable(&mut state1, 0, 1);
-            assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 2), true);
+            assert_eq!(state0.is_less_range(&state1, 0, 2), true);
         }
         {
             // compare 2 registers
             let state0 = empty_program_state();
             let mut state1 = empty_program_state();
             set_value_not_failable(&mut state1, 1, 1);
-            assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 2), true);
+            assert_eq!(state0.is_less_range(&state1, 0, 2), true);
         }
         {
             // compare 4 registers
             let state0 = mock_program_state();
             let mut state1 = mock_program_state();
             set_value_not_failable(&mut state1, 3, 104);
-            assert_eq!(state0.is_less_range(&state1, RegisterIndex(0), 4), true);
+            assert_eq!(state0.is_less_range(&state1, 0, 4), true);
         }
         {
             // compare 4 registers, across end of vector boundary
             let state0 = mock_program_state();
             let mut state1 = mock_program_state();
             set_value_not_failable(&mut state1, 3, 104);
-            assert_eq!(state0.is_less_range(&state1, RegisterIndex(2), 4), true);
+            assert_eq!(state0.is_less_range(&state1, 2, 4), true);
         }
     }
 
@@ -493,10 +493,10 @@ mod tests {
     fn test_30002_is_less_single_returns_false() {
         {
             let state = empty_program_state();
-            assert_eq!(state.is_less_single(&state, RegisterIndex(0)), false);
+            assert_eq!(state.is_less_single(&state, 0), false);
         }
         {
-            let crazy_index_out_of_bounds = RegisterIndex(100);
+            let crazy_index_out_of_bounds = 100;
             let state = empty_program_state();
             assert_eq!(state.is_less_single(&state, crazy_index_out_of_bounds), false);
         }
@@ -505,42 +505,42 @@ mod tests {
             set_value_not_failable(&mut state0, 0, 51);
             let mut state1 = empty_program_state();
             set_value_not_failable(&mut state1, 0, 50);
-            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
+            assert_eq!(state0.is_less_single(&state1, 0), false);
         }
         {
             let mut state0 = empty_program_state();
             set_value_not_failable(&mut state0, 0, 50);
             let mut state1 = empty_program_state();
             set_value_not_failable(&mut state1, 0, 50);
-            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
+            assert_eq!(state0.is_less_single(&state1, 0), false);
         }
         {
             let mut state0 = empty_program_state();
             set_value_not_failable(&mut state0, 0, -50);
             let mut state1 = empty_program_state();
             set_value_not_failable(&mut state1, 0, 49);
-            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
+            assert_eq!(state0.is_less_single(&state1, 0), false);
         }
         {
             let mut state0 = empty_program_state();
             set_value_not_failable(&mut state0, 0, -50);
             let mut state1 = empty_program_state();
             set_value_not_failable(&mut state1, 0, -49);
-            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
+            assert_eq!(state0.is_less_single(&state1, 0), false);
         }
         {
             let mut state0 = empty_program_state();
             set_value_not_failable(&mut state0, 0, -49);
             let mut state1 = empty_program_state();
             set_value_not_failable(&mut state1, 0, 50);
-            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
+            assert_eq!(state0.is_less_single(&state1, 0), false);
         }
         {
             let mut state0 = empty_program_state();
             set_value_not_failable(&mut state0, 0, -49);
             let mut state1 = empty_program_state();
             set_value_not_failable(&mut state1, 0, -50);
-            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), false);
+            assert_eq!(state0.is_less_single(&state1, 0), false);
         }
     }
 
@@ -550,34 +550,74 @@ mod tests {
             let state0 = empty_program_state();
             let mut state1 = empty_program_state();
             set_value_not_failable(&mut state1, 0, 1);
-            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
+            assert_eq!(state0.is_less_single(&state1, 0), true);
         }
         {
             let mut state0 = empty_program_state();
             set_value_not_failable(&mut state0, 0, 1);
             let mut state1 = empty_program_state();
             set_value_not_failable(&mut state1, 0, 2);
-            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
+            assert_eq!(state0.is_less_single(&state1, 0), true);
         }
         {
             let mut state0 = empty_program_state();
             set_value_not_failable(&mut state0, 0, 1);
             let mut state1 = empty_program_state();
             set_value_not_failable(&mut state1, 0, 100);
-            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
+            assert_eq!(state0.is_less_single(&state1, 0), true);
         }
         {
             let state0 = empty_program_state();
             let mut state1 = empty_program_state();
             set_value_not_failable(&mut state1, 0, 100);
-            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
+            assert_eq!(state0.is_less_single(&state1, 0), true);
         }
         {
             let mut state0 = empty_program_state();
             set_value_not_failable(&mut state0, 0, 99);
             let mut state1 = empty_program_state();
             set_value_not_failable(&mut state1, 0, 100);
-            assert_eq!(state0.is_less_single(&state1, RegisterIndex(0)), true);
+            assert_eq!(state0.is_less_single(&state1, 0), true);
+        }
+    }
+
+    #[test]
+    fn test_40000_is_less_twostartindexes_range_length1() {
+        {
+            let mut state0 = empty_program_state();
+            set_value_not_failable(&mut state0, 0, 100);
+            let mut state1 = empty_program_state();
+            set_value_not_failable(&mut state1, 10, 100);
+            assert_eq!(state0.is_less_twostartindexes_range(&state1, 0, 10, 1), false);
+        }
+        {
+            let mut state0 = empty_program_state();
+            set_value_not_failable(&mut state0, 0, 99);
+            let mut state1 = empty_program_state();
+            set_value_not_failable(&mut state1, 10, 100);
+            assert_eq!(state0.is_less_twostartindexes_range(&state1, 0, 10, 1), true);
+        }
+    }
+
+    #[test]
+    fn test_40001_is_less_twostartindexes_range_length2() {
+        {
+            let mut state0 = empty_program_state();
+            set_value_not_failable(&mut state0, 0, 100);
+            set_value_not_failable(&mut state0, 1, 100);
+            let mut state1 = empty_program_state();
+            set_value_not_failable(&mut state1, 10, 100);
+            set_value_not_failable(&mut state1, 11, 100);
+            assert_eq!(state0.is_less_twostartindexes_range(&state1, 0, 10, 2), false);
+        }
+        {
+            let mut state0 = empty_program_state();
+            set_value_not_failable(&mut state0, 0, 100);
+            set_value_not_failable(&mut state0, 1, 99);
+            let mut state1 = empty_program_state();
+            set_value_not_failable(&mut state1, 10, 100);
+            set_value_not_failable(&mut state1, 11, 100);
+            assert_eq!(state0.is_less_twostartindexes_range(&state1, 0, 10, 2), true);
         }
     }
 }

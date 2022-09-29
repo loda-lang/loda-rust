@@ -1,5 +1,5 @@
-use super::{EvalError, Node, NodeLoopLimit, Program, ProgramCache, ProgramSerializer, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError};
-use num_bigint::{BigInt, ToBigInt};
+use super::{EvalError, Node, NodeLoopLimit, Program, ProgramCache, ProgramSerializer, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError, LOOP_RANGE_MAX_BITS};
+use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Signed};
 
 pub struct NodeLoopRegister {
@@ -10,7 +10,6 @@ pub struct NodeLoopRegister {
 
 impl NodeLoopRegister {
     pub fn new(register_start: RegisterIndex, register_with_range_length: RegisterIndex, program: Program) -> Self {
-        //panic!("TODO: replace u8 addresses with u64");
         Self {
             register_start: register_start,
             register_with_range_length: register_with_range_length,
@@ -39,18 +38,20 @@ impl Node for NodeLoopRegister {
             println!("{:12} {} => {}", instruction, snapshot, snapshot);
         }
 
-        let max_range_length_bigint: BigInt = 255.to_bigint().unwrap();
-
-        //panic!("TODO: replace u8 addresses with u64");
-        let initial_value_inner: &BigInt = state.get_u64(self.register_with_range_length.0 as u64);
-        let initial_range_length: u8;
+        let initial_value_inner: &BigInt = state.get_u64(self.register_with_range_length.0);
+        let initial_range_length: u64;
         if initial_value_inner.is_positive() {
-            if initial_value_inner > &max_range_length_bigint {
-                // Range length is beyond the ProgramState max length.
+            if initial_value_inner.bits() >= LOOP_RANGE_MAX_BITS {
+                // Loop range length is beyond the max length.
                 return Err(EvalError::LoopRangeLengthExceededLimit);
             } else {
-                // Value is between 0 and 255, so it can be casted to an unsigned byte.
-                initial_range_length = initial_value_inner.to_u8().unwrap();
+                // Value is between 0 and 2^LOOP_RANGE_MAX_BITS.
+                initial_range_length = match initial_value_inner.to_u64() {
+                    Some(value) => value,
+                    None => {
+                        return Err(EvalError::LoopRangeLengthExceededLimit);
+                    }
+                }
             }
         } else {
             // Value is negative. Clamp to 0 length.
@@ -60,7 +61,7 @@ impl Node for NodeLoopRegister {
             debug!("initial_range_length: {}", initial_range_length);
         }
 
-        let mut currently_smallest_range_length: u8 = initial_range_length;
+        let mut currently_smallest_range_length: u64 = initial_range_length;
 
         let limit: NodeLoopLimit = state.node_loop_limit().clone();
         let mut cycles = 0;
@@ -69,16 +70,20 @@ impl Node for NodeLoopRegister {
 
             self.program.run(state, cache)?;
 
-            //panic!("TODO: replace u8 addresses with u64");
-            let value_inner: &BigInt = state.get_u64(self.register_with_range_length.0 as u64);
-            let range_length: u8;
+            let value_inner: &BigInt = state.get_u64(self.register_with_range_length.0);
+            let range_length: u64;
             if value_inner.is_positive() {
-                if value_inner > &max_range_length_bigint {
-                    // Range length is beyond the ProgramState max length.
+                if value_inner.bits() >= LOOP_RANGE_MAX_BITS {
+                    // Range length is beyond the max length.
                     return Err(EvalError::LoopRangeLengthExceededLimit);
                 } else {
-                    // Value is between 0 and 255, so it can be casted to an unsigned byte.
-                    range_length = value_inner.to_u8().unwrap();
+                    // Value is between 0 and 2^LOOP_RANGE_MAX_BITS.
+                    range_length = match value_inner.to_u64() {
+                        Some(value) => value,
+                        None => {
+                            return Err(EvalError::LoopRangeLengthExceededLimit);
+                        }
+                    }
                 }
             } else {
                 // Value is negative. Clamp to 0 length.
@@ -88,14 +93,14 @@ impl Node for NodeLoopRegister {
                 debug!("range_length: {}", range_length);
             }
 
-            currently_smallest_range_length = u8::min(
+            currently_smallest_range_length = u64::min(
                 range_length, 
                 currently_smallest_range_length
             );
 
             let is_less: bool = state.is_less_range(
                 &old_state, 
-                self.register_start.clone(),
+                self.register_start.0,
                 currently_smallest_range_length
             );
             if state.run_mode() == RunMode::Verbose {

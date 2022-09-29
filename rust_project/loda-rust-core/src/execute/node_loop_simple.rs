@@ -43,7 +43,7 @@ impl Node for NodeLoopSimple {
 
             let is_less: bool = state.is_less_single(
                 &old_state, 
-                self.register.clone()
+                self.register.0
             );
 
             if !is_less {

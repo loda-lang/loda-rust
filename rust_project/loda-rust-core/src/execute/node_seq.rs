@@ -47,7 +47,6 @@ impl Node for NodeSeq {
         if !self.link_established {
             panic!("No link have been establish. This node cannot do its job.");
         }
-        //panic!("TODO: replace u8 addresses with u64");
         let input: BigInt = state.get(&self.target, false)?;
 
         if input.is_negative() {

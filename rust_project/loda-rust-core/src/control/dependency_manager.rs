@@ -5,8 +5,9 @@ use std::collections::HashSet;
 use std::collections::HashMap;
 use std::rc::Rc;
 use crate::execute::node_calc::NodeCalcSemanticMode;
-use crate::parser::{ParsedProgram, ParseProgramError, CreateProgram, CreateProgramError};
+use crate::parser::{ParsedProgram, ParseProgramError, CreateProgram};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
+use crate::execute::compiletime_error::*;
 use super::ExecuteProfile;
 
 #[derive(Debug, PartialEq)]
@@ -372,24 +373,24 @@ mod tests {
     }
 
     #[test]
-    fn test_10201_load_detect_cycle1() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle1");
+    fn test_10201_instruction_seq_detect_cycle1() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_seq_detect_cycle1");
         let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
         let error: &CyclicDependencyError = dm_error.expect_cyclic_dependency();
         assert_eq!(error.program_id, 666);
     }
 
     #[test]
-    fn test_10202_load_detect_cycle2() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle2");
+    fn test_10202_instruction_seq_detect_cycle2() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_seq_detect_cycle2");
         let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
         let error: &CyclicDependencyError = dm_error.expect_cyclic_dependency();
         assert_eq!(error.program_id, 666);
     }
 
     #[test]
-    fn test_10203_load_detect_cycle3() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_cycle3");
+    fn test_10203_instruction_seq_detect_cycle3() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_seq_detect_cycle3");
         let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
         let error: &CyclicDependencyError = dm_error.expect_cyclic_dependency();
         assert_eq!(error.program_id, 666);
@@ -406,25 +407,32 @@ mod tests {
         }
     }
     #[test]
-    fn test_10301_load_detect_missing1() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/load_detect_missing1");
+    fn test_10301_instruction_seq_detect_missing1() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_seq_detect_missing1");
         let dm_error: DependencyManagerError = dm.load(666).err().unwrap();
         let error: &CannotReadProgramFileError = dm_error.expect_cannot_read_program_file();
         assert_eq!(error.program_id(), 668);
     }
 
     #[test]
-    fn test_20001_call_with_negative_parameter1() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/call_with_negative_parameter1");
+    fn test_20001_instruction_seq_with_negative_parameter1() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_seq_with_negative_parameter1");
         let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
         assert_eq!(runner.inspect(10), "BOOM");
     }
 
     #[test]
-    fn test_20002_call_with_negative_parameter2() {
-        let mut dm: DependencyManager = dependency_manager_mock("tests/call_with_negative_parameter2");
+    fn test_20002_instruction_seq_with_negative_parameter2() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_seq_with_negative_parameter2");
         let runner: Rc::<ProgramRunner> = dm.load(666).unwrap();
         assert_eq!(runner.inspect(10), "BOOM");
+    }
+
+    #[test]
+    fn test_20003_instruction_seq_with_parametertype_indirect() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_seq_with_parametertype_indirect");
+        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
+        assert_eq!(runner.inspect(6), "1,2,3,4,5,6");
     }
 
     #[test]
@@ -502,5 +510,26 @@ mod tests {
         let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_clr");
         let runner: Rc::<ProgramRunner> = dm.load(4).unwrap();
         assert_eq!(runner.inspect(4), "100,0,0,103");
+    }
+
+    #[test]
+    fn test_70001_instruction_lpb_with_parametertype_indirect1() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_lpb_with_parametertype_indirect1");
+        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
+        assert_eq!(runner.inspect(10), "5,5,5,5,5,5,5,5,5,5");
+    }
+
+    #[test]
+    fn test_70002_instruction_lpb_with_parametertype_indirect2() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_lpb_with_parametertype_indirect2");
+        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
+        assert_eq!(runner.inspect(10), "5,5,5,5,5,5,5,5,5,5");
+    }
+    
+    #[test]
+    fn test_70003_instruction_lpb_with_range_direct() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_lpb_with_range_direct");
+        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
+        assert_eq!(runner.inspect(10), "5,5,5,5,5,5,5,5,5,5");
     }
 }
