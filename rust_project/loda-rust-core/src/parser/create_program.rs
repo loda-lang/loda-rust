@@ -1,4 +1,3 @@
-use std::fmt;
 use super::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use super::validate_loops::*;
 use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, RegisterType, Program, LOOP_RANGE_MAX_BITS};
@@ -190,38 +189,6 @@ fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstr
         loop_type: loop_type,
     };
     Ok(ls)
-}
-
-#[derive(Debug, PartialEq)]
-pub enum CreateProgramError {
-    ValidateLoops(ValidateLoopError),
-    CreateInstruction(CreateInstructionError),
-    CannotPopEmptyStack,
-}
-
-impl fmt::Display for CreateProgramError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Self::ValidateLoops(ref err) => 
-                write!(f, "ValidateLoops error: {}", err),
-            Self::CreateInstruction(ref err) => 
-                write!(f, "CreateInstruction error: {}", err),
-            Self::CannotPopEmptyStack => 
-                write!(f, "Mismatch between loop begins and loop ends. stack is empty."),
-        }
-    }
-}
-
-impl From<ValidateLoopError> for CreateProgramError {
-    fn from(err: ValidateLoopError) -> CreateProgramError {
-        CreateProgramError::ValidateLoops(err)
-    }
-}
-
-impl From<CreateInstructionError> for CreateProgramError {
-    fn from(err: CreateInstructionError) -> CreateProgramError {
-        CreateProgramError::CreateInstruction(err)
-    }
 }
 
 pub struct CreateProgram {

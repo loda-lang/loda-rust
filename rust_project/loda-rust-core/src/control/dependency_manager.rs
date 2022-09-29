@@ -5,8 +5,9 @@ use std::collections::HashSet;
 use std::collections::HashMap;
 use std::rc::Rc;
 use crate::execute::node_calc::NodeCalcSemanticMode;
-use crate::parser::{ParsedProgram, ParseProgramError, CreateProgram, CreateProgramError};
+use crate::parser::{ParsedProgram, ParseProgramError, CreateProgram};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
+use crate::execute::compiletime_error::*;
 use super::ExecuteProfile;
 
 #[derive(Debug, PartialEq)]
