@@ -1,4 +1,5 @@
-use crate::parser::{Instruction, InstructionParameter, ParameterType, CreateInstructionError, CreateInstructionErrorType};
+use crate::parser::{Instruction, InstructionParameter, ParameterType, CreateInstructionError};
+use crate::execute::compiletime_error::*;
 use super::{RegisterIndex, RegisterType};
 use std::fmt;
 

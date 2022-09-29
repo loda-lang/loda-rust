@@ -10,7 +10,7 @@ mod parse_parameters;
 mod parse_program;
 mod remove_comment;
 
-pub use create_program::{CreateInstructionError, CreateInstructionErrorType, CreateProgramError, CreateProgram};
+pub use create_program::{CreateInstructionError, CreateProgramError, CreateProgram};
 pub use extract_row_re::EXTRACT_ROW_RE;
 pub use instruction::Instruction;
 pub use instruction_id::{InstructionId, ParseInstructionIdError};

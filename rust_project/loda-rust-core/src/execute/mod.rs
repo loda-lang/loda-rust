@@ -47,6 +47,7 @@ pub use semantic_binomial::{SemanticBinomialConfig, SemanticBinomialError};
 pub use semantic_power::{SemanticPowerConfig, SemanticPowerError};
 pub use semantic_simple::{SemanticSimpleConfig, SemanticSimpleError};
 
+pub mod compiletime_error;
 pub mod node_calc;
 pub mod node_clear;
 pub mod node_loop_constant;

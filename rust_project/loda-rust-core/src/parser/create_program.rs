@@ -8,20 +8,7 @@ use crate::execute::node_loop_constant::*;
 use crate::execute::node_loop_register::*;
 use crate::execute::node_loop_simple::*;
 use crate::execute::node_seq::*;
-
-#[derive(Debug, PartialEq)]
-pub enum CreateInstructionErrorType {
-    ExpectZeroParameters,
-    ExpectOneOrTwoParameters,
-    ExpectTwoParameters,
-    ParameterMustBeRegister,
-    ParameterMustBeConstant,
-    ConstantMustBeNonNegative,
-    LoopWithConstantRangeIsTooHigh,
-    RegisterIndexMustBeNonNegative,
-    RegisterIndexTooHigh,
-    NodeCreateError,
-}
+use crate::execute::compiletime_error::*;
 
 #[derive(Debug, PartialEq)]
 pub struct CreateInstructionError {
