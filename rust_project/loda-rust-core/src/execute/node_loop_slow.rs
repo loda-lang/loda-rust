@@ -57,6 +57,7 @@ impl Node for NodeLoopSlow {
 
         let limit: NodeLoopLimit = state.node_loop_limit().clone();
         let mut cycles = 0;
+        let mut range_length: u64 = u64::max_value();
         loop {
             let old_state: ProgramState = state.clone();
 
@@ -71,19 +72,27 @@ impl Node for NodeLoopSlow {
             };
 
             let source: BigInt = state.get(&self.source, false)?;
-            let mut range_length: u64 = 0;
-            if source.is_negative() || source.is_zero() {
+            if source.is_positive() {
+                match source.to_u64() {
+                    Some(value) => {
+                        range_length = u64::min(value, range_length);
+                    },
+                    None => {
+                        return Err(EvalError::LoopRangeLengthExceededLimit);
+                    }
+                };
+            } else {
                 // `lpb` instruction with source being negative or zero. Does nothing.
                 range_length = 0;
             }
-            let source_u64: u64 = match source.to_u64() {
-                Some(value) => value,
-                None => {
-                    return Err(EvalError::LoopRangeLengthExceededLimit);
-                }
-            };
-            range_length = source_u64;
     
+            if state.run_mode() == RunMode::Verbose {
+                println!("LOOP: target={}, range={}", target_u64, range_length);
+
+                let snapshot0 = old_state.memory_full_to_string();
+                let snapshot1 = state.memory_full_to_string();
+                println!("LOOP: old={} new={}", snapshot0, snapshot1);
+            }
             let is_less: bool = state.is_less_range(
                 &old_state, 
                 RegisterIndex(target_u64), 
