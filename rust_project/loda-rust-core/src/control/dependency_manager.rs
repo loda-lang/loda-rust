@@ -512,12 +512,12 @@ mod tests {
         assert_eq!(runner.inspect(4), "100,0,0,103");
     }
 
-    // #[test]
-    // fn test_70001_instruction_lpb_with_parametertype_indirect1() {
-    //     let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_lpb_with_parametertype_indirect1");
-    //     let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
-    //     assert_eq!(runner.inspect(10), "5,5,5,5,5,5,5,5,5,5");
-    // }
+    #[test]
+    fn test_70001_instruction_lpb_with_parametertype_indirect1() {
+        let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_lpb_with_parametertype_indirect1");
+        let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
+        assert_eq!(runner.inspect(10), "5,5,5,5,5,5,5,5,5,5");
+    }
 
     // #[test]
     // fn test_70002_instruction_lpb_with_parametertype_indirect2() {
@@ -527,7 +527,7 @@ mod tests {
     // }
     
     #[test]
-    fn test_70003_instruction_lpb_with_parametertype_indirect1() {
+    fn test_70003_instruction_lpb_with_range_direct() {
         let mut dm: DependencyManager = dependency_manager_mock("tests/instruction_lpb_with_range_direct");
         let runner: Rc::<ProgramRunner> = dm.load(1).unwrap();
         assert_eq!(runner.inspect(10), "5,5,5,5,5,5,5,5,5,5");

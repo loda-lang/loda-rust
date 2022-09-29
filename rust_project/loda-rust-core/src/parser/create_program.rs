@@ -6,6 +6,7 @@ use crate::execute::node_clear::*;
 use crate::execute::node_loop_constant::*;
 use crate::execute::node_loop_register::*;
 use crate::execute::node_loop_simple::*;
+use crate::execute::node_loop_slow::*;
 use crate::execute::node_seq::*;
 use crate::execute::compiletime_error::*;
 
@@ -96,8 +97,17 @@ enum LoopType {
     /// When dealing with `ParameterType::Indirect` that are non-trivial to optimize.
     /// It's slow since nothing can be assumed about the `target` register and `source` register.
     Slow { instruction: Instruction },
+
+    /// Optimized where `target` is `ParameterType::Direct` and `source` always has a `range_length=1`.
+    /// This is the most popular type of loop.
     Simple,
+
+    /// Optimized where `target` is `ParameterType::Direct` and `source` is `ParameterType::Constant`.
+    /// Popularity is medium.
     RangeLengthWithConstant(u64),
+
+    /// Optimized where `target` is `ParameterType::Direct` and `source` is `ParameterType::Direct`.
+    /// Popularity is low.
     RangeLengthFromRegister(RegisterIndex),
 }
 
@@ -232,7 +242,8 @@ impl CreateProgram {
     
                     match loopscope.loop_type {
                         LoopType::Slow { instruction } => {
-
+                            let node = NodeLoopSlow::new(instruction, program_child)?;
+                            program.push(node);
                         },
                         LoopType::Simple => {
                             program.push(NodeLoopSimple::new(loop_register, program_child));
