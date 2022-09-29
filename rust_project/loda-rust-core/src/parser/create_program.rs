@@ -1,7 +1,7 @@
 use std::fmt;
 use super::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use super::validate_loops::*;
-use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, Program, LOOP_RANGE_MAX_BITS};
+use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, RegisterType, Program, LOOP_RANGE_MAX_BITS};
 use crate::execute::node_calc::*;
 use crate::execute::node_clear::*;
 use crate::execute::node_loop_constant::*;
@@ -128,6 +128,9 @@ fn create_node_seq(instruction: &Instruction) -> Result<BoxNode, CreateInstructi
 }
 
 enum LoopType {
+    /// When dealing with `ParameterType::Indirect` that are non-trivial to optimize.
+    /// It's slow since nothing can be assumed about the `target` register and `source` register.
+    Slow { instruction: Instruction },
     Simple,
     RangeLengthWithConstant(u64),
     RangeLengthFromRegister(RegisterIndex),
@@ -162,7 +165,6 @@ fn node_loop_range_parameter_constant(instruction: &Instruction, parameter: &Ins
 fn node_loop_range_parameter_register(instruction: &Instruction, parameter: &InstructionParameter) -> Result<LoopType, CreateInstructionError> {
     let register = RegisterIndexAndType::from_parameter(instruction, parameter)?;
     let register_index: RegisterIndex = register.register_index;
-    // TODO: deal with indirect register type in register
     let loop_type = LoopType::RangeLengthFromRegister(register_index);
     return Ok(loop_type);
 }
@@ -176,8 +178,8 @@ fn node_loop_range_parameter(instruction: &Instruction, parameter: &InstructionP
             return node_loop_range_parameter_register(instruction, parameter);
         },
         ParameterType::Indirect => {
-            // TODO: deal with indirect
-            panic!("Indirect");
+            let loop_type = LoopType::Slow { instruction: instruction.clone() };
+            return Ok(loop_type);
         }
     }
 }
@@ -193,7 +195,14 @@ fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstr
     let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
     let register0 = RegisterIndexAndType::from_parameter(instruction, parameter0)?;
     let register_index0 = register0.register_index;
-    // TODO: deal with indirect register type in register0
+
+    if register0.register_type == RegisterType::Indirect {
+        let ls = LoopScope {
+            register: register_index0,
+            loop_type: LoopType::Slow { instruction: instruction.clone() },
+        };
+        return Ok(ls)
+    }
 
     let loop_type: LoopType;
     if instruction.parameter_vec.len() == 2 {
@@ -289,6 +298,9 @@ impl CreateProgram {
                     program = program_parent;
     
                     match loopscope.loop_type {
+                        LoopType::Slow { instruction } => {
+
+                        },
                         LoopType::Simple => {
                             program.push(NodeLoopSimple::new(loop_register, program_child));
                         },
