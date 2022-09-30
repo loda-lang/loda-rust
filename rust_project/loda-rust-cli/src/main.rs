@@ -21,6 +21,7 @@ mod similar;
 mod subcommand_analytics;
 mod subcommand_dependencies;
 mod subcommand_evaluate;
+mod subcommand_export_dataset;
 mod subcommand_install;
 mod subcommand_mine;
 mod subcommand_pattern;
@@ -31,6 +32,7 @@ mod subcommand_test;
 use subcommand_analytics::subcommand_analytics;
 use subcommand_dependencies::subcommand_dependencies;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
+use subcommand_export_dataset::SubcommandExportDataset;
 use subcommand_install::subcommand_install;
 use subcommand_mine::{SubcommandMine,SubcommandMineMetricsMode};
 use subcommand_pattern::SubcommandPattern;
@@ -124,6 +126,11 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
                 )
         )
         .subcommand(
+            Command::new("export-dataset")
+                .about("Generates a .csv file with terms and programs, for use as AI training data.")
+                .hide(true)
+        )
+        .subcommand(
             Command::new("test-integration-with-lodacpp")
                 .about("Verify that integration with the 'lodacpp' executable is working.")
                 .hide(true)
@@ -197,6 +204,10 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         let append_verbose_details: bool = sub_m.is_present("verbose");
         SubcommandPattern::run(append_verbose_details);
         return Ok(());
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("export-dataset") {
+        return SubcommandExportDataset::export_dataset();
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("test-integration-with-lodacpp") {
