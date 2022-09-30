@@ -20,8 +20,27 @@ use serde::Serialize;
 use num_bigint::BigInt;
 use num_traits::Zero;
 
+/// In the OEIS stripped file. Ignore sequences that too short.
+const MIN_TERM_COUNT: usize = 20;
+
+/// In the OEIS stripped file. Only extract up to this number of terms.
+const MAX_TERM_COUNT: usize = 20;
+
 pub type OeisIdToTermsSet = HashMap::<OeisId, String>;
 
+/// This outputs a CSV file.
+/// 
+/// Path to the generated file: `~/.loda-rust/analytics/dataset.csv`.
+/// 
+/// Sample data:
+/// 
+/// ```csv
+/// oeis;terms;loda
+/// 1950;2,5,7,10,13,15,18,20,23,26,28,31,34,36,39,41,44,47,49,52;mov $1,$0\nadd $0,1\nseq $0,99267\nsub $0,1\nadd $0,$1
+/// 1951;0,1,2,4,5,7,8,9,11,12,14,15,16,18,19,21,22,24,25,26;mov $1,$0\nmul $1,$0\nlpb $1\nsub $1,$0\nadd $0,1\nsub $1,$0\nlpe
+/// 1952;3,6,10,13,17,20,23,27,30,34,37,40,44,47,51,54,58,61,64,68;seq $0,286927\ndiv $0,2
+/// 1953;0,2,3,4,6,7,9,10,12,13,14,16,17,19,20,21,23,24,26,27;mov $1,$0\nmul $0,2\npow $1,2\nlpb $1\nsub $1,1\nadd $0,2\ntrn $1,$0\nlpe\ndiv $0,2
+/// ```
 pub struct SubcommandExportDataset {
     config: Config,
     count_ignored: usize,
@@ -64,16 +83,13 @@ impl SubcommandExportDataset {
         let file = File::open(oeis_stripped_file)?;
         let mut oeis_stripped_file_reader = BufReader::new(file);
 
-        let minimum_number_of_required_terms = 20;
-        let term_count = 20;
-        let padding_value = BigInt::zero();
-    
+        let padding_value = BigInt::zero();    
         let mut processor = ProcessStrippedFile::new();
         let oeis_ids_to_ignore = OeisIdHashSet::new();
         processor.execute(
             &mut oeis_stripped_file_reader,
-            minimum_number_of_required_terms,
-            term_count,
+            MIN_TERM_COUNT,
+            MAX_TERM_COUNT,
             &oeis_ids_to_ignore,
             &padding_value, 
             false,
@@ -96,8 +112,7 @@ impl SubcommandExportDataset {
         let ignore_program_ids: HashSet<u32> = invalid_program_ids.into_iter().collect();
 
         let dir_containing_programs: PathBuf = self.config.loda_programs_oeis_dir();
-        let mut paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
-        // paths.truncate(1000);
+        let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
         let number_of_paths = paths.len();
         if number_of_paths <= 0 {
             return Err(anyhow::anyhow!("Expected 1 or more programs, but there are no programs to analyze"));
