@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::analytics::{AnalyzeDependencies, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, ValidatePrograms, compute_program_rank};
+use crate::analytics::{AnalyzeDependencies, AnalyzeIndirectMemoryAccess, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, ValidatePrograms, compute_program_rank};
 use crate::common::SimpleLog;
 use crate::mine::PopulateBloomfilter;
 use std::error::Error;
@@ -41,6 +41,7 @@ impl Analytics {
 
     fn run_batch_program_analyzer(simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
         let plugin_dependencies = Rc::new(RefCell::new(AnalyzeDependencies::new()));
+        let plugin_indirect_memory_access = Rc::new(RefCell::new(AnalyzeIndirectMemoryAccess::new()));
         let plugin_instruction_constant = Rc::new(RefCell::new(AnalyzeInstructionConstant::new()));
         let plugin_instruction_ngram = Rc::new(RefCell::new(AnalyzeInstructionNgram::new()));
         let plugin_source_ngram = Rc::new(RefCell::new(AnalyzeSourceNgram::new()));
@@ -48,6 +49,7 @@ impl Analytics {
         let plugin_program_complexity = Rc::new(RefCell::new(AnalyzeProgramComplexity::new()));
         let plugin_vec: Vec<BatchProgramAnalyzerPluginItem> = vec![
             plugin_dependencies,
+            plugin_indirect_memory_access,
             plugin_instruction_constant,
             plugin_instruction_ngram,
             plugin_source_ngram,

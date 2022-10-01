@@ -2,6 +2,7 @@
 mod analytics;
 mod analytics_error;
 mod analyze_dependencies;
+mod analyze_indirect_memory_access;
 mod analyze_instruction_constant;
 mod analyze_instruction_ngram;
 mod analyze_source_ngram;
@@ -17,6 +18,7 @@ mod validate_programs;
 pub use analytics::Analytics;
 pub use analytics_error::AnalyticsError;
 pub use analyze_dependencies::AnalyzeDependencies;
+pub use analyze_indirect_memory_access::AnalyzeIndirectMemoryAccess;
 pub use analyze_instruction_constant::AnalyzeInstructionConstant;
 pub use analyze_instruction_ngram::AnalyzeInstructionNgram;
 pub use analyze_program_complexity::AnalyzeProgramComplexity;
