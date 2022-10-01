@@ -343,6 +343,12 @@ impl RunMinerLoop {
         }
         let terms40_wildcard: &BigIntVec = &funnel40terms;
 
+        if self.genome.contains_indirect_memory_access() {
+            println!("!!!!!! funnel40 indirect, yay !!!!!!!!!!!");
+        } else {
+            // println!("funnel40 non-indirect");
+        }
+
         // Reject, if it's identical to one of the programs that this program depends on
         let depends_on_program_ids: HashSet<u32> = self.genome.depends_on_program_ids();
         let mut reject_self_dependency = false;

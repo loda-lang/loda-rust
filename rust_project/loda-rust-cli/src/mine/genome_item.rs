@@ -244,6 +244,14 @@ impl GenomeItem {
             return false;
         }
 
+        // Prevent messing up programs that use ParameterType::Indirect
+        let is_indirect = 
+            self.source_type == ParameterType::Indirect ||
+            self.target_type == RegisterType::Indirect;
+        if is_indirect {
+            return false;
+        }
+
         self.enabled = !self.enabled;
         true
     }
@@ -369,7 +377,11 @@ impl GenomeItem {
         }
 
         // Prevent too extreme register index for source
-        if self.source_type == ParameterType::Direct {
+        let sanitize_source_value: bool = match self.source_type {
+            ParameterType::Constant => false,
+            ParameterType::Direct | ParameterType::Indirect => true
+        };
+        if sanitize_source_value {
             let new_register = self.source_value % SANITIZE_MAX_NUMBER_OF_REGISTERS;
             if self.source_value != new_register {
                 self.source_value = new_register;
@@ -503,13 +515,25 @@ impl GenomeItem {
                 }
             },
             InstructionId::Add => {
-                if self.source_type == ParameterType::Constant {
-                    if self.source_value < 1 {
-                        self.source_value = 1;
-                        return false;
-                    }
-                    if self.source_value > 16 {
-                        self.source_value = 16;
+                match self.source_type {
+                    ParameterType::Constant => {
+                        if self.source_value < 1 {
+                            self.source_value = 1;
+                            return false;
+                        }
+                        if self.source_value > 16 {
+                            self.source_value = 16;
+                            return false;
+                        }
+                    },
+                    ParameterType::Direct => {
+                        if self.source_value == self.target_value {
+                            self.source_value = (self.target_value + 1) % 5;
+                            return false;
+                        }
+                    },
+                    ParameterType::Indirect => {
+                        // don't mutate a row that uses indirect
                         return false;
                     }
                 }
@@ -560,7 +584,9 @@ impl GenomeItem {
                     }
                 }
             },
-            _ => {}
+            _ => {
+                return false;
+            }
         }
         return status;
     }
@@ -648,6 +674,12 @@ impl GenomeItem {
 
 impl fmt::Display for GenomeItem {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.source_type == ParameterType::Indirect {
+            println!("!!!!!! GenomeItem.fmt indirect source");
+        }
+        if self.target_type == RegisterType::Indirect {
+            println!("!!!!!! GenomeItem.fmt indirect target");
+        }
         let line_prefix: &str;
         if self.enabled {
             line_prefix = "";
