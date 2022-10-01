@@ -86,6 +86,16 @@ pub fn start_miner_loop(
     };
     println!("number_of_valid_program_ids = {}", valid_program_ids.len());
 
+    // Load the valid program_ids, that can execute.
+    let indirect_memory_access_csv: PathBuf = config.analytics_dir_indirect_memory_access_file();
+    let indirect_memory_access_program_ids: Vec<u32> = match load_program_ids_csv_file(&indirect_memory_access_csv) {
+        Ok(value) => value,
+        Err(error) => {
+            panic!("Unable to load file. path: {:?} error: {:?}", indirect_memory_access_csv, error);
+        }
+    };
+    println!("indirect_memory_access_program_ids = {}", indirect_memory_access_program_ids.len());
+
     // Load the invalid program_ids, that are defunct, such as cannot execute, cyclic-dependency.
     let programs_invalid_file = config.analytics_dir_programs_invalid_file();
     let invalid_program_ids: Vec<u32> = match load_program_ids_csv_file(&programs_invalid_file) {
@@ -141,6 +151,7 @@ pub fn start_miner_loop(
 
     let context = GenomeMutateContext::new(
         valid_program_ids,
+        indirect_memory_access_program_ids,
         invalid_program_ids_hashset,
         popular_program_container,
         recent_program_container,

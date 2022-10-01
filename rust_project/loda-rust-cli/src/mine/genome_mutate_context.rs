@@ -9,6 +9,7 @@ use std::collections::HashSet;
 
 pub struct GenomeMutateContext {
     valid_program_ids: Vec<u32>,
+    indirect_memory_access_program_ids: Vec<u32>,
     invalid_program_ids: HashSet<u32>,
     popular_program_container: PopularProgramContainer,
     recent_program_container: RecentProgramContainer,
@@ -21,6 +22,7 @@ pub struct GenomeMutateContext {
 impl GenomeMutateContext {
     pub fn new(
         valid_program_ids: Vec<u32>, 
+        indirect_memory_access_program_ids: Vec<u32>,
         invalid_program_ids: HashSet<u32>,
         popular_program_container: PopularProgramContainer, 
         recent_program_container: RecentProgramContainer,
@@ -31,6 +33,7 @@ impl GenomeMutateContext {
     ) -> Self {
         Self {
             valid_program_ids: valid_program_ids,
+            indirect_memory_access_program_ids: indirect_memory_access_program_ids,
             invalid_program_ids: invalid_program_ids,
             popular_program_container: popular_program_container,
             recent_program_container: recent_program_container,
