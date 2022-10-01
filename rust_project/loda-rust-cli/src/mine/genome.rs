@@ -483,6 +483,10 @@ impl Genome {
         if index0 >= 0 {
             match self.genome_vec.get(index0 as usize) {
                 Some(ref value) => {
+                    // TODO: if target_type is indirect, then abort the mutation
+                    // if value.target_type() != ParameterType::Direct {
+                    //     return false;
+                    // }
                     prev_word = Self::get_target_value(value)
                 },
                 None => {}
@@ -491,11 +495,19 @@ impl Genome {
         let mut next_word: TargetValue = TargetValue::ProgramStop;
         match self.genome_vec.get(index2) {
             Some(ref value) => {
-                next_word = Self::get_target_value(value)
+                // TODO: if target_type is indirect, then abort the mutation
+                // if value.target_type() != ParameterType::Direct {
+                //     return false;
+                // }
+            next_word = Self::get_target_value(value)
             },
             None => {}
         };
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index1];
+        // TODO: if target_type is indirect, then abort the mutation
+        // if genome_item.target_type() != ParameterType::Direct {
+        //     return false;
+        // }
         let suggested_value: TargetValue = match context.suggest_target(rng, prev_word, next_word) {
             Some(value) => value,
             None => {
