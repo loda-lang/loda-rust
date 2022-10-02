@@ -197,7 +197,7 @@ impl RunMinerLoop {
             self.reload = true;
         }
         if (self.iteration % 50000) == 0 {
-            match self.context.choose_available_program(&mut self.rng) {
+            match self.context.choose_initial_genome_program(&mut self.rng) {
                 Some(program_id) => { 
                     self.current_program_id = program_id as u64;
                 },
