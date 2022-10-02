@@ -77,6 +77,11 @@ impl GenomeItem {
     }
 
     #[allow(dead_code)]
+    pub fn target_type(&self) -> &RegisterType {
+        &self.target_type
+    }
+
+    #[allow(dead_code)]
     pub fn target_value(&self) -> i32 {
         self.target_value
     }

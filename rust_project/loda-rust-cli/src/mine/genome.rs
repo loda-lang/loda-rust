@@ -362,13 +362,21 @@ impl Genome {
         if instruction_id == InstructionId::LoopEnd {
             return SourceValue::None;
         }
-        let value: i32 = genome_item.source_value();
         if instruction_id == InstructionId::LoopBegin {
-            if value == 1 {
+            return SourceValue::None;
+        }
+        match genome_item.source_type() {
+            ParameterType::Constant => {
+                return SourceValue::Constant;            
+            },
+            ParameterType::Direct => {
+                let value: i32 = genome_item.source_value();
+                return SourceValue::Value(value);
+            },
+            ParameterType::Indirect => {
                 return SourceValue::None;
             }
         }
-        SourceValue::Value(value)
     }
 
     /// Return `true` when the mutation was successful.
@@ -402,7 +410,24 @@ impl Genome {
             },
             None => {}
         };
+        if prev_word == SourceValue::None && next_word == SourceValue::None {
+            return false;
+        }
+        if prev_word == SourceValue::ProgramStart && next_word == SourceValue::ProgramStop {
+            return false;
+        }
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index1];
+        if *genome_item.source_type() != ParameterType::Direct {
+            // Only modify when the ParameterType=Direct.
+            //
+            // Prevent modifying an existing instruction if it has ParameterType=Indirect
+            // since the `histogram_source_trigram.csv` doesn't consider indirect.
+            //
+            // Prevent modifying an existing instruction if it has ParameterType=Constant
+            // since the `histogram_source_trigram.csv` doesn't consider constant.
+            // The CSV file has `CONST`, but none of the constants.
+            return false;
+        }
         let suggested_value: SourceValue = match context.suggest_source(rng, prev_word, next_word) {
             Some(value) => value,
             None => {
@@ -415,7 +440,6 @@ impl Genome {
                 return false;
             }
         };
-        // let old_source: i32 = genome_item.source_value();
         if suggested_value_inner == genome_item.source_value() {
             return false;
         }
@@ -423,7 +447,6 @@ impl Genome {
             return false;
         }
         genome_item.set_source_value(suggested_value_inner);
-        // debug!("suggest source: {:?} -> {:?}", old_source, suggested_value_inner);
         // No need to sanitize when using histogram
         true
     }
