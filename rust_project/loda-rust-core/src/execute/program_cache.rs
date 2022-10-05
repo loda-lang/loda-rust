@@ -1,6 +1,7 @@
 use num_bigint::BigInt;
 
 extern crate lru;
+use std::num::NonZeroUsize;
 use lru::LruCache;
 
 const DEFAULT_CACHE_CAPACITY: usize = 3000;
@@ -25,10 +26,11 @@ pub struct ProgramCache {
 
 impl ProgramCache {
     pub fn new() -> Self {
-        Self::with_capacity(DEFAULT_CACHE_CAPACITY)
+        let capacity = NonZeroUsize::new(DEFAULT_CACHE_CAPACITY).unwrap();
+        Self::with_capacity(capacity)
     }
 
-    pub fn with_capacity(capacity: usize) -> Self {
+    pub fn with_capacity(capacity: NonZeroUsize) -> Self {
         let cache: LruCache<CacheKey, CacheValue> = LruCache::new(capacity);
         Self {
             cache: cache,
@@ -100,7 +102,8 @@ mod tests {
 
     #[test]
     fn test_10000_lru_cache() {
-        let mut cache = LruCache::new(2);
+        let capacity = NonZeroUsize::new(2).unwrap();
+        let mut cache = LruCache::new(capacity);
         cache.put("apple", 3);
         cache.put("banana", 2);
         assert_eq!(*cache.get(&"apple").unwrap(), 3);

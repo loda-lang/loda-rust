@@ -9,6 +9,7 @@ use std::time::Duration;
 use std::sync::mpsc::{channel, Receiver};
 use std::time::Instant;
 use std::convert::TryFrom;
+use std::num::NonZeroUsize;
 use std::path::PathBuf;
 use prometheus_client::encoding::text::encode;
 use prometheus_client::registry::Registry;
@@ -105,7 +106,8 @@ impl SubcommandMine {
             DependencyManagerFileSystemMode::System,
             loda_programs_oeis_dir,
         );
-        let mut cache = ProgramCache::with_capacity(PREVENT_FLOODING_CACHE_CAPACITY);
+        let capacity = NonZeroUsize::new(PREVENT_FLOODING_CACHE_CAPACITY).unwrap();
+        let mut cache = ProgramCache::with_capacity(capacity);
         let mut prevent_flooding = PreventFlooding::new();
         prevent_flooding_populate(&mut prevent_flooding, &mut dependency_manager, &mut cache, paths);
         println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
