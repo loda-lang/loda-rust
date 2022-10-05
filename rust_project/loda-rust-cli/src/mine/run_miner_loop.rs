@@ -10,6 +10,7 @@ use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::util::{BigIntVec, BigIntVecToString};
 use loda_rust_core::parser::ParsedProgram;
 use std::collections::HashSet;
+use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
@@ -102,13 +103,14 @@ impl RunMinerLoop {
         rng: StdRng,
         terms_to_program_id: Arc<TermsToProgramIdSet>
     ) -> Self {
+        let capacity = NonZeroUsize::new(MINER_CACHE_CAPACITY).unwrap();
         Self {
             tx: tx,
             recorder: recorder,
             dependency_manager: dependency_manager,
             funnel: funnel,
             mine_event_dir: PathBuf::from(mine_event_dir),
-            cache: ProgramCache::with_capacity(MINER_CACHE_CAPACITY),
+            cache: ProgramCache::with_capacity(capacity),
             prevent_flooding: prevent_flooding,
             context: context,
             genome: genome,
