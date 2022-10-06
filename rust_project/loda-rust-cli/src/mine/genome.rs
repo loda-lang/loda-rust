@@ -33,6 +33,7 @@ pub enum MutateGenome {
     CallMediumPopularProgram,
     CallLeastPopularProgram,
     CallRecentProgram,
+    CallProgramThatUsesIndirectMemoryAccess,
 }
 
 pub struct Genome {
@@ -983,6 +984,9 @@ impl Genome {
             MutateGenome::CallRecentProgram => {
                 return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::Recent);
             },
+            MutateGenome::CallProgramThatUsesIndirectMemoryAccess => {
+                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::ProgramThatUsesIndirectMemoryAccess);
+            }
         }
     }
 }

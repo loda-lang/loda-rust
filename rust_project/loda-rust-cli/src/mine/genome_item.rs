@@ -26,6 +26,7 @@ pub enum MutateEvalSequenceCategory {
     MediumPopular,
     LeastPopular,
     Recent,
+    ProgramThatUsesIndirectMemoryAccess,
 }
 
 #[derive(Debug)]
@@ -333,7 +334,8 @@ impl GenomeItem {
             MutateEvalSequenceCategory::MostPopular => context.choose_most_popular(rng),
             MutateEvalSequenceCategory::MediumPopular => context.choose_medium_popular(rng),
             MutateEvalSequenceCategory::LeastPopular => context.choose_least_popular(rng),
-            MutateEvalSequenceCategory::Recent => context.choose_recent_program(rng)
+            MutateEvalSequenceCategory::Recent => context.choose_recent_program(rng),
+            MutateEvalSequenceCategory::ProgramThatUsesIndirectMemoryAccess => context.choose_indirect_memory_access_program_id(rng),
         };
         let new_program_id: u32 = match chosen_program_id {
             Some(value) => value,

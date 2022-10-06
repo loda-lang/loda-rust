@@ -143,6 +143,9 @@ pub fn start_miner_loop(
     );
     dependency_manager.set_execute_profile(ExecuteProfile::SmallLimits);
 
+    let initial_genome_program_ids = valid_program_ids.clone();
+    // let initial_genome_program_ids = indirect_memory_access_program_ids.clone();
+
     // Pick a random seed
     let mut rng = thread_rng();
     let initial_random_seed: u64 = rng.next_u64();
@@ -151,6 +154,7 @@ pub fn start_miner_loop(
 
     let context = GenomeMutateContext::new(
         valid_program_ids,
+        initial_genome_program_ids,
         indirect_memory_access_program_ids,
         invalid_program_ids_hashset,
         popular_program_container,
