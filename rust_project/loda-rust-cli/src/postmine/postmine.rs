@@ -25,25 +25,6 @@ use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
 use anyhow::Context;
 
-/// The repository "loda-outlier-programs" holds programs, that have completes the mining funnel.
-/// When running "postmine" the program is checked with the b-file, 
-/// 
-/// If it matches with the b-file, there is a chance it's new program that has been discovered, 
-/// or it's an improvement to an existing program.
-/// 
-/// If it's doesn't match with the b-file then it gets added to the "loda-outlier-programs".
-/// Originally the number of variants was 1000, but this would quickly blow up to lots of
-/// files.
-/// 
-/// 
-/// ```
-/// OEIS ID _ NUMBER OF CORRECT TERMS _ VARIANT INDEX . asm
-/// A144414_32_1.asm
-/// A132337_63_12.asm
-/// A168741_18_303.asm
-/// ```
-const MAX_NUMBER_OF_OUTLIER_VARIANTS: usize = 10;
-
 type CandidateProgramItem = Rc<RefCell<CandidateProgram>>;
 
 /// Process the pending programs inside the `mine-event` dir.
@@ -55,7 +36,7 @@ type CandidateProgramItem = Rc<RefCell<CandidateProgram>>;
 /// the input file gets renamed to `20220826-210221-120462594.keep.asm`
 /// 
 /// If the mined program is sharing lots of terms with OEIS sequences,
-/// but isn't quite a full match, then it gets added to the `oeis_divergent` repo. 
+/// but isn't quite a full match, then it gets added to the `loda-outlier-programs/oeis_divergent` repo. 
 /// This is also a keeper.
 /// the input file gets renamed to `20220826-210221-120462594.keep.asm`
 /// 
@@ -88,6 +69,25 @@ impl PostMine {
     const LODACPP_CHECK_TIME_LIMIT_IN_SECONDS: u64 = 120;
     const LODACPP_COMPARE_NUMBER_OF_TERM_COUNT: usize = 60;
     const LODACPP_STEPS_TIME_LIMIT_IN_SECONDS: u64 = 120;
+
+    /// The repository "loda-outlier-programs" holds programs, that have completes the mining funnel.
+    /// When running "postmine" the program is checked with the b-file, 
+    /// 
+    /// If it matches with the b-file, there is a chance it's new program that has been discovered, 
+    /// or it's an improvement to an existing program.
+    /// 
+    /// If it's doesn't match with the b-file then it gets added to the "loda-outlier-programs".
+    /// Originally the number of variants was 1000, but this caused the repo to quickly grow to 300k files.
+    /// Now the limit is smaller and fewer files to deal with.
+    /// 
+    /// Examples of filenames with a `variant index`:
+    /// ```
+    /// OEIS ID _ NUMBER OF CORRECT TERMS _ VARIANT INDEX . asm
+    /// A144414_32_1.asm
+    /// A132337_63_12.asm
+    /// A168741_18_303.asm
+    /// ```
+    const MAX_NUMBER_OF_OUTLIER_VARIANTS: usize = 10;
 
     pub fn run() -> Result<(), Box<dyn Error>> {
         let mut instance = Self::new()?;
@@ -520,7 +520,7 @@ impl PostMine {
         let dir_index_string: String = format!("{:0>3}", dir_index);
         let dir_path: PathBuf = self.loda_outlier_programs_repository_oeis_divergent.join(&dir_index_string);
         let name = oeis_id.a_number();
-        for variant_index in 0..MAX_NUMBER_OF_OUTLIER_VARIANTS {
+        for variant_index in 0..Self::MAX_NUMBER_OF_OUTLIER_VARIANTS {
             let filename = format!("{}{}_{}_{}.asm", name, name_suffix, correct_term_count, variant_index);
             let file_path: PathBuf = dir_path.join(filename);
             if !file_path.is_file() {
