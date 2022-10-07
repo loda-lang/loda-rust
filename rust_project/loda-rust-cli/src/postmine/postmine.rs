@@ -25,6 +25,25 @@ use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
 use anyhow::Context;
 
+/// The repository "loda-outlier-programs" holds programs, that have completes the mining funnel.
+/// When running "postmine" the program is checked with the b-file, 
+/// 
+/// If it matches with the b-file, there is a chance it's new program that has been discovered, 
+/// or it's an improvement to an existing program.
+/// 
+/// If it's doesn't match with the b-file then it gets added to the "loda-outlier-programs".
+/// Originally the number of variants was 1000, but this would quickly blow up to lots of
+/// files.
+/// 
+/// 
+/// ```
+/// OEIS ID _ NUMBER OF CORRECT TERMS _ VARIANT INDEX . asm
+/// A144414_32_1.asm
+/// A132337_63_12.asm
+/// A168741_18_303.asm
+/// ```
+const MAX_NUMBER_OF_OUTLIER_VARIANTS: usize = 10;
+
 type CandidateProgramItem = Rc<RefCell<CandidateProgram>>;
 
 /// Process the pending programs inside the `mine-event` dir.
@@ -501,14 +520,14 @@ impl PostMine {
         let dir_index_string: String = format!("{:0>3}", dir_index);
         let dir_path: PathBuf = self.loda_outlier_programs_repository_oeis_divergent.join(&dir_index_string);
         let name = oeis_id.a_number();
-        for index in 0..1000 {
-            let filename = format!("{}{}_{}_{}.asm", name, name_suffix, correct_term_count, index);
+        for variant_index in 0..MAX_NUMBER_OF_OUTLIER_VARIANTS {
+            let filename = format!("{}{}_{}_{}.asm", name, name_suffix, correct_term_count, variant_index);
             let file_path: PathBuf = dir_path.join(filename);
             if !file_path.is_file() {
                 return Ok(ParentDirAndChildFile::new(dir_path, file_path))
             }
         }
-        Err(anyhow::anyhow!("loda_outlier_programs repo: Cannot construct unique filename for {:?}", oeis_id.a_number()))
+        Err(anyhow::anyhow!("loda_outlier_programs repo: Cannot construct unique filename for {:?} inside dir: {:?}", oeis_id.a_number(), dir_path))
     }
 
     fn determine_status_of_existing_program(&self, program_id: OeisId, path: &Path) -> StatusOfExistingProgram {
@@ -754,17 +773,24 @@ impl PostMine {
         simple_log: SimpleLog, 
         candidate_program: CandidateProgramItem, 
         path_program0: &Path, 
-        program_id: OeisId, 
+        oeis_id: OeisId, 
         number_of_correct_terms: u32
     ) -> anyhow::Result<()> {
-        let destination_path: ParentDirAndChildFile = self.path_to_mismatch(program_id, number_of_correct_terms as usize)?;
+        let destination_path: ParentDirAndChildFile = match self.path_to_mismatch(oeis_id, number_of_correct_terms as usize) {
+            Ok(value) => value,
+            Err(error) => {
+                let message = format!("process_partial_match: discarding program. path_to_mismatch. error: {:?}", error);
+                simple_log.println(message);
+                return Ok(());
+            }
+        };
         destination_path.create_parent_dir()
-            .map_err(|e| anyhow::anyhow!("process_partial_match: Unable to create parent dir. program_id: {:?} error: {:?}", program_id, e))?;
+            .map_err(|e| anyhow::anyhow!("process_partial_match: Unable to create parent dir. oeis_id: {:?} error: {:?}", oeis_id, e))?;
 
         let message = format!("Keeping. This program is a mismatch, it has correct {} terms, followed by mismatch. Saving at: {:?}", number_of_correct_terms, destination_path.child_file());
         simple_log.println(message);
         fs::copy(path_program0, destination_path.child_file())?;
-        candidate_program.borrow_mut().keep_id_insert(program_id);
+        candidate_program.borrow_mut().keep_id_insert(oeis_id);
         Ok(())
     }
 
@@ -776,7 +802,14 @@ impl PostMine {
         oeis_id: OeisId, 
         number_of_correct_terms: u32
     ) -> anyhow::Result<()> {
-        let destination_path: ParentDirAndChildFile = self.path_to_timeout(oeis_id, number_of_correct_terms as usize)?;
+        let destination_path: ParentDirAndChildFile = match self.path_to_timeout(oeis_id, number_of_correct_terms as usize) {
+            Ok(value) => value,
+            Err(error) => {
+                let message = format!("process_timeout: discarding program. path_to_timeout. error: {:?}", error);
+                simple_log.println(message);
+                return Ok(());
+            }
+        };
         destination_path.create_parent_dir()
             .map_err(|e| anyhow::anyhow!("process_timeout: Unable to create parent dir. oeis_id: {:?} error: {:?}", oeis_id, e))?;
 
