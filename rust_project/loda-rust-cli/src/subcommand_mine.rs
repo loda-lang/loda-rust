@@ -14,6 +14,7 @@ use std::path::PathBuf;
 use prometheus_client::encoding::text::encode;
 use prometheus_client::registry::Registry;
 use std::sync::{Arc, Mutex};
+use indicatif::HumanDuration;
 use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
 use crate::mine::{PreventFlooding, prevent_flooding_populate};
 use crate::common::find_asm_files_recursively;
@@ -89,18 +90,19 @@ impl SubcommandMine {
     }
 
     pub fn populate_prevent_flooding_mechanism(&mut self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let start = Instant::now();
         let loda_programs_oeis_dir: PathBuf = self.config.loda_programs_oeis_dir();
         let mine_event_dir: PathBuf = self.config.mine_event_dir();
         let oeis_divergent_dir: PathBuf = self.config.loda_outlier_programs_repository_oeis_divergent();
     
         let mut paths0: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
-        println!("number of .asm files in mine_event_dir: {:?}", paths0.len());
+        println!("PreventFlooding: number of .asm files in mine_event_dir: {:?}", paths0.len());
         let mut paths1: Vec<PathBuf> = find_asm_files_recursively(&oeis_divergent_dir);
-        println!("number of .asm files in oeis_divergent_dir: {:?}", paths1.len());
+        println!("PreventFlooding: number of .asm files in oeis_divergent_dir: {:?}", paths1.len());
         let mut paths: Vec<PathBuf> = vec!();
         paths.append(&mut paths0);
         paths.append(&mut paths1);
-        println!("number of .asm files in total: {:?}", paths.len());
+        println!("PreventFlooding: number of .asm files in total: {:?}", paths.len());
     
         let mut dependency_manager = DependencyManager::new(
             DependencyManagerFileSystemMode::System,
@@ -110,7 +112,8 @@ impl SubcommandMine {
         let mut cache = ProgramCache::with_capacity(capacity);
         let mut prevent_flooding = PreventFlooding::new();
         prevent_flooding_populate(&mut prevent_flooding, &mut dependency_manager, &mut cache, paths);
-        println!("number of programs added to the PreventFlooding mechanism: {}", prevent_flooding.len());
+        println!("PreventFlooding: number of programs added: {}", prevent_flooding.len());
+        println!("PreventFlooding: elapsed: {}", HumanDuration(start.elapsed()));
         self.prevent_flooding = Arc::new(Mutex::new(prevent_flooding));
         Ok(())
     }
