@@ -5,9 +5,7 @@ use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::util::BigIntVec;
 use std::fs;
 use std::path::PathBuf;
-use std::time::Instant;
-use console::Style;
-use indicatif::{HumanDuration, ProgressBar};
+use indicatif::ProgressBar;
 
 trait ComputeTerms {
     fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError>;
@@ -51,7 +49,6 @@ pub fn prevent_flooding_populate(prevent_flooding: &mut PreventFlooding, depende
     let mut number_of_already_registered_programs: usize = 0;
     let mut number_of_successfully_registered_programs: usize = 0;
     let pb = ProgressBar::new(paths.len() as u64);
-    let start = Instant::now();
     for path in paths {
         pb.inc(1);
         let contents: String = match fs::read_to_string(&path) {
@@ -87,13 +84,6 @@ pub fn prevent_flooding_populate(prevent_flooding: &mut PreventFlooding, depende
     }
     let junk_count: usize = number_of_read_errors + number_of_parse_errors + number_of_runtime_errors + number_of_already_registered_programs;
     pb.finish_and_clear();
-
-    let green_bold = Style::new().green().bold();        
-    println!(
-        "{:>12} prevent_flooding_populate in {}",
-        green_bold.apply_to("Finished"),
-        HumanDuration(start.elapsed())
-    );
 
     debug!("prevent flooding. Registered {} programs. Ignoring {} junk programs.", number_of_successfully_registered_programs, junk_count);
 }

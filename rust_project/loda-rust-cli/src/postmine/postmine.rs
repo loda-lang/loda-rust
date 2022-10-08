@@ -1,10 +1,10 @@
 use crate::config::Config;
 use crate::common::{oeis_ids_from_program_string, OeisIdStringMap};
-use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, SimpleLog};
+use crate::common::{find_asm_files_recursively, find_pending_programs, load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use super::{batch_lookup_names, terms_from_program, FormatProgram, path_for_oeis_program};
-use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, find_pending_programs, ParentDirAndChildFile, State, StatusOfExistingProgram, ValidateSingleProgram};
+use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, ParentDirAndChildFile, State, StatusOfExistingProgram, ValidateSingleProgram};
 use loda_rust_core::oeis::{OeisId, OeisIdHashSet};
 use loda_rust_core::util::BigIntVec;
 use loda_rust_core::util::BigIntVecToString;
