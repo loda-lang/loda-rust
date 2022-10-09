@@ -945,9 +945,11 @@ impl Genome {
         genome_item.mutate_eval_sequence_instruction(rng, context, category)
     }
 
-    /// Return `true` when the mutation was successful.
+    /// Apply a mutation to the genome.
     /// 
-    /// Return `false` in case of failure.
+    /// Return `true` when the genome got altered.
+    /// 
+    /// Return `false` in case the mutation didn't change the genome.
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             // (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
@@ -974,75 +976,83 @@ impl Genome {
             (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 100),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
-        self.message_vec.push(format!("mutate: {:?}", mutation));
-        match mutation {
+
+        let did_mutate_ok: bool = match mutation {
             MutateGenome::ReplaceInstructionWithoutHistogram => {
-                return self.replace_instruction_without_histogram(rng);
+                self.replace_instruction_without_histogram(rng)
             },
             MutateGenome::ReplaceInstructionWithHistogram => {
-                return self.replace_instruction_with_histogram(rng, context);
+                self.replace_instruction_with_histogram(rng, context)
             },
             MutateGenome::InsertInstructionWithConstant => {
-                return self.insert_instruction_with_constant(rng, context);
+                self.insert_instruction_with_constant(rng, context)
             },
             MutateGenome::IncrementSourceValueWhereTypeIsConstant => {
-                return self.increment_source_value_where_type_is_constant(rng);
+                self.increment_source_value_where_type_is_constant(rng)
             },
             MutateGenome::DecrementSourceValueWhereTypeIsConstant => {
-                return self.decrement_source_value_where_type_is_constant(rng);
+                self.decrement_source_value_where_type_is_constant(rng)
             },
             MutateGenome::ReplaceSourceConstantWithHistogram => {
-                return self.replace_source_constant_with_histogram(rng, context);
+                self.replace_source_constant_with_histogram(rng, context)
             },
             MutateGenome::SourceType => {
-                return self.mutate_source_type(rng);
+                self.mutate_source_type(rng)
             },
             MutateGenome::SwapRegisters => {
-                return self.mutate_swap_registers(rng);
+                self.mutate_swap_registers(rng)
             },
             MutateGenome::ReplaceSourceRegisterWithoutHistogram => {
-                return self.replace_source_register_without_histogram(rng);
+                self.replace_source_register_without_histogram(rng)
             },
             MutateGenome::ReplaceSourceRegisterWithHistogram => {
-                return self.replace_source_register_with_histogram(rng, context);
+                self.replace_source_register_with_histogram(rng, context)
             },
             MutateGenome::ReplaceTargetWithoutHistogram => {
-                return self.replace_target_without_histogram(rng);
+                self.replace_target_without_histogram(rng)
             },
             MutateGenome::ReplaceTargetWithHistogram => {
-                return self.replace_target_with_histogram(rng, context);
+                self.replace_target_with_histogram(rng, context)
             },
             MutateGenome::ToggleEnabled => {
-                return self.mutate_enabled(rng);
+                self.mutate_enabled(rng)
             },
             MutateGenome::SwapRows => {
-                return self.mutate_swap_rows(rng);
+                self.mutate_swap_rows(rng)
             },
             MutateGenome::SwapAdjacentRows => {
-                return self.mutate_swap_adjacent_rows(rng);
+                self.mutate_swap_adjacent_rows(rng)
             },
             MutateGenome::InsertLoopBeginEnd => {
-                return self.mutate_insert_loop(rng);
+                self.mutate_insert_loop(rng)
             },            
             MutateGenome::CallProgramWeightedByPopularity => {
-                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::WeightedByPopularity);
+                self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::WeightedByPopularity)
             },
             MutateGenome::CallMostPopularProgram => {
-                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::MostPopular);
+                self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::MostPopular)
             },
             MutateGenome::CallMediumPopularProgram => {
-                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::MediumPopular);
+                self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::MediumPopular)
             },
             MutateGenome::CallLeastPopularProgram => {
-                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::LeastPopular);
+                self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::LeastPopular)
             },
             MutateGenome::CallRecentProgram => {
-                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::Recent);
+                self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::Recent)
             },
             MutateGenome::CallProgramThatUsesIndirectMemoryAccess => {
-                return self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::ProgramThatUsesIndirectMemoryAccess);
+                self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::ProgramThatUsesIndirectMemoryAccess)
             }
+        };
+
+        if did_mutate_ok {
+            self.message_vec.push(format!("mutate: {:?}", mutation));
+        } else {
+            self.message_vec.push(format!("mutate: {:?}, no change", mutation));
         }
+
+        did_mutate_ok
     }
 }
 
