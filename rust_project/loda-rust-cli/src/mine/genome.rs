@@ -16,7 +16,7 @@ pub enum MutateGenome {
     ReplaceInstructionWithoutHistogram,
     ReplaceInstructionWithHistogram,
     InsertInstructionWithConstant,
-    ReplaceSourceConstantWithoutHistogram,
+    IncrementSourceValueWhereTypeIsConstant,
     ReplaceSourceConstantWithHistogram,
     SourceType,
     SwapRegisters,
@@ -198,16 +198,13 @@ impl Genome {
         self.message_vec.push(message);
     }
 
-    /// Assign a pseudo random constant.
-    ///
-    /// There is a high probability that the picked constant is junk.
+    /// Increment the source value.
     ///
     /// Return `true` when the mutation was successful.
     /// 
-    /// Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
-    #[allow(dead_code)]
-    pub fn replace_source_constant_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        // Identify the instructions that use constants
+    /// Return `false` in case the mutation had no effect.
+    pub fn increment_source_value_where_type_is_constant<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        // Identify the instructions
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
             if *genome_item.source_type() != ParameterType::Constant {
@@ -231,25 +228,15 @@ impl Genome {
             return false;
         }
 
-        // Pick a random mutation
-        let mutation_vec: Vec<MutateValue> = vec![
-            MutateValue::Increment,
-            MutateValue::Decrement,
-            MutateValue::Assign(2),
-            MutateValue::Assign(6),
-            MutateValue::Assign(10),
-            // MutateValue::Assign(100),
-            // MutateValue::Assign(1000),
-        ];
-        let mutation: &MutateValue = mutation_vec.choose(rng).unwrap();
-
-        // Mutate one of the instructions that use a constant
+        // Mutate one of the instructions
         let index: &usize = indexes.choose(rng).unwrap();
         let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
-        if !genome_item.mutate_source_value(mutation) {
+        let value: i32 = genome_item.source_value();
+        if value >= i32::MAX {
             return false;
         }
-        genome_item.mutate_sanitize_program_row()
+        genome_item.set_source_value(value + 1);
+        true
     }
 
     /// Assign a constant, by picking from a histogram.
@@ -901,24 +888,24 @@ impl Genome {
     /// Return `false` in case of failure.
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
-            (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
+            // (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
             (MutateGenome::ReplaceInstructionWithHistogram, 20),
             (MutateGenome::InsertInstructionWithConstant, 10),
-            (MutateGenome::ReplaceSourceConstantWithoutHistogram, 1),
+            (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 50),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 200),
-            (MutateGenome::SourceType, 1),
-            (MutateGenome::SwapRegisters, 10),
-            (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 1),
+            // (MutateGenome::SourceType, 1),
+            // (MutateGenome::SwapRegisters, 10),
+            // (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 1),
             (MutateGenome::ReplaceSourceRegisterWithHistogram, 50),
-            (MutateGenome::ReplaceTargetWithoutHistogram, 1),
+            // (MutateGenome::ReplaceTargetWithoutHistogram, 1),
             (MutateGenome::ReplaceTargetWithHistogram, 100),
             (MutateGenome::ToggleEnabled, 30),
-            (MutateGenome::SwapRows, 1),
+            // (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 10),
             // (MutateGenome::InsertLoopBeginEnd, 0),
-            // (MutateGenome::CallProgramWeightedByPopularity, 5),
-            // (MutateGenome::CallMostPopularProgram, 100),
-            // (MutateGenome::CallMediumPopularProgram, 100),
+            (MutateGenome::CallProgramWeightedByPopularity, 5),
+            (MutateGenome::CallMostPopularProgram, 100),
+            (MutateGenome::CallMediumPopularProgram, 100),
             // (MutateGenome::CallLeastPopularProgram, 10),
             // (MutateGenome::CallRecentProgram, 1),
             (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 100),
@@ -935,8 +922,8 @@ impl Genome {
             MutateGenome::InsertInstructionWithConstant => {
                 return self.insert_instruction_with_constant(rng, context);
             },
-            MutateGenome::ReplaceSourceConstantWithoutHistogram => {
-                return self.replace_source_constant_without_histogram(rng);
+            MutateGenome::IncrementSourceValueWhereTypeIsConstant => {
+                return self.increment_source_value_where_type_is_constant(rng);
             },
             MutateGenome::ReplaceSourceConstantWithHistogram => {
                 return self.replace_source_constant_with_histogram(rng, context);
