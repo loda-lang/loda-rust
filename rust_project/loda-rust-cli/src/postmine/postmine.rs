@@ -228,8 +228,8 @@ impl PostMine {
                 Err(error) => {
                     let reason = format!("Couldn't eval program with loda-cpp, {:?}", error);
                     let msg = format!("Rejecting {}, {}", candidate_program.borrow(), reason);
-                    candidate_program.borrow_mut().perform_reject(reason)?;
                     pb.println(msg);
+                    candidate_program.borrow_mut().perform_reject(reason)?;
                     count_failure += 1;
                     pb.inc(1);
                     continue;
@@ -329,10 +329,10 @@ impl PostMine {
             .map(|x| x.clone())
             .collect();
 
-        if !programs_without_possible_ids.is_empty() {
-            println!("number of programs without possible ids: {}", programs_without_possible_ids.len());
-        }
         for candidate_program in programs_without_possible_ids {
+            if candidate_program.borrow().state() != State::PendingProcessing {
+                continue;
+            }
             debug!("Rejected {}, where terms cannot be found in OEIS 'stripped' file", candidate_program.borrow());
             candidate_program.borrow_mut().perform_reject("lookup_in_oeis_stripped_file, Terms cannot be found in OEIS 'stripped' file")?;
         }

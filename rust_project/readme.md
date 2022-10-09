@@ -75,4 +75,11 @@ PROMPT> ./build.sh
 Open "index.html" in the browser.
 
 
+### Verify integration with loda-cpp is working
+
+```
+PROMPT> cargo run -- test-integration-with-lodacpp
+test integration with lodacpp: Completed successfully.
+PROMPT>
+```
 
