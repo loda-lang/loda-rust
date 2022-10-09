@@ -329,10 +329,10 @@ impl PostMine {
             .map(|x| x.clone())
             .collect();
 
-        if !programs_without_possible_ids.is_empty() {
-            println!("number of programs without possible ids: {}", programs_without_possible_ids.len());
-        }
         for candidate_program in programs_without_possible_ids {
+            if candidate_program.borrow().state() != State::PendingProcessing {
+                continue;
+            }
             debug!("Rejected {}, where terms cannot be found in OEIS 'stripped' file", candidate_program.borrow());
             candidate_program.borrow_mut().perform_reject("lookup_in_oeis_stripped_file, Terms cannot be found in OEIS 'stripped' file")?;
         }
