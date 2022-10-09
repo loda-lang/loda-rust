@@ -36,7 +36,6 @@ impl LodaCppEvalStepsExecute for LodaCpp {
             None => {
                 // child hasn't exited yet
                 error!("Killing loda-cpp, eval {} steps, exceeded time limit: {:?}, loda_program_path: {:?}", term_count, time_limit, loda_program_path);
-                debug!("kill");
                 child.kill()?;
                 debug!("wait");
                 child.wait()?;
@@ -52,7 +51,7 @@ impl LodaCppEvalStepsExecute for LodaCpp {
         let output_stdout: String = String::from_utf8_lossy(&output.stdout).to_string();
 
         if optional_exit_code != Some(0) {
-            error!("Expected exit_code: 0, but got exit_code: {:?}", optional_exit_code);
+            error!("Expected exit_code: 0, but got exit_code: {:?}, loda_program_path: {:?}", optional_exit_code, loda_program_path);
             error!("stdout: {:?}", output_stdout);
             error!("stderr: {:?}", String::from_utf8_lossy(&output.stderr));
             return Err(Box::new(LodaCppError::NonZeroExitCode));
