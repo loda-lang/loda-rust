@@ -329,7 +329,7 @@ impl Genome {
     /// Return `false` in case of failure, such as no instructions that use a source_type=register, underflow, overflow.
     #[allow(dead_code)]
     pub fn replace_source_register_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        // Identify all the instructions that use source_type=register
+        // Identify all the instructions that use source_type=Direct
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
             if *genome_item.source_type() == ParameterType::Direct {
@@ -411,7 +411,7 @@ impl Genome {
             },
             None => {}
         };
-        if prev_word == SourceValue::None && next_word == SourceValue::None {
+        if prev_word == SourceValue::None || next_word == SourceValue::None {
             return false;
         }
         if prev_word == SourceValue::ProgramStart && next_word == SourceValue::ProgramStop {
@@ -480,6 +480,9 @@ impl Genome {
     }
 
     fn get_target_value(genome_item: &GenomeItem) -> TargetValue {
+        if *genome_item.target_type() == RegisterType::Indirect {
+            return TargetValue::None;
+        }
         let instruction_id: InstructionId = *genome_item.instruction_id();
         if instruction_id == InstructionId::LoopEnd {
             return TargetValue::None;
@@ -507,10 +510,6 @@ impl Genome {
         if index0 >= 0 {
             match self.genome_vec.get(index0 as usize) {
                 Some(ref value) => {
-                    // TODO: if target_type is indirect, then abort the mutation
-                    // if value.target_type() != ParameterType::Direct {
-                    //     return false;
-                    // }
                     prev_word = Self::get_target_value(value)
                 },
                 None => {}
@@ -519,19 +518,17 @@ impl Genome {
         let mut next_word: TargetValue = TargetValue::ProgramStop;
         match self.genome_vec.get(index2) {
             Some(ref value) => {
-                // TODO: if target_type is indirect, then abort the mutation
-                // if value.target_type() != ParameterType::Direct {
-                //     return false;
-                // }
-            next_word = Self::get_target_value(value)
+                next_word = Self::get_target_value(value)
             },
             None => {}
         };
+        if prev_word == TargetValue::None || next_word == TargetValue::None {
+            return false;
+        }
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index1];
-        // TODO: if target_type is indirect, then abort the mutation
-        // if genome_item.target_type() != ParameterType::Direct {
-        //     return false;
-        // }
+        if *genome_item.target_type() == RegisterType::Indirect {
+            return false;
+        }
         let suggested_value: TargetValue = match context.suggest_target(rng, prev_word, next_word) {
             Some(value) => value,
             None => {
@@ -737,9 +734,13 @@ impl Genome {
         // Identify all the instructions that use two registers
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.source_type() == ParameterType::Direct {
-                indexes.push(index);
+            if *genome_item.target_type() != RegisterType::Direct {
+                continue;
             }
+            if *genome_item.source_type() != ParameterType::Direct {
+                continue;
+            }
+            indexes.push(index);
         }
         if indexes.is_empty() {
             return false;

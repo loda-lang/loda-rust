@@ -186,12 +186,18 @@ impl GenomeItem {
         if is_call {
             return false;
         }
+        if self.source_type == ParameterType::Indirect {
+            return false;
+        }
         let (status, new_value) = self.mutate_value(mutation, self.source_value);
         self.source_value = new_value;
         status
     }
 
     pub fn mutate_target_value(&mut self, mutation: &MutateValue) -> bool {
+        if self.target_type == RegisterType::Indirect {
+            return false;
+        }
         let (status, new_value) = self.mutate_value(mutation, self.target_value);
         self.target_value = new_value;
         status
@@ -265,6 +271,9 @@ impl GenomeItem {
     pub fn mutate_swap_source_target_value(&mut self) -> bool {
         let is_call = self.instruction_id == InstructionId::EvalSequence;
         if is_call {
+            return false;
+        }
+        if self.source_type == ParameterType::Constant {
             return false;
         }
         let tmp = self.source_value;
@@ -601,13 +610,26 @@ impl GenomeItem {
     pub fn to_parameter_vec(&self) -> Vec<InstructionParameter> {
         match &self.instruction_id {
             InstructionId::LoopBegin => {
-                // For now don't care about the source type/value.
-                // Maybe in the future support source type/value.
-                let parameter = InstructionParameter {
-                    parameter_type: ParameterType::Direct,
-                    parameter_value: self.target_value.abs() as i64,
+                let parameter0: InstructionParameter;
+                match self.target_type {
+                    RegisterType::Direct => {
+                        parameter0 = InstructionParameter {
+                            parameter_type: ParameterType::Direct,
+                            parameter_value: (self.target_value.abs()) as i64,
+                        };
+                    },
+                    RegisterType::Indirect => {
+                        parameter0 = InstructionParameter {
+                            parameter_type: ParameterType::Indirect,
+                            parameter_value: (self.target_value.abs()) as i64,
+                        };
+                    },
+                }
+                let parameter1 = InstructionParameter {
+                    parameter_type: self.source_type.clone(),
+                    parameter_value: (self.source_value.abs()) as i64,
                 };
-                return vec![parameter];
+                return vec![parameter0, parameter1];
             },
             InstructionId::LoopEnd => {
                 return vec!();
@@ -628,7 +650,6 @@ impl GenomeItem {
                         };
                     },
                 }
-
                 let parameter1 = InstructionParameter {
                     parameter_type: ParameterType::Constant,
                     parameter_value: (self.source_value.abs()) as i64,
@@ -651,7 +672,6 @@ impl GenomeItem {
                         };
                     },
                 }
-
                 let parameter1: InstructionParameter;
                 match self.source_type {
                     ParameterType::Constant => {
