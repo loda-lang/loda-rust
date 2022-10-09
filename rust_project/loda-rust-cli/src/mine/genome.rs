@@ -17,6 +17,7 @@ pub enum MutateGenome {
     ReplaceInstructionWithHistogram,
     InsertInstructionWithConstant,
     IncrementSourceValueWhereTypeIsConstant,
+    DecrementSourceValueWhereTypeIsConstant,
     ReplaceSourceConstantWithHistogram,
     SourceType,
     SwapRegisters,
@@ -235,7 +236,68 @@ impl Genome {
         if value >= i32::MAX {
             return false;
         }
-        genome_item.set_source_value(value + 1);
+        let new_value = value + 1;
+        if *genome_item.instruction_id() == InstructionId::Divide && new_value == 0 {
+            return false;
+        }
+        if *genome_item.instruction_id() == InstructionId::DivideIf && new_value == 0 {
+            return false;
+        }
+        if *genome_item.instruction_id() == InstructionId::Modulo && new_value == 0 {
+            return false;
+        }
+        genome_item.set_source_value(new_value);
+        true
+    }
+
+    /// Decrement the source value.
+    ///
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case the mutation had no effect.
+    pub fn decrement_source_value_where_type_is_constant<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        // Identify the instructions
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if *genome_item.source_type() != ParameterType::Constant {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::EvalSequence {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::LoopBegin {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::Clear {
+                continue;
+            }
+            indexes.push(index);
+        }
+        if indexes.is_empty() {
+            return false;
+        }
+
+        // Mutate one of the instructions
+        let index: &usize = indexes.choose(rng).unwrap();
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
+        let value: i32 = genome_item.source_value();
+        if value <= i32::MIN {
+            return false;
+        }
+        let new_value = value - 1;
+        if *genome_item.instruction_id() == InstructionId::Divide && new_value == 0 {
+            return false;
+        }
+        if *genome_item.instruction_id() == InstructionId::DivideIf && new_value == 0 {
+            return false;
+        }
+        if *genome_item.instruction_id() == InstructionId::Modulo && new_value == 0 {
+            return false;
+        }
+        genome_item.set_source_value(new_value);
         true
     }
 
@@ -892,6 +954,7 @@ impl Genome {
             (MutateGenome::ReplaceInstructionWithHistogram, 20),
             (MutateGenome::InsertInstructionWithConstant, 10),
             (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 50),
+            (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 50),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 200),
             // (MutateGenome::SourceType, 1),
             // (MutateGenome::SwapRegisters, 10),
@@ -924,6 +987,9 @@ impl Genome {
             },
             MutateGenome::IncrementSourceValueWhereTypeIsConstant => {
                 return self.increment_source_value_where_type_is_constant(rng);
+            },
+            MutateGenome::DecrementSourceValueWhereTypeIsConstant => {
+                return self.decrement_source_value_where_type_is_constant(rng);
             },
             MutateGenome::ReplaceSourceConstantWithHistogram => {
                 return self.replace_source_constant_with_histogram(rng, context);
