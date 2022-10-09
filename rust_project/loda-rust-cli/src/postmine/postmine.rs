@@ -228,8 +228,8 @@ impl PostMine {
                 Err(error) => {
                     let reason = format!("Couldn't eval program with loda-cpp, {:?}", error);
                     let msg = format!("Rejecting {}, {}", candidate_program.borrow(), reason);
-                    candidate_program.borrow_mut().perform_reject(reason)?;
                     pb.println(msg);
+                    candidate_program.borrow_mut().perform_reject(reason)?;
                     count_failure += 1;
                     pb.inc(1);
                     continue;
