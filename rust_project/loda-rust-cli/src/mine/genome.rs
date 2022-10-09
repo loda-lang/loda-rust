@@ -323,7 +323,6 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as no instructions that use a constant, underflow, overflow.
-    #[allow(dead_code)]
     pub fn replace_source_constant_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Bail out if the histogram csv file hasn't been loaded.
         if !context.has_histogram_instruction_constant() {
@@ -376,7 +375,6 @@ impl Genome {
 
     /// Return `true` when the mutation was successful.
     /// Return `false` in case of failure, such as no instructions that use a source_type=register, underflow, overflow.
-    #[allow(dead_code)]
     pub fn replace_source_register_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         // Identify all the instructions that use source_type=Direct
         let mut indexes: Vec<usize> = vec!();
@@ -602,7 +600,6 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    #[allow(dead_code)]
     pub fn replace_instruction_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         if length < 1 {
@@ -620,7 +617,6 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    #[allow(dead_code)]
     pub fn replace_instruction_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Bail out if the trigram.csv file hasn't been loaded.
         if !context.has_suggest_instruction() {
@@ -668,7 +664,6 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    #[allow(dead_code)]
     pub fn insert_instruction_with_constant<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Bail out if the histogram csv file hasn't been loaded.
         if !context.has_histogram_instruction_constant() {
@@ -760,7 +755,6 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    #[allow(dead_code)]
     pub fn mutate_source_type<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         if length < 1 {
@@ -778,7 +772,6 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    #[allow(dead_code)]
     pub fn mutate_swap_registers<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         // Identify all the instructions that use two registers
         let mut indexes: Vec<usize> = vec!();
@@ -807,7 +800,6 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    #[allow(dead_code)]
     pub fn mutate_enabled<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         if length < 1 {
@@ -825,7 +817,6 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    #[allow(dead_code)]
     pub fn mutate_swap_rows<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         if length < 2 {
@@ -854,7 +845,6 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    #[allow(dead_code)]
     pub fn mutate_swap_adjacent_rows<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         if length < 3 {
@@ -878,7 +868,6 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    #[allow(dead_code)]
     pub fn mutate_insert_loop<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let length: usize = self.genome_vec.len();
         if length < 2 {
@@ -922,7 +911,6 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure.
-    #[allow(dead_code)]
     pub fn mutate_eval_sequence<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext, category: MutateEvalSequenceCategory) -> bool {
         // Identify GenomeItem's that use the `seq` instruction
         let mut indexes: Vec<usize> = vec!();
@@ -952,28 +940,28 @@ impl Genome {
     /// Return `false` in case the mutation didn't change the genome.
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
-            // (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
+            (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
             (MutateGenome::ReplaceInstructionWithHistogram, 20),
             (MutateGenome::InsertInstructionWithConstant, 10),
             (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 50),
             (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 50),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 200),
-            // (MutateGenome::SourceType, 1),
-            // (MutateGenome::SwapRegisters, 10),
-            // (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 1),
+            (MutateGenome::SourceType, 1),
+            (MutateGenome::SwapRegisters, 10),
+            (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 1),
             (MutateGenome::ReplaceSourceRegisterWithHistogram, 50),
-            // (MutateGenome::ReplaceTargetWithoutHistogram, 1),
+            (MutateGenome::ReplaceTargetWithoutHistogram, 1),
             (MutateGenome::ReplaceTargetWithHistogram, 100),
             (MutateGenome::ToggleEnabled, 30),
-            // (MutateGenome::SwapRows, 1),
+            (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 10),
-            // (MutateGenome::InsertLoopBeginEnd, 0),
+            (MutateGenome::InsertLoopBeginEnd, 0),
             (MutateGenome::CallProgramWeightedByPopularity, 5),
             (MutateGenome::CallMostPopularProgram, 100),
             (MutateGenome::CallMediumPopularProgram, 100),
-            // (MutateGenome::CallLeastPopularProgram, 10),
+            (MutateGenome::CallLeastPopularProgram, 10),
             // (MutateGenome::CallRecentProgram, 1),
-            (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 100),
+            // (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 100),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
 
