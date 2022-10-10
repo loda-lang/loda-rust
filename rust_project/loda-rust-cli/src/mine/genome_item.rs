@@ -194,15 +194,6 @@ impl GenomeItem {
         status
     }
 
-    pub fn mutate_target_value(&mut self, mutation: &MutateValue) -> bool {
-        if self.target_type == RegisterType::Indirect {
-            return false;
-        }
-        let (status, new_value) = self.mutate_value(mutation, self.target_value);
-        self.target_value = new_value;
-        status
-    }
-
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as underflow, overflow.

@@ -23,7 +23,8 @@ pub enum MutateGenome {
     SwapRegisters,
     ReplaceSourceRegisterWithoutHistogram,
     ReplaceSourceRegisterWithHistogram,
-    ReplaceTargetWithoutHistogram,
+    IncrementTargetValueWhereTypeIsDirect,
+    DecrementTargetValueWhereTypeIsDirect,
     ReplaceTargetWithHistogram,
     ToggleEnabled,
     SwapRows,
@@ -203,6 +204,8 @@ impl Genome {
 
     /// Increment the source value.
     ///
+    /// Only impact rows where source_type=Constant.
+    ///
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case the mutation had no effect.
@@ -253,6 +256,8 @@ impl Genome {
     }
 
     /// Decrement the source value.
+    ///
+    /// Only impact rows where source_type=Constant.
     ///
     /// Return `true` when the mutation was successful.
     /// 
@@ -506,31 +511,75 @@ impl Genome {
         true
     }
     
+    /// Increment the target value.
+    ///
+    /// Only impact rows where target_type=Direct.
+    ///
     /// Return `true` when the mutation was successful.
     /// 
-    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    pub fn replace_target_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        let length: usize = self.genome_vec.len();
-        if length < 1 {
+    /// Return `false` in case the mutation had no effect.
+    pub fn increment_target_value_where_type_is_direct<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if *genome_item.target_type() != RegisterType::Direct {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            indexes.push(index);
+        }
+        if indexes.is_empty() {
             return false;
         }
-        let index: usize = rng.gen_range(0..length);
-
-        // Pick a random mutation
-        let mutation_vec: Vec<MutateValue> = vec![
-            MutateValue::Increment,
-            MutateValue::Decrement,
-            MutateValue::Assign(0),
-            MutateValue::Assign(1),
-        ];
-        let mutation: &MutateValue = mutation_vec.choose(rng).unwrap();
 
         // Mutate one of the instructions
-        let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
-        if !genome_item.mutate_target_value(mutation) {
+        let index: &usize = indexes.choose(rng).unwrap();
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
+        let value: i32 = genome_item.target_value();
+        if value >= i32::MAX {
             return false;
         }
-        genome_item.mutate_sanitize_program_row()
+        let new_value = value + 1;
+        genome_item.set_target_value(new_value);
+        true
+    }
+
+    /// Decrement the target value.
+    ///
+    /// Only impact rows where target_type=Direct.
+    ///
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case the mutation had no effect.
+    pub fn decrement_target_value_where_type_is_direct<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if *genome_item.source_type() != ParameterType::Direct {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            if genome_item.target_value() <= 0 {
+                continue;
+            }
+            indexes.push(index);
+        }
+        if indexes.is_empty() {
+            return false;
+        }
+
+        // Mutate one of the instructions
+        let index: &usize = indexes.choose(rng).unwrap();
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
+        let value: i32 = genome_item.source_value();
+        if value <= i32::MIN {
+            return false;
+        }
+        let new_value = value - 1;
+        genome_item.set_source_value(new_value);
+        true
     }
 
     fn get_target_value(genome_item: &GenomeItem) -> TargetValue {
@@ -989,7 +1038,8 @@ impl Genome {
             (MutateGenome::SwapRegisters, 10),
             // (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 1),
             (MutateGenome::ReplaceSourceRegisterWithHistogram, 100),
-            // (MutateGenome::ReplaceTargetWithoutHistogram, 1),
+            (MutateGenome::IncrementTargetValueWhereTypeIsDirect, 30),
+            (MutateGenome::DecrementTargetValueWhereTypeIsDirect, 10),
             (MutateGenome::ReplaceTargetWithHistogram, 100),
             (MutateGenome::ToggleEnabled, 10),
             // (MutateGenome::SwapRows, 1),
@@ -1035,8 +1085,11 @@ impl Genome {
             MutateGenome::ReplaceSourceRegisterWithHistogram => {
                 self.replace_source_register_with_histogram(rng, context)
             },
-            MutateGenome::ReplaceTargetWithoutHistogram => {
-                self.replace_target_without_histogram(rng)
+            MutateGenome::IncrementTargetValueWhereTypeIsDirect => {
+                self.increment_target_value_where_type_is_direct(rng)
+            },
+            MutateGenome::DecrementTargetValueWhereTypeIsDirect => {
+                self.decrement_target_value_where_type_is_direct(rng)
             },
             MutateGenome::ReplaceTargetWithHistogram => {
                 self.replace_target_with_histogram(rng, context)
