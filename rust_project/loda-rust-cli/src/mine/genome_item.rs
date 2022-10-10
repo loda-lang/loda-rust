@@ -7,12 +7,6 @@ use std::fmt;
 
 const SANITIZE_MAX_NUMBER_OF_REGISTERS: i32 = 20;
 
-pub enum MutateValue {
-    Increment,
-    Decrement,
-    Assign(i32),
-}
-
 // Ideas for more categories:
 // Pick a recently created program.
 // Pick a recently modified program.
@@ -179,43 +173,6 @@ impl GenomeItem {
 
         self.instruction_id = new_instruction_id;
         true
-    }
-
-    pub fn mutate_source_value(&mut self, mutation: &MutateValue) -> bool {
-        let is_call = self.instruction_id == InstructionId::EvalSequence;
-        if is_call {
-            return false;
-        }
-        if self.source_type == ParameterType::Indirect {
-            return false;
-        }
-        let (status, new_value) = self.mutate_value(mutation, self.source_value);
-        self.source_value = new_value;
-        status
-    }
-
-    /// Return `true` when the mutation was successful.
-    /// 
-    /// Return `false` in case of failure, such as underflow, overflow.
-    pub fn mutate_value(&mut self, mutation: &MutateValue, mut value: i32) -> (bool, i32) {
-        match mutation {
-            MutateValue::Increment => {
-                if value >= 255 {
-                    return (false, value);
-                }
-                value += 1;
-            },
-            MutateValue::Decrement => {
-                if value <= 0 {
-                    return (false, value);
-                }
-                value -= 1;
-            },
-            MutateValue::Assign(v) => {
-                value = *v;
-            },
-        }
-        (true, value)
     }
 
     pub fn mutate_source_type(&mut self) -> bool {
