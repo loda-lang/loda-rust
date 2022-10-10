@@ -43,8 +43,7 @@ pub struct Genome {
 }
 
 impl Genome {
-    const CHOOSE_CONSTANT_WITH_HISTOGRAM_RETRIES: usize = 3;
-    const SUGGEST_INSTRUCTION_RETRIES: usize = 3;
+    const MUTATE_RETRIES: usize = 3;
 
     pub fn new() -> Self {
         Self {
@@ -362,7 +361,7 @@ impl Genome {
         let instruction_id: InstructionId = *genome_item.instruction_id();
 
         // Try a few times
-        for _ in 0..Self::CHOOSE_CONSTANT_WITH_HISTOGRAM_RETRIES {
+        for _ in 0..Self::MUTATE_RETRIES {
             let picked_value: i32 = match context.choose_constant_with_histogram(rng, instruction_id) {
                 Some(value) => value,
                 None => {
@@ -658,7 +657,7 @@ impl Genome {
         let original_instruction: InstructionId = *genome_item.instruction_id();
 
         // Try a few times
-        for _ in 0..Self::SUGGEST_INSTRUCTION_RETRIES {
+        for _ in 0..Self::MUTATE_RETRIES {
             let suggested_instruction_id: InstructionId = match context.suggest_instruction(rng, prev_instruction, next_instruction) {
                 Some(value) => value,
                 None => {
@@ -828,10 +827,20 @@ impl Genome {
         let index: usize = rng.gen_range(0..length);
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
 
-        if !genome_item.mutate_enabled() {
-            return false;
+        // Try a few times
+        for _ in 0..Self::MUTATE_RETRIES {
+            if !genome_item.mutate_enabled() {
+                // Picked an instruction that doesn't make sense to toggle, 
+                // such as `lpb` in which case the `lpe` also must be toggled, so `lpb` and `lpe` are avoided.
+                // such as instructions that use ParameterType::Indirect, which is highly sensitive.
+                // Try pick a different value
+                continue;
+            }
+            // Successfully mutated
+            return true;
         }
-        genome_item.mutate_sanitize_program_row()
+        // To many tries, without picking a different value. No mutation happened.
+        false
     }
 
     /// Return `true` when the mutation was successful.
