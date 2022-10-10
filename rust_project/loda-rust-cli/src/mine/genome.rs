@@ -410,9 +410,9 @@ impl Genome {
         if instruction_id == InstructionId::LoopEnd {
             return SourceValue::None;
         }
-        if instruction_id == InstructionId::LoopBegin {
-            return SourceValue::None;
-        }
+        // if instruction_id == InstructionId::LoopBegin {
+        //     return SourceValue::None;
+        // }
         match genome_item.source_type() {
             ParameterType::Constant => {
                 return SourceValue::Constant;            
@@ -458,9 +458,9 @@ impl Genome {
             },
             None => {}
         };
-        if prev_word == SourceValue::None || next_word == SourceValue::None {
-            return false;
-        }
+        // if prev_word == SourceValue::None || next_word == SourceValue::None {
+        //     return false;
+        // }
         if prev_word == SourceValue::ProgramStart && next_word == SourceValue::ProgramStop {
             return false;
         }
@@ -569,9 +569,9 @@ impl Genome {
             },
             None => {}
         };
-        if prev_word == TargetValue::None || next_word == TargetValue::None {
-            return false;
-        }
+        // if prev_word == TargetValue::None || next_word == TargetValue::None {
+        //     return false;
+        // }
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index1];
         if *genome_item.target_type() == RegisterType::Indirect {
             return false;
@@ -941,27 +941,27 @@ impl Genome {
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             // (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
-            (MutateGenome::ReplaceInstructionWithHistogram, 100),
-            (MutateGenome::InsertInstructionWithConstant, 100),
-            (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 100),
-            (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 100),
+            (MutateGenome::ReplaceInstructionWithHistogram, 10),
+            (MutateGenome::InsertInstructionWithConstant, 10),
+            (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 10),
+            (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 10),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 100),
             // (MutateGenome::SourceType, 1),
-            (MutateGenome::SwapRegisters, 100),
+            (MutateGenome::SwapRegisters, 10),
             // (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 1),
             (MutateGenome::ReplaceSourceRegisterWithHistogram, 100),
             // (MutateGenome::ReplaceTargetWithoutHistogram, 1),
             (MutateGenome::ReplaceTargetWithHistogram, 100),
-            (MutateGenome::ToggleEnabled, 100),
+            (MutateGenome::ToggleEnabled, 10),
             // (MutateGenome::SwapRows, 1),
-            (MutateGenome::SwapAdjacentRows, 100),
+            (MutateGenome::SwapAdjacentRows, 10),
             // (MutateGenome::InsertLoopBeginEnd, 0),
-            // (MutateGenome::CallProgramWeightedByPopularity, 100),
-            // (MutateGenome::CallMostPopularProgram, 100),
-            (MutateGenome::CallMediumPopularProgram, 100),
+            (MutateGenome::CallProgramWeightedByPopularity, 100),
+            (MutateGenome::CallMostPopularProgram, 100),
+            (MutateGenome::CallMediumPopularProgram, 10),
             // (MutateGenome::CallLeastPopularProgram, 10),
             // (MutateGenome::CallRecentProgram, 1),
-            (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 100),
+            (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 10),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
 

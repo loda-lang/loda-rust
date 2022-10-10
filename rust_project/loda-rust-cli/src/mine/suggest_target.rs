@@ -111,7 +111,6 @@ impl SuggestTarget {
     /// If it's the end of the program then set `next_word` to `ProgramStop`.
     /// 
     /// If it's a `lpe` (loop end) instruction that has no parameter, then use `None`.
-    #[allow(dead_code)]
     fn candidates(&self, prev_word: TargetValue, next_word: TargetValue) -> Option<&HistogramValue> {
         let key: HistogramKey = (prev_word, next_word);
         self.histogram.get(&key)
