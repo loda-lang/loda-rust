@@ -941,13 +941,13 @@ impl Genome {
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             // (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
-            (MutateGenome::ReplaceInstructionWithHistogram, 50),
+            (MutateGenome::ReplaceInstructionWithHistogram, 100),
             // (MutateGenome::InsertInstructionWithConstant, 5),
-            (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 5),
-            (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 5),
+            (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 10),
+            (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 10),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 100),
             // (MutateGenome::SourceType, 1),
-            (MutateGenome::SwapRegisters, 5),
+            (MutateGenome::SwapRegisters, 10),
             // (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 1),
             (MutateGenome::ReplaceSourceRegisterWithHistogram, 100),
             // (MutateGenome::ReplaceTargetWithoutHistogram, 1),
@@ -956,12 +956,12 @@ impl Genome {
             // (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 10),
             // (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallProgramWeightedByPopularity, 5),
+            (MutateGenome::CallProgramWeightedByPopularity, 100),
             (MutateGenome::CallMostPopularProgram, 100),
             (MutateGenome::CallMediumPopularProgram, 100),
-            (MutateGenome::CallLeastPopularProgram, 5),
+            (MutateGenome::CallLeastPopularProgram, 10),
             // (MutateGenome::CallRecentProgram, 1),
-            // (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 100),
+            (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 100),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
 
