@@ -788,11 +788,14 @@ impl Genome {
         genome_item.mutate_sanitize_program_row()
     }
 
+    /// Swaps `target_value` with `source_value`.
+    /// 
+    /// Only impact rows where target_type=Direct and source_type=Direct.
+    /// 
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     pub fn mutate_swap_registers<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        // Identify all the instructions that use two registers
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
             if *genome_item.target_type() != RegisterType::Direct {
@@ -807,13 +810,20 @@ impl Genome {
             return false;
         }
 
-        // Mutate one of the instructions that use two registers
-        let index: &usize = indexes.choose(rng).unwrap();
-        let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
-        if !genome_item.mutate_swap_source_target_value() {
-            return false;
+        // Try a few times
+        for _ in 0..Self::MUTATE_RETRIES {
+            let index: &usize = indexes.choose(rng).unwrap();
+            let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
+            if !genome_item.mutate_swap_source_target_value() {
+                // Try swap a different row
+                continue;
+            }
+            // Successfully mutated
+            return true;
         }
-        genome_item.mutate_sanitize_program_row()
+
+        // To many attempts. No mutation happened.
+        false
     }
 
     /// Return `true` when the mutation was successful.
@@ -976,7 +986,7 @@ impl Genome {
             (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 10),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 100),
             // (MutateGenome::SourceType, 1),
-            (MutateGenome::SwapRegisters, 5),
+            (MutateGenome::SwapRegisters, 20),
             // (MutateGenome::ReplaceSourceRegisterWithoutHistogram, 1),
             (MutateGenome::ReplaceSourceRegisterWithHistogram, 30),
             // (MutateGenome::ReplaceTargetWithoutHistogram, 1),

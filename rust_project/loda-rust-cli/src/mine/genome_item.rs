@@ -269,11 +269,8 @@ impl GenomeItem {
     }
 
     pub fn mutate_swap_source_target_value(&mut self) -> bool {
-        let is_call = self.instruction_id == InstructionId::EvalSequence;
-        if is_call {
-            return false;
-        }
-        if self.source_type == ParameterType::Constant {
+        if self.target_value == self.source_value {
+            // No mutation happened
             return false;
         }
         let tmp = self.source_value;
