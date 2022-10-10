@@ -44,6 +44,7 @@ pub struct Genome {
 
 impl Genome {
     const CHOOSE_CONSTANT_WITH_HISTOGRAM_RETRIES: usize = 3;
+    const SUGGEST_INSTRUCTION_RETRIES: usize = 3;
 
     pub fn new() -> Self {
         Self {
@@ -654,18 +655,30 @@ impl Genome {
             None => None
         };
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index1];
-        let suggested_instruction_id: InstructionId = match context.suggest_instruction(rng, prev_instruction, next_instruction) {
-            Some(value) => value,
-            None => {
-                return false;
+        let original_instruction: InstructionId = *genome_item.instruction_id();
+
+        // Try a few times
+        for _ in 0..Self::SUGGEST_INSTRUCTION_RETRIES {
+            let suggested_instruction_id: InstructionId = match context.suggest_instruction(rng, prev_instruction, next_instruction) {
+                Some(value) => value,
+                None => {
+                    return false;
+                }
+            };
+            if original_instruction == suggested_instruction_id {
+                // Picked the same as the original, try pick a different value
+                continue;
             }
-        };
-        // let old_instruction: InstructionId = *genome_item.instruction_id();
-        if !genome_item.set_instruction(suggested_instruction_id) {
-            return false;
+            if !genome_item.set_instruction(suggested_instruction_id) {
+                // Picked a terrible instruction, such as `lpb` or `seq`, that requires
+                // special attention to the `source_value`. Try pick another instruction.
+                continue;
+            }
+            // Successfully picked a good instruction
+            return true;
         }
-        // debug!("suggest instruction: {:?} -> {:?}", old_instruction, suggested_instruction_id);
-        genome_item.mutate_sanitize_program_row()
+        // To many tries, without picking a different value. No mutation happened.
+        false
     }
 
     /// Return `true` when the mutation was successful.
