@@ -462,9 +462,6 @@ impl Genome {
         if instruction_id == InstructionId::LoopEnd {
             return SourceValue::None;
         }
-        // if instruction_id == InstructionId::LoopBegin {
-        //     return SourceValue::None;
-        // }
         match genome_item.source_type() {
             ParameterType::Constant => {
                 return SourceValue::Constant;            
@@ -510,9 +507,6 @@ impl Genome {
             },
             None => {}
         };
-        // if prev_word == SourceValue::None || next_word == SourceValue::None {
-        //     return false;
-        // }
         if prev_word == SourceValue::ProgramStart && next_word == SourceValue::ProgramStop {
             return false;
         }
@@ -665,9 +659,6 @@ impl Genome {
             },
             None => {}
         };
-        // if prev_word == TargetValue::None || next_word == TargetValue::None {
-        //     return false;
-        // }
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index1];
         if *genome_item.target_type() == RegisterType::Indirect {
             return false;
@@ -1071,16 +1062,16 @@ impl Genome {
             // (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
             (MutateGenome::ReplaceInstructionWithHistogram, 10),
             (MutateGenome::InsertInstructionWithConstant, 5),
-            (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 30),
+            (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 10),
             (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 10),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 10),
             // (MutateGenome::SourceType, 1),
             (MutateGenome::SwapRegisters, 50),
-            (MutateGenome::IncrementSourceValueWhereTypeIsDirect, 60),
-            (MutateGenome::DecrementSourceValueWhereTypeIsDirect, 10),
+            (MutateGenome::IncrementSourceValueWhereTypeIsDirect, 30),
+            (MutateGenome::DecrementSourceValueWhereTypeIsDirect, 30),
             (MutateGenome::ReplaceSourceRegisterWithHistogram, 100),
-            (MutateGenome::IncrementTargetValueWhereTypeIsDirect, 60),
-            (MutateGenome::DecrementTargetValueWhereTypeIsDirect, 10),
+            (MutateGenome::IncrementTargetValueWhereTypeIsDirect, 30),
+            (MutateGenome::DecrementTargetValueWhereTypeIsDirect, 30),
             (MutateGenome::ReplaceTargetWithHistogram, 100),
             (MutateGenome::ToggleEnabled, 10),
             // (MutateGenome::SwapRows, 1),
