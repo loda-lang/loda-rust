@@ -1027,29 +1027,44 @@ impl Genome {
         true
     }
 
+    /// Mutate the `seq` instruction, so it invokes a random program.
+    /// 
+    /// Only impact rows where source_type=Constant and instruct=seq
+    /// 
     /// Return `true` when the mutation was successful.
     /// 
-    /// Return `false` in case of failure.
-    pub fn mutate_eval_sequence<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext, category: MutateEvalSequenceCategory) -> bool {
-        // Identify GenomeItem's that use the `seq` instruction
+    /// Return `false` in case the mutation had no effect.
+    pub fn mutate_instruction_seq<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext, category: MutateEvalSequenceCategory) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.instruction_id() == InstructionId::EvalSequence {
-                indexes.push(index);
+            if *genome_item.source_type() != ParameterType::Constant {
+                continue;
             }
+            if *genome_item.instruction_id() != InstructionId::EvalSequence {
+                continue;
+            }
+            indexes.push(index);
         }
         if indexes.is_empty() {
             return false;
         }
 
-        // Pick one of the GenomeItem's 
+        // Mutate one of the `seq` instructions
         let index: &usize = indexes.choose(rng).unwrap();
-
-        // Mutate the call instruction, so it invokes the next program in the list.
-        // If it reaches the end, then it picks the first program from the list.
         let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
-        // genome_item.mutate_pick_next_program(rng, context);
-        genome_item.mutate_eval_sequence_instruction(rng, context, category)
+
+        // Try a few times
+        for _ in 0..Self::MUTATE_RETRIES {
+            if !genome_item.mutate_instruction_seq(rng, context, category) {
+                // Picked the same as the original, try pick a different value
+                continue;
+            }
+            // Successfully mutated
+            return true;
+        }
+
+        // To many attempts. No mutation happened.
+        false
     }
 
     /// Apply a mutation to the genome.
@@ -1142,22 +1157,22 @@ impl Genome {
                 self.mutate_insert_loop(rng)
             },            
             MutateGenome::CallProgramWeightedByPopularity => {
-                self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::WeightedByPopularity)
+                self.mutate_instruction_seq(rng, context, MutateEvalSequenceCategory::WeightedByPopularity)
             },
             MutateGenome::CallMostPopularProgram => {
-                self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::MostPopular)
+                self.mutate_instruction_seq(rng, context, MutateEvalSequenceCategory::MostPopular)
             },
             MutateGenome::CallMediumPopularProgram => {
-                self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::MediumPopular)
+                self.mutate_instruction_seq(rng, context, MutateEvalSequenceCategory::MediumPopular)
             },
             MutateGenome::CallLeastPopularProgram => {
-                self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::LeastPopular)
+                self.mutate_instruction_seq(rng, context, MutateEvalSequenceCategory::LeastPopular)
             },
             MutateGenome::CallRecentProgram => {
-                self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::Recent)
+                self.mutate_instruction_seq(rng, context, MutateEvalSequenceCategory::Recent)
             },
             MutateGenome::CallProgramThatUsesIndirectMemoryAccess => {
-                self.mutate_eval_sequence(rng, context, MutateEvalSequenceCategory::ProgramThatUsesIndirectMemoryAccess)
+                self.mutate_instruction_seq(rng, context, MutateEvalSequenceCategory::ProgramThatUsesIndirectMemoryAccess)
             }
         };
 

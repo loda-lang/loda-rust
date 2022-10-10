@@ -14,6 +14,7 @@ const SANITIZE_MAX_NUMBER_OF_REGISTERS: i32 = 20;
 // Increment the program_id, to get to the next available program_id.
 // Pick a program with a similar name.
 // Pick a program that executes fast.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum MutateEvalSequenceCategory {
     WeightedByPopularity,
     MostPopular,
@@ -276,8 +277,7 @@ impl GenomeItem {
     }
 
     /// Mutate the `seq` instruction, so it invokes a random program.
-    #[allow(dead_code)]
-    pub fn mutate_eval_sequence_instruction<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext, category: MutateEvalSequenceCategory) -> bool {
+    pub fn mutate_instruction_seq<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext, category: MutateEvalSequenceCategory) -> bool {
         let is_seq = self.instruction_id == InstructionId::EvalSequence;
         if !is_seq {
             // Only a `seq` instruction can be modified.
