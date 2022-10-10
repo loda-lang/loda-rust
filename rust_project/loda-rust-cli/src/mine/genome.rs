@@ -43,6 +43,8 @@ pub struct Genome {
 }
 
 impl Genome {
+    const CHOOSE_CONSTANT_WITH_HISTOGRAM_RETRIES: usize = 3;
+
     pub fn new() -> Self {
         Self {
             genome_vec: vec!(),
@@ -356,21 +358,26 @@ impl Genome {
         // Mutate one of the instructions that use a constant
         let index: &usize = indexes.choose(rng).unwrap();
         let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
-
         let instruction_id: InstructionId = *genome_item.instruction_id();
-        let picked_value: i32 = match context.choose_constant_with_histogram(rng, instruction_id) {
-            Some(value) => value,
-            None => {
-                return false;
+
+        // Try a few times
+        for _ in 0..Self::CHOOSE_CONSTANT_WITH_HISTOGRAM_RETRIES {
+            let picked_value: i32 = match context.choose_constant_with_histogram(rng, instruction_id) {
+                Some(value) => value,
+                None => {
+                    // No entry for this instruction
+                    return false;
+                }
+            };
+            if picked_value == genome_item.source_value() {
+                // Picked the same as the original, try pick a different value
+                continue;
             }
-        };
-
-        if picked_value == genome_item.source_value() {
-            return false;
+            genome_item.set_source_value(picked_value);
+            return true;
         }
-
-        genome_item.set_source_value(picked_value);
-        genome_item.mutate_sanitize_program_row()
+        // To many tries, without picking a different value. No mutation happened.
+        false
     }
 
     /// Return `true` when the mutation was successful.
