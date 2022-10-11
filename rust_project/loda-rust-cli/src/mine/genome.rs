@@ -20,6 +20,7 @@ pub enum MutateGenome {
     DecrementSourceValueWhereTypeIsConstant,
     ReplaceSourceConstantWithHistogram,
     SourceType,
+    DisableLoop,
     SwapRegisters,
     IncrementSourceValueWhereTypeIsDirect,
     DecrementSourceValueWhereTypeIsDirect,
@@ -868,6 +869,29 @@ impl Genome {
         genome_item.mutate_sanitize_program_row()
     }
 
+    /// Turn off an entire block of `lpb`...`lpe` and instructions inbetween.
+    /// 
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` if nothing was change.
+    pub fn mutate_disable_loop<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if *genome_item.instruction_id() != InstructionId::LoopBegin {
+                continue;
+            }
+            indexes.push(index);
+        }
+        if indexes.is_empty() {
+            return false;
+        }
+        let index: &usize = indexes.choose(rng).unwrap();
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
+        genome_item.set_source_value(0);
+        genome_item.set_source_type(ParameterType::Constant);
+        true
+    }
+
     /// Swaps `target_value` with `source_value`.
     /// 
     /// Only impact rows where target_type=Direct and source_type=Direct.
@@ -1080,7 +1104,8 @@ impl Genome {
             (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 2),
             (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 2),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 50),
-            // (MutateGenome::SourceType, 1),
+            (MutateGenome::SourceType, 100),
+            (MutateGenome::DisableLoop, 200),
             (MutateGenome::SwapRegisters, 20),
             (MutateGenome::IncrementSourceValueWhereTypeIsDirect, 2),
             (MutateGenome::DecrementSourceValueWhereTypeIsDirect, 2),
@@ -1122,6 +1147,9 @@ impl Genome {
             },
             MutateGenome::SourceType => {
                 self.mutate_source_type(rng)
+            },
+            MutateGenome::DisableLoop => {
+                self.mutate_disable_loop(rng)
             },
             MutateGenome::SwapRegisters => {
                 self.mutate_swap_registers(rng)

@@ -97,9 +97,13 @@ impl GenomeItem {
         &self.source_type
     }
 
+    pub fn set_source_type(&mut self, source_type: ParameterType) {
+        self.source_type = source_type;
+    }
+
     pub fn source_value(&self) -> i32 {
         self.source_value
-    }
+    }    
 
     pub fn set_source_value(&mut self, value: i32) {
         self.source_value = value;
@@ -177,8 +181,13 @@ impl GenomeItem {
     }
 
     pub fn mutate_source_type(&mut self) -> bool {
-        let is_call = self.instruction_id == InstructionId::EvalSequence;
-        if is_call {
+        if self.instruction_id == InstructionId::EvalSequence {
+            return false;
+        }
+        if self.instruction_id == InstructionId::LoopBegin {
+            return false;
+        }
+        if self.instruction_id == InstructionId::LoopEnd {
             return false;
         }
         match self.source_type {
