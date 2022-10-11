@@ -322,4 +322,22 @@ mod tests {
         assert_eq!(has_two_or_more_seq("seq $0,40\nseq $0,40"), "true");
         assert_eq!(has_two_or_more_seq("seq $0,40\nmul $0,100\nseq $0,40"), "true");
     }
+
+    fn has_one_seq_and_other_stuff(input0: &str) -> String {
+        let result = ParsedProgram::parse_program(input0);
+        let parsed_program: ParsedProgram = match result {
+            Ok(value) => value,
+            Err(error) => {
+                return format!("BOOM: {:?}", error);
+            }
+        };
+        parsed_program.has_one_seq_and_other_stuff().to_string()
+    }
+
+    #[test]
+    fn test_40000_has_one_seq_and_other_stuff() {
+        assert_eq!(has_one_seq_and_other_stuff("add $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1"), "false");
+        assert_eq!(has_one_seq_and_other_stuff("seq $0,40\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1"), "false");
+        assert_eq!(has_one_seq_and_other_stuff("seq $0,40\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1"), "true");
+    }
 }
