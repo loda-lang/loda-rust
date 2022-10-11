@@ -188,6 +188,13 @@ impl PostMine {
         Ok(())
     }
 
+    /// OeisId's that are to be ignored.
+    /// 
+    /// OEIS contains duplicates, sequences that have later been withdrawn, legacy sequences.
+    /// It makes no sense wasting resources on those sequences.
+    /// 
+    /// The list loaded from `~/.loda-rust/analytics/dont_mine.csv`
+    /// which is populated with the content of `loda-program/oeis/deny.txt`.
     fn obtain_dontmine_program_ids(&mut self) -> Result<(), Box<dyn Error>> {
         let path = self.config.analytics_dir_dont_mine_file();
         let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)?;
@@ -261,6 +268,8 @@ impl PostMine {
         let start = Instant::now();
         println!("Looking up in the OEIS 'stripped' file");
 
+        let oeis_ids_to_ignore: OeisIdHashSet = self.dontmine_hashset.clone();
+
         let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
         assert!(oeis_stripped_file.is_absolute());
         assert!(oeis_stripped_file.is_file());
@@ -297,7 +306,6 @@ impl PostMine {
                 oeis_id_terms_map.insert(row.oeis_id(), terms);
             }
         };
-        let oeis_ids_to_ignore = HashSet::<OeisId>::new();
         let mut stripped_sequence_processor = ProcessStrippedFile::new();
         stripped_sequence_processor.execute(
             &mut oeis_stripped_file_reader,
