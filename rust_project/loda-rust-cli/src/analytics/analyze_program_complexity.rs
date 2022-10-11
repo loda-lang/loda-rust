@@ -12,7 +12,7 @@ const IGNORE_ANY_PROGRAM_SHORTER_THAN: usize = 3;
 const IGNORE_PROGRAM_WITHOUT_LOOPS_SHORTER_THAN: usize = 10;
 const IGNORE_PROGRAM_WITHOUT_NESTED_SEQ_SHORTER_THAN: usize = 10;
 const CONSIDER_ANY_PROGRAM_LONGER_THAN: usize = 60;
-const ONE_SEQ_AND_NUMBER_OF_LINES_OF_OTHER_STUFF: usize = 4;
+const ONE_SEQ_AND_NUMBER_OF_LINES_OF_OTHER_STUFF: usize = 3;
 
 enum ProgramComplexityClassification {
     SimpleAndShort,
@@ -240,7 +240,7 @@ impl HasOneSeqAndOtherStuff for ParsedProgram {
                 count_other += 1;
             }
         }
-        (count_seq >= 1) && (count_other > ONE_SEQ_AND_NUMBER_OF_LINES_OF_OTHER_STUFF)
+        (count_seq >= 1) && (count_other >= ONE_SEQ_AND_NUMBER_OF_LINES_OF_OTHER_STUFF)
     }
 }
 
@@ -336,8 +336,8 @@ mod tests {
 
     #[test]
     fn test_40000_has_one_seq_and_other_stuff() {
-        assert_eq!(has_one_seq_and_other_stuff("add $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1"), "false");
-        assert_eq!(has_one_seq_and_other_stuff("seq $0,40\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1"), "false");
-        assert_eq!(has_one_seq_and_other_stuff("seq $0,40\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1"), "true");
+        assert_eq!(has_one_seq_and_other_stuff("add $0,1\nadd $0,1\nadd $0,1\nadd $0,1"), "false");
+        assert_eq!(has_one_seq_and_other_stuff("seq $0,40\nadd $0,1\nadd $0,1"), "false");
+        assert_eq!(has_one_seq_and_other_stuff("seq $0,40\nadd $0,1\nadd $0,1\nadd $0,1"), "true");
     }
 }
