@@ -12,11 +12,13 @@ const IGNORE_ANY_PROGRAM_SHORTER_THAN: usize = 3;
 const IGNORE_PROGRAM_WITHOUT_LOOPS_SHORTER_THAN: usize = 10;
 const IGNORE_PROGRAM_WITHOUT_NESTED_SEQ_SHORTER_THAN: usize = 10;
 const CONSIDER_ANY_PROGRAM_LONGER_THAN: usize = 60;
+const ONE_SEQ_AND_NUMBER_OF_LINES_OF_OTHER_STUFF: usize = 4;
 
 enum ProgramComplexityClassification {
     SimpleAndShort,
     SimpleWithoutLoops,
     MediumWithLoops,
+    ComplexOneSeqAndOtherStuff,
     ComplexTwoOrMoreSeq,
     ComplexNestedSeq,
     ComplexAndLong,
@@ -28,7 +30,8 @@ impl ProgramComplexityClassification {
         match self {
             ProgramComplexityClassification::SimpleAndShort => false,
             ProgramComplexityClassification::SimpleWithoutLoops => false,
-            ProgramComplexityClassification::MediumWithLoops => false,
+            ProgramComplexityClassification::MediumWithLoops => true,
+            ProgramComplexityClassification::ComplexOneSeqAndOtherStuff => true,
             ProgramComplexityClassification::ComplexTwoOrMoreSeq => true,
             ProgramComplexityClassification::ComplexNestedSeq => true,
             ProgramComplexityClassification::ComplexAndLong => true,
@@ -49,6 +52,7 @@ impl ProgramComplexityClassification {
             ProgramComplexityClassification::SimpleAndShort => "very short program, low chance it can be optimized further".to_string(),
             ProgramComplexityClassification::SimpleWithoutLoops => "short program without loops, low chance it can be optimized further".to_string(),
             ProgramComplexityClassification::MediumWithLoops => "simple loops without eval seq, medium chance it can be optimized".to_string(),
+            ProgramComplexityClassification::ComplexOneSeqAndOtherStuff => "one seq and other stuff, high chance it can be optimized".to_string(),
             ProgramComplexityClassification::ComplexTwoOrMoreSeq => "two or more eval seq, high chance it can be optimized".to_string(),
             ProgramComplexityClassification::ComplexNestedSeq => "eval seq inside loop, high chance it can be optimized".to_string(),
             ProgramComplexityClassification::ComplexAndLong => "long program, high chance that it can be optimized".to_string(),
@@ -76,7 +80,10 @@ impl AnalyzeProgramComplexity {
             return ProgramComplexityClassification::ComplexAndLong;
         }
         if parsed_program.has_two_or_more_seq() {
-            return ProgramComplexityClassification::ComplexTwoOrMoreSeq;            
+            return ProgramComplexityClassification::ComplexTwoOrMoreSeq;
+        }
+        if parsed_program.has_one_seq_and_other_stuff() {
+            return ProgramComplexityClassification::ComplexOneSeqAndOtherStuff;
         }
         if number_of_instructions < IGNORE_ANY_PROGRAM_SHORTER_THAN {
             return ProgramComplexityClassification::SimpleAndShort;
@@ -215,6 +222,25 @@ impl HasTwoOrMoreSeq for ParsedProgram {
             }
         }
         count >= 2
+    }
+}
+
+trait HasOneSeqAndOtherStuff {
+    fn has_one_seq_and_other_stuff(&self) -> bool;
+}
+
+impl HasOneSeqAndOtherStuff for ParsedProgram {
+    fn has_one_seq_and_other_stuff(&self) -> bool {
+        let mut count_seq: usize = 0;
+        let mut count_other: usize = 0;
+        for instruction in &self.instruction_vec {
+            if instruction.instruction_id == InstructionId::EvalSequence {
+                count_seq += 1;
+            } else {
+                count_other += 1;
+            }
+        }
+        (count_seq >= 1) && (count_other > ONE_SEQ_AND_NUMBER_OF_LINES_OF_OTHER_STUFF)
     }
 }
 
