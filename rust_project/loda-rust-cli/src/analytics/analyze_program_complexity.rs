@@ -8,11 +8,11 @@ use std::collections::HashMap;
 use serde::Serialize;
 use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
-const IGNORE_ANY_PROGRAM_SHORTER_THAN: usize = 3;
-const IGNORE_PROGRAM_WITHOUT_LOOPS_SHORTER_THAN: usize = 10;
+const IGNORE_ANY_PROGRAM_SHORTER_THAN: usize = 5;
+const IGNORE_PROGRAM_WITHOUT_LOOPS_SHORTER_THAN: usize = 13;
 const IGNORE_PROGRAM_WITHOUT_NESTED_SEQ_SHORTER_THAN: usize = 10;
 const CONSIDER_ANY_PROGRAM_LONGER_THAN: usize = 60;
-const ONE_SEQ_AND_NUMBER_OF_LINES_OF_OTHER_STUFF: usize = 3;
+const ONE_SEQ_AND_NUMBER_OF_LINES_OF_OTHER_STUFF: usize = 10;
 
 enum ProgramComplexityClassification {
     SimpleAndShort,
@@ -336,8 +336,8 @@ mod tests {
 
     #[test]
     fn test_40000_has_one_seq_and_other_stuff() {
-        assert_eq!(has_one_seq_and_other_stuff("add $0,1\nadd $0,1\nadd $0,1\nadd $0,1"), "false");
-        assert_eq!(has_one_seq_and_other_stuff("seq $0,40\nadd $0,1\nadd $0,1"), "false");
-        assert_eq!(has_one_seq_and_other_stuff("seq $0,40\nadd $0,1\nadd $0,1\nadd $0,1"), "true");
+        assert_eq!(has_one_seq_and_other_stuff("add $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1"), "false");
+        assert_eq!(has_one_seq_and_other_stuff("seq $0,40\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1"), "false");
+        assert_eq!(has_one_seq_and_other_stuff("seq $0,40\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1"), "true");
     }
 }
