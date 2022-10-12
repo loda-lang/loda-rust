@@ -162,7 +162,7 @@ impl AnalyzeSourceNgram {
                     words.push(format!("{:?}", parameter_value));
                 },
                 ParameterType::Indirect => {
-                    // skip rows with $$ parameters
+                    words.push("NONE".to_string());
                 }
             }
         }

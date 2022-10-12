@@ -5,7 +5,7 @@ use crate::common::RecordSkipgram;
 use crate::common::RecordUnigram;
 use loda_rust_core;
 use crate::config::Config;
-use loda_rust_core::parser::{InstructionParameter, ParsedProgram};
+use loda_rust_core::parser::{InstructionParameter, ParsedProgram, ParameterType};
 use std::path::PathBuf;
 use std::error::Error;
 use std::collections::HashMap;
@@ -146,15 +146,23 @@ impl AnalyzeTargetNgram {
         let mut words: Vec<String> = vec!();
         words.push("START".to_string());
         for instruction in &parsed_program.instruction_vec {
-            let parameter: &InstructionParameter = match instruction.parameter_vec.first() {
-                Some(value) => &value,
-                None => {
+            if instruction.parameter_vec.len() < 1 {
+                words.push("NONE".to_string());
+                continue;
+            }
+            let parameter: &InstructionParameter = &instruction.parameter_vec[0];
+            match parameter.parameter_type {
+                ParameterType::Constant => {
+                    words.push("CONST".to_string());
+                },
+                ParameterType::Direct => {
+                    let parameter_value: i64 = parameter.parameter_value;
+                    words.push(format!("{:?}", parameter_value));
+                },
+                ParameterType::Indirect => {
                     words.push("NONE".to_string());
-                    continue;
                 }
-            };
-            let parameter_value: i64 = parameter.parameter_value;
-            words.push(format!("{:?}", parameter_value));
+            }
         }
         words.push("STOP".to_string());
         words
