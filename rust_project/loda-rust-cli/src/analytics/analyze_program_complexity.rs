@@ -10,7 +10,7 @@ use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
 const IGNORE_ANY_PROGRAM_SHORTER_THAN: usize = 5;
 const IGNORE_PROGRAM_WITHOUT_LOOPS_SHORTER_THAN: usize = 13;
-const IGNORE_PROGRAM_WITHOUT_NESTED_SEQ_SHORTER_THAN: usize = 10;
+const IGNORE_PROGRAM_WITHOUT_NESTED_SEQ_SHORTER_THAN: usize = 9;
 const CONSIDER_ANY_PROGRAM_LONGER_THAN: usize = 60;
 const ONE_SEQ_AND_NUMBER_OF_LINES_OF_OTHER_STUFF: usize = 10;
 
@@ -30,7 +30,7 @@ impl ProgramComplexityClassification {
         match self {
             ProgramComplexityClassification::SimpleAndShort => false,
             ProgramComplexityClassification::SimpleWithoutLoops => false,
-            ProgramComplexityClassification::MediumWithLoops => true,
+            ProgramComplexityClassification::MediumWithLoops => false,
             ProgramComplexityClassification::ComplexOneSeqAndOtherStuff => true,
             ProgramComplexityClassification::ComplexTwoOrMoreSeq => true,
             ProgramComplexityClassification::ComplexNestedSeq => true,
