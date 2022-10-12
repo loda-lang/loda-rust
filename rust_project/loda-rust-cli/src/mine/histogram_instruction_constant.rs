@@ -1,3 +1,4 @@
+use super::random_indexes_with_distance;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -7,6 +8,8 @@ use std::iter::FromIterator;
 use serde::Deserialize;
 use rand::Rng;
 use rand::seq::SliceRandom;
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 use loda_rust_core::parser::InstructionId;
 use crate::common::parse_csv_data;
 
@@ -42,8 +45,20 @@ impl HistogramInstructionConstant {
         Self::create(&mut reader)
     }
 
+    const SHUFFLE_COUNT: usize = 10;
+
     fn create(reader: &mut dyn BufRead) -> Result<HistogramInstructionConstant, Box<dyn Error>> {
-        let records: Vec<Record> = parse_csv_data::<Record>(reader)?;
+        let records_original: Vec<Record> = parse_csv_data::<Record>(reader)?;
+
+        // Shuffle the items slightly
+        let mut records: Vec<Record> = records_original.clone();
+        let seed: u64 = 1;
+        let mut rng = StdRng::seed_from_u64(seed);
+        let indexes: Vec<usize> = random_indexes_with_distance(&mut rng, records.len(), Self::SHUFFLE_COUNT);
+        for index in indexes {
+            records[index].count = records_original[index].count;
+        }
+
         let instruction_and_valueweightvector: HashMap<InstructionId, ValueAndWeightVector> = 
             Record::instruction_and_valueweightvector(&records);
         let result = Self {
@@ -65,7 +80,7 @@ impl HistogramInstructionConstant {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 struct Record {
     count: u32,
     instruction: String,

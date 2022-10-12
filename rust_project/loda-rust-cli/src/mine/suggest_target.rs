@@ -1,7 +1,10 @@
 use crate::common::RecordTrigram;
+use super::random_indexes_with_distance;
 use std::collections::HashMap;
 use rand::Rng;
 use rand::seq::SliceRandom;
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum TargetValue {
@@ -79,7 +82,17 @@ impl SuggestTarget {
         }
     }
 
-    pub fn populate(&mut self, records: &Vec<RecordTrigram>) {
+    const SHUFFLE_COUNT: usize = 20;
+
+    pub fn populate(&mut self, records_original: &Vec<RecordTrigram>) {
+        let mut records: Vec<RecordTrigram> = records_original.clone();
+        let seed: u64 = 1;
+        let mut rng = StdRng::seed_from_u64(seed);
+        let indexes: Vec<usize> = random_indexes_with_distance(&mut rng, records.len(), Self::SHUFFLE_COUNT);
+        for index in indexes {
+            records[index].count = records_original[index].count;
+        }
+
         for record in records {
             let value0: TargetValue = match TargetValue::parse(&record.word0) {
                 Some(value) => value,
