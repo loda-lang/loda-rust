@@ -14,6 +14,7 @@ mod performance_classifier;
 mod popular_program_container;
 mod prevent_flooding;
 mod prevent_flooding_populate;
+mod random_indexes_with_distance;
 mod recent_program_container;
 mod run_miner_loop;
 mod save_candidate_program;
@@ -38,6 +39,7 @@ pub use performance_classifier::{PerformanceClassifier, PerformanceClassifierRes
 pub use popular_program_container::PopularProgramContainer;
 pub use prevent_flooding::{PreventFlooding, PreventFloodingError};
 pub use prevent_flooding_populate::prevent_flooding_populate;
+pub use random_indexes_with_distance::random_indexes_with_distance;
 pub use recent_program_container::RecentProgramContainer;
 pub use run_miner_loop::RunMinerLoop;
 pub use save_candidate_program::save_candidate_program;
