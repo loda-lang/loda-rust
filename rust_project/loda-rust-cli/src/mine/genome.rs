@@ -24,7 +24,7 @@ pub enum MutateGenome {
     SwapRegisters,
     IncrementSourceValueWhereTypeIsDirect,
     DecrementSourceValueWhereTypeIsDirect,
-    ReplaceSourceRegisterWithHistogram,
+    ReplaceSourceWithHistogram,
     IncrementTargetValueWhereTypeIsDirect,
     DecrementTargetValueWhereTypeIsDirect,
     ReplaceTargetWithHistogram,
@@ -482,7 +482,7 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    pub fn replace_source_register_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+    pub fn replace_source_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Bail out if the trigram.csv file hasn't been loaded.
         if !context.has_suggest_source() {
             return false;
@@ -514,37 +514,70 @@ impl Genome {
             return false;
         }
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index1];
-        if *genome_item.source_type() != ParameterType::Direct {
-            // Only modify when the ParameterType=Direct.
-            //
-            // Prevent modifying an existing instruction if it has ParameterType=Indirect
-            // since the `histogram_source_trigram.csv` doesn't consider indirect.
-            //
-            // Prevent modifying an existing instruction if it has ParameterType=Constant
-            // since the `histogram_source_trigram.csv` doesn't consider constant.
-            // The CSV file has `CONST`, but none of the constants.
-            return false;
-        }
         let suggested_value: SourceValue = match context.suggest_source(rng, prev_word, next_word) {
             Some(value) => value,
             None => {
                 return false;
             }
         };
-        let suggested_value_inner: i32 = match suggested_value {
-            SourceValue::Direct(value) => value,
+        if *genome_item.instruction_id() == InstructionId::EvalSequence {
+            match suggested_value {
+                SourceValue::Constant(value) => {
+                    if value == genome_item.source_value() {
+                        return false;
+                    }
+                    if value < 0 {
+                        return false;
+                    }
+                    let new_program_id: u32 = value as u32;
+                    let available_program_ids: &Vec<u32> = context.available_program_ids();
+                    if !available_program_ids.contains(&new_program_id) {
+                        // The suggested program that isn't among the available programs.
+                        // This happens when the histogram csv files are outdated with the latest LODA repository.
+                        return false;
+                    }            
+                    genome_item.set_source_value(value);
+                    genome_item.set_source_type(ParameterType::Constant);
+                    return true;
+                },
+                _ => {
+                    // Do nothing. The `seq` instruction can only have ParameterType::Constant.
+                    return false;
+                }
+            }
+        }
+        let parameter_value: i32;
+        let parameter_type: ParameterType;
+        match suggested_value {
+            SourceValue::Constant(value) => {
+                parameter_type = ParameterType::Constant;
+                parameter_value = value; 
+            },
+            SourceValue::Direct(value) => {
+                if value < 0 {
+                    return false;
+                }
+                parameter_type = ParameterType::Direct;
+                parameter_value = value; 
+            },
+            SourceValue::Indirect(value) => {
+                if value < 0 {
+                    return false;
+                }
+                parameter_type = ParameterType::Indirect;
+                parameter_value = value; 
+            },
             _ => {
                 return false;
             }
         };
-        if suggested_value_inner == genome_item.source_value() {
+        let same_value: bool = parameter_value == genome_item.source_value();
+        let same_type: bool = parameter_type == *genome_item.source_type();
+        if same_value && same_type {
             return false;
         }
-        if suggested_value_inner < 0 {
-            return false;
-        }
-        genome_item.set_source_value(suggested_value_inner);
-        // No need to sanitize when using histogram
+        genome_item.set_source_value(parameter_value);
+        genome_item.set_source_type(parameter_type);
         true
     }
     
@@ -1105,13 +1138,13 @@ impl Genome {
             (MutateGenome::InsertInstructionWithConstant, 30),
             (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 10),
             (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 5),
-            (MutateGenome::ReplaceSourceConstantWithHistogram, 100),
+            // (MutateGenome::ReplaceSourceConstantWithHistogram, 100),
             (MutateGenome::SourceType, 30),
             (MutateGenome::DisableLoop, 0),
             (MutateGenome::SwapRegisters, 10),
             (MutateGenome::IncrementSourceValueWhereTypeIsDirect, 10),
             (MutateGenome::DecrementSourceValueWhereTypeIsDirect, 5),
-            (MutateGenome::ReplaceSourceRegisterWithHistogram, 100),
+            (MutateGenome::ReplaceSourceWithHistogram, 100),
             (MutateGenome::IncrementTargetValueWhereTypeIsDirect, 10),
             (MutateGenome::DecrementTargetValueWhereTypeIsDirect, 5),
             (MutateGenome::ReplaceTargetWithHistogram, 100),
@@ -1162,8 +1195,8 @@ impl Genome {
             MutateGenome::DecrementSourceValueWhereTypeIsDirect => {
                 self.decrement_source_value_where_type_is_direct(rng)
             },
-            MutateGenome::ReplaceSourceRegisterWithHistogram => {
-                self.replace_source_register_with_histogram(rng, context)
+            MutateGenome::ReplaceSourceWithHistogram => {
+                self.replace_source_with_histogram(rng, context)
             },
             MutateGenome::IncrementTargetValueWhereTypeIsDirect => {
                 self.increment_target_value_where_type_is_direct(rng)
