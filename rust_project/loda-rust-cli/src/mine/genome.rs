@@ -1138,7 +1138,7 @@ impl Genome {
             (MutateGenome::InsertInstructionWithConstant, 30),
             (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 10),
             (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 5),
-            // (MutateGenome::ReplaceSourceConstantWithHistogram, 100),
+            (MutateGenome::ReplaceSourceConstantWithHistogram, 5),
             (MutateGenome::SourceType, 30),
             (MutateGenome::DisableLoop, 0),
             (MutateGenome::SwapRegisters, 10),
