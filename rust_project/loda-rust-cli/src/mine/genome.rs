@@ -469,7 +469,7 @@ impl Genome {
             },
             ParameterType::Direct => {
                 let value: i32 = genome_item.source_value();
-                return SourceValue::Value(value);
+                return SourceValue::Direct(value);
             },
             ParameterType::Indirect => {
                 return SourceValue::None;
@@ -530,7 +530,7 @@ impl Genome {
             }
         };
         let suggested_value_inner: i32 = match suggested_value {
-            SourceValue::Value(value) => value,
+            SourceValue::Direct(value) => value,
             _ => {
                 return false;
             }

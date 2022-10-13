@@ -10,15 +10,15 @@ use rand::rngs::StdRng;
 pub enum SourceValue {
     ProgramStart,
     ProgramStop,
-    Value(i32),
     Constant,
+    Direct(i32),
     None,
 }
 
 impl SourceValue {
     /// Convert string to an enum.
     /// 
-    /// Convert "42" to `SourceValue::Value(42)`.
+    /// Convert "42" to `SourceValue::Direct(42)`.
     /// 
     /// Convert "START" to `SourceValue::ProgramStart`.
     /// 
@@ -54,7 +54,7 @@ impl SourceValue {
         }
         match s.parse::<i32>() {
             Ok(value) => {
-                return Some(SourceValue::Value(value));
+                return Some(SourceValue::Direct(value));
             },
             Err(_) => {
                 return None;
@@ -65,7 +65,7 @@ impl SourceValue {
     #[allow(dead_code)]
     fn to_string(&self) -> String {
         match self {
-            Self::Value(value) => return format!("{}", value),
+            Self::Direct(value) => return format!("{}", value),
             Self::ProgramStart => return "START".to_string(),
             Self::ProgramStop => return "STOP".to_string(),
             Self::Constant => return "CONST".to_string(),
@@ -289,8 +289,8 @@ mod tests {
     #[test]
     fn test_20000_choose_weighted_surrounded_by_other_words0() {
         let actual: Option<SourceValue> = exercise_choose_weighted(
-            SourceValue::Value(0), 
-            SourceValue::Value(0)
+            SourceValue::Direct(0), 
+            SourceValue::Direct(0)
         );
         assert_eq!(actual, Some(SourceValue::Constant));
     }
@@ -298,28 +298,28 @@ mod tests {
     #[test]
     fn test_20001_choose_weighted_surrounded_by_other_words1() {
         let actual: Option<SourceValue> = exercise_choose_weighted(
-            SourceValue::Value(1),
-            SourceValue::Value(1)
+            SourceValue::Direct(1),
+            SourceValue::Direct(1)
         );
-        assert_eq!(actual, Some(SourceValue::Value(1)));
+        assert_eq!(actual, Some(SourceValue::Direct(1)));
     }
 
     #[test]
     fn test_20002_choose_weighted_start_of_program() {
         let actual: Option<SourceValue> = exercise_choose_weighted(
             SourceValue::ProgramStart,
-            SourceValue::Value(2)
+            SourceValue::Direct(2)
         );
-        assert_eq!(actual, Some(SourceValue::Value(20)));
+        assert_eq!(actual, Some(SourceValue::Direct(20)));
     }
 
     #[test]
     fn test_20003_choose_weighted_end_of_program() {
         let actual: Option<SourceValue> = exercise_choose_weighted(
-            SourceValue::Value(3),
+            SourceValue::Direct(3),
             SourceValue::ProgramStop
         );
-        assert_eq!(actual, Some(SourceValue::Value(30)));
+        assert_eq!(actual, Some(SourceValue::Direct(30)));
     }
 
     #[test]
@@ -328,7 +328,7 @@ mod tests {
             SourceValue::ProgramStart,
             SourceValue::ProgramStop
         );
-        assert_eq!(actual, Some(SourceValue::Value(40)));
+        assert_eq!(actual, Some(SourceValue::Direct(40)));
     }
 
     #[test]
@@ -337,7 +337,7 @@ mod tests {
             SourceValue::None,
             SourceValue::None
         );
-        assert_eq!(actual, Some(SourceValue::Value(6)));
+        assert_eq!(actual, Some(SourceValue::Direct(6)));
     }
 
     #[test]
@@ -352,8 +352,8 @@ mod tests {
     #[test]
     fn test_20007_choose_weighted_unrecognized_input() {
         let actual: Option<SourceValue> = exercise_choose_weighted(
-            SourceValue::Value(666),
-            SourceValue::Value(666)
+            SourceValue::Direct(666),
+            SourceValue::Direct(666)
         );
         assert_eq!(actual, None);
     }
