@@ -1,5 +1,8 @@
 use crate::common::RecordTrigram;
+use loda_rust_core::parser::extract_parameter_re::EXTRACT_PARAMETER_RE;
+use loda_rust_core::parser::ParameterType;
 use super::random_indexes_with_distance;
+use std::str::FromStr;
 use std::collections::HashMap;
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -11,6 +14,7 @@ pub enum TargetValue {
     ProgramStart,
     ProgramStop,
     Direct(i32),
+    Indirect(i32),
     None,
 }
 
@@ -26,42 +30,79 @@ impl TargetValue {
     /// Convert "NONE" to `TargetValue::None`.
     /// 
     /// Convert "JUNK" to `Optional::None`.
-    fn parse<S>(content: S) -> Option<TargetValue> where S: Into<String> {
+    fn parse<S>(content: S) -> anyhow::Result<TargetValue> where S: Into<String> {
         let s: String = content.into();
         match s.as_str() {
             "START" => {
-                return Some(TargetValue::ProgramStart);
+                return Ok(TargetValue::ProgramStart);
             },
             "STOP" => {
-                return Some(TargetValue::ProgramStop);
+                return Ok(TargetValue::ProgramStop);
             },
             "NONE" => {
-                return Some(TargetValue::None);
+                return Ok(TargetValue::None);
             },
             _ => {}
         }
-        if s.starts_with('+') {
-            return None;
-        }
-        if s.starts_with('-') {
-            return None;
-        }
-        match s.parse::<i32>() {
-            Ok(value) => {
-                return Some(TargetValue::Direct(value));
-            },
-            Err(_) => {
-                return None;
+        let re = &EXTRACT_PARAMETER_RE;
+        let captures = match re.captures(&s) {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Unrecognized parameter, doesn't satisfy regex pattern."));
             }
+        };
+        let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
+        let capture2: &str = captures.get(2).map_or("", |m| m.as_str());
+
+        let parameter_type: ParameterType = match ParameterType::from_str(capture1) {
+            Ok(value) => value,
+            _ => {
+                return Err(anyhow::anyhow!("Unrecognized parameter type"));
+            }
+        };
+        let parameter_value: i32 = match i32::from_str(capture2) {
+            Ok(value) => value,
+            _ => {
+                return Err(anyhow::anyhow!("Parameter value cannot be parsed as i32"));
+            }
+        };
+
+        // Reject redundant leading zeroes, such as `0001`.
+        // Reject redundant minus prefix `-0`.
+        if parameter_value.to_string() != capture2 {
+            return Err(anyhow::anyhow!("Strict incorrect parameter value"));
+        }
+
+        // Allow negative constants.
+        // Reject negative addresses, such as `$-123` and `$$-4`.
+        let check_negative: bool = match parameter_type {
+            ParameterType::Direct | ParameterType::Indirect => true,
+            ParameterType::Constant => false
+        };
+        if check_negative && parameter_value < 0 {
+            return Err(anyhow::anyhow!("Negative value not allowed for this parameter type"));
+        }
+
+        match parameter_type {
+            ParameterType::Constant => {
+                return Err(anyhow::anyhow!("Encountered a ParameterType::Contant for target, which no instructions supports"));
+            },
+            ParameterType::Direct => {
+                return Ok(TargetValue::Direct(parameter_value));
+            },
+            ParameterType::Indirect => {
+                return Ok(TargetValue::Indirect(parameter_value));
+            },
         }
     }
 
     #[allow(dead_code)]
     fn to_string(&self) -> String {
         match self {
-            Self::Direct(value) => return format!("{}", value),
             Self::ProgramStart => return "START".to_string(),
             Self::ProgramStop => return "STOP".to_string(),
+            Self::Direct(value) => return format!("${}", value),
+            Self::Indirect(value) => return format!("$${}", value),
             Self::None => return "NONE".to_string(),
         }
     }
@@ -93,22 +134,25 @@ impl SuggestTarget {
             records[index].count = records_original[index].count;
         }
 
-        for record in records {
+        for (index, record) in records.iter().enumerate() {
             let value0: TargetValue = match TargetValue::parse(&record.word0) {
-                Some(value) => value,
-                None => {
+                Ok(value) => value,
+                Err(error) => {
+                    debug!("SuggestTarget.populate(). ignoring row {}. column 0. error: {:?}", index, error);
                     continue;
                 }
             };
             let value1: TargetValue = match TargetValue::parse(&record.word1) {
-                Some(value) => value,
-                None => {
+                Ok(value) => value,
+                Err(error) => {
+                    debug!("SuggestTarget.populate(). ignoring row {}. column 1. error: {:?}", index, error);
                     continue;
                 }
             };
             let value2: TargetValue = match TargetValue::parse(&record.word2) {
-                Some(value) => value,
-                None => {
+                Ok(value) => value,
+                Err(error) => {
+                    debug!("SuggestTarget.populate(). ignoring row {}. column 2. error: {:?}", index, error);
                     continue;
                 }
             };
@@ -170,22 +214,36 @@ mod tests {
         "STOP",
         "NONE",
         "42",
+        "$42",
+        "$$42",
         "0",
-        "+42",
+        "$0",
+        "$$0",
         "-1",
-        "$1",
+        "+42",
         "boom",
         "",
         " 0",
         " 0 ",
+        "-0",
+        "$-4",
+        "$$-4",
     ];
 
     static OUTPUT: &'static [&'static str] = &[
         "START",
         "STOP",
         "NONE",
-        "42",
-        "0",
+        "IGNORE",
+        "$42",
+        "$$42",
+        "IGNORE",
+        "$0",
+        "$$0",
+        "IGNORE",
+        "IGNORE",
+        "IGNORE",
+        "IGNORE",
         "IGNORE",
         "IGNORE",
         "IGNORE",
@@ -198,8 +256,8 @@ mod tests {
     fn process<S: AsRef<str>>(input: S) -> String {
         let input = input.as_ref();
         let target_value: TargetValue = match TargetValue::parse(input) {
-            Some(value) => value,
-            None => {
+            Ok(value) => value,
+            Err(_) => {
                 return "IGNORE".to_string();
             }
         };
@@ -217,39 +275,45 @@ mod tests {
         let v = vec![
             RecordTrigram {
                 count: 1000,
-                word0: "0".to_string(),
-                word1: "0".to_string(),
-                word2: "0".to_string()
+                word0: "$0".to_string(),
+                word1: "$0".to_string(),
+                word2: "$0".to_string()
             },
             RecordTrigram {
                 count: 1000,
-                word0: "1".to_string(),
-                word1: "1".to_string(),
-                word2: "1".to_string()
+                word0: "$1".to_string(),
+                word1: "$1".to_string(),
+                word2: "$1".to_string()
             },
             RecordTrigram {
                 count: 1000,
                 word0: "START".to_string(),
-                word1: "20".to_string(),
-                word2: "2".to_string()
+                word1: "$20".to_string(),
+                word2: "$2".to_string()
             },
             RecordTrigram {
                 count: 1000,
-                word0: "3".to_string(),
-                word1: "30".to_string(),
+                word0: "$3".to_string(),
+                word1: "$30".to_string(),
                 word2: "STOP".to_string()
             },
             RecordTrigram {
                 count: 1000,
                 word0: "START".to_string(),
-                word1: "40".to_string(),
+                word1: "$40".to_string(),
                 word2: "STOP".to_string()
             },
             RecordTrigram {
                 count: 1000,
                 word0: "NONE".to_string(),
-                word1: "6".to_string(),
+                word1: "$6".to_string(),
                 word2: "NONE".to_string()
+            },
+            RecordTrigram {
+                count: 1000,
+                word0: "$$4".to_string(),
+                word1: "$9".to_string(),
+                word2: "$$3".to_string()
             },
         ];
         v
@@ -323,7 +387,16 @@ mod tests {
     }
 
     #[test]
-    fn test_20006_choose_weighted_unrecognized_input() {
+    fn test_20006_choose_weighted_surrounded_by_indirect() {
+        let actual: Option<TargetValue> = exercise_choose_weighted(
+            TargetValue::Indirect(4),
+            TargetValue::Indirect(3)
+        );
+        assert_eq!(actual, Some(TargetValue::Direct(9)));
+    }
+
+    #[test]
+    fn test_20007_choose_weighted_unrecognized_input() {
         let actual: Option<TargetValue> = exercise_choose_weighted(
             TargetValue::Direct(666),
             TargetValue::Direct(666)

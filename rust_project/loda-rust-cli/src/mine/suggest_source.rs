@@ -320,6 +320,12 @@ mod tests {
             },
             RecordTrigram {
                 count: 1000,
+                word0: "$$4".to_string(),
+                word1: "$9".to_string(),
+                word2: "$$3".to_string()
+            },
+            RecordTrigram {
+                count: 1000,
                 word0: "333".to_string(),
                 word1: "-666".to_string(),
                 word2: "333".to_string()
@@ -405,7 +411,16 @@ mod tests {
     }
 
     #[test]
-    fn test_20007_choose_weighted_unrecognized_input() {
+    fn test_20007_choose_weighted_surrounded_by_indirect() {
+        let actual: Option<SourceValue> = exercise_choose_weighted(
+            SourceValue::Indirect(4),
+            SourceValue::Indirect(3)
+        );
+        assert_eq!(actual, Some(SourceValue::Direct(9)));
+    }
+
+    #[test]
+    fn test_20008_choose_weighted_unrecognized_input() {
         let actual: Option<SourceValue> = exercise_choose_weighted(
             SourceValue::Direct(666),
             SourceValue::Direct(666)

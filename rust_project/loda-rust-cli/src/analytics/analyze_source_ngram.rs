@@ -15,11 +15,11 @@ type HistogramBigramKey = (String,String);
 type HistogramTrigramKey = (String,String,String);
 type HistogramSkipgramKey = (String,String);
 
-/// Creates [N-gram] csv files with LODA source register/constants.
+/// Creates [N-gram] csv files with LODA source parameters.
 /// 
 /// Traverses all the programs inside the `loda-programs/oeis` dir.
 /// It looks for all the LODA assembly programs there are.
-/// This script determines the most frequent combinations of source register/constants.
+/// Determines the most frequent combinations of source parameters.
 /// 
 /// ---
 /// 

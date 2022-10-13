@@ -651,15 +651,19 @@ impl Genome {
     }
 
     fn get_target_value(genome_item: &GenomeItem) -> TargetValue {
-        if *genome_item.target_type() == RegisterType::Indirect {
-            return TargetValue::None;
-        }
         let instruction_id: InstructionId = *genome_item.instruction_id();
         if instruction_id == InstructionId::LoopEnd {
             return TargetValue::None;
         }
         let value: i32 = genome_item.target_value();
-        TargetValue::Direct(value)
+        match genome_item.target_type() {
+            RegisterType::Direct => {
+                return TargetValue::Direct(value);
+            },
+            RegisterType::Indirect => {
+                return TargetValue::Indirect(value);
+            },
+        }
     }
 
     /// Return `true` when the mutation was successful.
@@ -694,7 +698,7 @@ impl Genome {
             None => {}
         };
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index1];
-        if *genome_item.target_type() == RegisterType::Indirect {
+        if *genome_item.instruction_id() == InstructionId::LoopEnd {
             return false;
         }
         let suggested_value: TargetValue = match context.suggest_target(rng, prev_word, next_word) {
@@ -703,18 +707,34 @@ impl Genome {
                 return false;
             }
         };
-        let suggested_value_inner: i32 = match suggested_value {
-            TargetValue::Direct(value) => value,
+        let parameter_value: i32;
+        let parameter_type: RegisterType;
+        match suggested_value {
+            TargetValue::Direct(value) => {
+                if value < 0 {
+                    return false;
+                }
+                parameter_type = RegisterType::Direct;
+                parameter_value = value; 
+            },
+            TargetValue::Indirect(value) => {
+                if value < 0 {
+                    return false;
+                }
+                parameter_type = RegisterType::Indirect;
+                parameter_value = value; 
+            },
             _ => {
                 return false;
             }
         };
-        // let old_target: i32 = genome_item.target_value();
-        if !genome_item.set_target_value(suggested_value_inner) {
+        let same_value: bool = parameter_value == genome_item.target_value();
+        let same_type: bool = parameter_type == *genome_item.target_type();
+        if same_value && same_type {
             return false;
         }
-        // debug!("suggest target: {:?} -> {:?}", old_target, suggested_value_inner);
-        // No need to sanitize when using histogram
+        genome_item.set_target_value(parameter_value);
+        genome_item.set_target_type(parameter_type);
         true
     }
 
