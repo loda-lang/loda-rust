@@ -143,8 +143,8 @@ pub fn start_miner_loop(
     );
     dependency_manager.set_execute_profile(ExecuteProfile::SmallLimits);
 
-    let initial_genome_program_ids = valid_program_ids.clone();
-    // let initial_genome_program_ids = indirect_memory_access_program_ids.clone();
+    // let initial_genome_program_ids = valid_program_ids.clone();
+    let initial_genome_program_ids = indirect_memory_access_program_ids.clone();
 
     // Pick a random seed
     let mut rng = thread_rng();
