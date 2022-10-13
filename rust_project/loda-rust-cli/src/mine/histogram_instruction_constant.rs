@@ -45,7 +45,7 @@ impl HistogramInstructionConstant {
         Self::create(&mut reader)
     }
 
-    const SHUFFLE_COUNT: usize = 10;
+    const SHUFFLE_COUNT: usize = 100;
 
     fn create(reader: &mut dyn BufRead) -> Result<HistogramInstructionConstant, Box<dyn Error>> {
         let records_original: Vec<Record> = parse_csv_data::<Record>(reader)?;

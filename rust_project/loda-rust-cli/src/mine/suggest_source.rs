@@ -89,7 +89,7 @@ impl SuggestSource {
         }
     }
 
-    const SHUFFLE_COUNT: usize = 20;
+    const SHUFFLE_COUNT: usize = 50;
 
     pub fn populate(&mut self, records_original: &Vec<RecordTrigram>) {
         let mut records: Vec<RecordTrigram> = records_original.clone();
