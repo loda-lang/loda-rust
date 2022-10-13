@@ -661,7 +661,7 @@ impl Genome {
             return TargetValue::None;
         }
         let value: i32 = genome_item.target_value();
-        TargetValue::Value(value)
+        TargetValue::Direct(value)
     }
 
     /// Return `true` when the mutation was successful.
@@ -706,7 +706,7 @@ impl Genome {
             }
         };
         let suggested_value_inner: i32 = match suggested_value {
-            TargetValue::Value(value) => value,
+            TargetValue::Direct(value) => value,
             _ => {
                 return false;
             }
@@ -866,7 +866,7 @@ impl Genome {
         let suggested_target_value: Option<TargetValue> = context.suggest_target(rng, prev_target, next_target);
         let target_value: i32;
         match suggested_target_value {
-            Some(TargetValue::Value(value)) => {
+            Some(TargetValue::Direct(value)) => {
                 target_value = value;
             },
             _ => {
