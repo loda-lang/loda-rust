@@ -463,17 +463,15 @@ impl Genome {
         if instruction_id == InstructionId::LoopEnd {
             return SourceValue::None;
         }
+        let value: i32 = genome_item.source_value();
         match genome_item.source_type() {
             ParameterType::Constant => {
-                let value: i32 = genome_item.source_value();
                 return SourceValue::Constant(value);
             },
             ParameterType::Direct => {
-                let value: i32 = genome_item.source_value();
                 return SourceValue::Direct(value);
             },
             ParameterType::Indirect => {
-                let value: i32 = genome_item.source_value();
                 return SourceValue::Indirect(value);
             }
         }
