@@ -1,5 +1,8 @@
 use crate::common::RecordTrigram;
+use loda_rust_core::parser::extract_parameter_re::EXTRACT_PARAMETER_RE;
+use loda_rust_core::parser::ParameterType;
 use super::random_indexes_with_distance;
+use std::str::FromStr;
 use std::collections::HashMap;
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -10,65 +13,102 @@ use rand::rngs::StdRng;
 pub enum SourceValue {
     ProgramStart,
     ProgramStop,
-    Constant,
+    Constant(i32),
     Direct(i32),
+    Indirect(i32),
     None,
 }
 
 impl SourceValue {
     /// Convert string to an enum.
     /// 
-    /// Convert "42" to `SourceValue::Direct(42)`.
+    /// Convert "42" to `SourceValue::Constant(42)`.
+    /// 
+    /// Convert "$42" to `SourceValue::Direct(42)`.
+    /// 
+    /// Convert "$$42" to `SourceValue::Indirect(42)`.
     /// 
     /// Convert "START" to `SourceValue::ProgramStart`.
     /// 
     /// Convert "STOP" to `SourceValue::ProgramStop`.
     /// 
-    /// Convert "CONST" to `SourceValue::Constant`.
-    /// 
     /// Convert "NONE" to `SourceValue::None`.
     /// 
-    /// Convert "JUNK" to `Optional::None`.
-    fn parse<S>(content: S) -> Option<SourceValue> where S: Into<String> {
+    /// Returns Error in case the text cannot be parsed.
+    fn parse<S>(content: S) -> anyhow::Result<SourceValue> where S: Into<String> {
         let s: String = content.into();
         match s.as_str() {
             "START" => {
-                return Some(SourceValue::ProgramStart);
+                return Ok(SourceValue::ProgramStart);
             },
             "STOP" => {
-                return Some(SourceValue::ProgramStop);
-            },
-            "CONST" => {
-                return Some(SourceValue::Constant);
+                return Ok(SourceValue::ProgramStop);
             },
             "NONE" => {
-                return Some(SourceValue::None);
+                return Ok(SourceValue::None);
             },
             _ => {}
         }
-        if s.starts_with('+') {
-            return None;
-        }
-        if s.starts_with('-') {
-            return None;
-        }
-        match s.parse::<i32>() {
-            Ok(value) => {
-                return Some(SourceValue::Direct(value));
-            },
-            Err(_) => {
-                return None;
+        let re = &EXTRACT_PARAMETER_RE;
+        let captures = match re.captures(&s) {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Unrecognized parameter, doesn't satisfy regex pattern."));
             }
+        };
+        let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
+        let capture2: &str = captures.get(2).map_or("", |m| m.as_str());
+
+        let parameter_type: ParameterType = match ParameterType::from_str(capture1) {
+            Ok(value) => value,
+            _ => {
+                return Err(anyhow::anyhow!("Unrecognized parameter type"));
+            }
+        };
+        let parameter_value: i32 = match i32::from_str(capture2) {
+            Ok(value) => value,
+            _ => {
+                return Err(anyhow::anyhow!("Parameter value cannot be parsed as i32"));
+            }
+        };
+
+        // Reject redundant leading zeroes, such as `0001`.
+        // Reject redundant minus prefix `-0`.
+        if parameter_value.to_string() != capture2 {
+            return Err(anyhow::anyhow!("Strict incorrect parameter value"));
+        }
+
+        // Allow negative constants.
+        // Reject negative addresses, such as `$-123` and `$$-4`.
+        let check_negative: bool = match parameter_type {
+            ParameterType::Direct | ParameterType::Indirect => true,
+            ParameterType::Constant => false
+        };
+        if check_negative && parameter_value < 0 {
+            return Err(anyhow::anyhow!("Negative value not allowed for this parameter type"));
+        }
+
+        match parameter_type {
+            ParameterType::Constant => {
+                return Ok(SourceValue::Constant(parameter_value));
+            },
+            ParameterType::Direct => {
+                return Ok(SourceValue::Direct(parameter_value));
+            },
+            ParameterType::Indirect => {
+                return Ok(SourceValue::Indirect(parameter_value));
+            },
         }
     }
 
     #[allow(dead_code)]
     fn to_string(&self) -> String {
         match self {
-            Self::Direct(value) => return format!("{}", value),
             Self::ProgramStart => return "START".to_string(),
             Self::ProgramStop => return "STOP".to_string(),
-            Self::Constant => return "CONST".to_string(),
+            Self::Constant(value) => return format!("{}", value),
+            Self::Direct(value) => return format!("${}", value),
+            Self::Indirect(value) => return format!("$${}", value),
             Self::None => return "NONE".to_string(),
         }
     }
@@ -100,22 +140,25 @@ impl SuggestSource {
             records[index].count = records_original[index].count;
         }
 
-        for record in records {
+        for (index, record) in records.iter().enumerate() {
             let value0: SourceValue = match SourceValue::parse(&record.word0) {
-                Some(value) => value,
-                None => {
+                Ok(value) => value,
+                Err(error) => {
+                    debug!("SuggestSource.populate(). ignoring row {}. column 0. error: {:?}", index, error);
                     continue;
                 }
             };
             let value1: SourceValue = match SourceValue::parse(&record.word1) {
-                Some(value) => value,
-                None => {
+                Ok(value) => value,
+                Err(error) => {
+                    debug!("SuggestSource.populate(). ignoring row {}. column 1. error: {:?}", index, error);
                     continue;
                 }
             };
             let value2: SourceValue = match SourceValue::parse(&record.word2) {
-                Some(value) => value,
-                None => {
+                Ok(value) => value,
+                Err(error) => {
+                    debug!("SuggestSource.populate(). ignoring row {}. column 2. error: {:?}", index, error);
                     continue;
                 }
             };
@@ -178,26 +221,38 @@ mod tests {
     static INPUT: &'static [&'static str] = &[
         "START",
         "STOP",
-        "CONST",
         "NONE",
         "42",
+        "$42",
+        "$$42",
         "0",
-        "+42",
+        "$0",
+        "$$0",
         "-1",
-        "$1",
+        "+42",
         "boom",
         "",
         " 0",
         " 0 ",
+        "-0",
+        "$-4",
+        "$$-4",
     ];
 
     static OUTPUT: &'static [&'static str] = &[
         "START",
         "STOP",
-        "CONST",
         "NONE",
         "42",
+        "$42",
+        "$$42",
         "0",
+        "$0",
+        "$$0",
+        "-1",
+        "IGNORE",
+        "IGNORE",
+        "IGNORE",
         "IGNORE",
         "IGNORE",
         "IGNORE",
@@ -210,8 +265,8 @@ mod tests {
     fn process<S: AsRef<str>>(input: S) -> String {
         let input = input.as_ref();
         let source_value: SourceValue = match SourceValue::parse(input) {
-            Some(value) => value,
-            None => {
+            Ok(value) => value,
+            Err(_) => {
                 return "IGNORE".to_string();
             }
         };
@@ -229,45 +284,45 @@ mod tests {
         let v = vec![
             RecordTrigram {
                 count: 1000,
-                word0: "0".to_string(),
-                word1: "CONST".to_string(),
-                word2: "0".to_string()
+                word0: "$0".to_string(),
+                word1: "333".to_string(),
+                word2: "$0".to_string()
             },
             RecordTrigram {
                 count: 1000,
-                word0: "1".to_string(),
-                word1: "1".to_string(),
-                word2: "1".to_string()
+                word0: "$1".to_string(),
+                word1: "$1".to_string(),
+                word2: "$1".to_string()
             },
             RecordTrigram {
                 count: 1000,
                 word0: "START".to_string(),
-                word1: "20".to_string(),
-                word2: "2".to_string()
+                word1: "$20".to_string(),
+                word2: "$2".to_string()
             },
             RecordTrigram {
                 count: 1000,
-                word0: "3".to_string(),
-                word1: "30".to_string(),
+                word0: "$3".to_string(),
+                word1: "$30".to_string(),
                 word2: "STOP".to_string()
             },
             RecordTrigram {
                 count: 1000,
                 word0: "START".to_string(),
-                word1: "40".to_string(),
+                word1: "$40".to_string(),
                 word2: "STOP".to_string()
             },
             RecordTrigram {
                 count: 1000,
                 word0: "NONE".to_string(),
-                word1: "6".to_string(),
+                word1: "$6".to_string(),
                 word2: "NONE".to_string()
             },
             RecordTrigram {
                 count: 1000,
-                word0: "CONST".to_string(),
-                word1: "CONST".to_string(),
-                word2: "CONST".to_string()
+                word0: "333".to_string(),
+                word1: "-666".to_string(),
+                word2: "333".to_string()
             },
         ];
         v
@@ -292,7 +347,7 @@ mod tests {
             SourceValue::Direct(0), 
             SourceValue::Direct(0)
         );
-        assert_eq!(actual, Some(SourceValue::Constant));
+        assert_eq!(actual, Some(SourceValue::Constant(333)));
     }
 
     #[test]
@@ -343,10 +398,10 @@ mod tests {
     #[test]
     fn test_20006_choose_weighted_surrounded_by_const() {
         let actual: Option<SourceValue> = exercise_choose_weighted(
-            SourceValue::Constant,
-            SourceValue::Constant
+            SourceValue::Constant(333),
+            SourceValue::Constant(333)
         );
-        assert_eq!(actual, Some(SourceValue::Constant));
+        assert_eq!(actual, Some(SourceValue::Constant(-666)));
     }
 
     #[test]

@@ -5,7 +5,7 @@ use crate::common::RecordSkipgram;
 use crate::common::RecordUnigram;
 use crate::config::Config;
 use loda_rust_core;
-use loda_rust_core::parser::{InstructionParameter, ParsedProgram, ParameterType};
+use loda_rust_core::parser::{InstructionParameter, ParsedProgram};
 use std::path::PathBuf;
 use std::error::Error;
 use std::collections::HashMap;
@@ -17,24 +17,26 @@ type HistogramSkipgramKey = (String,String);
 
 /// Creates [N-gram] csv files with LODA source register/constants.
 /// 
-/// This script traverses all the programs inside the `loda-programs/oeis` dir.
+/// Traverses all the programs inside the `loda-programs/oeis` dir.
 /// It looks for all the LODA assembly programs there are.
 /// This script determines the most frequent combinations of source register/constants.
 /// 
 /// ---
 /// 
-/// This script outputs a `unigram.csv` file, with this format:
+/// This outputs a `histogram_source_unigram.csv` file, with this format:
 /// 
 /// ```csv
 /// count;word
-/// 291363;CONST
-/// 80741;NONE
-/// 74575;0
-/// 61967;STOP
-/// 61967;START
-/// 57089;1
-/// 50819;2
-/// 29725;3
+/// 188414;1
+/// 144834;NONE
+/// 125947;$0
+/// 116255;$1
+/// 107093;2
+/// 101601;STOP
+/// 101601;START
+/// 87819;$2
+/// 53412;$3
+/// 39696;$4
 /// ```
 ///
 /// Learnings from this unigram with LODA programs:
@@ -47,20 +49,19 @@ type HistogramSkipgramKey = (String,String);
 /// 
 /// ---
 /// 
-/// This script outputs a `bigram.csv` file, with this format:
+/// This outputs a `histogram_source_bigram.csv` file, with this format:
 /// 
 /// ```csv
 /// count;word0;word1
-/// 107662;CONST;CONST
-/// 43147;0;CONST
-/// 42103;START;CONST
-/// 40569;CONST;NONE
-/// 38239;CONST;0
-/// 33260;NONE;CONST
-/// 31547;CONST;STOP
-/// 25079;CONST;1
-/// 21977;1;STOP
-/// 20578;CONST;2
+/// 45608;NONE;1
+/// 36119;$1;STOP
+/// 35448;1;NONE
+/// 31346;START;1
+/// 28262;NONE;$1
+/// 25464;START;$0
+/// 20347;1;$0
+/// 20234;1;1
+/// 18594;$0;2
 /// ```
 /// 
 /// Learnings from this bigram with LODA programs:
@@ -75,20 +76,19 @@ type HistogramSkipgramKey = (String,String);
 /// 
 /// ---
 /// 
-/// This script outputs a `trigram.csv` file, with this format:
+/// This outputs a `histogram_source_trigram.csv` file, with this format:
 /// 
 /// ```csv
 /// count;word0;word1;word2
-/// 36000;CONST;CONST;CONST
-/// 23556;START;CONST;CONST
-/// 19935;CONST;NONE;CONST
-/// 19921;CONST;0;CONST
-/// 19376;0;CONST;CONST
-/// 17677;CONST;CONST;NONE
-/// 16321;CONST;CONST;STOP
-/// 11998;START;CONST;0
-/// 11679;START;0;CONST
-/// 11052;CONST;CONST;0
+/// 15775;1;NONE;1
+/// 13470;NONE;$1;STOP
+/// 9546;NONE;1;$1
+/// 8145;START;1;1
+/// 7357;START;1;NONE
+/// 7331;NONE;1;$2
+/// 7266;1;1;NONE
+/// 6969;START;$0;2
+/// 6467;START;1;$0
 /// ```
 /// 
 /// Learnings from this trigram with LODA programs:
@@ -101,19 +101,18 @@ type HistogramSkipgramKey = (String,String);
 /// 
 /// ---
 /// 
-/// This script outputs a `skipgram.csv` file, with this format:
+/// This outputs a `histogram_source_skipgram.csv` file, with this format:
 /// 
 /// ```csv
 /// count;word0;word2
-/// 99972;CONST;CONST
-/// 38355;START;CONST
-/// 35538;NONE;CONST
-/// 35059;CONST;NONE
-/// 30733;0;CONST
-/// 28197;CONST;STOP
-/// 24782;CONST;1
-/// 24108;CONST;2
-/// 21690;CONST;0
+/// 30765;1;NONE
+/// 28622;1;1
+/// 28617;NONE;STOP
+/// 24477;START;1
+/// 20608;START;$0
+/// 19542;$0;1
+/// 18662;1;$0
+/// 18579;$0;NONE
 /// ```
 /// 
 /// Learnings from this skipgram with LODA programs:
@@ -153,18 +152,7 @@ impl AnalyzeSourceNgram {
                 continue;
             }
             let parameter: &InstructionParameter = &instruction.parameter_vec[1];
-            match parameter.parameter_type {
-                ParameterType::Constant => {
-                    words.push("CONST".to_string());
-                },
-                ParameterType::Direct => {
-                    let parameter_value: i64 = parameter.parameter_value;
-                    words.push(format!("{:?}", parameter_value));
-                },
-                ParameterType::Indirect => {
-                    words.push("NONE".to_string());
-                }
-            }
+            words.push(parameter.to_string());
         }
         words.push("STOP".to_string());
         words

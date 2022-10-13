@@ -465,14 +465,16 @@ impl Genome {
         }
         match genome_item.source_type() {
             ParameterType::Constant => {
-                return SourceValue::Constant;            
+                let value: i32 = genome_item.source_value();
+                return SourceValue::Constant(value);
             },
             ParameterType::Direct => {
                 let value: i32 = genome_item.source_value();
                 return SourceValue::Direct(value);
             },
             ParameterType::Indirect => {
-                return SourceValue::None;
+                let value: i32 = genome_item.source_value();
+                return SourceValue::Indirect(value);
             }
         }
     }
