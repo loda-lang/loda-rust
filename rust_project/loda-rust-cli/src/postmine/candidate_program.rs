@@ -158,14 +158,19 @@ impl CandidateProgram {
 
     pub fn perform_keep_or_reject_based_result(&mut self) -> Result<(), Box<dyn Error>> {
         if self.is_keep_ids_empty() {
-            self.perform_reject("Doesn't correspond to any known OEIS sequence")?;
+            let oeis_ids: Vec<OeisId> = self.possible_id_vec();
+            if oeis_ids.is_empty() {
+                self.perform_reject("Doesn't correspond to any known OEIS sequence")?;
+                return Ok(());
+            }
+            let message = format!("Worse than the existing programs: {:?}", oeis_ids);
+            self.perform_reject(message)?;
             return Ok(());
-        } else {
-            let keep_program_ids: String = self.keep_program_ids_as_string();
-            let keep_reason: String = format!("Corresponds to: {}", keep_program_ids);
-            self.perform_keep(keep_reason)?;
-            return Ok(())
         }
+        let keep_program_ids: String = self.keep_program_ids_as_string();
+        let keep_reason: String = format!("Corresponds to: {}", keep_program_ids);
+        self.perform_keep(keep_reason)?;
+        return Ok(())
     }
 }
 
