@@ -655,12 +655,6 @@ impl GenomeItem {
 
 impl fmt::Display for GenomeItem {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.source_type == ParameterType::Indirect {
-            println!("!!!!!! GenomeItem.fmt indirect source");
-        }
-        if self.target_type == RegisterType::Indirect {
-            println!("!!!!!! GenomeItem.fmt indirect target");
-        }
         let line_prefix: &str;
         if self.enabled {
             line_prefix = "";
