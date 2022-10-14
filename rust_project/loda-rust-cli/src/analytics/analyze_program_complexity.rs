@@ -126,8 +126,8 @@ impl AnalyzeProgramComplexity {
         create_csv_file(&records, &output_path)
     }
 
-    fn save_dont_optimize(&self) -> Result<(), Box<dyn Error>> {
-        // Extract program ids of those programs that has little/no chance of being optimized
+    /// Extract program ids of those programs that has little/no chance of being optimized
+    fn extract_dont_optimize_program_ids(&self) -> Vec<u32> {
         let mut program_ids = Vec::<u32>::new();
         for (key, value) in &self.classifications {
             if !value.is_optimizable() {
@@ -135,8 +135,11 @@ impl AnalyzeProgramComplexity {
             }
         }
         program_ids.sort();
+        program_ids
+    }
 
-        // Save as a CSV file
+    fn save_dont_optimize(&self) -> Result<(), Box<dyn Error>> {
+        let program_ids = self.extract_dont_optimize_program_ids();
         let output_path: PathBuf = self.config.analytics_dir_complexity_dont_optimize_file();
         save_program_ids_csv_file(&program_ids, &output_path)
     }
@@ -160,7 +163,15 @@ impl BatchProgramAnalyzerPlugin for AnalyzeProgramComplexity {
     }
 
     fn human_readable_summary(&self) -> String {
-        "ok".to_string()
+        let program_ids = self.extract_dont_optimize_program_ids();
+        let dont_optimize_count = program_ids.len();
+        let total_count = self.classifications.len();
+        let mut optimize_count: usize = 0;
+        if total_count > dont_optimize_count {
+            optimize_count = total_count - dont_optimize_count;
+        }
+        let ratio = ((optimize_count * 100) as f32) / (total_count.max(1) as f32);
+        format!("optimize: {}, dontoptimize: {}, optimize/total: {:.1}%", optimize_count, dont_optimize_count, ratio)
     }
 }
 
