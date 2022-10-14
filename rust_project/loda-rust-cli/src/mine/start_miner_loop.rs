@@ -61,11 +61,11 @@ pub fn start_miner_loop(
     if path_histogram.is_file() {
         histogram_instruction_constant = match HistogramInstructionConstant::load_csv_file(&path_histogram) {
             Ok(value) => {
-                println!("Optional histogram: loaded successful");
+                debug!("Optional histogram: loaded successful");
                 Some(value)
             },
             Err(error) => {
-                println!("Optional histogram: {:?} error: {:?}", path_histogram, error);
+                error!("Optional histogram: {:?} error: {:?}", path_histogram, error);
                 None
             }
         };
@@ -84,7 +84,7 @@ pub fn start_miner_loop(
             panic!("Unable to load file. path: {:?} error: {:?}", programs_valid_file, error);
         }
     };
-    println!("number_of_valid_program_ids = {}", valid_program_ids.len());
+    debug!("number_of_valid_program_ids = {}", valid_program_ids.len());
 
     // Load the valid program_ids, that can execute.
     let indirect_memory_access_csv: PathBuf = config.analytics_dir_indirect_memory_access_file();
@@ -94,7 +94,7 @@ pub fn start_miner_loop(
             panic!("Unable to load file. path: {:?} error: {:?}", indirect_memory_access_csv, error);
         }
     };
-    println!("indirect_memory_access_program_ids = {}", indirect_memory_access_program_ids.len());
+    debug!("indirect_memory_access_program_ids = {}", indirect_memory_access_program_ids.len());
 
     // Load the invalid program_ids, that are defunct, such as cannot execute, cyclic-dependency.
     let programs_invalid_file = config.analytics_dir_programs_invalid_file();
@@ -104,7 +104,7 @@ pub fn start_miner_loop(
             panic!("Unable to load file. path: {:?} error: {:?}", programs_invalid_file, error);
         }
     };
-    println!("number_of_invalid_program_ids = {}", invalid_program_ids.len());
+    debug!("number_of_invalid_program_ids = {}", invalid_program_ids.len());
     let invalid_program_ids_hashset: HashSet<u32> = invalid_program_ids.into_iter().collect();
 
     // Load the clusters with popular/unpopular program ids
@@ -144,7 +144,6 @@ pub fn start_miner_loop(
     dependency_manager.set_execute_profile(ExecuteProfile::SmallLimits);
 
     let initial_genome_program_ids = valid_program_ids.clone();
-    // let initial_genome_program_ids = indirect_memory_access_program_ids.clone();
 
     // Pick a random seed
     let mut rng = thread_rng();
