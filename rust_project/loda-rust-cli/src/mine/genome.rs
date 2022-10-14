@@ -559,6 +559,12 @@ impl Genome {
                 parameter_value = value; 
             },
             SourceValue::Indirect(value) => {
+                if *genome_item.instruction_id() == InstructionId::LoopBegin {
+                    // Don't suggest ParameterType::Indirect as the `loop range length`.
+                    // It makes it hard to make sense of what is going on in the loop.
+                    // It's a valid construct, but it's not desired.
+                    return false;
+                }
                 if value < 0 {
                     return false;
                 }
