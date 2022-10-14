@@ -123,7 +123,7 @@ impl SuggestTarget {
         }
     }
 
-    const SHUFFLE_COUNT: usize = 50;
+    const SHUFFLE_COUNT: usize = 10;
 
     pub fn populate(&mut self, records_original: &Vec<RecordTrigram>) {
         let mut records: Vec<RecordTrigram> = records_original.clone();
