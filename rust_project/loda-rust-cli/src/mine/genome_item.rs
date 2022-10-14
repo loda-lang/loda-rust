@@ -7,12 +7,6 @@ use std::fmt;
 
 const SANITIZE_MAX_NUMBER_OF_REGISTERS: i32 = 20;
 
-pub enum MutateValue {
-    Increment,
-    Decrement,
-    Assign(i32),
-}
-
 // Ideas for more categories:
 // Pick a recently created program.
 // Pick a recently modified program.
@@ -20,12 +14,14 @@ pub enum MutateValue {
 // Increment the program_id, to get to the next available program_id.
 // Pick a program with a similar name.
 // Pick a program that executes fast.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum MutateEvalSequenceCategory {
     WeightedByPopularity,
     MostPopular,
     MediumPopular,
     LeastPopular,
     Recent,
+    ProgramThatUsesIndirectMemoryAccess,
 }
 
 #[derive(Debug)]
@@ -77,6 +73,15 @@ impl GenomeItem {
     }
 
     #[allow(dead_code)]
+    pub fn target_type(&self) -> &RegisterType {
+        &self.target_type
+    }
+
+    pub fn set_target_type(&mut self, target_type: RegisterType) {
+        self.target_type = target_type;
+    }
+
+    #[allow(dead_code)]
     pub fn target_value(&self) -> i32 {
         self.target_value
     }
@@ -96,9 +101,13 @@ impl GenomeItem {
         &self.source_type
     }
 
+    pub fn set_source_type(&mut self, source_type: ParameterType) {
+        self.source_type = source_type;
+    }
+
     pub fn source_value(&self) -> i32 {
         self.source_value
-    }
+    }    
 
     pub fn set_source_value(&mut self, value: i32) {
         self.source_value = value;
@@ -175,49 +184,14 @@ impl GenomeItem {
         true
     }
 
-    pub fn mutate_source_value(&mut self, mutation: &MutateValue) -> bool {
-        let is_call = self.instruction_id == InstructionId::EvalSequence;
-        if is_call {
+    pub fn mutate_source_type(&mut self) -> bool {
+        if self.instruction_id == InstructionId::EvalSequence {
             return false;
         }
-        let (status, new_value) = self.mutate_value(mutation, self.source_value);
-        self.source_value = new_value;
-        status
-    }
-
-    pub fn mutate_target_value(&mut self, mutation: &MutateValue) -> bool {
-        let (status, new_value) = self.mutate_value(mutation, self.target_value);
-        self.target_value = new_value;
-        status
-    }
-
-    /// Return `true` when the mutation was successful.
-    /// 
-    /// Return `false` in case of failure, such as underflow, overflow.
-    pub fn mutate_value(&mut self, mutation: &MutateValue, mut value: i32) -> (bool, i32) {
-        match mutation {
-            MutateValue::Increment => {
-                if value >= 255 {
-                    return (false, value);
-                }
-                value += 1;
-            },
-            MutateValue::Decrement => {
-                if value <= 0 {
-                    return (false, value);
-                }
-                value -= 1;
-            },
-            MutateValue::Assign(v) => {
-                value = *v;
-            },
+        if self.instruction_id == InstructionId::LoopBegin {
+            return false;
         }
-        (true, value)
-    }
-
-    pub fn mutate_source_type(&mut self) -> bool {
-        let is_call = self.instruction_id == InstructionId::EvalSequence;
-        if is_call {
+        if self.instruction_id == InstructionId::LoopEnd {
             return false;
         }
         match self.source_type {
@@ -244,13 +218,21 @@ impl GenomeItem {
             return false;
         }
 
+        // Prevent messing up programs that use ParameterType::Indirect
+        let is_indirect = 
+            self.source_type == ParameterType::Indirect ||
+            self.target_type == RegisterType::Indirect;
+        if is_indirect {
+            return false;
+        }
+
         self.enabled = !self.enabled;
         true
     }
 
     pub fn mutate_swap_source_target_value(&mut self) -> bool {
-        let is_call = self.instruction_id == InstructionId::EvalSequence;
-        if is_call {
+        if self.target_value == self.source_value {
+            // No mutation happened
             return false;
         }
         let tmp = self.source_value;
@@ -308,8 +290,7 @@ impl GenomeItem {
     }
 
     /// Mutate the `seq` instruction, so it invokes a random program.
-    #[allow(dead_code)]
-    pub fn mutate_eval_sequence_instruction<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext, category: MutateEvalSequenceCategory) -> bool {
+    pub fn mutate_instruction_seq<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext, category: MutateEvalSequenceCategory) -> bool {
         let is_seq = self.instruction_id == InstructionId::EvalSequence;
         if !is_seq {
             // Only a `seq` instruction can be modified.
@@ -320,7 +301,8 @@ impl GenomeItem {
             MutateEvalSequenceCategory::MostPopular => context.choose_most_popular(rng),
             MutateEvalSequenceCategory::MediumPopular => context.choose_medium_popular(rng),
             MutateEvalSequenceCategory::LeastPopular => context.choose_least_popular(rng),
-            MutateEvalSequenceCategory::Recent => context.choose_recent_program(rng)
+            MutateEvalSequenceCategory::Recent => context.choose_recent_program(rng),
+            MutateEvalSequenceCategory::ProgramThatUsesIndirectMemoryAccess => context.choose_indirect_memory_access_program_id(rng),
         };
         let new_program_id: u32 = match chosen_program_id {
             Some(value) => value,
@@ -369,7 +351,11 @@ impl GenomeItem {
         }
 
         // Prevent too extreme register index for source
-        if self.source_type == ParameterType::Direct {
+        let sanitize_source_value: bool = match self.source_type {
+            ParameterType::Constant => false,
+            ParameterType::Direct | ParameterType::Indirect => true
+        };
+        if sanitize_source_value {
             let new_register = self.source_value % SANITIZE_MAX_NUMBER_OF_REGISTERS;
             if self.source_value != new_register {
                 self.source_value = new_register;
@@ -503,13 +489,25 @@ impl GenomeItem {
                 }
             },
             InstructionId::Add => {
-                if self.source_type == ParameterType::Constant {
-                    if self.source_value < 1 {
-                        self.source_value = 1;
-                        return false;
-                    }
-                    if self.source_value > 16 {
-                        self.source_value = 16;
+                match self.source_type {
+                    ParameterType::Constant => {
+                        if self.source_value < 1 {
+                            self.source_value = 1;
+                            return false;
+                        }
+                        if self.source_value > 16 {
+                            self.source_value = 16;
+                            return false;
+                        }
+                    },
+                    ParameterType::Direct => {
+                        if self.source_value == self.target_value {
+                            self.source_value = (self.target_value + 1) % 5;
+                            return false;
+                        }
+                    },
+                    ParameterType::Indirect => {
+                        // don't mutate a row that uses indirect
                         return false;
                     }
                 }
@@ -560,7 +558,9 @@ impl GenomeItem {
                     }
                 }
             },
-            _ => {}
+            _ => {
+                return false;
+            }
         }
         return status;
     }
@@ -568,13 +568,26 @@ impl GenomeItem {
     pub fn to_parameter_vec(&self) -> Vec<InstructionParameter> {
         match &self.instruction_id {
             InstructionId::LoopBegin => {
-                // For now don't care about the source type/value.
-                // Maybe in the future support source type/value.
-                let parameter = InstructionParameter {
-                    parameter_type: ParameterType::Direct,
-                    parameter_value: self.target_value.abs() as i64,
+                let parameter0: InstructionParameter;
+                match self.target_type {
+                    RegisterType::Direct => {
+                        parameter0 = InstructionParameter {
+                            parameter_type: ParameterType::Direct,
+                            parameter_value: (self.target_value.abs()) as i64,
+                        };
+                    },
+                    RegisterType::Indirect => {
+                        parameter0 = InstructionParameter {
+                            parameter_type: ParameterType::Indirect,
+                            parameter_value: (self.target_value.abs()) as i64,
+                        };
+                    },
+                }
+                let parameter1 = InstructionParameter {
+                    parameter_type: self.source_type.clone(),
+                    parameter_value: (self.source_value.abs()) as i64,
                 };
-                return vec![parameter];
+                return vec![parameter0, parameter1];
             },
             InstructionId::LoopEnd => {
                 return vec!();
@@ -595,7 +608,6 @@ impl GenomeItem {
                         };
                     },
                 }
-
                 let parameter1 = InstructionParameter {
                     parameter_type: ParameterType::Constant,
                     parameter_value: (self.source_value.abs()) as i64,
@@ -618,7 +630,6 @@ impl GenomeItem {
                         };
                     },
                 }
-
                 let parameter1: InstructionParameter;
                 match self.source_type {
                     ParameterType::Constant => {

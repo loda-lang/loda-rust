@@ -1,4 +1,4 @@
-use super::{EvalError, Node, NodeLoopLimit, ProgramCache, Program, ProgramRunnerManager, ProgramSerializer, ProgramState, RunMode, ValidateCallError, RegisterIndexAndType};
+use super::{EvalError, Node, NodeLoopLimit, ProgramCache, Program, ProgramRunnerManager, ProgramSerializer, ProgramState, RunMode, ValidateCallError, RegisterIndexAndType, LOOP_RANGE_MAX_BITS};
 use crate::parser::{Instruction, InstructionParameter, ParameterType};
 use super::compiletime_error::*;
 use num_bigint::BigInt;
@@ -109,7 +109,11 @@ impl Node for NodeLoopSlow {
             }
 
             let range_length: u64 = u64::min(new_range_length, old_range_length);
-
+            if range_length >= (1 << LOOP_RANGE_MAX_BITS) {
+                // Range length is beyond the max length.
+                return Err(EvalError::LoopRangeLengthExceededLimit);
+            }
+    
             if state.run_mode() == RunMode::Verbose {
                 println!("LOOP: old_target={}, old_range={}", old_target_u64, old_range_length);
                 println!("LOOP: new_target={}, new_range={}", new_target_u64, new_range_length);

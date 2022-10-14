@@ -9,6 +9,8 @@ use std::collections::HashSet;
 
 pub struct GenomeMutateContext {
     valid_program_ids: Vec<u32>,
+    initial_genome_program_ids: Vec<u32>, 
+    indirect_memory_access_program_ids: Vec<u32>,
     invalid_program_ids: HashSet<u32>,
     popular_program_container: PopularProgramContainer,
     recent_program_container: RecentProgramContainer,
@@ -21,6 +23,8 @@ pub struct GenomeMutateContext {
 impl GenomeMutateContext {
     pub fn new(
         valid_program_ids: Vec<u32>, 
+        initial_genome_program_ids: Vec<u32>, 
+        indirect_memory_access_program_ids: Vec<u32>,
         invalid_program_ids: HashSet<u32>,
         popular_program_container: PopularProgramContainer, 
         recent_program_container: RecentProgramContainer,
@@ -31,6 +35,8 @@ impl GenomeMutateContext {
     ) -> Self {
         Self {
             valid_program_ids: valid_program_ids,
+            initial_genome_program_ids: initial_genome_program_ids,
+            indirect_memory_access_program_ids: indirect_memory_access_program_ids,
             invalid_program_ids: invalid_program_ids,
             popular_program_container: popular_program_container,
             recent_program_container: recent_program_container,
@@ -55,6 +61,28 @@ impl GenomeMutateContext {
 
     pub fn choose_available_program<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
         let program_id: u32 = match self.valid_program_ids.choose(rng) {
+            Some(program_id) => *program_id,
+            None => {
+                // For a non-empty vector, this shouldn't happen.
+                return None;
+            }
+        };
+        Some(program_id)
+    }
+
+    pub fn choose_initial_genome_program<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
+        let program_id: u32 = match self.initial_genome_program_ids.choose(rng) {
+            Some(program_id) => *program_id,
+            None => {
+                // For a non-empty vector, this shouldn't happen.
+                return None;
+            }
+        };
+        Some(program_id)
+    }
+
+    pub fn choose_indirect_memory_access_program_id<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
+        let program_id: u32 = match self.indirect_memory_access_program_ids.choose(rng) {
             Some(program_id) => *program_id,
             None => {
                 // For a non-empty vector, this shouldn't happen.

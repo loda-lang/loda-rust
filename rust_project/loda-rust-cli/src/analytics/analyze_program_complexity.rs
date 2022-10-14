@@ -8,15 +8,17 @@ use std::collections::HashMap;
 use serde::Serialize;
 use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
-const IGNORE_ANY_PROGRAM_SHORTER_THAN: usize = 3;
-const IGNORE_PROGRAM_WITHOUT_LOOPS_SHORTER_THAN: usize = 10;
-const IGNORE_PROGRAM_WITHOUT_NESTED_SEQ_SHORTER_THAN: usize = 10;
+const IGNORE_ANY_PROGRAM_SHORTER_THAN: usize = 5;
+const IGNORE_PROGRAM_WITHOUT_LOOPS_SHORTER_THAN: usize = 13;
+const IGNORE_PROGRAM_WITHOUT_NESTED_SEQ_SHORTER_THAN: usize = 9;
 const CONSIDER_ANY_PROGRAM_LONGER_THAN: usize = 60;
+const ONE_SEQ_AND_NUMBER_OF_LINES_OF_OTHER_STUFF: usize = 10;
 
 enum ProgramComplexityClassification {
     SimpleAndShort,
     SimpleWithoutLoops,
     MediumWithLoops,
+    ComplexOneSeqAndOtherStuff,
     ComplexTwoOrMoreSeq,
     ComplexNestedSeq,
     ComplexAndLong,
@@ -29,6 +31,7 @@ impl ProgramComplexityClassification {
             ProgramComplexityClassification::SimpleAndShort => false,
             ProgramComplexityClassification::SimpleWithoutLoops => false,
             ProgramComplexityClassification::MediumWithLoops => false,
+            ProgramComplexityClassification::ComplexOneSeqAndOtherStuff => true,
             ProgramComplexityClassification::ComplexTwoOrMoreSeq => true,
             ProgramComplexityClassification::ComplexNestedSeq => true,
             ProgramComplexityClassification::ComplexAndLong => true,
@@ -49,6 +52,7 @@ impl ProgramComplexityClassification {
             ProgramComplexityClassification::SimpleAndShort => "very short program, low chance it can be optimized further".to_string(),
             ProgramComplexityClassification::SimpleWithoutLoops => "short program without loops, low chance it can be optimized further".to_string(),
             ProgramComplexityClassification::MediumWithLoops => "simple loops without eval seq, medium chance it can be optimized".to_string(),
+            ProgramComplexityClassification::ComplexOneSeqAndOtherStuff => "one seq and other stuff, high chance it can be optimized".to_string(),
             ProgramComplexityClassification::ComplexTwoOrMoreSeq => "two or more eval seq, high chance it can be optimized".to_string(),
             ProgramComplexityClassification::ComplexNestedSeq => "eval seq inside loop, high chance it can be optimized".to_string(),
             ProgramComplexityClassification::ComplexAndLong => "long program, high chance that it can be optimized".to_string(),
@@ -76,7 +80,10 @@ impl AnalyzeProgramComplexity {
             return ProgramComplexityClassification::ComplexAndLong;
         }
         if parsed_program.has_two_or_more_seq() {
-            return ProgramComplexityClassification::ComplexTwoOrMoreSeq;            
+            return ProgramComplexityClassification::ComplexTwoOrMoreSeq;
+        }
+        if parsed_program.has_one_seq_and_other_stuff() {
+            return ProgramComplexityClassification::ComplexOneSeqAndOtherStuff;
         }
         if number_of_instructions < IGNORE_ANY_PROGRAM_SHORTER_THAN {
             return ProgramComplexityClassification::SimpleAndShort;
@@ -119,8 +126,8 @@ impl AnalyzeProgramComplexity {
         create_csv_file(&records, &output_path)
     }
 
-    fn save_dont_optimize(&self) -> Result<(), Box<dyn Error>> {
-        // Extract program ids of those programs that has little/no chance of being optimized
+    /// Extract program ids of those programs that has little/no chance of being optimized
+    fn extract_dont_optimize_program_ids(&self) -> Vec<u32> {
         let mut program_ids = Vec::<u32>::new();
         for (key, value) in &self.classifications {
             if !value.is_optimizable() {
@@ -128,8 +135,11 @@ impl AnalyzeProgramComplexity {
             }
         }
         program_ids.sort();
+        program_ids
+    }
 
-        // Save as a CSV file
+    fn save_dont_optimize(&self) -> Result<(), Box<dyn Error>> {
+        let program_ids = self.extract_dont_optimize_program_ids();
         let output_path: PathBuf = self.config.analytics_dir_complexity_dont_optimize_file();
         save_program_ids_csv_file(&program_ids, &output_path)
     }
@@ -153,7 +163,15 @@ impl BatchProgramAnalyzerPlugin for AnalyzeProgramComplexity {
     }
 
     fn human_readable_summary(&self) -> String {
-        "ok".to_string()
+        let program_ids = self.extract_dont_optimize_program_ids();
+        let dont_optimize_count = program_ids.len();
+        let total_count = self.classifications.len();
+        let mut optimize_count: usize = 0;
+        if total_count > dont_optimize_count {
+            optimize_count = total_count - dont_optimize_count;
+        }
+        let ratio = ((optimize_count * 100) as f32) / (total_count.max(1) as f32);
+        format!("optimize: {}, dontoptimize: {}, optimize/total: {:.1}%", optimize_count, dont_optimize_count, ratio)
     }
 }
 
@@ -215,6 +233,25 @@ impl HasTwoOrMoreSeq for ParsedProgram {
             }
         }
         count >= 2
+    }
+}
+
+trait HasOneSeqAndOtherStuff {
+    fn has_one_seq_and_other_stuff(&self) -> bool;
+}
+
+impl HasOneSeqAndOtherStuff for ParsedProgram {
+    fn has_one_seq_and_other_stuff(&self) -> bool {
+        let mut count_seq: usize = 0;
+        let mut count_other: usize = 0;
+        for instruction in &self.instruction_vec {
+            if instruction.instruction_id == InstructionId::EvalSequence {
+                count_seq += 1;
+            } else {
+                count_other += 1;
+            }
+        }
+        (count_seq >= 1) && (count_other >= ONE_SEQ_AND_NUMBER_OF_LINES_OF_OTHER_STUFF)
     }
 }
 
@@ -295,5 +332,23 @@ mod tests {
         assert_eq!(has_two_or_more_seq("seq $0,40"), "false");
         assert_eq!(has_two_or_more_seq("seq $0,40\nseq $0,40"), "true");
         assert_eq!(has_two_or_more_seq("seq $0,40\nmul $0,100\nseq $0,40"), "true");
+    }
+
+    fn has_one_seq_and_other_stuff(input0: &str) -> String {
+        let result = ParsedProgram::parse_program(input0);
+        let parsed_program: ParsedProgram = match result {
+            Ok(value) => value,
+            Err(error) => {
+                return format!("BOOM: {:?}", error);
+            }
+        };
+        parsed_program.has_one_seq_and_other_stuff().to_string()
+    }
+
+    #[test]
+    fn test_40000_has_one_seq_and_other_stuff() {
+        assert_eq!(has_one_seq_and_other_stuff("add $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1"), "false");
+        assert_eq!(has_one_seq_and_other_stuff("seq $0,40\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1"), "false");
+        assert_eq!(has_one_seq_and_other_stuff("seq $0,40\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1\nadd $0,1"), "true");
     }
 }

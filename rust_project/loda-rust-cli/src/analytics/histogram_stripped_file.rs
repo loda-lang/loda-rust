@@ -160,9 +160,9 @@ impl HistogramStrippedFile {
             HumanDuration(start.elapsed())
         );
     
-        simple_log.println(format!("Number of small values: {}", count_small));
-        simple_log.println(format!("Number of big values: {}", count_big));
-        simple_log.println(format!("Number of wildcard values: {}", count_wildcard));
+        simple_log.println(format!("number of small values: {}", count_small));
+        simple_log.println(format!("number of big values: {}", count_big));
+        simple_log.println(format!("number of wildcard values: {}", count_wildcard));
         Ok(())
     }
 

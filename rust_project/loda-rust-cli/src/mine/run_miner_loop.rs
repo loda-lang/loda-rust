@@ -19,8 +19,10 @@ use rand::rngs::StdRng;
 use std::sync::{Arc, Mutex};
 
 const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
-const MINIMUM_PROGRAM_LENGTH: usize = 2;
+const MINIMUM_PROGRAM_LENGTH: usize = 15;
 const MINER_CACHE_CAPACITY: usize = 300000;
+const ITERATIONS_BETWEEN_PICKING_A_NEW_INITIAL_GENOME: usize = 400;
+const ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME: usize = 20;
 
 struct TermComputer {
     terms: BigIntVec,
@@ -195,11 +197,11 @@ impl RunMinerLoop {
 
     fn execute_one_iteration(&mut self) {
         self.metric.number_of_miner_loop_iterations += 1;
-        if (self.iteration % 20) == 0 {
+        if (self.iteration % ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME) == 0 {
             self.reload = true;
         }
-        if (self.iteration % 50000) == 0 {
-            match self.context.choose_available_program(&mut self.rng) {
+        if (self.iteration % ITERATIONS_BETWEEN_PICKING_A_NEW_INITIAL_GENOME) == 0 {
+            match self.context.choose_initial_genome_program(&mut self.rng) {
                 Some(program_id) => { 
                     self.current_program_id = program_id as u64;
                 },

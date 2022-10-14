@@ -32,7 +32,7 @@ impl ProcessStrippedFile {
     }
 
     pub fn print_summary(&self, simple_log: SimpleLog) {
-        simple_log.println(format!("Number of rows in oeis 'stripped' file: {}", self.count_lines));
+        simple_log.println(format!("number of rows in oeis 'stripped' file: {}", self.count_lines));
         simple_log.println(format!("count_callback: {}", self.count_callback));
         simple_log.println(format!("count_tooshort: {}", self.count_tooshort));
         simple_log.println(format!("count_ignored_program_id: {}", self.count_ignored_program_id));

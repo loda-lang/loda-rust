@@ -4,7 +4,7 @@ use std::path::Path;
 use super::parse_csv_file;
 
 #[allow(dead_code)]
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RecordTrigram {
     pub count: u32,
     pub word0: String,
