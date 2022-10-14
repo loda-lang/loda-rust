@@ -1,4 +1,4 @@
-use super::{EvalError, Node, NodeLoopLimit, Program, ProgramCache, ProgramSerializer, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError};
+use super::{EvalError, Node, NodeLoopLimit, Program, ProgramCache, ProgramSerializer, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError, LOOP_RANGE_MAX_BITS};
 
 pub struct NodeLoopConstant {
     register_start: RegisterIndex,
@@ -34,6 +34,11 @@ impl Node for NodeLoopConstant {
             let snapshot = state.memory_full_to_string();
             let instruction = self.formatted_instruction();
             println!("{:12} {} => {}", instruction, snapshot, snapshot);
+        }
+
+        if self.range_length >= (1 << LOOP_RANGE_MAX_BITS) {
+            // Range length is beyond the max length.
+            return Err(EvalError::LoopRangeLengthExceededLimit);
         }
 
         let limit: NodeLoopLimit = state.node_loop_limit().clone();
