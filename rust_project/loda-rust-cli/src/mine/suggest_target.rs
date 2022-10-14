@@ -123,9 +123,10 @@ impl SuggestTarget {
         }
     }
 
-    const SHUFFLE_COUNT: usize = 10;
+    const SHUFFLE_COUNT: usize = 5;
 
     pub fn populate(&mut self, records_original: &Vec<RecordTrigram>) {
+        // Make some noise in the histogram to prevent getting stuck in a local minimum.
         let mut records: Vec<RecordTrigram> = records_original.clone();
         let seed: u64 = 1;
         let mut rng = StdRng::seed_from_u64(seed);
@@ -190,7 +191,6 @@ impl SuggestTarget {
         Some(candidate_value)
     }
 
-    #[allow(dead_code)]
     pub fn choose_weighted<R: Rng + ?Sized>(&self, rng: &mut R, prev_word: TargetValue, next_word: TargetValue) -> Option<TargetValue> {
         let histogram_value: &HistogramValue = match self.candidates(prev_word, next_word) {
             Some(value) => value,
