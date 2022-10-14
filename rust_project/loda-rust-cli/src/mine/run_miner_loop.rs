@@ -347,10 +347,6 @@ impl RunMinerLoop {
         }
         let terms40_wildcard: &BigIntVec = &funnel40terms;
 
-        if self.genome.contains_indirect_memory_access() {
-            println!("!!!!!! funnel40 indirect");
-        }
-
         // Reject, if it's identical to one of the programs that this program depends on
         let depends_on_program_ids: HashSet<u32> = self.genome.depends_on_program_ids();
         let mut reject_self_dependency = false;
@@ -520,10 +516,6 @@ impl RunMinerLoop {
         }
         serializer.append_empty_line();
         let candidate_program: String = serializer.to_string();
-
-        if self.genome.contains_indirect_memory_access() {
-            println!("!!!!!! saved a program that uses indirect memory access");
-        }
 
         if let Err(error) = save_candidate_program(&self.mine_event_dir, self.iteration, &candidate_program) {
             println!("; GENOME\n{}", self.genome);
