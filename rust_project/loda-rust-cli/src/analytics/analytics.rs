@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::analytics::{AnalyzeDependencies, AnalyzeIndirectMemoryAccess, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, ValidatePrograms, compute_program_rank};
+use crate::analytics::{AnalyzeDependencies, AnalyzeIndirectMemoryAccess, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeLineNgram, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, ValidatePrograms, compute_program_rank};
 use crate::common::SimpleLog;
 use crate::mine::PopulateBloomfilter;
 use std::error::Error;
@@ -45,6 +45,7 @@ impl Analytics {
         let plugin_instruction_constant = Rc::new(RefCell::new(AnalyzeInstructionConstant::new()));
         let plugin_instruction_ngram = Rc::new(RefCell::new(AnalyzeInstructionNgram::new()));
         let plugin_source_ngram = Rc::new(RefCell::new(AnalyzeSourceNgram::new()));
+        let plugin_line_ngram = Rc::new(RefCell::new(AnalyzeLineNgram::new()));
         let plugin_target_ngram = Rc::new(RefCell::new(AnalyzeTargetNgram::new()));
         let plugin_program_complexity = Rc::new(RefCell::new(AnalyzeProgramComplexity::new()));
         let plugin_vec: Vec<BatchProgramAnalyzerPluginItem> = vec![
@@ -53,6 +54,7 @@ impl Analytics {
             plugin_instruction_constant,
             plugin_instruction_ngram,
             plugin_source_ngram,
+            plugin_line_ngram,
             plugin_target_ngram,
             plugin_program_complexity,
         ];
