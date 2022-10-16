@@ -1158,17 +1158,17 @@ impl Genome {
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             // (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
-            (MutateGenome::ReplaceInstructionWithHistogram, 80),
-            (MutateGenome::InsertInstructionWithConstant, 30),
-            (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 10),
+            (MutateGenome::ReplaceInstructionWithHistogram, 30),
+            (MutateGenome::InsertInstructionWithConstant, 80),
+            (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 1),
             (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 1),
-            (MutateGenome::ReplaceSourceConstantWithHistogram, 5),
-            (MutateGenome::SourceType, 30),
+            (MutateGenome::ReplaceSourceConstantWithHistogram, 10),
+            (MutateGenome::SourceType, 10),
             (MutateGenome::DisableLoop, 0),
             (MutateGenome::SwapRegisters, 10),
-            (MutateGenome::IncrementSourceValueWhereTypeIsDirect, 10),
+            (MutateGenome::IncrementSourceValueWhereTypeIsDirect, 1),
             (MutateGenome::DecrementSourceValueWhereTypeIsDirect, 1),
-            (MutateGenome::ReplaceSourceWithHistogram, 100),
+            (MutateGenome::ReplaceSourceWithHistogram, 300),
             (MutateGenome::IncrementTargetValueWhereTypeIsDirect, 1),
             (MutateGenome::DecrementTargetValueWhereTypeIsDirect, 1),
             (MutateGenome::ReplaceTargetWithHistogram, 100),
@@ -1181,7 +1181,7 @@ impl Genome {
             (MutateGenome::CallMediumPopularProgram, 100),
             (MutateGenome::CallLeastPopularProgram, 10),
             // (MutateGenome::CallRecentProgram, 1),
-            (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 10),
+            (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 1),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
 

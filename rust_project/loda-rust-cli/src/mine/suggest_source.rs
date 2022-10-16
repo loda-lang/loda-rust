@@ -129,7 +129,7 @@ impl SuggestSource {
         }
     }
 
-    const SHUFFLE_COUNT: usize = 200;
+    const SHUFFLE_COUNT: usize = 0;
 
     pub fn populate(&mut self, records_original: &Vec<RecordTrigram>) {
         // Make some noise in the histogram to prevent getting stuck in a local minimum.

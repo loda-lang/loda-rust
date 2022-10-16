@@ -123,7 +123,7 @@ impl SuggestTarget {
         }
     }
 
-    const SHUFFLE_COUNT: usize = 5;
+    const SHUFFLE_COUNT: usize = 0;
 
     pub fn populate(&mut self, records_original: &Vec<RecordTrigram>) {
         // Make some noise in the histogram to prevent getting stuck in a local minimum.
