@@ -130,35 +130,43 @@ impl Genome {
         return true;
     }
 
-    pub fn push_parsed_program_onto_genome(&mut self, parsed_program: &ParsedProgram) {
-        for instruction in &parsed_program.instruction_vec {
-
-            let mut target_type = RegisterType::Direct;
-            let mut target_value: i32 = 0;
-            let mut source_type: ParameterType = ParameterType::Constant;
-            let mut source_value: i32 = 0;
-            for (index, parameter) in instruction.parameter_vec.iter().enumerate() {
-                if index == 0 {
-                    target_value = parameter.parameter_value as i32;
-                    if parameter.parameter_type == ParameterType::Indirect {
-                        target_type = RegisterType::Indirect;
-                    } else {
-                        target_type = RegisterType::Direct;
-                    }
-                }
-                if index == 1 {
-                    source_value = parameter.parameter_value as i32;
-                    source_type = parameter.parameter_type.clone();
+    fn genome_item_from_instruction(instruction: &Instruction) -> Option<GenomeItem> {
+        let mut target_type = RegisterType::Direct;
+        let mut target_value: i32 = 0;
+        let mut source_type: ParameterType = ParameterType::Constant;
+        let mut source_value: i32 = 0;
+        for (index, parameter) in instruction.parameter_vec.iter().enumerate() {
+            if index == 0 {
+                target_value = parameter.parameter_value as i32;
+                if parameter.parameter_type == ParameterType::Indirect {
+                    target_type = RegisterType::Indirect;
+                } else {
+                    target_type = RegisterType::Direct;
                 }
             }
-        
-            let genome_item = GenomeItem::new(
-                instruction.instruction_id.clone(),
-                target_type,
-                target_value,
-                source_type,
-                source_value,
-            );
+            if index == 1 {
+                source_value = parameter.parameter_value as i32;
+                source_type = parameter.parameter_type.clone();
+            }
+        }
+        let genome_item = GenomeItem::new(
+            instruction.instruction_id.clone(),
+            target_type,
+            target_value,
+            source_type,
+            source_value,
+        );
+        Some(genome_item)
+    }
+
+    pub fn push_parsed_program_onto_genome(&mut self, parsed_program: &ParsedProgram) {
+        for instruction in &parsed_program.instruction_vec {
+            let genome_item: GenomeItem = match Self::genome_item_from_instruction(instruction) {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
             self.genome_vec.push(genome_item);
         }
     }
