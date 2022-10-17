@@ -583,6 +583,9 @@ impl GenomeItem {
                         };
                     },
                 }
+                if self.source_type == ParameterType::Constant && self.source_value == 1 {
+                    return vec![parameter0];
+                }
                 let parameter1 = InstructionParameter {
                     parameter_type: self.source_type.clone(),
                     parameter_value: (self.source_value.abs()) as i64,

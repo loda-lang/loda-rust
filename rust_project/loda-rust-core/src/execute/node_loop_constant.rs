@@ -18,6 +18,9 @@ impl NodeLoopConstant {
 
 impl Node for NodeLoopConstant {
     fn formatted_instruction(&self) -> String {
+        if self.range_length == 1 {
+            return format!("lpb ${}", self.register_start)
+        }
         format!("lpb ${},{}", self.register_start, self.range_length)
     }
 
