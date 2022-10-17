@@ -485,11 +485,28 @@ impl Genome {
         if !context.has_suggest_source() {
             return false;
         }
-        let length: usize = self.genome_vec.len();
-        if length < 1 {
+
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            // Don't make any changes to the `loop range length` parameter.
+            // It makes it hard to make sense of what is going on in the loop.
+            // It's a valid construct, but it's not desired.
+            // That's why `lpb` is skipped.
+            if *genome_item.instruction_id() == InstructionId::LoopBegin {
+                continue;
+            }
+            // It makes no sense mutating a `lpe` instruction.
+            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            indexes.push(index);
+        }
+        if indexes.is_empty() {
             return false;
         }
-        let index1: usize = rng.gen_range(0..length);
+
+        // Mutate one of the instructions
+        let index1: usize = indexes.choose(rng).unwrap().clone();
         let index0: i32 = (index1 as i32) - 1;
         let index2: usize = index1 + 1;
         let mut prev_word: SourceValue = SourceValue::ProgramStart;
@@ -559,12 +576,6 @@ impl Genome {
                 parameter_value = value; 
             },
             SourceValue::Indirect(value) => {
-                if *genome_item.instruction_id() == InstructionId::LoopBegin {
-                    // Don't suggest ParameterType::Indirect as the `loop range length`.
-                    // It makes it hard to make sense of what is going on in the loop.
-                    // It's a valid construct, but it's not desired.
-                    return false;
-                }
                 if value < 0 {
                     return false;
                 }
