@@ -614,11 +614,23 @@ impl Genome {
         if !context.has_suggest_line() {
             return false;
         }
-        let length: usize = self.genome_vec.len();
-        if length < 1 {
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            // Don't make any changes to the the loop instructions `lpb` and `lpe`.
+            if *genome_item.instruction_id() == InstructionId::LoopBegin {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            indexes.push(index);
+        }
+        if indexes.is_empty() {
             return false;
         }
-        let index1: usize = rng.gen_range(0..length);
+
+        // Mutate one of the instructions
+        let index1: usize = indexes.choose(rng).unwrap().clone();
         let index0: i32 = (index1 as i32) - 1;
         let index2: usize = index1 + 1;
         let mut prev_word: LineValue = LineValue::ProgramStart;
