@@ -29,6 +29,7 @@ pub enum MutateGenome {
     DecrementTargetValueWhereTypeIsDirect,
     ReplaceTargetWithHistogram,
     ReplaceLineWithHistogram,
+    InsertLineWithHistogram,
     ToggleEnabled,
     SwapRows,
     SwapAdjacentRows,
@@ -703,6 +704,98 @@ impl Genome {
         true
     }
     
+    /// Insert an entire line considering the surrounding lines.
+    /// 
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    pub fn insert_line_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+        // Bail out if the trigram.csv file hasn't been loaded.
+        if !context.has_suggest_line() {
+            return false;
+        }
+        let length: usize = self.genome_vec.len();
+        if length < 1 {
+            return false;
+        }
+
+        // Decide on where to insert a new GenomeItem
+        let index1: usize = rng.gen_range(0..length);
+        let index0: i32 = (index1 as i32) - 1;
+        let index2: usize = index1;
+
+        // Gather info about the "previous" GenomeItem
+        let mut prev_word: LineValue = LineValue::ProgramStart;
+        if index0 >= 0 {
+            match self.genome_vec.get(index0 as usize) {
+                Some(ref value) => {
+                    let s: String = value.to_line_string();
+                    prev_word = LineValue::Line(s);
+                },
+                None => {}
+            };
+        }
+        // Gather info about the "next" GenomeItem
+        let mut next_word: LineValue = LineValue::ProgramStop;
+        match self.genome_vec.get(index2) {
+            Some(ref value) => {
+                let s: String = value.to_line_string();
+                next_word = LineValue::Line(s);
+        },
+            None => {}
+        };
+        if prev_word == LineValue::ProgramStart && next_word == LineValue::ProgramStop {
+            return false;
+        }
+        let suggested_value: LineValue = match context.suggest_line(rng, prev_word, next_word) {
+            Some(value) => value,
+            None => {
+                return false;
+            }
+        };
+
+        let line_content: String = match suggested_value {
+            LineValue::Line(value) => value,
+            LineValue::ProgramStart => {
+                return false;
+            },
+            LineValue::ProgramStop => {
+                return false;
+            },
+        };
+
+        let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&line_content) {
+            Ok(value) => value,
+            Err(_) => {
+                return false;
+            }
+        };
+        
+        let row0: Instruction = match parsed_program.instruction_vec.first() {
+            Some(value) => value.clone(),
+            None => {
+                return false;
+            }
+        };
+
+        let genome_item: GenomeItem = match Self::genome_item_from_instruction(&row0) {
+            Some(value) => value,
+            None => {
+                return false;
+            }
+        };
+
+        if *genome_item.instruction_id() == InstructionId::LoopBegin {
+            return false;
+        }
+        if *genome_item.instruction_id() == InstructionId::LoopEnd {
+            return false;
+        }
+
+        self.genome_vec.insert(index1, genome_item);
+        true
+    }
+
     /// Increment the target value.
     ///
     /// Only impact rows where target_type=Direct.
@@ -1276,8 +1369,8 @@ impl Genome {
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             // (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
-            (MutateGenome::ReplaceInstructionWithHistogram, 10),
-            (MutateGenome::InsertInstructionWithConstant, 10),
+            (MutateGenome::ReplaceInstructionWithHistogram, 1),
+            (MutateGenome::InsertInstructionWithConstant, 1),
             (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 1),
             (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 1),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 10),
@@ -1286,21 +1379,22 @@ impl Genome {
             (MutateGenome::SwapRegisters, 5),
             (MutateGenome::IncrementSourceValueWhereTypeIsDirect, 1),
             (MutateGenome::DecrementSourceValueWhereTypeIsDirect, 1),
-            (MutateGenome::ReplaceSourceWithHistogram, 100),
+            (MutateGenome::ReplaceSourceWithHistogram, 50),
             (MutateGenome::IncrementTargetValueWhereTypeIsDirect, 1),
             (MutateGenome::DecrementTargetValueWhereTypeIsDirect, 1),
-            (MutateGenome::ReplaceTargetWithHistogram, 100),
-            (MutateGenome::ReplaceLineWithHistogram, 200),
+            (MutateGenome::ReplaceTargetWithHistogram, 50),
+            (MutateGenome::ReplaceLineWithHistogram, 100),
+            (MutateGenome::InsertLineWithHistogram, 200),
             (MutateGenome::ToggleEnabled, 10),
             (MutateGenome::SwapRows, 2),
             (MutateGenome::SwapAdjacentRows, 20),
             (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallProgramWeightedByPopularity, 50),
-            (MutateGenome::CallMostPopularProgram, 50),
-            (MutateGenome::CallMediumPopularProgram, 20),
+            (MutateGenome::CallProgramWeightedByPopularity, 10),
+            (MutateGenome::CallMostPopularProgram, 10),
+            (MutateGenome::CallMediumPopularProgram, 10),
             (MutateGenome::CallLeastPopularProgram, 5),
             // (MutateGenome::CallRecentProgram, 1),
-            (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 1),
+            // (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 0),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
 
@@ -1352,6 +1446,9 @@ impl Genome {
             },
             MutateGenome::ReplaceLineWithHistogram => {
                 self.replace_line_with_histogram(rng, context)
+            },
+            MutateGenome::InsertLineWithHistogram => {
+                self.insert_line_with_histogram(rng, context)
             },
             MutateGenome::ToggleEnabled => {
                 self.mutate_enabled(rng)
