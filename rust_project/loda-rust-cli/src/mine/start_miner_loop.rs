@@ -7,6 +7,7 @@ use super::{CheckFixedLengthSequence, Funnel, NamedCacheFile, PopularProgramCont
 use super::PreventFlooding;
 use super::{GenomeMutateContext, Genome};
 use super::SuggestInstruction;
+use super::SuggestLine;
 use super::SuggestSource;
 use super::SuggestTarget;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
@@ -31,6 +32,7 @@ pub fn start_miner_loop(
     let mine_event_dir: PathBuf = config.mine_event_dir();
     let loda_rust_repository: PathBuf = config.loda_rust_repository();
     let instruction_trigram_csv: PathBuf = config.analytics_dir_histogram_instruction_trigram_file();
+    let line_trigram_csv: PathBuf = config.analytics_dir_histogram_line_trigram_file();
     let source_trigram_csv: PathBuf = config.analytics_dir_histogram_source_trigram_file();
     let target_trigram_csv: PathBuf = config.analytics_dir_histogram_target_trigram_file();
 
@@ -129,6 +131,10 @@ pub fn start_miner_loop(
     let mut suggest_instruction = SuggestInstruction::new();
     suggest_instruction.populate(&instruction_trigram_vec);
 
+    let line_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(&line_trigram_csv).expect("Unable to load line trigram csv");
+    let mut suggest_line = SuggestLine::new();
+    suggest_line.populate(&line_trigram_vec);
+
     let source_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(&source_trigram_csv).expect("Unable to load source trigram csv");
     let mut suggest_source = SuggestSource::new();
     suggest_source.populate(&source_trigram_vec);
@@ -160,6 +166,7 @@ pub fn start_miner_loop(
         recent_program_container,
         histogram_instruction_constant,
         Some(suggest_instruction),
+        Some(suggest_line),
         Some(suggest_source),
         Some(suggest_target)
     );

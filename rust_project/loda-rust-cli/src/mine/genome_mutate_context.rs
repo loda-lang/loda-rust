@@ -1,5 +1,6 @@
 use super::{PopularProgramContainer, RecentProgramContainer, HistogramInstructionConstant};
 use super::SuggestInstruction;
+use super::{SuggestLine, LineValue};
 use super::{SuggestSource, SourceValue};
 use super::{SuggestTarget, TargetValue};
 use loda_rust_core::parser::InstructionId;
@@ -16,6 +17,7 @@ pub struct GenomeMutateContext {
     recent_program_container: RecentProgramContainer,
     histogram_instruction_constant: Option<HistogramInstructionConstant>,
     suggest_instruction: Option<SuggestInstruction>,
+    suggest_line: Option<SuggestLine>,
     suggest_source: Option<SuggestSource>,
     suggest_target: Option<SuggestTarget>,
 }
@@ -30,6 +32,7 @@ impl GenomeMutateContext {
         recent_program_container: RecentProgramContainer,
         histogram_instruction_constant: Option<HistogramInstructionConstant>,
         suggest_instruction: Option<SuggestInstruction>,
+        suggest_line: Option<SuggestLine>,
         suggest_source: Option<SuggestSource>,
         suggest_target: Option<SuggestTarget>
     ) -> Self {
@@ -42,6 +45,7 @@ impl GenomeMutateContext {
             recent_program_container: recent_program_container,
             histogram_instruction_constant: histogram_instruction_constant,
             suggest_instruction: suggest_instruction,
+            suggest_line: suggest_line,
             suggest_source: suggest_source,
             suggest_target: suggest_target
         }
@@ -138,6 +142,20 @@ impl GenomeMutateContext {
             }
         };
         suggest_instruction.choose_weighted(rng, prev_word, next_word)
+    }
+
+    pub fn has_suggest_line(&self) -> bool {
+        self.suggest_line.is_some()
+    }
+
+    pub fn suggest_line<R: Rng + ?Sized>(&self, rng: &mut R, prev_word: LineValue, next_word: LineValue) -> Option<LineValue> {
+        let suggest_line: &SuggestLine = match &self.suggest_line {
+            Some(value) => value,
+            None => {
+                return None;
+            }
+        };
+        suggest_line.choose_weighted(rng, prev_word, next_word)
     }
 
     pub fn has_suggest_source(&self) -> bool {

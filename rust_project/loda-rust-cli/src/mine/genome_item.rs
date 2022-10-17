@@ -565,6 +565,21 @@ impl GenomeItem {
         return status;
     }
 
+    pub fn to_line_string(&self) -> String {
+        if !self.enabled {
+            return ";".to_string();
+        }
+        if self.instruction_id == InstructionId::LoopEnd {
+            return self.instruction_id.shortname().to_string();
+        }
+        let parameter_vec: Vec<InstructionParameter> = self.to_parameter_vec();
+        let strings: Vec<String> = parameter_vec.iter().map(|item| {
+            item.to_string()
+        }).collect();
+        let parameter_strings: String = strings.join(",");
+        format!("{} {}", self.instruction_id.shortname(), parameter_strings)
+    }
+
     pub fn to_parameter_vec(&self) -> Vec<InstructionParameter> {
         match &self.instruction_id {
             InstructionId::LoopBegin => {
@@ -582,6 +597,9 @@ impl GenomeItem {
                             parameter_value: (self.target_value.abs()) as i64,
                         };
                     },
+                }
+                if self.source_type == ParameterType::Constant && self.source_value == 1 {
+                    return vec![parameter0];
                 }
                 let parameter1 = InstructionParameter {
                     parameter_type: self.source_type.clone(),

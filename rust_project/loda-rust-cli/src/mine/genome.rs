@@ -1,4 +1,4 @@
-use super::{GenomeItem, GenomeMutateContext, MutateEvalSequenceCategory, SourceValue, TargetValue};
+use super::{GenomeItem, GenomeMutateContext, MutateEvalSequenceCategory, SourceValue, TargetValue, LineValue};
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::RegisterType;
 use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
@@ -28,6 +28,7 @@ pub enum MutateGenome {
     IncrementTargetValueWhereTypeIsDirect,
     DecrementTargetValueWhereTypeIsDirect,
     ReplaceTargetWithHistogram,
+    ReplaceLineWithHistogram,
     ToggleEnabled,
     SwapRows,
     SwapAdjacentRows,
@@ -130,35 +131,43 @@ impl Genome {
         return true;
     }
 
-    pub fn push_parsed_program_onto_genome(&mut self, parsed_program: &ParsedProgram) {
-        for instruction in &parsed_program.instruction_vec {
-
-            let mut target_type = RegisterType::Direct;
-            let mut target_value: i32 = 0;
-            let mut source_type: ParameterType = ParameterType::Constant;
-            let mut source_value: i32 = 0;
-            for (index, parameter) in instruction.parameter_vec.iter().enumerate() {
-                if index == 0 {
-                    target_value = parameter.parameter_value as i32;
-                    if parameter.parameter_type == ParameterType::Indirect {
-                        target_type = RegisterType::Indirect;
-                    } else {
-                        target_type = RegisterType::Direct;
-                    }
-                }
-                if index == 1 {
-                    source_value = parameter.parameter_value as i32;
-                    source_type = parameter.parameter_type.clone();
+    fn genome_item_from_instruction(instruction: &Instruction) -> Option<GenomeItem> {
+        let mut target_type = RegisterType::Direct;
+        let mut target_value: i32 = 0;
+        let mut source_type: ParameterType = ParameterType::Constant;
+        let mut source_value: i32 = 0;
+        for (index, parameter) in instruction.parameter_vec.iter().enumerate() {
+            if index == 0 {
+                target_value = parameter.parameter_value as i32;
+                if parameter.parameter_type == ParameterType::Indirect {
+                    target_type = RegisterType::Indirect;
+                } else {
+                    target_type = RegisterType::Direct;
                 }
             }
-        
-            let genome_item = GenomeItem::new(
-                instruction.instruction_id.clone(),
-                target_type,
-                target_value,
-                source_type,
-                source_value,
-            );
+            if index == 1 {
+                source_value = parameter.parameter_value as i32;
+                source_type = parameter.parameter_type.clone();
+            }
+        }
+        let genome_item = GenomeItem::new(
+            instruction.instruction_id.clone(),
+            target_type,
+            target_value,
+            source_type,
+            source_value,
+        );
+        Some(genome_item)
+    }
+
+    pub fn push_parsed_program_onto_genome(&mut self, parsed_program: &ParsedProgram) {
+        for instruction in &parsed_program.instruction_vec {
+            let genome_item: GenomeItem = match Self::genome_item_from_instruction(instruction) {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
             self.genome_vec.push(genome_item);
         }
     }
@@ -485,11 +494,28 @@ impl Genome {
         if !context.has_suggest_source() {
             return false;
         }
-        let length: usize = self.genome_vec.len();
-        if length < 1 {
+
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            // Don't make any changes to the `loop range length` parameter.
+            // It makes it hard to make sense of what is going on in the loop.
+            // It's a valid construct, but it's not desired.
+            // That's why `lpb` is skipped.
+            if *genome_item.instruction_id() == InstructionId::LoopBegin {
+                continue;
+            }
+            // It makes no sense mutating a `lpe` instruction.
+            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            indexes.push(index);
+        }
+        if indexes.is_empty() {
             return false;
         }
-        let index1: usize = rng.gen_range(0..length);
+
+        // Mutate one of the instructions
+        let index1: usize = indexes.choose(rng).unwrap().clone();
         let index0: i32 = (index1 as i32) - 1;
         let index2: usize = index1 + 1;
         let mut prev_word: SourceValue = SourceValue::ProgramStart;
@@ -559,12 +585,6 @@ impl Genome {
                 parameter_value = value; 
             },
             SourceValue::Indirect(value) => {
-                if *genome_item.instruction_id() == InstructionId::LoopBegin {
-                    // Don't suggest ParameterType::Indirect as the `loop range length`.
-                    // It makes it hard to make sense of what is going on in the loop.
-                    // It's a valid construct, but it's not desired.
-                    return false;
-                }
                 if value < 0 {
                     return false;
                 }
@@ -582,6 +602,92 @@ impl Genome {
         }
         genome_item.set_source_value(parameter_value);
         genome_item.set_source_type(parameter_type);
+        true
+    }
+    
+
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    pub fn replace_line_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+        // Bail out if the trigram.csv file hasn't been loaded.
+        if !context.has_suggest_line() {
+            return false;
+        }
+        let length: usize = self.genome_vec.len();
+        if length < 1 {
+            return false;
+        }
+        let index1: usize = rng.gen_range(0..length);
+        let index0: i32 = (index1 as i32) - 1;
+        let index2: usize = index1 + 1;
+        let mut prev_word: LineValue = LineValue::ProgramStart;
+        if index0 >= 0 {
+            match self.genome_vec.get(index0 as usize) {
+                Some(ref value) => {
+                    let s: String = value.to_line_string();
+                    prev_word = LineValue::Line(s);
+                },
+                None => {}
+            };
+        }
+        let mut next_word: LineValue = LineValue::ProgramStop;
+        match self.genome_vec.get(index2) {
+            Some(ref value) => {
+                let s: String = value.to_line_string();
+                next_word = LineValue::Line(s);
+        },
+            None => {}
+        };
+        if prev_word == LineValue::ProgramStart && next_word == LineValue::ProgramStop {
+            return false;
+        }
+        let suggested_value: LineValue = match context.suggest_line(rng, prev_word, next_word) {
+            Some(value) => value,
+            None => {
+                return false;
+            }
+        };
+
+        let line_content: String = match suggested_value {
+            LineValue::Line(value) => value,
+            LineValue::ProgramStart => {
+                return false;
+            },
+            LineValue::ProgramStop => {
+                return false;
+            },
+        };
+
+        let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&line_content) {
+            Ok(value) => value,
+            Err(_) => {
+                return false;
+            }
+        };
+        
+        let row0: Instruction = match parsed_program.instruction_vec.first() {
+            Some(value) => value.clone(),
+            None => {
+                return false;
+            }
+        };
+
+        let genome_item: GenomeItem = match Self::genome_item_from_instruction(&row0) {
+            Some(value) => value,
+            None => {
+                return false;
+            }
+        };
+
+        if *genome_item.instruction_id() == InstructionId::LoopBegin {
+            return false;
+        }
+        if *genome_item.instruction_id() == InstructionId::LoopEnd {
+            return false;
+        }
+
+        self.genome_vec[index1] = genome_item;
         true
     }
     
@@ -1158,30 +1264,31 @@ impl Genome {
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
             // (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
-            (MutateGenome::ReplaceInstructionWithHistogram, 80),
-            (MutateGenome::InsertInstructionWithConstant, 30),
-            (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 10),
+            (MutateGenome::ReplaceInstructionWithHistogram, 10),
+            (MutateGenome::InsertInstructionWithConstant, 10),
+            (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 1),
             (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 1),
-            (MutateGenome::ReplaceSourceConstantWithHistogram, 5),
-            (MutateGenome::SourceType, 30),
+            (MutateGenome::ReplaceSourceConstantWithHistogram, 10),
+            (MutateGenome::SourceType, 1),
             (MutateGenome::DisableLoop, 0),
-            (MutateGenome::SwapRegisters, 10),
-            (MutateGenome::IncrementSourceValueWhereTypeIsDirect, 10),
+            (MutateGenome::SwapRegisters, 5),
+            (MutateGenome::IncrementSourceValueWhereTypeIsDirect, 1),
             (MutateGenome::DecrementSourceValueWhereTypeIsDirect, 1),
             (MutateGenome::ReplaceSourceWithHistogram, 100),
             (MutateGenome::IncrementTargetValueWhereTypeIsDirect, 1),
             (MutateGenome::DecrementTargetValueWhereTypeIsDirect, 1),
             (MutateGenome::ReplaceTargetWithHistogram, 100),
-            (MutateGenome::ToggleEnabled, 50),
+            (MutateGenome::ReplaceLineWithHistogram, 200),
+            (MutateGenome::ToggleEnabled, 10),
             (MutateGenome::SwapRows, 2),
-            (MutateGenome::SwapAdjacentRows, 50),
+            (MutateGenome::SwapAdjacentRows, 20),
             (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallProgramWeightedByPopularity, 100),
-            (MutateGenome::CallMostPopularProgram, 100),
-            (MutateGenome::CallMediumPopularProgram, 100),
-            (MutateGenome::CallLeastPopularProgram, 10),
+            (MutateGenome::CallProgramWeightedByPopularity, 50),
+            (MutateGenome::CallMostPopularProgram, 50),
+            (MutateGenome::CallMediumPopularProgram, 20),
+            (MutateGenome::CallLeastPopularProgram, 5),
             // (MutateGenome::CallRecentProgram, 1),
-            (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 10),
+            (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 1),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
 
@@ -1230,6 +1337,9 @@ impl Genome {
             },
             MutateGenome::ReplaceTargetWithHistogram => {
                 self.replace_target_with_histogram(rng, context)
+            },
+            MutateGenome::ReplaceLineWithHistogram => {
+                self.replace_line_with_histogram(rng, context)
             },
             MutateGenome::ToggleEnabled => {
                 self.mutate_enabled(rng)
