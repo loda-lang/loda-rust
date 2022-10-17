@@ -325,8 +325,8 @@ impl RunMinerLoop {
         }
         let terms40_original: BigIntVec = self.term_computer.terms.clone();
         {
-            let mut prevent_flooding = self.prevent_flooding.lock().unwrap();
-            if prevent_flooding.try_register(&terms40_original).is_err() {
+            let prevent_flooding = self.prevent_flooding.lock().unwrap();
+            if prevent_flooding.contains(&terms40_original) {
                 // debug!("prevented flooding");
                 self.metric.number_of_prevented_floodings += 1;
                 self.reload = true;
@@ -500,6 +500,13 @@ impl RunMinerLoop {
         }
         if funnel40_number_of_wildcards > 0 {
             self.genome.append_message(format!("funnel40 number of wildcards: {:?}", funnel40_number_of_wildcards));
+        }
+
+        {
+            let mut prevent_flooding = self.prevent_flooding.lock().unwrap();
+            if prevent_flooding.try_register(&terms40_original).is_err() {
+                debug!("already contained in prevent flooding dictionary");
+            }
         }
 
         // Yay, this candidate program seems to be good.
