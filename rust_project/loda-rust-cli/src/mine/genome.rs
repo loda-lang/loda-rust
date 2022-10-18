@@ -34,6 +34,7 @@ pub enum MutateGenome {
     SwapRows,
     SwapAdjacentRows,
     InsertLoopBeginEnd,
+    InlineSeq,
     CallProgramWeightedByPopularity,
     CallMostPopularProgram,
     CallMediumPopularProgram,
@@ -1321,6 +1322,88 @@ impl Genome {
         true
     }
 
+    /// Mutate the `seq` instruction, so the dependency is inlined.
+    /// 
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    pub fn mutate_inline_seq<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if *genome_item.source_type() != ParameterType::Constant {
+                continue;
+            }
+            if *genome_item.instruction_id() != InstructionId::EvalSequence {
+                continue;
+            }
+            indexes.push(index);
+        }
+        if indexes.is_empty() {
+            return false;
+        }
+
+        let mut alive_registers = HashSet::<u32>::new();
+        let mut max_register: u32 = 0;
+        for genome_item in &self.genome_vec {
+            if !genome_item.is_enabled() {
+                continue;
+            }
+            if *genome_item.target_type() == RegisterType::Direct {
+                let index = genome_item.target_value();
+                if index >= 0 {
+                    max_register = max_register.max(index as u32);
+                    alive_registers.insert(index as u32);
+                }
+            }
+            if *genome_item.source_type() == ParameterType::Direct {
+                let index = genome_item.source_value();
+                if index >= 0 {
+                    max_register = max_register.max(index as u32);
+                    alive_registers.insert(index as u32);
+                }
+            }
+        }
+        let offset_by: u32 = max_register + 1;
+
+        // Mutate one of the `seq` instructions
+        let index: &usize = indexes.choose(rng).unwrap();
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
+
+        if *genome_item.instruction_id() != InstructionId::EvalSequence {
+            error!("Expected 'seq' instruction");
+            return false;
+        }
+        if *genome_item.source_type() != ParameterType::Constant {
+            error!("Expected 'seq' instruction's source type to be of type Constant");
+            return false;
+        }
+        let source_value: i32 = genome_item.source_value();
+        if source_value < 0 {
+            return false;
+        }
+        let program_id: u64 = source_value as u64;
+        println!("mutate_inline_seq. program_id: {}", program_id);
+        // TODO: obtain dependency_manager reference
+        // let dm = DependencyManager::new();
+        // let parsed_program: ParsedProgram = match self.load_program_with_id(&dm, program_id) {
+        //     Some(value) => value,
+        //     None => {
+        //         error!("mutate_inline_seq. Cannot load program: {}", program_id);
+        //         return false;
+        //     }
+        // };
+
+        // TODO: offset all registers by `offset_by`
+
+        // TODO: prepend instructions that clears the registers used by this sequence
+        // If the `seq` is inside a loop, then we don't want the previous state to 
+        // interfere with the next iteration.
+
+        // TODO SIMON
+
+        true
+    }
+
     /// Mutate the `seq` instruction, so it invokes a random program.
     /// 
     /// Only impact rows where source_type=Constant and instruct=seq
@@ -1389,6 +1472,7 @@ impl Genome {
             (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 100),
             (MutateGenome::InsertLoopBeginEnd, 0),
+            // (MutateGenome::InlineSeq, 200),
             (MutateGenome::CallProgramWeightedByPopularity, 10),
             (MutateGenome::CallMostPopularProgram, 50),
             (MutateGenome::CallMediumPopularProgram, 20),
@@ -1461,6 +1545,9 @@ impl Genome {
             },
             MutateGenome::InsertLoopBeginEnd => {
                 self.mutate_insert_loop(rng)
+            },            
+            MutateGenome::InlineSeq => {
+                self.mutate_inline_seq(rng)
             },            
             MutateGenome::CallProgramWeightedByPopularity => {
                 self.mutate_instruction_seq(rng, context, MutateEvalSequenceCategory::WeightedByPopularity)
