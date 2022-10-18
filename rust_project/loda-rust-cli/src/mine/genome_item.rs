@@ -1,5 +1,5 @@
 use loda_rust_core::execute::RegisterType;
-use loda_rust_core::parser::{InstructionId, InstructionParameter, ParameterType};
+use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use super::GenomeMutateContext;
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -691,5 +691,40 @@ impl fmt::Display for GenomeItem {
             self.source_type.prefix(), 
             self.source_value
         )
+    }
+}
+
+pub trait ToGenomeItem {
+    fn to_genome_item(&self) -> Option<GenomeItem>;
+}
+
+impl ToGenomeItem for Instruction {
+    fn to_genome_item(&self) -> Option<GenomeItem> {
+        let mut target_type = RegisterType::Direct;
+        let mut target_value: i32 = 0;
+        let mut source_type: ParameterType = ParameterType::Constant;
+        let mut source_value: i32 = 0;
+        for (index, parameter) in self.parameter_vec.iter().enumerate() {
+            if index == 0 {
+                target_value = parameter.parameter_value as i32;
+                if parameter.parameter_type == ParameterType::Indirect {
+                    target_type = RegisterType::Indirect;
+                } else {
+                    target_type = RegisterType::Direct;
+                }
+            }
+            if index == 1 {
+                source_value = parameter.parameter_value as i32;
+                source_type = parameter.parameter_type.clone();
+            }
+        }
+        let genome_item = GenomeItem::new(
+            self.instruction_id.clone(),
+            target_type,
+            target_value,
+            source_type,
+            source_value,
+        );
+        Some(genome_item)
     }
 }

@@ -31,7 +31,7 @@ pub use funnel::Funnel;
 pub use funnel_config::FunnelConfig;
 pub use genome_mutate_context::GenomeMutateContext;
 pub use genome::{Genome, MutateGenome};
-pub use genome_item::{GenomeItem, MutateEvalSequenceCategory};
+pub use genome_item::{GenomeItem, MutateEvalSequenceCategory, ToGenomeItem};
 pub use histogram_instruction_constant::HistogramInstructionConstant;
 pub use metrics::{MetricEvent, Recorder, SinkRecorder};
 pub use metrics_prometheus::MetricsPrometheus;

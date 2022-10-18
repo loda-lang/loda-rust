@@ -1,4 +1,4 @@
-use super::{GenomeItem, GenomeMutateContext, MutateEvalSequenceCategory, SourceValue, TargetValue, LineValue};
+use super::{GenomeItem, GenomeMutateContext, LineValue, MutateEvalSequenceCategory, SourceValue, TargetValue, ToGenomeItem};
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::RegisterType;
 use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
@@ -133,38 +133,9 @@ impl Genome {
         return true;
     }
 
-    fn genome_item_from_instruction(instruction: &Instruction) -> Option<GenomeItem> {
-        let mut target_type = RegisterType::Direct;
-        let mut target_value: i32 = 0;
-        let mut source_type: ParameterType = ParameterType::Constant;
-        let mut source_value: i32 = 0;
-        for (index, parameter) in instruction.parameter_vec.iter().enumerate() {
-            if index == 0 {
-                target_value = parameter.parameter_value as i32;
-                if parameter.parameter_type == ParameterType::Indirect {
-                    target_type = RegisterType::Indirect;
-                } else {
-                    target_type = RegisterType::Direct;
-                }
-            }
-            if index == 1 {
-                source_value = parameter.parameter_value as i32;
-                source_type = parameter.parameter_type.clone();
-            }
-        }
-        let genome_item = GenomeItem::new(
-            instruction.instruction_id.clone(),
-            target_type,
-            target_value,
-            source_type,
-            source_value,
-        );
-        Some(genome_item)
-    }
-
     pub fn push_parsed_program_onto_genome(&mut self, parsed_program: &ParsedProgram) {
         for instruction in &parsed_program.instruction_vec {
-            let genome_item: GenomeItem = match Self::genome_item_from_instruction(instruction) {
+            let genome_item: GenomeItem = match instruction.to_genome_item() {
                 Some(value) => value,
                 None => {
                     continue;
@@ -687,7 +658,7 @@ impl Genome {
             }
         };
 
-        let genome_item: GenomeItem = match Self::genome_item_from_instruction(&row0) {
+        let genome_item: GenomeItem = match row0.to_genome_item() {
             Some(value) => value,
             None => {
                 return false;
@@ -779,7 +750,7 @@ impl Genome {
             }
         };
 
-        let genome_item: GenomeItem = match Self::genome_item_from_instruction(&row0) {
+        let genome_item: GenomeItem = match row0.to_genome_item() {
             Some(value) => value,
             None => {
                 return false;
