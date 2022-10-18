@@ -86,26 +86,6 @@ impl Genome {
         program_ids
     }
 
-    #[allow(dead_code)]
-    pub fn load_random_program<R: Rng + ?Sized>(&mut self, rng: &mut R, dm: &DependencyManager, context: &GenomeMutateContext) -> bool {
-        let program_id_u32: u32 = match context.choose_available_program(rng) {
-            Some(value) => value,
-            None => {
-                error!("cannot load random program. The list of available programs is empty");
-                return false;
-            }
-        };
-        let program_id: u64 = program_id_u32 as u64;
-        let parsed_program: ParsedProgram = match self.load_program_with_id(dm, program_id) {
-            Some(value) => value,
-            None => {
-                return false;
-            }
-        };
-
-        return self.insert_program(program_id, &parsed_program);
-    }
-
     pub fn load_program_with_id(&self, dm: &DependencyManager, program_id: u64) -> Option<ParsedProgram> {
         let path_to_program: PathBuf = dm.path_to_program(program_id);
         let contents: String = match fs::read_to_string(&path_to_program) {
