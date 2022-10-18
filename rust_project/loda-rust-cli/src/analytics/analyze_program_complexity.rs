@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use serde::Serialize;
 use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
-const IGNORE_ANY_PROGRAM_SHORTER_THAN: usize = 5;
+const IGNORE_ANY_PROGRAM_SHORTER_THAN: usize = 8;
 const IGNORE_PROGRAM_WITHOUT_LOOPS_SHORTER_THAN: usize = 13;
 const IGNORE_PROGRAM_WITHOUT_NESTED_SEQ_SHORTER_THAN: usize = 9;
 const CONSIDER_ANY_PROGRAM_LONGER_THAN: usize = 60;

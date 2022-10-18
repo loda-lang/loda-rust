@@ -19,10 +19,12 @@ use rand::rngs::StdRng;
 use std::sync::{Arc, Mutex};
 
 const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
-const MINIMUM_PROGRAM_LENGTH: usize = 8;
+const MINIMUM_PROGRAM_LENGTH: usize = 6;
+const LOAD_INITIAL_GENOME_MINIMUM_PROGRAM_LENGTH: usize = 8;
+const LOAD_INITIAL_GENOME_RETRIES: usize = 1000;
 const MINER_CACHE_CAPACITY: usize = 300000;
-const ITERATIONS_BETWEEN_PICKING_A_NEW_INITIAL_GENOME: usize = 400;
-const ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME: usize = 20;
+const ITERATIONS_BETWEEN_PICKING_A_NEW_INITIAL_GENOME: usize = 100;
+const ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME: usize = 10;
 
 struct TermComputer {
     terms: BigIntVec,
@@ -195,29 +197,43 @@ impl RunMinerLoop {
         self.dependency_manager.reset_metrics();
     }
 
+    pub fn load_initial_genome_program(&mut self) -> anyhow::Result<()> {
+        for _ in 0..LOAD_INITIAL_GENOME_RETRIES {
+            let program_id: u32 = match self.context.choose_initial_genome_program(&mut self.rng) {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("choose_initial_genome_program() returned None, seems like data model is empty"));
+                }
+            };
+            let parsed_program: ParsedProgram = match self.genome.load_program_with_id(&self.dependency_manager, program_id as u64) {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
+            if parsed_program.instruction_vec.len() < LOAD_INITIAL_GENOME_MINIMUM_PROGRAM_LENGTH {
+                continue;
+            }
+            self.current_program_id = program_id as u64;
+            self.current_parsed_program = parsed_program;
+            return Ok(());
+        }
+        return Err(anyhow::anyhow!("Unable to pick among available programs"));
+    }
+
     fn execute_one_iteration(&mut self) {
         self.metric.number_of_miner_loop_iterations += 1;
         if (self.iteration % ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME) == 0 {
             self.reload = true;
         }
         if (self.iteration % ITERATIONS_BETWEEN_PICKING_A_NEW_INITIAL_GENOME) == 0 {
-            match self.context.choose_initial_genome_program(&mut self.rng) {
-                Some(program_id) => { 
-                    self.current_program_id = program_id as u64;
-                },
-                None => {
-                    panic!("Unable to pick among available programs");
+            match self.load_initial_genome_program() {
+                Ok(_) => {},
+                Err(error) => {
+                    error!("Failed loading initial genome. {:?}", error);
+                    panic!("Failed loading initial genome. {:?}", error);
                 }
-            };
-            let parsed_program: ParsedProgram = match self.genome.load_program_with_id(&self.dependency_manager, self.current_program_id) {
-                Some(value) => value,
-                None => {
-                    error!("Unable to parse available program");
-                    self.reload = true;
-                    return;
-                }
-            };
-            self.current_parsed_program = parsed_program;
+            }
         }
         if self.reload {
             self.genome.clear_message_vec();
@@ -325,8 +341,8 @@ impl RunMinerLoop {
         }
         let terms40_original: BigIntVec = self.term_computer.terms.clone();
         {
-            let mut prevent_flooding = self.prevent_flooding.lock().unwrap();
-            if prevent_flooding.try_register(&terms40_original).is_err() {
+            let prevent_flooding = self.prevent_flooding.lock().unwrap();
+            if prevent_flooding.contains(&terms40_original) {
                 // debug!("prevented flooding");
                 self.metric.number_of_prevented_floodings += 1;
                 self.reload = true;
@@ -500,6 +516,13 @@ impl RunMinerLoop {
         }
         if funnel40_number_of_wildcards > 0 {
             self.genome.append_message(format!("funnel40 number of wildcards: {:?}", funnel40_number_of_wildcards));
+        }
+
+        {
+            let mut prevent_flooding = self.prevent_flooding.lock().unwrap();
+            if prevent_flooding.try_register(&terms40_original).is_err() {
+                debug!("already contained in prevent flooding dictionary");
+            }
         }
 
         // Yay, this candidate program seems to be good.
