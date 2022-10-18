@@ -1,5 +1,6 @@
 use loda_rust_core::execute::RegisterType;
 use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
+use loda_rust_core::parser::ParsedProgram;
 use super::GenomeMutateContext;
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -44,6 +45,20 @@ impl GenomeItem {
             source_type: source_type,
             source_value: source_value,
         }
+    }
+
+    pub fn genome_item_vec_from_program(parsed_program: &ParsedProgram) -> Vec<GenomeItem> {
+        let mut genome_vec = Vec::<GenomeItem>::with_capacity(parsed_program.instruction_vec.len());
+        for instruction in &parsed_program.instruction_vec {
+            let genome_item: GenomeItem = match instruction.to_genome_item() {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
+            genome_vec.push(genome_item);
+        }
+        genome_vec
     }
 
     pub fn contains_indirect_memory_access(&self) -> bool {

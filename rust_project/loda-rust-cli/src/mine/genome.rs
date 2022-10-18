@@ -106,23 +106,9 @@ impl Genome {
     }
 
     pub fn insert_program(&mut self, program_id: u64, parsed_program: &ParsedProgram) -> bool {
-        self.genome_vec.clear();
-        self.push_parsed_program_onto_genome(&parsed_program);
-        // debug!("loaded program_id: {:?}", program_id);
+        self.genome_vec = GenomeItem::genome_item_vec_from_program(parsed_program);
         self.message_vec.push(format!("template {:?}", program_id));
         return true;
-    }
-
-    pub fn push_parsed_program_onto_genome(&mut self, parsed_program: &ParsedProgram) {
-        for instruction in &parsed_program.instruction_vec {
-            let genome_item: GenomeItem = match instruction.to_genome_item() {
-                Some(value) => value,
-                None => {
-                    continue;
-                }
-            };
-            self.genome_vec.push(genome_item);
-        }
     }
 
     pub fn to_parsed_program(&self) -> ParsedProgram {
