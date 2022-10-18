@@ -86,7 +86,7 @@ impl Genome {
         program_ids
     }
 
-    pub fn load_program_with_id(&self, dm: &DependencyManager, program_id: u64) -> Option<ParsedProgram> {
+    pub fn load_program_with_id(dm: &DependencyManager, program_id: u64) -> Option<ParsedProgram> {
         let path_to_program: PathBuf = dm.path_to_program(program_id);
         let contents: String = match fs::read_to_string(&path_to_program) {
             Ok(value) => value,
@@ -105,8 +105,8 @@ impl Genome {
         Some(parsed_program)
     }
 
-    pub fn insert_program(&mut self, program_id: u64, parsed_program: &ParsedProgram) -> bool {
-        self.genome_vec = GenomeItem::genome_item_vec_from_program(parsed_program);
+    pub fn insert_program(&mut self, program_id: u64, genome_vec: &Vec<GenomeItem>) -> bool {
+        self.genome_vec = genome_vec.clone();
         self.message_vec.push(format!("template {:?}", program_id));
         return true;
     }

@@ -1,4 +1,4 @@
-use super::{Funnel, Genome, GenomeMutateContext, save_candidate_program};
+use super::{Funnel, Genome, GenomeItem, GenomeMutateContext, save_candidate_program};
 use super::PreventFlooding;
 use super::{PerformanceClassifierResult, PerformanceClassifier};
 use super::{MinerThreadMessageToCoordinator, MetricEvent, Recorder};
@@ -87,7 +87,7 @@ pub struct RunMinerLoop {
     rng: StdRng,
     metric: MetricsRunMinerLoop,
     current_program_id: u64,
-    current_parsed_program: ParsedProgram,
+    current_genome_vec: Vec<GenomeItem>,
     iteration: usize,
     reload: bool,
     term_computer: TermComputer,
@@ -121,7 +121,7 @@ impl RunMinerLoop {
             rng: rng,
             metric: MetricsRunMinerLoop::new(),
             current_program_id: 0,
-            current_parsed_program: ParsedProgram::new(),
+            current_genome_vec: vec!(),
             iteration: 0,
             reload: true,
             term_computer: TermComputer::new(),
@@ -205,7 +205,7 @@ impl RunMinerLoop {
                     return Err(anyhow::anyhow!("choose_initial_genome_program() returned None, seems like data model is empty"));
                 }
             };
-            let parsed_program: ParsedProgram = match self.genome.load_program_with_id(&self.dependency_manager, program_id as u64) {
+            let parsed_program: ParsedProgram = match Genome::load_program_with_id(&self.dependency_manager, program_id as u64) {
                 Some(value) => value,
                 None => {
                     continue;
@@ -215,7 +215,7 @@ impl RunMinerLoop {
                 continue;
             }
             self.current_program_id = program_id as u64;
-            self.current_parsed_program = parsed_program;
+            self.current_genome_vec = GenomeItem::genome_item_vec_from_program(&parsed_program);
             return Ok(());
         }
         return Err(anyhow::anyhow!("Unable to pick among available programs"));
@@ -237,7 +237,7 @@ impl RunMinerLoop {
         }
         if self.reload {
             self.genome.clear_message_vec();
-            let load_ok: bool = self.genome.insert_program(self.current_program_id, &self.current_parsed_program);
+            let load_ok: bool = self.genome.insert_program(self.current_program_id, &self.current_genome_vec);
             if !load_ok {
                 self.metric.number_of_failed_genome_loads += 1;
                 return;

@@ -25,7 +25,7 @@ pub enum MutateEvalSequenceCategory {
     ProgramThatUsesIndirectMemoryAccess,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct GenomeItem {
     enabled: bool,
     instruction_id: InstructionId,
