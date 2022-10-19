@@ -243,6 +243,14 @@ impl RunMinerLoop {
                 self.metric.number_of_failed_genome_loads += 1;
                 return;
             }
+
+            let did_mutate_ok = self.genome.mutate_inline_seq(&mut self.rng, &self.dependency_manager);
+            if did_mutate_ok {
+                self.genome.append_message("mutate: mutate_inline_seq".to_string());
+            } else {
+                self.genome.append_message("mutate: mutate_inline_seq, no change".to_string());
+            }
+    
             self.reload = false;
         }
 
