@@ -1467,7 +1467,7 @@ impl Genome {
             (MutateGenome::InsertLineWithHistogram, 100),
             (MutateGenome::ToggleEnabled, 10),
             (MutateGenome::SwapRows, 1),
-            (MutateGenome::SwapAdjacentRows, 100),
+            (MutateGenome::SwapAdjacentRows, 10),
             (MutateGenome::InsertLoopBeginEnd, 0),
             (MutateGenome::CallProgramWeightedByPopularity, 10),
             (MutateGenome::CallMostPopularProgram, 50),
