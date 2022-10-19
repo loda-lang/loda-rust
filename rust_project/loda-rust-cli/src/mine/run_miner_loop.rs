@@ -88,6 +88,7 @@ pub struct RunMinerLoop {
     metric: MetricsRunMinerLoop,
     current_program_id: u64,
     current_genome_vec: Vec<GenomeItem>,
+    current_message_vec: Vec<String>,
     iteration: usize,
     reload: bool,
     term_computer: TermComputer,
@@ -122,6 +123,7 @@ impl RunMinerLoop {
             metric: MetricsRunMinerLoop::new(),
             current_program_id: 0,
             current_genome_vec: vec!(),
+            current_message_vec: vec!(),
             iteration: 0,
             reload: true,
             term_computer: TermComputer::new(),
@@ -216,7 +218,23 @@ impl RunMinerLoop {
                 continue;
             }
             self.current_program_id = program_id as u64;
-            self.current_genome_vec = parsed_program.to_genome_item_vec();
+
+            let mut genome_vec: Vec<GenomeItem> = parsed_program.to_genome_item_vec();
+
+            let did_mutate_ok = Genome::mutate_inline_seq(&mut self.rng, &self.dependency_manager, &mut genome_vec);
+            let mutate_message: String;
+            if did_mutate_ok {
+                mutate_message = "mutate: mutate_inline_seq".to_string();
+            } else {
+                mutate_message = "mutate: mutate_inline_seq, no change".to_string();
+            }
+
+            let message_vec: Vec<String> = vec![
+                format!("template {}", program_id),
+                mutate_message
+            ];
+            self.current_genome_vec = genome_vec;
+            self.current_message_vec = message_vec;
             return Ok(());
         }
         return Err(anyhow::anyhow!("Unable to pick among available programs"));
@@ -237,20 +255,8 @@ impl RunMinerLoop {
             }
         }
         if self.reload {
-            self.genome.clear_message_vec();
-            let load_ok: bool = self.genome.insert_program(self.current_program_id, &self.current_genome_vec);
-            if !load_ok {
-                self.metric.number_of_failed_genome_loads += 1;
-                return;
-            }
-
-            let did_mutate_ok = self.genome.mutate_inline_seq(&mut self.rng, &self.dependency_manager);
-            if did_mutate_ok {
-                self.genome.append_message("mutate: mutate_inline_seq".to_string());
-            } else {
-                self.genome.append_message("mutate: mutate_inline_seq, no change".to_string());
-            }
-    
+            self.genome.set_message_vec(self.current_message_vec.clone());
+            self.genome.set_genome_vec(self.current_genome_vec.clone());
             self.reload = false;
         }
 

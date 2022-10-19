@@ -102,10 +102,8 @@ impl Genome {
         Ok(parsed_program)
     }
 
-    pub fn insert_program(&mut self, program_id: u64, genome_vec: &Vec<GenomeItem>) -> bool {
-        self.genome_vec = genome_vec.clone();
-        self.message_vec.push(format!("template {:?}", program_id));
-        return true;
+    pub fn set_genome_vec(&mut self, genome_vec: Vec<GenomeItem>) {
+        self.genome_vec = genome_vec;
     }
 
     pub fn to_parsed_program(&self) -> ParsedProgram {
@@ -140,9 +138,9 @@ impl Genome {
     pub fn message_vec(&self) -> &Vec<String> {
         &self.message_vec
     }
-
-    pub fn clear_message_vec(&mut self) {
-        self.message_vec.clear();
+    
+    pub fn set_message_vec(&mut self, message_vec: Vec<String>) {
+        self.message_vec = message_vec;
     }
 
     pub fn append_message(&mut self, message: String) {
@@ -1261,9 +1259,9 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    pub fn mutate_inline_seq<R: Rng + ?Sized>(&mut self, rng: &mut R, dm: &DependencyManager) -> bool {
+    pub fn mutate_inline_seq<R: Rng + ?Sized>(rng: &mut R, dm: &DependencyManager, genome_vec: &mut Vec<GenomeItem>) -> bool {
         let mut indexes: Vec<usize> = vec!();
-        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+        for (index, genome_item) in genome_vec.iter().enumerate() {
             if *genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
@@ -1278,7 +1276,7 @@ impl Genome {
 
         // Determine how many registers are already used
         let mut max_register: u32 = 0;
-        for genome_item in &self.genome_vec {
+        for genome_item in genome_vec.iter() {
             if !genome_item.is_enabled() {
                 continue;
             }
@@ -1299,7 +1297,7 @@ impl Genome {
 
         // Mutate one of the `seq` instructions
         let index: &usize = indexes.choose(rng).unwrap();
-        let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
+        let genome_item: &mut GenomeItem = &mut genome_vec[*index];
 
         if *genome_item.instruction_id() != InstructionId::EvalSequence {
             error!("Expected 'seq' instruction");
@@ -1396,7 +1394,7 @@ impl Genome {
         }
 
         // Replace `seq` with the inline_genome_vec
-        self.genome_vec.splice(index..=index, inline_genome_vec.iter().cloned());
+        genome_vec.splice(index..=index, inline_genome_vec.iter().cloned());
 
         true
     }
