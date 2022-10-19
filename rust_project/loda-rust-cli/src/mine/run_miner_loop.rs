@@ -1,4 +1,4 @@
-use super::{Funnel, Genome, GenomeItem, GenomeMutateContext, save_candidate_program};
+use super::{Funnel, Genome, GenomeItem, GenomeMutateContext, save_candidate_program, ToGenomeItemVec};
 use super::PreventFlooding;
 use super::{PerformanceClassifierResult, PerformanceClassifier};
 use super::{MinerThreadMessageToCoordinator, MetricEvent, Recorder};
@@ -215,7 +215,7 @@ impl RunMinerLoop {
                 continue;
             }
             self.current_program_id = program_id as u64;
-            self.current_genome_vec = GenomeItem::genome_item_vec_from_program(&parsed_program);
+            self.current_genome_vec = parsed_program.to_genome_item_vec();
             return Ok(());
         }
         return Err(anyhow::anyhow!("Unable to pick among available programs"));

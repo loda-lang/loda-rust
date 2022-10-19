@@ -47,20 +47,6 @@ impl GenomeItem {
         }
     }
 
-    pub fn genome_item_vec_from_program(parsed_program: &ParsedProgram) -> Vec<GenomeItem> {
-        let mut genome_vec = Vec::<GenomeItem>::with_capacity(parsed_program.instruction_vec.len());
-        for instruction in &parsed_program.instruction_vec {
-            let genome_item: GenomeItem = match instruction.to_genome_item() {
-                Some(value) => value,
-                None => {
-                    continue;
-                }
-            };
-            genome_vec.push(genome_item);
-        }
-        genome_vec
-    }
-
     pub fn contains_indirect_memory_access(&self) -> bool {
         if !self.enabled {
             return false;
@@ -741,5 +727,26 @@ impl ToGenomeItem for Instruction {
             source_value,
         );
         Some(genome_item)
+    }
+}
+
+
+pub trait ToGenomeItemVec {
+    fn to_genome_item_vec(&self) -> Vec<GenomeItem>;
+}
+
+impl ToGenomeItemVec for ParsedProgram {
+    fn to_genome_item_vec(&self) -> Vec<GenomeItem> {
+        let mut genome_vec = Vec::<GenomeItem>::with_capacity(self.instruction_vec.len());
+        for instruction in &self.instruction_vec {
+            let genome_item: GenomeItem = match instruction.to_genome_item() {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
+            genome_vec.push(genome_item);
+        }
+        genome_vec
     }
 }
