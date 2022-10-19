@@ -1314,7 +1314,14 @@ impl Genome {
             return false;
         }
         let program_id: u64 = source_value as u64;
-        println!("mutate_inline_seq. program_id: {}", program_id);
+        // println!("mutate_inline_seq. program_id: {}", program_id);
+
+        let target_value = genome_item.target_value();
+        if target_value < 0 {
+            return false;
+        }
+        let target_register: u32 = target_value as u32;
+
         let parsed_program: ParsedProgram = match Self::load_program_with_id(&dm, program_id) {
             Ok(value) => value,
             Err(error) => {
@@ -1322,6 +1329,8 @@ impl Genome {
                 return false;
             }
         };
+        genome_item.set_enabled(false); // disable the `seq` instruction
+
         let mut inline_genome_vec: Vec<GenomeItem> = parsed_program.to_genome_item_vec();
 
         // Offset registers by `offset_by`
@@ -1345,10 +1354,26 @@ impl Genome {
             }
         }
 
+        // prepend instruction
+        // transfer the seq target, to the inlined genome
+        {
+            let genome_item = GenomeItem::new(
+                InstructionId::Move,
+                RegisterType::Direct,
+                offset_by as i32,
+                ParameterType::Direct,
+                target_register as i32
+            );
+            inline_genome_vec.insert(0, genome_item);
+        }
+
         // prepend instructions that clears the registers used by this sequence
         // If the `seq` is inside a loop, then we don't want the previous state to 
         // interfere with the next iteration.
         for register_index in alive_registers {
+            if register_index == offset_by as i32 {
+                continue;
+            }
             let genome_item = GenomeItem::new(
                 InstructionId::Move,
                 RegisterType::Direct,
@@ -1359,11 +1384,21 @@ impl Genome {
             inline_genome_vec.insert(0, genome_item);
         }
 
-        // TODO: transfer the seq target, to the inlined genome
+        // append instruction
+        // transfer the output from inlined genome to the seq target
+        {
+            let genome_item = GenomeItem::new(
+                InstructionId::Move,
+                RegisterType::Direct,
+                target_register as i32,
+                ParameterType::Direct,
+                offset_by as i32
+            );
+            inline_genome_vec.push(genome_item);
+        }
 
-        // TODO: transfer the output from inlined genome to the seq target
-
-        // TODO replace `seq` with the inline_genome_vec
+        // Replace `seq` with the inline_genome_vec
+        self.genome_vec.splice(index..index, inline_genome_vec.iter().cloned());
 
         true
     }
