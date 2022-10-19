@@ -206,8 +206,9 @@ impl RunMinerLoop {
                 }
             };
             let parsed_program: ParsedProgram = match Genome::load_program_with_id(&self.dependency_manager, program_id as u64) {
-                Some(value) => value,
-                None => {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Unable to load program. {:?}", error);
                     continue;
                 }
             };

@@ -86,23 +86,21 @@ impl Genome {
         program_ids
     }
 
-    pub fn load_program_with_id(dm: &DependencyManager, program_id: u64) -> Option<ParsedProgram> {
+    pub fn load_program_with_id(dm: &DependencyManager, program_id: u64) -> anyhow::Result<ParsedProgram> {
         let path_to_program: PathBuf = dm.path_to_program(program_id);
         let contents: String = match fs::read_to_string(&path_to_program) {
             Ok(value) => value,
             Err(error) => {
-                error!("loading program_id: {:?}, something went wrong reading the file: {:?}", program_id, error);
-                return None;
+                return Err(anyhow::anyhow!("loading program_id: {:?}, something went wrong reading the file: {:?}", program_id, error));
             }
         };
         let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&contents) {
             Ok(value) => value,
             Err(error) => {
-                error!("loading program_id: {:?}, something went wrong parsing the program: {:?}", program_id, error);
-                return None;
+                return Err(anyhow::anyhow!("loading program_id: {:?}, something went wrong parsing the program: {:?}", program_id, error));
             }
         };
-        Some(parsed_program)
+        Ok(parsed_program)
     }
 
     pub fn insert_program(&mut self, program_id: u64, genome_vec: &Vec<GenomeItem>) -> bool {
