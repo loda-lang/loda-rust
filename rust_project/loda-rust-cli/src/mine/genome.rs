@@ -1314,7 +1314,6 @@ impl Genome {
             return false;
         }
         let program_id: u64 = source_value as u64;
-        // println!("mutate_inline_seq. program_id: {}", program_id);
 
         let target_value = genome_item.target_value();
         if target_value < 0 {
@@ -1329,7 +1328,6 @@ impl Genome {
                 return false;
             }
         };
-        genome_item.set_enabled(false); // disable the `seq` instruction
 
         let mut inline_genome_vec: Vec<GenomeItem> = parsed_program.to_genome_item_vec();
 
@@ -1398,7 +1396,7 @@ impl Genome {
         }
 
         // Replace `seq` with the inline_genome_vec
-        self.genome_vec.splice(index..index, inline_genome_vec.iter().cloned());
+        self.genome_vec.splice(index..=index, inline_genome_vec.iter().cloned());
 
         true
     }
