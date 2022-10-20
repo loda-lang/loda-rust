@@ -42,13 +42,31 @@ impl TermComputer {
     }
 
     fn compute(&mut self, cache: &mut ProgramCache, runner: &ProgramRunner, count: usize) -> Result<(), EvalError> {
-        let step_count_limit: u64 = 10000;
         let node_register_limit = NodeRegisterLimit::LimitBits(32);
-        let node_loop_limit = NodeLoopLimit::LimitCount(1000);
         loop {
             let length: usize = self.terms.len();
             if length >= count {
                 break;
+            }
+            let node_loop_limit: NodeLoopLimit;
+            if length <= 10 {
+                node_loop_limit = NodeLoopLimit::LimitCount(2000);
+            } else {
+                if length <= 20 {
+                    node_loop_limit = NodeLoopLimit::LimitCount(4000);
+                } else {
+                    node_loop_limit = NodeLoopLimit::LimitCount(8000);
+                }
+            }
+            let step_count_limit: u64;
+            if length <= 10 {
+                step_count_limit = 20000;
+            } else {
+                if length <= 20 {
+                    step_count_limit = 40000;
+                } else {
+                    step_count_limit = 80000;
+                }
             }
             let index = length as i64;
             let input = RegisterValue::from_i64(index);
