@@ -343,6 +343,12 @@ impl Genome {
             if *genome_item.source_type() != ParameterType::Direct {
                 continue;
             }
+            if *genome_item.instruction_id() == InstructionId::Clear {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::LoopBegin {
+                continue;
+            }
             if *genome_item.instruction_id() == InstructionId::LoopEnd {
                 continue;
             }
@@ -375,6 +381,12 @@ impl Genome {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
             if *genome_item.source_type() != ParameterType::Direct {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::Clear {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
             }
             if *genome_item.instruction_id() == InstructionId::LoopEnd {
@@ -440,6 +452,12 @@ impl Genome {
             }
             // It makes no sense mutating a `lpe` instruction.
             if *genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::EvalSequence {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::Clear {
                 continue;
             }
             indexes.push(index);
@@ -630,6 +648,9 @@ impl Genome {
             return false;
         }
         if *genome_item.instruction_id() == InstructionId::LoopEnd {
+            return false;
+        }
+        if *genome_item.instruction_id() == InstructionId::Clear {
             return false;
         }
 
@@ -1451,26 +1472,26 @@ impl Genome {
             (MutateGenome::InsertInstructionWithConstant, 0),
             (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 1),
             (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 1),
-            (MutateGenome::ReplaceSourceConstantWithHistogram, 100),
+            (MutateGenome::ReplaceSourceConstantWithHistogram, 50),
             (MutateGenome::SourceType, 1),
             (MutateGenome::DisableLoop, 0),
-            (MutateGenome::SwapRegisters, 10),
+            (MutateGenome::SwapRegisters, 50),
             (MutateGenome::IncrementSourceValueWhereTypeIsDirect, 1),
             (MutateGenome::DecrementSourceValueWhereTypeIsDirect, 1),
             (MutateGenome::ReplaceSourceWithHistogram, 10),
             (MutateGenome::IncrementTargetValueWhereTypeIsDirect, 1),
             (MutateGenome::DecrementTargetValueWhereTypeIsDirect, 1),
-            (MutateGenome::ReplaceTargetWithHistogram, 10),
+            (MutateGenome::ReplaceTargetWithHistogram, 100),
             (MutateGenome::ReplaceLineWithHistogram, 100),
-            (MutateGenome::InsertLineWithHistogram, 100),
-            (MutateGenome::ToggleEnabled, 10),
+            (MutateGenome::InsertLineWithHistogram, 200),
+            (MutateGenome::ToggleEnabled, 50),
             (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 10),
             (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallProgramWeightedByPopularity, 10),
+            (MutateGenome::CallProgramWeightedByPopularity, 0),
             (MutateGenome::CallMostPopularProgram, 50),
-            (MutateGenome::CallMediumPopularProgram, 20),
-            (MutateGenome::CallLeastPopularProgram, 1),
+            (MutateGenome::CallMediumPopularProgram, 0),
+            (MutateGenome::CallLeastPopularProgram, 0),
             // (MutateGenome::CallRecentProgram, 1),
             (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 0),
         ];
