@@ -1380,6 +1380,7 @@ impl Genome {
             }
         }
 
+        // TODO: only reset state when the `seq` is inside a loop. If there is no loop, then there is no need.
         // prepend instructions that clears the registers used by this sequence
         // If the `seq` is inside a loop, then we don't want the previous state to 
         // interfere with the next iteration.
@@ -1575,7 +1576,7 @@ impl Genome {
 
     fn genome_vec_to_formatted_program(genome_vec: &Vec<GenomeItem>) -> String {
         let rows: Vec<String> = genome_vec.iter().map(|genome_item| {
-            genome_item.to_string()
+            genome_item.to_line_string()
         }).collect();
         rows.join("\n")
     }
