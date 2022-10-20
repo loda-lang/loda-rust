@@ -50,22 +50,22 @@ impl TermComputer {
             }
             let node_loop_limit: NodeLoopLimit;
             if length <= 10 {
-                node_loop_limit = NodeLoopLimit::LimitCount(2000);
+                node_loop_limit = NodeLoopLimit::LimitCount(4000);
             } else {
                 if length <= 20 {
-                    node_loop_limit = NodeLoopLimit::LimitCount(4000);
-                } else {
                     node_loop_limit = NodeLoopLimit::LimitCount(8000);
+                } else {
+                    node_loop_limit = NodeLoopLimit::LimitCount(32000);
                 }
             }
             let step_count_limit: u64;
             if length <= 10 {
-                step_count_limit = 20000;
+                step_count_limit = 40000;
             } else {
                 if length <= 20 {
-                    step_count_limit = 40000;
-                } else {
                     step_count_limit = 80000;
+                } else {
+                    step_count_limit = 320000;
                 }
             }
             let index = length as i64;
