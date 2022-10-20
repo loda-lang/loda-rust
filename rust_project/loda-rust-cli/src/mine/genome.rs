@@ -1314,9 +1314,10 @@ impl Genome {
                 }
             }
         }
-        let offset_by: u32 = max_register + 1;
+        let offset_by: u32 = max_register;
 
         // Mutate one of the `seq` instructions
+        // let before_snapshot: String = Self::genome_vec_to_formatted_program(&genome_vec);
         let index: &usize = indexes.choose(rng).unwrap();
         let genome_item: &mut GenomeItem = &mut genome_vec[*index];
 
@@ -1338,7 +1339,9 @@ impl Genome {
         if target_value < 0 {
             return false;
         }
-        let target_register: u32 = target_value as u32;
+        // The "target" register of "seq $target,oeis_id" is used for transfering input/output
+        // between the parent program and the inlined program.
+        let in_out_register: u32 = target_value as u32;
 
         let parsed_program: ParsedProgram = match Self::load_program_with_id(&dm, program_id) {
             Ok(value) => value,
@@ -1351,46 +1354,36 @@ impl Genome {
         let mut inline_genome_vec: Vec<GenomeItem> = parsed_program.to_genome_item_vec();
 
         // Offset registers by `offset_by`
-        let mut alive_registers = HashSet::<i32>::new();
+        let mut clear_register_indexes = HashSet::<i32>::new();
         for genome_item in &mut inline_genome_vec {
             if *genome_item.target_type() == RegisterType::Direct {
                 let index = genome_item.target_value();
-                if index >= 0 {
+                if index == 0 {
+                    genome_item.set_target_value(in_out_register as i32);
+                }
+                if index > 0 {
                     let index_with_offset: i32 = index + (offset_by as i32);
                     genome_item.set_target_value(index_with_offset);
-                    alive_registers.insert(index_with_offset);
+                    clear_register_indexes.insert(index_with_offset);
                 }
             }
             if *genome_item.source_type() == ParameterType::Direct {
                 let index = genome_item.source_value();
-                if index >= 0 {
+                if index == 0 {
+                    genome_item.set_source_value(in_out_register as i32);
+                }
+                if index > 0 {
                     let index_with_offset: i32 = index + (offset_by as i32);
                     genome_item.set_source_value(index_with_offset);
-                    alive_registers.insert(index_with_offset);
+                    clear_register_indexes.insert(index_with_offset);
                 }
             }
-        }
-
-        // prepend instruction
-        // transfer the seq target, to the inlined genome
-        {
-            let genome_item = GenomeItem::new(
-                InstructionId::Move,
-                RegisterType::Direct,
-                offset_by as i32,
-                ParameterType::Direct,
-                target_register as i32
-            );
-            inline_genome_vec.insert(0, genome_item);
         }
 
         // prepend instructions that clears the registers used by this sequence
         // If the `seq` is inside a loop, then we don't want the previous state to 
         // interfere with the next iteration.
-        for register_index in alive_registers {
-            if register_index == offset_by as i32 {
-                continue;
-            }
+        for register_index in clear_register_indexes {
             let genome_item = GenomeItem::new(
                 InstructionId::Move,
                 RegisterType::Direct,
@@ -1401,21 +1394,11 @@ impl Genome {
             inline_genome_vec.insert(0, genome_item);
         }
 
-        // append instruction
-        // transfer the output from inlined genome to the seq target
-        {
-            let genome_item = GenomeItem::new(
-                InstructionId::Move,
-                RegisterType::Direct,
-                target_register as i32,
-                ParameterType::Direct,
-                offset_by as i32
-            );
-            inline_genome_vec.push(genome_item);
-        }
-
         // Replace `seq` with the inline_genome_vec
         genome_vec.splice(index..=index, inline_genome_vec.iter().cloned());
+
+        // let after_snapshot: String = Self::genome_vec_to_formatted_program(&genome_vec);
+        // println!("; BEFORE\n{}\n; AFTER\n{}", before_snapshot, after_snapshot);
 
         true
     }
@@ -1589,14 +1572,18 @@ impl Genome {
 
         did_mutate_ok
     }
+
+    fn genome_vec_to_formatted_program(genome_vec: &Vec<GenomeItem>) -> String {
+        let rows: Vec<String> = genome_vec.iter().map(|genome_item| {
+            genome_item.to_string()
+        }).collect();
+        rows.join("\n")
+    }
 }
 
 impl fmt::Display for Genome {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let rows: Vec<String> = self.genome_vec.iter().map(|genome_item| {
-            genome_item.to_string()
-        }).collect();
-        let joined_rows: String = rows.join("\n");
-        write!(f, "{}", joined_rows)
+        let formatted_program: String = Self::genome_vec_to_formatted_program(&self.genome_vec);
+        write!(f, "{}", formatted_program)
     }
 }
