@@ -705,6 +705,10 @@ impl ToGenomeItem for Instruction {
         let mut target_value: i32 = 0;
         let mut source_type: ParameterType = ParameterType::Constant;
         let mut source_value: i32 = 0;
+        if self.instruction_id == InstructionId::LoopBegin {
+            // The "lpb" instruction, when there is no source parameter, then its default value is 1.
+            source_value = 1;
+        }
         for (index, parameter) in self.parameter_vec.iter().enumerate() {
             if index == 0 {
                 target_value = parameter.parameter_value as i32;
