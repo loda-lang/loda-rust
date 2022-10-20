@@ -1380,7 +1380,6 @@ impl Genome {
             }
         }
 
-        // TODO: only reset state when the `seq` is inside a loop. If there is no loop, then there is no need.
         // prepend instructions that clears the registers used by this sequence
         // If the `seq` is inside a loop, then we don't want the previous state to 
         // interfere with the next iteration.
