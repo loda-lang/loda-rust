@@ -15,6 +15,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::time::Instant;
+use rand::seq::SliceRandom;
 use rand::rngs::StdRng;
 use std::sync::{Arc, Mutex};
 
@@ -239,18 +240,31 @@ impl RunMinerLoop {
 
             let mut genome_vec: Vec<GenomeItem> = parsed_program.to_genome_item_vec();
 
-            let did_mutate_ok = Genome::mutate_inline_seq(&mut self.rng, &self.dependency_manager, &mut genome_vec);
-            let mutate_message: String;
-            if did_mutate_ok {
-                mutate_message = "mutate: mutate_inline_seq".to_string();
+            let inline_probability_vec: Vec<(bool,usize)> = vec![
+                (false, 95),
+                (true, 5),
+            ];
+            let should_inline_seq: &bool = &inline_probability_vec.choose_weighted(&mut self.rng, |item| item.1).unwrap().0;
+
+            let message_vec: Vec<String>;
+            if *should_inline_seq {
+                let did_mutate_ok = Genome::mutate_inline_seq(&mut self.rng, &self.dependency_manager, &mut genome_vec);
+                let mutate_message: String;
+                if did_mutate_ok {
+                    mutate_message = "mutate: mutate_inline_seq".to_string();
+                } else {
+                    mutate_message = "mutate: mutate_inline_seq, no change".to_string();
+                }
+                message_vec = vec![
+                    format!("template {}", program_id),
+                    mutate_message
+                ];
             } else {
-                mutate_message = "mutate: mutate_inline_seq, no change".to_string();
+                message_vec = vec![
+                    format!("template {}", program_id)
+                ];
             }
 
-            let message_vec: Vec<String> = vec![
-                format!("template {}", program_id),
-                mutate_message
-            ];
             self.current_genome_vec = genome_vec;
             self.current_message_vec = message_vec;
             return Ok(());
