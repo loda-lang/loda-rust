@@ -24,6 +24,7 @@ use core::cell::RefCell;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
 use anyhow::Context;
+use regex::Regex;
 
 type CandidateProgramItem = Rc<RefCell<CandidateProgram>>;
 
@@ -163,17 +164,50 @@ impl PostMine {
     /// Processes all the pending programs inside the `mine-event` dir.
     /// It looks for all the LODA assembly programs there are.
     /// If programs already contain `keep` or `reject` then the files are ignored.
-    fn obtain_paths_for_processing(&mut self) -> Result<(), Box<dyn Error>> {
+    fn obtain_paths_for_processing(&mut self) -> anyhow::Result<()> {
         let mine_event_dir: PathBuf = self.config.mine_event_dir();
         let paths_all: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
-        let mut paths_for_processing: Vec<PathBuf> = find_pending_programs(&paths_all, true)?;
-        let length0: usize = paths_for_processing.len();
-        paths_for_processing.truncate(Self::LIMIT_NUMBER_OF_PROGRAMS_FOR_PROCESSING);
-        let length1: usize = paths_for_processing.len();
-        if length0 != length1 {
-            println!("Found {} pending programs. Truncating to {}.", length0, length1);
+        let paths_pending_programs: Vec<PathBuf> = match find_pending_programs(&paths_all, true) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("find_pending_programs error. {:?}", error));
+            }
+        };
+
+        // If this is a new program, then place it in the high priority queue, so it gets analyzed ASAP.
+        // Otherwise the program ends up in the low priority queue.
+        let mut paths_high_prio = Vec::<&Path>::with_capacity(paths_pending_programs.len());
+        let mut paths_low_prio = Vec::<&Path>::with_capacity(paths_pending_programs.len());
+        let regex: Regex = Regex::new("priority: high").unwrap();
+        for path in &paths_pending_programs {
+            let contents: String = fs::read_to_string(&path)
+                .with_context(|| format!("Unable to read program file: {:?}", path))?;
+            match regex.captures(&contents) {
+                Some(_) => {
+                    paths_high_prio.push(&path);
+                },
+                None => {
+                    paths_low_prio.push(&path);
+                }
+            }
         }
-        self.paths_for_processing = paths_for_processing;
+        println!("Arrange programs by priority. high prio: {}, low prio: {}", paths_high_prio.len(), paths_low_prio.len());
+
+        // High priority items at the front of the queue, so they get processed first.
+        // Low priority items at the end of the queue.
+        let mut paths_queue = Vec::<&Path>::new();
+        paths_queue.extend(paths_high_prio);
+        paths_queue.extend(paths_low_prio);
+
+        // Take only a few items from the start of the queue.
+        let length0: usize = paths_queue.len();
+        paths_queue.truncate(Self::LIMIT_NUMBER_OF_PROGRAMS_FOR_PROCESSING);
+        let length1: usize = paths_queue.len();
+        if length0 != length1 {
+            println!("Number of programs in queue {}. Truncating to {}.", length0, length1);
+        }
+
+        self.paths_for_processing = paths_queue.iter().map(|&path|PathBuf::from(path)).collect();
         Ok(())
     }
 

@@ -481,6 +481,7 @@ impl RunMinerLoop {
                 Err(error) => {
                     debug!("Keep. Maybe a new program. Cannot verify, failed to load program id {}, {:?}", program_id, error);
                     self.genome.append_message(format!("keep: maybe a new program. cannot load program {:?} with the same initial terms. error: {:?}", program_id, error));
+                    self.genome.append_message(format!("priority: high"));
                     maybe_a_new_program = true;
                     break;
                 }
