@@ -69,8 +69,8 @@ impl GenomeItem {
         self.enabled = enabled;
     }
 
-    pub fn instruction_id(&self) -> &InstructionId {
-        &self.instruction_id
+    pub fn instruction_id(&self) -> InstructionId {
+        self.instruction_id
     }
 
     #[allow(dead_code)]
@@ -153,7 +153,7 @@ impl GenomeItem {
             InstructionId::Truncate,
         ];
         let instruction: &InstructionId = instructions.choose(rng).unwrap();
-        self.instruction_id = instruction.clone();
+        self.instruction_id = *instruction;
         true
     }
 
@@ -724,7 +724,7 @@ impl ToGenomeItem for Instruction {
             }
         }
         let genome_item = GenomeItem::new(
-            self.instruction_id.clone(),
+            self.instruction_id,
             target_type,
             target_value,
             source_type,

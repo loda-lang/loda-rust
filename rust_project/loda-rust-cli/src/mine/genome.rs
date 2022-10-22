@@ -73,7 +73,7 @@ impl Genome {
             if !genome_item.is_enabled() {
                 continue;
             }
-            if *genome_item.instruction_id() != InstructionId::EvalSequence {
+            if genome_item.instruction_id() != InstructionId::EvalSequence {
                 continue;
             }
             let program_id_raw: i32 = genome_item.source_value();
@@ -116,7 +116,7 @@ impl Genome {
             }
 
             let instruction_id: InstructionId = 
-                genome_item.instruction_id().clone();
+                genome_item.instruction_id();
     
             let parameter_vec: Vec<InstructionParameter> = 
                 genome_item.to_parameter_vec();
@@ -161,16 +161,16 @@ impl Genome {
             if *genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::EvalSequence {
+            if genome_item.instruction_id() == InstructionId::EvalSequence {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::LoopBegin {
+            if genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+            if genome_item.instruction_id() == InstructionId::LoopEnd {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::Clear {
+            if genome_item.instruction_id() == InstructionId::Clear {
                 continue;
             }
             indexes.push(index);
@@ -187,13 +187,13 @@ impl Genome {
             return false;
         }
         let new_value = value + 1;
-        if *genome_item.instruction_id() == InstructionId::Divide && new_value == 0 {
+        if genome_item.instruction_id() == InstructionId::Divide && new_value == 0 {
             return false;
         }
-        if *genome_item.instruction_id() == InstructionId::DivideIf && new_value == 0 {
+        if genome_item.instruction_id() == InstructionId::DivideIf && new_value == 0 {
             return false;
         }
-        if *genome_item.instruction_id() == InstructionId::Modulo && new_value == 0 {
+        if genome_item.instruction_id() == InstructionId::Modulo && new_value == 0 {
             return false;
         }
         genome_item.set_source_value(new_value);
@@ -214,16 +214,16 @@ impl Genome {
             if *genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::EvalSequence {
+            if genome_item.instruction_id() == InstructionId::EvalSequence {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::LoopBegin {
+            if genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+            if genome_item.instruction_id() == InstructionId::LoopEnd {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::Clear {
+            if genome_item.instruction_id() == InstructionId::Clear {
                 continue;
             }
             indexes.push(index);
@@ -240,13 +240,13 @@ impl Genome {
             return false;
         }
         let new_value = value - 1;
-        if *genome_item.instruction_id() == InstructionId::Divide && new_value == 0 {
+        if genome_item.instruction_id() == InstructionId::Divide && new_value == 0 {
             return false;
         }
-        if *genome_item.instruction_id() == InstructionId::DivideIf && new_value == 0 {
+        if genome_item.instruction_id() == InstructionId::DivideIf && new_value == 0 {
             return false;
         }
-        if *genome_item.instruction_id() == InstructionId::Modulo && new_value == 0 {
+        if genome_item.instruction_id() == InstructionId::Modulo && new_value == 0 {
             return false;
         }
         genome_item.set_source_value(new_value);
@@ -287,16 +287,16 @@ impl Genome {
             if *genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::EvalSequence {
+            if genome_item.instruction_id() == InstructionId::EvalSequence {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::LoopBegin {
+            if genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+            if genome_item.instruction_id() == InstructionId::LoopEnd {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::Clear {
+            if genome_item.instruction_id() == InstructionId::Clear {
                 continue;
             }
             indexes.push(index);
@@ -308,7 +308,7 @@ impl Genome {
         // Mutate one of the instructions that use a constant
         let index: &usize = indexes.choose(rng).unwrap();
         let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
-        let instruction_id: InstructionId = *genome_item.instruction_id();
+        let instruction_id: InstructionId = genome_item.instruction_id();
 
         // Try a few times
         for _ in 0..Self::MUTATE_RETRIES {
@@ -343,13 +343,13 @@ impl Genome {
             if *genome_item.source_type() != ParameterType::Direct {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::Clear {
+            if genome_item.instruction_id() == InstructionId::Clear {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::LoopBegin {
+            if genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+            if genome_item.instruction_id() == InstructionId::LoopEnd {
                 continue;
             }
             indexes.push(index);
@@ -383,13 +383,13 @@ impl Genome {
             if *genome_item.source_type() != ParameterType::Direct {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::Clear {
+            if genome_item.instruction_id() == InstructionId::Clear {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::LoopBegin {
+            if genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+            if genome_item.instruction_id() == InstructionId::LoopEnd {
                 continue;
             }
             if genome_item.source_value() <= 0 {
@@ -414,7 +414,7 @@ impl Genome {
     }
 
     fn get_source_value(genome_item: &GenomeItem) -> SourceValue {
-        let instruction_id: InstructionId = *genome_item.instruction_id();
+        let instruction_id: InstructionId = genome_item.instruction_id();
         if instruction_id == InstructionId::LoopEnd {
             return SourceValue::None;
         }
@@ -447,17 +447,17 @@ impl Genome {
             // It makes it hard to make sense of what is going on in the loop.
             // It's a valid construct, but it's not desired.
             // That's why `lpb` is skipped.
-            if *genome_item.instruction_id() == InstructionId::LoopBegin {
+            if genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
             }
             // It makes no sense mutating a `lpe` instruction.
-            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+            if genome_item.instruction_id() == InstructionId::LoopEnd {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::EvalSequence {
+            if genome_item.instruction_id() == InstructionId::EvalSequence {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::Clear {
+            if genome_item.instruction_id() == InstructionId::Clear {
                 continue;
             }
             indexes.push(index);
@@ -496,7 +496,7 @@ impl Genome {
                 return false;
             }
         };
-        if *genome_item.instruction_id() == InstructionId::EvalSequence {
+        if genome_item.instruction_id() == InstructionId::EvalSequence {
             match suggested_value {
                 SourceValue::Constant(value) => {
                     if value == genome_item.source_value() {
@@ -569,10 +569,10 @@ impl Genome {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
             // Don't make any changes to the the loop instructions `lpb` and `lpe`.
-            if *genome_item.instruction_id() == InstructionId::LoopBegin {
+            if genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+            if genome_item.instruction_id() == InstructionId::LoopEnd {
                 continue;
             }
             indexes.push(index);
@@ -644,13 +644,13 @@ impl Genome {
             }
         };
 
-        if *genome_item.instruction_id() == InstructionId::LoopBegin {
+        if genome_item.instruction_id() == InstructionId::LoopBegin {
             return false;
         }
-        if *genome_item.instruction_id() == InstructionId::LoopEnd {
+        if genome_item.instruction_id() == InstructionId::LoopEnd {
             return false;
         }
-        if *genome_item.instruction_id() == InstructionId::Clear {
+        if genome_item.instruction_id() == InstructionId::Clear {
             return false;
         }
 
@@ -739,10 +739,10 @@ impl Genome {
             }
         };
 
-        if *genome_item.instruction_id() == InstructionId::LoopBegin {
+        if genome_item.instruction_id() == InstructionId::LoopBegin {
             return false;
         }
-        if *genome_item.instruction_id() == InstructionId::LoopEnd {
+        if genome_item.instruction_id() == InstructionId::LoopEnd {
             return false;
         }
 
@@ -763,7 +763,7 @@ impl Genome {
             if *genome_item.target_type() != RegisterType::Direct {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+            if genome_item.instruction_id() == InstructionId::LoopEnd {
                 continue;
             }
             indexes.push(index);
@@ -797,7 +797,7 @@ impl Genome {
             if *genome_item.source_type() != ParameterType::Direct {
                 continue;
             }
-            if *genome_item.instruction_id() == InstructionId::LoopEnd {
+            if genome_item.instruction_id() == InstructionId::LoopEnd {
                 continue;
             }
             if genome_item.target_value() <= 0 {
@@ -822,7 +822,7 @@ impl Genome {
     }
 
     fn get_target_value(genome_item: &GenomeItem) -> TargetValue {
-        let instruction_id: InstructionId = *genome_item.instruction_id();
+        let instruction_id: InstructionId = genome_item.instruction_id();
         if instruction_id == InstructionId::LoopEnd {
             return TargetValue::None;
         }
@@ -869,7 +869,7 @@ impl Genome {
             None => {}
         };
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index1];
-        if *genome_item.instruction_id() == InstructionId::LoopEnd {
+        if genome_item.instruction_id() == InstructionId::LoopEnd {
             return false;
         }
         let suggested_value: TargetValue = match context.suggest_target(rng, prev_word, next_word) {
@@ -945,7 +945,7 @@ impl Genome {
         if index0 >= 0 {
             match self.genome_vec.get(index0 as usize) {
                 Some(ref value) => {
-                    let instruction_id: InstructionId = *value.instruction_id();
+                    let instruction_id: InstructionId = value.instruction_id();
                     prev_instruction = Some(instruction_id);
                 },
                 None => {}
@@ -953,13 +953,13 @@ impl Genome {
         }
         let next_instruction: Option<InstructionId> = match self.genome_vec.get(index2) {
             Some(ref value) => {
-                let instruction_id: InstructionId = *value.instruction_id();
+                let instruction_id: InstructionId = value.instruction_id();
                 Some(instruction_id)
             },
             None => None
         };
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index1];
-        let original_instruction: InstructionId = *genome_item.instruction_id();
+        let original_instruction: InstructionId = genome_item.instruction_id();
 
         // Try a few times
         for _ in 0..Self::MUTATE_RETRIES {
@@ -1017,7 +1017,7 @@ impl Genome {
         if index0 >= 0 {
             match self.genome_vec.get(index0 as usize) {
                 Some(ref value) => {
-                    let instruction_id: InstructionId = *value.instruction_id();
+                    let instruction_id: InstructionId = value.instruction_id();
                     prev_instruction = Some(instruction_id);
                     prev_target = Self::get_target_value(value);
                 },
@@ -1030,7 +1030,7 @@ impl Genome {
         let mut next_target: TargetValue = TargetValue::ProgramStop;
         match self.genome_vec.get(index2) {
             Some(ref value) => {
-                let instruction_id: InstructionId = *value.instruction_id();
+                let instruction_id: InstructionId = value.instruction_id();
                 next_instruction = Some(instruction_id);
                 next_target = Self::get_target_value(value)
             },
@@ -1101,7 +1101,7 @@ impl Genome {
     pub fn mutate_disable_loop<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.instruction_id() != InstructionId::LoopBegin {
+            if genome_item.instruction_id() != InstructionId::LoopBegin {
                 continue;
             }
             indexes.push(index);
@@ -1194,14 +1194,14 @@ impl Genome {
         if index0 == index1 {
             return false;
         }
-        let instruction0: &InstructionId = self.genome_vec[index0].instruction_id();
-        let instruction1: &InstructionId = self.genome_vec[index1].instruction_id();
+        let instruction0: InstructionId = self.genome_vec[index0].instruction_id();
+        let instruction1: InstructionId = self.genome_vec[index1].instruction_id();
         // Prevent messing with loop begin/end instructions.
         let is_loop = 
-            *instruction0 == InstructionId::LoopBegin || 
-            *instruction0 == InstructionId::LoopEnd ||
-            *instruction1 == InstructionId::LoopBegin || 
-            *instruction1 == InstructionId::LoopEnd;
+            instruction0 == InstructionId::LoopBegin || 
+            instruction0 == InstructionId::LoopEnd ||
+            instruction1 == InstructionId::LoopBegin || 
+            instruction1 == InstructionId::LoopEnd;
         if is_loop {
             return false;
         }
@@ -1219,12 +1219,12 @@ impl Genome {
         }
         let index0: usize = rng.gen_range(0..length-1);
         let index1: usize = index0 + 1;
-        let instruction0: &InstructionId = self.genome_vec[index0].instruction_id();
-        let instruction1: &InstructionId = self.genome_vec[index1].instruction_id();
+        let instruction0: InstructionId = self.genome_vec[index0].instruction_id();
+        let instruction1: InstructionId = self.genome_vec[index1].instruction_id();
         // Prevent reversing the order of the loop begin/end instructions.
         let is_loop = 
-            *instruction0 == InstructionId::LoopBegin && 
-            *instruction1 == InstructionId::LoopEnd;
+            instruction0 == InstructionId::LoopBegin && 
+            instruction1 == InstructionId::LoopEnd;
         if is_loop {
             return false;
         }
@@ -1286,7 +1286,7 @@ impl Genome {
             if *genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
-            if *genome_item.instruction_id() != InstructionId::EvalSequence {
+            if genome_item.instruction_id() != InstructionId::EvalSequence {
                 continue;
             }
             indexes.push(index);
@@ -1321,7 +1321,7 @@ impl Genome {
         let index: &usize = indexes.choose(rng).unwrap();
         let genome_item: &mut GenomeItem = &mut genome_vec[*index];
 
-        if *genome_item.instruction_id() != InstructionId::EvalSequence {
+        if genome_item.instruction_id() != InstructionId::EvalSequence {
             error!("Expected 'seq' instruction");
             return false;
         }
@@ -1416,7 +1416,7 @@ impl Genome {
             if *genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
-            if *genome_item.instruction_id() != InstructionId::EvalSequence {
+            if genome_item.instruction_id() != InstructionId::EvalSequence {
                 continue;
             }
             indexes.push(index);
