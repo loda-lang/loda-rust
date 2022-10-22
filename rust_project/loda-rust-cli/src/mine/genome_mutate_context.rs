@@ -63,17 +63,6 @@ impl GenomeMutateContext {
         !self.valid_program_ids.is_empty()
     }
 
-    pub fn choose_available_program<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
-        let program_id: u32 = match self.valid_program_ids.choose(rng) {
-            Some(program_id) => *program_id,
-            None => {
-                // For a non-empty vector, this shouldn't happen.
-                return None;
-            }
-        };
-        Some(program_id)
-    }
-
     pub fn choose_initial_genome_program<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
         let program_id: u32 = match self.initial_genome_program_ids.choose(rng) {
             Some(program_id) => *program_id,

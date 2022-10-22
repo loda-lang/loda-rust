@@ -109,6 +109,28 @@ pub fn start_miner_loop(
     debug!("number_of_invalid_program_ids = {}", invalid_program_ids.len());
     let invalid_program_ids_hashset: HashSet<u32> = invalid_program_ids.into_iter().collect();
 
+    // Load the "complexity_dont_optimize.csv" file, these are the programs that are already highly optimized.
+    let programs_dontopimize_file = config.analytics_dir_complexity_dont_optimize_file();
+    let dontoptimize_program_ids: Vec<u32> = match load_program_ids_csv_file(&programs_dontopimize_file) {
+        Ok(value) => value,
+        Err(error) => {
+            panic!("Unable to load file. path: {:?} error: {:?}", programs_dontopimize_file, error);
+        }
+    };
+    let dontoptimize_program_ids_hashset: HashSet<u32> = dontoptimize_program_ids.into_iter().collect();
+
+    // Determine the complex programs that are to be optimized
+    let mut optimize_program_ids = Vec::<u32>::new();
+    for program_id in &valid_program_ids {
+        if invalid_program_ids_hashset.contains(program_id) {
+            continue;
+        }
+        if dontoptimize_program_ids_hashset.contains(program_id) {
+            continue;
+        }
+        optimize_program_ids.push(*program_id);
+    }
+
     // Load the clusters with popular/unpopular program ids
     let program_popularity_file = config.analytics_dir_program_popularity_file();
     let popular_program_container: PopularProgramContainer = match PopularProgramContainer::load(&program_popularity_file) {
@@ -149,7 +171,7 @@ pub fn start_miner_loop(
     );
     dependency_manager.set_execute_profile(ExecuteProfile::SmallLimits);
 
-    let initial_genome_program_ids = valid_program_ids.clone();
+    let initial_genome_program_ids = optimize_program_ids;
 
     // Pick a random seed
     let mut rng = thread_rng();

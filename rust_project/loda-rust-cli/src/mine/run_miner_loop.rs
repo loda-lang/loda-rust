@@ -1,4 +1,4 @@
-use super::{Funnel, Genome, GenomeMutateContext, save_candidate_program};
+use super::{Funnel, Genome, GenomeItem, GenomeMutateContext, save_candidate_program, ToGenomeItemVec};
 use super::PreventFlooding;
 use super::{PerformanceClassifierResult, PerformanceClassifier};
 use super::{MinerThreadMessageToCoordinator, MetricEvent, Recorder};
@@ -15,6 +15,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::time::Instant;
+use rand::seq::SliceRandom;
 use rand::rngs::StdRng;
 use std::sync::{Arc, Mutex};
 
@@ -22,8 +23,8 @@ const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
 const MINIMUM_PROGRAM_LENGTH: usize = 6;
 const LOAD_INITIAL_GENOME_MINIMUM_PROGRAM_LENGTH: usize = 8;
 const LOAD_INITIAL_GENOME_RETRIES: usize = 1000;
-const MINER_CACHE_CAPACITY: usize = 300000;
-const ITERATIONS_BETWEEN_PICKING_A_NEW_INITIAL_GENOME: usize = 100;
+const MINER_CACHE_CAPACITY: usize = 3000;
+const ITERATIONS_BETWEEN_PICKING_A_NEW_INITIAL_GENOME: usize = 300;
 const ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME: usize = 10;
 
 struct TermComputer {
@@ -42,13 +43,31 @@ impl TermComputer {
     }
 
     fn compute(&mut self, cache: &mut ProgramCache, runner: &ProgramRunner, count: usize) -> Result<(), EvalError> {
-        let step_count_limit: u64 = 10000;
         let node_register_limit = NodeRegisterLimit::LimitBits(32);
-        let node_loop_limit = NodeLoopLimit::LimitCount(1000);
         loop {
             let length: usize = self.terms.len();
             if length >= count {
                 break;
+            }
+            let node_loop_limit: NodeLoopLimit;
+            if length <= 10 {
+                node_loop_limit = NodeLoopLimit::LimitCount(4000);
+            } else {
+                if length <= 20 {
+                    node_loop_limit = NodeLoopLimit::LimitCount(8000);
+                } else {
+                    node_loop_limit = NodeLoopLimit::LimitCount(32000);
+                }
+            }
+            let step_count_limit: u64;
+            if length <= 10 {
+                step_count_limit = 40000;
+            } else {
+                if length <= 20 {
+                    step_count_limit = 80000;
+                } else {
+                    step_count_limit = 320000;
+                }
             }
             let index = length as i64;
             let input = RegisterValue::from_i64(index);
@@ -87,7 +106,8 @@ pub struct RunMinerLoop {
     rng: StdRng,
     metric: MetricsRunMinerLoop,
     current_program_id: u64,
-    current_parsed_program: ParsedProgram,
+    current_genome_vec: Vec<GenomeItem>,
+    current_message_vec: Vec<String>,
     iteration: usize,
     reload: bool,
     term_computer: TermComputer,
@@ -121,7 +141,8 @@ impl RunMinerLoop {
             rng: rng,
             metric: MetricsRunMinerLoop::new(),
             current_program_id: 0,
-            current_parsed_program: ParsedProgram::new(),
+            current_genome_vec: vec!(),
+            current_message_vec: vec!(),
             iteration: 0,
             reload: true,
             term_computer: TermComputer::new(),
@@ -205,9 +226,10 @@ impl RunMinerLoop {
                     return Err(anyhow::anyhow!("choose_initial_genome_program() returned None, seems like data model is empty"));
                 }
             };
-            let parsed_program: ParsedProgram = match self.genome.load_program_with_id(&self.dependency_manager, program_id as u64) {
-                Some(value) => value,
-                None => {
+            let parsed_program: ParsedProgram = match Genome::load_program_with_id(&self.dependency_manager, program_id as u64) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Unable to load program. {:?}", error);
                     continue;
                 }
             };
@@ -215,7 +237,36 @@ impl RunMinerLoop {
                 continue;
             }
             self.current_program_id = program_id as u64;
-            self.current_parsed_program = parsed_program;
+
+            let mut genome_vec: Vec<GenomeItem> = parsed_program.to_genome_item_vec();
+
+            let inline_probability_vec: Vec<(bool,usize)> = vec![
+                (false, 95),
+                (true, 5),
+            ];
+            let should_inline_seq: &bool = &inline_probability_vec.choose_weighted(&mut self.rng, |item| item.1).unwrap().0;
+
+            let message_vec: Vec<String>;
+            if *should_inline_seq {
+                let did_mutate_ok = Genome::mutate_inline_seq(&mut self.rng, &self.dependency_manager, &mut genome_vec);
+                let mutate_message: String;
+                if did_mutate_ok {
+                    mutate_message = "mutate: mutate_inline_seq".to_string();
+                } else {
+                    mutate_message = "mutate: mutate_inline_seq, no change".to_string();
+                }
+                message_vec = vec![
+                    format!("template {}", program_id),
+                    mutate_message
+                ];
+            } else {
+                message_vec = vec![
+                    format!("template {}", program_id)
+                ];
+            }
+
+            self.current_genome_vec = genome_vec;
+            self.current_message_vec = message_vec;
             return Ok(());
         }
         return Err(anyhow::anyhow!("Unable to pick among available programs"));
@@ -236,12 +287,8 @@ impl RunMinerLoop {
             }
         }
         if self.reload {
-            self.genome.clear_message_vec();
-            let load_ok: bool = self.genome.insert_program(self.current_program_id, &self.current_parsed_program);
-            if !load_ok {
-                self.metric.number_of_failed_genome_loads += 1;
-                return;
-            }
+            self.genome.set_message_vec(self.current_message_vec.clone());
+            self.genome.set_genome_vec(self.current_genome_vec.clone());
             self.reload = false;
         }
 
@@ -434,6 +481,7 @@ impl RunMinerLoop {
                 Err(error) => {
                     debug!("Keep. Maybe a new program. Cannot verify, failed to load program id {}, {:?}", program_id, error);
                     self.genome.append_message(format!("keep: maybe a new program. cannot load program {:?} with the same initial terms. error: {:?}", program_id, error));
+                    self.genome.append_message(format!("priority: high"));
                     maybe_a_new_program = true;
                     break;
                 }

@@ -1,5 +1,6 @@
 use loda_rust_core::execute::RegisterType;
-use loda_rust_core::parser::{InstructionId, InstructionParameter, ParameterType};
+use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
+use loda_rust_core::parser::ParsedProgram;
 use super::GenomeMutateContext;
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -24,7 +25,7 @@ pub enum MutateEvalSequenceCategory {
     ProgramThatUsesIndirectMemoryAccess,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct GenomeItem {
     enabled: bool,
     instruction_id: InstructionId,
@@ -691,5 +692,65 @@ impl fmt::Display for GenomeItem {
             self.source_type.prefix(), 
             self.source_value
         )
+    }
+}
+
+pub trait ToGenomeItem {
+    fn to_genome_item(&self) -> Option<GenomeItem>;
+}
+
+impl ToGenomeItem for Instruction {
+    fn to_genome_item(&self) -> Option<GenomeItem> {
+        let mut target_type = RegisterType::Direct;
+        let mut target_value: i32 = 0;
+        let mut source_type: ParameterType = ParameterType::Constant;
+        let mut source_value: i32 = 0;
+        if self.instruction_id == InstructionId::LoopBegin {
+            // The "lpb" instruction, when there is no source parameter, then its default value is 1.
+            source_value = 1;
+        }
+        for (index, parameter) in self.parameter_vec.iter().enumerate() {
+            if index == 0 {
+                target_value = parameter.parameter_value as i32;
+                if parameter.parameter_type == ParameterType::Indirect {
+                    target_type = RegisterType::Indirect;
+                } else {
+                    target_type = RegisterType::Direct;
+                }
+            }
+            if index == 1 {
+                source_value = parameter.parameter_value as i32;
+                source_type = parameter.parameter_type.clone();
+            }
+        }
+        let genome_item = GenomeItem::new(
+            self.instruction_id.clone(),
+            target_type,
+            target_value,
+            source_type,
+            source_value,
+        );
+        Some(genome_item)
+    }
+}
+
+
+pub trait ToGenomeItemVec {
+    fn to_genome_item_vec(&self) -> Vec<GenomeItem>;
+}
+
+impl ToGenomeItemVec for ParsedProgram {
+    fn to_genome_item_vec(&self) -> Vec<GenomeItem> {
+        let mut genome_vec = Vec::<GenomeItem>::with_capacity(self.instruction_vec.len());
+        for instruction in &self.instruction_vec {
+            let genome_item: GenomeItem = match instruction.to_genome_item() {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
+            genome_vec.push(genome_item);
+        }
+        genome_vec
     }
 }

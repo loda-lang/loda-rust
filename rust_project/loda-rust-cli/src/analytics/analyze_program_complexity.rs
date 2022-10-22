@@ -35,7 +35,7 @@ impl ProgramComplexityClassification {
             ProgramComplexityClassification::ComplexTwoOrMoreSeq => true,
             ProgramComplexityClassification::ComplexNestedSeq => true,
             ProgramComplexityClassification::ComplexAndLong => true,
-            ProgramComplexityClassification::ComplexOtherReasons => true,
+            ProgramComplexityClassification::ComplexOtherReasons => false,
         }
     }
 

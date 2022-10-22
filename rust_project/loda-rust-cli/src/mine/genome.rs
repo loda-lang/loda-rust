@@ -1,4 +1,4 @@
-use super::{GenomeItem, GenomeMutateContext, MutateEvalSequenceCategory, SourceValue, TargetValue, LineValue};
+use super::{GenomeItem, GenomeMutateContext, LineValue, MutateEvalSequenceCategory, SourceValue, TargetValue, ToGenomeItem, ToGenomeItemVec};
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::RegisterType;
 use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType};
@@ -85,92 +85,25 @@ impl Genome {
         program_ids
     }
 
-    #[allow(dead_code)]
-    pub fn load_random_program<R: Rng + ?Sized>(&mut self, rng: &mut R, dm: &DependencyManager, context: &GenomeMutateContext) -> bool {
-        let program_id_u32: u32 = match context.choose_available_program(rng) {
-            Some(value) => value,
-            None => {
-                error!("cannot load random program. The list of available programs is empty");
-                return false;
-            }
-        };
-        let program_id: u64 = program_id_u32 as u64;
-        let parsed_program: ParsedProgram = match self.load_program_with_id(dm, program_id) {
-            Some(value) => value,
-            None => {
-                return false;
-            }
-        };
-
-        return self.insert_program(program_id, &parsed_program);
-    }
-
-    pub fn load_program_with_id(&self, dm: &DependencyManager, program_id: u64) -> Option<ParsedProgram> {
+    pub fn load_program_with_id(dm: &DependencyManager, program_id: u64) -> anyhow::Result<ParsedProgram> {
         let path_to_program: PathBuf = dm.path_to_program(program_id);
         let contents: String = match fs::read_to_string(&path_to_program) {
             Ok(value) => value,
             Err(error) => {
-                error!("loading program_id: {:?}, something went wrong reading the file: {:?}", program_id, error);
-                return None;
+                return Err(anyhow::anyhow!("loading program_id: {:?}, something went wrong reading the file: {:?}", program_id, error));
             }
         };
         let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&contents) {
             Ok(value) => value,
             Err(error) => {
-                error!("loading program_id: {:?}, something went wrong parsing the program: {:?}", program_id, error);
-                return None;
+                return Err(anyhow::anyhow!("loading program_id: {:?}, something went wrong parsing the program: {:?}", program_id, error));
             }
         };
-        Some(parsed_program)
+        Ok(parsed_program)
     }
 
-    pub fn insert_program(&mut self, program_id: u64, parsed_program: &ParsedProgram) -> bool {
-        self.genome_vec.clear();
-        self.push_parsed_program_onto_genome(&parsed_program);
-        // debug!("loaded program_id: {:?}", program_id);
-        self.message_vec.push(format!("template {:?}", program_id));
-        return true;
-    }
-
-    fn genome_item_from_instruction(instruction: &Instruction) -> Option<GenomeItem> {
-        let mut target_type = RegisterType::Direct;
-        let mut target_value: i32 = 0;
-        let mut source_type: ParameterType = ParameterType::Constant;
-        let mut source_value: i32 = 0;
-        for (index, parameter) in instruction.parameter_vec.iter().enumerate() {
-            if index == 0 {
-                target_value = parameter.parameter_value as i32;
-                if parameter.parameter_type == ParameterType::Indirect {
-                    target_type = RegisterType::Indirect;
-                } else {
-                    target_type = RegisterType::Direct;
-                }
-            }
-            if index == 1 {
-                source_value = parameter.parameter_value as i32;
-                source_type = parameter.parameter_type.clone();
-            }
-        }
-        let genome_item = GenomeItem::new(
-            instruction.instruction_id.clone(),
-            target_type,
-            target_value,
-            source_type,
-            source_value,
-        );
-        Some(genome_item)
-    }
-
-    pub fn push_parsed_program_onto_genome(&mut self, parsed_program: &ParsedProgram) {
-        for instruction in &parsed_program.instruction_vec {
-            let genome_item: GenomeItem = match Self::genome_item_from_instruction(instruction) {
-                Some(value) => value,
-                None => {
-                    continue;
-                }
-            };
-            self.genome_vec.push(genome_item);
-        }
+    pub fn set_genome_vec(&mut self, genome_vec: Vec<GenomeItem>) {
+        self.genome_vec = genome_vec;
     }
 
     pub fn to_parsed_program(&self) -> ParsedProgram {
@@ -205,9 +138,9 @@ impl Genome {
     pub fn message_vec(&self) -> &Vec<String> {
         &self.message_vec
     }
-
-    pub fn clear_message_vec(&mut self) {
-        self.message_vec.clear();
+    
+    pub fn set_message_vec(&mut self, message_vec: Vec<String>) {
+        self.message_vec = message_vec;
     }
 
     pub fn append_message(&mut self, message: String) {
@@ -410,6 +343,12 @@ impl Genome {
             if *genome_item.source_type() != ParameterType::Direct {
                 continue;
             }
+            if *genome_item.instruction_id() == InstructionId::Clear {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::LoopBegin {
+                continue;
+            }
             if *genome_item.instruction_id() == InstructionId::LoopEnd {
                 continue;
             }
@@ -442,6 +381,12 @@ impl Genome {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
             if *genome_item.source_type() != ParameterType::Direct {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::Clear {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
             }
             if *genome_item.instruction_id() == InstructionId::LoopEnd {
@@ -507,6 +452,12 @@ impl Genome {
             }
             // It makes no sense mutating a `lpe` instruction.
             if *genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::EvalSequence {
+                continue;
+            }
+            if *genome_item.instruction_id() == InstructionId::Clear {
                 continue;
             }
             indexes.push(index);
@@ -686,7 +637,7 @@ impl Genome {
             }
         };
 
-        let genome_item: GenomeItem = match Self::genome_item_from_instruction(&row0) {
+        let genome_item: GenomeItem = match row0.to_genome_item() {
             Some(value) => value,
             None => {
                 return false;
@@ -697,6 +648,9 @@ impl Genome {
             return false;
         }
         if *genome_item.instruction_id() == InstructionId::LoopEnd {
+            return false;
+        }
+        if *genome_item.instruction_id() == InstructionId::Clear {
             return false;
         }
 
@@ -778,7 +732,7 @@ impl Genome {
             }
         };
 
-        let genome_item: GenomeItem = match Self::genome_item_from_instruction(&row0) {
+        let genome_item: GenomeItem = match row0.to_genome_item() {
             Some(value) => value,
             None => {
                 return false;
@@ -1321,6 +1275,134 @@ impl Genome {
         true
     }
 
+    /// Mutate the `seq` instruction, so the dependency is inlined.
+    /// 
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    pub fn mutate_inline_seq<R: Rng + ?Sized>(rng: &mut R, dm: &DependencyManager, genome_vec: &mut Vec<GenomeItem>) -> bool {
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in genome_vec.iter().enumerate() {
+            if *genome_item.source_type() != ParameterType::Constant {
+                continue;
+            }
+            if *genome_item.instruction_id() != InstructionId::EvalSequence {
+                continue;
+            }
+            indexes.push(index);
+        }
+        if indexes.is_empty() {
+            return false;
+        }
+
+        // Determine how many registers are already used
+        let mut max_register: u32 = 0;
+        for genome_item in genome_vec.iter() {
+            if !genome_item.is_enabled() {
+                continue;
+            }
+            if *genome_item.target_type() == RegisterType::Direct {
+                let index = genome_item.target_value();
+                if index >= 0 {
+                    max_register = max_register.max(index as u32);
+                }
+            }
+            if *genome_item.source_type() == ParameterType::Direct {
+                let index = genome_item.source_value();
+                if index >= 0 {
+                    max_register = max_register.max(index as u32);
+                }
+            }
+        }
+        let offset_by: u32 = max_register;
+
+        // Mutate one of the `seq` instructions
+        // let before_snapshot: String = Self::genome_vec_to_formatted_program(&genome_vec);
+        let index: &usize = indexes.choose(rng).unwrap();
+        let genome_item: &mut GenomeItem = &mut genome_vec[*index];
+
+        if *genome_item.instruction_id() != InstructionId::EvalSequence {
+            error!("Expected 'seq' instruction");
+            return false;
+        }
+        if *genome_item.source_type() != ParameterType::Constant {
+            error!("Expected 'seq' instruction's source type to be of type Constant");
+            return false;
+        }
+        let source_value: i32 = genome_item.source_value();
+        if source_value < 0 {
+            return false;
+        }
+        let program_id: u64 = source_value as u64;
+
+        let target_value = genome_item.target_value();
+        if target_value < 0 {
+            return false;
+        }
+        // The "target" register of "seq $target,oeis_id" is used for transfering input/output
+        // between the parent program and the inlined program.
+        let in_out_register: u32 = target_value as u32;
+
+        let parsed_program: ParsedProgram = match Self::load_program_with_id(&dm, program_id) {
+            Ok(value) => value,
+            Err(error) => {
+                error!("mutate_inline_seq. Cannot load program: {} error: {:?}", program_id, error);
+                return false;
+            }
+        };
+
+        let mut inline_genome_vec: Vec<GenomeItem> = parsed_program.to_genome_item_vec();
+
+        // Offset registers by `offset_by`
+        let mut clear_register_indexes = HashSet::<i32>::new();
+        for genome_item in &mut inline_genome_vec {
+            if *genome_item.target_type() == RegisterType::Direct {
+                let index = genome_item.target_value();
+                if index == 0 {
+                    genome_item.set_target_value(in_out_register as i32);
+                }
+                if index > 0 {
+                    let index_with_offset: i32 = index + (offset_by as i32);
+                    genome_item.set_target_value(index_with_offset);
+                    clear_register_indexes.insert(index_with_offset);
+                }
+            }
+            if *genome_item.source_type() == ParameterType::Direct {
+                let index = genome_item.source_value();
+                if index == 0 {
+                    genome_item.set_source_value(in_out_register as i32);
+                }
+                if index > 0 {
+                    let index_with_offset: i32 = index + (offset_by as i32);
+                    genome_item.set_source_value(index_with_offset);
+                    clear_register_indexes.insert(index_with_offset);
+                }
+            }
+        }
+
+        // prepend instructions that clears the registers used by this sequence
+        // If the `seq` is inside a loop, then we don't want the previous state to 
+        // interfere with the next iteration.
+        for register_index in clear_register_indexes {
+            let genome_item = GenomeItem::new(
+                InstructionId::Move,
+                RegisterType::Direct,
+                register_index,
+                ParameterType::Constant,
+                0
+            );
+            inline_genome_vec.insert(0, genome_item);
+        }
+
+        // Replace `seq` with the inline_genome_vec
+        genome_vec.splice(index..=index, inline_genome_vec.iter().cloned());
+
+        // let after_snapshot: String = Self::genome_vec_to_formatted_program(&genome_vec);
+        // println!("; BEFORE\n{}\n; AFTER\n{}", before_snapshot, after_snapshot);
+
+        true
+    }
+
     /// Mutate the `seq` instruction, so it invokes a random program.
     /// 
     /// Only impact rows where source_type=Constant and instruct=seq
@@ -1376,23 +1458,23 @@ impl Genome {
             (MutateGenome::ReplaceSourceConstantWithHistogram, 50),
             (MutateGenome::SourceType, 1),
             (MutateGenome::DisableLoop, 0),
-            (MutateGenome::SwapRegisters, 10),
+            (MutateGenome::SwapRegisters, 50),
             (MutateGenome::IncrementSourceValueWhereTypeIsDirect, 1),
             (MutateGenome::DecrementSourceValueWhereTypeIsDirect, 1),
             (MutateGenome::ReplaceSourceWithHistogram, 10),
             (MutateGenome::IncrementTargetValueWhereTypeIsDirect, 1),
             (MutateGenome::DecrementTargetValueWhereTypeIsDirect, 1),
-            (MutateGenome::ReplaceTargetWithHistogram, 10),
+            (MutateGenome::ReplaceTargetWithHistogram, 100),
             (MutateGenome::ReplaceLineWithHistogram, 100),
             (MutateGenome::InsertLineWithHistogram, 200),
-            (MutateGenome::ToggleEnabled, 10),
+            (MutateGenome::ToggleEnabled, 50),
             (MutateGenome::SwapRows, 1),
             (MutateGenome::SwapAdjacentRows, 10),
             (MutateGenome::InsertLoopBeginEnd, 0),
-            (MutateGenome::CallProgramWeightedByPopularity, 10),
+            (MutateGenome::CallProgramWeightedByPopularity, 0),
             (MutateGenome::CallMostPopularProgram, 50),
-            (MutateGenome::CallMediumPopularProgram, 10),
-            (MutateGenome::CallLeastPopularProgram, 1),
+            (MutateGenome::CallMediumPopularProgram, 0),
+            (MutateGenome::CallLeastPopularProgram, 0),
             // (MutateGenome::CallRecentProgram, 1),
             (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 0),
         ];
@@ -1490,14 +1572,18 @@ impl Genome {
 
         did_mutate_ok
     }
+
+    fn genome_vec_to_formatted_program(genome_vec: &Vec<GenomeItem>) -> String {
+        let rows: Vec<String> = genome_vec.iter().map(|genome_item| {
+            genome_item.to_line_string()
+        }).collect();
+        rows.join("\n")
+    }
 }
 
 impl fmt::Display for Genome {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let rows: Vec<String> = self.genome_vec.iter().map(|genome_item| {
-            genome_item.to_string()
-        }).collect();
-        let joined_rows: String = rows.join("\n");
-        write!(f, "{}", joined_rows)
+        let formatted_program: String = Self::genome_vec_to_formatted_program(&self.genome_vec);
+        write!(f, "{}", formatted_program)
     }
 }
