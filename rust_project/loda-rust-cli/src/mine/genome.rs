@@ -18,6 +18,8 @@ pub enum MutateGenome {
     IncrementSourceValueWhereTypeIsConstant,
     DecrementSourceValueWhereTypeIsConstant,
     ReplaceSourceConstantWithHistogram,
+    SetSourceToConstantWithHistogram,
+    SetSourceToDirect,
     SourceType,
     DisableLoop,
     SwapRegisters,
@@ -1058,6 +1060,107 @@ impl Genome {
         true
     }
 
+    /// Flip `source` to `Constant`, and assign a value from histogram.
+    /// 
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    pub fn mutate_set_source_to_constant_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.instruction_id() == InstructionId::LoopBegin {
+                continue;
+            }
+            if genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            if genome_item.instruction_id() == InstructionId::Clear {
+                continue;
+            }
+            if genome_item.instruction_id() == InstructionId::EvalSequence {
+                continue;
+            }
+            if genome_item.source_type() != ParameterType::Constant {
+                continue;
+            }
+            indexes.push(index);
+        }
+        if indexes.is_empty() {
+            return false;
+        }
+
+        // Mutate one of the instructions
+        let index: &usize = indexes.choose(rng).unwrap();
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
+        let instruction_id: InstructionId = genome_item.instruction_id();
+
+        let picked_value: i32 = match context.choose_constant_with_histogram(rng, instruction_id) {
+            Some(value) => value,
+            None => {
+                // No entry for this instruction
+                return false;
+            }
+        };
+        genome_item.set_source_type(ParameterType::Constant);
+        genome_item.set_source_value(picked_value);
+        true
+    }
+
+    /// Flip `source` to `Direct`, and assign a value from the alive registers.
+    /// 
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    pub fn mutate_set_source_to_direct<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if index == 0 {
+                continue;
+            }
+            if genome_item.instruction_id() == InstructionId::LoopBegin {
+                continue;
+            }
+            if genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            if genome_item.instruction_id() == InstructionId::Clear {
+                continue;
+            }
+            if genome_item.instruction_id() == InstructionId::EvalSequence {
+                continue;
+            }
+            if genome_item.source_type() != ParameterType::Direct {
+                continue;
+            }
+            indexes.push(index);
+        }
+        if indexes.is_empty() {
+            return false;
+        }
+
+        // Mutate one of the instructions
+        let the_index: usize = *(indexes.choose(rng).unwrap());
+
+        let mut alive_registers: Vec<i32> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if index >= the_index {
+                continue;
+            }
+            let register: i32 = genome_item.target_value();
+            alive_registers.push(register);
+        }
+        if alive_registers.is_empty() {
+            return false;
+        }
+        let the_register: i32 = *(alive_registers.choose(rng).unwrap());
+
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[the_index];
+
+        genome_item.set_source_type(ParameterType::Direct);
+        genome_item.set_source_value(the_register);
+        true
+    }
+
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
@@ -1437,6 +1540,8 @@ impl Genome {
             (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 1),
             (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 1),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 50),
+            (MutateGenome::SetSourceToConstantWithHistogram, 50),
+            (MutateGenome::SetSourceToDirect, 100),
             (MutateGenome::SourceType, 1),
             (MutateGenome::DisableLoop, 0),
             (MutateGenome::SwapRegisters, 50),
@@ -1476,6 +1581,12 @@ impl Genome {
             },
             MutateGenome::ReplaceSourceConstantWithHistogram => {
                 self.replace_source_constant_with_histogram(rng, context)
+            },
+            MutateGenome::SetSourceToConstantWithHistogram => {
+                self.mutate_set_source_to_constant_with_histogram(rng, context)
+            },
+            MutateGenome::SetSourceToDirect => {
+                self.mutate_set_source_to_direct(rng)
             },
             MutateGenome::SourceType => {
                 self.mutate_source_type(rng)
