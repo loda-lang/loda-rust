@@ -13,7 +13,6 @@ use std::path::PathBuf;
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum MutateGenome {
-    ReplaceInstructionWithoutHistogram,
     ReplaceInstructionWithHistogram,
     InsertInstructionWithConstant,
     IncrementSourceValueWhereTypeIsConstant,
@@ -912,23 +911,6 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    pub fn replace_instruction_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        let length: usize = self.genome_vec.len();
-        if length < 1 {
-            return false;
-        }
-        let index: usize = rng.gen_range(0..length);
-        let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
-
-        if !genome_item.mutate_randomize_instruction(rng) {
-            return false;
-        }
-        genome_item.mutate_sanitize_program_row()
-    }
-
-    /// Return `true` when the mutation was successful.
-    /// 
-    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     pub fn replace_instruction_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Bail out if the trigram.csv file hasn't been loaded.
         if !context.has_suggest_instruction() {
@@ -1450,7 +1432,6 @@ impl Genome {
     /// Return `false` in case the mutation didn't change the genome.
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
-            // (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
             (MutateGenome::ReplaceInstructionWithHistogram, 0),
             (MutateGenome::InsertInstructionWithConstant, 0),
             (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 1),
@@ -1481,9 +1462,6 @@ impl Genome {
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
 
         let did_mutate_ok: bool = match mutation {
-            MutateGenome::ReplaceInstructionWithoutHistogram => {
-                self.replace_instruction_without_histogram(rng)
-            },
             MutateGenome::ReplaceInstructionWithHistogram => {
                 self.replace_instruction_with_histogram(rng, context)
             },

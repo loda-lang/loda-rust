@@ -120,42 +120,6 @@ impl GenomeItem {
         self.source_value = 0;
     }
 
-    pub fn mutate_randomize_instruction<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        // If there is a Call instruction then don't touch it.
-        let is_call = self.instruction_id == InstructionId::EvalSequence;
-        if is_call {
-            return false;
-        }
-
-        // Prevent messing up loop begin/end.
-        let is_loop = 
-            self.instruction_id == InstructionId::LoopBegin || 
-            self.instruction_id == InstructionId::LoopEnd;
-        if is_loop {
-            return false;
-        }
-
-        let instructions: Vec<InstructionId> = vec![
-            InstructionId::Add,
-            // InstructionId::Binomial,
-            // InstructionId::Compare,
-            InstructionId::Divide,
-            InstructionId::DivideIf,
-            InstructionId::GCD,
-            // InstructionId::Max,
-            // InstructionId::Min,
-            InstructionId::Modulo,
-            InstructionId::Move,
-            InstructionId::Multiply,
-            InstructionId::Power,
-            InstructionId::Subtract,
-            InstructionId::Truncate,
-        ];
-        let instruction: &InstructionId = instructions.choose(rng).unwrap();
-        self.instruction_id = *instruction;
-        true
-    }
-
     pub fn set_instruction(&mut self, new_instruction_id: InstructionId) -> bool {
         // Is the new instruction identical to the original instruction.
         if self.instruction_id == new_instruction_id {
