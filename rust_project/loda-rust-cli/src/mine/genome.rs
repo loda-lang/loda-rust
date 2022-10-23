@@ -13,13 +13,13 @@ use std::path::PathBuf;
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum MutateGenome {
-    ReplaceInstructionWithoutHistogram,
     ReplaceInstructionWithHistogram,
     InsertInstructionWithConstant,
     IncrementSourceValueWhereTypeIsConstant,
     DecrementSourceValueWhereTypeIsConstant,
     ReplaceSourceConstantWithHistogram,
-    SourceType,
+    SetSourceToConstant,
+    SetSourceToDirect,
     DisableLoop,
     SwapRegisters,
     IncrementSourceValueWhereTypeIsDirect,
@@ -912,23 +912,6 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    pub fn replace_instruction_without_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        let length: usize = self.genome_vec.len();
-        if length < 1 {
-            return false;
-        }
-        let index: usize = rng.gen_range(0..length);
-        let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
-
-        if !genome_item.mutate_randomize_instruction(rng) {
-            return false;
-        }
-        genome_item.mutate_sanitize_program_row()
-    }
-
-    /// Return `true` when the mutation was successful.
-    /// 
-    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     pub fn replace_instruction_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         // Bail out if the trigram.csv file hasn't been loaded.
         if !context.has_suggest_instruction() {
@@ -1076,21 +1059,108 @@ impl Genome {
         true
     }
 
+    /// Flip `source` to `Constant`, and assign a value from histogram.
+    /// 
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    pub fn mutate_source_type<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        let length: usize = self.genome_vec.len();
-        if length < 1 {
+    pub fn mutate_set_source_to_constant<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.instruction_id() == InstructionId::LoopBegin {
+                continue;
+            }
+            if genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            if genome_item.instruction_id() == InstructionId::Clear {
+                continue;
+            }
+            if genome_item.instruction_id() == InstructionId::EvalSequence {
+                continue;
+            }
+            if genome_item.source_type() != ParameterType::Constant {
+                continue;
+            }
+            indexes.push(index);
+        }
+        if indexes.is_empty() {
             return false;
         }
-        let index: usize = rng.gen_range(0..length);
-        let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
 
-        if !genome_item.mutate_source_type() {
+        // Mutate one of the instructions
+        let index: &usize = indexes.choose(rng).unwrap();
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
+        let instruction_id: InstructionId = genome_item.instruction_id();
+
+        let picked_value: i32 = match context.choose_constant_with_histogram(rng, instruction_id) {
+            Some(value) => value,
+            None => {
+                // No entry for this instruction
+                return false;
+            }
+        };
+        genome_item.set_source_type(ParameterType::Constant);
+        genome_item.set_source_value(picked_value);
+        true
+    }
+
+    /// Flip `source` to `Direct`, and assign a value from the alive registers.
+    /// 
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    pub fn mutate_set_source_to_direct<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if index == 0 {
+                continue;
+            }
+            if genome_item.instruction_id() == InstructionId::LoopBegin {
+                continue;
+            }
+            if genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            if genome_item.instruction_id() == InstructionId::Clear {
+                continue;
+            }
+            if genome_item.instruction_id() == InstructionId::EvalSequence {
+                continue;
+            }
+            if genome_item.source_type() != ParameterType::Direct {
+                continue;
+            }
+            indexes.push(index);
+        }
+        if indexes.is_empty() {
             return false;
         }
-        genome_item.mutate_sanitize_program_row()
+
+        // Mutate one of the instructions
+        let the_index: usize = *(indexes.choose(rng).unwrap());
+
+        // Determine the registers that may contain meaningful content.
+        // Only considering the rows above.
+        let mut alive_registers: Vec<i32> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if index >= the_index {
+                break;
+            }
+            let register: i32 = genome_item.target_value();
+            alive_registers.push(register);
+        }
+        if alive_registers.is_empty() {
+            return false;
+        }
+
+        // Pick a random register that is alive
+        let the_register: i32 = *(alive_registers.choose(rng).unwrap());
+
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[the_index];
+        genome_item.set_source_type(ParameterType::Direct);
+        genome_item.set_source_value(the_register);
+        true
     }
 
     /// Turn off an entire block of `lpb`...`lpe` and instructions inbetween.
@@ -1450,13 +1520,13 @@ impl Genome {
     /// Return `false` in case the mutation didn't change the genome.
     pub fn mutate<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mutation_vec: Vec<(MutateGenome,usize)> = vec![
-            // (MutateGenome::ReplaceInstructionWithoutHistogram, 1),
             (MutateGenome::ReplaceInstructionWithHistogram, 0),
             (MutateGenome::InsertInstructionWithConstant, 0),
             (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 1),
             (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 1),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 50),
-            (MutateGenome::SourceType, 1),
+            (MutateGenome::SetSourceToConstant, 50),
+            (MutateGenome::SetSourceToDirect, 100),
             (MutateGenome::DisableLoop, 0),
             (MutateGenome::SwapRegisters, 50),
             (MutateGenome::IncrementSourceValueWhereTypeIsDirect, 1),
@@ -1481,9 +1551,6 @@ impl Genome {
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;
 
         let did_mutate_ok: bool = match mutation {
-            MutateGenome::ReplaceInstructionWithoutHistogram => {
-                self.replace_instruction_without_histogram(rng)
-            },
             MutateGenome::ReplaceInstructionWithHistogram => {
                 self.replace_instruction_with_histogram(rng, context)
             },
@@ -1499,8 +1566,11 @@ impl Genome {
             MutateGenome::ReplaceSourceConstantWithHistogram => {
                 self.replace_source_constant_with_histogram(rng, context)
             },
-            MutateGenome::SourceType => {
-                self.mutate_source_type(rng)
+            MutateGenome::SetSourceToConstant => {
+                self.mutate_set_source_to_constant(rng, context)
+            },
+            MutateGenome::SetSourceToDirect => {
+                self.mutate_set_source_to_direct(rng)
             },
             MutateGenome::DisableLoop => {
                 self.mutate_disable_loop(rng)
