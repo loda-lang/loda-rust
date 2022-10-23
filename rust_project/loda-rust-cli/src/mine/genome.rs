@@ -18,7 +18,7 @@ pub enum MutateGenome {
     IncrementSourceValueWhereTypeIsConstant,
     DecrementSourceValueWhereTypeIsConstant,
     ReplaceSourceConstantWithHistogram,
-    SetSourceToConstantWithHistogram,
+    SetSourceToConstant,
     SetSourceToDirect,
     DisableLoop,
     SwapRegisters,
@@ -1064,7 +1064,7 @@ impl Genome {
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    pub fn mutate_set_source_to_constant_with_histogram<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
+    pub fn mutate_set_source_to_constant<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
             if genome_item.instruction_id() == InstructionId::LoopBegin {
@@ -1140,10 +1140,12 @@ impl Genome {
         // Mutate one of the instructions
         let the_index: usize = *(indexes.choose(rng).unwrap());
 
+        // Determine the registers that may contain meaningful content.
+        // Only considering the rows above.
         let mut alive_registers: Vec<i32> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
             if index >= the_index {
-                continue;
+                break;
             }
             let register: i32 = genome_item.target_value();
             alive_registers.push(register);
@@ -1151,10 +1153,11 @@ impl Genome {
         if alive_registers.is_empty() {
             return false;
         }
+
+        // Pick a random register that is alive
         let the_register: i32 = *(alive_registers.choose(rng).unwrap());
 
         let genome_item: &mut GenomeItem = &mut self.genome_vec[the_index];
-
         genome_item.set_source_type(ParameterType::Direct);
         genome_item.set_source_value(the_register);
         true
@@ -1522,7 +1525,7 @@ impl Genome {
             (MutateGenome::IncrementSourceValueWhereTypeIsConstant, 1),
             (MutateGenome::DecrementSourceValueWhereTypeIsConstant, 1),
             (MutateGenome::ReplaceSourceConstantWithHistogram, 50),
-            (MutateGenome::SetSourceToConstantWithHistogram, 50),
+            (MutateGenome::SetSourceToConstant, 50),
             (MutateGenome::SetSourceToDirect, 100),
             (MutateGenome::DisableLoop, 0),
             (MutateGenome::SwapRegisters, 50),
@@ -1563,8 +1566,8 @@ impl Genome {
             MutateGenome::ReplaceSourceConstantWithHistogram => {
                 self.replace_source_constant_with_histogram(rng, context)
             },
-            MutateGenome::SetSourceToConstantWithHistogram => {
-                self.mutate_set_source_to_constant_with_histogram(rng, context)
+            MutateGenome::SetSourceToConstant => {
+                self.mutate_set_source_to_constant(rng, context)
             },
             MutateGenome::SetSourceToDirect => {
                 self.mutate_set_source_to_direct(rng)
