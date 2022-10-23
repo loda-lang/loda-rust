@@ -73,9 +73,8 @@ impl GenomeItem {
         self.instruction_id
     }
 
-    #[allow(dead_code)]
-    pub fn target_type(&self) -> &RegisterType {
-        &self.target_type
+    pub fn target_type(&self) -> RegisterType {
+        self.target_type
     }
 
     pub fn set_target_type(&mut self, target_type: RegisterType) {

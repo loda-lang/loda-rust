@@ -760,7 +760,7 @@ impl Genome {
     pub fn increment_target_value_where_type_is_direct<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.target_type() != RegisterType::Direct {
+            if genome_item.target_type() != RegisterType::Direct {
                 continue;
             }
             if genome_item.instruction_id() == InstructionId::LoopEnd {
@@ -900,7 +900,7 @@ impl Genome {
             }
         };
         let same_value: bool = parameter_value == genome_item.target_value();
-        let same_type: bool = parameter_type == *genome_item.target_type();
+        let same_type: bool = parameter_type == genome_item.target_type();
         if same_value && same_type {
             return false;
         }
@@ -1126,7 +1126,7 @@ impl Genome {
     pub fn mutate_swap_registers<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.target_type() != RegisterType::Direct {
+            if genome_item.target_type() != RegisterType::Direct {
                 continue;
             }
             if *genome_item.source_type() != ParameterType::Direct {
@@ -1301,7 +1301,7 @@ impl Genome {
             if !genome_item.is_enabled() {
                 continue;
             }
-            if *genome_item.target_type() == RegisterType::Direct {
+            if genome_item.target_type() == RegisterType::Direct {
                 let index = genome_item.target_value();
                 if index >= 0 {
                     max_register = max_register.max(index as u32);
@@ -1356,7 +1356,7 @@ impl Genome {
         // Offset registers by `offset_by`
         let mut clear_register_indexes = HashSet::<i32>::new();
         for genome_item in &mut inline_genome_vec {
-            if *genome_item.target_type() == RegisterType::Direct {
+            if genome_item.target_type() == RegisterType::Direct {
                 let index = genome_item.target_value();
                 if index == 0 {
                     genome_item.set_target_value(in_out_register as i32);
