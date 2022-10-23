@@ -20,7 +20,6 @@ pub enum MutateGenome {
     ReplaceSourceConstantWithHistogram,
     SetSourceToConstantWithHistogram,
     SetSourceToDirect,
-    SourceType,
     DisableLoop,
     SwapRegisters,
     IncrementSourceValueWhereTypeIsDirect,
@@ -1161,23 +1160,6 @@ impl Genome {
         true
     }
 
-    /// Return `true` when the mutation was successful.
-    /// 
-    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
-    pub fn mutate_source_type<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        let length: usize = self.genome_vec.len();
-        if length < 1 {
-            return false;
-        }
-        let index: usize = rng.gen_range(0..length);
-        let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
-
-        if !genome_item.mutate_source_type() {
-            return false;
-        }
-        genome_item.mutate_sanitize_program_row()
-    }
-
     /// Turn off an entire block of `lpb`...`lpe` and instructions inbetween.
     /// 
     /// Return `true` when the mutation was successful.
@@ -1542,7 +1524,6 @@ impl Genome {
             (MutateGenome::ReplaceSourceConstantWithHistogram, 50),
             (MutateGenome::SetSourceToConstantWithHistogram, 50),
             (MutateGenome::SetSourceToDirect, 100),
-            (MutateGenome::SourceType, 1),
             (MutateGenome::DisableLoop, 0),
             (MutateGenome::SwapRegisters, 50),
             (MutateGenome::IncrementSourceValueWhereTypeIsDirect, 1),
@@ -1587,9 +1568,6 @@ impl Genome {
             },
             MutateGenome::SetSourceToDirect => {
                 self.mutate_set_source_to_direct(rng)
-            },
-            MutateGenome::SourceType => {
-                self.mutate_source_type(rng)
             },
             MutateGenome::DisableLoop => {
                 self.mutate_disable_loop(rng)
