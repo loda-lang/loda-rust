@@ -97,8 +97,8 @@ impl GenomeItem {
         return true;
     }
 
-    pub fn source_type(&self) -> &ParameterType {
-        &self.source_type
+    pub fn source_type(&self) -> ParameterType {
+        self.source_type
     }
 
     pub fn set_source_type(&mut self, source_type: ParameterType) {

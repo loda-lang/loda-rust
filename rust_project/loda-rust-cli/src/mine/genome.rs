@@ -158,7 +158,7 @@ impl Genome {
         // Identify the instructions
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.source_type() != ParameterType::Constant {
+            if genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
             if genome_item.instruction_id() == InstructionId::EvalSequence {
@@ -211,7 +211,7 @@ impl Genome {
         // Identify the instructions
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.source_type() != ParameterType::Constant {
+            if genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
             if genome_item.instruction_id() == InstructionId::EvalSequence {
@@ -284,7 +284,7 @@ impl Genome {
         // Identify the instructions that use constants
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.source_type() != ParameterType::Constant {
+            if genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
             if genome_item.instruction_id() == InstructionId::EvalSequence {
@@ -340,7 +340,7 @@ impl Genome {
     pub fn increment_source_value_where_type_is_direct<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.source_type() != ParameterType::Direct {
+            if genome_item.source_type() != ParameterType::Direct {
                 continue;
             }
             if genome_item.instruction_id() == InstructionId::Clear {
@@ -380,7 +380,7 @@ impl Genome {
     pub fn decrement_source_value_where_type_is_direct<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.source_type() != ParameterType::Direct {
+            if genome_item.source_type() != ParameterType::Direct {
                 continue;
             }
             if genome_item.instruction_id() == InstructionId::Clear {
@@ -548,7 +548,7 @@ impl Genome {
             }
         };
         let same_value: bool = parameter_value == genome_item.source_value();
-        let same_type: bool = parameter_type == *genome_item.source_type();
+        let same_type: bool = parameter_type == genome_item.source_type();
         if same_value && same_type {
             return false;
         }
@@ -794,7 +794,7 @@ impl Genome {
     pub fn decrement_target_value_where_type_is_direct<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.source_type() != ParameterType::Direct {
+            if genome_item.source_type() != ParameterType::Direct {
                 continue;
             }
             if genome_item.instruction_id() == InstructionId::LoopEnd {
@@ -1129,7 +1129,7 @@ impl Genome {
             if genome_item.target_type() != RegisterType::Direct {
                 continue;
             }
-            if *genome_item.source_type() != ParameterType::Direct {
+            if genome_item.source_type() != ParameterType::Direct {
                 continue;
             }
             indexes.push(index);
@@ -1283,7 +1283,7 @@ impl Genome {
     pub fn mutate_inline_seq<R: Rng + ?Sized>(rng: &mut R, dm: &DependencyManager, genome_vec: &mut Vec<GenomeItem>) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in genome_vec.iter().enumerate() {
-            if *genome_item.source_type() != ParameterType::Constant {
+            if genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
             if genome_item.instruction_id() != InstructionId::EvalSequence {
@@ -1307,7 +1307,7 @@ impl Genome {
                     max_register = max_register.max(index as u32);
                 }
             }
-            if *genome_item.source_type() == ParameterType::Direct {
+            if genome_item.source_type() == ParameterType::Direct {
                 let index = genome_item.source_value();
                 if index >= 0 {
                     max_register = max_register.max(index as u32);
@@ -1325,7 +1325,7 @@ impl Genome {
             error!("Expected 'seq' instruction");
             return false;
         }
-        if *genome_item.source_type() != ParameterType::Constant {
+        if genome_item.source_type() != ParameterType::Constant {
             error!("Expected 'seq' instruction's source type to be of type Constant");
             return false;
         }
@@ -1367,7 +1367,7 @@ impl Genome {
                     clear_register_indexes.insert(index_with_offset);
                 }
             }
-            if *genome_item.source_type() == ParameterType::Direct {
+            if genome_item.source_type() == ParameterType::Direct {
                 let index = genome_item.source_value();
                 if index == 0 {
                     genome_item.set_source_value(in_out_register as i32);
@@ -1413,7 +1413,7 @@ impl Genome {
     pub fn mutate_instruction_seq<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext, category: MutateEvalSequenceCategory) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if *genome_item.source_type() != ParameterType::Constant {
+            if genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
             if genome_item.instruction_id() != InstructionId::EvalSequence {
