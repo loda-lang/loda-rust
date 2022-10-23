@@ -69,13 +69,12 @@ impl GenomeItem {
         self.enabled = enabled;
     }
 
-    pub fn instruction_id(&self) -> &InstructionId {
-        &self.instruction_id
+    pub fn instruction_id(&self) -> InstructionId {
+        self.instruction_id
     }
 
-    #[allow(dead_code)]
-    pub fn target_type(&self) -> &RegisterType {
-        &self.target_type
+    pub fn target_type(&self) -> RegisterType {
+        self.target_type
     }
 
     pub fn set_target_type(&mut self, target_type: RegisterType) {
@@ -98,8 +97,8 @@ impl GenomeItem {
         return true;
     }
 
-    pub fn source_type(&self) -> &ParameterType {
-        &self.source_type
+    pub fn source_type(&self) -> ParameterType {
+        self.source_type
     }
 
     pub fn set_source_type(&mut self, source_type: ParameterType) {
@@ -153,7 +152,7 @@ impl GenomeItem {
             InstructionId::Truncate,
         ];
         let instruction: &InstructionId = instructions.choose(rng).unwrap();
-        self.instruction_id = instruction.clone();
+        self.instruction_id = *instruction;
         true
     }
 
@@ -724,7 +723,7 @@ impl ToGenomeItem for Instruction {
             }
         }
         let genome_item = GenomeItem::new(
-            self.instruction_id.clone(),
+            self.instruction_id,
             target_type,
             target_value,
             source_type,
