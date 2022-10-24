@@ -30,6 +30,12 @@ This script outputs a `terms_loda_rust.csv` file, with this format:
 =end
 
 require 'csv'
+require_relative 'config'
+
+LODA_RUST_EXECUTABLE = Config.instance.loda_rust_executable
+unless File.executable?(LODA_RUST_EXECUTABLE)
+    raise "No such file #{LODA_RUST_EXECUTABLE}, cannot run script"
+end
 
 input_filename = 'data/program_ids.csv'
 output_filename = 'data/terms_loda_rust.csv'
@@ -57,7 +63,7 @@ end
 CSV.open(output_filename, "wb", col_sep: ";") do |csv|
     csv << ["program id", "terms"]
     program_ids.each_with_index do |program_id, index|
-        output = `data/loda-rust evaluate #{program_id} -t 10`
+        output = `#{LODA_RUST_EXECUTABLE} evaluate #{program_id} -t 10`
         output = output.strip
         success = $?.success?
         if success

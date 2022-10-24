@@ -4,7 +4,7 @@ file 'data/program_ids.csv' do
 end
 
 desc 'compute terms with "loda-rust"'
-file 'data/terms_loda_rust.csv' => ['data/loda-rust', 'data/program_ids.csv'] do
+file 'data/terms_loda_rust.csv' => 'data/program_ids.csv' do
     ruby 'task_terms_loda_rust.rb'
 end
 
@@ -23,18 +23,13 @@ file 'data/top100.md' do
     ruby 'task_top100.rb'
 end
 
-desc "compiles the loda-rust executable"
-file 'data/loda-rust' do
-    ruby 'task_loda_rust_executable.rb'
-end
-
 desc "extract creation date for all programs"
 file 'data/program_creation_dates.csv' do
     ruby 'task_program_creation_dates.rb'
 end
 
 desc "Process the mined programs"
-task :process_mined_programs => 'data/loda-rust' do
+task :process_mined_programs do
     ruby 'task_analyze_mined_programs.rb'
     ruby 'task_add_mined_programs_to_repo.rb'
     ruby 'task_maintenance_of_outlier_programs_repo.rb'
