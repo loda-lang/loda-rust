@@ -3,11 +3,14 @@
 # Absolute path to the "loda-programs" repository dir.
 loda_programs_repository = "$HOME/loda/programs"
 
-# Absolute path to the "loda" executable file.
+# Absolute path to the "loda-cpp" executable file.
 loda_cpp_executable = "$HOME/loda/bin/loda"
 
 # Absolute path to the "loda-rust" repository dir.
 loda_rust_repository = "$HOME/git/loda-rust"
+
+# Absolute path to the "loda-rust" executable file.
+loda_rust_executable = "$HOME/git/loda-rust/rust_project/target/release/loda-rust"
 
 # Absolute path to the unzipped OEIS stripped file.
 oeis_stripped_file = "$HOME/loda/oeis/stripped"
