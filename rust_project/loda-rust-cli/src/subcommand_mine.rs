@@ -14,6 +14,7 @@ use std::num::NonZeroUsize;
 use std::path::PathBuf;
 use prometheus_client::encoding::text::encode;
 use prometheus_client::registry::Registry;
+use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use indicatif::HumanDuration;
 use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
@@ -197,7 +198,13 @@ impl SubcommandMine {
         Ok(())
     }
 
-    async fn miner_worker(ctx: BastionContext) -> Result<(), ()> {
+    async fn miner_worker(
+        ctx: BastionContext,
+        tx: Sender<MinerThreadMessageToCoordinator>, 
+        recorder: Box<dyn Recorder + Send>,
+        terms_to_program_id: Arc<TermsToProgramIdSet>,
+        prevent_flooding: Arc<Mutex<PreventFlooding>>    
+    ) -> Result<(), ()> {
         println!("miner_worker - started!, {:?}", ctx.current().id());
 
         let mut is_mining = true;
@@ -265,13 +272,29 @@ impl SubcommandMine {
             }
         };
         let terms_to_program_id_arc: Arc<TermsToProgramIdSet> = Arc::new(terms_to_program_id);
-    
+
+        let prevent_flooding = self.prevent_flooding.clone();
+
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
                     .with_redundancy(3)
                     .with_distributor(Distributor::named("miner_worker"))
-                    .with_exec(Self::miner_worker)
+                    .with_exec(move |ctx: BastionContext| {
+                        let sender_clone = sender.clone();
+                        let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
+                        let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
+                        let prevent_flooding_clone = prevent_flooding.clone();
+                        async move {
+                            Self::miner_worker(
+                                ctx,
+                                sender_clone, 
+                                recorder_clone, 
+                                terms_to_program_id_arc_clone,
+                                prevent_flooding_clone
+                            ).await
+                        }
+                    })
             })
         })
         .expect("Couldn't create the miner worker group.");
