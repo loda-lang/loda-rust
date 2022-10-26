@@ -1,6 +1,7 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
 use crate::mine::{FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MovingAverage, MetricsPrometheus, Recorder, SinkRecorder};
 use crate::config::{Config, MinerCPUStrategy};
+use bastion::prelude::*;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode};
 use loda_rust_core::execute::ProgramCache;
 use num_bigint::{BigInt, ToBigInt};
@@ -42,11 +43,16 @@ impl SubcommandMine {
     pub async fn run(
         metrics_mode: SubcommandMineMetricsMode
     ) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        Bastion::init();
+        Bastion::start();
+        
         let mut instance = SubcommandMine::new(metrics_mode);
         instance.check_prerequisits()?;
         instance.print_info();
         instance.populate_prevent_flooding_mechanism()?;
         instance.run_miner_workers().await?;
+
+        Bastion::stop();
         return Ok(());
     }
 
