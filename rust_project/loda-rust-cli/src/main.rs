@@ -184,11 +184,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
             true => SubcommandMineMetricsMode::RunMetricsServer,
             false => SubcommandMineMetricsMode::NoMetricsServer
         };
-        let mut instance = SubcommandMine::new(metrics_mode);
-        instance.check_prerequisits()?;
-        instance.print_info();
-        instance.populate_prevent_flooding_mechanism()?;
-        instance.run().await?;
+        SubcommandMine::run(metrics_mode).await?;
         return Ok(());
     }
 

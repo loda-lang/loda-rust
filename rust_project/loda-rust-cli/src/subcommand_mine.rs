@@ -39,7 +39,18 @@ pub struct SubcommandMine {
 }
 
 impl SubcommandMine {
-    pub fn new(
+    pub async fn run(
+        metrics_mode: SubcommandMineMetricsMode
+    ) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let mut instance = SubcommandMine::new(metrics_mode);
+        instance.check_prerequisits()?;
+        instance.print_info();
+        instance.populate_prevent_flooding_mechanism()?;
+        instance.run_miner_workers().await?;
+        return Ok(());
+    }
+
+    fn new(
         metrics_mode: SubcommandMineMetricsMode
     ) -> Self {
         let config = Config::load();
@@ -69,7 +80,7 @@ impl SubcommandMine {
         number_of_threads.max(1)
     }
 
-    pub fn check_prerequisits(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    fn check_prerequisits(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
         let path0 = self.config.analytics_dir();
         if !path0.is_dir() {
             error!("Could not find analytics dir at path: {:?}. Please run 'loda-rust analytics' to create this dir.", path0);
@@ -83,13 +94,13 @@ impl SubcommandMine {
         Ok(())
     }
 
-    pub fn print_info(&self) {
+    fn print_info(&self) {
         println!("metrics mode: {:?}", self.metrics_mode);
         println!("Number of workers: {}", self.number_of_workers);
         print_info_about_start_conditions();
     }
 
-    pub fn populate_prevent_flooding_mechanism(&mut self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    fn populate_prevent_flooding_mechanism(&mut self) -> std::result::Result<(), Box<dyn std::error::Error>> {
         let start = Instant::now();
         let loda_programs_oeis_dir: PathBuf = self.config.loda_programs_oeis_dir();
         let mine_event_dir: PathBuf = self.config.mine_event_dir();
@@ -118,7 +129,7 @@ impl SubcommandMine {
         Ok(())
     }
 
-    pub async fn run(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    async fn run_miner_workers(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
         match self.metrics_mode {
             SubcommandMineMetricsMode::NoMetricsServer => {
                 return self.run_without_metrics().await
