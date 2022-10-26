@@ -53,6 +53,7 @@ impl SubcommandMine {
         instance.run_miner_workers().await?;
 
         Bastion::stop();
+        Bastion::block_until_stopped();
         return Ok(());
     }
 
@@ -120,6 +121,7 @@ impl SubcommandMine {
         paths.append(&mut paths0);
         paths.append(&mut paths1);
         println!("PreventFlooding: number of .asm files in total: {:?}", paths.len());
+        paths.truncate(100);
     
         let mut dependency_manager = DependencyManager::new(
             DependencyManagerFileSystemMode::System,
@@ -217,6 +219,67 @@ impl SubcommandMine {
         };
         let terms_to_program_id_arc: Arc<TermsToProgramIdSet> = Arc::new(terms_to_program_id);
     
+        let children = Bastion::children(|children| {
+            children
+                .with_name("minername")
+                .with_redundancy(3)
+                .with_dispatcher(
+                    Dispatcher::with_type(DispatcherType::Named("minerdisp".to_string())),
+                )
+                .with_exec(|ctx: BastionContext| {
+                    async move {
+                        println!("miner - started!, {:?}", ctx.current().id());
+
+                        loop {
+                            // try receive, if there is no pending message, then continue working
+                            // this way the worker, is kept busy, until there is an incoming message.
+                            let optional_message: Option<SignedMessage> = ctx.try_recv().await;
+                            match optional_message {
+                                Some(message) => {
+                                    println!("miner: message: {:?}", message);
+                                    // TODO: if message is pause miner, then pause the miner.
+                                    // TODO: if message is resume miner, then resume the miner.
+                                },
+                                None => {
+                                    println!("miner: Do 1 iteration of work");
+                                    thread::sleep(Duration::from_millis(1000));
+                                }
+                            }
+                        }
+    
+                        Ok(())
+                    }
+                })
+        })
+        .expect("Couldn't create the miner worker group.");
+
+        let minerdisp = Distributor::named("minerdisp");
+
+        let result_tell = minerdisp
+        .tell_everyone(ConferenceSchedule {
+            start: std::time::Duration::from_secs(60),
+            end: std::time::Duration::from_secs(3600),
+            misc: "it's going to be amazing!".to_string(),
+        });
+        if result_tell.is_err() {
+            panic!("unable to tell everyone");
+        }
+
+        Bastion::children(|children: Children| {
+            children.with_exec(move |ctx: BastionContext| {
+                async move {
+                    println!("will sleep for 5s");
+                    thread::sleep(Duration::from_millis(5000));
+                    println!("woke up, will broadcase to pause mining");
+
+                    Ok(())
+                }
+            })
+        })
+        .expect("Couldn't create the children group.");
+
+        return;
+
         for worker_id in 0..self.number_of_workers {
             println!("Spawn worker id: {}", worker_id);
             let sender_clone = sender.clone();
@@ -382,4 +445,11 @@ impl MessageProcessor {
     fn number_of_iterations(&self) -> u64 {
         self.number_of_iterations
     }
+}
+
+#[derive(Debug, Clone)]
+struct ConferenceSchedule {
+    start: std::time::Duration,
+    end: std::time::Duration,
+    misc: String,
 }
