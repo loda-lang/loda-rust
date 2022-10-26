@@ -44,7 +44,6 @@ impl SubcommandMine {
         metrics_mode: SubcommandMineMetricsMode
     ) -> std::result::Result<(), Box<dyn std::error::Error>> {
         Bastion::init();
-        Bastion::start();
         
         let mut instance = SubcommandMine::new(metrics_mode);
         instance.check_prerequisits()?;
@@ -198,6 +197,54 @@ impl SubcommandMine {
         Ok(())
     }
 
+    async fn miner_worker(ctx: BastionContext) -> Result<(), ()> {
+        println!("miner_worker - started!, {:?}", ctx.current().id());
+
+        let mut is_mining = true;
+
+        loop {
+            // try receive, if there is no pending message, then continue working
+            // this way the worker, is kept busy, until there is an incoming message.
+            let optional_message: Option<SignedMessage> = ctx.try_recv().await;
+            match optional_message {
+                Some(message) => {
+                    MessageHandler::new(message)
+                        .on_tell(|miner_worker_message: MinerWorkerMessage, _| {
+                            println!(
+                                "miner_worker {}, received broadcast MinerWorkerMessage!:\n{:?}",
+                                ctx.current().id(),
+                                miner_worker_message
+                            );
+                            match miner_worker_message {
+                                MinerWorkerMessage::Pause => {
+                                    is_mining = false;
+                                },
+                                MinerWorkerMessage::Resume => {
+                                    is_mining = true;
+                                }
+                            }
+                        })
+                        .on_fallback(|unknown, _sender_addr| {
+                            error!(
+                                "miner_worker {}, received an unknown message!:\n{:?}",
+                                ctx.current().id(),
+                                unknown
+                            );
+                        });
+                },
+                None => {
+                    if is_mining {
+                        println!("miner-worker: Do 1 iteration of work");
+                        thread::sleep(Duration::from_millis(1000));
+                    } else {
+                        // Not mining, sleep for a while, and poll again
+                        thread::sleep(Duration::from_millis(200));
+                    }
+                }
+            }
+        }
+    }
+    
     fn spawn_workers(
         &self, 
         sender: std::sync::mpsc::Sender<MinerThreadMessageToCoordinator>, 
@@ -219,64 +266,35 @@ impl SubcommandMine {
         };
         let terms_to_program_id_arc: Arc<TermsToProgramIdSet> = Arc::new(terms_to_program_id);
     
-        let children = Bastion::children(|children| {
-            children
-                .with_name("minername")
-                .with_redundancy(3)
-                .with_dispatcher(
-                    Dispatcher::with_type(DispatcherType::Named("minerdisp".to_string())),
-                )
-                .with_exec(|ctx: BastionContext| {
-                    async move {
-                        println!("miner - started!, {:?}", ctx.current().id());
-
-                        loop {
-                            // try receive, if there is no pending message, then continue working
-                            // this way the worker, is kept busy, until there is an incoming message.
-                            let optional_message: Option<SignedMessage> = ctx.try_recv().await;
-                            match optional_message {
-                                Some(message) => {
-                                    println!("miner: message: {:?}", message);
-                                    // TODO: if message is pause miner, then pause the miner.
-                                    // TODO: if message is resume miner, then resume the miner.
-                                },
-                                None => {
-                                    println!("miner: Do 1 iteration of work");
-                                    thread::sleep(Duration::from_millis(1000));
-                                }
-                            }
-                        }
-    
-                        Ok(())
-                    }
-                })
+        Bastion::supervisor(|supervisor| {
+            supervisor.children(|children| {
+                children
+                    .with_redundancy(3)
+                    .with_distributor(Distributor::named("miner_worker"))
+                    .with_exec(Self::miner_worker)
+            })
         })
         .expect("Couldn't create the miner worker group.");
 
-        let minerdisp = Distributor::named("minerdisp");
+        Bastion::start();
 
-        let result_tell = minerdisp
-        .tell_everyone(ConferenceSchedule {
-            start: std::time::Duration::from_secs(60),
-            end: std::time::Duration::from_secs(3600),
-            misc: "it's going to be amazing!".to_string(),
-        });
+        let miner_worker_distributor = Distributor::named("miner_worker");
+
+        thread::sleep(Duration::from_millis(5000));
+
+        let result_tell = miner_worker_distributor
+            .tell_everyone(MinerWorkerMessage::Pause);
         if result_tell.is_err() {
             panic!("unable to tell everyone");
         }
 
-        Bastion::children(|children: Children| {
-            children.with_exec(move |ctx: BastionContext| {
-                async move {
-                    println!("will sleep for 5s");
-                    thread::sleep(Duration::from_millis(5000));
-                    println!("woke up, will broadcase to pause mining");
+        thread::sleep(Duration::from_millis(5000));
 
-                    Ok(())
-                }
-            })
-        })
-        .expect("Couldn't create the children group.");
+        let result_tell2 = miner_worker_distributor
+            .tell_everyone(MinerWorkerMessage::Resume);
+        if result_tell2.is_err() {
+            panic!("unable to tell everyone");
+        }
 
         return;
 
@@ -448,8 +466,7 @@ impl MessageProcessor {
 }
 
 #[derive(Debug, Clone)]
-struct ConferenceSchedule {
-    start: std::time::Duration,
-    end: std::time::Duration,
-    misc: String,
+enum MinerWorkerMessage {
+    Pause,
+    Resume,
 }
