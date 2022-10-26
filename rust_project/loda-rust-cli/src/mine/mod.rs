@@ -23,6 +23,7 @@ mod suggest_instruction;
 mod suggest_line;
 mod suggest_source;
 mod suggest_target;
+mod term_computer;
 mod thread_message_channel;
 mod wildcard_checker;
 
@@ -49,5 +50,6 @@ pub use suggest_instruction::SuggestInstruction;
 pub use suggest_line::{SuggestLine, LineValue};
 pub use suggest_source::{SuggestSource, SourceValue};
 pub use suggest_target::{SuggestTarget, TargetValue};
+pub use term_computer::TermComputer;
 pub use thread_message_channel::MinerThreadMessageToCoordinator;
 pub use wildcard_checker::WildcardChecker;
