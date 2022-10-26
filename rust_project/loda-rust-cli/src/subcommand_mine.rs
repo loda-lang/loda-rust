@@ -297,7 +297,9 @@ fn coordinator_thread_metrics_prometheus(rx: Receiver<MinerThreadMessageToCoordi
                 message_processor.process_message(message);
             },
             Err(error) => {
-                panic!("didn't receive any messages. error: {:?}", error);
+                error!("didn't receive any messages. error: {:?}", error);
+                thread::sleep(Duration::from_millis(5000));
+                continue;
             }
         }
         // Fetch as many messages as possible
