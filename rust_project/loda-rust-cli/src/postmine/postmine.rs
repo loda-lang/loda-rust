@@ -70,8 +70,8 @@ impl PostMine {
     const LODACPP_COMPARE_NUMBER_OF_TERM_COUNT: usize = 60;
     const LODACPP_STEPS_TIME_LIMIT_IN_SECONDS: u64 = 120;
 
-    /// The repository "loda-outlier-programs" holds programs, that have completes the mining funnel.
-    /// When running "postmine" the program is checked with the b-file, 
+    /// The dir "~/.loda-rust/mine-event" holds candidate programs, that have completed the mining funnel.
+    /// When running "postmine" each candidate program is checked with the b-file.
     /// 
     /// If it matches with the b-file, there is a chance it's new program that has been discovered, 
     /// or it's an improvement to an existing program.
