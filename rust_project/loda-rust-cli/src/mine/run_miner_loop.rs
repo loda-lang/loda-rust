@@ -34,13 +34,10 @@ pub struct ExecuteBatchResult {
 }
 
 impl ExecuteBatchResult {
-    pub fn new(
-        number_of_mined_high_prio: usize, 
-        number_of_mined_low_prio: usize,
-    ) -> Self {
+    pub fn new() -> Self {
         Self {
-            number_of_mined_high_prio: number_of_mined_high_prio, 
-            number_of_mined_low_prio: number_of_mined_low_prio,
+            number_of_mined_high_prio: 0, 
+            number_of_mined_low_prio: 0,
         }
     }
 
@@ -50,6 +47,14 @@ impl ExecuteBatchResult {
 
     pub fn number_of_mined_low_prio(&self) -> usize {
         self.number_of_mined_low_prio
+    }
+
+    pub fn increment_number_of_mined_high_prio(&mut self) {
+        self.number_of_mined_high_prio += 1;
+    }
+
+    pub fn increment_number_of_mined_low_prio(&mut self) {
+        self.number_of_mined_low_prio += 1;
     }
 }
 
@@ -107,25 +112,12 @@ impl RunMinerLoop {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn loop_forever(&mut self, dependency_manager: &mut DependencyManager) {
-        let mut progress_time = Instant::now();
-        loop {
-            let elapsed: u128 = progress_time.elapsed().as_millis();
-            if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
-                self.submit_metrics();
-                self.submit_metrics_for_dependency_manager(dependency_manager);
-                progress_time = Instant::now();
-            }
-            self.execute_one_iteration(dependency_manager);
-        }
-    }
-
     pub fn execute_batch(&mut self, dependency_manager: &mut DependencyManager) -> anyhow::Result<ExecuteBatchResult> {
         let start = Instant::now();
         let mut progress_time: Instant = start;
+        let mut execute_batch_result = ExecuteBatchResult::new();
         loop {
-            self.execute_one_iteration(dependency_manager);
+            self.execute_one_iteration(dependency_manager, &mut execute_batch_result);
             let elapsed: u128 = progress_time.elapsed().as_millis();
             if elapsed < INTERVAL_UNTIL_NEXT_METRIC_SYNC {
                 continue;
@@ -137,7 +129,7 @@ impl RunMinerLoop {
             if elapsed_since_start < EXECUTE_BATCH_TIME_LIMIT {
                 continue;
             }
-            return Ok(ExecuteBatchResult::new(42, 3));
+            return Ok(execute_batch_result);
         }
     }
 
@@ -254,7 +246,11 @@ impl RunMinerLoop {
         return Err(anyhow::anyhow!("Unable to pick among available programs"));
     }
 
-    fn execute_one_iteration(&mut self, dependency_manager: &mut DependencyManager) {
+    fn execute_one_iteration(
+        &mut self, 
+        dependency_manager: &mut DependencyManager, 
+        execute_batch_result: &mut ExecuteBatchResult
+    ) {
         self.metric.number_of_miner_loop_iterations += 1;
         if (self.iteration % ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME) == 0 {
             self.reload = true;
@@ -451,6 +447,7 @@ impl RunMinerLoop {
         let performance_classifier = PerformanceClassifier::new(10);
         let mut maybe_a_new_program = false;
         let mut is_existing_program_with_better_performance = false;
+        let mut priority = ProgramCandidatePriority::Low;
         for program_id in corresponding_program_id_set {
             if self.context.is_program_id_invalid(*program_id) {
                 debug!("Keep. Maybe a new program. The program id {} is contained in 'programs_invalid.csv'", program_id);
@@ -465,6 +462,7 @@ impl RunMinerLoop {
                     self.genome.append_message(format!("keep: maybe a new program. cannot load program {:?} with the same initial terms. error: {:?}", program_id, error));
                     self.genome.append_message(format!("priority: high"));
                     maybe_a_new_program = true;
+                    priority = ProgramCandidatePriority::High;
                     break;
                 }
             };
@@ -576,5 +574,20 @@ impl RunMinerLoop {
             return;
         }
         self.metric.number_of_candidate_programs += 1;
+
+        match priority {
+            ProgramCandidatePriority::Low => {
+                execute_batch_result.increment_number_of_mined_low_prio();
+            },
+            ProgramCandidatePriority::High => {
+                execute_batch_result.increment_number_of_mined_high_prio();
+            }
+        }
+
     }
+}
+
+enum ProgramCandidatePriority {
+    Low,
+    High,
 }
