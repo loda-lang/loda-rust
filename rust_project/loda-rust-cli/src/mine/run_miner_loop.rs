@@ -88,6 +88,7 @@ impl RunMinerLoop {
             let elapsed: u128 = progress_time.elapsed().as_millis();
             if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
                 self.submit_metrics();
+                self.submit_metrics_for_dependency_manager(dependency_manager);
                 progress_time = Instant::now();
             }
             self.execute_one_iteration(dependency_manager);
@@ -102,6 +103,7 @@ impl RunMinerLoop {
             let elapsed: u128 = progress_time.elapsed().as_millis();
             if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
                 self.submit_metrics();
+                self.submit_metrics_for_dependency_manager(dependency_manager);
                 progress_time = Instant::now();
                 let elapsed_since_start: u128 = start.elapsed().as_millis();
                 if elapsed_since_start >= EXECUTE_BATCH_TIME_LIMIT {
@@ -146,13 +148,6 @@ impl RunMinerLoop {
             };
             self.recorder.record(&event);
         }
-        // {
-        //     let event = MetricEvent::DependencyManager {
-        //         read_success: self.dependency_manager.metric_read_success(),
-        //         read_error: self.dependency_manager.metric_read_error(),
-        //     };
-        //     self.recorder.record(&event);
-        // }
         {
             let event = MetricEvent::General { 
                 prevent_flooding: self.metric.number_of_prevented_floodings,
@@ -164,7 +159,17 @@ impl RunMinerLoop {
         self.funnel.reset_metrics();
         self.cache.reset_metrics();
         self.metric.reset_metrics();
-        // self.dependency_manager.reset_metrics();
+    }
+
+    fn submit_metrics_for_dependency_manager(&mut self, dependency_manager: &mut DependencyManager) {
+        {
+            let event = MetricEvent::DependencyManager {
+                read_success: dependency_manager.metric_read_success(),
+                read_error: dependency_manager.metric_read_error(),
+            };
+            self.recorder.record(&event);
+        }
+        dependency_manager.reset_metrics();
     }
 
     pub fn load_initial_genome_program(&mut self, dependency_manager: &mut DependencyManager) -> anyhow::Result<()> {

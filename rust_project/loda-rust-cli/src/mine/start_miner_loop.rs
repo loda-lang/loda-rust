@@ -1,11 +1,9 @@
-use loda_rust_core;
 use crate::config::Config;
 use crate::oeis::TermsToProgramIdSet;
 use super::{RunMinerLoop, MinerThreadMessageToCoordinator, Recorder};
 use super::Funnel;
 use super::PreventFlooding;
 use super::{GenomeMutateContext, Genome};
-use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
 use std::path::PathBuf;
 use rand::{RngCore, thread_rng};
 use rand::SeedableRng;
