@@ -123,7 +123,7 @@ impl SubcommandMine {
         paths.append(&mut paths0);
         paths.append(&mut paths1);
         println!("PreventFlooding: number of .asm files in total: {:?}", paths.len());
-        paths.truncate(100);
+        // paths.truncate(100);
     
         let mut dependency_manager = DependencyManager::new(
             DependencyManagerFileSystemMode::System,
@@ -256,7 +256,7 @@ impl SubcommandMine {
                 },
                 None => {
                     if is_mining {
-                        println!("miner-worker {}: execute_batch", ctx.current().id());
+                        // println!("miner-worker {}: execute_batch", ctx.current().id());
 
                         // TODO: preserve the content of the dependency manager, and pass it on to next iteration.
                         // Currently the dependency manager gets wiped, it's time consuming to load programs from disk.
@@ -312,7 +312,7 @@ impl SubcommandMine {
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
-                    .with_redundancy(3)
+                    .with_redundancy(self.number_of_workers)
                     .with_distributor(Distributor::named("miner_worker"))
                     .with_exec(move |ctx: BastionContext| {
                         let sender_clone = sender.clone();
