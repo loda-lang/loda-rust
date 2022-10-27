@@ -1,5 +1,5 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
-use crate::mine::{FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MovingAverage, MetricsPrometheus, Recorder, RunMinerLoop, SinkRecorder};
+use crate::mine::{ExecuteBatchResult, FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MovingAverage, MetricsPrometheus, Recorder, RunMinerLoop, SinkRecorder};
 use crate::config::{Config, MinerCPUStrategy};
 use bastion::prelude::*;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
@@ -258,24 +258,38 @@ impl SubcommandMine {
                         });
                 },
                 None => {
-                    if is_mining {
-                        // println!("miner-worker {}: execute_batch", ctx.current().id());
-
-                        // TODO: preserve the content of the dependency manager, and pass it on to next iteration.
-                        // Currently the dependency manager gets wiped, it's time consuming to load programs from disk.
-                        // The `Rc<ProgramRunner>` cannot be passed across thread-boundaries such as async/await.
-                        // 
-                        let mut dependency_manager = DependencyManager::new(
-                            DependencyManagerFileSystemMode::System,
-                            loda_programs_oeis_dir.clone(),
-                        );
-                        dependency_manager.set_execute_profile(ExecuteProfile::SmallLimits);
-                    
-                        rml.execute_batch(&mut dependency_manager);
-                    } else {
+                    if !is_mining {
                         // Not mining, sleep for a while, and poll again
                         thread::sleep(Duration::from_millis(200));
+                        continue;
                     }
+
+                    // We are mining
+                    // println!("miner-worker {}: execute_batch", ctx.current().id());
+
+                    // TODO: preserve the content of the dependency manager, and pass it on to next iteration.
+                    // Currently the dependency manager gets wiped, it's time consuming to load programs from disk.
+                    // The `Rc<ProgramRunner>` cannot be passed across thread-boundaries such as async/await.
+                    // 
+                    let mut dependency_manager = DependencyManager::new(
+                        DependencyManagerFileSystemMode::System,
+                        loda_programs_oeis_dir.clone(),
+                    );
+                    dependency_manager.set_execute_profile(ExecuteProfile::SmallLimits);
+                
+                    let result: ExecuteBatchResult = match rml.execute_batch(&mut dependency_manager) {
+                        Ok(value) => value,
+                        Err(error) => {
+                            error!(
+                                "miner_worker {}, execute_batch error: {:?}",
+                                ctx.current().id(),
+                                error
+                            );
+                            thread::sleep(Duration::from_millis(200));
+                            continue;
+                        }
+                    };
+
                 }
             }
         }

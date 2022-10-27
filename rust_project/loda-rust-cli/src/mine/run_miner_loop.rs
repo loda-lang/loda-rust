@@ -27,6 +27,32 @@ const MINER_CACHE_CAPACITY: usize = 3000;
 const ITERATIONS_BETWEEN_PICKING_A_NEW_INITIAL_GENOME: usize = 300;
 const ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME: usize = 10;
 
+#[derive(Debug)]
+pub struct ExecuteBatchResult {
+    number_of_mined_high_prio: usize,
+    number_of_mined_low_prio: usize,
+}
+
+impl ExecuteBatchResult {
+    pub fn new(
+        number_of_mined_high_prio: usize, 
+        number_of_mined_low_prio: usize,
+    ) -> Self {
+        Self {
+            number_of_mined_high_prio: number_of_mined_high_prio, 
+            number_of_mined_low_prio: number_of_mined_low_prio,
+        }
+    }
+
+    pub fn number_of_mined_high_prio(&self) -> usize {
+        self.number_of_mined_high_prio
+    }
+
+    pub fn number_of_mined_low_prio(&self) -> usize {
+        self.number_of_mined_low_prio
+    }
+}
+
 pub struct RunMinerLoop {
     tx: Sender<MinerThreadMessageToCoordinator>,
     recorder: Box<dyn Recorder + Send>,
@@ -95,21 +121,23 @@ impl RunMinerLoop {
         }
     }
 
-    pub fn execute_batch(&mut self, dependency_manager: &mut DependencyManager) {
+    pub fn execute_batch(&mut self, dependency_manager: &mut DependencyManager) -> anyhow::Result<ExecuteBatchResult> {
         let start = Instant::now();
         let mut progress_time: Instant = start;
         loop {
             self.execute_one_iteration(dependency_manager);
             let elapsed: u128 = progress_time.elapsed().as_millis();
-            if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
-                self.submit_metrics();
-                self.submit_metrics_for_dependency_manager(dependency_manager);
-                progress_time = Instant::now();
-                let elapsed_since_start: u128 = start.elapsed().as_millis();
-                if elapsed_since_start >= EXECUTE_BATCH_TIME_LIMIT {
-                    break;
-                }    
+            if elapsed < INTERVAL_UNTIL_NEXT_METRIC_SYNC {
+                continue;
             }
+            self.submit_metrics();
+            self.submit_metrics_for_dependency_manager(dependency_manager);
+            progress_time = Instant::now();
+            let elapsed_since_start: u128 = start.elapsed().as_millis();
+            if elapsed_since_start < EXECUTE_BATCH_TIME_LIMIT {
+                continue;
+            }
+            return Ok(ExecuteBatchResult::new(42, 3));
         }
     }
 

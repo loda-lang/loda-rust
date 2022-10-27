@@ -47,7 +47,7 @@ pub use prevent_flooding::{PreventFlooding, PreventFloodingError};
 pub use prevent_flooding_populate::prevent_flooding_populate;
 pub use random_indexes_with_distance::random_indexes_with_distance;
 pub use recent_program_container::RecentProgramContainer;
-pub use run_miner_loop::RunMinerLoop;
+pub use run_miner_loop::{ExecuteBatchResult, RunMinerLoop};
 pub use save_candidate_program::save_candidate_program;
 pub use start_miner_loop::start_miner_loop;
 pub use suggest_instruction::SuggestInstruction;
