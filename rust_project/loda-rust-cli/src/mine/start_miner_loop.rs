@@ -15,7 +15,7 @@ use std::sync::mpsc::Sender;
 
 pub fn start_miner_loop(
     tx: Sender<MinerThreadMessageToCoordinator>, 
-    // recorder: Box<dyn Recorder + Send>,
+    recorder: Box<dyn Recorder + Send>,
     terms_to_program_id: Arc<TermsToProgramIdSet>,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
     config: Config,
@@ -37,7 +37,7 @@ pub fn start_miner_loop(
 
     RunMinerLoop::new(
         tx,
-        // recorder,
+        recorder,
         funnel,
         &mine_event_dir,
         prevent_flooding,

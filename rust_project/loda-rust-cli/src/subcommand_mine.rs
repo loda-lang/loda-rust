@@ -203,7 +203,7 @@ impl SubcommandMine {
     async fn miner_worker(
         ctx: BastionContext,
         tx: Sender<MinerThreadMessageToCoordinator>, 
-        // recorder: Box<dyn Recorder + Send>,
+        recorder: Box<dyn Recorder + Send>,
         terms_to_program_id: Arc<TermsToProgramIdSet>,
         prevent_flooding: Arc<Mutex<PreventFlooding>>,
         config: Config,
@@ -215,7 +215,7 @@ impl SubcommandMine {
 
         let mut rml: RunMinerLoop = start_miner_loop(
             tx, 
-            // recorder, 
+            recorder, 
             terms_to_program_id,
             prevent_flooding,
             config,
@@ -316,7 +316,7 @@ impl SubcommandMine {
                     .with_distributor(Distributor::named("miner_worker"))
                     .with_exec(move |ctx: BastionContext| {
                         let sender_clone = sender.clone();
-                        // let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
+                        let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
                         let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
                         let prevent_flooding_clone = prevent_flooding.clone();
                         let config_clone = config_original.clone();
@@ -326,7 +326,7 @@ impl SubcommandMine {
                             Self::miner_worker(
                                 ctx,
                                 sender_clone, 
-                                // recorder_clone, 
+                                recorder_clone, 
                                 terms_to_program_id_arc_clone,
                                 prevent_flooding_clone,
                                 config_clone,

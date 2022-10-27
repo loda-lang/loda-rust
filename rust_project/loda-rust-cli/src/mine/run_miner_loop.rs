@@ -29,7 +29,7 @@ const ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME: usize = 10;
 
 pub struct RunMinerLoop {
     tx: Sender<MinerThreadMessageToCoordinator>,
-    // recorder: Box<dyn Recorder>,
+    recorder: Box<dyn Recorder + Send>,
     funnel: Funnel,
     mine_event_dir: PathBuf,
     cache: ProgramCache,
@@ -50,7 +50,7 @@ pub struct RunMinerLoop {
 impl RunMinerLoop {
     pub fn new(
         tx: Sender<MinerThreadMessageToCoordinator>,
-        // recorder: Box<dyn Recorder>,
+        recorder: Box<dyn Recorder + Send>,
         funnel: Funnel,
         mine_event_dir: &Path,
         prevent_flooding: Arc<Mutex<PreventFlooding>>,
@@ -62,7 +62,7 @@ impl RunMinerLoop {
         let capacity = NonZeroUsize::new(MINER_CACHE_CAPACITY).unwrap();
         Self {
             tx: tx,
-            // recorder: recorder,
+            recorder: recorder,
             funnel: funnel,
             mine_event_dir: PathBuf::from(mine_event_dir),
             cache: ProgramCache::with_capacity(capacity),
@@ -117,35 +117,35 @@ impl RunMinerLoop {
             let message = MinerThreadMessageToCoordinator::NumberOfIterations(y);
             self.tx.send(message).unwrap();
         }
-        // {
-        //     let event = MetricEvent::Funnel { 
-        //         terms10: self.funnel.metric_number_of_candidates_with_10terms(),
-        //         terms20: self.funnel.metric_number_of_candidates_with_20terms(),
-        //         terms30: self.funnel.metric_number_of_candidates_with_30terms(),
-        //         terms40: self.funnel.metric_number_of_candidates_with_40terms(),
-        //         false_positives: self.metric.number_of_bloomfilter_false_positive,
-        //     };
-        //     self.recorder.record(&event);
-        // }
-        // {
-        //     let event = MetricEvent::Genome { 
-        //         cannot_load: self.metric.number_of_failed_genome_loads,
-        //         cannot_parse: self.metric.number_of_programs_that_cannot_parse,
-        //         too_short: self.metric.number_of_too_short_programs,
-        //         no_output: self.metric.number_of_programs_without_output,
-        //         no_mutation: self.metric.number_of_failed_mutations,
-        //         compute_error: self.metric.number_of_compute_errors,
-        //     };
-        //     self.recorder.record(&event);
-        // }
-        // {
-        //     let event = MetricEvent::Cache { 
-        //         hit: self.cache.metric_hit(),
-        //         miss_program_oeis: self.cache.metric_miss_for_program_oeis(),
-        //         miss_program_without_id: self.cache.metric_miss_for_program_without_id(),
-        //     };
-        //     self.recorder.record(&event);
-        // }
+        {
+            let event = MetricEvent::Funnel { 
+                terms10: self.funnel.metric_number_of_candidates_with_10terms(),
+                terms20: self.funnel.metric_number_of_candidates_with_20terms(),
+                terms30: self.funnel.metric_number_of_candidates_with_30terms(),
+                terms40: self.funnel.metric_number_of_candidates_with_40terms(),
+                false_positives: self.metric.number_of_bloomfilter_false_positive,
+            };
+            self.recorder.record(&event);
+        }
+        {
+            let event = MetricEvent::Genome { 
+                cannot_load: self.metric.number_of_failed_genome_loads,
+                cannot_parse: self.metric.number_of_programs_that_cannot_parse,
+                too_short: self.metric.number_of_too_short_programs,
+                no_output: self.metric.number_of_programs_without_output,
+                no_mutation: self.metric.number_of_failed_mutations,
+                compute_error: self.metric.number_of_compute_errors,
+            };
+            self.recorder.record(&event);
+        }
+        {
+            let event = MetricEvent::Cache { 
+                hit: self.cache.metric_hit(),
+                miss_program_oeis: self.cache.metric_miss_for_program_oeis(),
+                miss_program_without_id: self.cache.metric_miss_for_program_without_id(),
+            };
+            self.recorder.record(&event);
+        }
         // {
         //     let event = MetricEvent::DependencyManager {
         //         read_success: self.dependency_manager.metric_read_success(),
@@ -153,14 +153,14 @@ impl RunMinerLoop {
         //     };
         //     self.recorder.record(&event);
         // }
-        // {
-        //     let event = MetricEvent::General { 
-        //         prevent_flooding: self.metric.number_of_prevented_floodings,
-        //         reject_self_dependency: self.metric.number_of_self_dependencies,
-        //         candidate_program: self.metric.number_of_candidate_programs,
-        //     };
-        //     self.recorder.record(&event);
-        // }
+        {
+            let event = MetricEvent::General { 
+                prevent_flooding: self.metric.number_of_prevented_floodings,
+                reject_self_dependency: self.metric.number_of_self_dependencies,
+                candidate_program: self.metric.number_of_candidate_programs,
+            };
+            self.recorder.record(&event);
+        }
         self.funnel.reset_metrics();
         self.cache.reset_metrics();
         self.metric.reset_metrics();
