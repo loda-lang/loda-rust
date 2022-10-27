@@ -96,12 +96,17 @@ impl RunMinerLoop {
 
     pub fn execute_batch(&mut self, dependency_manager: &mut DependencyManager) {
         let start = Instant::now();
+        let mut progress_time: Instant = start;
         loop {
             self.execute_one_iteration(dependency_manager);
-            let elapsed: u128 = start.elapsed().as_millis();
-            if elapsed >= EXECUTE_BATCH_TIME_LIMIT {
+            let elapsed: u128 = progress_time.elapsed().as_millis();
+            if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
                 self.submit_metrics();
-                break;
+                progress_time = Instant::now();
+                let elapsed_since_start: u128 = start.elapsed().as_millis();
+                if elapsed_since_start >= EXECUTE_BATCH_TIME_LIMIT {
+                    break;
+                }    
             }
         }
     }
