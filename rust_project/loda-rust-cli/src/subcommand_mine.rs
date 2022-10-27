@@ -2,7 +2,7 @@
 use crate::mine::{FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MovingAverage, MetricsPrometheus, Recorder, RunMinerLoop, SinkRecorder};
 use crate::config::{Config, MinerCPUStrategy};
 use bastion::prelude::*;
-use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode};
+use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
 use loda_rust_core::execute::ProgramCache;
 use crate::mine::{create_funnel, Funnel};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
@@ -203,7 +203,7 @@ impl SubcommandMine {
     async fn miner_worker(
         ctx: BastionContext,
         tx: Sender<MinerThreadMessageToCoordinator>, 
-        recorder: Box<dyn Recorder + Send>,
+        // recorder: Box<dyn Recorder + Send>,
         terms_to_program_id: Arc<TermsToProgramIdSet>,
         prevent_flooding: Arc<Mutex<PreventFlooding>>,
         config: Config,
@@ -211,16 +211,17 @@ impl SubcommandMine {
         genome_mutate_context: GenomeMutateContext,    
     ) -> Result<(), ()> {
         println!("miner_worker - started!, {:?}", ctx.current().id());
+        let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
 
-        // let mut rml: RunMinerLoop = start_miner_loop(
-        //     tx, 
-        //     recorder, 
-        //     terms_to_program_id,
-        //     prevent_flooding,
-        //     config,
-        //     funnel,
-        //     genome_mutate_context,
-        // );
+        let mut rml: RunMinerLoop = start_miner_loop(
+            tx, 
+            // recorder, 
+            terms_to_program_id,
+            prevent_flooding,
+            config,
+            funnel,
+            genome_mutate_context,
+        );
         let mut is_mining = true;
 
         loop {
@@ -255,10 +256,19 @@ impl SubcommandMine {
                 },
                 None => {
                     if is_mining {
-                        println!("miner-worker: Do 1 iteration of work");
-                        // TODO: run 1 batch of iterations, taking around 100ms.
-                        // TODO: rml.execute_batch();
-                        thread::sleep(Duration::from_millis(1000));
+                        println!("miner-worker {}: execute_batch", ctx.current().id());
+
+                        // TODO: preserve the content of the dependency manager, and pass it on to next iteration.
+                        // Currently the dependency manager gets wiped, it's time consuming to load programs from disk.
+                        // The `Rc<ProgramRunner>` cannot be passed across thread-boundaries such as async/await.
+                        // 
+                        let mut dependency_manager = DependencyManager::new(
+                            DependencyManagerFileSystemMode::System,
+                            loda_programs_oeis_dir.clone(),
+                        );
+                        dependency_manager.set_execute_profile(ExecuteProfile::SmallLimits);
+                    
+                        rml.execute_batch(&mut dependency_manager);
                     } else {
                         // Not mining, sleep for a while, and poll again
                         thread::sleep(Duration::from_millis(200));
@@ -306,7 +316,7 @@ impl SubcommandMine {
                     .with_distributor(Distributor::named("miner_worker"))
                     .with_exec(move |ctx: BastionContext| {
                         let sender_clone = sender.clone();
-                        let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
+                        // let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
                         let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
                         let prevent_flooding_clone = prevent_flooding.clone();
                         let config_clone = config_original.clone();
@@ -316,7 +326,7 @@ impl SubcommandMine {
                             Self::miner_worker(
                                 ctx,
                                 sender_clone, 
-                                recorder_clone, 
+                                // recorder_clone, 
                                 terms_to_program_id_arc_clone,
                                 prevent_flooding_clone,
                                 config_clone,
@@ -349,31 +359,29 @@ impl SubcommandMine {
             panic!("unable to tell everyone");
         }
 
-        return;
-
-        for worker_id in 0..self.number_of_workers {
-            println!("Spawn worker id: {}", worker_id);
-            let sender_clone = sender.clone();
-            let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
-            let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
-            let prevent_flooding_clone = self.prevent_flooding.clone();
-            let config_clone = self.config.clone();
-            let funnel_clone = funnel.clone();
-            let genome_mutate_context_clone = genome_mutate_context.clone();
-            let _ = tokio::spawn(async move {
-                let mut rml = start_miner_loop(
-                    sender_clone, 
-                    recorder_clone, 
-                    terms_to_program_id_arc_clone,
-                    prevent_flooding_clone,
-                    config_clone,
-                    funnel_clone,
-                    genome_mutate_context_clone,
-                );
-                rml.loop_forever();
-            });
-            thread::sleep(Duration::from_millis(50));
-        }
+        // for worker_id in 0..self.number_of_workers {
+        //     println!("Spawn worker id: {}", worker_id);
+        //     let sender_clone = sender.clone();
+        //     let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
+        //     let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
+        //     let prevent_flooding_clone = self.prevent_flooding.clone();
+        //     let config_clone = self.config.clone();
+        //     let funnel_clone = funnel.clone();
+        //     let genome_mutate_context_clone = genome_mutate_context.clone();
+        //     let _ = tokio::spawn(async move {
+        //         let mut rml = start_miner_loop(
+        //             sender_clone, 
+        //             recorder_clone, 
+        //             terms_to_program_id_arc_clone,
+        //             prevent_flooding_clone,
+        //             config_clone,
+        //             funnel_clone,
+        //             genome_mutate_context_clone,
+        //         );
+        //         rml.loop_forever();
+        //     });
+        //     thread::sleep(Duration::from_millis(50));
+        // }
         println!("\nPress CTRL-C to stop the miner.");
     }
 }

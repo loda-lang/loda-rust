@@ -15,21 +15,14 @@ use std::sync::mpsc::Sender;
 
 pub fn start_miner_loop(
     tx: Sender<MinerThreadMessageToCoordinator>, 
-    recorder: Box<dyn Recorder + Send>,
+    // recorder: Box<dyn Recorder + Send>,
     terms_to_program_id: Arc<TermsToProgramIdSet>,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
     config: Config,
     funnel: Funnel,
     genome_mutate_context: GenomeMutateContext,
 ) -> RunMinerLoop {
-    let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
     let mine_event_dir: PathBuf = config.mine_event_dir();
-
-    let mut dependency_manager = DependencyManager::new(
-        DependencyManagerFileSystemMode::System,
-        loda_programs_oeis_dir,
-    );
-    dependency_manager.set_execute_profile(ExecuteProfile::SmallLimits);
 
     // Pick a random seed
     let mut rng = thread_rng();
@@ -44,8 +37,7 @@ pub fn start_miner_loop(
 
     RunMinerLoop::new(
         tx,
-        recorder,
-        dependency_manager,
+        // recorder,
         funnel,
         &mine_event_dir,
         prevent_flooding,

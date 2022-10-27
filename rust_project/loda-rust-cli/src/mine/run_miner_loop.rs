@@ -18,6 +18,7 @@ use rand::seq::SliceRandom;
 use rand::rngs::StdRng;
 use std::sync::{Arc, Mutex};
 
+const EXECUTE_BATCH_TIME_LIMIT: u128 = 1000;
 const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
 const MINIMUM_PROGRAM_LENGTH: usize = 6;
 const LOAD_INITIAL_GENOME_MINIMUM_PROGRAM_LENGTH: usize = 8;
@@ -28,8 +29,7 @@ const ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME: usize = 10;
 
 pub struct RunMinerLoop {
     tx: Sender<MinerThreadMessageToCoordinator>,
-    recorder: Box<dyn Recorder>,
-    dependency_manager: DependencyManager,
+    // recorder: Box<dyn Recorder>,
     funnel: Funnel,
     mine_event_dir: PathBuf,
     cache: ProgramCache,
@@ -50,8 +50,7 @@ pub struct RunMinerLoop {
 impl RunMinerLoop {
     pub fn new(
         tx: Sender<MinerThreadMessageToCoordinator>,
-        recorder: Box<dyn Recorder>,
-        dependency_manager: DependencyManager,
+        // recorder: Box<dyn Recorder>,
         funnel: Funnel,
         mine_event_dir: &Path,
         prevent_flooding: Arc<Mutex<PreventFlooding>>,
@@ -63,8 +62,7 @@ impl RunMinerLoop {
         let capacity = NonZeroUsize::new(MINER_CACHE_CAPACITY).unwrap();
         Self {
             tx: tx,
-            recorder: recorder,
-            dependency_manager: dependency_manager,
+            // recorder: recorder,
             funnel: funnel,
             mine_event_dir: PathBuf::from(mine_event_dir),
             cache: ProgramCache::with_capacity(capacity),
@@ -83,7 +81,8 @@ impl RunMinerLoop {
         }
     }
 
-    pub fn loop_forever(&mut self) {
+    #[allow(dead_code)]
+    pub fn loop_forever(&mut self, dependency_manager: &mut DependencyManager) {
         let mut progress_time = Instant::now();
         loop {
             let elapsed: u128 = progress_time.elapsed().as_millis();
@@ -91,16 +90,16 @@ impl RunMinerLoop {
                 self.submit_metrics();
                 progress_time = Instant::now();
             }
-            self.execute_one_iteration();
+            self.execute_one_iteration(dependency_manager);
         }
     }
 
-    pub fn execute_batch(&mut self) {
-        let mut start = Instant::now();
+    pub fn execute_batch(&mut self, dependency_manager: &mut DependencyManager) {
+        let start = Instant::now();
         loop {
-            self.execute_one_iteration();
+            self.execute_one_iteration(dependency_manager);
             let elapsed: u128 = start.elapsed().as_millis();
-            if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
+            if elapsed >= EXECUTE_BATCH_TIME_LIMIT {
                 self.submit_metrics();
                 break;
             }
@@ -113,57 +112,57 @@ impl RunMinerLoop {
             let message = MinerThreadMessageToCoordinator::NumberOfIterations(y);
             self.tx.send(message).unwrap();
         }
-        {
-            let event = MetricEvent::Funnel { 
-                terms10: self.funnel.metric_number_of_candidates_with_10terms(),
-                terms20: self.funnel.metric_number_of_candidates_with_20terms(),
-                terms30: self.funnel.metric_number_of_candidates_with_30terms(),
-                terms40: self.funnel.metric_number_of_candidates_with_40terms(),
-                false_positives: self.metric.number_of_bloomfilter_false_positive,
-            };
-            self.recorder.record(&event);
-        }
-        {
-            let event = MetricEvent::Genome { 
-                cannot_load: self.metric.number_of_failed_genome_loads,
-                cannot_parse: self.metric.number_of_programs_that_cannot_parse,
-                too_short: self.metric.number_of_too_short_programs,
-                no_output: self.metric.number_of_programs_without_output,
-                no_mutation: self.metric.number_of_failed_mutations,
-                compute_error: self.metric.number_of_compute_errors,
-            };
-            self.recorder.record(&event);
-        }
-        {
-            let event = MetricEvent::Cache { 
-                hit: self.cache.metric_hit(),
-                miss_program_oeis: self.cache.metric_miss_for_program_oeis(),
-                miss_program_without_id: self.cache.metric_miss_for_program_without_id(),
-            };
-            self.recorder.record(&event);
-        }
-        {
-            let event = MetricEvent::DependencyManager {
-                read_success: self.dependency_manager.metric_read_success(),
-                read_error: self.dependency_manager.metric_read_error(),
-            };
-            self.recorder.record(&event);
-        }
-        {
-            let event = MetricEvent::General { 
-                prevent_flooding: self.metric.number_of_prevented_floodings,
-                reject_self_dependency: self.metric.number_of_self_dependencies,
-                candidate_program: self.metric.number_of_candidate_programs,
-            };
-            self.recorder.record(&event);
-        }
+        // {
+        //     let event = MetricEvent::Funnel { 
+        //         terms10: self.funnel.metric_number_of_candidates_with_10terms(),
+        //         terms20: self.funnel.metric_number_of_candidates_with_20terms(),
+        //         terms30: self.funnel.metric_number_of_candidates_with_30terms(),
+        //         terms40: self.funnel.metric_number_of_candidates_with_40terms(),
+        //         false_positives: self.metric.number_of_bloomfilter_false_positive,
+        //     };
+        //     self.recorder.record(&event);
+        // }
+        // {
+        //     let event = MetricEvent::Genome { 
+        //         cannot_load: self.metric.number_of_failed_genome_loads,
+        //         cannot_parse: self.metric.number_of_programs_that_cannot_parse,
+        //         too_short: self.metric.number_of_too_short_programs,
+        //         no_output: self.metric.number_of_programs_without_output,
+        //         no_mutation: self.metric.number_of_failed_mutations,
+        //         compute_error: self.metric.number_of_compute_errors,
+        //     };
+        //     self.recorder.record(&event);
+        // }
+        // {
+        //     let event = MetricEvent::Cache { 
+        //         hit: self.cache.metric_hit(),
+        //         miss_program_oeis: self.cache.metric_miss_for_program_oeis(),
+        //         miss_program_without_id: self.cache.metric_miss_for_program_without_id(),
+        //     };
+        //     self.recorder.record(&event);
+        // }
+        // {
+        //     let event = MetricEvent::DependencyManager {
+        //         read_success: self.dependency_manager.metric_read_success(),
+        //         read_error: self.dependency_manager.metric_read_error(),
+        //     };
+        //     self.recorder.record(&event);
+        // }
+        // {
+        //     let event = MetricEvent::General { 
+        //         prevent_flooding: self.metric.number_of_prevented_floodings,
+        //         reject_self_dependency: self.metric.number_of_self_dependencies,
+        //         candidate_program: self.metric.number_of_candidate_programs,
+        //     };
+        //     self.recorder.record(&event);
+        // }
         self.funnel.reset_metrics();
         self.cache.reset_metrics();
         self.metric.reset_metrics();
-        self.dependency_manager.reset_metrics();
+        // self.dependency_manager.reset_metrics();
     }
 
-    pub fn load_initial_genome_program(&mut self) -> anyhow::Result<()> {
+    pub fn load_initial_genome_program(&mut self, dependency_manager: &mut DependencyManager) -> anyhow::Result<()> {
         for _ in 0..LOAD_INITIAL_GENOME_RETRIES {
             let program_id: u32 = match self.context.choose_initial_genome_program(&mut self.rng) {
                 Some(value) => value,
@@ -171,7 +170,7 @@ impl RunMinerLoop {
                     return Err(anyhow::anyhow!("choose_initial_genome_program() returned None, seems like data model is empty"));
                 }
             };
-            let parsed_program: ParsedProgram = match Genome::load_program_with_id(&self.dependency_manager, program_id as u64) {
+            let parsed_program: ParsedProgram = match Genome::load_program_with_id(dependency_manager, program_id as u64) {
                 Ok(value) => value,
                 Err(error) => {
                     error!("Unable to load program. {:?}", error);
@@ -193,7 +192,7 @@ impl RunMinerLoop {
 
             let message_vec: Vec<String>;
             if *should_inline_seq {
-                let did_mutate_ok = Genome::mutate_inline_seq(&mut self.rng, &self.dependency_manager, &mut genome_vec);
+                let did_mutate_ok = Genome::mutate_inline_seq(&mut self.rng, dependency_manager, &mut genome_vec);
                 let mutate_message: String;
                 if did_mutate_ok {
                     mutate_message = "mutate: mutate_inline_seq".to_string();
@@ -217,13 +216,13 @@ impl RunMinerLoop {
         return Err(anyhow::anyhow!("Unable to pick among available programs"));
     }
 
-    fn execute_one_iteration(&mut self) {
+    fn execute_one_iteration(&mut self, dependency_manager: &mut DependencyManager) {
         self.metric.number_of_miner_loop_iterations += 1;
         if (self.iteration % ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME) == 0 {
             self.reload = true;
         }
         if (self.iteration % ITERATIONS_BETWEEN_PICKING_A_NEW_INITIAL_GENOME) == 0 {
-            match self.load_initial_genome_program() {
+            match self.load_initial_genome_program(dependency_manager) {
                 Ok(_) => {},
                 Err(error) => {
                     error!("Failed loading initial genome. {:?}", error);
@@ -254,7 +253,7 @@ impl RunMinerLoop {
         }
 
         // Create program from genome
-        let result_parse = self.dependency_manager.parse_stage2(
+        let result_parse = dependency_manager.parse_stage2(
             ProgramId::ProgramWithoutId, 
             &genome_parsed_program
         );
@@ -359,7 +358,7 @@ impl RunMinerLoop {
         let depends_on_program_ids: HashSet<u32> = self.genome.depends_on_program_ids();
         let mut reject_self_dependency = false;
         for program_id in &depends_on_program_ids {
-            let program_runner: Rc::<ProgramRunner> = match self.dependency_manager.load(*program_id as u64) {
+            let program_runner: Rc::<ProgramRunner> = match dependency_manager.load(*program_id as u64) {
                 Ok(value) => value,
                 Err(error) => {
                     error!("Cannot verify, failed to load program id {}, {:?}", program_id, error);
@@ -421,7 +420,7 @@ impl RunMinerLoop {
                 maybe_a_new_program = true;
                 break;
             }
-            let program_runner: Rc::<ProgramRunner> = match self.dependency_manager.load(*program_id as u64) {
+            let program_runner: Rc::<ProgramRunner> = match dependency_manager.load(*program_id as u64) {
                 Ok(value) => value,
                 Err(error) => {
                     debug!("Keep. Maybe a new program. Cannot verify, failed to load program id {}, {:?}", program_id, error);
