@@ -275,30 +275,7 @@ impl SubcommandMine {
         miner_worker_distributor
             .tell_everyone(MinerWorkerMessage::Resume)
             .context("unable to resume miner workers")?;
-
-        // for worker_id in 0..self.number_of_workers {
-        //     println!("Spawn worker id: {}", worker_id);
-        //     let sender_clone = sender.clone();
-        //     let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
-        //     let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
-        //     let prevent_flooding_clone = self.prevent_flooding.clone();
-        //     let config_clone = self.config.clone();
-        //     let funnel_clone = funnel.clone();
-        //     let genome_mutate_context_clone = genome_mutate_context.clone();
-        //     let _ = tokio::spawn(async move {
-        //         let mut rml = start_miner_loop(
-        //             sender_clone, 
-        //             recorder_clone, 
-        //             terms_to_program_id_arc_clone,
-        //             prevent_flooding_clone,
-        //             config_clone,
-        //             funnel_clone,
-        //             genome_mutate_context_clone,
-        //         );
-        //         rml.loop_forever();
-        //     });
-        //     thread::sleep(Duration::from_millis(50));
-        // }
+        
         println!("\nPress CTRL-C to stop the miner.");
         Ok(())
     }
