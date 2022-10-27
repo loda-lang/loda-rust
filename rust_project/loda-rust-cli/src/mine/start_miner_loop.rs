@@ -18,10 +18,10 @@ pub fn start_miner_loop(
     recorder: Box<dyn Recorder + Send>,
     terms_to_program_id: Arc<TermsToProgramIdSet>,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
+    config: Config,
     funnel: Funnel,
     genome_mutate_context: GenomeMutateContext,
 ) {
-    let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
     let mine_event_dir: PathBuf = config.mine_event_dir();
 

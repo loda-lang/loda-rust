@@ -226,6 +226,7 @@ impl SubcommandMine {
             let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
             let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
             let prevent_flooding_clone = self.prevent_flooding.clone();
+            let config_clone = self.config.clone();
             let funnel_clone = funnel.clone();
             let genome_mutate_context_clone = genome_mutate_context.clone();
             let _ = tokio::spawn(async move {
@@ -234,11 +235,12 @@ impl SubcommandMine {
                     recorder_clone, 
                     terms_to_program_id_arc_clone,
                     prevent_flooding_clone,
+                    config_clone,
                     funnel_clone,
                     genome_mutate_context_clone,
                 );
             });
-            thread::sleep(Duration::from_millis(2000));
+            thread::sleep(Duration::from_millis(50));
         }
         println!("\nPress CTRL-C to stop the miner.");
     }

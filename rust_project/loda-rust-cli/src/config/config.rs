@@ -17,7 +17,7 @@ pub enum MinerCPUStrategy {
     CPU { count: u16 },
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Config {
     basedir: PathBuf,
     loda_programs_repository: PathBuf,
