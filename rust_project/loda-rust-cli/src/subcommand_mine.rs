@@ -7,6 +7,7 @@ use loda_rust_core::execute::ProgramCache;
 use crate::mine::{create_funnel, Funnel};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use num_bigint::{BigInt, ToBigInt};
+use anyhow::Context;
 use std::thread;
 use std::time::Duration;
 use std::sync::mpsc::{channel, Receiver};
@@ -157,7 +158,8 @@ impl SubcommandMine {
 
         let recorder: Box<dyn Recorder + Send> = Box::new(SinkRecorder {});
 
-        self.spawn_workers(sender, recorder);
+        self.spawn_workers(sender, recorder)
+            .context("run_without_metrics")?;
 
         // Run forever, press CTRL-C to stop.
         minercoordinator_thread.await
@@ -191,7 +193,8 @@ impl SubcommandMine {
         });
 
         let recorder: Box<dyn Recorder + Send> = Box::new(metrics);
-        self.spawn_workers(sender, recorder);
+        self.spawn_workers(sender, recorder)
+            .context("run_with_prometheus_metrics")?;
 
         // Run forever, press CTRL-C to stop.
         minercoordinator_thread.await
@@ -282,7 +285,7 @@ impl SubcommandMine {
         &self, 
         sender: std::sync::mpsc::Sender<MinerThreadMessageToCoordinator>, 
         recorder: Box<dyn Recorder + Send>
-    ) {
+    ) -> anyhow::Result<()> {
         println!("populating terms_to_program_id");
         let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
         let padding_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
@@ -337,7 +340,7 @@ impl SubcommandMine {
                     })
             })
         })
-        .expect("Couldn't create the miner worker group.");
+        .map_err(|e| anyhow::anyhow!("couldn't setup bastion. error: {:?}", e))?;
 
         Bastion::start();
 
@@ -345,19 +348,15 @@ impl SubcommandMine {
 
         thread::sleep(Duration::from_millis(5000));
 
-        let result_tell = miner_worker_distributor
-            .tell_everyone(MinerWorkerMessage::Pause);
-        if result_tell.is_err() {
-            panic!("unable to tell everyone");
-        }
+        miner_worker_distributor
+            .tell_everyone(MinerWorkerMessage::Pause)
+            .context("unable to pause miner workers")?;
 
         thread::sleep(Duration::from_millis(5000));
 
-        let result_tell2 = miner_worker_distributor
-            .tell_everyone(MinerWorkerMessage::Resume);
-        if result_tell2.is_err() {
-            panic!("unable to tell everyone");
-        }
+        miner_worker_distributor
+            .tell_everyone(MinerWorkerMessage::Resume)
+            .context("unable to resume miner workers")?;
 
         // for worker_id in 0..self.number_of_workers {
         //     println!("Spawn worker id: {}", worker_id);
@@ -383,6 +382,7 @@ impl SubcommandMine {
         //     thread::sleep(Duration::from_millis(50));
         // }
         println!("\nPress CTRL-C to stop the miner.");
+        Ok(())
     }
 }
 
