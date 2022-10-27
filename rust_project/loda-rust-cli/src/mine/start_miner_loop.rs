@@ -4,7 +4,7 @@ use crate::oeis::TermsToProgramIdSet;
 use super::{RunMinerLoop, MinerThreadMessageToCoordinator, Recorder};
 use super::Funnel;
 use super::PreventFlooding;
-use super::{create_genome_mutate_context, GenomeMutateContext, Genome};
+use super::{GenomeMutateContext, Genome};
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
 use std::path::PathBuf;
 use rand::{RngCore, thread_rng};
@@ -19,12 +19,11 @@ pub fn start_miner_loop(
     terms_to_program_id: Arc<TermsToProgramIdSet>,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
     funnel: Funnel,
+    genome_mutate_context: GenomeMutateContext,
 ) {
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
     let mine_event_dir: PathBuf = config.mine_event_dir();
-
-    let context: GenomeMutateContext = create_genome_mutate_context(&config);
 
     let mut dependency_manager = DependencyManager::new(
         DependencyManagerFileSystemMode::System,
@@ -51,7 +50,7 @@ pub fn start_miner_loop(
         funnel,
         &mine_event_dir,
         prevent_flooding,
-        context,
+        genome_mutate_context,
         genome,
         rng,
         terms_to_program_id,
