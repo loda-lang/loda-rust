@@ -21,7 +21,7 @@ pub fn start_miner_loop(
     config: Config,
     funnel: Funnel,
     genome_mutate_context: GenomeMutateContext,
-) {
+) -> RunMinerLoop {
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
     let mine_event_dir: PathBuf = config.mine_event_dir();
 
@@ -42,8 +42,7 @@ pub fn start_miner_loop(
     let val2 = MinerThreadMessageToCoordinator::ReadyForMining;
     tx.send(val2).unwrap();
 
-    // Launch the miner
-    let mut rml = RunMinerLoop::new(
+    RunMinerLoop::new(
         tx,
         recorder,
         dependency_manager,
@@ -54,6 +53,5 @@ pub fn start_miner_loop(
         genome,
         rng,
         terms_to_program_id,
-    );
-    rml.loop_forever();
+    )
 }

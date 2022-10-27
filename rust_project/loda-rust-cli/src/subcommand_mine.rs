@@ -1,5 +1,5 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
-use crate::mine::{FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MovingAverage, MetricsPrometheus, Recorder, SinkRecorder};
+use crate::mine::{FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MovingAverage, MetricsPrometheus, Recorder, RunMinerLoop, SinkRecorder};
 use crate::config::{Config, MinerCPUStrategy};
 use bastion::prelude::*;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode};
@@ -212,6 +212,15 @@ impl SubcommandMine {
     ) -> Result<(), ()> {
         println!("miner_worker - started!, {:?}", ctx.current().id());
 
+        // let mut rml: RunMinerLoop = start_miner_loop(
+        //     tx, 
+        //     recorder, 
+        //     terms_to_program_id,
+        //     prevent_flooding,
+        //     config,
+        //     funnel,
+        //     genome_mutate_context,
+        // );
         let mut is_mining = true;
 
         loop {
@@ -247,6 +256,8 @@ impl SubcommandMine {
                 None => {
                     if is_mining {
                         println!("miner-worker: Do 1 iteration of work");
+                        // TODO: run 1 batch of iterations, taking around 100ms.
+                        // TODO: rml.execute_batch();
                         thread::sleep(Duration::from_millis(1000));
                     } else {
                         // Not mining, sleep for a while, and poll again
@@ -350,7 +361,7 @@ impl SubcommandMine {
             let funnel_clone = funnel.clone();
             let genome_mutate_context_clone = genome_mutate_context.clone();
             let _ = tokio::spawn(async move {
-                start_miner_loop(
+                let mut rml = start_miner_loop(
                     sender_clone, 
                     recorder_clone, 
                     terms_to_program_id_arc_clone,
@@ -359,6 +370,7 @@ impl SubcommandMine {
                     funnel_clone,
                     genome_mutate_context_clone,
                 );
+                rml.loop_forever();
             });
             thread::sleep(Duration::from_millis(50));
         }

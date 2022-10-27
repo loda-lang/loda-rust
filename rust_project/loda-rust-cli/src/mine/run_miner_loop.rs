@@ -95,6 +95,18 @@ impl RunMinerLoop {
         }
     }
 
+    pub fn execute_batch(&mut self) {
+        let mut start = Instant::now();
+        loop {
+            self.execute_one_iteration();
+            let elapsed: u128 = start.elapsed().as_millis();
+            if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
+                self.submit_metrics();
+                break;
+            }
+        }
+    }
+
     fn submit_metrics(&mut self) {
         {
             let y: u64 = self.metric.number_of_miner_loop_iterations;
