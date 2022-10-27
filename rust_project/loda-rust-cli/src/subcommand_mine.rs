@@ -289,18 +289,14 @@ impl SubcommandMine {
         println!("populating terms_to_program_id");
         let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
         let padding_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
-        let load_result = load_terms_to_program_id_set(
+        let terms_to_program_id: TermsToProgramIdSet = load_terms_to_program_id_set(
             &oeis_stripped_file, 
             FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS, 
             FunnelConfig::TERM_COUNT,
             &padding_value
-        );
-        let terms_to_program_id: TermsToProgramIdSet = match load_result {
-            Ok(value) => value,
-            Err(error) => {
-                panic!("Unable to load program ids. {:?}", error);
-            }
-        };
+        )
+        .map_err(|e| anyhow::anyhow!("Unable to load terms for program ids. error: {:?}", e))?;
+
         let terms_to_program_id_arc: Arc<TermsToProgramIdSet> = Arc::new(terms_to_program_id);
 
         let prevent_flooding = self.prevent_flooding.clone();
