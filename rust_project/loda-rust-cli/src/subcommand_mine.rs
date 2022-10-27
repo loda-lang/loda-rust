@@ -202,98 +202,6 @@ impl SubcommandMine {
 
         Ok(())
     }
-
-    async fn miner_worker(
-        ctx: BastionContext,
-        tx: Sender<MinerThreadMessageToCoordinator>, 
-        recorder: Box<dyn Recorder + Send>,
-        terms_to_program_id: Arc<TermsToProgramIdSet>,
-        prevent_flooding: Arc<Mutex<PreventFlooding>>,
-        config: Config,
-        funnel: Funnel,
-        genome_mutate_context: GenomeMutateContext,    
-    ) -> Result<(), ()> {
-        println!("miner_worker - started!, {:?}", ctx.current().id());
-        let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
-
-        let mut rml: RunMinerLoop = start_miner_loop(
-            tx, 
-            recorder, 
-            terms_to_program_id,
-            prevent_flooding,
-            config,
-            funnel,
-            genome_mutate_context,
-        );
-        let mut is_mining = true;
-
-        loop {
-            // try receive, if there is no pending message, then continue working
-            // this way the worker, is kept busy, until there is an incoming message.
-            let optional_message: Option<SignedMessage> = ctx.try_recv().await;
-            match optional_message {
-                Some(message) => {
-                    MessageHandler::new(message)
-                        .on_tell(|miner_worker_message: MinerWorkerMessage, _| {
-                            println!(
-                                "miner_worker {}, received broadcast MinerWorkerMessage!:\n{:?}",
-                                ctx.current().id(),
-                                miner_worker_message
-                            );
-                            match miner_worker_message {
-                                MinerWorkerMessage::Pause => {
-                                    is_mining = false;
-                                },
-                                MinerWorkerMessage::Resume => {
-                                    is_mining = true;
-                                }
-                            }
-                        })
-                        .on_fallback(|unknown, _sender_addr| {
-                            error!(
-                                "miner_worker {}, received an unknown message!:\n{:?}",
-                                ctx.current().id(),
-                                unknown
-                            );
-                        });
-                },
-                None => {
-                    if !is_mining {
-                        // Not mining, sleep for a while, and poll again
-                        thread::sleep(Duration::from_millis(200));
-                        continue;
-                    }
-
-                    // We are mining
-                    // println!("miner-worker {}: execute_batch", ctx.current().id());
-
-                    // TODO: preserve the content of the dependency manager, and pass it on to next iteration.
-                    // Currently the dependency manager gets wiped, it's time consuming to load programs from disk.
-                    // The `Rc<ProgramRunner>` cannot be passed across thread-boundaries such as async/await.
-                    // 
-                    let mut dependency_manager = DependencyManager::new(
-                        DependencyManagerFileSystemMode::System,
-                        loda_programs_oeis_dir.clone(),
-                    );
-                    dependency_manager.set_execute_profile(ExecuteProfile::SmallLimits);
-                
-                    let result: ExecuteBatchResult = match rml.execute_batch(&mut dependency_manager) {
-                        Ok(value) => value,
-                        Err(error) => {
-                            error!(
-                                "miner_worker {}, execute_batch error: {:?}",
-                                ctx.current().id(),
-                                error
-                            );
-                            thread::sleep(Duration::from_millis(200));
-                            continue;
-                        }
-                    };
-
-                }
-            }
-        }
-    }
     
     fn spawn_workers(
         &self, 
@@ -336,7 +244,7 @@ impl SubcommandMine {
                         let funnel_clone = funnel.clone();
                         let genome_mutate_context_clone = genome_mutate_context.clone();
                         async move {
-                            Self::miner_worker(
+                            miner_worker(
                                 ctx,
                                 sender_clone, 
                                 recorder_clone, 
@@ -547,4 +455,97 @@ impl MessageProcessor {
 enum MinerWorkerMessage {
     Pause,
     Resume,
+}
+
+async fn miner_worker(
+    ctx: BastionContext,
+    tx: Sender<MinerThreadMessageToCoordinator>, 
+    recorder: Box<dyn Recorder + Send>,
+    terms_to_program_id: Arc<TermsToProgramIdSet>,
+    prevent_flooding: Arc<Mutex<PreventFlooding>>,
+    config: Config,
+    funnel: Funnel,
+    genome_mutate_context: GenomeMutateContext,    
+) -> Result<(), ()> {
+    println!("miner_worker - started!, {:?}", ctx.current().id());
+    let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
+
+    let mut rml: RunMinerLoop = start_miner_loop(
+        tx, 
+        recorder, 
+        terms_to_program_id,
+        prevent_flooding,
+        config,
+        funnel,
+        genome_mutate_context,
+    );
+    let mut is_mining = true;
+
+    loop {
+        // try receive, if there is no pending message, then continue working
+        // this way the worker, is kept busy, until there is an incoming message.
+        let optional_message: Option<SignedMessage> = ctx.try_recv().await;
+        match optional_message {
+            Some(message) => {
+                MessageHandler::new(message)
+                    .on_tell(|miner_worker_message: MinerWorkerMessage, _| {
+                        println!(
+                            "miner_worker {}, received broadcast MinerWorkerMessage!:\n{:?}",
+                            ctx.current().id(),
+                            miner_worker_message
+                        );
+                        match miner_worker_message {
+                            MinerWorkerMessage::Pause => {
+                                is_mining = false;
+                            },
+                            MinerWorkerMessage::Resume => {
+                                is_mining = true;
+                            }
+                        }
+                    })
+                    .on_fallback(|unknown, _sender_addr| {
+                        error!(
+                            "miner_worker {}, received an unknown message!:\n{:?}",
+                            ctx.current().id(),
+                            unknown
+                        );
+                    });
+            },
+            None => {
+                if !is_mining {
+                    // Not mining, sleep for a while, and poll again
+                    thread::sleep(Duration::from_millis(200));
+                    continue;
+                }
+
+                // We are mining
+                // println!("miner-worker {}: execute_batch", ctx.current().id());
+
+                // TODO: preserve the content of the dependency manager, and pass it on to next iteration.
+                // Currently the dependency manager gets wiped, it's time consuming to load programs from disk.
+                // The `Rc<ProgramRunner>` cannot be passed across thread-boundaries such as async/await.
+                // 
+                let mut dependency_manager = DependencyManager::new(
+                    DependencyManagerFileSystemMode::System,
+                    loda_programs_oeis_dir.clone(),
+                );
+                dependency_manager.set_execute_profile(ExecuteProfile::SmallLimits);
+            
+                let result: ExecuteBatchResult = match rml.execute_batch(&mut dependency_manager) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        error!(
+                            "miner_worker {}, execute_batch error: {:?}",
+                            ctx.current().id(),
+                            error
+                        );
+                        thread::sleep(Duration::from_millis(200));
+                        continue;
+                    }
+                };
+
+                // println!("execute_batch stats: {:?}", result);
+            }
+        }
+    }
 }
