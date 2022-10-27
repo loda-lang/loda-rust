@@ -189,7 +189,8 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("postmine") {
-        return subcommand_postmine();
+        subcommand_postmine()?;
+        return Ok(());
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("similar") {
