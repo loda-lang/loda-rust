@@ -2,7 +2,7 @@ use loda_rust_core;
 use crate::config::Config;
 use crate::oeis::TermsToProgramIdSet;
 use super::{RunMinerLoop, MinerThreadMessageToCoordinator, Recorder};
-use super::{create_funnel, Funnel};
+use super::Funnel;
 use super::PreventFlooding;
 use super::{create_genome_mutate_context, GenomeMutateContext, Genome};
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
@@ -17,13 +17,12 @@ pub fn start_miner_loop(
     tx: Sender<MinerThreadMessageToCoordinator>, 
     recorder: Box<dyn Recorder + Send>,
     terms_to_program_id: Arc<TermsToProgramIdSet>,
-    prevent_flooding: Arc<Mutex<PreventFlooding>>
+    prevent_flooding: Arc<Mutex<PreventFlooding>>,
+    funnel: Funnel,
 ) {
     let config = Config::load();
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
     let mine_event_dir: PathBuf = config.mine_event_dir();
-
-    let funnel: Funnel = create_funnel(&config);
 
     let context: GenomeMutateContext = create_genome_mutate_context(&config);
 
