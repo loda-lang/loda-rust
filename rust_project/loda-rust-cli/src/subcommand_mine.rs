@@ -45,7 +45,7 @@ pub struct SubcommandMine {
 impl SubcommandMine {
     pub async fn run(
         metrics_mode: SubcommandMineMetricsMode
-    ) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    ) -> anyhow::Result<()> {
         Bastion::init();
         
         let mut instance = SubcommandMine::new(metrics_mode);
@@ -107,7 +107,7 @@ impl SubcommandMine {
         print_info_about_start_conditions();
     }
 
-    fn populate_prevent_flooding_mechanism(&mut self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    fn populate_prevent_flooding_mechanism(&mut self) -> anyhow::Result<()> {
         let start = Instant::now();
         let loda_programs_oeis_dir: PathBuf = self.config.loda_programs_oeis_dir();
         let mine_event_dir: PathBuf = self.config.mine_event_dir();
@@ -137,7 +137,7 @@ impl SubcommandMine {
         Ok(())
     }
 
-    async fn run_miner_workers(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    async fn run_miner_workers(&self) -> anyhow::Result<()> {
         match self.metrics_mode {
             SubcommandMineMetricsMode::NoMetricsServer => {
                 return self.run_without_metrics().await
@@ -148,7 +148,7 @@ impl SubcommandMine {
         }
     }
 
-    async fn run_without_metrics(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    async fn run_without_metrics(&self) -> anyhow::Result<()> {
         let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
 
         let minercoordinator_thread = tokio::spawn(async move {
@@ -160,12 +160,13 @@ impl SubcommandMine {
         self.spawn_workers(sender, recorder);
 
         // Run forever, press CTRL-C to stop.
-        minercoordinator_thread.await?;
+        minercoordinator_thread.await
+            .map_err(|e| anyhow::anyhow!("run_without_metrics - minercoordinator_thread failed with error: {:?}", e))?;
 
         Ok(())
     }
 
-    async fn run_with_prometheus_metrics(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    async fn run_with_prometheus_metrics(&self) -> anyhow::Result<()> {
         let listen_on_port: u16 = self.config.miner_metrics_listen_port();
         println!("miner metrics can be downloaded here: http://localhost:{}/metrics", listen_on_port);
 
@@ -193,7 +194,8 @@ impl SubcommandMine {
         self.spawn_workers(sender, recorder);
 
         // Run forever, press CTRL-C to stop.
-        minercoordinator_thread.await?;
+        minercoordinator_thread.await
+            .map_err(|e| anyhow::anyhow!("run_with_prometheus_metrics - minercoordinator_thread failed with error: {:?}", e))?;
 
         Ok(())
     }
