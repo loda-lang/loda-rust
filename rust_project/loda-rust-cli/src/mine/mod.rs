@@ -1,5 +1,7 @@
 //! Mine for LODA programs by mutating until there is a match.
 mod check_fixed_length_sequence;
+mod create_funnel;
+mod create_genome_mutate_context;
 mod funnel;
 mod funnel_config;
 mod genome;
@@ -28,6 +30,8 @@ mod thread_message_channel;
 mod wildcard_checker;
 
 pub use check_fixed_length_sequence::{CheckFixedLengthSequence, NamedCacheFile, PopulateBloomfilter};
+pub use create_funnel::create_funnel;
+pub use create_genome_mutate_context::create_genome_mutate_context;
 pub use funnel::Funnel;
 pub use funnel_config::FunnelConfig;
 pub use genome_mutate_context::GenomeMutateContext;

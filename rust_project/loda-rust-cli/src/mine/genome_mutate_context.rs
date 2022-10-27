@@ -8,6 +8,7 @@ use rand::Rng;
 use rand::seq::SliceRandom;
 use std::collections::HashSet;
 
+#[derive(Clone)]
 pub struct GenomeMutateContext {
     valid_program_ids: Vec<u32>,
     initial_genome_program_ids: Vec<u32>, 

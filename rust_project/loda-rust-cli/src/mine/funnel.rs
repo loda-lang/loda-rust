@@ -30,6 +30,7 @@ use loda_rust_core::util::BigIntVec;
 /// Then replace the second last term with a wildcard symbol, and try again.
 /// Then replace the third last term with a wildcard symbol, and try again.
 /// After around 10 attempts it can be determined if it's in the bloomfilter or not.
+#[derive(Clone)]
 pub struct Funnel {
     checker10: CheckFixedLengthSequence,
     checker20: CheckFixedLengthSequence,
