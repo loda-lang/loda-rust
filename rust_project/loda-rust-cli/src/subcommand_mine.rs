@@ -89,16 +89,14 @@ impl SubcommandMine {
         number_of_threads.max(1)
     }
 
-    fn check_prerequisits(&self) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    fn check_prerequisits(&self) -> anyhow::Result<()> {
         let path0 = self.config.analytics_dir();
         if !path0.is_dir() {
-            error!("Could not find analytics dir at path: {:?}. Please run 'loda-rust analytics' to create this dir.", path0);
-            panic!("check_prerequisits - missing analytics_dir");
+            return Err(anyhow::anyhow!("check_prerequisits - missing analytics_dir. Cannot find analytics_dir at path: {:?}. Please run 'loda-rust analytics' to create this dir.", path0));
         }
         let path1 = self.config.mine_event_dir();
         if !path1.is_dir() {
-            error!("Could not find mine_event_dir at path: {:?}. Please rerun 'loda-rust install' to create this dir.", path1);
-            panic!("check_prerequisits - missing mine_event_dir");
+            return Err(anyhow::anyhow!("check_prerequisits - missing mine_event_dir. Cannot find mine_event_dir at path: {:?}. Please rerun 'loda-rust install' to create this dir.", path1));
         }
         Ok(())
     }
