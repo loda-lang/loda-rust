@@ -19,6 +19,7 @@ use std::time::Instant;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
 
+#[derive(Clone)]
 pub struct CheckFixedLengthSequence {
     bloom: Bloom::<BigIntVec>,
     bloomfilter_wildcard_magic_value: BigInt,

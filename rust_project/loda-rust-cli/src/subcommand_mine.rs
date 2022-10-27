@@ -4,6 +4,8 @@ use crate::config::{Config, MinerCPUStrategy};
 use bastion::prelude::*;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode};
 use loda_rust_core::execute::ProgramCache;
+use crate::mine::{create_funnel, Funnel};
+use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use num_bigint::{BigInt, ToBigInt};
 use std::thread;
 use std::time::Duration;
@@ -203,7 +205,10 @@ impl SubcommandMine {
         tx: Sender<MinerThreadMessageToCoordinator>, 
         recorder: Box<dyn Recorder + Send>,
         terms_to_program_id: Arc<TermsToProgramIdSet>,
-        prevent_flooding: Arc<Mutex<PreventFlooding>>    
+        prevent_flooding: Arc<Mutex<PreventFlooding>>,
+        config: Config,
+        funnel: Funnel,
+        genome_mutate_context: GenomeMutateContext,    
     ) -> Result<(), ()> {
         println!("miner_worker - started!, {:?}", ctx.current().id());
 
@@ -257,6 +262,7 @@ impl SubcommandMine {
         sender: std::sync::mpsc::Sender<MinerThreadMessageToCoordinator>, 
         recorder: Box<dyn Recorder + Send>
     ) {
+        println!("populating terms_to_program_id");
         let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
         let padding_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
         let load_result = load_terms_to_program_id_set(
@@ -274,6 +280,13 @@ impl SubcommandMine {
         let terms_to_program_id_arc: Arc<TermsToProgramIdSet> = Arc::new(terms_to_program_id);
 
         let prevent_flooding = self.prevent_flooding.clone();
+        println!("populating funnel");
+        let funnel: Funnel = create_funnel(&self.config);
+
+        println!("populating genome_mutate_context");
+        let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(&self.config);
+
+        let config_original: Config = self.config.clone();
 
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
@@ -285,13 +298,19 @@ impl SubcommandMine {
                         let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
                         let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
                         let prevent_flooding_clone = prevent_flooding.clone();
+                        let config_clone = config_original.clone();
+                        let funnel_clone = funnel.clone();
+                        let genome_mutate_context_clone = genome_mutate_context.clone();
                         async move {
                             Self::miner_worker(
                                 ctx,
                                 sender_clone, 
                                 recorder_clone, 
                                 terms_to_program_id_arc_clone,
-                                prevent_flooding_clone
+                                prevent_flooding_clone,
+                                config_clone,
+                                funnel_clone,
+                                genome_mutate_context_clone,
                             ).await
                         }
                     })
@@ -327,15 +346,21 @@ impl SubcommandMine {
             let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
             let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
             let prevent_flooding_clone = self.prevent_flooding.clone();
+            let config_clone = self.config.clone();
+            let funnel_clone = funnel.clone();
+            let genome_mutate_context_clone = genome_mutate_context.clone();
             let _ = tokio::spawn(async move {
                 start_miner_loop(
                     sender_clone, 
                     recorder_clone, 
                     terms_to_program_id_arc_clone,
-                    prevent_flooding_clone
+                    prevent_flooding_clone,
+                    config_clone,
+                    funnel_clone,
+                    genome_mutate_context_clone,
                 );
             });
-            thread::sleep(Duration::from_millis(2000));
+            thread::sleep(Duration::from_millis(50));
         }
         println!("\nPress CTRL-C to stop the miner.");
     }
