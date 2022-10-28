@@ -337,40 +337,6 @@ impl SubcommandMine {
         Bastion::start();
         println!("\nPress CTRL-C to stop the miner.");
 
-        // let miner_worker_distributor = Distributor::named("miner_worker");
-
-        thread::sleep(Duration::from_millis(5000));
-
-        println!("pause");
-        match self.shared_miner_worker_state.lock() {
-            Ok(mut state) => {
-                *state = SharedMinerWorkerState::Paused;
-            },
-            Err(error) => {
-                error!("Unable to Pause all miner_workers. error: {:?}", error);
-            }
-        }
-
-        // miner_worker_distributor
-        //     .tell_everyone(MinerWorkerMessage::Pause)
-        //     .context("unable to pause miner workers")?;
-
-        thread::sleep(Duration::from_millis(5000));
-
-        println!("resume");
-        match self.shared_miner_worker_state.lock() {
-            Ok(mut state) => {
-                *state = SharedMinerWorkerState::Mining;
-            },
-            Err(error) => {
-                error!("Unable to resume mining in all miner_workers. error: {:?}", error);
-            }
-        }
-
-        // miner_worker_distributor
-        //     .tell_everyone(MinerWorkerMessage::Resume)
-        //     .context("unable to resume miner workers")?;
-        
         Ok(())
     }
 }
