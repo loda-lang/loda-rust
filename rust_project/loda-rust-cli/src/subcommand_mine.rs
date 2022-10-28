@@ -36,11 +36,46 @@ pub enum SubcommandMineMetricsMode {
 
 type MyRegistry = std::sync::Arc<std::sync::Mutex<prometheus_client::registry::Registry<std::boxed::Box<dyn prometheus_client::encoding::text::SendEncodeMetric>>>>;
 
+
+#[derive(Debug)]
+pub struct MineEventDirState {
+    number_of_mined_high_prio: usize,
+    number_of_mined_low_prio: usize,
+}
+
+impl MineEventDirState {
+    pub fn new() -> Self {
+        Self {
+            number_of_mined_high_prio: 0, 
+            number_of_mined_low_prio: 0,
+        }
+    }
+
+    pub fn number_of_mined_high_prio(&self) -> usize {
+        self.number_of_mined_high_prio
+    }
+
+    pub fn number_of_mined_low_prio(&self) -> usize {
+        self.number_of_mined_low_prio
+    }
+
+    pub fn accumulate_stats(&mut self, execute_batch_result: &ExecuteBatchResult) {
+        self.number_of_mined_low_prio += execute_batch_result.number_of_mined_low_prio();
+        self.number_of_mined_high_prio += execute_batch_result.number_of_mined_high_prio();
+    }
+
+    pub fn has_reached_mining_limit(&self) -> bool {
+        self.number_of_mined_high_prio >= 40
+    }
+}
+
+
 pub struct SubcommandMine {
     metrics_mode: SubcommandMineMetricsMode,
     number_of_workers: usize,
     config: Config,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
+    mine_event_dir_state: Arc<Mutex<MineEventDirState>>,
 }
 
 impl SubcommandMine {
@@ -70,6 +105,7 @@ impl SubcommandMine {
             number_of_workers: number_of_workers,
             config: config,
             prevent_flooding: Arc::new(Mutex::new(PreventFlooding::new())),
+            mine_event_dir_state: Arc::new(Mutex::new(MineEventDirState::new())),
         }
     }
 
@@ -221,14 +257,15 @@ impl SubcommandMine {
 
         let terms_to_program_id_arc: Arc<TermsToProgramIdSet> = Arc::new(terms_to_program_id);
 
-        let prevent_flooding = self.prevent_flooding.clone();
         println!("populating funnel");
         let funnel: Funnel = create_funnel(&self.config);
-
+        
         println!("populating genome_mutate_context");
         let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(&self.config);
-
+        
         let config_original: Config = self.config.clone();
+        let prevent_flooding = self.prevent_flooding.clone();
+        let mine_event_dir_state = self.mine_event_dir_state.clone();
 
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
@@ -240,6 +277,7 @@ impl SubcommandMine {
                         let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
                         let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
                         let prevent_flooding_clone = prevent_flooding.clone();
+                        let mine_event_dir_state_clone = mine_event_dir_state.clone();
                         let config_clone = config_original.clone();
                         let funnel_clone = funnel.clone();
                         let genome_mutate_context_clone = genome_mutate_context.clone();
@@ -250,6 +288,7 @@ impl SubcommandMine {
                                 recorder_clone, 
                                 terms_to_program_id_arc_clone,
                                 prevent_flooding_clone,
+                                mine_event_dir_state_clone,
                                 config_clone,
                                 funnel_clone,
                                 genome_mutate_context_clone,
@@ -440,12 +479,15 @@ async fn miner_worker(
     recorder: Box<dyn Recorder + Send>,
     terms_to_program_id: Arc<TermsToProgramIdSet>,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
+    mine_event_dir_state: Arc<Mutex<MineEventDirState>>,
     config: Config,
     funnel: Funnel,
     genome_mutate_context: GenomeMutateContext,    
 ) -> Result<(), ()> {
     println!("miner_worker - started!, {:?}", ctx.current().id());
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
+
+    let miner_worker_distributor = Distributor::named("miner_worker");
 
     let mut rml: RunMinerLoop = start_miner_loop(
         tx, 
@@ -520,8 +562,31 @@ async fn miner_worker(
                         continue;
                     }
                 };
-
                 // println!("execute_batch stats: {:?}", result);
+
+                let mut has_reached_mining_limit = false;
+                match mine_event_dir_state.lock() {
+                    Ok(mut state) => {
+                        state.accumulate_stats(&result);
+                        // if state.has_reached_mining_limit() {
+                        //     println!("reached mining limit. {:?}", state);
+                        //     has_reached_mining_limit = true;
+                        // }
+                    },
+                    Err(error) => {
+                        error!("miner_worker: mine_event_dir_state.lock() failed. {:?}", error);
+                    }
+                }
+
+                if has_reached_mining_limit {
+                    is_mining = false;
+
+                    let tell_result = miner_worker_distributor
+                        .tell_everyone(MinerWorkerMessage::Pause);
+                    if let Err(error) = tell_result {
+                        error!("miner_worker: Unable to Pause all miner_workers. error: {:?}", error);
+                    }        
+                }
             }
         }
     }
