@@ -27,7 +27,7 @@ use crate::common::find_asm_files_recursively;
 
 extern crate num_cpus;
 
-const MINEEVENTDIR_HIGH_PRIORITY_LIMIT: usize = 10;
+const MINEEVENTDIR_HIGH_PRIORITY_LIMIT: usize = 40;
 const PREVENT_FLOODING_CACHE_CAPACITY: usize = 300000;
 
 #[derive(Debug)]
