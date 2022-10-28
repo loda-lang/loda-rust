@@ -82,9 +82,9 @@ pub fn create_genome_mutate_context(config: &Config) -> GenomeMutateContext {
         if invalid_program_ids_hashset.contains(program_id) {
             continue;
         }
-        if dontoptimize_program_ids_hashset.contains(program_id) {
-            continue;
-        }
+        // if dontoptimize_program_ids_hashset.contains(program_id) {
+        //     continue;
+        // }
         optimize_program_ids.push(*program_id);
     }
 
