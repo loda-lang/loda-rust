@@ -52,6 +52,11 @@ impl MineEventDirState {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.number_of_mined_high_prio = 0;
+        self.number_of_mined_low_prio = 0;
+    }
+
     pub fn number_of_mined_high_prio(&self) -> usize {
         self.number_of_mined_high_prio
     }
@@ -271,6 +276,9 @@ impl SubcommandMine {
         let mine_event_dir_state = self.mine_event_dir_state.clone();
         let shared_miner_worker_state = self.shared_miner_worker_state.clone();
 
+        let mine_event_dir_state2 = self.mine_event_dir_state.clone();
+        let shared_miner_worker_state2 = self.shared_miner_worker_state.clone();
+
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
@@ -309,7 +317,18 @@ impl SubcommandMine {
                     children
                         .with_redundancy(1)
                         .with_distributor(Distributor::named("postmine_worker"))
-                        .with_exec(postmine_worker)
+                        .with_exec(move |ctx: BastionContext| {
+                            let mine_event_dir_state_clone = mine_event_dir_state2.clone();
+                            let shared_miner_worker_state_clone = shared_miner_worker_state2.clone();
+                            async move {
+                                postmine_worker(
+                                    ctx,
+                                    mine_event_dir_state_clone,
+                                    shared_miner_worker_state_clone,
+                                ).await
+                            }
+                        })
+    
                 })
             })
         })
@@ -643,7 +662,7 @@ async fn miner_worker(
                     }
 
                     if trigger_start_postmine {
-                        println!("!!!!!!!!!!!!!! start postmine");
+                        println!("trigger start postmine");
                         thread::sleep(Duration::from_millis(1000));
                         let tell_result = postmine_worker_distributor
                             .tell_everyone(PostmineWorkerMessage::StartPostmineJob);
@@ -662,7 +681,11 @@ enum PostmineWorkerMessage {
     StartPostmineJob,
 }
 
-async fn postmine_worker(ctx: BastionContext) -> Result<(), ()> {
+async fn postmine_worker(
+    ctx: BastionContext,
+    mine_event_dir_state: Arc<Mutex<MineEventDirState>>,
+    shared_miner_worker_state: Arc<Mutex<SharedMinerWorkerState>>,
+) -> Result<(), ()> {
     loop {
         MessageHandler::new(ctx.recv().await?)
             .on_tell(|message: PostmineWorkerMessage, _| {
@@ -685,8 +708,28 @@ async fn postmine_worker(ctx: BastionContext) -> Result<(), ()> {
                             }
                         }
                         // TODO: loop multiple times until all pending have been processed.
-                        // TODO: update/reset mine_event_dir_state, so counters are 0.
-                        // TODO: resume the miner_workers
+
+                        // update/reset mine_event_dir_state, so counters are 0.
+                        match mine_event_dir_state.lock() {
+                            Ok(mut state) => {
+                                state.reset();
+                            },
+                            Err(error) => {
+                                error!("postmine_worker: mine_event_dir_state.lock() failed. {:?}", error);
+                            }
+                        }
+
+                        // Resume the miner_workers
+                        println!("trigger resume mining");
+                        thread::sleep(Duration::from_millis(1000));
+                        match shared_miner_worker_state.lock() {
+                            Ok(mut state) => {
+                                *state = SharedMinerWorkerState::Mining;
+                            },
+                            Err(error) => {
+                                error!("postmine_worker: Unable to change state=Mining. error: {:?}", error);
+                            }
+                        }
                     }
                 }
             });
