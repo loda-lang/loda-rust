@@ -3,7 +3,7 @@ use crate::oeis::TermsToProgramIdSet;
 use super::{RunMinerLoop, MinerThreadMessageToCoordinator, Recorder};
 use super::Funnel;
 use super::PreventFlooding;
-use super::{GenomeMutateContext, Genome};
+use super::GenomeMutateContext;
 use std::path::PathBuf;
 use rand::{RngCore, thread_rng};
 use rand::SeedableRng;
@@ -27,11 +27,6 @@ pub fn start_miner_loop(
     let initial_random_seed: u64 = rng.next_u64();
     let rng: StdRng = StdRng::seed_from_u64(initial_random_seed);
 
-    let genome = Genome::new();
-
-    let val2 = MinerThreadMessageToCoordinator::ReadyForMining;
-    tx.send(val2).unwrap();
-
     RunMinerLoop::new(
         tx,
         recorder,
@@ -39,7 +34,6 @@ pub fn start_miner_loop(
         &mine_event_dir,
         prevent_flooding,
         genome_mutate_context,
-        genome,
         rng,
         terms_to_program_id,
     )

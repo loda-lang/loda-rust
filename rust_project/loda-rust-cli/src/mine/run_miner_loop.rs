@@ -86,7 +86,6 @@ impl RunMinerLoop {
         mine_event_dir: &Path,
         prevent_flooding: Arc<Mutex<PreventFlooding>>,
         context: GenomeMutateContext,
-        genome: Genome,
         rng: StdRng,
         terms_to_program_id: Arc<TermsToProgramIdSet>
     ) -> Self {
@@ -99,7 +98,7 @@ impl RunMinerLoop {
             cache: ProgramCache::with_capacity(capacity),
             prevent_flooding: prevent_flooding,
             context: context,
-            genome: genome,
+            genome: Genome::new(),
             rng: rng,
             metric: MetricsRunMinerLoop::new(),
             current_program_id: 0,

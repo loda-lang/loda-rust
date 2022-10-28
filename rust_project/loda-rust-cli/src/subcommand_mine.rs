@@ -473,9 +473,6 @@ impl MessageProcessor {
 
     fn process_message(&mut self, message: MinerThreadMessageToCoordinator) {
         match message {
-            MinerThreadMessageToCoordinator::ReadyForMining => {
-                println!("Miner instance is ready");
-            },
             MinerThreadMessageToCoordinator::NumberOfIterations(value) => {
                 self.number_of_iterations += value;
             }
@@ -493,8 +490,8 @@ impl MessageProcessor {
 
 #[derive(Debug, Clone)]
 enum MinerWorkerMessage {
-    Pause,
-    Resume,
+    #[allow(dead_code)]
+    Ping,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -515,7 +512,7 @@ async fn miner_worker(
     funnel: Funnel,
     genome_mutate_context: GenomeMutateContext,    
 ) -> Result<(), ()> {
-    println!("miner_worker - started!, {:?}", ctx.current().id());
+    println!("miner_worker - started, {:?}", ctx.current().id());
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
 
     let postmine_worker_distributor = Distributor::named("postmine_worker");
@@ -544,11 +541,8 @@ async fn miner_worker(
                             miner_worker_message
                         );
                         match miner_worker_message {
-                            MinerWorkerMessage::Pause => {
-                                println!("Pause");
-                            },
-                            MinerWorkerMessage::Resume => {
-                                println!("Resume");
+                            MinerWorkerMessage::Ping => {
+                                println!("Ping");
                             }
                         }
                     })
@@ -607,7 +601,7 @@ async fn miner_worker(
                     Ok(mut state) => {
                         state.accumulate_stats(&result);
                         if state.has_reached_mining_limit() {
-                            println!("reached mining limit. {:?}", state);
+                            // debug!("reached mining limit. {:?}", state);
                             has_reached_mining_limit = true;
                         }
                     },
