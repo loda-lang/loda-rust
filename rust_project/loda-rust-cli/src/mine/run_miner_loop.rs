@@ -554,7 +554,7 @@ impl RunMinerLoop {
         }
 
         if priority == ProgramCandidatePriority::Low {
-            println!("suppressing low priority program");
+            debug!("suppressing low priority program");
             return;
         }
 

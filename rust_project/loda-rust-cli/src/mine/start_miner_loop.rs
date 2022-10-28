@@ -26,7 +26,6 @@ pub fn start_miner_loop(
     let mut rng = thread_rng();
     let initial_random_seed: u64 = rng.next_u64();
     let rng: StdRng = StdRng::seed_from_u64(initial_random_seed);
-    println!("random_seed = {}", initial_random_seed);
 
     let genome = Genome::new();
 
