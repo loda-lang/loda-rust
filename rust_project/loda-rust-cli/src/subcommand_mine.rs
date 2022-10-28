@@ -76,6 +76,7 @@ pub struct SubcommandMine {
     config: Config,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
     mine_event_dir_state: Arc<Mutex<MineEventDirState>>,
+    shared_miner_worker_state: Arc<Mutex<SharedMinerWorkerState>>,
 }
 
 impl SubcommandMine {
@@ -106,6 +107,7 @@ impl SubcommandMine {
             config: config,
             prevent_flooding: Arc::new(Mutex::new(PreventFlooding::new())),
             mine_event_dir_state: Arc::new(Mutex::new(MineEventDirState::new())),
+            shared_miner_worker_state: Arc::new(Mutex::new(SharedMinerWorkerState::Mining)),
         }
     }
 
@@ -266,6 +268,7 @@ impl SubcommandMine {
         let config_original: Config = self.config.clone();
         let prevent_flooding = self.prevent_flooding.clone();
         let mine_event_dir_state = self.mine_event_dir_state.clone();
+        let shared_miner_worker_state = self.shared_miner_worker_state.clone();
 
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
@@ -278,6 +281,7 @@ impl SubcommandMine {
                         let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
                         let prevent_flooding_clone = prevent_flooding.clone();
                         let mine_event_dir_state_clone = mine_event_dir_state.clone();
+                        let shared_miner_worker_state_clone = shared_miner_worker_state.clone();
                         let config_clone = config_original.clone();
                         let funnel_clone = funnel.clone();
                         let genome_mutate_context_clone = genome_mutate_context.clone();
@@ -289,6 +293,7 @@ impl SubcommandMine {
                                 terms_to_program_id_arc_clone,
                                 prevent_flooding_clone,
                                 mine_event_dir_state_clone,
+                                shared_miner_worker_state_clone,
                                 config_clone,
                                 funnel_clone,
                                 genome_mutate_context_clone,
@@ -300,22 +305,42 @@ impl SubcommandMine {
         .map_err(|e| anyhow::anyhow!("couldn't setup bastion. error: {:?}", e))?;
 
         Bastion::start();
-
-        let miner_worker_distributor = Distributor::named("miner_worker");
-
-        thread::sleep(Duration::from_millis(5000));
-
-        miner_worker_distributor
-            .tell_everyone(MinerWorkerMessage::Pause)
-            .context("unable to pause miner workers")?;
-
-        thread::sleep(Duration::from_millis(5000));
-
-        miner_worker_distributor
-            .tell_everyone(MinerWorkerMessage::Resume)
-            .context("unable to resume miner workers")?;
-        
         println!("\nPress CTRL-C to stop the miner.");
+
+        // let miner_worker_distributor = Distributor::named("miner_worker");
+
+        thread::sleep(Duration::from_millis(5000));
+
+        println!("pause");
+        match self.shared_miner_worker_state.lock() {
+            Ok(mut state) => {
+                *state = SharedMinerWorkerState::Paused;
+            },
+            Err(error) => {
+                error!("Unable to Pause all miner_workers. error: {:?}", error);
+            }
+        }
+
+        // miner_worker_distributor
+        //     .tell_everyone(MinerWorkerMessage::Pause)
+        //     .context("unable to pause miner workers")?;
+
+        thread::sleep(Duration::from_millis(5000));
+
+        println!("resume");
+        match self.shared_miner_worker_state.lock() {
+            Ok(mut state) => {
+                *state = SharedMinerWorkerState::Mining;
+            },
+            Err(error) => {
+                error!("Unable to resume mining in all miner_workers. error: {:?}", error);
+            }
+        }
+
+        // miner_worker_distributor
+        //     .tell_everyone(MinerWorkerMessage::Resume)
+        //     .context("unable to resume miner workers")?;
+        
         Ok(())
     }
 }
@@ -473,6 +498,12 @@ enum MinerWorkerMessage {
     Resume,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum SharedMinerWorkerState {
+    Mining,
+    Paused,
+}
+
 async fn miner_worker(
     ctx: BastionContext,
     tx: Sender<MinerThreadMessageToCoordinator>, 
@@ -480,6 +511,7 @@ async fn miner_worker(
     terms_to_program_id: Arc<TermsToProgramIdSet>,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
     mine_event_dir_state: Arc<Mutex<MineEventDirState>>,
+    shared_miner_worker_state: Arc<Mutex<SharedMinerWorkerState>>,
     config: Config,
     funnel: Funnel,
     genome_mutate_context: GenomeMutateContext,    
@@ -487,7 +519,8 @@ async fn miner_worker(
     println!("miner_worker - started!, {:?}", ctx.current().id());
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
 
-    let miner_worker_distributor = Distributor::named("miner_worker");
+    // let miner_worker_distributor = Distributor::named("miner_worker");
+    // let postmine_worker_distributor = Distributor::named("postmine_worker");
 
     let mut rml: RunMinerLoop = start_miner_loop(
         tx, 
@@ -498,7 +531,6 @@ async fn miner_worker(
         funnel,
         genome_mutate_context,
     );
-    let mut is_mining = true;
 
     loop {
         // try receive, if there is no pending message, then continue working
@@ -515,10 +547,10 @@ async fn miner_worker(
                         );
                         match miner_worker_message {
                             MinerWorkerMessage::Pause => {
-                                is_mining = false;
+                                println!("Pause");
                             },
                             MinerWorkerMessage::Resume => {
-                                is_mining = true;
+                                println!("Resume");
                             }
                         }
                     })
@@ -531,7 +563,15 @@ async fn miner_worker(
                     });
             },
             None => {
-                if !is_mining {
+                let the_state: SharedMinerWorkerState = match shared_miner_worker_state.lock() {
+                    Ok(state) => *state,
+                    Err(error) => {
+                        error!("miner_worker. shared_miner_worker_state. Unable to lock mutex. {:?}", error);
+                        thread::sleep(Duration::from_millis(200));
+                        continue;
+                    }
+                };
+                if the_state == SharedMinerWorkerState::Paused {
                     // Not mining, sleep for a while, and poll again
                     thread::sleep(Duration::from_millis(200));
                     continue;
@@ -579,13 +619,28 @@ async fn miner_worker(
                 }
 
                 if has_reached_mining_limit {
-                    is_mining = false;
+                    let mut trigger_start_postmine = false;
+                    match shared_miner_worker_state.lock() {
+                        Ok(mut state) => {
+                            if *state == SharedMinerWorkerState::Mining {
+                                trigger_start_postmine = true;
+                            }
+                            *state = SharedMinerWorkerState::Paused;
+                        },
+                        Err(error) => {
+                            error!("miner_worker: Unable to Pause all miner_workers. error: {:?}", error);
+                        }
+                    }
 
-                    let tell_result = miner_worker_distributor
-                        .tell_everyone(MinerWorkerMessage::Pause);
-                    if let Err(error) = tell_result {
-                        error!("miner_worker: Unable to Pause all miner_workers. error: {:?}", error);
-                    }        
+                    if trigger_start_postmine {
+                        println!("!!!!!!!!!!!!!! start postmine");
+                        thread::sleep(Duration::from_millis(1000));
+                        // let tell_result = postmine_worker_distributor
+                        //     .tell_everyone(PostmineWorkerMessage::Start);
+                        // if let Err(error) = tell_result {
+                        //     error!("miner_worker: Unable to Start all postmine_worker. error: {:?}", error);
+                        // }
+                    }
                 }
             }
         }
