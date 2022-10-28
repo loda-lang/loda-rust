@@ -553,6 +553,11 @@ impl RunMinerLoop {
             }
         }
 
+        if priority == ProgramCandidatePriority::Low {
+            println!("suppressing low priority program");
+            return;
+        }
+
         // Yay, this candidate program seems to be good.
         // It's either an entirely new program.
         // Or it's faster than the existing program.
@@ -587,6 +592,7 @@ impl RunMinerLoop {
     }
 }
 
+#[derive(Debug, PartialEq)]
 enum ProgramCandidatePriority {
     Low,
     High,
