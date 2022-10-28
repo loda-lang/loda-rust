@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::common::{oeis_ids_from_program_string, OeisIdStringMap};
-use crate::common::{find_asm_files_recursively, find_pending_programs, load_program_ids_csv_file, SimpleLog};
+use crate::common::{load_program_ids_csv_file, PendingProgramsWithPriority, SimpleLog};
 use crate::oeis::{ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use super::{batch_lookup_names, terms_from_program, FormatProgram, path_for_oeis_program};
@@ -23,7 +23,6 @@ use core::cell::RefCell;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
 use anyhow::Context;
-use regex::Regex;
 
 type CandidateProgramItem = Rc<RefCell<CandidateProgram>>;
 
@@ -164,33 +163,12 @@ impl PostMine {
     /// It looks for all the LODA assembly programs there are.
     /// If programs already contain `keep` or `reject` then the files are ignored.
     fn obtain_paths_for_processing(&mut self) -> anyhow::Result<()> {
-        let mine_event_dir: PathBuf = self.config.mine_event_dir();
-        let paths_all: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
-        let paths_pending_programs: Vec<PathBuf> = match find_pending_programs(&paths_all, true) {
-            Ok(value) => value,
-            Err(error) => {
-                return Err(anyhow::anyhow!("find_pending_programs error. {:?}", error));
-            }
-        };
+        let pending = PendingProgramsWithPriority::create(&self.config)?;
+        println!("Arrange programs by priority. high prio: {}, low prio: {}", pending.paths_high_prio().len(), pending.paths_low_prio().len());
 
-        // If this is a new program, then place it in the high priority queue, so it gets analyzed ASAP.
-        // Otherwise the program ends up in the low priority queue.
-        let mut paths_high_prio = Vec::<&Path>::with_capacity(paths_pending_programs.len());
-        let mut paths_low_prio = Vec::<&Path>::with_capacity(paths_pending_programs.len());
-        let regex: Regex = Regex::new("priority: high").unwrap();
-        for path in &paths_pending_programs {
-            let contents: String = fs::read_to_string(&path)
-                .with_context(|| format!("Unable to read program file: {:?}", path))?;
-            match regex.captures(&contents) {
-                Some(_) => {
-                    paths_high_prio.push(&path);
-                },
-                None => {
-                    paths_low_prio.push(&path);
-                }
-            }
-        }
-        println!("Arrange programs by priority. high prio: {}, low prio: {}", paths_high_prio.len(), paths_low_prio.len());
+        // Get references to the Path which is fixed length. PathBuf is variable length.
+        let paths_high_prio: Vec<&Path> = pending.paths_high_prio().iter().map(|path|path.as_path()).collect();
+        let paths_low_prio: Vec<&Path> = pending.paths_low_prio().iter().map(|path|path.as_path()).collect();
 
         // High priority items at the front of the queue, so they get processed first.
         // Low priority items at the end of the queue.
