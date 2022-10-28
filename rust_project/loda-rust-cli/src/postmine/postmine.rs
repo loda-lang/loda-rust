@@ -50,6 +50,7 @@ pub struct PostMine {
     candidate_programs: Vec<CandidateProgramItem>,
     dontmine_hashset: OeisIdHashSet,
     invalid_program_ids_hashset: OeisIdHashSet,
+    valid_program_ids_hashset: OeisIdHashSet,
     oeis_id_name_map: OeisIdStringMap,
     oeis_id_terms_map: OeisIdStringMap,
     loda_programs_oeis_dir: PathBuf,
@@ -59,6 +60,7 @@ pub struct PostMine {
 }
 
 impl PostMine {
+    const FOCUS_ONLY_ON_NEW_PROGRAMS: bool = true;
     const LIMIT_NUMBER_OF_PROGRAMS_FOR_PROCESSING: usize = 100;
     const MAX_LOOKUP_TERM_COUNT: usize = 100;
     const EVAL_TERM_COUNT: usize = 40;
@@ -99,6 +101,7 @@ impl PostMine {
         self.populate_candidate_programs()?;
         self.obtain_dontmine_program_ids()?;
         self.obtain_invalid_program_ids()?;
+        self.obtain_valid_program_ids()?;
         self.eval_using_loda_cpp()?;
         self.lookup_in_oeis_stripped_file()?;
         self.minimize_candidate_programs()?;
@@ -143,6 +146,7 @@ impl PostMine {
             candidate_programs: vec!(),
             dontmine_hashset: HashSet::new(),
             invalid_program_ids_hashset: HashSet::new(),
+            valid_program_ids_hashset: HashSet::new(),
             oeis_id_name_map: OeisIdStringMap::new(),
             oeis_id_terms_map: OeisIdStringMap::new(),
             loda_programs_oeis_dir: loda_programs_oeis_dir,
@@ -230,6 +234,17 @@ impl PostMine {
         Ok(())
     }
 
+    fn obtain_valid_program_ids(&mut self) -> anyhow::Result<()> {
+        let path = self.config.analytics_dir_programs_valid_file();
+        let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)
+            .map_err(|e| anyhow::anyhow!("obtain_valid_program_ids - unable to load program_ids. error: {:?}", e))?;
+        let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();
+        let hashset: OeisIdHashSet = HashSet::from_iter(program_ids.iter().cloned());
+        debug!("loaded valid program_ids file. number of records: {}", hashset.len());
+        self.valid_program_ids_hashset = hashset;
+        Ok(())
+    }
+
     fn eval_using_loda_cpp(&mut self) -> anyhow::Result<()> {
         let start = Instant::now();
         let time_limit = Duration::from_secs(Self::LODACPP_EVAL_TIME_LIMIT_IN_SECONDS);
@@ -285,7 +300,10 @@ impl PostMine {
         let start = Instant::now();
         println!("Looking up in the OEIS 'stripped' file");
 
-        let oeis_ids_to_ignore: OeisIdHashSet = self.dontmine_hashset.clone();
+        let mut oeis_ids_to_ignore: OeisIdHashSet = self.dontmine_hashset.clone();
+        if Self::FOCUS_ONLY_ON_NEW_PROGRAMS {
+            oeis_ids_to_ignore.extend(&self.valid_program_ids_hashset);
+        }
 
         let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
         assert!(oeis_stripped_file.is_absolute());
