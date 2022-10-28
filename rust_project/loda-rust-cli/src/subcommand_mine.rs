@@ -1,6 +1,7 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
 use crate::mine::{ExecuteBatchResult, FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MovingAverage, MetricsPrometheus, Recorder, RunMinerLoop, SinkRecorder};
 use crate::config::{Config, MinerCPUStrategy};
+use crate::postmine::PostMine;
 use bastion::prelude::*;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
 use loda_rust_core::execute::ProgramCache;
@@ -302,6 +303,16 @@ impl SubcommandMine {
                     })
             })
         })
+        .and_then(|_| {
+            Bastion::supervisor(|supervisor| {
+                supervisor.children(|children| {
+                    children
+                        .with_redundancy(1)
+                        .with_distributor(Distributor::named("postmine_worker"))
+                        .with_exec(postmine_worker)
+                })
+            })
+        })
         .map_err(|e| anyhow::anyhow!("couldn't setup bastion. error: {:?}", e))?;
 
         Bastion::start();
@@ -519,8 +530,7 @@ async fn miner_worker(
     println!("miner_worker - started!, {:?}", ctx.current().id());
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
 
-    // let miner_worker_distributor = Distributor::named("miner_worker");
-    // let postmine_worker_distributor = Distributor::named("postmine_worker");
+    let postmine_worker_distributor = Distributor::named("postmine_worker");
 
     let mut rml: RunMinerLoop = start_miner_loop(
         tx, 
@@ -635,14 +645,50 @@ async fn miner_worker(
                     if trigger_start_postmine {
                         println!("!!!!!!!!!!!!!! start postmine");
                         thread::sleep(Duration::from_millis(1000));
-                        // let tell_result = postmine_worker_distributor
-                        //     .tell_everyone(PostmineWorkerMessage::Start);
-                        // if let Err(error) = tell_result {
-                        //     error!("miner_worker: Unable to Start all postmine_worker. error: {:?}", error);
-                        // }
+                        let tell_result = postmine_worker_distributor
+                            .tell_everyone(PostmineWorkerMessage::StartPostmineJob);
+                        if let Err(error) = tell_result {
+                            error!("miner_worker: Unable to send StartPostmineJob. error: {:?}", error);
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum PostmineWorkerMessage {
+    StartPostmineJob,
+}
+
+async fn postmine_worker(ctx: BastionContext) -> Result<(), ()> {
+    loop {
+        MessageHandler::new(ctx.recv().await?)
+            .on_tell(|message: PostmineWorkerMessage, _| {
+                println!(
+                    "postmine_worker: child {}, received broadcast message: {:?}",
+                    ctx.current().id(),
+                    message
+                );
+                match message {
+                    PostmineWorkerMessage::StartPostmineJob => {
+                        println!("BEFORE PostMine::run()");
+                        let result = PostMine::run();
+                        println!("AFTER PostMine::run()");
+                        match result {
+                            Ok(()) => {
+                                println!("postmine Ok");
+                            },
+                            Err(error) => {
+                                error!("postmine error: {:?}", error);
+                            }
+                        }
+                        // TODO: loop multiple times until all pending have been processed.
+                        // TODO: update/reset mine_event_dir_state, so counters are 0.
+                        // TODO: resume the miner_workers
+                    }
+                }
+            });
     }
 }
