@@ -27,6 +27,7 @@ use crate::common::find_asm_files_recursively;
 
 extern crate num_cpus;
 
+const MINEEVENTDIR_HIGH_PRIORITY_LIMIT: usize = 10;
 const PREVENT_FLOODING_CACHE_CAPACITY: usize = 300000;
 
 #[derive(Debug)]
@@ -57,10 +58,12 @@ impl MineEventDirState {
         self.number_of_mined_low_prio = 0;
     }
 
+    #[allow(dead_code)]
     pub fn number_of_mined_high_prio(&self) -> usize {
         self.number_of_mined_high_prio
     }
 
+    #[allow(dead_code)]
     pub fn number_of_mined_low_prio(&self) -> usize {
         self.number_of_mined_low_prio
     }
@@ -71,7 +74,7 @@ impl MineEventDirState {
     }
 
     pub fn has_reached_mining_limit(&self) -> bool {
-        self.number_of_mined_high_prio >= 40
+        self.number_of_mined_high_prio >= MINEEVENTDIR_HIGH_PRIORITY_LIMIT
     }
 }
 
@@ -603,10 +606,10 @@ async fn miner_worker(
                 match mine_event_dir_state.lock() {
                     Ok(mut state) => {
                         state.accumulate_stats(&result);
-                        // if state.has_reached_mining_limit() {
-                        //     println!("reached mining limit. {:?}", state);
-                        //     has_reached_mining_limit = true;
-                        // }
+                        if state.has_reached_mining_limit() {
+                            println!("reached mining limit. {:?}", state);
+                            has_reached_mining_limit = true;
+                        }
                     },
                     Err(error) => {
                         error!("miner_worker: mine_event_dir_state.lock() failed. {:?}", error);
