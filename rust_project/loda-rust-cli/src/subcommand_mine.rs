@@ -1,5 +1,6 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
 use crate::mine::{ExecuteBatchResult, FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MineEventDirectoryState, MovingAverage, MetricsPrometheus, Recorder, RunMinerLoop, SinkRecorder};
+use crate::common::PendingProgramsWithPriority;
 use crate::config::{Config, NumberOfWorkers};
 use crate::postmine::PostMine;
 use bastion::prelude::*;
@@ -47,6 +48,7 @@ impl SubcommandMine {
         let mut instance = SubcommandMine::new(metrics_mode);
         instance.check_prerequisits()?;
         instance.print_info();
+        instance.reload_mineevent_directory_state()?;
         instance.populate_prevent_flooding_mechanism()?;
         instance.run_miner_workers().await?;
 
@@ -84,7 +86,7 @@ impl SubcommandMine {
 
     fn print_info(&self) {
         println!("metrics mode: {:?}", self.metrics_mode);
-        println!("Number of workers: {}", self.number_of_workers);
+        println!("number of workers: {}", self.number_of_workers);
 
         let build_mode: &str;
         if cfg!(debug_assertions) {
@@ -93,6 +95,21 @@ impl SubcommandMine {
             build_mode = "RELEASE";
         }
         println!("build mode: {}", build_mode);
+    }
+
+    fn reload_mineevent_directory_state(&mut self) -> anyhow::Result<()> {
+        let pending = PendingProgramsWithPriority::create(&self.config)
+            .context("reload_mineevent_directory_state")?;
+        match self.mine_event_dir_state.lock() {
+            Ok(mut state) => {
+                state.set_number_of_mined_high_prio(pending.paths_high_prio().len());
+                state.set_number_of_mined_low_prio(pending.paths_low_prio().len());
+            },
+            Err(error) => {
+                error!("reload_mineevent_directory_state: mine_event_dir_state.lock() failed. {:?}", error);
+            }
+        }
+        Ok(())
     }
 
     fn populate_prevent_flooding_mechanism(&mut self) -> anyhow::Result<()> {

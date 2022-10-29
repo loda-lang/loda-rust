@@ -26,9 +26,17 @@ impl MineEventDirectoryState {
         self.number_of_mined_high_prio
     }
 
+    pub fn set_number_of_mined_high_prio(&mut self, count: usize) {
+        self.number_of_mined_high_prio = count;
+    }
+
     #[allow(dead_code)]
     pub fn number_of_mined_low_prio(&self) -> usize {
         self.number_of_mined_low_prio
+    }
+
+    pub fn set_number_of_mined_low_prio(&mut self, count: usize) {
+        self.number_of_mined_low_prio = count;
     }
 
     pub fn accumulate_stats(&mut self, execute_batch_result: &ExecuteBatchResult) {
