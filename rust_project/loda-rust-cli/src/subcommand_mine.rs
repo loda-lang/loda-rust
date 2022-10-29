@@ -5,6 +5,7 @@ use crate::config::{Config, NumberOfWorkers};
 use crate::postmine::PostMine;
 use bastion::prelude::*;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
+use tokio::task::JoinHandle;
 use crate::mine::{create_funnel, Funnel};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use num_bigint::{BigInt, ToBigInt};
@@ -50,7 +51,7 @@ impl SubcommandMine {
         instance.print_info();
         instance.reload_mineevent_directory_state()?;
         instance.populate_prevent_flooding_mechanism()?;
-        instance.run_miner_workers().await?;
+        instance.spawn_all_threads().await?;
 
         Bastion::stop();
         Bastion::block_until_stopped();
@@ -118,66 +119,25 @@ impl SubcommandMine {
         Ok(())
     }
 
-    async fn run_miner_workers(&self) -> anyhow::Result<()> {
-        match self.metrics_mode {
+    async fn spawn_all_threads(&self) -> anyhow::Result<()> {
+        let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
+
+        let mc: MinerCoordinator = match self.metrics_mode {
             SubcommandMineMetricsMode::NoMetricsServer => {
-                return self.run_without_metrics().await
+                run_without_metrics(receiver)?
             },
             SubcommandMineMetricsMode::RunMetricsServer => {
-                return self.run_with_prometheus_metrics().await
+                let listen_on_port: u16 = self.config.miner_metrics_listen_port();
+                run_with_prometheus_metrics(receiver, listen_on_port, self.number_of_workers as u64)?
             }
-        }
-    }
+        };
 
-    async fn run_without_metrics(&self) -> anyhow::Result<()> {
-        let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
-
-        let minercoordinator_thread = tokio::spawn(async move {
-            coordinator_thread_metrics_sink(receiver);
-        });
-
-        let recorder: Box<dyn Recorder + Send> = Box::new(SinkRecorder {});
-
-        self.spawn_workers(sender, recorder)
-            .context("run_without_metrics")?;
-
-        // Run forever, press CTRL-C to stop.
-        minercoordinator_thread.await
-            .map_err(|e| anyhow::anyhow!("run_without_metrics - minercoordinator_thread failed with error: {:?}", e))?;
-
-        Ok(())
-    }
-
-    async fn run_with_prometheus_metrics(&self) -> anyhow::Result<()> {
-        let listen_on_port: u16 = self.config.miner_metrics_listen_port();
-        println!("miner metrics can be downloaded here: http://localhost:{}/metrics", listen_on_port);
-
-        let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
-
-        let mut registry = <Registry>::default();
-        let metrics = MetricsPrometheus::new(&mut registry);
-        metrics.number_of_workers.set(self.number_of_workers as u64);
-
-        let registry2: MyRegistry = Arc::new(Mutex::new(registry));
-
-        let _ = tokio::spawn(async move {
-            let result = webserver_with_metrics(registry2, listen_on_port).await;
-            if let Err(error) = result {
-                error!("webserver thread failed with error: {:?}", error);
-            }
-        });
-
-        let minercoordinator_metrics = metrics.clone();
-        let minercoordinator_thread = tokio::spawn(async move {
-            coordinator_thread_metrics_prometheus(receiver, minercoordinator_metrics);
-        });
-
-        let recorder: Box<dyn Recorder + Send> = Box::new(metrics);
-        self.spawn_workers(sender, recorder)
+        self.spawn_workers(sender, mc.recorder)
             .context("run_with_prometheus_metrics")?;
 
-        // Run forever, press CTRL-C to stop.
-        minercoordinator_thread.await
+        println!("\nPress CTRL-C to stop the miner.");
+        // Run forever until user kills the process (CTRL-C).
+        mc.minercoordinator_thread.await
             .map_err(|e| anyhow::anyhow!("run_with_prometheus_metrics - minercoordinator_thread failed with error: {:?}", e))?;
 
         Ok(())
@@ -271,7 +231,6 @@ impl SubcommandMine {
         .map_err(|e| anyhow::anyhow!("couldn't setup bastion. error: {:?}", e))?;
 
         Bastion::start();
-        println!("\nPress CTRL-C to stop the miner.");
 
         Ok(())
     }
@@ -295,6 +254,52 @@ async fn webserver_with_metrics(registry: MyRegistry, listen_port: u16) -> std::
     let server_address = format!("localhost:{}", listen_port);
     app.listen(server_address).await?;
     Ok(())
+}
+
+struct MinerCoordinator {
+    minercoordinator_thread: JoinHandle<()>,
+    recorder: Box<dyn Recorder + Send>,
+}
+
+fn run_without_metrics(receiver: Receiver<MinerThreadMessageToCoordinator>) -> anyhow::Result<MinerCoordinator> {
+    let minercoordinator_thread = tokio::spawn(async move {
+        coordinator_thread_metrics_sink(receiver);
+    });
+    let recorder: Box<dyn Recorder + Send> = Box::new(SinkRecorder {});
+    let instance = MinerCoordinator {
+        minercoordinator_thread: minercoordinator_thread,
+        recorder: recorder,
+    };
+    Ok(instance)
+}
+
+fn run_with_prometheus_metrics(receiver: Receiver<MinerThreadMessageToCoordinator>, listen_on_port: u16, number_of_workers: u64) -> anyhow::Result<MinerCoordinator> {
+    println!("miner metrics can be downloaded here: http://localhost:{}/metrics", listen_on_port);
+
+    let mut registry = <Registry>::default();
+    let metrics = MetricsPrometheus::new(&mut registry);
+    metrics.number_of_workers.set(number_of_workers);
+
+    let registry2: MyRegistry = Arc::new(Mutex::new(registry));
+
+    let _ = tokio::spawn(async move {
+        let result = webserver_with_metrics(registry2, listen_on_port).await;
+        if let Err(error) = result {
+            error!("webserver thread failed with error: {:?}", error);
+        }
+    });
+
+    let minercoordinator_metrics = metrics.clone();
+    let minercoordinator_thread: JoinHandle<()> = tokio::spawn(async move {
+        coordinator_thread_metrics_prometheus(receiver, minercoordinator_metrics);
+    });
+
+    let recorder: Box<dyn Recorder + Send> = Box::new(metrics);
+    let instance = MinerCoordinator {
+        minercoordinator_thread: minercoordinator_thread,
+        recorder: recorder,
+    };
+    Ok(instance)
 }
 
 fn coordinator_thread_metrics_sink(rx: Receiver<MinerThreadMessageToCoordinator>) {
