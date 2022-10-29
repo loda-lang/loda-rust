@@ -1,35 +1,28 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
-use crate::mine::{ExecuteBatchResult, FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MineEventDirectoryState, MovingAverage, MetricsPrometheus, Recorder, RunMinerLoop, SinkRecorder};
-use crate::common::PendingProgramsWithPriority;
 use crate::config::{Config, NumberOfWorkers};
-use crate::postmine::PostMine;
-use bastion::prelude::*;
-use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
-use tokio::task::JoinHandle;
+use crate::common::PendingProgramsWithPriority;
+use crate::mine::{ExecuteBatchResult, FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MineEventDirectoryState, MinerCoordinator, Recorder, RunMinerLoop};
 use crate::mine::{create_funnel, Funnel};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
+use crate::mine::{create_prevent_flooding, PreventFlooding};
+use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
+use crate::postmine::PostMine;
+use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
+use bastion::prelude::*;
 use num_bigint::{BigInt, ToBigInt};
 use anyhow::Context;
 use std::thread;
 use std::time::Duration;
-use std::sync::mpsc::{channel, Receiver};
-use std::time::Instant;
-use std::convert::TryFrom;
+use std::sync::mpsc::channel;
 use std::path::PathBuf;
-use prometheus_client::encoding::text::encode;
-use prometheus_client::registry::Registry;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
-use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
-use crate::mine::{create_prevent_flooding, PreventFlooding};
 
 #[derive(Debug)]
 pub enum SubcommandMineMetricsMode {
     NoMetricsServer,
     RunMetricsServer,
 }
-
-type MyRegistry = std::sync::Arc<std::sync::Mutex<prometheus_client::registry::Registry<std::boxed::Box<dyn prometheus_client::encoding::text::SendEncodeMetric>>>>;
 
 pub struct SubcommandMine {
     metrics_mode: SubcommandMineMetricsMode,
@@ -124,11 +117,11 @@ impl SubcommandMine {
 
         let mc: MinerCoordinator = match self.metrics_mode {
             SubcommandMineMetricsMode::NoMetricsServer => {
-                run_without_metrics(receiver)?
+                MinerCoordinator::run_without_metrics(receiver)?
             },
             SubcommandMineMetricsMode::RunMetricsServer => {
                 let listen_on_port: u16 = self.config.miner_metrics_listen_port();
-                run_with_prometheus_metrics(receiver, listen_on_port, self.number_of_workers as u64)?
+                MinerCoordinator::run_with_prometheus_metrics(receiver, listen_on_port, self.number_of_workers as u64)?
             }
         };
 
@@ -138,7 +131,7 @@ impl SubcommandMine {
         println!("\nPress CTRL-C to stop the miner.");
         // Run forever until user kills the process (CTRL-C).
         mc.minercoordinator_thread.await
-            .map_err(|e| anyhow::anyhow!("run_with_prometheus_metrics - minercoordinator_thread failed with error: {:?}", e))?;
+            .map_err(|e| anyhow::anyhow!("spawn_all_threads - minercoordinator_thread failed with error: {:?}", e))?;
 
         Ok(())
     }
@@ -233,184 +226,6 @@ impl SubcommandMine {
         Bastion::start();
 
         Ok(())
-    }
-}
-
-async fn webserver_with_metrics(registry: MyRegistry, listen_port: u16) -> std::result::Result<(), Box<dyn std::error::Error>> {
-    let mut app = tide::with_state(State {
-        registry: registry,
-    });
-    app.at("/").get(|_| async { Ok("Hello, world!") });
-    app.at("/metrics")
-        .get(|req: tide::Request<State>| async move {
-            let mut encoded = Vec::new();
-            encode(&mut encoded, &req.state().registry.lock().unwrap()).unwrap();
-            let response = tide::Response::builder(200)
-                .body(encoded)
-                .content_type("application/openmetrics-text; version=1.0.0; charset=utf-8")
-                .build();
-            Ok(response)
-        });
-    let server_address = format!("localhost:{}", listen_port);
-    app.listen(server_address).await?;
-    Ok(())
-}
-
-struct MinerCoordinator {
-    minercoordinator_thread: JoinHandle<()>,
-    recorder: Box<dyn Recorder + Send>,
-}
-
-fn run_without_metrics(receiver: Receiver<MinerThreadMessageToCoordinator>) -> anyhow::Result<MinerCoordinator> {
-    let minercoordinator_thread = tokio::spawn(async move {
-        coordinator_thread_metrics_sink(receiver);
-    });
-    let recorder: Box<dyn Recorder + Send> = Box::new(SinkRecorder {});
-    let instance = MinerCoordinator {
-        minercoordinator_thread: minercoordinator_thread,
-        recorder: recorder,
-    };
-    Ok(instance)
-}
-
-fn run_with_prometheus_metrics(receiver: Receiver<MinerThreadMessageToCoordinator>, listen_on_port: u16, number_of_workers: u64) -> anyhow::Result<MinerCoordinator> {
-    println!("miner metrics can be downloaded here: http://localhost:{}/metrics", listen_on_port);
-
-    let mut registry = <Registry>::default();
-    let metrics = MetricsPrometheus::new(&mut registry);
-    metrics.number_of_workers.set(number_of_workers);
-
-    let registry2: MyRegistry = Arc::new(Mutex::new(registry));
-
-    let _ = tokio::spawn(async move {
-        let result = webserver_with_metrics(registry2, listen_on_port).await;
-        if let Err(error) = result {
-            error!("webserver thread failed with error: {:?}", error);
-        }
-    });
-
-    let minercoordinator_metrics = metrics.clone();
-    let minercoordinator_thread: JoinHandle<()> = tokio::spawn(async move {
-        coordinator_thread_metrics_prometheus(receiver, minercoordinator_metrics);
-    });
-
-    let recorder: Box<dyn Recorder + Send> = Box::new(metrics);
-    let instance = MinerCoordinator {
-        minercoordinator_thread: minercoordinator_thread,
-        recorder: recorder,
-    };
-    Ok(instance)
-}
-
-fn coordinator_thread_metrics_sink(rx: Receiver<MinerThreadMessageToCoordinator>) {
-    let mut progress_time = Instant::now();
-    let mut number_of_messages: u64 = 0;
-    loop {
-        // Sleep until there are an incoming message
-        match rx.recv() {
-            Ok(_) => {
-                number_of_messages += 1;
-            },
-            Err(error) => {
-                panic!("didn't receive any messages. error: {:?}", error);
-            }
-        }
-        let elapsed: u128 = progress_time.elapsed().as_millis();
-        if elapsed > 1000 {
-            println!("number of messages: {:?}", number_of_messages);
-            progress_time = Instant::now();
-            number_of_messages = 0;
-        }
-    }
- }
-
-
-#[derive(Clone)]
-struct State {
-    registry: MyRegistry,
-}
-
-fn coordinator_thread_metrics_prometheus(rx: Receiver<MinerThreadMessageToCoordinator>, metrics: MetricsPrometheus) {
-    let mut message_processor = MessageProcessor::new();
-    let mut progress_time = Instant::now();
-    let mut accumulated_iterations: u64 = 0;
-    let mut moving_average = MovingAverage::new();
-    loop {
-        // Sleep until there are an incoming message
-        match rx.recv() {
-            Ok(message) => {
-                message_processor.process_message(message);
-            },
-            Err(error) => {
-                error!("didn't receive any messages. error: {:?}", error);
-                thread::sleep(Duration::from_millis(5000));
-                continue;
-            }
-        }
-        // Fetch as many messages as possible
-        loop {
-            match rx.try_recv() {
-                Ok(message) => {
-                    message_processor.process_message(message);
-                    continue;
-                },
-                Err(_) => {
-                    break;
-                }
-            }
-        }
-
-        // Number of operations per second, gauge
-        let elapsed: u128 = progress_time.elapsed().as_millis();
-        if elapsed > 1000 {
-            let elapsed_clamped: u64 = u64::try_from(elapsed).unwrap_or(1000);
-            accumulated_iterations *= 1000;
-            accumulated_iterations /= elapsed_clamped;
-
-            moving_average.insert(accumulated_iterations);
-            let weighted_average: u64 = moving_average.average();
-            metrics.number_of_iteration_now.set(weighted_average);
-            
-            progress_time = Instant::now();
-            accumulated_iterations = 0;
-            moving_average.rotate();
-        }
-
-        // Number of iterations per second, chart
-        let metric0: u64 = message_processor.number_of_iterations();
-        metrics.number_of_iterations.inc_by(metric0);
-        accumulated_iterations += metric0;
-
-        // message_processor.metrics_summary();
-        message_processor.reset_iteration_metrics();
-    }
-}
-
-struct MessageProcessor {
-    number_of_iterations: u64,
-}
-
-impl MessageProcessor {
-    fn new() -> Self {
-        Self {
-            number_of_iterations: 0,
-        }
-    }
-
-    fn process_message(&mut self, message: MinerThreadMessageToCoordinator) {
-        match message {
-            MinerThreadMessageToCoordinator::NumberOfIterations(value) => {
-                self.number_of_iterations += value;
-            }
-        }
-    }
-
-    fn reset_iteration_metrics(&mut self) {
-        self.number_of_iterations = 0;
-    }
-
-    fn number_of_iterations(&self) -> u64 {
-        self.number_of_iterations
     }
 }
 
