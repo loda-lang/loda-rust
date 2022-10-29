@@ -4,7 +4,6 @@ use crate::config::{Config, NumberOfWorkers};
 use crate::postmine::PostMine;
 use bastion::prelude::*;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
-use loda_rust_core::execute::ProgramCache;
 use crate::mine::{create_funnel, Funnel};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use num_bigint::{BigInt, ToBigInt};
@@ -14,18 +13,13 @@ use std::time::Duration;
 use std::sync::mpsc::{channel, Receiver};
 use std::time::Instant;
 use std::convert::TryFrom;
-use std::num::NonZeroUsize;
 use std::path::PathBuf;
 use prometheus_client::encoding::text::encode;
 use prometheus_client::registry::Registry;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
-use indicatif::HumanDuration;
 use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
-use crate::mine::{PreventFlooding, prevent_flooding_populate};
-use crate::common::find_asm_files_recursively;
-
-const PREVENT_FLOODING_CACHE_CAPACITY: usize = 300000;
+use crate::mine::{create_prevent_flooding, PreventFlooding};
 
 #[derive(Debug)]
 pub enum SubcommandMineMetricsMode {
@@ -95,31 +89,7 @@ impl SubcommandMine {
     }
 
     fn populate_prevent_flooding_mechanism(&mut self) -> anyhow::Result<()> {
-        let start = Instant::now();
-        let loda_programs_oeis_dir: PathBuf = self.config.loda_programs_oeis_dir();
-        let mine_event_dir: PathBuf = self.config.mine_event_dir();
-        let oeis_divergent_dir: PathBuf = self.config.loda_outlier_programs_repository_oeis_divergent();
-    
-        let mut paths0: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
-        println!("PreventFlooding: number of .asm files in mine_event_dir: {:?}", paths0.len());
-        let mut paths1: Vec<PathBuf> = find_asm_files_recursively(&oeis_divergent_dir);
-        println!("PreventFlooding: number of .asm files in oeis_divergent_dir: {:?}", paths1.len());
-        let mut paths: Vec<PathBuf> = vec!();
-        paths.append(&mut paths0);
-        paths.append(&mut paths1);
-        println!("PreventFlooding: number of .asm files in total: {:?}", paths.len());
-        // paths.truncate(100);
-    
-        let mut dependency_manager = DependencyManager::new(
-            DependencyManagerFileSystemMode::System,
-            loda_programs_oeis_dir,
-        );
-        let capacity = NonZeroUsize::new(PREVENT_FLOODING_CACHE_CAPACITY).unwrap();
-        let mut cache = ProgramCache::with_capacity(capacity);
-        let mut prevent_flooding = PreventFlooding::new();
-        prevent_flooding_populate(&mut prevent_flooding, &mut dependency_manager, &mut cache, paths);
-        println!("PreventFlooding: number of programs added: {}", prevent_flooding.len());
-        println!("PreventFlooding: elapsed: {}", HumanDuration(start.elapsed()));
+        let prevent_flooding: PreventFlooding = create_prevent_flooding(&self.config)?;
         self.prevent_flooding = Arc::new(Mutex::new(prevent_flooding));
         Ok(())
     }
