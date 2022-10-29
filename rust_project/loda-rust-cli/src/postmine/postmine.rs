@@ -188,7 +188,11 @@ impl PostMine {
             println!("Number of programs in queue {}. Truncating to {}.", length0, length1);
         }
 
-        self.paths_for_processing = paths_queue.iter().map(|&path|PathBuf::from(path)).collect();
+        let paths_for_processing: Vec<PathBuf> = paths_queue.iter().map(|&path|PathBuf::from(path)).collect();
+        if paths_for_processing.is_empty() {
+            return Err(anyhow::anyhow!("No pending programs in the 'mine-event' dir."));
+        }
+        self.paths_for_processing = paths_for_processing;
         Ok(())
     }
 

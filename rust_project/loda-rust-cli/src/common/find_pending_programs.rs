@@ -1,4 +1,3 @@
-use crate::postmine::PostMineError;
 use std::error::Error;
 use std::path::PathBuf;
 use regex::Regex;
@@ -54,12 +53,11 @@ pub fn find_pending_programs(paths_inside_mineevent_dir: &Vec<PathBuf>, verbose:
             println!("Ignoring {} programs that have already been analyzed", count_already_processed);
         }
     }
-    let number_of_paths = paths_for_processing.len();
-    if number_of_paths <= 0 {
-        return Err(Box::new(PostMineError::NoPendingProgramsInMineEventDir));
-    }
     if verbose {
-        println!("Number of pending programs: {}", number_of_paths);
+        let number_of_paths = paths_for_processing.len();
+        if number_of_paths > 0 {
+            println!("Number of pending programs: {}", number_of_paths);
+        }
     }
     paths_for_processing.sort();
     Ok(paths_for_processing)
@@ -70,7 +68,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_10000_success() {
+    fn test_10000_multiple_pending_programs() {
         static INPUT: &'static [&'static str] = &[
             "mine-event/20220710-054111-1237572183.keep.asm",
             "mine-event/20220710-054111-1237578248.reject.asm",
@@ -87,7 +85,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_error_no_pending_programs() {
+    fn test_10001_no_pending_programs() {
         static INPUT: &'static [&'static str] = &[
             "mine-event/20220710-054111-1237572183.keep.asm",
             "mine-event/20220710-054111-1237578248.reject.asm",
@@ -95,6 +93,7 @@ mod tests {
         ];
         let input_paths: Vec<PathBuf> = INPUT.iter().map(|path| PathBuf::from(path) ).collect();
         let result = find_pending_programs(&input_paths, false);
-        assert!(result.is_err());
+        let output_paths: Vec<PathBuf> = result.expect("Must return ok");
+        assert_eq!(output_paths.len(), 0);
     }
 }
