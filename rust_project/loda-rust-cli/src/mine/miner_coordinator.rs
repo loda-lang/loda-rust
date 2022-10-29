@@ -21,7 +21,7 @@ pub struct MinerCoordinator {
 
 impl MinerCoordinator {
     /// No webserver with metrics. The gathering of metrics, discards the data immediately.
-    pub fn run_without_metrics(receiver: Receiver<MinerCoordinatorMessage>) -> anyhow::Result<MinerCoordinator> {
+    pub fn run_without_metrics_server(receiver: Receiver<MinerCoordinatorMessage>) -> anyhow::Result<MinerCoordinator> {
         let minercoordinator_thread = tokio::spawn(async move {
             coordinator_thread_metrics_sink(receiver);
         });
@@ -34,7 +34,7 @@ impl MinerCoordinator {
     }
 
     /// Runs a webserver with realtime metrics, so bottlenecks can be identified.
-    pub fn run_with_prometheus_metrics(receiver: Receiver<MinerCoordinatorMessage>, listen_on_port: u16, number_of_workers: u64) -> anyhow::Result<MinerCoordinator> {
+    pub fn run_with_metrics_server(receiver: Receiver<MinerCoordinatorMessage>, listen_on_port: u16, number_of_workers: u64) -> anyhow::Result<MinerCoordinator> {
         println!("miner metrics can be downloaded here: http://localhost:{}/metrics", listen_on_port);
     
         let mut registry = <Registry>::default();

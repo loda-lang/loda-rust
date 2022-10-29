@@ -117,16 +117,15 @@ impl SubcommandMine {
 
         let mc: MinerCoordinator = match self.metrics_mode {
             SubcommandMineMetricsMode::NoMetricsServer => {
-                MinerCoordinator::run_without_metrics(receiver)?
+                MinerCoordinator::run_without_metrics_server(receiver)?
             },
             SubcommandMineMetricsMode::RunMetricsServer => {
                 let listen_on_port: u16 = self.config.miner_metrics_listen_port();
-                MinerCoordinator::run_with_prometheus_metrics(receiver, listen_on_port, self.number_of_workers as u64)?
+                MinerCoordinator::run_with_metrics_server(receiver, listen_on_port, self.number_of_workers as u64)?
             }
         };
 
-        self.spawn_workers(sender, mc.recorder)
-            .context("run_with_prometheus_metrics")?;
+        self.spawn_workers(sender, mc.recorder)?;
 
         println!("\nPress CTRL-C to stop the miner.");
         // Run forever until user kills the process (CTRL-C).
