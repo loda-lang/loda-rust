@@ -1,6 +1,6 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
 use crate::mine::{ExecuteBatchResult, FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MineEventDirectoryState, MovingAverage, MetricsPrometheus, Recorder, RunMinerLoop, SinkRecorder};
-use crate::config::{Config, MinerCPUStrategy};
+use crate::config::{Config, NumberOfWorkers};
 use crate::postmine::PostMine;
 use bastion::prelude::*;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
@@ -24,8 +24,6 @@ use indicatif::HumanDuration;
 use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
 use crate::mine::{PreventFlooding, prevent_flooding_populate};
 use crate::common::find_asm_files_recursively;
-
-extern crate num_cpus;
 
 const PREVENT_FLOODING_CACHE_CAPACITY: usize = 300000;
 
@@ -67,7 +65,7 @@ impl SubcommandMine {
         metrics_mode: SubcommandMineMetricsMode
     ) -> Self {
         let config = Config::load();
-        let number_of_workers: usize = Self::number_of_workers(config.miner_cpu_strategy());
+        let number_of_workers: usize = config.resolve_number_of_miner_workers();
         Self {
             metrics_mode: metrics_mode,
             number_of_workers: number_of_workers,
@@ -76,23 +74,6 @@ impl SubcommandMine {
             mine_event_dir_state: Arc::new(Mutex::new(MineEventDirectoryState::new())),
             shared_miner_worker_state: Arc::new(Mutex::new(SharedMinerWorkerState::Mining)),
         }
-    }
-
-    fn number_of_workers(miner_cpu_strategy: MinerCPUStrategy) -> usize {
-        if miner_cpu_strategy == MinerCPUStrategy::Min {
-            return 1;
-        }
-        let number_of_available_cpus: usize = num_cpus::get();
-        assert!(number_of_available_cpus >= 1_usize);
-        assert!(number_of_available_cpus < 1000_usize);
-        let number_of_threads: usize = match miner_cpu_strategy {
-            MinerCPUStrategy::Min => 1,
-            MinerCPUStrategy::Half => number_of_available_cpus / 2,
-            MinerCPUStrategy::Max => number_of_available_cpus,
-            MinerCPUStrategy::CPU { count } => count as usize,
-        };
-        // Ensures that zero is never returned
-        number_of_threads.max(1)
     }
 
     fn check_prerequisits(&self) -> anyhow::Result<()> {
