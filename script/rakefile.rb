@@ -30,7 +30,6 @@ end
 
 desc "Process the mined programs"
 task :process_mined_programs do
-    ruby 'task_analyze_mined_programs.rb'
     ruby 'task_add_mined_programs_to_repo.rb'
     ruby 'task_maintenance_of_outlier_programs_repo.rb'
 end
