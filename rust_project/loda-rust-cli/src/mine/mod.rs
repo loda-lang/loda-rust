@@ -11,6 +11,7 @@ mod histogram_instruction_constant;
 mod metrics;
 mod metrics_prometheus;
 mod metrics_run_miner_loop;
+mod mine_event_directory_state;
 mod moving_average;
 mod performance_classifier;
 mod popular_program_container;
@@ -40,6 +41,7 @@ pub use genome_item::{GenomeItem, MutateEvalSequenceCategory, ToGenomeItem, ToGe
 pub use histogram_instruction_constant::HistogramInstructionConstant;
 pub use metrics::{MetricEvent, Recorder, SinkRecorder};
 pub use metrics_prometheus::MetricsPrometheus;
+pub use mine_event_directory_state::MineEventDirectoryState;
 pub use moving_average::MovingAverage;
 pub use performance_classifier::{PerformanceClassifier, PerformanceClassifierResult};
 pub use popular_program_container::PopularProgramContainer;

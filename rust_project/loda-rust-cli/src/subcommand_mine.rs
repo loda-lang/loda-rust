@@ -1,5 +1,5 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
-use crate::mine::{ExecuteBatchResult, FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MovingAverage, MetricsPrometheus, Recorder, RunMinerLoop, SinkRecorder};
+use crate::mine::{ExecuteBatchResult, FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MineEventDirectoryState, MovingAverage, MetricsPrometheus, Recorder, RunMinerLoop, SinkRecorder};
 use crate::config::{Config, MinerCPUStrategy};
 use crate::postmine::PostMine;
 use bastion::prelude::*;
@@ -27,7 +27,6 @@ use crate::common::find_asm_files_recursively;
 
 extern crate num_cpus;
 
-const MINEEVENTDIR_HIGH_PRIORITY_LIMIT: usize = 10;
 const PREVENT_FLOODING_CACHE_CAPACITY: usize = 300000;
 
 #[derive(Debug)]
@@ -38,53 +37,12 @@ pub enum SubcommandMineMetricsMode {
 
 type MyRegistry = std::sync::Arc<std::sync::Mutex<prometheus_client::registry::Registry<std::boxed::Box<dyn prometheus_client::encoding::text::SendEncodeMetric>>>>;
 
-
-#[derive(Debug)]
-pub struct MineEventDirState {
-    number_of_mined_high_prio: usize,
-    number_of_mined_low_prio: usize,
-}
-
-impl MineEventDirState {
-    pub fn new() -> Self {
-        Self {
-            number_of_mined_high_prio: 0, 
-            number_of_mined_low_prio: 0,
-        }
-    }
-
-    pub fn reset(&mut self) {
-        self.number_of_mined_high_prio = 0;
-        self.number_of_mined_low_prio = 0;
-    }
-
-    #[allow(dead_code)]
-    pub fn number_of_mined_high_prio(&self) -> usize {
-        self.number_of_mined_high_prio
-    }
-
-    #[allow(dead_code)]
-    pub fn number_of_mined_low_prio(&self) -> usize {
-        self.number_of_mined_low_prio
-    }
-
-    pub fn accumulate_stats(&mut self, execute_batch_result: &ExecuteBatchResult) {
-        self.number_of_mined_low_prio += execute_batch_result.number_of_mined_low_prio();
-        self.number_of_mined_high_prio += execute_batch_result.number_of_mined_high_prio();
-    }
-
-    pub fn has_reached_mining_limit(&self) -> bool {
-        self.number_of_mined_high_prio >= MINEEVENTDIR_HIGH_PRIORITY_LIMIT
-    }
-}
-
-
 pub struct SubcommandMine {
     metrics_mode: SubcommandMineMetricsMode,
     number_of_workers: usize,
     config: Config,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
-    mine_event_dir_state: Arc<Mutex<MineEventDirState>>,
+    mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
     shared_miner_worker_state: Arc<Mutex<SharedMinerWorkerState>>,
 }
 
@@ -115,7 +73,7 @@ impl SubcommandMine {
             number_of_workers: number_of_workers,
             config: config,
             prevent_flooding: Arc::new(Mutex::new(PreventFlooding::new())),
-            mine_event_dir_state: Arc::new(Mutex::new(MineEventDirState::new())),
+            mine_event_dir_state: Arc::new(Mutex::new(MineEventDirectoryState::new())),
             shared_miner_worker_state: Arc::new(Mutex::new(SharedMinerWorkerState::Mining)),
         }
     }
@@ -506,7 +464,7 @@ async fn miner_worker(
     recorder: Box<dyn Recorder + Send>,
     terms_to_program_id: Arc<TermsToProgramIdSet>,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
-    mine_event_dir_state: Arc<Mutex<MineEventDirState>>,
+    mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
     shared_miner_worker_state: Arc<Mutex<SharedMinerWorkerState>>,
     config: Config,
     funnel: Funnel,
@@ -646,7 +604,7 @@ enum PostmineWorkerMessage {
 
 async fn postmine_worker(
     ctx: BastionContext,
-    mine_event_dir_state: Arc<Mutex<MineEventDirState>>,
+    mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
     shared_miner_worker_state: Arc<Mutex<SharedMinerWorkerState>>,
 ) -> Result<(), ()> {
     loop {
