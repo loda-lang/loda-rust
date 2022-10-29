@@ -85,7 +85,14 @@ impl SubcommandMine {
     fn print_info(&self) {
         println!("metrics mode: {:?}", self.metrics_mode);
         println!("Number of workers: {}", self.number_of_workers);
-        print_info_about_start_conditions();
+
+        let build_mode: &str;
+        if cfg!(debug_assertions) {
+            build_mode = "DEBUG  <-  Terrible inefficient for mining!";
+        } else {
+            build_mode = "RELEASE";
+        }
+        println!("build mode: {}", build_mode);
     }
 
     fn populate_prevent_flooding_mechanism(&mut self) -> anyhow::Result<()> {
@@ -355,18 +362,6 @@ fn coordinator_thread_metrics_prometheus(rx: Receiver<MinerThreadMessageToCoordi
         // message_processor.metrics_summary();
         message_processor.reset_iteration_metrics();
     }
-}
-
-fn print_info_about_start_conditions() {
-    let build_mode: &str;
-    if cfg!(debug_assertions) {
-        error!("Debugging enabled. Wasting cpu cycles. Not good for mining!");
-        build_mode = "'DEBUG'  # Terrible inefficient for mining!";
-    } else {
-        build_mode = "'RELEASE'  # Good";
-    }
-    println!("[mining info]");
-    println!("build_mode = {}", build_mode);
 }
 
 struct MessageProcessor {
