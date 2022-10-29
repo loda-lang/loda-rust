@@ -1,4 +1,4 @@
-use super::{MinerThreadMessageToCoordinator, MovingAverage, MetricsPrometheus, Recorder, SinkRecorder};
+use super::{MovingAverage, MetricsPrometheus, Recorder, SinkRecorder};
 use tokio::task::JoinHandle;
 use std::thread;
 use std::time::Duration;
@@ -9,6 +9,11 @@ use prometheus_client::encoding::text::encode;
 use prometheus_client::registry::Registry;
 use std::sync::{Arc, Mutex};
 
+#[derive(Debug)]
+pub enum MinerCoordinatorMessage {
+    NumberOfIterations(u64),
+}
+
 pub struct MinerCoordinator {
     pub minercoordinator_thread: JoinHandle<()>,
     pub recorder: Box<dyn Recorder + Send>,
@@ -16,7 +21,7 @@ pub struct MinerCoordinator {
 
 impl MinerCoordinator {
     /// No webserver with metrics. The gathering of metrics, discards the data immediately.
-    pub fn run_without_metrics(receiver: Receiver<MinerThreadMessageToCoordinator>) -> anyhow::Result<MinerCoordinator> {
+    pub fn run_without_metrics(receiver: Receiver<MinerCoordinatorMessage>) -> anyhow::Result<MinerCoordinator> {
         let minercoordinator_thread = tokio::spawn(async move {
             coordinator_thread_metrics_sink(receiver);
         });
@@ -29,7 +34,7 @@ impl MinerCoordinator {
     }
 
     /// Runs a webserver with realtime metrics, so bottlenecks can be identified.
-    pub fn run_with_prometheus_metrics(receiver: Receiver<MinerThreadMessageToCoordinator>, listen_on_port: u16, number_of_workers: u64) -> anyhow::Result<MinerCoordinator> {
+    pub fn run_with_prometheus_metrics(receiver: Receiver<MinerCoordinatorMessage>, listen_on_port: u16, number_of_workers: u64) -> anyhow::Result<MinerCoordinator> {
         println!("miner metrics can be downloaded here: http://localhost:{}/metrics", listen_on_port);
     
         let mut registry = <Registry>::default();
@@ -59,7 +64,7 @@ impl MinerCoordinator {
     }
 }
 
-fn coordinator_thread_metrics_sink(rx: Receiver<MinerThreadMessageToCoordinator>) {
+fn coordinator_thread_metrics_sink(rx: Receiver<MinerCoordinatorMessage>) {
     let mut progress_time = Instant::now();
     let mut number_of_messages: u64 = 0;
     loop {
@@ -88,7 +93,7 @@ struct State {
     registry: MyRegistry,
 }
 
-fn coordinator_thread_metrics_prometheus(rx: Receiver<MinerThreadMessageToCoordinator>, metrics: MetricsPrometheus) {
+fn coordinator_thread_metrics_prometheus(rx: Receiver<MinerCoordinatorMessage>, metrics: MetricsPrometheus) {
     let mut message_processor = MessageProcessor::new();
     let mut progress_time = Instant::now();
     let mut accumulated_iterations: u64 = 0;
@@ -155,9 +160,9 @@ impl MessageProcessor {
         }
     }
 
-    fn process_message(&mut self, message: MinerThreadMessageToCoordinator) {
+    fn process_message(&mut self, message: MinerCoordinatorMessage) {
         match message {
-            MinerThreadMessageToCoordinator::NumberOfIterations(value) => {
+            MinerCoordinatorMessage::NumberOfIterations(value) => {
                 self.number_of_iterations += value;
             }
         }

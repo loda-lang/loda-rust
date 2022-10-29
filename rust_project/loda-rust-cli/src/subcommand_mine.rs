@@ -1,7 +1,7 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
 use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
-use crate::mine::{ExecuteBatchResult, FunnelConfig, MinerThreadMessageToCoordinator, start_miner_loop, MineEventDirectoryState, MinerCoordinator, Recorder, RunMinerLoop};
+use crate::mine::{ExecuteBatchResult, FunnelConfig, MinerCoordinatorMessage, start_miner_loop, MineEventDirectoryState, MinerCoordinator, Recorder, RunMinerLoop};
 use crate::mine::{create_funnel, Funnel};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use crate::mine::{create_prevent_flooding, PreventFlooding};
@@ -113,7 +113,7 @@ impl SubcommandMine {
     }
 
     async fn spawn_all_threads(&self) -> anyhow::Result<()> {
-        let (sender, receiver) = channel::<MinerThreadMessageToCoordinator>();
+        let (sender, receiver) = channel::<MinerCoordinatorMessage>();
 
         let mc: MinerCoordinator = match self.metrics_mode {
             SubcommandMineMetricsMode::NoMetricsServer => {
@@ -138,7 +138,7 @@ impl SubcommandMine {
     
     fn spawn_workers(
         &self, 
-        sender: std::sync::mpsc::Sender<MinerThreadMessageToCoordinator>, 
+        sender: std::sync::mpsc::Sender<MinerCoordinatorMessage>, 
         recorder: Box<dyn Recorder + Send>
     ) -> anyhow::Result<()> {
         println!("populating terms_to_program_id");
@@ -243,7 +243,7 @@ enum SharedMinerWorkerState {
 
 async fn miner_worker(
     ctx: BastionContext,
-    tx: Sender<MinerThreadMessageToCoordinator>, 
+    tx: Sender<MinerCoordinatorMessage>, 
     recorder: Box<dyn Recorder + Send>,
     terms_to_program_id: Arc<TermsToProgramIdSet>,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,

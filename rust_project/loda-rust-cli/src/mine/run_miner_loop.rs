@@ -1,7 +1,7 @@
 use super::{Funnel, Genome, GenomeItem, GenomeMutateContext, save_candidate_program, ToGenomeItemVec};
 use super::{PreventFlooding, TermComputer};
 use super::{PerformanceClassifierResult, PerformanceClassifier};
-use super::{MinerThreadMessageToCoordinator, MetricEvent, Recorder};
+use super::{MinerCoordinatorMessage, MetricEvent, Recorder};
 use super::metrics_run_miner_loop::MetricsRunMinerLoop;
 use crate::oeis::TermsToProgramIdSet;
 use loda_rust_core::control::DependencyManager;
@@ -59,7 +59,7 @@ impl ExecuteBatchResult {
 }
 
 pub struct RunMinerLoop {
-    tx: Sender<MinerThreadMessageToCoordinator>,
+    tx: Sender<MinerCoordinatorMessage>,
     recorder: Box<dyn Recorder + Send>,
     funnel: Funnel,
     mine_event_dir: PathBuf,
@@ -80,7 +80,7 @@ pub struct RunMinerLoop {
 
 impl RunMinerLoop {
     pub fn new(
-        tx: Sender<MinerThreadMessageToCoordinator>,
+        tx: Sender<MinerCoordinatorMessage>,
         recorder: Box<dyn Recorder + Send>,
         funnel: Funnel,
         mine_event_dir: &Path,
@@ -135,7 +135,7 @@ impl RunMinerLoop {
     fn submit_metrics(&mut self) {
         {
             let y: u64 = self.metric.number_of_miner_loop_iterations;
-            let message = MinerThreadMessageToCoordinator::NumberOfIterations(y);
+            let message = MinerCoordinatorMessage::NumberOfIterations(y);
             self.tx.send(message).unwrap();
         }
         {

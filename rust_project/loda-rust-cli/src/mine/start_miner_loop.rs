@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::oeis::TermsToProgramIdSet;
-use super::{RunMinerLoop, MinerThreadMessageToCoordinator, Recorder};
+use super::{RunMinerLoop, MinerCoordinatorMessage, Recorder};
 use super::Funnel;
 use super::PreventFlooding;
 use super::GenomeMutateContext;
@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
 
 pub fn start_miner_loop(
-    tx: Sender<MinerThreadMessageToCoordinator>, 
+    tx: Sender<MinerCoordinatorMessage>, 
     recorder: Box<dyn Recorder + Send>,
     terms_to_program_id: Arc<TermsToProgramIdSet>,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
