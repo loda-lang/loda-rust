@@ -1,6 +1,6 @@
 use super::ExecuteBatchResult;
 
-const MINEEVENTDIRECTORY_HIGH_PRIORITY_LIMIT: usize = 10;
+const MINEEVENTDIRECTORY_MINING_LIMIT: usize = 10;
 
 #[derive(Debug)]
 pub struct MineEventDirectoryState {
@@ -45,6 +45,7 @@ impl MineEventDirectoryState {
     }
 
     pub fn has_reached_mining_limit(&self) -> bool {
-        self.number_of_mined_high_prio >= MINEEVENTDIRECTORY_HIGH_PRIORITY_LIMIT
+        let sum = self.number_of_mined_high_prio + self.number_of_mined_low_prio;
+        sum >= MINEEVENTDIRECTORY_MINING_LIMIT
     }
 }
