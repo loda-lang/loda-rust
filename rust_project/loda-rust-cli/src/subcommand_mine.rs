@@ -1,7 +1,7 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
 use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
-use crate::mine::{ExecuteBatchResult, FunnelConfig, MinerCoordinatorMessage, start_miner_loop, MineEventDirectoryState, MinerCoordinator, Recorder, RunMinerLoop};
+use crate::mine::{ExecuteBatchResult, FunnelConfig, MinerCoordinatorMessage, MineEventDirectoryState, MinerCoordinator, Recorder, RunMinerLoop};
 use crate::mine::{create_funnel, Funnel};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use crate::mine::{create_prevent_flooding, PreventFlooding};
@@ -17,6 +17,7 @@ use std::sync::mpsc::channel;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
+use rand::{RngCore, thread_rng};
 
 #[derive(Debug)]
 pub enum SubcommandMineMetricsMode {
@@ -254,17 +255,24 @@ async fn miner_worker(
 ) -> Result<(), ()> {
     println!("miner_worker - started, {:?}", ctx.current().id());
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
+    let mine_event_dir: PathBuf = config.mine_event_dir();
 
     let postmine_worker_distributor = Distributor::named("postmine_worker");
 
-    let mut rml: RunMinerLoop = start_miner_loop(
-        tx, 
-        recorder, 
-        terms_to_program_id,
-        prevent_flooding,
-        config,
+    let initial_random_seed: u64 = {
+        let mut rng = thread_rng();
+        rng.next_u64()
+    };
+
+    let mut rml = RunMinerLoop::new(
+        tx,
+        recorder,
         funnel,
+        &mine_event_dir,
+        prevent_flooding,
         genome_mutate_context,
+        initial_random_seed,
+        terms_to_program_id,
     );
 
     loop {

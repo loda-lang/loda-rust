@@ -15,6 +15,7 @@ use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::time::Instant;
 use rand::seq::SliceRandom;
+use rand::SeedableRng;
 use rand::rngs::StdRng;
 use std::sync::{Arc, Mutex};
 
@@ -86,9 +87,10 @@ impl RunMinerLoop {
         mine_event_dir: &Path,
         prevent_flooding: Arc<Mutex<PreventFlooding>>,
         context: GenomeMutateContext,
-        rng: StdRng,
+        initial_random_seed: u64,
         terms_to_program_id: Arc<TermsToProgramIdSet>
     ) -> Self {
+        let rng: StdRng = StdRng::seed_from_u64(initial_random_seed);
         let capacity = NonZeroUsize::new(MINER_CACHE_CAPACITY).unwrap();
         Self {
             tx: tx,
