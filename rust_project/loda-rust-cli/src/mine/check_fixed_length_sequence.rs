@@ -133,12 +133,23 @@ pub enum NamedCacheFile {
     Funnel20All,
     Funnel30All,
     Funnel40All,
+    Funnel10New,
+    Funnel20New,
+    Funnel30New,
+    Funnel40New,
 }
 
 impl NamedCacheFile {
-    #[allow(dead_code)]
-    fn all() -> Vec<NamedCacheFile> {
-        vec!(Self::Funnel10All, Self::Funnel20All, Self::Funnel30All, Self::Funnel40All)
+    pub fn group_all() -> [NamedCacheFile; 4] {
+        [Self::Funnel10All, Self::Funnel20All, Self::Funnel30All, Self::Funnel40All]
+    }
+
+    pub fn group_new() -> [NamedCacheFile; 4] {
+        [Self::Funnel10New, Self::Funnel20New, Self::Funnel30New, Self::Funnel40New]
+    }
+
+    pub fn resolve_path(&self, parent_dir: &Path) -> PathBuf {
+        parent_dir.join(Path::new(self.filename()))
     }
 
     pub fn filename(&self) -> &str {
@@ -146,7 +157,11 @@ impl NamedCacheFile {
             Self::Funnel10All => "funnel_10_all.json",
             Self::Funnel20All => "funnel_20_all.json",
             Self::Funnel30All => "funnel_30_all.json",
-            Self::Funnel40All => "funnel_40_all.json"
+            Self::Funnel40All => "funnel_40_all.json",
+            Self::Funnel10New => "funnel_10_new.json",
+            Self::Funnel20New => "funnel_20_new.json",
+            Self::Funnel30New => "funnel_30_new.json",
+            Self::Funnel40New => "funnel_40_new.json",
         }
     }
 }
@@ -267,25 +282,44 @@ impl PopulateBloomfilter {
             config: config,
             simple_log: simple_log
         };
-        instance.run_inner()?;
+        instance.populate_bloomfilter_all()?;
+        instance.populate_bloomfilter_new()?;
         Ok(())
     }
 
-    fn run_inner(&self) -> Result<(), Box<dyn Error>> {
-        self.simple_log.println("\nPopulateBloomfilter");
-        println!("Populate bloomfilter");
+    fn populate_bloomfilter_all(&self) -> anyhow::Result<()> {
+        println!("Populate bloomfilter - group all");
+        self.simple_log.println("\nPopulateBloomfilter - group all");
+        let oeis_ids_to_ignore: OeisIdHashSet = self.obtain_dontmine_program_ids()?;
+        self.simple_log.println(format!("ignore total: {}", oeis_ids_to_ignore.len()));
+        self.populate_bloomfilter(NamedCacheFile::group_all(), oeis_ids_to_ignore)?;
+        Ok(())
+    }
 
+    fn populate_bloomfilter_new(&self) -> anyhow::Result<()> {
+        println!("Populate bloomfilter - group new");
+        self.simple_log.println("\nPopulateBloomfilter - group new");
+        let oeis_ids_dontmine: OeisIdHashSet = self.obtain_dontmine_program_ids()?;
+        let oeis_ids_invalid: OeisIdHashSet = self.obtain_invalid_program_ids()?;
+        let oeis_ids_valid: OeisIdHashSet = self.obtain_valid_program_ids()?;
+        let mut oeis_ids_to_ignore: OeisIdHashSet = oeis_ids_dontmine.clone();
+        oeis_ids_to_ignore.extend(&oeis_ids_invalid);
+        oeis_ids_to_ignore.extend(&oeis_ids_valid);
+        self.simple_log.println(format!("ignore total: {} dontmine: {} valid: {} invalid: {}", oeis_ids_to_ignore.len(), oeis_ids_dontmine.len(), oeis_ids_valid.len(), oeis_ids_invalid.len()));
+        self.populate_bloomfilter(NamedCacheFile::group_new(), oeis_ids_to_ignore)?;
+        Ok(())
+    }
+
+    fn populate_bloomfilter(&self, names: [NamedCacheFile; 4], oeis_ids_to_ignore: OeisIdHashSet) -> anyhow::Result<()> {
         let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
         assert!(oeis_stripped_file.is_absolute());
         assert!(oeis_stripped_file.is_file());
 
-        let cache_dir: PathBuf = self.config.analytics_dir();
-        let oeis_ids_to_ignore: OeisIdHashSet = self.obtain_dontmine_program_ids();
-
-        let funnel10_path = cache_dir.join(Path::new(NamedCacheFile::Funnel10All.filename()));
-        let funnel20_path = cache_dir.join(Path::new(NamedCacheFile::Funnel20All.filename()));
-        let funnel30_path = cache_dir.join(Path::new(NamedCacheFile::Funnel30All.filename()));
-        let funnel40_path = cache_dir.join(Path::new(NamedCacheFile::Funnel40All.filename()));
+        let analytics_dir: PathBuf = self.config.analytics_dir();
+        let funnel10_path: PathBuf = names[0].resolve_path(&analytics_dir);
+        let funnel20_path: PathBuf = names[1].resolve_path(&analytics_dir);
+        let funnel30_path: PathBuf = names[2].resolve_path(&analytics_dir);
+        let funnel40_path: PathBuf = names[3].resolve_path(&analytics_dir);
 
         let file = File::open(oeis_stripped_file).unwrap();
         let filesize: usize = file.metadata().unwrap().len() as usize;
@@ -304,18 +338,34 @@ impl PopulateBloomfilter {
         Ok(())
     }
 
-    fn obtain_dontmine_program_ids(&self) -> OeisIdHashSet {
+    fn obtain_dontmine_program_ids(&self) -> anyhow::Result<OeisIdHashSet> {
         let path = self.config.analytics_dir_dont_mine_file();
-        let program_ids: Vec<u32> = match load_program_ids_csv_file(&path) {
-            Ok(value) => value,
-            Err(error) => {
-                panic!("Unable to load the dontmine file. path: {:?} error: {:?}", path, error);
-            }
-        };
-        let oeis_ids: Vec<OeisId> = program_ids.iter().map(|program_id| OeisId::from(*program_id)).collect();
-        let hashset: OeisIdHashSet = HashSet::from_iter(oeis_ids.iter().cloned());
-        self.simple_log.println(format!("loaded dontmine file. number of records: {}", hashset.len()));
-        hashset
+        let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)
+            .map_err(|e| anyhow::anyhow!("obtain_dontmine_program_ids - unable to load program_ids. error: {:?}", e))?;
+        let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();
+        let hashset: OeisIdHashSet = HashSet::from_iter(program_ids.iter().cloned());
+        debug!("loaded dontmine program_ids file. number of records: {}", hashset.len());
+        Ok(hashset)
+    }
+
+    fn obtain_invalid_program_ids(&self) -> anyhow::Result<OeisIdHashSet> {
+        let path = self.config.analytics_dir_programs_invalid_file();
+        let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)
+            .map_err(|e| anyhow::anyhow!("obtain_invalid_program_ids - unable to load program_ids. error: {:?}", e))?;
+        let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();
+        let hashset: OeisIdHashSet = HashSet::from_iter(program_ids.iter().cloned());
+        debug!("loaded invalid program_ids file. number of records: {}", hashset.len());
+        Ok(hashset)
+    }
+
+    fn obtain_valid_program_ids(&self) -> anyhow::Result<OeisIdHashSet> {
+        let path = self.config.analytics_dir_programs_valid_file();
+        let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)
+            .map_err(|e| anyhow::anyhow!("obtain_valid_program_ids - unable to load program_ids. error: {:?}", e))?;
+        let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();
+        let hashset: OeisIdHashSet = HashSet::from_iter(program_ids.iter().cloned());
+        debug!("loaded valid program_ids file. number of records: {}", hashset.len());
+        Ok(hashset)
     }
 }
 
@@ -518,9 +568,8 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
         assert_eq!(number_of_sequences, 2);
         // Check that all the cache files can be loaded
         let mut file_count: usize = 0;
-        for item in NamedCacheFile::all() {
-            let filename: &str = item.filename();
-            let path: PathBuf = cache_dir.join(Path::new(filename));
+        for item in NamedCacheFile::group_all() {
+            let path: PathBuf = item.resolve_path(&cache_dir);
             let _checker: CheckFixedLengthSequence = CheckFixedLengthSequence::load(&path);
             file_count += 1;
         }
