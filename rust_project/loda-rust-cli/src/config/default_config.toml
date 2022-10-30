@@ -30,6 +30,16 @@ loda_patterns_repository = "$HOME/git/loda-patterns"
 # Absolute path to the "loda-outlier-programs" repository dir.
 loda_outlier_programs_repository = "$HOME/git/loda-outlier-programs"
 
+# --- MINER FILTER MODE ---
+
+# Search only for "new" programs. Don't waste time mining for "existing" programs.
+[miner_filter_mode]
+type = "new"
+
+# Search for both "new" programs and "existing" programs.
+# [miner_filter_mode]
+# type = "all"
+
 # --- MINER CPU STRATEGY ---
 
 # Make use of all the cpu's.
