@@ -317,12 +317,8 @@ async fn miner_worker(
                 }
 
                 // We are mining
-                // println!("miner-worker {}: execute_batch", ctx.current().id());
+                // debug!("miner-worker {}: execute_batch", ctx.current().id());
 
-                // TODO: preserve the content of the dependency manager, and pass it on to next iteration.
-                // Currently the dependency manager gets wiped, it's time consuming to load programs from disk.
-                // The `Rc<ProgramRunner>` cannot be passed across thread-boundaries such as async/await.
-                // 
                 let mut dependency_manager = DependencyManager::new(
                     DependencyManagerFileSystemMode::System,
                     loda_programs_oeis_dir.clone(),
@@ -417,7 +413,6 @@ async fn postmine_worker(
                                 error!("postmine error: {:?}", error);
                             }
                         }
-                        // TODO: loop multiple times until all pending have been processed.
 
                         // update/reset mine_event_dir_state, so counters are 0.
                         match mine_event_dir_state.lock() {
