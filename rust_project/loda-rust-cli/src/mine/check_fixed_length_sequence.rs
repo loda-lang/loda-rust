@@ -156,8 +156,11 @@ fn create_cache_files(
     oeis_stripped_file_reader: &mut dyn io::BufRead, 
     filesize: usize,
     bloom_items_count: usize,
-    cache_dir: &PathBuf, 
-    oeis_ids_to_ignore: &OeisIdHashSet
+    oeis_ids_to_ignore: &OeisIdHashSet,
+    funnel10_path: &Path,
+    funnel20_path: &Path,
+    funnel30_path: &Path,
+    funnel40_path: &Path,
 ) -> usize {
     let start = Instant::now();
     let mut processor = SequenceProcessor::new();
@@ -224,30 +227,22 @@ fn create_cache_files(
     let pb = ProgressBar::new(4);
     {
         let instance = CheckFixedLengthSequence::new(bloom10);
-        let filename: &str = NamedCacheFile::Bloom10Terms.filename();
-        let destination_file = cache_dir.join(Path::new(filename));
-        instance.save(&destination_file);
+        instance.save(funnel10_path);
         pb.inc(1);
     }
     {
         let instance = CheckFixedLengthSequence::new(bloom20);
-        let filename: &str = NamedCacheFile::Bloom20Terms.filename();
-        let destination_file = cache_dir.join(Path::new(filename));
-        instance.save(&destination_file);
+        instance.save(funnel20_path);
         pb.inc(1);
     }
     {
         let instance = CheckFixedLengthSequence::new(bloom30);
-        let filename: &str = NamedCacheFile::Bloom30Terms.filename();
-        let destination_file = cache_dir.join(Path::new(filename));
-        instance.save(&destination_file);
+        instance.save(funnel30_path);
         pb.inc(1);
     }
     {
         let instance = CheckFixedLengthSequence::new(bloom40);
-        let filename: &str = NamedCacheFile::Bloom40Terms.filename();
-        let destination_file = cache_dir.join(Path::new(filename));
-        instance.save(&destination_file);
+        instance.save(funnel40_path);
         pb.finish_and_clear();
     }
     println!(
@@ -287,6 +282,11 @@ impl PopulateBloomfilter {
         let cache_dir: PathBuf = self.config.analytics_dir();
         let oeis_ids_to_ignore: OeisIdHashSet = self.obtain_dontmine_program_ids();
 
+        let funnel10_path = cache_dir.join(Path::new(NamedCacheFile::Bloom10Terms.filename()));
+        let funnel20_path = cache_dir.join(Path::new(NamedCacheFile::Bloom20Terms.filename()));
+        let funnel30_path = cache_dir.join(Path::new(NamedCacheFile::Bloom30Terms.filename()));
+        let funnel40_path = cache_dir.join(Path::new(NamedCacheFile::Bloom40Terms.filename()));
+
         let file = File::open(oeis_stripped_file).unwrap();
         let filesize: usize = file.metadata().unwrap().len() as usize;
         let mut reader = BufReader::new(file);
@@ -294,9 +294,12 @@ impl PopulateBloomfilter {
             self.simple_log.clone(),
             &mut reader, 
             filesize,
-            FunnelConfig::BLOOMFILTER_CAPACITY, 
-            &cache_dir, 
-            &oeis_ids_to_ignore
+            FunnelConfig::BLOOMFILTER_CAPACITY,
+            &oeis_ids_to_ignore,
+            &funnel10_path,
+            &funnel20_path,
+            &funnel30_path,
+            &funnel40_path,
         );
         Ok(())
     }
@@ -493,14 +496,22 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
         let filesize: usize = input.len();
         let hashset = HashSet::<OeisId>::new();
 
+        let funnel10_path = cache_dir.join(Path::new(NamedCacheFile::Bloom10Terms.filename()));
+        let funnel20_path = cache_dir.join(Path::new(NamedCacheFile::Bloom20Terms.filename()));
+        let funnel30_path = cache_dir.join(Path::new(NamedCacheFile::Bloom30Terms.filename()));
+        let funnel40_path = cache_dir.join(Path::new(NamedCacheFile::Bloom40Terms.filename()));
+
         // Act
         let number_of_sequences: usize = create_cache_files(
             simple_log,
             &mut input, 
             filesize,
             10,
-            &cache_dir,
-            &hashset
+            &hashset,
+            &funnel10_path,
+            &funnel20_path,
+            &funnel30_path,
+            &funnel40_path,
         );
 
         // Assert
