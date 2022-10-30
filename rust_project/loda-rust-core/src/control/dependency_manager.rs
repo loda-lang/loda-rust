@@ -127,6 +127,13 @@ impl DependencyManager {
         self.virtual_filesystem.insert(program_id, file_content);
     }
 
+    pub fn virtual_filesystem_inspect_filenames(&self) -> String {
+        let mut program_ids: Vec<u64> = self.virtual_filesystem.iter().map(|(key,_value)| *key).collect();
+        program_ids.sort();
+        let program_id_strings: Vec<String> = program_ids.iter().map(|program_id| format!("{}", program_id)).collect();
+        program_id_strings.join(",")
+    }
+
     pub fn load(&mut self, program_id: u64) ->
         Result<Rc::<ProgramRunner>, DependencyManagerError> 
     {

@@ -1543,8 +1543,8 @@ impl Genome {
             (MutateGenome::InsertLoopBeginEnd, 0),
             (MutateGenome::CallProgramWeightedByPopularity, 0),
             (MutateGenome::CallMostPopularProgram, 50),
-            (MutateGenome::CallMediumPopularProgram, 0),
-            (MutateGenome::CallLeastPopularProgram, 0),
+            (MutateGenome::CallMediumPopularProgram, 50),
+            (MutateGenome::CallLeastPopularProgram, 50),
             // (MutateGenome::CallRecentProgram, 1),
             (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 0),
         ];

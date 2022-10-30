@@ -1,35 +1,68 @@
 use super::{Funnel, Genome, GenomeItem, GenomeMutateContext, save_candidate_program, ToGenomeItemVec};
 use super::{PreventFlooding, TermComputer};
 use super::{PerformanceClassifierResult, PerformanceClassifier};
-use super::{MinerThreadMessageToCoordinator, MetricEvent, Recorder};
+use super::{MinerCoordinatorMessage, MetricEvent, Recorder};
 use super::metrics_run_miner_loop::MetricsRunMinerLoop;
 use crate::oeis::TermsToProgramIdSet;
+use crate::config::{Config, MinerFilterMode};
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{ProgramCache, ProgramId, ProgramRunner, ProgramSerializer};
 use loda_rust_core::util::{BigIntVec, BigIntVecToString};
 use loda_rust_core::parser::ParsedProgram;
 use std::collections::HashSet;
 use std::num::NonZeroUsize;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::time::Instant;
 use rand::seq::SliceRandom;
+use rand::SeedableRng;
 use rand::rngs::StdRng;
 use std::sync::{Arc, Mutex};
 
+const EXECUTE_BATCH_TIME_LIMIT: u128 = 1000;
 const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
 const MINIMUM_PROGRAM_LENGTH: usize = 6;
 const LOAD_INITIAL_GENOME_MINIMUM_PROGRAM_LENGTH: usize = 8;
 const LOAD_INITIAL_GENOME_RETRIES: usize = 1000;
 const MINER_CACHE_CAPACITY: usize = 3000;
 const ITERATIONS_BETWEEN_PICKING_A_NEW_INITIAL_GENOME: usize = 300;
-const ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME: usize = 10;
+const ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME: usize = 5;
+
+#[derive(Debug)]
+pub struct ExecuteBatchResult {
+    number_of_mined_high_prio: usize,
+    number_of_mined_low_prio: usize,
+}
+
+impl ExecuteBatchResult {
+    pub fn new() -> Self {
+        Self {
+            number_of_mined_high_prio: 0, 
+            number_of_mined_low_prio: 0,
+        }
+    }
+
+    pub fn number_of_mined_high_prio(&self) -> usize {
+        self.number_of_mined_high_prio
+    }
+
+    pub fn number_of_mined_low_prio(&self) -> usize {
+        self.number_of_mined_low_prio
+    }
+
+    pub fn increment_number_of_mined_high_prio(&mut self) {
+        self.number_of_mined_high_prio += 1;
+    }
+
+    pub fn increment_number_of_mined_low_prio(&mut self) {
+        self.number_of_mined_low_prio += 1;
+    }
+}
 
 pub struct RunMinerLoop {
-    tx: Sender<MinerThreadMessageToCoordinator>,
-    recorder: Box<dyn Recorder>,
-    dependency_manager: DependencyManager,
+    tx: Sender<MinerCoordinatorMessage>,
+    recorder: Box<dyn Recorder + Send>,
     funnel: Funnel,
     mine_event_dir: PathBuf,
     cache: ProgramCache,
@@ -45,32 +78,39 @@ pub struct RunMinerLoop {
     reload: bool,
     term_computer: TermComputer,
     terms_to_program_id: Arc<TermsToProgramIdSet>,
+    suppress_low_priority_programs: bool,
 }
 
 impl RunMinerLoop {
     pub fn new(
-        tx: Sender<MinerThreadMessageToCoordinator>,
-        recorder: Box<dyn Recorder>,
-        dependency_manager: DependencyManager,
+        tx: Sender<MinerCoordinatorMessage>,
+        recorder: Box<dyn Recorder + Send>,
         funnel: Funnel,
-        mine_event_dir: &Path,
+        config: &Config,
         prevent_flooding: Arc<Mutex<PreventFlooding>>,
         context: GenomeMutateContext,
-        genome: Genome,
-        rng: StdRng,
+        initial_random_seed: u64,
         terms_to_program_id: Arc<TermsToProgramIdSet>
     ) -> Self {
+        let rng: StdRng = StdRng::seed_from_u64(initial_random_seed);
+
+        let mine_event_dir: PathBuf = config.mine_event_dir();
+
+        let suppress_low_priority_programs: bool = match config.miner_filter_mode() {
+            MinerFilterMode::All => false,
+            MinerFilterMode::New => true
+        };
+    
         let capacity = NonZeroUsize::new(MINER_CACHE_CAPACITY).unwrap();
         Self {
             tx: tx,
             recorder: recorder,
-            dependency_manager: dependency_manager,
             funnel: funnel,
             mine_event_dir: PathBuf::from(mine_event_dir),
             cache: ProgramCache::with_capacity(capacity),
             prevent_flooding: prevent_flooding,
             context: context,
-            genome: genome,
+            genome: Genome::new(),
             rng: rng,
             metric: MetricsRunMinerLoop::new(),
             current_program_id: 0,
@@ -80,25 +120,35 @@ impl RunMinerLoop {
             reload: true,
             term_computer: TermComputer::new(),
             terms_to_program_id: terms_to_program_id,
+            suppress_low_priority_programs: suppress_low_priority_programs,
         }
     }
 
-    pub fn loop_forever(&mut self) {
-        let mut progress_time = Instant::now();
+    pub fn execute_batch(&mut self, dependency_manager: &mut DependencyManager) -> anyhow::Result<ExecuteBatchResult> {
+        let start = Instant::now();
+        let mut progress_time: Instant = start;
+        let mut execute_batch_result = ExecuteBatchResult::new();
         loop {
+            self.execute_one_iteration(dependency_manager, &mut execute_batch_result);
             let elapsed: u128 = progress_time.elapsed().as_millis();
-            if elapsed >= INTERVAL_UNTIL_NEXT_METRIC_SYNC {
-                self.submit_metrics();
-                progress_time = Instant::now();
+            if elapsed < INTERVAL_UNTIL_NEXT_METRIC_SYNC {
+                continue;
             }
-            self.execute_one_iteration();
+            self.submit_metrics();
+            self.submit_metrics_for_dependency_manager(dependency_manager);
+            progress_time = Instant::now();
+            let elapsed_since_start: u128 = start.elapsed().as_millis();
+            if elapsed_since_start < EXECUTE_BATCH_TIME_LIMIT {
+                continue;
+            }
+            return Ok(execute_batch_result);
         }
     }
 
     fn submit_metrics(&mut self) {
         {
             let y: u64 = self.metric.number_of_miner_loop_iterations;
-            let message = MinerThreadMessageToCoordinator::NumberOfIterations(y);
+            let message = MinerCoordinatorMessage::NumberOfIterations(y);
             self.tx.send(message).unwrap();
         }
         {
@@ -131,13 +181,6 @@ impl RunMinerLoop {
             self.recorder.record(&event);
         }
         {
-            let event = MetricEvent::DependencyManager {
-                read_success: self.dependency_manager.metric_read_success(),
-                read_error: self.dependency_manager.metric_read_error(),
-            };
-            self.recorder.record(&event);
-        }
-        {
             let event = MetricEvent::General { 
                 prevent_flooding: self.metric.number_of_prevented_floodings,
                 reject_self_dependency: self.metric.number_of_self_dependencies,
@@ -148,10 +191,20 @@ impl RunMinerLoop {
         self.funnel.reset_metrics();
         self.cache.reset_metrics();
         self.metric.reset_metrics();
-        self.dependency_manager.reset_metrics();
     }
 
-    pub fn load_initial_genome_program(&mut self) -> anyhow::Result<()> {
+    fn submit_metrics_for_dependency_manager(&mut self, dependency_manager: &mut DependencyManager) {
+        {
+            let event = MetricEvent::DependencyManager {
+                read_success: dependency_manager.metric_read_success(),
+                read_error: dependency_manager.metric_read_error(),
+            };
+            self.recorder.record(&event);
+        }
+        dependency_manager.reset_metrics();
+    }
+
+    pub fn load_initial_genome_program(&mut self, dependency_manager: &mut DependencyManager) -> anyhow::Result<()> {
         for _ in 0..LOAD_INITIAL_GENOME_RETRIES {
             let program_id: u32 = match self.context.choose_initial_genome_program(&mut self.rng) {
                 Some(value) => value,
@@ -159,7 +212,7 @@ impl RunMinerLoop {
                     return Err(anyhow::anyhow!("choose_initial_genome_program() returned None, seems like data model is empty"));
                 }
             };
-            let parsed_program: ParsedProgram = match Genome::load_program_with_id(&self.dependency_manager, program_id as u64) {
+            let parsed_program: ParsedProgram = match Genome::load_program_with_id(dependency_manager, program_id as u64) {
                 Ok(value) => value,
                 Err(error) => {
                     error!("Unable to load program. {:?}", error);
@@ -181,7 +234,7 @@ impl RunMinerLoop {
 
             let message_vec: Vec<String>;
             if *should_inline_seq {
-                let did_mutate_ok = Genome::mutate_inline_seq(&mut self.rng, &self.dependency_manager, &mut genome_vec);
+                let did_mutate_ok = Genome::mutate_inline_seq(&mut self.rng, dependency_manager, &mut genome_vec);
                 let mutate_message: String;
                 if did_mutate_ok {
                     mutate_message = "mutate: mutate_inline_seq".to_string();
@@ -205,13 +258,17 @@ impl RunMinerLoop {
         return Err(anyhow::anyhow!("Unable to pick among available programs"));
     }
 
-    fn execute_one_iteration(&mut self) {
+    fn execute_one_iteration(
+        &mut self, 
+        dependency_manager: &mut DependencyManager, 
+        execute_batch_result: &mut ExecuteBatchResult
+    ) {
         self.metric.number_of_miner_loop_iterations += 1;
         if (self.iteration % ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME) == 0 {
             self.reload = true;
         }
         if (self.iteration % ITERATIONS_BETWEEN_PICKING_A_NEW_INITIAL_GENOME) == 0 {
-            match self.load_initial_genome_program() {
+            match self.load_initial_genome_program(dependency_manager) {
                 Ok(_) => {},
                 Err(error) => {
                     error!("Failed loading initial genome. {:?}", error);
@@ -242,7 +299,7 @@ impl RunMinerLoop {
         }
 
         // Create program from genome
-        let result_parse = self.dependency_manager.parse_stage2(
+        let result_parse = dependency_manager.parse_stage2(
             ProgramId::ProgramWithoutId, 
             &genome_parsed_program
         );
@@ -347,7 +404,7 @@ impl RunMinerLoop {
         let depends_on_program_ids: HashSet<u32> = self.genome.depends_on_program_ids();
         let mut reject_self_dependency = false;
         for program_id in &depends_on_program_ids {
-            let program_runner: Rc::<ProgramRunner> = match self.dependency_manager.load(*program_id as u64) {
+            let program_runner: Rc::<ProgramRunner> = match dependency_manager.load(*program_id as u64) {
                 Ok(value) => value,
                 Err(error) => {
                     error!("Cannot verify, failed to load program id {}, {:?}", program_id, error);
@@ -402,6 +459,7 @@ impl RunMinerLoop {
         let performance_classifier = PerformanceClassifier::new(10);
         let mut maybe_a_new_program = false;
         let mut is_existing_program_with_better_performance = false;
+        let mut priority = ProgramCandidatePriority::Low;
         for program_id in corresponding_program_id_set {
             if self.context.is_program_id_invalid(*program_id) {
                 debug!("Keep. Maybe a new program. The program id {} is contained in 'programs_invalid.csv'", program_id);
@@ -409,13 +467,14 @@ impl RunMinerLoop {
                 maybe_a_new_program = true;
                 break;
             }
-            let program_runner: Rc::<ProgramRunner> = match self.dependency_manager.load(*program_id as u64) {
+            let program_runner: Rc::<ProgramRunner> = match dependency_manager.load(*program_id as u64) {
                 Ok(value) => value,
                 Err(error) => {
                     debug!("Keep. Maybe a new program. Cannot verify, failed to load program id {}, {:?}", program_id, error);
                     self.genome.append_message(format!("keep: maybe a new program. cannot load program {:?} with the same initial terms. error: {:?}", program_id, error));
                     self.genome.append_message(format!("priority: high"));
                     maybe_a_new_program = true;
+                    priority = ProgramCandidatePriority::High;
                     break;
                 }
             };
@@ -506,6 +565,13 @@ impl RunMinerLoop {
             }
         }
 
+        if self.suppress_low_priority_programs {
+            if priority == ProgramCandidatePriority::Low {
+                debug!("suppressing low priority program");
+                return;
+            }
+        }
+
         // Yay, this candidate program seems to be good.
         // It's either an entirely new program.
         // Or it's faster than the existing program.
@@ -527,5 +593,21 @@ impl RunMinerLoop {
             return;
         }
         self.metric.number_of_candidate_programs += 1;
+
+        match priority {
+            ProgramCandidatePriority::Low => {
+                execute_batch_result.increment_number_of_mined_low_prio();
+            },
+            ProgramCandidatePriority::High => {
+                execute_batch_result.increment_number_of_mined_high_prio();
+            }
+        }
+
     }
+}
+
+#[derive(Debug, PartialEq)]
+enum ProgramCandidatePriority {
+    Low,
+    High,
 }

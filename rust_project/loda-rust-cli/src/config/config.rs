@@ -4,7 +4,7 @@ use std::fs;
 
 const DEFAULT_CONFIG: &'static str = include_str!("default_config.toml");
 
-#[derive(Clone, Debug, PartialEq, Deserialize, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Eq)]
 #[serde(tag = "type", content = "content")]
 pub enum MinerCPUStrategy {
     #[serde(rename = "min")]
@@ -15,6 +15,25 @@ pub enum MinerCPUStrategy {
     Max,
     #[serde(rename = "cpu")]
     CPU { count: u16 },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Eq)]
+#[serde(tag = "type", content = "content")]
+pub enum MinerFilterMode {
+    /// Search only for `new` programs. Don't waste time mining for `existing` programs.
+    #[serde(rename = "new")]
+    New,
+
+    /// Search for both `new` programs and `existing` programs.
+    /// 
+    /// The majority of programs found are improvements to `existing` programs.
+    /// It's time consuming comparing performance between the `new` program vs the `existing` program,
+    /// and picking most optimal program.
+    /// 
+    /// The minority programs found are `new` programs.
+    /// No time is spent on comparing performance, since there is no `existing` program.
+    #[serde(rename = "all")]
+    All,
 }
 
 #[derive(Clone, Debug)]
@@ -30,6 +49,7 @@ pub struct Config {
     miner_metrics_listen_port: u16,
     loda_patterns_repository: PathBuf,
     loda_outlier_programs_repository: PathBuf,
+    miner_filter_mode: MinerFilterMode,
     miner_cpu_strategy: MinerCPUStrategy,
 }
 
@@ -334,8 +354,15 @@ impl Config {
         path
     }
 
+    /// How the time should be spent.
+    /// - Mine only for `new` programs.
+    /// - Mine for `new` programs and improvements to `existing` programs.
+    pub fn miner_filter_mode(&self) -> MinerFilterMode {
+        self.miner_filter_mode
+    }
+
     pub fn miner_cpu_strategy(&self) -> MinerCPUStrategy {
-        self.miner_cpu_strategy.clone()
+        self.miner_cpu_strategy
     }
 }
 
@@ -351,6 +378,7 @@ struct ConfigFallback {
     miner_metrics_listen_port: u16,
     loda_patterns_repository: String,
     loda_outlier_programs_repository: String,
+    miner_filter_mode: MinerFilterMode,
     miner_cpu_strategy: MinerCPUStrategy,
 }
 
@@ -366,6 +394,7 @@ struct ConfigCustom {
     miner_metrics_listen_port: Option<u16>,
     loda_patterns_repository: Option<String>,
     loda_outlier_programs_repository: Option<String>,
+    miner_filter_mode: Option<MinerFilterMode>,
     miner_cpu_strategy: Option<MinerCPUStrategy>,
 }
 
@@ -436,6 +465,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
     let miner_metrics_listen_port: u16 = custom.miner_metrics_listen_port.unwrap_or(fallback.miner_metrics_listen_port);
     let loda_patterns_repository: String = custom.loda_patterns_repository.unwrap_or(fallback.loda_patterns_repository);
     let loda_outlier_programs_repository: String = custom.loda_outlier_programs_repository.unwrap_or(fallback.loda_outlier_programs_repository);
+    let miner_filter_mode: MinerFilterMode = custom.miner_filter_mode.unwrap_or(fallback.miner_filter_mode);
     let miner_cpu_strategy: MinerCPUStrategy = custom.miner_cpu_strategy.unwrap_or(fallback.miner_cpu_strategy);
     Config {
         basedir: basedir,
@@ -445,10 +475,11 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
         loda_rust_repository: simpleenv.resolve_path(&loda_rust_repository),
         loda_rust_executable: simpleenv.resolve_path(&loda_rust_executable),
         loda_cpp_executable: simpleenv.resolve_path(&loda_cpp_executable),
-        loda_submitted_by: loda_submitted_by.clone(),
+        loda_submitted_by: loda_submitted_by,
         miner_metrics_listen_port: miner_metrics_listen_port,
         loda_patterns_repository: simpleenv.resolve_path(&loda_patterns_repository),
         loda_outlier_programs_repository: simpleenv.resolve_path(&loda_outlier_programs_repository),
+        miner_filter_mode: miner_filter_mode,
         miner_cpu_strategy: miner_cpu_strategy,
     }
 }
@@ -564,6 +595,7 @@ mod tests {
         assert_eq!(config.miner_metrics_listen_port, 8090);
         assert_has_suffix(&config.loda_patterns_repository, "/git/loda-patterns")?;
         assert_has_suffix(&config.loda_outlier_programs_repository, "/git/loda-outlier-programs")?;
+        assert_eq!(config.miner_filter_mode, MinerFilterMode::New);
         assert_eq!(config.miner_cpu_strategy, MinerCPUStrategy::Max);
         Ok(())
     }
@@ -613,10 +645,31 @@ mod tests {
     }
 
     #[test]
-    fn test_40002_override_miner_cpu_strategy() -> Result<(), Box<dyn Error>> {
+    fn test_40002_override_miner_filter_mode() -> Result<(), Box<dyn Error>> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
-        let homedir = PathBuf::from(&tempdir.path()).join("test_40002_override_miner_cpu_strategy");
+        let homedir = PathBuf::from(&tempdir.path()).join("test_40002_override_miner_filter_mode");
+        fs::create_dir(&homedir)?;
+        let content = 
+        r#"
+        [miner_filter_mode]
+        type = "all"
+        "#;
+        let basedir = PathBuf::from(Path::new("non-existing-basedir"));
+
+        // Act
+        let config: Config = config_from_toml_content(content.to_string(), basedir, homedir);
+
+        // Assert
+        assert_eq!(config.miner_filter_mode, MinerFilterMode::All);
+        Ok(())
+    }
+
+    #[test]
+    fn test_40003_override_miner_cpu_strategy() -> Result<(), Box<dyn Error>> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let homedir = PathBuf::from(&tempdir.path()).join("test_40003_override_miner_cpu_strategy");
         fs::create_dir(&homedir)?;
         let content = 
         r#"

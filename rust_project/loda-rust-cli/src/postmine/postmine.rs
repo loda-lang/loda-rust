@@ -1,6 +1,6 @@
-use crate::config::Config;
+use crate::config::{Config, MinerFilterMode};
 use crate::common::{oeis_ids_from_program_string, OeisIdStringMap};
-use crate::common::{find_asm_files_recursively, find_pending_programs, load_program_ids_csv_file, SimpleLog};
+use crate::common::{load_program_ids_csv_file, PendingProgramsWithPriority, SimpleLog};
 use crate::oeis::{ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use super::{batch_lookup_names, terms_from_program, FormatProgram, path_for_oeis_program};
@@ -11,9 +11,8 @@ use loda_rust_core::util::BigIntVecToString;
 use num_bigint::{BigInt, ToBigInt};
 use chrono::{DateTime, Utc};
 use std::collections::HashSet;
-use std::error::Error;
 use std::fs;
-use std::fs::File;
+use std::fs::{File, Metadata};
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::iter::FromIterator;
@@ -24,7 +23,6 @@ use core::cell::RefCell;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
 use anyhow::Context;
-use regex::Regex;
 
 type CandidateProgramItem = Rc<RefCell<CandidateProgram>>;
 
@@ -52,16 +50,18 @@ pub struct PostMine {
     candidate_programs: Vec<CandidateProgramItem>,
     dontmine_hashset: OeisIdHashSet,
     invalid_program_ids_hashset: OeisIdHashSet,
+    valid_program_ids_hashset: OeisIdHashSet,
     oeis_id_name_map: OeisIdStringMap,
     oeis_id_terms_map: OeisIdStringMap,
     loda_programs_oeis_dir: PathBuf,
     loda_outlier_programs_repository_oeis_divergent: PathBuf,
     validate_single_program: ValidateSingleProgram,
     iteration: usize,
+    focus_only_on_new_programs: bool,
 }
 
 impl PostMine {
-    const LIMIT_NUMBER_OF_PROGRAMS_FOR_PROCESSING: usize = 40;
+    const LIMIT_NUMBER_OF_PROGRAMS_FOR_PROCESSING: usize = 100;
     const MAX_LOOKUP_TERM_COUNT: usize = 100;
     const EVAL_TERM_COUNT: usize = 40;
     const MINIMUM_NUMBER_OF_REQUIRED_TERMS: usize = 10;
@@ -90,17 +90,18 @@ impl PostMine {
     /// ```
     const MAX_NUMBER_OF_OUTLIER_VARIANTS: usize = 10;
 
-    pub fn run() -> Result<(), Box<dyn Error>> {
+    pub fn run() -> anyhow::Result<()> {
         let mut instance = Self::new()?;
         instance.run_inner()?;
         Ok(())
     }
 
-    fn run_inner(&mut self) -> Result<(), Box<dyn Error>> {
+    fn run_inner(&mut self) -> anyhow::Result<()> {
         self.obtain_paths_for_processing()?;    
         self.populate_candidate_programs()?;
         self.obtain_dontmine_program_ids()?;
         self.obtain_invalid_program_ids()?;
+        self.obtain_valid_program_ids()?;
         self.eval_using_loda_cpp()?;
         self.lookup_in_oeis_stripped_file()?;
         self.minimize_candidate_programs()?;
@@ -109,10 +110,15 @@ impl PostMine {
         Ok(())
     }
     
-    fn new() -> Result<Self, Box<dyn Error>> {
+    fn new() -> anyhow::Result<Self> {
         let config = Config::load();
         let loda_programs_oeis_dir = config.loda_programs_oeis_dir();
         let validate_single_program = ValidateSingleProgram::new(loda_programs_oeis_dir.clone());
+
+        let focus_only_on_new_programs: bool = match config.miner_filter_mode() {
+            MinerFilterMode::All => false,
+            MinerFilterMode::New => true
+        };
 
         // Ensure that the `postmine` dir exist
         let postmine_dir_path: PathBuf = config.postmine_dir();
@@ -145,12 +151,14 @@ impl PostMine {
             candidate_programs: vec!(),
             dontmine_hashset: HashSet::new(),
             invalid_program_ids_hashset: HashSet::new(),
+            valid_program_ids_hashset: HashSet::new(),
             oeis_id_name_map: OeisIdStringMap::new(),
             oeis_id_terms_map: OeisIdStringMap::new(),
             loda_programs_oeis_dir: loda_programs_oeis_dir,
             loda_outlier_programs_repository_oeis_divergent: loda_outlier_programs_repository_oeis_divergent,
             validate_single_program: validate_single_program,
             iteration: 0,
+            focus_only_on_new_programs: focus_only_on_new_programs,
         };
         Ok(instance)
     }
@@ -165,33 +173,12 @@ impl PostMine {
     /// It looks for all the LODA assembly programs there are.
     /// If programs already contain `keep` or `reject` then the files are ignored.
     fn obtain_paths_for_processing(&mut self) -> anyhow::Result<()> {
-        let mine_event_dir: PathBuf = self.config.mine_event_dir();
-        let paths_all: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
-        let paths_pending_programs: Vec<PathBuf> = match find_pending_programs(&paths_all, true) {
-            Ok(value) => value,
-            Err(error) => {
-                return Err(anyhow::anyhow!("find_pending_programs error. {:?}", error));
-            }
-        };
+        let pending = PendingProgramsWithPriority::create(&self.config)?;
+        println!("Arrange programs by priority. high prio: {}, low prio: {}", pending.paths_high_prio().len(), pending.paths_low_prio().len());
 
-        // If this is a new program, then place it in the high priority queue, so it gets analyzed ASAP.
-        // Otherwise the program ends up in the low priority queue.
-        let mut paths_high_prio = Vec::<&Path>::with_capacity(paths_pending_programs.len());
-        let mut paths_low_prio = Vec::<&Path>::with_capacity(paths_pending_programs.len());
-        let regex: Regex = Regex::new("priority: high").unwrap();
-        for path in &paths_pending_programs {
-            let contents: String = fs::read_to_string(&path)
-                .with_context(|| format!("Unable to read program file: {:?}", path))?;
-            match regex.captures(&contents) {
-                Some(_) => {
-                    paths_high_prio.push(&path);
-                },
-                None => {
-                    paths_low_prio.push(&path);
-                }
-            }
-        }
-        println!("Arrange programs by priority. high prio: {}, low prio: {}", paths_high_prio.len(), paths_low_prio.len());
+        // Get references to the Path which is fixed length. PathBuf is variable length.
+        let paths_high_prio: Vec<&Path> = pending.paths_high_prio().iter().map(|path|path.as_path()).collect();
+        let paths_low_prio: Vec<&Path> = pending.paths_low_prio().iter().map(|path|path.as_path()).collect();
 
         // High priority items at the front of the queue, so they get processed first.
         // Low priority items at the end of the queue.
@@ -207,14 +194,20 @@ impl PostMine {
             println!("Number of programs in queue {}. Truncating to {}.", length0, length1);
         }
 
-        self.paths_for_processing = paths_queue.iter().map(|&path|PathBuf::from(path)).collect();
+        let paths_for_processing: Vec<PathBuf> = paths_queue.iter().map(|&path|PathBuf::from(path)).collect();
+        if paths_for_processing.is_empty() {
+            return Err(anyhow::anyhow!("No pending programs in the 'mine-event' dir."));
+        }
+        self.paths_for_processing = paths_for_processing;
         Ok(())
     }
 
-    fn populate_candidate_programs(&mut self) -> Result<(), Box<dyn Error>> {
+    fn populate_candidate_programs(&mut self) -> anyhow::Result<()> {
         let mut candidate_programs = Vec::<CandidateProgramItem>::with_capacity(self.paths_for_processing.len());
         for path in &self.paths_for_processing {
-            let candidate_program = CandidateProgram::new(path)?;
+            let candidate_program = CandidateProgram::new(path)
+                .map_err(|e| anyhow::anyhow!("Unable to create CandidateProgram. error: {:?}", e))?;
+
             let candidate_program_item = Rc::new(RefCell::new(candidate_program));
             candidate_programs.push(candidate_program_item);
         }
@@ -229,9 +222,10 @@ impl PostMine {
     /// 
     /// The list loaded from `~/.loda-rust/analytics/dont_mine.csv`
     /// which is populated with the content of `loda-program/oeis/deny.txt`.
-    fn obtain_dontmine_program_ids(&mut self) -> Result<(), Box<dyn Error>> {
+    fn obtain_dontmine_program_ids(&mut self) -> anyhow::Result<()> {
         let path = self.config.analytics_dir_dont_mine_file();
-        let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)?;
+        let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)
+            .map_err(|e| anyhow::anyhow!("obtain_dontmine_program_ids - unable to load program_ids. error: {:?}", e))?;
         let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();
         let hashset: OeisIdHashSet = HashSet::from_iter(program_ids.iter().cloned());
         debug!("loaded dontmine file. number of records: {}", hashset.len());
@@ -239,9 +233,10 @@ impl PostMine {
         Ok(())
     }    
 
-    fn obtain_invalid_program_ids(&mut self) -> Result<(), Box<dyn Error>> {
+    fn obtain_invalid_program_ids(&mut self) -> anyhow::Result<()> {
         let path = self.config.analytics_dir_programs_invalid_file();
-        let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)?;
+        let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)
+            .map_err(|e| anyhow::anyhow!("obtain_invalid_program_ids - unable to load program_ids. error: {:?}", e))?;
         let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();
         let hashset: OeisIdHashSet = HashSet::from_iter(program_ids.iter().cloned());
         debug!("loaded invalid program_ids file. number of records: {}", hashset.len());
@@ -249,7 +244,18 @@ impl PostMine {
         Ok(())
     }
 
-    fn eval_using_loda_cpp(&mut self) -> Result<(), Box<dyn Error>> {
+    fn obtain_valid_program_ids(&mut self) -> anyhow::Result<()> {
+        let path = self.config.analytics_dir_programs_valid_file();
+        let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)
+            .map_err(|e| anyhow::anyhow!("obtain_valid_program_ids - unable to load program_ids. error: {:?}", e))?;
+        let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();
+        let hashset: OeisIdHashSet = HashSet::from_iter(program_ids.iter().cloned());
+        debug!("loaded valid program_ids file. number of records: {}", hashset.len());
+        self.valid_program_ids_hashset = hashset;
+        Ok(())
+    }
+
+    fn eval_using_loda_cpp(&mut self) -> anyhow::Result<()> {
         let start = Instant::now();
         let time_limit = Duration::from_secs(Self::LODACPP_EVAL_TIME_LIMIT_IN_SECONDS);
 
@@ -259,9 +265,10 @@ impl PostMine {
         let mut count_success: usize = 0;
         let mut count_failure: usize = 0;
         for candidate_program in self.candidate_programs.iter_mut() {
+            let path_original = PathBuf::from(candidate_program.borrow().path_original());
             let result = self.lodacpp.eval_terms(
                 Self::EVAL_TERM_COUNT, 
-                candidate_program.borrow().path_original(),
+                &path_original,
                 time_limit
             );
             let evalterms: LodaCppEvalTerms = match result {
@@ -270,7 +277,8 @@ impl PostMine {
                     let reason = format!("Couldn't eval program with loda-cpp, {:?}", error);
                     let msg = format!("Rejecting {}, {}", candidate_program.borrow(), reason);
                     pb.println(msg);
-                    candidate_program.borrow_mut().perform_reject(reason)?;
+                    candidate_program.borrow_mut().perform_reject(reason)
+                        .map_err(|e| anyhow::anyhow!("eval_using_loda_cpp -> perform_reject. path_original: {:?} error: {:?}", path_original, e))?;
                     count_failure += 1;
                     pb.inc(1);
                     continue;
@@ -298,17 +306,23 @@ impl PostMine {
     }
 
     /// Look up the initial terms in the OEIS `stripped` file and gather the corresponding program ids.
-    fn lookup_in_oeis_stripped_file(&mut self) -> Result<(), Box<dyn Error>> {
+    fn lookup_in_oeis_stripped_file(&mut self) -> anyhow::Result<()> {
         let start = Instant::now();
         println!("Looking up in the OEIS 'stripped' file");
 
-        let oeis_ids_to_ignore: OeisIdHashSet = self.dontmine_hashset.clone();
+        let mut oeis_ids_to_ignore: OeisIdHashSet = self.dontmine_hashset.clone();
+        if self.focus_only_on_new_programs {
+            oeis_ids_to_ignore.extend(&self.valid_program_ids_hashset);
+        }
 
         let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
         assert!(oeis_stripped_file.is_absolute());
         assert!(oeis_stripped_file.is_file());
-        let file = File::open(oeis_stripped_file)?;
-        let filesize: usize = file.metadata()?.len() as usize;
+        let file: File = File::open(&oeis_stripped_file)
+            .with_context(|| format!("lookup_in_oeis_stripped_file - Failed to open OEIS 'stripped' file: {:?}", oeis_stripped_file))?;
+        let filemetadata: Metadata = file.metadata()
+            .with_context(|| format!("lookup_in_oeis_stripped_file - Failed to obtain metadata about the OEIS 'stripped' file: {:?}", oeis_stripped_file))?;
+        let filesize: usize = filemetadata.len() as usize;
         let mut oeis_stripped_file_reader = BufReader::new(file);
 
         let mut oeis_id_terms_map = OeisIdStringMap::new();
@@ -376,7 +390,8 @@ impl PostMine {
                 continue;
             }
             debug!("Rejected {}, where terms cannot be found in OEIS 'stripped' file", candidate_program.borrow());
-            candidate_program.borrow_mut().perform_reject("lookup_in_oeis_stripped_file, Terms cannot be found in OEIS 'stripped' file")?;
+            candidate_program.borrow_mut().perform_reject("lookup_in_oeis_stripped_file, Terms cannot be found in OEIS 'stripped' file")
+                .map_err(|e| anyhow::anyhow!("lookup_in_oeis_stripped_file -> perform_reject. error: {:?}", e))?;
         }
 
         Ok(())
@@ -391,7 +406,7 @@ impl PostMine {
         pending_programs
     }
 
-    fn minimize_candidate_programs(&mut self) -> Result<(), Box<dyn Error>> {
+    fn minimize_candidate_programs(&mut self) -> anyhow::Result<()> {
         let start = Instant::now();
 
         let candidate_programs: Vec<CandidateProgramItem> = self.pending_candidate_programs();
@@ -418,9 +433,10 @@ impl PostMine {
         Ok(())
     }
 
-    fn minimize_candidate_program(&mut self, candidate_program: CandidateProgramItem) -> Result<(), Box<dyn Error>> {
+    fn minimize_candidate_program(&mut self, candidate_program: CandidateProgramItem) -> anyhow::Result<()> {
         let time_limit = Duration::from_secs(Self::LODACPP_MINIMIZE_TIME_LIMIT_IN_SECONDS);
-        let result = self.lodacpp.minimize(&candidate_program.borrow().path_original(), time_limit);
+        let path_original = PathBuf::from(candidate_program.borrow().path_original());
+        let result = self.lodacpp.minimize(&path_original, time_limit);
         match result {
             Ok(value) => {
                 // debug!("minimized program successfully:\n{}", value);
@@ -429,7 +445,8 @@ impl PostMine {
             Err(error) => {
                 let reason = format!("Unable to minimize program: {:?}", error);
                 // debug!("program: {:?}, rejection reason {}", candidate_program.borrow().path_original(), reason);
-                candidate_program.borrow_mut().perform_reject(reason)?;
+                candidate_program.borrow_mut().perform_reject(&reason)
+                    .map_err(|e| anyhow::anyhow!("minimize_candidate_program -> perform_reject. path_original: {:?} reason: {:?} error: {:?}", path_original, reason, e))?;
             }
         }
         Ok(())
@@ -488,7 +505,7 @@ impl PostMine {
         Ok(())
     }
 
-    fn process_candidate_programs(&mut self) -> Result<(), Box<dyn Error>> {
+    fn process_candidate_programs(&mut self) -> anyhow::Result<()> {
         let start = Instant::now();
 
         let candidate_programs: Vec<CandidateProgramItem> = self.pending_candidate_programs();
@@ -515,7 +532,8 @@ impl PostMine {
                 pb.inc(1);
             }
 
-            candidate_program.borrow_mut().perform_keep_or_reject_based_result()?;
+            candidate_program.borrow_mut().perform_keep_or_reject_based_result()
+                .map_err(|e| anyhow::anyhow!("process_candidate_programs -> perform_keep_or_reject_based_result. error: {:?}", e))?;
         }
         pb.finish_and_clear();
     

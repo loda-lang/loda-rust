@@ -1,11 +1,18 @@
 use super::PreventFlooding;
-use loda_rust_core::control::DependencyManager;
+use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::util::BigIntVec;
+use crate::common::find_asm_files_recursively;
+use crate::config::{Config, MinerFilterMode};
 use std::fs;
 use std::path::PathBuf;
 use indicatif::ProgressBar;
+use std::time::Instant;
+use std::num::NonZeroUsize;
+use indicatif::HumanDuration;
+
+const PREVENT_FLOODING_CACHE_CAPACITY: usize = 300000;
 
 trait ComputeTerms {
     fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError>;
@@ -42,7 +49,7 @@ impl ComputeTerms for ProgramRunner {
     }
 }
 
-pub fn prevent_flooding_populate(prevent_flooding: &mut PreventFlooding, dependency_manager: &mut DependencyManager, cache: &mut ProgramCache, paths: Vec<PathBuf>) {
+fn prevent_flooding_populate(prevent_flooding: &mut PreventFlooding, dependency_manager: &mut DependencyManager, cache: &mut ProgramCache, paths: Vec<PathBuf>) {
     let mut number_of_read_errors: usize = 0;
     let mut number_of_parse_errors: usize = 0;
     let mut number_of_runtime_errors: usize = 0;
@@ -86,4 +93,39 @@ pub fn prevent_flooding_populate(prevent_flooding: &mut PreventFlooding, depende
     pb.finish_and_clear();
 
     debug!("prevent flooding. Registered {} programs. Ignoring {} junk programs.", number_of_successfully_registered_programs, junk_count);
+}
+
+pub fn create_prevent_flooding(config: &Config) -> anyhow::Result<PreventFlooding> {
+    let start = Instant::now();
+    let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
+    let mine_event_dir: PathBuf = config.mine_event_dir();
+    let oeis_divergent_dir: PathBuf = config.loda_outlier_programs_repository_oeis_divergent();
+
+    let mut paths0: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
+    println!("PreventFlooding: number of .asm files in mine_event_dir: {:?}", paths0.len());
+    let mut paths1: Vec<PathBuf> = find_asm_files_recursively(&oeis_divergent_dir);
+    println!("PreventFlooding: number of .asm files in oeis_divergent_dir: {:?}", paths1.len());
+    let mut paths: Vec<PathBuf> = vec!();
+    paths.append(&mut paths0);
+    match config.miner_filter_mode() {
+        MinerFilterMode::All => {
+            paths.append(&mut paths1);     
+        },
+        MinerFilterMode::New => {
+            // Ignore the `oeis_divergent_dir`.
+        }
+    }
+    println!("PreventFlooding: number of .asm files in total: {:?}", paths.len());
+
+    let mut dependency_manager = DependencyManager::new(
+        DependencyManagerFileSystemMode::System,
+        loda_programs_oeis_dir,
+    );
+    let capacity = NonZeroUsize::new(PREVENT_FLOODING_CACHE_CAPACITY).unwrap();
+    let mut cache = ProgramCache::with_capacity(capacity);
+    let mut prevent_flooding = PreventFlooding::new();
+    prevent_flooding_populate(&mut prevent_flooding, &mut dependency_manager, &mut cache, paths);
+    println!("PreventFlooding: number of programs added: {}", prevent_flooding.len());
+    println!("PreventFlooding: elapsed: {}", HumanDuration(start.elapsed()));
+    Ok(prevent_flooding)
 }

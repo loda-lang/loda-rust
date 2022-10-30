@@ -1,5 +1,8 @@
 # Configuration for LODA Rust
 
+# Who to be credited when discovering new programs.
+loda_submitted_by = "John Doe"
+
 # Absolute path to the "loda-programs" repository dir.
 loda_programs_repository = "$HOME/loda/programs"
 
@@ -18,9 +21,6 @@ oeis_stripped_file = "$HOME/loda/oeis/stripped"
 # Absolute path to the unzipped OEIS names file.
 oeis_names_file = "$HOME/loda/oeis/names"
 
-# Who to be credited when discovering new programs.
-loda_submitted_by = "John Doe"
-
 # When mining with metrics enabled, this is the port that the metrics can be accessed.
 miner_metrics_listen_port = 8090
 
@@ -29,6 +29,16 @@ loda_patterns_repository = "$HOME/git/loda-patterns"
 
 # Absolute path to the "loda-outlier-programs" repository dir.
 loda_outlier_programs_repository = "$HOME/git/loda-outlier-programs"
+
+# --- MINER FILTER MODE ---
+
+# Search only for "new" programs. Don't waste time mining for "existing" programs.
+[miner_filter_mode]
+type = "new"
+
+# Search for both "new" programs and "existing" programs.
+# [miner_filter_mode]
+# type = "all"
 
 # --- MINER CPU STRATEGY ---
 
