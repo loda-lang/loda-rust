@@ -64,7 +64,7 @@ impl FormatProgram {
         let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&self.program_content) {
             Ok(value) => value,
             Err(error) => {
-                return Err(anyhow::anyhow!("Parse program from {:?} error: {:?}", &self.program_path, error));
+                return Err(anyhow::anyhow!("Parse program from {:?} error: {:?} content: {:?}", &self.program_path, error, self.program_content));
             }
         };
     
@@ -75,8 +75,7 @@ impl FormatProgram {
             DependencyManagerFileSystemMode::Virtual,
             PathBuf::from("non-existing-dir"),
         );
-        for (oeis_id, _name) in &self.oeis_id_name_map {
-            let program_id: u64 = oeis_id.raw() as u64;
+        for program_id in parsed_program.direct_dependencies() {
             dm.virtual_filesystem_insert_file(program_id, "".to_string());
         }
     
@@ -88,7 +87,13 @@ impl FormatProgram {
         let runner: ProgramRunner = match result_parse {
             Ok(value) => value,
             Err(error) => {
-                return Err(anyhow::anyhow!("parse_stage2 with program {:?} error: {:?}", &self.program_path, error));
+                return Err(anyhow::anyhow!(
+                    "parse_stage2 with program {:?} error: {:?} content: {:?} virtual fs: {:?}", 
+                    &self.program_path, 
+                    error, 
+                    self.program_content, 
+                    dm.virtual_filesystem_inspect_filenames()
+                ));
             }
         };
 
@@ -108,7 +113,7 @@ impl FormatProgram {
                     serializer.append_comment(format!("{}: {}", oeis_id, name));
                 },
                 None => {
-                    return Err(anyhow::anyhow!("missing sequence name for oeis_id {} for program {:?}", oeis_id, &self.program_path));
+                    return Err(anyhow::anyhow!("missing sequence name for oeis_id {} for program {:?} content: {:?}", oeis_id, &self.program_path, self.program_content));
                 }
             }
         }
