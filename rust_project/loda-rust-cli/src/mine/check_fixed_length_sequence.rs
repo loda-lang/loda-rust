@@ -129,24 +129,24 @@ impl SequenceProcessor {
 }
 
 pub enum NamedCacheFile {
-    Bloom10Terms,
-    Bloom20Terms,
-    Bloom30Terms,
-    Bloom40Terms
+    Funnel10All,
+    Funnel20All,
+    Funnel30All,
+    Funnel40All,
 }
 
 impl NamedCacheFile {
     #[allow(dead_code)]
     fn all() -> Vec<NamedCacheFile> {
-        vec!(Self::Bloom10Terms, Self::Bloom20Terms, Self::Bloom30Terms, Self::Bloom40Terms)
+        vec!(Self::Funnel10All, Self::Funnel20All, Self::Funnel30All, Self::Funnel40All)
     }
 
     pub fn filename(&self) -> &str {
         match self {
-            Self::Bloom10Terms => "fixed_length_sequence_10terms.json",
-            Self::Bloom20Terms => "fixed_length_sequence_20terms.json",
-            Self::Bloom30Terms => "fixed_length_sequence_30terms.json",
-            Self::Bloom40Terms => "fixed_length_sequence_40terms.json"
+            Self::Funnel10All => "funnel_10_all.json",
+            Self::Funnel20All => "funnel_20_all.json",
+            Self::Funnel30All => "funnel_30_all.json",
+            Self::Funnel40All => "funnel_40_all.json"
         }
     }
 }
@@ -282,10 +282,10 @@ impl PopulateBloomfilter {
         let cache_dir: PathBuf = self.config.analytics_dir();
         let oeis_ids_to_ignore: OeisIdHashSet = self.obtain_dontmine_program_ids();
 
-        let funnel10_path = cache_dir.join(Path::new(NamedCacheFile::Bloom10Terms.filename()));
-        let funnel20_path = cache_dir.join(Path::new(NamedCacheFile::Bloom20Terms.filename()));
-        let funnel30_path = cache_dir.join(Path::new(NamedCacheFile::Bloom30Terms.filename()));
-        let funnel40_path = cache_dir.join(Path::new(NamedCacheFile::Bloom40Terms.filename()));
+        let funnel10_path = cache_dir.join(Path::new(NamedCacheFile::Funnel10All.filename()));
+        let funnel20_path = cache_dir.join(Path::new(NamedCacheFile::Funnel20All.filename()));
+        let funnel30_path = cache_dir.join(Path::new(NamedCacheFile::Funnel30All.filename()));
+        let funnel40_path = cache_dir.join(Path::new(NamedCacheFile::Funnel40All.filename()));
 
         let file = File::open(oeis_stripped_file).unwrap();
         let filesize: usize = file.metadata().unwrap().len() as usize;
@@ -496,10 +496,10 @@ A000045 ,0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10
         let filesize: usize = input.len();
         let hashset = HashSet::<OeisId>::new();
 
-        let funnel10_path = cache_dir.join(Path::new(NamedCacheFile::Bloom10Terms.filename()));
-        let funnel20_path = cache_dir.join(Path::new(NamedCacheFile::Bloom20Terms.filename()));
-        let funnel30_path = cache_dir.join(Path::new(NamedCacheFile::Bloom30Terms.filename()));
-        let funnel40_path = cache_dir.join(Path::new(NamedCacheFile::Bloom40Terms.filename()));
+        let funnel10_path = cache_dir.join(Path::new(NamedCacheFile::Funnel10All.filename()));
+        let funnel20_path = cache_dir.join(Path::new(NamedCacheFile::Funnel20All.filename()));
+        let funnel30_path = cache_dir.join(Path::new(NamedCacheFile::Funnel30All.filename()));
+        let funnel40_path = cache_dir.join(Path::new(NamedCacheFile::Funnel40All.filename()));
 
         // Act
         let number_of_sequences: usize = create_cache_files(
