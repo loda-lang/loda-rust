@@ -1,5 +1,4 @@
 use loda_rust_core::control::{DependencyManager, DependencyManagerError, DependencyManagerFileSystemMode};
-use loda_rust_core::parser::{ParseProgramError, ParseParametersError};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
 use std::error::Error;
@@ -40,13 +39,6 @@ impl ValidateSingleProgram {
         let program_runner: ProgramRunner = match result_parse {
             Ok(value) => value,
             Err(error) => {
-                // Determine if this program contains double-dollar parameters,
-                // since LODA-RUST does not yet support the double-dollar parameter type.
-                // Example: `mov $$0,$2`
-                if error.uses_indirect_memory_access() {
-                    anyhow::bail!("The program uses indirect memory adressing, which loda-rust does not yet support: {:?} error: {:?}", program_path, error);
-                }
-
                 // Detect programs that have cyclic dependencies.
                 if error.is_cyclic_dependency() {
                     anyhow::bail!("The program has a cyclic dependency: {:?} error: {:?}", program_path, error);
@@ -70,39 +62,6 @@ impl ValidateSingleProgram {
 
         // The program seems ok
         Ok(())
-    }
-}
-
-trait UsesIndirectMemoryAccess {
-    /// Determines if it's an error related to `indirect memory access`.
-    /// As of July 2022, LODA-RUST does not yet support LODA-CPP's `$$` parameter type.
-    fn uses_indirect_memory_access(&self) -> bool;
-}
-
-impl UsesIndirectMemoryAccess for DependencyManagerError {
-    fn uses_indirect_memory_access(&self) -> bool {
-        if let DependencyManagerError::ParseProgram(error) = self {
-            return error.uses_indirect_memory_access();
-        }
-        false
-    }
-}
-
-impl UsesIndirectMemoryAccess for ParseProgramError {
-    fn uses_indirect_memory_access(&self) -> bool {
-        if let ParseProgramError::ParseParameters(error) = self {
-            return error.uses_indirect_memory_access();
-        }
-        false
-    }
-}
-
-impl UsesIndirectMemoryAccess for ParseParametersError {
-    fn uses_indirect_memory_access(&self) -> bool {
-        if let ParseParametersError::UnrecognizedParameterType(_raw_input_line) = self {
-            return true;
-        }
-        false
     }
 }
 
