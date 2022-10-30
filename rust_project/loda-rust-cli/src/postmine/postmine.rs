@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::{Config, MinerFilterMode};
 use crate::common::{oeis_ids_from_program_string, OeisIdStringMap};
 use crate::common::{load_program_ids_csv_file, PendingProgramsWithPriority, SimpleLog};
 use crate::oeis::{ProcessStrippedFile, StrippedRow};
@@ -57,10 +57,10 @@ pub struct PostMine {
     loda_outlier_programs_repository_oeis_divergent: PathBuf,
     validate_single_program: ValidateSingleProgram,
     iteration: usize,
+    focus_only_on_new_programs: bool,
 }
 
 impl PostMine {
-    const FOCUS_ONLY_ON_NEW_PROGRAMS: bool = true;
     const LIMIT_NUMBER_OF_PROGRAMS_FOR_PROCESSING: usize = 100;
     const MAX_LOOKUP_TERM_COUNT: usize = 100;
     const EVAL_TERM_COUNT: usize = 40;
@@ -115,6 +115,11 @@ impl PostMine {
         let loda_programs_oeis_dir = config.loda_programs_oeis_dir();
         let validate_single_program = ValidateSingleProgram::new(loda_programs_oeis_dir.clone());
 
+        let focus_only_on_new_programs: bool = match config.miner_filter_mode() {
+            MinerFilterMode::All => false,
+            MinerFilterMode::New => true
+        };
+
         // Ensure that the `postmine` dir exist
         let postmine_dir_path: PathBuf = config.postmine_dir();
         if !postmine_dir_path.is_dir() {
@@ -153,6 +158,7 @@ impl PostMine {
             loda_outlier_programs_repository_oeis_divergent: loda_outlier_programs_repository_oeis_divergent,
             validate_single_program: validate_single_program,
             iteration: 0,
+            focus_only_on_new_programs: focus_only_on_new_programs,
         };
         Ok(instance)
     }
@@ -305,7 +311,7 @@ impl PostMine {
         println!("Looking up in the OEIS 'stripped' file");
 
         let mut oeis_ids_to_ignore: OeisIdHashSet = self.dontmine_hashset.clone();
-        if Self::FOCUS_ONLY_ON_NEW_PROGRAMS {
+        if self.focus_only_on_new_programs {
             oeis_ids_to_ignore.extend(&self.valid_program_ids_hashset);
         }
 

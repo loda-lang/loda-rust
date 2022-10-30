@@ -4,13 +4,14 @@ use super::{PerformanceClassifierResult, PerformanceClassifier};
 use super::{MinerCoordinatorMessage, MetricEvent, Recorder};
 use super::metrics_run_miner_loop::MetricsRunMinerLoop;
 use crate::oeis::TermsToProgramIdSet;
+use crate::config::{Config, MinerFilterMode};
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{ProgramCache, ProgramId, ProgramRunner, ProgramSerializer};
 use loda_rust_core::util::{BigIntVec, BigIntVecToString};
 use loda_rust_core::parser::ParsedProgram;
 use std::collections::HashSet;
 use std::num::NonZeroUsize;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::time::Instant;
@@ -77,6 +78,7 @@ pub struct RunMinerLoop {
     reload: bool,
     term_computer: TermComputer,
     terms_to_program_id: Arc<TermsToProgramIdSet>,
+    suppress_low_priority_programs: bool,
 }
 
 impl RunMinerLoop {
@@ -84,13 +86,21 @@ impl RunMinerLoop {
         tx: Sender<MinerCoordinatorMessage>,
         recorder: Box<dyn Recorder + Send>,
         funnel: Funnel,
-        mine_event_dir: &Path,
+        config: &Config,
         prevent_flooding: Arc<Mutex<PreventFlooding>>,
         context: GenomeMutateContext,
         initial_random_seed: u64,
         terms_to_program_id: Arc<TermsToProgramIdSet>
     ) -> Self {
         let rng: StdRng = StdRng::seed_from_u64(initial_random_seed);
+
+        let mine_event_dir: PathBuf = config.mine_event_dir();
+
+        let suppress_low_priority_programs: bool = match config.miner_filter_mode() {
+            MinerFilterMode::All => false,
+            MinerFilterMode::New => true
+        };
+    
         let capacity = NonZeroUsize::new(MINER_CACHE_CAPACITY).unwrap();
         Self {
             tx: tx,
@@ -110,6 +120,7 @@ impl RunMinerLoop {
             reload: true,
             term_computer: TermComputer::new(),
             terms_to_program_id: terms_to_program_id,
+            suppress_low_priority_programs: suppress_low_priority_programs,
         }
     }
 
@@ -554,9 +565,11 @@ impl RunMinerLoop {
             }
         }
 
-        if priority == ProgramCandidatePriority::Low {
-            debug!("suppressing low priority program");
-            return;
+        if self.suppress_low_priority_programs {
+            if priority == ProgramCandidatePriority::Low {
+                debug!("suppressing low priority program");
+                return;
+            }
         }
 
         // Yay, this candidate program seems to be good.
