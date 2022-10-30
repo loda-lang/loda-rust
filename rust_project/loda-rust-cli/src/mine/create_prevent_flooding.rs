@@ -4,7 +4,7 @@ use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId,
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::util::BigIntVec;
 use crate::common::find_asm_files_recursively;
-use crate::config::Config;
+use crate::config::{Config, MinerFilterMode};
 use std::fs;
 use std::path::PathBuf;
 use indicatif::ProgressBar;
@@ -107,7 +107,14 @@ pub fn create_prevent_flooding(config: &Config) -> anyhow::Result<PreventFloodin
     println!("PreventFlooding: number of .asm files in oeis_divergent_dir: {:?}", paths1.len());
     let mut paths: Vec<PathBuf> = vec!();
     paths.append(&mut paths0);
-    paths.append(&mut paths1);
+    match config.miner_filter_mode() {
+        MinerFilterMode::All => {
+            paths.append(&mut paths1);     
+        },
+        MinerFilterMode::New => {
+            // Ignore the `oeis_divergent_dir`.
+        }
+    }
     println!("PreventFlooding: number of .asm files in total: {:?}", paths.len());
 
     let mut dependency_manager = DependencyManager::new(
