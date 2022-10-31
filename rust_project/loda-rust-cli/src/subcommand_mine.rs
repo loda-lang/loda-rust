@@ -9,6 +9,7 @@ use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
 use crate::postmine::PostMine;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
 use bastion::prelude::*;
+use loda_rust_core::oeis::OeisId;
 use num_bigint::{BigInt, ToBigInt};
 use anyhow::Context;
 use std::thread;
@@ -433,14 +434,16 @@ async fn postmine_worker(
                                 return;
                             }
                         };
-                        let callback = move |file_content: String| {
+                        let callback = move |file_content: String, oeis_id: OeisId| {
                             let distributor = Distributor::named("upload_worker");
-                            let upload_worker_item = UploadWorkerItem { file_content: file_content };
-
+                            let upload_worker_item = UploadWorkerItem { 
+                                file_content: file_content,
+                                oeis_id: oeis_id,
+                            };
                             let tell_result = distributor
                                 .tell_everyone(upload_worker_item);
                             if let Err(error) = tell_result {
-                                error!("postmine_worker: Unable to send UploadWorkerItem. error: {:?}", error);
+                                error!("postmine_worker: Unable to send UploadWorkerItem. oeis_id: {} error: {:?}", oeis_id, error);
                             }
                         }; 
                         postmine.set_found_program_callback(callback);
@@ -485,6 +488,7 @@ async fn postmine_worker(
 #[derive(Clone, Debug)]
 struct UploadWorkerItem {
     file_content: String,
+    oeis_id: OeisId,
 }
 
 async fn upload_worker(ctx: BastionContext, upload_endpoint: String) -> Result<(), ()> {
@@ -493,20 +497,29 @@ async fn upload_worker(ctx: BastionContext, upload_endpoint: String) -> Result<(
         MessageHandler::new(ctx.recv().await?)
             .on_tell(|item: UploadWorkerItem, _| {
                 run!(async {
-                    println!(
+                    debug!(
                         "upload_worker {}, received file for upload!:\n{:?}",
                         ctx.current().id(),
                         item.file_content
                     );
                     let mut upload_content: String = item.file_content.clone();
                     upload_content += UPLOAD_MINER_PROFILE_LODA_RUST;
-                    println!("upload_worker: uploading program to server:\n{}\n\n", upload_content);
                     let client = reqwest::Client::new();
-                    client.post(&upload_endpoint)
+                    let upload_result = client.post(&upload_endpoint)
+                        .header(reqwest::header::CONTENT_TYPE, "application/octet-stream")
                         .body(upload_content)
                         .send()
-                        .await
-                        .expect("couldn't upload");
+                        .await;
+                    match upload_result {
+                        Ok(res) => {
+                            println!("upload_worker: uploaded program for {}", item.oeis_id);
+                            println!("upload_worker: response: {:?} {}", res.version(), res.status());
+                            println!("upload_worker: response headers: {:#?}\n", res.headers());
+                        },
+                        Err(error) => {
+                            error!("upload_worker: failed program upload of {}, error: {:?}", item.oeis_id, error);
+                        }
+                    }
                 });
             })
             .on_fallback(|unknown, _sender_addr| {

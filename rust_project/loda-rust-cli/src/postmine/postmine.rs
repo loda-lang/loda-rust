@@ -58,7 +58,7 @@ pub struct PostMine {
     validate_single_program: ValidateSingleProgram,
     iteration: usize,
     focus_only_on_new_programs: bool,
-    found_program_callback: Option<Box<dyn Fn(String)>>,
+    found_program_callback: Option<Box<dyn Fn(String, OeisId)>>,
 }
 
 impl PostMine {
@@ -165,7 +165,7 @@ impl PostMine {
         Ok(instance)
     }
 
-    pub fn set_found_program_callback(&mut self, c: impl Fn(String) + 'static) {
+    pub fn set_found_program_callback(&mut self, c: impl Fn(String, OeisId) + 'static) {
         self.found_program_callback = Some(Box::new(c));
     }
 
@@ -836,7 +836,7 @@ impl PostMine {
 
         // Invoke callback with the discovered program
         if let Some(ref callback) = self.found_program_callback {
-            callback(file_content.clone());
+            callback(file_content.clone(), possible_id);
         }
         Ok(())
     }
