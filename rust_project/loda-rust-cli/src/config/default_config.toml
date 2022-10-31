@@ -30,6 +30,9 @@ loda_patterns_repository = "$HOME/git/loda-patterns"
 # Absolute path to the "loda-outlier-programs" repository dir.
 loda_outlier_programs_repository = "$HOME/git/loda-outlier-programs"
 
+# When a program has been mined, then upload it to the loda-programs repository.
+miner_program_upload_endpoint = "http://api.loda-lang.org/miner/v1/programs"
+
 # --- MINER FILTER MODE ---
 
 # Search only for "new" programs. Don't waste time mining for "existing" programs.

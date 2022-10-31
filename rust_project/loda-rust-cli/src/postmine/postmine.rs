@@ -70,6 +70,7 @@ impl PostMine {
     const LODACPP_CHECK_TIME_LIMIT_IN_SECONDS: u64 = 120;
     const LODACPP_COMPARE_NUMBER_OF_TERM_COUNT: usize = 60;
     const LODACPP_STEPS_TIME_LIMIT_IN_SECONDS: u64 = 120;
+    const UPLOAD_MINER_PROFILE_LODA_RUST: &'static str = "\n; Miner Profile: loda-rust\n";
 
     /// The dir "~/.loda-rust/mine-event" holds candidate programs, that have completed the mining funnel.
     /// When running "postmine" each candidate program is checked with the b-file.
@@ -731,6 +732,7 @@ impl PostMine {
                 self.process_full_match(
                     simple_log.clone(),
                     candidate_program,
+                    &file_content,
                     possible_id,
                     &check_program_path,
                     &oeis_program_path,
@@ -766,6 +768,7 @@ impl PostMine {
         &self, 
         simple_log: SimpleLog, 
         candidate_program: CandidateProgramItem, 
+        file_content: &String,
         possible_id: OeisId, 
         path_program0: &Path, 
         path_program1: &ParentDirAndChildFile,
@@ -825,6 +828,10 @@ impl PostMine {
             .map_err(|e| anyhow::anyhow!("Unable to create parent dir for matching program. program_id: {:?} error: {:?}", possible_id, e))?;
         fs::copy(path_program0, path_program1.child_file())?;
         candidate_program.borrow_mut().keep_id_insert(possible_id);
+
+        let mut upload_content: String = file_content.clone();
+        upload_content += Self::UPLOAD_MINER_PROFILE_LODA_RUST;
+        println!("TODO: upload to server: \n:{}", upload_content);
         Ok(())
     }
 
