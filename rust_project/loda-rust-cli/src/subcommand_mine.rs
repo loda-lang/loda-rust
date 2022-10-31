@@ -512,7 +512,7 @@ async fn upload_worker(ctx: BastionContext, upload_endpoint: String) -> Result<(
                 );
             });
         if let Some(item) = upload_worker_item {
-            let mut upload_content: String = item.file_content.clone();
+            let mut upload_content: String = item.file_content.trim_end().to_string();
             upload_content += UPLOAD_MINER_PROFILE_LODA_RUST;
             let client = reqwest::Client::new();
             let upload_result = client.post(&upload_endpoint)
