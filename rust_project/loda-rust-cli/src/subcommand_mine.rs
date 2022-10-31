@@ -170,6 +170,8 @@ impl SubcommandMine {
         let mine_event_dir_state2 = self.mine_event_dir_state.clone();
         let shared_miner_worker_state2 = self.shared_miner_worker_state.clone();
 
+        let miner_program_upload_endpoint: String = self.config.miner_program_upload_endpoint().clone();
+
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
@@ -229,7 +231,15 @@ impl SubcommandMine {
                     children
                         .with_redundancy(1)
                         .with_distributor(Distributor::named("upload_worker"))
-                        .with_exec(upload_worker)
+                        .with_exec(move |ctx: BastionContext| {
+                            let miner_program_upload_endpoint_clone = miner_program_upload_endpoint.clone();
+                            async move {
+                                upload_worker(
+                                    ctx,
+                                    miner_program_upload_endpoint_clone,
+                                ).await
+                            }
+                        })
     
                 })
             })
@@ -477,20 +487,27 @@ struct UploadWorkerItem {
     file_content: String,
 }
 
-async fn upload_worker(ctx: BastionContext) -> Result<(), ()> {
+async fn upload_worker(ctx: BastionContext, upload_endpoint: String) -> Result<(), ()> {
     println!("upload_worker is ready");
     loop {
         MessageHandler::new(ctx.recv().await?)
             .on_tell(|item: UploadWorkerItem, _| {
-                println!(
-                    "upload_worker {}, received file for upload!:\n{:?}",
-                    ctx.current().id(),
-                    item.file_content
-                );
-                let mut upload_content: String = item.file_content.clone();
-                upload_content += UPLOAD_MINER_PROFILE_LODA_RUST;
-                println!("TODO: upload to server:\n{}", upload_content);
-
+                run!(async {
+                    println!(
+                        "upload_worker {}, received file for upload!:\n{:?}",
+                        ctx.current().id(),
+                        item.file_content
+                    );
+                    let mut upload_content: String = item.file_content.clone();
+                    upload_content += UPLOAD_MINER_PROFILE_LODA_RUST;
+                    println!("upload_worker: uploading program to server:\n{}\n\n", upload_content);
+                    let client = reqwest::Client::new();
+                    client.post(&upload_endpoint)
+                        .body(upload_content)
+                        .send()
+                        .await
+                        .expect("couldn't upload");
+                });
             })
             .on_fallback(|unknown, _sender_addr| {
                 error!(
