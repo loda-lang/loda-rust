@@ -19,6 +19,8 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use rand::{RngCore, thread_rng};
 
+const UPLOAD_MINER_PROFILE_LODA_RUST: &'static str = "\n; Miner Profile: loda-rust\n";
+
 #[derive(Debug)]
 pub enum SubcommandMineMetricsMode {
     NoMetricsServer,
@@ -403,7 +405,20 @@ async fn postmine_worker(
                 match message {
                     PostmineWorkerMessage::StartPostmineJob => {
                         println!("BEFORE PostMine::run()");
-                        let result = PostMine::run();
+                        let mut postmine: PostMine = match PostMine::new() {
+                            Ok(value) => value,
+                            Err(error) => {
+                                error!("Could not create PostMine instance. error: {:?}", error);
+                                return;
+                            }
+                        };
+                        let callback = move |file_content: String| {
+                            let mut upload_content: String = file_content.clone();
+                            upload_content += UPLOAD_MINER_PROFILE_LODA_RUST;
+                            println!("TODO: upload to server:\n{}", upload_content);
+                        }; 
+                        postmine.set_found_program_callback(callback);
+                        let result = postmine.run_inner();
                         println!("AFTER PostMine::run()");
                         match result {
                             Ok(()) => {

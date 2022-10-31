@@ -58,6 +58,7 @@ pub struct PostMine {
     validate_single_program: ValidateSingleProgram,
     iteration: usize,
     focus_only_on_new_programs: bool,
+    found_program_callback: Option<Box<dyn Fn(String)>>,
 }
 
 impl PostMine {
@@ -70,7 +71,6 @@ impl PostMine {
     const LODACPP_CHECK_TIME_LIMIT_IN_SECONDS: u64 = 120;
     const LODACPP_COMPARE_NUMBER_OF_TERM_COUNT: usize = 60;
     const LODACPP_STEPS_TIME_LIMIT_IN_SECONDS: u64 = 120;
-    const UPLOAD_MINER_PROFILE_LODA_RUST: &'static str = "\n; Miner Profile: loda-rust\n";
 
     /// The dir "~/.loda-rust/mine-event" holds candidate programs, that have completed the mining funnel.
     /// When running "postmine" each candidate program is checked with the b-file.
@@ -97,7 +97,7 @@ impl PostMine {
         Ok(())
     }
 
-    fn run_inner(&mut self) -> anyhow::Result<()> {
+    pub fn run_inner(&mut self) -> anyhow::Result<()> {
         self.obtain_paths_for_processing()?;    
         self.populate_candidate_programs()?;
         self.obtain_dontmine_program_ids()?;
@@ -111,7 +111,7 @@ impl PostMine {
         Ok(())
     }
     
-    fn new() -> anyhow::Result<Self> {
+    pub fn new() -> anyhow::Result<Self> {
         let config = Config::load();
         let loda_programs_oeis_dir = config.loda_programs_oeis_dir();
         let validate_single_program = ValidateSingleProgram::new(loda_programs_oeis_dir.clone());
@@ -160,8 +160,13 @@ impl PostMine {
             validate_single_program: validate_single_program,
             iteration: 0,
             focus_only_on_new_programs: focus_only_on_new_programs,
+            found_program_callback: None,
         };
         Ok(instance)
+    }
+
+    pub fn set_found_program_callback(&mut self, c: impl Fn(String) + 'static) {
+        self.found_program_callback = Some(Box::new(c));
     }
 
     /// Format dirname ala `19841231-235959-postmine`
@@ -829,9 +834,10 @@ impl PostMine {
         fs::copy(path_program0, path_program1.child_file())?;
         candidate_program.borrow_mut().keep_id_insert(possible_id);
 
-        let mut upload_content: String = file_content.clone();
-        upload_content += Self::UPLOAD_MINER_PROFILE_LODA_RUST;
-        println!("TODO: upload to server: \n:{}", upload_content);
+        // Invoke callback with the discovered program
+        if let Some(ref callback) = self.found_program_callback {
+            callback(file_content.clone());
+        }
         Ok(())
     }
 
