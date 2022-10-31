@@ -223,6 +223,17 @@ impl SubcommandMine {
                 })
             })
         })
+        .and_then(|_| {
+            Bastion::supervisor(|supervisor| {
+                supervisor.children(|children| {
+                    children
+                        .with_redundancy(1)
+                        .with_distributor(Distributor::named("upload_worker"))
+                        .with_exec(upload_worker)
+    
+                })
+            })
+        })
         .map_err(|e| anyhow::anyhow!("couldn't setup bastion. error: {:?}", e))?;
 
         Bastion::start();
@@ -413,9 +424,14 @@ async fn postmine_worker(
                             }
                         };
                         let callback = move |file_content: String| {
-                            let mut upload_content: String = file_content.clone();
-                            upload_content += UPLOAD_MINER_PROFILE_LODA_RUST;
-                            println!("TODO: upload to server:\n{}", upload_content);
+                            let distributor = Distributor::named("upload_worker");
+                            let upload_worker_item = UploadWorkerItem { file_content: file_content };
+
+                            let tell_result = distributor
+                                .tell_everyone(upload_worker_item);
+                            if let Err(error) = tell_result {
+                                error!("postmine_worker: Unable to send UploadWorkerItem. error: {:?}", error);
+                            }
                         }; 
                         postmine.set_found_program_callback(callback);
                         let result = postmine.run_inner();
@@ -452,6 +468,36 @@ async fn postmine_worker(
                         }
                     }
                 }
+            });
+    }
+}
+
+#[derive(Clone, Debug)]
+struct UploadWorkerItem {
+    file_content: String,
+}
+
+async fn upload_worker(ctx: BastionContext) -> Result<(), ()> {
+    println!("upload_worker is ready");
+    loop {
+        MessageHandler::new(ctx.recv().await?)
+            .on_tell(|item: UploadWorkerItem, _| {
+                println!(
+                    "upload_worker {}, received file for upload!:\n{:?}",
+                    ctx.current().id(),
+                    item.file_content
+                );
+                let mut upload_content: String = item.file_content.clone();
+                upload_content += UPLOAD_MINER_PROFILE_LODA_RUST;
+                println!("TODO: upload to server:\n{}", upload_content);
+
+            })
+            .on_fallback(|unknown, _sender_addr| {
+                error!(
+                    "upload_worker {}, received an unknown message!:\n{:?}",
+                    ctx.current().id(),
+                    unknown
+                );
             });
     }
 }
