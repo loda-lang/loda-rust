@@ -494,33 +494,15 @@ struct UploadWorkerItem {
 async fn upload_worker(ctx: BastionContext, upload_endpoint: String) -> Result<(), ()> {
     println!("upload_worker is ready");
     loop {
+        let mut upload_worker_item:Option<UploadWorkerItem> = None;
         MessageHandler::new(ctx.recv().await?)
             .on_tell(|item: UploadWorkerItem, _| {
-                run!(async {
-                    debug!(
-                        "upload_worker {}, received file for upload!:\n{:?}",
-                        ctx.current().id(),
-                        item.file_content
-                    );
-                    let mut upload_content: String = item.file_content.clone();
-                    upload_content += UPLOAD_MINER_PROFILE_LODA_RUST;
-                    let client = reqwest::Client::new();
-                    let upload_result = client.post(&upload_endpoint)
-                        .header(reqwest::header::CONTENT_TYPE, "application/octet-stream")
-                        .body(upload_content)
-                        .send()
-                        .await;
-                    match upload_result {
-                        Ok(res) => {
-                            println!("upload_worker: uploaded program for {}", item.oeis_id);
-                            println!("upload_worker: response: {:?} {}", res.version(), res.status());
-                            println!("upload_worker: response headers: {:#?}\n", res.headers());
-                        },
-                        Err(error) => {
-                            error!("upload_worker: failed program upload of {}, error: {:?}", item.oeis_id, error);
-                        }
-                    }
-                });
+                debug!(
+                    "upload_worker {}, received file for upload!:\n{:?}",
+                    ctx.current().id(),
+                    item.file_content
+                );
+                upload_worker_item = Some(item.clone());
             })
             .on_fallback(|unknown, _sender_addr| {
                 error!(
@@ -529,5 +511,25 @@ async fn upload_worker(ctx: BastionContext, upload_endpoint: String) -> Result<(
                     unknown
                 );
             });
+        if let Some(item) = upload_worker_item {
+            let mut upload_content: String = item.file_content.clone();
+            upload_content += UPLOAD_MINER_PROFILE_LODA_RUST;
+            let client = reqwest::Client::new();
+            let upload_result = client.post(&upload_endpoint)
+                .header(reqwest::header::CONTENT_TYPE, "application/octet-stream")
+                .body(upload_content)
+                .send()
+                .await;
+            match upload_result {
+                Ok(res) => {
+                    println!("upload_worker: uploaded program for {}", item.oeis_id);
+                    println!("upload_worker: response: {:?} {}", res.version(), res.status());
+                    println!("upload_worker: response headers: {:#?}\n", res.headers());
+                },
+                Err(error) => {
+                    error!("upload_worker: failed program upload of {}, error: {:?}", item.oeis_id, error);
+                }
+            }
+        }
     }
 }

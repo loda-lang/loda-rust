@@ -413,6 +413,7 @@ dependencies = [
  "num_cpus",
  "once_cell",
  "pin-utils",
+ "tokio",
  "tracing",
  "winapi",
 ]
