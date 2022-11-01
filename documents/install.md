@@ -155,7 +155,7 @@ Saving bloomfilter data
 PROMPT>
 ```
 
-The following will starts the miner, that continues until it gets killed by CTRL-C.
+The following starts the miner, that continues until it gets killed by CTRL-C.
 
 Look for the `miner discovered a "new" program. A257071` row.
 
