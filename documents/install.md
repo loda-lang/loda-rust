@@ -35,7 +35,7 @@ cargo 1.63.0 (fd9c4297c 2022-07-01)
 
 #### Step 3 A
 
-Check out [loda-rust](https://github.com/loda-lang/loda-rust) on your computer.
+Check out [the loda-rust repository](https://github.com/loda-lang/loda-rust) on your computer.
 
 A good place for this repository, is the `$HOME/git/loda-rust` dir.
 
@@ -118,7 +118,7 @@ oeis_stripped_file = "/Users/JOHNDOE/loda/oeis/stripped"
 
 #### Step 3 F
 
-Verify that "loda-rust" really works, by computing [A000040, The prime numbers](https://oeis.org/A000040).
+Verify that `loda-rust` can evaluate the program: [A000040, The prime numbers](https://oeis.org/A000040).
 
 ```
 PROMPT> loda-rust eval 40
@@ -129,4 +129,69 @@ PROMPT>
 #### Step 3 Complete
 
 Finally `loda-rust` is fully installed.
+
+# Basic usage
+
+### Mining (experimental)
+
+Pull the latest loda-programs repo.
+
+```
+PROMPT> loda-rust analytics
+Histogram of OEIS 'stripped' file
+    Finished Histogram of OEIS 'stripped' file, in 1 second
+Validate programs
+    Finished validated programs in 25 seconds
+Run batch-program-analyzer
+    Finished batch-program-analyzer in 6 seconds
+Populate bloomfilter - group all
+    Finished populated bloomfilter in 3 seconds
+Saving bloomfilter data
+    Finished saved bloomfilter data in 5 seconds
+Populate bloomfilter - group new
+    Finished populated bloomfilter in 2 seconds
+Saving bloomfilter data
+    Finished saved bloomfilter data in 5 seconds
+PROMPT>
+```
+
+The following will starts the miner, that continues until it gets killed by CTRL-C.
+
+Look for the `miner discovered a "new" program. A257071` row.
+
+```
+PROMPT> loda-rust mine
+[snip]
+candidate: "20221101-155518-4398841.asm"
+candidate: "20221101-155529-4460404.asm"
+candidate: "20221101-155548-4572041.asm"
+candidate: "20221101-155553-4504272.asm"
+trigger start postmine
+postmine_worker: child d181d52b-ab06-4a36-aa81-6d13e2dc2259, received broadcast message: StartPostmineJob
+BEFORE PostMine::run()
+Ignoring 9999 programs that have already been analyzed
+Number of pending programs: 10
+Arrange programs by priority. high prio: 10, low prio: 0
+    Finished Ran loda-cpp with pending programs, in 0 seconds
+Looking up in the OEIS 'stripped' file
+    Finished Lookups in the OEIS 'stripped' file, in 2 seconds
+Minimizing programs
+    Finished Minimized programs, in 2 seconds
+Looking up in the OEIS 'names' file
+    Finished Lookups in the OEIS 'names' file, in 0 seconds
+Analyzing 14 program ids
+miner discovered a "new" program. A257071             <----------- This is when a new program has been found
+    Finished Analyzed pending programs, in 3 minutes
+AFTER PostMine::run()
+postmine Ok
+trigger resume mining
+candidate: "20221101-155853-4590837.asm"
+candidate: "20221101-155935-4666859.asm"
+candidate: "20221101-160018-4724486.asm"
+candidate: "20221101-160032-4813221.asm"
+candidate: "20221101-160253-5277447.asm"
+candidate: "20221101-160407-5418834.asm"
+[snip]
+PROMPT>
+```
 
