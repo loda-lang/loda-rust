@@ -58,6 +58,7 @@ pub struct PostMine {
     validate_single_program: ValidateSingleProgram,
     iteration: usize,
     focus_only_on_new_programs: bool,
+    found_program_callback: Option<Box<dyn Fn(String, OeisId)>>,
 }
 
 impl PostMine {
@@ -67,7 +68,7 @@ impl PostMine {
     const MINIMUM_NUMBER_OF_REQUIRED_TERMS: usize = 10;
     const LODACPP_EVAL_TIME_LIMIT_IN_SECONDS: u64 = 10;
     const LODACPP_MINIMIZE_TIME_LIMIT_IN_SECONDS: u64 = 5;
-    const LODACPP_CHECK_TIME_LIMIT_IN_SECONDS: u64 = 120;
+    const LODACPP_CHECK_TIME_LIMIT_IN_SECONDS: u64 = 240;
     const LODACPP_COMPARE_NUMBER_OF_TERM_COUNT: usize = 60;
     const LODACPP_STEPS_TIME_LIMIT_IN_SECONDS: u64 = 120;
 
@@ -96,7 +97,7 @@ impl PostMine {
         Ok(())
     }
 
-    fn run_inner(&mut self) -> anyhow::Result<()> {
+    pub fn run_inner(&mut self) -> anyhow::Result<()> {
         self.obtain_paths_for_processing()?;    
         self.populate_candidate_programs()?;
         self.obtain_dontmine_program_ids()?;
@@ -110,7 +111,7 @@ impl PostMine {
         Ok(())
     }
     
-    fn new() -> anyhow::Result<Self> {
+    pub fn new() -> anyhow::Result<Self> {
         let config = Config::load();
         let loda_programs_oeis_dir = config.loda_programs_oeis_dir();
         let validate_single_program = ValidateSingleProgram::new(loda_programs_oeis_dir.clone());
@@ -159,8 +160,13 @@ impl PostMine {
             validate_single_program: validate_single_program,
             iteration: 0,
             focus_only_on_new_programs: focus_only_on_new_programs,
+            found_program_callback: None,
         };
         Ok(instance)
+    }
+
+    pub fn set_found_program_callback(&mut self, c: impl Fn(String, OeisId) + 'static) {
+        self.found_program_callback = Some(Box::new(c));
     }
 
     /// Format dirname ala `19841231-235959-postmine`
@@ -617,7 +623,7 @@ impl PostMine {
         &mut self, 
         candidate_program: CandidateProgramItem, 
         possible_id: OeisId, 
-        _progressbar: ProgressBar
+        progressbar: ProgressBar
     ) -> anyhow::Result<()> {
         self.iteration += 1;
 
@@ -731,12 +737,14 @@ impl PostMine {
                 self.process_full_match(
                     simple_log.clone(),
                     candidate_program,
+                    &file_content,
                     possible_id,
                     &check_program_path,
                     &oeis_program_path,
                     status_of_existing_program,
                     &compare_output_path,
-                    check_result.number_of_correct_terms as usize
+                    check_result.number_of_correct_terms as usize,
+                    progressbar.clone(),
                 )?;
             },
             LodaCppCheckStatus::PartialMatch => {
@@ -766,12 +774,14 @@ impl PostMine {
         &self, 
         simple_log: SimpleLog, 
         candidate_program: CandidateProgramItem, 
-        possible_id: OeisId, 
+        file_content: &String,
+        oeis_id: OeisId, 
         path_program0: &Path, 
         path_program1: &ParentDirAndChildFile,
         status_of_existing_program: StatusOfExistingProgram,
         path_comparison: &Path,
-        number_of_correct_terms: usize
+        number_of_correct_terms: usize,
+        progressbar: ProgressBar
     ) -> anyhow::Result<()> {
         if number_of_correct_terms < Self::MINIMUM_NUMBER_OF_REQUIRED_TERMS {
             let message = format!("process_full_match: Rejecting program with too few terms. Expected {} or more terms, but got {} terms.", Self::MINIMUM_NUMBER_OF_REQUIRED_TERMS, number_of_correct_terms);
@@ -792,7 +802,7 @@ impl PostMine {
             &self.lodacpp,    
             path_program0, 
             path_program1.child_file(),
-            status_of_existing_program,
+            &status_of_existing_program,
             path_comparison, 
             time_limit,
             term_count
@@ -821,10 +831,33 @@ impl PostMine {
                 return Ok(());
             }
         }
+
+        // Program0 (The candidate program) is an improvement.
+
+        // Human readable message above the progressbar,
+        // that explains why Program0 is an improvement.
+        match status_of_existing_program {
+            StatusOfExistingProgram::NoExistingProgram => {
+                progressbar.println(format!("miner discovered a \"new\" program. {}", oeis_id));
+            },
+            StatusOfExistingProgram::IgnoreExistingProgram { ignore_reason: _ } => {
+                progressbar.println(format!("miner discovered an improved program. {}", oeis_id));
+            },
+            StatusOfExistingProgram::CompareNewWithExisting => {
+                progressbar.println(format!("miner discovered a faster program. {}", oeis_id));
+            }
+        }
+
+        // Save program to disk
         path_program1.create_parent_dir()
-            .map_err(|e| anyhow::anyhow!("Unable to create parent dir for matching program. program_id: {:?} error: {:?}", possible_id, e))?;
+            .map_err(|e| anyhow::anyhow!("Unable to create parent dir for matching program. program_id: {:?} error: {:?}", oeis_id, e))?;
         fs::copy(path_program0, path_program1.child_file())?;
-        candidate_program.borrow_mut().keep_id_insert(possible_id);
+        candidate_program.borrow_mut().keep_id_insert(oeis_id);
+
+        // Invoke callback with the discovered program
+        if let Some(ref callback) = self.found_program_callback {
+            callback(file_content.clone(), oeis_id);
+        }
         Ok(())
     }
 

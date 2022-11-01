@@ -49,6 +49,7 @@ pub struct Config {
     miner_metrics_listen_port: u16,
     loda_patterns_repository: PathBuf,
     loda_outlier_programs_repository: PathBuf,
+    miner_program_upload_endpoint: String,
     miner_filter_mode: MinerFilterMode,
     miner_cpu_strategy: MinerCPUStrategy,
 }
@@ -354,6 +355,10 @@ impl Config {
         path
     }
 
+    pub fn miner_program_upload_endpoint(&self) -> &String {
+        &self.miner_program_upload_endpoint
+    }
+
     /// How the time should be spent.
     /// - Mine only for `new` programs.
     /// - Mine for `new` programs and improvements to `existing` programs.
@@ -378,6 +383,7 @@ struct ConfigFallback {
     miner_metrics_listen_port: u16,
     loda_patterns_repository: String,
     loda_outlier_programs_repository: String,
+    miner_program_upload_endpoint: String,
     miner_filter_mode: MinerFilterMode,
     miner_cpu_strategy: MinerCPUStrategy,
 }
@@ -394,6 +400,7 @@ struct ConfigCustom {
     miner_metrics_listen_port: Option<u16>,
     loda_patterns_repository: Option<String>,
     loda_outlier_programs_repository: Option<String>,
+    miner_program_upload_endpoint: Option<String>,
     miner_filter_mode: Option<MinerFilterMode>,
     miner_cpu_strategy: Option<MinerCPUStrategy>,
 }
@@ -465,6 +472,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
     let miner_metrics_listen_port: u16 = custom.miner_metrics_listen_port.unwrap_or(fallback.miner_metrics_listen_port);
     let loda_patterns_repository: String = custom.loda_patterns_repository.unwrap_or(fallback.loda_patterns_repository);
     let loda_outlier_programs_repository: String = custom.loda_outlier_programs_repository.unwrap_or(fallback.loda_outlier_programs_repository);
+    let miner_program_upload_endpoint: String = custom.miner_program_upload_endpoint.unwrap_or(fallback.miner_program_upload_endpoint);
     let miner_filter_mode: MinerFilterMode = custom.miner_filter_mode.unwrap_or(fallback.miner_filter_mode);
     let miner_cpu_strategy: MinerCPUStrategy = custom.miner_cpu_strategy.unwrap_or(fallback.miner_cpu_strategy);
     Config {
@@ -479,6 +487,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
         miner_metrics_listen_port: miner_metrics_listen_port,
         loda_patterns_repository: simpleenv.resolve_path(&loda_patterns_repository),
         loda_outlier_programs_repository: simpleenv.resolve_path(&loda_outlier_programs_repository),
+        miner_program_upload_endpoint: miner_program_upload_endpoint,
         miner_filter_mode: miner_filter_mode,
         miner_cpu_strategy: miner_cpu_strategy,
     }
@@ -592,6 +601,7 @@ mod tests {
         assert_has_suffix(&config.loda_rust_executable, "/git/loda-rust/rust_project/target/release/loda-rust")?;
         assert_has_suffix(&config.loda_cpp_executable, "/loda/bin/loda")?;
         assert_eq!(config.loda_submitted_by, "John Doe");
+        assert_eq!(config.miner_program_upload_endpoint, "http://api.loda-lang.org/miner/v1/programs");
         assert_eq!(config.miner_metrics_listen_port, 8090);
         assert_has_suffix(&config.loda_patterns_repository, "/git/loda-patterns")?;
         assert_has_suffix(&config.loda_outlier_programs_repository, "/git/loda-outlier-programs")?;
