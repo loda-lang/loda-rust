@@ -517,14 +517,17 @@ async fn upload_worker(ctx: BastionContext, upload_endpoint: String) -> Result<(
             let client = reqwest::Client::new();
             let upload_result = client.post(&upload_endpoint)
                 .header(reqwest::header::CONTENT_TYPE, "application/octet-stream")
-                .body(upload_content)
+                .body(upload_content.clone())
                 .send()
                 .await;
             match upload_result {
                 Ok(res) => {
-                    println!("upload_worker: uploaded program for {}", item.oeis_id);
-                    println!("upload_worker: response: {:?} {}", res.version(), res.status());
-                    println!("upload_worker: response headers: {:#?}\n", res.headers());
+                    let upload_success: bool = res.status() == 200 || res.status() == 201;
+                    if !upload_success {
+                        error!("upload_worker: uploaded program {}. body: {:?}", item.oeis_id, upload_content);
+                        error!("upload_worker: response: {:?} {}, expected status 2xx.", res.version(), res.status());
+                        error!("upload_worker: response headers: {:#?}\n", res.headers());
+                    }
                 },
                 Err(error) => {
                     error!("upload_worker: failed program upload of {}, error: {:?}", item.oeis_id, error);

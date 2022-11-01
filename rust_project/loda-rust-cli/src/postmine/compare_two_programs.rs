@@ -32,7 +32,7 @@ impl CompareTwoPrograms {
         lodacpp: &LodaCpp, 
         path_program0: &Path, 
         path_program1: &Path,
-        status_of_existing_program: StatusOfExistingProgram,
+        status_of_existing_program: &StatusOfExistingProgram,
         path_comparison: &Path, 
         time_limit: Duration, 
         term_count: usize
