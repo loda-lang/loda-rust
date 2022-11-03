@@ -23,7 +23,7 @@ impl Analytics {
         }
         assert!(analytics_dir_path.is_dir());
 
-        let logfile_path: PathBuf = analytics_dir_path.join(Path::new("analytics_log.txt"));
+        let logfile_path: PathBuf = config.analytics_dir_analytics_log_file();
         let simple_log = SimpleLog::new(&logfile_path)?;
         
         HistogramStrippedFile::run(simple_log.clone())?;
