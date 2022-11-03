@@ -1,7 +1,7 @@
 use crate::config::Config;
-use crate::analytics::{AnalyzeDependencies, AnalyzeIndirectMemoryAccess, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeLineNgram, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, ValidatePrograms, compute_program_rank};
 use crate::common::SimpleLog;
 use crate::mine::PopulateBloomfilter;
+use super::{AnalyzeDependencies, AnalyzeIndirectMemoryAccess, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeLineNgram, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, LastAnalyticsTimestamp, ValidatePrograms, compute_program_rank};
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -22,6 +22,16 @@ impl Analytics {
             fs::create_dir(&analytics_dir_path)?;
         }
         assert!(analytics_dir_path.is_dir());
+
+        let timestamp_file_path: PathBuf = config.analytics_dir_last_analytics_timestamp_file();
+        match LastAnalyticsTimestamp::load(&timestamp_file_path) {
+            Ok(value) => {
+                println!("success: {:?}", value);
+            },
+            Err(error) => {
+                println!("error: {:?}", error);
+            }
+        }
 
         let logfile_path: PathBuf = config.analytics_dir_analytics_log_file();
         let simple_log = SimpleLog::new(&logfile_path)?;

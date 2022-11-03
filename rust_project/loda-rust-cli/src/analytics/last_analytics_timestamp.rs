@@ -1,11 +1,35 @@
 use chrono::prelude::*;
+use std::path::{Path, PathBuf};
+use std::fs;
 
+#[derive(Debug)]
 pub struct LastAnalyticsTimestamp {
-
+    datetime: DateTime<Utc>
 }
 
 impl LastAnalyticsTimestamp {
-
+    pub fn load(timestamp_file_path: &Path) -> anyhow::Result<Self> {
+        if !timestamp_file_path.is_file() {
+            return Err(anyhow::anyhow!("No timestamp file found at path {:?}", timestamp_file_path));
+        }
+        let contents: String = match fs::read_to_string(timestamp_file_path) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("Cannot load timestamp file. path: {:?} error: {:?}", timestamp_file_path, error));
+            }
+        };
+        let datetime: DateTime<FixedOffset> = match DateTime::parse_from_rfc3339(&contents) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("Cannot parse timestamp file as UTC. path: {:?} error: {:?}", timestamp_file_path, error));
+            }
+        };
+        let datetime: DateTime<Utc> = datetime.with_timezone(&Utc);
+        let instance = Self {
+            datetime: datetime,
+        };
+        Ok(instance)
+    }
 }
 
 #[cfg(test)]
