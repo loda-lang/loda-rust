@@ -1,5 +1,5 @@
 use chrono::prelude::*;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::fs;
 
 #[derive(Debug)]
@@ -35,11 +35,26 @@ impl LastAnalyticsTimestamp {
         let datetime: DateTime<Utc> = datetime.with_timezone(&Utc);
         Ok(datetime)
     }
+
+    fn format_date(datetime: &DateTime<Utc>) -> String {
+        datetime.to_rfc3339_opts(SecondsFormat::Secs, true).to_string()
+    }
+
+    fn save_datetime(timestamp_file_path: &Path, datetime: &DateTime<Utc>) -> anyhow::Result<()> {
+        let contents = Self::format_date(datetime);
+        fs::write(timestamp_file_path, contents)?;
+        Ok(())
+    }
+
+    pub fn save_now(timestamp_file_path: &Path) -> anyhow::Result<()> {
+        Self::save_datetime(timestamp_file_path, &Utc::now())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     #[test]
     fn test_10000_parse_utc_string_ok() {
@@ -70,7 +85,44 @@ mod tests {
     #[test]
     fn test_10002_format() {
         let dt: DateTime<Utc> = Utc.ymd(1999, 3, 24).and_hms_micro(21, 59, 33, 453_829);
-        let s = dt.to_rfc3339_opts(SecondsFormat::Secs, true).to_string();
+        let s = LastAnalyticsTimestamp::format_date(&dt);
         assert_eq!(s, "1999-03-24T21:59:33Z"); // release date of "the matrix"
+    }
+    
+    #[test]
+    fn test_20000_save_datetime_create_new_file() -> anyhow::Result<()> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let basedir = PathBuf::from(&tempdir.path()).join("test_20000_save_datetime_create_new_file");
+        fs::create_dir(&basedir)?;
+        let path: PathBuf = basedir.join("timestamp.asm");
+        let dt: DateTime<Utc> = Utc.ymd(1999, 3, 24).and_hms_micro(21, 59, 33, 453_829);
+
+        // Act
+        LastAnalyticsTimestamp::save_datetime(&path, &dt)?;
+
+        // Assert
+        let contents: String = fs::read_to_string(&path).unwrap();
+        assert_eq!(contents, "1999-03-24T21:59:33Z"); // release date of "the matrix"
+        Ok(())
+    }
+
+    #[test]
+    fn test_20001_save_datetime_overwrite_existing_file() -> anyhow::Result<()> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let basedir = PathBuf::from(&tempdir.path()).join("test_20001_save_datetime_overwrite_existing_file");
+        fs::create_dir(&basedir)?;
+        let path: PathBuf = basedir.join("timestamp.asm");
+        let dt: DateTime<Utc> = Utc.ymd(1999, 3, 24).and_hms_micro(21, 59, 33, 453_829);
+        fs::write(&path, "overwrite me")?;
+
+        // Act
+        LastAnalyticsTimestamp::save_datetime(&path, &dt)?;
+
+        // Assert
+        let contents: String = fs::read_to_string(&path).unwrap();
+        assert_eq!(contents, "1999-03-24T21:59:33Z"); // release date of "the matrix"
+        Ok(())
     }
 }

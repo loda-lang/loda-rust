@@ -4,7 +4,7 @@ use crate::mine::PopulateBloomfilter;
 use super::{AnalyzeDependencies, AnalyzeIndirectMemoryAccess, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeLineNgram, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, LastAnalyticsTimestamp, ValidatePrograms, compute_program_rank};
 use std::error::Error;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::Instant;
 use core::cell::RefCell;
@@ -43,6 +43,7 @@ impl Analytics {
         DontMine::run(simple_log.clone())?;
         PopulateBloomfilter::run(simple_log.clone())?;
     
+        LastAnalyticsTimestamp::save_now(&timestamp_file_path)?;
         let content = format!("\nsubcommand_analytics finished, elapsed: {:?} ms", start_time.elapsed().as_millis());
         simple_log.println(content);
     
