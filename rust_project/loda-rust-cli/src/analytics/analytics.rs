@@ -9,31 +9,35 @@ use std::rc::Rc;
 use std::time::Instant;
 use core::cell::RefCell;
 
+const ANALYTICS_TIMESTAMP_FILE_EXPIRE_AFTER_MINUTES: u32 = 30;
+
 pub struct Analytics {}
 
 impl Analytics {
+    pub fn run_if_expired() -> Result<(), Box<dyn Error>> {
+        let config = Config::load();
+        let timestamp_file_path: PathBuf = config.analytics_dir_last_analytics_timestamp_file();
+        let expire_minutes = ANALYTICS_TIMESTAMP_FILE_EXPIRE_AFTER_MINUTES;
+        if !AnalyticsTimestampFile::is_expired(&timestamp_file_path, expire_minutes) {
+            println!("The \"analytics\" dir is newer than {} minutes. No need to regenerate analytics.", expire_minutes);
+            return Ok(());
+        }
+        Self::run()
+    }
+
     pub fn run() -> Result<(), Box<dyn Error>> {
         let start_time = Instant::now();
         let config = Config::load();
+        let analytics_dir_path: PathBuf = config.analytics_dir();
+        let timestamp_file_path: PathBuf = config.analytics_dir_last_analytics_timestamp_file();
+        let logfile_path: PathBuf = config.analytics_dir_analytics_log_file();
 
         // Ensure that the `analytics` dir exist
-        let analytics_dir_path: PathBuf = config.analytics_dir();
         if !analytics_dir_path.is_dir() {
             fs::create_dir(&analytics_dir_path)?;
         }
         assert!(analytics_dir_path.is_dir());
 
-        let timestamp_file_path: PathBuf = config.analytics_dir_last_analytics_timestamp_file();
-        match AnalyticsTimestampFile::load(&timestamp_file_path) {
-            Ok(value) => {
-                println!("success: {:?}", value);
-            },
-            Err(error) => {
-                println!("error: {:?}", error);
-            }
-        }
-
-        let logfile_path: PathBuf = config.analytics_dir_analytics_log_file();
         let simple_log = SimpleLog::new(&logfile_path)?;
         
         HistogramStrippedFile::run(simple_log.clone())?;

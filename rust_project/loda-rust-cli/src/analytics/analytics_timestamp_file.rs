@@ -9,6 +9,17 @@ pub struct AnalyticsTimestampFile {
 }
 
 impl AnalyticsTimestampFile {
+    pub fn is_expired(timestamp_file_path: &Path, minutes: u32) -> bool {
+        let instance = match Self::load(&timestamp_file_path) {
+            Ok(value) => value,
+            Err(error) => {
+                debug!("AnalyticsTimestampFile: error: {:?}", error);
+                return true;
+            }
+        };
+        instance.is_expired_minutes(minutes)
+    }
+    
     pub fn load(timestamp_file_path: &Path) -> anyhow::Result<Self> {
         if !timestamp_file_path.is_file() {
             return Err(anyhow::anyhow!("No timestamp file found at path {:?}", timestamp_file_path));
