@@ -123,7 +123,7 @@ fn coordinator_thread_metrics_prometheus(rx: Receiver<MinerCoordinatorMessage>, 
             }
         }
 
-        // Number of operations per second, gauge
+        // Number of iterations per second, gauge
         let elapsed: u128 = progress_time.elapsed().as_millis();
         if elapsed > 1000 {
             let elapsed_clamped: u64 = u64::try_from(elapsed).unwrap_or(1000);
@@ -139,10 +139,7 @@ fn coordinator_thread_metrics_prometheus(rx: Receiver<MinerCoordinatorMessage>, 
             moving_average.rotate();
         }
 
-        // Number of iterations per second, chart
-        let metric0: u64 = message_processor.number_of_iterations();
-        metrics.number_of_iterations.inc_by(metric0);
-        accumulated_iterations += metric0;
+        accumulated_iterations += message_processor.number_of_iterations();
 
         // message_processor.metrics_summary();
         message_processor.reset_iteration_metrics();

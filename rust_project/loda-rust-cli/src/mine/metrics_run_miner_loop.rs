@@ -1,5 +1,5 @@
 pub struct MetricsRunMinerLoop {
-    pub number_of_miner_loop_iterations: u64,
+    pub number_of_iterations: u64,
     pub number_of_prevented_floodings: u64,
     pub number_of_self_dependencies: u64,
     pub number_of_bloomfilter_false_positive: u64,
@@ -15,7 +15,7 @@ pub struct MetricsRunMinerLoop {
 impl MetricsRunMinerLoop {
     pub fn new() -> Self {
         Self {
-            number_of_miner_loop_iterations: 0,
+            number_of_iterations: 0,
             number_of_prevented_floodings: 0,
             number_of_self_dependencies: 0,
             number_of_bloomfilter_false_positive: 0,
@@ -30,7 +30,7 @@ impl MetricsRunMinerLoop {
     }
 
     pub fn reset_metrics(&mut self) {
-        self.number_of_miner_loop_iterations = 0;
+        self.number_of_iterations = 0;
         self.number_of_prevented_floodings = 0;
         self.number_of_self_dependencies = 0;
         self.number_of_bloomfilter_false_positive = 0;

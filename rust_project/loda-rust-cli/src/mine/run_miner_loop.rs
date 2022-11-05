@@ -147,7 +147,7 @@ impl RunMinerLoop {
 
     fn submit_metrics(&mut self) {
         {
-            let y: u64 = self.metric.number_of_miner_loop_iterations;
+            let y: u64 = self.metric.number_of_iterations;
             let message = MinerCoordinatorMessage::NumberOfIterations(y);
             self.tx.send(message).unwrap();
         }
@@ -182,6 +182,7 @@ impl RunMinerLoop {
         }
         {
             let event = MetricEvent::General { 
+                number_of_iterations: self.metric.number_of_iterations,
                 prevent_flooding: self.metric.number_of_prevented_floodings,
                 reject_self_dependency: self.metric.number_of_self_dependencies,
                 candidate_program: self.metric.number_of_candidate_programs,
@@ -263,7 +264,7 @@ impl RunMinerLoop {
         dependency_manager: &mut DependencyManager, 
         execute_batch_result: &mut ExecuteBatchResult
     ) {
-        self.metric.number_of_miner_loop_iterations += 1;
+        self.metric.number_of_iterations += 1;
         if (self.iteration % ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME) == 0 {
             self.reload = true;
         }
