@@ -241,7 +241,8 @@ impl Recorder for MetricsPrometheus {
                 self.dependency_manager_read_success.inc_by(*read_success);
                 self.dependency_manager_read_error.inc_by(*read_error);
             },
-            MetricEvent::General { prevent_flooding, reject_self_dependency, candidate_program } => {
+            MetricEvent::General { number_of_iterations, prevent_flooding, reject_self_dependency, candidate_program } => {
+                self.number_of_iterations.inc_by(*number_of_iterations);
                 self.rejected_preventing_flooding.inc_by(*prevent_flooding);
                 self.reject_self_dependency.inc_by(*reject_self_dependency);
                 self.number_of_candidate_programs.inc_by(*candidate_program);

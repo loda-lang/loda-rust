@@ -1,7 +1,7 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
 use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
-use crate::mine::{ExecuteBatchResult, FunnelConfig, MinerCoordinatorMessage, MineEventDirectoryState, MinerCoordinator, Recorder, RunMinerLoop};
+use crate::mine::{ExecuteBatchResult, FunnelConfig, MinerCoordinatorMessage, MineEventDirectoryState, MinerCoordinator, Recorder, RunMinerLoop, MetricEvent};
 use crate::mine::{create_funnel, Funnel};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use crate::mine::{create_prevent_flooding, PreventFlooding};
@@ -288,8 +288,6 @@ async fn miner_worker(
     };
 
     let mut rml = RunMinerLoop::new(
-        tx,
-        recorder,
         funnel,
         &config,
         prevent_flooding,
@@ -297,6 +295,16 @@ async fn miner_worker(
         initial_random_seed,
         terms_to_program_id,
     );
+    let callback = move |metric_event: MetricEvent| {
+        recorder.record(&metric_event);
+
+        if let MetricEvent::General { number_of_iterations, .. } = metric_event {
+            let y: u64 = number_of_iterations;
+            let message = MinerCoordinatorMessage::NumberOfIterations(y);
+            tx.send(message).unwrap();
+        }
+    }; 
+    rml.set_metrics_callback(callback);
 
     loop {
         // try receive, if there is no pending message, then continue working
