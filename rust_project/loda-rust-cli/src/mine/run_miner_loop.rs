@@ -1,7 +1,7 @@
 use super::{Funnel, Genome, GenomeItem, GenomeMutateContext, save_candidate_program, ToGenomeItemVec};
 use super::{PreventFlooding, TermComputer};
 use super::{PerformanceClassifierResult, PerformanceClassifier};
-use super::{MinerCoordinatorMessage, MetricEvent, Recorder};
+use super::MetricEvent;
 use super::metrics_run_miner_loop::MetricsRunMinerLoop;
 use crate::oeis::TermsToProgramIdSet;
 use crate::config::{Config, MinerFilterMode};
@@ -13,7 +13,6 @@ use std::collections::HashSet;
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
 use std::time::Instant;
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
@@ -61,8 +60,7 @@ impl ExecuteBatchResult {
 }
 
 pub struct RunMinerLoop {
-    tx: Sender<MinerCoordinatorMessage>,
-    recorder: Box<dyn Recorder + Send>,
+    metrics_callback: Option<Box<dyn Fn(MetricEvent) + Send>>,
     funnel: Funnel,
     mine_event_dir: PathBuf,
     cache: ProgramCache,
@@ -83,8 +81,6 @@ pub struct RunMinerLoop {
 
 impl RunMinerLoop {
     pub fn new(
-        tx: Sender<MinerCoordinatorMessage>,
-        recorder: Box<dyn Recorder + Send>,
         funnel: Funnel,
         config: &Config,
         prevent_flooding: Arc<Mutex<PreventFlooding>>,
@@ -103,8 +99,7 @@ impl RunMinerLoop {
     
         let capacity = NonZeroUsize::new(MINER_CACHE_CAPACITY).unwrap();
         Self {
-            tx: tx,
-            recorder: recorder,
+            metrics_callback: None,
             funnel: funnel,
             mine_event_dir: PathBuf::from(mine_event_dir),
             cache: ProgramCache::with_capacity(capacity),
@@ -145,63 +140,56 @@ impl RunMinerLoop {
         }
     }
 
+    pub fn set_metrics_callback(&mut self, c: impl Fn(MetricEvent) + Send + 'static) {
+        self.metrics_callback = Some(Box::new(c));
+    }
+
+    fn submit_metric_event(&mut self, metric_event: MetricEvent) {
+        match &self.metrics_callback {
+            Some(callback) => {
+                callback(metric_event);
+            },
+            None => {}
+        }
+    }
+
     fn submit_metrics(&mut self) {
-        {
-            let y: u64 = self.metric.number_of_iterations;
-            let message = MinerCoordinatorMessage::NumberOfIterations(y);
-            self.tx.send(message).unwrap();
-        }
-        {
-            let event = MetricEvent::Funnel { 
-                terms10: self.funnel.metric_number_of_candidates_with_10terms(),
-                terms20: self.funnel.metric_number_of_candidates_with_20terms(),
-                terms30: self.funnel.metric_number_of_candidates_with_30terms(),
-                terms40: self.funnel.metric_number_of_candidates_with_40terms(),
-                false_positives: self.metric.number_of_bloomfilter_false_positive,
-            };
-            self.recorder.record(&event);
-        }
-        {
-            let event = MetricEvent::Genome { 
-                cannot_load: self.metric.number_of_failed_genome_loads,
-                cannot_parse: self.metric.number_of_programs_that_cannot_parse,
-                too_short: self.metric.number_of_too_short_programs,
-                no_output: self.metric.number_of_programs_without_output,
-                no_mutation: self.metric.number_of_failed_mutations,
-                compute_error: self.metric.number_of_compute_errors,
-            };
-            self.recorder.record(&event);
-        }
-        {
-            let event = MetricEvent::Cache { 
-                hit: self.cache.metric_hit(),
-                miss_program_oeis: self.cache.metric_miss_for_program_oeis(),
-                miss_program_without_id: self.cache.metric_miss_for_program_without_id(),
-            };
-            self.recorder.record(&event);
-        }
-        {
-            let event = MetricEvent::General { 
-                number_of_iterations: self.metric.number_of_iterations,
-                prevent_flooding: self.metric.number_of_prevented_floodings,
-                reject_self_dependency: self.metric.number_of_self_dependencies,
-                candidate_program: self.metric.number_of_candidate_programs,
-            };
-            self.recorder.record(&event);
-        }
+        self.submit_metric_event(MetricEvent::Funnel { 
+            terms10: self.funnel.metric_number_of_candidates_with_10terms(),
+            terms20: self.funnel.metric_number_of_candidates_with_20terms(),
+            terms30: self.funnel.metric_number_of_candidates_with_30terms(),
+            terms40: self.funnel.metric_number_of_candidates_with_40terms(),
+            false_positives: self.metric.number_of_bloomfilter_false_positive,
+        });
+        self.submit_metric_event(MetricEvent::Genome { 
+            cannot_load: self.metric.number_of_failed_genome_loads,
+            cannot_parse: self.metric.number_of_programs_that_cannot_parse,
+            too_short: self.metric.number_of_too_short_programs,
+            no_output: self.metric.number_of_programs_without_output,
+            no_mutation: self.metric.number_of_failed_mutations,
+            compute_error: self.metric.number_of_compute_errors,
+        });
+        self.submit_metric_event(MetricEvent::Cache { 
+            hit: self.cache.metric_hit(),
+            miss_program_oeis: self.cache.metric_miss_for_program_oeis(),
+            miss_program_without_id: self.cache.metric_miss_for_program_without_id(),
+        });
+        self.submit_metric_event(MetricEvent::General { 
+            number_of_iterations: self.metric.number_of_iterations,
+            prevent_flooding: self.metric.number_of_prevented_floodings,
+            reject_self_dependency: self.metric.number_of_self_dependencies,
+            candidate_program: self.metric.number_of_candidate_programs,
+        });
         self.funnel.reset_metrics();
         self.cache.reset_metrics();
         self.metric.reset_metrics();
     }
 
     fn submit_metrics_for_dependency_manager(&mut self, dependency_manager: &mut DependencyManager) {
-        {
-            let event = MetricEvent::DependencyManager {
-                read_success: dependency_manager.metric_read_success(),
-                read_error: dependency_manager.metric_read_error(),
-            };
-            self.recorder.record(&event);
-        }
+        self.submit_metric_event(MetricEvent::DependencyManager {
+            read_success: dependency_manager.metric_read_success(),
+            read_error: dependency_manager.metric_read_error(),
+        });
         dependency_manager.reset_metrics();
     }
 
