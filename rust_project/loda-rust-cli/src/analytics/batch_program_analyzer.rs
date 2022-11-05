@@ -54,11 +54,16 @@ impl BatchProgramAnalyzer {
         }
     }
 
-    pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
+    pub fn run(&mut self) -> anyhow::Result<()> {
         println!("Run batch-program-analyzer");
-        self.analyze_the_valid_program_files()?;
-        self.save_result_files()?;
-        self.save_summary()?;
+        self.analyze_the_valid_program_files()
+            .map_err(|e| anyhow::anyhow!("BatchProgramAnalyzer.run. analyze_the_valid_program_files. error: {:?}", e))?;
+
+        self.save_result_files()
+            .map_err(|e| anyhow::anyhow!("BatchProgramAnalyzer.run. save_result_files. error: {:?}", e))?;
+
+        self.save_summary()
+            .map_err(|e| anyhow::anyhow!("BatchProgramAnalyzer.run. save_summary. error: {:?}", e))?;
         Ok(())
     }
 

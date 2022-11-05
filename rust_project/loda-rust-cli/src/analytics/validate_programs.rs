@@ -10,7 +10,6 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::time::Instant;
 use std::rc::Rc;
-use std::fmt;
 use std::fs::File;
 use std::io::Write;
 use std::io::LineWriter;
@@ -18,21 +17,6 @@ use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
 
 const NUMBER_OF_TERMS_TO_VALIDATE: u64 = 1;
-
-#[derive(Debug)]
-pub enum ValidateProgramError {
-    NoPrograms,
-}
-
-impl std::error::Error for ValidateProgramError {}
-
-impl fmt::Display for ValidateProgramError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::NoPrograms => write!(f, "Expected 1 or more programs, cannot validate"),
-        }
-    }
-}
 
 /*
 Identify the programs that can safely be used by the miner.
@@ -96,7 +80,7 @@ The outputted file: `programs_invalid_verbose.csv` has this format:
 pub struct ValidatePrograms {}
 
 impl ValidatePrograms {
-    pub fn run(simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
+    pub fn run(simple_log: SimpleLog) -> anyhow::Result<()> {
         let start = Instant::now();
         simple_log.println("\nValidatePrograms");
         println!("Validate programs");
@@ -110,7 +94,7 @@ impl ValidatePrograms {
         let paths: Vec<PathBuf> = find_asm_files_recursively(&loda_programs_oeis_dir);
         let number_of_paths = paths.len();
         if number_of_paths <= 0 {
-            return Err(Box::new(ValidateProgramError::NoPrograms));
+            return Err(anyhow::anyhow!("ValidatePrograms::run - Expected 1 or more programs, cannot validate"));
         }
         // Extract oeis_ids from paths
         let oeis_ids_hashset: OeisIdHashSet = oeis_ids_from_paths(&paths);

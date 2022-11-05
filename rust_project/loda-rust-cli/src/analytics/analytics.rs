@@ -2,7 +2,6 @@ use crate::config::Config;
 use crate::common::SimpleLog;
 use crate::mine::PopulateBloomfilter;
 use super::{AnalyzeDependencies, AnalyzeIndirectMemoryAccess, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeLineNgram, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, AnalyticsTimestampFile, ValidatePrograms, compute_program_rank};
-use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -15,7 +14,7 @@ pub struct Analytics {}
 
 impl Analytics {
     #[allow(dead_code)]
-    pub fn run_if_expired() -> Result<(), Box<dyn Error>> {
+    pub fn run_if_expired() -> anyhow::Result<()> {
         let config = Config::load();
         let timestamp_file_path: PathBuf = config.analytics_dir_last_analytics_timestamp_file();
         let expire_minutes = ANALYTICS_TIMESTAMP_FILE_EXPIRE_AFTER_MINUTES;
@@ -26,7 +25,7 @@ impl Analytics {
         Self::run()
     }
 
-    pub fn run() -> Result<(), Box<dyn Error>> {
+    pub fn run() -> anyhow::Result<()> {
         let start_time = Instant::now();
         let config = Config::load();
         let analytics_dir_path: PathBuf = config.analytics_dir();
@@ -39,14 +38,19 @@ impl Analytics {
         }
         assert!(analytics_dir_path.is_dir());
 
-        let simple_log = SimpleLog::new(&logfile_path)?;
+        let simple_log = SimpleLog::new(&logfile_path)
+            .map_err(|e| anyhow::anyhow!("Analytics::run - simple_log error: {:?}", e))?;
         
         HistogramStrippedFile::run(simple_log.clone())?;
         ValidatePrograms::run(simple_log.clone())?;
         Self::run_batch_program_analyzer(simple_log.clone())?;
         compute_program_rank();
-        DontMine::run(simple_log.clone())?;
-        PopulateBloomfilter::run(simple_log.clone())?;
+
+        DontMine::run(simple_log.clone())
+            .map_err(|e| anyhow::anyhow!("Analytics::run. DontMine::run. error: {:?}", e))?;
+
+        PopulateBloomfilter::run(simple_log.clone())
+            .map_err(|e| anyhow::anyhow!("Analytics::run. PopulateBloomfilter::run. error: {:?}", e))?;
     
         AnalyticsTimestampFile::save_now(&timestamp_file_path)?;
         let content = format!("\nsubcommand_analytics finished, elapsed: {:?} ms", start_time.elapsed().as_millis());
@@ -55,7 +59,7 @@ impl Analytics {
         Ok(())
     }
 
-    fn run_batch_program_analyzer(simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
+    fn run_batch_program_analyzer(simple_log: SimpleLog) -> anyhow::Result<()> {
         let plugin_dependencies = Rc::new(RefCell::new(AnalyzeDependencies::new()));
         let plugin_indirect_memory_access = Rc::new(RefCell::new(AnalyzeIndirectMemoryAccess::new()));
         let plugin_instruction_constant = Rc::new(RefCell::new(AnalyzeInstructionConstant::new()));

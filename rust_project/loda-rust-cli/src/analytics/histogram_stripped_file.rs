@@ -6,7 +6,6 @@ use crate::common::{create_csv_file, SimpleLog};
 use crate::oeis::{ProcessStrippedFile, StrippedRow};
 use num_bigint::{BigInt, ToBigInt};
 use std::convert::TryFrom;
-use std::error::Error;
 use std::io;
 use std::path::PathBuf;
 use std::fs::File;
@@ -71,7 +70,7 @@ pub struct HistogramStrippedFile {
 }
 
 impl HistogramStrippedFile {
-    pub fn run(simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
+    pub fn run(simple_log: SimpleLog) -> anyhow::Result<()> {
         let config = Config::load();
         let mut instance = Self {
             config: config,
@@ -82,7 +81,7 @@ impl HistogramStrippedFile {
         Ok(())
     }
 
-    fn run_inner(&mut self) -> Result<(), Box<dyn Error>> {
+    fn run_inner(&mut self) -> anyhow::Result<()> {
         self.simple_log.println("\nHistogram of OEIS 'stripped' file");
         println!("Histogram of OEIS 'stripped' file");
 
@@ -108,7 +107,7 @@ impl HistogramStrippedFile {
         oeis_stripped_file_reader: &mut dyn io::BufRead, 
         filesize: usize,
         histogram: &mut HashMap::<i64,u32>,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> anyhow::Result<()> {
         let start = Instant::now();
         let mut count_big: u32 = 0;
         let mut count_small: u32 = 0;
@@ -166,7 +165,7 @@ impl HistogramStrippedFile {
         Ok(())
     }
 
-    fn save(&self) -> Result<(), Box<dyn Error>> {
+    fn save(&self) -> anyhow::Result<()> {
         let mut records = Vec::<Record>::new();
         for (histogram_key, histogram_count) in &self.histogram {
             let record = Record {
@@ -193,6 +192,8 @@ impl HistogramStrippedFile {
         // Save as a CSV file
         let output_path: PathBuf = self.config.analytics_dir_histogram_oeis_stripped_file();
         create_csv_file(&records, &output_path)
+            .map_err(|e| anyhow::anyhow!("HistogramStrippedFile.save - create_csv_file error: {:?}", e))?;
+        Ok(())
     }
 }
 
