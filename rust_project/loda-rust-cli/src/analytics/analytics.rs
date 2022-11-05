@@ -14,6 +14,7 @@ const ANALYTICS_TIMESTAMP_FILE_EXPIRE_AFTER_MINUTES: u32 = 30;
 pub struct Analytics {}
 
 impl Analytics {
+    #[allow(dead_code)]
     pub fn run_if_expired() -> Result<(), Box<dyn Error>> {
         let config = Config::load();
         let timestamp_file_path: PathBuf = config.analytics_dir_last_analytics_timestamp_file();
