@@ -1,29 +1,44 @@
 use crate::config::Config;
-use crate::analytics::{AnalyzeDependencies, AnalyzeIndirectMemoryAccess, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeLineNgram, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, ValidatePrograms, compute_program_rank};
 use crate::common::SimpleLog;
 use crate::mine::PopulateBloomfilter;
+use super::{AnalyzeDependencies, AnalyzeIndirectMemoryAccess, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeLineNgram, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, AnalyticsTimestampFile, ValidatePrograms, compute_program_rank};
 use std::error::Error;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::Instant;
 use core::cell::RefCell;
 
+const ANALYTICS_TIMESTAMP_FILE_EXPIRE_AFTER_MINUTES: u32 = 30;
+
 pub struct Analytics {}
 
 impl Analytics {
+    #[allow(dead_code)]
+    pub fn run_if_expired() -> Result<(), Box<dyn Error>> {
+        let config = Config::load();
+        let timestamp_file_path: PathBuf = config.analytics_dir_last_analytics_timestamp_file();
+        let expire_minutes = ANALYTICS_TIMESTAMP_FILE_EXPIRE_AFTER_MINUTES;
+        if !AnalyticsTimestampFile::is_expired(&timestamp_file_path, expire_minutes) {
+            println!("The \"analytics\" dir is newer than {} minutes. No need to regenerate analytics.", expire_minutes);
+            return Ok(());
+        }
+        Self::run()
+    }
+
     pub fn run() -> Result<(), Box<dyn Error>> {
         let start_time = Instant::now();
         let config = Config::load();
+        let analytics_dir_path: PathBuf = config.analytics_dir();
+        let timestamp_file_path: PathBuf = config.analytics_dir_last_analytics_timestamp_file();
+        let logfile_path: PathBuf = config.analytics_dir_analytics_log_file();
 
         // Ensure that the `analytics` dir exist
-        let analytics_dir_path: PathBuf = config.analytics_dir();
         if !analytics_dir_path.is_dir() {
             fs::create_dir(&analytics_dir_path)?;
         }
         assert!(analytics_dir_path.is_dir());
 
-        let logfile_path: PathBuf = analytics_dir_path.join(Path::new("analytics_log.txt"));
         let simple_log = SimpleLog::new(&logfile_path)?;
         
         HistogramStrippedFile::run(simple_log.clone())?;
@@ -33,6 +48,7 @@ impl Analytics {
         DontMine::run(simple_log.clone())?;
         PopulateBloomfilter::run(simple_log.clone())?;
     
+        AnalyticsTimestampFile::save_now(&timestamp_file_path)?;
         let content = format!("\nsubcommand_analytics finished, elapsed: {:?} ms", start_time.elapsed().as_millis());
         simple_log.println(content);
     

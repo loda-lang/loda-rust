@@ -1,6 +1,7 @@
 //! Prepare data needed for mining, by analyzing the existing programs.
 mod analytics;
 mod analytics_error;
+mod analytics_timestamp_file;
 mod analyze_dependencies;
 mod analyze_indirect_memory_access;
 mod analyze_instruction_constant;
@@ -18,6 +19,7 @@ mod validate_programs;
 
 pub use analytics::Analytics;
 pub use analytics_error::AnalyticsError;
+pub use analytics_timestamp_file::AnalyticsTimestampFile;
 pub use analyze_dependencies::AnalyzeDependencies;
 pub use analyze_indirect_memory_access::AnalyzeIndirectMemoryAccess;
 pub use analyze_instruction_constant::AnalyzeInstructionConstant;
