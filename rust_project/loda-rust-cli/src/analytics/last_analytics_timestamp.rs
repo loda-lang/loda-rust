@@ -1,4 +1,5 @@
 use chrono::prelude::*;
+use chrono::Duration;
 use std::path::Path;
 use std::fs;
 
@@ -34,6 +35,14 @@ impl LastAnalyticsTimestamp {
         };
         let datetime: DateTime<Utc> = datetime.with_timezone(&Utc);
         Ok(datetime)
+    }
+
+    fn is_expired_inner(&self, now_datetime: DateTime<Utc>, duration: Duration) -> bool {
+        (self.datetime + duration) <= now_datetime
+    }
+
+    pub fn is_expired_minutes(&self, minutes: u32) -> bool {
+        self.is_expired_inner(Utc::now(), Duration::minutes(minutes as i64))
     }
 
     fn format_date(datetime: &DateTime<Utc>) -> String {
@@ -124,5 +133,21 @@ mod tests {
         let contents: String = fs::read_to_string(&path).unwrap();
         assert_eq!(contents, "1999-03-24T21:59:33Z"); // release date of "the matrix"
         Ok(())
+    }
+
+    #[test]
+    fn test_30000_is_expired_inner() {
+        let date_str = "1999-03-24T00:00:00Z".to_string();
+        let dt: DateTime<Utc> = LastAnalyticsTimestamp::parse_utc_string(&date_str).unwrap();
+        let lat = LastAnalyticsTimestamp { datetime: dt };
+        let now: DateTime<Utc> = Utc.ymd(1999, 3, 24).and_hms(0, 1, 0);
+        assert_eq!(lat.is_expired_inner(now, Duration::minutes(30)), false);
+        assert_eq!(lat.is_expired_inner(now, Duration::minutes(2)), false);
+        assert_eq!(lat.is_expired_inner(now, Duration::minutes(1)), true);
+        assert_eq!(lat.is_expired_inner(now, Duration::minutes(0)), true);
+        assert_eq!(lat.is_expired_inner(now, Duration::seconds(120)), false);
+        assert_eq!(lat.is_expired_inner(now, Duration::seconds(61)), false);
+        assert_eq!(lat.is_expired_inner(now, Duration::seconds(60)), true);
+        assert_eq!(lat.is_expired_inner(now, Duration::seconds(0)), true);
     }
 }
