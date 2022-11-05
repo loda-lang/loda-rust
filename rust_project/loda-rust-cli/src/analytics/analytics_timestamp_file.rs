@@ -4,11 +4,11 @@ use std::path::Path;
 use std::fs;
 
 #[derive(Debug)]
-pub struct LastAnalyticsTimestamp {
+pub struct AnalyticsTimestampFile {
     datetime: DateTime<Utc>
 }
 
-impl LastAnalyticsTimestamp {
+impl AnalyticsTimestampFile {
     pub fn load(timestamp_file_path: &Path) -> anyhow::Result<Self> {
         if !timestamp_file_path.is_file() {
             return Err(anyhow::anyhow!("No timestamp file found at path {:?}", timestamp_file_path));
@@ -68,7 +68,7 @@ mod tests {
     #[test]
     fn test_10000_parse_utc_string_ok() {
         let date_str = "1999-03-24T21:59:33Z".to_string(); // release date of "the matrix"
-        let dt: DateTime<Utc> = LastAnalyticsTimestamp::parse_utc_string(&date_str).unwrap();
+        let dt: DateTime<Utc> = AnalyticsTimestampFile::parse_utc_string(&date_str).unwrap();
         assert_eq!(dt.year(), 1999);
         assert_eq!(dt.month(), 3);
         assert_eq!(dt.day(), 24);
@@ -87,14 +87,14 @@ mod tests {
             "junk1999-03-24T21:59:33Z",
         ];
         for input in INPUT {
-            LastAnalyticsTimestamp::parse_utc_string(&input.to_string()).expect_err("is supposed to fail");
+            AnalyticsTimestampFile::parse_utc_string(&input.to_string()).expect_err("is supposed to fail");
         }
     }
 
     #[test]
     fn test_10002_format() {
         let dt: DateTime<Utc> = Utc.ymd(1999, 3, 24).and_hms_micro(21, 59, 33, 453_829);
-        let s = LastAnalyticsTimestamp::format_date(&dt);
+        let s = AnalyticsTimestampFile::format_date(&dt);
         assert_eq!(s, "1999-03-24T21:59:33Z"); // release date of "the matrix"
     }
     
@@ -108,7 +108,7 @@ mod tests {
         let dt: DateTime<Utc> = Utc.ymd(1999, 3, 24).and_hms_micro(21, 59, 33, 453_829);
 
         // Act
-        LastAnalyticsTimestamp::save_datetime(&path, &dt)?;
+        AnalyticsTimestampFile::save_datetime(&path, &dt)?;
 
         // Assert
         let contents: String = fs::read_to_string(&path).unwrap();
@@ -127,7 +127,7 @@ mod tests {
         fs::write(&path, "overwrite me")?;
 
         // Act
-        LastAnalyticsTimestamp::save_datetime(&path, &dt)?;
+        AnalyticsTimestampFile::save_datetime(&path, &dt)?;
 
         // Assert
         let contents: String = fs::read_to_string(&path).unwrap();
@@ -138,16 +138,16 @@ mod tests {
     #[test]
     fn test_30000_is_expired_inner() {
         let date_str = "1999-03-24T00:00:00Z".to_string();
-        let dt: DateTime<Utc> = LastAnalyticsTimestamp::parse_utc_string(&date_str).unwrap();
-        let lat = LastAnalyticsTimestamp { datetime: dt };
+        let dt: DateTime<Utc> = AnalyticsTimestampFile::parse_utc_string(&date_str).unwrap();
+        let timestamp = AnalyticsTimestampFile { datetime: dt };
         let now: DateTime<Utc> = Utc.ymd(1999, 3, 24).and_hms(0, 1, 0);
-        assert_eq!(lat.is_expired_inner(now, Duration::minutes(30)), false);
-        assert_eq!(lat.is_expired_inner(now, Duration::minutes(2)), false);
-        assert_eq!(lat.is_expired_inner(now, Duration::minutes(1)), true);
-        assert_eq!(lat.is_expired_inner(now, Duration::minutes(0)), true);
-        assert_eq!(lat.is_expired_inner(now, Duration::seconds(120)), false);
-        assert_eq!(lat.is_expired_inner(now, Duration::seconds(61)), false);
-        assert_eq!(lat.is_expired_inner(now, Duration::seconds(60)), true);
-        assert_eq!(lat.is_expired_inner(now, Duration::seconds(0)), true);
+        assert_eq!(timestamp.is_expired_inner(now, Duration::minutes(30)), false);
+        assert_eq!(timestamp.is_expired_inner(now, Duration::minutes(2)), false);
+        assert_eq!(timestamp.is_expired_inner(now, Duration::minutes(1)), true);
+        assert_eq!(timestamp.is_expired_inner(now, Duration::minutes(0)), true);
+        assert_eq!(timestamp.is_expired_inner(now, Duration::seconds(120)), false);
+        assert_eq!(timestamp.is_expired_inner(now, Duration::seconds(61)), false);
+        assert_eq!(timestamp.is_expired_inner(now, Duration::seconds(60)), true);
+        assert_eq!(timestamp.is_expired_inner(now, Duration::seconds(0)), true);
     }
 }
