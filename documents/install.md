@@ -59,14 +59,12 @@ OPTIONS:
     -V, --version    Print version information
 
 SUBCOMMANDS:
-    analytics       Prepare data needed for mining, by analyzing the existing programs.
     dependencies    Print all direct/indirect dependencies of a program
     evaluate        Evaluate a program
     help            Print this message or the help of the given subcommand(s)
     install         Create the $HOME/.loda-rust directory
     mine            Run the miner daemon process. Press CTRL-C to stop it.
     pattern         Identify recurring patterns among similar programs.
-    postmine        Validate the accumulated candiate programs for correctness and performance.
     similar         Identify similar programs.
 PROMPT>
 ```
