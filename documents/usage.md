@@ -21,8 +21,8 @@ Here `loda-rust` determines: Does the program compute the correct terms, is the 
 Underneeth `loda-rust` uses `loda-cpp`.
 The `~/.loda-rust/postmine/19840101-010101-postmine` holds info about how the decisions was made.
 
-The discovered program are uploaded to the `loda-lang.org` server and is scheduled for further processing on the server.
-If the server determines that it's a new program or an improvement to an existing program, then it gets added to the `loda-programs` repo.
+The discovered programs are uploaded to the `loda-lang.org` server and scheduled for further processing on the server.
+If the server determines that it's a new program or an improvement to an existing program, then it gets added to the official `loda-programs` repo.
 In 24hours or so, it shows up next time when fetching the `loda-programs` repo.
 
 Also `loda-rust` places the programs inside the local `loda-programs` repo, but it doesn't do any commit.
