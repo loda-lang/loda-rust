@@ -13,7 +13,6 @@ const ANALYTICS_TIMESTAMP_FILE_EXPIRE_AFTER_MINUTES: u32 = 30;
 pub struct Analytics {}
 
 impl Analytics {
-    #[allow(dead_code)]
     pub fn run_if_expired() -> anyhow::Result<()> {
         let config = Config::load();
         let timestamp_file_path: PathBuf = config.analytics_dir_last_analytics_timestamp_file();
@@ -22,6 +21,7 @@ impl Analytics {
             println!("The \"analytics\" dir is newer than {} minutes. No need to regenerate analytics.", expire_minutes);
             return Ok(());
         }
+        println!("Generating the \"analytics\" dir.");
         Self::run()
     }
 

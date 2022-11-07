@@ -1,4 +1,5 @@
 //! The `loda-rust export-dataset` subcommand, exports terms and programs to a CSV file.
+use crate::analytics::Analytics;
 use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, oeis_id_from_path};
 use crate::common::create_csv_file;
@@ -8,7 +9,6 @@ use loda_rust_core::oeis::OeisIdHashSet;
 use loda_rust_core::oeis::OeisId;
 use loda_rust_core::parser::{ParsedProgram};
 use std::collections::{HashMap, HashSet};
-use std::error::Error;
 use std::fs;
 use std::fs::File;
 use std::io::BufReader;
@@ -50,7 +50,7 @@ pub struct SubcommandExportDataset {
 }
 
 impl SubcommandExportDataset {
-    pub fn export_dataset() -> Result<(), Box<dyn Error>> {
+    pub fn export_dataset() -> anyhow::Result<()> {
         let mut instance = Self {
             config: Config::load(),
             count_ignored: 0,
@@ -63,6 +63,7 @@ impl SubcommandExportDataset {
     }
 
     fn run(&mut self) -> anyhow::Result<()> {
+        Analytics::run_if_expired()?;
         self.load_stripped_file()?;
         self.process_program_files()?;
         self.save()?;

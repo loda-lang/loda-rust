@@ -98,6 +98,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         .subcommand(
             Command::new("analytics")
                 .about("Prepare data needed for mining, by analyzing the existing programs.")
+                .hide(true)
         )
         .subcommand(
             Command::new("mine")
@@ -111,6 +112,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         .subcommand(
             Command::new("postmine")
                 .about("Validate the accumulated candiate programs for correctness and performance.")
+                .hide(true)
         )
         .subcommand(
             Command::new("similar")
@@ -195,7 +197,8 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("similar") {
-        return subcommand_similar();
+        subcommand_similar()?;
+        return Ok(());
     }
 
     if let Some(sub_m) = matches.subcommand_matches("pattern") {
@@ -205,7 +208,8 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("export-dataset") {
-        return SubcommandExportDataset::export_dataset();
+        SubcommandExportDataset::export_dataset()?;
+        return Ok(());
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("test-integration-with-lodacpp") {

@@ -1,4 +1,5 @@
 //! The `loda-rust similar` subcommand, identifies similar programs.
+use crate::analytics::Analytics;
 use crate::common::{find_asm_files_recursively, oeis_id_from_path};
 use crate::common::RecordBigram;
 use crate::common::SimpleLog;
@@ -50,9 +51,11 @@ pub struct Similar {
 
 impl Similar {
     pub fn run() -> anyhow::Result<()> {
+        // Regenerate the `~/.loda-rust/analytics` directory
+        Analytics::run_if_expired()?;
         let config = Config::load();
         if !config.analytics_dir().is_dir() {
-            return Err(anyhow::anyhow!("Missing dir: {:?}, Please run 'loda-rust analytics' and try again.", config.analytics_dir()));
+            return Err(anyhow::anyhow!("Expected dir: {:?}, but it's missing.", config.analytics_dir()));
         }
 
         // Ensure that the `similar-programs` dir exist
