@@ -54,12 +54,3 @@ impl Clone for Box<dyn Recorder + Send> {
         self.clone_box() 
     }
 }
-
-#[derive(Clone)]
-pub struct SinkRecorder {}
-
-impl Recorder for SinkRecorder {
-    fn record(&self, _event: &MetricEvent) {
-        // print!("sink recorder")
-    }
-}

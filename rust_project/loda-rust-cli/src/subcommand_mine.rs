@@ -1,7 +1,7 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
 use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
-use crate::mine::{ExecuteBatchResult, FunnelConfig, MetricsCoordinatorMessage, MineEventDirectoryState, MetricsCoordinator, Recorder, RunMinerLoop, MetricEvent};
+use crate::mine::{ExecuteBatchResult, FunnelConfig, MineEventDirectoryState, MetricsCoordinator, RunMinerLoop, MetricEvent};
 use crate::mine::{create_funnel, Funnel};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use crate::mine::{create_prevent_flooding, PreventFlooding};
@@ -14,9 +14,7 @@ use num_bigint::{BigInt, ToBigInt};
 use anyhow::Context;
 use std::thread;
 use std::time::Duration;
-use std::sync::mpsc::channel;
 use std::path::PathBuf;
-use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use rand::{RngCore, thread_rng};
 
@@ -289,14 +287,6 @@ async fn miner_worker(
         if let Err(error) = tell_result {
             error!("miner_worker: Unable to send MetricEvent to metrics_worker_distributor. error: {:?}", error);
         }
-
-        // recorder.record(&metric_event);
-
-        // if let MetricEvent::General { number_of_iterations, .. } = metric_event {
-        //     let y: u64 = number_of_iterations;
-        //     let message = MetricsCoordinatorMessage::NumberOfIterations(y);
-        //     tx.send(message).unwrap();
-        // }
     }; 
     rml.set_metrics_callback(callback);
 
