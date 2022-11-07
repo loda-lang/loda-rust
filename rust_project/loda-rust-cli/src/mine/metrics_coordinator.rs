@@ -10,31 +10,31 @@ use prometheus_client::registry::Registry;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
-pub enum MinerCoordinatorMessage {
+pub enum MetricsCoordinatorMessage {
     NumberOfIterations(u64),
 }
 
-pub struct MinerCoordinator {
-    pub minercoordinator_thread: JoinHandle<()>,
+pub struct MetricsCoordinator {
+    pub metricscoordinator_thread: JoinHandle<()>,
     pub recorder: Box<dyn Recorder + Send>,
 }
 
-impl MinerCoordinator {
+impl MetricsCoordinator {
     /// No webserver with metrics. The gathering of metrics, discards the data immediately.
-    pub fn run_without_metrics_server(receiver: Receiver<MinerCoordinatorMessage>) -> anyhow::Result<MinerCoordinator> {
-        let minercoordinator_thread = tokio::spawn(async move {
+    pub fn run_without_metrics_server(receiver: Receiver<MetricsCoordinatorMessage>) -> anyhow::Result<MetricsCoordinator> {
+        let metricscoordinator_thread = tokio::spawn(async move {
             coordinator_thread_metrics_sink(receiver);
         });
         let recorder: Box<dyn Recorder + Send> = Box::new(SinkRecorder {});
-        let instance = MinerCoordinator {
-            minercoordinator_thread: minercoordinator_thread,
-            recorder: recorder,
+        let instance = MetricsCoordinator {
+            metricscoordinator_thread,
+            recorder,
         };
         Ok(instance)
     }
 
     /// Runs a webserver with realtime metrics, so bottlenecks can be identified.
-    pub fn run_with_metrics_server(receiver: Receiver<MinerCoordinatorMessage>, listen_on_port: u16, number_of_workers: u64) -> anyhow::Result<MinerCoordinator> {
+    pub fn run_with_metrics_server(receiver: Receiver<MetricsCoordinatorMessage>, listen_on_port: u16, number_of_workers: u64) -> anyhow::Result<MetricsCoordinator> {
         println!("miner metrics can be downloaded here: http://localhost:{}/metrics", listen_on_port);
     
         let mut registry = <Registry>::default();
@@ -50,21 +50,21 @@ impl MinerCoordinator {
             }
         });
     
-        let minercoordinator_metrics = metrics.clone();
-        let minercoordinator_thread: JoinHandle<()> = tokio::spawn(async move {
-            coordinator_thread_metrics_prometheus(receiver, minercoordinator_metrics);
+        let metrics_clone = metrics.clone();
+        let metricscoordinator_thread: JoinHandle<()> = tokio::spawn(async move {
+            coordinator_thread_metrics_prometheus(receiver, metrics_clone);
         });
     
         let recorder: Box<dyn Recorder + Send> = Box::new(metrics);
-        let instance = MinerCoordinator {
-            minercoordinator_thread: minercoordinator_thread,
-            recorder: recorder,
+        let instance = MetricsCoordinator {
+            metricscoordinator_thread,
+            recorder,
         };
         Ok(instance)
     }
 }
 
-fn coordinator_thread_metrics_sink(rx: Receiver<MinerCoordinatorMessage>) {
+fn coordinator_thread_metrics_sink(rx: Receiver<MetricsCoordinatorMessage>) {
     let mut progress_time = Instant::now();
     let mut number_of_messages: u64 = 0;
     loop {
@@ -93,7 +93,7 @@ struct State {
     registry: MyRegistry,
 }
 
-fn coordinator_thread_metrics_prometheus(rx: Receiver<MinerCoordinatorMessage>, metrics: MetricsPrometheus) {
+fn coordinator_thread_metrics_prometheus(rx: Receiver<MetricsCoordinatorMessage>, metrics: MetricsPrometheus) {
     let mut message_processor = MessageProcessor::new();
     let mut progress_time = Instant::now();
     let mut accumulated_iterations: u64 = 0;
@@ -157,9 +157,9 @@ impl MessageProcessor {
         }
     }
 
-    fn process_message(&mut self, message: MinerCoordinatorMessage) {
+    fn process_message(&mut self, message: MetricsCoordinatorMessage) {
         match message {
-            MinerCoordinatorMessage::NumberOfIterations(value) => {
+            MetricsCoordinatorMessage::NumberOfIterations(value) => {
                 self.number_of_iterations += value;
             }
         }

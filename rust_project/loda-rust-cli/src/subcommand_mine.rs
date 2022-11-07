@@ -1,7 +1,7 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
 use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
-use crate::mine::{ExecuteBatchResult, FunnelConfig, MinerCoordinatorMessage, MineEventDirectoryState, MinerCoordinator, Recorder, RunMinerLoop, MetricEvent};
+use crate::mine::{ExecuteBatchResult, FunnelConfig, MetricsCoordinatorMessage, MineEventDirectoryState, MetricsCoordinator, Recorder, RunMinerLoop, MetricEvent};
 use crate::mine::{create_funnel, Funnel};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use crate::mine::{create_prevent_flooding, PreventFlooding};
@@ -117,15 +117,15 @@ impl SubcommandMine {
     }
 
     async fn spawn_all_threads(&self) -> anyhow::Result<()> {
-        let (sender, receiver) = channel::<MinerCoordinatorMessage>();
+        let (sender, receiver) = channel::<MetricsCoordinatorMessage>();
 
-        let mc: MinerCoordinator = match self.metrics_mode {
+        let mc: MetricsCoordinator = match self.metrics_mode {
             SubcommandMineMetricsMode::NoMetricsServer => {
-                MinerCoordinator::run_without_metrics_server(receiver)?
+                MetricsCoordinator::run_without_metrics_server(receiver)?
             },
             SubcommandMineMetricsMode::RunMetricsServer => {
                 let listen_on_port: u16 = self.config.miner_metrics_listen_port();
-                MinerCoordinator::run_with_metrics_server(receiver, listen_on_port, self.number_of_workers as u64)?
+                MetricsCoordinator::run_with_metrics_server(receiver, listen_on_port, self.number_of_workers as u64)?
             }
         };
 
@@ -133,7 +133,7 @@ impl SubcommandMine {
 
         println!("\nPress CTRL-C to stop the miner.");
         // Run forever until user kills the process (CTRL-C).
-        mc.minercoordinator_thread.await
+        mc.metricscoordinator_thread.await
             .map_err(|e| anyhow::anyhow!("spawn_all_threads - minercoordinator_thread failed with error: {:?}", e))?;
 
         Ok(())
@@ -141,7 +141,7 @@ impl SubcommandMine {
     
     fn spawn_workers(
         &self, 
-        sender: std::sync::mpsc::Sender<MinerCoordinatorMessage>, 
+        sender: std::sync::mpsc::Sender<MetricsCoordinatorMessage>, 
         recorder: Box<dyn Recorder + Send>
     ) -> anyhow::Result<()> {
         println!("populating terms_to_program_id");
@@ -267,7 +267,7 @@ enum SharedMinerWorkerState {
 
 async fn miner_worker(
     ctx: BastionContext,
-    tx: Sender<MinerCoordinatorMessage>, 
+    tx: Sender<MetricsCoordinatorMessage>, 
     recorder: Box<dyn Recorder + Send>,
     terms_to_program_id: Arc<TermsToProgramIdSet>,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
@@ -300,7 +300,7 @@ async fn miner_worker(
 
         if let MetricEvent::General { number_of_iterations, .. } = metric_event {
             let y: u64 = number_of_iterations;
-            let message = MinerCoordinatorMessage::NumberOfIterations(y);
+            let message = MetricsCoordinatorMessage::NumberOfIterations(y);
             tx.send(message).unwrap();
         }
     }; 
