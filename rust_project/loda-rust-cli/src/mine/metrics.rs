@@ -1,3 +1,4 @@
+#[derive(Clone, Debug)]
 pub enum MetricEvent {
     Funnel { 
         terms10: u64,

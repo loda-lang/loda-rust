@@ -1,4 +1,4 @@
-use super::{MovingAverage, MetricsPrometheus, Recorder, SinkRecorder};
+use super::{MetricEvent, MetricsPrometheus, MovingAverage, Recorder, SinkRecorder};
 use tokio::task::JoinHandle;
 use std::thread;
 use std::time::Duration;
@@ -8,6 +8,7 @@ use std::convert::TryFrom;
 use prometheus_client::encoding::text::encode;
 use prometheus_client::registry::Registry;
 use std::sync::{Arc, Mutex};
+use bastion::prelude::*;
 
 #[derive(Debug)]
 pub enum MetricsCoordinatorMessage {
@@ -21,20 +22,20 @@ pub struct MetricsCoordinator {
 
 impl MetricsCoordinator {
     /// No webserver with metrics. The gathering of metrics, discards the data immediately.
-    pub fn run_without_metrics_server(receiver: Receiver<MetricsCoordinatorMessage>) -> anyhow::Result<MetricsCoordinator> {
-        let metricscoordinator_thread = tokio::spawn(async move {
-            coordinator_thread_metrics_sink(receiver);
-        });
-        let recorder: Box<dyn Recorder + Send> = Box::new(SinkRecorder {});
-        let instance = MetricsCoordinator {
-            metricscoordinator_thread,
-            recorder,
-        };
-        Ok(instance)
+    pub fn run_without_metrics_server() -> anyhow::Result<()> {
+        Bastion::supervisor(|supervisor| {
+            supervisor.children(|children| {
+                children
+                    .with_redundancy(1)
+                    .with_distributor(Distributor::named("metrics_worker"))
+                    .with_exec(metrics_worker_sink)
+            })
+        }).expect("Unable to create metrics_worker_sink");
+        Ok(())
     }
 
     /// Runs a webserver with realtime metrics, so bottlenecks can be identified.
-    pub fn run_with_metrics_server(receiver: Receiver<MetricsCoordinatorMessage>, listen_on_port: u16, number_of_workers: u64) -> anyhow::Result<MetricsCoordinator> {
+    pub fn run_with_metrics_server(listen_on_port: u16, number_of_workers: u64) -> anyhow::Result<()> {
         println!("miner metrics can be downloaded here: http://localhost:{}/metrics", listen_on_port);
     
         let mut registry = <Registry>::default();
@@ -50,17 +51,17 @@ impl MetricsCoordinator {
             }
         });
     
-        let metrics_clone = metrics.clone();
-        let metricscoordinator_thread: JoinHandle<()> = tokio::spawn(async move {
-            coordinator_thread_metrics_prometheus(receiver, metrics_clone);
-        });
+        // let metrics_clone = metrics.clone();
+        // let metricscoordinator_thread: JoinHandle<()> = tokio::spawn(async move {
+        //     coordinator_thread_metrics_prometheus(receiver, metrics_clone);
+        // });
     
-        let recorder: Box<dyn Recorder + Send> = Box::new(metrics);
-        let instance = MetricsCoordinator {
-            metricscoordinator_thread,
-            recorder,
-        };
-        Ok(instance)
+        // let recorder: Box<dyn Recorder + Send> = Box::new(metrics);
+        // let instance = MetricsCoordinator {
+        //     metricscoordinator_thread,
+        //     recorder,
+        // };
+        Ok(())
     }
 }
 
@@ -194,4 +195,55 @@ async fn webserver_with_metrics(registry: MyRegistry, listen_port: u16) -> std::
     let server_address = format!("localhost:{}", listen_port);
     app.listen(server_address).await?;
     Ok(())
+}
+
+/// Process all incoming `MetricEvent`s.
+/// Creates a summary of the last 1 second of `MetricEvent`s.
+async fn metrics_worker_sink(ctx: BastionContext) -> Result<(), ()> {
+    println!("metrics_worker_sink is ready");
+    let mut progress_time = Instant::now();
+    let mut miner_iteration_count: u64 = 0;
+    let mut metric_event_count: u64 = 0;
+    loop {
+        let elapsed: u128 = progress_time.elapsed().as_millis();
+        if elapsed > 1000 {
+            let elapsed_clamped: u64 = u64::try_from(elapsed).unwrap_or(1000);
+            miner_iteration_count *= 1000;
+            miner_iteration_count /= elapsed_clamped;
+            metric_event_count *= 1000;
+            metric_event_count /= elapsed_clamped;
+            
+            println!("metrics_worker_sink: metric_events: {} miner_iterations: {}", metric_event_count, miner_iteration_count);
+            progress_time = Instant::now();
+            miner_iteration_count = 0;
+            metric_event_count = 0;
+        }
+
+        let timeout = Duration::from_millis(1000);
+        let message: SignedMessage = match ctx.try_recv_timeout(timeout).await {
+            Ok(message) => message,
+            Err(error) => {
+                if let ReceiveError::Timeout(_duration) = error {
+                    debug!("metrics_worker_sink: timeout happened");
+                    continue;
+                }
+                error!("metrics_worker_sink: Unknown error happened. error: {:?}", error);
+                continue;
+            }
+        };
+        MessageHandler::new(message)
+            .on_tell(|metric_event: MetricEvent, _| {
+                metric_event_count += 1;
+                if let MetricEvent::General { number_of_iterations, .. } = metric_event {
+                    miner_iteration_count += number_of_iterations;
+                }
+            })
+            .on_fallback(|unknown, _sender_addr| {
+                error!(
+                    "metrics_worker_sink {}, received an unknown message!:\n{:?}",
+                    ctx.current().id(),
+                    unknown
+                );
+            });
+    }
 }

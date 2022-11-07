@@ -48,9 +48,9 @@ impl SubcommandMine {
         instance.print_info();
         instance.reload_mineevent_directory_state()?;
         instance.populate_prevent_flooding_mechanism()?;
-        instance.spawn_all_threads().await?;
+        instance.spawn_all_threads()?;
 
-        Bastion::stop();
+        Bastion::start();
         Bastion::block_until_stopped();
         return Ok(());
     }
@@ -116,34 +116,28 @@ impl SubcommandMine {
         Ok(())
     }
 
-    async fn spawn_all_threads(&self) -> anyhow::Result<()> {
-        let (sender, receiver) = channel::<MetricsCoordinatorMessage>();
-
-        let mc: MetricsCoordinator = match self.metrics_mode {
+    fn spawn_all_threads(&self) -> anyhow::Result<()> {
+        match self.metrics_mode {
             SubcommandMineMetricsMode::NoMetricsServer => {
-                MetricsCoordinator::run_without_metrics_server(receiver)?
+                MetricsCoordinator::run_without_metrics_server()?;
             },
             SubcommandMineMetricsMode::RunMetricsServer => {
                 let listen_on_port: u16 = self.config.miner_metrics_listen_port();
-                MetricsCoordinator::run_with_metrics_server(receiver, listen_on_port, self.number_of_workers as u64)?
+                MetricsCoordinator::run_with_metrics_server(listen_on_port, self.number_of_workers as u64)?;
             }
         };
 
-        self.spawn_workers(sender, mc.recorder)?;
+        self.spawn_workers()?;
 
         println!("\nPress CTRL-C to stop the miner.");
         // Run forever until user kills the process (CTRL-C).
-        mc.metricscoordinator_thread.await
-            .map_err(|e| anyhow::anyhow!("spawn_all_threads - minercoordinator_thread failed with error: {:?}", e))?;
+        // mc.metricscoordinator_thread.await
+        //     .map_err(|e| anyhow::anyhow!("spawn_all_threads - minercoordinator_thread failed with error: {:?}", e))?;
 
         Ok(())
     }
     
-    fn spawn_workers(
-        &self, 
-        sender: std::sync::mpsc::Sender<MetricsCoordinatorMessage>, 
-        recorder: Box<dyn Recorder + Send>
-    ) -> anyhow::Result<()> {
+    fn spawn_workers(&self) -> anyhow::Result<()> {
         println!("populating terms_to_program_id");
         let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
         let padding_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
@@ -179,8 +173,6 @@ impl SubcommandMine {
                     .with_redundancy(self.number_of_workers)
                     .with_distributor(Distributor::named("miner_worker"))
                     .with_exec(move |ctx: BastionContext| {
-                        let sender_clone = sender.clone();
-                        let recorder_clone: Box<dyn Recorder + Send> = recorder.clone();
                         let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
                         let prevent_flooding_clone = prevent_flooding.clone();
                         let mine_event_dir_state_clone = mine_event_dir_state.clone();
@@ -191,8 +183,6 @@ impl SubcommandMine {
                         async move {
                             miner_worker(
                                 ctx,
-                                sender_clone, 
-                                recorder_clone, 
                                 terms_to_program_id_arc_clone,
                                 prevent_flooding_clone,
                                 mine_event_dir_state_clone,
@@ -267,8 +257,6 @@ enum SharedMinerWorkerState {
 
 async fn miner_worker(
     ctx: BastionContext,
-    tx: Sender<MetricsCoordinatorMessage>, 
-    recorder: Box<dyn Recorder + Send>,
     terms_to_program_id: Arc<TermsToProgramIdSet>,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
     mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
@@ -281,6 +269,7 @@ async fn miner_worker(
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
 
     let postmine_worker_distributor = Distributor::named("postmine_worker");
+    let metrics_worker_distributor = Distributor::named("metrics_worker");
 
     let initial_random_seed: u64 = {
         let mut rng = thread_rng();
@@ -296,13 +285,18 @@ async fn miner_worker(
         terms_to_program_id,
     );
     let callback = move |metric_event: MetricEvent| {
-        recorder.record(&metric_event);
-
-        if let MetricEvent::General { number_of_iterations, .. } = metric_event {
-            let y: u64 = number_of_iterations;
-            let message = MetricsCoordinatorMessage::NumberOfIterations(y);
-            tx.send(message).unwrap();
+        let tell_result = metrics_worker_distributor.tell_everyone(metric_event.clone());
+        if let Err(error) = tell_result {
+            error!("miner_worker: Unable to send MetricEvent to metrics_worker_distributor. error: {:?}", error);
         }
+
+        // recorder.record(&metric_event);
+
+        // if let MetricEvent::General { number_of_iterations, .. } = metric_event {
+        //     let y: u64 = number_of_iterations;
+        //     let message = MetricsCoordinatorMessage::NumberOfIterations(y);
+        //     tx.send(message).unwrap();
+        // }
     }; 
     rml.set_metrics_callback(callback);
 
@@ -502,7 +496,7 @@ struct UploadWorkerItem {
 async fn upload_worker(ctx: BastionContext, upload_endpoint: String) -> Result<(), ()> {
     println!("upload_worker is ready");
     loop {
-        let mut upload_worker_item:Option<UploadWorkerItem> = None;
+        let mut upload_worker_item: Option<UploadWorkerItem> = None;
         MessageHandler::new(ctx.recv().await?)
             .on_tell(|item: UploadWorkerItem, _| {
                 debug!(
