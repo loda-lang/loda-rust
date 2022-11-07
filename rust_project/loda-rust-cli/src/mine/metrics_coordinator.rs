@@ -17,7 +17,7 @@ impl MetricsCoordinator {
                 children
                     .with_redundancy(1)
                     .with_distributor(Distributor::named("metrics_worker"))
-                    .with_exec(metrics_worker_sink)
+                    .with_exec(metrics_worker_print)
             })
         }).expect("Unable to create metrics_worker_sink");
         Ok(())
@@ -48,7 +48,7 @@ impl MetricsCoordinator {
                     .with_exec(move |ctx: BastionContext| {
                         let metrics_clone = metrics.clone();
                         async move {
-                            metrics_worker_webserver(
+                            metrics_worker_server(
                                 ctx,
                                 metrics_clone,
                             ).await
@@ -91,19 +91,15 @@ async fn webserver_with_metrics(registry: MyRegistry, listen_port: u16) -> std::
 /// 
 /// Underneeth Graphana accesses the data via Prometheus.
 /// 
-/// This function metrics events to Prometheus.
-async fn metrics_worker_webserver(ctx: BastionContext, metrics: MetricsPrometheus) -> Result<(), ()> {
-    println!("metrics_worker_webserver is ready");
+/// This function forwards metrics events to Prometheus.
+async fn metrics_worker_server(ctx: BastionContext, metrics: MetricsPrometheus) -> Result<(), ()> {
+    debug!("metrics_worker_server is ready");
     let mut progress_time = Instant::now();
     let mut miner_iteration_count: u64 = 0;
     let mut moving_average = MovingAverage::new();
     loop {
         let elapsed: u128 = progress_time.elapsed().as_millis();
-        if elapsed > 1000 {
-            let elapsed_clamped: u64 = u64::try_from(elapsed).unwrap_or(1000);
-            miner_iteration_count *= 1000;
-            miner_iteration_count /= elapsed_clamped;
-
+        if elapsed >= 1000 {
             // Compute average number of iterations over the last second.
             moving_average.insert(miner_iteration_count);
             let weighted_average: u64 = moving_average.average();
@@ -119,10 +115,10 @@ async fn metrics_worker_webserver(ctx: BastionContext, metrics: MetricsPrometheu
             Ok(message) => message,
             Err(error) => {
                 if let ReceiveError::Timeout(_duration) = error {
-                    debug!("metrics_worker_webserver: timeout happened");
+                    debug!("metrics_worker_server: timeout happened");
                     continue;
                 }
-                error!("metrics_worker_webserver: Unknown error happened. error: {:?}", error);
+                error!("metrics_worker_server: Unknown error happened. error: {:?}", error);
                 continue;
             }
         };
@@ -135,7 +131,7 @@ async fn metrics_worker_webserver(ctx: BastionContext, metrics: MetricsPrometheu
             })
             .on_fallback(|unknown, _sender_addr| {
                 error!(
-                    "metrics_worker_webserver {}, received an unknown message!:\n{:?}",
+                    "metrics_worker_server {}, received an unknown message!:\n{:?}",
                     ctx.current().id(),
                     unknown
                 );
@@ -146,21 +142,21 @@ async fn metrics_worker_webserver(ctx: BastionContext, metrics: MetricsPrometheu
 /// Inspect metrics from commandline.
 /// 
 /// Prints stats with 1 second interval.
-async fn metrics_worker_sink(ctx: BastionContext) -> Result<(), ()> {
-    println!("metrics_worker_sink is ready");
+async fn metrics_worker_print(ctx: BastionContext) -> Result<(), ()> {
+    debug!("metrics_worker_print is ready");
     let mut progress_time = Instant::now();
     let mut miner_iteration_count: u64 = 0;
     let mut metric_event_count: u64 = 0;
     loop {
         let elapsed: u128 = progress_time.elapsed().as_millis();
-        if elapsed > 1000 {
+        if elapsed >= 1000 {
             let elapsed_clamped: u64 = u64::try_from(elapsed).unwrap_or(1000);
             miner_iteration_count *= 1000;
             miner_iteration_count /= elapsed_clamped;
             metric_event_count *= 1000;
             metric_event_count /= elapsed_clamped;
             
-            println!("metrics_worker_sink: metric_events: {} miner_iterations: {}", metric_event_count, miner_iteration_count);
+            println!("metrics_worker_print: metric_events: {} miner_iterations: {}", metric_event_count, miner_iteration_count);
             progress_time = Instant::now();
             miner_iteration_count = 0;
             metric_event_count = 0;
@@ -171,10 +167,10 @@ async fn metrics_worker_sink(ctx: BastionContext) -> Result<(), ()> {
             Ok(message) => message,
             Err(error) => {
                 if let ReceiveError::Timeout(_duration) = error {
-                    debug!("metrics_worker_sink: timeout happened");
+                    debug!("metrics_worker_print: timeout happened");
                     continue;
                 }
-                error!("metrics_worker_sink: Unknown error happened. error: {:?}", error);
+                error!("metrics_worker_print: Unknown error happened. error: {:?}", error);
                 continue;
             }
         };
@@ -187,7 +183,7 @@ async fn metrics_worker_sink(ctx: BastionContext) -> Result<(), ()> {
             })
             .on_fallback(|unknown, _sender_addr| {
                 error!(
-                    "metrics_worker_sink {}, received an unknown message!:\n{:?}",
+                    "metrics_worker_print {}, received an unknown message!:\n{:?}",
                     ctx.current().id(),
                     unknown
                 );
