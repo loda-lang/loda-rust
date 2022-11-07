@@ -27,6 +27,7 @@ mod suggest_line;
 mod suggest_source;
 mod suggest_target;
 mod term_computer;
+mod upload_worker;
 mod wildcard_checker;
 
 pub use check_fixed_length_sequence::{CheckFixedLengthSequence, NamedCacheFile, PopulateBloomfilter};
@@ -56,4 +57,5 @@ pub use suggest_line::{SuggestLine, LineValue};
 pub use suggest_source::{SuggestSource, SourceValue};
 pub use suggest_target::{SuggestTarget, TargetValue};
 pub use term_computer::TermComputer;
+pub use upload_worker::{upload_worker, UploadWorkerItem};
 pub use wildcard_checker::WildcardChecker;
