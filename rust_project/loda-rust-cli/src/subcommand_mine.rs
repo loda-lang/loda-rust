@@ -42,8 +42,9 @@ impl SubcommandMine {
         instance.reload_mineevent_directory_state()?;
         instance.populate_prevent_flooding_mechanism()?;
         instance.start_metrics_worker()?;
-        instance.start_upload_workers()?;
-        instance.start_other_workers()?;
+        instance.start_upload_worker()?;
+        instance.start_postmine_worker()?;
+        instance.start_miner_workers()?;
 
         Bastion::start();
         Bastion::block_until_stopped();
@@ -138,7 +139,7 @@ impl SubcommandMine {
         Ok(())
     }
     
-    fn start_upload_workers(&self) -> anyhow::Result<()> {
+    fn start_upload_worker(&self) -> anyhow::Result<()> {
         let miner_program_upload_endpoint: String = self.config.miner_program_upload_endpoint().clone();
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
@@ -161,7 +162,32 @@ impl SubcommandMine {
         Ok(())
     }
     
-    fn start_other_workers(&self) -> anyhow::Result<()> {
+    fn start_postmine_worker(&self) -> anyhow::Result<()> {
+        let mine_event_dir_state = self.mine_event_dir_state.clone();
+        let shared_miner_worker_state = self.shared_miner_worker_state.clone();
+        Bastion::supervisor(|supervisor| {
+            supervisor.children(|children| {
+                children
+                    .with_redundancy(1)
+                    .with_distributor(Distributor::named("postmine_worker"))
+                    .with_exec(move |ctx: BastionContext| {
+                        let mine_event_dir_state_clone = mine_event_dir_state.clone();
+                        let shared_miner_worker_state_clone = shared_miner_worker_state.clone();
+                        async move {
+                            postmine_worker(
+                                ctx,
+                                mine_event_dir_state_clone,
+                                shared_miner_worker_state_clone,
+                            ).await
+                        }
+                    })
+            })
+        })
+        .map_err(|e| anyhow::anyhow!("couldn't start postmine_worker. error: {:?}", e))?;
+        Ok(())
+    }
+
+    fn start_miner_workers(&self) -> anyhow::Result<()> {
         println!("populating terms_to_program_id");
         let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
         let padding_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
@@ -185,9 +211,6 @@ impl SubcommandMine {
         let prevent_flooding = self.prevent_flooding.clone();
         let mine_event_dir_state = self.mine_event_dir_state.clone();
         let shared_miner_worker_state = self.shared_miner_worker_state.clone();
-
-        let mine_event_dir_state2 = self.mine_event_dir_state.clone();
-        let shared_miner_worker_state2 = self.shared_miner_worker_state.clone();
 
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
@@ -217,28 +240,7 @@ impl SubcommandMine {
                     })
             })
         })
-        .and_then(|_| {
-            Bastion::supervisor(|supervisor| {
-                supervisor.children(|children| {
-                    children
-                        .with_redundancy(1)
-                        .with_distributor(Distributor::named("postmine_worker"))
-                        .with_exec(move |ctx: BastionContext| {
-                            let mine_event_dir_state_clone = mine_event_dir_state2.clone();
-                            let shared_miner_worker_state_clone = shared_miner_worker_state2.clone();
-                            async move {
-                                postmine_worker(
-                                    ctx,
-                                    mine_event_dir_state_clone,
-                                    shared_miner_worker_state_clone,
-                                ).await
-                            }
-                        })
-    
-                })
-            })
-        })
-        .map_err(|e| anyhow::anyhow!("couldn't start other_workers. error: {:?}", e))?;
+        .map_err(|e| anyhow::anyhow!("couldn't start miner_workers. error: {:?}", e))?;
         Ok(())
     }
 }
