@@ -136,25 +136,6 @@ Finally `loda-rust` is fully installed.
 
 Pull the latest loda-programs repo.
 
-```
-PROMPT> loda-rust analytics
-Histogram of OEIS 'stripped' file
-    Finished Histogram of OEIS 'stripped' file, in 1 second
-Validate programs
-    Finished validated programs in 25 seconds
-Run batch-program-analyzer
-    Finished batch-program-analyzer in 6 seconds
-Populate bloomfilter - group all
-    Finished populated bloomfilter in 3 seconds
-Saving bloomfilter data
-    Finished saved bloomfilter data in 5 seconds
-Populate bloomfilter - group new
-    Finished populated bloomfilter in 2 seconds
-Saving bloomfilter data
-    Finished saved bloomfilter data in 5 seconds
-PROMPT>
-```
-
 The following starts the miner, that continues until it gets killed by CTRL-C.
 
 Look for the `miner discovered a "new" program. A257071` row.

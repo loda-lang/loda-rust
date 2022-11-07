@@ -1,4 +1,5 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
+use crate::analytics::Analytics;
 use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
 use crate::mine::{MineEventDirectoryState, MetricsWorker};
@@ -39,6 +40,7 @@ impl SubcommandMine {
         let mut instance = SubcommandMine::new(metrics_mode);
         instance.check_prerequisits()?;
         instance.print_info();
+        instance.regenerate_analytics_if_expired()?;
         instance.reload_mineevent_directory_state()?;
         instance.populate_prevent_flooding_mechanism()?;
         instance.start_metrics_worker()?;
@@ -103,6 +105,10 @@ impl SubcommandMine {
         println!("build mode: {}", build_mode);
 
         println!("Press CTRL-C to stop the miner.\n\n");
+    }
+
+    fn regenerate_analytics_if_expired(&self) -> anyhow::Result<()> {
+        Analytics::run_if_expired()
     }
 
     fn reload_mineevent_directory_state(&mut self) -> anyhow::Result<()> {
