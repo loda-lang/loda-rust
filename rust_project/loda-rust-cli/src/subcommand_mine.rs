@@ -5,12 +5,11 @@ use crate::mine::{ExecuteBatchResult, FunnelConfig, MineEventDirectoryState, Met
 use crate::mine::{create_funnel, Funnel};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use crate::mine::{create_prevent_flooding, PreventFlooding};
-use crate::mine::{upload_worker, UploadWorkerItem};
+use crate::mine::upload_worker;
+use crate::mine::{postmine_worker, PostmineWorkerMessage, SharedMinerWorkerState};
 use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
-use crate::postmine::PostMine;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
 use bastion::prelude::*;
-use loda_rust_core::oeis::OeisId;
 use num_bigint::{BigInt, ToBigInt};
 use anyhow::Context;
 use std::thread;
@@ -253,12 +252,6 @@ enum MinerWorkerMessage {
     Ping,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum SharedMinerWorkerState {
-    Mining,
-    Paused,
-}
-
 async fn miner_worker(
     ctx: BastionContext,
     terms_to_program_id: Arc<TermsToProgramIdSet>,
@@ -401,84 +394,5 @@ async fn miner_worker(
                 }
             }
         }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum PostmineWorkerMessage {
-    StartPostmineJob,
-}
-
-async fn postmine_worker(
-    ctx: BastionContext,
-    mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
-    shared_miner_worker_state: Arc<Mutex<SharedMinerWorkerState>>,
-) -> Result<(), ()> {
-    loop {
-        MessageHandler::new(ctx.recv().await?)
-            .on_tell(|message: PostmineWorkerMessage, _| {
-                println!(
-                    "postmine_worker: child {}, received broadcast message: {:?}",
-                    ctx.current().id(),
-                    message
-                );
-                match message {
-                    PostmineWorkerMessage::StartPostmineJob => {
-                        println!("BEFORE PostMine::run()");
-                        let mut postmine: PostMine = match PostMine::new() {
-                            Ok(value) => value,
-                            Err(error) => {
-                                error!("Could not create PostMine instance. error: {:?}", error);
-                                return;
-                            }
-                        };
-                        let callback = move |file_content: String, oeis_id: OeisId| {
-                            let distributor = Distributor::named("upload_worker");
-                            let upload_worker_item = UploadWorkerItem { 
-                                file_content: file_content,
-                                oeis_id: oeis_id,
-                            };
-                            let tell_result = distributor
-                                .tell_everyone(upload_worker_item);
-                            if let Err(error) = tell_result {
-                                error!("postmine_worker: Unable to send UploadWorkerItem. oeis_id: {} error: {:?}", oeis_id, error);
-                            }
-                        }; 
-                        postmine.set_found_program_callback(callback);
-                        let result = postmine.run_inner();
-                        println!("AFTER PostMine::run()");
-                        match result {
-                            Ok(()) => {
-                                println!("postmine Ok");
-                            },
-                            Err(error) => {
-                                error!("postmine error: {:?}", error);
-                            }
-                        }
-
-                        // update/reset mine_event_dir_state, so counters are 0.
-                        match mine_event_dir_state.lock() {
-                            Ok(mut state) => {
-                                state.reset();
-                            },
-                            Err(error) => {
-                                error!("postmine_worker: mine_event_dir_state.lock() failed. {:?}", error);
-                            }
-                        }
-
-                        // Resume the miner_workers
-                        println!("trigger resume mining");
-                        thread::sleep(Duration::from_millis(1000));
-                        match shared_miner_worker_state.lock() {
-                            Ok(mut state) => {
-                                *state = SharedMinerWorkerState::Mining;
-                            },
-                            Err(error) => {
-                                error!("postmine_worker: Unable to change state=Mining. error: {:?}", error);
-                            }
-                        }
-                    }
-                }
-            });
     }
 }
