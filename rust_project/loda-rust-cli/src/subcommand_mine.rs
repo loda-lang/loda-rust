@@ -1,7 +1,7 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
 use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
-use crate::mine::{ExecuteBatchResult, FunnelConfig, MineEventDirectoryState, MetricsCoordinator, RunMinerLoop, MetricEvent};
+use crate::mine::{ExecuteBatchResult, FunnelConfig, MineEventDirectoryState, MetricsWorker, RunMinerLoop, MetricEvent};
 use crate::mine::{create_funnel, Funnel};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use crate::mine::{create_prevent_flooding, PreventFlooding};
@@ -46,7 +46,8 @@ impl SubcommandMine {
         instance.print_info();
         instance.reload_mineevent_directory_state()?;
         instance.populate_prevent_flooding_mechanism()?;
-        instance.spawn_all_threads()?;
+        instance.start_metrics_worker()?;
+        instance.start_other_workers()?;
 
         Bastion::start();
         Bastion::block_until_stopped();
@@ -91,6 +92,8 @@ impl SubcommandMine {
             build_mode = "RELEASE";
         }
         println!("build mode: {}", build_mode);
+
+        println!("Press CTRL-C to stop the miner.\n\n");
     }
 
     fn reload_mineevent_directory_state(&mut self) -> anyhow::Result<()> {
@@ -114,28 +117,20 @@ impl SubcommandMine {
         Ok(())
     }
 
-    fn spawn_all_threads(&self) -> anyhow::Result<()> {
+    fn start_metrics_worker(&self) -> anyhow::Result<()> {
         match self.metrics_mode {
             SubcommandMineMetricsMode::NoMetricsServer => {
-                MetricsCoordinator::run_without_metrics_server()?;
+                MetricsWorker::start_without_server()?;
             },
             SubcommandMineMetricsMode::RunMetricsServer => {
                 let listen_on_port: u16 = self.config.miner_metrics_listen_port();
-                MetricsCoordinator::run_with_metrics_server(listen_on_port, self.number_of_workers as u64)?;
+                MetricsWorker::start_with_server(listen_on_port, self.number_of_workers as u64)?;
             }
         };
-
-        self.spawn_workers()?;
-
-        println!("\nPress CTRL-C to stop the miner.");
-        // Run forever until user kills the process (CTRL-C).
-        // mc.metricscoordinator_thread.await
-        //     .map_err(|e| anyhow::anyhow!("spawn_all_threads - minercoordinator_thread failed with error: {:?}", e))?;
-
         Ok(())
     }
     
-    fn spawn_workers(&self) -> anyhow::Result<()> {
+    fn start_other_workers(&self) -> anyhow::Result<()> {
         println!("populating terms_to_program_id");
         let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
         let padding_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();

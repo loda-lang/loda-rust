@@ -6,11 +6,11 @@ use prometheus_client::registry::Registry;
 use std::sync::{Arc, Mutex};
 use bastion::prelude::*;
 
-pub struct MetricsCoordinator;
+pub struct MetricsWorker;
 
-impl MetricsCoordinator {
-    /// No webserver with metrics. The gathering of metrics, discards the data immediately.
-    pub fn run_without_metrics_server() -> anyhow::Result<()> {
+impl MetricsWorker {
+    /// Print metrics every second to commandline.
+    pub fn start_without_server() -> anyhow::Result<()> {
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
@@ -18,12 +18,12 @@ impl MetricsCoordinator {
                     .with_distributor(Distributor::named("metrics_worker"))
                     .with_exec(metrics_worker_print)
             })
-        }).expect("Unable to create metrics_worker_sink");
+        }).expect("Unable to create metrics_worker_print");
         Ok(())
     }
 
     /// Runs a webserver with realtime metrics, so bottlenecks can be identified.
-    pub fn run_with_metrics_server(listen_on_port: u16, number_of_workers: u64) -> anyhow::Result<()> {
+    pub fn start_with_server(listen_on_port: u16, number_of_workers: u64) -> anyhow::Result<()> {
         println!("miner metrics can be downloaded here: http://localhost:{}/metrics", listen_on_port);
     
         let mut registry = <Registry>::default();
