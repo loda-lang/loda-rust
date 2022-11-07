@@ -65,30 +65,6 @@ impl MetricsCoordinator {
     }
 }
 
-fn coordinator_thread_metrics_sink(rx: Receiver<MetricsCoordinatorMessage>) {
-    let mut progress_time = Instant::now();
-    let mut number_of_messages: u64 = 0;
-    loop {
-        // Sleep until there are an incoming message
-        match rx.recv() {
-            Ok(_) => {
-                number_of_messages += 1;
-            },
-            Err(error) => {
-                error!("didn't receive any messages. error: {:?}", error);
-                thread::sleep(Duration::from_millis(5000));
-                continue;
-            }
-        }
-        let elapsed: u128 = progress_time.elapsed().as_millis();
-        if elapsed > 1000 {
-            println!("number of messages: {:?}", number_of_messages);
-            progress_time = Instant::now();
-            number_of_messages = 0;
-        }
-    }
-}
-
 #[derive(Clone)]
 struct State {
     registry: MyRegistry,
