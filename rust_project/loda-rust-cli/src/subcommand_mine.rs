@@ -42,6 +42,7 @@ impl SubcommandMine {
         instance.reload_mineevent_directory_state()?;
         instance.populate_prevent_flooding_mechanism()?;
         instance.start_metrics_worker()?;
+        instance.start_upload_workers()?;
         instance.start_other_workers()?;
 
         Bastion::start();
@@ -137,6 +138,29 @@ impl SubcommandMine {
         Ok(())
     }
     
+    fn start_upload_workers(&self) -> anyhow::Result<()> {
+        let miner_program_upload_endpoint: String = self.config.miner_program_upload_endpoint().clone();
+        Bastion::supervisor(|supervisor| {
+            supervisor.children(|children| {
+                children
+                    .with_redundancy(1)
+                    .with_distributor(Distributor::named("upload_worker"))
+                    .with_exec(move |ctx: BastionContext| {
+                        let miner_program_upload_endpoint_clone = miner_program_upload_endpoint.clone();
+                        async move {
+                            upload_worker(
+                                ctx,
+                                miner_program_upload_endpoint_clone,
+                            ).await
+                        }
+                    })
+
+            })
+        })
+        .map_err(|e| anyhow::anyhow!("couldn't start upload_worker. error: {:?}", e))?;
+        Ok(())
+    }
+    
     fn start_other_workers(&self) -> anyhow::Result<()> {
         println!("populating terms_to_program_id");
         let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
@@ -164,8 +188,6 @@ impl SubcommandMine {
 
         let mine_event_dir_state2 = self.mine_event_dir_state.clone();
         let shared_miner_worker_state2 = self.shared_miner_worker_state.clone();
-
-        let miner_program_upload_endpoint: String = self.config.miner_program_upload_endpoint().clone();
 
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
@@ -216,27 +238,7 @@ impl SubcommandMine {
                 })
             })
         })
-        .and_then(|_| {
-            Bastion::supervisor(|supervisor| {
-                supervisor.children(|children| {
-                    children
-                        .with_redundancy(1)
-                        .with_distributor(Distributor::named("upload_worker"))
-                        .with_exec(move |ctx: BastionContext| {
-                            let miner_program_upload_endpoint_clone = miner_program_upload_endpoint.clone();
-                            async move {
-                                upload_worker(
-                                    ctx,
-                                    miner_program_upload_endpoint_clone,
-                                ).await
-                            }
-                        })
-    
-                })
-            })
-        })
-        .map_err(|e| anyhow::anyhow!("couldn't setup bastion. error: {:?}", e))?;
-
+        .map_err(|e| anyhow::anyhow!("couldn't start other_workers. error: {:?}", e))?;
         Ok(())
     }
 }
