@@ -82,6 +82,18 @@ impl SubcommandMine {
     }
 
     fn print_info(&self) {
+        // Ascii art generated using:
+        // https://patorjk.com/software/taag/#p=display&f=ANSI%20Shadow&t=LODA-RUST
+        // Font="ANSI Shadow"
+        let banner = r#"
+██╗      ██████╗ ██████╗  █████╗       ██████╗ ██╗   ██╗███████╗████████╗
+██║     ██╔═══██╗██╔══██╗██╔══██╗      ██╔══██╗██║   ██║██╔════╝╚══██╔══╝
+██║     ██║   ██║██║  ██║███████║█████╗██████╔╝██║   ██║███████╗   ██║   
+██║     ██║   ██║██║  ██║██╔══██║╚════╝██╔══██╗██║   ██║╚════██║   ██║   
+███████╗╚██████╔╝██████╔╝██║  ██║      ██║  ██║╚██████╔╝███████║   ██║   
+╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝   ╚═╝"#;
+        println!("{}\n", banner);
+
         println!("metrics mode: {:?}", self.metrics_mode);
         println!("number of workers: {}", self.number_of_workers);
 
@@ -258,7 +270,7 @@ async fn miner_worker(
     funnel: Funnel,
     genome_mutate_context: GenomeMutateContext,    
 ) -> Result<(), ()> {
-    println!("miner_worker - started, {:?}", ctx.current().id());
+    debug!("miner_worker - started, {:?}", ctx.current().id());
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
 
     let postmine_worker_distributor = Distributor::named("postmine_worker");
