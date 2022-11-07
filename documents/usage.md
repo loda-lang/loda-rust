@@ -10,7 +10,7 @@ My daily routine:
 2. CTRL-C to stop `loda-rust mine` if it's running.
 3. Pull the latest commits from the `loda-programs` repo and when resolving merge conflicts then choose "use theirs".
 4. Run `loda-rust mine` again.
-5. Wait approx 24 hours until there changes to the official `loda-programs` repo.
+5. Wait approx 24 hours until there are fresh commits to the official `loda-programs` repo.
 
 ### Inner workings of `loda-rust mine`
 
