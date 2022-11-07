@@ -1,7 +1,6 @@
 use super::{MetricEvent, MetricsPrometheus, MovingAverage, Recorder};
 use std::time::Duration;
 use std::time::Instant;
-use std::convert::TryFrom;
 use prometheus_client::encoding::text::encode;
 use prometheus_client::registry::Registry;
 use std::sync::{Arc, Mutex};
@@ -150,13 +149,11 @@ async fn metrics_worker_print(ctx: BastionContext) -> Result<(), ()> {
     loop {
         let elapsed: u128 = progress_time.elapsed().as_millis();
         if elapsed >= 1000 {
-            let elapsed_clamped: u64 = u64::try_from(elapsed).unwrap_or(1000);
-            miner_iteration_count *= 1000;
-            miner_iteration_count /= elapsed_clamped;
-            metric_event_count *= 1000;
-            metric_event_count /= elapsed_clamped;
-            
-            println!("metrics_worker_print: metric_events: {} miner_iterations: {}", metric_event_count, miner_iteration_count);
+            if miner_iteration_count > 0 {
+                println!("miner_iterations: {}", miner_iteration_count);
+            } else {
+                debug!("metrics_worker_print: metric_events: {} miner_iterations: {} - no activity", metric_event_count, miner_iteration_count);
+            }
             progress_time = Instant::now();
             miner_iteration_count = 0;
             metric_event_count = 0;
