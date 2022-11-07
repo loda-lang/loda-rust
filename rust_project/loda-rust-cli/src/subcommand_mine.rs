@@ -237,8 +237,6 @@ impl SubcommandMine {
         })
         .map_err(|e| anyhow::anyhow!("couldn't setup bastion. error: {:?}", e))?;
 
-        Bastion::start();
-
         Ok(())
     }
 }
