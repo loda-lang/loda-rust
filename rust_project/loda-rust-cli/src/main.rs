@@ -111,6 +111,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         .subcommand(
             Command::new("postmine")
                 .about("Validate the accumulated candiate programs for correctness and performance.")
+                .hide(true)
         )
         .subcommand(
             Command::new("similar")
