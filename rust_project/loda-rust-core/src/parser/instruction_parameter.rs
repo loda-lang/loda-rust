@@ -1,7 +1,7 @@
 use std::fmt;
 use super::ParameterType;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct InstructionParameter {
     pub parameter_type: ParameterType,
     pub parameter_value: i64,
