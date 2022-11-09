@@ -1,7 +1,7 @@
 use std::fmt;
 use super::{EXTRACT_ROW_RE,InstructionId,ParseInstructionIdError,Instruction,InstructionParameter,ParameterType,ParseParametersError,parse_parameters,remove_comment};
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ParsedProgram {
     pub instruction_vec: Vec<Instruction>,
 }
@@ -145,6 +145,12 @@ impl ParsedProgram {
         }
         false
     }
+
+    pub fn assign_zero_line_numbers(&mut self) {
+        for instruction in self.instruction_vec.iter_mut() {
+            instruction.line_number = 0;
+        }        
+    }
 }
 
 #[cfg(test)]
@@ -252,5 +258,51 @@ mod tests {
             let parsed_program: ParsedProgram = ParsedProgram::parse_program("mov $1,$$1").unwrap();
             assert_eq!(parsed_program.contain_parameter_type_indirect(), true);
         }
+    }
+
+    #[test]
+    fn test_10007_assign_zero_line_numbers() {
+        // Arrange
+        let mut parsed_program: ParsedProgram = ParsedProgram::parse_program(
+            ";\n\nseq $1,40 ; ignore me\nseq $2,40; and ignore\nseq $3,10\nseq $4,45").unwrap();
+        let mut sum0 = 0;
+        for instruction in &parsed_program.instruction_vec {
+            sum0 += instruction.line_number;
+        }
+        assert_ne!(sum0, 0);
+
+        // Act
+        parsed_program.assign_zero_line_numbers();
+
+        // Assert
+        let mut sum1 = 0;
+        for instruction in &parsed_program.instruction_vec {
+            sum1 += instruction.line_number;
+        }
+        assert_eq!(sum1, 0);
+    }
+
+    #[test]
+    fn test_10008_equal_yes() {
+        let mut parsed_program0: ParsedProgram = ParsedProgram::parse_program(
+            "; junk\n\nseq $1,40 ; fibonacci\nseq $2,40; fib again!\nseq $3,10\nseq $4,45").unwrap();
+        let mut parsed_program1: ParsedProgram = ParsedProgram::parse_program(
+            "seq $1,40 ; ignore me\nseq $2,40; and ignore\nseq $3,10\nseq $4,45").unwrap();
+        assert_ne!(parsed_program0, parsed_program1);
+        parsed_program0.assign_zero_line_numbers();
+        parsed_program1.assign_zero_line_numbers();
+        assert_eq!(parsed_program0, parsed_program1);
+    }
+
+    #[test]
+    fn test_10009_equal_no() {
+        let mut parsed_program0: ParsedProgram = ParsedProgram::parse_program(
+            "seq $0,40\nseq $0,45").unwrap();
+        let mut parsed_program1: ParsedProgram = ParsedProgram::parse_program(
+            "seq $0,45\nseq $0,40").unwrap();
+        assert_ne!(parsed_program0, parsed_program1);
+        parsed_program0.assign_zero_line_numbers();
+        parsed_program1.assign_zero_line_numbers();
+        assert_ne!(parsed_program0, parsed_program1);
     }
 }
