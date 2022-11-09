@@ -841,10 +841,10 @@ impl PostMine {
                 progressbar.println(format!("miner discovered a \"new\" program. {}", oeis_id));
             },
             StatusOfExistingProgram::IgnoreExistingProgram { ignore_reason: _ } => {
-                progressbar.println(format!("miner discovered an improved program. {}", oeis_id));
+                progressbar.println(format!("miner discovered an \"improved\" program. {}", oeis_id));
             },
             StatusOfExistingProgram::CompareNewWithExisting => {
-                progressbar.println(format!("miner discovered a faster program. {}", oeis_id));
+                progressbar.println(format!("miner discovered a \"faster\" program. {}", oeis_id));
             }
         }
 
