@@ -1,6 +1,5 @@
 use crate::lodacpp::{LodaCpp, LodaCppEvalStepsExecute, LodaCppEvalSteps};
 use crate::common::SimpleLog;
-use std::error::Error;
 use std::path::Path;
 use std::time::Duration;
 use std::time::Instant;
@@ -36,8 +35,10 @@ impl CompareTwoPrograms {
         path_comparison: &Path, 
         time_limit: Duration, 
         term_count: usize
-    ) -> Result<CompareTwoProgramsResult, Box<dyn Error>> {
-        assert!(path_program0.is_file());
+    ) -> anyhow::Result<CompareTwoProgramsResult> {
+        if !path_program0.is_file() {
+            return Err(anyhow::anyhow!("Expected a file, but got none. path_program0: {:?}", path_program0));
+        }
 
         match status_of_existing_program {
             StatusOfExistingProgram::NoExistingProgram => {
@@ -70,7 +71,7 @@ impl CompareTwoPrograms {
         path_comparison: &Path, 
         time_limit: Duration, 
         term_count: usize
-    ) -> Result<CompareTwoProgramsResult, Box<dyn Error>> {
+    ) -> anyhow::Result<CompareTwoProgramsResult> {
         assert!(path_program0.is_file());
         assert!(path_program1.is_file());
 
