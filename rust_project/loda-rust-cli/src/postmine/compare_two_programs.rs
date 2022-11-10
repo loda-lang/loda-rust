@@ -228,10 +228,56 @@ impl CompareTwoPrograms {
         }
         let contents0: String = fs::read_to_string(path_program0)?;
         let contents1: String = fs::read_to_string(path_program1)?;
-        let parsed_program0: ParsedProgram = ParsedProgram::parse_program(&contents0)
+        let mut parsed_program0: ParsedProgram = ParsedProgram::parse_program(&contents0)
             .map_err(|e| anyhow::anyhow!("Unable to parse program0. path: {:?} error: {:?}", path_program0, e))?;
-        let parsed_program1: ParsedProgram = ParsedProgram::parse_program(&contents1)
+        let mut parsed_program1: ParsedProgram = ParsedProgram::parse_program(&contents1)
             .map_err(|e| anyhow::anyhow!("Unable to parse program1. path: {:?} error: {:?}", path_program1, e))?;
+        parsed_program0.assign_zero_line_numbers();
+        parsed_program1.assign_zero_line_numbers();
         Ok(parsed_program0 == parsed_program1)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_10000_is_identical_yes() -> anyhow::Result<()> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let basedir = PathBuf::from(&tempdir.path()).join("test_10000_is_identical_yes");
+        fs::create_dir(&basedir)?;
+        let path0: PathBuf = basedir.join("program0.asm");
+        let path1: PathBuf = basedir.join("program1.asm");
+        fs::write(&path0, b"; hi\n\nadd $0,1\n\nsub $0,1 ; hi")?;
+        fs::write(&path1, b"add $0,1\nsub $0,1")?;
+
+        // Act
+        let is_identical: bool = CompareTwoPrograms::is_identical(&path0, &path1)?;
+
+        // Assert
+        assert_eq!(is_identical, true);
+        Ok(())
+    }    
+
+    #[test]
+    fn test_10001_is_identical_no() -> anyhow::Result<()> {
+        // Arrange
+        let tempdir = tempfile::tempdir().unwrap();
+        let basedir = PathBuf::from(&tempdir.path()).join("test_10001_is_identical_no");
+        fs::create_dir(&basedir)?;
+        let path0: PathBuf = basedir.join("program0.asm");
+        let path1: PathBuf = basedir.join("program1.asm");
+        fs::write(&path0, b"add $0,-1")?;
+        fs::write(&path1, b"sub $0,1")?;
+
+        // Act
+        let is_identical: bool = CompareTwoPrograms::is_identical(&path0, &path1)?;
+
+        // Assert
+        assert_eq!(is_identical, false);
+        Ok(())
+    }    
 }
