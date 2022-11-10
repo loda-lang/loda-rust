@@ -104,8 +104,8 @@ impl PostMine {
         self.obtain_invalid_program_ids()?;
         self.obtain_valid_program_ids()?;
         self.eval_using_loda_cpp()?;
-        self.minimize_candidate_programs()?;
         self.lookup_in_oeis_stripped_file()?;
+        self.minimize_candidate_programs()?;
         self.obtain_sequence_names()?;
         self.process_candidate_programs()?;
         Ok(())
