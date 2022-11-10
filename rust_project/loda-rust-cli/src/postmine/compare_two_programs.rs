@@ -87,11 +87,11 @@ impl CompareTwoPrograms {
             &path_program0, 
             time_limit
         );
-        let elapsed0: u128 = start0.elapsed().as_millis();
         let result_steps0: LodaCppEvalSteps = match result0 {
             Ok(value) => {
+                let elapsed: u128 = start0.elapsed().as_millis();
                 // debug!("program0 steps:\n{:?}", value.steps());
-                writeln!(&mut file, "program0, elapsed: {:?}ms", elapsed0)?;
+                writeln!(&mut file, "program0, elapsed: {:?}ms", elapsed)?;
                 // writeln!(&mut file, "program0, steps\n{:?}", value.steps())?;
                 value
             },
@@ -113,11 +113,11 @@ impl CompareTwoPrograms {
             &path_program1, 
             time_limit
         );
-        let elapsed1: u128 = start1.elapsed().as_millis();
         let result_steps1: LodaCppEvalSteps = match result1 {
             Ok(value) => {
+                let elapsed: u128 = start1.elapsed().as_millis();
                 // debug!("program1 steps:\n{:?}", value.steps());
-                writeln!(&mut file, "program1, elapsed: {:?}ms", elapsed1)?;
+                writeln!(&mut file, "program1, elapsed: {:?}ms", elapsed)?;
                 // writeln!(&mut file, "program1, steps\n{:?}", value.steps())?;
                 value
             },
