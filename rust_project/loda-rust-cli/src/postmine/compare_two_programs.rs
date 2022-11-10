@@ -1,11 +1,13 @@
+use loda_rust_core::parser::ParsedProgram;
 use crate::lodacpp::{LodaCpp, LodaCppEvalStepsExecute, LodaCppEvalSteps};
 use crate::common::SimpleLog;
-use std::error::Error;
 use std::path::Path;
 use std::time::Duration;
 use std::time::Instant;
 use std::fs::File;
 use std::io::Write;
+use std::fs;
+use anyhow::Context;
 
 pub enum StatusOfExistingProgram {
     CompareNewWithExisting,
@@ -19,15 +21,10 @@ pub enum CompareTwoProgramsResult {
     Program1,
 }
 
-pub struct CompareTwoPrograms {}
+pub struct CompareTwoPrograms;
 
 impl CompareTwoPrograms {
-    pub fn new() -> Self {
-        Self {}
-    }
-
     pub fn compare(
-        &self, 
         simple_log: SimpleLog,
         lodacpp: &LodaCpp, 
         path_program0: &Path, 
@@ -36,8 +33,10 @@ impl CompareTwoPrograms {
         path_comparison: &Path, 
         time_limit: Duration, 
         term_count: usize
-    ) -> Result<CompareTwoProgramsResult, Box<dyn Error>> {
-        assert!(path_program0.is_file());
+    ) -> anyhow::Result<CompareTwoProgramsResult> {
+        if !path_program0.is_file() {
+            return Err(anyhow::anyhow!("Expected a file, but got none. path_program0: {:?}", path_program0));
+        }
 
         match status_of_existing_program {
             StatusOfExistingProgram::NoExistingProgram => {
@@ -45,12 +44,16 @@ impl CompareTwoPrograms {
                 return Ok(CompareTwoProgramsResult::Program0);
             },
             StatusOfExistingProgram::IgnoreExistingProgram { ignore_reason } => {
-                simple_log.println(format!("compare_two_programs: Keeping the mined program. There is a problem with the previous implementation: {}", ignore_reason));
-                return Ok(CompareTwoProgramsResult::Program0);
+                return Self::ignore_existing_program(
+                    simple_log, 
+                    path_program0, 
+                    path_program1, 
+                    ignore_reason
+                );
             },
             StatusOfExistingProgram::CompareNewWithExisting => {
-                simple_log.println("compare_two_programs: Comparing new program with existing program, and choosing the best.");
-                return self.compare_new_with_existing(
+                return Self::compare_new_with_existing(
+                    simple_log,
                     lodacpp, 
                     path_program0, 
                     path_program1, 
@@ -62,17 +65,38 @@ impl CompareTwoPrograms {
         }
     }
 
-    pub fn compare_new_with_existing(
-        &self, 
+    fn ignore_existing_program(
+        simple_log: SimpleLog,
+        path_program0: &Path, 
+        path_program1: &Path,
+        ignore_reason: &String,
+    ) -> anyhow::Result<CompareTwoProgramsResult> {
+        let is_identical: bool = Self::is_identical(path_program0, path_program1)
+            .context("ignore_existing_program")?;
+        if is_identical {
+            simple_log.println("compare_two_programs.ignore_existing_program: The two programs are identical. Keeping the existing program as it is.");
+            return Ok(CompareTwoProgramsResult::Program1);
+        }
+        simple_log.println(format!("compare_two_programs.ignore_existing_program: Keeping the mined program. There is a problem with the previous implementation: {}", ignore_reason));
+        Ok(CompareTwoProgramsResult::Program0)
+    }
+
+    fn compare_new_with_existing(
+        simple_log: SimpleLog,
         lodacpp: &LodaCpp, 
         path_program0: &Path, 
         path_program1: &Path,
         path_comparison: &Path, 
         time_limit: Duration, 
         term_count: usize
-    ) -> Result<CompareTwoProgramsResult, Box<dyn Error>> {
-        assert!(path_program0.is_file());
-        assert!(path_program1.is_file());
+    ) -> anyhow::Result<CompareTwoProgramsResult> {
+        let is_identical: bool = Self::is_identical(path_program0, path_program1)
+            .context("compare_new_with_existing")?;
+        if is_identical {
+            simple_log.println("compare_two_programs.compare_new_with_existing: The two programs are identical. Keeping the existing program as it is.");
+            return Ok(CompareTwoProgramsResult::Program1);
+        }
+        simple_log.println("compare_two_programs.compare_new_with_existing: Comparing new program with existing program, and choosing the best.");
 
         let mut file = File::create(path_comparison)?;
         writeln!(&mut file, "program0, measuring steps: {:?}", path_program0)?;
@@ -82,11 +106,11 @@ impl CompareTwoPrograms {
             &path_program0, 
             time_limit
         );
-        let elapsed0: u128 = start0.elapsed().as_millis();
         let result_steps0: LodaCppEvalSteps = match result0 {
             Ok(value) => {
+                let elapsed: u128 = start0.elapsed().as_millis();
                 // debug!("program0 steps:\n{:?}", value.steps());
-                writeln!(&mut file, "program0, elapsed: {:?}ms", elapsed0)?;
+                writeln!(&mut file, "program0, elapsed: {:?}ms", elapsed)?;
                 // writeln!(&mut file, "program0, steps\n{:?}", value.steps())?;
                 value
             },
@@ -108,11 +132,11 @@ impl CompareTwoPrograms {
             &path_program1, 
             time_limit
         );
-        let elapsed1: u128 = start1.elapsed().as_millis();
         let result_steps1: LodaCppEvalSteps = match result1 {
             Ok(value) => {
+                let elapsed: u128 = start1.elapsed().as_millis();
                 // debug!("program1 steps:\n{:?}", value.steps());
-                writeln!(&mut file, "program1, elapsed: {:?}ms", elapsed1)?;
+                writeln!(&mut file, "program1, elapsed: {:?}ms", elapsed)?;
                 // writeln!(&mut file, "program1, steps\n{:?}", value.steps())?;
                 value
             },
@@ -189,5 +213,25 @@ impl CompareTwoPrograms {
         error!("uncaught scenario. Using existing program");
         writeln!(&mut file, "uncaught scenario. Using existing program")?;
         Ok(CompareTwoProgramsResult::Program1)
+    }
+
+    /// Check if two programs are identical. If so, then pick existing program.
+    fn is_identical(
+        path_program0: &Path, 
+        path_program1: &Path,
+    ) -> anyhow::Result<bool> {
+        if !path_program0.is_file() {
+            return Err(anyhow::anyhow!("Expected a file, but got none. path_program0: {:?}", path_program0));
+        }
+        if !path_program1.is_file() {
+            return Err(anyhow::anyhow!("Expected a file, but got none. path_program1: {:?}", path_program1));
+        }
+        let contents0: String = fs::read_to_string(path_program0)?;
+        let contents1: String = fs::read_to_string(path_program1)?;
+        let parsed_program0: ParsedProgram = ParsedProgram::parse_program(&contents0)
+            .map_err(|e| anyhow::anyhow!("Unable to parse program0. path: {:?} error: {:?}", path_program0, e))?;
+        let parsed_program1: ParsedProgram = ParsedProgram::parse_program(&contents1)
+            .map_err(|e| anyhow::anyhow!("Unable to parse program1. path: {:?} error: {:?}", path_program1, e))?;
+        Ok(parsed_program0 == parsed_program1)
     }
 }

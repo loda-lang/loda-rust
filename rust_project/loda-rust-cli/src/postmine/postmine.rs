@@ -104,8 +104,8 @@ impl PostMine {
         self.obtain_invalid_program_ids()?;
         self.obtain_valid_program_ids()?;
         self.eval_using_loda_cpp()?;
-        self.lookup_in_oeis_stripped_file()?;
         self.minimize_candidate_programs()?;
+        self.lookup_in_oeis_stripped_file()?;
         self.obtain_sequence_names()?;
         self.process_candidate_programs()?;
         Ok(())
@@ -796,8 +796,7 @@ impl PostMine {
         simple_log.println(message);
 
         let time_limit = Duration::from_secs(Self::LODACPP_STEPS_TIME_LIMIT_IN_SECONDS);
-        let instance = CompareTwoPrograms::new();
-        let ok_error = instance.compare(
+        let ok_error = CompareTwoPrograms::compare(
             simple_log.clone(),
             &self.lodacpp,    
             path_program0, 
@@ -872,7 +871,7 @@ impl PostMine {
         let destination_path: ParentDirAndChildFile = match self.path_to_mismatch(oeis_id, number_of_correct_terms as usize) {
             Ok(value) => value,
             Err(error) => {
-                let message = format!("process_partial_match: discarding program. path_to_mismatch. error: {:?}", error);
+                let message = format!("process_partial_match: discarding program. path_to_mismatch. oeis_id: {} error: {:?}", oeis_id, error);
                 simple_log.println(message);
                 return Ok(());
             }
