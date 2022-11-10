@@ -72,8 +72,12 @@ impl CompareTwoPrograms {
         time_limit: Duration, 
         term_count: usize
     ) -> anyhow::Result<CompareTwoProgramsResult> {
-        assert!(path_program0.is_file());
-        assert!(path_program1.is_file());
+        if !path_program0.is_file() {
+            return Err(anyhow::anyhow!("Expected a file, but got none. path_program0: {:?}", path_program0));
+        }
+        if !path_program1.is_file() {
+            return Err(anyhow::anyhow!("Expected a file, but got none. path_program1: {:?}", path_program1));
+        }
 
         let mut file = File::create(path_comparison)?;
         writeln!(&mut file, "program0, measuring steps: {:?}", path_program0)?;
