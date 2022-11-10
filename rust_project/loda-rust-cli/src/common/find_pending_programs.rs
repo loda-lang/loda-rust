@@ -76,12 +76,13 @@ mod tests {
             "mine-event/20220710-054915-1251916462.asm",
             "mine-event/20220710-055020-1265182884.asm",
             "mine-event/20220710-055920-1279752621.asm",
-            "mine-event/20220710-062906-1376725035.asm"
+            "mine-event/20220710-062906-1376725035.asm",
+            "mine-event/manual-coded-program.asm",
         ];
         let input_paths: Vec<PathBuf> = INPUT.iter().map(|path| PathBuf::from(path) ).collect();
         let result = find_pending_programs(&input_paths, false);
         let output_paths: Vec<PathBuf> = result.expect("Must return ok");
-        assert_eq!(output_paths.len(), 4);
+        assert_eq!(output_paths.len(), 5);
     }
 
     #[test]
@@ -90,6 +91,7 @@ mod tests {
             "mine-event/20220710-054111-1237572183.keep.asm",
             "mine-event/20220710-054111-1237578248.reject.asm",
             "mine-event/20220710-054111-1237590359.reject.asm",
+            "mine-event/manual-coded-program.keep.asm",
         ];
         let input_paths: Vec<PathBuf> = INPUT.iter().map(|path| PathBuf::from(path) ).collect();
         let result = find_pending_programs(&input_paths, false);
