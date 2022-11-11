@@ -18,6 +18,7 @@ lazy_static! {
 /// ```csv
 /// mine-event/20220710-054915-1251916462.asm
 /// mine-event/20220710-055020-1265182884.asm
+/// mine-event/manual-coded-program.asm
 /// ```
 /// 
 /// Ignores `.asm` files that have already been processed.
@@ -27,6 +28,7 @@ lazy_static! {
 /// ```csv
 /// mine-event/20220710-054111-1237572183.keep.asm
 /// mine-event/20220710-054111-1237578248.reject.asm
+/// mine-event/manual-coded-program.keep.asm
 /// ```
 /// 
 /// Returns an error if there are no files waiting for processing.
