@@ -1,4 +1,4 @@
-use super::{find_asm_files_recursively, find_pending_programs};
+use super::{find_asm_files_recursively, MineEventDirectoryScan};
 use crate::config::Config;
 use std::path::PathBuf;
 use std::fs;
@@ -13,19 +13,16 @@ pub struct PendingProgramsWithPriority {
 impl PendingProgramsWithPriority {
     /// Processes all the pending programs inside the `mine-event` dir.
     /// It looks for all the LODA assembly programs there are.
-    /// If programs already contain `keep` or `reject` then the files are ignored.
+    /// File names of already processed programs contain `keep` or `reject` and are ignored.
     /// 
     /// If there is a `priority: high` in the file, then it saved in `paths_high_prio`.
     /// Otherwise it's considered low priority and saved in `paths_low_prio`.
     pub fn create(config: &Config) -> anyhow::Result<Self> {
         let mine_event_dir: PathBuf = config.mine_event_dir();
         let paths_all: Vec<PathBuf> = find_asm_files_recursively(&mine_event_dir);
-        let paths_pending_programs: Vec<PathBuf> = match find_pending_programs(&paths_all, true) {
-            Ok(value) => value,
-            Err(error) => {
-                return Err(anyhow::anyhow!("PendingProgramsWithPriority::create() find_pending_programs error. {:?}", error));
-            }
-        };
+        let scan = MineEventDirectoryScan::scan(&paths_all);
+        scan.print_summary();
+        let paths_pending_programs: Vec<PathBuf> = scan.pending_paths();
 
         // If this is a new program, then place it in the high priority queue, so it gets analyzed ASAP.
         // Otherwise the program ends up in the low priority queue.

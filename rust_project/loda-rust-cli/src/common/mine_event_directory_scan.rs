@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::path::PathBuf;
 use regex::Regex;
 use lazy_static::lazy_static;
@@ -18,13 +17,33 @@ enum State {
     ErrorGetFileName,
 }
 
-struct MineEventDirectoryScan {
+pub struct MineEventDirectoryScan {
     path_and_state_vec: Vec<(PathBuf, State)>,
 }
 
 impl MineEventDirectoryScan {
+    /// Gather all the `.asm` files inside the `~/.loda-rust/mine-event` dir.
+    /// 
+    /// Determines from the filename if a program is pending for processing
+    /// or already has been processed.
+    /// 
+    /// The `State::Pending` files look like this:
+    /// 
+    /// ```csv
+    /// mine-event/20220710-054915-1251916462.asm
+    /// mine-event/20220710-055020-1265182884.asm
+    /// mine-event/manual-coded-program.asm
+    /// ```
+    /// 
+    /// The `State::AlreadyProccessed` files look like this:
+    /// 
+    /// ```csv
+    /// mine-event/20220710-054111-1237572183.keep.asm
+    /// mine-event/20220710-054111-1237578248.reject.asm
+    /// mine-event/manual-coded-program.keep.asm
+    /// ```
     pub fn scan(paths_inside_mineevent_dir: &Vec<PathBuf>) -> Self {
-        let mut path_and_state_vec: Vec<(PathBuf, State)> = vec!();
+        let mut path_and_state_vec = Vec::<(PathBuf, State)>::with_capacity(paths_inside_mineevent_dir.len());
         let re = &ALREADY_PROCESSED;
         for path in paths_inside_mineevent_dir {
             let filename: &OsStr = match path.file_name() {
@@ -43,7 +62,7 @@ impl MineEventDirectoryScan {
         Self { path_and_state_vec }
     }
 
-    pub fn paths_for_state(&self, filter_state: State) -> Vec<PathBuf> {
+    fn paths_for_state(&self, filter_state: State) -> Vec<PathBuf> {
         let path_and_state_vec_filtered: Vec<&(PathBuf, State)> = self.path_and_state_vec.iter()
             .filter(|(_,state)| *state == filter_state).collect();
         let mut paths: Vec<PathBuf> = path_and_state_vec_filtered.iter()
@@ -80,41 +99,13 @@ impl MineEventDirectoryScan {
     }
 }
 
-/// Find `.asm` files that are waiting to be processed.
-/// 
-/// These have names like this:
-/// 
-/// ```csv
-/// mine-event/20220710-054915-1251916462.asm
-/// mine-event/20220710-055020-1265182884.asm
-/// mine-event/manual-coded-program.asm
-/// ```
-/// 
-/// Ignores `.asm` files that have already been processed.
-/// 
-/// These have names like this:
-/// 
-/// ```csv
-/// mine-event/20220710-054111-1237572183.keep.asm
-/// mine-event/20220710-054111-1237578248.reject.asm
-/// mine-event/manual-coded-program.keep.asm
-/// ```
-/// 
-/// Returns an error if there are no files waiting for processing.
-pub fn find_pending_programs(paths_inside_mineevent_dir: &Vec<PathBuf>, verbose: bool) -> Result<Vec<PathBuf>, Box<dyn Error>> {
-    let instance = MineEventDirectoryScan::scan(paths_inside_mineevent_dir);
-    if verbose {
-        instance.print_summary();
-    }
-    Ok(instance.pending_paths())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_10000_multiple_pending_programs() {
+        // Arrange
         static INPUT: &'static [&'static str] = &[
             "mine-event/20220710-054111-1237572183.keep.asm",
             "mine-event/20220710-054111-1237578248.reject.asm",
@@ -126,13 +117,19 @@ mod tests {
             "mine-event/manual-coded-program.asm",
         ];
         let input_paths: Vec<PathBuf> = INPUT.iter().map(|path| PathBuf::from(path) ).collect();
-        let result = find_pending_programs(&input_paths, false);
-        let output_paths: Vec<PathBuf> = result.expect("Must return ok");
-        assert_eq!(output_paths.len(), 5);
+
+        // Act
+        let instance = MineEventDirectoryScan::scan(&input_paths);
+
+        // Assert
+        assert_eq!(instance.pending_paths().len(), 5);
+        assert_eq!(instance.already_processed_paths().len(), 3);
+        assert_eq!(instance.error_get_filename_paths().len(), 0);
     }
 
     #[test]
     fn test_10001_no_pending_programs() {
+        // Arrange
         static INPUT: &'static [&'static str] = &[
             "mine-event/20220710-054111-1237572183.keep.asm",
             "mine-event/20220710-054111-1237578248.reject.asm",
@@ -140,8 +137,13 @@ mod tests {
             "mine-event/manual-coded-program.keep.asm",
         ];
         let input_paths: Vec<PathBuf> = INPUT.iter().map(|path| PathBuf::from(path) ).collect();
-        let result = find_pending_programs(&input_paths, false);
-        let output_paths: Vec<PathBuf> = result.expect("Must return ok");
-        assert_eq!(output_paths.len(), 0);
+
+        // Act
+        let instance = MineEventDirectoryScan::scan(&input_paths);
+
+        // Assert
+        assert_eq!(instance.pending_paths().len(), 0);
+        assert_eq!(instance.already_processed_paths().len(), 4);
+        assert_eq!(instance.error_get_filename_paths().len(), 0);
     }
 }
