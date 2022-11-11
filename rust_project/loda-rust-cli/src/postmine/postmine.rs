@@ -1,6 +1,7 @@
 use crate::config::{Config, MinerFilterMode};
 use crate::common::{oeis_ids_from_program_string, OeisIdStringMap};
 use crate::common::{load_program_ids_csv_file, PendingProgramsWithPriority, SimpleLog};
+use crate::mine::MineEventDirectoryMaintenance;
 use crate::oeis::{ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use super::{batch_lookup_names, terms_from_program, FormatProgram, path_for_oeis_program};
@@ -71,6 +72,7 @@ impl PostMine {
     const LODACPP_CHECK_TIME_LIMIT_IN_SECONDS: u64 = 240;
     const LODACPP_COMPARE_NUMBER_OF_TERM_COUNT: usize = 60;
     const LODACPP_STEPS_TIME_LIMIT_IN_SECONDS: u64 = 120;
+    const LIMIT_NUMBER_OF_ALREADY_PROCESSED_PROGRAMS: usize = 50;
 
     /// The dir "~/.loda-rust/mine-event" holds candidate programs, that have completed the mining funnel.
     /// When running "postmine" each candidate program is checked with the b-file.
@@ -108,6 +110,7 @@ impl PostMine {
         self.minimize_candidate_programs()?;
         self.obtain_sequence_names()?;
         self.process_candidate_programs()?;
+        self.maintenance_of_mineevent_dir()?;
         Ok(())
     }
     
@@ -549,6 +552,17 @@ impl PostMine {
             green_bold.apply_to("Finished"),
             HumanDuration(start.elapsed())
         );
+        Ok(())
+    }
+
+    fn maintenance_of_mineevent_dir(&self) -> anyhow::Result<()> {
+        let mineevent_dir: PathBuf = self.config.mine_event_dir();
+        let instance = MineEventDirectoryMaintenance::scan(
+            &mineevent_dir,
+            Some(Self::LIMIT_NUMBER_OF_ALREADY_PROCESSED_PROGRAMS)
+        );
+        instance.print_summary();
+        instance.perform_removal_of_scheduled_files()?;
         Ok(())
     }
 
