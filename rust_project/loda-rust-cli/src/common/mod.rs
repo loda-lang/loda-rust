@@ -1,7 +1,7 @@
 //! Read/write CSV files. CSV row types. Obtain filenames. Logging.
 mod create_csv_file;
 mod find_files_recursively;
-mod find_pending_programs;
+mod mine_event_directory_scan;
 mod oeis_ids_from_paths;
 mod oeis_ids_from_programs;
 mod oeis_ids_sorted;
@@ -18,7 +18,7 @@ mod simple_log;
 
 pub use create_csv_file::create_csv_file;
 pub use find_files_recursively::{find_asm_files_recursively, find_csv_files_recursively};
-pub use find_pending_programs::find_pending_programs;
+pub use mine_event_directory_scan::MineEventDirectoryScan;
 pub use oeis_ids_from_paths::{oeis_id_from_path, oeis_ids_from_paths};
 pub use oeis_ids_from_programs::{oeis_ids_from_program_string, oeis_ids_from_program, oeis_ids_from_programs};
 pub use oeis_ids_sorted::ToOeisIdVec;
