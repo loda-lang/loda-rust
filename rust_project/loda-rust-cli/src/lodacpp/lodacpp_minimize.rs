@@ -6,11 +6,11 @@ use std::time::Duration;
 use wait_timeout::ChildExt;
 
 pub trait LodaCppMinimize {
-    fn minimize(&self, loda_program_path: &Path, time_limit: Duration) -> Result<String, Box<dyn Error>>;
+    fn minimize(&self, loda_program_path: &Path, time_limit: Duration) -> anyhow::Result<String>;
 }
 
 impl LodaCppMinimize for LodaCpp {
-    fn minimize(&self, loda_program_path: &Path, time_limit: Duration) -> Result<String, Box<dyn Error>> {
+    fn minimize(&self, loda_program_path: &Path, time_limit: Duration) -> anyhow::Result<String> {
         assert!(loda_program_path.is_absolute());
         assert!(loda_program_path.is_file());
 
@@ -32,12 +32,12 @@ impl LodaCppMinimize for LodaCpp {
             },
             None => {
                 // child hasn't exited yet
-                error!("Killing loda-cpp, minimize program, exceeded time limit: {:?}, loda_program_path: {:?}", time_limit, loda_program_path);
+                debug!("Killing loda-cpp, minimize program, exceeded time limit: {:?}, loda_program_path: {:?}", time_limit, loda_program_path);
                 child.kill()?;
                 debug!("wait");
                 child.wait()?;
                 debug!("killed successfully");
-                return Err(Box::new(LodaCppError::Timeout));
+                return Err(anyhow::anyhow!("minimize program exceeded time limit: {:?}, loda_program_path: {:?}", time_limit, loda_program_path));
             }
         };
 
@@ -48,10 +48,13 @@ impl LodaCppMinimize for LodaCpp {
         let output_stdout: String = String::from_utf8_lossy(&output.stdout).to_string();
 
         if optional_exit_code != Some(0) {
-            error!("Expected exit_code: 0, but got exit_code: {:?}, loda_program_path: {:?}", optional_exit_code, loda_program_path);
-            error!("stdout: {:?}", output_stdout);
-            error!("stderr: {:?}", String::from_utf8_lossy(&output.stderr));
-            return Err(Box::new(LodaCppError::NonZeroExitCode));
+            debug!("minimize program: Expected exit_code: 0, but got exit_code: {:?}, loda_program_path: {:?}", optional_exit_code, loda_program_path);
+            debug!("stdout: {:?}", output_stdout);
+            debug!("stderr: {:?}", String::from_utf8_lossy(&output.stderr));
+            return Err(anyhow::anyhow!(
+                "minimize program: Expected exit_code: 0, but got exit_code: {:?}, loda_program_path: {:?}\nstdout: {:?}\nstderr: {:?}", 
+                optional_exit_code, loda_program_path, output_stdout, String::from_utf8_lossy(&output.stderr)
+            ));
         }
 
         let trimmed_output: String = output_stdout.trim().to_string();
