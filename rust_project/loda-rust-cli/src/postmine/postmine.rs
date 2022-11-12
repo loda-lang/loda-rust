@@ -428,7 +428,14 @@ impl PostMine {
         println!("Minimizing programs");
         let pb = ProgressBar::new(number_of_candidate_programs as u64);
         for candidate_program in candidate_programs {
-            self.minimize_candidate_program(candidate_program.clone())?;
+            let result = self.minimize_candidate_program(candidate_program.clone());
+            match result {
+                Ok(_) => {},
+                Err(error) => {
+                    let message = format!("ERROR: Could not minimize program. error: {:?}", error);
+                    pb.println(message);
+                }
+            }
             pb.inc(1);
         }
         pb.finish_and_clear();
