@@ -1,3 +1,4 @@
+use anyhow::Context;
 use loda_rust_core::util::BigIntVec;
 use loda_rust_core::oeis::{OeisId, OeisIdHashSet};
 use crate::postmine::{PathUtil, PostMineError};
@@ -128,30 +129,36 @@ impl CandidateProgram {
         &self.path_keep
     }
 
-    pub fn perform_reject<I: AsRef<str>>(&mut self, reason_reject: I) -> Result<(), Box<dyn Error>> {
+    pub fn perform_reject<I: AsRef<str>>(&mut self, reason_reject: I) -> anyhow::Result<()> {
         if self.state != State::PendingProcessing {
-            return Err(Box::new(PostMineError::CannotMutateCandidateProgramWithAlreadyResolvedState));
+            return Err(anyhow::anyhow!("perform_reject of candidate program with already resolved state"));
         }
-        fs::rename(&self.path_original, &self.path_reject)?;
+        fs::rename(&self.path_original, &self.path_reject)
+            .with_context(|| format!("perform_reject: Unable to rename file from: {:?} to: {:?}", &self.path_original, &self.path_reject))?;
         let mut file = OpenOptions::new()
             .write(true)
             .append(true)
-            .open(&self.path_reject)?;
-        writeln!(file, "\n; reject-reason: {}", reason_reject.as_ref())?;
+            .open(&self.path_reject)
+            .with_context(|| format!("perform_reject: Unable to open in append-mode. path: {:?}", &self.path_reject))?;
+        writeln!(file, "\n; reject-reason: {}", reason_reject.as_ref())
+            .with_context(|| format!("perform_reject: Unable to append to rejection-reason to file: {:?}", &self.path_reject))?;
         self.state = State::Reject;
         Ok(())
     }
 
-    pub fn perform_keep<I: AsRef<str>>(&mut self, reason_keep: I) -> Result<(), Box<dyn Error>> {
+    pub fn perform_keep<I: AsRef<str>>(&mut self, reason_keep: I) -> anyhow::Result<()> {
         if self.state != State::PendingProcessing {
-            return Err(Box::new(PostMineError::CannotMutateCandidateProgramWithAlreadyResolvedState));
+            return Err(anyhow::anyhow!("perform_keep of candidate program with already resolved state"));
         }
-        fs::rename(&self.path_original, &self.path_keep)?;
+        fs::rename(&self.path_original, &self.path_keep)
+            .with_context(|| format!("perform_keep: Unable to rename file from: {:?} to: {:?}", &self.path_original, &self.path_keep))?;
         let mut file = OpenOptions::new()
             .write(true)
             .append(true)
-            .open(&self.path_keep)?;
-        writeln!(file, "\n; keep-reason: {}", reason_keep.as_ref())?;
+            .open(&self.path_keep)
+            .with_context(|| format!("perform_keep: Unable to open in append-mode. path: {:?}", &self.path_keep))?;
+        writeln!(file, "\n; keep-reason: {}", reason_keep.as_ref())
+            .with_context(|| format!("perform_keep: Unable to append to keep-reason to file: {:?}", &self.path_keep))?;
         self.state = State::Keep;
         Ok(())
     }
@@ -160,16 +167,19 @@ impl CandidateProgram {
         if self.is_keep_ids_empty() {
             let oeis_ids: Vec<OeisId> = self.possible_id_vec();
             if oeis_ids.is_empty() {
-                self.perform_reject("Doesn't correspond to any known OEIS sequence")?;
+                self.perform_reject("Doesn't correspond to any known OEIS sequence")
+                    .context("perform_keep_or_reject_based_result doesn't correspond to any known OEIS sequence")?;
                 return Ok(());
             }
             let message = format!("Worse than the existing programs: {:?}", oeis_ids);
-            self.perform_reject(message)?;
+            self.perform_reject(message)
+                .context("perform_keep_or_reject_based_result worse than the existing program")?;
             return Ok(());
         }
         let keep_program_ids: String = self.keep_program_ids_as_string();
         let keep_reason: String = format!("Corresponds to: {}", keep_program_ids);
-        self.perform_keep(keep_reason)?;
+        self.perform_keep(keep_reason)
+            .context("perform_keep_or_reject_based_result")?;
         return Ok(())
     }
 }
