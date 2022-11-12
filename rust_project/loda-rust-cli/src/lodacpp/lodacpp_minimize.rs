@@ -1,8 +1,8 @@
-use super::{LodaCpp, LodaCppError};
-use std::error::Error;
+use super::LodaCpp;
 use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Output, Stdio};
 use std::time::Duration;
+use anyhow::Context;
 use wait_timeout::ChildExt;
 
 pub trait LodaCppMinimize {
@@ -11,23 +11,27 @@ pub trait LodaCppMinimize {
 
 impl LodaCppMinimize for LodaCpp {
     fn minimize(&self, loda_program_path: &Path, time_limit: Duration) -> anyhow::Result<String> {
-        assert!(loda_program_path.is_absolute());
-        assert!(loda_program_path.is_file());
+        if !loda_program_path.is_absolute() {
+            return Err(anyhow::anyhow!("minimize program. Expected path to be absolute, but it's not. path: {:?}", loda_program_path));
+        }
+        if !loda_program_path.is_file() {
+            return Err(anyhow::anyhow!("minimize program. Expected path to be file, but it's not. path: {:?}", loda_program_path));
+        }
 
         let mut child: Child = Command::new(self.loda_cpp_executable())
             .arg("minimize")
             .arg(loda_program_path)
             .stdout(Stdio::piped())
             .spawn()
-            .expect("failed to execute process: loda-cpp");
+            .with_context(|| format!("minimize program. failed to execute process: loda-cpp. path: {:?}", &loda_program_path))?;
 
         let optional_exit_status: Option<ExitStatus> = child
             .wait_timeout(time_limit)
-            .expect("unable to 'wait_timeout' for child process");
+            .with_context(|| format!("minimize program. unable to 'wait_timeout' for child process. path: {:?}", &loda_program_path))?;
 
         let optional_exit_code: Option<i32> = match optional_exit_status {
             Some(exit_status) => {
-                debug!("exited with status: {:?}", exit_status);
+                debug!("minimize program, exited with status: {:?}", exit_status);
                 exit_status.code()
             },
             None => {
@@ -43,7 +47,7 @@ impl LodaCppMinimize for LodaCpp {
 
         let output: Output = child
             .wait_with_output()
-            .expect("failed to wait on child");
+            .with_context(|| format!("minimize program. failed to wait on child. path: {:?}", &loda_program_path))?;
 
         let output_stdout: String = String::from_utf8_lossy(&output.stdout).to_string();
 
