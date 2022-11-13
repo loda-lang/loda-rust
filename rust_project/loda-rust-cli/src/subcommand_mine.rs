@@ -13,6 +13,7 @@ use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
 use bastion::prelude::*;
 use num_bigint::{BigInt, ToBigInt};
 use anyhow::Context;
+use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -38,7 +39,7 @@ impl SubcommandMine {
         Bastion::init();
         
         let mut instance = SubcommandMine::new(metrics_mode);
-        instance.check_prerequisits()?;
+        instance.prepare_mineevent_dir()?;
         instance.print_info();
         instance.regenerate_analytics_if_expired()?;
         instance.reload_mineevent_directory_state()?;
@@ -68,15 +69,15 @@ impl SubcommandMine {
         }
     }
 
-    fn check_prerequisits(&self) -> anyhow::Result<()> {
-        let path0 = self.config.analytics_dir();
-        if !path0.is_dir() {
-            return Err(anyhow::anyhow!("check_prerequisits - missing analytics_dir. Cannot find analytics_dir at path: {:?}. Please run 'loda-rust analytics' to create this dir.", path0));
+    /// Create the `~/.loda-rust/mine-event` dir if needed
+    fn prepare_mineevent_dir(&self) -> anyhow::Result<()> {
+        let path = self.config.mine_event_dir();
+        if !path.is_dir() {
+            fs::create_dir(&path)
+                .with_context(|| format!("Unable to create mine-event dir: {:?}", &path))?;
+
         }
-        let path1 = self.config.mine_event_dir();
-        if !path1.is_dir() {
-            return Err(anyhow::anyhow!("check_prerequisits - missing mine_event_dir. Cannot find mine_event_dir at path: {:?}. Please rerun 'loda-rust install' to create this dir.", path1));
-        }
+        assert!(path.is_dir());
         Ok(())
     }
 
