@@ -1,4 +1,4 @@
-use crate::common::{find_asm_files_recursively, MineEventDirectoryScan};
+use super::find_postmine_directories;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::fs;
 use std::fs::Metadata;
@@ -15,11 +15,8 @@ impl PostmineDirectoryMaintenance {
     /// 
     /// This function itself is non-destructive. It does not delete data from disk.
     pub fn scan(rootdir: &Path, keep_newest_count: Option<usize>) -> Self {
-        // TODO: let paths: Vec<PathBuf> = find_postmine_dirs_recursively(rootdir);
-        // Obtain paths to already processed programs
-        let paths_all: Vec<PathBuf> = find_asm_files_recursively(rootdir);
-        let instance = MineEventDirectoryScan::scan(&paths_all);
-        let paths: Vec<PathBuf> = instance.already_processed_paths();
+        // Obtain paths to `~/.loda-rust/postmine/12345-postmine` directories
+        let paths: Vec<PathBuf> = find_postmine_directories(rootdir);
         // Obtain unixtime with second precision
         let mut items = Vec::<(PathBuf,u64)>::with_capacity(paths.len());
         for path in paths {
@@ -77,7 +74,7 @@ mod tests {
     use super::*;
     use filetime::{set_file_mtime, FileTime};
 
-    // #[test]
+    #[test]
     fn test_10000_scan() -> anyhow::Result<()> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
