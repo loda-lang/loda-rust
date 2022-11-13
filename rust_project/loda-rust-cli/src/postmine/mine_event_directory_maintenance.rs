@@ -61,7 +61,7 @@ impl MineEventDirectoryMaintenance {
             debug!("MineEventDirectoryMaintenance: ok.");
             return;
         }
-        println!("MineEventDirectoryMaintenance: already processed programs scheduled for removal: {}", count);
+        debug!("MineEventDirectoryMaintenance: already processed programs scheduled for removal: {}", count);
     }
 
     /// This function is destructive and erases the scheduled files from disk.

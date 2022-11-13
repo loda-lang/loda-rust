@@ -55,15 +55,14 @@ impl PostmineDirectoryMaintenance {
             debug!("PostmineDirectoryMaintenance: ok.");
             return;
         }
-        println!("PostmineDirectoryMaintenance: postmine directories scheduled for removal: {}", count);
+        debug!("PostmineDirectoryMaintenance: postmine directories scheduled for removal: {}", count);
     }
 
     /// This function is destructive and erases the scheduled dirs+dircontent from disk.
-    pub fn perform_removal_of_scheduled_files(&self) -> anyhow::Result<()> {
+    pub fn perform_removal_of_scheduled_dirs(&self) -> anyhow::Result<()> {
         for path in &self.paths_scheduled_for_removal {
-            // TODO: remove dirs
-            fs::remove_file(path)
-                .with_context(|| format!("perform_removal_of_scheduled_files: Unable to remove directory: {:?}", path))?;
+            fs::remove_dir_all(path)
+                .with_context(|| format!("perform_removal_of_scheduled_dirs: Unable to remove directory: {:?}", path))?;
         }
         Ok(())
     }
