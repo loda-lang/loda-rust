@@ -32,8 +32,10 @@ impl PostmineDirectoryMaintenance {
         // Arrange oldest first and newest last
         items.sort_unstable_by_key(|(_path, seconds)| *seconds);
         // Take the oldest items, and keep X newest items
-        if let Some(count) = keep_newest_count {
-            items.truncate(items.len() - count);
+        if let Some(keep_newest_count) = keep_newest_count {
+            let item_count: usize = items.len();
+            let truncate_count: usize = item_count - keep_newest_count.min(item_count);
+            items.truncate(truncate_count);
         }
         // Extract only the path, and get rid of the unixtime
         let paths_scheduled_for_removal: Vec<PathBuf> = items.iter()
