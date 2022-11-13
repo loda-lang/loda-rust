@@ -1,11 +1,11 @@
 use crate::config::{Config, MinerFilterMode};
 use crate::common::{oeis_ids_from_program_string, OeisIdStringMap};
 use crate::common::{load_program_ids_csv_file, PendingProgramsWithPriority, SimpleLog};
-use crate::mine::MineEventDirectoryMaintenance;
 use crate::oeis::{ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use super::{batch_lookup_names, terms_from_program, FormatProgram, path_for_oeis_program};
 use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, ParentDirAndChildFile, State, StatusOfExistingProgram, ValidateSingleProgram};
+use super::{MineEventDirectoryMaintenance, PostmineDirectoryMaintenance};
 use loda_rust_core::oeis::{OeisId, OeisIdHashSet};
 use loda_rust_core::util::BigIntVec;
 use loda_rust_core::util::BigIntVecToString;
@@ -73,6 +73,7 @@ impl PostMine {
     const LODACPP_COMPARE_NUMBER_OF_TERM_COUNT: usize = 60;
     const LODACPP_STEPS_TIME_LIMIT_IN_SECONDS: u64 = 120;
     const LIMIT_NUMBER_OF_ALREADY_PROCESSED_PROGRAMS: usize = 50;
+    const LIMIT_NUMBER_OF_POSTMINE_DIRS: usize = 50;
 
     /// The dir "~/.loda-rust/mine-event" holds candidate programs, that have completed the mining funnel.
     /// When running "postmine" each candidate program is checked with the b-file.
@@ -111,6 +112,7 @@ impl PostMine {
         self.obtain_sequence_names()?;
         self.process_candidate_programs()?;
         self.maintenance_of_mineevent_dir()?;
+        self.maintenance_of_postmine_dir()?;
         Ok(())
     }
     
@@ -570,6 +572,17 @@ impl PostMine {
         );
         instance.print_summary();
         instance.perform_removal_of_scheduled_files()?;
+        Ok(())
+    }
+
+    fn maintenance_of_postmine_dir(&self) -> anyhow::Result<()> {
+        let postmine_dir: PathBuf = self.config.postmine_dir();
+        let instance = PostmineDirectoryMaintenance::scan(
+            &postmine_dir,
+            Some(Self::LIMIT_NUMBER_OF_POSTMINE_DIRS)
+        );
+        instance.print_summary();
+        instance.perform_removal_of_scheduled_dirs()?;
         Ok(())
     }
 
