@@ -55,8 +55,6 @@ mod tests {
     use std::path::PathBuf;
     use std::fs;
     use std::error::Error;
-    use std::fs::File;
-    use std::io::prelude::*;
 
     #[test]
     fn test_10000_empty_dir() -> Result<(), Box<dyn Error>> {
@@ -84,10 +82,8 @@ mod tests {
         fs::create_dir(&basedir)?;
         let dir0 = PathBuf::from(&basedir).join(".git");
         fs::create_dir(&dir0)?;
-        let mut file0 = File::create(dir0.join("file0.asm"))?;
-        file0.write_all(b"I'm an asm file inside .git, so I am to be ignored")?;
-        let mut file1 = File::create(dir0.join("ignore.md"))?;
-        file1.write_all(b"Ignore this file. It doesn't have the asm file extension")?;
+        fs::write(dir0.join("file0.asm"), b"I'm an asm file inside .git, so I am to be ignored")?;
+        fs::write(dir0.join("ignore.md"), b"Ignore this file. It doesn't have the asm file extension")?;
         let paths = find_asm_files_recursively(&basedir);
         assert_eq!(paths.len(), 0);
         Ok(())
@@ -100,10 +96,8 @@ mod tests {
         fs::create_dir(&basedir)?;
         let dir0 = PathBuf::from(&basedir).join("ignore-this-dir-but-visit-its-children.asm");
         fs::create_dir(&dir0)?;
-        let mut file0 = File::create(dir0.join("file0.asm"))?;
-        file0.write_all(b"I'm an asm file inside a dir named 'ignore-this-dir.asm'")?;
-        let mut file1 = File::create(dir0.join("file1.asm"))?;
-        file1.write_all(b"I'm also an asm file inside a dir named 'ignore-this-dir.asm'")?;
+        fs::write(dir0.join("file0.asm"), b"I'm an asm file inside a dir named 'ignore-this-dir.asm'")?;
+        fs::write(dir0.join("file1.asm"), b"I'm also an asm file inside a dir named 'ignore-this-dir.asm'")?;
         let paths = find_asm_files_recursively(&basedir);
         assert_eq!(paths.len(), 2);
         Ok(())
@@ -114,14 +108,10 @@ mod tests {
         let tempdir = tempfile::tempdir().unwrap();
         let basedir = PathBuf::from(&tempdir.path()).join("find_files_recursively_test_20000_find_files_simple");
         fs::create_dir(&basedir)?;
-        let mut file0 = File::create(basedir.join("file0.asm"))?;
-        file0.write_all(b"I'm an asm file")?;
-        let mut file1 = File::create(basedir.join("readme.md"))?;
-        file1.write_all(b"Ignore this file. It doesn't have the asm file extension")?;
-        let mut file2 = File::create(basedir.join("file1.asm"))?;
-        file2.write_all(b"I'm also an asm file")?;
-        let mut file3 = File::create(basedir.join(".gitignore"))?;
-        file3.write_all(b"Ignore this file. It doesn't have the asm file extension")?;
+        fs::write(basedir.join("file0.asm"), b"I'm an asm file")?;
+        fs::write(basedir.join("readme.md"), b"Ignore this file. It doesn't have the asm file extension")?;
+        fs::write(basedir.join("file1.asm"), b"I'm also an asm file")?;
+        fs::write(basedir.join(".gitignore"), b"Ignore this file. It doesn't have the asm file extension")?;
         let paths = find_asm_files_recursively(&basedir);
         assert_eq!(paths.len(), 2);
         Ok(())
@@ -136,16 +126,11 @@ mod tests {
         fs::create_dir(&dir0)?;
         let dir1 = PathBuf::from(&basedir).join("dir1");
         fs::create_dir(&dir1)?;
-        let mut file0 = File::create(dir0.join("file0.asm"))?;
-        file0.write_all(b"I'm an asm file")?;
-        let mut file1 = File::create(dir0.join("ignore.md"))?;
-        file1.write_all(b"Ignore this file. It doesn't have the asm file extension")?;
-        let mut file2 = File::create(dir1.join("file2.asm"))?;
-        file2.write_all(b"I'm also an asm file")?;
-        let mut file3 = File::create(dir1.join(".gitignore"))?;
-        file3.write_all(b"Ignore this file. It doesn't have the asm file extension")?;
-        let mut file4 = File::create(dir1.join("file4.asm"))?;
-        file4.write_all(b"I'm also an asm file")?;    
+        fs::write(basedir.join("file0.asm"), b"I'm an asm file")?;
+        fs::write(basedir.join("ignore.md"), b"Ignore this file. It doesn't have the asm file extension")?;
+        fs::write(basedir.join("file2.asm"), b"I'm also an asm file")?;
+        fs::write(basedir.join(".gitignore"), b"Ignore this file. It doesn't have the asm file extension")?;
+        fs::write(basedir.join("file4.asm"), b"I'm also an asm file")?;
         let paths = find_asm_files_recursively(&basedir);
         assert_eq!(paths.len(), 3);
         Ok(())
