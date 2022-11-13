@@ -46,18 +46,6 @@ pub fn subcommand_install() {
         number_of_issues += 1;
     }
 
-    // Create `analytics/` dir if needed.
-    if let Err(error) = create_analytics_dir_in_basedir(&basedir) {
-        error!("Unable to create 'analytics' dir, error: {:?}", error);
-        number_of_issues += 1;
-    }
-
-    // Create `mine-event/` dir if needed.
-    if let Err(error) = create_mine_event_dir_in_basedir(&basedir) {
-        error!("Unable to create 'mine-event' dir, error: {:?}", error);
-        number_of_issues += 1;
-    }
-
     if number_of_issues > 0 {
         error!("Installation problems occurred. Try delete the '$HOME/.loda-rust' and try again.");
         return;
@@ -92,20 +80,4 @@ fn create_config_in_basedir(basedir: &Path) -> std::io::Result<()> {
     let mut file = File::create(path)?;
     file.write_all(content.as_bytes())?;
     Ok(())
-}
-
-fn create_analytics_dir_in_basedir(basedir: &Path) -> std::io::Result<()> {
-    let path: PathBuf = basedir.join(Path::new("analytics"));
-    if path.is_dir() {
-        return Ok(());
-    }
-    fs::create_dir(path)
-}
-
-fn create_mine_event_dir_in_basedir(basedir: &Path) -> std::io::Result<()> {
-    let path: PathBuf = basedir.join(Path::new("mine-event"));
-    if path.is_dir() {
-        return Ok(());
-    }
-    fs::create_dir(path)
 }
