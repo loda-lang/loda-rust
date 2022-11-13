@@ -1,11 +1,11 @@
 use crate::config::{Config, MinerFilterMode};
 use crate::common::{oeis_ids_from_program_string, OeisIdStringMap};
 use crate::common::{load_program_ids_csv_file, PendingProgramsWithPriority, SimpleLog};
-use crate::mine::MineEventDirectoryMaintenance;
 use crate::oeis::{ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
 use super::{batch_lookup_names, terms_from_program, FormatProgram, path_for_oeis_program};
 use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, ParentDirAndChildFile, State, StatusOfExistingProgram, ValidateSingleProgram};
+use super::MineEventDirectoryMaintenance;
 use loda_rust_core::oeis::{OeisId, OeisIdHashSet};
 use loda_rust_core::util::BigIntVec;
 use loda_rust_core::util::BigIntVecToString;

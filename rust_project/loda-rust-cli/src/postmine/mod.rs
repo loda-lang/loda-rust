@@ -6,6 +6,7 @@ mod compare_two_programs;
 mod filter_asm_files;
 mod format_program;
 mod git_absolute_paths_for_unstaged_files;
+mod mine_event_directory_maintenance;
 mod parent_dir_and_child_file;
 mod path_for_oeis_program;
 mod path_util;
@@ -22,6 +23,7 @@ pub use compare_two_programs::{CompareTwoPrograms, CompareTwoProgramsResult, Sta
 pub use filter_asm_files::filter_asm_files;
 pub use format_program::FormatProgram;
 pub use git_absolute_paths_for_unstaged_files::git_absolute_paths_for_unstaged_files;
+pub use mine_event_directory_maintenance::MineEventDirectoryMaintenance;
 pub use parent_dir_and_child_file::ParentDirAndChildFile;
 pub use path_for_oeis_program::path_for_oeis_program;
 pub use path_util::PathUtil;
