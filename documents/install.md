@@ -119,7 +119,7 @@ oeis_stripped_file = "/Users/JOHNDOE/loda/oeis/stripped"
 Verify that `loda-rust` can evaluate the program: [A000040, The prime numbers](https://oeis.org/A000040).
 
 ```
-PROMPT> loda-rust eval 40
+PROMPT> loda-rust eval A40
 2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71
 PROMPT>
 ```
