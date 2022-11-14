@@ -64,7 +64,8 @@ struct State {
     registry: MyRegistry,
 }
 
-type MyRegistry = std::sync::Arc<std::sync::Mutex<prometheus_client::registry::Registry<std::boxed::Box<dyn prometheus_client::encoding::text::SendEncodeMetric>>>>;
+type MyRegistryInner = prometheus_client::registry::Registry<std::boxed::Box<dyn prometheus_client::encoding::text::SendSyncEncodeMetric>>;
+type MyRegistry = std::sync::Arc<std::sync::Mutex<MyRegistryInner>>;
 
 async fn webserver_with_metrics(registry: MyRegistry, listen_port: u16) -> std::result::Result<(), Box<dyn std::error::Error>> {
     let mut app = tide::with_state(State {
@@ -74,7 +75,30 @@ async fn webserver_with_metrics(registry: MyRegistry, listen_port: u16) -> std::
     app.at("/metrics")
         .get(|req: tide::Request<State>| async move {
             let mut encoded = Vec::new();
-            encode(&mut encoded, &req.state().registry.lock().unwrap()).unwrap();
+            {
+                let registry = match req.state().registry.lock() {
+                    Ok(value) => value,
+                    Err(error) => {
+                        error!("webserver_with_metrics: /metrics - Unable to lock registry. {:?}", error);
+                        let response = tide::Response::builder(500)
+                            .body(format!("webserver_with_metrics: /metrics - Unable to lock registry. {:?}", error))
+                            .content_type("text/plain; charset=utf-8")
+                            .build();
+                        return Ok(response);
+                    }
+                };
+                match encode(&mut encoded, &registry) {
+                    Ok(()) => {},
+                    Err(error) => {
+                        error!("webserver_with_metrics: /metrics - Unable to encode registry. {:?}", error);
+                        let response = tide::Response::builder(500)
+                            .body(format!("webserver_with_metrics: /metrics - Unable to encode registry. {:?}", error))
+                            .content_type("text/plain; charset=utf-8")
+                            .build();
+                        return Ok(response);
+                    }
+                }
+            }
             let response = tide::Response::builder(200)
                 .body(encoded)
                 .content_type("application/openmetrics-text; version=1.0.0; charset=utf-8")
