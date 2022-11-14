@@ -3,7 +3,6 @@ use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStat
 use crate::config::Config;
 use crate::postmine::{ParentDirAndChildFile, path_for_oeis_program};
 use loda_rust_core::oeis::OeisId;
-use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -12,7 +11,7 @@ use anyhow::Context;
 pub struct SubcommandTest {}
 
 impl SubcommandTest {
-    pub fn test_integration_with_lodacpp() -> Result<(), Box<dyn Error>> {
+    pub fn test_integration_with_lodacpp() -> anyhow::Result<()> {
         Self::test_integration_with_lodacpp_check_ok()?;
         Self::test_integration_with_lodacpp_check_timeout()?;
         println!("test integration with lodacpp: Completed successfully.");
