@@ -5,7 +5,7 @@ authors = ["Simon Strandgaard <neoneye@gmail.com>"]
 description = "Command line interface for LODA Rust"
 repository = "https://github.com/loda-lang/loda-rust"
 license = "MIT OR Apache-2.0"
-edition = "2018"
+edition = "2021"
 
 [[bin]]
 name = "loda-rust"
@@ -30,7 +30,7 @@ lazy_static = "1.4.0"
 walkdir = "2.3.2"
 num_cpus = "1.13.1"
 tokio = { version = "1.19.2", features = ["full"] }
-prometheus-client = "0.15.1"
+prometheus-client = "0.18.1"
 tide = "0.16"
 http-types = "2.12.0"
 simple-pagerank = "0.2.0"
