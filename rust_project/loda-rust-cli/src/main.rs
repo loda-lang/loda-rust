@@ -6,7 +6,7 @@ extern crate log;
 extern crate env_logger;
 
 use std::str::FromStr;
-
+use regex::Regex;
 use loda_rust_core::control::*;
 
 mod analytics;
@@ -140,15 +140,28 @@ async fn main() -> anyhow::Result<()> {
         .get_matches();
 
     if let Some(sub_m) = matches.subcommand_matches("evaluate") {
+        // Fuzzy convert from user input to OEIS id, allows the 'A' to be left out.
         let program_id_raw: &str = sub_m.value_of("programid").unwrap();
-        let program_id: u64 = u64::from_str(program_id_raw)
-            .expect("Unable to parse program_id.");
+        let re = Regex::new("^A?(\\d+)$").unwrap();
+        let captures = match re.captures(program_id_raw) {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Unable to extract OEIS id, expected A number such as A000040 or A123456."));
+            }
+        };
+        let capture1: &str = captures.get(1).map_or("", |m| m.as_str());
+        let program_id_string: String = capture1.to_string();
+        let program_id: u64 = program_id_string.parse()
+            .map_err(|e| anyhow::anyhow!("Unable to parse OEIS id as u64, expected A number such as A000040 or A123456. error: {:?}", e))?;
 
+        // Number of terms
         let mut number_of_terms: u64 = 20;
         if let Some(number_of_terms_raw) = sub_m.value_of("terms") {
             number_of_terms = u64::from_str(number_of_terms_raw)
                 .expect("Unable to parse number of terms.");
         }
+
+        // Eval mode
         let show_steps: bool = sub_m.is_present("steps");
         let show_debug: bool = sub_m.is_present("debug");
         let mode: SubcommandEvaluateMode = match (show_debug, show_steps) {
