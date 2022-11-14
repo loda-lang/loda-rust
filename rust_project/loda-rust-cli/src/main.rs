@@ -47,7 +47,7 @@ extern crate num_traits;
 use clap::{Arg, Command};
 
 #[tokio::main]
-async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+async fn main() -> anyhow::Result<()> {
     // Initialize logging from the `RUST_LOG` environment variable.
     env_logger::init();
 
@@ -213,7 +213,8 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("test-integration-with-lodacpp") {
-        return SubcommandTest::test_integration_with_lodacpp();
+        SubcommandTest::test_integration_with_lodacpp()?;
+        return Ok(());
     }
 
     panic!("No arguments provided");
