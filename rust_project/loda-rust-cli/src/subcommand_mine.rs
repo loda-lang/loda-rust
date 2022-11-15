@@ -6,6 +6,7 @@ use crate::mine::{MineEventDirectoryState, MetricsWorker};
 use crate::mine::{create_funnel, Funnel, FunnelConfig};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use crate::mine::{create_prevent_flooding, PreventFlooding};
+use crate::mine::{cronjob_worker, CronjobWorkerMessage};
 use crate::mine::{miner_worker};
 use crate::mine::{postmine_worker, SharedMinerWorkerState};
 use crate::mine::upload_worker;
@@ -48,6 +49,7 @@ impl SubcommandMine {
         instance.start_upload_worker()?;
         instance.start_postmine_worker()?;
         instance.start_miner_workers()?;
+        instance.start_cronjob_worker()?;
 
         Bastion::start();
         Bastion::block_until_stopped();
@@ -248,6 +250,31 @@ impl SubcommandMine {
             })
         })
         .map_err(|e| anyhow::anyhow!("couldn't start miner_workers. error: {:?}", e))?;
+        Ok(())
+    }
+    
+    fn start_cronjob_worker(&self) -> anyhow::Result<()> {
+        let mine_event_dir_state = self.mine_event_dir_state.clone();
+        let shared_miner_worker_state = self.shared_miner_worker_state.clone();
+        Bastion::supervisor(|supervisor| {
+            supervisor.children(|children| {
+                children
+                    .with_redundancy(1)
+                    .with_distributor(Distributor::named("cronjob_worker"))
+                    .with_exec(move |ctx: BastionContext| {
+                        let mine_event_dir_state_clone = mine_event_dir_state.clone();
+                        let shared_miner_worker_state_clone = shared_miner_worker_state.clone();
+                        async move {
+                            cronjob_worker(
+                                ctx,
+                                mine_event_dir_state_clone,
+                                shared_miner_worker_state_clone,
+                            ).await
+                        }
+                    })
+            })
+        })
+        .map_err(|e| anyhow::anyhow!("couldn't start cronjob_worker. error: {:?}", e))?;
         Ok(())
     }
 }

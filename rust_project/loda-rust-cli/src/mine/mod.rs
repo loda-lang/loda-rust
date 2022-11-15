@@ -3,6 +3,7 @@ mod check_fixed_length_sequence;
 mod create_funnel;
 mod create_genome_mutate_context;
 mod create_prevent_flooding;
+mod cronjob_worker;
 mod funnel;
 mod funnel_config;
 mod genome;
@@ -37,6 +38,7 @@ pub use check_fixed_length_sequence::{CheckFixedLengthSequence, NamedCacheFile, 
 pub use create_funnel::create_funnel;
 pub use create_genome_mutate_context::create_genome_mutate_context;
 pub use create_prevent_flooding::create_prevent_flooding;
+pub use cronjob_worker::{cronjob_worker, CronjobWorkerMessage};
 pub use funnel::Funnel;
 pub use funnel_config::FunnelConfig;
 pub use genome_mutate_context::GenomeMutateContext;
