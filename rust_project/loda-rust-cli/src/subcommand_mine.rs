@@ -55,7 +55,7 @@ impl SubcommandMine {
 
         Bastion::start();
 
-        thread::sleep(Duration::from_millis(2000));
+        thread::sleep(Duration::from_millis(10000));
 
         let miner_worker_distributor = Distributor::named("miner_worker");
         let tell_result = miner_worker_distributor.tell_everyone(MinerWorkerMessage::InvalidateAnalytics);

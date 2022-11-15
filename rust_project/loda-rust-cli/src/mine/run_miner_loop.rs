@@ -193,6 +193,11 @@ impl RunMinerLoop {
         dependency_manager.reset_metrics();
     }
 
+    pub fn set_funnel(&mut self) {
+        // TODO: pass on a "funnel" instance
+        // self.funnel.clear();
+    }
+
     pub fn load_initial_genome_program(&mut self, dependency_manager: &mut DependencyManager) -> anyhow::Result<()> {
         for _ in 0..LOAD_INITIAL_GENOME_RETRIES {
             let program_id: u32 = match self.context.choose_initial_genome_program(&mut self.rng) {

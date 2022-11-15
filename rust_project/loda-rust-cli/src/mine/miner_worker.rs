@@ -74,6 +74,7 @@ pub async fn miner_worker(
                             },
                             MinerWorkerMessage::InvalidateAnalytics => {
                                 println!("InvalidateAnalytics");
+                                rml.set_funnel();
                             }
                         }
                     })
