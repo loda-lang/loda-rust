@@ -2,7 +2,7 @@
 use crate::analytics::Analytics;
 use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
-use crate::mine::{MineEventDirectoryState, MetricsWorker};
+use crate::mine::{MineEventDirectoryState, MetricsWorker, MinerWorkerMessage};
 use crate::mine::{create_funnel, Funnel, FunnelConfig};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use crate::mine::{create_prevent_flooding, PreventFlooding};
@@ -17,6 +17,8 @@ use anyhow::Context;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 
 #[derive(Debug)]
 pub enum SubcommandMineMetricsMode {
@@ -52,6 +54,15 @@ impl SubcommandMine {
         instance.start_cronjob_worker()?;
 
         Bastion::start();
+
+        thread::sleep(Duration::from_millis(2000));
+
+        let miner_worker_distributor = Distributor::named("miner_worker");
+        let tell_result = miner_worker_distributor.tell_everyone(MinerWorkerMessage::InvalidateAnalytics);
+        if let Err(error) = tell_result {
+            error!("miner_worker: Unable to send InvalidateAnalytics to miner_worker_distributor. error: {:?}", error);
+        }
+
         Bastion::block_until_stopped();
         return Ok(());
     }

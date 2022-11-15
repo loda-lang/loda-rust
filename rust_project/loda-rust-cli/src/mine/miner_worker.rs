@@ -14,6 +14,8 @@ use rand::{RngCore, thread_rng};
 pub enum MinerWorkerMessage {
     #[allow(dead_code)]
     Ping,
+    #[allow(dead_code)]
+    InvalidateAnalytics,
 }
 
 pub async fn miner_worker(
@@ -69,6 +71,9 @@ pub async fn miner_worker(
                         match miner_worker_message {
                             MinerWorkerMessage::Ping => {
                                 println!("Ping");
+                            },
+                            MinerWorkerMessage::InvalidateAnalytics => {
+                                println!("InvalidateAnalytics");
                             }
                         }
                     })
