@@ -33,6 +33,17 @@ impl CheckFixedLengthSequence {
             bloomfilter_wildcard_magic_value: wildcard_magic_value
         }
     }
+    
+    pub fn new_empty() -> Self {
+        let bloom_items_count = 10;
+        let false_positive_rate = 0.5;
+        let bloom = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
+        let wildcard_magic_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
+        Self {
+            bloom,
+            bloomfilter_wildcard_magic_value: wildcard_magic_value
+        }
+    }
 
     pub fn clear(&mut self) {
         self.bloom.clear();
