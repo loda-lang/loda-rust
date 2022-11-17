@@ -3,7 +3,7 @@ use crate::analytics::Analytics;
 use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
 use crate::mine::{MineEventDirectoryState, MetricsWorker, MinerWorkerMessage};
-use crate::mine::{create_funnel, Funnel, FunnelConfig};
+use crate::mine::{CreateFunnel, Funnel, FunnelConfig};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use crate::mine::{create_prevent_flooding, PreventFlooding};
 use crate::mine::{cronjob_worker, CronjobWorkerMessage};
@@ -222,7 +222,7 @@ impl SubcommandMine {
         let terms_to_program_id_arc: Arc<TermsToProgramIdSet> = Arc::new(terms_to_program_id);
 
         println!("populating funnel");
-        let funnel: Funnel = create_funnel(&self.config);
+        let funnel: Funnel = Funnel::create_funnel_with_file_data(&self.config);
         
         println!("populating genome_mutate_context");
         let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(&self.config);

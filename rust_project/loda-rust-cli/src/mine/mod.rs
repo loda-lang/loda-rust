@@ -35,7 +35,7 @@ mod upload_worker;
 mod wildcard_checker;
 
 pub use check_fixed_length_sequence::{CheckFixedLengthSequence, NamedCacheFile, PopulateBloomfilter};
-pub use create_funnel::create_funnel;
+pub use create_funnel::CreateFunnel;
 pub use create_genome_mutate_context::create_genome_mutate_context;
 pub use create_prevent_flooding::create_prevent_flooding;
 pub use cronjob_worker::{cronjob_worker, CronjobWorkerMessage};
