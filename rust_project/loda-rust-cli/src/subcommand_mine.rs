@@ -105,18 +105,19 @@ impl SubcommandMine {
 ██║     ██║   ██║██║  ██║██╔══██║╚════╝██╔══██╗██║   ██║╚════██║   ██║   
 ███████╗╚██████╔╝██████╔╝██║  ██║      ██║  ██║╚██████╔╝███████║   ██║   
 ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝   ╚═╝"#;
-        println!("{}\n", banner);
+        println!("{}", banner);
 
-        println!("metrics mode: {:?}", self.metrics_mode);
-        println!("number of workers: {}", self.number_of_workers);
-
+        const VERSION: &str = env!("CARGO_PKG_VERSION");
         let build_mode: &str;
         if cfg!(debug_assertions) {
-            build_mode = "DEBUG  <-  Terrible inefficient for mining!";
+            build_mode = "DEBUG (terrible performance!)";
         } else {
             build_mode = "RELEASE";
         }
-        println!("build mode: {}", build_mode);
+        println!("LODA-RUST version: {}, build: {}\n", VERSION, build_mode);
+
+        println!("metrics mode: {:?}", self.metrics_mode);
+        println!("number of workers: {}", self.number_of_workers);
 
         println!("Press CTRL-C to stop the miner.\n\n");
     }
