@@ -4,11 +4,12 @@ use super::{SuggestLine, LineValue};
 use super::{SuggestSource, SourceValue};
 use super::{SuggestTarget, TargetValue};
 use loda_rust_core::parser::InstructionId;
+use std::fmt;
 use rand::Rng;
 use rand::seq::SliceRandom;
 use std::collections::HashSet;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct GenomeMutateContext {
     valid_program_ids: Vec<u32>,
     initial_genome_program_ids: Vec<u32>, 
@@ -174,5 +175,11 @@ impl GenomeMutateContext {
             }
         };
         suggest_target.choose_weighted(rng, prev_word, next_word)
+    }
+}
+
+impl fmt::Debug for GenomeMutateContext {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "GenomeMutateContext")
     }
 }
