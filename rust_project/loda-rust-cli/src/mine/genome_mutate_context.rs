@@ -53,6 +53,22 @@ impl GenomeMutateContext {
         }
     }
 
+    pub fn new_empty() -> Self {
+        Self {
+            valid_program_ids: vec!(),
+            initial_genome_program_ids: vec!(),
+            indirect_memory_access_program_ids: vec!(),
+            invalid_program_ids: HashSet::<u32>::new(),
+            popular_program_container: PopularProgramContainer::new_empty(),
+            recent_program_container: RecentProgramContainer::new_empty(),
+            histogram_instruction_constant: None,
+            suggest_instruction: None,
+            suggest_line: None,
+            suggest_source: None,
+            suggest_target: None,
+        }
+    }
+
     pub fn is_program_id_invalid(&self, program_id: u32) -> bool {
         self.invalid_program_ids.contains(&program_id)
     }
