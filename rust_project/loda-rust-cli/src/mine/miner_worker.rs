@@ -94,7 +94,6 @@ pub async fn miner_worker(
                             },
                             MinerWorkerMessage::InvalidateAnalytics => {
                                 println!("InvalidateAnalytics");
-                                rml.set_funnel();
                             }
                         }
                     })
@@ -104,6 +103,10 @@ pub async fn miner_worker(
                             ctx.current().id(),
                             miner_worker_message
                         );
+                        let funnel: Funnel = miner_worker_message.funnel.clone();
+                        rml.set_funnel(funnel);
+                        let genome_mutate_context: GenomeMutateContext = miner_worker_message.genome_mutate_context.clone();
+                        rml.set_genome_mutate_context(genome_mutate_context);
                     })
                     .on_question(|message: MinerWorkerQuestion, sender| {
                         println!("miner_worker {}, received a question: \n{:?}", 

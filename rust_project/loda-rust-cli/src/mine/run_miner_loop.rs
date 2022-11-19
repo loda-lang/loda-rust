@@ -193,9 +193,12 @@ impl RunMinerLoop {
         dependency_manager.reset_metrics();
     }
 
-    pub fn set_funnel(&mut self) {
-        // TODO: pass on a "funnel" instance
-        // self.funnel.clear();
+    pub fn set_funnel(&mut self, funnel: Funnel) {
+        self.funnel = funnel;
+    }
+
+    pub fn set_genome_mutate_context(&mut self, genome_mutate_context: GenomeMutateContext) {
+        self.context = genome_mutate_context;
     }
 
     pub fn load_initial_genome_program(&mut self, dependency_manager: &mut DependencyManager) -> anyhow::Result<()> {
