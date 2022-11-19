@@ -2,6 +2,7 @@
 use crate::analytics::Analytics;
 use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
+use crate::mine::{analytics_worker, AnalyticsWorkerMessage};
 use crate::mine::{MineEventDirectoryState, MetricsWorker, MinerWorkerMessage, MinerWorkerQuestion};
 use crate::mine::{CreateFunnel, Funnel, FunnelConfig};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
@@ -51,6 +52,7 @@ impl SubcommandMine {
         instance.start_upload_worker()?;
         instance.start_postmine_worker()?;
         instance.start_miner_workers()?;
+        instance.start_analytics_worker()?;
         instance.start_cronjob_worker()?;
 
         Bastion::start();
@@ -290,6 +292,31 @@ impl SubcommandMine {
             })
         })
         .map_err(|e| anyhow::anyhow!("couldn't start miner_workers. error: {:?}", e))?;
+        Ok(())
+    }
+    
+    fn start_analytics_worker(&self) -> anyhow::Result<()> {
+        let mine_event_dir_state = self.mine_event_dir_state.clone();
+        let shared_worker_state = self.shared_worker_state.clone();
+        Bastion::supervisor(|supervisor| {
+            supervisor.children(|children| {
+                children
+                    .with_redundancy(1)
+                    .with_distributor(Distributor::named("analytics_worker"))
+                    .with_exec(move |ctx: BastionContext| {
+                        let mine_event_dir_state_clone = mine_event_dir_state.clone();
+                        let shared_worker_state_clone = shared_worker_state.clone();
+                        async move {
+                            analytics_worker(
+                                ctx,
+                                mine_event_dir_state_clone,
+                                shared_worker_state_clone,
+                            ).await
+                        }
+                    })
+            })
+        })
+        .map_err(|e| anyhow::anyhow!("couldn't start analytics_worker. error: {:?}", e))?;
         Ok(())
     }
     
