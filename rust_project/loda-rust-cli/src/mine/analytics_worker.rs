@@ -135,6 +135,8 @@ pub async fn analytics_worker(
             let tell_result = miner_worker_distributor.tell_everyone(arc_instance);
             if let Err(error) = tell_result {
                 error!("analytics_worker: Unable to send MinerWorkerMessageWithAnalytics to miner_worker_distributor. error: {:?}", error);
+                Bastion::stop();
+                continue;
             }
     
             thread::sleep(Duration::from_millis(1000));
@@ -145,6 +147,8 @@ pub async fn analytics_worker(
                 },
                 Err(error) => {
                     error!("analytics_worker: Unable to change state=Mining. error: {:?}", error);
+                    Bastion::stop();
+                    continue;
                 }
             }
         }
