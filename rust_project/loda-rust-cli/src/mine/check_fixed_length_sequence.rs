@@ -1,3 +1,4 @@
+use std::fmt;
 use loda_rust_core::util::BigIntVec;
 use loda_rust_core::oeis::{OeisId, OeisIdHashSet};
 use super::{FunnelConfig, WildcardChecker};
@@ -101,6 +102,14 @@ impl WildcardChecker for CheckFixedLengthSequence {
 
     fn bloomfilter_wildcard_magic_value(&self) -> &BigInt {
         &self.bloomfilter_wildcard_magic_value
+    }
+}
+
+impl fmt::Debug for CheckFixedLengthSequence {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CheckFixedLengthSequence")
+            .field("bloomfilter_wildcard_magic_value", &self.bloomfilter_wildcard_magic_value)
+            .finish_non_exhaustive()
     }
 }
 

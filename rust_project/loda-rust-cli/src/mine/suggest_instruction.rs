@@ -11,7 +11,7 @@ type HistogramKey = (String,String);
 type InstructionAndWeight = (InstructionId,u32);
 type HistogramValue = Vec<InstructionAndWeight>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SuggestInstruction {
     histogram: HashMap<HistogramKey, HistogramValue>
 }
