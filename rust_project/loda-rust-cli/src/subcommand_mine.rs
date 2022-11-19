@@ -2,7 +2,7 @@
 use crate::analytics::Analytics;
 use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
-use crate::mine::{MineEventDirectoryState, MetricsWorker, MinerWorkerMessage};
+use crate::mine::{MineEventDirectoryState, MetricsWorker, MinerWorkerMessage, MinerWorkerQuestion};
 use crate::mine::{CreateFunnel, Funnel, FunnelConfig};
 use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use crate::mine::{create_prevent_flooding, PreventFlooding};
@@ -55,16 +55,43 @@ impl SubcommandMine {
 
         Bastion::start();
 
-        thread::sleep(Duration::from_millis(10000));
+        instance.experiment_contact_miner_workers1();
+        instance.experiment_contact_miner_workers2();
 
+        Bastion::block_until_stopped();
+        return Ok(());
+    }
+
+    fn experiment_contact_miner_workers1(&self) {
+        thread::sleep(Duration::from_millis(10000));
         let miner_worker_distributor = Distributor::named("miner_worker");
         let tell_result = miner_worker_distributor.tell_everyone(MinerWorkerMessage::InvalidateAnalytics);
         if let Err(error) = tell_result {
             error!("miner_worker: Unable to send InvalidateAnalytics to miner_worker_distributor. error: {:?}", error);
         }
+    }
 
-        Bastion::block_until_stopped();
-        return Ok(());
+    fn experiment_contact_miner_workers2(&self) {
+        thread::sleep(Duration::from_millis(10000));
+        let miner_worker_distributor = Distributor::named("miner_worker");
+
+        let ask_result = miner_worker_distributor.ask_everyone(MinerWorkerQuestion::Launch);
+        let answers: Vec<Answer> = ask_result.expect("boom");
+        for answer in answers.into_iter() {
+            run!(async move {
+                MessageHandler::new(answer.await.expect("couldn't receive reply"))
+                    .on_tell(|response: String, _| {
+                        println!("response: {:?}", response);
+                    })
+                    .on_fallback(|unknown, _sender_addr| {
+                        error!(
+                            "distributor_test: uh oh, I received a message I didn't understand\n {:?}",
+                            unknown
+                        );
+                    });
+            });
+        }
+        // TODO: wait for response from all
     }
 
     fn new(
@@ -224,6 +251,7 @@ impl SubcommandMine {
 
         println!("populating funnel");
         let funnel: Funnel = Funnel::create_funnel_with_file_data(&self.config);
+        // let funnel: Funnel = Funnel::create_empty_funnel();
         
         println!("populating genome_mutate_context");
         let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(&self.config);

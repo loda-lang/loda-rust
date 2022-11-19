@@ -18,6 +18,11 @@ pub enum MinerWorkerMessage {
     InvalidateAnalytics,
 }
 
+#[derive(Debug, Clone)]
+pub enum MinerWorkerQuestion {
+    Launch,
+}
+
 pub async fn miner_worker(
     ctx: BastionContext,
     terms_to_program_id: Arc<TermsToProgramIdSet>,
@@ -77,6 +82,20 @@ pub async fn miner_worker(
                                 rml.set_funnel();
                             }
                         }
+                    })
+                    .on_question(|message: MinerWorkerQuestion, sender| {
+                        println!("miner_worker {}, received a question: \n{:?}", 
+                            ctx.current().id(),
+                            message
+                        );
+                        match sender.reply("Next month!".to_string()) {
+                            Ok(value) => {
+                                println!("reply ok: {:?}", value);
+                            },
+                            Err(error) => {
+                                error!("reply error: {:?}", error);
+                            }
+                        };
                     })
                     .on_fallback(|unknown, _sender_addr| {
                         error!(
