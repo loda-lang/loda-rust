@@ -3,7 +3,7 @@ use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
 use crate::mine::{analytics_worker, AnalyticsWorkerMessage};
 use crate::mine::{MineEventDirectoryState, MetricsWorker, MinerWorkerMessage, MinerWorkerQuestion};
-use crate::mine::{create_prevent_flooding, PreventFlooding};
+use crate::mine::PreventFlooding;
 use crate::mine::{cronjob_worker, CronjobWorkerMessage};
 use crate::mine::{miner_worker};
 use crate::mine::{postmine_worker, SharedWorkerState};
@@ -40,7 +40,6 @@ impl SubcommandMine {
         instance.prepare_mineevent_dir()?;
         instance.print_info();
         instance.reload_mineevent_directory_state()?;
-        instance.populate_prevent_flooding_mechanism()?;
         instance.start_metrics_worker()?;
         instance.start_upload_worker()?;
         instance.start_postmine_worker()?;
@@ -174,12 +173,6 @@ impl SubcommandMine {
         Ok(())
     }
 
-    fn populate_prevent_flooding_mechanism(&mut self) -> anyhow::Result<()> {
-        let prevent_flooding: PreventFlooding = create_prevent_flooding(&self.config)?;
-        self.prevent_flooding = Arc::new(Mutex::new(prevent_flooding));
-        Ok(())
-    }
-
     fn start_metrics_worker(&self) -> anyhow::Result<()> {
         match self.metrics_mode {
             SubcommandMineMetricsMode::NoMetricsServer => {
@@ -276,6 +269,7 @@ impl SubcommandMine {
     fn start_analytics_worker(&self) -> anyhow::Result<()> {
         let config_original: Config = self.config.clone();
         let shared_worker_state = self.shared_worker_state.clone();
+        let prevent_flooding = self.prevent_flooding.clone();
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
@@ -284,10 +278,12 @@ impl SubcommandMine {
                     .with_exec(move |ctx: BastionContext| {
                         let config_clone: Config = config_original.clone();
                         let shared_worker_state_clone = shared_worker_state.clone();
+                        let prevent_flooding_clone = prevent_flooding.clone();
                         async move {
                             analytics_worker(
                                 ctx,
                                 config_clone,
+                                prevent_flooding_clone,
                                 shared_worker_state_clone,
                             ).await
                         }

@@ -5,6 +5,7 @@ use super::{CreateFunnel, Funnel, FunnelConfig};
 use super::{create_genome_mutate_context, GenomeMutateContext};
 use super::SharedWorkerState;
 use super::MinerWorkerMessageWithAnalytics;
+use super::{create_prevent_flooding, PreventFlooding};
 use bastion::prelude::*;
 use num_bigint::{BigInt, ToBigInt};
 use std::path::PathBuf;
@@ -23,6 +24,7 @@ pub enum AnalyticsWorkerMessage {
 pub async fn analytics_worker(
     ctx: BastionContext,
     config: Config,
+    prevent_flooding: Arc<Mutex<PreventFlooding>>,
     shared_worker_state: Arc<Mutex<SharedWorkerState>>,
 ) -> Result<(), ()> {
     let miner_worker_distributor = Distributor::named("miner_worker");
@@ -74,6 +76,25 @@ pub async fn analytics_worker(
                 Ok(()) => {},
                 Err(error) => {
                     error!("AFTER analytics. error: {:?}", error);
+                    Bastion::stop();
+                    continue;
+                }
+            }
+
+            let prevent_flooding_x: PreventFlooding = match create_prevent_flooding(&config) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("analytics_worker: create_prevent_flooding failed. error: {:?}", error);
+                    Bastion::stop();
+                    continue;
+                }
+            };
+            match prevent_flooding.lock() {
+                Ok(mut instance) => {
+                    *instance = prevent_flooding_x;
+                },
+                Err(error) => {
+                    error!("analytics_worker: Unable to populate PreventFlooding mechanism. error: {:?}", error);
                     Bastion::stop();
                     continue;
                 }
