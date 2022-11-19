@@ -1,9 +1,9 @@
 use crate::analytics::Analytics;
-use crate::config::{Config, NumberOfWorkers};
-use super::{CreateFunnel, Funnel, FunnelConfig};
+use crate::config::Config;
+use super::{CreateFunnel, Funnel};
 use super::{create_genome_mutate_context, GenomeMutateContext};
-use super::{MineEventDirectoryState, SharedWorkerState};
-use super::{MinerWorkerMessage, MinerWorkerMessageWithAnalytics, MinerWorkerQuestion};
+use super::SharedWorkerState;
+use super::MinerWorkerMessageWithAnalytics;
 use bastion::prelude::*;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -20,7 +20,6 @@ pub enum AnalyticsWorkerMessage {
 pub async fn analytics_worker(
     ctx: BastionContext,
     config: Config,
-    mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
     shared_worker_state: Arc<Mutex<SharedWorkerState>>,
 ) -> Result<(), ()> {
     let miner_worker_distributor = Distributor::named("miner_worker");

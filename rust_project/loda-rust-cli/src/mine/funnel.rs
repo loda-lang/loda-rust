@@ -62,13 +62,6 @@ impl Funnel {
         }
     }
 
-    pub fn clear(&mut self) {
-        self.checker10.clear();
-        self.checker20.clear();
-        self.checker30.clear();
-        self.checker40.clear();
-    }
-
     pub fn check10(&mut self, terms: &BigIntVec) -> bool {
         if !self.checker10.check(terms) {
             return false;

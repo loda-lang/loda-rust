@@ -46,10 +46,6 @@ impl CheckFixedLengthSequence {
         }
     }
 
-    pub fn clear(&mut self) {
-        self.bloom.clear();
-    }
-
     /// Returns `false` if the integer sequence is unknown.
     /// The caller doesn't have to do any more checks.
     ///

@@ -294,7 +294,6 @@ impl SubcommandMine {
     
     fn start_analytics_worker(&self) -> anyhow::Result<()> {
         let config_original: Config = self.config.clone();
-        let mine_event_dir_state = self.mine_event_dir_state.clone();
         let shared_worker_state = self.shared_worker_state.clone();
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
@@ -303,13 +302,11 @@ impl SubcommandMine {
                     .with_distributor(Distributor::named("analytics_worker"))
                     .with_exec(move |ctx: BastionContext| {
                         let config_clone: Config = config_original.clone();
-                        let mine_event_dir_state_clone = mine_event_dir_state.clone();
                         let shared_worker_state_clone = shared_worker_state.clone();
                         async move {
                             analytics_worker(
                                 ctx,
                                 config_clone,
-                                mine_event_dir_state_clone,
                                 shared_worker_state_clone,
                             ).await
                         }
