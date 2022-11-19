@@ -81,17 +81,17 @@ pub async fn miner_worker(
     loop {
         // try receive, if there is no pending message, then continue working
         // this way the worker, is kept busy, until there is an incoming message.
-        let optional_message: Option<SignedMessage> = ctx.try_recv().await;
-        match optional_message {
-            Some(message) => {
-                MessageHandler::new(message)
-                    .on_tell(|miner_worker_message: MinerWorkerMessage, _| {
+        let optional_signed_message: Option<SignedMessage> = ctx.try_recv().await;
+        match optional_signed_message {
+            Some(signed_message) => {
+                MessageHandler::new(signed_message)
+                    .on_tell(|message: MinerWorkerMessage, _| {
                         println!(
-                            "miner_worker {}, received broadcast MinerWorkerMessage!:\n{:?}",
+                            "miner_worker {}, received broadcast MinerWorkerMessage: {:?}",
                             ctx.current().id(),
-                            miner_worker_message
+                            message
                         );
-                        match miner_worker_message {
+                        match message {
                             MinerWorkerMessage::Ping => {
                                 println!("Ping");
                             },
@@ -100,17 +100,15 @@ pub async fn miner_worker(
                             }
                         }
                     })
-                    .on_tell(|miner_worker_message: std::sync::Arc<MinerWorkerMessageWithAnalytics>, _| {
+                    .on_tell(|message: std::sync::Arc<MinerWorkerMessageWithAnalytics>, _| {
                         println!(
-                            "miner_worker {}, received broadcast MinerWorkerMessageWithAnalytics!:\n{:?}",
+                            "miner_worker {}, received broadcast MinerWorkerMessageWithAnalytics: {:?}",
                             ctx.current().id(),
-                            miner_worker_message
+                            message
                         );
-                        let funnel: Funnel = miner_worker_message.funnel.clone();
-                        rml.set_funnel(funnel);
-                        let genome_mutate_context: GenomeMutateContext = miner_worker_message.genome_mutate_context.clone();
-                        rml.set_genome_mutate_context(genome_mutate_context);
-                        rml.set_terms_to_program_id(miner_worker_message.terms_to_program_id_arc.clone());
+                        rml.set_funnel(message.funnel.clone());
+                        rml.set_genome_mutate_context(message.genome_mutate_context.clone());
+                        rml.set_terms_to_program_id(message.terms_to_program_id_arc.clone());
                     })
                     .on_question(|message: MinerWorkerQuestion, sender| {
                         println!("miner_worker {}, received a question: \n{:?}", 
