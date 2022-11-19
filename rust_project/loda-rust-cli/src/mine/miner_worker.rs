@@ -114,7 +114,7 @@ pub async fn miner_worker(
                         continue;
                     }
                 };
-                if the_state == SharedWorkerState::Paused {
+                if the_state != SharedWorkerState::Mining {
                     // Not mining, sleep for a while, and poll again
                     thread::sleep(Duration::from_millis(200));
                     continue;
@@ -164,7 +164,7 @@ pub async fn miner_worker(
                             if *state == SharedWorkerState::Mining {
                                 trigger_start_postmine = true;
                             }
-                            *state = SharedWorkerState::Paused;
+                            *state = SharedWorkerState::Postmine;
                         },
                         Err(error) => {
                             error!("miner_worker: Unable to Pause all miner_workers. error: {:?}", error);
