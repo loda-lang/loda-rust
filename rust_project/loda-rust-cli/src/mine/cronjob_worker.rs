@@ -1,4 +1,4 @@
-use super::{MineEventDirectoryState, SharedMinerWorkerState};
+use super::{MineEventDirectoryState, SharedWorkerState};
 use bastion::prelude::*;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -15,7 +15,7 @@ pub enum CronjobWorkerMessage {
 pub async fn cronjob_worker(
     ctx: BastionContext,
     mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
-    shared_miner_worker_state: Arc<Mutex<SharedMinerWorkerState>>,
+    shared_worker_state: Arc<Mutex<SharedWorkerState>>,
 ) -> Result<(), ()> {
     let mut progress_time = Instant::now();
     loop {

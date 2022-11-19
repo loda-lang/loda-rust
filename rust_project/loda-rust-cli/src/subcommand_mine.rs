@@ -8,7 +8,7 @@ use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
 use crate::mine::{create_prevent_flooding, PreventFlooding};
 use crate::mine::{cronjob_worker, CronjobWorkerMessage};
 use crate::mine::{miner_worker};
-use crate::mine::{postmine_worker, SharedMinerWorkerState};
+use crate::mine::{postmine_worker, SharedWorkerState};
 use crate::mine::upload_worker;
 use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
 use bastion::prelude::*;
@@ -32,7 +32,7 @@ pub struct SubcommandMine {
     config: Config,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
     mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
-    shared_miner_worker_state: Arc<Mutex<SharedMinerWorkerState>>,
+    shared_worker_state: Arc<Mutex<SharedWorkerState>>,
 }
 
 impl SubcommandMine {
@@ -78,7 +78,7 @@ impl SubcommandMine {
             config: config,
             prevent_flooding: Arc::new(Mutex::new(PreventFlooding::new())),
             mine_event_dir_state: Arc::new(Mutex::new(MineEventDirectoryState::new())),
-            shared_miner_worker_state: Arc::new(Mutex::new(SharedMinerWorkerState::Mining)),
+            shared_worker_state: Arc::new(Mutex::new(SharedWorkerState::Mining)),
         }
     }
 
@@ -185,7 +185,7 @@ impl SubcommandMine {
     
     fn start_postmine_worker(&self) -> anyhow::Result<()> {
         let mine_event_dir_state = self.mine_event_dir_state.clone();
-        let shared_miner_worker_state = self.shared_miner_worker_state.clone();
+        let shared_worker_state = self.shared_worker_state.clone();
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
@@ -193,12 +193,12 @@ impl SubcommandMine {
                     .with_distributor(Distributor::named("postmine_worker"))
                     .with_exec(move |ctx: BastionContext| {
                         let mine_event_dir_state_clone = mine_event_dir_state.clone();
-                        let shared_miner_worker_state_clone = shared_miner_worker_state.clone();
+                        let shared_worker_state_clone = shared_worker_state.clone();
                         async move {
                             postmine_worker(
                                 ctx,
                                 mine_event_dir_state_clone,
-                                shared_miner_worker_state_clone,
+                                shared_worker_state_clone,
                             ).await
                         }
                     })
@@ -231,7 +231,7 @@ impl SubcommandMine {
         let config_original: Config = self.config.clone();
         let prevent_flooding = self.prevent_flooding.clone();
         let mine_event_dir_state = self.mine_event_dir_state.clone();
-        let shared_miner_worker_state = self.shared_miner_worker_state.clone();
+        let shared_worker_state = self.shared_worker_state.clone();
 
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
@@ -242,7 +242,7 @@ impl SubcommandMine {
                         let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
                         let prevent_flooding_clone = prevent_flooding.clone();
                         let mine_event_dir_state_clone = mine_event_dir_state.clone();
-                        let shared_miner_worker_state_clone = shared_miner_worker_state.clone();
+                        let shared_worker_state_clone = shared_worker_state.clone();
                         let config_clone = config_original.clone();
                         let funnel_clone = funnel.clone();
                         let genome_mutate_context_clone = genome_mutate_context.clone();
@@ -252,7 +252,7 @@ impl SubcommandMine {
                                 terms_to_program_id_arc_clone,
                                 prevent_flooding_clone,
                                 mine_event_dir_state_clone,
-                                shared_miner_worker_state_clone,
+                                shared_worker_state_clone,
                                 config_clone,
                                 funnel_clone,
                                 genome_mutate_context_clone,
@@ -267,7 +267,7 @@ impl SubcommandMine {
     
     fn start_cronjob_worker(&self) -> anyhow::Result<()> {
         let mine_event_dir_state = self.mine_event_dir_state.clone();
-        let shared_miner_worker_state = self.shared_miner_worker_state.clone();
+        let shared_worker_state = self.shared_worker_state.clone();
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
@@ -275,12 +275,12 @@ impl SubcommandMine {
                     .with_distributor(Distributor::named("cronjob_worker"))
                     .with_exec(move |ctx: BastionContext| {
                         let mine_event_dir_state_clone = mine_event_dir_state.clone();
-                        let shared_miner_worker_state_clone = shared_miner_worker_state.clone();
+                        let shared_worker_state_clone = shared_worker_state.clone();
                         async move {
                             cronjob_worker(
                                 ctx,
                                 mine_event_dir_state_clone,
-                                shared_miner_worker_state_clone,
+                                shared_worker_state_clone,
                             ).await
                         }
                     })

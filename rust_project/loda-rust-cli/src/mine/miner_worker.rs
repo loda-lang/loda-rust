@@ -1,6 +1,6 @@
 use crate::config::Config;
 use super::{ExecuteBatchResult, MineEventDirectoryState, RunMinerLoop, MetricEvent};
-use super::{Funnel, GenomeMutateContext, PreventFlooding, PostmineWorkerMessage, SharedMinerWorkerState};
+use super::{Funnel, GenomeMutateContext, PreventFlooding, PostmineWorkerMessage, SharedWorkerState};
 use crate::oeis::TermsToProgramIdSet;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
 use bastion::prelude::*;
@@ -23,7 +23,7 @@ pub async fn miner_worker(
     terms_to_program_id: Arc<TermsToProgramIdSet>,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
     mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
-    shared_miner_worker_state: Arc<Mutex<SharedMinerWorkerState>>,
+    shared_worker_state: Arc<Mutex<SharedWorkerState>>,
     config: Config,
     funnel: Funnel,
     genome_mutate_context: GenomeMutateContext,    
@@ -87,7 +87,7 @@ pub async fn miner_worker(
                     });
             },
             None => {
-                let the_state: SharedMinerWorkerState = match shared_miner_worker_state.lock() {
+                let the_state: SharedWorkerState = match shared_worker_state.lock() {
                     Ok(state) => *state,
                     Err(error) => {
                         error!("miner_worker. shared_miner_worker_state. Unable to lock mutex. {:?}", error);
@@ -95,7 +95,7 @@ pub async fn miner_worker(
                         continue;
                     }
                 };
-                if the_state == SharedMinerWorkerState::Paused {
+                if the_state == SharedWorkerState::Paused {
                     // Not mining, sleep for a while, and poll again
                     thread::sleep(Duration::from_millis(200));
                     continue;
@@ -140,12 +140,12 @@ pub async fn miner_worker(
 
                 if has_reached_mining_limit {
                     let mut trigger_start_postmine = false;
-                    match shared_miner_worker_state.lock() {
+                    match shared_worker_state.lock() {
                         Ok(mut state) => {
-                            if *state == SharedMinerWorkerState::Mining {
+                            if *state == SharedWorkerState::Mining {
                                 trigger_start_postmine = true;
                             }
-                            *state = SharedMinerWorkerState::Paused;
+                            *state = SharedWorkerState::Paused;
                         },
                         Err(error) => {
                             error!("miner_worker: Unable to Pause all miner_workers. error: {:?}", error);

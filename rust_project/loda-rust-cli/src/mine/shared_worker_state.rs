@@ -1,5 +1,5 @@
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum SharedMinerWorkerState {
+pub enum SharedWorkerState {
     Mining,
     Paused,
 }
