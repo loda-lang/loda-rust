@@ -4,6 +4,7 @@ use super::{Funnel, GenomeMutateContext, PreventFlooding, PostmineWorkerMessage,
 use crate::oeis::TermsToProgramIdSet;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
 use bastion::prelude::*;
+use std::fmt;
 use std::thread;
 use std::time::Duration;
 use std::path::PathBuf;
@@ -18,18 +19,26 @@ pub enum MinerWorkerMessage {
     InvalidateAnalytics,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct MinerWorkerMessageWithAnalytics {
     funnel: Funnel,
     genome_mutate_context: GenomeMutateContext,
+    terms_to_program_id_arc: Arc<TermsToProgramIdSet>,
 }
 
 impl MinerWorkerMessageWithAnalytics {
-    pub fn new(funnel: Funnel, genome_mutate_context: GenomeMutateContext) -> Self {
+    pub fn new(funnel: Funnel, genome_mutate_context: GenomeMutateContext, terms_to_program_id_arc: Arc<TermsToProgramIdSet>) -> Self {
         Self {
             funnel,
             genome_mutate_context,
+            terms_to_program_id_arc,
         }
+    }
+}
+
+impl fmt::Debug for MinerWorkerMessageWithAnalytics {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "MinerWorkerMessageWithAnalytics")
     }
 }
 
@@ -40,7 +49,6 @@ pub enum MinerWorkerQuestion {
 
 pub async fn miner_worker(
     ctx: BastionContext,
-    terms_to_program_id: Arc<TermsToProgramIdSet>,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
     mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
     shared_worker_state: Arc<Mutex<SharedWorkerState>>,
@@ -61,7 +69,6 @@ pub async fn miner_worker(
         &config,
         prevent_flooding,
         initial_random_seed,
-        terms_to_program_id,
     );
     let callback = move |metric_event: MetricEvent| {
         let tell_result = metrics_worker_distributor.tell_everyone(metric_event.clone());
@@ -103,6 +110,7 @@ pub async fn miner_worker(
                         rml.set_funnel(funnel);
                         let genome_mutate_context: GenomeMutateContext = miner_worker_message.genome_mutate_context.clone();
                         rml.set_genome_mutate_context(genome_mutate_context);
+                        rml.set_terms_to_program_id(miner_worker_message.terms_to_program_id_arc.clone());
                     })
                     .on_question(|message: MinerWorkerQuestion, sender| {
                         println!("miner_worker {}, received a question: \n{:?}", 

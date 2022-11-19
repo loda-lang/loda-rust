@@ -3,18 +3,14 @@ use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
 use crate::mine::{analytics_worker, AnalyticsWorkerMessage};
 use crate::mine::{MineEventDirectoryState, MetricsWorker, MinerWorkerMessage, MinerWorkerQuestion};
-use crate::mine::FunnelConfig;
 use crate::mine::{create_prevent_flooding, PreventFlooding};
 use crate::mine::{cronjob_worker, CronjobWorkerMessage};
 use crate::mine::{miner_worker};
 use crate::mine::{postmine_worker, SharedWorkerState};
 use crate::mine::upload_worker;
-use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
 use bastion::prelude::*;
-use num_bigint::{BigInt, ToBigInt};
 use anyhow::Context;
 use std::fs;
-use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -246,19 +242,6 @@ impl SubcommandMine {
     }
 
     fn start_miner_workers(&self) -> anyhow::Result<()> {
-        println!("populating terms_to_program_id");
-        let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
-        let padding_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
-        let terms_to_program_id: TermsToProgramIdSet = load_terms_to_program_id_set(
-            &oeis_stripped_file, 
-            FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS, 
-            FunnelConfig::TERM_COUNT,
-            &padding_value
-        )
-        .map_err(|e| anyhow::anyhow!("Unable to load terms for program ids. error: {:?}", e))?;
-
-        let terms_to_program_id_arc: Arc<TermsToProgramIdSet> = Arc::new(terms_to_program_id);
-        
         let config_original: Config = self.config.clone();
         let prevent_flooding = self.prevent_flooding.clone();
         let mine_event_dir_state = self.mine_event_dir_state.clone();
@@ -270,7 +253,6 @@ impl SubcommandMine {
                     .with_redundancy(self.number_of_workers)
                     .with_distributor(Distributor::named("miner_worker"))
                     .with_exec(move |ctx: BastionContext| {
-                        let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
                         let prevent_flooding_clone = prevent_flooding.clone();
                         let mine_event_dir_state_clone = mine_event_dir_state.clone();
                         let shared_worker_state_clone = shared_worker_state.clone();
@@ -278,7 +260,6 @@ impl SubcommandMine {
                         async move {
                             miner_worker(
                                 ctx,
-                                terms_to_program_id_arc_clone,
                                 prevent_flooding_clone,
                                 mine_event_dir_state_clone,
                                 shared_worker_state_clone,

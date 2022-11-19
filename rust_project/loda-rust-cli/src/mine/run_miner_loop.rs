@@ -85,7 +85,6 @@ impl RunMinerLoop {
         config: &Config,
         prevent_flooding: Arc<Mutex<PreventFlooding>>,
         initial_random_seed: u64,
-        terms_to_program_id: Arc<TermsToProgramIdSet>
     ) -> Self {
         let rng: StdRng = StdRng::seed_from_u64(initial_random_seed);
 
@@ -113,7 +112,7 @@ impl RunMinerLoop {
             iteration: 0,
             reload: true,
             term_computer: TermComputer::new(),
-            terms_to_program_id: terms_to_program_id,
+            terms_to_program_id: Arc::new(TermsToProgramIdSet::new()),
             suppress_low_priority_programs: suppress_low_priority_programs,
         }
     }
@@ -198,6 +197,10 @@ impl RunMinerLoop {
 
     pub fn set_genome_mutate_context(&mut self, genome_mutate_context: GenomeMutateContext) {
         self.context = genome_mutate_context;
+    }
+
+    pub fn set_terms_to_program_id(&mut self, terms_to_program_id: Arc<TermsToProgramIdSet>) {
+        self.terms_to_program_id = terms_to_program_id;
     }
 
     pub fn load_initial_genome_program(&mut self, dependency_manager: &mut DependencyManager) -> anyhow::Result<()> {

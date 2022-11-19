@@ -1,10 +1,13 @@
 use crate::analytics::Analytics;
 use crate::config::Config;
-use super::{CreateFunnel, Funnel};
+use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
+use super::{CreateFunnel, Funnel, FunnelConfig};
 use super::{create_genome_mutate_context, GenomeMutateContext};
 use super::SharedWorkerState;
 use super::MinerWorkerMessageWithAnalytics;
 use bastion::prelude::*;
+use num_bigint::{BigInt, ToBigInt};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -72,8 +75,28 @@ pub async fn analytics_worker(
                 Err(error) => {
                     error!("AFTER analytics. error: {:?}", error);
                     Bastion::stop();
+                    continue;
                 }
             }
+
+            println!("populating terms_to_program_id");
+            let oeis_stripped_file: PathBuf = config.oeis_stripped_file();
+            let padding_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
+            let terms_to_program_id_result = load_terms_to_program_id_set(
+                &oeis_stripped_file, 
+                FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS, 
+                FunnelConfig::TERM_COUNT,
+                &padding_value
+            );
+            let terms_to_program_id: TermsToProgramIdSet = match terms_to_program_id_result {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("analytics_worker: Unable to load terms for program ids. error: {:?}", error);
+                    Bastion::stop();
+                    continue;
+                }
+            };
+            let terms_to_program_id_arc: Arc<TermsToProgramIdSet> = Arc::new(terms_to_program_id);
 
             println!("populating funnel");
             let funnel: Funnel = Funnel::create_funnel_with_file_data(&config);
@@ -85,6 +108,7 @@ pub async fn analytics_worker(
             let instance = MinerWorkerMessageWithAnalytics::new(
                 funnel,
                 genome_mutate_context,
+                terms_to_program_id_arc,
             );
             let arc_instance = Arc::new(instance);
             let tell_result = miner_worker_distributor.tell_everyone(arc_instance);
