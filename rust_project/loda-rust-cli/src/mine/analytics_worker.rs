@@ -95,6 +95,14 @@ pub async fn analytics_worker(
     
             thread::sleep(Duration::from_millis(1000));
             println!("AFTER analytics. ok");
+            match shared_worker_state.lock() {
+                Ok(mut state) => {
+                    *state = SharedWorkerState::Mining;
+                },
+                Err(error) => {
+                    error!("analytics_worker: Unable to change state=Mining. error: {:?}", error);
+                }
+            }
         }
     }
 }

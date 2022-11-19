@@ -1,5 +1,4 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
-use crate::analytics::Analytics;
 use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
 use crate::mine::{analytics_worker, AnalyticsWorkerMessage};
@@ -45,7 +44,6 @@ impl SubcommandMine {
         let mut instance = SubcommandMine::new(metrics_mode);
         instance.prepare_mineevent_dir()?;
         instance.print_info();
-        instance.regenerate_analytics_if_expired()?;
         instance.reload_mineevent_directory_state()?;
         instance.populate_prevent_flooding_mechanism()?;
         instance.start_metrics_worker()?;
@@ -57,6 +55,8 @@ impl SubcommandMine {
 
         Bastion::start();
 
+        instance.perform_analytics()?;
+
         instance.experiment_contact_miner_workers1();
         instance.experiment_contact_miner_workers2();
 
@@ -64,6 +64,9 @@ impl SubcommandMine {
         return Ok(());
     }
 
+    /// Regenerate analytics if it has expired.
+    /// 
+    /// Load analytics data and pass it on to the `miner_worker` instances.
     fn perform_analytics(&self) -> anyhow::Result<()> {
         thread::sleep(Duration::from_millis(1000));
         let miner_worker_distributor = Distributor::named("analytics_worker");
@@ -117,7 +120,7 @@ impl SubcommandMine {
             config: config,
             prevent_flooding: Arc::new(Mutex::new(PreventFlooding::new())),
             mine_event_dir_state: Arc::new(Mutex::new(MineEventDirectoryState::new())),
-            shared_worker_state: Arc::new(Mutex::new(SharedWorkerState::Mining)),
+            shared_worker_state: Arc::new(Mutex::new(SharedWorkerState::Analytics)),
         }
     }
 
@@ -159,10 +162,6 @@ impl SubcommandMine {
         println!("number of workers: {}", self.number_of_workers);
 
         println!("Press CTRL-C to stop the miner.\n\n");
-    }
-
-    fn regenerate_analytics_if_expired(&self) -> anyhow::Result<()> {
-        Analytics::run_if_expired()
     }
 
     fn reload_mineevent_directory_state(&mut self) -> anyhow::Result<()> {
@@ -261,12 +260,8 @@ impl SubcommandMine {
 
         let terms_to_program_id_arc: Arc<TermsToProgramIdSet> = Arc::new(terms_to_program_id);
 
-        println!("populating funnel");
-        let funnel: Funnel = Funnel::create_funnel_with_file_data(&self.config);
-        // let funnel: Funnel = Funnel::create_empty_funnel();
-        
-        println!("populating genome_mutate_context");
-        let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(&self.config);
+        let funnel: Funnel = Funnel::create_empty_funnel();
+        let genome_mutate_context: GenomeMutateContext = GenomeMutateContext::new_empty();
         
         let config_original: Config = self.config.clone();
         let prevent_flooding = self.prevent_flooding.clone();
