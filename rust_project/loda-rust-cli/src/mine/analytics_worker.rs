@@ -1,3 +1,4 @@
+use crate::analytics::Analytics;
 use super::{MineEventDirectoryState, SharedWorkerState};
 use bastion::prelude::*;
 use std::sync::{Arc, Mutex};
@@ -9,7 +10,7 @@ const ANALYTICS_INTERVAL_MILLIS: u64 = 10000;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AnalyticsWorkerMessage {
-    DoSomething,
+    StartAnalyticsJob,
 }
 
 pub async fn analytics_worker(
@@ -37,6 +38,7 @@ pub async fn analytics_worker(
                 continue;
             }
         };
+        let mut perform_analytics: bool = false;
         MessageHandler::new(message)
             .on_tell(|message: AnalyticsWorkerMessage, _| {
                 println!(
@@ -45,12 +47,8 @@ pub async fn analytics_worker(
                     message
                 );
                 match message {
-                    AnalyticsWorkerMessage::DoSomething => {
-                        println!("BEFORE analytics");
-                        println!("AFTER analytics");
-
-                        println!("trigger resume analytics");
-                        thread::sleep(Duration::from_millis(1000));
+                    AnalyticsWorkerMessage::StartAnalyticsJob => {
+                        perform_analytics = true;
                     }
                 }
             })
@@ -61,5 +59,19 @@ pub async fn analytics_worker(
                     unknown
                 );
             });
+
+        if perform_analytics {
+            println!("BEFORE analytics");
+            match Analytics::run_if_expired() {
+                Ok(()) => {
+                    println!("AFTER analytics. ok");
+                },
+                Err(error) => {
+                    error!("AFTER analytics. error: {:?}", error);
+                    Bastion::stop();
+                }
+            }
+            thread::sleep(Duration::from_millis(1000));
+        }
     }
 }
