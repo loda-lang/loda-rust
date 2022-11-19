@@ -19,6 +19,21 @@ pub enum MinerWorkerMessage {
 }
 
 #[derive(Debug, Clone)]
+pub struct MinerWorkerMessageWithAnalytics {
+    funnel: Funnel,
+    genome_mutate_context: GenomeMutateContext,
+}
+
+impl MinerWorkerMessageWithAnalytics {
+    pub fn new(funnel: Funnel, genome_mutate_context: GenomeMutateContext) -> Self {
+        Self {
+            funnel,
+            genome_mutate_context,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum MinerWorkerQuestion {
     Launch,
 }
@@ -82,6 +97,13 @@ pub async fn miner_worker(
                                 rml.set_funnel();
                             }
                         }
+                    })
+                    .on_tell(|miner_worker_message: std::sync::Arc<MinerWorkerMessageWithAnalytics>, _| {
+                        println!(
+                            "miner_worker {}, received broadcast MinerWorkerMessageWithAnalytics!:\n{:?}",
+                            ctx.current().id(),
+                            miner_worker_message
+                        );
                     })
                     .on_question(|message: MinerWorkerQuestion, sender| {
                         println!("miner_worker {}, received a question: \n{:?}", 

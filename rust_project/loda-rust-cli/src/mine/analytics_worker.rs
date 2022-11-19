@@ -3,6 +3,7 @@ use crate::config::{Config, NumberOfWorkers};
 use super::{CreateFunnel, Funnel, FunnelConfig};
 use super::{create_genome_mutate_context, GenomeMutateContext};
 use super::{MineEventDirectoryState, SharedWorkerState};
+use super::{MinerWorkerMessage, MinerWorkerMessageWithAnalytics, MinerWorkerQuestion};
 use bastion::prelude::*;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -22,6 +23,7 @@ pub async fn analytics_worker(
     mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
     shared_worker_state: Arc<Mutex<SharedWorkerState>>,
 ) -> Result<(), ()> {
+    let miner_worker_distributor = Distributor::named("miner_worker");
     let mut progress_time = Instant::now();
     loop {
         let elapsed: u128 = progress_time.elapsed().as_millis();
@@ -78,7 +80,18 @@ pub async fn analytics_worker(
             let funnel: Funnel = Funnel::create_funnel_with_file_data(&config);
             println!("populating genome_mutate_context");
             let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(&config);
-            println!("populate complete");
+            
+            // Pass on funnel+genome_mutate_context to miner_workers
+            println!("analytics_worker: sending analytics data to miner_workers");
+            let instance = MinerWorkerMessageWithAnalytics::new(
+                funnel,
+                genome_mutate_context,
+            );
+            let arc_instance = Arc::new(instance);
+            let tell_result = miner_worker_distributor.tell_everyone(arc_instance);
+            if let Err(error) = tell_result {
+                error!("analytics_worker: Unable to send MinerWorkerMessageWithAnalytics to miner_worker_distributor. error: {:?}", error);
+            }
     
             thread::sleep(Duration::from_millis(1000));
             println!("AFTER analytics. ok");
