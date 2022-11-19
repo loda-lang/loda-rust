@@ -3,8 +3,7 @@ use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
 use crate::mine::{analytics_worker, AnalyticsWorkerMessage};
 use crate::mine::{MineEventDirectoryState, MetricsWorker, MinerWorkerMessage, MinerWorkerQuestion};
-use crate::mine::{CreateFunnel, Funnel, FunnelConfig};
-use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
+use crate::mine::FunnelConfig;
 use crate::mine::{create_prevent_flooding, PreventFlooding};
 use crate::mine::{cronjob_worker, CronjobWorkerMessage};
 use crate::mine::{miner_worker};
@@ -259,9 +258,6 @@ impl SubcommandMine {
         .map_err(|e| anyhow::anyhow!("Unable to load terms for program ids. error: {:?}", e))?;
 
         let terms_to_program_id_arc: Arc<TermsToProgramIdSet> = Arc::new(terms_to_program_id);
-
-        let funnel: Funnel = Funnel::create_empty_funnel();
-        let genome_mutate_context: GenomeMutateContext = GenomeMutateContext::new_empty();
         
         let config_original: Config = self.config.clone();
         let prevent_flooding = self.prevent_flooding.clone();
@@ -279,8 +275,6 @@ impl SubcommandMine {
                         let mine_event_dir_state_clone = mine_event_dir_state.clone();
                         let shared_worker_state_clone = shared_worker_state.clone();
                         let config_clone = config_original.clone();
-                        let funnel_clone = funnel.clone();
-                        let genome_mutate_context_clone = genome_mutate_context.clone();
                         async move {
                             miner_worker(
                                 ctx,
@@ -289,8 +283,6 @@ impl SubcommandMine {
                                 mine_event_dir_state_clone,
                                 shared_worker_state_clone,
                                 config_clone,
-                                funnel_clone,
-                                genome_mutate_context_clone,
                             ).await
                         }
                     })

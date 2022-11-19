@@ -45,8 +45,6 @@ pub async fn miner_worker(
     mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
     shared_worker_state: Arc<Mutex<SharedWorkerState>>,
     config: Config,
-    funnel: Funnel,
-    genome_mutate_context: GenomeMutateContext,    
 ) -> Result<(), ()> {
     debug!("miner_worker - started, {:?}", ctx.current().id());
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
@@ -60,10 +58,8 @@ pub async fn miner_worker(
     };
 
     let mut rml = RunMinerLoop::new(
-        funnel,
         &config,
         prevent_flooding,
-        genome_mutate_context,
         initial_random_seed,
         terms_to_program_id,
     );

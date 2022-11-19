@@ -1,4 +1,5 @@
-use super::{Funnel, Genome, GenomeItem, GenomeMutateContext, save_candidate_program, ToGenomeItemVec};
+use super::{Genome, GenomeItem, GenomeMutateContext, save_candidate_program, ToGenomeItemVec};
+use super::{CreateFunnel, Funnel};
 use super::{PreventFlooding, TermComputer};
 use super::{PerformanceClassifierResult, PerformanceClassifier};
 use super::MetricEvent;
@@ -81,10 +82,8 @@ pub struct RunMinerLoop {
 
 impl RunMinerLoop {
     pub fn new(
-        funnel: Funnel,
         config: &Config,
         prevent_flooding: Arc<Mutex<PreventFlooding>>,
-        context: GenomeMutateContext,
         initial_random_seed: u64,
         terms_to_program_id: Arc<TermsToProgramIdSet>
     ) -> Self {
@@ -100,11 +99,11 @@ impl RunMinerLoop {
         let capacity = NonZeroUsize::new(MINER_CACHE_CAPACITY).unwrap();
         Self {
             metrics_callback: None,
-            funnel: funnel,
+            funnel: Funnel::create_empty_funnel(),
             mine_event_dir: PathBuf::from(mine_event_dir),
             cache: ProgramCache::with_capacity(capacity),
             prevent_flooding: prevent_flooding,
-            context: context,
+            context: GenomeMutateContext::new_empty(),
             genome: Genome::new(),
             rng: rng,
             metric: MetricsRunMinerLoop::new(),
