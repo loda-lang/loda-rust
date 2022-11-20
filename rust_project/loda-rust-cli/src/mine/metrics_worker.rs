@@ -1,4 +1,5 @@
 use super::{MetricEvent, MetricsPrometheus, MovingAverage, Recorder};
+use super::AnalyticsWorkerMessage;
 use std::time::Duration;
 use std::time::Instant;
 use prometheus_client::encoding::text::encode;
@@ -72,6 +73,22 @@ async fn webserver_with_metrics(registry: MyRegistry, listen_port: u16) -> std::
         registry: registry,
     });
     app.at("/").get(|_| async { Ok("Hello, world!") });
+    app.at("/analytics").get(|_| async {
+        let miner_worker_distributor = Distributor::named("analytics_worker");
+        let tell_result = miner_worker_distributor.tell_everyone(AnalyticsWorkerMessage::RegenerateAnalyticsJob);
+        if let Err(error) = tell_result {
+            let response = tide::Response::builder(500)
+                .body(format!("webserver_with_metrics: /analytics - Unable to send RegenerateAnalyticsJob to analytics_worker_distributor. {:?}", error))
+                .content_type("text/plain; charset=utf-8")
+                .build();
+            return Ok(response);
+        }
+        let response = tide::Response::builder(200)
+            .body("did send RegenerateAnalyticsJob")
+            .content_type("text/plain; charset=utf-8")
+            .build();
+        Ok(response)
+    });
     app.at("/metrics")
         .get(|req: tide::Request<State>| async move {
             let mut encoded = Vec::new();

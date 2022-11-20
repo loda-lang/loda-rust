@@ -19,6 +19,7 @@ const ANALYTICS_INTERVAL_MILLIS: u64 = 10000;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AnalyticsWorkerMessage {
     StartAnalyticsJob,
+    RegenerateAnalyticsJob,
 }
 
 pub async fn analytics_worker(
@@ -59,7 +60,10 @@ pub async fn analytics_worker(
                 match message {
                     AnalyticsWorkerMessage::StartAnalyticsJob => {
                         perform_analytics = true;
-                    }
+                    },
+                    AnalyticsWorkerMessage::RegenerateAnalyticsJob => {
+                        println!("!!!!!!!!!!RegenerateAnalyticsJob");
+                    },
                 }
             })
             .on_fallback(|unknown, _sender_addr| {
