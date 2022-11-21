@@ -16,9 +16,9 @@ loda_rust_repository = "$HOME/git/loda-rust"
 loda_rust_executable = "$HOME/git/loda-rust/rust_project/target/release/loda-rust"
 
 # Absolute path to the "sync" executable file.
-# While mining this executable is run every hour. 
-# This is executable is also run the moment the miner is launched. 
-# The executable is responsible for fetching the newest online data into the local file system.
+# While mining, this executable is run every hour. 
+# This executable is also run the moment the miner is launched. 
+# This executable is responsible for fetching the newest online data into the local file system.
 # This way the local "loda-programs" repository gets updated with the online repository.
 miner_sync_executable = "$HOME/git/loda-rust/script/task_sync_own_fork_loda_programs_repo.rb"
 
