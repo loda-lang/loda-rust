@@ -1,10 +1,24 @@
 use std::path::Path;
 use std::process::{Command, Output};
 
+#[derive(Clone, Copy, Debug)]
+pub enum MinerSyncExecuteStatus {
+    /// The "loda-programs" is already uptodate.
+    /// 
+    /// In this case the `~/.loda-rust/analytics` directory is still uptodate.
+    NoChange,
+
+    /// The local "loda-programs" directory has been updated 
+    /// with the newest data from the official "loda-programs" repository.
+    /// 
+    /// In this case the `~/.loda-rust/analytics` directory is outdated and needs to be regenerated.
+    Changed,
+}
+
 pub struct MinerSyncExecute;
 
 impl MinerSyncExecute {
-    pub fn execute(executable_path: &Path) -> anyhow::Result<()> {
+    pub fn execute(executable_path: &Path) -> anyhow::Result<MinerSyncExecuteStatus> {
         if !executable_path.is_absolute() {
             return Err(anyhow::anyhow!("MinerSyncExecute expected absolute path, but got executable_path: {:?}", executable_path));
         }
@@ -20,9 +34,23 @@ impl MinerSyncExecute {
         if !output.status.success() {
             return Err(anyhow::anyhow!("MinerSyncExecute with failing error code. executable_path: {:?} output: {:?}", executable_path, output_stdout));
         }
-        if !output_stdout.is_empty() {
-            println!("MinerSyncExecute output: {:?}", output_stdout);
+        let strings = output_stdout.trim().split("\n");
+        let last_line: &str = match strings.last() {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("MinerSyncExecute no output. Expected one or more lines of text output. executable_path: {:?}", executable_path));
+            }
+        };
+        match last_line {
+            "status: nochange" => {
+                return Ok(MinerSyncExecuteStatus::NoChange);
+            },
+            "status: changed" => {
+                return Ok(MinerSyncExecuteStatus::Changed);
+            },
+            _ => {
+                return Err(anyhow::anyhow!("MinerSyncExecute Output last line is invalid. executable_path: {:?} output: {:?} last_line: {:?}", executable_path, output_stdout, last_line));
+            }
         }
-        Ok(())
     }
 }

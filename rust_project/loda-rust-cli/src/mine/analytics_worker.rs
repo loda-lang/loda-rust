@@ -6,7 +6,7 @@ use super::{create_genome_mutate_context, GenomeMutateContext};
 use super::SharedWorkerState;
 use super::MinerWorkerMessageWithAnalytics;
 use super::{create_prevent_flooding, PreventFlooding};
-use super::MinerSyncExecute;
+use super::{MinerSyncExecute, MinerSyncExecuteStatus};
 use bastion::prelude::*;
 use num_bigint::{BigInt, ToBigInt};
 use std::path::PathBuf;
@@ -78,14 +78,15 @@ pub async fn analytics_worker(
 
         if should_perform_sync {
             let executable_path: PathBuf = config.miner_sync_executable();
-            match MinerSyncExecute::execute(&executable_path) {
-                Ok(()) => {
-                    println!("Successfully executed MinerSyncExecute");
-                },
+            let status: MinerSyncExecuteStatus = match MinerSyncExecute::execute(&executable_path) {
+                Ok(value) => value,
                 Err(error) => {
                     error!("Problem executing MinerSyncExecute: {:?}", error);
+                    Bastion::stop();
+                    continue;
                 }
-            }
+            };
+            println!("Successfully executed MinerSyncExecute. status: {:?}", status);
         }
 
         if should_run_launch_procedure {

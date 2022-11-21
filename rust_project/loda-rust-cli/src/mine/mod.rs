@@ -52,7 +52,7 @@ pub use metrics::{MetricEvent, Recorder};
 pub use metrics_prometheus::MetricsPrometheus;
 pub use metrics_worker::MetricsWorker;
 pub use mine_event_directory_state::MineEventDirectoryState;
-pub use miner_sync_execute::MinerSyncExecute;
+pub use miner_sync_execute::{MinerSyncExecute, MinerSyncExecuteStatus};
 pub use miner_worker::{miner_worker, MinerWorkerMessage, MinerWorkerMessageWithAnalytics, MinerWorkerQuestion};
 pub use moving_average::MovingAverage;
 pub use performance_classifier::{PerformanceClassifier, PerformanceClassifierResult};

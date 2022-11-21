@@ -8,3 +8,6 @@ log_file_path = File.join(Config.instance.dot_loda_rust, "miner_sync_debug_log.t
 File.open(log_file_path, "a") do |f| 
     f << "Sync: #{timestamp}\n"
 end
+
+#puts "status: nochange"
+puts "status: changed"

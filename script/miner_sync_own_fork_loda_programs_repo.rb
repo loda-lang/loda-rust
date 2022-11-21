@@ -135,6 +135,7 @@ def main
     is_uptodate = determine_if_latest_commit_is_present_in_local_repo
     if is_uptodate
         puts "Already up to date. No changes to the official loda-programs repo."
+        puts "status: nochange"
         return
     end
     puts "Obtaining the latest snapshot of the official loda-programs repo."
@@ -143,6 +144,7 @@ def main
     git_merge
     git_push
     puts "The local repo is now uptodate."
+    puts "status: changed"
 end
 
 main
