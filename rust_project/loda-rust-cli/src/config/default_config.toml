@@ -15,6 +15,13 @@ loda_rust_repository = "$HOME/git/loda-rust"
 # Absolute path to the "loda-rust" executable file.
 loda_rust_executable = "$HOME/git/loda-rust/rust_project/target/release/loda-rust"
 
+# Absolute path to the "sync" executable file.
+# While mining this executable is run every hour. 
+# This is executable is also run the moment the miner is launched. 
+# The executable is responsible for fetching the newest online data into the local file system.
+# This way the local "loda-programs" repository gets updated with the online repository.
+miner_sync_executable = "$HOME/git/loda-rust/script/task_sync_own_fork_loda_programs_repo.rb"
+
 # Absolute path to the unzipped OEIS stripped file.
 oeis_stripped_file = "$HOME/loda/oeis/stripped"
 
