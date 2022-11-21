@@ -92,12 +92,12 @@ pub async fn analytics_worker(
 
             match status {
                 MinerSyncExecuteStatus::Changed => {
-                    // Data is already uptodate, then skip no need to regenerate analytics.
-                    analytics_to_be_performed = AnalyticsTypeToPerform::RegenerateIfExpired;
-                },
-                MinerSyncExecuteStatus::NoChange => {
                     // Data has been modified, then analytics needs to be regenerated.
                     analytics_to_be_performed = AnalyticsTypeToPerform::ForceRegenerate;
+                },
+                MinerSyncExecuteStatus::NoChange => {
+                    // Data is already uptodate, then skip no need to regenerate analytics.
+                    analytics_to_be_performed = AnalyticsTypeToPerform::RegenerateIfExpired;
                 }
             }
         }
