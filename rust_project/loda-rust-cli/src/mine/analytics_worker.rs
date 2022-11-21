@@ -18,7 +18,7 @@ const ANALYTICS_INTERVAL_MILLIS: u64 = 10000;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AnalyticsWorkerMessage {
-    StartAnalyticsJob,
+    RunLaunchProcedure,
     RegenerateAnalyticsJob,
 }
 
@@ -49,7 +49,7 @@ pub async fn analytics_worker(
                 continue;
             }
         };
-        let mut should_start_analytics_job: bool = false;
+        let mut should_run_launch_procedure: bool = false;
         MessageHandler::new(message)
             .on_tell(|message: AnalyticsWorkerMessage, _| {
                 println!(
@@ -58,8 +58,8 @@ pub async fn analytics_worker(
                     message
                 );
                 match message {
-                    AnalyticsWorkerMessage::StartAnalyticsJob => {
-                        should_start_analytics_job = true;
+                    AnalyticsWorkerMessage::RunLaunchProcedure => {
+                        should_run_launch_procedure = true;
                     },
                     AnalyticsWorkerMessage::RegenerateAnalyticsJob => {
                         println!("!!!!!!!!!!RegenerateAnalyticsJob");
@@ -74,7 +74,7 @@ pub async fn analytics_worker(
                 );
             });
 
-        if should_start_analytics_job {
+        if should_run_launch_procedure {
             println!("BEFORE analytics");
             match Analytics::run_if_expired() {
                 Ok(()) => {},

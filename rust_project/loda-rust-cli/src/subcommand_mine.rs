@@ -49,7 +49,7 @@ impl SubcommandMine {
 
         Bastion::start();
 
-        instance.perform_analytics()?;
+        instance.run_launch_procedure()?;
 
         instance.experiment_contact_miner_workers1();
         instance.experiment_contact_miner_workers2();
@@ -61,12 +61,12 @@ impl SubcommandMine {
     /// Regenerate analytics if it has expired.
     /// 
     /// Load analytics data and pass it on to the `miner_worker` instances.
-    fn perform_analytics(&self) -> anyhow::Result<()> {
+    fn run_launch_procedure(&self) -> anyhow::Result<()> {
         thread::sleep(Duration::from_millis(1000));
         let miner_worker_distributor = Distributor::named("analytics_worker");
-        let tell_result = miner_worker_distributor.tell_everyone(AnalyticsWorkerMessage::StartAnalyticsJob);
+        let tell_result = miner_worker_distributor.tell_everyone(AnalyticsWorkerMessage::RunLaunchProcedure);
         if let Err(error) = tell_result {
-            return Err(anyhow::anyhow!("Unable to send StartAnalyticsJob to analytics_worker_distributor. error: {:?}", error));
+            return Err(anyhow::anyhow!("Unable to send RunLaunchProcedure to analytics_worker_distributor. error: {:?}", error));
         }
         Ok(())
     }
