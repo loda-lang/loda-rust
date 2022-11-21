@@ -83,9 +83,8 @@ pub async fn analytics_worker(
             let status: MinerSyncExecuteStatus = match MinerSyncExecute::execute(&executable_path) {
                 Ok(value) => value,
                 Err(error) => {
-                    error!("Problem executing MinerSyncExecute: {:?}", error);
                     Bastion::stop();
-                    continue;
+                    panic!("Problem executing MinerSyncExecute: {:?}", error);
                 }
             };
             println!("Successfully executed MinerSyncExecute. status: {:?}", status);
@@ -116,18 +115,16 @@ pub async fn analytics_worker(
             match analytics_run_result {
                 Ok(()) => {},
                 Err(error) => {
-                    error!("AFTER analytics. error: {:?}", error);
                     Bastion::stop();
-                    continue;
+                    panic!("AFTER analytics. error: {:?}", error);
                 }
             }
 
             let prevent_flooding_x: PreventFlooding = match create_prevent_flooding(&config) {
                 Ok(value) => value,
                 Err(error) => {
-                    error!("analytics_worker: create_prevent_flooding failed. error: {:?}", error);
                     Bastion::stop();
-                    continue;
+                    panic!("analytics_worker: create_prevent_flooding failed. error: {:?}", error);
                 }
             };
             match prevent_flooding.lock() {
@@ -135,9 +132,8 @@ pub async fn analytics_worker(
                     *instance = prevent_flooding_x;
                 },
                 Err(error) => {
-                    error!("analytics_worker: Unable to populate PreventFlooding mechanism. error: {:?}", error);
                     Bastion::stop();
-                    continue;
+                    panic!("analytics_worker: Unable to populate PreventFlooding mechanism. error: {:?}", error);
                 }
             }
 
@@ -153,9 +149,8 @@ pub async fn analytics_worker(
             let terms_to_program_id: TermsToProgramIdSet = match terms_to_program_id_result {
                 Ok(value) => value,
                 Err(error) => {
-                    error!("analytics_worker: Unable to load terms for program ids. error: {:?}", error);
                     Bastion::stop();
-                    continue;
+                    panic!("analytics_worker: Unable to load terms for program ids. error: {:?}", error);
                 }
             };
             let terms_to_program_id_arc: Arc<TermsToProgramIdSet> = Arc::new(terms_to_program_id);
@@ -175,9 +170,8 @@ pub async fn analytics_worker(
             let arc_instance = Arc::new(instance);
             let tell_result = miner_worker_distributor.tell_everyone(arc_instance);
             if let Err(error) = tell_result {
-                error!("analytics_worker: Unable to send MinerWorkerMessageWithAnalytics to miner_worker_distributor. error: {:?}", error);
                 Bastion::stop();
-                continue;
+                panic!("analytics_worker: Unable to send MinerWorkerMessageWithAnalytics to miner_worker_distributor. error: {:?}", error);
             }
     
             thread::sleep(Duration::from_millis(1000));
@@ -187,9 +181,8 @@ pub async fn analytics_worker(
                     *state = SharedWorkerState::Mining;
                 },
                 Err(error) => {
-                    error!("analytics_worker: Unable to change state=Mining. error: {:?}", error);
                     Bastion::stop();
-                    continue;
+                    panic!("analytics_worker: Unable to change state=Mining. error: {:?}", error);
                 }
             }
         }

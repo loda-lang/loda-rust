@@ -51,8 +51,8 @@ impl SubcommandMine {
 
         instance.run_launch_procedure()?;
 
-        instance.experiment_contact_miner_workers1();
-        instance.experiment_contact_miner_workers2();
+        // instance.experiment_contact_miner_workers1();
+        // instance.experiment_contact_miner_workers2();
 
         Bastion::block_until_stopped();
         return Ok(());
@@ -71,6 +71,7 @@ impl SubcommandMine {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn experiment_contact_miner_workers1(&self) {
         thread::sleep(Duration::from_millis(10000));
         let miner_worker_distributor = Distributor::named("miner_worker");
@@ -80,6 +81,7 @@ impl SubcommandMine {
         }
     }
 
+    #[allow(dead_code)]
     fn experiment_contact_miner_workers2(&self) {
         thread::sleep(Duration::from_millis(10000));
         let miner_worker_distributor = Distributor::named("miner_worker");
