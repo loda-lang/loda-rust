@@ -76,7 +76,9 @@ pub async fn analytics_worker(
                 );
             });
 
-        if should_perform_sync {
+        let mut analytics_to_be_performed = AnalyticsTypeToPerform::RegenerateIfExpired;
+
+        if should_run_launch_procedure || should_perform_sync {
             let executable_path: PathBuf = config.miner_sync_executable();
             let status: MinerSyncExecuteStatus = match MinerSyncExecute::execute(&executable_path) {
                 Ok(value) => value,
@@ -87,11 +89,31 @@ pub async fn analytics_worker(
                 }
             };
             println!("Successfully executed MinerSyncExecute. status: {:?}", status);
+
+            match status {
+                MinerSyncExecuteStatus::Changed => {
+                    // Data is already uptodate, then skip no need to regenerate analytics.
+                    analytics_to_be_performed = AnalyticsTypeToPerform::RegenerateIfExpired;
+                },
+                MinerSyncExecuteStatus::NoChange => {
+                    // Data has been modified, then analytics needs to be regenerated.
+                    analytics_to_be_performed = AnalyticsTypeToPerform::ForceRegenerate;
+                }
+            }
         }
 
         if should_run_launch_procedure {
-            println!("BEFORE analytics");
-            match Analytics::run_if_expired() {
+            let analytics_run_result: anyhow::Result<()> = match analytics_to_be_performed {
+                AnalyticsTypeToPerform::RegenerateIfExpired => {
+                    println!("BEFORE analytics - run_if_expired");
+                    Analytics::run_if_expired()
+                },
+                AnalyticsTypeToPerform::ForceRegenerate => {
+                    println!("BEFORE analytics - run_force");
+                    Analytics::run_force()
+                }
+            };
+            match analytics_run_result {
                 Ok(()) => {},
                 Err(error) => {
                     error!("AFTER analytics. error: {:?}", error);
@@ -172,4 +194,10 @@ pub async fn analytics_worker(
             }
         }
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum AnalyticsTypeToPerform {
+    RegenerateIfExpired,
+    ForceRegenerate
 }
