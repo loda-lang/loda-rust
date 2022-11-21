@@ -49,7 +49,7 @@ pub async fn analytics_worker(
                 continue;
             }
         };
-        let mut perform_analytics: bool = false;
+        let mut should_start_analytics_job: bool = false;
         MessageHandler::new(message)
             .on_tell(|message: AnalyticsWorkerMessage, _| {
                 println!(
@@ -59,7 +59,7 @@ pub async fn analytics_worker(
                 );
                 match message {
                     AnalyticsWorkerMessage::StartAnalyticsJob => {
-                        perform_analytics = true;
+                        should_start_analytics_job = true;
                     },
                     AnalyticsWorkerMessage::RegenerateAnalyticsJob => {
                         println!("!!!!!!!!!!RegenerateAnalyticsJob");
@@ -74,7 +74,7 @@ pub async fn analytics_worker(
                 );
             });
 
-        if perform_analytics {
+        if should_start_analytics_job {
             println!("BEFORE analytics");
             match Analytics::run_if_expired() {
                 Ok(()) => {},
