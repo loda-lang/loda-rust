@@ -100,15 +100,23 @@ pub async fn miner_worker(
                             }
                         }
                     })
-                    .on_tell(|message: std::sync::Arc<MinerWorkerMessageWithAnalytics>, _| {
-                        println!(
-                            "miner_worker {}, received broadcast MinerWorkerMessageWithAnalytics: {:?}",
+                    .on_question(|message: std::sync::Arc<MinerWorkerMessageWithAnalytics>, sender| {
+                        debug!(
+                            "miner_worker {}, received question MinerWorkerMessageWithAnalytics: {:?}",
                             ctx.current().id(),
                             message
                         );
                         rml.set_funnel(message.funnel.clone());
                         rml.set_genome_mutate_context(message.genome_mutate_context.clone());
                         rml.set_terms_to_program_id(message.terms_to_program_id_arc.clone());
+                        match sender.reply("miner_worker_updated_ok".to_string()) {
+                            Ok(value) => {
+                                debug!("miner_worker: reply ok: {:?}", value);
+                            },
+                            Err(error) => {
+                                error!("miner_worker: reply error: {:?}", error);
+                            }
+                        };
                     })
                     .on_question(|message: MinerWorkerQuestion, sender| {
                         println!("miner_worker {}, received a question: \n{:?}", 

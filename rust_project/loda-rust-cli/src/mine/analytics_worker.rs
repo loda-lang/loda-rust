@@ -11,7 +11,6 @@ use bastion::prelude::*;
 use num_bigint::{BigInt, ToBigInt};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::thread;
 use std::time::Duration;
 use std::time::Instant;
 
@@ -167,13 +166,50 @@ pub async fn analytics_worker(
                 terms_to_program_id_arc,
             );
             let arc_instance = Arc::new(instance);
-            let tell_result = miner_worker_distributor.tell_everyone(arc_instance);
-            if let Err(error) = tell_result {
-                Bastion::stop();
-                panic!("analytics_worker: Unable to send MinerWorkerMessageWithAnalytics to miner_worker_distributor. error: {:?}", error);
-            }
+            debug!("analytics_worker: miner_workers.ask_everyone(MinerWorkerMessageWithAnalytics)");
+            let ask_result = miner_worker_distributor.ask_everyone(arc_instance);
 
-            thread::sleep(Duration::from_millis(1000));
+            // wait for all the "miner_worker" instances to have received the data. 
+            let answers: Vec<Answer> = ask_result
+                .expect("analytics_worker miner_workers.ask_everyone(MinerWorkerMessageWithAnalytics) couldn't ask everyone");
+            let mut count_answers: usize = 0;
+            let mut count_success: usize = 0;
+            for answer in answers.into_iter() {
+                count_answers += 1;
+
+                // Wait for a single miner_worker to respond to the question
+                let response_result: Option<bool> = run!(blocking! {
+                    let mut success = false;
+                    MessageHandler::new(answer.await.expect("couldn't receive reply"))
+                        .on_tell(|response: String, _| {
+                            if response == "miner_worker_updated_ok" {
+                                success = true;
+                            } else {
+                                error!("analytics_worker: Unexpected response: {:?}", response);
+                            }
+                        })
+                        .on_fallback(|unknown, _sender_addr| {
+                            error!(
+                                "analytics_worker: uh oh, I received a message I didn't understand\n {:?}",
+                                unknown
+                            );
+                        });
+                    success
+                });
+
+                // Only increment, if the miner_worker replied successfully
+                if let Some(value) = response_result {
+                    if value {
+                        count_success += 1;
+                    }
+                }
+            }
+            if count_answers != count_success {
+                Bastion::stop();
+                panic!("analytics_worker: Expected same number of answers as there are workers. {} != {}", count_answers, count_success);
+            }
+            debug!("analytics_worker: received answers from all miner_workers");
+            // All the miner_workers have now received data
 
             let tell_result = Distributor::named("coordinator_worker").tell_everyone(CoordinatorWorkerMessage::SyncAndAnalyticsIsComplete);
             if let Err(error) = tell_result {
