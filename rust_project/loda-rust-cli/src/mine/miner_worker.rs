@@ -1,22 +1,18 @@
 use crate::config::Config;
-use super::{ExecuteBatchResult, MineEventDirectoryState, RunMinerLoop, MetricEvent};
-use super::{Funnel, GenomeMutateContext, PreventFlooding, PostmineWorkerMessage, SharedWorkerState};
+use super::{ExecuteBatchResult, RunMinerLoop, MetricEvent};
+use super::{Funnel, GenomeMutateContext, PreventFlooding};
+use super::{CoordinatorWorkerMessage};
 use crate::oeis::TermsToProgramIdSet;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
 use bastion::prelude::*;
 use std::fmt;
-use std::thread;
-use std::time::Duration;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use rand::{RngCore, thread_rng};
 
 #[derive(Debug, Clone)]
 pub enum MinerWorkerMessage {
-    #[allow(dead_code)]
-    Ping,
-    #[allow(dead_code)]
-    InvalidateAnalytics,
+    ExecuteOneBatch,
 }
 
 #[derive(Clone)]
@@ -44,20 +40,19 @@ impl fmt::Debug for MinerWorkerMessageWithAnalytics {
 
 #[derive(Debug, Clone)]
 pub enum MinerWorkerQuestion {
-    Launch,
+    #[allow(dead_code)]
+    Ping,
 }
 
 pub async fn miner_worker(
     ctx: BastionContext,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
-    mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
-    shared_worker_state: Arc<Mutex<SharedWorkerState>>,
     config: Config,
 ) -> Result<(), ()> {
     debug!("miner_worker - started, {:?}", ctx.current().id());
     let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
 
-    let postmine_worker_distributor = Distributor::named("postmine_worker");
+    let coordinator_worker_distributor = Distributor::named("coordinator_worker");
     let metrics_worker_distributor = Distributor::named("metrics_worker");
 
     let initial_random_seed: u64 = {
@@ -79,105 +74,108 @@ pub async fn miner_worker(
     rml.set_metrics_callback(callback);
 
     loop {
-        // try receive, if there is no pending message, then continue working
-        // this way the worker, is kept busy, until there is an incoming message.
-        let optional_signed_message: Option<SignedMessage> = ctx.try_recv().await;
-        match optional_signed_message {
-            Some(signed_message) => {
-                MessageHandler::new(signed_message)
-                    .on_tell(|message: MinerWorkerMessage, _| {
-                        println!(
-                            "miner_worker {}, received broadcast MinerWorkerMessage: {:?}",
-                            ctx.current().id(),
-                            message
-                        );
-                        match message {
-                            MinerWorkerMessage::Ping => {
-                                println!("Ping");
-                            },
-                            MinerWorkerMessage::InvalidateAnalytics => {
-                                println!("InvalidateAnalytics");
-                            }
-                        }
-                    })
-                    .on_question(|message: std::sync::Arc<MinerWorkerMessageWithAnalytics>, sender| {
-                        debug!(
-                            "miner_worker {}, received question MinerWorkerMessageWithAnalytics: {:?}",
-                            ctx.current().id(),
-                            message
-                        );
-                        rml.set_funnel(message.funnel.clone());
-                        rml.set_genome_mutate_context(message.genome_mutate_context.clone());
-                        rml.set_terms_to_program_id(message.terms_to_program_id_arc.clone());
-                        match sender.reply("miner_worker_updated_ok".to_string()) {
-                            Ok(value) => {
-                                debug!("miner_worker: reply ok: {:?}", value);
-                            },
-                            Err(error) => {
-                                error!("miner_worker: reply error: {:?}", error);
-                            }
-                        };
-                    })
-                    .on_question(|message: MinerWorkerQuestion, sender| {
-                        println!("miner_worker {}, received a question: \n{:?}", 
-                            ctx.current().id(),
-                            message
-                        );
-                        match sender.reply("Next month!".to_string()) {
-                            Ok(value) => {
-                                println!("reply ok: {:?}", value);
-                            },
-                            Err(error) => {
-                                error!("reply error: {:?}", error);
-                            }
-                        };
-                    })
-                    .on_fallback(|unknown, _sender_addr| {
-                        error!(
-                            "miner_worker {}, received an unknown message!:\n{:?}",
-                            ctx.current().id(),
-                            unknown
-                        );
-                    });
-            },
-            None => {
-                let the_state: SharedWorkerState = match shared_worker_state.lock() {
-                    Ok(state) => *state,
-                    Err(error) => {
-                        error!("miner_worker. shared_miner_worker_state. Unable to lock mutex. {:?}", error);
-                        thread::sleep(Duration::from_millis(200));
-                        continue;
-                    }
-                };
-                if the_state != SharedWorkerState::Mining {
-                    // Not mining, sleep for a while, and poll again
-                    thread::sleep(Duration::from_millis(200));
-                    continue;
+        let mut execute_one_batch = false;
+        MessageHandler::new(ctx.recv().await?)
+            .on_tell(|message: MinerWorkerMessage, _| {
+                // println!(
+                //     "miner_worker {}, received broadcast MinerWorkerMessage: {:?}",
+                //     ctx.current().id(),
+                //     message
+                // );
+                match message {
+                    MinerWorkerMessage::ExecuteOneBatch => {
+                        println!("miner_worker: ExecuteOneBatch");
+                        execute_one_batch = true;
+                    },
                 }
-
-                // We are mining
-                // debug!("miner-worker {}: execute_batch", ctx.current().id());
-
-                let mut dependency_manager = DependencyManager::new(
-                    DependencyManagerFileSystemMode::System,
-                    loda_programs_oeis_dir.clone(),
+            })
+            .on_question(|message: std::sync::Arc<MinerWorkerMessageWithAnalytics>, sender| {
+                debug!(
+                    "miner_worker {}, received question MinerWorkerMessageWithAnalytics: {:?}",
+                    ctx.current().id(),
+                    message
                 );
-                dependency_manager.set_execute_profile(ExecuteProfile::SmallLimits);
-            
-                let result: ExecuteBatchResult = match rml.execute_batch(&mut dependency_manager) {
-                    Ok(value) => value,
+                rml.set_funnel(message.funnel.clone());
+                rml.set_genome_mutate_context(message.genome_mutate_context.clone());
+                rml.set_terms_to_program_id(message.terms_to_program_id_arc.clone());
+                match sender.reply("miner_worker_updated_ok".to_string()) {
+                    Ok(value) => {
+                        debug!("miner_worker: reply ok: {:?}", value);
+                    },
                     Err(error) => {
-                        error!(
-                            "miner_worker {}, execute_batch error: {:?}",
-                            ctx.current().id(),
-                            error
-                        );
-                        thread::sleep(Duration::from_millis(200));
-                        continue;
+                        error!("miner_worker: reply error: {:?}", error);
                     }
                 };
-                // println!("execute_batch stats: {:?}", result);
+            })
+            .on_question(|message: MinerWorkerQuestion, sender| {
+                println!("miner_worker {}, received a question: \n{:?}", 
+                    ctx.current().id(),
+                    message
+                );
+                match sender.reply("Next month!".to_string()) {
+                    Ok(value) => {
+                        println!("reply ok: {:?}", value);
+                    },
+                    Err(error) => {
+                        error!("reply error: {:?}", error);
+                    }
+                };
+            })
+            .on_fallback(|unknown, _sender_addr| {
+                error!(
+                    "miner_worker {}, received an unknown message!:\n{:?}",
+                    ctx.current().id(),
+                    unknown
+                );
+            });
+        if execute_one_batch {
+            // let the_state: SharedWorkerState = match shared_worker_state.lock() {
+            //     Ok(state) => *state,
+            //     Err(error) => {
+            //         error!("miner_worker. shared_miner_worker_state. Unable to lock mutex. {:?}", error);
+            //         thread::sleep(Duration::from_millis(200));
+            //         continue;
+            //     }
+            // };
+            // if the_state != SharedWorkerState::Mining {
+            //     // Not mining, sleep for a while, and poll again
+            //     thread::sleep(Duration::from_millis(200));
+            //     continue;
+            // }
 
+            // We are mining
+            // debug!("miner-worker {}: execute_batch", ctx.current().id());
+
+            let mut dependency_manager = DependencyManager::new(
+                DependencyManagerFileSystemMode::System,
+                loda_programs_oeis_dir.clone(),
+            );
+            dependency_manager.set_execute_profile(ExecuteProfile::SmallLimits);
+        
+            let result: ExecuteBatchResult = match rml.execute_batch(&mut dependency_manager) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!(
+                        "miner_worker {}, execute_batch error: {:?}",
+                        ctx.current().id(),
+                        error
+                    );
+                    // TODO: tell coordinator that the miner_worker is in a broken state
+                    Bastion::stop();
+                    panic!("the miner_worker is in a broken state");
+                }
+            };
+            // println!("execute_batch stats: {:?}", result);
+
+            // tell coordinator that batch has ended, with the stats
+            // and the coordinator will decide what should happen
+            let tell_result = coordinator_worker_distributor.tell_everyone(CoordinatorWorkerMessage::MinerWorkerExecutedOneBatch { execute_batch_result: result });
+            if let Err(error) = tell_result {
+                error!("Unable to send MinerWorkerExecutedOneBatch to coordinator_worker_distributor. error: {:?}", error);
+            }
+    
+
+                /*
                 let mut has_reached_mining_limit = false;
                 match mine_event_dir_state.lock() {
                     Ok(mut state) => {
@@ -217,6 +215,7 @@ pub async fn miner_worker(
                     }
                 }
             }
+            */
         }
     }
 }

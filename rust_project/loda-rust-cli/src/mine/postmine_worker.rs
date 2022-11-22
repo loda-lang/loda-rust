@@ -1,4 +1,5 @@
 use super::{MineEventDirectoryState, SharedWorkerState, UploadWorkerItem};
+use crate::mine::CoordinatorWorkerMessage;
 use crate::postmine::PostMine;
 use loda_rust_core::oeis::OeisId;
 use bastion::prelude::*;
@@ -13,8 +14,6 @@ pub enum PostmineWorkerMessage {
 
 pub async fn postmine_worker(
     ctx: BastionContext,
-    mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
-    shared_worker_state: Arc<Mutex<SharedWorkerState>>,
 ) -> Result<(), ()> {
     loop {
         MessageHandler::new(ctx.recv().await?)
@@ -58,26 +57,11 @@ pub async fn postmine_worker(
                             }
                         }
 
-                        // update/reset mine_event_dir_state, so counters are 0.
-                        match mine_event_dir_state.lock() {
-                            Ok(mut state) => {
-                                state.reset();
-                            },
-                            Err(error) => {
-                                error!("postmine_worker: mine_event_dir_state.lock() failed. {:?}", error);
-                            }
-                        }
-
-                        // Resume the miner_workers
-                        println!("trigger resume mining");
-                        thread::sleep(Duration::from_millis(1000));
-                        match shared_worker_state.lock() {
-                            Ok(mut state) => {
-                                *state = SharedWorkerState::Mining;
-                            },
-                            Err(error) => {
-                                error!("postmine_worker: Unable to change state=Mining. error: {:?}", error);
-                            }
+                        // Tell the coordinator that postmine has completed
+                        let distributor = Distributor::named("coordinator_worker");
+                        let tell_result = distributor.tell_everyone(CoordinatorWorkerMessage::PostmineJobComplete);
+                        if let Err(error) = tell_result {
+                            error!("postmine_worker: Unable to send PostmineJobComplete to coordinator_worker_distributor. error: {:?}", error);
                         }
                     }
                 }

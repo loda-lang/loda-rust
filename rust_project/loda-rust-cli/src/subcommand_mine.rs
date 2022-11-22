@@ -201,21 +201,15 @@ impl SubcommandMine {
     }
     
     fn start_postmine_worker(&self) -> anyhow::Result<()> {
-        let mine_event_dir_state = self.mine_event_dir_state.clone();
-        let shared_worker_state = self.shared_worker_state.clone();
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
                     .with_redundancy(1)
                     .with_distributor(Distributor::named("postmine_worker"))
                     .with_exec(move |ctx: BastionContext| {
-                        let mine_event_dir_state_clone = mine_event_dir_state.clone();
-                        let shared_worker_state_clone = shared_worker_state.clone();
                         async move {
                             postmine_worker(
                                 ctx,
-                                mine_event_dir_state_clone,
-                                shared_worker_state_clone,
                             ).await
                         }
                     })
@@ -228,9 +222,6 @@ impl SubcommandMine {
     fn start_miner_workers(&self) -> anyhow::Result<()> {
         let config_original: Config = self.config.clone();
         let prevent_flooding = self.prevent_flooding.clone();
-        let mine_event_dir_state = self.mine_event_dir_state.clone();
-        let shared_worker_state = self.shared_worker_state.clone();
-
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
@@ -238,15 +229,11 @@ impl SubcommandMine {
                     .with_distributor(Distributor::named("miner_worker"))
                     .with_exec(move |ctx: BastionContext| {
                         let prevent_flooding_clone = prevent_flooding.clone();
-                        let mine_event_dir_state_clone = mine_event_dir_state.clone();
-                        let shared_worker_state_clone = shared_worker_state.clone();
                         let config_clone = config_original.clone();
                         async move {
                             miner_worker(
                                 ctx,
                                 prevent_flooding_clone,
-                                mine_event_dir_state_clone,
-                                shared_worker_state_clone,
                                 config_clone,
                             ).await
                         }
