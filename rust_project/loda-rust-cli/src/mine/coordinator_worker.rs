@@ -1,5 +1,7 @@
-use crate::mine::AnalyticsWorkerMessage;
+use super::AnalyticsWorkerMessage;
+use super::SharedWorkerState;
 use bastion::prelude::*;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 const RECEIVE_TIMEOUT_SECONDS: u64 = 1 * 60; // 1 minute
@@ -7,11 +9,13 @@ const RECEIVE_TIMEOUT_SECONDS: u64 = 1 * 60; // 1 minute
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CoordinatorWorkerMessage {
     RunLaunchProcedure,
+    SyncAndAnalyticsIsComplete,
     CronjobTriggerSync,
 }
 
 pub async fn coordinator_worker(
     ctx: BastionContext,
+    shared_worker_state: Arc<Mutex<SharedWorkerState>>,
 ) -> Result<(), ()> {
     let timeout = Duration::from_secs(RECEIVE_TIMEOUT_SECONDS);
     loop {
@@ -27,6 +31,7 @@ pub async fn coordinator_worker(
             }
         };
         let mut should_run_launch_procedure: bool = false;
+        let mut is_sync_and_analytics_complete: bool = false;
         MessageHandler::new(message)
             .on_tell(|message: CoordinatorWorkerMessage, _| {
                 println!(
@@ -41,6 +46,9 @@ pub async fn coordinator_worker(
                     CoordinatorWorkerMessage::CronjobTriggerSync => {
                         println!("!!!!!!!!! trigger sync")
                     },
+                    CoordinatorWorkerMessage::SyncAndAnalyticsIsComplete => {
+                        is_sync_and_analytics_complete = true;
+                    }
                 }
             })
             .on_fallback(|unknown, _sender_addr| {
@@ -56,6 +64,17 @@ pub async fn coordinator_worker(
             let tell_result = distributor.tell_everyone(AnalyticsWorkerMessage::RunLaunchProcedure);
             if let Err(error) = tell_result {
                 error!("coordinator_worker: Unable to send RunLaunchProcedure to analytics_worker_distributor. error: {:?}", error);
+            }
+        }
+        if is_sync_and_analytics_complete {
+            match shared_worker_state.lock() {
+                Ok(mut state) => {
+                    *state = SharedWorkerState::Mining;
+                },
+                Err(error) => {
+                    Bastion::stop();
+                    panic!("coordinator_worker: Unable to change state=Mining. error: {:?}", error);
+                }
             }
         }
     }

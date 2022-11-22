@@ -193,19 +193,21 @@ impl SubcommandMine {
     }
     
     fn start_coordinator_worker(&self) -> anyhow::Result<()> {
+        let shared_worker_state = self.shared_worker_state.clone();
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
                     .with_redundancy(1)
                     .with_distributor(Distributor::named("coordinator_worker"))
                     .with_exec(move |ctx: BastionContext| {
+                        let shared_worker_state_clone = shared_worker_state.clone();
                         async move {
                             coordinator_worker(
                                 ctx,
+                                shared_worker_state_clone,
                             ).await
                         }
                     })
-
             })
         })
         .map_err(|e| anyhow::anyhow!("couldn't start coordinator_worker. error: {:?}", e))?;
@@ -294,7 +296,6 @@ impl SubcommandMine {
     
     fn start_analytics_worker(&self) -> anyhow::Result<()> {
         let config_original: Config = self.config.clone();
-        let shared_worker_state = self.shared_worker_state.clone();
         let prevent_flooding = self.prevent_flooding.clone();
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
@@ -303,14 +304,12 @@ impl SubcommandMine {
                     .with_distributor(Distributor::named("analytics_worker"))
                     .with_exec(move |ctx: BastionContext| {
                         let config_clone: Config = config_original.clone();
-                        let shared_worker_state_clone = shared_worker_state.clone();
                         let prevent_flooding_clone = prevent_flooding.clone();
                         async move {
                             analytics_worker(
                                 ctx,
                                 config_clone,
                                 prevent_flooding_clone,
-                                shared_worker_state_clone,
                             ).await
                         }
                     })

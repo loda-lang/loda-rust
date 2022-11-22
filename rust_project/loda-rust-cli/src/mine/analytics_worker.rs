@@ -1,9 +1,9 @@
 use crate::analytics::Analytics;
 use crate::config::Config;
+use crate::mine::CoordinatorWorkerMessage;
 use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
 use super::{CreateFunnel, Funnel, FunnelConfig};
 use super::{create_genome_mutate_context, GenomeMutateContext};
-use super::SharedWorkerState;
 use super::MinerWorkerMessageWithAnalytics;
 use super::{create_prevent_flooding, PreventFlooding};
 use super::{MinerSyncExecute, MinerSyncExecuteStatus};
@@ -27,7 +27,6 @@ pub async fn analytics_worker(
     ctx: BastionContext,
     config: Config,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
-    shared_worker_state: Arc<Mutex<SharedWorkerState>>,
 ) -> Result<(), ()> {
     let miner_worker_distributor = Distributor::named("miner_worker");
     let mut progress_time = Instant::now();
@@ -173,17 +172,13 @@ pub async fn analytics_worker(
                 Bastion::stop();
                 panic!("analytics_worker: Unable to send MinerWorkerMessageWithAnalytics to miner_worker_distributor. error: {:?}", error);
             }
-    
+
             thread::sleep(Duration::from_millis(1000));
-            println!("AFTER analytics. ok");
-            match shared_worker_state.lock() {
-                Ok(mut state) => {
-                    *state = SharedWorkerState::Mining;
-                },
-                Err(error) => {
-                    Bastion::stop();
-                    panic!("analytics_worker: Unable to change state=Mining. error: {:?}", error);
-                }
+
+            let tell_result = Distributor::named("coordinator_worker").tell_everyone(CoordinatorWorkerMessage::SyncAndAnalyticsIsComplete);
+            if let Err(error) = tell_result {
+                Bastion::stop();
+                panic!("analytics_worker: Unable to send SyncAndAnalyticsIsComplete to coordinator_worker. error: {:?}", error);
             }
         }
     }
