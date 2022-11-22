@@ -8,6 +8,7 @@ use crate::mine::{cronjob_worker, CronjobWorkerMessage};
 use crate::mine::{miner_worker};
 use crate::mine::{postmine_worker, SharedWorkerState};
 use crate::mine::upload_worker;
+use crate::mine::{coordinator_worker, CoordinatorWorkerMessage};
 use bastion::prelude::*;
 use anyhow::Context;
 use std::fs;
@@ -41,6 +42,7 @@ impl SubcommandMine {
         instance.print_info();
         instance.reload_mineevent_directory_state()?;
         instance.start_metrics_worker()?;
+        //instance.start_coordinator_worker()?;
         instance.start_upload_worker()?;
         instance.start_postmine_worker()?;
         instance.start_miner_workers()?;
@@ -185,6 +187,26 @@ impl SubcommandMine {
                 MetricsWorker::start_with_server(listen_on_port, self.number_of_workers as u64)?;
             }
         };
+        Ok(())
+    }
+    
+    fn start_coordinator_worker(&self) -> anyhow::Result<()> {
+        Bastion::supervisor(|supervisor| {
+            supervisor.children(|children| {
+                children
+                    .with_redundancy(1)
+                    .with_distributor(Distributor::named("coordinator_worker"))
+                    .with_exec(move |ctx: BastionContext| {
+                        async move {
+                            coordinator_worker(
+                                ctx,
+                            ).await
+                        }
+                    })
+
+            })
+        })
+        .map_err(|e| anyhow::anyhow!("couldn't start coordinator_worker. error: {:?}", e))?;
         Ok(())
     }
     

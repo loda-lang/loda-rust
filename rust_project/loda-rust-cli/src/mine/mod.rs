@@ -1,6 +1,7 @@
 //! Mine for LODA programs by mutating until there is a match.
 mod analytics_worker;
 mod check_fixed_length_sequence;
+mod coordinator_worker;
 mod create_funnel;
 mod create_genome_mutate_context;
 mod create_prevent_flooding;
@@ -38,6 +39,7 @@ mod wildcard_checker;
 
 pub use analytics_worker::{analytics_worker, AnalyticsWorkerMessage};
 pub use check_fixed_length_sequence::{CheckFixedLengthSequence, NamedCacheFile, PopulateBloomfilter};
+pub use coordinator_worker::{coordinator_worker, CoordinatorWorkerMessage};
 pub use create_funnel::CreateFunnel;
 pub use create_genome_mutate_context::create_genome_mutate_context;
 pub use create_prevent_flooding::create_prevent_flooding;
