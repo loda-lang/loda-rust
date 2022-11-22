@@ -1,6 +1,5 @@
-use super::{MineEventDirectoryState, SharedWorkerState};
+use super::CoordinatorWorkerMessage;
 use bastion::prelude::*;
-use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
@@ -10,19 +9,23 @@ const CRONJOB_HEARTBEAT_INTERVAL_SECONDS: u64 = 5 * 60; // 5 minutes
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CronjobWorkerMessage {
+    #[allow(dead_code)]
     DoSomething,
 }
 
 pub async fn cronjob_worker(
     ctx: BastionContext,
-    mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
-    shared_worker_state: Arc<Mutex<SharedWorkerState>>,
 ) -> Result<(), ()> {
     let mut progress_time = Instant::now();
     loop {
         let elapsed: u64 = progress_time.elapsed().as_secs();
         if elapsed >= CRONJOB_SYNC_INTERVAL_SECONDS {
-            println!("cron wake up");
+            debug!("cronjob_worker: wake up");
+            let distributor = Distributor::named("coordinator_worker");
+            let tell_result = distributor.tell_everyone(CoordinatorWorkerMessage::CronjobTriggerSync);
+            if let Err(error) = tell_result {
+                error!("Unable to send CronjobTriggerSync to coordinator_worker. error: {:?}", error);
+            }
             progress_time = Instant::now();
         }
 
@@ -47,10 +50,7 @@ pub async fn cronjob_worker(
                 );
                 match message {
                     CronjobWorkerMessage::DoSomething => {
-                        println!("BEFORE cronjob");
-                        println!("AFTER cronjob");
-
-                        println!("trigger resume cronjob");
+                        println!("CronjobWorkerMessage::DoSomething");
                         thread::sleep(Duration::from_millis(1000));
                     }
                 }

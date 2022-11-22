@@ -319,21 +319,15 @@ impl SubcommandMine {
     }
     
     fn start_cronjob_worker(&self) -> anyhow::Result<()> {
-        let mine_event_dir_state = self.mine_event_dir_state.clone();
-        let shared_worker_state = self.shared_worker_state.clone();
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
                     .with_redundancy(1)
                     .with_distributor(Distributor::named("cronjob_worker"))
                     .with_exec(move |ctx: BastionContext| {
-                        let mine_event_dir_state_clone = mine_event_dir_state.clone();
-                        let shared_worker_state_clone = shared_worker_state.clone();
                         async move {
                             cronjob_worker(
                                 ctx,
-                                mine_event_dir_state_clone,
-                                shared_worker_state_clone,
                             ).await
                         }
                     })

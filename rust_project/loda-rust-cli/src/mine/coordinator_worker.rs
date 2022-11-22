@@ -6,6 +6,7 @@ const RECEIVE_TIMEOUT_SECONDS: u64 = 1 * 60; // 1 minute
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CoordinatorWorkerMessage {
     RunLaunchProcedure,
+    CronjobTriggerSync,
 }
 
 pub async fn coordinator_worker(
@@ -35,6 +36,9 @@ pub async fn coordinator_worker(
                 match message {
                     CoordinatorWorkerMessage::RunLaunchProcedure => {
                         should_run_launch_procedure = true;
+                    },
+                    CoordinatorWorkerMessage::CronjobTriggerSync => {
+                        println!("!!!!!!!!! trigger sync")
                     },
                 }
             })
