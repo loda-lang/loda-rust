@@ -1,3 +1,4 @@
+use crate::mine::AnalyticsWorkerMessage;
 use bastion::prelude::*;
 use std::time::Duration;
 
@@ -50,7 +51,12 @@ pub async fn coordinator_worker(
                 );
             });
         if should_run_launch_procedure {
-            println!("Run launch procedure");
+            println!("coordinator_worker: Run launch procedure");
+            let distributor = Distributor::named("analytics_worker");
+            let tell_result = distributor.tell_everyone(AnalyticsWorkerMessage::RunLaunchProcedure);
+            if let Err(error) = tell_result {
+                error!("coordinator_worker: Unable to send RunLaunchProcedure to analytics_worker_distributor. error: {:?}", error);
+            }
         }
     }
 }

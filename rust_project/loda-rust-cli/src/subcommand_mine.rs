@@ -42,7 +42,7 @@ impl SubcommandMine {
         instance.print_info();
         instance.reload_mineevent_directory_state()?;
         instance.start_metrics_worker()?;
-        //instance.start_coordinator_worker()?;
+        instance.start_coordinator_worker()?;
         instance.start_upload_worker()?;
         instance.start_postmine_worker()?;
         instance.start_miner_workers()?;
@@ -63,12 +63,14 @@ impl SubcommandMine {
     /// Regenerate analytics if it has expired.
     /// 
     /// Load analytics data and pass it on to the `miner_worker` instances.
+    /// 
+    /// Start mining.
     fn run_launch_procedure(&self) -> anyhow::Result<()> {
         thread::sleep(Duration::from_millis(1000));
-        let miner_worker_distributor = Distributor::named("analytics_worker");
-        let tell_result = miner_worker_distributor.tell_everyone(AnalyticsWorkerMessage::RunLaunchProcedure);
+        let distributor = Distributor::named("coordinator_worker");
+        let tell_result = distributor.tell_everyone(CoordinatorWorkerMessage::RunLaunchProcedure);
         if let Err(error) = tell_result {
-            return Err(anyhow::anyhow!("Unable to send RunLaunchProcedure to analytics_worker_distributor. error: {:?}", error));
+            return Err(anyhow::anyhow!("Unable to send RunLaunchProcedure to coordinator_worker_distributor. error: {:?}", error));
         }
         Ok(())
     }
@@ -104,7 +106,7 @@ impl SubcommandMine {
                     });
             });
         }
-        // TODO: wait for response from all
+        // How to wait for all to respond
     }
 
     fn new(
