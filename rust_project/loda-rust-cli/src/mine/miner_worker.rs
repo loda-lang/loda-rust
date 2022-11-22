@@ -1,7 +1,7 @@
 use crate::config::Config;
 use super::{ExecuteBatchResult, RunMinerLoop, MetricEvent};
 use super::{Funnel, GenomeMutateContext, PreventFlooding};
-use super::{CoordinatorWorkerMessage};
+use super::CoordinatorWorkerQuestion;
 use crate::oeis::TermsToProgramIdSet;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
 use bastion::prelude::*;
@@ -12,7 +12,7 @@ use rand::{RngCore, thread_rng};
 
 #[derive(Debug, Clone)]
 pub enum MinerWorkerMessage {
-    ExecuteOneBatch,
+    StartExecuteOneBatch,
 }
 
 #[derive(Clone)]
@@ -83,8 +83,8 @@ pub async fn miner_worker(
                 //     message
                 // );
                 match message {
-                    MinerWorkerMessage::ExecuteOneBatch => {
-                        println!("miner_worker: ExecuteOneBatch");
+                    MinerWorkerMessage::StartExecuteOneBatch => {
+                        debug!("miner_worker: StartExecuteOneBatch");
                         execute_one_batch = true;
                     },
                 }
@@ -114,10 +114,10 @@ pub async fn miner_worker(
                 );
                 match sender.reply("Next month!".to_string()) {
                     Ok(value) => {
-                        println!("reply ok: {:?}", value);
+                        debug!("miner_worker: reply ok: {:?}", value);
                     },
                     Err(error) => {
-                        error!("reply error: {:?}", error);
+                        error!("miner_worker: reply error: {:?}", error);
                     }
                 };
             })
@@ -128,7 +128,9 @@ pub async fn miner_worker(
                     unknown
                 );
             });
-        if execute_one_batch {
+
+        // Repeat executing batches as long as the coordinator replies with "continue"
+        while execute_one_batch {
             // We are mining
             // debug!("miner-worker {}: execute_batch", ctx.current().id());
 
@@ -155,9 +157,41 @@ pub async fn miner_worker(
 
             // tell coordinator that batch has ended, with the stats
             // and the coordinator will decide what should happen
-            let tell_result = coordinator_worker_distributor.tell_everyone(CoordinatorWorkerMessage::MinerWorkerExecutedOneBatch { execute_batch_result: result });
-            if let Err(error) = tell_result {
-                error!("Unable to send MinerWorkerExecutedOneBatch to coordinator_worker_distributor. error: {:?}", error);
+            let answer: Answer = coordinator_worker_distributor
+                .ask_one(CoordinatorWorkerQuestion::MinerWorkerExecutedOneBatch { execute_batch_result: result })
+                .expect("couldn't perform MinerWorkerExecutedOneBatch request");
+            let reply_optional: Option<String> = run!(blocking! {
+                let mut response_text: String = "no response".to_string();
+                MessageHandler::new(answer.await.expect("couldn't receive reply"))
+                    .on_tell(|response: String, _| {
+                        response_text = response.clone();
+                    })
+                    .on_fallback(|unknown, _sender_addr| {
+                        error!(
+                            "miner_worker: uh oh, I received a message I didn't understand\n {:?}",
+                            unknown
+                        );
+                    });
+                response_text
+            });
+
+            let s: String = match reply_optional {
+                Some(value) => value,
+                None => "stop".to_string()
+            };
+            match s.as_str() {
+                "continue" => {
+                    debug!("miner_worker: continue mining");
+                    execute_one_batch = true;
+                },
+                "stop" => {
+                    debug!("miner_worker: stop mining");
+                    execute_one_batch = false;
+                },
+                _ => {
+                    error!("miner_worker: Unknown reply from MinerWorkerExecutedOneBatch. {:?}", s);
+                    execute_one_batch = false;
+                }
             }
         }
     }

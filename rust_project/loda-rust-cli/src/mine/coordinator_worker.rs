@@ -13,10 +13,15 @@ const RECEIVE_TIMEOUT_SECONDS: u64 = 1 * 60; // 1 minute
 pub enum CoordinatorWorkerMessage {
     RunLaunchProcedure,
     SyncAndAnalyticsIsComplete,
-    CronjobTriggerSync,
-    MinerWorkerExecutedOneBatch { execute_batch_result: ExecuteBatchResult },
     PostmineJobComplete,
+    CronjobTriggerSync,
 }
+
+#[derive(Debug, Clone)]
+pub enum CoordinatorWorkerQuestion {
+    MinerWorkerExecutedOneBatch { execute_batch_result: ExecuteBatchResult },
+}
+
 
 pub async fn coordinator_worker(
     ctx: BastionContext,
@@ -56,27 +61,43 @@ pub async fn coordinator_worker(
                     CoordinatorWorkerMessage::SyncAndAnalyticsIsComplete => {
                         tell_all_miners_to_execute_one_batch = true;
                     },
-                    CoordinatorWorkerMessage::MinerWorkerExecutedOneBatch { execute_batch_result } => {
-                        println!("coordinator_worker: executed one batch: {:?}", execute_batch_result);
-                        mineevent_dir_state.accumulate_stats(&execute_batch_result);
-                        if mineevent_dir_state.has_reached_mining_limit() {
-                            // debug!("reached mining limit. {:?}", state);
-                            // don't schedule another batch execute. Instead trigger the postmine job to run.
-                            trigger_start_postmine_job = true;
-                        } else {
-                            // TODO: tell the worker to execute another batch, if the dicovery count is lower than the limit
-                            // TODO: sender.tell(ExecuteOneBatch);
-                            // TODO: investigate how to send a message back to the sender using Bastion?
-                            // TODO: remove the following line
-                            trigger_start_postmine_job = true; // TODO: pretend that we have mined something
-                        }
-                    },
                     CoordinatorWorkerMessage::PostmineJobComplete => {
                         is_postmine_running = false;
                         mineevent_dir_state.reset();
                         println!("coordinator_worker: postmine job is complete. Resume mining again");
                         tell_all_miners_to_execute_one_batch = true;
                     }
+                }
+            })
+            .on_question(|message: CoordinatorWorkerQuestion, sender| {
+                // debug!("coordinator_worker {}, received a question: \n{:?}", 
+                //     ctx.current().id(),
+                //     message
+                // );
+                match message {
+                    CoordinatorWorkerQuestion::MinerWorkerExecutedOneBatch { execute_batch_result } => {
+                        debug!("coordinator_worker: executed one batch: {:?}", execute_batch_result);
+                        mineevent_dir_state.accumulate_stats(&execute_batch_result);
+                        let reply: String;
+                        if mineevent_dir_state.has_reached_mining_limit() {
+                            // debug!("reached mining limit. {:?}", state);
+                            // don't schedule another batch execute. Instead trigger the postmine job to run.
+                            trigger_start_postmine_job = true;
+                            reply = "stop".to_string();
+                        } else {
+                            // the discovery count is lower than the limit
+                            // tell the worker to execute another batch
+                            reply = "continue".to_string();
+                        }
+                        match sender.reply(reply) {
+                            Ok(value) => {
+                                debug!("coordinator_worker: reply ok: {:?}", value);
+                            },
+                            Err(error) => {
+                                error!("coordinator_worker: reply error: {:?}", error);
+                            }
+                        };
+                    },
                 }
             })
             .on_fallback(|unknown, _sender_addr| {
@@ -97,7 +118,7 @@ pub async fn coordinator_worker(
         if tell_all_miners_to_execute_one_batch {
             // tell miner_workers to execute one batch of mining
             let distributor = Distributor::named("miner_worker");
-            let tell_result = distributor.tell_everyone(MinerWorkerMessage::ExecuteOneBatch);
+            let tell_result = distributor.tell_everyone(MinerWorkerMessage::StartExecuteOneBatch);
             if let Err(error) = tell_result {
                 Bastion::stop();
                 panic!("coordinator_worker: Unable to send ExecuteOneBatch to miner_worker_distributor. error: {:?}", error);
