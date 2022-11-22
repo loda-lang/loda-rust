@@ -5,7 +5,8 @@ use std::thread;
 use std::time::Duration;
 use std::time::Instant;
 
-const CRONJOB_INTERVAL_MILLIS: u64 = 10000;
+const CRONJOB_SYNC_INTERVAL_SECONDS: u64 = 60 * 60; // 1 hour
+const CRONJOB_HEARTBEAT_INTERVAL_SECONDS: u64 = 5 * 60; // 5 minutes
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CronjobWorkerMessage {
@@ -19,18 +20,18 @@ pub async fn cronjob_worker(
 ) -> Result<(), ()> {
     let mut progress_time = Instant::now();
     loop {
-        let elapsed: u128 = progress_time.elapsed().as_millis();
-        if elapsed >= (CRONJOB_INTERVAL_MILLIS as u128) {
-            println!("cron");
+        let elapsed: u64 = progress_time.elapsed().as_secs();
+        if elapsed >= CRONJOB_SYNC_INTERVAL_SECONDS {
+            println!("cron wake up");
             progress_time = Instant::now();
         }
 
-        let timeout = Duration::from_millis(CRONJOB_INTERVAL_MILLIS);
+        let timeout = Duration::from_secs(CRONJOB_HEARTBEAT_INTERVAL_SECONDS);
         let message: SignedMessage = match ctx.try_recv_timeout(timeout).await {
             Ok(message) => message,
             Err(error) => {
                 if let ReceiveError::Timeout(_duration) = error {
-                    debug!("cronjob_worker: timeout happened");
+                    // debug!("cronjob_worker: timeout happened");
                     continue;
                 }
                 error!("cronjob_worker: Unknown error happened. error: {:?}", error);
