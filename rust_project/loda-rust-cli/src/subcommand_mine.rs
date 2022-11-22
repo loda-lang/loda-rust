@@ -2,7 +2,7 @@
 use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
 use crate::mine::analytics_worker;
-use crate::mine::{MineEventDirectoryState, MetricsWorker, MinerWorkerMessage, MinerWorkerQuestion};
+use crate::mine::{MineEventDirectoryState, MetricsWorker};
 use crate::mine::PreventFlooding;
 use crate::mine::cronjob_worker;
 use crate::mine::miner_worker;
@@ -53,9 +53,6 @@ impl SubcommandMine {
 
         instance.run_launch_procedure()?;
 
-        // instance.experiment_contact_miner_workers1();
-        // instance.experiment_contact_miner_workers2();
-
         Bastion::block_until_stopped();
         return Ok(());
     }
@@ -73,40 +70,6 @@ impl SubcommandMine {
             return Err(anyhow::anyhow!("Unable to send RunLaunchProcedure to coordinator_worker_distributor. error: {:?}", error));
         }
         Ok(())
-    }
-
-    #[allow(dead_code)]
-    fn experiment_contact_miner_workers1(&self) {
-        thread::sleep(Duration::from_millis(10000));
-        let miner_worker_distributor = Distributor::named("miner_worker");
-        let tell_result = miner_worker_distributor.tell_everyone(MinerWorkerMessage::InvalidateAnalytics);
-        if let Err(error) = tell_result {
-            error!("miner_worker: Unable to send InvalidateAnalytics to miner_worker_distributor. error: {:?}", error);
-        }
-    }
-
-    #[allow(dead_code)]
-    fn experiment_contact_miner_workers2(&self) {
-        thread::sleep(Duration::from_millis(10000));
-        let miner_worker_distributor = Distributor::named("miner_worker");
-
-        let ask_result = miner_worker_distributor.ask_everyone(MinerWorkerQuestion::Launch);
-        let answers: Vec<Answer> = ask_result.expect("boom");
-        for answer in answers.into_iter() {
-            run!(async move {
-                MessageHandler::new(answer.await.expect("couldn't receive reply"))
-                    .on_tell(|response: String, _| {
-                        println!("response: {:?}", response);
-                    })
-                    .on_fallback(|unknown, _sender_addr| {
-                        error!(
-                            "distributor_test: uh oh, I received a message I didn't understand\n {:?}",
-                            unknown
-                        );
-                    });
-            });
-        }
-        // How to wait for all to respond
     }
 
     fn new(
