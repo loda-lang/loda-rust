@@ -1,6 +1,6 @@
 use super::ExecuteBatchResult;
 
-const MINEEVENTDIRECTORY_MINING_LIMIT: usize = 10;
+const MINEEVENTDIRECTORY_MINING_LIMIT: usize = 40;
 
 #[derive(Debug)]
 pub struct MineEventDirectoryState {

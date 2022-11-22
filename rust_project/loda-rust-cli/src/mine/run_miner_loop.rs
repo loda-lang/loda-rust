@@ -20,7 +20,7 @@ use rand::SeedableRng;
 use rand::rngs::StdRng;
 use std::sync::{Arc, Mutex};
 
-const EXECUTE_BATCH_TIME_LIMIT: u128 = 1000;
+const EXECUTE_BATCH_TIME_LIMIT: u128 = 2000;
 const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
 const MINIMUM_PROGRAM_LENGTH: usize = 6;
 const LOAD_INITIAL_GENOME_MINIMUM_PROGRAM_LENGTH: usize = 8;
