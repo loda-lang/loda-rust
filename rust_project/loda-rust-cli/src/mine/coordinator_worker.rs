@@ -23,10 +23,10 @@ pub async fn coordinator_worker(
             Ok(message) => message,
             Err(error) => {
                 if let ReceiveError::Timeout(_duration) = error {
-                    error!("state_worker: timeout happened. No activity for a while.");
+                    error!("coordinator_worker: timeout happened. No activity for a while.");
                     continue;
                 }
-                error!("state_worker: Unknown error happened. error: {:?}", error);
+                error!("coordinator_worker: Unknown error happened. error: {:?}", error);
                 continue;
             }
         };
@@ -35,7 +35,7 @@ pub async fn coordinator_worker(
         MessageHandler::new(message)
             .on_tell(|message: CoordinatorWorkerMessage, _| {
                 println!(
-                    "state_worker: child {}, received message: {:?}",
+                    "coordinator_worker: child {}, received message: {:?}",
                     ctx.current().id(),
                     message
                 );
@@ -53,7 +53,7 @@ pub async fn coordinator_worker(
             })
             .on_fallback(|unknown, _sender_addr| {
                 error!(
-                    "state_worker {}, received an unknown message!:\n{:?}",
+                    "coordinator_worker {}, received an unknown message!:\n{:?}",
                     ctx.current().id(),
                     unknown
                 );
