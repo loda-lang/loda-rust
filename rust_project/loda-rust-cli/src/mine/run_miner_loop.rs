@@ -29,7 +29,7 @@ const MINER_CACHE_CAPACITY: usize = 3000;
 const ITERATIONS_BETWEEN_PICKING_A_NEW_INITIAL_GENOME: usize = 300;
 const ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME: usize = 5;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExecuteBatchResult {
     number_of_mined_high_prio: usize,
     number_of_mined_low_prio: usize,

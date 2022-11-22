@@ -1,4 +1,6 @@
 use super::AnalyticsWorkerMessage;
+use super::ExecuteBatchResult;
+use super::MinerWorkerMessage;
 use super::SharedWorkerState;
 use bastion::prelude::*;
 use std::sync::{Arc, Mutex};
@@ -6,11 +8,12 @@ use std::time::Duration;
 
 const RECEIVE_TIMEOUT_SECONDS: u64 = 1 * 60; // 1 minute
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum CoordinatorWorkerMessage {
     RunLaunchProcedure,
     SyncAndAnalyticsIsComplete,
     CronjobTriggerSync,
+    MinerWorkerExecutedOneBatch { execute_batch_result: ExecuteBatchResult },
 }
 
 pub async fn coordinator_worker(
@@ -48,7 +51,10 @@ pub async fn coordinator_worker(
                     },
                     CoordinatorWorkerMessage::SyncAndAnalyticsIsComplete => {
                         is_sync_and_analytics_complete = true;
-                    }
+                    },
+                    CoordinatorWorkerMessage::MinerWorkerExecutedOneBatch { execute_batch_result } => {
+                        println!("coordinator_worker: executed one batch: {:?}", execute_batch_result);
+                    },
                 }
             })
             .on_fallback(|unknown, _sender_addr| {
