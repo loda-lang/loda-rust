@@ -1,11 +1,11 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
 use crate::config::{Config, NumberOfWorkers};
 use crate::common::PendingProgramsWithPriority;
-use crate::mine::{analytics_worker, AnalyticsWorkerMessage};
+use crate::mine::analytics_worker;
 use crate::mine::{MineEventDirectoryState, MetricsWorker, MinerWorkerMessage, MinerWorkerQuestion};
 use crate::mine::PreventFlooding;
-use crate::mine::{cronjob_worker, CronjobWorkerMessage};
-use crate::mine::{miner_worker};
+use crate::mine::cronjob_worker;
+use crate::mine::miner_worker;
 use crate::mine::{postmine_worker, SharedWorkerState};
 use crate::mine::upload_worker;
 use crate::mine::{coordinator_worker, CoordinatorWorkerMessage};
