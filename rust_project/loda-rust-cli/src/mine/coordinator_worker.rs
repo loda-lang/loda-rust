@@ -133,7 +133,7 @@ pub async fn coordinator_worker(
                 is_postmine_running = true;
                 // TODO: if the discovery count is greater than the limit, wait for all workers to finish, tell postmine to run
                 println!("coordinator_worker: trigger start postmine - pretend we are waiting for all workers to finish");
-                thread::sleep(Duration::from_millis(5000));
+                thread::sleep(Duration::from_millis(1000));
     
                 println!("coordinator_worker: trigger start postmine - pretend all miner workers have finished");
                 let distributor = Distributor::named("postmine_worker");
