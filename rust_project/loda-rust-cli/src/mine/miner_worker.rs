@@ -129,20 +129,6 @@ pub async fn miner_worker(
                 );
             });
         if execute_one_batch {
-            // let the_state: SharedWorkerState = match shared_worker_state.lock() {
-            //     Ok(state) => *state,
-            //     Err(error) => {
-            //         error!("miner_worker. shared_miner_worker_state. Unable to lock mutex. {:?}", error);
-            //         thread::sleep(Duration::from_millis(200));
-            //         continue;
-            //     }
-            // };
-            // if the_state != SharedWorkerState::Mining {
-            //     // Not mining, sleep for a while, and poll again
-            //     thread::sleep(Duration::from_millis(200));
-            //     continue;
-            // }
-
             // We are mining
             // debug!("miner-worker {}: execute_batch", ctx.current().id());
 
@@ -173,49 +159,6 @@ pub async fn miner_worker(
             if let Err(error) = tell_result {
                 error!("Unable to send MinerWorkerExecutedOneBatch to coordinator_worker_distributor. error: {:?}", error);
             }
-    
-
-                /*
-                let mut has_reached_mining_limit = false;
-                match mine_event_dir_state.lock() {
-                    Ok(mut state) => {
-                        state.accumulate_stats(&result);
-                        if state.has_reached_mining_limit() {
-                            // debug!("reached mining limit. {:?}", state);
-                            has_reached_mining_limit = true;
-                        }
-                    },
-                    Err(error) => {
-                        error!("miner_worker: mine_event_dir_state.lock() failed. {:?}", error);
-                    }
-                }
-
-                if has_reached_mining_limit {
-                    let mut trigger_start_postmine = false;
-                    match shared_worker_state.lock() {
-                        Ok(mut state) => {
-                            if *state == SharedWorkerState::Mining {
-                                trigger_start_postmine = true;
-                            }
-                            *state = SharedWorkerState::Postmine;
-                        },
-                        Err(error) => {
-                            error!("miner_worker: Unable to Pause all miner_workers. error: {:?}", error);
-                        }
-                    }
-
-                    if trigger_start_postmine {
-                        println!("trigger start postmine");
-                        thread::sleep(Duration::from_millis(1000));
-                        let tell_result = postmine_worker_distributor
-                            .tell_everyone(PostmineWorkerMessage::StartPostmineJob);
-                        if let Err(error) = tell_result {
-                            error!("miner_worker: Unable to send StartPostmineJob. error: {:?}", error);
-                        }
-                    }
-                }
-            }
-            */
         }
     }
 }

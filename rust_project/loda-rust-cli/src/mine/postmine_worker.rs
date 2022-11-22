@@ -1,11 +1,7 @@
-use super::{MineEventDirectoryState, SharedWorkerState, UploadWorkerItem};
-use crate::mine::CoordinatorWorkerMessage;
+use super::{CoordinatorWorkerMessage, UploadWorkerItem};
 use crate::postmine::PostMine;
 use loda_rust_core::oeis::OeisId;
 use bastion::prelude::*;
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::Duration;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PostmineWorkerMessage {

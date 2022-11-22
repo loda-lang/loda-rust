@@ -6,7 +6,7 @@ use crate::mine::{MineEventDirectoryState, MetricsWorker};
 use crate::mine::PreventFlooding;
 use crate::mine::cronjob_worker;
 use crate::mine::miner_worker;
-use crate::mine::{postmine_worker, SharedWorkerState};
+use crate::mine::postmine_worker;
 use crate::mine::upload_worker;
 use crate::mine::{coordinator_worker, CoordinatorWorkerMessage};
 use bastion::prelude::*;
@@ -28,7 +28,6 @@ pub struct SubcommandMine {
     config: Config,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
     mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
-    shared_worker_state: Arc<Mutex<SharedWorkerState>>,
 }
 
 impl SubcommandMine {
@@ -83,7 +82,6 @@ impl SubcommandMine {
             config: config,
             prevent_flooding: Arc::new(Mutex::new(PreventFlooding::new())),
             mine_event_dir_state: Arc::new(Mutex::new(MineEventDirectoryState::new())),
-            shared_worker_state: Arc::new(Mutex::new(SharedWorkerState::Analytics)),
         }
     }
 
@@ -156,18 +154,15 @@ impl SubcommandMine {
     }
     
     fn start_coordinator_worker(&self) -> anyhow::Result<()> {
-        let shared_worker_state = self.shared_worker_state.clone();
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
                     .with_redundancy(1)
                     .with_distributor(Distributor::named("coordinator_worker"))
                     .with_exec(move |ctx: BastionContext| {
-                        let shared_worker_state_clone = shared_worker_state.clone();
                         async move {
                             coordinator_worker(
                                 ctx,
-                                shared_worker_state_clone,
                             ).await
                         }
                     })

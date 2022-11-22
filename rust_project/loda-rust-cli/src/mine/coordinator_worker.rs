@@ -3,9 +3,7 @@ use super::ExecuteBatchResult;
 use super::MineEventDirectoryState;
 use super::MinerWorkerMessage;
 use super::PostmineWorkerMessage;
-use super::SharedWorkerState;
 use bastion::prelude::*;
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::thread;
 
@@ -22,7 +20,6 @@ pub enum CoordinatorWorkerMessage {
 
 pub async fn coordinator_worker(
     ctx: BastionContext,
-    shared_worker_state: Arc<Mutex<SharedWorkerState>>,
 ) -> Result<(), ()> {
     let timeout = Duration::from_secs(RECEIVE_TIMEOUT_SECONDS);
     let mut mineevent_dir_state = MineEventDirectoryState::new();
