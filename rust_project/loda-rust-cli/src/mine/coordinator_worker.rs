@@ -41,8 +41,6 @@ pub async fn coordinator_worker(
                 continue;
             }
         };
-        let mut should_run_launch_procedure: bool = false;
-        let mut tell_all_miners_to_execute_one_batch: bool = false;
         let mut trigger_start_postmine_job: bool = false;
         MessageHandler::new(message)
             .on_tell(|message: CoordinatorWorkerMessage, _| {
@@ -53,19 +51,19 @@ pub async fn coordinator_worker(
                 );
                 match message {
                     CoordinatorWorkerMessage::RunLaunchProcedure => {
-                        should_run_launch_procedure = true;
+                        run_launch_procedure();
                     },
                     CoordinatorWorkerMessage::CronjobTriggerSync => {
                         println!("!!!!!!!!! trigger sync")
                     },
                     CoordinatorWorkerMessage::SyncAndAnalyticsIsComplete => {
-                        tell_all_miners_to_execute_one_batch = true;
+                        start_execute_one_batch_of_mining();
                     },
                     CoordinatorWorkerMessage::PostmineJobComplete => {
                         is_postmine_running = false;
                         mineevent_dir_state.reset();
                         println!("coordinator_worker: postmine job is complete. Resume mining again");
-                        tell_all_miners_to_execute_one_batch = true;
+                        start_execute_one_batch_of_mining();
                     }
                 }
             })
@@ -107,23 +105,6 @@ pub async fn coordinator_worker(
                     unknown
                 );
             });
-        if should_run_launch_procedure {
-            println!("coordinator_worker: Run launch procedure");
-            let distributor = Distributor::named("analytics_worker");
-            let tell_result = distributor.tell_everyone(AnalyticsWorkerMessage::RunLaunchProcedure);
-            if let Err(error) = tell_result {
-                error!("coordinator_worker: Unable to send RunLaunchProcedure to analytics_worker_distributor. error: {:?}", error);
-            }
-        }
-        if tell_all_miners_to_execute_one_batch {
-            // tell miner_workers to execute one batch of mining
-            let distributor = Distributor::named("miner_worker");
-            let tell_result = distributor.tell_everyone(MinerWorkerMessage::StartExecuteOneBatch);
-            if let Err(error) = tell_result {
-                Bastion::stop();
-                panic!("coordinator_worker: Unable to send ExecuteOneBatch to miner_worker_distributor. error: {:?}", error);
-            }
-        }
         if trigger_start_postmine_job {
             // ensure it only gets triggered once. 
             // if postmine is already in progress, and it gets triggered over and over, then it's a mess.
@@ -144,5 +125,24 @@ pub async fn coordinator_worker(
                 }
             }
         }
+    }
+}
+
+fn run_launch_procedure() {
+    println!("coordinator_worker: Run launch procedure");
+    let distributor = Distributor::named("analytics_worker");
+    let tell_result = distributor.tell_everyone(AnalyticsWorkerMessage::RunLaunchProcedure);
+    if let Err(error) = tell_result {
+        error!("coordinator_worker: Unable to send RunLaunchProcedure to analytics_worker_distributor. error: {:?}", error);
+    }
+}
+
+fn start_execute_one_batch_of_mining() {
+    // tell miner_workers to execute one batch of mining
+    let distributor = Distributor::named("miner_worker");
+    let tell_result = distributor.tell_everyone(MinerWorkerMessage::StartExecuteOneBatch);
+    if let Err(error) = tell_result {
+        Bastion::stop();
+        panic!("coordinator_worker: Unable to send ExecuteOneBatch to miner_worker_distributor. error: {:?}", error);
     }
 }
