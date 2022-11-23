@@ -12,7 +12,7 @@ use rand::{RngCore, thread_rng};
 
 #[derive(Debug, Clone)]
 pub enum MinerWorkerMessage {
-    StartExecuteOneBatch,
+    StartMining,
 }
 
 #[derive(Clone)]
@@ -83,8 +83,8 @@ pub async fn miner_worker(
                 //     message
                 // );
                 match message {
-                    MinerWorkerMessage::StartExecuteOneBatch => {
-                        debug!("miner_worker: StartExecuteOneBatch");
+                    MinerWorkerMessage::StartMining => {
+                        debug!("miner_worker: StartMining");
                         execute_one_batch = true;
                     },
                 }

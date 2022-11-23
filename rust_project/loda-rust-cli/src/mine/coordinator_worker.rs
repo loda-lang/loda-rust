@@ -57,13 +57,13 @@ pub async fn coordinator_worker(
                         println!("!!!!!!!!! trigger sync")
                     },
                     CoordinatorWorkerMessage::SyncAndAnalyticsIsComplete => {
-                        start_execute_one_batch_of_mining();
+                        start_mining();
                     },
                     CoordinatorWorkerMessage::PostmineJobComplete => {
                         is_postmine_running = false;
                         mineevent_dir_state.reset();
                         println!("coordinator_worker: postmine job is complete. Resume mining again");
-                        start_execute_one_batch_of_mining();
+                        start_mining();
                     }
                 }
             })
@@ -137,12 +137,12 @@ fn run_launch_procedure() {
     }
 }
 
-/// tell all `miner_worker` instances to execute one batch of mining
-fn start_execute_one_batch_of_mining() {
+/// tell all `miner_worker` instances to start mining
+fn start_mining() {
     let distributor = Distributor::named("miner_worker");
-    let tell_result = distributor.tell_everyone(MinerWorkerMessage::StartExecuteOneBatch);
+    let tell_result = distributor.tell_everyone(MinerWorkerMessage::StartMining);
     if let Err(error) = tell_result {
         Bastion::stop();
-        panic!("coordinator_worker: Unable to send StartExecuteOneBatch to miner_worker_distributor. error: {:?}", error);
+        panic!("coordinator_worker: Unable to send StartMining to miner_worker_distributor. error: {:?}", error);
     }
 }
