@@ -128,8 +128,8 @@ pub async fn coordinator_worker(
     }
 }
 
+/// tell the `analytics_worker` instance to perform the launch procedure
 fn run_launch_procedure() {
-    println!("coordinator_worker: Run launch procedure");
     let distributor = Distributor::named("analytics_worker");
     let tell_result = distributor.tell_everyone(AnalyticsWorkerMessage::RunLaunchProcedure);
     if let Err(error) = tell_result {
@@ -137,12 +137,12 @@ fn run_launch_procedure() {
     }
 }
 
+/// tell all `miner_worker` instances to execute one batch of mining
 fn start_execute_one_batch_of_mining() {
-    // tell miner_workers to execute one batch of mining
     let distributor = Distributor::named("miner_worker");
     let tell_result = distributor.tell_everyone(MinerWorkerMessage::StartExecuteOneBatch);
     if let Err(error) = tell_result {
         Bastion::stop();
-        panic!("coordinator_worker: Unable to send ExecuteOneBatch to miner_worker_distributor. error: {:?}", error);
+        panic!("coordinator_worker: Unable to send StartExecuteOneBatch to miner_worker_distributor. error: {:?}", error);
     }
 }
