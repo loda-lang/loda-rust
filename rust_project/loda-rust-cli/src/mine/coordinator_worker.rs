@@ -14,7 +14,11 @@ pub enum CoordinatorWorkerMessage {
     RunLaunchProcedure,
     SyncAndAnalyticsIsComplete,
     PostmineJobComplete,
-    CronjobTriggerSync,
+
+    /// Invoked by the cronjob when it's time for a `sync`.
+    /// This synchronizes the `loda-programs` repository.
+    /// And regenerates the `~/.loda-rust/analytics` directory.
+    TriggerSync,
 }
 
 #[derive(Debug, Clone)]
@@ -50,8 +54,8 @@ pub async fn coordinator_worker(
                     CoordinatorWorkerMessage::RunLaunchProcedure => {
                         state_machine.run_launch_procedure();
                     },
-                    CoordinatorWorkerMessage::CronjobTriggerSync => {
-                        state_machine.cronjob_trigger_sync();
+                    CoordinatorWorkerMessage::TriggerSync => {
+                        state_machine.trigger_sync();
                     },
                     CoordinatorWorkerMessage::SyncAndAnalyticsIsComplete => {
                         state_machine.sync_and_analytics_is_complete();
@@ -128,7 +132,7 @@ trait State: Send {
     fn should_continue_mining(&self) -> bool;
     fn postmine_job_is_complete(self: Box<Self>) -> Box<dyn State>;
     fn timeout(self: Box<Self>) -> Box<dyn State>;
-    fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State>;
+    fn trigger_sync(self: Box<Self>) -> Box<dyn State>;
 }
 
 struct InitialState;
@@ -137,7 +141,7 @@ impl State for InitialState {
     fn run_launch_procedure(self: Box<Self>) -> Box<dyn State> {
         run_launch_procedure();
         Box::new(RunLaunchProcedureInProgressState { 
-            cronjob_trigger_sync: false,
+            trigger_sync: false,
             mineevent_dir_state: MineEventDirectoryState::new(),
         })
     }
@@ -169,13 +173,13 @@ impl State for InitialState {
         self
     }
 
-    fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State> {
+    fn trigger_sync(self: Box<Self>) -> Box<dyn State> {
         self
     }
 }
 
 struct RunLaunchProcedureInProgressState {
-    cronjob_trigger_sync: bool,
+    trigger_sync: bool,
     mineevent_dir_state: MineEventDirectoryState,
 }
 
@@ -188,7 +192,7 @@ impl State for RunLaunchProcedureInProgressState {
     fn sync_and_analytics_is_complete(self: Box<Self>) -> Box<dyn State> {
         start_mining();
         Box::new(MiningInProgressState { 
-            cronjob_trigger_sync: self.cronjob_trigger_sync,
+            trigger_sync: self.trigger_sync,
             mineevent_dir_state: self.mineevent_dir_state,
         })
     }
@@ -215,16 +219,16 @@ impl State for RunLaunchProcedureInProgressState {
         self
     }
 
-    fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State> {
+    fn trigger_sync(self: Box<Self>) -> Box<dyn State> {
         Box::new(Self { 
-            cronjob_trigger_sync: true,
+            trigger_sync: true,
             mineevent_dir_state: self.mineevent_dir_state,
         })
     }
 }
 
 struct MiningInProgressState {
-    cronjob_trigger_sync: bool,
+    trigger_sync: bool,
     mineevent_dir_state: MineEventDirectoryState,
 }
 
@@ -249,13 +253,13 @@ impl State for MiningInProgressState {
         if !mineevent_dir_state.has_reached_mining_limit() {
             // Stay in this state, and accumulate candidate programs
             return Box::new(MiningInProgressState {
-                cronjob_trigger_sync: self.cronjob_trigger_sync, 
+                trigger_sync: self.trigger_sync, 
                 mineevent_dir_state
             });
         }
-        println!("MiningInProgressState. the number of accumulated candiate programs has reached the limit");
+        debug!("MiningInProgressState: the number of accumulated candiate programs has reached the limit");
         Box::new(MiningIsStoppingState::new(
-            self.cronjob_trigger_sync, 
+            self.trigger_sync, 
             mineevent_dir_state
         ))
     }
@@ -274,8 +278,8 @@ impl State for MiningInProgressState {
         self
     }
 
-    fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State> {
-        // Stop mining immediately, so the cronjob can be performed as soon as possible
+    fn trigger_sync(self: Box<Self>) -> Box<dyn State> {
+        debug!("MiningInProgressState: Stop mining immediately, so the cronjob can be performed as soon as possible");
         Box::new(MiningIsStoppingState::new(
             true, 
             self.mineevent_dir_state,
@@ -285,16 +289,16 @@ impl State for MiningInProgressState {
 
 /// Wait for all miner_worker instances to complete their mining job
 struct MiningIsStoppingState {
-    cronjob_trigger_sync: bool,
+    trigger_sync: bool,
     mineevent_dir_state: MineEventDirectoryState,
     start_time: Instant,
 }
 
 impl MiningIsStoppingState {
-    fn new(cronjob_trigger_sync: bool, mineevent_dir_state: MineEventDirectoryState) -> Self {
+    fn new(trigger_sync: bool, mineevent_dir_state: MineEventDirectoryState) -> Self {
         let start_time = Instant::now();
         Self { 
-            cronjob_trigger_sync,
+            trigger_sync,
             mineevent_dir_state,
             start_time 
         }
@@ -320,7 +324,7 @@ impl State for MiningIsStoppingState {
         let mut mineevent_dir_state = self.mineevent_dir_state.clone();
         mineevent_dir_state.accumulate_stats(&execute_batch_result);
         Box::new(MiningIsStoppingState::new(
-            self.cronjob_trigger_sync, 
+            self.trigger_sync, 
             mineevent_dir_state
         ))
     }
@@ -353,14 +357,14 @@ impl State for MiningIsStoppingState {
         
         // Transition to the "postmine" state.
         return Box::new(PostmineInProgressState { 
-            cronjob_trigger_sync: self.cronjob_trigger_sync,
+            trigger_sync: self.trigger_sync,
             mineevent_dir_state: self.mineevent_dir_state,
         });
     }
 
-    fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State> {
+    fn trigger_sync(self: Box<Self>) -> Box<dyn State> {
         Box::new(Self { 
-            cronjob_trigger_sync: true,
+            trigger_sync: true,
             mineevent_dir_state: self.mineevent_dir_state,
             start_time: self.start_time, 
         })
@@ -368,7 +372,7 @@ impl State for MiningIsStoppingState {
 }
 
 struct PostmineInProgressState {
-    cronjob_trigger_sync: bool,
+    trigger_sync: bool,
     mineevent_dir_state: MineEventDirectoryState,
 }
 
@@ -397,11 +401,11 @@ impl State for PostmineInProgressState {
     }
 
     fn postmine_job_is_complete(self: Box<Self>) -> Box<dyn State> {
-        if self.cronjob_trigger_sync {
-            println!("PostmineInProgressState: postmine job is complete. perform the scheduled cronjob");
+        if self.trigger_sync {
+            println!("PostmineInProgressState: postmine job is complete. perform the scheduled \"sync\" task");
             run_launch_procedure();
             return Box::new(RunLaunchProcedureInProgressState { 
-                cronjob_trigger_sync: false, // Clear the cronjob_trigger_sync flag, since we have just performed it.
+                trigger_sync: false, // Clear the trigger_sync flag, since we have just performed it.
                 mineevent_dir_state: MineEventDirectoryState::new(), // Reset the mine-event directory counters
             });
         }
@@ -409,7 +413,7 @@ impl State for PostmineInProgressState {
         println!("PostmineInProgressState: postmine job is complete. Resume mining again");
         start_mining();
         Box::new(MiningInProgressState {
-            cronjob_trigger_sync: false, // Clear the cronjob_trigger_sync flag, since we have just performed it.
+            trigger_sync: false, // Clear the trigger_sync flag, since we have just performed it.
             mineevent_dir_state: MineEventDirectoryState::new(), // Reset the mine-event directory counters
         })
     }
@@ -418,9 +422,9 @@ impl State for PostmineInProgressState {
         self
     }
 
-    fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State> {
+    fn trigger_sync(self: Box<Self>) -> Box<dyn State> {
         Box::new(Self { 
-            cronjob_trigger_sync: true,
+            trigger_sync: true,
             mineevent_dir_state: self.mineevent_dir_state,
         })
     }
@@ -477,10 +481,10 @@ impl StateMachine {
         }
     }
 
-    fn cronjob_trigger_sync(&mut self) {
-        println!("coordinator_worker: cronjob_trigger_sync - scheduling sync and analytics as soon as possible");
+    fn trigger_sync(&mut self) {
+        println!("coordinator_worker: trigger_sync - scheduling \"sync\" as soon as possible");
         if let Some(state) = self.state.take() {
-            self.state = Some(state.cronjob_trigger_sync());
+            self.state = Some(state.trigger_sync());
         }
     }
 }

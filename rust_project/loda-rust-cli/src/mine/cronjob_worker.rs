@@ -22,9 +22,9 @@ pub async fn cronjob_worker(
         if elapsed >= CRONJOB_SYNC_INTERVAL_SECONDS {
             debug!("cronjob_worker: wake up");
             let distributor = Distributor::named("coordinator_worker");
-            let tell_result = distributor.tell_everyone(CoordinatorWorkerMessage::CronjobTriggerSync);
+            let tell_result = distributor.tell_everyone(CoordinatorWorkerMessage::TriggerSync);
             if let Err(error) = tell_result {
-                error!("Unable to send CronjobTriggerSync to coordinator_worker. error: {:?}", error);
+                error!("Unable to send TriggerSync to coordinator_worker. error: {:?}", error);
             }
             progress_time = Instant::now();
         }

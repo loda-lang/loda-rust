@@ -73,16 +73,16 @@ async fn webserver_with_metrics(registry: MyRegistry, listen_port: u16) -> std::
     app.at("/").get(|_| async { Ok("Hello, world!") });
     app.at("/sync").get(|_| async {
         let distributor = Distributor::named("coordinator_worker");
-        let tell_result = distributor.tell_everyone(CoordinatorWorkerMessage::CronjobTriggerSync);
+        let tell_result = distributor.tell_everyone(CoordinatorWorkerMessage::TriggerSync);
         if let Err(error) = tell_result {
             let response = tide::Response::builder(500)
-                .body(format!("webserver_with_metrics: /sync - Unable to send CronjobTriggerSync to coordinator_worker_distributor. {:?}", error))
+                .body(format!("webserver_with_metrics: /sync - Unable to send TriggerSync to coordinator_worker_distributor. {:?}", error))
                 .content_type("text/plain; charset=utf-8")
                 .build();
             return Ok(response);
         }
         let response = tide::Response::builder(200)
-            .body("did send CronjobTriggerSync")
+            .body("did send TriggerSync")
             .content_type("text/plain; charset=utf-8")
             .build();
         Ok(response)
