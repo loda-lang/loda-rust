@@ -380,16 +380,15 @@ impl State for PostmineInProgressState {
     }
 
     fn postmine_job_is_complete(self: Box<Self>) -> Box<dyn State> {
-        println!("PostmineInProgressState: postmine job is complete. Resume mining again");
-
         if self.cronjob_trigger_sync {
-            println!("perform the scheduled cronjob");
+            println!("PostmineInProgressState: postmine job is complete. perform the scheduled cronjob");
             run_launch_procedure();
             return Box::new(RunLaunchProcedureInProgressState { 
                 cronjob_trigger_sync: false 
             });
         }
 
+        println!("PostmineInProgressState: postmine job is complete. Resume mining again");
         start_mining();
         Box::new(MiningInProgressState {
             cronjob_trigger_sync: false, // Clear the cronjob_trigger_sync flag, since we have just performed it.
