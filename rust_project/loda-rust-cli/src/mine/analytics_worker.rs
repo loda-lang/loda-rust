@@ -19,7 +19,6 @@ const ANALYTICS_INTERVAL_MILLIS: u64 = 10000;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AnalyticsWorkerMessage {
     RunLaunchProcedure,
-    RegenerateAnalyticsJob,
 }
 
 pub async fn analytics_worker(
@@ -49,7 +48,6 @@ pub async fn analytics_worker(
             }
         };
         let mut should_run_launch_procedure: bool = false;
-        let mut should_perform_sync: bool = false;
         MessageHandler::new(message)
             .on_tell(|message: AnalyticsWorkerMessage, _| {
                 println!(
@@ -61,9 +59,6 @@ pub async fn analytics_worker(
                     AnalyticsWorkerMessage::RunLaunchProcedure => {
                         should_run_launch_procedure = true;
                     },
-                    AnalyticsWorkerMessage::RegenerateAnalyticsJob => {
-                        should_perform_sync = true;
-                    },
                 }
             })
             .on_fallback(|unknown, _sender_addr| {
@@ -74,9 +69,7 @@ pub async fn analytics_worker(
                 );
             });
 
-        let mut analytics_to_be_performed = AnalyticsTypeToPerform::RegenerateIfExpired;
-
-        if should_run_launch_procedure || should_perform_sync {
+        if should_run_launch_procedure {
             let executable_path: PathBuf = config.miner_sync_executable();
             let status: MinerSyncExecuteStatus = match MinerSyncExecute::execute(&executable_path) {
                 Ok(value) => value,
@@ -87,6 +80,7 @@ pub async fn analytics_worker(
             };
             println!("Successfully executed MinerSyncExecute. status: {:?}", status);
 
+            let analytics_to_be_performed: AnalyticsTypeToPerform;
             match status {
                 MinerSyncExecuteStatus::Changed => {
                     // Data has been modified, then analytics needs to be regenerated.
@@ -97,9 +91,7 @@ pub async fn analytics_worker(
                     analytics_to_be_performed = AnalyticsTypeToPerform::RegenerateIfExpired;
                 }
             }
-        }
 
-        if should_run_launch_procedure {
             let analytics_run_result: anyhow::Result<()> = match analytics_to_be_performed {
                 AnalyticsTypeToPerform::RegenerateIfExpired => {
                     println!("BEFORE analytics - run_if_expired");
