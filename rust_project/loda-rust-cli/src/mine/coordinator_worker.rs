@@ -7,7 +7,7 @@ use bastion::prelude::*;
 use std::time::{Duration, Instant};
 
 const RECEIVE_TIMEOUT_SECONDS: u64 = 1; // 1 second
-const STOP_MINING_SHUTDOWN_PERIOD_MILLIS: u128 = 1500; // 1.5 second
+const STOP_MINING_SHUTDOWN_PERIOD_MILLIS: u128 = 2100; // 2.1 seconds
 
 #[derive(Clone, Debug)]
 pub enum CoordinatorWorkerMessage {
@@ -26,7 +26,6 @@ pub async fn coordinator_worker(
     ctx: BastionContext,
 ) -> Result<(), ()> {
     let timeout = Duration::from_secs(RECEIVE_TIMEOUT_SECONDS);
-    let mut mineevent_dir_state = MineEventDirectoryState::new();
     let mut state_machine = StateMachine::new();
     loop {
         let message: SignedMessage = match ctx.try_recv_timeout(timeout).await {
@@ -59,7 +58,6 @@ pub async fn coordinator_worker(
                     },
                     CoordinatorWorkerMessage::PostmineJobComplete => {
                         state_machine.postmine_job_is_complete();
-                        mineevent_dir_state.reset();
                     }
                 }
             })
@@ -70,7 +68,7 @@ pub async fn coordinator_worker(
                 // );
                 match message {
                     CoordinatorWorkerQuestion::MinerWorkerExecutedOneBatch { execute_batch_result } => {
-                        state_machine.miner_worker_executed_one_batch(&execute_batch_result, &mut mineevent_dir_state);
+                        state_machine.miner_worker_executed_one_batch(&execute_batch_result);
                         let reply: String;
                         if state_machine.should_continue_mining() {
                             reply = "continue".to_string();
@@ -125,7 +123,6 @@ trait State: Send {
     fn miner_worker_executed_one_batch(
         self: Box<Self>, 
         execute_batch_result: &ExecuteBatchResult,
-        mineevent_directory_state: &mut MineEventDirectoryState,
     ) -> Box<dyn State>;
 
     fn should_continue_mining(&self) -> bool;
@@ -140,7 +137,8 @@ impl State for InitialState {
     fn run_launch_procedure(self: Box<Self>) -> Box<dyn State> {
         run_launch_procedure();
         Box::new(RunLaunchProcedureInProgressState { 
-            cronjob_trigger_sync: false 
+            cronjob_trigger_sync: false,
+            mineevent_dir_state: MineEventDirectoryState::new(),
         })
     }
 
@@ -152,7 +150,6 @@ impl State for InitialState {
     fn miner_worker_executed_one_batch(
         self: Box<Self>, 
         _execute_batch_result: &ExecuteBatchResult,
-        _mineevent_directory_state: &mut MineEventDirectoryState,
     ) -> Box<dyn State> {
         error!("InitialState.miner_worker_executed_one_batch() called, but is never supposed to be invoked in this state");
         self
@@ -179,6 +176,7 @@ impl State for InitialState {
 
 struct RunLaunchProcedureInProgressState {
     cronjob_trigger_sync: bool,
+    mineevent_dir_state: MineEventDirectoryState,
 }
 
 impl State for RunLaunchProcedureInProgressState {
@@ -190,14 +188,14 @@ impl State for RunLaunchProcedureInProgressState {
     fn sync_and_analytics_is_complete(self: Box<Self>) -> Box<dyn State> {
         start_mining();
         Box::new(MiningInProgressState { 
-            cronjob_trigger_sync: self.cronjob_trigger_sync
+            cronjob_trigger_sync: self.cronjob_trigger_sync,
+            mineevent_dir_state: self.mineevent_dir_state,
         })
     }
 
     fn miner_worker_executed_one_batch(
         self: Box<Self>, 
         _execute_batch_result: &ExecuteBatchResult,
-        _mineevent_directory_state: &mut MineEventDirectoryState,
     ) -> Box<dyn State> {
         error!("RunLaunchProcedureInProgressState.miner_worker_executed_one_batch() called, but is never supposed to be invoked in this state");
         self
@@ -218,12 +216,16 @@ impl State for RunLaunchProcedureInProgressState {
     }
 
     fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State> {
-        Box::new(Self { cronjob_trigger_sync: true })
+        Box::new(Self { 
+            cronjob_trigger_sync: true,
+            mineevent_dir_state: self.mineevent_dir_state,
+        })
     }
 }
 
 struct MiningInProgressState {
     cronjob_trigger_sync: bool,
+    mineevent_dir_state: MineEventDirectoryState,
 }
 
 impl State for MiningInProgressState {
@@ -240,17 +242,22 @@ impl State for MiningInProgressState {
     fn miner_worker_executed_one_batch(
         self: Box<Self>, 
         execute_batch_result: &ExecuteBatchResult,
-        mineevent_directory_state: &mut MineEventDirectoryState,
     ) -> Box<dyn State> {
         debug!("MiningInProgressState: executed one batch: {:?}", execute_batch_result);
-        mineevent_directory_state.accumulate_stats(&execute_batch_result);
-
-        if !mineevent_directory_state.has_reached_mining_limit() {
+        let mut mineevent_dir_state = self.mineevent_dir_state.clone();
+        mineevent_dir_state.accumulate_stats(&execute_batch_result);
+        if !mineevent_dir_state.has_reached_mining_limit() {
             // Stay in this state, and accumulate candidate programs
-            return self;
+            return Box::new(MiningInProgressState {
+                cronjob_trigger_sync: self.cronjob_trigger_sync, 
+                mineevent_dir_state
+            });
         }
         println!("MiningInProgressState. the number of accumulated candiate programs has reached the limit");
-        Box::new(MiningIsStoppingState::new(self.cronjob_trigger_sync))
+        Box::new(MiningIsStoppingState::new(
+            self.cronjob_trigger_sync, 
+            mineevent_dir_state
+        ))
     }
 
     fn should_continue_mining(&self) -> bool {
@@ -269,21 +276,26 @@ impl State for MiningInProgressState {
 
     fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State> {
         // Stop mining immediately, so the cronjob can be performed as soon as possible
-        Box::new(MiningIsStoppingState::new(true))
+        Box::new(MiningIsStoppingState::new(
+            true, 
+            self.mineevent_dir_state,
+        ))
     }
 }
 
 /// Wait for all miner_worker instances to complete their mining job
 struct MiningIsStoppingState {
     cronjob_trigger_sync: bool,
+    mineevent_dir_state: MineEventDirectoryState,
     start_time: Instant,
 }
 
 impl MiningIsStoppingState {
-    fn new(cronjob_trigger_sync: bool) -> Self {
+    fn new(cronjob_trigger_sync: bool, mineevent_dir_state: MineEventDirectoryState) -> Self {
         let start_time = Instant::now();
         Self { 
             cronjob_trigger_sync,
+            mineevent_dir_state,
             start_time 
         }
     }
@@ -303,11 +315,14 @@ impl State for MiningIsStoppingState {
     fn miner_worker_executed_one_batch(
         self: Box<Self>, 
         execute_batch_result: &ExecuteBatchResult,
-        mineevent_directory_state: &mut MineEventDirectoryState,
     ) -> Box<dyn State> {
         debug!("MiningIsStoppingState: executed one batch: {:?}", execute_batch_result);
-        mineevent_directory_state.accumulate_stats(&execute_batch_result);
-        return self;
+        let mut mineevent_dir_state = self.mineevent_dir_state.clone();
+        mineevent_dir_state.accumulate_stats(&execute_batch_result);
+        Box::new(MiningIsStoppingState::new(
+            self.cronjob_trigger_sync, 
+            mineevent_dir_state
+        ))
     }
 
     fn should_continue_mining(&self) -> bool {
@@ -338,13 +353,15 @@ impl State for MiningIsStoppingState {
         
         // Transition to the "postmine" state.
         return Box::new(PostmineInProgressState { 
-            cronjob_trigger_sync: self.cronjob_trigger_sync 
+            cronjob_trigger_sync: self.cronjob_trigger_sync,
+            mineevent_dir_state: self.mineevent_dir_state,
         });
     }
 
     fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State> {
         Box::new(Self { 
             cronjob_trigger_sync: true,
+            mineevent_dir_state: self.mineevent_dir_state,
             start_time: self.start_time, 
         })
     }
@@ -352,6 +369,7 @@ impl State for MiningIsStoppingState {
 
 struct PostmineInProgressState {
     cronjob_trigger_sync: bool,
+    mineevent_dir_state: MineEventDirectoryState,
 }
 
 impl State for PostmineInProgressState {
@@ -368,7 +386,6 @@ impl State for PostmineInProgressState {
     fn miner_worker_executed_one_batch(
         self: Box<Self>, 
         _execute_batch_result: &ExecuteBatchResult,
-        _mineevent_directory_state: &mut MineEventDirectoryState,
     ) -> Box<dyn State> {
         error!("PostmineInProgressState.miner_worker_executed_one_batch() called, but is never supposed to be invoked in this state");
         self
@@ -384,7 +401,8 @@ impl State for PostmineInProgressState {
             println!("PostmineInProgressState: postmine job is complete. perform the scheduled cronjob");
             run_launch_procedure();
             return Box::new(RunLaunchProcedureInProgressState { 
-                cronjob_trigger_sync: false 
+                cronjob_trigger_sync: false, // Clear the cronjob_trigger_sync flag, since we have just performed it.
+                mineevent_dir_state: MineEventDirectoryState::new(), // Reset the mine-event directory counters
             });
         }
 
@@ -392,6 +410,7 @@ impl State for PostmineInProgressState {
         start_mining();
         Box::new(MiningInProgressState {
             cronjob_trigger_sync: false, // Clear the cronjob_trigger_sync flag, since we have just performed it.
+            mineevent_dir_state: MineEventDirectoryState::new(), // Reset the mine-event directory counters
         })
     }
 
@@ -400,7 +419,10 @@ impl State for PostmineInProgressState {
     }
 
     fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State> {
-        Box::new(Self { cronjob_trigger_sync: true })
+        Box::new(Self { 
+            cronjob_trigger_sync: true,
+            mineevent_dir_state: self.mineevent_dir_state,
+        })
     }
 }
 
@@ -427,11 +449,10 @@ impl StateMachine {
         }
     }
 
-    fn miner_worker_executed_one_batch(&mut self, execute_batch_result: &ExecuteBatchResult, mineevent_directory_state: &mut MineEventDirectoryState) {
+    fn miner_worker_executed_one_batch(&mut self, execute_batch_result: &ExecuteBatchResult) {
         if let Some(state) = self.state.take() {
             let new_state = state.miner_worker_executed_one_batch(
-                execute_batch_result, 
-                mineevent_directory_state
+                execute_batch_result
             );
             self.state = Some(new_state);
         }

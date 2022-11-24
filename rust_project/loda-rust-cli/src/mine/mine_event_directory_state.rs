@@ -2,7 +2,7 @@ use super::ExecuteBatchResult;
 
 const MINEEVENTDIRECTORY_MINING_LIMIT: usize = 40;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MineEventDirectoryState {
     number_of_mined_high_prio: usize,
     number_of_mined_low_prio: usize,
@@ -14,11 +14,6 @@ impl MineEventDirectoryState {
             number_of_mined_high_prio: 0, 
             number_of_mined_low_prio: 0,
         }
-    }
-
-    pub fn reset(&mut self) {
-        self.number_of_mined_high_prio = 0;
-        self.number_of_mined_low_prio = 0;
     }
 
     #[allow(dead_code)]
