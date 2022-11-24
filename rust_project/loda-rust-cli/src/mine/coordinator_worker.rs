@@ -52,7 +52,7 @@ pub async fn coordinator_worker(
                         state_machine.run_launch_procedure();
                     },
                     CoordinatorWorkerMessage::CronjobTriggerSync => {
-                        println!("!!!!!!!!! trigger sync")
+                        state_machine.cronjob_trigger_sync();
                     },
                     CoordinatorWorkerMessage::SyncAndAnalyticsIsComplete => {
                         state_machine.sync_and_analytics_is_complete();
@@ -121,6 +121,7 @@ fn start_mining() {
 trait State: Send {
     fn run_launch_procedure(self: Box<Self>) -> Box<dyn State>;
     fn sync_and_analytics_is_complete(self: Box<Self>) -> Box<dyn State>;
+
     fn miner_worker_executed_one_batch(
         self: Box<Self>, 
         execute_batch_result: &ExecuteBatchResult,
@@ -128,10 +129,9 @@ trait State: Send {
     ) -> Box<dyn State>;
 
     fn should_continue_mining(&self) -> bool;
-
     fn postmine_job_is_complete(self: Box<Self>) -> Box<dyn State>;
-
     fn timeout(self: Box<Self>) -> Box<dyn State>;
+    fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State>;
 }
 
 struct InitialState;
@@ -139,7 +139,9 @@ struct InitialState;
 impl State for InitialState {
     fn run_launch_procedure(self: Box<Self>) -> Box<dyn State> {
         run_launch_procedure();
-        Box::new(RunLaunchProcedureInProgressState {})
+        Box::new(RunLaunchProcedureInProgressState { 
+            cronjob_trigger_sync: false 
+        })
     }
 
     fn sync_and_analytics_is_complete(self: Box<Self>) -> Box<dyn State> {
@@ -169,9 +171,15 @@ impl State for InitialState {
     fn timeout(self: Box<Self>) -> Box<dyn State> {
         self
     }
+
+    fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State> {
+        self
+    }
 }
 
-struct RunLaunchProcedureInProgressState;
+struct RunLaunchProcedureInProgressState {
+    cronjob_trigger_sync: bool,
+}
 
 impl State for RunLaunchProcedureInProgressState {
     fn run_launch_procedure(self: Box<Self>) -> Box<dyn State> {
@@ -181,7 +189,9 @@ impl State for RunLaunchProcedureInProgressState {
 
     fn sync_and_analytics_is_complete(self: Box<Self>) -> Box<dyn State> {
         start_mining();
-        Box::new(MiningInProgressState {})
+        Box::new(MiningInProgressState { 
+            cronjob_trigger_sync: self.cronjob_trigger_sync
+        })
     }
 
     fn miner_worker_executed_one_batch(
@@ -206,9 +216,15 @@ impl State for RunLaunchProcedureInProgressState {
     fn timeout(self: Box<Self>) -> Box<dyn State> {
         self
     }
+
+    fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State> {
+        Box::new(Self { cronjob_trigger_sync: true })
+    }
 }
 
-struct MiningInProgressState;
+struct MiningInProgressState {
+    cronjob_trigger_sync: bool,
+}
 
 impl State for MiningInProgressState {
     fn run_launch_procedure(self: Box<Self>) -> Box<dyn State> {
@@ -234,7 +250,7 @@ impl State for MiningInProgressState {
             return self;
         }
         println!("MiningInProgressState. the number of accumulated candiate programs has reached the limit");
-        return Box::new(MiningIsStoppingState::new());
+        Box::new(MiningIsStoppingState::new(self.cronjob_trigger_sync))
     }
 
     fn should_continue_mining(&self) -> bool {
@@ -250,17 +266,26 @@ impl State for MiningInProgressState {
     fn timeout(self: Box<Self>) -> Box<dyn State> {
         self
     }
+
+    fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State> {
+        // Stop mining immediately, so the cronjob can be performed as soon as possible
+        Box::new(MiningIsStoppingState::new(true))
+    }
 }
 
 /// Wait for all miner_worker instances to complete their mining job
 struct MiningIsStoppingState {
+    cronjob_trigger_sync: bool,
     start_time: Instant,
 }
 
 impl MiningIsStoppingState {
-    fn new() -> Self {
+    fn new(cronjob_trigger_sync: bool) -> Self {
         let start_time = Instant::now();
-        Self { start_time }
+        Self { 
+            cronjob_trigger_sync,
+            start_time 
+        }
     }
 }
 
@@ -312,11 +337,22 @@ impl State for MiningIsStoppingState {
         }
         
         // Transition to the "postmine" state.
-        return Box::new(PostmineInProgressState {});
+        return Box::new(PostmineInProgressState { 
+            cronjob_trigger_sync: self.cronjob_trigger_sync 
+        });
+    }
+
+    fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State> {
+        Box::new(Self { 
+            cronjob_trigger_sync: true,
+            start_time: self.start_time, 
+        })
     }
 }
 
-struct PostmineInProgressState;
+struct PostmineInProgressState {
+    cronjob_trigger_sync: bool,
+}
 
 impl State for PostmineInProgressState {
     fn run_launch_procedure(self: Box<Self>) -> Box<dyn State> {
@@ -345,12 +381,27 @@ impl State for PostmineInProgressState {
 
     fn postmine_job_is_complete(self: Box<Self>) -> Box<dyn State> {
         println!("PostmineInProgressState: postmine job is complete. Resume mining again");
+
+        if self.cronjob_trigger_sync {
+            println!("perform the scheduled cronjob");
+            run_launch_procedure();
+            return Box::new(RunLaunchProcedureInProgressState { 
+                cronjob_trigger_sync: false 
+            });
+        }
+
         start_mining();
-        Box::new(MiningInProgressState {})
+        Box::new(MiningInProgressState {
+            cronjob_trigger_sync: false, // Clear the cronjob_trigger_sync flag, since we have just performed it.
+        })
     }
 
     fn timeout(self: Box<Self>) -> Box<dyn State> {
         self
+    }
+
+    fn cronjob_trigger_sync(self: Box<Self>) -> Box<dyn State> {
+        Box::new(Self { cronjob_trigger_sync: true })
     }
 }
 
@@ -403,6 +454,13 @@ impl StateMachine {
     fn timeout(&mut self) {
         if let Some(state) = self.state.take() {
             self.state = Some(state.timeout());
+        }
+    }
+
+    fn cronjob_trigger_sync(&mut self) {
+        println!("coordinator_worker: cronjob_trigger_sync - scheduling sync and analytics as soon as possible");
+        if let Some(state) = self.state.take() {
+            self.state = Some(state.cronjob_trigger_sync());
         }
     }
 }

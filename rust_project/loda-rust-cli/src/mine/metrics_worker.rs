@@ -1,7 +1,5 @@
-use super::{MetricEvent, MetricsPrometheus, MovingAverage, Recorder};
-use super::AnalyticsWorkerMessage;
-use std::time::Duration;
-use std::time::Instant;
+use super::{MetricEvent, MetricsPrometheus, MovingAverage, Recorder, CoordinatorWorkerMessage};
+use std::time::{Duration, Instant};
 use prometheus_client::encoding::text::encode;
 use prometheus_client::registry::Registry;
 use std::sync::{Arc, Mutex};
@@ -73,18 +71,18 @@ async fn webserver_with_metrics(registry: MyRegistry, listen_port: u16) -> std::
         registry: registry,
     });
     app.at("/").get(|_| async { Ok("Hello, world!") });
-    app.at("/analytics").get(|_| async {
-        let miner_worker_distributor = Distributor::named("analytics_worker");
-        let tell_result = miner_worker_distributor.tell_everyone(AnalyticsWorkerMessage::RegenerateAnalyticsJob);
+    app.at("/sync").get(|_| async {
+        let distributor = Distributor::named("coordinator_worker");
+        let tell_result = distributor.tell_everyone(CoordinatorWorkerMessage::CronjobTriggerSync);
         if let Err(error) = tell_result {
             let response = tide::Response::builder(500)
-                .body(format!("webserver_with_metrics: /analytics - Unable to send RegenerateAnalyticsJob to analytics_worker_distributor. {:?}", error))
+                .body(format!("webserver_with_metrics: /sync - Unable to send CronjobTriggerSync to coordinator_worker_distributor. {:?}", error))
                 .content_type("text/plain; charset=utf-8")
                 .build();
             return Ok(response);
         }
         let response = tide::Response::builder(200)
-            .body("did send RegenerateAnalyticsJob")
+            .body("did send CronjobTriggerSync")
             .content_type("text/plain; charset=utf-8")
             .build();
         Ok(response)
