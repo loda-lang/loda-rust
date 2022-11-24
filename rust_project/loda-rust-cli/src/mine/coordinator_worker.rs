@@ -42,7 +42,7 @@ pub async fn coordinator_worker(
         };
         MessageHandler::new(message)
             .on_tell(|message: CoordinatorWorkerMessage, _| {
-                println!(
+                debug!(
                     "coordinator_worker: child {}, received message: {:?}",
                     ctx.current().id(),
                     message
@@ -103,7 +103,8 @@ fn run_launch_procedure() {
     let distributor = Distributor::named("analytics_worker");
     let tell_result = distributor.tell_everyone(AnalyticsWorkerMessage::RunLaunchProcedure);
     if let Err(error) = tell_result {
-        error!("coordinator_worker: Unable to send RunLaunchProcedure to analytics_worker_distributor. error: {:?}", error);
+        Bastion::stop();
+        panic!("coordinator_worker: Unable to send RunLaunchProcedure to analytics_worker_distributor. error: {:?}", error);
     }
 }
 
