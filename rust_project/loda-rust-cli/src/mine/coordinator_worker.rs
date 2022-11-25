@@ -12,7 +12,7 @@ const STOP_MINING_SHUTDOWN_PERIOD_MILLIS: u128 = 2100; // 2.1 seconds
 #[derive(Clone, Debug)]
 pub enum CoordinatorWorkerMessage {
     RunLaunchProcedure,
-    SyncAndAnalyticsIsComplete,
+    SyncAndAnalyticsIsComplete { mineevent_dir_state: MineEventDirectoryState },
     PostmineJobComplete,
 
     /// Invoked by the cronjob when it's time for a `sync`.
@@ -57,8 +57,8 @@ pub async fn coordinator_worker(
                     CoordinatorWorkerMessage::TriggerSync => {
                         state_machine.trigger_sync();
                     },
-                    CoordinatorWorkerMessage::SyncAndAnalyticsIsComplete => {
-                        state_machine.sync_and_analytics_is_complete();
+                    CoordinatorWorkerMessage::SyncAndAnalyticsIsComplete { mineevent_dir_state } => {
+                        state_machine.sync_and_analytics_is_complete(&mineevent_dir_state);
                     },
                     CoordinatorWorkerMessage::PostmineJobComplete => {
                         state_machine.postmine_job_is_complete();
@@ -122,7 +122,7 @@ fn start_mining() {
 
 trait State: Send {
     fn run_launch_procedure(self: Box<Self>) -> Box<dyn State>;
-    fn sync_and_analytics_is_complete(self: Box<Self>) -> Box<dyn State>;
+    fn sync_and_analytics_is_complete(self: Box<Self>, mineevent_dir_state: &MineEventDirectoryState) -> Box<dyn State>;
 
     fn miner_worker_executed_one_batch(
         self: Box<Self>, 
@@ -142,11 +142,10 @@ impl State for InitialState {
         run_launch_procedure();
         Box::new(RunLaunchProcedureInProgressState { 
             trigger_sync: false,
-            mineevent_dir_state: MineEventDirectoryState::new(),
         })
     }
 
-    fn sync_and_analytics_is_complete(self: Box<Self>) -> Box<dyn State> {
+    fn sync_and_analytics_is_complete(self: Box<Self>, _mineevent_dir_state: &MineEventDirectoryState) -> Box<dyn State> {
         error!("InitialState.sync_and_analytics_is_complete() called, but is never supposed to be invoked in this state");
         self
     }
@@ -180,7 +179,6 @@ impl State for InitialState {
 
 struct RunLaunchProcedureInProgressState {
     trigger_sync: bool,
-    mineevent_dir_state: MineEventDirectoryState,
 }
 
 impl State for RunLaunchProcedureInProgressState {
@@ -189,11 +187,11 @@ impl State for RunLaunchProcedureInProgressState {
         self
     }
 
-    fn sync_and_analytics_is_complete(self: Box<Self>) -> Box<dyn State> {
+    fn sync_and_analytics_is_complete(self: Box<Self>, mineevent_dir_state: &MineEventDirectoryState) -> Box<dyn State> {
         start_mining();
         Box::new(MiningInProgressState { 
             trigger_sync: self.trigger_sync,
-            mineevent_dir_state: self.mineevent_dir_state,
+            mineevent_dir_state: mineevent_dir_state.clone(),
         })
     }
 
@@ -222,7 +220,6 @@ impl State for RunLaunchProcedureInProgressState {
     fn trigger_sync(self: Box<Self>) -> Box<dyn State> {
         Box::new(Self { 
             trigger_sync: true,
-            mineevent_dir_state: self.mineevent_dir_state,
         })
     }
 }
@@ -238,7 +235,7 @@ impl State for MiningInProgressState {
         self
     }
 
-    fn sync_and_analytics_is_complete(self: Box<Self>) -> Box<dyn State> {
+    fn sync_and_analytics_is_complete(self: Box<Self>, _mineevent_dir_state: &MineEventDirectoryState) -> Box<dyn State> {
         error!("MiningInProgressState.sync_and_analytics_is_complete() called, but is never supposed to be invoked in this state");
         self
     }
@@ -311,7 +308,7 @@ impl State for MiningIsStoppingState {
         self
     }
 
-    fn sync_and_analytics_is_complete(self: Box<Self>) -> Box<dyn State> {
+    fn sync_and_analytics_is_complete(self: Box<Self>, _mineevent_dir_state: &MineEventDirectoryState) -> Box<dyn State> {
         error!("MiningIsStoppingState.sync_and_analytics_is_complete() called, but is never supposed to be invoked in this state");
         self
     }
@@ -382,7 +379,7 @@ impl State for PostmineInProgressState {
         self
     }
 
-    fn sync_and_analytics_is_complete(self: Box<Self>) -> Box<dyn State> {
+    fn sync_and_analytics_is_complete(self: Box<Self>, _mineevent_dir_state: &MineEventDirectoryState) -> Box<dyn State> {
         error!("PostmineInProgressState.sync_and_analytics_is_complete() called, but is never supposed to be invoked in this state");
         self
     }
@@ -406,7 +403,6 @@ impl State for PostmineInProgressState {
             run_launch_procedure();
             return Box::new(RunLaunchProcedureInProgressState { 
                 trigger_sync: false, // Clear the trigger_sync flag, since we have just performed it.
-                mineevent_dir_state: MineEventDirectoryState::new(), // Reset the mine-event directory counters
             });
         }
 
@@ -447,9 +443,9 @@ impl StateMachine {
         }
     }
 
-    fn sync_and_analytics_is_complete(&mut self) {
+    fn sync_and_analytics_is_complete(&mut self, mineevent_dir_state: &MineEventDirectoryState) {
         if let Some(state) = self.state.take() {
-            self.state = Some(state.sync_and_analytics_is_complete());
+            self.state = Some(state.sync_and_analytics_is_complete(mineevent_dir_state));
         }
     }
 

@@ -5,6 +5,7 @@ use std::fs;
 use regex::Regex;
 use anyhow::Context;
 
+#[derive(Clone, Debug)]
 pub struct PendingProgramsWithPriority {
     paths_high_prio: Vec<PathBuf>,
     paths_low_prio: Vec<PathBuf>,

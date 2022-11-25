@@ -90,7 +90,7 @@ impl MineEventDirectoryScan {
         }
         let count_already_processed: usize = self.already_processed_paths().len();
         if count_already_processed > 0 {
-            println!("Ignoring {} programs that have already been analyzed", count_already_processed);
+            debug!("Ignoring {} programs that have already been analyzed", count_already_processed);
         }
         let count_pending: usize = self.pending_paths().len();
         if count_pending > 0 {

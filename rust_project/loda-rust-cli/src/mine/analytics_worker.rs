@@ -1,6 +1,7 @@
 use crate::analytics::Analytics;
+use crate::common::PendingProgramsWithPriority;
 use crate::config::Config;
-use crate::mine::CoordinatorWorkerMessage;
+use crate::mine::{CoordinatorWorkerMessage, MineEventDirectoryState};
 use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
 use super::{CreateFunnel, Funnel, FunnelConfig};
 use super::{create_genome_mutate_context, GenomeMutateContext};
@@ -180,7 +181,23 @@ fn perform_sync_and_analytics(
     debug!("analytics_worker: received answers from all miner_workers");
     // All the miner_workers have now received data
 
-    let tell_result = Distributor::named("coordinator_worker").tell_everyone(CoordinatorWorkerMessage::SyncAndAnalyticsIsComplete);
+    // Determine how many files are in the "~/.loda-rust/mine-event" directory
+    let mineevent_dir_state: MineEventDirectoryState = match PendingProgramsWithPriority::create(config) {
+        Ok(pending) => {
+            let mut instance = MineEventDirectoryState::new();
+            instance.set_number_of_mined_high_prio(pending.paths_high_prio().len());
+            instance.set_number_of_mined_low_prio(pending.paths_low_prio().len());
+            instance
+        },
+        Err(error) => {
+            error!("analytics_worker: Unable to determine the number of pending programs. {:?}", error);
+            MineEventDirectoryState::new()
+        }
+    };
+
+    let tell_result = Distributor::named("coordinator_worker").tell_everyone(
+        CoordinatorWorkerMessage::SyncAndAnalyticsIsComplete { mineevent_dir_state }
+    );
     if let Err(error) = tell_result {
         Bastion::stop();
         panic!("analytics_worker: Unable to send SyncAndAnalyticsIsComplete to coordinator_worker. error: {:?}", error);

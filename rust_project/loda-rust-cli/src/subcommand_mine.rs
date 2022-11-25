@@ -1,13 +1,7 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
 use crate::config::{Config, NumberOfWorkers};
-use crate::common::PendingProgramsWithPriority;
-use crate::mine::analytics_worker;
-use crate::mine::{MineEventDirectoryState, MetricsWorker};
-use crate::mine::PreventFlooding;
-use crate::mine::cronjob_worker;
-use crate::mine::miner_worker;
-use crate::mine::postmine_worker;
-use crate::mine::upload_worker;
+use crate::mine::{analytics_worker, cronjob_worker, miner_worker, postmine_worker, upload_worker};
+use crate::mine::{MetricsWorker, PreventFlooding};
 use crate::mine::{coordinator_worker, CoordinatorWorkerMessage};
 use bastion::prelude::*;
 use anyhow::Context;
@@ -27,7 +21,6 @@ pub struct SubcommandMine {
     number_of_workers: usize,
     config: Config,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
-    mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
 }
 
 impl SubcommandMine {
@@ -36,10 +29,9 @@ impl SubcommandMine {
     ) -> anyhow::Result<()> {
         Bastion::init();
         
-        let mut instance = SubcommandMine::new(metrics_mode);
+        let instance = SubcommandMine::new(metrics_mode);
         instance.prepare_mineevent_dir()?;
         instance.print_info();
-        instance.reload_mineevent_directory_state()?;
         instance.start_metrics_worker()?;
         instance.start_coordinator_worker()?;
         instance.start_upload_worker()?;
@@ -81,7 +73,6 @@ impl SubcommandMine {
             number_of_workers: number_of_workers,
             config: config,
             prevent_flooding: Arc::new(Mutex::new(PreventFlooding::new())),
-            mine_event_dir_state: Arc::new(Mutex::new(MineEventDirectoryState::new())),
         }
     }
 
@@ -123,21 +114,6 @@ impl SubcommandMine {
         println!("number of workers: {}", self.number_of_workers);
 
         println!("Press CTRL-C to stop the miner.\n\n");
-    }
-
-    fn reload_mineevent_directory_state(&mut self) -> anyhow::Result<()> {
-        let pending = PendingProgramsWithPriority::create(&self.config)
-            .context("reload_mineevent_directory_state")?;
-        match self.mine_event_dir_state.lock() {
-            Ok(mut state) => {
-                state.set_number_of_mined_high_prio(pending.paths_high_prio().len());
-                state.set_number_of_mined_low_prio(pending.paths_low_prio().len());
-            },
-            Err(error) => {
-                error!("reload_mineevent_directory_state: mine_event_dir_state.lock() failed. {:?}", error);
-            }
-        }
-        Ok(())
     }
 
     fn start_metrics_worker(&self) -> anyhow::Result<()> {
