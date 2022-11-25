@@ -103,10 +103,10 @@ pub async fn coordinator_worker(
 /// tell the `analytics_worker` instance to perform the launch procedure
 fn run_launch_procedure() {
     let distributor = Distributor::named("analytics_worker");
-    let tell_result = distributor.tell_everyone(AnalyticsWorkerMessage::RunLaunchProcedure);
+    let tell_result = distributor.tell_everyone(AnalyticsWorkerMessage::PerformSyncAndAnalytics);
     if let Err(error) = tell_result {
         Bastion::stop();
-        panic!("coordinator_worker: Unable to send RunLaunchProcedure to analytics_worker_distributor. error: {:?}", error);
+        panic!("coordinator_worker: Unable to send PerformSyncAndAnalytics to analytics_worker_distributor. error: {:?}", error);
     }
 }
 
