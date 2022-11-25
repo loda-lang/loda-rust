@@ -58,33 +58,23 @@ fn perform_sync_and_analytics(
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
 ) {
     let executable_path: PathBuf = config.miner_sync_executable();
-    let status: MinerSyncExecuteStatus = match MinerSyncExecute::execute(&executable_path) {
+    let sync_status: MinerSyncExecuteStatus = match MinerSyncExecute::execute(&executable_path) {
         Ok(value) => value,
         Err(error) => {
             Bastion::stop();
             panic!("Problem executing MinerSyncExecute: {:?}", error);
         }
     };
-    println!("Successfully executed MinerSyncExecute. status: {:?}", status);
+    println!("Successfully executed MinerSyncExecute. status: {:?}", sync_status);
 
-    let analytics_to_be_performed: AnalyticsTypeToPerform;
-    match status {
-        MinerSyncExecuteStatus::Changed => {
-            // Data has been modified, then analytics needs to be regenerated.
-            analytics_to_be_performed = AnalyticsTypeToPerform::ForceRegenerate;
-        },
+    let analytics_run_result: anyhow::Result<()> = match sync_status {
         MinerSyncExecuteStatus::NoChange => {
             // Data is already uptodate, then skip no need to regenerate analytics.
-            analytics_to_be_performed = AnalyticsTypeToPerform::RegenerateIfExpired;
-        }
-    }
-
-    let analytics_run_result: anyhow::Result<()> = match analytics_to_be_performed {
-        AnalyticsTypeToPerform::RegenerateIfExpired => {
             println!("BEFORE analytics - run_if_expired");
             Analytics::run_if_expired()
         },
-        AnalyticsTypeToPerform::ForceRegenerate => {
+        MinerSyncExecuteStatus::Changed => {
+            // Data has been modified, then analytics needs to be regenerated.
             println!("BEFORE analytics - run_force");
             Analytics::run_force()
         }
@@ -195,10 +185,4 @@ fn perform_sync_and_analytics(
         Bastion::stop();
         panic!("analytics_worker: Unable to send SyncAndAnalyticsIsComplete to coordinator_worker. error: {:?}", error);
     }
-}
-
-#[derive(Clone, Copy, Debug)]
-enum AnalyticsTypeToPerform {
-    RegenerateIfExpired,
-    ForceRegenerate
 }
