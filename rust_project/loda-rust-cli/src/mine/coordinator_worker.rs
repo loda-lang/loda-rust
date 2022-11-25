@@ -420,9 +420,19 @@ impl State for PostmineInProgressState {
 
         println!("PostmineInProgressState: postmine job is complete. Resume mining again");
         start_mining();
+
+        // Set the mine-event directory counters to zero.
+        // The `postmine` process takes a big chunk of candidate programs,
+        // in most cases it takes all the pending candidate programs.
+        // However setting-to-zero is slightly incorrect.
+        // if there is a big backlog of pending candidate programs, 
+        // or a candidate program is manually saved in the `mine-event` dir,
+        // these will be processed next time `postmine` is run, so it's not a problem.
+        let mineevent_dir_state = MineEventDirectoryState::new();
+
         Box::new(MiningInProgressState {
             trigger_sync: false, // Clear the trigger_sync flag, since we have just performed it.
-            mineevent_dir_state: MineEventDirectoryState::new(), // Reset the mine-event directory counters
+            mineevent_dir_state,
         })
     }
 
