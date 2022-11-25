@@ -44,7 +44,7 @@ pub async fn postmine_worker(
                             }
                         }; 
                         postmine.set_found_program_callback(callback);
-                        let result = postmine.run_inner();
+                        let result = postmine.run();
                         println!("AFTER PostMine::run()");
                         match result {
                             Ok(()) => {
