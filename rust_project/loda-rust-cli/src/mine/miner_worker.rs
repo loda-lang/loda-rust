@@ -148,7 +148,6 @@ pub async fn miner_worker(
                         ctx.current().id(),
                         error
                     );
-                    // TODO: tell coordinator that the miner_worker is in a broken state
                     Bastion::stop();
                     panic!("the miner_worker is in a broken state");
                 }
