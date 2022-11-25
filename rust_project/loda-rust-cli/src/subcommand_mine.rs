@@ -54,7 +54,12 @@ impl SubcommandMine {
     /// 
     /// Start mining.
     fn run_launch_procedure(&self) -> anyhow::Result<()> {
-        thread::sleep(Duration::from_millis(1000));
+        // Wait for `Bastion::start()` to finish launching all the threads.
+        // I don't like `sleep()`. It's fragile. 
+        // If I don't `sleep()`, then the workers hasn't been launched yet, causing this error on launch:
+        // Error: Unable to send RunLaunchProcedure to coordinator_worker_distributor. error: EmptyRecipient
+        thread::sleep(Duration::from_millis(100));
+
         let distributor = Distributor::named("coordinator_worker");
         let tell_result = distributor.tell_everyone(CoordinatorWorkerMessage::RunLaunchProcedure);
         if let Err(error) = tell_result {
