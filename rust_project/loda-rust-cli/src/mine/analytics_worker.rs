@@ -11,10 +11,6 @@ use bastion::prelude::*;
 use num_bigint::{BigInt, ToBigInt};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
-use std::time::Instant;
-
-const ANALYTICS_INTERVAL_MILLIS: u64 = 10000;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AnalyticsWorkerMessage {
@@ -26,22 +22,10 @@ pub async fn analytics_worker(
     config: Config,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
 ) -> Result<(), ()> {
-    let mut progress_time = Instant::now();
     loop {
-        let elapsed: u128 = progress_time.elapsed().as_millis();
-        if elapsed >= (ANALYTICS_INTERVAL_MILLIS as u128) {
-            println!("analytics");
-            progress_time = Instant::now();
-        }
-
-        let timeout = Duration::from_millis(ANALYTICS_INTERVAL_MILLIS);
-        let message: SignedMessage = match ctx.try_recv_timeout(timeout).await {
+        let message: SignedMessage = match ctx.recv().await {
             Ok(message) => message,
             Err(error) => {
-                if let ReceiveError::Timeout(_duration) = error {
-                    debug!("analytics_worker: timeout happened");
-                    continue;
-                }
                 error!("analytics_worker: Unknown error happened. error: {:?}", error);
                 continue;
             }
