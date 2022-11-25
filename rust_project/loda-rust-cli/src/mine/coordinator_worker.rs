@@ -340,6 +340,10 @@ impl State for MiningIsStoppingState {
         debug!("MiningIsStoppingState: executed one batch: {:?}", execute_batch_result);
         let mut mineevent_dir_state = self.mineevent_dir_state.clone();
         mineevent_dir_state.accumulate_stats(&execute_batch_result);
+        // Possible optimization. When it's the last `miner_worker` then transition directly to 
+        // the `postmine` state. No need to wait for the timeout to happen.
+        // This can save up to 1 second, where no mining is happening.
+        // It's overkill detecting if it's the last `miner_worker` instance.
         Box::new(MiningIsStoppingState::new(
             self.trigger_sync, 
             mineevent_dir_state
@@ -359,8 +363,8 @@ impl State for MiningIsStoppingState {
     fn timeout(self: Box<Self>) -> Box<dyn State> {
         let elapsed: u128 = self.start_time.elapsed().as_millis();
         if elapsed < STOP_MINING_SHUTDOWN_PERIOD_MILLIS {
-            // Stay in this state while waiting for all the miner_worker instances 
-            // to complete their mining jobs
+            // Stay in this state while waiting for all the `miner_worker` instances 
+            // to complete their mining jobs.
             return self;
         }
         println!("MiningIsStoppingState: trigger start postmine");
