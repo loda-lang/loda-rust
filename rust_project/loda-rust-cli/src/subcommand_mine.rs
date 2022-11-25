@@ -172,15 +172,18 @@ impl SubcommandMine {
     }
     
     fn start_postmine_worker(&self) -> anyhow::Result<()> {
+        let config_original: Config = self.config.clone();
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
                     .with_redundancy(1)
                     .with_distributor(Distributor::named("postmine_worker"))
                     .with_exec(move |ctx: BastionContext| {
+                        let config_clone = config_original.clone();
                         async move {
                             postmine_worker(
                                 ctx,
+                                config_clone,
                             ).await
                         }
                     })

@@ -1,3 +1,4 @@
+use crate::config::Config;
 use super::{CoordinatorWorkerMessage, UploadWorkerItem};
 use crate::postmine::PostMine;
 use loda_rust_core::oeis::OeisId;
@@ -10,6 +11,7 @@ pub enum PostmineWorkerMessage {
 
 pub async fn postmine_worker(
     ctx: BastionContext,
+    config: Config,
 ) -> Result<(), ()> {
     loop {
         MessageHandler::new(ctx.recv().await?)
@@ -22,7 +24,7 @@ pub async fn postmine_worker(
                 match message {
                     PostmineWorkerMessage::StartPostmineJob => {
                         println!("BEFORE PostMine::run()");
-                        let mut postmine: PostMine = match PostMine::new() {
+                        let mut postmine: PostMine = match PostMine::new_with_config(config.clone()) {
                             Ok(value) => value,
                             Err(error) => {
                                 error!("Could not create PostMine instance. error: {:?}", error);

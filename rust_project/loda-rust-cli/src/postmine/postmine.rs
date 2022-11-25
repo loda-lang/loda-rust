@@ -118,6 +118,10 @@ impl PostMine {
     
     pub fn new() -> anyhow::Result<Self> {
         let config = Config::load();
+        Self::new_with_config(config)
+    }
+
+    pub fn new_with_config(config: Config) -> anyhow::Result<Self> {
         let loda_programs_oeis_dir = config.loda_programs_oeis_dir();
         let validate_single_program = ValidateSingleProgram::new(loda_programs_oeis_dir.clone());
 
