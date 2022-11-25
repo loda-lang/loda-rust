@@ -106,7 +106,7 @@ fn run_launch_procedure() {
     let tell_result = distributor.tell_everyone(AnalyticsWorkerMessage::PerformSyncAndAnalytics);
     if let Err(error) = tell_result {
         Bastion::stop();
-        panic!("coordinator_worker: Unable to send PerformSyncAndAnalytics to analytics_worker_distributor. error: {:?}", error);
+        panic!("coordinator_worker: Unable to send PerformSyncAndAnalytics to analytics_worker. error: {:?}", error);
     }
 }
 
@@ -116,7 +116,18 @@ fn start_mining() {
     let tell_result = distributor.tell_everyone(MinerWorkerMessage::StartMining);
     if let Err(error) = tell_result {
         Bastion::stop();
-        panic!("coordinator_worker: Unable to send StartMining to miner_worker_distributor. error: {:?}", error);
+        panic!("coordinator_worker: Unable to send StartMining to miner_worker. error: {:?}", error);
+    }
+}
+
+/// tell the `postmine_worker` instance to perform the `postmine` job
+fn start_postmine() {
+    let distributor = Distributor::named("postmine_worker");
+    let tell_result = distributor
+        .tell_everyone(PostmineWorkerMessage::StartPostmineJob);
+    if let Err(error) = tell_result {
+        Bastion::stop();
+        panic!("coordinator_worker: Unable to send StartPostmineJob to postmine_worker. error: {:?}", error);
     }
 }
 
@@ -188,10 +199,19 @@ impl State for RunLaunchProcedureInProgressState {
     }
 
     fn sync_and_analytics_is_complete(self: Box<Self>, mineevent_dir_state: &MineEventDirectoryState) -> Box<dyn State> {
+        if mineevent_dir_state.has_pending_candidate_programs() {
+            println!("RunLaunchProcedureInProgressState: there are pending candidate programs, trigger start postmine");
+            start_postmine();
+            return Box::new(PostmineInProgressState { 
+                trigger_sync: self.trigger_sync,
+                mineevent_dir_state: mineevent_dir_state.clone(),
+            });
+        }
+        println!("RunLaunchProcedureInProgressState: start mining");
         start_mining();
         Box::new(MiningInProgressState { 
             trigger_sync: self.trigger_sync,
-            mineevent_dir_state: mineevent_dir_state.clone(),
+            mineevent_dir_state: MineEventDirectoryState::new(),
         })
     }
 
@@ -343,16 +363,8 @@ impl State for MiningIsStoppingState {
             // to complete their mining jobs
             return self;
         }
-
         println!("MiningIsStoppingState: trigger start postmine");
-        let distributor = Distributor::named("postmine_worker");
-        let tell_result = distributor
-            .tell_everyone(PostmineWorkerMessage::StartPostmineJob);
-        if let Err(error) = tell_result {
-            error!("MiningIsStoppingState: Unable to send StartPostmineJob. error: {:?}", error);
-        }
-        
-        // Transition to the "postmine" state.
+        start_postmine();
         return Box::new(PostmineInProgressState { 
             trigger_sync: self.trigger_sync,
             mineevent_dir_state: self.mineevent_dir_state,

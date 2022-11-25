@@ -16,6 +16,11 @@ impl MineEventDirectoryState {
         }
     }
 
+    pub fn has_pending_candidate_programs(&self) -> bool {
+        let sum = self.number_of_mined_high_prio + self.number_of_mined_low_prio;
+        sum > 0
+    }
+
     #[allow(dead_code)]
     pub fn number_of_mined_high_prio(&self) -> usize {
         self.number_of_mined_high_prio
