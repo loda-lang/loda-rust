@@ -31,15 +31,29 @@ cargo 1.63.0 (fd9c4297c 2022-07-01)
 ```
 
 
-## Step 3 - Obtain "loda-rust" repository
+## Step 3 - Ruby language (Only used for mining)
 
-#### Step 3 A
+On macOS/Linux you may want to use your package manager.
+
+Otherwise here is the [Install guide for Ruby](https://www.ruby-lang.org/en/documentation/installation/).
+
+Verify that Ruby really works
+
+```
+PROMPT> ruby --version
+ruby 3.0.2p107 (2021-07-07 revision 0db68f0233) [x86_64-darwin20]
+```
+
+
+## Step 4 - Obtain "loda-rust" repository
+
+#### Step 4 A
 
 Check out [the loda-rust repository](https://github.com/loda-lang/loda-rust) on your computer.
 
 A good place for this repository, is the `$HOME/git/loda-rust` dir.
 
-#### Step 3 B
+#### Step 4 B
 
 Compile the `rust_project` into an executable named `loda-rust`.
 
@@ -69,7 +83,7 @@ SUBCOMMANDS:
 PROMPT>
 ```
 
-#### Step 3 C
+#### Step 4 C
 
 On linux/macOS: Create symlink to the executable from within a `bin` dir, so `loda-rust` is available in `$PATH`.
 
@@ -85,7 +99,7 @@ Check that `loda-rust` is still available, like this:
 PROMPT> loda-rust
 ```
 
-#### Step 3 D
+#### Step 4 D
 
 ```
 PROMPT> loda-rust install
@@ -93,7 +107,7 @@ PROMPT> loda-rust install
 
 This creates a `$HOME/.loda-rust` dir.
 
-#### Step 3 E
+#### Step 4 E
 
 Manually edit the configuration file `$HOME/.loda-rust/config.toml`.
 
@@ -114,7 +128,7 @@ Manually modify this parameter, so it points to the unzipped OEIS stripped file.
 oeis_stripped_file = "/Users/JOHNDOE/loda/oeis/stripped"
 ```
 
-#### Step 3 F
+#### Step 4 F
 
 Verify that `loda-rust` can evaluate the program: [A000040, The prime numbers](https://oeis.org/A000040).
 
@@ -124,53 +138,12 @@ PROMPT> loda-rust eval A40
 PROMPT>
 ```
 
-#### Step 3 Complete
+#### Step 4 Complete
 
 Finally `loda-rust` is fully installed.
 
-# Basic usage
+# Usage
 
 ### Mining (experimental)
 
-Pull the latest loda-programs repo.
-
-The following starts the miner, that continues until it gets killed by CTRL-C.
-
-Look for the `miner discovered a "new" program. A257071` row.
-
-```
-PROMPT> loda-rust mine
-[snip]
-candidate: "20221101-155518-4398841.asm"
-candidate: "20221101-155529-4460404.asm"
-candidate: "20221101-155548-4572041.asm"
-candidate: "20221101-155553-4504272.asm"
-trigger start postmine
-postmine_worker: child d181d52b-ab06-4a36-aa81-6d13e2dc2259, received broadcast message: StartPostmineJob
-BEFORE PostMine::run()
-Ignoring 9999 programs that have already been analyzed
-Number of pending programs: 10
-Arrange programs by priority. high prio: 10, low prio: 0
-    Finished Ran loda-cpp with pending programs, in 0 seconds
-Looking up in the OEIS 'stripped' file
-    Finished Lookups in the OEIS 'stripped' file, in 2 seconds
-Minimizing programs
-    Finished Minimized programs, in 2 seconds
-Looking up in the OEIS 'names' file
-    Finished Lookups in the OEIS 'names' file, in 0 seconds
-Analyzing 14 program ids
-miner discovered a "new" program. A257071             <----------- This is when a new program has been found
-    Finished Analyzed pending programs, in 3 minutes
-AFTER PostMine::run()
-postmine Ok
-trigger resume mining
-candidate: "20221101-155853-4590837.asm"
-candidate: "20221101-155935-4666859.asm"
-candidate: "20221101-160018-4724486.asm"
-candidate: "20221101-160032-4813221.asm"
-candidate: "20221101-160253-5277447.asm"
-candidate: "20221101-160407-5418834.asm"
-[snip]
-PROMPT>
-```
-
+See [mining.md](mining.md) for getting started and usage.
