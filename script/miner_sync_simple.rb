@@ -87,6 +87,19 @@ def determine_has_uncommited_changes
     raise "could not chdir"
 end
 
+# Remove untracked files from the working tree
+def git_clean
+    Dir.chdir(LODA_PROGRAMS_OEIS) do
+        command = "git clean -fdx"
+        output = `#{command}`
+        output.strip!
+        if output.length > 0
+            puts "output from command: #{command}"
+            puts output
+        end
+    end
+end
+
 def git_reset_hard
     Dir.chdir(LODA_PROGRAMS_OEIS) do
         command = "git reset --hard 'origin/main'"
@@ -135,6 +148,7 @@ def main
         return
     end
     puts "Obtaining the latest snapshot of the official loda-programs repo."
+    git_clean
     git_reset_hard
     git_checkout_main_branch
     git_pull
