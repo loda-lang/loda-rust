@@ -1,4 +1,11 @@
 #!/usr/bin/env ruby
+
+# For debugging of the "sync" code
+# Intended for LODA developers.
+#
+# This appends a timestamp to a logfile.
+# And it's possible to tweak what is being returned "changed" or "nochange".
+
 require 'time'
 require_relative 'config'
 
