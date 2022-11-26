@@ -57,6 +57,8 @@ Look at the slack channel to see live what programs have been mined.
 
 ## Usage with metrics on dashboard
 
+![LODA-RUST metrics on dashboard](loda-rust-dashboard-2022-11-27.jpg)
+
 Install dashboard [grafana](https://grafana.com/).
 
 Install the time series database [prometheus](https://prometheus.io/).
