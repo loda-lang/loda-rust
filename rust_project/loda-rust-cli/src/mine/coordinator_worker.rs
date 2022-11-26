@@ -367,6 +367,13 @@ impl State for MiningIsStoppingState {
             // to complete their mining jobs.
             return self;
         }
+        if self.trigger_sync {
+            println!("MiningIsStoppingState: sync has been triggered, perform the scheduled \"sync\" task");
+            run_launch_procedure();
+            return Box::new(RunLaunchProcedureInProgressState { 
+                trigger_sync: false, // Clear the trigger_sync flag, since we have just performed it.
+            });
+        }
         println!("MiningIsStoppingState: trigger start postmine");
         start_postmine();
         return Box::new(PostmineInProgressState { 
