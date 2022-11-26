@@ -85,7 +85,7 @@ In approx 24 hours, it shows up next time when fetching the `loda-programs` repo
 The discovered programs are placed inside the local `loda-programs` repo.
 
 The `miner_sync_executable` is executed every hour (or some interval). If there are no new commits in the official [loda-programs](https://github.com/loda-lang/loda-programs) repo, then nothing happens.
-When there is an update to loda-programs, then it syncs the local copy with the latest loda-programs repository.
+When there is new commits to official loda-programs repo, then it syncs the local repository with the it.
 
 ---
 
