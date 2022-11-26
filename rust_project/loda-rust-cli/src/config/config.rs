@@ -623,7 +623,7 @@ mod tests {
         assert_has_suffix(&config.oeis_names_file, "/loda/oeis/names")?;
         assert_has_suffix(&config.loda_rust_repository, "/git/loda-rust")?;
         assert_has_suffix(&config.loda_rust_executable, "/git/loda-rust/rust_project/target/release/loda-rust")?;
-        assert_has_suffix(&config.miner_sync_executable, "/git/loda-rust/script/miner_sync_debug.rb")?;
+        assert_has_suffix(&config.miner_sync_executable, "/git/loda-rust/script/miner_sync_simple.rb")?;
         assert_has_suffix(&config.loda_cpp_executable, "/loda/bin/loda")?;
         assert_eq!(config.loda_submitted_by, "John Doe");
         assert_eq!(config.miner_program_upload_endpoint, "http://api.loda-lang.org/miner/v1/programs");

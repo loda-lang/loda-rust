@@ -20,7 +20,10 @@ loda_rust_executable = "$HOME/git/loda-rust/rust_project/target/release/loda-rus
 # This executable is also run the moment the miner is launched. 
 # This executable is responsible for fetching the newest online data into the local file system.
 # This way the local "loda-programs" repository gets updated with the online repository.
-miner_sync_executable = "$HOME/git/loda-rust/script/miner_sync_debug.rb"
+# The "simple" way - replaces the entire loda-programs repo with the latest, and discards local changes.
+miner_sync_executable = "$HOME/git/loda-rust/script/miner_sync_simple.rb"
+# The "advanced" way - requires several steps of setup, never discards local changes.
+#miner_sync_executable = "$HOME/git/loda-rust/script/miner_sync_advanced.rb"
 
 # For developers that have their own fork of the "loda-programs" repo
 # miner_sync_executable = "$HOME/git/loda-rust/script/miner_sync_own_fork_loda_programs_repo.rb"

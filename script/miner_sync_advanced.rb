@@ -1,5 +1,24 @@
 #!/usr/bin/env ruby
 
+# The "advanced" way to "sync"
+# sync with your own fork of the loda-programs repo.
+#
+# Purpose
+# Intended for LODA developers and people that edit LODA programs.
+#
+# If you are editing LODA programs yourself, and have your own fork of the "loda-programs" repo.
+# This script never destroy any local modifications to "loda-programs".
+# It commits your own changes, then merges, then pushes the changes to your own fork at github/bitbucket.
+#
+# The drawback is that it requires several steps of setting up.
+# 1. Create a github/bitbucket account.
+# 2. Create your own fork of [loda-programs](https://github.com/loda-lang/loda-programs)
+# 3. Checkout your repository on your computer.
+# 4. In your repository. Add a remote named `official_loda-programs` that tracks the [loda-programs](https://github.com/loda-lang/loda-programs) repository.
+#
+# The benefit of this approach is that it makes troubleshooting easier.
+# being able to see diffs, history of all the programs, reason about what is going on.
+
 require_relative 'config'
 
 LODA_PROGRAMS_OEIS = Config.instance.loda_programs_oeis
@@ -75,7 +94,7 @@ def git_add
     end
 end
 
-def has_uncommited_changes
+def determine_has_uncommited_changes
     Dir.chdir(LODA_PROGRAMS_OEIS) do
         command = "git status --porcelain"
         output = `#{command}`
@@ -91,7 +110,7 @@ def has_uncommited_changes
 end
 
 def git_commit
-    if !has_uncommited_changes
+    if !determine_has_uncommited_changes
         puts "Nothing to commit"
         return
     end
