@@ -108,10 +108,8 @@ count = 5
 ```
 
 I use 5 cpus for mining. So that I can use my computer for other things.
-Sometimes I comment out this section, when I'm using all cpus for mining, 
+Sometimes I comment out this section, and then I'm using all cpus for mining, 
 
-The `miner_sync_executable` is responsible for determines if the official [loda-programs](https://github.com/loda-lang/loda-programs)
-has been updated, and fetching the data. If there are local changes then it decides what to do with them.
 I use the `miner_sync_advanced.rb` which requires several steps of setup.
 
 
@@ -132,9 +130,9 @@ The available settings and their default values, are listed here: [default_confi
 
 # Misc tasks
 
-## Task: Upload manually coded LODA programs to loda-lang
+## Task: Upload manually coded LODA program to loda-lang
 
-I sometimes have handwritten programs that that I want to upload to the server.
+I sometimes have a handwritten program that that I want to upload to the server.
 
 Approach A:
 I save the program in `~/.loda-rust/mine-event/my-handwritten-program.asm` and run `loda-rust mine`.
