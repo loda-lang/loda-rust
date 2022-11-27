@@ -29,7 +29,7 @@ end
 
 def git_latest_commit_id_of_remote_repo
     Dir.chdir(LODA_PROGRAMS_OEIS) do
-        command = "git ls-remote 'origin' HEAD"
+        command = "git ls-remote origin HEAD"
         output = `#{command}`
         output.strip!
         # extract from the string "7a68a9faec4f0dd7c31a70676dcac3fcb942ed75 HEAD"
@@ -102,7 +102,7 @@ end
 
 def git_reset_hard
     Dir.chdir(LODA_PROGRAMS_OEIS) do
-        command = "git reset --hard 'origin/main'"
+        command = "git reset --hard origin/main"
         output = `#{command}`
         output.strip!
         if output.length > 0
@@ -114,7 +114,7 @@ end
 
 def git_checkout_main_branch
     Dir.chdir(LODA_PROGRAMS_OEIS) do
-        command = "git checkout 'main'"
+        command = "git checkout main"
         output = `#{command}`
         output.strip!
         if output.length > 0
