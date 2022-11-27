@@ -26,7 +26,7 @@ REMOTE_NAME = "official_loda-programs"
 
 def git_fetch
     Dir.chdir(LODA_PROGRAMS_OEIS) do
-        command = "git fetch '#{REMOTE_NAME}'"
+        command = "git fetch #{REMOTE_NAME}"
         output = `#{command}`
         output.strip!
         if output.length > 0
@@ -58,7 +58,7 @@ end
 
 def git_latest_commit_id_of_remote_repo
     Dir.chdir(LODA_PROGRAMS_OEIS) do
-        command = "git ls-remote '#{REMOTE_NAME}' HEAD"
+        command = "git ls-remote #{REMOTE_NAME} HEAD"
         output = `#{command}`
         output.strip!
         # extract from the string "7a68a9faec4f0dd7c31a70676dcac3fcb942ed75 HEAD"
@@ -115,7 +115,7 @@ def git_commit
         return
     end
     Dir.chdir(LODA_PROGRAMS_OEIS) do
-        command = "git commit -m 'Updated programs'"
+        command = "git commit -m \"Updated programs\""
         output = `#{command}`
         output.strip!
         if output.length > 0
@@ -127,7 +127,7 @@ end
 
 def git_merge
     Dir.chdir(LODA_PROGRAMS_OEIS) do
-        command = "git merge --strategy-option theirs --no-edit 'remotes/#{REMOTE_NAME}/main'"
+        command = "git merge --strategy-option theirs --no-edit remotes/#{REMOTE_NAME}/main"
         output = `#{command}`
         output.strip!
         if output.length > 0
