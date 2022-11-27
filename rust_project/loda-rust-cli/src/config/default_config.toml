@@ -15,6 +15,9 @@ loda_rust_repository = "$HOME/git/loda-rust"
 # Absolute path to the "loda-rust" executable file.
 loda_rust_executable = "$HOME/git/loda-rust/rust_project/target/release/loda-rust"
 
+# On Windows the shebang line is not used, here it has to be "ruby" or absolute path to the "C://ruby.exe" file.
+miner_sync_executable_command_windows = "ruby"
+
 # Absolute path to the "sync" executable file.
 # While mining, this executable is run every hour. 
 # This executable is also run the moment the miner is launched. 

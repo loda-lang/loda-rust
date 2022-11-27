@@ -58,8 +58,9 @@ fn perform_sync_and_analytics(
     config: &Config,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
 ) {
+    let command_windows: String = config.miner_sync_executable_command_windows();
     let executable_path: PathBuf = config.miner_sync_executable();
-    let sync_status: MinerSyncExecuteStatus = match MinerSyncExecute::execute(&executable_path) {
+    let sync_status: MinerSyncExecuteStatus = match MinerSyncExecute::execute(&command_windows, &executable_path) {
         Ok(value) => value,
         Err(error) => {
             Bastion::stop();

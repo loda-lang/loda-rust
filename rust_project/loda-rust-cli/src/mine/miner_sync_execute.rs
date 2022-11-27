@@ -18,7 +18,7 @@ pub enum MinerSyncExecuteStatus {
 pub struct MinerSyncExecute;
 
 impl MinerSyncExecute {
-    pub fn execute(executable_path: &Path) -> anyhow::Result<MinerSyncExecuteStatus> {
+    pub fn execute(command_windows: &String, executable_path: &Path) -> anyhow::Result<MinerSyncExecuteStatus> {
         if !executable_path.is_absolute() {
             return Err(anyhow::anyhow!("MinerSyncExecute expected absolute path, but got executable_path: {:?}", executable_path));
         }
@@ -26,15 +26,19 @@ impl MinerSyncExecute {
             return Err(anyhow::anyhow!("MinerSyncExecute expected executable file, but got something else. executable_path: {:?}", executable_path));
         }
         debug!("MinerSyncExecute.execute: {:?}", executable_path);
-        // let command = format!("/usr/local/opt/ruby/bin/ruby {}", executable_path.to_string_lossy());
-        // let command = "/usr/local/opt/ruby/bin/ruby".to_string();
-        let command = "F:\\Ruby31-x64\\bin\\ruby.exe".to_string();
-        // println!("command: {:?}", command);
-        let arg1: String = executable_path.to_string_lossy().to_string();
-        let output: Output = Command::new(command)
-            .arg(&arg1)
-            .output()
-            .map_err(|e| anyhow::anyhow!("MinerSyncExecute unable to run process. executable_path: {:?} error: {:?}", executable_path, e))?;
+
+        let output: Output;
+        if cfg!(target_os = "windows") {
+            let arg1: String = executable_path.to_string_lossy().to_string();
+            output = Command::new(command_windows)
+                .arg(&arg1)
+                .output()
+                .map_err(|e| anyhow::anyhow!("MinerSyncExecute unable to run process on windows. command_windows: {:?} executable_path: {:?} error: {:?}", command_windows, executable_path, e))?;
+        } else {
+            output = Command::new(executable_path)
+                .output()
+                .map_err(|e| anyhow::anyhow!("MinerSyncExecute unable to run process. executable_path: {:?} error: {:?}", executable_path, e))?;
+        }
 
         let output_stdout: String = String::from_utf8_lossy(&output.stdout).trim().to_string();    
         if !output.status.success() {

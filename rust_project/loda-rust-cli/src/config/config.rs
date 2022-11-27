@@ -42,6 +42,7 @@ pub struct Config {
     loda_programs_repository: PathBuf,
     loda_rust_repository: PathBuf,
     loda_rust_executable: PathBuf,
+    miner_sync_executable_command_windows: String,
     miner_sync_executable: PathBuf,
     loda_cpp_executable: PathBuf,
     oeis_stripped_file: PathBuf,
@@ -317,7 +318,10 @@ impl Config {
         PathBuf::from(path)
     }
 
-    #[allow(dead_code)]
+    pub fn miner_sync_executable_command_windows(&self) -> String {
+        self.miner_sync_executable_command_windows.clone()
+    }
+
     pub fn miner_sync_executable(&self) -> PathBuf {
         let path = &self.miner_sync_executable;
         assert!(path.is_absolute());
@@ -397,6 +401,7 @@ struct ConfigFallback {
     oeis_stripped_file: String,
     loda_rust_repository: String,
     loda_rust_executable: String,
+    miner_sync_executable_command_windows: String,
     miner_sync_executable: String,
     loda_cpp_executable: String,
     oeis_names_file: String,
@@ -415,6 +420,7 @@ struct ConfigCustom {
     oeis_stripped_file: Option<String>,
     loda_rust_repository: Option<String>,
     loda_rust_executable: Option<String>,
+    miner_sync_executable_command_windows: Option<String>,
     miner_sync_executable: Option<String>,
     loda_cpp_executable: Option<String>,
     oeis_names_file: Option<String>,
@@ -489,6 +495,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
     let loda_rust_repository: String = custom.loda_rust_repository.unwrap_or(fallback.loda_rust_repository);
     let oeis_names_file: String = custom.oeis_names_file.unwrap_or(fallback.oeis_names_file);
     let loda_rust_executable: String = custom.loda_rust_executable.unwrap_or(fallback.loda_rust_executable);
+    let miner_sync_executable_command_windows: String = custom.miner_sync_executable_command_windows.unwrap_or(fallback.miner_sync_executable_command_windows);
     let miner_sync_executable: String = custom.miner_sync_executable.unwrap_or(fallback.miner_sync_executable);
     let loda_cpp_executable: String = custom.loda_cpp_executable.unwrap_or(fallback.loda_cpp_executable);
     let loda_submitted_by: String = custom.loda_submitted_by.unwrap_or(fallback.loda_submitted_by);
@@ -505,6 +512,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
         oeis_names_file: simpleenv.resolve_path(&oeis_names_file),
         loda_rust_repository: simpleenv.resolve_path(&loda_rust_repository),
         loda_rust_executable: simpleenv.resolve_path(&loda_rust_executable),
+        miner_sync_executable_command_windows: miner_sync_executable_command_windows,
         miner_sync_executable: simpleenv.resolve_path(&miner_sync_executable),
         loda_cpp_executable: simpleenv.resolve_path(&loda_cpp_executable),
         loda_submitted_by: loda_submitted_by,
@@ -623,6 +631,7 @@ mod tests {
         assert_has_suffix(&config.oeis_names_file, "/loda/oeis/names")?;
         assert_has_suffix(&config.loda_rust_repository, "/git/loda-rust")?;
         assert_has_suffix(&config.loda_rust_executable, "/git/loda-rust/rust_project/target/release/loda-rust")?;
+        assert_eq!(config.miner_sync_executable_command_windows, "ruby");
         assert_has_suffix(&config.miner_sync_executable, "/git/loda-rust/script/miner_sync_simple.rb")?;
         assert_has_suffix(&config.loda_cpp_executable, "/loda/bin/loda")?;
         assert_eq!(config.loda_submitted_by, "John Doe");
