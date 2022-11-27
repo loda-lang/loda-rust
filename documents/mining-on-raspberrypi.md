@@ -396,7 +396,7 @@ euclid@raspberrypi:~ $
 
 # Getting the LODA-RUST miner working
 
-Briefly run LODA-CPP to fetch OEIS stripped file and OEIS names file. When these are fetched press CTRL-C to stop it.
+Briefly run LODA-CPP to fetch OEIS stripped file and OEIS names file. When these have been fetched press CTRL-C to stop it.
 
 ```
 euclid@raspberrypi:~ $ loda mine 
@@ -415,7 +415,7 @@ euclid@raspberrypi:~ $
 ```
 
 
-Check out the "loda-outlier-programs" repo inside the $HOME/git dir.
+Check out the [loda-outlier-programs](https://github.com/neoneye/loda-outlier-programs) repo inside the $HOME/git dir.
 
 ```
 euclid@raspberrypi:~/git $ git clone https://github.com/neoneye/loda-outlier-programs.git
