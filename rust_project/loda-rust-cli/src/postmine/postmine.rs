@@ -1,3 +1,4 @@
+//! The `postmine` worker, checks the candidate programs for correctness and performance, and keeps the best.
 use crate::config::{Config, MinerFilterMode};
 use crate::common::{oeis_ids_from_program_string, OeisIdStringMap};
 use crate::common::{load_program_ids_csv_file, PendingProgramsWithPriority, SimpleLog};
@@ -27,7 +28,7 @@ use anyhow::Context;
 
 type CandidateProgramItem = Rc<RefCell<CandidateProgram>>;
 
-/// Process the pending programs inside the `mine-event` dir.
+/// Process the pending candidate programs inside the `mine-event` dir.
 /// 
 /// Ignores programs that have already been processed.
 /// 
@@ -63,7 +64,7 @@ pub struct PostMine {
 }
 
 impl PostMine {
-    const LIMIT_NUMBER_OF_PROGRAMS_FOR_PROCESSING: usize = 100;
+    const LIMIT_NUMBER_OF_PROGRAMS_FOR_PROCESSING: usize = 200;
     const MAX_LOOKUP_TERM_COUNT: usize = 100;
     const EVAL_TERM_COUNT: usize = 40;
     const MINIMUM_NUMBER_OF_REQUIRED_TERMS: usize = 10;
@@ -94,30 +95,13 @@ impl PostMine {
     /// ```
     const MAX_NUMBER_OF_OUTLIER_VARIANTS: usize = 10;
 
-    pub fn run() -> anyhow::Result<()> {
-        let mut instance = Self::new()?;
-        instance.run_inner()?;
-        Ok(())
-    }
-
-    pub fn run_inner(&mut self) -> anyhow::Result<()> {
-        self.obtain_paths_for_processing()?;    
-        self.populate_candidate_programs()?;
-        self.obtain_dontmine_program_ids()?;
-        self.obtain_invalid_program_ids()?;
-        self.obtain_valid_program_ids()?;
-        self.eval_using_loda_cpp()?;
-        self.lookup_in_oeis_stripped_file()?;
-        self.minimize_candidate_programs()?;
-        self.obtain_sequence_names()?;
-        self.process_candidate_programs()?;
-        self.maintenance_of_mineevent_dir()?;
-        self.maintenance_of_postmine_dir()?;
-        Ok(())
-    }
-    
+    #[allow(dead_code)]
     pub fn new() -> anyhow::Result<Self> {
         let config = Config::load();
+        Self::new_with_config(config)
+    }
+
+    pub fn new_with_config(config: Config) -> anyhow::Result<Self> {
         let loda_programs_oeis_dir = config.loda_programs_oeis_dir();
         let validate_single_program = ValidateSingleProgram::new(loda_programs_oeis_dir.clone());
 
@@ -174,6 +158,22 @@ impl PostMine {
         self.found_program_callback = Some(Box::new(c));
     }
 
+    pub fn run(&mut self) -> anyhow::Result<()> {
+        self.obtain_paths_for_processing()?;    
+        self.populate_candidate_programs()?;
+        self.obtain_dontmine_program_ids()?;
+        self.obtain_invalid_program_ids()?;
+        self.obtain_valid_program_ids()?;
+        self.eval_using_loda_cpp()?;
+        self.lookup_in_oeis_stripped_file()?;
+        self.minimize_candidate_programs()?;
+        self.obtain_sequence_names()?;
+        self.process_candidate_programs()?;
+        self.maintenance_of_mineevent_dir()?;
+        self.maintenance_of_postmine_dir()?;
+        Ok(())
+    }
+    
     /// Format dirname ala `19841231-235959-postmine`
     fn format_timestamped_postmine_dirname() -> String {
         let now: DateTime<Utc> = Utc::now();

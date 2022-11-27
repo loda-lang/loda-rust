@@ -1,47 +1,52 @@
 use super::PreventFlooding;
-use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode};
-use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
+use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
+use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::util::BigIntVec;
 use crate::common::find_asm_files_recursively;
 use crate::config::{Config, MinerFilterMode};
 use std::fs;
 use std::path::PathBuf;
-use indicatif::ProgressBar;
-use std::time::Instant;
+use indicatif::{HumanDuration, ProgressBar};
+use std::time::{Instant, Duration};
 use std::num::NonZeroUsize;
-use indicatif::HumanDuration;
 
-const PREVENT_FLOODING_CACHE_CAPACITY: usize = 300000;
+const PREVENT_FLOODING_CACHE_CAPACITY: usize = 3000;
 
 trait ComputeTerms {
-    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError>;
+    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> anyhow::Result<BigIntVec>;
 }
 
 impl ComputeTerms for ProgramRunner {
-    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<BigIntVec, EvalError> {
+    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> anyhow::Result<BigIntVec> {
         let mut terms: BigIntVec = BigIntVec::with_capacity(count as usize);
         let step_count_limit: u64 = 10000;
-        let node_register_limit = NodeRegisterLimit::LimitBits(32);
+        let node_register_limit = NodeRegisterLimit::LimitBits(8); // 256 registers
         let node_loop_limit = NodeLoopLimit::LimitCount(1000);
-        let mut _step_count: u64 = 0;
+        let max_number_of_bits: u64 = 100000; // 100k bits / 8 = 12.5kbytes
+        let max_duration_seconds: u64 = 5;
+        let mut step_count: u64 = 0;
+        let start_time = Instant::now();
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
             let output: RegisterValue = self.run(
                 &input, 
                 RunMode::Silent, 
-                &mut _step_count, 
+                &mut step_count, 
                 step_count_limit, 
                 node_register_limit.clone(),
                 node_loop_limit.clone(),
                 cache
             )?;
-            terms.push(output.0.clone());
-            if index == 0 {
-                // print!("{}", output.0);
-                continue;
+            let elapsed: Duration = start_time.elapsed();
+            if elapsed.as_secs() >= max_duration_seconds {
+                return Err(anyhow::anyhow!("ignoring program. elapsed time {} exceeded the limit of {} seconds.", HumanDuration(elapsed), max_duration_seconds));
             }
-            // print!(",{}", output.0);
+            let bits: u64 = output.0.bits();
+            if bits >= max_number_of_bits {
+                return Err(anyhow::anyhow!("ignoring program. term bit size {}, exceeded the limit of {}", bits, max_number_of_bits));
+            }
+            terms.push(output.0.clone());
         }
         // print!("\n");
         // print!("stats: step_count: {}", step_count);
@@ -121,6 +126,7 @@ pub fn create_prevent_flooding(config: &Config) -> anyhow::Result<PreventFloodin
         DependencyManagerFileSystemMode::System,
         loda_programs_oeis_dir,
     );
+    dependency_manager.set_execute_profile(ExecuteProfile::SmallLimits);
     let capacity = NonZeroUsize::new(PREVENT_FLOODING_CACHE_CAPACITY).unwrap();
     let mut cache = ProgramCache::with_capacity(capacity);
     let mut prevent_flooding = PreventFlooding::new();

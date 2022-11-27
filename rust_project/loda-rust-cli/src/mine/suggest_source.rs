@@ -118,7 +118,7 @@ type HistogramKey = (SourceValue,SourceValue);
 type ValueAndWeight = (SourceValue,u32);
 type HistogramValue = Vec<ValueAndWeight>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SuggestSource {
     histogram: HashMap<HistogramKey, HistogramValue>
 }

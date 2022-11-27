@@ -46,7 +46,7 @@ class Config
     end
     
     def self.pathname_to_loda_rust_dir
-        pn = Pathname.getwd
+        pn = Pathname.new(__FILE__)
         100.times do
             name = pn.basename.to_s
             if name == 'loda-rust'

@@ -1,21 +1,14 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
-use crate::analytics::Analytics;
 use crate::config::{Config, NumberOfWorkers};
-use crate::common::PendingProgramsWithPriority;
-use crate::mine::{MineEventDirectoryState, MetricsWorker};
-use crate::mine::{create_funnel, Funnel, FunnelConfig};
-use crate::mine::{create_genome_mutate_context, GenomeMutateContext};
-use crate::mine::{create_prevent_flooding, PreventFlooding};
-use crate::mine::{miner_worker};
-use crate::mine::{postmine_worker, SharedMinerWorkerState};
-use crate::mine::upload_worker;
-use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
+use crate::mine::{analytics_worker, cronjob_worker, miner_worker, postmine_worker, upload_worker};
+use crate::mine::{MetricsWorker, PreventFlooding};
+use crate::mine::{coordinator_worker, CoordinatorWorkerMessage};
 use bastion::prelude::*;
-use num_bigint::{BigInt, ToBigInt};
 use anyhow::Context;
 use std::fs;
-use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 
 #[derive(Debug)]
 pub enum SubcommandMineMetricsMode {
@@ -28,8 +21,6 @@ pub struct SubcommandMine {
     number_of_workers: usize,
     config: Config,
     prevent_flooding: Arc<Mutex<PreventFlooding>>,
-    mine_event_dir_state: Arc<Mutex<MineEventDirectoryState>>,
-    shared_miner_worker_state: Arc<Mutex<SharedMinerWorkerState>>,
 }
 
 impl SubcommandMine {
@@ -38,20 +29,43 @@ impl SubcommandMine {
     ) -> anyhow::Result<()> {
         Bastion::init();
         
-        let mut instance = SubcommandMine::new(metrics_mode);
+        let instance = SubcommandMine::new(metrics_mode);
         instance.prepare_mineevent_dir()?;
         instance.print_info();
-        instance.regenerate_analytics_if_expired()?;
-        instance.reload_mineevent_directory_state()?;
-        instance.populate_prevent_flooding_mechanism()?;
         instance.start_metrics_worker()?;
+        instance.start_coordinator_worker()?;
         instance.start_upload_worker()?;
         instance.start_postmine_worker()?;
         instance.start_miner_workers()?;
+        instance.start_analytics_worker()?;
+        instance.start_cronjob_worker()?;
 
         Bastion::start();
+
+        instance.run_launch_procedure()?;
+
         Bastion::block_until_stopped();
         return Ok(());
+    }
+
+    /// Regenerate analytics if it has expired.
+    /// 
+    /// Load analytics data and pass it on to the `miner_worker` instances.
+    /// 
+    /// Start mining.
+    fn run_launch_procedure(&self) -> anyhow::Result<()> {
+        // Wait for `Bastion::start()` to finish launching all the threads.
+        // I don't like `sleep()`. It's fragile. 
+        // If I don't `sleep()`, then the workers hasn't been launched yet, causing this error on launch:
+        // Error: Unable to send RunLaunchProcedure to coordinator_worker_distributor. error: EmptyRecipient
+        thread::sleep(Duration::from_millis(100));
+
+        let distributor = Distributor::named("coordinator_worker");
+        let tell_result = distributor.tell_everyone(CoordinatorWorkerMessage::RunLaunchProcedure);
+        if let Err(error) = tell_result {
+            return Err(anyhow::anyhow!("Unable to send RunLaunchProcedure to coordinator_worker_distributor. error: {:?}", error));
+        }
+        Ok(())
     }
 
     fn new(
@@ -64,8 +78,6 @@ impl SubcommandMine {
             number_of_workers: number_of_workers,
             config: config,
             prevent_flooding: Arc::new(Mutex::new(PreventFlooding::new())),
-            mine_event_dir_state: Arc::new(Mutex::new(MineEventDirectoryState::new())),
-            shared_miner_worker_state: Arc::new(Mutex::new(SharedMinerWorkerState::Mining)),
         }
     }
 
@@ -109,31 +121,6 @@ impl SubcommandMine {
         println!("Press CTRL-C to stop the miner.\n\n");
     }
 
-    fn regenerate_analytics_if_expired(&self) -> anyhow::Result<()> {
-        Analytics::run_if_expired()
-    }
-
-    fn reload_mineevent_directory_state(&mut self) -> anyhow::Result<()> {
-        let pending = PendingProgramsWithPriority::create(&self.config)
-            .context("reload_mineevent_directory_state")?;
-        match self.mine_event_dir_state.lock() {
-            Ok(mut state) => {
-                state.set_number_of_mined_high_prio(pending.paths_high_prio().len());
-                state.set_number_of_mined_low_prio(pending.paths_low_prio().len());
-            },
-            Err(error) => {
-                error!("reload_mineevent_directory_state: mine_event_dir_state.lock() failed. {:?}", error);
-            }
-        }
-        Ok(())
-    }
-
-    fn populate_prevent_flooding_mechanism(&mut self) -> anyhow::Result<()> {
-        let prevent_flooding: PreventFlooding = create_prevent_flooding(&self.config)?;
-        self.prevent_flooding = Arc::new(Mutex::new(prevent_flooding));
-        Ok(())
-    }
-
     fn start_metrics_worker(&self) -> anyhow::Result<()> {
         match self.metrics_mode {
             SubcommandMineMetricsMode::NoMetricsServer => {
@@ -144,6 +131,25 @@ impl SubcommandMine {
                 MetricsWorker::start_with_server(listen_on_port, self.number_of_workers as u64)?;
             }
         };
+        Ok(())
+    }
+    
+    fn start_coordinator_worker(&self) -> anyhow::Result<()> {
+        Bastion::supervisor(|supervisor| {
+            supervisor.children(|children| {
+                children
+                    .with_redundancy(1)
+                    .with_distributor(Distributor::named("coordinator_worker"))
+                    .with_exec(move |ctx: BastionContext| {
+                        async move {
+                            coordinator_worker(
+                                ctx,
+                            ).await
+                        }
+                    })
+            })
+        })
+        .map_err(|e| anyhow::anyhow!("couldn't start coordinator_worker. error: {:?}", e))?;
         Ok(())
     }
     
@@ -171,21 +177,18 @@ impl SubcommandMine {
     }
     
     fn start_postmine_worker(&self) -> anyhow::Result<()> {
-        let mine_event_dir_state = self.mine_event_dir_state.clone();
-        let shared_miner_worker_state = self.shared_miner_worker_state.clone();
+        let config_original: Config = self.config.clone();
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
                     .with_redundancy(1)
                     .with_distributor(Distributor::named("postmine_worker"))
                     .with_exec(move |ctx: BastionContext| {
-                        let mine_event_dir_state_clone = mine_event_dir_state.clone();
-                        let shared_miner_worker_state_clone = shared_miner_worker_state.clone();
+                        let config_clone = config_original.clone();
                         async move {
                             postmine_worker(
                                 ctx,
-                                mine_event_dir_state_clone,
-                                shared_miner_worker_state_clone,
+                                config_clone,
                             ).await
                         }
                     })
@@ -196,59 +199,71 @@ impl SubcommandMine {
     }
 
     fn start_miner_workers(&self) -> anyhow::Result<()> {
-        println!("populating terms_to_program_id");
-        let oeis_stripped_file: PathBuf = self.config.oeis_stripped_file();
-        let padding_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
-        let terms_to_program_id: TermsToProgramIdSet = load_terms_to_program_id_set(
-            &oeis_stripped_file, 
-            FunnelConfig::MINIMUM_NUMBER_OF_REQUIRED_TERMS, 
-            FunnelConfig::TERM_COUNT,
-            &padding_value
-        )
-        .map_err(|e| anyhow::anyhow!("Unable to load terms for program ids. error: {:?}", e))?;
-
-        let terms_to_program_id_arc: Arc<TermsToProgramIdSet> = Arc::new(terms_to_program_id);
-
-        println!("populating funnel");
-        let funnel: Funnel = create_funnel(&self.config);
-        
-        println!("populating genome_mutate_context");
-        let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(&self.config);
-        
         let config_original: Config = self.config.clone();
         let prevent_flooding = self.prevent_flooding.clone();
-        let mine_event_dir_state = self.mine_event_dir_state.clone();
-        let shared_miner_worker_state = self.shared_miner_worker_state.clone();
-
         Bastion::supervisor(|supervisor| {
             supervisor.children(|children| {
                 children
                     .with_redundancy(self.number_of_workers)
                     .with_distributor(Distributor::named("miner_worker"))
                     .with_exec(move |ctx: BastionContext| {
-                        let terms_to_program_id_arc_clone = terms_to_program_id_arc.clone();
                         let prevent_flooding_clone = prevent_flooding.clone();
-                        let mine_event_dir_state_clone = mine_event_dir_state.clone();
-                        let shared_miner_worker_state_clone = shared_miner_worker_state.clone();
                         let config_clone = config_original.clone();
-                        let funnel_clone = funnel.clone();
-                        let genome_mutate_context_clone = genome_mutate_context.clone();
                         async move {
                             miner_worker(
                                 ctx,
-                                terms_to_program_id_arc_clone,
                                 prevent_flooding_clone,
-                                mine_event_dir_state_clone,
-                                shared_miner_worker_state_clone,
                                 config_clone,
-                                funnel_clone,
-                                genome_mutate_context_clone,
                             ).await
                         }
                     })
             })
         })
         .map_err(|e| anyhow::anyhow!("couldn't start miner_workers. error: {:?}", e))?;
+        Ok(())
+    }
+    
+    fn start_analytics_worker(&self) -> anyhow::Result<()> {
+        let config_original: Config = self.config.clone();
+        let prevent_flooding = self.prevent_flooding.clone();
+        Bastion::supervisor(|supervisor| {
+            supervisor.children(|children| {
+                children
+                    .with_redundancy(1)
+                    .with_distributor(Distributor::named("analytics_worker"))
+                    .with_exec(move |ctx: BastionContext| {
+                        let config_clone: Config = config_original.clone();
+                        let prevent_flooding_clone = prevent_flooding.clone();
+                        async move {
+                            analytics_worker(
+                                ctx,
+                                config_clone,
+                                prevent_flooding_clone,
+                            ).await
+                        }
+                    })
+            })
+        })
+        .map_err(|e| anyhow::anyhow!("couldn't start analytics_worker. error: {:?}", e))?;
+        Ok(())
+    }
+    
+    fn start_cronjob_worker(&self) -> anyhow::Result<()> {
+        Bastion::supervisor(|supervisor| {
+            supervisor.children(|children| {
+                children
+                    .with_redundancy(1)
+                    .with_distributor(Distributor::named("cronjob_worker"))
+                    .with_exec(move |ctx: BastionContext| {
+                        async move {
+                            cronjob_worker(
+                                ctx,
+                            ).await
+                        }
+                    })
+            })
+        })
+        .map_err(|e| anyhow::anyhow!("couldn't start cronjob_worker. error: {:?}", e))?;
         Ok(())
     }
 }

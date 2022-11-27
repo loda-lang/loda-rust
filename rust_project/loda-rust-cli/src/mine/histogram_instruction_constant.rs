@@ -33,7 +33,7 @@ type ValueAndWeightVector = Vec<ValueAndWeight>;
 /// Before mining: analyze all programs and build a histogram.
 /// 
 /// During mining: make weighted choices from the histogram.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HistogramInstructionConstant {
     instruction_and_valueweightvector: HashMap<InstructionId, ValueAndWeightVector>
 }

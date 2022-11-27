@@ -13,6 +13,9 @@ const ANALYTICS_TIMESTAMP_FILE_EXPIRE_AFTER_MINUTES: u32 = 30;
 pub struct Analytics {}
 
 impl Analytics {
+    /// If data is still somewhat up to date, then do nothing.
+    /// 
+    /// If data is too old then regenerate the `~/.loda-rust/analytics` directory.
     pub fn run_if_expired() -> anyhow::Result<()> {
         let config = Config::load();
         let timestamp_file_path: PathBuf = config.analytics_dir_last_analytics_timestamp_file();
@@ -22,10 +25,11 @@ impl Analytics {
             return Ok(());
         }
         println!("Generating the \"analytics\" dir.");
-        Self::run()
+        Self::run_force()
     }
 
-    pub fn run() -> anyhow::Result<()> {
+    /// Always generate the `~/.loda-rust/analytics` directory.
+    pub fn run_force() -> anyhow::Result<()> {
         let start_time = Instant::now();
         let config = Config::load();
         let analytics_dir_path: PathBuf = config.analytics_dir();

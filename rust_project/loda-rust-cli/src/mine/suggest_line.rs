@@ -70,7 +70,7 @@ type HistogramKey = (LineValue,LineValue);
 type ValueAndWeight = (LineValue,u32);
 type HistogramValue = Vec<ValueAndWeight>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SuggestLine {
     histogram: HashMap<HistogramKey, HistogramValue>
 }

@@ -1,4 +1,5 @@
-use super::{Funnel, Genome, GenomeItem, GenomeMutateContext, save_candidate_program, ToGenomeItemVec};
+use super::{Genome, GenomeItem, GenomeMutateContext, save_candidate_program, ToGenomeItemVec};
+use super::{CreateFunnel, Funnel};
 use super::{PreventFlooding, TermComputer};
 use super::{PerformanceClassifierResult, PerformanceClassifier};
 use super::MetricEvent;
@@ -19,7 +20,7 @@ use rand::SeedableRng;
 use rand::rngs::StdRng;
 use std::sync::{Arc, Mutex};
 
-const EXECUTE_BATCH_TIME_LIMIT: u128 = 1000;
+const EXECUTE_BATCH_TIME_LIMIT: u128 = 2000;
 const INTERVAL_UNTIL_NEXT_METRIC_SYNC: u128 = 100;
 const MINIMUM_PROGRAM_LENGTH: usize = 6;
 const LOAD_INITIAL_GENOME_MINIMUM_PROGRAM_LENGTH: usize = 8;
@@ -28,7 +29,7 @@ const MINER_CACHE_CAPACITY: usize = 3000;
 const ITERATIONS_BETWEEN_PICKING_A_NEW_INITIAL_GENOME: usize = 300;
 const ITERATIONS_BETWEEN_RELOADING_CURRENT_GENOME: usize = 5;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExecuteBatchResult {
     number_of_mined_high_prio: usize,
     number_of_mined_low_prio: usize,
@@ -81,12 +82,9 @@ pub struct RunMinerLoop {
 
 impl RunMinerLoop {
     pub fn new(
-        funnel: Funnel,
         config: &Config,
         prevent_flooding: Arc<Mutex<PreventFlooding>>,
-        context: GenomeMutateContext,
         initial_random_seed: u64,
-        terms_to_program_id: Arc<TermsToProgramIdSet>
     ) -> Self {
         let rng: StdRng = StdRng::seed_from_u64(initial_random_seed);
 
@@ -100,11 +98,11 @@ impl RunMinerLoop {
         let capacity = NonZeroUsize::new(MINER_CACHE_CAPACITY).unwrap();
         Self {
             metrics_callback: None,
-            funnel: funnel,
+            funnel: Funnel::create_empty_funnel(),
             mine_event_dir: PathBuf::from(mine_event_dir),
             cache: ProgramCache::with_capacity(capacity),
             prevent_flooding: prevent_flooding,
-            context: context,
+            context: GenomeMutateContext::new_empty(),
             genome: Genome::new(),
             rng: rng,
             metric: MetricsRunMinerLoop::new(),
@@ -114,7 +112,7 @@ impl RunMinerLoop {
             iteration: 0,
             reload: true,
             term_computer: TermComputer::new(),
-            terms_to_program_id: terms_to_program_id,
+            terms_to_program_id: Arc::new(TermsToProgramIdSet::new()),
             suppress_low_priority_programs: suppress_low_priority_programs,
         }
     }
@@ -191,6 +189,18 @@ impl RunMinerLoop {
             read_error: dependency_manager.metric_read_error(),
         });
         dependency_manager.reset_metrics();
+    }
+
+    pub fn set_funnel(&mut self, funnel: Funnel) {
+        self.funnel = funnel;
+    }
+
+    pub fn set_genome_mutate_context(&mut self, genome_mutate_context: GenomeMutateContext) {
+        self.context = genome_mutate_context;
+    }
+
+    pub fn set_terms_to_program_id(&mut self, terms_to_program_id: Arc<TermsToProgramIdSet>) {
+        self.terms_to_program_id = terms_to_program_id;
     }
 
     pub fn load_initial_genome_program(&mut self, dependency_manager: &mut DependencyManager) -> anyhow::Result<()> {

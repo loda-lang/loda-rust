@@ -4,6 +4,7 @@ use super::{SuggestLine, LineValue};
 use super::{SuggestSource, SourceValue};
 use super::{SuggestTarget, TargetValue};
 use loda_rust_core::parser::InstructionId;
+use std::fmt;
 use rand::Rng;
 use rand::seq::SliceRandom;
 use std::collections::HashSet;
@@ -49,6 +50,22 @@ impl GenomeMutateContext {
             suggest_line: suggest_line,
             suggest_source: suggest_source,
             suggest_target: suggest_target
+        }
+    }
+
+    pub fn new_empty() -> Self {
+        Self {
+            valid_program_ids: vec!(),
+            initial_genome_program_ids: vec!(),
+            indirect_memory_access_program_ids: vec!(),
+            invalid_program_ids: HashSet::<u32>::new(),
+            popular_program_container: PopularProgramContainer::new_empty(),
+            recent_program_container: RecentProgramContainer::new_empty(),
+            histogram_instruction_constant: None,
+            suggest_instruction: None,
+            suggest_line: None,
+            suggest_source: None,
+            suggest_target: None,
         }
     }
 
@@ -174,5 +191,11 @@ impl GenomeMutateContext {
             }
         };
         suggest_target.choose_weighted(rng, prev_word, next_word)
+    }
+}
+
+impl fmt::Debug for GenomeMutateContext {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "GenomeMutateContext")
     }
 }

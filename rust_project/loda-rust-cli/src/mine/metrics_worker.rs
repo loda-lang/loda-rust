@@ -1,6 +1,5 @@
-use super::{MetricEvent, MetricsPrometheus, MovingAverage, Recorder};
-use std::time::Duration;
-use std::time::Instant;
+use super::{MetricEvent, MetricsPrometheus, MovingAverage, Recorder, CoordinatorWorkerMessage};
+use std::time::{Duration, Instant};
 use prometheus_client::encoding::text::encode;
 use prometheus_client::registry::Registry;
 use std::sync::{Arc, Mutex};
@@ -72,6 +71,22 @@ async fn webserver_with_metrics(registry: MyRegistry, listen_port: u16) -> std::
         registry: registry,
     });
     app.at("/").get(|_| async { Ok("Hello, world!") });
+    app.at("/sync").get(|_| async {
+        let distributor = Distributor::named("coordinator_worker");
+        let tell_result = distributor.tell_everyone(CoordinatorWorkerMessage::TriggerSync);
+        if let Err(error) = tell_result {
+            let response = tide::Response::builder(500)
+                .body(format!("webserver_with_metrics: /sync - Unable to send TriggerSync to coordinator_worker_distributor. {:?}", error))
+                .content_type("text/plain; charset=utf-8")
+                .build();
+            return Ok(response);
+        }
+        let response = tide::Response::builder(200)
+            .body("did send TriggerSync")
+            .content_type("text/plain; charset=utf-8")
+            .build();
+        Ok(response)
+    });
     app.at("/metrics")
         .get(|req: tide::Request<State>| async move {
             let mut encoded = Vec::new();

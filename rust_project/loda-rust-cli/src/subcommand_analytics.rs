@@ -2,5 +2,5 @@
 use crate::analytics::Analytics;
 
 pub fn subcommand_analytics() -> anyhow::Result<()> {
-    Analytics::run()
+    Analytics::run_force()
 }

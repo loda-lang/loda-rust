@@ -25,7 +25,6 @@ mod subcommand_export_dataset;
 mod subcommand_install;
 mod subcommand_mine;
 mod subcommand_pattern;
-mod subcommand_postmine;
 mod subcommand_similar;
 mod subcommand_test;
 
@@ -36,7 +35,6 @@ use subcommand_export_dataset::SubcommandExportDataset;
 use subcommand_install::subcommand_install;
 use subcommand_mine::{SubcommandMine,SubcommandMineMetricsMode};
 use subcommand_pattern::SubcommandPattern;
-use subcommand_postmine::subcommand_postmine;
 use subcommand_similar::subcommand_similar;
 use subcommand_test::SubcommandTest;
 
@@ -108,11 +106,6 @@ async fn main() -> anyhow::Result<()> {
                         .long("metrics")
                         .help("Run a metrics server on localhost:8090 (can be overwritten in the config file)")
                 )
-        )
-        .subcommand(
-            Command::new("postmine")
-                .about("Validate the accumulated candiate programs for correctness and performance.")
-                .hide(true)
         )
         .subcommand(
             Command::new("similar")
@@ -201,11 +194,6 @@ async fn main() -> anyhow::Result<()> {
             false => SubcommandMineMetricsMode::NoMetricsServer
         };
         SubcommandMine::run(metrics_mode).await?;
-        return Ok(());
-    }
-
-    if let Some(_sub_m) = matches.subcommand_matches("postmine") {
-        subcommand_postmine()?;
         return Ok(());
     }
 

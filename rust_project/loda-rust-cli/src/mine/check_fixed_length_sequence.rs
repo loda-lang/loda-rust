@@ -1,3 +1,4 @@
+use std::fmt;
 use loda_rust_core::util::BigIntVec;
 use loda_rust_core::oeis::{OeisId, OeisIdHashSet};
 use super::{FunnelConfig, WildcardChecker};
@@ -30,6 +31,17 @@ impl CheckFixedLengthSequence {
         let wildcard_magic_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
         Self {
             bloom: bloom,
+            bloomfilter_wildcard_magic_value: wildcard_magic_value
+        }
+    }
+    
+    pub fn new_empty() -> Self {
+        let bloom_items_count = 10;
+        let false_positive_rate = 0.5;
+        let bloom = Bloom::<BigIntVec>::new_for_fp_rate(bloom_items_count, false_positive_rate);
+        let wildcard_magic_value: BigInt = FunnelConfig::WILDCARD_MAGIC_VALUE.to_bigint().unwrap();
+        Self {
+            bloom,
             bloomfilter_wildcard_magic_value: wildcard_magic_value
         }
     }
@@ -86,6 +98,14 @@ impl WildcardChecker for CheckFixedLengthSequence {
 
     fn bloomfilter_wildcard_magic_value(&self) -> &BigInt {
         &self.bloomfilter_wildcard_magic_value
+    }
+}
+
+impl fmt::Debug for CheckFixedLengthSequence {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CheckFixedLengthSequence")
+            .field("bloomfilter_wildcard_magic_value", &self.bloomfilter_wildcard_magic_value)
+            .finish_non_exhaustive()
     }
 }
 

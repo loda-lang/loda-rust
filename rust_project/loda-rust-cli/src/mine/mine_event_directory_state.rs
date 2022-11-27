@@ -1,8 +1,8 @@
 use super::ExecuteBatchResult;
 
-const MINEEVENTDIRECTORY_MINING_LIMIT: usize = 10;
+const MINEEVENTDIRECTORY_MINING_LIMIT: usize = 40;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MineEventDirectoryState {
     number_of_mined_high_prio: usize,
     number_of_mined_low_prio: usize,
@@ -16,9 +16,9 @@ impl MineEventDirectoryState {
         }
     }
 
-    pub fn reset(&mut self) {
-        self.number_of_mined_high_prio = 0;
-        self.number_of_mined_low_prio = 0;
+    pub fn has_pending_candidate_programs(&self) -> bool {
+        let sum = self.number_of_mined_high_prio + self.number_of_mined_low_prio;
+        sum > 0
     }
 
     #[allow(dead_code)]
