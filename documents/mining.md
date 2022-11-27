@@ -100,7 +100,7 @@ Hi I'm Simon Strandgaard, and is a developer working on LODA-RUST, and this is m
 The file `~/.loda-rust/config.toml`
 
 ```
-loda_submitted_by = "Simon Strandgaard"
+loda_submitted_by = "Simon Strandgaard (rasperrypi)"
 miner_sync_executable = "$HOME/git/loda-rust/script/miner_sync_advanced.rb"
 
 [miner_cpu_strategy]
@@ -122,7 +122,7 @@ If you want to mine for new programs, and you are not a LODA developer. Then thi
 The file `~/.loda-rust/config.toml`
 
 ```
-loda_submitted_by = "Your Name"
+loda_submitted_by = "Your Name (laptop 3)"
 ```
 
 The available settings and their default values, are listed here: [default_config.toml](https://github.com/loda-lang/loda-rust/blob/develop/rust_project/loda-rust-cli/src/config/default_config.toml).
