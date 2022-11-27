@@ -457,7 +457,7 @@ Use `bundle info [gemname]` to see where a bundled gem is installed.
 euclid@raspberrypi:~/git/loda-rust/script $
 ```
 
-Type in the nickname/name that you want to appear in the programs mined on your device.
+Type in the nickname/name that you want to appear in the LODA programs that was mined on your device.
 
 ```
 euclid@raspberrypi:~ $ nano .loda-rust/config.toml
