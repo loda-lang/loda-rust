@@ -80,6 +80,7 @@ mod tests {
     use crate::config::Config;
     use std::path::PathBuf;
     use std::fs;
+    use crate::arc::read_testdata;
 
     #[test]
     fn test_10000_json_to_grid() -> anyhow::Result<()> {
@@ -94,17 +95,10 @@ mod tests {
     #[test]
     fn test_20000_json_to_model() -> anyhow::Result<()> {
         // Arrange
-        let e = env!("CARGO_MANIFEST_DIR");
-        let path = PathBuf::from(e).join("src/arc/testdata/6150a2bd.json");
-        let json_string: String = match fs::read_to_string(&path) {
-            Ok(value) => value,
-            Err(error) => {
-                return Err(anyhow::anyhow!("cannot load file, error: {:?} path: {:?}", error, path));
-            }
-        };
+        let json: String = read_testdata("6150a2bd")?;
 
         // Act
-        let model: Model = serde_json::from_str(&json_string)?;
+        let model: Model = serde_json::from_str(&json)?;
 
         // Assert
         assert_eq!(model.train.len(), 2);
