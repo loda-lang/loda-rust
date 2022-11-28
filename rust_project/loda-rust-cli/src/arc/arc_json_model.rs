@@ -1,4 +1,4 @@
-use crate::arc::{Bitmap, BitmapTryCreate};
+use crate::arc::{Bitmap, BitmapTryCreate, convolution3x3, Padding};
 use serde::Deserialize;
 
 pub trait GridToBitmap {
@@ -37,7 +37,6 @@ impl GridToBitmap for Grid {
             }
         }
 
-
         let instance = Bitmap::try_create(width, height, pixels)?;
         Ok(instance)
     }
@@ -49,10 +48,30 @@ pub struct TaskPair {
     output: Grid,
 }
 
+impl TaskPair {
+    pub fn input(&self) -> &Grid {
+        &self.input
+    }
+
+    pub fn output(&self) -> &Grid {
+        &self.output
+    }
+}
+
 #[derive(Deserialize, Debug)]
 pub struct Model {
     train: Vec<TaskPair>,
     test: Vec<TaskPair>,
+}
+
+impl Model {
+    pub fn train(&self) -> &Vec<TaskPair> {
+        &self.train
+    }
+
+    pub fn test(&self) -> &Vec<TaskPair> {
+        &self.test
+    }
 }
 
 #[cfg(test)]
@@ -118,7 +137,7 @@ mod tests {
     fn test_40000_parse_real_data() -> anyhow::Result<()> {
         let config = Config::load();
         let arc_repository_data_training: PathBuf = config.arc_repository_data_training();
-        let path = arc_repository_data_training.join("0a938d79.json");
+        let path = arc_repository_data_training.join("4258a5f9.json");
         let json_string: String = match fs::read_to_string(&path) {
             Ok(value) => value,
             Err(error) => {
@@ -126,8 +145,36 @@ mod tests {
             }
         };
         let model: Model = serde_json::from_str(&json_string)?;
-        assert_eq!(model.train.len(), 4);
+        assert_eq!(model.train.len(), 2);
         assert_eq!(model.test.len(), 1);
+
+        let input: Bitmap = model.train[0].input.to_bitmap().expect("bitmap");
+        let output: Bitmap = model.train[0].output.to_bitmap().expect("bitmap");
+
+        let input_padded: Bitmap = input.zero_padding(1).expect("bitmap");
+
+        let result_bm: Bitmap = convolution3x3(&input_padded, |bm| {
+            let mut found = false;
+            for y in 0..3i32 {
+                for x in 0..3i32 {
+                    if x == 1 && y == 1 {
+                        continue;
+                    }
+                    let pixel_value: u8 = bm.get(x, y).unwrap_or(255);
+                    if pixel_value == 5 {
+                        found = true;
+                    }
+                }
+            }
+            let mut value: u8 = bm.get(1, 1).unwrap_or(255);
+            if found {
+                value = 1;
+            }
+            Ok(value)
+        }).expect("bitmap");
+
+        assert_eq!(result_bm, output);
+
         Ok(())
     }
 }
