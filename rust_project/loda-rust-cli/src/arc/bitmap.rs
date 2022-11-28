@@ -1,7 +1,7 @@
 use super::index_for_pixel::index_for_pixel;
 
 /// Tiny 2D grid with 4 bits per pixel, max size 256 x 256 pixels.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Bitmap {
     width: u8,
     height: u8,
@@ -129,5 +129,30 @@ mod tests {
         // beyond width or height
         assert_eq!(bm.set(3, 0, 0), None);
         assert_eq!(bm.set(0, 2, 0), None);
+    }
+
+    #[test]
+    fn test_30000_compare() {
+        {
+            let mut bm0 = Bitmap::zeroes(3, 2);
+            bm0.set(0, 0, 255).expect("ok");
+            bm0.set(2, 1, 255).expect("ok");
+            let bm1 = Bitmap::create_raw(3, 2, vec![255, 0, 0, 0, 0, 255]);
+            assert_eq!(bm0, bm1);
+        }
+        {
+            let mut bm0 = Bitmap::zeroes(3, 2);
+            bm0.set(0, 0, 255).expect("ok");
+            bm0.set(2, 1, 254).expect("ok");
+            let bm1 = Bitmap::create_raw(3, 2, vec![255, 0, 0, 0, 0, 255]);
+            assert_ne!(bm0, bm1);
+        }
+        {
+            let mut bm0 = Bitmap::create_raw(3, 2, vec![255, 0, 0, 0, 0, 255]);
+            bm0.set(0, 0, 0).expect("ok");
+            bm0.set(2, 1, 0).expect("ok");
+            let bm1 = Bitmap::zeroes(3, 2);
+            assert_eq!(bm0, bm1);
+        }
     }
 }
