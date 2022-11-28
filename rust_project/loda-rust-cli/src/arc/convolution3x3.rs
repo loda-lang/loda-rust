@@ -53,11 +53,14 @@ fn conv3x3_min(bm: &Bitmap) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::BitmapTryCreate;
+    use crate::arc::BitmapTryCreate;
 
     #[test]
     fn test_10000_callback() {
+        // Arrange
         let input: Bitmap = Bitmap::try_create(3, 3, vec![1,2,3,4,5,6,7,8,9]).expect("bitmap");
+
+        // Act
         let output: Bitmap = input.convolution3x3(|bm| {
             let mut sum: u64 = 0;
             for pixel in bm.pixels() {
@@ -65,6 +68,8 @@ mod tests {
             }
             (sum & 255) as u8
         }).expect("bitmap");
+
+        // Assert
         assert_eq!(output.width(), 1);
         assert_eq!(output.height(), 1);
         assert_eq!(output.get(0, 0), Some(1+2+3+4+5+6+7+8+9));
