@@ -1,12 +1,6 @@
-use crate::config::Config;
-use super::{Bitmap, Convolution3x3};
-use super::{BitmapToNumber, NumberToBitmap};
-use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+use super::{Bitmap, BitmapToNumber, convolution3x3};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
-use std::time::Instant;
-use std::rc::Rc;
-use std::path::PathBuf;
 use num_bigint::{BigInt, BigUint};
 use num_bigint::ToBigInt;
 
@@ -36,7 +30,7 @@ impl ConvolutionWithProgram for Bitmap {
         // );
 
 
-        let result = self.convolution3x3(|bm| {
+        let result = convolution3x3(&self, |bm| {
             let step_count_limit: u64 = 1000000000;
             let mut cache = ProgramCache::new();
             let mut step_count: u64 = 0;
@@ -44,23 +38,33 @@ impl ConvolutionWithProgram for Bitmap {
             let input_raw_uint: BigUint = bm.to_number().unwrap();
             let input_raw_int: BigInt = input_raw_uint.to_bigint().unwrap();
             let input = RegisterValue(input_raw_int);
-            // let result_run = program_runner.run(
-            //     &input, 
-            //     RunMode::Silent, 
-            //     &mut step_count, 
-            //     step_count_limit,
-            //     NodeRegisterLimit::Unlimited,
-            //     NodeLoopLimit::Unlimited,
-            //     &mut cache
-            // );
-            // let output: RegisterValue = match result_run {
-            //     Ok(value) => value,
-            //     Err(error) => {
-            //         panic!("Failure while computing term {}, error: {:?}", index, error);
-            //     }
-            // };
+            let result_run = program_runner.run(
+                &input, 
+                RunMode::Silent, 
+                &mut step_count, 
+                step_count_limit,
+                NodeRegisterLimit::Unlimited,
+                NodeLoopLimit::Unlimited,
+                &mut cache
+            );
+            let output: RegisterValue = match result_run {
+                Ok(value) => value,
+                Err(error) => {
+                    panic!("Failure while computing term for input {}, error: {:?}", input_raw_uint, error);
+                }
+            };
 
-            42
+            let output_i64: i64 = match output.try_to_i64() {
+                Some(value) => value,
+                None => {
+                    panic!("output value {} is out of range i64 when computing term for input {}", output, input_raw_uint);
+                }
+            };
+            if output_i64 < 0 || output_i64 > 255 {
+                panic!("output value {} is out of range [0..255] when computing term for input {}", output, input_raw_uint);
+            }
+            let output: u8 = output_i64 as u8;
+            output
         });
         result
     }
@@ -68,12 +72,14 @@ impl ConvolutionWithProgram for Bitmap {
 
 #[cfg(test)]
 mod tests {
-    use loda_rust_core::execute::ProgramId;
-
     use super::*;
+    use loda_rust_core::execute::ProgramId;
     use crate::arc::BitmapTryCreate;
-
-    // #[test]
+    use crate::config::Config;
+    use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+    use std::path::PathBuf;
+    
+    #[test]
     fn test_10000_callback() {
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -97,7 +103,7 @@ mod tests {
         lpb $3
             mov $6,$0
             mod $6,256
-            min $5,$6
+            min $5,$6  ; pick the lowest pixel value 
             div $0,256
             sub $3,1
         lpe
