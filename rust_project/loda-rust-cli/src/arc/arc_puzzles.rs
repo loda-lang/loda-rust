@@ -64,23 +64,23 @@ mod tests {
                 return Ok(value);
             }
             // this is a noise pixel. Look at the surrounding pixels, and take the most popular
-            let mut counters: Vec<u8> = vec![0; 256];
+            let mut histogram: Vec<u8> = vec![0; 256];
             for y in 0..3i32 {
                 for x in 0..3i32 {
                     let pixel_value: u8 = bm.get(x, y).unwrap_or(255);
-                    let original_count: u8 = match counters.get(pixel_value as usize) {
+                    let original_count: u8 = match histogram.get(pixel_value as usize) {
                         Some(value) => *value,
                         None => {
                             return Err(anyhow::anyhow!("Integrity error. Counter in histogram out of bounds"));
                         }
                     };
                     let count: u8 = (original_count + 1) & 255;
-                    counters[pixel_value as usize] = count;
+                    histogram[pixel_value as usize] = count;
                 }
             }
             let mut found_count: u8 = 0;
             let mut found_value: usize = 0;
-            for (pixel_value, number_of_occurences) in counters.iter().enumerate() {
+            for (pixel_value, number_of_occurences) in histogram.iter().enumerate() {
                 if *number_of_occurences > found_count {
                     found_count = *number_of_occurences;
                     found_value = pixel_value;
