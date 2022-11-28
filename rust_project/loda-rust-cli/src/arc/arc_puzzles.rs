@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{Bitmap, BitmapResize, convolution3x3, Padding, Model, GridToBitmap};
+    use crate::arc::{Bitmap, BitmapResize, BitmapTrim, convolution3x3, Padding, Model, GridToBitmap};
 
     #[test]
     fn test_10000_puzzle_4258a5f9() -> anyhow::Result<()> {
@@ -92,6 +92,38 @@ mod tests {
 
         let result_bm2 = result_bm.resize(3, 3).expect("bitmap");
         assert_eq!(result_bm2, output);
+        Ok(())
+    }
+
+    #[test]
+    fn test_30000_puzzle_2013d3e2() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("2013d3e2")?;
+        assert_eq!(model.train().len(), 2);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
+
+        let input_trimmed: Bitmap = input.trim().expect("bitmap");
+
+        let mut result_bitmap = Bitmap::zeroes(3, 3);
+        for y in 0..3 {
+            for x in 0..3 {
+                let pixel_value: u8 = input_trimmed.get(x, y).unwrap_or(255);
+                match result_bitmap.set(x, y, pixel_value) {
+                    Some(()) => {},
+                    None => {
+                        return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
+                    }
+                }
+            }
+        }
+
+        assert_eq!(result_bitmap, output);
         Ok(())
     }
 }

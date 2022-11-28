@@ -23,3 +23,4 @@ pub use number_to_bitmap::NumberToBitmap;
 pub use padding::Padding;
 pub use read_testdata::read_testdata;
 pub use resize::BitmapResize;
+pub use trim::BitmapTrim;
