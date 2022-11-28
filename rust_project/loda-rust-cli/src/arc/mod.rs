@@ -3,6 +3,7 @@ mod bitmap;
 mod bitmap_to_number;
 mod bitmap_try_create;
 mod convolution3x3;
+mod convolution_with_program;
 mod index_for_pixel;
 mod number_to_bitmap;
 mod test_convert;
