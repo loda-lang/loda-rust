@@ -12,6 +12,7 @@ mod number_to_bitmap;
 mod read_testdata;
 mod resize;
 mod test_convert;
+mod trim;
 
 pub use arc_json_model::{Grid, GridToBitmap, Model, TaskPair};
 pub use bitmap::Bitmap;
