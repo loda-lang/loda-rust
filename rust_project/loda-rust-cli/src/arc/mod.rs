@@ -12,6 +12,7 @@ mod number_to_bitmap;
 mod read_testdata;
 mod resize;
 mod remove_duplicates;
+mod rotate;
 mod test_convert;
 mod trim;
 
@@ -25,4 +26,5 @@ pub use padding::Padding;
 pub use read_testdata::read_testdata;
 pub use resize::BitmapResize;
 pub use remove_duplicates::BitmapRemoveDuplicates;
+pub use rotate::BitmapRotate;
 pub use trim::BitmapTrim;
