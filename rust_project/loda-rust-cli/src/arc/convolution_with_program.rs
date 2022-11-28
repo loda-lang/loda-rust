@@ -1,4 +1,5 @@
 use super::{Bitmap, BitmapToNumber, convolution3x3};
+use anyhow::Context;
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
 use num_bigint::{BigInt, BigUint};
@@ -35,9 +36,15 @@ impl ConvolutionWithProgram for Bitmap {
             let mut cache = ProgramCache::new();
             let mut step_count: u64 = 0;
 
-            let input_raw_uint: BigUint = bm.to_number().unwrap();
-            let input_raw_int: BigInt = input_raw_uint.to_bigint().unwrap();
+            let input_raw_uint: BigUint = bm.to_number()?;
+            let input_raw_int: BigInt = match input_raw_uint.to_bigint() {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Integrity error. Couldn't convert BigUint to BigInt. input {}", input_raw_uint));
+                }
+            };
             let input = RegisterValue(input_raw_int);
+            
             let result_run = program_runner.run(
                 &input, 
                 RunMode::Silent, 
@@ -47,24 +54,20 @@ impl ConvolutionWithProgram for Bitmap {
                 NodeLoopLimit::Unlimited,
                 &mut cache
             );
-            let output: RegisterValue = match result_run {
-                Ok(value) => value,
-                Err(error) => {
-                    panic!("Failure while computing term for input {}, error: {:?}", input_raw_uint, error);
-                }
-            };
+            let output: RegisterValue = result_run
+                .with_context(|| format!("run failed for input {}", input_raw_uint))?;
 
             let output_i64: i64 = match output.try_to_i64() {
                 Some(value) => value,
                 None => {
-                    panic!("output value {} is out of range i64 when computing term for input {}", output, input_raw_uint);
+                    return Err(anyhow::anyhow!("output value {} is out of range i64 when computing term for input {}", output, input_raw_uint));
                 }
             };
             if output_i64 < 0 || output_i64 > 255 {
-                panic!("output value {} is out of range [0..255] when computing term for input {}", output, input_raw_uint);
+                return Err(anyhow::anyhow!("output value {} is out of range [0..255] when computing term for input {}", output, input_raw_uint));
             }
             let output: u8 = output_i64 as u8;
-            output
+            Ok(output)
         });
         result
     }

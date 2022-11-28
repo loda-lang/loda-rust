@@ -1,7 +1,9 @@
+use anyhow::Context;
+
 use super::Bitmap;
 
 pub fn convolution3x3<F>(bitmap: &Bitmap, callback: F) -> anyhow::Result<Bitmap>
-    where F: Fn(&Bitmap) -> u8 
+    where F: Fn(&Bitmap) -> anyhow::Result<u8>
 {
     let width: u8 = bitmap.width();
     let height: u8 = bitmap.height();
@@ -22,7 +24,8 @@ pub fn convolution3x3<F>(bitmap: &Bitmap, callback: F) -> anyhow::Result<Bitmap>
                         .ok_or_else(|| anyhow::anyhow!("conv_bitmap.set({},{}) returned None", conv_x, conv_y))?;
                 }
             }
-            let computed_value: u8 = callback(&conv_bitmap);
+            let computed_value: u8 = callback(&conv_bitmap)
+                .with_context(|| format!("error in callback when computing ({},{})", self_x, self_y))?;
             computed_bitmap.set(self_x as i32, self_y as i32, computed_value)
                 .ok_or_else(|| anyhow::anyhow!("computed_bitmap.set({},{}) returned None", self_x, self_y))?;
         }
@@ -30,20 +33,20 @@ pub fn convolution3x3<F>(bitmap: &Bitmap, callback: F) -> anyhow::Result<Bitmap>
     Ok(computed_bitmap)
 }
 
-fn conv3x3_max(bm: &Bitmap) -> u8 {
+fn conv3x3_max(bm: &Bitmap) -> anyhow::Result<u8> {
     let mut value: u8 = 0;
     for pixel in bm.pixels() {
         value = u8::max(value, *pixel);
     }
-    value
+    Ok(value)
 }
 
-fn conv3x3_min(bm: &Bitmap) -> u8 {
+fn conv3x3_min(bm: &Bitmap) -> anyhow::Result<u8> {
     let mut value: u8 = 255;
     for pixel in bm.pixels() {
         value = u8::min(value, *pixel);
     }
-    value
+    Ok(value)
 }
 
 #[cfg(test)]
@@ -62,7 +65,8 @@ mod tests {
             for pixel in bm.pixels() {
                 sum += *pixel as u64;
             }
-            (sum & 255) as u8
+            let value = (sum & 255) as u8;
+            Ok(value)
         }).expect("bitmap");
 
         // Assert
