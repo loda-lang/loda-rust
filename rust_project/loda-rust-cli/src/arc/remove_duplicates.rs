@@ -1,7 +1,8 @@
-use super::Bitmap;
+use super::{Bitmap, BitmapRotate};
 
 pub trait BitmapRemoveDuplicates {
     fn remove_duplicate_rows(&self) -> anyhow::Result<Bitmap>;
+    fn remove_duplicate_columns(&self) -> anyhow::Result<Bitmap>;
 }
 
 impl BitmapRemoveDuplicates for Bitmap {
@@ -58,6 +59,12 @@ impl BitmapRemoveDuplicates for Bitmap {
         return Ok(bitmap);
     }
 
+    fn remove_duplicate_columns(&self) -> anyhow::Result<Bitmap> {
+        let mut bitmap: Bitmap = self.rotate(1)?;
+        bitmap = bitmap.remove_duplicate_rows()?;
+        bitmap = bitmap.rotate(-1)?;
+        Ok(bitmap)
+    }
 }
 
 #[cfg(test)]
@@ -122,6 +129,29 @@ mod tests {
 
         // Assert
         let expected: Bitmap = input.clone();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20000_remove_duplicate_columns_big() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 0, 0, 0, 0,
+            0, 0, 1, 0, 0, 0, 0,
+            0, 0, 1, 1, 1, 0, 0,
+        ];
+        let input: Bitmap = Bitmap::try_create(7, 3, pixels).expect("bitmap");
+
+        // Act
+        let actual: Bitmap = input.remove_duplicate_columns().expect("bitmap");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 0, 0,
+            0, 1, 0, 0,
+            0, 1, 1, 0,
+        ];
+        let expected: Bitmap = Bitmap::try_create(4, 3, expected_pixels).expect("bitmap");
         assert_eq!(actual, expected);
     }
 }
