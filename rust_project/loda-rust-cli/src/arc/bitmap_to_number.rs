@@ -13,10 +13,7 @@ impl BitmapToNumber for Bitmap {
             return Err(anyhow::anyhow!("Integrity error. Number of pixels {} doesn't match width {} x height {}", self.pixels().len(), self.width(), self.height()))
         }
         for pixel_value in self.pixels().iter().rev() {
-            if *pixel_value >= 16u8 {
-                return Err(anyhow::anyhow!("Integrity error. Expected all pixels to be in the range [0..15], but encountered a pixel that is {} ", pixel_value));
-            }
-            value *= 16u16;
+            value *= 256u16;
             value += *pixel_value as u32;
         }
         value *= 256u16;
@@ -34,33 +31,34 @@ mod tests {
 
     #[test]
     fn test_10000_bitmap_to_number_ok() {
+        let k: u64 = 256;
         {
             let bm = Bitmap::create_raw(0, 0, vec!());
             assert_eq!(bm.to_number().unwrap(), BigUint::zero());
         }
         {
             let bm = Bitmap::create_raw(1, 1, vec![0]);
-            let value: u64 = 1 * 256 + 1;
+            let value: u64 = 1 * k + 1;
             assert_eq!(bm.to_number().unwrap(), value.to_biguint().unwrap());
         }
         {
-            let bm = Bitmap::create_raw(1, 1, vec![1]);
-            let value: u64 = (1 * 256 + 1) * 256 + 1;
+            let bm = Bitmap::create_raw(1, 1, vec![255]);
+            let value: u64 = (255 * k + 1) * k + 1;
             assert_eq!(bm.to_number().unwrap(), value.to_biguint().unwrap());
         }
         {
             let bm = Bitmap::create_raw(3, 1, vec![5, 6, 7]);
-            let value: u64 = (((7 * 16 + 6) * 16 + 5) * 256 + 1) * 256 + 3;
+            let value: u64 = (((7 * k + 6) * k + 5) * k + 1) * k + 3;
             assert_eq!(bm.to_number().unwrap(), value.to_biguint().unwrap());
         }
         {
             let bm = Bitmap::create_raw(1, 3, vec![5, 6, 7]);
-            let value: u64 = (((7 * 16 + 6) * 16 + 5) * 256 + 3) * 256 + 1;
+            let value: u64 = (((7 * k + 6) * k + 5) * k + 3) * k + 1;
             assert_eq!(bm.to_number().unwrap(), value.to_biguint().unwrap());
         }
         {
             let bm = Bitmap::create_raw(2, 2, vec![5, 6, 7, 8]);
-            let value: u64 = ((((8 * 16 + 7) * 16 + 6) * 16 + 5) * 256 + 2) * 256 + 2;
+            let value: u64 = ((((8 * k + 7) * k + 6) * k + 5) * k + 2) * k + 2;
             assert_eq!(bm.to_number().unwrap(), value.to_biguint().unwrap());
         }
     }
@@ -74,10 +72,6 @@ mod tests {
         {
             let bm = Bitmap::create_raw(1, 1, vec!());
             bm.to_number().expect_err("expected 1 pixel");
-        }
-        {
-            let bm = Bitmap::create_raw(1, 1, vec![16]);
-            bm.to_number().expect_err("expected pixel value in range [0..15]");
         }
     }
 }

@@ -24,7 +24,6 @@ impl Bitmap {
     /// 
     /// It's up to the caller to ensure:
     /// - Make sure that the pixels.len() is the same as width x height.
-    /// - Make sure that no pixel value is outside the range [0..15].
     /// - Make sure that when width=0, that height is not greater than 0.
     /// - Make sure that when height=0, that width is not greater than 0.
     pub fn create_raw(width: u8, height: u8, pixels: Vec<u8>) -> Self {
@@ -58,9 +57,6 @@ impl Bitmap {
 
     /// Set pixel value at coordinate (x, y).
     pub fn set(&mut self, x: i32, y: i32, value: u8) -> Option<()> {
-        if value >= 16 {
-            return None;
-        }
         let index: usize = self.index_for_pixel(x, y)?;
         if index >= self.pixels.len() {
             return None;
@@ -113,6 +109,17 @@ mod tests {
     }
 
     #[test]
+    fn test_20001_get_set_pixel_value_ok() {
+        let mut bm = Bitmap::zeroes(3, 1);
+        bm.set(0, 0, 253).expect("ok");
+        bm.set(1, 0, 254).expect("ok");
+        bm.set(2, 0, 255).expect("ok");
+        assert_eq!(bm.get(0, 0), Some(253));
+        assert_eq!(bm.get(1, 0), Some(254));
+        assert_eq!(bm.get(2, 0), Some(255));
+    }
+
+    #[test]
     fn test_20001_set_pixel_value_error() {
         let mut bm = Bitmap::zeroes(3, 2);
         // negative coordinates
@@ -122,8 +129,5 @@ mod tests {
         // beyond width or height
         assert_eq!(bm.set(3, 0, 0), None);
         assert_eq!(bm.set(0, 2, 0), None);
-
-        // pixel value beyond range [0..15]
-        assert_eq!(bm.set(0, 0, 16), None);
     }
 }

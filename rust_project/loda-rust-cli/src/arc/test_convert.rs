@@ -63,7 +63,7 @@ mod tests {
     fn test_10003_square() {
         // Arrange
         let mut bm = Bitmap::zeroes(11, 11);
-        bm.set(5, 5, 1).expect("ok");
+        bm.set(5, 5, 255).expect("ok");
 
         // Act
         let number: BigUint = bm.to_number().expect("biguint");
@@ -72,6 +72,6 @@ mod tests {
         // Assert
         assert_eq!(bm_copy.width(), 11);
         assert_eq!(bm_copy.height(), 11);
-        assert_eq!(bm_copy.get(5, 5), Some(1));
+        assert_eq!(bm_copy.get(5, 5), Some(255));
     }
 }

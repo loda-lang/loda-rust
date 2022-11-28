@@ -16,11 +16,6 @@ impl BitmapTryCreate for Bitmap {
         if len != pixels.len() {
             return Err(anyhow::anyhow!("Number of pixels {} doesn't match width {} x height {}", pixels.len(), width, height));
         }
-        for (index, pixel_value) in pixels.iter().enumerate() {
-            if *pixel_value >= 16u8 {
-                return Err(anyhow::anyhow!("Expected all pixels to be in the range [0..15], but pixel({}) is {} ", index, pixel_value));
-            }
-        }
         let instance = Self::create_raw(width, height, pixels);
         Ok(instance)
     }
@@ -48,6 +43,5 @@ mod tests {
         Bitmap::try_create(0, 2, vec!()).expect_err("width height should both be zero");
         Bitmap::try_create(2, 0, vec!()).expect_err("width height should both be zero");
         Bitmap::try_create(1, 1, vec!()).expect_err("width height doesn't match pixel count");
-        Bitmap::try_create(1, 1, vec![16]).expect_err("illegal pixel value, expected range [0..15]");
     }
 }
