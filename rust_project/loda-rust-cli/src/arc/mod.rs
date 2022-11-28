@@ -10,6 +10,7 @@ mod index_for_pixel;
 mod padding;
 mod number_to_bitmap;
 mod read_testdata;
+mod resize;
 mod test_convert;
 
 pub use arc_json_model::{Grid, GridToBitmap, Model, TaskPair};
@@ -20,3 +21,4 @@ pub use convolution3x3::convolution3x3;
 pub use number_to_bitmap::NumberToBitmap;
 pub use padding::Padding;
 pub use read_testdata::read_testdata;
+pub use resize::BitmapResize;
