@@ -1,4 +1,7 @@
-use crate::arc::{Bitmap, BitmapTryCreate, convolution3x3, Padding};
+use super::{Bitmap, BitmapTryCreate};
+use super::read_testdata;
+use std::fs;
+use std::path::Path;
 use serde::Deserialize;
 
 pub trait GridToBitmap {
@@ -72,15 +75,31 @@ impl Model {
     pub fn test(&self) -> &Vec<TaskPair> {
         &self.test
     }
+
+    pub fn load_testdata(name: &str) -> anyhow::Result<Model> {
+        let json: String = read_testdata(name)?;
+        let model: Model = serde_json::from_str(&json)?;
+        Ok(model)
+    }
+
+    pub fn load(name: &str, arc_repository_data_training: &Path) -> anyhow::Result<Model> {
+        let filename_json = format!("{}.json", name);
+        let path = arc_repository_data_training.join(filename_json);
+        let json: String = match fs::read_to_string(&path) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("cannot load file, error: {:?} path: {:?}", error, path));
+            }
+        };
+        let model: Model = serde_json::from_str(&json)?;
+        Ok(model)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::Config;
     use std::path::PathBuf;
-    use std::fs;
-    use crate::arc::read_testdata;
 
     #[test]
     fn test_10000_json_to_grid() -> anyhow::Result<()> {
@@ -93,21 +112,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_json_to_model() -> anyhow::Result<()> {
-        // Arrange
-        let json: String = read_testdata("6150a2bd")?;
-
-        // Act
-        let model: Model = serde_json::from_str(&json)?;
-
-        // Assert
-        assert_eq!(model.train.len(), 2);
-        assert_eq!(model.test.len(), 1);
-        Ok(())
-    }
-
-    #[test]
-    fn test_30000_grid_to_bitmap() -> anyhow::Result<()> {
+    fn test_20000_grid_to_bitmap() -> anyhow::Result<()> {
         // Arrange
         let json_string = "[[1,2,3],[4,5,6]]";
         let grid: Grid = serde_json::from_str(&json_string)?;
@@ -127,48 +132,30 @@ mod tests {
         Ok(())
     }
 
-    // #[test]
-    fn test_40000_parse_real_data() -> anyhow::Result<()> {
-        let config = Config::load();
-        let arc_repository_data_training: PathBuf = config.arc_repository_data_training();
-        let path = arc_repository_data_training.join("4258a5f9.json");
-        let json_string: String = match fs::read_to_string(&path) {
-            Ok(value) => value,
-            Err(error) => {
-                return Err(anyhow::anyhow!("cannot load file, error: {:?} path: {:?}", error, path));
-            }
-        };
-        let model: Model = serde_json::from_str(&json_string)?;
+    #[test]
+    fn test_30000_model_loda_testdata() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("6150a2bd")?;
         assert_eq!(model.train.len(), 2);
         assert_eq!(model.test.len(), 1);
+        Ok(())
+    }
 
-        let input: Bitmap = model.train[0].input.to_bitmap().expect("bitmap");
-        let output: Bitmap = model.train[0].output.to_bitmap().expect("bitmap");
+    #[test]
+    fn test_30001_model_load() -> anyhow::Result<()> {
+        // Arrange
+        let json: String = read_testdata("4258a5f9")?;
+        let tempdir = tempfile::tempdir().unwrap();
+        let basedir = PathBuf::from(&tempdir.path()).join("test_40000_model_load");
+        fs::create_dir(&basedir)?;
+        let path: PathBuf = basedir.join("hello.json");
+        fs::write(&path, &json)?;
 
-        let input_padded: Bitmap = input.zero_padding(1).expect("bitmap");
+        // Act
+        let model: Model = Model::load("hello", &basedir)?;
 
-        let result_bm: Bitmap = convolution3x3(&input_padded, |bm| {
-            let mut found = false;
-            for y in 0..3i32 {
-                for x in 0..3i32 {
-                    if x == 1 && y == 1 {
-                        continue;
-                    }
-                    let pixel_value: u8 = bm.get(x, y).unwrap_or(255);
-                    if pixel_value == 5 {
-                        found = true;
-                    }
-                }
-            }
-            let mut value: u8 = bm.get(1, 1).unwrap_or(255);
-            if found {
-                value = 1;
-            }
-            Ok(value)
-        }).expect("bitmap");
-
-        assert_eq!(result_bm, output);
-
+        // Assert
+        assert_eq!(model.train.len(), 2);
+        assert_eq!(model.test.len(), 1);
         Ok(())
     }
 }

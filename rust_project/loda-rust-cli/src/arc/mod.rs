@@ -1,5 +1,6 @@
 //! ARC challenge experiments
 mod arc_json_model;
+mod arc_puzzles;
 mod bitmap;
 mod bitmap_to_number;
 mod bitmap_try_create;
@@ -11,6 +12,7 @@ mod number_to_bitmap;
 mod read_testdata;
 mod test_convert;
 
+pub use arc_json_model::{Grid, GridToBitmap, Model, TaskPair};
 pub use bitmap::Bitmap;
 pub use bitmap_to_number::BitmapToNumber;
 pub use bitmap_try_create::BitmapTryCreate;
