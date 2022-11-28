@@ -1,4 +1,5 @@
 //! ARC challenge experiments
+mod arc_json_model;
 mod bitmap;
 mod bitmap_to_number;
 mod bitmap_try_create;
