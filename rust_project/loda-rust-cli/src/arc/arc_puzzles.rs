@@ -5,7 +5,8 @@ mod tests {
     use crate::arc::{Model, GridToBitmap, BitmapFind};
     use crate::arc::{Bitmap, convolution2x2, convolution3x3};
     use crate::arc::{BitmapResize, BitmapTrim, BitmapRemoveDuplicates, Padding};
-    use crate::arc::{BitmapReplaceColor, BitmapSymmetry, BitmapOffset, BitmapBigram, RecordBigram};
+    use crate::arc::{BitmapReplaceColor, BitmapSymmetry, BitmapOffset};
+    use crate::arc::{BitmapNgram, RecordBigram, RecordTrigram};
 
     #[test]
     fn test_10000_puzzle_4258a5f9() -> anyhow::Result<()> {

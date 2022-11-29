@@ -1,7 +1,6 @@
 //! ARC challenge experiments
 mod arc_json_model;
 mod arc_puzzles;
-mod bigram;
 mod bitmap;
 mod bitmap_to_number;
 mod bitmap_try_create;
@@ -11,8 +10,9 @@ mod convolution_with_program;
 mod find;
 mod histogram;
 mod index_for_pixel;
-mod padding;
+mod ngram;
 mod number_to_bitmap;
+mod padding;
 mod offset;
 mod read_testdata;
 mod resize;
@@ -24,7 +24,6 @@ mod test_convert;
 mod trim;
 
 pub use arc_json_model::{Grid, GridToBitmap, Model, TaskPair};
-pub use bigram::{BitmapBigram, RecordBigram};
 pub use bitmap::Bitmap;
 pub use bitmap_to_number::BitmapToNumber;
 pub use bitmap_try_create::BitmapTryCreate;
@@ -32,6 +31,7 @@ pub use convolution2x2::convolution2x2;
 pub use convolution3x3::convolution3x3;
 pub use find::BitmapFind;
 pub use histogram::BitmapHistogram;
+pub use ngram::{BitmapNgram, RecordBigram, RecordTrigram};
 pub use number_to_bitmap::NumberToBitmap;
 pub use offset::BitmapOffset;
 pub use padding::Padding;
