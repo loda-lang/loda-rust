@@ -277,9 +277,10 @@ mod tests {
         // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
 
-        // Extract needle
+        // Traverse columns
         let mut stack: Vec<u8> = vec!();
         for x in 0..input.width() {
+            // Take the pixel greater than 0 and append the pixel to the stack
             for y in 0..input.height() {
                 let pixel_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
                 if pixel_value > 0 {
