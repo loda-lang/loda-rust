@@ -315,4 +315,49 @@ mod tests {
         assert_eq!(result_bitmap, output);
         Ok(())
     }
+
+    #[test]
+    fn test_80000_puzzle_007bbfb7() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("007bbfb7")?;
+        assert_eq!(model.train().len(), 5);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[3].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[3].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
+
+        let mut result_bitmap: Bitmap = Bitmap::zeroes(9, 9);
+        for y in 0..input.height() {
+            for x in 0..input.width() {
+                let mask_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
+                if mask_value == 0 {
+                    continue;
+                }
+                // Copy the entire input image
+                for yy in 0..input.height() {
+                    for xx in 0..input.width() {
+                        let pixel_value: u8 = input.get(xx as i32, yy as i32).unwrap_or(255);
+                        let set_x: i32 = (xx as i32) + (x as i32) * 3;
+                        let set_y: i32 = (yy as i32) + (y as i32) * 3;
+                        match result_bitmap.set(set_x, set_y, pixel_value) {
+                            Some(()) => {},
+                            None => {
+                                return Err(anyhow::anyhow!("Unable to set pixel ({}, {}) in the result_bitmap", set_x, set_y));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        assert_eq!(result_bitmap, output);
+        Ok(())
+    }
 }
