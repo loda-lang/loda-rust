@@ -261,4 +261,57 @@ mod tests {
         assert_eq!(result_bitmap, output);
         Ok(())
     }
+
+    #[test]
+    fn test_70000_puzzle_cdecee7f() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("cdecee7f")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
+
+        // Extract needle
+        let mut stack: Vec<u8> = vec!();
+        for x in 0..input.width() {
+            for y in 0..input.height() {
+                let pixel_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
+                if pixel_value > 0 {
+                    stack.push(pixel_value);
+                }
+            }
+        }
+        // Padding to 9 items
+        while stack.len() < 9 {
+            stack.push(0);
+        }
+
+        // Transfer values from the 9 element stack to the 3x3 bitmap
+        let mut result_bitmap: Bitmap = Bitmap::zeroes(3, 3);
+        for (index, pixel_value) in stack.iter().enumerate() {
+            let y: usize = index / 3;
+            let mut x: usize = index % 3;
+            if y == 1 {
+                // The middle row is reversed
+                x = 2 - x;
+            }
+            let set_x: i32 = x as i32;
+            let set_y: i32 = y as i32;
+            match result_bitmap.set(set_x, set_y, *pixel_value) {
+                Some(()) => {},
+                None => {
+                    return Err(anyhow::anyhow!("Unable to set pixel ({}, {}) in the result_bitmap", x, y));
+                }
+            }
+        }
+
+        assert_eq!(result_bitmap, output);
+        Ok(())
+    }
 }
