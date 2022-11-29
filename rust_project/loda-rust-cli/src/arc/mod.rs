@@ -14,6 +14,7 @@ mod read_testdata;
 mod resize;
 mod remove_duplicates;
 mod rotate;
+mod symmetry;
 mod test_convert;
 mod trim;
 
@@ -29,4 +30,5 @@ pub use read_testdata::read_testdata;
 pub use resize::BitmapResize;
 pub use remove_duplicates::BitmapRemoveDuplicates;
 pub use rotate::BitmapRotate;
+pub use symmetry::BitmapSymmetry;
 pub use trim::BitmapTrim;
