@@ -3,6 +3,7 @@ use super::{Bitmap, BitmapRotate};
 pub trait BitmapRemoveDuplicates {
     fn remove_duplicate_rows(&self) -> anyhow::Result<Bitmap>;
     fn remove_duplicate_columns(&self) -> anyhow::Result<Bitmap>;
+    fn remove_duplicates(&self) -> anyhow::Result<Bitmap>;
 }
 
 impl BitmapRemoveDuplicates for Bitmap {
@@ -56,10 +57,16 @@ impl BitmapRemoveDuplicates for Bitmap {
     }
 
     fn remove_duplicate_columns(&self) -> anyhow::Result<Bitmap> {
-        let mut bitmap: Bitmap = self.rotate(1)?;
-        bitmap = bitmap.remove_duplicate_rows()?;
-        bitmap = bitmap.rotate(-1)?;
-        Ok(bitmap)
+        let bitmap0: Bitmap = self.rotate(1)?;
+        let bitmap1: Bitmap = bitmap0.remove_duplicate_rows()?;
+        let bitmap2: Bitmap = bitmap1.rotate(-1)?;
+        Ok(bitmap2)
+    }
+
+    fn remove_duplicates(&self) -> anyhow::Result<Bitmap> {
+        let bitmap0: Bitmap = self.remove_duplicate_rows()?;
+        let bitmap1: Bitmap = bitmap0.remove_duplicate_columns()?;
+        Ok(bitmap1)
     }
 }
 
@@ -69,7 +76,7 @@ mod tests {
     use crate::arc::BitmapTryCreate;
 
     #[test]
-    fn test_10000_remove_duplicate_rows_big() {
+    fn test_10000_remove_duplicate_rows_big1() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0,
@@ -97,7 +104,33 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_remove_duplicate_rows_identical_big() {
+    fn test_10001_remove_duplicate_columns_big2() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 0, 0, 0,
+            0, 1, 0, 0, 0,
+            0, 1, 1, 0, 0,
+            0, 1, 1, 0, 0,
+            0, 1, 0, 1, 0,
+            0, 1, 0, 1, 0,
+        ];
+        let input: Bitmap = Bitmap::try_create(5, 6, pixels).expect("bitmap");
+
+        // Act
+        let actual: Bitmap = input.remove_duplicate_rows().expect("bitmap");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 0, 0, 0,
+            0, 1, 1, 0, 0,
+            0, 1, 0, 1, 0,
+        ];
+        let expected: Bitmap = Bitmap::try_create(5, 3, expected_pixels).expect("bitmap");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10002_remove_duplicate_rows_identical_big() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0,
@@ -116,7 +149,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_remove_duplicate_rows_identical_1px() {
+    fn test_10003_remove_duplicate_rows_identical_1px() {
         // Arrange
         let input: Bitmap = Bitmap::try_create(1, 1, vec![42]).expect("bitmap");
 
@@ -152,25 +185,29 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_remove_duplicate_columns_first_column_always_included() {
+    fn test_30000_remove_duplicates() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            255, 0, 1, 1, 0, 0, 0, 0, 0, 0,
-            255, 5, 1, 1, 0, 7, 7, 0, 0, 0,
-            255, 0, 1, 1, 1, 0, 0, 7, 7, 7,
+            0, 0, 1, 0, 0, 0, 0,
+            0, 0, 1, 0, 0, 0, 0,
+            0, 0, 1, 1, 1, 0, 0,
+            0, 0, 1, 1, 1, 0, 0,
+            0, 0, 1, 0, 0, 1, 0,
+            0, 0, 1, 0, 0, 1, 0,
         ];
-        let input: Bitmap = Bitmap::try_create(10, 3, pixels).expect("bitmap");
+        let input: Bitmap = Bitmap::try_create(7, 6, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.remove_duplicate_columns().expect("bitmap");
+        let actual: Bitmap = input.remove_duplicates().expect("bitmap");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
-            255, 0, 1, 0, 0, 0,
-            255, 5, 1, 0, 7, 0,
-            255, 0, 1, 1, 0, 7,
+            0, 1, 0, 0, 0,
+            0, 1, 1, 0, 0,
+            0, 1, 0, 1, 0,
         ];
-        let expected: Bitmap = Bitmap::try_create(6, 3, expected_pixels).expect("bitmap");
+        let expected: Bitmap = Bitmap::try_create(5, 3, expected_pixels).expect("bitmap");
         assert_eq!(actual, expected);
     }
+
 }
