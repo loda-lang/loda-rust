@@ -15,19 +15,15 @@ impl BitmapRemoveDuplicates for Bitmap {
         let y_max: i32 = (self.height() as i32) - 1;
 
         // Collect the y-indexes of rows that are unique
-        let mut keep_indexes = Vec::<i32>::new();
-        for y in 0..=y_max {
-            let mut is_unique = false;
+        let mut keep_indexes: Vec<i32> = vec![0];
+        for y in 1..=y_max {
             for x in 0..=x_max {
                 let pixel_value_prev: u8 = self.get(x, y-1).unwrap_or(255);
                 let pixel_value: u8 = self.get(x, y).unwrap_or(255);
                 if pixel_value != pixel_value_prev {
-                    is_unique = true;
+                    keep_indexes.push(y);
                     break;
                 }
-            }
-            if is_unique {
-                keep_indexes.push(y);
             }
         }
 
@@ -152,6 +148,29 @@ mod tests {
             0, 1, 1, 0,
         ];
         let expected: Bitmap = Bitmap::try_create(4, 3, expected_pixels).expect("bitmap");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20001_remove_duplicate_columns_first_column_always_included() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            255, 0, 1, 1, 0, 0, 0, 0, 0, 0,
+            255, 5, 1, 1, 0, 7, 7, 0, 0, 0,
+            255, 0, 1, 1, 1, 0, 0, 7, 7, 7,
+        ];
+        let input: Bitmap = Bitmap::try_create(10, 3, pixels).expect("bitmap");
+
+        // Act
+        let actual: Bitmap = input.remove_duplicate_columns().expect("bitmap");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            255, 0, 1, 0, 0, 0,
+            255, 5, 1, 0, 7, 0,
+            255, 0, 1, 1, 0, 7,
+        ];
+        let expected: Bitmap = Bitmap::try_create(6, 3, expected_pixels).expect("bitmap");
         assert_eq!(actual, expected);
     }
 }
