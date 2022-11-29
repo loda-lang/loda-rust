@@ -23,7 +23,7 @@ impl BitmapSymmetry for Bitmap {
                 match bitmap.set(x, y, pixel_value) {
                     Some(()) => {},
                     None => {
-                        return Err(anyhow::anyhow!("Integrity error. Unable to set pixel ({}, {}) inside the result bitmap", y, x));
+                        return Err(anyhow::anyhow!("Integrity error. Unable to set pixel ({}, {}) inside the result bitmap", x, y));
                     }
                 }
             }
