@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{Bitmap, BitmapResize, BitmapTrim, convolution3x3, Padding, Model, GridToBitmap};
+    use crate::arc::{Bitmap, BitmapResize, BitmapTrim, convolution3x3, Padding, Model, GridToBitmap, BitmapRemoveDuplicates};
 
     #[test]
     fn test_10000_puzzle_4258a5f9() -> anyhow::Result<()> {
@@ -123,6 +123,27 @@ mod tests {
             }
         }
 
+        assert_eq!(result_bitmap, output);
+        Ok(())
+    }
+
+    #[test]
+    fn test_40000_puzzle_90c28cc7() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("90c28cc7")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
+
+        let input_trimmed: Bitmap = input.trim().expect("bitmap");
+        let result_bitmap: Bitmap = input_trimmed.remove_duplicates().expect("bitmap");
         assert_eq!(result_bitmap, output);
         Ok(())
     }
