@@ -3,7 +3,7 @@ mod tests {
     use crate::arc::{Model, GridToBitmap, BitmapFind};
     use crate::arc::{Bitmap, convolution2x2, convolution3x3};
     use crate::arc::{BitmapResize, BitmapTrim, BitmapRemoveDuplicates, Padding};
-    use crate::arc::{BitmapReplaceColor, BitmapSymmetry};
+    use crate::arc::{BitmapReplaceColor, BitmapSymmetry, BitmapOffset};
 
     #[test]
     fn test_10000_puzzle_4258a5f9() -> anyhow::Result<()> {
@@ -417,6 +417,28 @@ mod tests {
             }
         }
         assert_eq!(result_bitmap, output);
+        Ok(())
+    }
+
+    #[test]
+    fn test_100000_puzzle_a79310a0() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("a79310a0")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
+
+        let bitmap0: Bitmap = input.offset_wrap(0, 1).expect("bitmap");
+        let bitmap1: Bitmap = bitmap0.replace_color(8, 2).expect("bitmap");
+
+        assert_eq!(bitmap1, output);
         Ok(())
     }
 }
