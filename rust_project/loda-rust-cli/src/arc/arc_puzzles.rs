@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::arc::{Model, GridToBitmap, BitmapFind};
-    use crate::arc::{Bitmap, convolution3x3};
+    use crate::arc::{Bitmap, convolution2x2, convolution3x3};
     use crate::arc::{BitmapResize, BitmapTrim, BitmapRemoveDuplicates, Padding};
     use crate::arc::{BitmapReplaceColor, BitmapSymmetry};
 
@@ -357,6 +357,65 @@ mod tests {
             }
         }
 
+        assert_eq!(result_bitmap, output);
+        Ok(())
+    }
+
+    #[test]
+    fn test_90000_puzzle_b9b7f026() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("b9b7f026")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
+
+        // Detect corners
+        let corner_bitmap: Bitmap = convolution2x2(&input, |bm| {
+            let pixel00: u8 = bm.get(0, 0).unwrap_or(255);
+            let pixel10: u8 = bm.get(1, 0).unwrap_or(255);
+            let pixel01: u8 = bm.get(0, 1).unwrap_or(255);
+            let pixel11: u8 = bm.get(1, 1).unwrap_or(255);
+            let mut mask: u8 = 0;
+            if pixel00 == pixel10 { mask |= 1; }
+            if pixel01 == pixel11 { mask |= 2; }
+            if pixel00 == pixel01 { mask |= 4; }
+            if pixel10 == pixel11 { mask |= 8; }
+            let value: u8 = match mask {
+                5 => pixel00,
+                6 => pixel01,
+                9 => pixel10,
+                10 => pixel11,
+                _ => 0,
+            };
+            Ok(value)
+        }).expect("bitmap");
+
+        // println!("input: {:?}", input);
+        // println!("bitmap0: {:?}", bitmap0);
+
+        // Extract color of the corner
+        let mut result_bitmap: Bitmap = Bitmap::zeroes(1, 1);
+        for y in 0..corner_bitmap.height() {
+            for x in 0..corner_bitmap.width() {
+                let pixel_value: u8 = corner_bitmap.get(x as i32, y as i32).unwrap_or(255);
+                if pixel_value == 0 {
+                    continue;
+                }
+                match result_bitmap.set(0, 0, pixel_value) {
+                    Some(()) => {},
+                    None => {
+                        return Err(anyhow::anyhow!("Unable to set pixel in the result_bitmap"));
+                    }
+                }
+            }
+        }
         assert_eq!(result_bitmap, output);
         Ok(())
     }
