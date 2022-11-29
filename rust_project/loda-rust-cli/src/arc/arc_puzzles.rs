@@ -3,7 +3,7 @@ mod tests {
     use crate::arc::{Model, GridToBitmap, BitmapFind};
     use crate::arc::{Bitmap, convolution2x2, convolution3x3};
     use crate::arc::{BitmapResize, BitmapTrim, BitmapRemoveDuplicates, Padding};
-    use crate::arc::{BitmapReplaceColor, BitmapSymmetry, BitmapOffset};
+    use crate::arc::{BitmapReplaceColor, BitmapSymmetry, BitmapOffset, BitmapBigram, RecordBigram};
 
     #[test]
     fn test_10000_puzzle_4258a5f9() -> anyhow::Result<()> {
@@ -439,6 +439,63 @@ mod tests {
         let bitmap1: Bitmap = bitmap0.replace_color(8, 2).expect("bitmap");
 
         assert_eq!(bitmap1, output);
+        Ok(())
+    }
+
+    // #[test]
+    fn test_110000_puzzle_0dfd9992() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("0dfd9992")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
+
+        let bigram_x: Vec<RecordBigram> = input.bigram_x().expect("bitmap");
+        let bigram_y: Vec<RecordBigram> = input.bigram_y().expect("bitmap");
+        println!("bigram_x: {:?}", bigram_x);
+        println!("bigram_y: {:?}", bigram_y);
+        
+        let mut mask: Bitmap = input.clone();
+        for pixel_value in 2..=255 {
+            mask = mask.replace_color(pixel_value, 1).expect("bitmap");
+        }
+        println!("mask: {:?}", mask);
+
+        // Detect corners and edges
+        let repair_areas: Bitmap = convolution2x2(&mask, |bm| {
+            let pixel00: u8 = bm.get(0, 0).unwrap_or(255);
+            let pixel10: u8 = bm.get(1, 0).unwrap_or(255);
+            let pixel01: u8 = bm.get(0, 1).unwrap_or(255);
+            let pixel11: u8 = bm.get(1, 1).unwrap_or(255);
+            let mut mask: u8 = 0;
+            if pixel00 == pixel10 { mask |= 1; }
+            if pixel01 == pixel11 { mask |= 2; }
+            if pixel00 == pixel01 { mask |= 4; }
+            if pixel10 == pixel11 { mask |= 8; }
+            let value: u8 = match mask {
+                5 => 1, // corner
+                6 => 1, // corner
+                9 => 1, // corner
+                10 => 1, // corner
+                3 => 2, // edge
+                12 => 2, // edge
+                _ => 0,
+            };
+            Ok(value)
+        }).expect("bitmap");
+
+        println!("repair areas: {:?}", repair_areas);
+
+        let result_bitmap: Bitmap = input.clone();
+
+        assert_eq!(result_bitmap, output);
         Ok(())
     }
 }
