@@ -1,7 +1,8 @@
 use super::index_for_pixel::index_for_pixel;
+use std::fmt;
 
 /// Tiny 2D grid with 4 bits per pixel, max size 256 x 256 pixels.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Bitmap {
     width: u8,
     height: u8,
@@ -67,6 +68,29 @@ impl Bitmap {
         }
         self.pixels[index] = value;
         Some(())
+    }
+
+    pub fn human_readable(&self) -> String {
+        let mut s = String::new();
+        for y in 0..self.height {
+            if y > 0 {
+                s += "\n";
+            }
+            for x in 0..self.width {
+                let pixel_value: u8 = self.get(x as i32, y as i32).unwrap_or(255);
+                if x > 0 {
+                    s += " ";
+                }
+                s += &format!("{:X?}", pixel_value);
+            }
+        }
+        s
+    }
+}
+
+impl fmt::Debug for Bitmap {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Bitmap {}x{}\n{}", self.width, self.height, self.human_readable())
     }
 }
 
