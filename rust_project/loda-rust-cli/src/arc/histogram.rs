@@ -7,9 +7,8 @@ pub trait BitmapHistogram {
 impl BitmapHistogram for Bitmap {
     /// Traverses the border of the bitmap, and builds a histogram with 256 counters
     fn histogram_border(&self) -> anyhow::Result<Vec<u32>> {
-        let len: usize = (self.width() as usize) * (self.height() as usize);
         let mut histogram: Vec<u32> = vec![0; 256];
-        if len == 0 {
+        if self.is_empty() {
             return Ok(histogram);
         }
         let x_max: i32 = (self.width() as i32) - 1;
