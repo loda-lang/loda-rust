@@ -474,24 +474,50 @@ mod tests {
             let pixel10: u8 = bm.get(1, 0).unwrap_or(255);
             let pixel01: u8 = bm.get(0, 1).unwrap_or(255);
             let pixel11: u8 = bm.get(1, 1).unwrap_or(255);
+            let number_of_zeros: u8 = 
+                u8::min(pixel00, 1) + 
+                u8::min(pixel10, 1) + 
+                u8::min(pixel01, 1) + 
+                u8::min(pixel11, 1);
+            if number_of_zeros <= 1 {
+                // 1 mask pixel turned on, and 3 pixels is the background, don't consider this as a corner.
+                // 0 mask pixels turned on, all 4 pixels are the background then ignore.
+                return Ok(0);
+            }
+
             let mut mask: u8 = 0;
             if pixel00 == pixel10 { mask |= 1; }
             if pixel01 == pixel11 { mask |= 2; }
             if pixel00 == pixel01 { mask |= 4; }
             if pixel10 == pixel11 { mask |= 8; }
             let value: u8 = match mask {
+                3 => 5, // edge
                 5 => 1, // corner
-                6 => 1, // corner
-                9 => 1, // corner
-                10 => 1, // corner
-                3 => 2, // edge
-                12 => 2, // edge
+                6 => 2, // corner
+                9 => 3, // corner
+                10 => 4, // corner
+                12 => 6, // edge
                 _ => 0,
             };
             Ok(value)
         }).expect("bitmap");
 
         println!("repair areas: {:?}", repair_areas);
+
+        for y in 0..repair_areas.height() {
+            for x in 0..repair_areas.width() {
+                let pixel_value: u8 = repair_areas.get(x as i32, y as i32).unwrap_or(255);
+                if pixel_value == 0 {
+                    continue;
+                }
+                if pixel_value >= 1 && pixel_value <= 4 {
+                    println!("repair corner: {}, {}", x, y);
+                }
+                if pixel_value >= 5 {
+                    println!("repair edge: {}, {}", x, y);
+                }
+            }
+        }
 
         let result_bitmap: Bitmap = input.clone();
 
