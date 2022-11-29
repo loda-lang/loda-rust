@@ -7,8 +7,7 @@ pub trait BitmapRotate {
 
 impl BitmapRotate for Bitmap {
     fn rotate_cw(&self) -> anyhow::Result<Bitmap> {
-        let len: usize = (self.width() as usize) * (self.height() as usize);
-        if len == 0 {
+        if self.is_empty() {
             return Ok(Bitmap::empty());
         }
         let x_max: i32 = (self.width() as i32) - 1;

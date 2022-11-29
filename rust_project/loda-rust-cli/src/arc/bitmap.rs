@@ -30,6 +30,10 @@ impl Bitmap {
         Self { width, height, pixels }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.width == 0 || self.height == 0
+    }
+
     pub fn width(&self) -> u8 {
         self.width
     }
@@ -76,6 +80,7 @@ mod tests {
         assert_eq!(bm.width(), 0);
         assert_eq!(bm.height(), 0);
         assert_eq!(bm.pixels().is_empty(), true);
+        assert_eq!(bm.is_empty(), true);
     }
 
     #[test]
@@ -84,6 +89,7 @@ mod tests {
         assert_eq!(bm.width(), 4);
         assert_eq!(bm.height(), 3);
         assert_eq!(bm.pixels().len(), 4 * 3);
+        assert_eq!(bm.is_empty(), false);
         let mut sum: usize = 0;
         for pixel in bm.pixels() {
             sum += *pixel as usize;
