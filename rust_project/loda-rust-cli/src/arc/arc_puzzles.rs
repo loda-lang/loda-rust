@@ -1,8 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{Model, GridToBitmap};
+    use crate::arc::{Model, GridToBitmap, BitmapFind};
     use crate::arc::{Bitmap, convolution3x3};
-    use crate::arc::{BitmapResize, BitmapTrim, BitmapRemoveDuplicates, BitmapSymmetry, Padding};
+    use crate::arc::{BitmapResize, BitmapTrim, BitmapRemoveDuplicates, Padding};
+    use crate::arc::{BitmapReplaceColor, BitmapSymmetry};
 
     #[test]
     fn test_10000_puzzle_4258a5f9() -> anyhow::Result<()> {
@@ -167,6 +168,96 @@ mod tests {
 
         let input_trimmed: Bitmap = input.trim().expect("bitmap");
         let result_bitmap: Bitmap = input_trimmed.flip_x().expect("bitmap");
+        assert_eq!(result_bitmap, output);
+        Ok(())
+    }
+
+    #[test]
+    fn test_60000_puzzle_63613498() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("63613498")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
+
+        // Extract needle
+        let mut needle: Bitmap = Bitmap::zeroes(3, 3);
+        let center_pixel_color: u8 = input.get(1, 1).unwrap_or(255);
+        for y in 0..3i32 {
+            for x in 0..3i32 {
+                let pixel_value: u8 = input.get(x, y).unwrap_or(255);
+                let mut mask_value: u8 = 0;
+                if pixel_value == center_pixel_color {
+                    mask_value = 1;
+                }
+                match needle.set(x, y, mask_value) {
+                    Some(()) => {},
+                    None => {
+                        return Err(anyhow::anyhow!("Unable to set pixel ({}, {}) inside the needle bitmap", x, y));
+                    }
+                }
+            }
+        }
+
+        // Clear the needle area from the search area
+        let mut search_area: Bitmap = input.clone();
+        for y in 0..4i32 {
+            for x in 0..4i32 {
+                match search_area.set(x, y, 0) {
+                    Some(()) => {},
+                    None => {
+                        return Err(anyhow::anyhow!("Unable to set pixel ({}, {}) inside the search area", x, y));
+                    }
+                }
+            }
+        }
+        // println!("needle: {:?}", needle);
+        // println!("search area: {:?}", search_area);
+
+        // Find the pattern
+        let mut optional_position: Option<(u8, u8)> = None;
+        for color in 1..=255u8 {
+            let needle_with_color: Bitmap = needle.replace_color(1, color)?;
+            optional_position = search_area.find_exact(&needle_with_color).expect("some position");
+            if optional_position == None {
+                continue;
+            }
+            break;
+        }
+        let position: (u8, u8) = match optional_position {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Didn't find needle inside the search area"));
+            }
+        };
+        // println!("position: {:?}", position);
+
+        // Clear color of the found pattern
+        let mut result_bitmap: Bitmap = input.clone();
+        for y in 0..3i32 {
+            for x in 0..3i32 {
+                let xx = x + (position.0 as i32);
+                let yy = y + (position.1 as i32);
+                let pixel_value: u8 = needle.get(x, y).unwrap_or(255);
+                if pixel_value == 0 {
+                    continue;
+                }
+                match result_bitmap.set(xx, yy, 5) {
+                    Some(()) => {},
+                    None => {
+                        return Err(anyhow::anyhow!("Unable to set pixel ({}, {}) in the result_bitmap", x, y));
+                    }
+                }
+            }
+        }
+
         assert_eq!(result_bitmap, output);
         Ok(())
     }
