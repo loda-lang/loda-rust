@@ -1,39 +1,10 @@
-use super::Bitmap;
+use super::{Bitmap, BitmapHistogram};
 
 pub trait BitmapTrim {
-    fn histogram_border(&self) -> anyhow::Result<Vec<u32>>;
     fn trim(&self) -> anyhow::Result<Bitmap>;
 }
 
 impl BitmapTrim for Bitmap {
-    /// Traverses the border of the bitmap, and builds a histogram with 256 counters
-    fn histogram_border(&self) -> anyhow::Result<Vec<u32>> {
-        let len: usize = (self.width() as usize) * (self.height() as usize);
-        let mut histogram: Vec<u32> = vec![0; 256];
-        if len == 0 {
-            return Ok(histogram);
-        }
-        let x_max: i32 = (self.width() as i32) - 1;
-        let y_max: i32 = (self.height() as i32) - 1;
-        for y in 0..=y_max {
-            for x in 0..=x_max {
-                if x > 0 && x < x_max && y > 0 && y < y_max {
-                    continue;
-                }
-                let pixel_value: u8 = self.get(x, y).unwrap_or(255);
-                let original_count: u32 = match histogram.get(pixel_value as usize) {
-                    Some(value) => *value,
-                    None => {
-                        return Err(anyhow::anyhow!("Integrity error. Counter in histogram out of bounds"));
-                    }
-                };
-                let count: u32 = original_count + 1;
-                histogram[pixel_value as usize] = count;
-            }
-        }
-        Ok(histogram)
-    }
-
     fn trim(&self) -> anyhow::Result<Bitmap> {
         let len: usize = (self.width() as usize) * (self.height() as usize);
         if len == 0 {
@@ -118,30 +89,7 @@ mod tests {
     use crate::arc::BitmapTryCreate;
 
     #[test]
-    fn test_10000_histogram_border() {
-        // Arrange
-        let pixels: Vec<u8> = vec![
-            1, 1, 1, 1, 1,
-            2, 0, 0, 0, 2,
-            2, 0, 9, 0, 2,
-            2, 0, 0, 0, 2,
-            3, 3, 3, 3, 3,
-        ];
-        let input: Bitmap = Bitmap::try_create(5, 5, pixels).expect("bitmap");
-
-        // Act
-        let actual: Vec<u32> = input.histogram_border().expect("bitmap");
-
-        // Assert
-        let mut expected: Vec<u32> = vec![0; 256];
-        expected[1] = 5;
-        expected[2] = 6;
-        expected[3] = 5;
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn test_20000_trim_border_with_zeroes() {
+    fn test_10000_trim_border_with_zeroes() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
@@ -160,7 +108,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_trim_all_10s() {
+    fn test_10001_trim_all_10s() {
         // Arrange
         let pixels: Vec<u8> = vec![
             10, 10, 10, 10, 10,
@@ -179,7 +127,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20002_trim_top_right() {
+    fn test_10002_trim_top_right() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -198,7 +146,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20003_trim_left_right_bottom() {
+    fn test_10003_trim_left_right_bottom() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 0,
@@ -217,7 +165,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20003_trim_no_object() {
+    fn test_10003_trim_no_object() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
@@ -236,7 +184,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20004_trim_1pixel() {
+    fn test_10004_trim_1pixel() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
@@ -255,7 +203,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20005_trim_2pixels() {
+    fn test_10005_trim_2pixels() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 0, 0, 0,
