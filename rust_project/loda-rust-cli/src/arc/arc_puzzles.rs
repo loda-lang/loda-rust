@@ -460,11 +460,11 @@ mod tests {
         // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
 
-        let bigram_x_unfiltered: Vec<RecordBigram> = input.bigram_x().expect("bitmap");
-        let bigram_y_unfiltered: Vec<RecordBigram> = input.bigram_y().expect("bitmap");
+        // Bigrams
+        let bigram_x_unfiltered: Vec<RecordBigram> = input.bigram_x().expect("bigram");
+        let bigram_y_unfiltered: Vec<RecordBigram> = input.bigram_y().expect("bigram");
         // println!("bigram_x_unfiltered: {:?}", bigram_x_unfiltered);
         // println!("bigram_y_unfiltered: {:?}", bigram_y_unfiltered);
-
         // Remove bigrams where the background pixel (0) is contained in
         let bigram_x_refs: Vec<&RecordBigram> = bigram_x_unfiltered.iter().filter(|&record| {
             record.word0 != 0 && record.word1 != 0
@@ -476,6 +476,23 @@ mod tests {
         let bigram_y: Vec<RecordBigram> = bigram_y_refs.iter().map(|&i| i.clone()).collect();
         // println!("bigram_x: {:?}", bigram_x);
         // println!("bigram_y: {:?}", bigram_y);
+
+        // Trigrams
+        let trigram_x_unfiltered: Vec<RecordTrigram> = input.trigram_x().expect("trigram");
+        let trigram_y_unfiltered: Vec<RecordTrigram> = input.trigram_y().expect("trigram");
+        // println!("trigram_x_unfiltered: {:?}", trigram_x_unfiltered);
+        // println!("trigram_y_unfiltered: {:?}", trigram_y_unfiltered);
+        // Remove trigrams where the background pixel (0) is contained in
+        let trigram_x_refs: Vec<&RecordTrigram> = trigram_x_unfiltered.iter().filter(|&record| {
+            record.word0 != 0 && record.word1 != 0 && record.word2 != 0
+        }).collect();
+        let trigram_y_refs: Vec<&RecordTrigram> = trigram_y_unfiltered.iter().filter(|&record| {
+            record.word0 != 0 && record.word1 != 0 && record.word2 != 0
+        }).collect();
+        let trigram_x: Vec<RecordTrigram> = trigram_x_refs.iter().map(|&i| i.clone()).collect();
+        let trigram_y: Vec<RecordTrigram> = trigram_y_refs.iter().map(|&i| i.clone()).collect();
+        // println!("trigram_x: {:?}", trigram_x);
+        // println!("trigram_y: {:?}", trigram_y);
         
         let mut mask: Bitmap = input.clone();
         for pixel_value in 2..=255 {
@@ -545,28 +562,44 @@ mod tests {
                     }
                     println!("repair top left corner: {}, {}", repair_x, repair_y);
 
+                    let pixel_top_top: u8 = input.get(repair_x, repair_y - 2).unwrap_or(255);
                     let pixel_top: u8 = input.get(repair_x, repair_y - 1).unwrap_or(255);
+                    let pixel_left_left: u8 = input.get(repair_x - 2, repair_y).unwrap_or(255);
                     let pixel_left: u8 = input.get(repair_x - 1, repair_y).unwrap_or(255);
 
-
-                    let mut bitset_x = BitSet::with_capacity(256);
-                    let mut bitset_y = BitSet::with_capacity(256);
+                    let mut bitset_bigram_x = BitSet::with_capacity(256);
+                    let mut bitset_bigram_y = BitSet::with_capacity(256);
+                    let mut bitset_trigram_x = BitSet::with_capacity(256);
+                    let mut bitset_trigram_y = BitSet::with_capacity(256);
                     for candidate in 0..255u8 {
                         for record in bigram_x.iter() {
                             if record.word0 == pixel_left && record.word1 == candidate {
-                                bitset_x.insert(candidate as usize);
+                                bitset_bigram_x.insert(candidate as usize);
+                            }
+                        }
+                        for record in trigram_x.iter() {
+                            if record.word0 == pixel_left_left && record.word1 == pixel_left && record.word2 == candidate {
+                                bitset_trigram_x.insert(candidate as usize);
                             }
                         }
                         for record in bigram_y.iter() {
                             if record.word0 == pixel_top && record.word1 == candidate {
-                                bitset_y.insert(candidate as usize);
+                                bitset_bigram_y.insert(candidate as usize);
+                            }
+                        }
+                        for record in trigram_y.iter() {
+                            if record.word0 == pixel_top_top && record.word1 == pixel_top && record.word2 == candidate {
+                                bitset_trigram_y.insert(candidate as usize);
                             }
                         }
                     }
-                    let mut bitset = BitSet::with_capacity(256);
-                    bitset.clone_from(&bitset_x);
-                    bitset.intersect_with(&bitset_y);
-                    println!("candidates: {:?}", bitset);
+                    let mut bitset_bigram = BitSet::with_capacity(256);
+                    bitset_bigram.clone_from(&bitset_bigram_x);
+                    bitset_bigram.intersect_with(&bitset_bigram_y);
+                    let mut bitset_trigram = BitSet::with_capacity(256);
+                    bitset_trigram.clone_from(&bitset_trigram_x);
+                    bitset_trigram.intersect_with(&bitset_trigram_y);
+                    println!("candidates. bigram: {:?} trigram: {:?}", bitset_bigram, bitset_trigram);
 
                     match result_bitmap.set(repair_x, repair_y, 15) {
                         Some(()) => {},
