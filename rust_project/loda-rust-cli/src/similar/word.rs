@@ -1,4 +1,4 @@
-use loda_rust_core::parser::InstructionId;
+use loda_rust_core::parser::{InstructionId, ParseInstructionId};
 use std::fmt;
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]

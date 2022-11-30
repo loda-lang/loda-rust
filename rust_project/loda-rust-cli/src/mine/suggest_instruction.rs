@@ -1,6 +1,6 @@
 use crate::common::RecordTrigram;
 use super::random_indexes_with_distance;
-use loda_rust_core::parser::InstructionId;
+use loda_rust_core::parser::{InstructionId, ParseInstructionId};
 use std::collections::HashMap;
 use rand::Rng;
 use rand::seq::SliceRandom;

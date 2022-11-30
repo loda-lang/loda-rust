@@ -10,7 +10,7 @@ use rand::Rng;
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
-use loda_rust_core::parser::InstructionId;
+use loda_rust_core::parser::{InstructionId, ParseInstructionId};
 use crate::common::parse_csv_data;
 
 type ValueAndWeight = (i32,u32);
