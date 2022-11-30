@@ -1,6 +1,6 @@
 use super::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use super::validate_loops::*;
-use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, RegisterType, Program, LOOP_RANGE_MAX_BITS, NodeUnofficialFunction};
+use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, RegisterType, Program, LOOP_RANGE_MAX_BITS};
 use crate::execute::node_calc::*;
 use crate::execute::node_clear::*;
 use crate::execute::node_loop_constant::*;
@@ -9,7 +9,8 @@ use crate::execute::node_loop_simple::*;
 use crate::execute::node_loop_slow::*;
 use crate::execute::node_seq::*;
 use crate::execute::compiletime_error::*;
-use crate::execute::UnofficialFunctionRegistry;
+use crate::execute::{NodeUnofficialFunction, UnofficialFunction, UnofficialFunctionRegistry};
+use std::sync::Arc;
 
 impl Instruction {
     /// Loop end (lpe) takes zero parameters.
@@ -143,21 +144,30 @@ fn create_node_unofficial_function(
     }
     let function_id = parameter1.parameter_value as u64;
 
-    match unofficial_function_registry.execute() {
-        Ok(value) => {
-            println!("!!!!!!!! create_node_unofficial_function.execute result: {}", value);
-        },
-        Err(error) => {
-            error!("create_node_unofficial_function.execute error: {:?}", error);
+    // Find the corresponding function
+    let lookup_result = unofficial_function_registry.lookup(
+        input_count, 
+        output_count, 
+        function_id
+    );
+    let unofficial_function: Arc<Box<dyn UnofficialFunction>> = match lookup_result {
+        Some(value) => value,
+        None => {
+            let err = CreateInstructionError::new(
+                instruction.line_number,
+                CreateInstructionErrorType::UnofficialFunctionLookupReturnedNone,
+            );
+            return Err(err);    
         }
-    }
+    };
 
-    // TODO: use NodeUnofficialFunction
+    // Create node
     let node = NodeUnofficialFunction::new(
         input_count,
         output_count,
         parameter0.clone(),
         function_id,
+        unofficial_function,
     );
     let node_wrapped = Box::new(node);
     Ok(node_wrapped)

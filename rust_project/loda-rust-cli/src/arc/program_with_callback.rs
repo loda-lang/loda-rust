@@ -108,7 +108,7 @@ mod tests {
     // #[test]
     fn test_30000_simple() -> anyhow::Result<()> {
         let program_content: &str = "
-        f11 $0,1
+        f11 $0,40
         ";
 
         let config = Config::load();

@@ -1,9 +1,10 @@
-use std::rc::Rc;
-use super::{EvalError, ProgramSerializerContext, ProgramCache, Node, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
+use super::{EvalError, ProgramSerializerContext, ProgramCache, Node, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError, UnofficialFunction};
 use super::PerformCheckValue;
 use crate::parser::InstructionParameter;
 use num_bigint::BigInt;
 use num_traits::Signed;
+use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct NodeUnofficialFunction {
     input_count: u8, 
@@ -12,10 +13,11 @@ pub struct NodeUnofficialFunction {
     function_id: u64,
     program_runner_rc: Rc::<ProgramRunner>,
     link_established: bool,
+    unofficial_function: Arc<Box<dyn UnofficialFunction>>,
 }
 
 impl NodeUnofficialFunction {
-    pub fn new(input_count: u8, output_count: u8, target: InstructionParameter, function_id: u64) -> Self {
+    pub fn new(input_count: u8, output_count: u8, target: InstructionParameter, function_id: u64, unofficial_function: Arc<Box<dyn UnofficialFunction>>) -> Self {
         let dummy_program = Program::new();
         let program_runner = ProgramRunner::new(
             ProgramId::ProgramWithoutId,
@@ -30,6 +32,7 @@ impl NodeUnofficialFunction {
             function_id,
             program_runner_rc: program_runner_rc,
             link_established: false,
+            unofficial_function: unofficial_function,
         }
     }
 }
@@ -53,6 +56,15 @@ impl Node for NodeUnofficialFunction {
         }
         let input: BigInt = state.get(&self.target, false)?;
 
+        match self.unofficial_function.execute() {
+            Ok(value) => {
+                println!("NodeUnofficialFunction.eval execute result: {}", value);
+            },
+            Err(error) => {
+                error!("NodeUnofficialFunction.eval execute error: {:?}", error);
+            }
+        }
+    
         if input.is_negative() {
             // Prevent calling other programs with a negative parameter.
             // It's fragile allowing negative values.
