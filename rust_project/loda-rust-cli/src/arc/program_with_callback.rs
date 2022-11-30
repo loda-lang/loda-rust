@@ -3,7 +3,7 @@ mod tests {
     use loda_rust_core::execute::ProgramId;
     use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
     use loda_rust_core::execute::NodeRegisterLimit;
-    use loda_rust_core::execute::{UnofficialFunction, UnofficialFunctionRegistry};
+    use loda_rust_core::execute::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
     use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
     use crate::config::Config;
     use num_bigint::BigInt;
@@ -62,22 +62,14 @@ mod tests {
     struct HelloWorldFunction;
 
     impl UnofficialFunction for HelloWorldFunction {
-        fn function_id(&self) -> u64 {
-            1234
+        fn id(&self) -> UnofficialFunctionId {
+            UnofficialFunctionId::InputOutput { id: 1234, inputs: 1, outputs: 1 }
         }
 
         fn name(&self) -> &'static str {
-            "HelloWorld"
+            "Hello World"
         }
 
-        fn inputs(&self) -> u8 {
-            1
-        }
-    
-        fn outputs(&self) -> u8 {
-            1
-        }
-    
         fn execute(&self) -> Result<String, Box<dyn Error>> {
             debug!("execute");
             Ok("executed".to_string())

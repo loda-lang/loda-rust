@@ -9,7 +9,7 @@ use crate::execute::node_loop_simple::*;
 use crate::execute::node_loop_slow::*;
 use crate::execute::node_seq::*;
 use crate::execute::compiletime_error::*;
-use crate::execute::{NodeUnofficialFunction, UnofficialFunction, UnofficialFunctionRegistry};
+use crate::execute::{NodeUnofficialFunction, UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use std::sync::Arc;
 
 impl Instruction {
@@ -142,14 +142,23 @@ fn create_node_unofficial_function(
         );
         return Err(err);
     }
-    let function_id = parameter1.parameter_value as u64;
+    let function_id_u64 = parameter1.parameter_value as u64;
+    if function_id_u64 >= (u32::MAX as u64) {
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::UnofficialFunctionLookupReturnedNone,
+        );
+        return Err(err);
+    }
+    let function_id = function_id_u64 as u32;
 
     // Find the corresponding function
-    let lookup_result = unofficial_function_registry.lookup(
-        input_count, 
-        output_count, 
-        function_id
-    );
+    let key = UnofficialFunctionId::InputOutput { 
+        id: function_id, 
+        inputs: input_count, 
+        outputs: output_count 
+    };
+    let lookup_result = unofficial_function_registry.lookup(key);
     let unofficial_function: Arc<Box<dyn UnofficialFunction>> = match lookup_result {
         Some(value) => value,
         None => {

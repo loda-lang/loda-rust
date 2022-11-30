@@ -1,4 +1,4 @@
-use super::UnofficialFunction;
+use super::{UnofficialFunction, UnofficialFunctionId};
 use std::sync::{Arc, RwLock};
 
 #[derive(Debug)]
@@ -29,7 +29,7 @@ impl UnofficialFunctionRegistry {
         self.inner.write().unwrap().plugin_vec.push(plugin);
     }
 
-    pub fn lookup(&self, inputs: u8, outputs: u8, function_id: u64) -> Option<Arc<Box<dyn UnofficialFunction>>> {
+    pub fn lookup(&self, key: UnofficialFunctionId) -> Option<Arc<Box<dyn UnofficialFunction>>> {
         let plugin_vec = self.inner.read().unwrap().plugin_vec.clone();
         for plugin in plugin_vec {
             let plugin_clone: Arc<Box<dyn UnofficialFunction>> = plugin.clone();

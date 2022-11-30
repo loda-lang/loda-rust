@@ -10,14 +10,14 @@ pub struct NodeUnofficialFunction {
     input_count: u8, 
     output_count: u8,
     target: InstructionParameter,
-    function_id: u64,
+    function_id: u32,
     program_runner_rc: Rc::<ProgramRunner>,
     link_established: bool,
     unofficial_function: Arc<Box<dyn UnofficialFunction>>,
 }
 
 impl NodeUnofficialFunction {
-    pub fn new(input_count: u8, output_count: u8, target: InstructionParameter, function_id: u64, unofficial_function: Arc<Box<dyn UnofficialFunction>>) -> Self {
+    pub fn new(input_count: u8, output_count: u8, target: InstructionParameter, function_id: u32, unofficial_function: Arc<Box<dyn UnofficialFunction>>) -> Self {
         let dummy_program = Program::new();
         let program_runner = ProgramRunner::new(
             ProgramId::ProgramWithoutId,
@@ -42,12 +42,10 @@ impl Node for NodeUnofficialFunction {
         format!("f{}{} {},{}", self.input_count, self.output_count, self.target, self.function_id)
     }
 
-    fn formatted_instruction_advanced(&self, context: &dyn ProgramSerializerContext) -> Option<String> {
-        let name: Option<String> = context.sequence_name_for_oeis_id(self.function_id);
-        if let Some(name) = name {
-            return Some(format!("f{}{} {},{} ; {}", self.input_count, self.output_count, self.target, self.function_id, name));
-        }
-        None
+    fn formatted_instruction_advanced(&self, _context: &dyn ProgramSerializerContext) -> Option<String> {
+        let name: String = self.unofficial_function.name().to_string();
+        let s = format!("f{}{} {},{} ; {}", self.input_count, self.output_count, self.target, self.function_id, name);
+        Some(s)
     }
 
     fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
@@ -115,7 +113,7 @@ impl Node for NodeUnofficialFunction {
         if self.link_established {
             panic!("The link have already been establish. Double assigning a link should not happen.");
         }
-        let program_id: u64 = self.function_id;
+        let program_id: u64 = self.function_id as u64;
 
         let program_runner: Rc::<ProgramRunner> = match program_manager.get(program_id) {
             Some(value) => value,
@@ -130,7 +128,7 @@ impl Node for NodeUnofficialFunction {
     }
 
     fn accumulate_call_dependencies(&self, program_id_vec: &mut Vec<u64>) {
-        program_id_vec.push(self.function_id);
+        program_id_vec.push(self.function_id as u64);
     }
 
     fn validate_call_nodes(&self) -> Result<(), ValidateCallError> {
