@@ -93,6 +93,59 @@ fn create_node_seq(instruction: &Instruction) -> Result<BoxNode, CreateInstructi
     Ok(node_wrapped)
 }
 
+fn create_node_unofficial_function(instruction: &Instruction, input_count: u8, output_count: u8) -> Result<BoxNode, CreateInstructionError> {
+    // Check the instruction `fxx` has input count in the range [1..9]
+    if input_count < 1 || input_count > 9 {
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::UnofficialFunctionInvalidInputOutputCount,
+        );
+        return Err(err);
+    }
+
+    // Check the instruction `fxx` has output count in the range [1..9]
+    if output_count < 1 || output_count > 9 {
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::UnofficialFunctionInvalidInputOutputCount,
+        );
+        return Err(err);
+    }
+
+    instruction.expect_two_parameters()?;
+    let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
+
+    // Checks that parameter0 is good.
+    // Bail out if parameter0 is ParameterType::Constant.
+    // Bail out if parameter0 is a negative value.
+    let _register0 = RegisterIndexAndType::from_parameter(instruction, parameter0)?;
+
+    let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
+    if parameter1.parameter_type != ParameterType::Constant {
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::ParameterMustBeConstant,
+        );
+        return Err(err);
+    }
+    if parameter1.parameter_value < 0 {
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::ConstantMustBeNonNegative,
+        );
+        return Err(err);
+    }
+    let function_id = parameter1.parameter_value as u64;
+
+    // TODO: use NodeUnofficialFunction
+    let node = NodeSeq::new(
+        parameter0.clone(),
+        function_id,
+    );
+    let node_wrapped = Box::new(node);
+    Ok(node_wrapped)
+}
+
 enum LoopType {
     /// When dealing with `ParameterType::Indirect` that are non-trivial to optimize.
     /// It's slow since nothing can be assumed about the `target` register and `source` register.
@@ -321,7 +374,8 @@ impl CreateProgram {
                     program.push_boxed(node);
                 },
                 InstructionId::UnofficialFunction { input_count, output_count } => {
-                    // do nothing
+                    let node = create_node_unofficial_function(&instruction, input_count, output_count)?;
+                    program.push_boxed(node);
                 },
             }
         }
