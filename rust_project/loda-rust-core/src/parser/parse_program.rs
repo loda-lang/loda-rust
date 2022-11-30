@@ -189,7 +189,10 @@ mod tests {
 
     #[test]
     fn test_10002_junk() {
-        assert_eq!(process("mov0"), "SyntaxError(1)");
+        assert_eq!(process("Add"), "SyntaxError(1)");
+        assert_eq!(process("ADD"), "SyntaxError(1)");
+        assert_eq!(process("addd"), "ParseInstructionId(UnrecognizedInstructionId(1))");
+        assert_eq!(process("mov0"), "ParseInstructionId(UnrecognizedInstructionId(1))");
         assert_eq!(process("mov$0"), "SyntaxError(1)");
         assert_eq!(process("boom $1"), "ParseInstructionId(UnrecognizedInstructionId(1))");
         assert_eq!(process("mov $x"), "ParseParameters(UnrecognizedParameter(1))");

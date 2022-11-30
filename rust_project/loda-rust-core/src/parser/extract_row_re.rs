@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 lazy_static! {
     /// Extract the instruction and its parameters, from a row of assembler code
     pub static ref EXTRACT_ROW_RE: Regex = Regex::new(
-        "^[ \t]*([a-z]{2,5}\\b)(?:[ \t]+(.*))?$"
+        "^[ \t]*([a-z0-9]{2,5}\\b)(?:[ \t]+(.*))?$"
     ).unwrap();
 }
 
@@ -12,12 +12,16 @@ lazy_static! {
 mod tests {
     static INPUT: &'static [&'static str] = &[
         "toolonginstruction $1",
+        "longer $1",
         "",
         " ",
-        "mov0 1,2",
+        "x",
         "mov$0 1,2",
+        "mov0 1,2",
+        "xx",
         "80s",
-        "boom",
+        "f89",
+        "good",
         "mov $5,1 ",
         "lpb $0",
         "  sub $0,1 ",
@@ -38,7 +42,11 @@ mod tests {
         "MISMATCH",
         "MISMATCH",
         "MISMATCH",
-        "boom:",
+        "mov0:1,2",
+        "xx:",
+        "80s:",
+        "f89:",
+        "good:",
         "mov:$5,1 ",
         "lpb:$0",
         "sub:$0,1 ",
