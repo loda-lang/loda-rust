@@ -272,14 +272,14 @@ impl GenomeItem {
             return ";".to_string();
         }
         if self.instruction_id == InstructionId::LoopEnd {
-            return self.instruction_id.shortname().to_string();
+            return self.instruction_id.to_string();
         }
         let parameter_vec: Vec<InstructionParameter> = self.to_parameter_vec();
         let strings: Vec<String> = parameter_vec.iter().map(|item| {
             item.to_string()
         }).collect();
         let parameter_strings: String = strings.join(",");
-        format!("{} {}", self.instruction_id.shortname(), parameter_strings)
+        format!("{} {}", self.instruction_id, parameter_strings)
     }
 
     pub fn to_parameter_vec(&self) -> Vec<InstructionParameter> {
@@ -387,7 +387,7 @@ impl fmt::Display for GenomeItem {
         }
         write!(f, "{}{} {}{},{}{}", 
             line_prefix,
-            self.instruction_id.shortname(), 
+            self.instruction_id, 
             self.target_type.prefix(),
             self.target_value, 
             self.source_type.prefix(), 

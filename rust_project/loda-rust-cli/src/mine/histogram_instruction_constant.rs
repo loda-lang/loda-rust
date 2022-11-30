@@ -104,7 +104,7 @@ impl Record {
 
     fn value_and_weight_vec(records: &Vec<Record>, instruction_id: InstructionId) -> ValueAndWeightVector {
         let mut value_and_weight_vec: ValueAndWeightVector = vec!();
-        let needle: &str = instruction_id.shortname();
+        let needle: String = instruction_id.to_string();
         let mut already_known = HashSet::<i32>::new();
         for record in records {
             if record.instruction != needle {

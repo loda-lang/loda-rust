@@ -131,22 +131,7 @@ impl BatchProgramAnalyzerPlugin for AnalyzeInstructionConstant {
     }
 
     fn save(&self) -> Result<(), Box<dyn Error>> {
-        // Convert from dictionary to array
-        let mut records = Vec::<Record>::new();
-        for (histogram_key, histogram_count) in &self.histogram {
-            let instruction_name: String = histogram_key.0.shortname().to_string();
-            let record = Record {
-                count: *histogram_count,
-                instruction: instruction_name,
-                constant: histogram_key.1
-            };
-            records.push(record);
-        }
-
-        // Move the most frequently occuring items to the top
-        // Move the lesser used items to the bottom
-        records.sort_unstable_by_key(|item| (item.count, item.instruction.clone(), item.constant));
-        records.reverse();
+        let records: Vec<Record> = Record::sorted_records_from_histogram(&self.histogram);
 
         // Save as a CSV file
         let output_path: PathBuf = self.config.analytics_dir_histogram_instruction_constant_file();
@@ -163,9 +148,60 @@ impl BatchProgramAnalyzerPlugin for AnalyzeInstructionConstant {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize, PartialEq)]
 struct Record {
     count: u32,
     instruction: String,
     constant: i32,
+}
+
+impl Record {
+    fn sorted_records_from_histogram(histogram: &HashMap<HistogramKey,u32>) -> Vec<Record> {
+        // Convert from dictionary to array
+        let mut records = Vec::<Record>::new();
+        for (histogram_key, histogram_count) in histogram {
+            let instruction_name: String = histogram_key.0.to_string();
+            let record = Record {
+                count: *histogram_count,
+                instruction: instruction_name,
+                constant: histogram_key.1
+            };
+            records.push(record);
+        }
+
+        // Move the most frequently occuring items to the top
+        // Move the lesser used items to the bottom
+        records.sort_unstable_by_key(|item| (item.count, item.instruction.clone(), item.constant));
+        records.reverse();
+
+        records
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_10000_sorted_records_from_histogram() {
+        // Arrange
+        let mut histogram: HashMap<HistogramKey,u32> = HashMap::new();
+        let key: HistogramKey = (InstructionId::Add, 42);
+        histogram.insert(key, 1);
+        let key: HistogramKey = (InstructionId::Multiply, 1337);
+        histogram.insert(key, 3);
+        let key: HistogramKey = (InstructionId::Subtract, 666);
+        histogram.insert(key, 2);
+
+        // Act
+        let records: Vec<Record> = Record::sorted_records_from_histogram(&histogram);
+
+        // Assert
+        let expected: Vec<Record> = vec![
+            Record { count: 3, instruction: "mul".to_string(), constant: 1337 },
+            Record { count: 2, instruction: "sub".to_string(), constant: 666 },
+            Record { count: 1, instruction: "add".to_string(), constant: 42 },
+        ];
+        assert_eq!(records, expected);
+    }
 }

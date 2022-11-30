@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum InstructionId {
     Add,
@@ -21,9 +23,9 @@ pub enum InstructionId {
     UnofficialFunction { input_count: u8, output_count: u8 }
 }
 
-impl InstructionId {
-    pub fn shortname(&self) -> &str {
-        match self {
+impl fmt::Display for InstructionId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s: &'static str = match self {
             Self::Add          => "add",
             Self::Binomial     => "bin",
             Self::EvalSequence => "seq",
@@ -43,7 +45,8 @@ impl InstructionId {
             Self::Subtract     => "sub",
             Self::Truncate     => "trn",
             Self::UnofficialFunction { .. } => "fxx",
-        }
+        };
+        f.write_str(s)
     }
 }
 
@@ -57,5 +60,12 @@ mod tests {
         assert_ne!(InstructionId::Add, InstructionId::Subtract);
         assert_eq!(InstructionId::UnofficialFunction { input_count: 7, output_count: 6 }, InstructionId::UnofficialFunction { input_count: 7, output_count: 6 });
         assert_ne!(InstructionId::UnofficialFunction { input_count: 7, output_count: 6 }, InstructionId::UnofficialFunction { input_count: 6, output_count: 7 });
+    }
+
+    #[test]
+    fn test_20000_to_string() {
+        assert_eq!(InstructionId::DivideIf.to_string(), "dif");
+        assert_eq!(InstructionId::Multiply.to_string(), "mul");
+        assert_eq!(InstructionId::Truncate.to_string(), "trn");
     }
 }
