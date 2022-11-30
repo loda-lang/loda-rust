@@ -106,7 +106,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_parse_error() {
+    fn test_10001_parse_error_with_line_number() {
         let err: ParseInstructionIdError = InstructionId::parse("nonexisting", 666).unwrap_err();
         let line_number: usize;
         match err {
@@ -115,5 +115,17 @@ mod tests {
             }
         }
         assert_eq!(line_number, 666);
+    }
+
+    #[test]
+    fn test_10002_parse_error() {
+        // Instructions must be lowercase. 
+        InstructionId::parse("Add", 1).expect_err("should fail");
+        InstructionId::parse("ADD", 1).expect_err("should fail");
+
+        // No weird prefix/suffix allowed 
+        InstructionId::parse("add_", 1).expect_err("should fail");
+        InstructionId::parse("_add", 1).expect_err("should fail");
+        InstructionId::parse("addd", 1).expect_err("should fail");
     }
 }
