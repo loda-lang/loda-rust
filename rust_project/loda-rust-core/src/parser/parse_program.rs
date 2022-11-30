@@ -1,5 +1,6 @@
 use std::fmt;
-use super::{EXTRACT_ROW_RE,InstructionId,ParseInstructionIdError,Instruction,InstructionParameter,ParameterType,ParseParametersError,parse_parameters,remove_comment};
+use super::{EXTRACT_ROW_RE,Instruction,InstructionParameter,ParameterType,ParseParametersError,parse_parameters,remove_comment};
+use super::{InstructionId,ParseInstructionIdError,ParseInstructionId};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParsedProgram {
