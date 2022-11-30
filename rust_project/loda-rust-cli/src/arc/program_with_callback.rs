@@ -58,18 +58,23 @@ mod tests {
         Ok(())
     }
 
-    trait MyPlugin2: Send + Sync {
+    trait UnofficialFunction: Send + Sync {
+        fn function_id(&self) -> u64;
         fn name(&self) -> &'static str;
         fn inputs(&self) -> u8;
         fn outputs(&self) -> u8;
         fn execute(&self) -> Result<String, Box<dyn Error>>;
     }
 
-    struct HelloWorldPlugin2;
+    struct HelloWorldFunction;
 
-    impl MyPlugin2 for HelloWorldPlugin2 {
+    impl UnofficialFunction for HelloWorldFunction {
+        fn function_id(&self) -> u64 {
+            1234
+        }
+
         fn name(&self) -> &'static str {
-            "HelloWorldPlugin2"
+            "HelloWorld"
         }
 
         fn inputs(&self) -> u8 {
@@ -87,7 +92,7 @@ mod tests {
     }
 
     #[derive(Debug)]
-    struct RegistryInner<T = Box<dyn MyPlugin2>> {
+    struct RegistryInner<T = Box<dyn UnofficialFunction>> {
         plugin_vec: Vec<Arc<T>>,
     }
 
@@ -109,7 +114,7 @@ mod tests {
             Arc::new(instance)
         }
 
-        fn add_plugin(&self, plugin: Arc<Box<dyn MyPlugin2>>) {
+        fn register(&self, plugin: Arc<Box<dyn UnofficialFunction>>) {
             self.inner.write().unwrap().plugin_vec.push(plugin);
         }
 
@@ -140,10 +145,10 @@ mod tests {
     #[test]
     fn test_20000_function_plugin_multithreaded_immutable() -> anyhow::Result<()> {
         let registry = Registry::new();
-        let the_plugin = HelloWorldPlugin2 {};
-        registry.add_plugin(Arc::new(Box::new(the_plugin)));
+        let plugin = HelloWorldFunction {};
+        registry.register(Arc::new(Box::new(plugin)));
         let execute_output: String = registry.execute()?;
-        assert_eq!(execute_output, "executed2");
+        assert_eq!(execute_output, "executed");
         Ok(())
     }
 
