@@ -94,6 +94,17 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_20001_registry_clone() -> anyhow::Result<()> {
+        let registry_original = UnofficialFunctionRegistry::new();
+        let registry: UnofficialFunctionRegistry = registry_original.clone();
+        let plugin = HelloWorldFunction {};
+        registry.register(Arc::new(Box::new(plugin)));
+        let execute_output: String = registry.execute()?;
+        assert_eq!(execute_output, "executed");
+        Ok(())
+    }
+
     // #[test]
     fn test_30000_simple() -> anyhow::Result<()> {
         let program_content: &str = "

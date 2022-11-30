@@ -9,19 +9,20 @@ struct RegistryInner<T = Box<dyn UnofficialFunction>> {
 impl<T> RegistryInner<T> {
 }
 
+#[derive(Clone)]
 pub struct UnofficialFunctionRegistry {
-    inner: RwLock<RegistryInner>,
+    inner: Arc<RwLock<RegistryInner>>,
 }
 
 impl UnofficialFunctionRegistry {
-    pub fn new() -> Arc<UnofficialFunctionRegistry> {
+    pub fn new() -> UnofficialFunctionRegistry {
         let inner = RegistryInner {
             plugin_vec: vec!(),
         };
         let instance = UnofficialFunctionRegistry { 
-            inner: RwLock::new(inner) 
+            inner: Arc::new(RwLock::new(inner)) 
         };
-        Arc::new(instance)
+        instance
     }
 
     pub fn register(&self, plugin: Arc<Box<dyn UnofficialFunction>>) {
