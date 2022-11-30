@@ -127,5 +127,15 @@ mod tests {
         InstructionId::parse("add_", 1).expect_err("should fail");
         InstructionId::parse("_add", 1).expect_err("should fail");
         InstructionId::parse("addd", 1).expect_err("should fail");
+
+        // The instruction `fxx` is `UnofficialFunction`, where `x` must be in the range [1..9]
+        InstructionId::parse("fxx", 1).expect_err("should fail");
+        InstructionId::parse("f00", 1).expect_err("should fail");
+        InstructionId::parse("f01", 1).expect_err("should fail");
+        InstructionId::parse("f10", 1).expect_err("should fail");
+        InstructionId::parse("f", 1).expect_err("should fail");
+        InstructionId::parse("f1", 1).expect_err("should fail");
+        InstructionId::parse("f1x", 1).expect_err("should fail");
+        InstructionId::parse("f11x", 1).expect_err("should fail");
     }
 }
