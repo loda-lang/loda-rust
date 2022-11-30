@@ -445,60 +445,14 @@ mod tests {
         Ok(())
     }
 
-    // #[test]
-    fn test_110000_puzzle_0dfd9992() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("0dfd9992")?;
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
-        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
-        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
-        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
-        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
-        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("bitmap");
-        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
-        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
-
-        // Bigrams
-        let bigram_x_unfiltered: Vec<RecordBigram> = input.bigram_x().expect("bigram");
-        let bigram_y_unfiltered: Vec<RecordBigram> = input.bigram_y().expect("bigram");
-        // println!("bigram_x_unfiltered: {:?}", bigram_x_unfiltered);
-        // println!("bigram_y_unfiltered: {:?}", bigram_y_unfiltered);
-        // Remove bigrams where the background pixel (0) is contained in
-        let bigram_x_refs: Vec<&RecordBigram> = bigram_x_unfiltered.iter().filter(|&record| {
-            record.word0 != 0 && record.word1 != 0
-        }).collect();
-        let bigram_y_refs: Vec<&RecordBigram> = bigram_y_unfiltered.iter().filter(|&record| {
-            record.word0 != 0 && record.word1 != 0
-        }).collect();
-        let bigram_x: Vec<RecordBigram> = bigram_x_refs.iter().map(|&i| i.clone()).collect();
-        let bigram_y: Vec<RecordBigram> = bigram_y_refs.iter().map(|&i| i.clone()).collect();
-        // println!("bigram_x: {:?}", bigram_x);
-        // println!("bigram_y: {:?}", bigram_y);
-
-        // Trigrams
-        let trigram_x_unfiltered: Vec<RecordTrigram> = input.trigram_x().expect("trigram");
-        let trigram_y_unfiltered: Vec<RecordTrigram> = input.trigram_y().expect("trigram");
-        // println!("trigram_x_unfiltered: {:?}", trigram_x_unfiltered);
-        // println!("trigram_y_unfiltered: {:?}", trigram_y_unfiltered);
-        // Remove trigrams where the background pixel (0) is contained in
-        let trigram_x_refs: Vec<&RecordTrigram> = trigram_x_unfiltered.iter().filter(|&record| {
-            record.word0 != 0 && record.word1 != 0 && record.word2 != 0
-        }).collect();
-        let trigram_y_refs: Vec<&RecordTrigram> = trigram_y_unfiltered.iter().filter(|&record| {
-            record.word0 != 0 && record.word1 != 0 && record.word2 != 0
-        }).collect();
-        let trigram_x: Vec<RecordTrigram> = trigram_x_refs.iter().map(|&i| i.clone()).collect();
-        let trigram_y: Vec<RecordTrigram> = trigram_y_refs.iter().map(|&i| i.clone()).collect();
-        // println!("trigram_x: {:?}", trigram_x);
-        // println!("trigram_y: {:?}", trigram_y);
-        
+    /// Detect corners and edges
+    fn mask_and_repair_areas(input: &Bitmap) -> anyhow::Result<(Bitmap, Bitmap)> {
+        // Assign 0 to background, assign 1 to foreground
         let mut mask: Bitmap = input.clone();
         for pixel_value in 2..=255 {
             mask = mask.replace_color(pixel_value, 1).expect("bitmap");
         }
-        println!("mask: {:?}", mask);
+        // println!("mask: {:?}", mask);
 
         // Detect corners and edges
         let repair_areas: Bitmap = convolution2x2(&mask, |bm| {
@@ -533,84 +487,156 @@ mod tests {
             };
             Ok(value)
         }).expect("bitmap");
+        Ok((mask, repair_areas))
+    }
 
-        println!("repair areas: {:?}", repair_areas);
+    fn repair_corner_top_left(bitmap: &mut Bitmap, x: i32, y: i32, trigram_x: &Vec<RecordTrigram>, trigram_y: &Vec<RecordTrigram>) -> anyhow::Result<()> {
+        if x < 1 || y < 1 {
+            println!("repair corner top left: {}, {} - insufficient room to make bigram", x, y);
+            return Ok(());
+        }
+        println!("repair corner top left: {}, {}", x, y);
 
-        let mut result_bitmap: Bitmap = input.clone();
-        for y in 0..repair_areas.height() {
-            for x in 0..repair_areas.width() {
-                let pixel_value: u8 = repair_areas.get(x as i32, y as i32).unwrap_or(255);
-                if pixel_value == 0 {
-                    continue;
+        let pixel_top_top: u8 = bitmap.get(x, y - 2).unwrap_or(255);
+        let pixel_top: u8 = bitmap.get(x, y - 1).unwrap_or(255);
+        let pixel_left_left: u8 = bitmap.get(x - 2, y).unwrap_or(255);
+        let pixel_left: u8 = bitmap.get(x - 1, y).unwrap_or(255);
+
+        let mut bitset_trigram_x = BitSet::with_capacity(256);
+        let mut bitset_trigram_y = BitSet::with_capacity(256);
+        for candidate in 0..255u8 {
+            for record in trigram_x.iter() {
+                if record.word0 == pixel_left_left && record.word1 == pixel_left && record.word2 == candidate {
+                    bitset_trigram_x.insert(candidate as usize);
                 }
-
-                // repair position
-                let repair_x = (x as i32) + 1;
-                let repair_y = (y as i32) + 1;
-
-                // if pixel_value >= 1 && pixel_value <= 4 {
-                //     println!("repair corner: {}, {}", x, y);
-                // }
-                // if pixel_value >= 5 {
-                //     println!("repair edge: {}, {}", x, y);
-                // }
-
-                if pixel_value == 1 {
-                    if repair_x < 1 || repair_y < 1 {
-                        println!("repair top left corner: {}, {} - insufficient room to make bigram", repair_x, repair_y);
-                        continue;
-                    }
-                    println!("repair top left corner: {}, {}", repair_x, repair_y);
-
-                    let pixel_top_top: u8 = input.get(repair_x, repair_y - 2).unwrap_or(255);
-                    let pixel_top: u8 = input.get(repair_x, repair_y - 1).unwrap_or(255);
-                    let pixel_left_left: u8 = input.get(repair_x - 2, repair_y).unwrap_or(255);
-                    let pixel_left: u8 = input.get(repair_x - 1, repair_y).unwrap_or(255);
-
-                    let mut bitset_bigram_x = BitSet::with_capacity(256);
-                    let mut bitset_bigram_y = BitSet::with_capacity(256);
-                    let mut bitset_trigram_x = BitSet::with_capacity(256);
-                    let mut bitset_trigram_y = BitSet::with_capacity(256);
-                    for candidate in 0..255u8 {
-                        for record in bigram_x.iter() {
-                            if record.word0 == pixel_left && record.word1 == candidate {
-                                bitset_bigram_x.insert(candidate as usize);
-                            }
-                        }
-                        for record in trigram_x.iter() {
-                            if record.word0 == pixel_left_left && record.word1 == pixel_left && record.word2 == candidate {
-                                bitset_trigram_x.insert(candidate as usize);
-                            }
-                        }
-                        for record in bigram_y.iter() {
-                            if record.word0 == pixel_top && record.word1 == candidate {
-                                bitset_bigram_y.insert(candidate as usize);
-                            }
-                        }
-                        for record in trigram_y.iter() {
-                            if record.word0 == pixel_top_top && record.word1 == pixel_top && record.word2 == candidate {
-                                bitset_trigram_y.insert(candidate as usize);
-                            }
-                        }
-                    }
-                    let mut bitset_bigram = BitSet::with_capacity(256);
-                    bitset_bigram.clone_from(&bitset_bigram_x);
-                    bitset_bigram.intersect_with(&bitset_bigram_y);
-                    let mut bitset_trigram = BitSet::with_capacity(256);
-                    bitset_trigram.clone_from(&bitset_trigram_x);
-                    bitset_trigram.intersect_with(&bitset_trigram_y);
-                    println!("candidates. bigram: {:?} trigram: {:?}", bitset_bigram, bitset_trigram);
-
-                    match result_bitmap.set(repair_x, repair_y, 15) {
-                        Some(()) => {},
-                        None => {
-                            return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
-                        }
-                    }
+            }
+            for record in trigram_y.iter() {
+                if record.word0 == pixel_top_top && record.word1 == pixel_top && record.word2 == candidate {
+                    bitset_trigram_y.insert(candidate as usize);
                 }
             }
         }
+        let mut bitset_trigram = BitSet::with_capacity(256);
+        bitset_trigram.clone_from(&bitset_trigram_x);
+        bitset_trigram.intersect_with(&bitset_trigram_y);
+        if bitset_trigram.len() >= 2 {
+            println!("more than 1 candidate. trigram: {:?}", bitset_trigram);
+        }
 
+        let mut found_color = 255;
+        for index in bitset_trigram.iter() {
+            if index > 255 {
+                return Err(anyhow::anyhow!("Integrity error. Encountered bitset index outside of u8 range [0..255]"));
+            }
+            found_color = index as u8;
+            break;
+        }
+        println!("repair ({}, {}) = {:?}", x, y, found_color);
+
+        match bitmap.set(x, y, found_color) {
+            Some(()) => {},
+            None => {
+                return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_110000_puzzle_0dfd9992() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("0dfd9992")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("bitmap");
+        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
+        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
+
+        // Bigrams
+        // let bigram_x_unfiltered: Vec<RecordBigram> = input.bigram_x().expect("bigram");
+        // let bigram_y_unfiltered: Vec<RecordBigram> = input.bigram_y().expect("bigram");
+        // println!("bigram_x_unfiltered: {:?}", bigram_x_unfiltered);
+        // println!("bigram_y_unfiltered: {:?}", bigram_y_unfiltered);
+        // Remove bigrams where the background pixel (0) is contained in
+        // let bigram_x_refs: Vec<&RecordBigram> = bigram_x_unfiltered.iter().filter(|&record| {
+        //     record.word0 != 0 && record.word1 != 0
+        // }).collect();
+        // let bigram_y_refs: Vec<&RecordBigram> = bigram_y_unfiltered.iter().filter(|&record| {
+        //     record.word0 != 0 && record.word1 != 0
+        // }).collect();
+        // let bigram_x: Vec<RecordBigram> = bigram_x_refs.iter().map(|&i| i.clone()).collect();
+        // let bigram_y: Vec<RecordBigram> = bigram_y_refs.iter().map(|&i| i.clone()).collect();
+        // println!("bigram_x: {:?}", bigram_x);
+        // println!("bigram_y: {:?}", bigram_y);
+
+        // Trigrams
+        let trigram_x_unfiltered: Vec<RecordTrigram> = input.trigram_x().expect("trigram");
+        let trigram_y_unfiltered: Vec<RecordTrigram> = input.trigram_y().expect("trigram");
+        // println!("trigram_x_unfiltered: {:?}", trigram_x_unfiltered);
+        // println!("trigram_y_unfiltered: {:?}", trigram_y_unfiltered);
+        // Remove trigrams where the background pixel (0) is contained in
+        let trigram_x_refs: Vec<&RecordTrigram> = trigram_x_unfiltered.iter().filter(|&record| {
+            record.word0 != 0 && record.word1 != 0 && record.word2 != 0
+        }).collect();
+        let trigram_y_refs: Vec<&RecordTrigram> = trigram_y_unfiltered.iter().filter(|&record| {
+            record.word0 != 0 && record.word1 != 0 && record.word2 != 0
+        }).collect();
+        let trigram_x: Vec<RecordTrigram> = trigram_x_refs.iter().map(|&i| i.clone()).collect();
+        let trigram_y: Vec<RecordTrigram> = trigram_y_refs.iter().map(|&i| i.clone()).collect();
+        // println!("trigram_x: {:?}", trigram_x);
+        // println!("trigram_y: {:?}", trigram_y);
+        
+        let mut result_bitmap: Bitmap = input.clone();
+
+        let mut last_repair_count: usize = 0;
+        for iteration in 0..13 {
+            let (mask, repair_areas) = mask_and_repair_areas(&result_bitmap)?;
+            println!("iteration#{} mask: {:?}", iteration, mask);
+            println!("iteration#{} repair areas: {:?}", iteration, repair_areas);
+            let mut repair_count: usize = 0;
+            for y in 0..repair_areas.height() {
+                for x in 0..repair_areas.width() {
+                    let pixel_value: u8 = repair_areas.get(x as i32, y as i32).unwrap_or(255);
+                    if pixel_value == 0 {
+                        continue;
+                    }
+                    repair_count += 1;
+    
+                    // repair position
+                    let repair_x = (x as i32) + 1;
+                    let repair_y = (y as i32) + 1;
+    
+                    // if pixel_value >= 1 && pixel_value <= 4 {
+                    //     println!("repair corner: {}, {}", x, y);
+                    //     TODO: deal with all the cases
+                    // }
+                    // if pixel_value >= 5 {
+                    //     println!("repair edge: {}, {}", x, y);
+                    // }
+    
+                    if pixel_value == 1 {
+                        repair_corner_top_left(&mut result_bitmap, repair_x, repair_y, &trigram_x, &trigram_y)?;
+                    }
+                }
+            }
+            println!("iteration#{} repair_count: {}", iteration, repair_count);
+            if iteration > 0 {
+                if last_repair_count == repair_count {
+                    println!("making no progress with repairs done. aborting");
+                    break;
+                }
+            }
+            if repair_count == 0 {
+                println!("repair done. no more pixels to be repaired");
+                break;
+            }
+            last_repair_count = repair_count;
+        }
 
         assert_eq!(result_bitmap, output);
         Ok(())
