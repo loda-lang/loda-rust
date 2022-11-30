@@ -216,6 +216,9 @@ mod tests {
         assert_eq!(process("mov 3,$$1"), "mov 3,$$1");
         assert_eq!(process("mov 0,0"), "mov 0,0");
         assert_eq!(process("mov -3,1"), "mov -3,1");
+        assert_eq!(process("seq $3,-100"), "seq $3,-100");
+        assert_eq!(process("seq $3,$$3"), "seq $3,$$3");
+        assert_eq!(process("div $33,0"), "div $33,0");
     }
 
     #[test]
