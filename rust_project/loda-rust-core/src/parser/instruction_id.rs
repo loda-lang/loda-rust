@@ -18,6 +18,7 @@ pub enum InstructionId {
     Power,
     Subtract,
     Truncate,
+    UnofficialFunction { input_count: u8, output_count: u8 }
 }
 
 impl InstructionId {
@@ -41,6 +42,7 @@ impl InstructionId {
             Self::Power        => "pow",
             Self::Subtract     => "sub",
             Self::Truncate     => "trn",
+            Self::UnofficialFunction { .. } => "fxx",
         }
     }
 }
@@ -53,5 +55,7 @@ mod tests {
     fn test_10000_equal() {
         assert_eq!(InstructionId::Add, InstructionId::Add);
         assert_ne!(InstructionId::Add, InstructionId::Subtract);
+        assert_eq!(InstructionId::UnofficialFunction { input_count: 7, output_count: 6 }, InstructionId::UnofficialFunction { input_count: 7, output_count: 6 });
+        assert_ne!(InstructionId::UnofficialFunction { input_count: 7, output_count: 6 }, InstructionId::UnofficialFunction { input_count: 6, output_count: 7 });
     }
 }

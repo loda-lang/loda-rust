@@ -320,6 +320,9 @@ impl CreateProgram {
                     let node = create_node_seq(&instruction)?;
                     program.push_boxed(node);
                 },
+                InstructionId::UnofficialFunction { input_count, output_count } => {
+                    // do nothing
+                },
             }
         }
     
