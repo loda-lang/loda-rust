@@ -13,6 +13,7 @@ mod index_for_pixel;
 mod ngram;
 mod number_to_bitmap;
 mod padding;
+mod program_with_callback;
 mod offset;
 mod read_testdata;
 mod resize;
