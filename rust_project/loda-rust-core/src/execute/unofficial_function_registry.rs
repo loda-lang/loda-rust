@@ -37,14 +37,10 @@ impl UnofficialFunctionRegistry {
     }
 
     pub fn lookup(&self, key: UnofficialFunctionId) -> Option<Arc<Box<dyn UnofficialFunction>>> {
-        let plugin_dict = self.inner.read().unwrap().plugin_dict.clone();
-        match plugin_dict.get(&key) {
-            Some(value) => {
-                return Some(value.clone());
-            },
-            None => {
-                return None;
-            }
+        let inner = self.inner.read().expect("RwLock poisoned");
+        if let Some(value) = inner.plugin_dict.get(&key) {
+            return Some(value.clone());
         }
+        None
     }
 }
