@@ -9,55 +9,8 @@ mod tests {
     use num_bigint::BigInt;
     use num_bigint::ToBigInt;
     use std::path::PathBuf;
-    use std::rc::Rc;
-    use core::cell::RefCell;
     use std::error::Error;
     use std::sync::Arc;
-
-    struct MyContext;
-    
-    trait MyPluginLegacy {
-        fn plugin_name(&self) -> &'static str;
-        fn execute(&mut self, context: &MyContext) -> Result<String, Box<dyn Error>>;
-    }
-    
-    type MyPluginItemLegacy = Rc<RefCell<dyn MyPluginLegacy>>;
-
-    struct HelloWorldPluginLegacy;
-
-    impl MyPluginLegacy for HelloWorldPluginLegacy {
-        fn plugin_name(&self) -> &'static str {
-            "HelloWorldPluginLegacy"
-        }
-    
-        fn execute(&mut self, _context: &MyContext) -> Result<String, Box<dyn Error>> {
-            debug!("execute");
-            Ok("executed".to_string())
-        }
-    }
-    
-    #[test]
-    fn test_10000_function_plugin_singlethreaded() -> anyhow::Result<()> {
-        let mut plugin_vec: Vec<MyPluginItemLegacy> = vec!();
-        let the_plugin = Rc::new(RefCell::new(HelloWorldPluginLegacy {}));
-        plugin_vec.push(the_plugin);
-
-        let context = MyContext {};
-        let mut execute_output: Option<String> = None;
-        for plugin in plugin_vec.iter() {
-            let result = plugin.borrow_mut().execute(&context);
-            match result {
-                Ok(value) => {
-                    execute_output = Some(value);
-                },
-                Err(error) => {
-                    return Err(anyhow::anyhow!("execute failed. error: {:?}", error));
-                }
-            }
-        }
-        assert_eq!(execute_output, Some("executed".to_string()));
-        Ok(())
-    }
 
     struct HelloWorldFunction;
 
@@ -77,7 +30,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_registry_lookup() -> anyhow::Result<()> {
+    fn test_10000_registry_lookup() -> anyhow::Result<()> {
         let registry = UnofficialFunctionRegistry::new();
         let plugin = HelloWorldFunction {};
         registry.register(Arc::new(Box::new(plugin)));
@@ -97,7 +50,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_registry_clone() -> anyhow::Result<()> {
+    fn test_10001_registry_clone() -> anyhow::Result<()> {
         // Arrange
         let registry_original = UnofficialFunctionRegistry::new();
         let registry: UnofficialFunctionRegistry = registry_original.clone();
@@ -120,7 +73,7 @@ mod tests {
     }
 
     // #[test]
-    fn test_30000_simple() -> anyhow::Result<()> {
+    fn test_20000_simple() -> anyhow::Result<()> {
         let program_content: &str = "
         f11 $0,1234
         ";
