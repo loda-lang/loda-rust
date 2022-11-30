@@ -550,6 +550,8 @@ mod tests {
 
         let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
         let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+
+        // TODO: make the rest of the tests pass OK. Currently these fails.
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
