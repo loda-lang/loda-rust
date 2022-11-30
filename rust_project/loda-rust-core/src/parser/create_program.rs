@@ -1,6 +1,6 @@
 use super::{Instruction, InstructionId, InstructionParameter, ParameterType};
 use super::validate_loops::*;
-use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, RegisterType, Program, LOOP_RANGE_MAX_BITS};
+use crate::execute::{BoxNode, RegisterIndex, RegisterIndexAndType, RegisterType, Program, LOOP_RANGE_MAX_BITS, NodeUnofficialFunction};
 use crate::execute::node_calc::*;
 use crate::execute::node_clear::*;
 use crate::execute::node_loop_constant::*;
@@ -138,7 +138,9 @@ fn create_node_unofficial_function(instruction: &Instruction, input_count: u8, o
     let function_id = parameter1.parameter_value as u64;
 
     // TODO: use NodeUnofficialFunction
-    let node = NodeSeq::new(
+    let node = NodeUnofficialFunction::new(
+        input_count,
+        output_count,
         parameter0.clone(),
         function_id,
     );
