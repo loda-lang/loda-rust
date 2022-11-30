@@ -3,6 +3,7 @@ mod tests {
     use loda_rust_core::execute::ProgramId;
     use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
     use loda_rust_core::execute::NodeRegisterLimit;
+    use loda_rust_core::execute::{UnofficialFunction, UnofficialFunctionRegistry};
     use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
     use crate::config::Config;
     use num_bigint::BigInt;
@@ -11,7 +12,7 @@ mod tests {
     use std::rc::Rc;
     use core::cell::RefCell;
     use std::error::Error;
-    use std::sync::{Arc, RwLock};
+    use std::sync::Arc;
 
     struct MyContext;
     
@@ -58,14 +59,6 @@ mod tests {
         Ok(())
     }
 
-    trait UnofficialFunction: Send + Sync {
-        fn function_id(&self) -> u64;
-        fn name(&self) -> &'static str;
-        fn inputs(&self) -> u8;
-        fn outputs(&self) -> u8;
-        fn execute(&self) -> Result<String, Box<dyn Error>>;
-    }
-
     struct HelloWorldFunction;
 
     impl UnofficialFunction for HelloWorldFunction {
@@ -91,60 +84,9 @@ mod tests {
         }
     }
 
-    #[derive(Debug)]
-    struct RegistryInner<T = Box<dyn UnofficialFunction>> {
-        plugin_vec: Vec<Arc<T>>,
-    }
-
-    impl<T> RegistryInner<T> {
-    }
-
-    struct Registry {
-        inner: RwLock<RegistryInner>,
-    }
-
-    impl Registry {
-        fn new() -> Arc<Registry> {
-            let inner = RegistryInner {
-                plugin_vec: vec!(),
-            };
-            let instance = Registry { 
-                inner: RwLock::new(inner) 
-            };
-            Arc::new(instance)
-        }
-
-        fn register(&self, plugin: Arc<Box<dyn UnofficialFunction>>) {
-            self.inner.write().unwrap().plugin_vec.push(plugin);
-        }
-
-        fn execute(&self) -> anyhow::Result<String> {
-            let mut execute_output: Option<String> = None;
-            let plugin_vec = self.inner.read().unwrap().plugin_vec.clone();
-            for plugin in plugin_vec {
-                let result = plugin.execute();
-                match result {
-                    Ok(value) => {
-                        execute_output = Some(value);
-                    },
-                    Err(error) => {
-                        return Err(anyhow::anyhow!("execute failed. error: {:?}", error));
-                    }
-                }
-            }
-            let value: String = match execute_output {
-                Some(value) => value,
-                None => {
-                    return Err(anyhow::anyhow!("plugin didn't return anything"));
-                }
-            };
-            Ok(value)
-        }
-    }
-
     #[test]
     fn test_20000_function_plugin_multithreaded_immutable() -> anyhow::Result<()> {
-        let registry = Registry::new();
+        let registry = UnofficialFunctionRegistry::new();
         let plugin = HelloWorldFunction {};
         registry.register(Arc::new(Box::new(plugin)));
         let execute_output: String = registry.execute()?;
