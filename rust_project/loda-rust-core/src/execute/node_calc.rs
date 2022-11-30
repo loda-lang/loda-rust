@@ -63,7 +63,7 @@ impl NodeCalc {
 
 impl Node for NodeCalc {
     fn formatted_instruction(&self) -> String {
-        format!("{} {},{}", self.instruction_id.shortname(), self.target, self.source)
+        format!("{} {},{}", self.instruction_id, self.target, self.source)
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {

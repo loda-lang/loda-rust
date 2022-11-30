@@ -152,7 +152,7 @@ impl AnalyzeInstructionNgram {
         words.push("START".to_string());
         let instruction_ids: Vec<InstructionId> = parsed_program.instruction_ids();
         for instruction_id in instruction_ids {
-            let word: String = String::from(instruction_id.shortname());
+            let word: String = instruction_id.to_string();
             words.push(word);
         }
         words.push("STOP".to_string());

@@ -1,6 +1,6 @@
 use crate::common::RecordTrigram;
 use super::random_indexes_with_distance;
-use loda_rust_core::parser::InstructionId;
+use loda_rust_core::parser::{InstructionId, ParseInstructionId};
 use std::collections::HashMap;
 use rand::Rng;
 use rand::seq::SliceRandom;
@@ -58,14 +58,13 @@ impl SuggestInstruction {
     /// If it's the beginning of the program then set `prev_word` to `None`.
     /// 
     /// If it's the end of the program then set `next_word` to `None`.
-    #[allow(dead_code)]
     fn candidates(&self, prev_word: Option<InstructionId>, next_word: Option<InstructionId>) -> Option<&HistogramValue> {
         let word0: String = match prev_word {
-            Some(instruction_id) => instruction_id.shortname().to_string(),
+            Some(instruction_id) => instruction_id.to_string(),
             None => "START".to_string()
         };
         let word2: String = match next_word {
-            Some(instruction_id) => instruction_id.shortname().to_string(),
+            Some(instruction_id) => instruction_id.to_string(),
             None => "STOP".to_string()
         };
         let key: HistogramKey = (word0, word2);

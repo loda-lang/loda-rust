@@ -1,5 +1,6 @@
 use std::fmt;
-use super::{EXTRACT_ROW_RE,InstructionId,ParseInstructionIdError,Instruction,InstructionParameter,ParameterType,ParseParametersError,parse_parameters,remove_comment};
+use super::{EXTRACT_ROW_RE,Instruction,InstructionParameter,ParameterType,ParseParametersError,parse_parameters,remove_comment};
+use super::{InstructionId,ParseInstructionIdError,ParseInstructionId};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParsedProgram {
@@ -188,7 +189,10 @@ mod tests {
 
     #[test]
     fn test_10002_junk() {
-        assert_eq!(process("mov0"), "SyntaxError(1)");
+        assert_eq!(process("Add"), "SyntaxError(1)");
+        assert_eq!(process("ADD"), "SyntaxError(1)");
+        assert_eq!(process("addd"), "ParseInstructionId(UnrecognizedInstructionId(1))");
+        assert_eq!(process("mov0"), "ParseInstructionId(UnrecognizedInstructionId(1))");
         assert_eq!(process("mov$0"), "SyntaxError(1)");
         assert_eq!(process("boom $1"), "ParseInstructionId(UnrecognizedInstructionId(1))");
         assert_eq!(process("mov $x"), "ParseParameters(UnrecognizedParameter(1))");
@@ -208,6 +212,9 @@ mod tests {
         assert_eq!(process("mov 3,$$1"), "mov 3,$$1");
         assert_eq!(process("mov 0,0"), "mov 0,0");
         assert_eq!(process("mov -3,1"), "mov -3,1");
+        assert_eq!(process("seq $3,-100"), "seq $3,-100");
+        assert_eq!(process("seq $3,$$3"), "seq $3,$$3");
+        assert_eq!(process("div $33,0"), "div $33,0");
     }
 
     #[test]

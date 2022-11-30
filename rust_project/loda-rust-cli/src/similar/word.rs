@@ -1,4 +1,4 @@
-use loda_rust_core::parser::InstructionId;
+use loda_rust_core::parser::{InstructionId, ParseInstructionId};
 use std::fmt;
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
@@ -35,7 +35,7 @@ impl fmt::Display for Word {
         match self {
             Self::ProgramStart => write!(f, "START"),
             Self::ProgramStop => write!(f, "STOP"),
-            Self::Instruction(instruction) => write!(f, "{}", instruction.shortname())
+            Self::Instruction(instruction) => write!(f, "{}", instruction)
         }
     }
 }
