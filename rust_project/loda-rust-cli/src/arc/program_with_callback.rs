@@ -77,22 +77,44 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_function_plugin_multithreaded_immutable() -> anyhow::Result<()> {
+    fn test_20000_registry_lookup() -> anyhow::Result<()> {
         let registry = UnofficialFunctionRegistry::new();
         let plugin = HelloWorldFunction {};
         registry.register(Arc::new(Box::new(plugin)));
-        let execute_output: String = registry.execute()?;
+
+        // Act
+        let key = UnofficialFunctionId::InputOutput { 
+            id: 1234, 
+            inputs: 1, 
+            outputs: 1 
+        };
+        let unofficial_function: Arc<Box<dyn UnofficialFunction>> = registry.lookup(key).expect("unofficial_function");
+
+        // Assert
+        let execute_output: String = unofficial_function.execute().expect("string");
         assert_eq!(execute_output, "executed");
         Ok(())
     }
 
     #[test]
     fn test_20001_registry_clone() -> anyhow::Result<()> {
+        // Arrange
         let registry_original = UnofficialFunctionRegistry::new();
         let registry: UnofficialFunctionRegistry = registry_original.clone();
         let plugin = HelloWorldFunction {};
         registry.register(Arc::new(Box::new(plugin)));
-        let execute_output: String = registry.execute()?;
+        
+        // Act
+        // Check that the original registry contains the item
+        let key = UnofficialFunctionId::InputOutput { 
+            id: 1234, 
+            inputs: 1, 
+            outputs: 1 
+        };
+        let unofficial_function: Arc<Box<dyn UnofficialFunction>> = registry_original.lookup(key).expect("unofficial_function");
+
+        // Assert
+        let execute_output: String = unofficial_function.execute().expect("string");
         assert_eq!(execute_output, "executed");
         Ok(())
     }
@@ -100,7 +122,7 @@ mod tests {
     // #[test]
     fn test_30000_simple() -> anyhow::Result<()> {
         let program_content: &str = "
-        f11 $0,40
+        f11 $0,1234
         ";
 
         let config = Config::load();
