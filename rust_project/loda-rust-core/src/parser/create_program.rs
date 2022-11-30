@@ -9,6 +9,7 @@ use crate::execute::node_loop_simple::*;
 use crate::execute::node_loop_slow::*;
 use crate::execute::node_seq::*;
 use crate::execute::compiletime_error::*;
+use crate::execute::UnofficialFunctionRegistry;
 
 impl Instruction {
     /// Loop end (lpe) takes zero parameters.
@@ -93,7 +94,12 @@ fn create_node_seq(instruction: &Instruction) -> Result<BoxNode, CreateInstructi
     Ok(node_wrapped)
 }
 
-fn create_node_unofficial_function(instruction: &Instruction, input_count: u8, output_count: u8) -> Result<BoxNode, CreateInstructionError> {
+fn create_node_unofficial_function(
+    instruction: &Instruction, 
+    input_count: u8, 
+    output_count: u8,
+    unofficial_function_registry: &UnofficialFunctionRegistry
+) -> Result<BoxNode, CreateInstructionError> {
     // Check the instruction `fxx` has input count in the range [1..9]
     if input_count < 1 || input_count > 9 {
         let err = CreateInstructionError::new(
@@ -136,6 +142,15 @@ fn create_node_unofficial_function(instruction: &Instruction, input_count: u8, o
         return Err(err);
     }
     let function_id = parameter1.parameter_value as u64;
+
+    match unofficial_function_registry.execute() {
+        Ok(value) => {
+            println!("!!!!!!!! create_node_unofficial_function.execute result: {}", value);
+        },
+        Err(error) => {
+            error!("create_node_unofficial_function.execute error: {:?}", error);
+        }
+    }
 
     // TODO: use NodeUnofficialFunction
     let node = NodeUnofficialFunction::new(
@@ -267,7 +282,7 @@ impl CreateProgram {
         }
     }
 
-    pub fn create_program(&self, instruction_vec: &Vec<Instruction>) -> Result<Program, CreateProgramError> {
+    pub fn create_program(&self, instruction_vec: &Vec<Instruction>, unofficial_function_registry: &UnofficialFunctionRegistry) -> Result<Program, CreateProgramError> {
         validate_loops(instruction_vec)?;
     
         let mut stack_vec: Vec<(Program, LoopScope)> = vec!();
@@ -376,7 +391,12 @@ impl CreateProgram {
                     program.push_boxed(node);
                 },
                 InstructionId::UnofficialFunction { input_count, output_count } => {
-                    let node = create_node_unofficial_function(&instruction, input_count, output_count)?;
+                    let node = create_node_unofficial_function(
+                        &instruction, 
+                        input_count, 
+                        output_count,
+                        unofficial_function_registry,
+                    )?;
                     program.push_boxed(node);
                 },
             }

@@ -5,6 +5,7 @@ use crate::config::Config;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
+use loda_rust_core::execute::UnofficialFunctionRegistry;
 use std::path::PathBuf;
 use std::collections::HashSet;
 use std::error::Error;
@@ -122,6 +123,7 @@ impl ValidatePrograms {
         let mut dm = DependencyManager::new(
             DependencyManagerFileSystemMode::System,
             loda_programs_oeis_dir,
+            UnofficialFunctionRegistry::new(),
         );
         let mut cache = ProgramCache::new();
         let oeis_ids_len: usize = oeis_ids.len();

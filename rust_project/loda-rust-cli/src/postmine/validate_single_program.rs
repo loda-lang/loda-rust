@@ -1,6 +1,7 @@
 use loda_rust_core::control::{DependencyManager, DependencyManagerError, DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
+use loda_rust_core::execute::UnofficialFunctionRegistry;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -31,6 +32,7 @@ impl ValidateSingleProgram {
         let mut dm = DependencyManager::new(
             DependencyManagerFileSystemMode::System,
             self.loda_programs_oeis_dir.clone(),
+            UnofficialFunctionRegistry::new(),
         );
         let result_parse = dm.parse(
             ProgramId::ProgramWithoutId, 

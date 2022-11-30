@@ -114,9 +114,14 @@ mod tests {
         let config = Config::load();
         let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
     
+        let registry = UnofficialFunctionRegistry::new();
+        let plugin = HelloWorldFunction {};
+        registry.register(Arc::new(Box::new(plugin)));
+
         let mut dm = DependencyManager::new(
             DependencyManagerFileSystemMode::System,
             loda_programs_oeis_dir,
+            registry,
         );
         let result_parse = dm.parse(ProgramId::ProgramWithoutId, &program_content.to_string());
 

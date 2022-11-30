@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
+use loda_rust_core::execute::UnofficialFunctionRegistry;
 use crate::config::Config;
 
 pub enum SubcommandEvaluateMode {
@@ -25,6 +26,7 @@ pub fn subcommand_evaluate(
     let mut dm = DependencyManager::new(
         DependencyManagerFileSystemMode::System,
         loda_programs_oeis_dir,
+        UnofficialFunctionRegistry::new(),
     );
     let program_runner: Rc::<ProgramRunner> = match dm.load(program_id) {
         Ok(value) => value,

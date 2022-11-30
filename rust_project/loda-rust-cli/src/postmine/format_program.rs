@@ -2,6 +2,7 @@ use crate::common::OeisIdStringMap;
 use super::ProgramSerializerContextWithSequenceName;
 use loda_rust_core::oeis::OeisId;
 use loda_rust_core::execute::{ProgramId, ProgramRunner, ProgramSerializer};
+use loda_rust_core::execute::UnofficialFunctionRegistry;
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use std::path::{Path, PathBuf};
@@ -74,6 +75,7 @@ impl FormatProgram {
         let mut dm = DependencyManager::new(
             DependencyManagerFileSystemMode::Virtual,
             PathBuf::from("non-existing-dir"),
+            UnofficialFunctionRegistry::new(),
         );
         for program_id in parsed_program.direct_dependencies() {
             dm.virtual_filesystem_insert_file(program_id, "".to_string());

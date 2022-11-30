@@ -80,6 +80,7 @@ mod tests {
     use crate::arc::BitmapTryCreate;
     use crate::config::Config;
     use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+    use loda_rust_core::execute::UnofficialFunctionRegistry;
     use std::path::PathBuf;
     
     #[test]
@@ -119,6 +120,7 @@ mod tests {
         let mut dm = DependencyManager::new(
             DependencyManagerFileSystemMode::System,
             loda_programs_oeis_dir,
+            UnofficialFunctionRegistry::new(),
         );
         let result_parse = dm.parse(ProgramId::ProgramWithoutId, &program_content.to_string());
 

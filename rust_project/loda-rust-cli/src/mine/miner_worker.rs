@@ -4,6 +4,7 @@ use super::{Funnel, GenomeMutateContext, PreventFlooding};
 use super::CoordinatorWorkerQuestion;
 use crate::oeis::TermsToProgramIdSet;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
+use loda_rust_core::execute::UnofficialFunctionRegistry;
 use bastion::prelude::*;
 use std::fmt;
 use std::path::PathBuf;
@@ -137,6 +138,7 @@ pub async fn miner_worker(
             let mut dependency_manager = DependencyManager::new(
                 DependencyManagerFileSystemMode::System,
                 loda_programs_oeis_dir.clone(),
+                UnofficialFunctionRegistry::new(),
             );
             dependency_manager.set_execute_profile(ExecuteProfile::SmallLimits);
         
