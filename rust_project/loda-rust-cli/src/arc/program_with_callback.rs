@@ -8,10 +8,68 @@ mod tests {
     use num_bigint::BigInt;
     use num_bigint::ToBigInt;
     use std::path::PathBuf;
+    use std::rc::Rc;
+    use core::cell::RefCell;
+    use std::error::Error;
+    
+    struct MyContext;
+    
+    trait MyPlugin {
+        fn plugin_name(&self) -> &'static str;
+        fn execute(&mut self, context: &MyContext) -> Result<String, Box<dyn Error>>;
+        fn human_readable_summary(&self) -> String;
+    
+        fn format_summary(&self) -> String {
+            let name: &str = self.plugin_name();
+            let summary: String = self.human_readable_summary();
+            format!("\n{}\n{}\n", name.trim(), summary.trim())
+        }
+    }
+    
+    type MyPluginItem = Rc<RefCell<dyn MyPlugin>>;
+
+    struct HelloWorldPlugin;
+
+    impl MyPlugin for HelloWorldPlugin {
+        fn plugin_name(&self) -> &'static str {
+            "HelloWorldPlugin"
+        }
+    
+        fn execute(&mut self, _context: &MyContext) -> Result<String, Box<dyn Error>> {
+            debug!("execute");
+            Ok("executed".to_string())
+        }
+    
+        fn human_readable_summary(&self) -> String {
+            format!("hello world")
+        }
+    }
+    
+    #[test]
+    fn test_10000_function_plugin_singlethreaded() -> anyhow::Result<()> {
+        let mut plugin_vec: Vec<MyPluginItem> = vec!();
+        let the_plugin = Rc::new(RefCell::new(HelloWorldPlugin {}));
+        plugin_vec.push(the_plugin);
+
+        let context = MyContext {};
+        let mut execute_output: Option<String> = None;
+        for plugin in plugin_vec.iter() {
+            let result = plugin.borrow_mut().execute(&context);
+            match result {
+                Ok(value) => {
+                    execute_output = Some(value);
+                },
+                Err(error) => {
+                    return Err(anyhow::anyhow!("execute failed. error: {:?}", error));
+                }
+            }
+        }
+        assert_eq!(execute_output, Some("executed".to_string()));
+        Ok(())
+    }
 
     // #[test]
-    fn test_10000_simple() -> anyhow::Result<()> {
-
+    fn test_30000_simple() -> anyhow::Result<()> {
         let program_content: &str = "
         f11 $0,1
         ";
