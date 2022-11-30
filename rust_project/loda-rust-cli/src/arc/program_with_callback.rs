@@ -15,18 +15,18 @@ mod tests {
 
     struct MyContext;
     
-    trait MyPlugin {
+    trait MyPluginLegacy {
         fn plugin_name(&self) -> &'static str;
         fn execute(&mut self, context: &MyContext) -> Result<String, Box<dyn Error>>;
     }
     
-    type MyPluginItem = Rc<RefCell<dyn MyPlugin>>;
+    type MyPluginItemLegacy = Rc<RefCell<dyn MyPluginLegacy>>;
 
-    struct HelloWorldPlugin;
+    struct HelloWorldPluginLegacy;
 
-    impl MyPlugin for HelloWorldPlugin {
+    impl MyPluginLegacy for HelloWorldPluginLegacy {
         fn plugin_name(&self) -> &'static str {
-            "HelloWorldPlugin"
+            "HelloWorldPluginLegacy"
         }
     
         fn execute(&mut self, _context: &MyContext) -> Result<String, Box<dyn Error>> {
@@ -37,8 +37,8 @@ mod tests {
     
     #[test]
     fn test_10000_function_plugin_singlethreaded() -> anyhow::Result<()> {
-        let mut plugin_vec: Vec<MyPluginItem> = vec!();
-        let the_plugin = Rc::new(RefCell::new(HelloWorldPlugin {}));
+        let mut plugin_vec: Vec<MyPluginItemLegacy> = vec!();
+        let the_plugin = Rc::new(RefCell::new(HelloWorldPluginLegacy {}));
         plugin_vec.push(the_plugin);
 
         let context = MyContext {};
@@ -59,26 +59,30 @@ mod tests {
     }
 
     trait MyPlugin2: Send + Sync {
-        fn plugin_name(&self) -> &'static str;
-        fn execute_mut(&mut self) -> Result<String, Box<dyn Error>>;
+        fn name(&self) -> &'static str;
+        fn inputs(&self) -> u8;
+        fn outputs(&self) -> u8;
         fn execute(&self) -> Result<String, Box<dyn Error>>;
     }
 
     struct HelloWorldPlugin2;
 
     impl MyPlugin2 for HelloWorldPlugin2 {
-        fn plugin_name(&self) -> &'static str {
+        fn name(&self) -> &'static str {
             "HelloWorldPlugin2"
         }
-    
-        fn execute_mut(&mut self) -> Result<String, Box<dyn Error>> {
-            debug!("execute_mut2");
-            Ok("executed_mut2".to_string())
-        }
 
+        fn inputs(&self) -> u8 {
+            1
+        }
+    
+        fn outputs(&self) -> u8 {
+            1
+        }
+    
         fn execute(&self) -> Result<String, Box<dyn Error>> {
-            debug!("execute2");
-            Ok("executed2".to_string())
+            debug!("execute");
+            Ok("executed".to_string())
         }
     }
 
