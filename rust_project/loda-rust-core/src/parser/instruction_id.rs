@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum InstructionId {
     Add,
@@ -20,9 +22,9 @@ pub enum InstructionId {
     Truncate,
 }
 
-impl InstructionId {
-    pub fn shortname(&self) -> &str {
-        match self {
+impl fmt::Display for InstructionId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s: &'static str = match self {
             Self::Add          => "add",
             Self::Binomial     => "bin",
             Self::EvalSequence => "seq",
@@ -41,7 +43,8 @@ impl InstructionId {
             Self::Power        => "pow",
             Self::Subtract     => "sub",
             Self::Truncate     => "trn",
-        }
+        };
+        f.write_str(s)
     }
 }
 
@@ -53,5 +56,12 @@ mod tests {
     fn test_10000_equal() {
         assert_eq!(InstructionId::Add, InstructionId::Add);
         assert_ne!(InstructionId::Add, InstructionId::Subtract);
+    }
+
+    #[test]
+    fn test_20000_to_string() {
+        assert_eq!(InstructionId::DivideIf.to_string(), "dif");
+        assert_eq!(InstructionId::Multiply.to_string(), "mul");
+        assert_eq!(InstructionId::Truncate.to_string(), "trn");
     }
 }
