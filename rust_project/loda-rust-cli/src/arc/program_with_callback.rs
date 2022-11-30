@@ -11,19 +11,13 @@ mod tests {
     use std::rc::Rc;
     use core::cell::RefCell;
     use std::error::Error;
-    
+    use std::sync::{Arc, RwLock};
+
     struct MyContext;
     
     trait MyPlugin {
         fn plugin_name(&self) -> &'static str;
         fn execute(&mut self, context: &MyContext) -> Result<String, Box<dyn Error>>;
-        fn human_readable_summary(&self) -> String;
-    
-        fn format_summary(&self) -> String {
-            let name: &str = self.plugin_name();
-            let summary: String = self.human_readable_summary();
-            format!("\n{}\n{}\n", name.trim(), summary.trim())
-        }
     }
     
     type MyPluginItem = Rc<RefCell<dyn MyPlugin>>;
@@ -38,10 +32,6 @@ mod tests {
         fn execute(&mut self, _context: &MyContext) -> Result<String, Box<dyn Error>> {
             debug!("execute");
             Ok("executed".to_string())
-        }
-    
-        fn human_readable_summary(&self) -> String {
-            format!("hello world")
         }
     }
     
@@ -65,6 +55,91 @@ mod tests {
             }
         }
         assert_eq!(execute_output, Some("executed".to_string()));
+        Ok(())
+    }
+
+    trait MyPlugin2: Send + Sync {
+        fn plugin_name(&self) -> &'static str;
+        fn execute_mut(&mut self) -> Result<String, Box<dyn Error>>;
+        fn execute(&self) -> Result<String, Box<dyn Error>>;
+    }
+
+    struct HelloWorldPlugin2;
+
+    impl MyPlugin2 for HelloWorldPlugin2 {
+        fn plugin_name(&self) -> &'static str {
+            "HelloWorldPlugin2"
+        }
+    
+        fn execute_mut(&mut self) -> Result<String, Box<dyn Error>> {
+            debug!("execute_mut2");
+            Ok("executed_mut2".to_string())
+        }
+
+        fn execute(&self) -> Result<String, Box<dyn Error>> {
+            debug!("execute2");
+            Ok("executed2".to_string())
+        }
+    }
+
+    #[derive(Debug)]
+    struct RegistryInner<T = Box<dyn MyPlugin2>> {
+        plugin_vec: Vec<Arc<T>>,
+    }
+
+    impl<T> RegistryInner<T> {
+    }
+
+    struct Registry {
+        inner: RwLock<RegistryInner>,
+    }
+
+    impl Registry {
+        fn new() -> Arc<Registry> {
+            let inner = RegistryInner {
+                plugin_vec: vec!(),
+            };
+            let instance = Registry { 
+                inner: RwLock::new(inner) 
+            };
+            Arc::new(instance)
+        }
+
+        fn add_plugin(&self, plugin: Arc<Box<dyn MyPlugin2>>) {
+            self.inner.write().unwrap().plugin_vec.push(plugin);
+        }
+
+        fn execute(&self) -> anyhow::Result<String> {
+            let mut execute_output: Option<String> = None;
+            let plugin_vec = self.inner.read().unwrap().plugin_vec.clone();
+            for plugin in plugin_vec {
+                let result = plugin.execute();
+                match result {
+                    Ok(value) => {
+                        execute_output = Some(value);
+                    },
+                    Err(error) => {
+                        return Err(anyhow::anyhow!("execute failed. error: {:?}", error));
+                    }
+                }
+            }
+            let value: String = match execute_output {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("plugin didn't return anything"));
+                }
+            };
+            Ok(value)
+        }
+    }
+
+    #[test]
+    fn test_20000_function_plugin_multithreaded_immutable() -> anyhow::Result<()> {
+        let registry = Registry::new();
+        let the_plugin = HelloWorldPlugin2 {};
+        registry.add_plugin(Arc::new(Box::new(the_plugin)));
+        let execute_output: String = registry.execute()?;
+        assert_eq!(execute_output, "executed2");
         Ok(())
     }
 
