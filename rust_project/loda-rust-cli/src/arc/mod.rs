@@ -25,7 +25,7 @@ mod symmetry;
 mod test_convert;
 mod trim;
 
-pub use arc_json_model::{Grid, GridToBitmap, Model, TaskPair};
+pub use arc_json_model::{Grid, GridToImage, Model, TaskPair};
 pub use bitmap_try_create::ImageTryCreate;
 pub use convolution2x2::convolution2x2;
 pub use convolution3x3::convolution3x3;

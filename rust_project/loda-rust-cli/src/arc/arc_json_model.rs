@@ -4,14 +4,14 @@ use std::fs;
 use std::path::Path;
 use serde::Deserialize;
 
-pub trait GridToBitmap {
-    fn to_bitmap(&self) -> anyhow::Result<Image>;
+pub trait GridToImage {
+    fn to_image(&self) -> anyhow::Result<Image>;
 }
 
 pub type Grid = Vec<Vec<u8>>;
 
-impl GridToBitmap for Grid {
-    fn to_bitmap(&self) -> anyhow::Result<Image> {
+impl GridToImage for Grid {
+    fn to_image(&self) -> anyhow::Result<Image> {
         // Extract height
         let height_usize: usize = self.len();
         if height_usize == 0 {
@@ -118,7 +118,7 @@ mod tests {
         let grid: Grid = serde_json::from_str(&json_string)?;
 
         // Act
-        let bm: Image = grid.to_bitmap().expect("image");
+        let bm: Image = grid.to_image().expect("image");
 
         // Assert
         assert_eq!(bm.width(), 3);

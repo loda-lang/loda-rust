@@ -2,7 +2,7 @@
 mod tests {
     use bit_set::BitSet;
 
-    use crate::arc::{Model, GridToBitmap, ImageFind};
+    use crate::arc::{Model, GridToImage, ImageFind};
     use crate::arc::{Image, convolution2x2, convolution3x3};
     use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset};
@@ -14,8 +14,8 @@ mod tests {
         assert_eq!(model.train().len(), 2);
         assert_eq!(model.test().len(), 1);
 
-        let input: Image = model.train()[0].input().to_bitmap().expect("image");
-        let output: Image = model.train()[0].output().to_bitmap().expect("image");
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
         // let input: Bitmap = model.train[1].input.to_bitmap().expect("image");
         // let output: Bitmap = model.train[1].output.to_bitmap().expect("image");
         // let input: Bitmap = model.test[0].input.to_bitmap().expect("image");
@@ -54,8 +54,8 @@ mod tests {
         assert_eq!(model.train().len(), 2);
         assert_eq!(model.test().len(), 1);
 
-        let input: Image = model.train()[0].input().to_bitmap().expect("image");
-        let output: Image = model.train()[0].output().to_bitmap().expect("image");
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
         // let input: Bitmap = model.test()[0].input().to_bitmap().expect("image");
@@ -107,8 +107,8 @@ mod tests {
         assert_eq!(model.train().len(), 2);
         assert_eq!(model.test().len(), 1);
 
-        let input: Image = model.train()[0].input().to_bitmap().expect("image");
-        let output: Image = model.train()[0].output().to_bitmap().expect("image");
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
         // let input: Bitmap = model.test()[0].input().to_bitmap().expect("image");
@@ -139,8 +139,8 @@ mod tests {
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
-        let input: Image = model.train()[0].input().to_bitmap().expect("image");
-        let output: Image = model.train()[0].output().to_bitmap().expect("image");
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
         // let input: Bitmap = model.train()[2].input().to_bitmap().expect("image");
@@ -160,8 +160,8 @@ mod tests {
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
-        let input: Image = model.train()[0].input().to_bitmap().expect("image");
-        let output: Image = model.train()[0].output().to_bitmap().expect("image");
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
         // let input: Bitmap = model.train()[2].input().to_bitmap().expect("image");
@@ -181,8 +181,8 @@ mod tests {
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
-        let input: Image = model.train()[0].input().to_bitmap().expect("image");
-        let output: Image = model.train()[0].output().to_bitmap().expect("image");
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
         // let input: Bitmap = model.train()[2].input().to_bitmap().expect("image");
@@ -271,8 +271,8 @@ mod tests {
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
-        let input: Image = model.train()[0].input().to_bitmap().expect("image");
-        let output: Image = model.train()[0].output().to_bitmap().expect("image");
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
         // let input: Bitmap = model.train()[2].input().to_bitmap().expect("image");
@@ -325,8 +325,8 @@ mod tests {
         assert_eq!(model.train().len(), 5);
         assert_eq!(model.test().len(), 1);
 
-        let input: Image = model.train()[0].input().to_bitmap().expect("image");
-        let output: Image = model.train()[0].output().to_bitmap().expect("image");
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
         // let input: Bitmap = model.train()[2].input().to_bitmap().expect("image");
@@ -370,8 +370,8 @@ mod tests {
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
-        let input: Image = model.train()[0].input().to_bitmap().expect("image");
-        let output: Image = model.train()[0].output().to_bitmap().expect("image");
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
         // let input: Bitmap = model.train()[2].input().to_bitmap().expect("image");
@@ -429,8 +429,8 @@ mod tests {
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
-        let input: Image = model.train()[0].input().to_bitmap().expect("image");
-        let output: Image = model.train()[0].output().to_bitmap().expect("image");
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
         // let input: Bitmap = model.train()[2].input().to_bitmap().expect("image");
@@ -548,8 +548,8 @@ mod tests {
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
-        let input: Image = model.train()[0].input().to_bitmap().expect("image");
-        let output: Image = model.train()[0].output().to_bitmap().expect("image");
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
 
         // TODO: make the rest of the tests pass OK. Currently these fails.
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
