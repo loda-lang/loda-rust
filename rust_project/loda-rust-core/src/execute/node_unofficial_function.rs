@@ -42,6 +42,7 @@ impl Node for NodeUnofficialFunction {
         // TODO: deal with indirect memory
         let start_address: i64 = self.target.parameter_value;
         if start_address < 0 {
+            // TODO: fail with human readable error
             return Err(EvalError::CannotConvertI64ToAddress);
         }
 
@@ -63,16 +64,16 @@ impl Node for NodeUnofficialFunction {
             Ok(value) => value,
             Err(error) => {
                 error!("NodeUnofficialFunction.eval run error: {:?}", error);
-                // TODO: fail with a better error
-                return Err(EvalError::DivisionByZero);
+                // TODO: fail with human readable error
+                return Err(EvalError::UnofficialFunctionRunReturnedError);
             }
         };
-
+        
         // Output from the function
         if output_vec.len() != (self.output_count as usize) {
             error!("NodeUnofficialFunction.eval Expected {} output values, but got output {}", self.output_count, output_vec.len());
-            // TODO: fail with a better error
-            return Err(EvalError::DivisionByZero);
+            // TODO: fail with human readable error
+            return Err(EvalError::UnofficialFunctionOutputVectorHasIncorrectLength);
         }
 
         for (index, value) in output_vec.iter().enumerate() {
@@ -85,8 +86,8 @@ impl Node for NodeUnofficialFunction {
                 Ok(()) => {},
                 Err(error) => {
                     error!("NodeUnofficialFunction.eval Cannot set output value into state. address: {}, error: {}", address, error);
-                    // TODO: fail with a better error
-                    return Err(EvalError::DivisionByZero);
+                    // TODO: fail with human readable error
+                    return Err(EvalError::UnofficialFunctionCannotSetOutputValue);
                 }
             }
         }
