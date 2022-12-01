@@ -112,7 +112,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_grid_to_bitmap() -> anyhow::Result<()> {
+    fn test_20000_grid_to_image() -> anyhow::Result<()> {
         // Arrange
         let json_string = "[[1,2,3],[4,5,6]]";
         let grid: Grid = serde_json::from_str(&json_string)?;
