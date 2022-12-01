@@ -5,11 +5,10 @@ mod tests {
     use loda_rust_core::execute::NodeRegisterLimit;
     use loda_rust_core::unofficial_function::UnofficialFunctionRegistry;
     use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
-    use loda_rust_core::unofficial_function::SumFunction;
+    use loda_rust_core::unofficial_function::register_common_functions;
     use crate::config::Config;
     use num_bigint::{BigInt, ToBigInt};
     use std::path::PathBuf;
-    use std::sync::Arc;
 
     #[test]
     fn test_20000_simple() -> anyhow::Result<()> {
@@ -17,15 +16,14 @@ mod tests {
         mov $0,100
         mov $1,10
         mov $2,1
-        f31 $0,1234 ; Sum of 3 values
+        f31 $0,1 ; Sum of 3 values
         ";
 
         let config = Config::load();
         let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
     
         let registry = UnofficialFunctionRegistry::new();
-        let plugin = SumFunction::new(1234, 3);
-        registry.register(Arc::new(Box::new(plugin)));
+        register_common_functions(&registry);
 
         let mut dm = DependencyManager::new(
             DependencyManagerFileSystemMode::System,
