@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{Image, ImageToNumber, NumberToBitmap};
+    use crate::arc::{Image, ImageToNumber, NumberToImage};
     use num_bigint::BigUint;
 
     #[test]
@@ -10,7 +10,7 @@ mod tests {
 
         // Act
         let number: BigUint = bm.to_number().expect("biguint");
-        let bm_copy: Image = number.to_bitmap().expect("bitmap");
+        let bm_copy: Image = number.to_image().expect("bitmap");
 
         // Assert
         assert_eq!(bm_copy.width(), 0);
@@ -25,7 +25,7 @@ mod tests {
 
         // Act
         let number: BigUint = bm.to_number().expect("biguint");
-        let bm_copy: Image = number.to_bitmap().expect("bitmap");
+        let bm_copy: Image = number.to_image().expect("bitmap");
 
         // Assert
         assert_eq!(bm_copy.width(), 2);
@@ -48,7 +48,7 @@ mod tests {
 
         // Act
         let number: BigUint = bm.to_number().expect("biguint");
-        let bm_copy: Image = number.to_bitmap().expect("bitmap");
+        let bm_copy: Image = number.to_image().expect("bitmap");
 
         // Assert
         assert_eq!(bm_copy.width(), 10);
@@ -67,7 +67,7 @@ mod tests {
 
         // Act
         let number: BigUint = bm.to_number().expect("biguint");
-        let bm_copy: Image = number.to_bitmap().expect("bitmap");
+        let bm_copy: Image = number.to_image().expect("bitmap");
 
         // Assert
         assert_eq!(bm_copy.width(), 11);

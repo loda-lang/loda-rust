@@ -3,12 +3,12 @@ use std::ops::{Rem, Div};
 use num_bigint::{BigUint, ToBigUint};
 use num_traits::{ToPrimitive, Zero};
 
-pub trait NumberToBitmap {
-    fn to_bitmap(&self) -> anyhow::Result<Image>;
+pub trait NumberToImage {
+    fn to_image(&self) -> anyhow::Result<Image>;
 }
 
-impl NumberToBitmap for BigUint {
-    fn to_bitmap(&self) -> anyhow::Result<Image> {
+impl NumberToImage for BigUint {
+    fn to_image(&self) -> anyhow::Result<Image> {
         let bits8: BigUint = 256u32.to_biguint().unwrap();
         let mut current_value = self.clone();
 
@@ -82,22 +82,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_10000_number_to_bitmap_ok() {
+    fn test_10000_to_image_ok() {
         let k: u64 = 256;
         let value_u64: u64 = (255 * k + 1) * k + 1;
         let value_biguint = value_u64.to_biguint().unwrap();
-        let bm: Image = value_biguint.to_bitmap().expect("bitmap");
+        let bm: Image = value_biguint.to_image().expect("bitmap");
         assert_eq!(bm.width(), 1);
         assert_eq!(bm.height(), 1);
         assert_eq!(bm.get(0, 0), Some(255));
     }
 
     #[test]
-    fn test_10001_number_to_bitmap_ok() {
+    fn test_10001_to_image_ok() {
         let k: u64 = 256;
         let value_u64: u64 = ((((8 * k + 7) * k + 6) * k + 5) * k + 2) * k + 2;
         let value_biguint = value_u64.to_biguint().unwrap();
-        let bm: Image = value_biguint.to_bitmap().expect("bitmap");
+        let bm: Image = value_biguint.to_image().expect("bitmap");
         assert_eq!(bm.width(), 2);
         assert_eq!(bm.height(), 2);
         assert_eq!(bm.get(0, 0), Some(5));

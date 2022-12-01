@@ -1,4 +1,4 @@
-use super::{Image, ImageToNumber, NumberToBitmap, BitmapOffset};
+use super::{Image, ImageToNumber, NumberToImage, BitmapOffset};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -36,7 +36,7 @@ impl UnofficialFunction for ImageOffsetFunction {
             return Err(anyhow::anyhow!("Input[0] must be non-negative"));
         }
         let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
-        let input_image: Image = input0_uint.to_bitmap()?;
+        let input_image: Image = input0_uint.to_image()?;
 
         // input1 is dx
         let dx: i32 = input[1].to_i32().context("to_i32 dx")?;
