@@ -19,14 +19,14 @@ pub struct RecordTrigram {
     pub word2: u8,
 }
 
-pub trait BitmapNgram {
+pub trait ImageNgram {
     fn bigram_x(&self) -> anyhow::Result<Vec<RecordBigram>>;
     fn bigram_y(&self) -> anyhow::Result<Vec<RecordBigram>>;
     fn trigram_x(&self) -> anyhow::Result<Vec<RecordTrigram>>;
     fn trigram_y(&self) -> anyhow::Result<Vec<RecordTrigram>>;
 }
 
-impl BitmapNgram for Image {
+impl ImageNgram for Image {
     
     fn bigram_x(&self) -> anyhow::Result<Vec<RecordBigram>> {
         let width: u8 = self.width();

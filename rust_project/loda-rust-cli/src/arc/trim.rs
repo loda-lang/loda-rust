@@ -1,4 +1,4 @@
-use super::{Image, BitmapHistogram};
+use super::{Image, ImageHistogram};
 
 pub trait BitmapTrim {
     fn trim(&self) -> anyhow::Result<Image>;

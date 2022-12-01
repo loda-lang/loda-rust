@@ -1,10 +1,10 @@
 use super::Image;
 
-pub trait BitmapOffset {
+pub trait ImageOffset {
     fn offset_wrap(&self, x: i32, y: i32) -> anyhow::Result<Image>;
 }
 
-impl BitmapOffset for Image {
+impl ImageOffset for Image {
     fn offset_wrap(&self, x: i32, y: i32) -> anyhow::Result<Image> {
         if self.is_empty() {
             return Ok(Image::empty());

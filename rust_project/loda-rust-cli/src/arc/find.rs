@@ -1,10 +1,10 @@
 use super::Image;
 
-pub trait BitmapFind {
+pub trait ImageFind {
     fn find_exact(&self, needle: &Image) -> anyhow::Result<Option<(u8, u8)>>;
 }
 
-impl BitmapFind for Image {
+impl ImageFind for Image {
     fn find_exact(&self, needle: &Image) -> anyhow::Result<Option<(u8, u8)>> {
         if self.is_empty() {
             return Ok(None);

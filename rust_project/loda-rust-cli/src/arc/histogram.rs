@@ -1,10 +1,10 @@
 use super::Image;
 
-pub trait BitmapHistogram {
+pub trait ImageHistogram {
     fn histogram_border(&self) -> anyhow::Result<Vec<u32>>;
 }
 
-impl BitmapHistogram for Image {
+impl ImageHistogram for Image {
     /// Traverses the border of the bitmap, and builds a histogram with 256 counters
     fn histogram_border(&self) -> anyhow::Result<Vec<u32>> {
         let mut histogram: Vec<u32> = vec![0; 256];
