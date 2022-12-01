@@ -1,10 +1,10 @@
 use crate::arc::Image;
 
-pub trait Padding {
+pub trait ImagePadding {
     fn zero_padding(&self, count: u8) -> anyhow::Result<Image>;
 }
 
-impl Padding for Image {
+impl ImagePadding for Image {
     fn zero_padding(&self, count: u8) -> anyhow::Result<Image> {
         // Width
         let width_usize: usize = (self.width() as usize) + (count as usize) * 2;

@@ -1,11 +1,11 @@
 use super::Image;
 
-pub trait BitmapRotate {
+pub trait ImageRotate {
     fn rotate_cw(&self) -> anyhow::Result<Image>;
     fn rotate(&self, direction: i8) -> anyhow::Result<Image>;
 }
 
-impl BitmapRotate for Image {
+impl ImageRotate for Image {
     fn rotate_cw(&self) -> anyhow::Result<Image> {
         if self.is_empty() {
             return Ok(Image::empty());

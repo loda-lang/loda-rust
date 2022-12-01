@@ -1,12 +1,12 @@
-use super::{Image, BitmapRotate};
+use super::{Image, ImageRotate};
 
-pub trait BitmapSymmetry {
+pub trait ImageSymmetry {
     fn flip_x(&self) -> anyhow::Result<Image>;
     fn flip_y(&self) -> anyhow::Result<Image>;
     fn flip_xy(&self) -> anyhow::Result<Image>;
 }
 
-impl BitmapSymmetry for Image {
+impl ImageSymmetry for Image {
     fn flip_x(&self) -> anyhow::Result<Image> {
         if self.is_empty() {
             return Ok(Image::empty());

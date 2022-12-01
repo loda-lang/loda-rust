@@ -1,10 +1,10 @@
 use super::Image;
 
-pub trait BitmapResize {
+pub trait ImageResize {
     fn resize(&self, width: u8, height: u8) -> anyhow::Result<Image>;
 }
 
-impl BitmapResize for Image {
+impl ImageResize for Image {
     fn resize(&self, width: u8, height: u8) -> anyhow::Result<Image> {
         let len: usize = (width as usize) * (height as usize);
         if len == 0 {

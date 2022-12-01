@@ -1,10 +1,10 @@
 use super::{Image, ImageHistogram};
 
-pub trait BitmapTrim {
+pub trait ImageTrim {
     fn trim(&self) -> anyhow::Result<Image>;
 }
 
-impl BitmapTrim for Image {
+impl ImageTrim for Image {
     fn trim(&self) -> anyhow::Result<Image> {
         let len: usize = (self.width() as usize) * (self.height() as usize);
         if len == 0 {

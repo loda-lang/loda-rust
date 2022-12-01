@@ -1,12 +1,12 @@
-use super::{Image, BitmapRotate};
+use super::{Image, ImageRotate};
 
-pub trait BitmapRemoveDuplicates {
+pub trait ImageRemoveDuplicates {
     fn remove_duplicate_rows(&self) -> anyhow::Result<Image>;
     fn remove_duplicate_columns(&self) -> anyhow::Result<Image>;
     fn remove_duplicates(&self) -> anyhow::Result<Image>;
 }
 
-impl BitmapRemoveDuplicates for Image {
+impl ImageRemoveDuplicates for Image {
     fn remove_duplicate_rows(&self) -> anyhow::Result<Image> {
         let len: usize = (self.width() as usize) * (self.height() as usize);
         if len == 0 {

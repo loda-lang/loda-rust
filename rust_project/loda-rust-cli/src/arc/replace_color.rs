@@ -1,10 +1,10 @@
 use super::Image;
 
-pub trait BitmapReplaceColor {
+pub trait ImageReplaceColor {
     fn replace_color(&self, source: u8, destination: u8) -> anyhow::Result<Image>;
 }
 
-impl BitmapReplaceColor for Image {
+impl ImageReplaceColor for Image {
     fn replace_color(&self, source: u8, destination: u8) -> anyhow::Result<Image> {
         if self.is_empty() {
             return Ok(Image::empty());

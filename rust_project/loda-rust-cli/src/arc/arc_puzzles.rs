@@ -4,8 +4,8 @@ mod tests {
 
     use crate::arc::{Model, GridToBitmap, ImageFind};
     use crate::arc::{Image, convolution2x2, convolution3x3};
-    use crate::arc::{BitmapResize, BitmapTrim, BitmapRemoveDuplicates, Padding};
-    use crate::arc::{BitmapReplaceColor, BitmapSymmetry, ImageOffset};
+    use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding};
+    use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset};
     use crate::arc::{ImageNgram, RecordBigram, RecordTrigram};
 
     #[test]
