@@ -8,6 +8,7 @@ mod tests {
     use crate::config::Config;
     use num_bigint::BigInt;
     use num_bigint::ToBigInt;
+    use num_traits::Zero;
     use std::path::PathBuf;
     use std::error::Error;
     use std::sync::Arc;
@@ -23,8 +24,8 @@ mod tests {
             "Hello World"
         }
 
-        fn execute(&self) -> Result<String, Box<dyn Error>> {
-            debug!("execute");
+        fn execute(&self, input: Vec<BigInt>) -> Result<String, Box<dyn Error>> {
+            println!("execute: {:?}", input);
             Ok("executed".to_string())
         }
     }
@@ -44,7 +45,8 @@ mod tests {
         let unofficial_function: Arc<Box<dyn UnofficialFunction>> = registry.lookup(key).expect("unofficial_function");
 
         // Assert
-        let execute_output: String = unofficial_function.execute().expect("string");
+        let input_vec: Vec<BigInt> = vec![BigInt::zero()];
+        let execute_output: String = unofficial_function.execute(input_vec).expect("string");
         assert_eq!(execute_output, "executed");
         Ok(())
     }
@@ -67,13 +69,15 @@ mod tests {
         let unofficial_function: Arc<Box<dyn UnofficialFunction>> = registry_original.lookup(key).expect("unofficial_function");
 
         // Assert
-        let execute_output: String = unofficial_function.execute().expect("string");
+        let input_vec: Vec<BigInt> = vec![BigInt::zero()];
+        let execute_output: String = unofficial_function.execute(input_vec).expect("string");
         assert_eq!(execute_output, "executed");
         Ok(())
     }
 
     // #[test]
     fn test_20000_simple() -> anyhow::Result<()> {
+        // TODO: make this program take input, and return output
         let program_content: &str = "
         f11 $0,1234
         ";

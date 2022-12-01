@@ -54,7 +54,21 @@ impl Node for NodeUnofficialFunction {
         }
         let input: BigInt = state.get(&self.target, false)?;
 
-        match self.unofficial_function.execute() {
+        // TODO: deal with indirect memory
+        let start_address: i64 = self.target.parameter_value;
+        if start_address < 0 {
+            return Err(EvalError::CannotConvertI64ToAddress);
+        }
+        // Input to the function
+        let mut input_vec: Vec<BigInt> = vec!();
+        for i in 0..self.input_count {
+            let address = (start_address + (i as i64)) as u64;
+            let value: &BigInt = state.get_u64(address);
+            input_vec.push(value.clone());
+        }
+
+        // TODO: output from the function
+        match self.unofficial_function.execute(input_vec) {
             Ok(value) => {
                 println!("NodeUnofficialFunction.eval execute result: {}", value);
             },
