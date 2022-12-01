@@ -19,7 +19,7 @@ impl ImageOffset for Image {
             return Ok(self.clone());
         }
 
-        let mut bitmap = Image::zeroes(self.width(), self.height());
+        let mut bitmap = Image::zero(self.width(), self.height());
         for y in 0..height {
             for x in 0..width {
                 let pixel_value: u8 = self.get(x, y).unwrap_or(255);

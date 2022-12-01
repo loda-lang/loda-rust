@@ -22,7 +22,7 @@ impl Image {
     }
 
     /// Create an `Image` instance, filled with zeroes
-    pub fn zeroes(width: u8, height: u8) -> Self {
+    pub fn zero(width: u8, height: u8) -> Self {
         Self::color(width, height, 0)
     }
 
@@ -128,7 +128,7 @@ mod tests {
 
     #[test]
     fn test_10002_init_zero() {
-        let bm = Image::zeroes(4, 3);
+        let bm = Image::zero(4, 3);
         assert_eq!(bm.width(), 4);
         assert_eq!(bm.height(), 3);
         assert_eq!(bm.pixels().len(), 4 * 3);
@@ -142,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_20000_get_set_pixel_value_ok() {
-        let mut bm = Image::zeroes(3, 2);
+        let mut bm = Image::zero(3, 2);
         bm.set(0, 0, 1).expect("ok");
         bm.set(1, 0, 2).expect("ok");
         bm.set(2, 0, 3).expect("ok");
@@ -159,7 +159,7 @@ mod tests {
 
     #[test]
     fn test_20001_get_set_pixel_value_ok() {
-        let mut bm = Image::zeroes(3, 1);
+        let mut bm = Image::zero(3, 1);
         bm.set(0, 0, 253).expect("ok");
         bm.set(1, 0, 254).expect("ok");
         bm.set(2, 0, 255).expect("ok");
@@ -170,7 +170,7 @@ mod tests {
 
     #[test]
     fn test_20001_set_pixel_value_error() {
-        let mut bm = Image::zeroes(3, 2);
+        let mut bm = Image::zero(3, 2);
         // negative coordinates
         assert_eq!(bm.set(-1, 0, 0), None);
         assert_eq!(bm.set(0, -1, 0), None);
@@ -183,14 +183,14 @@ mod tests {
     #[test]
     fn test_30000_compare() {
         {
-            let mut bm0 = Image::zeroes(3, 2);
+            let mut bm0 = Image::zero(3, 2);
             bm0.set(0, 0, 255).expect("ok");
             bm0.set(2, 1, 255).expect("ok");
             let bm1 = Image::create_raw(3, 2, vec![255, 0, 0, 0, 0, 255]);
             assert_eq!(bm0, bm1);
         }
         {
-            let mut bm0 = Image::zeroes(3, 2);
+            let mut bm0 = Image::zero(3, 2);
             bm0.set(0, 0, 255).expect("ok");
             bm0.set(2, 1, 254).expect("ok");
             let bm1 = Image::create_raw(3, 2, vec![255, 0, 0, 0, 0, 255]);
@@ -200,7 +200,7 @@ mod tests {
             let mut bm0 = Image::create_raw(3, 2, vec![255, 0, 0, 0, 0, 255]);
             bm0.set(0, 0, 0).expect("ok");
             bm0.set(2, 1, 0).expect("ok");
-            let bm1 = Image::zeroes(3, 2);
+            let bm1 = Image::zero(3, 2);
             assert_eq!(bm0, bm1);
         }
     }

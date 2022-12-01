@@ -10,8 +10,8 @@ pub fn convolution3x3<F>(bitmap: &Image, callback: F) -> anyhow::Result<Image>
     if width < 3 || height < 3 {
         return Err(anyhow::anyhow!("too small bitmap, must be 3x3 or bigger"));
     }
-    let mut computed_bitmap = Image::zeroes(width - 2, height - 2);
-    let mut conv_bitmap = Image::zeroes(3, 3);
+    let mut computed_bitmap = Image::zero(width - 2, height - 2);
+    let mut conv_bitmap = Image::zero(3, 3);
     for self_y in 0..height-2 {
         for self_x in 0..width-2 {
             for conv_y in 0..3u8 {

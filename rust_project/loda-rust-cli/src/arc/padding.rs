@@ -21,7 +21,7 @@ impl ImagePadding for Image {
         let height: u8 = height_usize as u8;
 
         // Transfer pixel values
-        let mut result_bitmap = Image::zeroes(width, height);
+        let mut result_bitmap = Image::zero(width, height);
         for y in 0..self.height() {
             for x in 0..self.width() {
                 let pixel_value: u8 = self.get(x as i32, y as i32)
@@ -49,12 +49,12 @@ mod tests {
         }
         {
             let actual = Image::empty().zero_padding(1).expect("image");
-            let expected = Image::zeroes(2, 2);
+            let expected = Image::zero(2, 2);
             assert_eq!(actual, expected);
         }
         {
             let actual = Image::empty().zero_padding(2).expect("image");
-            let expected = Image::zeroes(4, 4);
+            let expected = Image::zero(4, 4);
             assert_eq!(actual, expected);
         }
     }

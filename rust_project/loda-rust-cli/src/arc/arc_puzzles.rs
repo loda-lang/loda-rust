@@ -116,7 +116,7 @@ mod tests {
 
         let input_trimmed: Image = input.trim().expect("image");
 
-        let mut result_bitmap = Image::zeroes(3, 3);
+        let mut result_bitmap = Image::zero(3, 3);
         for y in 0..3 {
             for x in 0..3 {
                 let pixel_value: u8 = input_trimmed.get(x, y).unwrap_or(255);
@@ -191,7 +191,7 @@ mod tests {
         // let output: Bitmap = model.test()[0].output().to_bitmap().expect("image");
 
         // Extract needle
-        let mut needle: Image = Image::zeroes(3, 3);
+        let mut needle: Image = Image::zero(3, 3);
         let center_pixel_color: u8 = input.get(1, 1).unwrap_or(255);
         for y in 0..3i32 {
             for x in 0..3i32 {
@@ -297,7 +297,7 @@ mod tests {
         }
 
         // Transfer values from the 9 element stack to the 3x3 bitmap
-        let mut result_bitmap: Image = Image::zeroes(3, 3);
+        let mut result_bitmap: Image = Image::zero(3, 3);
         for (index, pixel_value) in stack.iter().enumerate() {
             let y: usize = index / 3;
             let mut x: usize = index % 3;
@@ -336,7 +336,7 @@ mod tests {
         // let input: Bitmap = model.test()[0].input().to_bitmap().expect("image");
         // let output: Bitmap = model.test()[0].output().to_bitmap().expect("image");
 
-        let mut result_bitmap: Image = Image::zeroes(9, 9);
+        let mut result_bitmap: Image = Image::zero(9, 9);
         for y in 0..input.height() {
             for x in 0..input.width() {
                 let mask_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
@@ -404,7 +404,7 @@ mod tests {
         // println!("bitmap0: {:?}", bitmap0);
 
         // Extract color of the corner
-        let mut result_bitmap: Image = Image::zeroes(1, 1);
+        let mut result_bitmap: Image = Image::zero(1, 1);
         for y in 0..corner_bitmap.height() {
             for x in 0..corner_bitmap.width() {
                 let pixel_value: u8 = corner_bitmap.get(x as i32, y as i32).unwrap_or(255);

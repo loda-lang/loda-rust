@@ -21,7 +21,7 @@ mod tests {
     #[test]
     fn test_10001_zeroes() {
         // Arrange
-        let bm = Image::zeroes(2, 3);
+        let bm = Image::zero(2, 3);
 
         // Act
         let number: BigUint = bm.to_number().expect("biguint");
@@ -40,7 +40,7 @@ mod tests {
     #[test]
     fn test_10002_rectangle() {
         // Arrange
-        let mut bm = Image::zeroes(10, 20);
+        let mut bm = Image::zero(10, 20);
         bm.set(0, 0, 1).expect("ok");
         bm.set(9, 0, 2).expect("ok");
         bm.set(0, 19, 3).expect("ok");
@@ -62,7 +62,7 @@ mod tests {
     #[test]
     fn test_10003_square() {
         // Arrange
-        let mut bm = Image::zeroes(11, 11);
+        let mut bm = Image::zero(11, 11);
         bm.set(5, 5, 255).expect("ok");
 
         // Act

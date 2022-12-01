@@ -14,7 +14,7 @@ impl ImageRotate for Image {
         let y_max: i32 = (self.height() as i32) - 1;
 
         // Copy pixels, with x y swapped
-        let mut bitmap = Image::zeroes(self.height(), self.width());
+        let mut bitmap = Image::zero(self.height(), self.width());
         for y in 0..=y_max {
             for x in 0..=x_max {
                 let pixel_value: u8 = self.get(x, y).unwrap_or(255);

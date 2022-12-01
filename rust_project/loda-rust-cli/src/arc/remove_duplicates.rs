@@ -36,7 +36,7 @@ impl ImageRemoveDuplicates for Image {
         let height_new: u8 = height_new_usize as u8;
 
         // Copy pixels of the rows to keep
-        let mut bitmap = Image::zeroes(self.width(), height_new);
+        let mut bitmap = Image::zero(self.width(), height_new);
         let mut current_y: i32 = -1;
         for y in keep_indexes {
             current_y += 1;

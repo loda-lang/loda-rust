@@ -10,8 +10,8 @@ pub fn convolution2x2<F>(bitmap: &Image, callback: F) -> anyhow::Result<Image>
     if width < 2 || height < 2 {
         return Err(anyhow::anyhow!("too small bitmap, must be 2x2 or bigger"));
     }
-    let mut computed_bitmap = Image::zeroes(width - 1, height - 1);
-    let mut conv_bitmap = Image::zeroes(2, 2);
+    let mut computed_bitmap = Image::zero(width - 1, height - 1);
+    let mut conv_bitmap = Image::zero(2, 2);
     for self_y in 0..height-1 {
         for self_x in 0..width-1 {
             for conv_y in 0..2u8 {

@@ -16,7 +16,7 @@ impl ImageSymmetry for Image {
         let y_max: i32 = (self.height() as i32) - 1;
 
         // Copy pixels, with x axis flipped
-        let mut bitmap = Image::zeroes(self.width(), self.height());
+        let mut bitmap = Image::zero(self.width(), self.height());
         for y in 0..=y_max {
             for x in 0..=x_max {
                 let pixel_value: u8 = self.get(x_max - x, y).unwrap_or(255);

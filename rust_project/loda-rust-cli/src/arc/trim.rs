@@ -65,7 +65,7 @@ impl ImageTrim for Image {
         let new_height: u8 = new_height_i32 as u8;
 
         // Copy pixels of the object
-        let mut bitmap: Image = Image::zeroes(new_width, new_height);
+        let mut bitmap: Image = Image::zero(new_width, new_height);
         for y in found_y0..=found_y1 {
             for x in found_x0..=found_x1 {
                 let pixel_value: u8 = self.get(x, y).unwrap_or(255);

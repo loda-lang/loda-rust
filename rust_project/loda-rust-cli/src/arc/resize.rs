@@ -10,7 +10,7 @@ impl ImageResize for Image {
         if len == 0 {
             return Ok(Image::empty());
         }
-        let mut bitmap = Image::zeroes(width, height);
+        let mut bitmap = Image::zero(width, height);
         if self.width() == 0 || self.height() == 0 {
             return Ok(bitmap);
         }
