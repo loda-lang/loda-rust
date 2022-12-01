@@ -58,7 +58,7 @@ impl BitmapFind for Image {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::BitmapTryCreate;
+    use crate::arc::ImageTryCreate;
 
     #[test]
     fn test_10000_find_exact_big() {

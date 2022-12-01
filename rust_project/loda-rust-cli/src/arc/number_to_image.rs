@@ -1,4 +1,4 @@
-use super::{Image, BitmapTryCreate};
+use super::{Image, ImageTryCreate};
 use std::ops::{Rem, Div};
 use num_bigint::{BigUint, ToBigUint};
 use num_traits::{ToPrimitive, Zero};

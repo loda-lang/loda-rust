@@ -52,7 +52,7 @@ fn conv2x2_min(bm: &Image) -> anyhow::Result<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::BitmapTryCreate;
+    use crate::arc::ImageTryCreate;
 
     #[test]
     fn test_10000_callback() {

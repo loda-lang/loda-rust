@@ -1,4 +1,4 @@
-use super::{Image, BitmapTryCreate};
+use super::{Image, ImageTryCreate};
 use super::read_testdata;
 use std::fs;
 use std::path::Path;

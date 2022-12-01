@@ -26,7 +26,7 @@ mod test_convert;
 mod trim;
 
 pub use arc_json_model::{Grid, GridToBitmap, Model, TaskPair};
-pub use bitmap_try_create::BitmapTryCreate;
+pub use bitmap_try_create::ImageTryCreate;
 pub use convolution2x2::convolution2x2;
 pub use convolution3x3::convolution3x3;
 pub use find::BitmapFind;

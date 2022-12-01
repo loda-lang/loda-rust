@@ -73,7 +73,7 @@ impl BitmapRemoveDuplicates for Image {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::BitmapTryCreate;
+    use crate::arc::ImageTryCreate;
 
     #[test]
     fn test_10000_remove_duplicate_rows_big1() {

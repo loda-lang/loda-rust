@@ -40,7 +40,7 @@ impl BitmapOffset for Image {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::BitmapTryCreate;
+    use crate::arc::ImageTryCreate;
 
     #[test]
     fn test_10000_offset_wrap_xplus1() {

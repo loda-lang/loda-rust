@@ -77,7 +77,7 @@ impl ConvolutionWithProgram for Image {
 mod tests {
     use super::*;
     use loda_rust_core::execute::ProgramId;
-    use crate::arc::BitmapTryCreate;
+    use crate::arc::ImageTryCreate;
     use crate::config::Config;
     use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
     use loda_rust_core::unofficial_function::UnofficialFunctionRegistry;

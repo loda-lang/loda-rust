@@ -39,7 +39,7 @@ impl BitmapResize for Image {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arc::BitmapTryCreate;
+    use crate::arc::ImageTryCreate;
 
     #[test]
     fn test_10000_make_width_smaller() {

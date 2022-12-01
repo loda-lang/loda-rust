@@ -1,10 +1,10 @@
 use super::Image;
 
-pub trait BitmapTryCreate {
+pub trait ImageTryCreate {
     fn try_create(width: u8, height: u8, pixels: Vec<u8>) -> anyhow::Result<Image>;
 }
 
-impl BitmapTryCreate for Image {
+impl ImageTryCreate for Image {
     fn try_create(width: u8, height: u8, pixels: Vec<u8>) -> anyhow::Result<Image> {
         if width == 0 && height > 0 {
             return Err(anyhow::anyhow!("width=0, but height>0, expected both to be zero"));
