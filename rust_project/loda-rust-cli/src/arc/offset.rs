@@ -25,11 +25,6 @@ impl BitmapOffset for Bitmap {
                 let pixel_value: u8 = self.get(x, y).unwrap_or(255);
                 let set_x: i32 = (x + offset_x) % width;
                 let set_y: i32 = (y + offset_y) % height;
-                // let mut set_x: i32 = x + 1;
-                // if set_x >= width {
-                //     set_x = set_x % width;
-                // }
-                // let mut set_y: i32 = y;
                 match bitmap.set(set_x, set_y, pixel_value) {
                     Some(()) => {},
                     None => {
