@@ -4,6 +4,7 @@ mod product;
 mod register_common_functions;
 mod sort;
 mod sum;
+mod test_common_functions;
 mod test_util;
 mod unofficial_function;
 mod unofficial_function_id;
