@@ -32,8 +32,8 @@ mod tests {
             UnofficialFunctionId::InputOutput { id: self.id, inputs: self.inputs, outputs: 1 }
         }
 
-        fn name(&self) -> &'static str {
-            "Sum"
+        fn name(&self) -> String {
+            format!("Sum of {} values", self.inputs)
         }
 
         fn execute(&self, input: Vec<BigInt>) -> Result<Vec<BigInt>, Box<dyn Error>> {
@@ -104,7 +104,7 @@ mod tests {
         mov $0,100
         mov $1,10
         mov $2,1
-        f31 $0,1234 ; Sum
+        f31 $0,1234 ; Sum of 3 values
         ";
 
         let config = Config::load();
