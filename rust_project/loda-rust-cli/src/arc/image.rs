@@ -17,6 +17,9 @@ impl Image {
     /// Create an `Image` instance, filled with `color`
     pub fn color(width: u8, height: u8, color: u8) -> Self {
         let len: usize = (width as usize) * (height as usize);
+        if len == 0 {
+            return Self::empty();
+        }
         let pixels: Vec<u8> = vec![color; len];
         Self { width, height, pixels }
     }
@@ -127,7 +130,19 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_init_zero() {
+    fn test_10002_init_color_empty() {
+        {
+            let image = Image::color(0, 3, 1);
+            assert_eq!(image, Image::empty());
+        }
+        {
+            let image = Image::color(3, 0, 1);
+            assert_eq!(image, Image::empty());
+        }
+    }
+
+    #[test]
+    fn test_10003_init_zero() {
         let bm = Image::zero(4, 3);
         assert_eq!(bm.width(), 4);
         assert_eq!(bm.height(), 3);
