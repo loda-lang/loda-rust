@@ -6,48 +6,70 @@ mod tests {
     use loda_rust_core::execute::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
     use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
     use crate::config::Config;
-    use num_bigint::BigInt;
-    use num_bigint::ToBigInt;
+    use num_bigint::{BigInt, ToBigInt};
     use num_traits::Zero;
+    use std::ops::Add;
     use std::path::PathBuf;
     use std::error::Error;
     use std::sync::Arc;
 
-    struct HelloWorldFunction;
+    struct SumFunction {
+        id: u32,
+        inputs: u8,
+    }
 
-    impl UnofficialFunction for HelloWorldFunction {
+    impl SumFunction {
+        fn new(id: u32, inputs: u8) -> Self {
+            Self {
+                id,
+                inputs,
+            }
+        }
+    }
+
+    impl UnofficialFunction for SumFunction {
         fn id(&self) -> UnofficialFunctionId {
-            UnofficialFunctionId::InputOutput { id: 1234, inputs: 1, outputs: 1 }
+            UnofficialFunctionId::InputOutput { id: self.id, inputs: self.inputs, outputs: 1 }
         }
 
         fn name(&self) -> &'static str {
-            "Hello World"
+            "Sum"
         }
 
-        fn execute(&self, input: Vec<BigInt>) -> Result<String, Box<dyn Error>> {
-            println!("execute: {:?}", input);
-            Ok("executed".to_string())
+        fn execute(&self, input: Vec<BigInt>) -> Result<Vec<BigInt>, Box<dyn Error>> {
+            println!("execute input: {:?}", input);
+
+            let mut sum = BigInt::zero();
+            for i in input {
+                sum = sum.add(i);
+            }
+            let output_vec: Vec<BigInt> = vec![sum];
+
+            println!("execute output: {:?}", output_vec);
+    
+            Ok(output_vec)
         }
     }
 
     #[test]
     fn test_10000_registry_lookup() -> anyhow::Result<()> {
         let registry = UnofficialFunctionRegistry::new();
-        let plugin = HelloWorldFunction {};
+        let plugin = SumFunction::new(1234, 2);
         registry.register(Arc::new(Box::new(plugin)));
-
-        // Act
         let key = UnofficialFunctionId::InputOutput { 
             id: 1234, 
-            inputs: 1, 
+            inputs: 2, 
             outputs: 1 
         };
+
+        // Act
         let unofficial_function: Arc<Box<dyn UnofficialFunction>> = registry.lookup(key).expect("unofficial_function");
 
         // Assert
-        let input_vec: Vec<BigInt> = vec![BigInt::zero()];
-        let execute_output: String = unofficial_function.execute(input_vec).expect("string");
-        assert_eq!(execute_output, "executed");
+        let input_vec: Vec<BigInt> = vec![1000.to_bigint().unwrap(), 1.to_bigint().unwrap()];
+        let output_vec: Vec<BigInt> = unofficial_function.execute(input_vec).expect("output");
+        let expected_output_vec: Vec<BigInt> = vec![1001.to_bigint().unwrap()];
+        assert_eq!(output_vec, expected_output_vec);
         Ok(())
     }
 
@@ -56,37 +78,40 @@ mod tests {
         // Arrange
         let registry_original = UnofficialFunctionRegistry::new();
         let registry: UnofficialFunctionRegistry = registry_original.clone();
-        let plugin = HelloWorldFunction {};
+        let plugin = SumFunction::new(1234, 3);
         registry.register(Arc::new(Box::new(plugin)));
+        let key = UnofficialFunctionId::InputOutput { 
+            id: 1234, 
+            inputs: 3, 
+            outputs: 1 
+        };
         
         // Act
         // Check that the original registry contains the item
-        let key = UnofficialFunctionId::InputOutput { 
-            id: 1234, 
-            inputs: 1, 
-            outputs: 1 
-        };
         let unofficial_function: Arc<Box<dyn UnofficialFunction>> = registry_original.lookup(key).expect("unofficial_function");
 
         // Assert
-        let input_vec: Vec<BigInt> = vec![BigInt::zero()];
-        let execute_output: String = unofficial_function.execute(input_vec).expect("string");
-        assert_eq!(execute_output, "executed");
+        let input_vec: Vec<BigInt> = vec![100.to_bigint().unwrap(), 1.to_bigint().unwrap(), 10.to_bigint().unwrap()];
+        let output_vec: Vec<BigInt> = unofficial_function.execute(input_vec).expect("output");
+        let expected_output_vec: Vec<BigInt> = vec![111.to_bigint().unwrap()];
+        assert_eq!(output_vec, expected_output_vec);
         Ok(())
     }
 
-    // #[test]
+    #[test]
     fn test_20000_simple() -> anyhow::Result<()> {
-        // TODO: make this program take input, and return output
         let program_content: &str = "
-        f11 $0,1234
+        mov $0,100
+        mov $1,10
+        mov $2,1
+        f31 $0,1234 ; Sum
         ";
 
         let config = Config::load();
         let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
     
         let registry = UnofficialFunctionRegistry::new();
-        let plugin = HelloWorldFunction {};
+        let plugin = SumFunction::new(1234, 3);
         registry.register(Arc::new(Box::new(plugin)));
 
         let mut dm = DependencyManager::new(
@@ -133,12 +158,8 @@ mod tests {
                 return Err(anyhow::anyhow!("output value {} is out of range i64 when computing term for input {}", output, input_original));
             }
         };
-        if output_i64 < 0 || output_i64 > 255 {
-            return Err(anyhow::anyhow!("output value {} is out of range [0..255] when computing term for input {}", output, input_original));
-        }
-        let output: u8 = output_i64 as u8;
 
-        assert_eq!(output, 42);
+        assert_eq!(output_i64, 111);
 
         Ok(())
     }

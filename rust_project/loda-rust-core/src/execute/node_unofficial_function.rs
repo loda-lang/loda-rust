@@ -48,7 +48,7 @@ impl Node for NodeUnofficialFunction {
         Some(s)
     }
 
-    fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
         if !self.link_established {
             panic!("No link have been establish. This node cannot do its job.");
         }
@@ -59,67 +59,56 @@ impl Node for NodeUnofficialFunction {
         if start_address < 0 {
             return Err(EvalError::CannotConvertI64ToAddress);
         }
+
         // Input to the function
         let mut input_vec: Vec<BigInt> = vec!();
         for i in 0..self.input_count {
             let address = (start_address + (i as i64)) as u64;
             let value: &BigInt = state.get_u64(address);
+
+            // Abort if the input value is beyond the limit (optional)
+            state.check_value().input(&input)?;
+
             input_vec.push(value.clone());
         }
 
-        // TODO: output from the function
-        match self.unofficial_function.execute(input_vec) {
+        // Execute the function
+        let execute_result = self.unofficial_function.execute(input_vec);
+        let output_vec: Vec<BigInt> = match execute_result {
             Ok(value) => {
-                println!("NodeUnofficialFunction.eval execute result: {}", value);
+                println!("NodeUnofficialFunction.eval execute result: {:?}", value);
+                value
             },
             Err(error) => {
                 error!("NodeUnofficialFunction.eval execute error: {:?}", error);
-            }
-        }
-    
-        if input.is_negative() {
-            // Prevent calling other programs with a negative parameter.
-            // It's fragile allowing negative values.
-            // Example: If program A depends on program B. 
-            // Some day program B gets changed, and it breaks program A,
-            // because negative input values was being used.
-            return Err(EvalError::EvalSequenceWithNegativeParameter);
-        }
-
-        // Abort if the input value is beyond the limit (optional)
-        state.check_value().input(&input)?;
-
-        let step_count_limit: u64 = state.step_count_limit();
-        let mut step_count: u64 = state.step_count();
-
-        // Invoke the actual run() function
-        let input_value = RegisterValue(input.clone());
-        let run_result = self.program_runner_rc.run(
-            &input_value, 
-            state.run_mode(), 
-            &mut step_count, 
-            step_count_limit,
-            state.node_register_limit().clone(),
-            state.node_loop_limit().clone(),
-            cache,
-        );
-
-        // Update statistics, no matter if run succeeded or failed
-        state.set_step_count(step_count);
-
-        let output: RegisterValue = match run_result {
-            Ok(value) => value,
-            Err(error) => {
-                // In case run failed, then return the error
-                return Err(error);
+                // TODO: fail with a better error
+                return Err(EvalError::DivisionByZero);
             }
         };
 
-        // Abort if the output value is beyond the limit (optional)
-        state.check_value().output(&output.0)?;
+        // Output from the function
+        if output_vec.len() != (self.output_count as usize) {
+            error!("NodeUnofficialFunction.eval execute. Expected {} output values, but got output {}", self.output_count, output_vec.len());
+            // TODO: fail with a better error
+            return Err(EvalError::DivisionByZero);
+        }
 
-        // In case run succeeded, then pass on the outputted value.
-        state.set(&self.target, output.0)?;
+        for (index, value) in output_vec.iter().enumerate() {
+            let address = (start_address + (index as i64)) as u64;
+
+            // Abort if the output value is beyond the limit (optional)
+            state.check_value().output(value)?;
+
+            match state.set_u64(address, value.clone()) {
+                Ok(()) => {},
+                Err(error) => {
+                    error!("NodeUnofficialFunction.eval execute. Cannot set output value into state. address: {}, error: {}", address, error);
+                    // TODO: fail with a better error
+                    return Err(EvalError::DivisionByZero);
+                }
+            }
+        }
+    
         Ok(())
     }
 
