@@ -65,7 +65,7 @@ impl ImageRotateFunction {
 
 impl UnofficialFunction for ImageRotateFunction {
     fn id(&self) -> UnofficialFunctionId {
-        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
     }
 
     fn name(&self) -> String {
