@@ -4,7 +4,7 @@ use std::thread;
 use std::time::Duration;
 use std::time::Instant;
 
-const CRONJOB_SYNC_INTERVAL_SECONDS: u64 = 60 * 60; // 1 hour
+const CRONJOB_SYNC_INTERVAL_SECONDS: u64 = 24 * 60 * 60; // 24 hours
 const CRONJOB_HEARTBEAT_INTERVAL_SECONDS: u64 = 5 * 60; // 5 minutes
 
 #[derive(Clone, Copy, Debug, PartialEq)]
