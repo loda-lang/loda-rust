@@ -57,17 +57,17 @@ mod tests {
             3, 2, 1,
             6, 5, 4,
         ];
-        let input: Image = Image::try_create(3, 2, pixels).expect("bitmap");
+        let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: Image = input.flip_x().expect("bitmap");
+        let actual: Image = input.flip_x().expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
             1, 2, 3,
             4, 5, 6,
         ];
-        let expected: Image = Image::try_create(3, 2, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 
@@ -79,10 +79,10 @@ mod tests {
             3, 4,
             1, 2,
         ];
-        let input: Image = Image::try_create(2, 3, pixels).expect("bitmap");
+        let input: Image = Image::try_create(2, 3, pixels).expect("image");
 
         // Act
-        let actual: Image = input.flip_y().expect("bitmap");
+        let actual: Image = input.flip_y().expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -90,7 +90,7 @@ mod tests {
             3, 4,
             5, 6,
         ];
-        let expected: Image = Image::try_create(2, 3, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(2, 3, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 
@@ -102,10 +102,10 @@ mod tests {
             6, 5, 4,
             3, 2, 1,
         ];
-        let input: Image = Image::try_create(3, 3, pixels).expect("bitmap");
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let actual: Image = input.flip_xy().expect("bitmap");
+        let actual: Image = input.flip_xy().expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -113,7 +113,7 @@ mod tests {
             4, 5, 6,
             7, 8, 9,
         ];
-        let expected: Image = Image::try_create(3, 3, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(3, 3, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }

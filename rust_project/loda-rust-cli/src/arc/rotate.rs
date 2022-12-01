@@ -54,10 +54,10 @@ mod tests {
             1, 2, 3,
             4, 5, 6,
         ];
-        let input: Image = Image::try_create(3, 2, pixels).expect("bitmap");
+        let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: Image = input.rotate_cw().expect("bitmap");
+        let actual: Image = input.rotate_cw().expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -65,7 +65,7 @@ mod tests {
             2, 5,
             3, 6,
         ];
-        let expected: Image = Image::try_create(2, 3, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(2, 3, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 
@@ -78,16 +78,16 @@ mod tests {
             3,
             4,
         ];
-        let input: Image = Image::try_create(1, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(1, 4, pixels).expect("image");
 
         // Act
-        let actual: Image = input.rotate_cw().expect("bitmap");
+        let actual: Image = input.rotate_cw().expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
             1, 2, 3, 4,
         ];
-        let expected: Image = Image::try_create(4, 1, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(4, 1, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 
@@ -101,13 +101,13 @@ mod tests {
             0, 2, 0,
             0, 0, 2
         ];
-        let input: Image = Image::try_create(3, 5, pixels).expect("bitmap");
+        let input: Image = Image::try_create(3, 5, pixels).expect("image");
 
         // Act
-        let bitmap0: Image = input.rotate_cw().expect("bitmap");
-        let bitmap1: Image = bitmap0.rotate_cw().expect("bitmap");
-        let bitmap2: Image = bitmap1.rotate_cw().expect("bitmap");
-        let bitmap3: Image = bitmap2.rotate_cw().expect("bitmap");
+        let bitmap0: Image = input.rotate_cw().expect("image");
+        let bitmap1: Image = bitmap0.rotate_cw().expect("image");
+        let bitmap2: Image = bitmap1.rotate_cw().expect("image");
+        let bitmap3: Image = bitmap2.rotate_cw().expect("image");
         let actual: Image = bitmap3;
 
         // Assert
@@ -122,10 +122,10 @@ mod tests {
             1, 0, 3,
             0, 2, 0,
         ];
-        let input: Image = Image::try_create(3, 2, pixels).expect("bitmap");
+        let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: Image = input.rotate(0).expect("bitmap");
+        let actual: Image = input.rotate(0).expect("image");
 
         // Assert
         let expected: Image = input.clone();
@@ -139,13 +139,13 @@ mod tests {
             1, 0, 3,
             0, 2, 0,
         ];
-        let input: Image = Image::try_create(3, 2, pixels).expect("bitmap");
+        let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: Image = input.rotate(1).expect("bitmap");
+        let actual: Image = input.rotate(1).expect("image");
 
         // Assert
-        let expected: Image = input.rotate_cw().expect("bitmap");
+        let expected: Image = input.rotate_cw().expect("image");
         assert_eq!(actual, expected);
     }
 
@@ -156,15 +156,15 @@ mod tests {
             1, 0, 3,
             0, 2, 0,
         ];
-        let input: Image = Image::try_create(3, 2, pixels).expect("bitmap");
+        let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: Image = input.rotate(-1).expect("bitmap");
+        let actual: Image = input.rotate(-1).expect("image");
 
         // Assert
-        let bitmap1: Image = input.rotate_cw().expect("bitmap");
-        let bitmap2: Image = bitmap1.rotate_cw().expect("bitmap");
-        let expected: Image = bitmap2.rotate_cw().expect("bitmap");
+        let bitmap1: Image = input.rotate_cw().expect("image");
+        let bitmap2: Image = bitmap1.rotate_cw().expect("image");
+        let expected: Image = bitmap2.rotate_cw().expect("image");
         assert_eq!(actual, expected);
     }
 }

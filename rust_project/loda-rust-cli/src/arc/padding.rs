@@ -43,17 +43,17 @@ mod tests {
     #[test]
     fn test_10000_empty() {
         {
-            let actual = Image::empty().zero_padding(0).expect("bitmap");
+            let actual = Image::empty().zero_padding(0).expect("image");
             let expected = Image::empty();
             assert_eq!(actual, expected);
         }
         {
-            let actual = Image::empty().zero_padding(1).expect("bitmap");
+            let actual = Image::empty().zero_padding(1).expect("image");
             let expected = Image::zeroes(2, 2);
             assert_eq!(actual, expected);
         }
         {
-            let actual = Image::empty().zero_padding(2).expect("bitmap");
+            let actual = Image::empty().zero_padding(2).expect("image");
             let expected = Image::zeroes(4, 4);
             assert_eq!(actual, expected);
         }
@@ -62,7 +62,7 @@ mod tests {
     #[test]
     fn test_10001_padding_around_data() {
         let bm = Image::create_raw(3, 1, vec![1, 2, 3]);
-        let actual = bm.zero_padding(1).expect("bitmap");
+        let actual = bm.zero_padding(1).expect("image");
 
         let expected_pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0,

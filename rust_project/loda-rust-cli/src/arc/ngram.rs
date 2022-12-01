@@ -162,7 +162,7 @@ mod tests {
             1, 2, 1,
             9, 1, 2,
         ];
-        let input: Image = Image::try_create(3, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(3, 4, pixels).expect("image");
 
         // Act
         let bigrams: Vec<RecordBigram> = input.bigram_x().expect("bigrams");
@@ -184,7 +184,7 @@ mod tests {
             2, 1, 2, 1,
             1, 2, 1, 2,
         ];
-        let input: Image = Image::try_create(4, 3, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
 
         // Act
         let bigrams: Vec<RecordBigram> = input.bigram_y().expect("bigrams");
@@ -207,7 +207,7 @@ mod tests {
             1, 2, 1, 2,
             9, 1, 2, 1,
         ];
-        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
 
         // Act
         let trigrams: Vec<RecordTrigram> = input.trigram_x().expect("trigrams");
@@ -230,7 +230,7 @@ mod tests {
             1, 2, 1, 2,
             2, 1, 2, 1,
         ];
-        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
 
         // Act
         let trigrams: Vec<RecordTrigram> = input.trigram_y().expect("trigrams");

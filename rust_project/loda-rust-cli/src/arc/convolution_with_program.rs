@@ -92,7 +92,7 @@ mod tests {
             9,10,11,12,
             13,14,15,16,
         ];
-        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
 
         let program_content: &str = "
         mov $1,$0
@@ -127,7 +127,7 @@ mod tests {
         let program_runner: ProgramRunner = result_parse.expect("ProgramRunner");
     
         // Act
-        let output: Image = input.conv3x3_program(&program_runner).expect("bitmap");
+        let output: Image = input.conv3x3_program(&program_runner).expect("image");
 
         // Assert
         assert_eq!(output.width(), 2);

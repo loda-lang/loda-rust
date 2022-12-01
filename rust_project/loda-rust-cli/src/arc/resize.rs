@@ -48,10 +48,10 @@ mod tests {
             1, 1, 1, 2, 2, 2, 3, 3, 3,
             4, 4, 4, 5, 5, 5, 6, 6, 6,
         ];
-        let input: Image = Image::try_create(9, 2, pixels).expect("bitmap");
+        let input: Image = Image::try_create(9, 2, pixels).expect("image");
 
         // Act
-        let output: Image = input.resize(3, 2).expect("bitmap");
+        let output: Image = input.resize(3, 2).expect("image");
 
         // Assert
         let expected = Image::create_raw(3, 2, vec![1, 2, 3, 4, 5, 6]);
@@ -72,10 +72,10 @@ mod tests {
             3, 6,
             3, 6,
         ];
-        let input: Image = Image::try_create(2, 9, pixels).expect("bitmap");
+        let input: Image = Image::try_create(2, 9, pixels).expect("image");
 
         // Act
-        let output: Image = input.resize(2, 3).expect("bitmap");
+        let output: Image = input.resize(2, 3).expect("image");
 
         // Assert
         let expected = Image::create_raw(2, 3, vec![1, 4, 2, 5, 3, 6]);
@@ -89,10 +89,10 @@ mod tests {
             1, 2,
             3, 4,
         ];
-        let input: Image = Image::try_create(2, 2, pixels).expect("bitmap");
+        let input: Image = Image::try_create(2, 2, pixels).expect("image");
 
         // Act
-        let output: Image = input.resize(4, 2).expect("bitmap");
+        let output: Image = input.resize(4, 2).expect("image");
 
         // Assert
         let expected = Image::create_raw(4, 2, vec![1, 1, 2, 2, 3, 3, 4, 4]);
@@ -106,10 +106,10 @@ mod tests {
             1, 2,
             3, 4,
         ];
-        let input: Image = Image::try_create(2, 2, pixels).expect("bitmap");
+        let input: Image = Image::try_create(2, 2, pixels).expect("image");
 
         // Act
-        let output: Image = input.resize(2, 4).expect("bitmap");
+        let output: Image = input.resize(2, 4).expect("image");
 
         // Assert
         let expected = Image::create_raw(2, 4, vec![1, 2, 1, 2, 3, 4, 3, 4]);

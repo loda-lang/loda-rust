@@ -86,7 +86,7 @@ mod tests {
         let k: u64 = 256;
         let value_u64: u64 = (255 * k + 1) * k + 1;
         let value_biguint = value_u64.to_biguint().unwrap();
-        let bm: Image = value_biguint.to_image().expect("bitmap");
+        let bm: Image = value_biguint.to_image().expect("image");
         assert_eq!(bm.width(), 1);
         assert_eq!(bm.height(), 1);
         assert_eq!(bm.get(0, 0), Some(255));
@@ -97,7 +97,7 @@ mod tests {
         let k: u64 = 256;
         let value_u64: u64 = ((((8 * k + 7) * k + 6) * k + 5) * k + 2) * k + 2;
         let value_biguint = value_u64.to_biguint().unwrap();
-        let bm: Image = value_biguint.to_image().expect("bitmap");
+        let bm: Image = value_biguint.to_image().expect("image");
         assert_eq!(bm.width(), 2);
         assert_eq!(bm.height(), 2);
         assert_eq!(bm.get(0, 0), Some(5));

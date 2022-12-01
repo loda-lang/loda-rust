@@ -57,7 +57,7 @@ mod tests {
     #[test]
     fn test_10000_callback() {
         // Arrange
-        let input: Image = Image::try_create(3, 3, vec![1,2,3,4,5,6,7,8,9]).expect("bitmap");
+        let input: Image = Image::try_create(3, 3, vec![1,2,3,4,5,6,7,8,9]).expect("image");
 
         // Act
         let output: Image = convolution3x3(&input, |bm| {
@@ -67,7 +67,7 @@ mod tests {
             }
             let value = (sum & 255) as u8;
             Ok(value)
-        }).expect("bitmap");
+        }).expect("image");
 
         // Assert
         assert_eq!(output.width(), 1);
@@ -84,10 +84,10 @@ mod tests {
             9,10,11,12,
             13,14,15,16,
         ];
-        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
 
         // Act
-        let output: Image = convolution3x3(&input, conv3x3_max).expect("bitmap");
+        let output: Image = convolution3x3(&input, conv3x3_max).expect("image");
 
         // Assert
         assert_eq!(output.width(), 2);
@@ -107,10 +107,10 @@ mod tests {
             9,10,11,12,
             13,14,15,16,
         ];
-        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
 
         // Act
-        let output: Image = convolution3x3(&input, conv3x3_min).expect("bitmap");
+        let output: Image = convolution3x3(&input, conv3x3_min).expect("image");
 
         // Assert
         assert_eq!(output.width(), 2);

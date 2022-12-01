@@ -118,7 +118,7 @@ mod tests {
         let grid: Grid = serde_json::from_str(&json_string)?;
 
         // Act
-        let bm: Image = grid.to_bitmap().expect("bitmap");
+        let bm: Image = grid.to_bitmap().expect("image");
 
         // Assert
         assert_eq!(bm.width(), 3);

@@ -45,10 +45,10 @@ mod tests {
             0, 3, 0, 3,
             0, 0, 3, 2,
         ];
-        let input: Image = Image::try_create(4, 3, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
 
         // Act
-        let actual: Image = input.replace_color(3, 1).expect("bitmap");
+        let actual: Image = input.replace_color(3, 1).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -56,7 +56,7 @@ mod tests {
             0, 1, 0, 1,
             0, 0, 1, 2,
         ];
-        let expected: Image = Image::try_create(4, 3, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(4, 3, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }

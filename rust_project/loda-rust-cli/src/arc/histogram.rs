@@ -48,10 +48,10 @@ mod tests {
             2, 0, 0, 0, 2,
             3, 3, 3, 3, 3,
         ];
-        let input: Image = Image::try_create(5, 5, pixels).expect("bitmap");
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
 
         // Act
-        let actual: Vec<u32> = input.histogram_border().expect("bitmap");
+        let actual: Vec<u32> = input.histogram_border().expect("image");
 
         // Assert
         let mut expected: Vec<u32> = vec![0; 256];
