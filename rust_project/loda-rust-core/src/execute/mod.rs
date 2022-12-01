@@ -23,9 +23,6 @@ mod semantics;
 mod semantic_binomial;
 mod semantic_power;
 mod semantic_simple;
-mod unofficial_function;
-mod unofficial_function_id;
-mod unofficial_function_registry;
 
 use check_value::*;
 pub use create_error::CreateError;
@@ -51,9 +48,6 @@ pub use semantics::{Semantics, SemanticsWithoutLimits, SemanticsWithSmallLimits}
 pub use semantic_binomial::{SemanticBinomialConfig, SemanticBinomialError};
 pub use semantic_power::{SemanticPowerConfig, SemanticPowerError};
 pub use semantic_simple::{SemanticSimpleConfig, SemanticSimpleError};
-pub use unofficial_function::UnofficialFunction;
-pub use unofficial_function_id::UnofficialFunctionId;
-pub use unofficial_function_registry::UnofficialFunctionRegistry;
 
 pub mod compiletime_error;
 pub mod node_calc;

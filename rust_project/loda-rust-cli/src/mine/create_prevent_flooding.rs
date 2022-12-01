@@ -2,7 +2,7 @@ use super::PreventFlooding;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
-use loda_rust_core::execute::UnofficialFunctionRegistry;
+use loda_rust_core::unofficial_function::UnofficialFunctionRegistry;
 use loda_rust_core::util::BigIntVec;
 use crate::common::find_asm_files_recursively;
 use crate::config::{Config, MinerFilterMode};

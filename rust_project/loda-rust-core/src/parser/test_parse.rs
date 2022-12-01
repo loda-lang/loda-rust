@@ -2,7 +2,7 @@
 mod tests {
     use crate::execute::{Program, ProgramCache, ProgramId, ProgramRunner, ProgramRunnerManager};
     use crate::execute::node_calc::NodeCalcSemanticMode;
-    use crate::execute::UnofficialFunctionRegistry;
+    use crate::unofficial_function::UnofficialFunctionRegistry;
     use crate::parser::{ParsedProgram, CreateProgram, ParseError};
     
     const INPUT_A000045: &str = r#"

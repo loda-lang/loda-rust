@@ -80,7 +80,7 @@ mod tests {
     use crate::arc::BitmapTryCreate;
     use crate::config::Config;
     use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
-    use loda_rust_core::execute::UnofficialFunctionRegistry;
+    use loda_rust_core::unofficial_function::UnofficialFunctionRegistry;
     use std::path::PathBuf;
     
     #[test]

@@ -4,7 +4,7 @@ use super::{Funnel, GenomeMutateContext, PreventFlooding};
 use super::CoordinatorWorkerQuestion;
 use crate::oeis::TermsToProgramIdSet;
 use loda_rust_core::control::{DependencyManager, DependencyManagerFileSystemMode, ExecuteProfile};
-use loda_rust_core::execute::UnofficialFunctionRegistry;
+use loda_rust_core::unofficial_function::UnofficialFunctionRegistry;
 use bastion::prelude::*;
 use std::fmt;
 use std::path::PathBuf;

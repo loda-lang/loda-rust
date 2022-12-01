@@ -1,6 +1,6 @@
 //! The `loda-rust dependencies` subcommand, prints dependencies of a program.
 use super::{DependencyManager,DependencyManagerFileSystemMode};
-use loda_rust_core::execute::UnofficialFunctionRegistry;
+use loda_rust_core::unofficial_function::UnofficialFunctionRegistry;
 use crate::config::Config;
 use std::path::PathBuf;
 

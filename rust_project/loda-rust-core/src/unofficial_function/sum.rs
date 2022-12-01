@@ -1,4 +1,4 @@
-use crate::execute::{UnofficialFunction, UnofficialFunctionId};
+use super::{UnofficialFunction, UnofficialFunctionId};
 use num_bigint::BigInt;
 use num_traits::Zero;
 use std::ops::Add;
@@ -38,7 +38,6 @@ impl UnofficialFunction for SumFunction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::execute::UnofficialFunction;
     use num_bigint::{BigInt, ToBigInt};
     use num_traits::ToPrimitive;
 

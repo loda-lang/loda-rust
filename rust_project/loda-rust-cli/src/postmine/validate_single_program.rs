@@ -1,7 +1,7 @@
 use loda_rust_core::control::{DependencyManager, DependencyManagerError, DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
-use loda_rust_core::execute::UnofficialFunctionRegistry;
+use loda_rust_core::unofficial_function::UnofficialFunctionRegistry;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::fs;

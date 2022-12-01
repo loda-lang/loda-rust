@@ -9,7 +9,8 @@ use crate::execute::node_loop_simple::*;
 use crate::execute::node_loop_slow::*;
 use crate::execute::node_seq::*;
 use crate::execute::compiletime_error::*;
-use crate::execute::{NodeUnofficialFunction, UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
+use crate::execute::NodeUnofficialFunction;
+use crate::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use std::sync::Arc;
 
 impl Instruction {

@@ -8,7 +8,7 @@ use crate::execute::node_calc::NodeCalcSemanticMode;
 use crate::parser::{ParsedProgram, ParseProgramError, CreateProgram};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 use crate::execute::compiletime_error::*;
-use crate::execute::UnofficialFunctionRegistry;
+use crate::unofficial_function::UnofficialFunctionRegistry;
 use super::ExecuteProfile;
 
 #[derive(Debug, PartialEq)]

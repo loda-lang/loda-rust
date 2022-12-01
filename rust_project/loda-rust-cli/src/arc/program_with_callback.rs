@@ -3,7 +3,7 @@ mod tests {
     use loda_rust_core::execute::ProgramId;
     use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
     use loda_rust_core::execute::NodeRegisterLimit;
-    use loda_rust_core::execute::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
+    use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
     use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
     use loda_rust_core::unofficial_function::SumFunction;
     use crate::config::Config;

@@ -1,6 +1,7 @@
-use super::{EvalError, ProgramSerializerContext, ProgramCache, Node, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError, UnofficialFunction};
+use super::{EvalError, ProgramSerializerContext, ProgramCache, Node, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
 use super::PerformCheckValue;
 use crate::parser::InstructionParameter;
+use crate::unofficial_function::UnofficialFunction;
 use num_bigint::BigInt;
 use std::rc::Rc;
 use std::sync::Arc;
