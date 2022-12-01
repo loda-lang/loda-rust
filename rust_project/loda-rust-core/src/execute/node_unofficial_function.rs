@@ -1,8 +1,7 @@
-use super::{EvalError, ProgramSerializerContext, ProgramCache, Node, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError, UnofficialFunction};
+use super::{EvalError, ProgramSerializerContext, ProgramCache, Node, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError, UnofficialFunction};
 use super::PerformCheckValue;
 use crate::parser::InstructionParameter;
 use num_bigint::BigInt;
-use num_traits::Signed;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -72,15 +71,12 @@ impl Node for NodeUnofficialFunction {
             input_vec.push(value.clone());
         }
 
-        // Execute the function
-        let execute_result = self.unofficial_function.execute(input_vec);
-        let output_vec: Vec<BigInt> = match execute_result {
-            Ok(value) => {
-                println!("NodeUnofficialFunction.eval execute result: {:?}", value);
-                value
-            },
+        // Run the function
+        let run_result = self.unofficial_function.run(input_vec);
+        let output_vec: Vec<BigInt> = match run_result {
+            Ok(value) => value,
             Err(error) => {
-                error!("NodeUnofficialFunction.eval execute error: {:?}", error);
+                error!("NodeUnofficialFunction.eval run error: {:?}", error);
                 // TODO: fail with a better error
                 return Err(EvalError::DivisionByZero);
             }
@@ -88,7 +84,7 @@ impl Node for NodeUnofficialFunction {
 
         // Output from the function
         if output_vec.len() != (self.output_count as usize) {
-            error!("NodeUnofficialFunction.eval execute. Expected {} output values, but got output {}", self.output_count, output_vec.len());
+            error!("NodeUnofficialFunction.eval Expected {} output values, but got output {}", self.output_count, output_vec.len());
             // TODO: fail with a better error
             return Err(EvalError::DivisionByZero);
         }
@@ -102,7 +98,7 @@ impl Node for NodeUnofficialFunction {
             match state.set_u64(address, value.clone()) {
                 Ok(()) => {},
                 Err(error) => {
-                    error!("NodeUnofficialFunction.eval execute. Cannot set output value into state. address: {}, error: {}", address, error);
+                    error!("NodeUnofficialFunction.eval Cannot set output value into state. address: {}, error: {}", address, error);
                     // TODO: fail with a better error
                     return Err(EvalError::DivisionByZero);
                 }

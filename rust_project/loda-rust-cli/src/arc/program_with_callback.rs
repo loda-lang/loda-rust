@@ -36,8 +36,8 @@ mod tests {
             format!("Sum of {} values", self.inputs)
         }
 
-        fn execute(&self, input: Vec<BigInt>) -> Result<Vec<BigInt>, Box<dyn Error>> {
-            println!("execute input: {:?}", input);
+        fn run(&self, input: Vec<BigInt>) -> Result<Vec<BigInt>, Box<dyn Error>> {
+            println!("run input: {:?}", input);
 
             let mut sum = BigInt::zero();
             for i in input {
@@ -45,7 +45,7 @@ mod tests {
             }
             let output_vec: Vec<BigInt> = vec![sum];
 
-            println!("execute output: {:?}", output_vec);
+            println!("run output: {:?}", output_vec);
     
             Ok(output_vec)
         }
@@ -67,7 +67,7 @@ mod tests {
 
         // Assert
         let input_vec: Vec<BigInt> = vec![1000.to_bigint().unwrap(), 1.to_bigint().unwrap()];
-        let output_vec: Vec<BigInt> = unofficial_function.execute(input_vec).expect("output");
+        let output_vec: Vec<BigInt> = unofficial_function.run(input_vec).expect("output");
         let expected_output_vec: Vec<BigInt> = vec![1001.to_bigint().unwrap()];
         assert_eq!(output_vec, expected_output_vec);
         Ok(())
@@ -92,7 +92,7 @@ mod tests {
 
         // Assert
         let input_vec: Vec<BigInt> = vec![100.to_bigint().unwrap(), 1.to_bigint().unwrap(), 10.to_bigint().unwrap()];
-        let output_vec: Vec<BigInt> = unofficial_function.execute(input_vec).expect("output");
+        let output_vec: Vec<BigInt> = unofficial_function.run(input_vec).expect("output");
         let expected_output_vec: Vec<BigInt> = vec![111.to_bigint().unwrap()];
         assert_eq!(output_vec, expected_output_vec);
         Ok(())
