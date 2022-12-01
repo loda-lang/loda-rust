@@ -5,50 +5,11 @@ mod tests {
     use loda_rust_core::execute::NodeRegisterLimit;
     use loda_rust_core::execute::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
     use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+    use loda_rust_core::unofficial_function::SumFunction;
     use crate::config::Config;
     use num_bigint::{BigInt, ToBigInt};
-    use num_traits::Zero;
-    use std::ops::Add;
     use std::path::PathBuf;
     use std::sync::Arc;
-
-    struct SumFunction {
-        id: u32,
-        inputs: u8,
-    }
-
-    impl SumFunction {
-        fn new(id: u32, inputs: u8) -> Self {
-            Self {
-                id,
-                inputs,
-            }
-        }
-    }
-
-    impl UnofficialFunction for SumFunction {
-        fn id(&self) -> UnofficialFunctionId {
-            UnofficialFunctionId::InputOutput { id: self.id, inputs: self.inputs, outputs: 1 }
-        }
-
-        fn name(&self) -> String {
-            format!("Sum of {} values", self.inputs)
-        }
-
-        fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
-            println!("run input: {:?}", input);
-
-            let mut sum = BigInt::zero();
-            for i in input {
-                sum = sum.add(i);
-            }
-            let output_vec: Vec<BigInt> = vec![sum];
-
-            println!("run output: {:?}", output_vec);
-    
-            Ok(output_vec)
-        }
-    }
 
     #[test]
     fn test_10000_registry_lookup() -> anyhow::Result<()> {

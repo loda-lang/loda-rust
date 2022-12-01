@@ -48,7 +48,7 @@ impl Node for NodeUnofficialFunction {
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
-        if !self.link_established {
+        if !self.link_established { // TODO: get rid of this NodeSeq remain
             panic!("No link have been establish. This node cannot do its job.");
         }
         let input: BigInt = state.get(&self.target, false)?;
@@ -104,12 +104,14 @@ impl Node for NodeUnofficialFunction {
                 }
             }
         }
+
+        // TODO: update step counter
     
         Ok(())
     }
 
     fn update_call(&mut self, program_manager: &mut ProgramRunnerManager) {
-        if self.link_established {
+        if self.link_established { // TODO: get rid of this NodeSeq remain
             panic!("The link have already been establish. Double assigning a link should not happen.");
         }
         let program_id: u64 = self.function_id as u64;
@@ -127,11 +129,11 @@ impl Node for NodeUnofficialFunction {
     }
 
     fn accumulate_call_dependencies(&self, program_id_vec: &mut Vec<u64>) {
-        program_id_vec.push(self.function_id as u64);
+        program_id_vec.push(self.function_id as u64); // TODO: get rid of this NodeSeq remain
     }
 
     fn validate_call_nodes(&self) -> Result<(), ValidateCallError> {
-        if !self.link_established {
+        if !self.link_established { // TODO: get rid of this NodeSeq remain
             // There is no connection with the program that we depend on.
             // Without the working dependency, this node cannot do its job correctly.
             return Err(ValidateCallError {});
