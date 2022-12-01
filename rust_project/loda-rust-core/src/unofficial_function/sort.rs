@@ -24,9 +24,9 @@ impl UnofficialFunction for SortFunction {
         format!("Sort {} values in ascending order", self.inout_count)
     }
 
-    fn run(&self, mut input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
-        input.sort();
-        Ok(input)
+    fn run(&self, mut values: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        values.sort();
+        Ok(values)
     }
 }
 
