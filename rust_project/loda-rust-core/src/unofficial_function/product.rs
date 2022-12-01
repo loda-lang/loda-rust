@@ -1,14 +1,14 @@
 use crate::execute::{UnofficialFunction, UnofficialFunctionId};
 use num_bigint::BigInt;
-use num_traits::Zero;
-use std::ops::Add;
+use num_traits::{Zero, One};
+use std::ops::Mul;
 
-pub struct SumFunction {
+pub struct ProductFunction {
     id: u32,
     inputs: u8,
 }
 
-impl SumFunction {
+impl ProductFunction {
     pub fn new(id: u32, inputs: u8) -> Self {
         Self {
             id,
@@ -17,19 +17,22 @@ impl SumFunction {
     }
 }
 
-impl UnofficialFunction for SumFunction {
+impl UnofficialFunction for ProductFunction {
     fn id(&self) -> UnofficialFunctionId {
         UnofficialFunctionId::InputOutput { id: self.id, inputs: self.inputs, outputs: 1 }
     }
 
     fn name(&self) -> String {
-        format!("Sum of {} values", self.inputs)
+        format!("Product of {} values", self.inputs)
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
-        let mut x = BigInt::zero();
+        if input.is_empty() {
+            return Ok(vec![BigInt::zero()]);
+        }
+        let mut x = BigInt::one();
         for i in input {
-            x = x.add(i);
+            x = x.mul(i);
         }
         Ok(vec![x])
     }
@@ -52,14 +55,24 @@ mod tests {
     #[test]
     fn test_ok() {
         {
-            let f = SumFunction::new(0, 2);
-            let v = run(Box::new(f), vec![1001, -1]).expect("output");
-            assert_eq!(v, vec![1000]);
+            let f = ProductFunction::new(0, 0);
+            let v = run(Box::new(f), vec!()).expect("output");
+            assert_eq!(v, vec![0]);
         }
         {
-            let f = SumFunction::new(0, 4);
-            let v = run(Box::new(f), vec![100, 1, 1000, 10]).expect("output");
-            assert_eq!(v, vec![1111]);
+            let f = ProductFunction::new(0, 1);
+            let v = run(Box::new(f), vec![-42]).expect("output");
+            assert_eq!(v, vec![-42]);
+        }
+        {
+            let f = ProductFunction::new(0, 2);
+            let v = run(Box::new(f), vec![2, 3]).expect("output");
+            assert_eq!(v, vec![6]);
+        }
+        {
+            let f = ProductFunction::new(0, 3);
+            let v = run(Box::new(f), vec![2, 3, -4]).expect("output");
+            assert_eq!(v, vec![-24]);
         }
     }
 }
