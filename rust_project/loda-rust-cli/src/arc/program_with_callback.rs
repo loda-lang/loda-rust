@@ -10,7 +10,6 @@ mod tests {
     use num_traits::Zero;
     use std::ops::Add;
     use std::path::PathBuf;
-    use std::error::Error;
     use std::sync::Arc;
 
     struct SumFunction {
@@ -36,7 +35,7 @@ mod tests {
             format!("Sum of {} values", self.inputs)
         }
 
-        fn run(&self, input: Vec<BigInt>) -> Result<Vec<BigInt>, Box<dyn Error>> {
+        fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
             println!("run input: {:?}", input);
 
             let mut sum = BigInt::zero();
