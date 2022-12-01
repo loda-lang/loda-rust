@@ -3,25 +3,25 @@ use std::fmt;
 
 /// Tiny 2D grid with 4 bits per pixel, max size 256 x 256 pixels.
 #[derive(Clone, PartialEq)]
-pub struct Bitmap {
+pub struct Image {
     width: u8,
     height: u8,
     pixels: Vec<u8>,
 }
 
-impl Bitmap {
+impl Image {
     pub fn empty() -> Self {
         Self { width: 0, height: 0, pixels: vec!() }
     }
 
-    /// Create a Bitmap instance, filled with zeroes
+    /// Create an `Image` instance, filled with zeroes
     pub fn zeroes(width: u8, height: u8) -> Self {
         let len: usize = (width as usize) * (height as usize);
         let pixels: Vec<u8> = vec![0; len];
         Self { width, height, pixels }
     }
 
-    /// Create a Bitmap instance without any checks of the data
+    /// Create a `Image` instance without any checks of the data
     /// 
     /// It's up to the caller to ensure:
     /// - Make sure that the pixels.len() is the same as width x height.
@@ -88,9 +88,9 @@ impl Bitmap {
     }
 }
 
-impl fmt::Debug for Bitmap {
+impl fmt::Debug for Image {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Bitmap {}x{}\n{}", self.width, self.height, self.human_readable())
+        write!(f, "Image {}x{}\n{}", self.width, self.height, self.human_readable())
     }
 }
 
@@ -99,8 +99,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_10000_empty() {
-        let bm = Bitmap::empty();
+    fn test_10000_init_empty() {
+        let bm = Image::empty();
         assert_eq!(bm.width(), 0);
         assert_eq!(bm.height(), 0);
         assert_eq!(bm.pixels().is_empty(), true);
@@ -108,8 +108,8 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_bitmap_zero() {
-        let bm = Bitmap::zeroes(4, 3);
+    fn test_10001_init_zero() {
+        let bm = Image::zeroes(4, 3);
         assert_eq!(bm.width(), 4);
         assert_eq!(bm.height(), 3);
         assert_eq!(bm.pixels().len(), 4 * 3);
@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_20000_get_set_pixel_value_ok() {
-        let mut bm = Bitmap::zeroes(3, 2);
+        let mut bm = Image::zeroes(3, 2);
         bm.set(0, 0, 1).expect("ok");
         bm.set(1, 0, 2).expect("ok");
         bm.set(2, 0, 3).expect("ok");
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn test_20001_get_set_pixel_value_ok() {
-        let mut bm = Bitmap::zeroes(3, 1);
+        let mut bm = Image::zeroes(3, 1);
         bm.set(0, 0, 253).expect("ok");
         bm.set(1, 0, 254).expect("ok");
         bm.set(2, 0, 255).expect("ok");
@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn test_20001_set_pixel_value_error() {
-        let mut bm = Bitmap::zeroes(3, 2);
+        let mut bm = Image::zeroes(3, 2);
         // negative coordinates
         assert_eq!(bm.set(-1, 0, 0), None);
         assert_eq!(bm.set(0, -1, 0), None);
@@ -164,24 +164,24 @@ mod tests {
     #[test]
     fn test_30000_compare() {
         {
-            let mut bm0 = Bitmap::zeroes(3, 2);
+            let mut bm0 = Image::zeroes(3, 2);
             bm0.set(0, 0, 255).expect("ok");
             bm0.set(2, 1, 255).expect("ok");
-            let bm1 = Bitmap::create_raw(3, 2, vec![255, 0, 0, 0, 0, 255]);
+            let bm1 = Image::create_raw(3, 2, vec![255, 0, 0, 0, 0, 255]);
             assert_eq!(bm0, bm1);
         }
         {
-            let mut bm0 = Bitmap::zeroes(3, 2);
+            let mut bm0 = Image::zeroes(3, 2);
             bm0.set(0, 0, 255).expect("ok");
             bm0.set(2, 1, 254).expect("ok");
-            let bm1 = Bitmap::create_raw(3, 2, vec![255, 0, 0, 0, 0, 255]);
+            let bm1 = Image::create_raw(3, 2, vec![255, 0, 0, 0, 0, 255]);
             assert_ne!(bm0, bm1);
         }
         {
-            let mut bm0 = Bitmap::create_raw(3, 2, vec![255, 0, 0, 0, 0, 255]);
+            let mut bm0 = Image::create_raw(3, 2, vec![255, 0, 0, 0, 0, 255]);
             bm0.set(0, 0, 0).expect("ok");
             bm0.set(2, 1, 0).expect("ok");
-            let bm1 = Bitmap::zeroes(3, 2);
+            let bm1 = Image::zeroes(3, 2);
             assert_eq!(bm0, bm1);
         }
     }

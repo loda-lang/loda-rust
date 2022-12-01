@@ -1,14 +1,14 @@
-use super::{Bitmap, BitmapTryCreate};
+use super::{Image, BitmapTryCreate};
 use std::ops::{Rem, Div};
 use num_bigint::{BigUint, ToBigUint};
 use num_traits::{ToPrimitive, Zero};
 
 pub trait NumberToBitmap {
-    fn to_bitmap(&self) -> anyhow::Result<Bitmap>;
+    fn to_bitmap(&self) -> anyhow::Result<Image>;
 }
 
 impl NumberToBitmap for BigUint {
-    fn to_bitmap(&self) -> anyhow::Result<Bitmap> {
+    fn to_bitmap(&self) -> anyhow::Result<Image> {
         let bits8: BigUint = 256u32.to_biguint().unwrap();
         let mut current_value = self.clone();
 
@@ -73,7 +73,7 @@ impl NumberToBitmap for BigUint {
             pixels.push(0);
         }
 
-        Bitmap::try_create(width, height, pixels)
+        Image::try_create(width, height, pixels)
     }
 }
 
@@ -86,7 +86,7 @@ mod tests {
         let k: u64 = 256;
         let value_u64: u64 = (255 * k + 1) * k + 1;
         let value_biguint = value_u64.to_biguint().unwrap();
-        let bm: Bitmap = value_biguint.to_bitmap().expect("bitmap");
+        let bm: Image = value_biguint.to_bitmap().expect("bitmap");
         assert_eq!(bm.width(), 1);
         assert_eq!(bm.height(), 1);
         assert_eq!(bm.get(0, 0), Some(255));
@@ -97,7 +97,7 @@ mod tests {
         let k: u64 = 256;
         let value_u64: u64 = ((((8 * k + 7) * k + 6) * k + 5) * k + 2) * k + 2;
         let value_biguint = value_u64.to_biguint().unwrap();
-        let bm: Bitmap = value_biguint.to_bitmap().expect("bitmap");
+        let bm: Image = value_biguint.to_bitmap().expect("bitmap");
         assert_eq!(bm.width(), 2);
         assert_eq!(bm.height(), 2);
         assert_eq!(bm.get(0, 0), Some(5));

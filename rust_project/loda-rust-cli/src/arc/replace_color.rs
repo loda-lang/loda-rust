@@ -1,19 +1,19 @@
-use super::Bitmap;
+use super::Image;
 
 pub trait BitmapReplaceColor {
-    fn replace_color(&self, source: u8, destination: u8) -> anyhow::Result<Bitmap>;
+    fn replace_color(&self, source: u8, destination: u8) -> anyhow::Result<Image>;
 }
 
-impl BitmapReplaceColor for Bitmap {
-    fn replace_color(&self, source: u8, destination: u8) -> anyhow::Result<Bitmap> {
+impl BitmapReplaceColor for Image {
+    fn replace_color(&self, source: u8, destination: u8) -> anyhow::Result<Image> {
         if self.is_empty() {
-            return Ok(Bitmap::empty());
+            return Ok(Image::empty());
         }
         
         let x_max: i32 = (self.width() as i32) - 1;
         let y_max: i32 = (self.height() as i32) - 1;
 
-        let mut bitmap = Bitmap::zeroes(self.width(), self.height());
+        let mut bitmap = Image::zeroes(self.width(), self.height());
         for y in 0..=y_max {
             for x in 0..=x_max {
                 let mut pixel_value: u8 = self.get(x, y).unwrap_or(255);
@@ -45,10 +45,10 @@ mod tests {
             0, 3, 0, 3,
             0, 0, 3, 2,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 3, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 3, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.replace_color(3, 1).expect("bitmap");
+        let actual: Image = input.replace_color(3, 1).expect("bitmap");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -56,7 +56,7 @@ mod tests {
             0, 1, 0, 1,
             0, 0, 1, 2,
         ];
-        let expected: Bitmap = Bitmap::try_create(4, 3, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(4, 3, expected_pixels).expect("bitmap");
         assert_eq!(actual, expected);
     }
 }

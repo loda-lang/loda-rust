@@ -1,11 +1,11 @@
-use super::Bitmap;
+use super::Image;
 
 pub trait BitmapFind {
-    fn find_exact(&self, needle: &Bitmap) -> anyhow::Result<Option<(u8, u8)>>;
+    fn find_exact(&self, needle: &Image) -> anyhow::Result<Option<(u8, u8)>>;
 }
 
-impl BitmapFind for Bitmap {
-    fn find_exact(&self, needle: &Bitmap) -> anyhow::Result<Option<(u8, u8)>> {
+impl BitmapFind for Image {
+    fn find_exact(&self, needle: &Image) -> anyhow::Result<Option<(u8, u8)>> {
         if self.is_empty() {
             return Ok(None);
         }
@@ -69,12 +69,12 @@ mod tests {
             0, 0, 3, 4, 0,
             5, 0, 0, 0, 0,
         ];
-        let input_bitmap: Bitmap = Bitmap::try_create(5, 4, input_pixels).expect("bitmap");
+        let input_bitmap: Image = Image::try_create(5, 4, input_pixels).expect("bitmap");
         let find_pixels: Vec<u8> = vec![
             1, 2,
             3, 4,
         ];
-        let find_bitmap: Bitmap = Bitmap::try_create(2, 2, find_pixels).expect("bitmap");
+        let find_bitmap: Image = Image::try_create(2, 2, find_pixels).expect("bitmap");
 
         // Act
         let actual: Option<(u8, u8)> = input_bitmap.find_exact(&find_bitmap).expect("some position");
@@ -92,8 +92,8 @@ mod tests {
             0, 0, 0, 0, 0,
             1, 0, 0, 0, 6,
         ];
-        let input_bitmap: Bitmap = Bitmap::try_create(5, 4, input_pixels).expect("bitmap");
-        let find_bitmap: Bitmap = Bitmap::try_create(1, 1, vec![6]).expect("bitmap");
+        let input_bitmap: Image = Image::try_create(5, 4, input_pixels).expect("bitmap");
+        let find_bitmap: Image = Image::try_create(1, 1, vec![6]).expect("bitmap");
 
         // Act
         let actual: Option<(u8, u8)> = input_bitmap.find_exact(&find_bitmap).expect("some position");
@@ -111,8 +111,8 @@ mod tests {
             0, 0, 0, 0, 0,
             1, 0, 0, 0, 1,
         ];
-        let input_bitmap: Bitmap = Bitmap::try_create(5, 4, input_pixels).expect("bitmap");
-        let find_bitmap: Bitmap = Bitmap::try_create(1, 1, vec![255]).expect("bitmap");
+        let input_bitmap: Image = Image::try_create(5, 4, input_pixels).expect("bitmap");
+        let find_bitmap: Image = Image::try_create(1, 1, vec![255]).expect("bitmap");
 
         // Act
         let actual: Option<(u8, u8)> = input_bitmap.find_exact(&find_bitmap).expect("some position");

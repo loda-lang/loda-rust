@@ -1,4 +1,4 @@
-use super::{Bitmap, BitmapToNumber, convolution3x3};
+use super::{Image, BitmapToNumber, convolution3x3};
 use anyhow::Context;
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -6,11 +6,11 @@ use num_bigint::{BigInt, BigUint};
 use num_bigint::ToBigInt;
 
 pub trait ConvolutionWithProgram {
-    fn conv3x3_program(&self, program_runner: &ProgramRunner) -> anyhow::Result<Bitmap>;
+    fn conv3x3_program(&self, program_runner: &ProgramRunner) -> anyhow::Result<Image>;
 }
 
-impl ConvolutionWithProgram for Bitmap {
-    fn conv3x3_program(&self, program_runner: &ProgramRunner) -> anyhow::Result<Bitmap> {
+impl ConvolutionWithProgram for Image {
+    fn conv3x3_program(&self, program_runner: &ProgramRunner) -> anyhow::Result<Image> {
         // let mut cache = ProgramCache::new();
         // let step_count_limit: u64 = 1000000000;
         // let mut step_count: u64 = 0;
@@ -92,7 +92,7 @@ mod tests {
             9,10,11,12,
             13,14,15,16,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
 
         let program_content: &str = "
         mov $1,$0
@@ -127,7 +127,7 @@ mod tests {
         let program_runner: ProgramRunner = result_parse.expect("ProgramRunner");
     
         // Act
-        let output: Bitmap = input.conv3x3_program(&program_runner).expect("bitmap");
+        let output: Image = input.conv3x3_program(&program_runner).expect("bitmap");
 
         // Assert
         assert_eq!(output.width(), 2);

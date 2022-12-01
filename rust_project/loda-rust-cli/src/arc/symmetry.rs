@@ -1,22 +1,22 @@
-use super::{Bitmap, BitmapRotate};
+use super::{Image, BitmapRotate};
 
 pub trait BitmapSymmetry {
-    fn flip_x(&self) -> anyhow::Result<Bitmap>;
-    fn flip_y(&self) -> anyhow::Result<Bitmap>;
-    fn flip_xy(&self) -> anyhow::Result<Bitmap>;
+    fn flip_x(&self) -> anyhow::Result<Image>;
+    fn flip_y(&self) -> anyhow::Result<Image>;
+    fn flip_xy(&self) -> anyhow::Result<Image>;
 }
 
-impl BitmapSymmetry for Bitmap {
-    fn flip_x(&self) -> anyhow::Result<Bitmap> {
+impl BitmapSymmetry for Image {
+    fn flip_x(&self) -> anyhow::Result<Image> {
         if self.is_empty() {
-            return Ok(Bitmap::empty());
+            return Ok(Image::empty());
         }
         
         let x_max: i32 = (self.width() as i32) - 1;
         let y_max: i32 = (self.height() as i32) - 1;
 
         // Copy pixels, with x axis flipped
-        let mut bitmap = Bitmap::zeroes(self.width(), self.height());
+        let mut bitmap = Image::zeroes(self.width(), self.height());
         for y in 0..=y_max {
             for x in 0..=x_max {
                 let pixel_value: u8 = self.get(x_max - x, y).unwrap_or(255);
@@ -31,16 +31,16 @@ impl BitmapSymmetry for Bitmap {
         return Ok(bitmap);
     }
 
-    fn flip_y(&self) -> anyhow::Result<Bitmap> {
-        let bitmap0: Bitmap = self.rotate(1)?;
-        let bitmap1: Bitmap = bitmap0.flip_x()?;
-        let bitmap2: Bitmap = bitmap1.rotate(-1)?;
+    fn flip_y(&self) -> anyhow::Result<Image> {
+        let bitmap0: Image = self.rotate(1)?;
+        let bitmap1: Image = bitmap0.flip_x()?;
+        let bitmap2: Image = bitmap1.rotate(-1)?;
         Ok(bitmap2)
     }
 
-    fn flip_xy(&self) -> anyhow::Result<Bitmap> {
-        let bitmap0: Bitmap = self.flip_x()?;
-        let bitmap1: Bitmap = bitmap0.flip_y()?;
+    fn flip_xy(&self) -> anyhow::Result<Image> {
+        let bitmap0: Image = self.flip_x()?;
+        let bitmap1: Image = bitmap0.flip_y()?;
         Ok(bitmap1)
     }
 }
@@ -57,17 +57,17 @@ mod tests {
             3, 2, 1,
             6, 5, 4,
         ];
-        let input: Bitmap = Bitmap::try_create(3, 2, pixels).expect("bitmap");
+        let input: Image = Image::try_create(3, 2, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.flip_x().expect("bitmap");
+        let actual: Image = input.flip_x().expect("bitmap");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
             1, 2, 3,
             4, 5, 6,
         ];
-        let expected: Bitmap = Bitmap::try_create(3, 2, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(3, 2, expected_pixels).expect("bitmap");
         assert_eq!(actual, expected);
     }
 
@@ -79,10 +79,10 @@ mod tests {
             3, 4,
             1, 2,
         ];
-        let input: Bitmap = Bitmap::try_create(2, 3, pixels).expect("bitmap");
+        let input: Image = Image::try_create(2, 3, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.flip_y().expect("bitmap");
+        let actual: Image = input.flip_y().expect("bitmap");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -90,7 +90,7 @@ mod tests {
             3, 4,
             5, 6,
         ];
-        let expected: Bitmap = Bitmap::try_create(2, 3, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(2, 3, expected_pixels).expect("bitmap");
         assert_eq!(actual, expected);
     }
 
@@ -102,10 +102,10 @@ mod tests {
             6, 5, 4,
             3, 2, 1,
         ];
-        let input: Bitmap = Bitmap::try_create(3, 3, pixels).expect("bitmap");
+        let input: Image = Image::try_create(3, 3, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.flip_xy().expect("bitmap");
+        let actual: Image = input.flip_xy().expect("bitmap");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -113,7 +113,7 @@ mod tests {
             4, 5, 6,
             7, 8, 9,
         ];
-        let expected: Bitmap = Bitmap::try_create(3, 3, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(3, 3, expected_pixels).expect("bitmap");
         assert_eq!(actual, expected);
     }
 }

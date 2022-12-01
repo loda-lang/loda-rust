@@ -1,17 +1,17 @@
 use anyhow::Context;
 
-use super::Bitmap;
+use super::Image;
 
-pub fn convolution2x2<F>(bitmap: &Bitmap, callback: F) -> anyhow::Result<Bitmap>
-    where F: Fn(&Bitmap) -> anyhow::Result<u8>
+pub fn convolution2x2<F>(bitmap: &Image, callback: F) -> anyhow::Result<Image>
+    where F: Fn(&Image) -> anyhow::Result<u8>
 {
     let width: u8 = bitmap.width();
     let height: u8 = bitmap.height();
     if width < 2 || height < 2 {
         return Err(anyhow::anyhow!("too small bitmap, must be 2x2 or bigger"));
     }
-    let mut computed_bitmap = Bitmap::zeroes(width - 1, height - 1);
-    let mut conv_bitmap = Bitmap::zeroes(2, 2);
+    let mut computed_bitmap = Image::zeroes(width - 1, height - 1);
+    let mut conv_bitmap = Image::zeroes(2, 2);
     for self_y in 0..height-1 {
         for self_x in 0..width-1 {
             for conv_y in 0..2u8 {
@@ -33,7 +33,7 @@ pub fn convolution2x2<F>(bitmap: &Bitmap, callback: F) -> anyhow::Result<Bitmap>
     Ok(computed_bitmap)
 }
 
-fn conv2x2_max(bm: &Bitmap) -> anyhow::Result<u8> {
+fn conv2x2_max(bm: &Image) -> anyhow::Result<u8> {
     let mut value: u8 = 0;
     for pixel in bm.pixels() {
         value = u8::max(value, *pixel);
@@ -41,7 +41,7 @@ fn conv2x2_max(bm: &Bitmap) -> anyhow::Result<u8> {
     Ok(value)
 }
 
-fn conv2x2_min(bm: &Bitmap) -> anyhow::Result<u8> {
+fn conv2x2_min(bm: &Image) -> anyhow::Result<u8> {
     let mut value: u8 = 255;
     for pixel in bm.pixels() {
         value = u8::min(value, *pixel);
@@ -62,10 +62,10 @@ mod tests {
             4, 5, 6,
             7, 8, 9,
         ];
-        let input: Bitmap = Bitmap::try_create(3, 3, pixels).expect("bitmap");
+        let input: Image = Image::try_create(3, 3, pixels).expect("bitmap");
 
         // Act
-        let output: Bitmap = convolution2x2(&input, |bm| {
+        let output: Image = convolution2x2(&input, |bm| {
             let mut sum: u64 = 0;
             for pixel in bm.pixels() {
                 sum += *pixel as u64;
@@ -92,10 +92,10 @@ mod tests {
             9,10,11,12,
             13,14,15,16,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
 
         // Act
-        let output: Bitmap = convolution2x2(&input, conv2x2_max).expect("bitmap");
+        let output: Image = convolution2x2(&input, conv2x2_max).expect("bitmap");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -103,7 +103,7 @@ mod tests {
             10,11,12,
             14,15,16,
         ];
-        let expected: Bitmap = Bitmap::try_create(3, 3, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(3, 3, expected_pixels).expect("bitmap");
         assert_eq!(output, expected);
     }
 
@@ -116,10 +116,10 @@ mod tests {
             9,10,11,12,
             13,14,15,16,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
 
         // Act
-        let output: Bitmap = convolution2x2(&input, conv2x2_min).expect("bitmap");
+        let output: Image = convolution2x2(&input, conv2x2_min).expect("bitmap");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -127,7 +127,7 @@ mod tests {
             5,6,7,
             9,10,11,
         ];
-        let expected: Bitmap = Bitmap::try_create(3, 3, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(3, 3, expected_pixels).expect("bitmap");
         assert_eq!(output, expected);
     }
 }

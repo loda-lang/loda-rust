@@ -1,16 +1,16 @@
-use super::Bitmap;
+use super::Image;
 
 pub trait BitmapResize {
-    fn resize(&self, width: u8, height: u8) -> anyhow::Result<Bitmap>;
+    fn resize(&self, width: u8, height: u8) -> anyhow::Result<Image>;
 }
 
-impl BitmapResize for Bitmap {
-    fn resize(&self, width: u8, height: u8) -> anyhow::Result<Bitmap> {
+impl BitmapResize for Image {
+    fn resize(&self, width: u8, height: u8) -> anyhow::Result<Image> {
         let len: usize = (width as usize) * (height as usize);
         if len == 0 {
-            return Ok(Bitmap::empty());
+            return Ok(Image::empty());
         }
-        let mut bitmap = Bitmap::zeroes(width, height);
+        let mut bitmap = Image::zeroes(width, height);
         if self.width() == 0 || self.height() == 0 {
             return Ok(bitmap);
         }
@@ -48,13 +48,13 @@ mod tests {
             1, 1, 1, 2, 2, 2, 3, 3, 3,
             4, 4, 4, 5, 5, 5, 6, 6, 6,
         ];
-        let input: Bitmap = Bitmap::try_create(9, 2, pixels).expect("bitmap");
+        let input: Image = Image::try_create(9, 2, pixels).expect("bitmap");
 
         // Act
-        let output: Bitmap = input.resize(3, 2).expect("bitmap");
+        let output: Image = input.resize(3, 2).expect("bitmap");
 
         // Assert
-        let expected = Bitmap::create_raw(3, 2, vec![1, 2, 3, 4, 5, 6]);
+        let expected = Image::create_raw(3, 2, vec![1, 2, 3, 4, 5, 6]);
         assert_eq!(output, expected);
     }
 
@@ -72,13 +72,13 @@ mod tests {
             3, 6,
             3, 6,
         ];
-        let input: Bitmap = Bitmap::try_create(2, 9, pixels).expect("bitmap");
+        let input: Image = Image::try_create(2, 9, pixels).expect("bitmap");
 
         // Act
-        let output: Bitmap = input.resize(2, 3).expect("bitmap");
+        let output: Image = input.resize(2, 3).expect("bitmap");
 
         // Assert
-        let expected = Bitmap::create_raw(2, 3, vec![1, 4, 2, 5, 3, 6]);
+        let expected = Image::create_raw(2, 3, vec![1, 4, 2, 5, 3, 6]);
         assert_eq!(output, expected);
     }
 
@@ -89,13 +89,13 @@ mod tests {
             1, 2,
             3, 4,
         ];
-        let input: Bitmap = Bitmap::try_create(2, 2, pixels).expect("bitmap");
+        let input: Image = Image::try_create(2, 2, pixels).expect("bitmap");
 
         // Act
-        let output: Bitmap = input.resize(4, 2).expect("bitmap");
+        let output: Image = input.resize(4, 2).expect("bitmap");
 
         // Assert
-        let expected = Bitmap::create_raw(4, 2, vec![1, 1, 2, 2, 3, 3, 4, 4]);
+        let expected = Image::create_raw(4, 2, vec![1, 1, 2, 2, 3, 3, 4, 4]);
         assert_eq!(output, expected);
     }
 
@@ -106,13 +106,13 @@ mod tests {
             1, 2,
             3, 4,
         ];
-        let input: Bitmap = Bitmap::try_create(2, 2, pixels).expect("bitmap");
+        let input: Image = Image::try_create(2, 2, pixels).expect("bitmap");
 
         // Act
-        let output: Bitmap = input.resize(2, 4).expect("bitmap");
+        let output: Image = input.resize(2, 4).expect("bitmap");
 
         // Assert
-        let expected = Bitmap::create_raw(2, 4, vec![1, 2, 1, 2, 3, 4, 3, 4]);
+        let expected = Image::create_raw(2, 4, vec![1, 2, 1, 2, 3, 4, 3, 4]);
         assert_eq!(output, expected);
     }
 }

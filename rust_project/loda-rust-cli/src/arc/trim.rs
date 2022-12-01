@@ -1,14 +1,14 @@
-use super::{Bitmap, BitmapHistogram};
+use super::{Image, BitmapHistogram};
 
 pub trait BitmapTrim {
-    fn trim(&self) -> anyhow::Result<Bitmap>;
+    fn trim(&self) -> anyhow::Result<Image>;
 }
 
-impl BitmapTrim for Bitmap {
-    fn trim(&self) -> anyhow::Result<Bitmap> {
+impl BitmapTrim for Image {
+    fn trim(&self) -> anyhow::Result<Image> {
         let len: usize = (self.width() as usize) * (self.height() as usize);
         if len == 0 {
-            return Ok(Bitmap::empty());
+            return Ok(Image::empty());
         }
         
         // Determine what is the most popular pixel value
@@ -47,7 +47,7 @@ impl BitmapTrim for Bitmap {
         }
 
         if found_x0 > found_x1 || found_y0 > found_y1 {
-            return Ok(Bitmap::empty());
+            return Ok(Image::empty());
         }
 
         // Width of the object
@@ -65,7 +65,7 @@ impl BitmapTrim for Bitmap {
         let new_height: u8 = new_height_i32 as u8;
 
         // Copy pixels of the object
-        let mut bitmap: Bitmap = Bitmap::zeroes(new_width, new_height);
+        let mut bitmap: Image = Image::zeroes(new_width, new_height);
         for y in found_y0..=found_y1 {
             for x in found_x0..=found_x1 {
                 let pixel_value: u8 = self.get(x, y).unwrap_or(255);
@@ -97,13 +97,13 @@ mod tests {
             0, 3, 4, 0,
             0, 0, 0, 0,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.trim().expect("bitmap");
+        let actual: Image = input.trim().expect("bitmap");
 
         // Assert
-        let expected: Bitmap = Bitmap::try_create(2, 2, vec![1, 2, 3, 4]).expect("bitmap");
+        let expected: Image = Image::try_create(2, 2, vec![1, 2, 3, 4]).expect("bitmap");
         assert_eq!(actual, expected);
     }
 
@@ -116,13 +116,13 @@ mod tests {
             10,  3,  4, 10, 10,
             10, 10, 10, 10, 10,
         ];
-        let input: Bitmap = Bitmap::try_create(5, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(5, 4, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.trim().expect("bitmap");
+        let actual: Image = input.trim().expect("bitmap");
 
         // Assert
-        let expected: Bitmap = Bitmap::try_create(2, 2, vec![1, 2, 3, 4]).expect("bitmap");
+        let expected: Image = Image::try_create(2, 2, vec![1, 2, 3, 4]).expect("bitmap");
         assert_eq!(actual, expected);
     }
 
@@ -135,13 +135,13 @@ mod tests {
             5, 5, 1, 1,
             5, 1, 1, 1,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.trim().expect("bitmap");
+        let actual: Image = input.trim().expect("bitmap");
 
         // Assert
-        let expected: Bitmap = Bitmap::try_create(2, 2, vec![5, 5, 5, 1]).expect("bitmap");
+        let expected: Image = Image::try_create(2, 2, vec![5, 5, 5, 1]).expect("bitmap");
         assert_eq!(actual, expected);
     }
 
@@ -154,13 +154,13 @@ mod tests {
             0, 0, 1, 0,
             0, 0, 0, 0,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.trim().expect("bitmap");
+        let actual: Image = input.trim().expect("bitmap");
 
         // Assert
-        let expected: Bitmap = Bitmap::try_create(1, 3, vec![1, 1, 1]).expect("bitmap");
+        let expected: Image = Image::try_create(1, 3, vec![1, 1, 1]).expect("bitmap");
         assert_eq!(actual, expected);
     }
 
@@ -173,13 +173,13 @@ mod tests {
             0, 0, 0, 0,
             0, 0, 0, 0,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.trim().expect("bitmap");
+        let actual: Image = input.trim().expect("bitmap");
 
         // Assert
-        let expected: Bitmap = Bitmap::empty();
+        let expected: Image = Image::empty();
         assert_eq!(actual, expected);
     }
 
@@ -192,13 +192,13 @@ mod tests {
             0, 0, 0, 0,
             0, 0, 0, 5,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.trim().expect("bitmap");
+        let actual: Image = input.trim().expect("bitmap");
 
         // Assert
-        let expected: Bitmap = Bitmap::try_create(1, 1, vec![5]).expect("bitmap");
+        let expected: Image = Image::try_create(1, 1, vec![5]).expect("bitmap");
         assert_eq!(actual, expected);
     }
 
@@ -211,13 +211,13 @@ mod tests {
             0, 0, 0, 0,
             0, 0, 0, 5,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.trim().expect("bitmap");
+        let actual: Image = input.trim().expect("bitmap");
 
         // Assert
-        let expected: Bitmap = input.clone();
+        let expected: Image = input.clone();
         assert_eq!(actual, expected);
     }
 }

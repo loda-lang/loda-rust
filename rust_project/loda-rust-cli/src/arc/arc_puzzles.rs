@@ -3,7 +3,7 @@ mod tests {
     use bit_set::BitSet;
 
     use crate::arc::{Model, GridToBitmap, BitmapFind};
-    use crate::arc::{Bitmap, convolution2x2, convolution3x3};
+    use crate::arc::{Image, convolution2x2, convolution3x3};
     use crate::arc::{BitmapResize, BitmapTrim, BitmapRemoveDuplicates, Padding};
     use crate::arc::{BitmapReplaceColor, BitmapSymmetry, BitmapOffset};
     use crate::arc::{BitmapNgram, RecordBigram, RecordTrigram};
@@ -14,16 +14,16 @@ mod tests {
         assert_eq!(model.train().len(), 2);
         assert_eq!(model.test().len(), 1);
 
-        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
-        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        let input: Image = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Image = model.train()[0].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train[1].input.to_bitmap().expect("bitmap");
         // let output: Bitmap = model.train[1].output.to_bitmap().expect("bitmap");
         // let input: Bitmap = model.test[0].input.to_bitmap().expect("bitmap");
         // let output: Bitmap = model.test[0].output.to_bitmap().expect("bitmap");
 
-        let input_padded: Bitmap = input.zero_padding(1).expect("bitmap");
+        let input_padded: Image = input.zero_padding(1).expect("bitmap");
 
-        let result_bm: Bitmap = convolution3x3(&input_padded, |bm| {
+        let result_bm: Image = convolution3x3(&input_padded, |bm| {
             let mut found = false;
             for y in 0..3i32 {
                 for x in 0..3i32 {
@@ -54,16 +54,16 @@ mod tests {
         assert_eq!(model.train().len(), 2);
         assert_eq!(model.test().len(), 1);
 
-        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
-        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        let input: Image = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Image = model.train()[0].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
 
-        let input_padded: Bitmap = input.zero_padding(1).expect("bitmap");
+        let input_padded: Image = input.zero_padding(1).expect("bitmap");
 
-        let result_bm: Bitmap = convolution3x3(&input_padded, |bm| {
+        let result_bm: Image = convolution3x3(&input_padded, |bm| {
             let value: u8 = bm.get(1, 1).unwrap_or(255);
             if value != 5 {
                 // not a noisy pixel
@@ -107,16 +107,16 @@ mod tests {
         assert_eq!(model.train().len(), 2);
         assert_eq!(model.test().len(), 1);
 
-        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
-        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        let input: Image = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Image = model.train()[0].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
 
-        let input_trimmed: Bitmap = input.trim().expect("bitmap");
+        let input_trimmed: Image = input.trim().expect("bitmap");
 
-        let mut result_bitmap = Bitmap::zeroes(3, 3);
+        let mut result_bitmap = Image::zeroes(3, 3);
         for y in 0..3 {
             for x in 0..3 {
                 let pixel_value: u8 = input_trimmed.get(x, y).unwrap_or(255);
@@ -139,8 +139,8 @@ mod tests {
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
-        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
-        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        let input: Image = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Image = model.train()[0].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
@@ -148,8 +148,8 @@ mod tests {
         // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
 
-        let input_trimmed: Bitmap = input.trim().expect("bitmap");
-        let result_bitmap: Bitmap = input_trimmed.remove_duplicates().expect("bitmap");
+        let input_trimmed: Image = input.trim().expect("bitmap");
+        let result_bitmap: Image = input_trimmed.remove_duplicates().expect("bitmap");
         assert_eq!(result_bitmap, output);
         Ok(())
     }
@@ -160,8 +160,8 @@ mod tests {
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
-        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
-        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        let input: Image = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Image = model.train()[0].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
@@ -169,8 +169,8 @@ mod tests {
         // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
 
-        let input_trimmed: Bitmap = input.trim().expect("bitmap");
-        let result_bitmap: Bitmap = input_trimmed.flip_x().expect("bitmap");
+        let input_trimmed: Image = input.trim().expect("bitmap");
+        let result_bitmap: Image = input_trimmed.flip_x().expect("bitmap");
         assert_eq!(result_bitmap, output);
         Ok(())
     }
@@ -181,8 +181,8 @@ mod tests {
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
-        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
-        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        let input: Image = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Image = model.train()[0].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
@@ -191,7 +191,7 @@ mod tests {
         // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
 
         // Extract needle
-        let mut needle: Bitmap = Bitmap::zeroes(3, 3);
+        let mut needle: Image = Image::zeroes(3, 3);
         let center_pixel_color: u8 = input.get(1, 1).unwrap_or(255);
         for y in 0..3i32 {
             for x in 0..3i32 {
@@ -210,7 +210,7 @@ mod tests {
         }
 
         // Clear the needle area from the search area
-        let mut search_area: Bitmap = input.clone();
+        let mut search_area: Image = input.clone();
         for y in 0..4i32 {
             for x in 0..4i32 {
                 match search_area.set(x, y, 0) {
@@ -227,7 +227,7 @@ mod tests {
         // Find the pattern
         let mut optional_position: Option<(u8, u8)> = None;
         for color in 1..=255u8 {
-            let needle_with_color: Bitmap = needle.replace_color(1, color)?;
+            let needle_with_color: Image = needle.replace_color(1, color)?;
             optional_position = search_area.find_exact(&needle_with_color).expect("some position");
             if optional_position == None {
                 continue;
@@ -243,7 +243,7 @@ mod tests {
         // println!("position: {:?}", position);
 
         // Clear color of the found pattern
-        let mut result_bitmap: Bitmap = input.clone();
+        let mut result_bitmap: Image = input.clone();
         for y in 0..3i32 {
             for x in 0..3i32 {
                 let xx = x + (position.0 as i32);
@@ -271,8 +271,8 @@ mod tests {
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
-        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
-        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        let input: Image = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Image = model.train()[0].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
@@ -297,7 +297,7 @@ mod tests {
         }
 
         // Transfer values from the 9 element stack to the 3x3 bitmap
-        let mut result_bitmap: Bitmap = Bitmap::zeroes(3, 3);
+        let mut result_bitmap: Image = Image::zeroes(3, 3);
         for (index, pixel_value) in stack.iter().enumerate() {
             let y: usize = index / 3;
             let mut x: usize = index % 3;
@@ -325,8 +325,8 @@ mod tests {
         assert_eq!(model.train().len(), 5);
         assert_eq!(model.test().len(), 1);
 
-        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
-        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        let input: Image = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Image = model.train()[0].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
@@ -336,7 +336,7 @@ mod tests {
         // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
 
-        let mut result_bitmap: Bitmap = Bitmap::zeroes(9, 9);
+        let mut result_bitmap: Image = Image::zeroes(9, 9);
         for y in 0..input.height() {
             for x in 0..input.width() {
                 let mask_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
@@ -370,8 +370,8 @@ mod tests {
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
-        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
-        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        let input: Image = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Image = model.train()[0].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
@@ -380,7 +380,7 @@ mod tests {
         // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
 
         // Detect corners
-        let corner_bitmap: Bitmap = convolution2x2(&input, |bm| {
+        let corner_bitmap: Image = convolution2x2(&input, |bm| {
             let pixel00: u8 = bm.get(0, 0).unwrap_or(255);
             let pixel10: u8 = bm.get(1, 0).unwrap_or(255);
             let pixel01: u8 = bm.get(0, 1).unwrap_or(255);
@@ -404,7 +404,7 @@ mod tests {
         // println!("bitmap0: {:?}", bitmap0);
 
         // Extract color of the corner
-        let mut result_bitmap: Bitmap = Bitmap::zeroes(1, 1);
+        let mut result_bitmap: Image = Image::zeroes(1, 1);
         for y in 0..corner_bitmap.height() {
             for x in 0..corner_bitmap.width() {
                 let pixel_value: u8 = corner_bitmap.get(x as i32, y as i32).unwrap_or(255);
@@ -429,8 +429,8 @@ mod tests {
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
-        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
-        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        let input: Image = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Image = model.train()[0].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.train()[1].output().to_bitmap().expect("bitmap");
         // let input: Bitmap = model.train()[2].input().to_bitmap().expect("bitmap");
@@ -438,24 +438,24 @@ mod tests {
         // let input: Bitmap = model.test()[0].input().to_bitmap().expect("bitmap");
         // let output: Bitmap = model.test()[0].output().to_bitmap().expect("bitmap");
 
-        let bitmap0: Bitmap = input.offset_wrap(0, 1).expect("bitmap");
-        let bitmap1: Bitmap = bitmap0.replace_color(8, 2).expect("bitmap");
+        let bitmap0: Image = input.offset_wrap(0, 1).expect("bitmap");
+        let bitmap1: Image = bitmap0.replace_color(8, 2).expect("bitmap");
 
         assert_eq!(bitmap1, output);
         Ok(())
     }
 
     /// Detect corners and edges
-    fn mask_and_repair_areas(input: &Bitmap) -> anyhow::Result<(Bitmap, Bitmap)> {
+    fn mask_and_repair_areas(input: &Image) -> anyhow::Result<(Image, Image)> {
         // Assign 0 to background, assign 1 to foreground
-        let mut mask: Bitmap = input.clone();
+        let mut mask: Image = input.clone();
         for pixel_value in 2..=255 {
             mask = mask.replace_color(pixel_value, 1).expect("bitmap");
         }
         // println!("mask: {:?}", mask);
 
         // Detect corners and edges
-        let repair_areas: Bitmap = convolution2x2(&mask, |bm| {
+        let repair_areas: Image = convolution2x2(&mask, |bm| {
             let pixel00: u8 = bm.get(0, 0).unwrap_or(255);
             let pixel10: u8 = bm.get(1, 0).unwrap_or(255);
             let pixel01: u8 = bm.get(0, 1).unwrap_or(255);
@@ -490,7 +490,7 @@ mod tests {
         Ok((mask, repair_areas))
     }
 
-    fn repair_corner_top_left(bitmap: &mut Bitmap, x: i32, y: i32, trigram_x: &Vec<RecordTrigram>, trigram_y: &Vec<RecordTrigram>) -> anyhow::Result<()> {
+    fn repair_corner_top_left(bitmap: &mut Image, x: i32, y: i32, trigram_x: &Vec<RecordTrigram>, trigram_y: &Vec<RecordTrigram>) -> anyhow::Result<()> {
         if x < 1 || y < 1 {
             println!("repair corner top left: {}, {} - insufficient room to make bigram", x, y);
             return Ok(());
@@ -548,8 +548,8 @@ mod tests {
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
-        let input: Bitmap = model.train()[0].input().to_bitmap().expect("bitmap");
-        let output: Bitmap = model.train()[0].output().to_bitmap().expect("bitmap");
+        let input: Image = model.train()[0].input().to_bitmap().expect("bitmap");
+        let output: Image = model.train()[0].output().to_bitmap().expect("bitmap");
 
         // TODO: make the rest of the tests pass OK. Currently these fails.
         // let input: Bitmap = model.train()[1].input().to_bitmap().expect("bitmap");
@@ -593,7 +593,7 @@ mod tests {
         // println!("trigram_x: {:?}", trigram_x);
         // println!("trigram_y: {:?}", trigram_y);
         
-        let mut result_bitmap: Bitmap = input.clone();
+        let mut result_bitmap: Image = input.clone();
 
         let mut last_repair_count: usize = 0;
         for iteration in 0..13 {

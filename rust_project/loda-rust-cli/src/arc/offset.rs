@@ -1,13 +1,13 @@
-use super::Bitmap;
+use super::Image;
 
 pub trait BitmapOffset {
-    fn offset_wrap(&self, x: i32, y: i32) -> anyhow::Result<Bitmap>;
+    fn offset_wrap(&self, x: i32, y: i32) -> anyhow::Result<Image>;
 }
 
-impl BitmapOffset for Bitmap {
-    fn offset_wrap(&self, x: i32, y: i32) -> anyhow::Result<Bitmap> {
+impl BitmapOffset for Image {
+    fn offset_wrap(&self, x: i32, y: i32) -> anyhow::Result<Image> {
         if self.is_empty() {
-            return Ok(Bitmap::empty());
+            return Ok(Image::empty());
         }
         let width: i32 = self.width() as i32;
         let height: i32 = self.height() as i32;
@@ -19,7 +19,7 @@ impl BitmapOffset for Bitmap {
             return Ok(self.clone());
         }
 
-        let mut bitmap = Bitmap::zeroes(self.width(), self.height());
+        let mut bitmap = Image::zeroes(self.width(), self.height());
         for y in 0..height {
             for x in 0..width {
                 let pixel_value: u8 = self.get(x, y).unwrap_or(255);
@@ -49,17 +49,17 @@ mod tests {
             2, 3, 4, 1,
             6, 7, 8, 5,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 2, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 2, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.offset_wrap(1, 0).expect("bitmap");
+        let actual: Image = input.offset_wrap(1, 0).expect("bitmap");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
             1, 2, 3, 4,
             5, 6, 7, 8,
         ];
-        let expected: Bitmap = Bitmap::try_create(4, 2, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(4, 2, expected_pixels).expect("bitmap");
         assert_eq!(actual, expected);
     }
 
@@ -70,17 +70,17 @@ mod tests {
             4, 1, 2, 3,
             8, 5, 6, 7,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 2, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 2, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.offset_wrap(-1, 0).expect("bitmap");
+        let actual: Image = input.offset_wrap(-1, 0).expect("bitmap");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
             1, 2, 3, 4,
             5, 6, 7, 8,
         ];
-        let expected: Bitmap = Bitmap::try_create(4, 2, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(4, 2, expected_pixels).expect("bitmap");
         assert_eq!(actual, expected);
     }
 
@@ -93,10 +93,10 @@ mod tests {
             4, 8,
             1, 5,
         ];
-        let input: Bitmap = Bitmap::try_create(2, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(2, 4, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.offset_wrap(0, 1).expect("bitmap");
+        let actual: Image = input.offset_wrap(0, 1).expect("bitmap");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -105,7 +105,7 @@ mod tests {
             3, 7,
             4, 8,
         ];
-        let expected: Bitmap = Bitmap::try_create(2, 4, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(2, 4, expected_pixels).expect("bitmap");
         assert_eq!(actual, expected);
     }
 
@@ -118,10 +118,10 @@ mod tests {
             2, 6,
             3, 7,
         ];
-        let input: Bitmap = Bitmap::try_create(2, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(2, 4, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.offset_wrap(0, -1).expect("bitmap");
+        let actual: Image = input.offset_wrap(0, -1).expect("bitmap");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -130,7 +130,7 @@ mod tests {
             3, 7,
             4, 8,
         ];
-        let expected: Bitmap = Bitmap::try_create(2, 4, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(2, 4, expected_pixels).expect("bitmap");
         assert_eq!(actual, expected);
     }
 
@@ -143,10 +143,10 @@ mod tests {
             2, 2, 1, 1,
             4, 4, 3, 3,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
 
         // Act
-        let actual: Bitmap = input.offset_wrap(-2, -2).expect("bitmap");
+        let actual: Image = input.offset_wrap(-2, -2).expect("bitmap");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -155,7 +155,7 @@ mod tests {
             5, 5, 6, 6,
             7, 7, 8, 8,
         ];
-        let expected: Bitmap = Bitmap::try_create(4, 4, expected_pixels).expect("bitmap");
+        let expected: Image = Image::try_create(4, 4, expected_pixels).expect("bitmap");
         assert_eq!(actual, expected);
     }
 }

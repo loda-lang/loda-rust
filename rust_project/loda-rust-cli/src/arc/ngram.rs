@@ -1,4 +1,4 @@
-use super::{Bitmap, BitmapRotate};
+use super::{Image, BitmapRotate};
 use std::collections::HashMap;
 
 type HistogramBigramKey = (u8,u8);
@@ -26,7 +26,7 @@ pub trait BitmapNgram {
     fn trigram_y(&self) -> anyhow::Result<Vec<RecordTrigram>>;
 }
 
-impl BitmapNgram for Bitmap {
+impl BitmapNgram for Image {
     
     fn bigram_x(&self) -> anyhow::Result<Vec<RecordBigram>> {
         let width: u8 = self.width();
@@ -81,7 +81,7 @@ impl BitmapNgram for Bitmap {
     }
 
     fn bigram_y(&self) -> anyhow::Result<Vec<RecordBigram>> {
-        let bitmap: Bitmap = self.rotate_cw()?;
+        let bitmap: Image = self.rotate_cw()?;
         bitmap.bigram_x()
     }
 
@@ -142,7 +142,7 @@ impl BitmapNgram for Bitmap {
     }
 
     fn trigram_y(&self) -> anyhow::Result<Vec<RecordTrigram>> {
-        let bitmap: Bitmap = self.rotate_cw()?;
+        let bitmap: Image = self.rotate_cw()?;
         bitmap.trigram_x()
     }
 
@@ -162,7 +162,7 @@ mod tests {
             1, 2, 1,
             9, 1, 2,
         ];
-        let input: Bitmap = Bitmap::try_create(3, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(3, 4, pixels).expect("bitmap");
 
         // Act
         let bigrams: Vec<RecordBigram> = input.bigram_x().expect("bigrams");
@@ -184,7 +184,7 @@ mod tests {
             2, 1, 2, 1,
             1, 2, 1, 2,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 3, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 3, pixels).expect("bitmap");
 
         // Act
         let bigrams: Vec<RecordBigram> = input.bigram_y().expect("bigrams");
@@ -207,7 +207,7 @@ mod tests {
             1, 2, 1, 2,
             9, 1, 2, 1,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
 
         // Act
         let trigrams: Vec<RecordTrigram> = input.trigram_x().expect("trigrams");
@@ -230,7 +230,7 @@ mod tests {
             1, 2, 1, 2,
             2, 1, 2, 1,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
 
         // Act
         let trigrams: Vec<RecordTrigram> = input.trigram_y().expect("trigrams");

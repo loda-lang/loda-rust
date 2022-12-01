@@ -1,21 +1,21 @@
-use super::{Bitmap, BitmapTryCreate};
+use super::{Image, BitmapTryCreate};
 use super::read_testdata;
 use std::fs;
 use std::path::Path;
 use serde::Deserialize;
 
 pub trait GridToBitmap {
-    fn to_bitmap(&self) -> anyhow::Result<Bitmap>;
+    fn to_bitmap(&self) -> anyhow::Result<Image>;
 }
 
 pub type Grid = Vec<Vec<u8>>;
 
 impl GridToBitmap for Grid {
-    fn to_bitmap(&self) -> anyhow::Result<Bitmap> {
+    fn to_bitmap(&self) -> anyhow::Result<Image> {
         // Extract height
         let height_usize: usize = self.len();
         if height_usize == 0 {
-            return Ok(Bitmap::empty());
+            return Ok(Image::empty());
         }
         if height_usize > (u8::MAX as usize) {
             return Err(anyhow::anyhow!("Too many rows in input data. Max 256 is possible"));
@@ -40,7 +40,7 @@ impl GridToBitmap for Grid {
             }
         }
 
-        let instance = Bitmap::try_create(width, height, pixels)?;
+        let instance = Image::try_create(width, height, pixels)?;
         Ok(instance)
     }
 }
@@ -118,7 +118,7 @@ mod tests {
         let grid: Grid = serde_json::from_str(&json_string)?;
 
         // Act
-        let bm: Bitmap = grid.to_bitmap().expect("bitmap");
+        let bm: Image = grid.to_bitmap().expect("bitmap");
 
         // Assert
         assert_eq!(bm.width(), 3);

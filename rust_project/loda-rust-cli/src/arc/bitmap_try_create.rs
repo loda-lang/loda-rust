@@ -1,11 +1,11 @@
-use super::Bitmap;
+use super::Image;
 
 pub trait BitmapTryCreate {
-    fn try_create(width: u8, height: u8, pixels: Vec<u8>) -> anyhow::Result<Bitmap>;
+    fn try_create(width: u8, height: u8, pixels: Vec<u8>) -> anyhow::Result<Image>;
 }
 
-impl BitmapTryCreate for Bitmap {
-    fn try_create(width: u8, height: u8, pixels: Vec<u8>) -> anyhow::Result<Bitmap> {
+impl BitmapTryCreate for Image {
+    fn try_create(width: u8, height: u8, pixels: Vec<u8>) -> anyhow::Result<Image> {
         if width == 0 && height > 0 {
             return Err(anyhow::anyhow!("width=0, but height>0, expected both to be zero"));
         }
@@ -27,7 +27,7 @@ mod tests {
 
     #[test]
     fn test_10000_try_create_ok() {
-        let bm = Bitmap::try_create(2, 2, vec![1,2,3,4]).expect("ok");
+        let bm = Image::try_create(2, 2, vec![1,2,3,4]).expect("ok");
         assert_eq!(bm.width(), 2);
         assert_eq!(bm.height(), 2);
         assert_eq!(bm.pixels().len(), 2 * 2);
@@ -40,8 +40,8 @@ mod tests {
 
     #[test]
     fn test_10001_try_create_error() {
-        Bitmap::try_create(0, 2, vec!()).expect_err("width height should both be zero");
-        Bitmap::try_create(2, 0, vec!()).expect_err("width height should both be zero");
-        Bitmap::try_create(1, 1, vec!()).expect_err("width height doesn't match pixel count");
+        Image::try_create(0, 2, vec!()).expect_err("width height should both be zero");
+        Image::try_create(2, 0, vec!()).expect_err("width height should both be zero");
+        Image::try_create(1, 1, vec!()).expect_err("width height doesn't match pixel count");
     }
 }

@@ -1,17 +1,17 @@
 use anyhow::Context;
 
-use super::Bitmap;
+use super::Image;
 
-pub fn convolution3x3<F>(bitmap: &Bitmap, callback: F) -> anyhow::Result<Bitmap>
-    where F: Fn(&Bitmap) -> anyhow::Result<u8>
+pub fn convolution3x3<F>(bitmap: &Image, callback: F) -> anyhow::Result<Image>
+    where F: Fn(&Image) -> anyhow::Result<u8>
 {
     let width: u8 = bitmap.width();
     let height: u8 = bitmap.height();
     if width < 3 || height < 3 {
         return Err(anyhow::anyhow!("too small bitmap, must be 3x3 or bigger"));
     }
-    let mut computed_bitmap = Bitmap::zeroes(width - 2, height - 2);
-    let mut conv_bitmap = Bitmap::zeroes(3, 3);
+    let mut computed_bitmap = Image::zeroes(width - 2, height - 2);
+    let mut conv_bitmap = Image::zeroes(3, 3);
     for self_y in 0..height-2 {
         for self_x in 0..width-2 {
             for conv_y in 0..3u8 {
@@ -33,7 +33,7 @@ pub fn convolution3x3<F>(bitmap: &Bitmap, callback: F) -> anyhow::Result<Bitmap>
     Ok(computed_bitmap)
 }
 
-fn conv3x3_max(bm: &Bitmap) -> anyhow::Result<u8> {
+fn conv3x3_max(bm: &Image) -> anyhow::Result<u8> {
     let mut value: u8 = 0;
     for pixel in bm.pixels() {
         value = u8::max(value, *pixel);
@@ -41,7 +41,7 @@ fn conv3x3_max(bm: &Bitmap) -> anyhow::Result<u8> {
     Ok(value)
 }
 
-fn conv3x3_min(bm: &Bitmap) -> anyhow::Result<u8> {
+fn conv3x3_min(bm: &Image) -> anyhow::Result<u8> {
     let mut value: u8 = 255;
     for pixel in bm.pixels() {
         value = u8::min(value, *pixel);
@@ -57,10 +57,10 @@ mod tests {
     #[test]
     fn test_10000_callback() {
         // Arrange
-        let input: Bitmap = Bitmap::try_create(3, 3, vec![1,2,3,4,5,6,7,8,9]).expect("bitmap");
+        let input: Image = Image::try_create(3, 3, vec![1,2,3,4,5,6,7,8,9]).expect("bitmap");
 
         // Act
-        let output: Bitmap = convolution3x3(&input, |bm| {
+        let output: Image = convolution3x3(&input, |bm| {
             let mut sum: u64 = 0;
             for pixel in bm.pixels() {
                 sum += *pixel as u64;
@@ -84,10 +84,10 @@ mod tests {
             9,10,11,12,
             13,14,15,16,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
 
         // Act
-        let output: Bitmap = convolution3x3(&input, conv3x3_max).expect("bitmap");
+        let output: Image = convolution3x3(&input, conv3x3_max).expect("bitmap");
 
         // Assert
         assert_eq!(output.width(), 2);
@@ -107,10 +107,10 @@ mod tests {
             9,10,11,12,
             13,14,15,16,
         ];
-        let input: Bitmap = Bitmap::try_create(4, 4, pixels).expect("bitmap");
+        let input: Image = Image::try_create(4, 4, pixels).expect("bitmap");
 
         // Act
-        let output: Bitmap = convolution3x3(&input, conv3x3_min).expect("bitmap");
+        let output: Image = convolution3x3(&input, conv3x3_min).expect("bitmap");
 
         // Assert
         assert_eq!(output.width(), 2);

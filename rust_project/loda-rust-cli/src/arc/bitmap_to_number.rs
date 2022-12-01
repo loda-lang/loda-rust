@@ -1,4 +1,4 @@
-use super::Bitmap;
+use super::Image;
 use num_bigint::BigUint;
 use num_traits::Zero;
 
@@ -6,7 +6,7 @@ pub trait BitmapToNumber {
     fn to_number(&self) -> anyhow::Result<BigUint>;
 }
 
-impl BitmapToNumber for Bitmap {
+impl BitmapToNumber for Image {
     fn to_number(&self) -> anyhow::Result<BigUint> {
         let mut value = BigUint::zero();
         if self.pixels().len() != ((self.width() as usize) * (self.height() as usize)) {
@@ -33,31 +33,31 @@ mod tests {
     fn test_10000_bitmap_to_number_ok() {
         let k: u64 = 256;
         {
-            let bm = Bitmap::create_raw(0, 0, vec!());
+            let bm = Image::create_raw(0, 0, vec!());
             assert_eq!(bm.to_number().unwrap(), BigUint::zero());
         }
         {
-            let bm = Bitmap::create_raw(1, 1, vec![0]);
+            let bm = Image::create_raw(1, 1, vec![0]);
             let value: u64 = 1 * k + 1;
             assert_eq!(bm.to_number().unwrap(), value.to_biguint().unwrap());
         }
         {
-            let bm = Bitmap::create_raw(1, 1, vec![255]);
+            let bm = Image::create_raw(1, 1, vec![255]);
             let value: u64 = (255 * k + 1) * k + 1;
             assert_eq!(bm.to_number().unwrap(), value.to_biguint().unwrap());
         }
         {
-            let bm = Bitmap::create_raw(3, 1, vec![5, 6, 7]);
+            let bm = Image::create_raw(3, 1, vec![5, 6, 7]);
             let value: u64 = (((7 * k + 6) * k + 5) * k + 1) * k + 3;
             assert_eq!(bm.to_number().unwrap(), value.to_biguint().unwrap());
         }
         {
-            let bm = Bitmap::create_raw(1, 3, vec![5, 6, 7]);
+            let bm = Image::create_raw(1, 3, vec![5, 6, 7]);
             let value: u64 = (((7 * k + 6) * k + 5) * k + 3) * k + 1;
             assert_eq!(bm.to_number().unwrap(), value.to_biguint().unwrap());
         }
         {
-            let bm = Bitmap::create_raw(2, 2, vec![5, 6, 7, 8]);
+            let bm = Image::create_raw(2, 2, vec![5, 6, 7, 8]);
             let value: u64 = ((((8 * k + 7) * k + 6) * k + 5) * k + 2) * k + 2;
             assert_eq!(bm.to_number().unwrap(), value.to_biguint().unwrap());
         }
@@ -66,11 +66,11 @@ mod tests {
     #[test]
     fn test_10001_bitmap_to_number_error() {
         {
-            let bm = Bitmap::create_raw(0, 0, vec![5]);
+            let bm = Image::create_raw(0, 0, vec![5]);
             bm.to_number().expect_err("expected 0 pixels");
         }
         {
-            let bm = Bitmap::create_raw(1, 1, vec!());
+            let bm = Image::create_raw(1, 1, vec!());
             bm.to_number().expect_err("expected 1 pixel");
         }
     }
