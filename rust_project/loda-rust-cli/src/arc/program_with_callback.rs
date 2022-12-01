@@ -7,6 +7,7 @@ mod tests {
     use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
     use loda_rust_core::unofficial_function::register_common_functions;
     use crate::config::Config;
+    use crate::arc::register_arc_functions;
     use num_bigint::{BigInt, ToBigInt};
     use std::path::PathBuf;
 
@@ -17,6 +18,16 @@ mod tests {
         mov $1,10
         mov $2,1
         f31 $0,1 ; Sum of 3 values
+
+        ;mov $0,257
+        ;mov $1,1
+        ;mov $2,0
+        ;f31 $0,100001
+
+        ;mov $0,257
+        ;mov $1,1
+        ;mov $2,0
+        ;f11 $0,100002
         ";
 
         let config = Config::load();
@@ -24,6 +35,7 @@ mod tests {
     
         let registry = UnofficialFunctionRegistry::new();
         register_common_functions(&registry);
+        register_arc_functions(&registry);
 
         let mut dm = DependencyManager::new(
             DependencyManagerFileSystemMode::System,
