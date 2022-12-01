@@ -16,10 +16,10 @@ mod tests {
 
         let input: Image = model.train()[0].input().to_image().expect("image");
         let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Bitmap = model.train[1].input.to_bitmap().expect("image");
-        // let output: Bitmap = model.train[1].output.to_bitmap().expect("image");
-        // let input: Bitmap = model.test[0].input.to_bitmap().expect("image");
-        // let output: Bitmap = model.test[0].output.to_bitmap().expect("image");
+        // let input: Image = model.train[1].input.to_image().expect("image");
+        // let output: Image = model.train[1].output.to_image().expect("image");
+        // let input: Image = model.test[0].input.to_image().expect("image");
+        // let output: Image = model.test[0].output.to_image().expect("image");
 
         let input_padded: Image = input.zero_padding(1).expect("image");
 
@@ -56,10 +56,10 @@ mod tests {
 
         let input: Image = model.train()[0].input().to_image().expect("image");
         let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
 
         let input_padded: Image = input.zero_padding(1).expect("image");
 
@@ -109,10 +109,10 @@ mod tests {
 
         let input: Image = model.train()[0].input().to_image().expect("image");
         let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
 
         let input_trimmed: Image = input.trim().expect("image");
 
@@ -141,12 +141,12 @@ mod tests {
 
         let input: Image = model.train()[0].input().to_image().expect("image");
         let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
 
         let input_trimmed: Image = input.trim().expect("image");
         let result_bitmap: Image = input_trimmed.remove_duplicates().expect("image");
@@ -162,12 +162,12 @@ mod tests {
 
         let input: Image = model.train()[0].input().to_image().expect("image");
         let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
 
         let input_trimmed: Image = input.trim().expect("image");
         let result_bitmap: Image = input_trimmed.flip_x().expect("image");
@@ -183,12 +183,12 @@ mod tests {
 
         let input: Image = model.train()[0].input().to_image().expect("image");
         let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
 
         // Extract needle
         let mut needle: Image = Image::zero(3, 3);
@@ -273,12 +273,12 @@ mod tests {
 
         let input: Image = model.train()[0].input().to_image().expect("image");
         let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
 
         // Traverse columns
         let mut stack: Vec<u8> = vec!();
@@ -327,14 +327,14 @@ mod tests {
 
         let input: Image = model.train()[0].input().to_image().expect("image");
         let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.train()[3].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[3].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.train()[3].input().to_image().expect("image");
+        // let output: Image = model.train()[3].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
 
         let mut result_bitmap: Image = Image::zero(9, 9);
         for y in 0..input.height() {
@@ -372,12 +372,12 @@ mod tests {
 
         let input: Image = model.train()[0].input().to_image().expect("image");
         let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
 
         // Detect corners
         let corner_bitmap: Image = convolution2x2(&input, |bm| {
@@ -431,12 +431,12 @@ mod tests {
 
         let input: Image = model.train()[0].input().to_image().expect("image");
         let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
 
         let bitmap0: Image = input.offset_wrap(0, 1).expect("image");
         let bitmap1: Image = bitmap0.replace_color(8, 2).expect("image");
@@ -552,12 +552,12 @@ mod tests {
         let output: Image = model.train()[0].output().to_image().expect("image");
 
         // TODO: make the rest of the tests pass OK. Currently these fails.
-        // let input: Bitmap = model.train()[1].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[1].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.train()[2].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.train()[2].output().to_bitmap().expect("image");
-        // let input: Bitmap = model.test()[0].input().to_bitmap().expect("image");
-        // let output: Bitmap = model.test()[0].output().to_bitmap().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
 
         // Bigrams
         // let bigram_x_unfiltered: Vec<RecordBigram> = input.bigram_x().expect("bigram");
