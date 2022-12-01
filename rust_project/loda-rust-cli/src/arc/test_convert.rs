@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{Image, BitmapToNumber, NumberToBitmap};
+    use crate::arc::{Image, ImageToNumber, NumberToBitmap};
     use num_bigint::BigUint;
 
     #[test]

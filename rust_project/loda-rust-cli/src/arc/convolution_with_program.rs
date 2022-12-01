@@ -1,4 +1,4 @@
-use super::{Image, BitmapToNumber, convolution3x3};
+use super::{Image, ImageToNumber, convolution3x3};
 use anyhow::Context;
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;

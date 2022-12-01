@@ -2,11 +2,11 @@ use super::Image;
 use num_bigint::BigUint;
 use num_traits::Zero;
 
-pub trait BitmapToNumber {
+pub trait ImageToNumber {
     fn to_number(&self) -> anyhow::Result<BigUint>;
 }
 
-impl BitmapToNumber for Image {
+impl ImageToNumber for Image {
     fn to_number(&self) -> anyhow::Result<BigUint> {
         let mut value = BigUint::zero();
         if self.pixels().len() != ((self.width() as usize) * (self.height() as usize)) {
@@ -30,7 +30,7 @@ mod tests {
     use num_bigint::ToBigUint;
 
     #[test]
-    fn test_10000_bitmap_to_number_ok() {
+    fn test_10000_to_number_ok() {
         let k: u64 = 256;
         {
             let bm = Image::create_raw(0, 0, vec!());
@@ -64,7 +64,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_bitmap_to_number_error() {
+    fn test_10001_to_number_error() {
         {
             let bm = Image::create_raw(0, 0, vec![5]);
             bm.to_number().expect_err("expected 0 pixels");

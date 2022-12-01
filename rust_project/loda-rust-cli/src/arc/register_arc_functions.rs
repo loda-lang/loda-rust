@@ -1,4 +1,4 @@
-use super::{Image, BitmapToNumber, NumberToBitmap, BitmapOffset};
+use super::{Image, ImageToNumber, NumberToBitmap, BitmapOffset};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
