@@ -1,9 +1,8 @@
-use super::{EvalError, ProgramSerializerContext, ProgramCache, Node, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
+use super::{EvalError, ProgramSerializerContext, ProgramCache, Node, ProgramState, ProgramRunnerManager, ValidateCallError};
 use super::PerformCheckValue;
 use crate::parser::InstructionParameter;
 use crate::unofficial_function::UnofficialFunction;
 use num_bigint::BigInt;
-use std::rc::Rc;
 use std::sync::Arc;
 
 pub struct NodeUnofficialFunction {
@@ -11,27 +10,16 @@ pub struct NodeUnofficialFunction {
     output_count: u8,
     target: InstructionParameter,
     function_id: u32,
-    program_runner_rc: Rc::<ProgramRunner>,
-    link_established: bool,
     unofficial_function: Arc<Box<dyn UnofficialFunction>>,
 }
 
 impl NodeUnofficialFunction {
     pub fn new(input_count: u8, output_count: u8, target: InstructionParameter, function_id: u32, unofficial_function: Arc<Box<dyn UnofficialFunction>>) -> Self {
-        let dummy_program = Program::new();
-        let program_runner = ProgramRunner::new(
-            ProgramId::ProgramWithoutId,
-            dummy_program
-        );
-        let program_runner_rc = Rc::new(program_runner);
-
         Self {
             input_count,
             output_count,
             target: target,
             function_id,
-            program_runner_rc: program_runner_rc,
-            link_established: false,
             unofficial_function: unofficial_function,
         }
     }
@@ -49,9 +37,6 @@ impl Node for NodeUnofficialFunction {
     }
 
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
-        if !self.link_established { // TODO: get rid of this NodeSeq remain
-            panic!("No link have been establish. This node cannot do its job.");
-        }
         let input: BigInt = state.get(&self.target, false)?;
 
         // TODO: deal with indirect memory
@@ -111,34 +96,13 @@ impl Node for NodeUnofficialFunction {
         Ok(())
     }
 
-    fn update_call(&mut self, program_manager: &mut ProgramRunnerManager) {
-        if self.link_established { // TODO: get rid of this NodeSeq remain
-            panic!("The link have already been establish. Double assigning a link should not happen.");
-        }
-        let program_id: u64 = self.function_id as u64;
-
-        let program_runner: Rc::<ProgramRunner> = match program_manager.get(program_id) {
-            Some(value) => value,
-            None => {
-                panic!("NodeCall. Unable to get program_id: {}", program_id);
-            }
-        };
-
-        self.program_runner_rc = program_runner;
-        self.link_established = true;
-        //trace!("NodeCall: update_call. program_id: {}", program_id);
+    fn update_call(&mut self, _program_manager: &mut ProgramRunnerManager) {
     }
 
-    fn accumulate_call_dependencies(&self, program_id_vec: &mut Vec<u64>) {
-        program_id_vec.push(self.function_id as u64); // TODO: get rid of this NodeSeq remain
+    fn accumulate_call_dependencies(&self, _program_id_vec: &mut Vec<u64>) {
     }
 
     fn validate_call_nodes(&self) -> Result<(), ValidateCallError> {
-        if !self.link_established { // TODO: get rid of this NodeSeq remain
-            // There is no connection with the program that we depend on.
-            // Without the working dependency, this node cannot do its job correctly.
-            return Err(ValidateCallError {});
-        }
         Ok(())
     }
 }
