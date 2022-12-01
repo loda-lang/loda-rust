@@ -1,6 +1,7 @@
 //! Unofficial functions specific for `LODA-RUST`, that may become official in the future.
 
 mod product;
+mod sort;
 mod sum;
 mod test_util;
 mod unofficial_function;
