@@ -31,46 +31,35 @@ impl UnofficialFunction for SumFunction {
         for i in input {
             sum = sum.add(i);
         }
-        let output: Vec<BigInt> = vec![sum];
-        Ok(output)
+        Ok(vec![sum])
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    // use crate::execute::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
-    // use num_bigint::{BigInt, ToBigInt};
-    // use num_traits::Zero;
-    // use std::ops::Add;
-    // use std::path::PathBuf;
+    use crate::execute::UnofficialFunction;
+    use num_bigint::{BigInt, ToBigInt};
+    use num_traits::ToPrimitive;
 
-    // trait TestRun {
-    //     fn test_run();    
-    // }
-
-    // impl TestRun for dyn UnofficialFunction {
-    //     fn test_run() {
-    //         println!("hello world");
-    //     }
-    // }
-
-
-    // fn run(f: Box<dyn UnofficialFunction>) {
-
-    // }
+    fn run(f: Box<dyn UnofficialFunction>, input: Vec<i32>) -> anyhow::Result<Vec<i32>> {
+        let input_vec: Vec<BigInt> = input.iter().map(|v| v.to_bigint().unwrap() ).collect();
+        let output_bigints: Vec<BigInt> = f.run(input_vec)?;
+        let output: Vec<i32> = output_bigints.iter().map(|v| v.to_i32().unwrap() ).collect();
+        Ok(output)
+    }
 
     #[test]
-    fn test_1() -> anyhow::Result<()> {
-        let _f = SumFunction::new(1234, 2);
-
-        // f.test_run();
-        // run(Box::new(f));
-        // Assert
-        // let input_vec: Vec<BigInt> = vec![1000.to_bigint().unwrap(), 1.to_bigint().unwrap()];
-        // let output_vec: Vec<BigInt> = unofficial_function.run(input_vec).expect("output");
-        // let expected_output_vec: Vec<BigInt> = vec![1001.to_bigint().unwrap()];
-        // assert_eq!(output_vec, expected_output_vec);
-        Ok(())
+    fn test_ok() {
+        {
+            let f = SumFunction::new(0, 2);
+            let v = run(Box::new(f), vec![1001, -1]).expect("output");
+            assert_eq!(v, vec![1000]);
+        }
+        {
+            let f = SumFunction::new(0, 4);
+            let v = run(Box::new(f), vec![100, 1, 1000, 10]).expect("output");
+            assert_eq!(v, vec![1111]);
+        }
     }
 }
