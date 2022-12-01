@@ -41,36 +41,28 @@ impl UnofficialFunction for ProductFunction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use num_bigint::{BigInt, ToBigInt};
-    use num_traits::ToPrimitive;
-
-    fn run(f: Box<dyn UnofficialFunction>, input: Vec<i32>) -> anyhow::Result<Vec<i32>> {
-        let input_vec: Vec<BigInt> = input.iter().map(|v| v.to_bigint().unwrap() ).collect();
-        let output_bigints: Vec<BigInt> = f.run(input_vec)?;
-        let output: Vec<i32> = output_bigints.iter().map(|v| v.to_i32().unwrap() ).collect();
-        Ok(output)
-    }
+    use super::super::perform_run;
 
     #[test]
     fn test_ok() {
         {
             let f = ProductFunction::new(0, 0);
-            let v = run(Box::new(f), vec!()).expect("output");
+            let v = perform_run(Box::new(f), vec!()).expect("output");
             assert_eq!(v, vec![0]);
         }
         {
             let f = ProductFunction::new(0, 1);
-            let v = run(Box::new(f), vec![-42]).expect("output");
+            let v = perform_run(Box::new(f), vec![-42]).expect("output");
             assert_eq!(v, vec![-42]);
         }
         {
             let f = ProductFunction::new(0, 2);
-            let v = run(Box::new(f), vec![2, 3]).expect("output");
+            let v = perform_run(Box::new(f), vec![2, 3]).expect("output");
             assert_eq!(v, vec![6]);
         }
         {
             let f = ProductFunction::new(0, 3);
-            let v = run(Box::new(f), vec![2, 3, -4]).expect("output");
+            let v = perform_run(Box::new(f), vec![2, 3, -4]).expect("output");
             assert_eq!(v, vec![-24]);
         }
     }
