@@ -14,11 +14,16 @@ impl Image {
         Self { width: 0, height: 0, pixels: vec!() }
     }
 
+    /// Create an `Image` instance, filled with `color`
+    pub fn color(width: u8, height: u8, color: u8) -> Self {
+        let len: usize = (width as usize) * (height as usize);
+        let pixels: Vec<u8> = vec![color; len];
+        Self { width, height, pixels }
+    }
+
     /// Create an `Image` instance, filled with zeroes
     pub fn zeroes(width: u8, height: u8) -> Self {
-        let len: usize = (width as usize) * (height as usize);
-        let pixels: Vec<u8> = vec![0; len];
-        Self { width, height, pixels }
+        Self::color(width, height, 0)
     }
 
     /// Create a `Image` instance without any checks of the data
@@ -108,7 +113,21 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_init_zero() {
+    fn test_10001_init_color() {
+        let bm = Image::color(4, 3, 1);
+        assert_eq!(bm.width(), 4);
+        assert_eq!(bm.height(), 3);
+        assert_eq!(bm.pixels().len(), 4 * 3);
+        assert_eq!(bm.is_empty(), false);
+        let mut sum: usize = 0;
+        for pixel in bm.pixels() {
+            sum += *pixel as usize;
+        }
+        assert_eq!(sum, 12);
+    }
+
+    #[test]
+    fn test_10002_init_zero() {
         let bm = Image::zeroes(4, 3);
         assert_eq!(bm.width(), 4);
         assert_eq!(bm.height(), 3);
