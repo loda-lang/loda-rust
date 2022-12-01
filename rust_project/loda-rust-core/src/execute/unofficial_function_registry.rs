@@ -28,16 +28,17 @@ impl UnofficialFunctionRegistry {
 
     pub fn register(&self, plugin: Arc<Box<dyn UnofficialFunction>>) {
         let key: UnofficialFunctionId = plugin.id();
-        match self.inner.write().unwrap().plugin_dict.insert(key, plugin) {
+        let mut inner = self.inner.write().expect("UnofficialFunctionRegistry.register() RwLock poisoned");
+        match inner.plugin_dict.insert(key, plugin) {
             Some(_) => {
-                debug!("UnofficialFunctionRegistry.register({:?}) overwriting existing value", key);
+                error!("UnofficialFunctionRegistry.register({:?}) overwriting existing value", key);
             },
             None => {}
         }
     }
 
     pub fn lookup(&self, key: UnofficialFunctionId) -> Option<Arc<Box<dyn UnofficialFunction>>> {
-        let inner = self.inner.read().expect("RwLock poisoned");
+        let inner = self.inner.read().expect("UnofficialFunctionRegistry.lookup() RwLock poisoned");
         if let Some(value) = inner.plugin_dict.get(&key) {
             return Some(value.clone());
         }
