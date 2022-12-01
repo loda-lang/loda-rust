@@ -154,6 +154,32 @@ mod tests {
         Ok(())
     }
 
+    // #[test]
+    fn test_40001_puzzle_90c28cc7_loda() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("90c28cc7")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let program = "
+        f11 $0,100003 ; trim
+        f11 $0,100004 ; remove duplicates
+        ";
+
+        // TODO: run the program, input=image, output=image
+        // let result_output: Image = run(program, input).expect("image");
+        // assert_eq!(result_bitmap, output);
+        Ok(())
+    }
+
     #[test]
     fn test_50000_puzzle_7468f01a() -> anyhow::Result<()> {
         let model: Model = Model::load_testdata("7468f01a")?;
