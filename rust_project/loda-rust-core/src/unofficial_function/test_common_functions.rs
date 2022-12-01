@@ -18,7 +18,7 @@ mod tests {
         mov $3,1
         f41 $0,1 ; Sum of 4 values
         ";
-        let v: i64 = run11(program, 0).expect("output");
+        let v: i64 = run(program, 0).expect("output");
         assert_eq!(v, 1111);
     }
 
@@ -30,7 +30,7 @@ mod tests {
         mov $2,4
         f31 $0,2 ; Product of 3 values
         ";
-        let v: i64 = run11(program, 0).expect("output");
+        let v: i64 = run(program, 0).expect("output");
         assert_eq!(v, 24);
     }
 
@@ -43,12 +43,12 @@ mod tests {
         mov $3,98
         f44 $0,3 ; Sorting 4 values
         ";
-        let v: i64 = run11(program, 0).expect("output");
+        let v: i64 = run(program, 0).expect("output");
         assert_eq!(v, -20);
     }
 
     /// Run program with 1 input and 1 output
-    fn run11<S: AsRef<str>>(program: S, input: i64) -> anyhow::Result<i64> {
+    fn run<S: AsRef<str>>(program: S, input: i64) -> anyhow::Result<i64> {
         let program_str: &str = program.as_ref();
         let program_string: String = program_str.to_string();
 
