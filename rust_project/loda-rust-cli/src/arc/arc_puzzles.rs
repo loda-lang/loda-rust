@@ -1,12 +1,20 @@
 #[cfg(test)]
 mod tests {
-    use bit_set::BitSet;
-
-    use crate::arc::{Model, GridToImage, ImageFind};
+    use crate::arc::{Model, GridToImage, ImageFind, ImageToNumber, NumberToImage};
     use crate::arc::{Image, convolution2x2, convolution3x3};
     use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset};
     use crate::arc::{ImageNgram, RecordTrigram};
+    use crate::arc::register_arc_functions;
+    use loda_rust_core::execute::ProgramId;
+    use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
+    use loda_rust_core::execute::NodeRegisterLimit;
+    use loda_rust_core::unofficial_function::UnofficialFunctionRegistry;
+    use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+    use bit_set::BitSet;
+    use num_bigint::{BigInt, BigUint, ToBigInt};
+    use num_traits::Signed;
+    use std::path::PathBuf;
 
     #[test]
     fn test_10000_puzzle_4258a5f9() -> anyhow::Result<()> {
@@ -154,7 +162,7 @@ mod tests {
         Ok(())
     }
 
-    // #[test]
+    #[test]
     fn test_40001_puzzle_90c28cc7_loda() -> anyhow::Result<()> {
         let model: Model = Model::load_testdata("90c28cc7")?;
         assert_eq!(model.train().len(), 3);
@@ -174,9 +182,56 @@ mod tests {
         f11 $0,100004 ; remove duplicates
         ";
 
-        // TODO: run the program, input=image, output=image
-        // let result_output: Image = run(program, input).expect("image");
-        // assert_eq!(result_bitmap, output);
+        let input_number_uint: BigUint = input.to_number().expect("input image to number");
+        let input_number_int: BigInt = input_number_uint.to_bigint().expect("input BigUint to BigInt");
+
+        let output_count: u8 = 1;
+
+        let registry = UnofficialFunctionRegistry::new();
+        register_arc_functions(&registry);
+
+        let mut dm = DependencyManager::new(
+            DependencyManagerFileSystemMode::Virtual,
+            PathBuf::from("non-existing-dir"),
+            registry,
+        );
+        let result_parse = dm.parse(ProgramId::ProgramWithoutId, &program.to_string());
+
+        let program_runner: ProgramRunner = result_parse.expect("ProgramRunner");
+
+        let step_count_limit: u64 = 1000000000;
+        let mut cache = ProgramCache::new();
+        let mut step_count: u64 = 0;
+
+        // Input
+        let input_bigint: Vec<BigInt> = vec![input_number_int];
+        
+        // Run
+        let result_run = program_runner.run_vec(
+            input_bigint, 
+            RunMode::Silent, 
+            &mut step_count, 
+            step_count_limit,
+            NodeRegisterLimit::Unlimited,
+            NodeLoopLimit::Unlimited,
+            &mut cache,
+            output_count,
+        );
+        let output_vec: Vec<BigInt> = result_run.expect("output");
+
+        // Output
+        if output_vec.len() != 1 {
+            return Err(anyhow::anyhow!("output_vec. Expected 1 output value, but got {:?}", output_vec.len()));
+        }
+        let output0_int: &BigInt = &output_vec[0];
+        if output0_int.is_negative() {
+            return Err(anyhow::anyhow!("output0. Expected non-negative number, but got {:?}", output0_int));
+        }
+        let output0_uint: BigUint = output0_int.to_biguint().expect("output biguint");
+        let output0_image: Image = output0_uint.to_image().expect("output uint to image");
+
+        // Assert
+        assert_eq!(output0_image, output);
         Ok(())
     }
 
