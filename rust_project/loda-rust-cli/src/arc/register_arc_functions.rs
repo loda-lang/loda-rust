@@ -221,10 +221,53 @@ impl UnofficialFunction for ImageReplaceColorFunction {
     }
 }
 
+pub struct ImageWithColorFunction {
+    id: u32,
+}
+
+impl ImageWithColorFunction {
+    pub fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageWithColorFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Create new image with size (x, y) and filled with color z".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is width
+        let image_width: u8 = input[0].to_u8().context("u8 image_width")?;
+
+        // input1 is height
+        let image_height: u8 = input[1].to_u8().context("u8 image_height")?;
+
+        // input2 is color
+        let fill_color: u8 = input[2].to_u8().context("u8 fill_color")?;
+
+        let output_image: Image = Image::color(image_width, image_height, fill_color);
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageOffsetFunction::new(100001))));
     registry.register(Arc::new(Box::new(ImageRotateFunction::new(100002))));
     registry.register(Arc::new(Box::new(ImageTrimFunction::new(100003))));
     registry.register(Arc::new(Box::new(ImageRemoveDuplicatesFunction::new(100004))));
     registry.register(Arc::new(Box::new(ImageReplaceColorFunction::new(100005))));
+    registry.register(Arc::new(Box::new(ImageWithColorFunction::new(100006))));
 }
