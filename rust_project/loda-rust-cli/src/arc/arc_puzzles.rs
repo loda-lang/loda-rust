@@ -181,7 +181,15 @@ mod tests {
         f11 $0,100003 ; trim
         f11 $0,100004 ; remove duplicates
         ";
+        let actual: Image = run_image(program, input).expect("image");
 
+        assert_eq!(actual, output);
+        Ok(())
+    }
+
+    fn run_image<S: AsRef<str>>(program: S, input: Image) -> anyhow::Result<Image> {
+        let program_str: &str = program.as_ref();
+        let program_string: String = program_str.to_string();
         let input_number_uint: BigUint = input.to_number().expect("input image to number");
         let input_number_int: BigInt = input_number_uint.to_bigint().expect("input BigUint to BigInt");
 
@@ -195,7 +203,7 @@ mod tests {
             PathBuf::from("non-existing-dir"),
             registry,
         );
-        let result_parse = dm.parse(ProgramId::ProgramWithoutId, &program.to_string());
+        let result_parse = dm.parse(ProgramId::ProgramWithoutId, &program_string);
 
         let program_runner: ProgramRunner = result_parse.expect("ProgramRunner");
 
@@ -229,10 +237,7 @@ mod tests {
         }
         let output0_uint: BigUint = output0_int.to_biguint().expect("output biguint");
         let output0_image: Image = output0_uint.to_image().expect("output uint to image");
-
-        // Assert
-        assert_eq!(output0_image, output);
-        Ok(())
+        Ok(output0_image)
     }
 
     #[test]
