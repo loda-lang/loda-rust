@@ -4,10 +4,12 @@ use std::fs;
 use std::path::Path;
 use serde::Deserialize;
 
+#[allow(dead_code)]
 pub trait GridToImage {
     fn to_image(&self) -> anyhow::Result<Image>;
 }
 
+#[allow(dead_code)]
 pub type Grid = Vec<Vec<u8>>;
 
 impl GridToImage for Grid {
@@ -45,6 +47,7 @@ impl GridToImage for Grid {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct TaskPair {
     input: Grid,
@@ -61,6 +64,7 @@ impl TaskPair {
     }
 }
 
+#[allow(dead_code)]
 pub struct ImagePair {
     pub input: Image,
     pub output: Image,
@@ -73,6 +77,7 @@ enum ModelImagePairMode {
     Test,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Model {
     train: Vec<TaskPair>,
@@ -80,22 +85,27 @@ pub struct Model {
 }
 
 impl Model {
+    #[allow(dead_code)]
     pub fn train(&self) -> &Vec<TaskPair> {
         &self.train
     }
 
+    #[allow(dead_code)]
     pub fn test(&self) -> &Vec<TaskPair> {
         &self.test
     }
 
+    #[allow(dead_code)]
     pub fn images_all(&self) -> anyhow::Result<Vec<ImagePair>> {
         self.images_with_mode(ModelImagePairMode::All)
     }
 
+    #[allow(dead_code)]
     pub fn images_train(&self) -> anyhow::Result<Vec<ImagePair>> {
         self.images_with_mode(ModelImagePairMode::Train)
     }
 
+    #[allow(dead_code)]
     pub fn images_test(&self) -> anyhow::Result<Vec<ImagePair>> {
         self.images_with_mode(ModelImagePairMode::Test)
     }
@@ -113,18 +123,20 @@ impl Model {
         let mut image_pairs: Vec<ImagePair> = vec!();
         for task in task_pairs {
             let input: Image = task.input().to_image()?;
-            let output: Image = task.input().to_image()?;
+            let output: Image = task.output().to_image()?;
             image_pairs.push(ImagePair { input, output });
         }
         Ok(image_pairs)
     }
 
+    #[allow(dead_code)]
     pub fn load_testdata(name: &str) -> anyhow::Result<Model> {
         let json: String = read_testdata(name)?;
         let model: Model = serde_json::from_str(&json)?;
         Ok(model)
     }
 
+    #[allow(dead_code)]
     pub fn load(name: &str, arc_repository_data_training: &Path) -> anyhow::Result<Model> {
         let filename_json = format!("{}.json", name);
         let path = arc_repository_data_training.join(filename_json);

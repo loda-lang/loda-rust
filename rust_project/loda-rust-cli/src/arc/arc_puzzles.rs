@@ -142,7 +142,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_puzzle_90c28cc7() -> anyhow::Result<()> {
+    fn test_40000_puzzle_90c28cc7_manual() -> anyhow::Result<()> {
         let model: Model = Model::load_testdata("90c28cc7")?;
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
@@ -163,45 +163,22 @@ mod tests {
     }
 
     #[test]
-    fn test_40001_puzzle_90c28cc7_loda() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("90c28cc7")?;
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let program = "
-        f11 $0,100003 ; trim
-        f11 $0,100004 ; remove duplicates
-        ";
-        let actual: Image = run_image(program, &input).expect("image");
-
-        assert_eq!(actual, output);
-        Ok(())
-    }
-
-    // #[test]
-    fn test_40002_puzzle_90c28cc7_loda() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("90c28cc7")?;
-        let pairs: Vec<ImagePair> = model.images_all()?;
+    fn test_40001_puzzle_90c28cc7_loda() {
+        let model: Model = Model::load_testdata("90c28cc7").expect("model");
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
 
         let program = "
         f11 $0,100003 ; trim
         f11 $0,100004 ; remove duplicates
         ";
 
+        let mut count = 0;
         for (index, pair) in pairs.iter().enumerate() {
             let output: Image = run_image(program, &pair.input).expect("image");
             assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
         }
-        Ok(())
+        assert_eq!(count, 4);
     }
 
     fn run_image<S: AsRef<str>>(program: S, input: &Image) -> anyhow::Result<Image> {
