@@ -347,7 +347,7 @@ impl UnofficialFunction for ImageGetPixelFunction {
             return Err(anyhow::anyhow!("Input[0] must be non-negative"));
         }
         let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
-        let mut image: Image = input0_uint.to_image()?;
+        let image: Image = input0_uint.to_image()?;
 
         // input1 is position_x
         let position_x: u8 = input[1].to_u8().context("u8 position_x")?;
@@ -364,6 +364,46 @@ impl UnofficialFunction for ImageGetPixelFunction {
     }
 }
 
+pub struct ImageGetSizeFunction {
+    id: u32,
+}
+
+impl ImageGetSizeFunction {
+    pub fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageGetSizeFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 2 }
+    }
+
+    fn name(&self) -> String {
+        "Image: get size of image -> (width, height)".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        // Return (width, height)
+        let width: BigInt = image.width().to_bigint().context("u8 to BigInt")?;
+        let height: BigInt = image.height().to_bigint().context("u8 to BigInt")?;
+        Ok(vec![width, height])
+    }
+}
+
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageOffsetFunction::new(100001))));
     registry.register(Arc::new(Box::new(ImageRotateFunction::new(100002))));
@@ -373,4 +413,5 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageWithColorFunction::new(100006))));
     registry.register(Arc::new(Box::new(ImageSetPixelFunction::new(100007))));
     registry.register(Arc::new(Box::new(ImageGetPixelFunction::new(100008))));
+    registry.register(Arc::new(Box::new(ImageGetSizeFunction::new(100009))));
 }
