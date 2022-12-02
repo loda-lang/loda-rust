@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{Model, GridToImage, ImageFind, ImageToNumber, NumberToImage};
+    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage};
     use crate::arc::{Image, convolution2x2, convolution3x3};
     use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset};
@@ -181,13 +181,30 @@ mod tests {
         f11 $0,100003 ; trim
         f11 $0,100004 ; remove duplicates
         ";
-        let actual: Image = run_image(program, input).expect("image");
+        let actual: Image = run_image(program, &input).expect("image");
 
         assert_eq!(actual, output);
         Ok(())
     }
 
-    fn run_image<S: AsRef<str>>(program: S, input: Image) -> anyhow::Result<Image> {
+    // #[test]
+    fn test_40002_puzzle_90c28cc7_loda() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("90c28cc7")?;
+        let pairs: Vec<ImagePair> = model.images_all()?;
+
+        let program = "
+        f11 $0,100003 ; trim
+        f11 $0,100004 ; remove duplicates
+        ";
+
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+        }
+        Ok(())
+    }
+
+    fn run_image<S: AsRef<str>>(program: S, input: &Image) -> anyhow::Result<Image> {
         let program_str: &str = program.as_ref();
         let program_string: String = program_str.to_string();
         let input_number_uint: BigUint = input.to_number().expect("input image to number");
