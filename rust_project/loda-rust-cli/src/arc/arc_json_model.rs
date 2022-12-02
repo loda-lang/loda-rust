@@ -61,6 +61,18 @@ impl TaskPair {
     }
 }
 
+pub struct ImagePair {
+    pub input: Image,
+    pub output: Image,
+}
+
+#[derive(Debug, PartialEq)]
+enum ModelImagePairMode {
+    All,
+    Train,
+    Test,
+}
+
 #[derive(Deserialize, Debug)]
 pub struct Model {
     train: Vec<TaskPair>,
@@ -74,6 +86,37 @@ impl Model {
 
     pub fn test(&self) -> &Vec<TaskPair> {
         &self.test
+    }
+
+    pub fn images_all(&self) -> anyhow::Result<Vec<ImagePair>> {
+        self.images_with_mode(ModelImagePairMode::All)
+    }
+
+    pub fn images_train(&self) -> anyhow::Result<Vec<ImagePair>> {
+        self.images_with_mode(ModelImagePairMode::Train)
+    }
+
+    pub fn images_test(&self) -> anyhow::Result<Vec<ImagePair>> {
+        self.images_with_mode(ModelImagePairMode::Test)
+    }
+
+    fn images_with_mode(&self, mode: ModelImagePairMode) -> anyhow::Result<Vec<ImagePair>> {
+        let mut task_pairs: Vec<&TaskPair> = vec!();
+        if mode == ModelImagePairMode::All || mode == ModelImagePairMode::Train {
+            let mut v: Vec<&TaskPair> = self.train.iter().map(|r|r).collect();
+            task_pairs.append(&mut v);
+        }
+        if mode == ModelImagePairMode::All || mode == ModelImagePairMode::Test {
+            let mut v: Vec<&TaskPair> = self.test.iter().map(|r|r).collect();
+            task_pairs.append(&mut v);
+        }
+        let mut image_pairs: Vec<ImagePair> = vec!();
+        for task in task_pairs {
+            let input: Image = task.input().to_image()?;
+            let output: Image = task.input().to_image()?;
+            image_pairs.push(ImagePair { input, output });
+        }
+        Ok(image_pairs)
     }
 
     pub fn load_testdata(name: &str) -> anyhow::Result<Model> {
