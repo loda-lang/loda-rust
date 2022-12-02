@@ -1,4 +1,4 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageReplaceColor};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageReplaceColor, ImageSymmetry};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -404,6 +404,70 @@ impl UnofficialFunction for ImageGetSizeFunction {
     }
 }
 
+
+enum ImageFlipFunctionMode {
+    FlipX,
+    FlipY,
+    FlipXY,
+}
+
+struct ImageFlipFunction {
+    id: u32,
+    mode: ImageFlipFunctionMode,
+}
+
+impl ImageFlipFunction {
+    pub fn new(id: u32, mode: ImageFlipFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageFlipFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        let s: &str = match self.mode {
+            ImageFlipFunctionMode::FlipX => "Image: flip x",
+            ImageFlipFunctionMode::FlipY => "Image: flip y",
+            ImageFlipFunctionMode::FlipXY => "Image: flip x and y",
+        };
+        s.to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let mut image: Image = input0_uint.to_image()?;
+
+        match self.mode {
+            ImageFlipFunctionMode::FlipX => {
+                image = image.flip_x()?;
+            },
+            ImageFlipFunctionMode::FlipY => {
+                image = image.flip_y()?;
+            },
+            ImageFlipFunctionMode::FlipXY => {
+                image = image.flip_xy()?;
+            },
+        }
+        let output_uint: BigUint = image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageOffsetFunction::new(100001))));
     registry.register(Arc::new(Box::new(ImageRotateFunction::new(100002))));
@@ -414,4 +478,13 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageSetPixelFunction::new(100007))));
     registry.register(Arc::new(Box::new(ImageGetPixelFunction::new(100008))));
     registry.register(Arc::new(Box::new(ImageGetSizeFunction::new(100009))));
+    registry.register(Arc::new(Box::new(
+        ImageFlipFunction::new(100010, ImageFlipFunctionMode::FlipX
+    ))));
+    registry.register(Arc::new(Box::new(
+        ImageFlipFunction::new(100011, ImageFlipFunctionMode::FlipY
+    ))));
+    registry.register(Arc::new(Box::new(
+        ImageFlipFunction::new(100012, ImageFlipFunctionMode::FlipXY
+    ))));
 }
