@@ -766,4 +766,50 @@ mod tests {
         assert_eq!(result_bitmap, output);
         Ok(())
     }
+
+    #[test]
+    fn test_120000_puzzle_3bdb4ada() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("3bdb4ada")?;
+        assert_eq!(model.train().len(), 2);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let mut image = input.clone();
+        for yy in 0..((image.height() as i32) - 2) {
+            for xx in 0..((image.width() as i32) - 2) {
+                let top_left_pixel_value: u8 = image.get(xx, yy).unwrap_or(255);
+                let mut same_count = 1;
+                for y in 0..3 {
+                    for x in 0..3 {
+                        if x == 1 && y == 1 {
+                            continue;
+                        }
+                        if x == 0 && y == 0 {
+                            continue;
+                        }
+                        let pixel_value: u8 = image.get(xx + x, yy + y).unwrap_or(255); 
+                        if pixel_value == top_left_pixel_value {
+                            same_count += 1;
+                        }
+                    }
+                }
+                if same_count == 8 {
+                    match image.set(xx + 1, yy + 1, 0) {
+                        Some(()) => {},
+                        None => {
+                            return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(image, output);
+        Ok(())
+    }
 }
