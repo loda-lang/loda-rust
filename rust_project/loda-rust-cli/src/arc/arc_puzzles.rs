@@ -235,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_puzzle_7468f01a() -> anyhow::Result<()> {
+    fn test_50000_puzzle_7468f01a_manual() -> anyhow::Result<()> {
         let model: Model = Model::load_testdata("7468f01a")?;
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
@@ -253,6 +253,25 @@ mod tests {
         let result_bitmap: Image = input_trimmed.flip_x().expect("image");
         assert_eq!(result_bitmap, output);
         Ok(())
+    }
+
+    #[test]
+    fn test_50001_puzzle_7468f01a_loda() {
+        let model: Model = Model::load_testdata("7468f01a").expect("model");
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+
+        let program = "
+        f11 $0,100003 ; trim
+        f11 $0,100010 ; flip x
+        ";
+
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
     }
 
     #[test]
@@ -504,7 +523,7 @@ mod tests {
     }
 
     #[test]
-    fn test_100000_puzzle_a79310a0() -> anyhow::Result<()> {
+    fn test_100000_puzzle_a79310a0_manual() -> anyhow::Result<()> {
         let model: Model = Model::load_testdata("a79310a0")?;
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
@@ -524,6 +543,30 @@ mod tests {
         assert_eq!(bitmap1, output);
         Ok(())
     }
+
+    #[test]
+    fn test_100001_puzzle_a79310a0_loda() {
+        let model: Model = Model::load_testdata("a79310a0").expect("model");
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+
+        let program = "
+        mov $1,0
+        mov $2,1
+        f31 $0,100001 ; offset dx,dy
+        mov $1,8
+        mov $2,2
+        f31 $0,100005 ; replace color with color
+        ";
+
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
+    }
+
 
     /// Detect corners and edges
     fn mask_and_repair_areas(input: &Image) -> anyhow::Result<(Image, Image)> {
