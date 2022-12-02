@@ -316,6 +316,54 @@ impl UnofficialFunction for ImageSetPixelFunction {
     }
 }
 
+pub struct ImageGetPixelFunction {
+    id: u32,
+}
+
+impl ImageGetPixelFunction {
+    pub fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageGetPixelFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Image: get pixel at (x, y)".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let mut image: Image = input0_uint.to_image()?;
+
+        // input1 is position_x
+        let position_x: u8 = input[1].to_u8().context("u8 position_x")?;
+
+        // input2 is position_y
+        let position_y: u8 = input[2].to_u8().context("u8 position_y")?;
+
+        let pixel_color: u8 = image.get(
+            position_x as i32, 
+            position_y as i32, 
+        ).context("get pixel")?;
+        let output: BigInt = pixel_color.to_bigint().context("u8 to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageOffsetFunction::new(100001))));
     registry.register(Arc::new(Box::new(ImageRotateFunction::new(100002))));
@@ -324,4 +372,5 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageReplaceColorFunction::new(100005))));
     registry.register(Arc::new(Box::new(ImageWithColorFunction::new(100006))));
     registry.register(Arc::new(Box::new(ImageSetPixelFunction::new(100007))));
+    registry.register(Arc::new(Box::new(ImageGetPixelFunction::new(100008))));
 }
