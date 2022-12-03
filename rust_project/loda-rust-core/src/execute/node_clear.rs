@@ -44,6 +44,7 @@ impl Node for NodeClear {
         };
 
         state.set_register_range_to_zero(RegisterIndex(target_u64), source_u64)?;
+        state.increment_step_count()?;
         Ok(())
     }
 }

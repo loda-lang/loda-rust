@@ -92,6 +92,7 @@ impl Node for NodeSeq {
 
         // In case run succeeded, then pass on the outputted value.
         state.set(&self.target, output.0)?;
+        state.increment_step_count()?;
         Ok(())
     }
 

@@ -138,6 +138,8 @@ impl Node for NodeLoopRegister {
                 println!("{:12} {} => {}  continue", "lpe", before, after);
             }
         }
+
+        state.increment_step_count()?;
         Ok(())
     }
 

@@ -72,6 +72,8 @@ impl Node for NodeLoopSimple {
                 println!("lpe");
             }
         }
+
+        state.increment_step_count()?;
         Ok(())
     }
 

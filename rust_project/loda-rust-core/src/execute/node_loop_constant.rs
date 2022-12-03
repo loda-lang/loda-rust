@@ -84,6 +84,8 @@ impl Node for NodeLoopConstant {
                 println!("lpe");
             }
         }
+
+        state.increment_step_count()?;
         Ok(())
     }
 

@@ -156,6 +156,7 @@ impl Node for NodeLoopSlow {
             }
         }
 
+        state.increment_step_count()?;
         Ok(())
     }
 

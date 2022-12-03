@@ -38,7 +38,6 @@ impl Program {
     pub fn run_silent(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
         for node in &self.node_vec {
             node.eval(state, cache)?;
-            state.increment_step_count()?;
         }
         Ok(())
     }
@@ -57,7 +56,6 @@ impl Program {
             if !instruction.is_empty() {
                 println!("{:12} {} => {}", instruction, before, after);
             }
-            state.increment_step_count()?;
         }
         Ok(())
     }
