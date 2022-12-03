@@ -6,12 +6,13 @@ use lru::LruCache;
 
 const DEFAULT_CACHE_CAPACITY: usize = 3000;
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct CacheKey {
     program_id: u64,
     index: BigInt,
 }
 
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct CacheValue {
     pub value: BigInt,
     pub step_count: u64,
@@ -99,14 +100,28 @@ impl ProgramCache {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use num_bigint::ToBigInt;
 
     #[test]
-    fn test_10000_lru_cache() {
+    fn test_10000_remove_oldest_data() {
+        // Arrange
         let capacity = NonZeroUsize::new(2).unwrap();
-        let mut cache = LruCache::new(capacity);
-        cache.put("apple", 3);
-        cache.put("banana", 2);
-        assert_eq!(*cache.get(&"apple").unwrap(), 3);
-        assert_eq!(*cache.get(&"banana").unwrap(), 2);
+        let mut cache = ProgramCache::with_capacity(capacity);
+        assert_eq!(cache.get(40, &0u8.to_bigint().unwrap()), None, "initially the cache is empty");
+        assert_eq!(cache.get(40, &1u8.to_bigint().unwrap()), None, "initially the cache is empty");
+        assert_eq!(cache.get(40, &2u8.to_bigint().unwrap()), None, "initially the cache is empty");
+        cache.set(40, &0u8.to_bigint().unwrap(), &2u8.to_bigint().unwrap(), 1);
+        cache.set(40, &1u8.to_bigint().unwrap(), &3u8.to_bigint().unwrap(), 1);
+        assert_ne!(cache.get(40, &0u8.to_bigint().unwrap()), None, "has data");
+        assert_ne!(cache.get(40, &1u8.to_bigint().unwrap()), None, "has data");
+        assert_eq!(cache.get(40, &2u8.to_bigint().unwrap()), None, "empty");
+
+        // Act
+        cache.set(40, &2u8.to_bigint().unwrap(), &5u8.to_bigint().unwrap(), 1);
+
+        // Assert
+        assert_eq!(cache.get(40, &0u8.to_bigint().unwrap()), None, "empty, removed oldest data");
+        assert_ne!(cache.get(40, &1u8.to_bigint().unwrap()), None, "has data");
+        assert_ne!(cache.get(40, &2u8.to_bigint().unwrap()), None, "has data");
     }
 }
