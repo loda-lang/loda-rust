@@ -2,7 +2,7 @@ use num_bigint::BigInt;
 use std::num::NonZeroUsize;
 use cached::{SizedCache, Cached};
 
-const DEFAULT_CACHE_CAPACITY: usize = 3000;
+const DEFAULT_CACHE_CAPACITY: usize = 1500;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct CacheKey {
