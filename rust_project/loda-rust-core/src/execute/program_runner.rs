@@ -1,5 +1,6 @@
 use super::{EvalError, NodeLoopLimit, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterValue, RunMode};
 use super::NodeRegisterLimit;
+use anyhow::Context;
 use num_bigint::BigInt;
 use std::fmt;
 
@@ -99,7 +100,7 @@ impl ProgramRunner {
         node_loop_limit: NodeLoopLimit,
         cache: &mut ProgramCache,
         output_count: u8,
-    ) -> Result<Vec<BigInt>, EvalError> {
+    ) -> anyhow::Result<Vec<BigInt>> {
         let step_count_before: u64 = *step_count;
 
         // Initial state
@@ -114,12 +115,7 @@ impl ProgramRunner {
         // Input vector
         for (index, input_value) in input.iter().enumerate() {
             let result = state.set_u64(index as u64, input_value.clone());
-            match result {
-                Ok(()) => {},
-                Err(error) => {
-                    return Err(error);
-                }
-            }
+            result.context("input vector, set_u64")?;
         }
 
         // Invoke the actual run() function
@@ -130,10 +126,8 @@ impl ProgramRunner {
         *step_count = step_count_after;
 
         // In case run failed, then return the error
-        if let Err(error) = run_result {
-            return Err(error);
-        }
-        
+        run_result.context("run_result error in program.run")?;
+
         // Output vector
         let mut output_vec = Vec::<BigInt>::with_capacity(output_count as usize);
         for index in 0..output_count {
