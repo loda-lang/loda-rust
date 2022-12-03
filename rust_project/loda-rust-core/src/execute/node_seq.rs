@@ -67,7 +67,7 @@ impl Node for NodeSeq {
         // Invoke the actual run() function
         let input_value = RegisterValue(input.clone());
         let run_result = self.program_runner_rc.run(
-            &input_value, 
+            input_value, 
             state.run_mode(), 
             &mut step_count, 
             step_count_limit,
@@ -92,6 +92,7 @@ impl Node for NodeSeq {
 
         // In case run succeeded, then pass on the outputted value.
         state.set(&self.target, output.0)?;
+        state.increment_step_count()?;
         Ok(())
     }
 
