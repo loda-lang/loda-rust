@@ -73,7 +73,7 @@ impl ProgramRunner {
                 let computed_step_count: u64 = step_count_after - step_count_before;
 
                 // Cache the computed value.
-                cache.set(program_oeis, &(input.0), &(output.0), computed_step_count);
+                cache.set(program_oeis, input.0.clone(), output.0.clone(), computed_step_count);
                 cache.register_cache_miss_for_program_oeis();
             },
             ProgramId::ProgramWithoutId => {

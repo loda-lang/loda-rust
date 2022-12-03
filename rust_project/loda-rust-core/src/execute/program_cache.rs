@@ -81,13 +81,13 @@ impl ProgramCache {
         self.cache.cache_get(&key)
     }
 
-    pub fn set(&mut self, program_id: u64, index: &BigInt, value: &BigInt, step_count: u64) {
+    pub fn set(&mut self, program_id: u64, index: BigInt, value: BigInt, step_count: u64) {
         let key = CacheKey {
             program_id: program_id,
-            index: index.clone(),
+            index: index,
         };
         let value = CacheValue {
-            value: value.clone(),
+            value: value,
             step_count: step_count,
         };
         self.cache.cache_set(key, value);
@@ -108,14 +108,14 @@ mod tests {
         assert_eq!(cache.get(40, &0u8.to_bigint().unwrap()), None, "initially the cache is empty");
         assert_eq!(cache.get(40, &1u8.to_bigint().unwrap()), None, "initially the cache is empty");
         assert_eq!(cache.get(40, &2u8.to_bigint().unwrap()), None, "initially the cache is empty");
-        cache.set(40, &0u8.to_bigint().unwrap(), &2u8.to_bigint().unwrap(), 1);
-        cache.set(40, &1u8.to_bigint().unwrap(), &3u8.to_bigint().unwrap(), 1);
+        cache.set(40, 0u8.to_bigint().unwrap(), 2u8.to_bigint().unwrap(), 1);
+        cache.set(40, 1u8.to_bigint().unwrap(), 3u8.to_bigint().unwrap(), 1);
         assert_ne!(cache.get(40, &0u8.to_bigint().unwrap()), None, "has data");
         assert_ne!(cache.get(40, &1u8.to_bigint().unwrap()), None, "has data");
         assert_eq!(cache.get(40, &2u8.to_bigint().unwrap()), None, "empty");
 
         // Act
-        cache.set(40, &2u8.to_bigint().unwrap(), &5u8.to_bigint().unwrap(), 1);
+        cache.set(40, 2u8.to_bigint().unwrap(), 5u8.to_bigint().unwrap(), 1);
 
         // Assert
         assert_eq!(cache.get(40, &0u8.to_bigint().unwrap()), None, "empty, removed oldest data");
