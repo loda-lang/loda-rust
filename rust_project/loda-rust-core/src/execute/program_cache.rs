@@ -1,8 +1,6 @@
 use num_bigint::BigInt;
-
-extern crate lru;
 use std::num::NonZeroUsize;
-use lru::LruCache;
+use cached::{SizedCache, Cached};
 
 const DEFAULT_CACHE_CAPACITY: usize = 3000;
 
@@ -19,7 +17,7 @@ pub struct CacheValue {
 }
 
 pub struct ProgramCache {
-    cache: LruCache<CacheKey, CacheValue>,
+    cache: SizedCache<CacheKey, CacheValue>,
     metric_hit: u64,
     metric_miss_for_program_oeis: u64,
     metric_miss_for_program_without_id: u64,
@@ -32,7 +30,7 @@ impl ProgramCache {
     }
 
     pub fn with_capacity(capacity: NonZeroUsize) -> Self {
-        let cache: LruCache<CacheKey, CacheValue> = LruCache::new(capacity);
+        let cache: SizedCache<CacheKey, CacheValue> = SizedCache::with_size(capacity.get());
         Self {
             cache: cache,
             metric_hit: 0,
@@ -80,7 +78,7 @@ impl ProgramCache {
             program_id: program_id,
             index: index.clone(),
         };
-        self.cache.get(&key)
+        self.cache.cache_get(&key)
     }
 
     pub fn set(&mut self, program_id: u64, index: &BigInt, value: &BigInt, step_count: u64) {
@@ -92,7 +90,7 @@ impl ProgramCache {
             value: value.clone(),
             step_count: step_count,
         };
-        self.cache.put(key, value);
+        self.cache.cache_set(key, value);
     }
 }
 
