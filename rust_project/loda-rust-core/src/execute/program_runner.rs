@@ -61,7 +61,7 @@ impl ProgramRunner {
         }
         
         // In case run succeeded, then return output.
-        let output: RegisterValue = state.get_output_value();
+        let output: RegisterValue = state.remove_output_value();
 
         // Update cache
         match self.program_id {
