@@ -60,7 +60,7 @@ mod tests {
         let input = RegisterValue(input_raw_int);
         
         let result_run = program_runner.run(
-            &input, 
+            input, 
             RunMode::Silent, 
             &mut step_count, 
             step_count_limit,

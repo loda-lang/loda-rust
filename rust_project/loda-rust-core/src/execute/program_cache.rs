@@ -1,24 +1,23 @@
 use num_bigint::BigInt;
-
-extern crate lru;
 use std::num::NonZeroUsize;
-use lru::LruCache;
+use cached::{SizedCache, Cached};
 
-const DEFAULT_CACHE_CAPACITY: usize = 3000;
+const DEFAULT_CACHE_CAPACITY: usize = 1500;
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct CacheKey {
     program_id: u64,
     index: BigInt,
 }
 
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct CacheValue {
     pub value: BigInt,
     pub step_count: u64,
 }
 
 pub struct ProgramCache {
-    cache: LruCache<CacheKey, CacheValue>,
+    cache: SizedCache<CacheKey, CacheValue>,
     metric_hit: u64,
     metric_miss_for_program_oeis: u64,
     metric_miss_for_program_without_id: u64,
@@ -31,7 +30,7 @@ impl ProgramCache {
     }
 
     pub fn with_capacity(capacity: NonZeroUsize) -> Self {
-        let cache: LruCache<CacheKey, CacheValue> = LruCache::new(capacity);
+        let cache: SizedCache<CacheKey, CacheValue> = SizedCache::with_size(capacity.get());
         Self {
             cache: cache,
             metric_hit: 0,
@@ -79,19 +78,19 @@ impl ProgramCache {
             program_id: program_id,
             index: index.clone(),
         };
-        self.cache.get(&key)
+        self.cache.cache_get(&key)
     }
 
-    pub fn set(&mut self, program_id: u64, index: &BigInt, value: &BigInt, step_count: u64) {
+    pub fn set(&mut self, program_id: u64, index: BigInt, value: BigInt, step_count: u64) {
         let key = CacheKey {
             program_id: program_id,
-            index: index.clone(),
+            index: index,
         };
         let value = CacheValue {
-            value: value.clone(),
+            value: value,
             step_count: step_count,
         };
-        self.cache.put(key, value);
+        self.cache.cache_set(key, value);
     }
 }
 
@@ -99,14 +98,28 @@ impl ProgramCache {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use num_bigint::ToBigInt;
 
     #[test]
-    fn test_10000_lru_cache() {
+    fn test_10000_remove_oldest_data() {
+        // Arrange
         let capacity = NonZeroUsize::new(2).unwrap();
-        let mut cache = LruCache::new(capacity);
-        cache.put("apple", 3);
-        cache.put("banana", 2);
-        assert_eq!(*cache.get(&"apple").unwrap(), 3);
-        assert_eq!(*cache.get(&"banana").unwrap(), 2);
+        let mut cache = ProgramCache::with_capacity(capacity);
+        assert_eq!(cache.get(40, &0u8.to_bigint().unwrap()), None, "initially the cache is empty");
+        assert_eq!(cache.get(40, &1u8.to_bigint().unwrap()), None, "initially the cache is empty");
+        assert_eq!(cache.get(40, &2u8.to_bigint().unwrap()), None, "initially the cache is empty");
+        cache.set(40, 0u8.to_bigint().unwrap(), 2u8.to_bigint().unwrap(), 1);
+        cache.set(40, 1u8.to_bigint().unwrap(), 3u8.to_bigint().unwrap(), 1);
+        assert_ne!(cache.get(40, &0u8.to_bigint().unwrap()), None, "has data");
+        assert_ne!(cache.get(40, &1u8.to_bigint().unwrap()), None, "has data");
+        assert_eq!(cache.get(40, &2u8.to_bigint().unwrap()), None, "empty");
+
+        // Act
+        cache.set(40, 2u8.to_bigint().unwrap(), 5u8.to_bigint().unwrap(), 1);
+
+        // Assert
+        assert_eq!(cache.get(40, &0u8.to_bigint().unwrap()), None, "empty, removed oldest data");
+        assert_ne!(cache.get(40, &1u8.to_bigint().unwrap()), None, "has data");
+        assert_ne!(cache.get(40, &2u8.to_bigint().unwrap()), None, "has data");
     }
 }

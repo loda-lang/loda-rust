@@ -68,7 +68,7 @@ impl PrintTermsStepsDebug for ProgramRunner {
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
             let result_run = self.run(
-                &input, 
+                input, 
                 RunMode::Silent, 
                 &mut step_count, 
                 step_count_limit,
@@ -107,7 +107,7 @@ impl PrintTermsStepsDebug for ProgramRunner {
             let input = RegisterValue::from_i64(index);
             let mut step_count: u64 = 0;
             let result_run = self.run(
-                &input, 
+                input, 
                 RunMode::Silent, 
                 &mut step_count, 
                 step_count_limit,
@@ -141,7 +141,7 @@ impl PrintTermsStepsDebug for ProgramRunner {
             println!("INPUT: a({})", index);
             let input = RegisterValue::from_i64(index);
             let result_run = self.run(
-                &input, 
+                input, 
                 RunMode::Verbose, 
                 &mut step_count, 
                 step_count_limit,

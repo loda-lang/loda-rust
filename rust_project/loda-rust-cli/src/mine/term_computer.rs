@@ -47,7 +47,7 @@ impl TermComputer {
             let index = length as i64;
             let input = RegisterValue::from_i64(index);
             let output: RegisterValue = runner.run(
-                &input, 
+                input, 
                 RunMode::Silent, 
                 &mut self.step_count, 
                 step_count_limit, 

@@ -75,11 +75,11 @@ mod tests {
                 return Err(anyhow::anyhow!("Cannot convert {} to BigInt.", input));
             }
         };
-        let input = RegisterValue(input_bigint);
+        let input_registervalue = RegisterValue(input_bigint);
         
         // Run
         let result_run = program_runner.run(
-            &input, 
+            input_registervalue,
             RunMode::Silent, 
             &mut step_count, 
             step_count_limit,

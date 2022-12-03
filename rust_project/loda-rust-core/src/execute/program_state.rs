@@ -144,15 +144,38 @@ impl ProgramState {
         }
     }
 
-    /// Read the value of register 0, the output register.
+    /// Read the value of register 0, the output reference to its `BigInt`.
     pub fn get_output_value_bigint(&self) -> &BigInt {
         self.get_u64(OUTPUT_REGISTER)
     }
     
+    /// Read the value of register 0, the output register.
+    /// 
+    /// This is inefficient. It performs a `BigInt.clone()` operation.
+    /// If you are going to discard the `ProgramState` immediately after getting the output,
+    /// then consider using the `remove_output_value` function, that does no `BigInt.clone()`.
     pub fn get_output_value(&self) -> RegisterValue {
         let output_value: &BigInt = self.get_output_value_bigint();
         RegisterValue(output_value.clone())
-    }    
+    }
+
+    /// Take ownership of the content in register `$0`, and removes it from the internal `memory_full`.
+    /// 
+    /// Warning. If you are to use `ProgramState` after invoking this function,
+    /// then the `$0` address is cleared. In this case it's wiser to use the `get_output_value()` function.
+    /// 
+    /// Why use `remove_output_value()`?
+    /// This eliminates one `BigInt.clone()` operation.
+    pub fn remove_output_value(&mut self) -> RegisterValue {
+        match self.memory_full.remove(&OUTPUT_REGISTER) {
+            Some(value) => { 
+                return RegisterValue(value); 
+            },
+            None => { 
+                return RegisterValue(BIGINT_ZERO.clone()); 
+            }
+        }
+    }
 
     pub fn set_bigint(&mut self, address: &BigInt, value: BigInt) -> Result<(), EvalError> {
         let address_u64: u64 = match address.to_u64() {
@@ -619,5 +642,35 @@ mod tests {
             set_value_not_failable(&mut state1, 11, 100);
             assert_eq!(state0.is_less_twostartindexes_range(&state1, 0, 10, 2), true);
         }
+    }
+
+    #[test]
+    fn test_50000_remove_output_value_some() {
+        // Arrange
+        let mut state = empty_program_state();
+        set_value_not_failable(&mut state, 0, 100);
+        assert_eq!(state.memory_full_to_string(), "[0:100]");
+
+        // Act
+        let output: RegisterValue = state.remove_output_value();
+
+        // Assert
+        assert_eq!(state.memory_full_to_string(), "[]");
+        assert_eq!(output, RegisterValue(100.to_bigint().unwrap()));
+    }
+
+    #[test]
+    fn test_50001_remove_output_value_none() {
+        // Arrange
+        let mut state = empty_program_state();
+        set_value_not_failable(&mut state, 1, 100);
+        assert_eq!(state.memory_full_to_string(), "[1:100]");
+
+        // Act
+        let output: RegisterValue = state.remove_output_value();
+
+        // Assert
+        assert_eq!(state.memory_full_to_string(), "[1:100]");
+        assert_eq!(output, RegisterValue(BigInt::zero()));
     }
 }

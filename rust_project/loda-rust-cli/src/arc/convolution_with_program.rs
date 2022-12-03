@@ -43,10 +43,10 @@ impl ConvolutionWithProgram for Image {
                     return Err(anyhow::anyhow!("Integrity error. Couldn't convert BigUint to BigInt. input {}", input_raw_uint));
                 }
             };
-            let input = RegisterValue(input_raw_int);
+            let input_registervalue = RegisterValue(input_raw_int);
             
             let result_run = program_runner.run(
-                &input, 
+                input_registervalue, 
                 RunMode::Silent, 
                 &mut step_count, 
                 step_count_limit,

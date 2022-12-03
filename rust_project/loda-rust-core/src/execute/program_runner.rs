@@ -18,7 +18,7 @@ impl ProgramRunner {
 
     pub fn run(
         &self, 
-        input: &RegisterValue, 
+        input: RegisterValue,
         run_mode: RunMode, 
         step_count: &mut u64, 
         step_count_limit: u64, 
@@ -47,7 +47,7 @@ impl ProgramRunner {
             node_loop_limit,
         );
         state.set_step_count(step_count_before);
-        state.set_input_value(input);
+        state.set_input_value(&input);
 
         // Invoke the actual run() function
         let run_result = self.program.run(&mut state, cache);
@@ -62,7 +62,7 @@ impl ProgramRunner {
         }
         
         // In case run succeeded, then return output.
-        let output: RegisterValue = state.get_output_value();
+        let output: RegisterValue = state.remove_output_value();
 
         // Update cache
         match self.program_id {
@@ -74,7 +74,7 @@ impl ProgramRunner {
                 let computed_step_count: u64 = step_count_after - step_count_before;
 
                 // Cache the computed value.
-                cache.set(program_oeis, &(input.0), &(output.0), computed_step_count);
+                cache.set(program_oeis, input.0, output.0.clone(), computed_step_count);
                 cache.register_cache_miss_for_program_oeis();
             },
             ProgramId::ProgramWithoutId => {
@@ -163,7 +163,7 @@ impl ProgramRunner {
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
             let result = self.run(
-                &input, 
+                input, 
                 RunMode::Silent, 
                 &mut step_count, 
                 step_count_limit,
