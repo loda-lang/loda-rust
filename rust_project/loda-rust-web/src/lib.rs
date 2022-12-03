@@ -132,7 +132,7 @@ impl MyPrintTerms for ProgramRunner {
         for index in 0..(count as i64) {
             let input = RegisterValue::from_i64(index);
             let result_run = self.run(
-                &input, 
+                input, 
                 RunMode::Verbose, 
                 &mut step_count, 
                 step_count_limit,
@@ -331,7 +331,7 @@ impl WebDependencyManagerInner {
 
         let input = RegisterValue::from_i64(index);
         let result_run = self.program_runner.run(
-            &input, 
+            input, 
             RunMode::Verbose, 
             &mut self.step_count, 
             step_count_limit,
