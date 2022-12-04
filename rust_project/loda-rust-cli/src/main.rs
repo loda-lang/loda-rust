@@ -10,6 +10,7 @@ use regex::Regex;
 use loda_rust_core::control::*;
 
 mod analytics;
+mod arc;
 mod common;
 mod config;
 mod lodacpp;
