@@ -135,15 +135,19 @@ impl Model {
         let model: Model = serde_json::from_str(&json)?;
         Ok(model)
     }
-
+    
     #[allow(dead_code)]
     pub fn load(name: &str, arc_repository_data_training: &Path) -> anyhow::Result<Model> {
         let filename_json = format!("{}.json", name);
         let path = arc_repository_data_training.join(filename_json);
-        let json: String = match fs::read_to_string(&path) {
+        Self::load_with_json_file(&path)
+    }
+
+    pub fn load_with_json_file(json_file: &Path) -> anyhow::Result<Model> {
+        let json: String = match fs::read_to_string(json_file) {
             Ok(value) => value,
             Err(error) => {
-                return Err(anyhow::anyhow!("cannot load file, error: {:?} path: {:?}", error, path));
+                return Err(anyhow::anyhow!("cannot load file, error: {:?} path: {:?}", error, json_file));
             }
         };
         let model: Model = serde_json::from_str(&json)?;
