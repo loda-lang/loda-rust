@@ -833,7 +833,7 @@ mod tests {
         }
         println!("number of items: {}", items.len());
 
-        let program = "
+        const PROGRAM0: &'static str = "
         mov $1,0
         mov $2,1
         f31 $0,100001 ; offset dx,dy
@@ -842,23 +842,65 @@ mod tests {
         f31 $0,100005 ; replace color with color
         ";
 
+        const PROGRAM1: &'static str = "
+        mov $1,1
+        f21 $0,100002 ; rotate
+        ";
+
+        const PROGRAM2: &'static str = "
+        f11 $0,100003 ; trim
+        ";
+
+        const PROGRAM3: &'static str = "
+        f11 $0,100010 ; flip x
+        ";
+
+        const PROGRAM4: &'static str = "
+        f11 $0,100011 ; flip y
+        ";
+
+        const PROGRAM5: &'static str = "
+        f11 $0,100012 ; flip xy
+        ";
+
+        const PROGRAMS: &'static [&'static str] = &[
+            PROGRAM0, 
+            PROGRAM1, 
+            PROGRAM2, 
+            PROGRAM3,
+            PROGRAM4,
+            PROGRAM5,
+        ];
+
+        let mut dm = create_dependency_manager();
+        let mut program_runners = Vec::<ProgramRunner>::new();
+        for program_string in PROGRAMS {
+            let program_runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, program_string).expect("ProgramRunner");
+            program_runners.push(program_runner);
+        }
+
+        let mut cache = ProgramCache::new();
         let mut count_match: usize = 0;
         let mut count_mismatch: usize = 0;
         for item in &items {
             let pairs: Vec<ImagePair> = item.model.images_all().expect("pairs");
     
-            let mut count = 0;
-            for pair in &pairs {
-                let output: Image = run_image(program, &pair.input).expect("image");
-                if output == pair.output {
-                    count += 1;
-                }
-            }
+            for program_runner in &program_runners {
 
-            if count == pairs.len() {
-                count_match += 1;
-            } else {
-                count_mismatch += 1;
+                let mut count = 0;
+                for pair in &pairs {
+                    let output: Image = run_image_inner(&program_runner, &pair.input, &mut cache).expect("image");
+
+                    if output == pair.output {
+                        count += 1;
+                    }
+                }
+    
+                if count == pairs.len() {
+                    count_match += 1;
+                } else {
+                    count_mismatch += 1;
+                }
             }
         }
         println!("number of matches: {} mismatches: {}", count_match, count_mismatch);
