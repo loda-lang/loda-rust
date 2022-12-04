@@ -206,7 +206,7 @@ impl DependencyManager {
         Ok(contents)
     }
 
-    pub fn parse(&mut self, program_id: ProgramId, contents: &String) -> 
+    pub fn parse(&mut self, program_id: ProgramId, contents: &str) -> 
         Result<ProgramRunner, DependencyManagerError> 
     {
         let parsed_program: ParsedProgram = match ParsedProgram::parse_program(contents) {
@@ -308,7 +308,7 @@ mod tests {
 
     #[test]
     fn test_10000_parse_string() {
-        const PROGRAM: &str = r#"        
+        let program: &str = r#"        
         mov $1,2
         pow $1,$0
         mov $0,$1
@@ -319,8 +319,7 @@ mod tests {
             PathBuf::from("non-existing-dir"),
             unofficial_function_registry,
         );
-        let source_code: String = PROGRAM.to_string();
-        let runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, &source_code).unwrap();
+        let runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, program).expect("ProgramRunner");
         assert_eq!(runner.inspect(10), "1,2,4,8,16,32,64,128,256,512");
     }
 
