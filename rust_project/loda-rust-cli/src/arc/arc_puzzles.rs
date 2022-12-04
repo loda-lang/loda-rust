@@ -183,6 +183,17 @@ mod tests {
         assert_eq!(count, 4);
     }
 
+    fn create_dependency_manager() -> DependencyManager {
+        let registry = UnofficialFunctionRegistry::new();
+        register_arc_functions(&registry);
+        let dm = DependencyManager::new(
+            DependencyManagerFileSystemMode::Virtual,
+            PathBuf::from("non-existing-dir"),
+            registry,
+        );
+        dm
+    }
+
     fn run_image<S: AsRef<str>>(program: S, input: &Image) -> anyhow::Result<Image> {
         let program_str: &str = program.as_ref();
         let program_string: String = program_str.to_string();
@@ -191,17 +202,8 @@ mod tests {
 
         let output_count: u8 = 1;
 
-        let registry = UnofficialFunctionRegistry::new();
-        register_arc_functions(&registry);
-
-        let mut dm = DependencyManager::new(
-            DependencyManagerFileSystemMode::Virtual,
-            PathBuf::from("non-existing-dir"),
-            registry,
-        );
-        let result_parse = dm.parse(ProgramId::ProgramWithoutId, &program_string);
-
-        let program_runner: ProgramRunner = result_parse.expect("ProgramRunner");
+        let mut dm = create_dependency_manager();
+        let program_runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, &program_string).expect("ProgramRunner");
 
         let step_count_limit: u64 = 1000000000;
         let mut cache = ProgramCache::new();
