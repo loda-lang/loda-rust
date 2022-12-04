@@ -9,6 +9,11 @@ pub fn find_csv_files_recursively(rootdir: &Path) -> Vec<PathBuf> {
     find_files_recursively(rootdir, "csv")
 }
 
+#[allow(dead_code)]
+pub fn find_json_files_recursively(rootdir: &Path) -> Vec<PathBuf> {
+    find_files_recursively(rootdir, "json")
+}
+
 fn find_files_recursively(rootdir: &Path, file_extension: &str) -> Vec<PathBuf> {
 
     fn is_hidden(entry: &DirEntry, file_extension_inner: &str) -> bool {

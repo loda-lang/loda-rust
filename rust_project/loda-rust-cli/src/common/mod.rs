@@ -17,7 +17,7 @@ mod record_unigram;
 mod simple_log;
 
 pub use create_csv_file::create_csv_file;
-pub use find_files_recursively::{find_asm_files_recursively, find_csv_files_recursively};
+pub use find_files_recursively::{find_asm_files_recursively, find_csv_files_recursively, find_json_files_recursively};
 pub use mine_event_directory_scan::MineEventDirectoryScan;
 pub use oeis_ids_from_paths::{oeis_id_from_path, oeis_ids_from_paths};
 pub use oeis_ids_from_programs::{oeis_ids_from_program_string, oeis_ids_from_program, oeis_ids_from_programs};
