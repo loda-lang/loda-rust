@@ -1,4 +1,4 @@
-use super::{EvalError, NodeLoopLimit, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterValue, RunMode};
+use super::{NodeLoopLimit, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterValue, RunMode};
 use super::NodeRegisterLimit;
 use anyhow::Context;
 use num_bigint::BigInt;
@@ -26,7 +26,7 @@ impl ProgramRunner {
         node_register_limit: NodeRegisterLimit, 
         node_loop_limit: NodeLoopLimit,
         cache: &mut ProgramCache
-    ) -> Result<RegisterValue, EvalError> {
+    ) -> anyhow::Result<RegisterValue> {
         let step_count_before: u64 = *step_count;
 
         // Lookup (programid+input) in cache
@@ -58,9 +58,7 @@ impl ProgramRunner {
         *step_count = step_count_after;
 
         // In case run failed, then return the error
-        if let Err(error) = run_result {
-            return Err(error);
-        }
+        run_result.context("run_result error in program.run")?;
         
         // In case run succeeded, then return output.
         let output: RegisterValue = state.remove_output_value();

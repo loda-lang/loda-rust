@@ -1,3 +1,5 @@
+use anyhow::Context;
+
 use super::{EvalError, Node, NodeLoopLimit, Program, ProgramCache, ProgramSerializer, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError, LOOP_RANGE_MAX_BITS};
 
 pub struct NodeLoopConstant {
@@ -32,7 +34,7 @@ impl Node for NodeLoopConstant {
         serializer.append_raw("lpe");
     }
 
-    fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> anyhow::Result<()> {
         if state.run_mode() == RunMode::Verbose {
             let snapshot = state.memory_full_to_string();
             let instruction = self.formatted_instruction();
@@ -41,7 +43,8 @@ impl Node for NodeLoopConstant {
 
         if self.range_length >= (1 << LOOP_RANGE_MAX_BITS) {
             // Range length is beyond the max length.
-            return Err(EvalError::LoopRangeLengthExceededLimit);
+            let error = Err(EvalError::LoopRangeLengthExceededLimit);
+            return error.context("NodeLoopConstant range length exceeded LOOP_RANGE_MAX_BITS");
         }
 
         let limit: NodeLoopLimit = state.node_loop_limit().clone();
@@ -76,7 +79,8 @@ impl Node for NodeLoopConstant {
                 NodeLoopLimit::LimitCount(limit_count) => {
                     cycles += 1;
                     if cycles > limit_count {
-                        return Err(EvalError::LoopCountExceededLimit);
+                        let error = Err(EvalError::LoopCountExceededLimit);
+                        return error.context("NodeLoopConstant loop count exceeded limit");
                     }
                 }
             }

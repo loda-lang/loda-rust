@@ -1,3 +1,5 @@
+use anyhow::Context;
+
 use super::{EvalError, Node, NodeLoopLimit, ProgramCache, Program, ProgramRunnerManager, ProgramSerializer, ProgramState, RegisterIndex, RunMode, ValidateCallError};
 
 pub struct NodeLoopSimple {
@@ -27,7 +29,7 @@ impl Node for NodeLoopSimple {
         serializer.append_raw("lpe");
     }
 
-    fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> anyhow::Result<()> {
         if state.run_mode() == RunMode::Verbose {
             let snapshot = state.memory_full_to_string();
             let instruction = self.formatted_instruction();
@@ -64,7 +66,8 @@ impl Node for NodeLoopSimple {
                 NodeLoopLimit::LimitCount(limit_count) => {
                     cycles += 1;
                     if cycles > limit_count {
-                        return Err(EvalError::LoopCountExceededLimit);
+                        let error = Err(EvalError::LoopCountExceededLimit);
+                        return error.context("NodeLoopSimple loop count exceeded limit");
                     }
                 }
             }

@@ -1,5 +1,6 @@
 use super::{EvalError, ProgramCache, Node, ProgramState, RegisterIndex};
 use crate::parser::InstructionParameter;
+use anyhow::Context;
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Signed, Zero};
 
@@ -22,12 +23,13 @@ impl Node for NodeClear {
         format!("clr {},{}", self.target, self.source)
     }
 
-    fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> anyhow::Result<()> {
         let target: BigInt = state.get(&self.target, true)?;
         let target_u64: u64 = match target.to_u64() {
             Some(value) => value,
             None => {
-                return Err(EvalError::CannotConvertBigIntToAddress);
+                let error = Err(EvalError::CannotConvertBigIntToAddress);
+                return error.context("NodeClear target");
             }
         };
 
@@ -39,7 +41,8 @@ impl Node for NodeClear {
         let source_u64: u64 = match source.to_u64() {
             Some(value) => value,
             None => {
-                return Err(EvalError::ClearRangeLengthExceedsLimit);
+                let error = Err(EvalError::ClearRangeLengthExceedsLimit);
+                return error.context("NodeClear source.to_64");
             }
         };
 

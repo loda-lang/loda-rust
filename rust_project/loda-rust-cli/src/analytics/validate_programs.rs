@@ -8,7 +8,6 @@ use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::unofficial_function::UnofficialFunctionRegistry;
 use std::path::PathBuf;
 use std::collections::HashSet;
-use std::error::Error;
 use std::time::Instant;
 use std::rc::Rc;
 use std::fs::File;
@@ -184,11 +183,11 @@ impl ValidatePrograms {
 }
 
 trait ComputeTerms {
-    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<(), Box<dyn Error>>;
+    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> anyhow::Result<()>;
 }
 
 impl ComputeTerms for ProgramRunner {
-    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<(), Box<dyn Error>> {
+    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> anyhow::Result<()> {
         if count >= 0x7fff_ffff_ffff_ffff {
             panic!("Value is too high. Cannot be converted to 64bit signed integer.");
         }
@@ -212,7 +211,7 @@ impl ComputeTerms for ProgramRunner {
                 Ok(value) => value,
                 Err(error) => {
                     debug!("Failure while computing term {}, error: {:?}", index, error);
-                    return Err(Box::new(error));
+                    return Err(error);
                 }
             };
         }

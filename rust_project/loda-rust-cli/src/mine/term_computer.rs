@@ -1,4 +1,4 @@
-use loda_rust_core::execute::{EvalError, NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
+use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
 use loda_rust_core::util::BigIntVec;
 
@@ -17,7 +17,7 @@ impl TermComputer {
         }
     }
 
-    pub fn compute(&mut self, cache: &mut ProgramCache, runner: &ProgramRunner, count: usize) -> Result<(), EvalError> {
+    pub fn compute(&mut self, cache: &mut ProgramCache, runner: &ProgramRunner, count: usize) -> anyhow::Result<()> {
         let node_register_limit = NodeRegisterLimit::LimitBits(32);
         loop {
             let length: usize = self.terms.len();

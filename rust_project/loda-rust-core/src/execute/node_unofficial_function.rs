@@ -2,6 +2,7 @@ use super::{EvalError, ProgramSerializerContext, ProgramCache, Node, ProgramStat
 use super::PerformCheckValue;
 use crate::parser::InstructionParameter;
 use crate::unofficial_function::UnofficialFunction;
+use anyhow::Context;
 use num_bigint::BigInt;
 use std::sync::Arc;
 
@@ -36,14 +37,15 @@ impl Node for NodeUnofficialFunction {
         Some(s)
     }
 
-    fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> anyhow::Result<()> {
         let input: BigInt = state.get(&self.target, false)?;
 
         // TODO: deal with indirect memory
         let start_address: i64 = self.target.parameter_value;
         if start_address < 0 {
             // TODO: fail with human readable error
-            return Err(EvalError::CannotConvertI64ToAddress);
+            let error = Err(EvalError::CannotConvertI64ToAddress);
+            return error.context("NodeUnofficialFunction start_address must be non-negative");
         }
 
         // Input to the function
@@ -65,7 +67,7 @@ impl Node for NodeUnofficialFunction {
             Err(error) => {
                 error!("NodeUnofficialFunction.eval run error: {:?}", error);
                 // TODO: fail with human readable error
-                return Err(EvalError::UnofficialFunctionRunReturnedError);
+                return Err(error.context("NodeUnofficialFunction.eval run returned error"));
             }
         };
         
@@ -73,7 +75,8 @@ impl Node for NodeUnofficialFunction {
         if output_vec.len() != (self.output_count as usize) {
             error!("NodeUnofficialFunction.eval Expected {} output values, but got output {}", self.output_count, output_vec.len());
             // TODO: fail with human readable error
-            return Err(EvalError::UnofficialFunctionOutputVectorHasIncorrectLength);
+            let error = Err(EvalError::UnofficialFunctionOutputVectorHasIncorrectLength);
+            return error.context("NodeUnofficialFunction output vector has incorrect length");
         }
 
         for (index, value) in output_vec.iter().enumerate() {
@@ -87,7 +90,8 @@ impl Node for NodeUnofficialFunction {
                 Err(error) => {
                     error!("NodeUnofficialFunction.eval Cannot set output value into state. address: {}, error: {}", address, error);
                     // TODO: fail with human readable error
-                    return Err(EvalError::UnofficialFunctionCannotSetOutputValue);
+                    let error = Err(EvalError::UnofficialFunctionCannotSetOutputValue);
+                    return error.context("NodeUnofficialFunction cannot set output value");
                 }
             }
         }

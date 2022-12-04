@@ -2,6 +2,7 @@ use std::rc::Rc;
 use super::{EvalError, ProgramSerializerContext, ProgramCache, Node, RegisterValue, Program, ProgramId, ProgramState, ProgramRunner, ProgramRunnerManager, ValidateCallError};
 use super::PerformCheckValue;
 use crate::parser::InstructionParameter;
+use anyhow::Context;
 use num_bigint::BigInt;
 use num_traits::Signed;
 
@@ -43,7 +44,7 @@ impl Node for NodeSeq {
         None
     }
 
-    fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> anyhow::Result<()> {
         if !self.link_established {
             panic!("No link have been establish. This node cannot do its job.");
         }
@@ -55,7 +56,8 @@ impl Node for NodeSeq {
             // Example: If program A depends on program B. 
             // Some day program B gets changed, and it breaks program A,
             // because negative input values was being used.
-            return Err(EvalError::EvalSequenceWithNegativeParameter);
+            let error = Err(EvalError::EvalSequenceWithNegativeParameter);
+            return error.context("NodeSeq input is negative");
         }
 
         // Abort if the input value is beyond the limit (optional)
