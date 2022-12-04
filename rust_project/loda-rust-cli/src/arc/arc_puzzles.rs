@@ -848,21 +848,85 @@ mod tests {
         ";
 
         const PROGRAM2: &'static str = "
-        f11 $0,100003 ; trim
+        mov $1,2
+        f21 $0,100002 ; rotate
         ";
 
         const PROGRAM3: &'static str = "
-        f11 $0,100010 ; flip x
+        mov $1,-1
+        f21 $0,100002 ; rotate
         ";
 
         const PROGRAM4: &'static str = "
-        f11 $0,100011 ; flip y
+        f11 $0,100003 ; trim
         ";
 
         const PROGRAM5: &'static str = "
+        f11 $0,100010 ; flip x
+        ";
+
+        const PROGRAM6: &'static str = "
+        f11 $0,100011 ; flip y
+        ";
+
+        const PROGRAM7: &'static str = "
         f11 $0,100012 ; flip xy
         ";
 
+        const PROGRAM8: &'static str = "
+        f11 $0,100004 ; remove duplicates
+        ";
+
+        const PROGRAM9: &'static str = "
+        f11 $0,100003 ; trim
+        f11 $0,100004 ; remove duplicates
+        ";
+        
+        const PROGRAM10: &'static str = "
+        mov $1,0
+        f21 $0,100013 ; pad by 1 pixel evenly
+        ";
+
+        const PROGRAM11: &'static str = "
+        mov $1,0
+        f21 $0,100014 ; pad by 1 pixel top/bottom
+        ";
+
+        const PROGRAM12: &'static str = "
+        mov $1,0
+        f21 $0,100015 ; pad by 1 pixel left/right
+        ";
+
+        const PROGRAM13: &'static str = "
+        f11 $0,100003 ; trim
+        mov $1,-1
+        f21 $0,100002 ; rotate
+        ";
+
+        const PROGRAM14: &'static str = "
+        f11 $0,100003 ; trim
+        mov $1,1
+        f21 $0,100002 ; rotate
+        ";
+
+        const PROGRAM15: &'static str = "
+        f11 $0,100003 ; trim
+        mov $1,2
+        f21 $0,100002 ; rotate
+        ";
+        
+        const PROGRAM16: &'static str = "
+        f11 $0,100020 ; resize x*2 y*2
+        ";
+        
+        const PROGRAM17: &'static str = "
+        f11 $0,100021 ; resize x*3 y*3
+        ";
+        
+        const PROGRAM18: &'static str = "
+        f11 $0,100022 ; resize x/2 y/2
+        ";
+        
         const PROGRAMS: &'static [&'static str] = &[
             PROGRAM0, 
             PROGRAM1, 
@@ -870,6 +934,19 @@ mod tests {
             PROGRAM3,
             PROGRAM4,
             PROGRAM5,
+            PROGRAM6,
+            PROGRAM7,
+            PROGRAM8,
+            PROGRAM9,
+            PROGRAM10,
+            PROGRAM11,
+            PROGRAM12,
+            PROGRAM13,
+            PROGRAM14,
+            PROGRAM15,
+            PROGRAM16,
+            PROGRAM17,
+            PROGRAM18,
         ];
 
         let mut dm = create_dependency_manager();
