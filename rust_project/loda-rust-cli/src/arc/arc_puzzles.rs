@@ -6,6 +6,8 @@ mod tests {
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset};
     use crate::arc::{ImageNgram, RecordTrigram};
     use crate::arc::register_arc_functions;
+    use crate::config::Config;
+    use crate::common::find_json_files_recursively;
     use loda_rust_core::execute::ProgramId;
     use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
     use loda_rust_core::execute::NodeRegisterLimit;
@@ -566,7 +568,6 @@ mod tests {
         assert_eq!(count, 4);
     }
 
-
     /// Detect corners and edges
     fn mask_and_repair_areas(input: &Image) -> anyhow::Result<(Image, Image)> {
         // Assign 0 to background, assign 1 to foreground
@@ -811,4 +812,65 @@ mod tests {
         assert_eq!(image, output);
         Ok(())
     }
+
+    // #[test]
+    fn test_130000_traverse_testdata() {
+        let config = Config::load();
+        let path: PathBuf = config.arc_repository_data_training();
+        let paths: Vec<PathBuf> = find_json_files_recursively(&path);
+        println!("number of json files: {}", paths.len());
+        
+        let mut items = Vec::<Item>::new();
+        for path in &paths {
+            let model = Model::load_with_json_file(path).expect("model");
+            let item = Item {
+                id: ItemId::Path { path: path.clone() },
+                model,
+            };
+            items.push(item);
+        }
+        println!("number of items: {}", items.len());
+
+        let program = "
+        mov $1,0
+        mov $2,1
+        f31 $0,100001 ; offset dx,dy
+        mov $1,8
+        mov $2,2
+        f31 $0,100005 ; replace color with color
+        ";
+
+        let mut count_match: usize = 0;
+        let mut count_mismatch: usize = 0;
+        for item in &items {
+            let pairs: Vec<ImagePair> = item.model.images_all().expect("pairs");
+    
+            let mut count = 0;
+            for pair in &pairs {
+                let output: Image = run_image(program, &pair.input).expect("image");
+                if output == pair.output {
+                    count += 1;
+                }
+            }
+
+            if count == pairs.len() {
+                count_match += 1;
+            } else {
+                count_mismatch += 1;
+            }
+        }
+        println!("number of matches: {} mismatches: {}", count_match, count_mismatch);
+
+    }
+
+    enum ItemId {
+        None,
+        Path { path: PathBuf },
+    }
+    
+    struct Item {
+        id: ItemId,
+        model: Model,
+    }
+    
 }
