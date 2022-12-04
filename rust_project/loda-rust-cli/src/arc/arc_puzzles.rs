@@ -196,19 +196,20 @@ mod tests {
 
     fn run_image<S: AsRef<str>>(program: S, input: &Image) -> anyhow::Result<Image> {
         let program_str: &str = program.as_ref();
-        let input_number_uint: BigUint = input.to_number().expect("input image to number");
-        let input_number_int: BigInt = input_number_uint.to_bigint().expect("input BigUint to BigInt");
-
-        let output_count: u8 = 1;
-
         let mut dm = create_dependency_manager();
         let program_runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, program_str).expect("ProgramRunner");
-
-        let step_count_limit: u64 = 1000000000;
         let mut cache = ProgramCache::new();
+        run_image_inner(&program_runner, input, &mut cache)
+    }
+    
+    fn run_image_inner(program_runner: &ProgramRunner, input: &Image, mut cache: &mut ProgramCache) -> anyhow::Result<Image> {
+        let output_count: u8 = 1;
+        let step_count_limit: u64 = 1000000000;
         let mut step_count: u64 = 0;
-
+        
         // Input
+        let input_number_uint: BigUint = input.to_number().expect("input image to number");
+        let input_number_int: BigInt = input_number_uint.to_bigint().expect("input BigUint to BigInt");
         let input_bigint: Vec<BigInt> = vec![input_number_int];
         
         // Run
