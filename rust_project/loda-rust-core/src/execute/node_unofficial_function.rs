@@ -4,6 +4,7 @@ use crate::parser::InstructionParameter;
 use crate::unofficial_function::UnofficialFunction;
 use anyhow::Context;
 use num_bigint::BigInt;
+use num_traits::ToPrimitive;
 use std::sync::Arc;
 
 pub struct NodeUnofficialFunction {
@@ -19,9 +20,9 @@ impl NodeUnofficialFunction {
         Self {
             input_count,
             output_count,
-            target: target,
+            target,
             function_id,
-            unofficial_function: unofficial_function,
+            unofficial_function,
         }
     }
 }
@@ -40,18 +41,17 @@ impl Node for NodeUnofficialFunction {
     fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> anyhow::Result<()> {
         let input: BigInt = state.get(&self.target, false)?;
 
-        // TODO: deal with indirect memory
-        let start_address: i64 = self.target.parameter_value;
-        if start_address < 0 {
-            let error = Err(EvalError::CannotConvertI64ToAddress);
-            return error.context("NodeUnofficialFunction start_address must be non-negative");
-        }
+        // Start address
+        let start_address_bigint: BigInt = state.get(&self.target, true)?;
+        let start_address: u64 = start_address_bigint.to_u64()
+            .context("NodeUnofficialFunction start_address must be non-negative and less that u64::MAX")?;
 
         // Input to the function
         let mut input_vec: Vec<BigInt> = vec!();
         for i in 0..self.input_count {
-            let address = (start_address + (i as i64)) as u64;
+            let address = start_address + (i as u64);
             let value: &BigInt = state.get_u64(address);
+            // debug!("input#{} = address {} = value {:?}", i, address, value);
 
             // Abort if the input value is beyond the limit (optional)
             state.check_value().input(&input)?;
@@ -70,7 +70,7 @@ impl Node for NodeUnofficialFunction {
         }
 
         for (index, value) in output_vec.iter().enumerate() {
-            let address = (start_address + (index as i64)) as u64;
+            let address = start_address + (index as u64);
 
             // Abort if the output value is beyond the limit (optional)
             state.check_value().output(value)?;

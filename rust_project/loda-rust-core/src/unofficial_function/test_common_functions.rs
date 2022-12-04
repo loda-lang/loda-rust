@@ -47,6 +47,53 @@ mod tests {
         assert_eq!(v, -20);
     }
 
+    #[test]
+    fn test_20000_indirect_memory_access_ok() {
+        let program = "
+        mov $8,5
+        mov $5,3
+        mov $6,4
+        f21 $$8,2 ; Product of 2 values
+        mov $0,$5
+        ";
+        let v: i64 = run(program, 0).expect("output");
+        assert_eq!(v, 12);
+    }
+
+    #[test]
+    fn test_20001_indirect_memory_access_ok() {
+        let program = "
+        mov $8,1
+        mov $1,3
+        mov $2,4
+        f21 $$8,2 ; Product of 2 values
+        mov $0,$1
+        ";
+        let v: i64 = run(program, 0).expect("output");
+        assert_eq!(v, 12);
+    }
+
+    #[test]
+    fn test_20002_indirect_memory_access_ok() {
+        let program = "
+        mov $8,0
+        mov $0,3
+        mov $1,4
+        f21 $$8,2 ; Product of 2 values
+        ";
+        let v: i64 = run(program, 0).expect("output");
+        assert_eq!(v, 12);
+    }
+
+    #[test]
+    fn test_20003_indirect_memory_access_error_negative_address() {
+        let program = "
+        mov $8,-1
+        f21 $$8,2 ; Product of 2 values
+        ";
+        run(program, 0).expect_err("negative address");
+    }
+
     /// Run program with 1 input and 1 output
     fn run<S: AsRef<str>>(program: S, input: i64) -> anyhow::Result<i64> {
         let program_str: &str = program.as_ref();
