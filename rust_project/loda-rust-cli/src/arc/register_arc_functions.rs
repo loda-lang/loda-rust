@@ -1,4 +1,5 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageReplaceColor, ImageSymmetry};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate};
+use super::{ImageReplaceColor, ImageSymmetry, ImagePadding};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -468,6 +469,84 @@ impl UnofficialFunction for ImageFlipFunction {
     }
 }
 
+#[derive(Debug)]
+enum ImagePaddingFunctionMode {
+    Even,
+    TopBottom,
+    LeftRight,
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
+}
+
+struct ImagePaddingFunction {
+    id: u32,
+    mode: ImagePaddingFunctionMode,
+}
+
+impl ImagePaddingFunction {
+    pub fn new(id: u32, mode: ImagePaddingFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for ImagePaddingFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        format!("ImagePaddingFunction {:?} pad by one pixel with color", self.mode)
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let mut image: Image = input0_uint.to_image()?;
+
+        // input1 is pixel_color 
+        let pixel_color: u8 = input[1].to_u8().context("u8 pixel_color")?;
+
+        match self.mode {
+            ImagePaddingFunctionMode::Even => {
+                image = image.padding_advanced(1, 1, 1, 1, pixel_color)?;
+            },
+            ImagePaddingFunctionMode::TopBottom => {
+                image = image.padding_advanced(1, 0, 0, 1, pixel_color)?;
+            },
+            ImagePaddingFunctionMode::LeftRight => {
+                image = image.padding_advanced(0, 1, 1, 0, pixel_color)?;
+            },
+            ImagePaddingFunctionMode::TopLeft => {
+                image = image.padding_advanced(1, 1, 0, 0, pixel_color)?;
+            },
+            ImagePaddingFunctionMode::TopRight => {
+                image = image.padding_advanced(1, 0, 1, 0, pixel_color)?;
+            },
+            ImagePaddingFunctionMode::BottomLeft => {
+                image = image.padding_advanced(0, 1, 0, 1, pixel_color)?;
+            },
+            ImagePaddingFunctionMode::BottomRight => {
+                image = image.padding_advanced(0, 0, 1, 1, pixel_color)?;
+            },
+        }
+        let output_uint: BigUint = image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageOffsetFunction::new(100001))));
     registry.register(Arc::new(Box::new(ImageRotateFunction::new(100002))));
@@ -486,5 +565,26 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     ))));
     registry.register(Arc::new(Box::new(
         ImageFlipFunction::new(100012, ImageFlipFunctionMode::FlipXY
+    ))));
+    registry.register(Arc::new(Box::new(
+        ImagePaddingFunction::new(100013, ImagePaddingFunctionMode::Even
+    ))));
+    registry.register(Arc::new(Box::new(
+        ImagePaddingFunction::new(100014, ImagePaddingFunctionMode::TopBottom
+    ))));
+    registry.register(Arc::new(Box::new(
+        ImagePaddingFunction::new(100015, ImagePaddingFunctionMode::LeftRight
+    ))));
+    registry.register(Arc::new(Box::new(
+        ImagePaddingFunction::new(100016, ImagePaddingFunctionMode::TopLeft
+    ))));
+    registry.register(Arc::new(Box::new(
+        ImagePaddingFunction::new(100017, ImagePaddingFunctionMode::TopRight
+    ))));
+    registry.register(Arc::new(Box::new(
+        ImagePaddingFunction::new(100018, ImagePaddingFunctionMode::BottomLeft
+    ))));
+    registry.register(Arc::new(Box::new(
+        ImagePaddingFunction::new(100019, ImagePaddingFunctionMode::BottomRight
     ))));
 }
