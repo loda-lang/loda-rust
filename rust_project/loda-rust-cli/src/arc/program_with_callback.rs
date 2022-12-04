@@ -13,7 +13,7 @@ mod tests {
 
     #[test]
     fn test_20000_simple() -> anyhow::Result<()> {
-        let program_content: &str = "
+        let program: &str = "
         mov $0,100
         mov $1,10
         mov $2,1
@@ -42,7 +42,7 @@ mod tests {
             loda_programs_oeis_dir,
             registry,
         );
-        let result_parse = dm.parse(ProgramId::ProgramWithoutId, &program_content.to_string());
+        let result_parse = dm.parse(ProgramId::ProgramWithoutId, program);
 
         let program_runner: ProgramRunner = result_parse.expect("ProgramRunner");
 

@@ -99,7 +99,7 @@ fn url_from_program_id(program_id: u64) -> String {
 
 #[wasm_bindgen]
 pub fn perform_selfcheck() {
-    const PROGRAM: &str = r#"        
+    let program: &str = r#"        
     mov $1,2
     pow $1,$0
     "#;
@@ -108,8 +108,7 @@ pub fn perform_selfcheck() {
         PathBuf::from("non-existing-dir"),
         UnofficialFunctionRegistry::new(),
     );
-    let source_code: String = PROGRAM.to_string();
-    let runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, &source_code).unwrap();
+    let runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, program).unwrap();
     runner.my_print_terms(10);
     info!("Selfcheck success");
 }
@@ -178,8 +177,8 @@ impl WebDependencyManagerInner {
         );
         let cache = ProgramCache::new();
 
-        let dummy_program = "mov $1,$0".to_string();
-        let dummy_runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, &dummy_program).unwrap();
+        let dummy_program: &str = "mov $1,$0";
+        let dummy_runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, dummy_program).unwrap();
         let program_runner: Rc::<ProgramRunner> = Rc::new(dummy_runner);
 
         WebDependencyManagerInner {

@@ -97,7 +97,6 @@ mod tests {
     /// Run program with 1 input and 1 output
     fn run<S: AsRef<str>>(program: S, input: i64) -> anyhow::Result<i64> {
         let program_str: &str = program.as_ref();
-        let program_string: String = program_str.to_string();
 
         let registry = UnofficialFunctionRegistry::new();
         register_common_functions(&registry);
@@ -107,7 +106,7 @@ mod tests {
             PathBuf::from("non-existing-dir"),
             registry,
         );
-        let result_parse = dm.parse(ProgramId::ProgramWithoutId, &program_string);
+        let result_parse = dm.parse(ProgramId::ProgramWithoutId, program_str);
 
         let program_runner: ProgramRunner = result_parse.expect("ProgramRunner");
 

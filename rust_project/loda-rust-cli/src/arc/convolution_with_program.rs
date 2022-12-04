@@ -94,7 +94,7 @@ mod tests {
         ];
         let input: Image = Image::try_create(4, 4, pixels).expect("image");
 
-        let program_content: &str = "
+        let program: &str = "
         mov $1,$0
         mod $1,256 ; width
         div $0,256
@@ -122,7 +122,7 @@ mod tests {
             loda_programs_oeis_dir,
             UnofficialFunctionRegistry::new(),
         );
-        let result_parse = dm.parse(ProgramId::ProgramWithoutId, &program_content.to_string());
+        let result_parse = dm.parse(ProgramId::ProgramWithoutId, program);
 
         let program_runner: ProgramRunner = result_parse.expect("ProgramRunner");
     
