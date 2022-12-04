@@ -43,7 +43,6 @@ impl Node for NodeUnofficialFunction {
         // TODO: deal with indirect memory
         let start_address: i64 = self.target.parameter_value;
         if start_address < 0 {
-            // TODO: fail with human readable error
             let error = Err(EvalError::CannotConvertI64ToAddress);
             return error.context("NodeUnofficialFunction start_address must be non-negative");
         }
@@ -62,21 +61,12 @@ impl Node for NodeUnofficialFunction {
 
         // Run the function
         let run_result = self.unofficial_function.run(input_vec);
-        let output_vec: Vec<BigInt> = match run_result {
-            Ok(value) => value,
-            Err(error) => {
-                error!("NodeUnofficialFunction.eval run error: {:?}", error);
-                // TODO: fail with human readable error
-                return Err(error.context("NodeUnofficialFunction.eval run returned error"));
-            }
-        };
+        let output_vec: Vec<BigInt> = run_result.context("NodeUnofficialFunction.eval run returned error")?;
         
         // Output from the function
         if output_vec.len() != (self.output_count as usize) {
-            error!("NodeUnofficialFunction.eval Expected {} output values, but got output {}", self.output_count, output_vec.len());
-            // TODO: fail with human readable error
             let error = Err(EvalError::UnofficialFunctionOutputVectorHasIncorrectLength);
-            return error.context("NodeUnofficialFunction output vector has incorrect length");
+            return error.with_context(|| format!("NodeUnofficialFunction.eval Expected {} output values, but got output {}", self.output_count, output_vec.len()));
         }
 
         for (index, value) in output_vec.iter().enumerate() {
@@ -85,19 +75,10 @@ impl Node for NodeUnofficialFunction {
             // Abort if the output value is beyond the limit (optional)
             state.check_value().output(value)?;
 
-            match state.set_u64(address, value.clone()) {
-                Ok(()) => {},
-                Err(error) => {
-                    error!("NodeUnofficialFunction.eval Cannot set output value into state. address: {}, error: {}", address, error);
-                    // TODO: fail with human readable error
-                    let error = Err(EvalError::UnofficialFunctionCannotSetOutputValue);
-                    return error.context("NodeUnofficialFunction cannot set output value");
-                }
-            }
+            state.set_u64(address, value.clone())
+                .with_context(|| format!("NodeUnofficialFunction.eval Cannot set output value into state. address: {}", address))?;
         }
-
-        // TODO: update step counter
-    
+        state.increment_step_count()?;
         Ok(())
     }
 

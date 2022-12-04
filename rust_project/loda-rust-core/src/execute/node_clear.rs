@@ -29,7 +29,7 @@ impl Node for NodeClear {
             Some(value) => value,
             None => {
                 let error = Err(EvalError::CannotConvertBigIntToAddress);
-                return error.context("NodeClear target");
+                return error.context("NodeClear target, cannot bigint to u64 address");
             }
         };
 
@@ -42,7 +42,7 @@ impl Node for NodeClear {
             Some(value) => value,
             None => {
                 let error = Err(EvalError::ClearRangeLengthExceedsLimit);
-                return error.context("NodeClear source.to_64");
+                return error.context("NodeClear source, cannot convert bigint to u64");
             }
         };
 
