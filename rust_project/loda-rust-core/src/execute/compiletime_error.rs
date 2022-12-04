@@ -13,6 +13,8 @@ pub enum CreateInstructionErrorType {
     RegisterIndexMustBeNonNegative,
     RegisterIndexTooHigh,
     NodeCreateError,
+    UnofficialFunctionInvalidInputOutputCount,
+    UnofficialFunctionLookupReturnedNone,
 }
 
 #[derive(Debug, PartialEq)]

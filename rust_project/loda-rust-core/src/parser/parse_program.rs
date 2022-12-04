@@ -185,6 +185,10 @@ mod tests {
         assert_eq!(process("  mov  $1, -2\n\tmov $3\t, $44"), "mov $1,-2\nmov $3,$44");
         assert_eq!(process("\tmov $1,2 ; comment"), "mov $1,2");
         assert_eq!(process("add $$1,2\nsub $2,$$1"), "add $$1,2\nsub $2,$$1");
+
+        // UnofficialFunction
+        assert_eq!(process("\n\nf11 $1,22 ; comment"), "f11 $1,22");
+        assert_eq!(process("f11 $1,22\n f99 $8,8\n"), "f11 $1,22\nf99 $8,8");
     }
 
     #[test]

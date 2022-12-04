@@ -1,5 +1,7 @@
-use super::{EvalError, NodeLoopLimit, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterValue, RunMode};
+use super::{NodeLoopLimit, ProgramCache, Program, ProgramId, ProgramSerializer, ProgramState, RegisterValue, RunMode};
 use super::NodeRegisterLimit;
+use anyhow::Context;
+use num_bigint::BigInt;
 use std::fmt;
 
 pub struct ProgramRunner {
@@ -24,7 +26,7 @@ impl ProgramRunner {
         node_register_limit: NodeRegisterLimit, 
         node_loop_limit: NodeLoopLimit,
         cache: &mut ProgramCache
-    ) -> Result<RegisterValue, EvalError> {
+    ) -> anyhow::Result<RegisterValue> {
         let step_count_before: u64 = *step_count;
 
         // Lookup (programid+input) in cache
@@ -56,9 +58,7 @@ impl ProgramRunner {
         *step_count = step_count_after;
 
         // In case run failed, then return the error
-        if let Err(error) = run_result {
-            return Err(error);
-        }
+        run_result.context("run_result error in program.run")?;
         
         // In case run succeeded, then return output.
         let output: RegisterValue = state.remove_output_value();
@@ -86,6 +86,54 @@ impl ProgramRunner {
         }
 
         Ok(output)
+    }
+
+    pub fn run_vec(
+        &self, 
+        input: Vec<BigInt>, 
+        run_mode: RunMode, 
+        step_count: &mut u64, 
+        step_count_limit: u64, 
+        node_register_limit: NodeRegisterLimit, 
+        node_loop_limit: NodeLoopLimit,
+        cache: &mut ProgramCache,
+        output_count: u8,
+    ) -> anyhow::Result<Vec<BigInt>> {
+        let step_count_before: u64 = *step_count;
+
+        // Initial state
+        let mut state = ProgramState::new(
+            run_mode, 
+            step_count_limit, 
+            node_register_limit,
+            node_loop_limit,
+        );
+        state.set_step_count(step_count_before);
+
+        // Input vector
+        for (index, input_value) in input.iter().enumerate() {
+            let result = state.set_u64(index as u64, input_value.clone());
+            result.context("input vector, set_u64")?;
+        }
+
+        // Invoke the actual run() function
+        let run_result = self.program.run(&mut state, cache);
+
+        // Update statistics, no matter if run succeeded or failed
+        let step_count_after: u64 = state.step_count();
+        *step_count = step_count_after;
+
+        // In case run failed, then return the error
+        run_result.context("run_result error in program.run")?;
+
+        // Output vector
+        let mut output_vec = Vec::<BigInt>::with_capacity(output_count as usize);
+        for index in 0..output_count {
+            let value: BigInt = state.get_u64(index as u64).clone();
+            output_vec.push(value);
+        }
+
+        Ok(output_vec)
     }
 
     pub fn serialize(&self, serializer: &mut ProgramSerializer) {

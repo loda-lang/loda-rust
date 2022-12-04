@@ -66,7 +66,7 @@ impl Node for NodeCalc {
         format!("{} {},{}", self.instruction_id, self.target, self.source)
     }
 
-    fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, _cache: &mut ProgramCache) -> anyhow::Result<()> {
         let target: BigInt = state.get(&self.target, false)?;
         let source: BigInt = state.get(&self.source, false)?;
         let value: BigInt = self.calc(&target, &source)?;

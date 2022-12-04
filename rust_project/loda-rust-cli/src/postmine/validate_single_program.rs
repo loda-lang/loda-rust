@@ -1,7 +1,7 @@
 use loda_rust_core::control::{DependencyManager, DependencyManagerError, DependencyManagerFileSystemMode};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramId, ProgramRunner, RegisterValue, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
-use std::error::Error;
+use loda_rust_core::unofficial_function::UnofficialFunctionRegistry;
 use std::path::{Path, PathBuf};
 use std::fs;
 use anyhow::Context;
@@ -31,6 +31,7 @@ impl ValidateSingleProgram {
         let mut dm = DependencyManager::new(
             DependencyManagerFileSystemMode::System,
             self.loda_programs_oeis_dir.clone(),
+            UnofficialFunctionRegistry::new(),
         );
         let result_parse = dm.parse(
             ProgramId::ProgramWithoutId, 
@@ -81,11 +82,11 @@ impl IsCyclicDependency for DependencyManagerError {
 
 
 trait ComputeTerms {
-    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<(), Box<dyn Error>>;
+    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> anyhow::Result<()>;
 }
 
 impl ComputeTerms for ProgramRunner {
-    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> Result<(), Box<dyn Error>> {
+    fn compute_terms(&self, count: u64, cache: &mut ProgramCache) -> anyhow::Result<()> {
         if count >= 0x7fff_ffff_ffff_ffff {
             panic!("Value is too high. Cannot be converted to 64bit signed integer.");
         }
@@ -109,7 +110,7 @@ impl ComputeTerms for ProgramRunner {
                 Ok(value) => value,
                 Err(error) => {
                     debug!("Failure while computing term {}, error: {:?}", index, error);
-                    return Err(Box::new(error));
+                    return Err(error);
                 }
             };
         }

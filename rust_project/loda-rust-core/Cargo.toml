@@ -16,6 +16,7 @@ num-traits = "0.2.15"
 log = "0.4.17"
 serde = { version = "1.0.137", features = ["derive"] }
 cached = "0.40.0"
+anyhow = "1.0.58"
 
 [dev-dependencies]
 tempfile = "3.3.0"

@@ -1,6 +1,7 @@
 use super::{EvalError, Node, NodeLoopLimit, ProgramCache, Program, ProgramRunnerManager, ProgramSerializer, ProgramState, RunMode, ValidateCallError, RegisterIndexAndType, LOOP_RANGE_MAX_BITS};
 use crate::parser::{Instruction, InstructionParameter, ParameterType};
 use super::compiletime_error::*;
+use anyhow::Context;
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Signed};
 
@@ -46,7 +47,7 @@ impl Node for NodeLoopSlow {
         serializer.append_raw("lpe");
     }
 
-    fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> anyhow::Result<()> {
         if state.run_mode() == RunMode::Verbose {
             let snapshot = state.memory_full_to_string();
             let instruction = self.formatted_instruction();
@@ -62,7 +63,8 @@ impl Node for NodeLoopSlow {
             let old_target_u64: u64 = match old_target.to_u64() {
                 Some(value) => value,
                 None => {
-                    return Err(EvalError::CannotConvertBigIntToAddress);
+                    let error = Err(EvalError::CannotConvertBigIntToAddress);
+                    return error.context("NodeLoopSlow target address before program.run");
                 }
             };
 
@@ -74,7 +76,8 @@ impl Node for NodeLoopSlow {
                         old_range_length = value;
                     },
                     None => {
-                        return Err(EvalError::LoopRangeLengthExceededLimit);
+                        let error = Err(EvalError::LoopRangeLengthExceededLimit);
+                        return error.context("NodeLoopSlow source range length before program.run");
                     }
                 };
             } else {
@@ -88,7 +91,8 @@ impl Node for NodeLoopSlow {
             let new_target_u64: u64 = match new_target.to_u64() {
                 Some(value) => value,
                 None => {
-                    return Err(EvalError::CannotConvertBigIntToAddress);
+                    let error = Err(EvalError::CannotConvertBigIntToAddress);
+                    return error.context("NodeLoopSlow target address after program.run");
                 }
             };
 
@@ -100,7 +104,8 @@ impl Node for NodeLoopSlow {
                         new_range_length = value;
                     },
                     None => {
-                        return Err(EvalError::LoopRangeLengthExceededLimit);
+                        let error = Err(EvalError::LoopRangeLengthExceededLimit);
+                        return error.context("NodeLoopSlow source range length after program.run");
                     }
                 };
             } else {
@@ -111,7 +116,8 @@ impl Node for NodeLoopSlow {
             let range_length: u64 = u64::min(new_range_length, old_range_length);
             if range_length >= (1 << LOOP_RANGE_MAX_BITS) {
                 // Range length is beyond the max length.
-                return Err(EvalError::LoopRangeLengthExceededLimit);
+                let error = Err(EvalError::LoopRangeLengthExceededLimit);
+                return error.context("NodeLoopSlow range length exceeded LOOP_RANGE_MAX_BITS");
             }
     
             if state.run_mode() == RunMode::Verbose {
@@ -147,7 +153,8 @@ impl Node for NodeLoopSlow {
                 NodeLoopLimit::LimitCount(limit_count) => {
                     cycles += 1;
                     if cycles > limit_count {
-                        return Err(EvalError::LoopCountExceededLimit);
+                        let error = Err(EvalError::LoopCountExceededLimit);
+                        return error.context("NodeLoopSlow loop count exceeded limit");
                     }
                 }
             }

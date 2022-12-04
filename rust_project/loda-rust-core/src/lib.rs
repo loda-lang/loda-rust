@@ -12,4 +12,5 @@ pub mod control;
 pub mod execute;
 pub mod oeis;
 pub mod parser;
+pub mod unofficial_function;
 pub mod util;

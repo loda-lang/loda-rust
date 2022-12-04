@@ -8,6 +8,7 @@ use crate::execute::node_calc::NodeCalcSemanticMode;
 use crate::parser::{ParsedProgram, ParseProgramError, CreateProgram};
 use crate::execute::{Program, ProgramId, ProgramRunner, ProgramRunnerManager};
 use crate::execute::compiletime_error::*;
+use crate::unofficial_function::UnofficialFunctionRegistry;
 use super::ExecuteProfile;
 
 #[derive(Debug, PartialEq)]
@@ -97,10 +98,11 @@ pub struct DependencyManager {
     virtual_filesystem: HashMap<u64, String>,
     metric_read_success: u64,
     metric_read_error: u64,
+    unofficial_function_registry: UnofficialFunctionRegistry,
 }
 
 impl DependencyManager {
-    pub fn new(file_system_mode: DependencyManagerFileSystemMode, loda_programs_oeis_dir: PathBuf) -> Self {
+    pub fn new(file_system_mode: DependencyManagerFileSystemMode, loda_programs_oeis_dir: PathBuf, unofficial_function_registry: UnofficialFunctionRegistry) -> Self {
         Self {
             file_system_mode: file_system_mode,
             loda_programs_oeis_dir: loda_programs_oeis_dir,
@@ -111,6 +113,7 @@ impl DependencyManager {
             virtual_filesystem: HashMap::new(),
             metric_read_success: 0,
             metric_read_error: 0,
+            unofficial_function_registry: unofficial_function_registry,
         }        
     }
 
@@ -223,7 +226,7 @@ impl DependencyManager {
             ExecuteProfile::SmallLimits => NodeCalcSemanticMode::SmallLimits
         };
         let create_program = CreateProgram::new(node_calc_semantic_mode);
-        let mut program: Program = match create_program.create_program(&parsed_program.instruction_vec) {
+        let mut program: Program = match create_program.create_program(&parsed_program.instruction_vec, &self.unofficial_function_registry) {
             Ok(value) => value,
             Err(error) => {
                 return Err(DependencyManagerError::CreateProgram(error));
@@ -310,9 +313,11 @@ mod tests {
         pow $1,$0
         mov $0,$1
         "#;
+        let unofficial_function_registry = UnofficialFunctionRegistry::new();
         let mut dm = DependencyManager::new(
             DependencyManagerFileSystemMode::System,
             PathBuf::from("non-existing-dir"),
+            unofficial_function_registry,
         );
         let source_code: String = PROGRAM.to_string();
         let runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, &source_code).unwrap();
@@ -324,7 +329,8 @@ mod tests {
         let basedir = PathBuf::from("non-existing-dir");
         let dm = DependencyManager::new(
             DependencyManagerFileSystemMode::System,
-            basedir.clone()
+            basedir.clone(),
+            UnofficialFunctionRegistry::new(),
         );
         {
             let actual: PathBuf = dm.path_to_program(79);
@@ -343,7 +349,8 @@ mod tests {
         let path = PathBuf::from(e).join(relative_path_to_testdir);
         DependencyManager::new(
             DependencyManagerFileSystemMode::System,
-            path
+            path,
+            UnofficialFunctionRegistry::new(),
         )
     }
 

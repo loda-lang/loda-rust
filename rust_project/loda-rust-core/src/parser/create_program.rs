@@ -9,6 +9,9 @@ use crate::execute::node_loop_simple::*;
 use crate::execute::node_loop_slow::*;
 use crate::execute::node_seq::*;
 use crate::execute::compiletime_error::*;
+use crate::execute::NodeUnofficialFunction;
+use crate::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
+use std::sync::Arc;
 
 impl Instruction {
     /// Loop end (lpe) takes zero parameters.
@@ -88,6 +91,93 @@ fn create_node_seq(instruction: &Instruction) -> Result<BoxNode, CreateInstructi
     let node = NodeSeq::new(
         parameter0.clone(),
         program_id,
+    );
+    let node_wrapped = Box::new(node);
+    Ok(node_wrapped)
+}
+
+fn create_node_unofficial_function(
+    instruction: &Instruction, 
+    input_count: u8, 
+    output_count: u8,
+    unofficial_function_registry: &UnofficialFunctionRegistry
+) -> Result<BoxNode, CreateInstructionError> {
+    // Check the instruction `fxx` has input count in the range [1..9]
+    if input_count < 1 || input_count > 9 {
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::UnofficialFunctionInvalidInputOutputCount,
+        );
+        return Err(err);
+    }
+
+    // Check the instruction `fxx` has output count in the range [1..9]
+    if output_count < 1 || output_count > 9 {
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::UnofficialFunctionInvalidInputOutputCount,
+        );
+        return Err(err);
+    }
+
+    instruction.expect_two_parameters()?;
+    let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
+
+    // Checks that parameter0 is good.
+    // Bail out if parameter0 is ParameterType::Constant.
+    // Bail out if parameter0 is a negative value.
+    let _register0 = RegisterIndexAndType::from_parameter(instruction, parameter0)?;
+
+    let parameter1: &InstructionParameter = instruction.parameter_vec.last().unwrap();
+    if parameter1.parameter_type != ParameterType::Constant {
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::ParameterMustBeConstant,
+        );
+        return Err(err);
+    }
+    if parameter1.parameter_value < 0 {
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::ConstantMustBeNonNegative,
+        );
+        return Err(err);
+    }
+    let function_id_u64 = parameter1.parameter_value as u64;
+    if function_id_u64 >= (u32::MAX as u64) {
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::UnofficialFunctionLookupReturnedNone,
+        );
+        return Err(err);
+    }
+    let function_id = function_id_u64 as u32;
+
+    // Find the corresponding function
+    let key = UnofficialFunctionId::InputOutput { 
+        id: function_id, 
+        inputs: input_count, 
+        outputs: output_count 
+    };
+    let lookup_result = unofficial_function_registry.lookup(key);
+    let unofficial_function: Arc<Box<dyn UnofficialFunction>> = match lookup_result {
+        Some(value) => value,
+        None => {
+            let err = CreateInstructionError::new(
+                instruction.line_number,
+                CreateInstructionErrorType::UnofficialFunctionLookupReturnedNone,
+            );
+            return Err(err);    
+        }
+    };
+
+    // Create node
+    let node = NodeUnofficialFunction::new(
+        input_count,
+        output_count,
+        parameter0.clone(),
+        function_id,
+        unofficial_function,
     );
     let node_wrapped = Box::new(node);
     Ok(node_wrapped)
@@ -212,7 +302,7 @@ impl CreateProgram {
         }
     }
 
-    pub fn create_program(&self, instruction_vec: &Vec<Instruction>) -> Result<Program, CreateProgramError> {
+    pub fn create_program(&self, instruction_vec: &Vec<Instruction>, unofficial_function_registry: &UnofficialFunctionRegistry) -> Result<Program, CreateProgramError> {
         validate_loops(instruction_vec)?;
     
         let mut stack_vec: Vec<(Program, LoopScope)> = vec!();
@@ -318,6 +408,15 @@ impl CreateProgram {
                 },
                 InstructionId::EvalSequence => {
                     let node = create_node_seq(&instruction)?;
+                    program.push_boxed(node);
+                },
+                InstructionId::UnofficialFunction { input_count, output_count } => {
+                    let node = create_node_unofficial_function(
+                        &instruction, 
+                        input_count, 
+                        output_count,
+                        unofficial_function_registry,
+                    )?;
                     program.push_boxed(node);
                 },
             }

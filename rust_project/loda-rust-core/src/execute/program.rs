@@ -1,4 +1,4 @@
-use super::{BoxNode, EvalError, Node, ProgramCache, ProgramRunnerManager, ProgramSerializer, ProgramState, RunMode, ValidateCallError};
+use super::{BoxNode, Node, ProgramCache, ProgramRunnerManager, ProgramSerializer, ProgramState, RunMode, ValidateCallError};
 
 type BoxNodeVec = Vec<BoxNode>;
 
@@ -28,21 +28,21 @@ impl Program {
         }
     }
 
-    pub fn run(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
+    pub fn run(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> anyhow::Result<()> {
         match state.run_mode() {
             RunMode::Verbose => self.run_verbose(state, cache),
             RunMode::Silent => self.run_silent(state, cache),
         }
     }
 
-    pub fn run_silent(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
+    pub fn run_silent(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> anyhow::Result<()> {
         for node in &self.node_vec {
             node.eval(state, cache)?;
         }
         Ok(())
     }
 
-    pub fn run_verbose(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
+    pub fn run_verbose(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> anyhow::Result<()> {
         for node in &self.node_vec {
             let before = state.memory_full_to_string();
             let result = node.eval(state, cache);

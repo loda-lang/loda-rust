@@ -1,4 +1,5 @@
 use super::{EvalError, Node, NodeLoopLimit, Program, ProgramCache, ProgramSerializer, ProgramState, ProgramRunnerManager, RegisterIndex, RunMode, ValidateCallError, LOOP_RANGE_MAX_BITS};
+use anyhow::Context;
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Signed};
 
@@ -31,7 +32,7 @@ impl Node for NodeLoopRegister {
         serializer.append_raw("lpe");
     }
 
-    fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> Result<(), EvalError> {
+    fn eval(&self, state: &mut ProgramState, cache: &mut ProgramCache) -> anyhow::Result<()> {
         if state.run_mode() == RunMode::Verbose {
             let snapshot = state.memory_full_to_string();
             let instruction = self.formatted_instruction();
@@ -43,13 +44,15 @@ impl Node for NodeLoopRegister {
         if initial_value_inner.is_positive() {
             if initial_value_inner.bits() >= LOOP_RANGE_MAX_BITS {
                 // Loop range length is beyond the max length.
-                return Err(EvalError::LoopRangeLengthExceededLimit);
+                let error = Err(EvalError::LoopRangeLengthExceededLimit);
+                return error.context("NodeLoopRegister range length exceeded limit. Before run.");
             } else {
                 // Value is between 0 and 2^LOOP_RANGE_MAX_BITS.
                 initial_range_length = match initial_value_inner.to_u64() {
                     Some(value) => value,
                     None => {
-                        return Err(EvalError::LoopRangeLengthExceededLimit);
+                        let error = Err(EvalError::LoopRangeLengthExceededLimit);
+                        return error.context("NodeLoopRegister range length cannot convert to u64. Before run.");
                     }
                 }
             }
@@ -75,13 +78,15 @@ impl Node for NodeLoopRegister {
             if value_inner.is_positive() {
                 if value_inner.bits() >= LOOP_RANGE_MAX_BITS {
                     // Range length is beyond the max length.
-                    return Err(EvalError::LoopRangeLengthExceededLimit);
+                    let error = Err(EvalError::LoopRangeLengthExceededLimit);
+                    return error.context("NodeLoopRegister range length exceeded limit. After run.");
                 } else {
                     // Value is between 0 and 2^LOOP_RANGE_MAX_BITS.
                     range_length = match value_inner.to_u64() {
                         Some(value) => value,
                         None => {
-                            return Err(EvalError::LoopRangeLengthExceededLimit);
+                            let error = Err(EvalError::LoopRangeLengthExceededLimit);
+                            return error.context("NodeLoopRegister range length cannot convert to u64. After run");
                         }
                     }
                 }
@@ -128,7 +133,8 @@ impl Node for NodeLoopRegister {
                 NodeLoopLimit::LimitCount(limit_count) => {
                     cycles += 1;
                     if cycles > limit_count {
-                        return Err(EvalError::LoopCountExceededLimit);
+                        let error = Err(EvalError::LoopCountExceededLimit);
+                        return error.context("NodeLoopRegister loop count exceeded limit");
                     }
                 }
             }

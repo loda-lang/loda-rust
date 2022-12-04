@@ -58,6 +58,11 @@ pub enum EvalError {
     AddressIsOutsideMaxCapacity,
     AddressWithNegativeValue,
     UnsupportedInstruction,
+
+    /// Unofficial function
+    UnofficialFunctionRunReturnedError,
+    UnofficialFunctionOutputVectorHasIncorrectLength,
+    UnofficialFunctionCannotSetOutputValue,
 }
 
 impl fmt::Display for EvalError {
@@ -109,6 +114,12 @@ impl fmt::Display for EvalError {
                 write!(f, "Memory address with negative value"),
             Self::UnsupportedInstruction => 
                 write!(f, "Unsupported instruction"),
+            Self::UnofficialFunctionRunReturnedError => 
+                write!(f, "Unofficial function run returned error"),
+            Self::UnofficialFunctionOutputVectorHasIncorrectLength => 
+                write!(f, "Unofficial function output vector has incorrect length"),
+            Self::UnofficialFunctionCannotSetOutputValue => 
+                write!(f, "Unofficial function cannot set output value"),
         }
     }
 }
