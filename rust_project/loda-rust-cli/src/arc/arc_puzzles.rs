@@ -209,7 +209,7 @@ mod tests {
         let input_bigint: Vec<BigInt> = vec![input_number_int];
         
         // Run
-        let result_run = program_runner.run_vec(
+        let output_vec: Vec<BigInt> = program_runner.run_vec(
             input_bigint, 
             RunMode::Silent, 
             &mut step_count, 
@@ -218,8 +218,7 @@ mod tests {
             NodeLoopLimit::Unlimited,
             &mut cache,
             output_count,
-        );
-        let output_vec: Vec<BigInt> = result_run.expect("output");
+        )?;
 
         // Output
         if output_vec.len() != 1 {
