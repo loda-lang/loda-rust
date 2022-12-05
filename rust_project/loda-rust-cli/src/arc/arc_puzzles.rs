@@ -1048,6 +1048,50 @@ mod tests {
         assert_eq!(count, 3);
     }
 
+    #[test]
+    fn test_180000_puzzle_31aa019c() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("31aa019c")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let pixel_color: u8 = input.least_popular_color().expect("color");
+        let image: Image = input.replace_colors_other_than(pixel_color, 0).expect("image");
+
+        let outline_color: u8 = 2;
+        let background_color: u8 = 0;
+        let input_padded: Image = image.padding_with_color(1, background_color).expect("image");
+        let result_image: Image = convolution3x3(&input_padded, |bm| {
+            let center_pixel_value: u8 = bm.get(1, 1).unwrap_or(255);
+            if center_pixel_value != background_color {
+                return Ok(center_pixel_value);
+            }
+            for y in 0..3i32 {
+                for x in 0..3i32 {
+                    if x == 1 && y == 1 {
+                        continue;
+                    }
+                    let pixel_value: u8 = bm.get(x, y).unwrap_or(255);
+                    if pixel_value != center_pixel_value {
+                        return Ok(outline_color);
+                    }
+                }
+            }
+            Ok(background_color)
+        }).expect("image");
+
+        assert_eq!(result_image, output);
+        Ok(())
+    }
+
     // #[test]
     fn test_180000_traverse_testdata() {
         let config = Config::load();

@@ -2,12 +2,17 @@ use crate::arc::Image;
 
 pub trait ImagePadding {
     fn zero_padding(&self, count: u8) -> anyhow::Result<Image>;
+    fn padding_with_color(&self, count: u8, color: u8) -> anyhow::Result<Image>;
     fn padding_advanced(&self, top: u8, left: u8, right: u8, bottom: u8, color: u8) -> anyhow::Result<Image>;
 }
 
 impl ImagePadding for Image {
     fn zero_padding(&self, count: u8) -> anyhow::Result<Image> {
-        self.padding_advanced(count, count, count, count, 0)
+        self.padding_with_color(count, 0)
+    }
+
+    fn padding_with_color(&self, count: u8, color: u8) -> anyhow::Result<Image> {
+        self.padding_advanced(count, count, count, count, color)
     }
 
     fn padding_advanced(&self, top: u8, left: u8, right: u8, bottom: u8, color: u8) -> anyhow::Result<Image> {
