@@ -5,7 +5,7 @@ mod tests {
     use crate::arc::{Image, convolution2x2, convolution3x3};
     use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding, ImageStack};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile};
-    use crate::arc::{ImageNgram, RecordTrigram, Histogram};
+    use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, Histogram};
     use crate::arc::register_arc_functions;
     use crate::config::Config;
     use crate::common::find_json_files_recursively;
@@ -1097,8 +1097,80 @@ mod tests {
         assert_eq!(count, 4);
     }
 
+    #[test]
+    fn test_190000_puzzle_5ad4f10b() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("5ad4f10b")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let background_color: u8 = input.most_popular_color().expect("color");
+
+        let input_padded: Image = input.zero_padding(1).expect("image");
+
+        let denoised_image: Image = convolution3x3(&input_padded, |bm| {
+            let tl: u8 = bm.get(0, 0).unwrap_or(255);
+            let tc: u8 = bm.get(1, 0).unwrap_or(255);
+            let tr: u8 = bm.get(2, 0).unwrap_or(255);
+            let cl: u8 = bm.get(0, 1).unwrap_or(255);
+            let cc: u8 = bm.get(1, 1).unwrap_or(255);
+            let cr: u8 = bm.get(2, 1).unwrap_or(255);
+            let bl: u8 = bm.get(0, 2).unwrap_or(255);
+            let bc: u8 = bm.get(1, 2).unwrap_or(255);
+            let br: u8 = bm.get(2, 2).unwrap_or(255);
+
+            let is_top_left: bool = tl == tc && cl == cc && tc == cc;
+            let is_top_right: bool = tr == tc && cr == cc && tc == cc;
+            let is_bottom_left: bool = bl == bc && cl == cc && bc == cc;
+            let is_bottom_right: bool = br == bc && cr == cc && bc == cc;
+            if is_top_left || is_top_right || is_bottom_left || is_bottom_right {
+                return Ok(cc);
+            }
+            Ok(background_color)
+        }).expect("image");
+
+        // println!("denoised: {:?}", denoised_image);
+
+        let histogram_input_with_noise: Histogram = input.histogram_all();
+        let histogram_denoised_image: Histogram = denoised_image.histogram_all();
+        
+        // Obtain histogram just for the noise
+        let mut histogram: Histogram = histogram_input_with_noise.clone();
+        for pair in histogram_denoised_image.pairs_descending() {
+            let color: u8 = pair.1;
+            histogram.set_counter_to_zero(color);
+        }
+        // Pick the noise color
+        let noise_color: u8 = histogram.most_popular().expect("noise pixel");
+        // println!("noise color: {}", noise_color);
+
+        // Pick the object color
+        let object_color: u8 = denoised_image.least_popular_color().expect("object color");
+        // println!("object color: {}", object_color);
+
+        // Remove background around the object
+        let trimmed_image: Image = denoised_image.trim().expect("image");
+
+        // Remove duplicate rows/columns
+        let image_without_duplicates: Image = trimmed_image.remove_duplicates().expect("image");
+
+        // Change color of the object
+        let result_image: Image = image_without_duplicates.replace_color(object_color, noise_color).expect("image");
+
+        assert_eq!(result_image, output);
+        Ok(())
+    }
+
     // #[test]
-    fn test_190000_traverse_testdata() {
+    fn test_200000_traverse_testdata() {
         let config = Config::load();
         let path: PathBuf = config.arc_repository_data_training();
         let paths: Vec<PathBuf> = find_json_files_recursively(&path);

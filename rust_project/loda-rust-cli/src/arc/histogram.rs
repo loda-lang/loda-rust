@@ -32,6 +32,10 @@ impl Histogram {
         self.counters[index as usize] = count + 1;
     }
 
+    pub fn set_counter_to_zero(&mut self, index: u8) {
+        self.counters[index as usize] = 0;
+    }
+
     pub fn most_popular(&self) -> Option<u8> {
         let mut found_count: u32 = 0;
         let mut found_index: usize = 0;
