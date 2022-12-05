@@ -45,6 +45,23 @@ impl Histogram {
         }
         Some((found_index & 255) as u8)
     }
+
+    /// The most frequent occurring comes first.
+    /// 
+    /// The medium frequent occuring comes middle.
+    /// 
+    /// The least frequent are at the end.
+    pub fn sorted_pairs(&self) -> Vec<(u32,u8)> {
+        let mut pairs = Vec::<(u32, u8)>::with_capacity(256);
+        for (index, number_of_occurences) in self.counters.iter().enumerate() {
+            if *number_of_occurences > 0 {
+                pairs.push((*number_of_occurences, (index & 255) as u8));
+            }
+        }
+        pairs.sort();
+        pairs.reverse();
+        pairs
+    }
 }
 
 #[cfg(test)]
@@ -95,5 +112,22 @@ mod tests {
 
         // Assert
         assert_eq!(color, None);
+    }
+
+    #[test]
+    fn test_30000_sorted_pairs() {
+        // Arrange
+        let mut h = Histogram::new();
+        let values: [u8; 8] = [3, 42, 42, 3, 2, 3, 4, 5];
+        for value in values {
+            h.increment(value);
+        }
+
+        // Act
+        let pairs: Vec<(u32, u8)> = h.sorted_pairs();
+
+        // Assert
+        let expected: Vec<(u32, u8)> = vec![(3, 3), (2, 42), (1, 5), (1, 4), (1, 2)];
+        assert_eq!(pairs, expected);
     }
 }
