@@ -1,15 +1,15 @@
 use super::{Histogram, Image};
 
 pub trait ImageHistogram {
-    fn histogram_border(&self) -> anyhow::Result<Vec<u32>>;
+    fn histogram_border(&self) -> anyhow::Result<Histogram>;
 }
 
 impl ImageHistogram for Image {
     /// Traverses the border of the image, and builds a histogram
-    fn histogram_border(&self) -> anyhow::Result<Vec<u32>> {
+    fn histogram_border(&self) -> anyhow::Result<Histogram> {
         let mut h = Histogram::new();
         if self.is_empty() {
-            return Ok(h.to_vec());
+            return Ok(h);
         }
         let x_max: i32 = (self.width() as i32) - 1;
         let y_max: i32 = (self.height() as i32) - 1;
@@ -21,7 +21,7 @@ impl ImageHistogram for Image {
                 h.increment_pixel(&self, x, y);
             }
         }
-        Ok(h.to_vec())
+        Ok(h)
     }
 }
 
@@ -43,13 +43,14 @@ mod tests {
         let input: Image = Image::try_create(5, 5, pixels).expect("image");
 
         // Act
-        let actual: Vec<u32> = input.histogram_border().expect("image");
+        let histogram: Histogram = input.histogram_border().expect("histogram");
+        let histogram_vec: Vec<u32> = histogram.to_vec();
 
         // Assert
         let mut expected: Vec<u32> = vec![0; 256];
         expected[1] = 5;
         expected[2] = 6;
         expected[3] = 5;
-        assert_eq!(actual, expected);
+        assert_eq!(histogram_vec, expected);
     }
 }

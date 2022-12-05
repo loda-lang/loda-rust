@@ -1,4 +1,4 @@
-use super::{Image, ImageHistogram};
+use super::{Histogram, Image, ImageHistogram};
 
 pub trait ImageTrim {
     fn trim(&self) -> anyhow::Result<Image>;
@@ -13,10 +13,10 @@ impl ImageTrim for Image {
         
         // Determine what is the most popular pixel value
         // traverses the border of the bitmap, and builds a histogram
-        let histogram: Vec<u32> = self.histogram_border()?;
+        let histogram: Histogram = self.histogram_border()?;
         let mut found_count: u32 = 0;
         let mut found_value: usize = 0;
-        for (pixel_value, number_of_occurences) in histogram.iter().enumerate() {
+        for (pixel_value, number_of_occurences) in histogram.counters().iter().enumerate() {
             if *number_of_occurences > found_count {
                 found_count = *number_of_occurences;
                 found_value = pixel_value;
