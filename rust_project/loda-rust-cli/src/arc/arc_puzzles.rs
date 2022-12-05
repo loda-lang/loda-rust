@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage, ImageHistogram};
+    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage, ImageHistogram, ImageRotate};
     use crate::arc::{Image, convolution2x2, convolution3x3};
-    use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding};
+    use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding, ImageStack};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile};
     use crate::arc::{ImageNgram, RecordTrigram, Histogram};
     use crate::arc::register_arc_functions;
@@ -817,8 +817,37 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_130000_puzzle_7fe24cdd() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("7fe24cdd")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        // println!("input: {:?}", input);
+
+        let row0: Image = Image::hstack(vec![input.clone(), input.rotate(1).expect("image")])?;
+        let row1: Image = Image::hstack(vec![input.rotate(3).expect("image"), input.rotate(2).expect("image")])?;
+        // println!("row0: {:?}", row0);
+        // println!("row1: {:?}", row1);
+
+        let image = Image::vstack(vec![row0.clone(), row1.clone()])?;
+        // println!("image: {:?}", image);
+
+        assert_eq!(image, output);
+        Ok(())
+    }
+
     // #[test]
-    fn test_130000_traverse_testdata() {
+    fn test_140000_traverse_testdata() {
         let config = Config::load();
         let path: PathBuf = config.arc_repository_data_training();
         let paths: Vec<PathBuf> = find_json_files_recursively(&path);
