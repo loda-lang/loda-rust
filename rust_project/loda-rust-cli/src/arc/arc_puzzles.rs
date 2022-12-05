@@ -1136,6 +1136,49 @@ mod tests {
         Ok(())
     }
 
+    const PROGRAM_5AD4F10B: &'static str = "
+    mov $1,$0
+    mov $2,$0
+    mov $3,$0
+    mov $9,$0
+
+    f11 $3,100061 ; most popular color
+    ; $3 is background_color
+
+    mov $5,$0 ; noisy image
+    mov $6,$3 ; background_color
+    f21 $5,100090 ; denoise image
+    ; $5 is denoised image
+
+    ; $9 is noisy image
+    mov $10,$5 ; denoised image
+    f21 $9,100101 ; extract 1 noise color
+    ; $9 is the most popular noise color
+
+    mov $12,$5 ; denoised image
+    f11 $12,100003 ; trim
+    f11 $12,100004 ; remove duplicates
+
+    mov $0,$12
+    mov $1,$3 ; background color
+    mov $2,$9 ; noise color
+    f31 $0,100051 ; replace colors other than
+    ";
+
+    #[test]
+    fn test_190001_puzzle_5ad4f10b_loda() {
+        let model: Model = Model::load_testdata("5ad4f10b").expect("model");
+        let program = PROGRAM_5AD4F10B;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
+    }
+
     // #[test]
     fn test_200000_traverse_testdata() {
         let config = Config::load();
@@ -1239,6 +1282,7 @@ mod tests {
             PROGRAM_3AF2C5A8,
             PROGRAM_44F52BB0,
             PROGRAM_496994BD,
+            PROGRAM_5AD4F10B,
             PROGRAM_7468F01A,
             PROGRAM_7FE24CDD,
             PROGRAM_90C28CC7,

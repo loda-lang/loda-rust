@@ -927,7 +927,7 @@ impl ImageNoiseColorFunction {
 
 impl UnofficialFunction for ImageNoiseColorFunction {
     fn id(&self) -> UnofficialFunctionId {
-        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: self.outputs }
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: self.outputs }
     }
 
     fn name(&self) -> String {
