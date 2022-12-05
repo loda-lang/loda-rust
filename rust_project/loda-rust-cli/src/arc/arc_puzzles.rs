@@ -164,16 +164,16 @@ mod tests {
         Ok(())
     }
 
+    const PROGRAM_90C28CC7: &'static str = "
+    f11 $0,100003 ; trim
+    f11 $0,100004 ; remove duplicates
+    ";
+
     #[test]
     fn test_40001_puzzle_90c28cc7_loda() {
         let model: Model = Model::load_testdata("90c28cc7").expect("model");
+        let program = PROGRAM_90C28CC7;
         let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-
-        let program = "
-        f11 $0,100003 ; trim
-        f11 $0,100004 ; remove duplicates
-        ";
-
         let mut count = 0;
         for (index, pair) in pairs.iter().enumerate() {
             let output: Image = run_image(program, &pair.input).expect("image");
@@ -258,16 +258,16 @@ mod tests {
         Ok(())
     }
 
+    const PROGRAM_7468F01A: &'static str = "
+    f11 $0,100003 ; trim
+    f11 $0,100010 ; flip x
+    ";
+
     #[test]
     fn test_50001_puzzle_7468f01a_loda() {
         let model: Model = Model::load_testdata("7468f01a").expect("model");
+        let program = PROGRAM_7468F01A;
         let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-
-        let program = "
-        f11 $0,100003 ; trim
-        f11 $0,100010 ; flip x
-        ";
-
         let mut count = 0;
         for (index, pair) in pairs.iter().enumerate() {
             let output: Image = run_image(program, &pair.input).expect("image");
@@ -549,20 +549,20 @@ mod tests {
         Ok(())
     }
 
+    const PROGRAM_A79310A0: &'static str = "
+    mov $1,0
+    mov $2,1
+    f31 $0,100001 ; offset dx,dy
+    mov $1,8
+    mov $2,2
+    f31 $0,100005 ; replace color with color
+    ";
+
     #[test]
     fn test_100001_puzzle_a79310a0_loda() {
         let model: Model = Model::load_testdata("a79310a0").expect("model");
+        let program = PROGRAM_A79310A0;
         let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-
-        let program = "
-        mov $1,0
-        mov $2,1
-        f31 $0,100001 ; offset dx,dy
-        mov $1,8
-        mov $2,2
-        f31 $0,100005 ; replace color with color
-        ";
-
         let mut count = 0;
         for (index, pair) in pairs.iter().enumerate() {
             let output: Image = run_image(program, &pair.input).expect("image");
@@ -846,35 +846,35 @@ mod tests {
         Ok(())
     }
 
+    const PROGRAM_7FE24CDD: &'static str = "
+    mov $5,$0 ; original corner
+
+    ; construct top half
+    mov $1,$0
+    mov $2,1
+    f21 $1,100002 ; rotate cw
+    f21 $0,100032 ; hstack
+    ; $0 is top half
+
+    ; construct bottom half
+    mov $6,2
+    f21 $5,100002 ; rotate cw cw
+    mov $1,$5
+    mov $2,1
+    f21 $1,100002 ; rotate cw
+    mov $2,$5
+    f21 $1,100032 ; hstack
+    ; $1 is bottom half
+
+    ; join top half and bottom half
+    f21 $0,100042 ; vstack
+    ";
+
     #[test]
     fn test_130001_puzzle_7fe24cdd_loda() {
         let model: Model = Model::load_testdata("7fe24cdd").expect("model");
+        let program = PROGRAM_7FE24CDD;
         let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-
-        let program = "
-        mov $5,$0 ; original corner
-
-        ; construct top half
-        mov $1,$0
-        mov $2,1
-        f21 $1,100002 ; rotate cw
-        f21 $0,100032 ; hstack
-        ; $0 is top half
-
-        ; construct bottom half
-        mov $6,2
-        f21 $5,100002 ; rotate cw cw
-        mov $1,$5
-        mov $2,1
-        f21 $1,100002 ; rotate cw
-        mov $2,$5
-        f21 $1,100032 ; hstack
-        ; $1 is bottom half
-
-        ; join top half and bottom half
-        f21 $0,100042 ; vstack
-        ";
-
         let mut count = 0;
         for (index, pair) in pairs.iter().enumerate() {
             let output: Image = run_image(program, &pair.input).expect("image");
@@ -901,15 +901,6 @@ mod tests {
             items.push(item);
         }
         println!("number of items: {}", items.len());
-
-        const PROGRAM0: &'static str = "
-        mov $1,0
-        mov $2,1
-        f31 $0,100001 ; offset dx,dy
-        mov $1,8
-        mov $2,2
-        f31 $0,100005 ; replace color with color
-        ";
 
         const PROGRAM1: &'static str = "
         mov $1,1
@@ -946,11 +937,6 @@ mod tests {
         f11 $0,100004 ; remove duplicates
         ";
 
-        const PROGRAM9: &'static str = "
-        f11 $0,100003 ; trim
-        f11 $0,100004 ; remove duplicates
-        ";
-        
         const PROGRAM10: &'static str = "
         mov $1,0
         f21 $0,100013 ; pad by 1 pixel evenly
@@ -997,7 +983,10 @@ mod tests {
         ";
         
         const PROGRAMS: &'static [&'static str] = &[
-            PROGRAM0, 
+            PROGRAM_7468F01A,
+            PROGRAM_7FE24CDD,
+            PROGRAM_90C28CC7,
+            PROGRAM_A79310A0,
             PROGRAM1, 
             PROGRAM2, 
             PROGRAM3,
@@ -1006,7 +995,6 @@ mod tests {
             PROGRAM6,
             PROGRAM7,
             PROGRAM8,
-            PROGRAM9,
             PROGRAM10,
             PROGRAM11,
             PROGRAM12,
