@@ -1073,8 +1073,32 @@ mod tests {
         Ok(())
     }
 
+    const PROGRAM_31AA019C: &'static str = "
+    mov $1,$0
+    f11 $1,100071 ; most unpopular color
+    mov $2,0 ; background color
+    f31 $0,100051 ; replace colors other than
+    mov $1,2 ; outline color
+    mov $2,0 ; background color
+    f31 $0,100080 ; draw outline
+    ";
+
+    #[test]
+    fn test_180001_puzzle_31aa019c_loda() {
+        let model: Model = Model::load_testdata("31aa019c").expect("model");
+        let program = PROGRAM_31AA019C;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
+    }
+
     // #[test]
-    fn test_180000_traverse_testdata() {
+    fn test_190000_traverse_testdata() {
         let config = Config::load();
         let path: PathBuf = config.arc_repository_data_training();
         let paths: Vec<PathBuf> = find_json_files_recursively(&path);
@@ -1172,6 +1196,7 @@ mod tests {
         ";
         
         const PROGRAMS: &'static [&'static str] = &[
+            PROGRAM_31AA019C,
             PROGRAM_3AF2C5A8,
             PROGRAM_44F52BB0,
             PROGRAM_496994BD,
