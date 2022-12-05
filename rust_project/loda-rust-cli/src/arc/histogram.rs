@@ -1,35 +1,33 @@
 use super::Image;
 
-pub trait ImageHistogram {
-    fn histogram_border(&self) -> anyhow::Result<Vec<u32>>;
+/// Histogram with 256 counters
+pub struct Histogram {
+    counters: [u32; 256],
 }
 
-impl ImageHistogram for Image {
-    /// Traverses the border of the bitmap, and builds a histogram with 256 counters
-    fn histogram_border(&self) -> anyhow::Result<Vec<u32>> {
-        let mut histogram: Vec<u32> = vec![0; 256];
-        if self.is_empty() {
-            return Ok(histogram);
+impl Histogram {
+    pub fn new() -> Self {
+        Self {
+            counters: [0; 256],
         }
-        let x_max: i32 = (self.width() as i32) - 1;
-        let y_max: i32 = (self.height() as i32) - 1;
-        for y in 0..=y_max {
-            for x in 0..=x_max {
-                if x > 0 && x < x_max && y > 0 && y < y_max {
-                    continue;
-                }
-                let pixel_value: u8 = self.get(x, y).unwrap_or(255);
-                let original_count: u32 = match histogram.get(pixel_value as usize) {
-                    Some(value) => *value,
-                    None => {
-                        return Err(anyhow::anyhow!("Integrity error. Counter in histogram out of bounds"));
-                    }
-                };
-                let count: u32 = original_count + 1;
-                histogram[pixel_value as usize] = count;
-            }
-        }
-        Ok(histogram)
+    }
+
+    pub fn counters(&self) -> &[u32; 256] {
+        &self.counters
+    }
+
+    pub fn to_vec(&self) -> Vec<u32> {
+        self.counters.to_vec()
+    }
+
+    pub fn increment_pixel(&mut self, image: &Image, x: i32, y: i32) {
+        let pixel_value: u8 = image.get(x, y).unwrap_or(255);
+        self.increment(pixel_value);
+    }
+
+    pub fn increment(&mut self, index: u8) {
+        let count: u32 = self.counters[index as usize];
+        self.counters[index as usize] = count + 1;
     }
 }
 
@@ -39,25 +37,18 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_histogram_border() {
+    fn test_10000_histogram_increment() {
         // Arrange
-        let pixels: Vec<u8> = vec![
-            1, 1, 1, 1, 1,
-            2, 0, 0, 0, 2,
-            2, 0, 9, 0, 2,
-            2, 0, 0, 0, 2,
-            3, 3, 3, 3, 3,
-        ];
-        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+        let mut h = Histogram::new();
 
         // Act
-        let actual: Vec<u32> = input.histogram_border().expect("image");
+        h.increment(42);
+        h.increment(42);
+        h.increment(3);
 
         // Assert
-        let mut expected: Vec<u32> = vec![0; 256];
-        expected[1] = 5;
-        expected[2] = 6;
-        expected[3] = 5;
-        assert_eq!(actual, expected);
+        let counters = h.counters();
+        assert_eq!(counters[42], 2);
+        assert_eq!(counters[3], 1);
     }
 }
