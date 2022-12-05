@@ -6,8 +6,7 @@ pub trait ImageTrim {
 
 impl ImageTrim for Image {
     fn trim(&self) -> anyhow::Result<Image> {
-        let len: usize = (self.width() as usize) * (self.height() as usize);
-        if len == 0 {
+        if self.is_empty() {
             return Ok(Image::empty());
         }
         
