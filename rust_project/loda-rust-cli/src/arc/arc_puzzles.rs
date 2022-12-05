@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::arc::image_noise_color::ImageNoiseColor;
     use crate::arc::image_overlay::ImageOverlay;
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage, ImageOutline, ImageRotate};
     use crate::arc::{Image, convolution2x2, convolution3x3};
@@ -1117,17 +1118,9 @@ mod tests {
         let denoised_image: Image = input.denoise_type1(background_color).expect("image");
         // println!("denoised: {:?}", denoised_image);
 
-        let histogram_input_with_noise: Histogram = input.histogram_all();
-        let histogram_denoised_image: Histogram = denoised_image.histogram_all();
-        
-        // Obtain histogram just for the noise
-        let mut histogram: Histogram = histogram_input_with_noise.clone();
-        for pair in histogram_denoised_image.pairs_descending() {
-            let color: u8 = pair.1;
-            histogram.set_counter_to_zero(color);
-        }
-        // Pick the noise color
-        let noise_color: u8 = histogram.most_popular().expect("noise pixel");
+        // Pick the most popular noise color
+        let noise_color_vec: Vec<u8> = input.noise_color_vec(&denoised_image).expect("vec with colors");
+        let noise_color: u8 = *noise_color_vec.first().expect("1 or more colors");
         // println!("noise color: {}", noise_color);
 
         // Remove background around the object
