@@ -1026,6 +1026,28 @@ mod tests {
         Ok(())
     }
 
+    const PROGRAM_496994BD: &'static str = "
+    mov $1,$0
+    mov $2,$0
+    f11 $2,100061 ; most popular color
+    f11 $1,100011 ; flip y
+    f31 $0,100005 ; overlay
+    ";
+
+    #[test]
+    fn test_170001_puzzle_496994bd_loda() {
+        let model: Model = Model::load_testdata("496994bd").expect("model");
+        let program = PROGRAM_496994BD;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 3);
+    }
+
     // #[test]
     fn test_180000_traverse_testdata() {
         let config = Config::load();
@@ -1127,6 +1149,7 @@ mod tests {
         const PROGRAMS: &'static [&'static str] = &[
             PROGRAM_3AF2C5A8,
             PROGRAM_44F52BB0,
+            PROGRAM_496994BD,
             PROGRAM_7468F01A,
             PROGRAM_7FE24CDD,
             PROGRAM_90C28CC7,
