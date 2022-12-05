@@ -928,8 +928,53 @@ mod tests {
         assert_eq!(count, 5);
     }
 
+    #[test]
+    fn test_150000_puzzle_3af2c5a8() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("3af2c5a8")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        // let input: Image = model.train()[0].input().to_image().expect("image");
+        // let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        let input: Image = model.test()[0].input().to_image().expect("image");
+        let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let row0: Image = Image::hstack(vec![input.clone(), input.flip_x().expect("image")])?;
+        let row1: Image = row0.flip_y().expect("image");
+        let image = Image::vstack(vec![row0.clone(), row1.clone()])?;
+        assert_eq!(image, output);
+        Ok(())
+    }
+
+    const PROGRAM_3AF2C5A8: &'static str = "
+    mov $1,$0
+    f11 $1,100010 ; flip x
+    f21 $0,100032 ; hstack
+    mov $1,$0
+    f11 $1,100011 ; flip y
+    f21 $0,100042 ; vstack
+    ";
+
+    #[test]
+    fn test_150001_puzzle_3af2c5a8_loda() {
+        let model: Model = Model::load_testdata("3af2c5a8").expect("model");
+        let program = PROGRAM_3AF2C5A8;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
+    }
+
     // #[test]
-    fn test_140000_traverse_testdata() {
+    fn test_160000_traverse_testdata() {
         let config = Config::load();
         let path: PathBuf = config.arc_repository_data_training();
         let paths: Vec<PathBuf> = find_json_files_recursively(&path);
@@ -1027,6 +1072,7 @@ mod tests {
         ";
         
         const PROGRAMS: &'static [&'static str] = &[
+            PROGRAM_3AF2C5A8,
             PROGRAM_7468F01A,
             PROGRAM_7FE24CDD,
             PROGRAM_90C28CC7,
