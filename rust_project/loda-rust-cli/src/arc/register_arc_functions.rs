@@ -7,12 +7,12 @@ use num_traits::{Signed, ToPrimitive};
 use std::sync::Arc;
 use anyhow::Context;
 
-pub struct ImageOffsetFunction {
+struct ImageOffsetFunction {
     id: u32,
 }
 
 impl ImageOffsetFunction {
-    pub fn new(id: u32) -> Self {
+    fn new(id: u32) -> Self {
         Self {
             id,
         }
@@ -53,12 +53,12 @@ impl UnofficialFunction for ImageOffsetFunction {
     }
 }
 
-pub struct ImageRotateFunction {
+struct ImageRotateFunction {
     id: u32,
 }
 
 impl ImageRotateFunction {
-    pub fn new(id: u32) -> Self {
+    fn new(id: u32) -> Self {
         Self {
             id,
         }
@@ -96,12 +96,12 @@ impl UnofficialFunction for ImageRotateFunction {
     }
 }
 
-pub struct ImageTrimFunction {
+struct ImageTrimFunction {
     id: u32,
 }
 
 impl ImageTrimFunction {
-    pub fn new(id: u32) -> Self {
+    fn new(id: u32) -> Self {
         Self {
             id,
         }
@@ -136,12 +136,12 @@ impl UnofficialFunction for ImageTrimFunction {
     }
 }
 
-pub struct ImageRemoveDuplicatesFunction {
+struct ImageRemoveDuplicatesFunction {
     id: u32,
 }
 
 impl ImageRemoveDuplicatesFunction {
-    pub fn new(id: u32) -> Self {
+    fn new(id: u32) -> Self {
         Self {
             id,
         }
@@ -246,12 +246,12 @@ impl UnofficialFunction for ImageReplaceColorFunction {
     }
 }
 
-pub struct ImageWithColorFunction {
+struct ImageWithColorFunction {
     id: u32,
 }
 
 impl ImageWithColorFunction {
-    pub fn new(id: u32) -> Self {
+    fn new(id: u32) -> Self {
         Self {
             id,
         }
@@ -288,12 +288,12 @@ impl UnofficialFunction for ImageWithColorFunction {
     }
 }
 
-pub struct ImageSetPixelFunction {
+struct ImageSetPixelFunction {
     id: u32,
 }
 
 impl ImageSetPixelFunction {
-    pub fn new(id: u32) -> Self {
+    fn new(id: u32) -> Self {
         Self {
             id,
         }
@@ -341,12 +341,12 @@ impl UnofficialFunction for ImageSetPixelFunction {
     }
 }
 
-pub struct ImageGetPixelFunction {
+struct ImageGetPixelFunction {
     id: u32,
 }
 
 impl ImageGetPixelFunction {
-    pub fn new(id: u32) -> Self {
+    fn new(id: u32) -> Self {
         Self {
             id,
         }
@@ -389,12 +389,12 @@ impl UnofficialFunction for ImageGetPixelFunction {
     }
 }
 
-pub struct ImageGetSizeFunction {
+struct ImageGetSizeFunction {
     id: u32,
 }
 
 impl ImageGetSizeFunction {
-    pub fn new(id: u32) -> Self {
+    fn new(id: u32) -> Self {
         Self {
             id,
         }
@@ -442,7 +442,7 @@ struct ImageFlipFunction {
 }
 
 impl ImageFlipFunction {
-    pub fn new(id: u32, mode: ImageFlipFunctionMode) -> Self {
+    fn new(id: u32, mode: ImageFlipFunctionMode) -> Self {
         Self {
             id,
             mode,
@@ -510,7 +510,7 @@ struct ImagePaddingFunction {
 }
 
 impl ImagePaddingFunction {
-    pub fn new(id: u32, mode: ImagePaddingFunctionMode) -> Self {
+    fn new(id: u32, mode: ImagePaddingFunctionMode) -> Self {
         Self {
             id,
             mode,
@@ -584,7 +584,7 @@ struct ImageResizeFunction {
 }
 
 impl ImageResizeFunction {
-    pub fn new(id: u32, mode: ImageResizeFunctionMode) -> Self {
+    fn new(id: u32, mode: ImageResizeFunctionMode) -> Self {
         Self {
             id,
             mode,
@@ -772,12 +772,12 @@ impl UnofficialFunction for ImagePopularColorFunction {
     }
 }
 
-pub struct ImageOverlayAnotherImageByColorMaskFunction {
+struct ImageOverlayAnotherImageByColorMaskFunction {
     id: u32,
 }
 
 impl ImageOverlayAnotherImageByColorMaskFunction {
-    pub fn new(id: u32) -> Self {
+    fn new(id: u32) -> Self {
         Self {
             id,
         }
@@ -898,7 +898,6 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100047, 7))));
     registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100048, 8))));
     registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100049, 9))));
-
     
     // Replace color
     registry.register(Arc::new(Box::new(
