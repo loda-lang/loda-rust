@@ -1001,8 +1001,43 @@ mod tests {
         assert_eq!(count, 8);
     }
 
+    #[test]
+    fn test_170000_puzzle_496994bd() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("496994bd")?;
+        assert_eq!(model.train().len(), 2);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let background_pixel_color: u8 = input.most_popular_color().expect("color");
+        let mut result_image: Image = input.clone();
+        let max_y: i32 = (input.height() as i32) - 1;
+        for y in 0..input.height() {
+            for x in 0..input.width() {
+                let pixel_value: u8 = input.get(x as i32, y as i32).unwrap_or(255); 
+                if pixel_value == background_pixel_color {
+                    continue;
+                }
+                match result_image.set(x as i32, max_y - (y as i32), pixel_value) {
+                    Some(()) => {},
+                    None => {
+                        return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
+                    }
+                }
+            }
+        }
+
+        assert_eq!(result_image, output);
+        Ok(())
+    }
+
     // #[test]
-    fn test_170000_traverse_testdata() {
+    fn test_180000_traverse_testdata() {
         let config = Config::load();
         let path: PathBuf = config.arc_repository_data_training();
         let paths: Vec<PathBuf> = find_json_files_recursively(&path);
