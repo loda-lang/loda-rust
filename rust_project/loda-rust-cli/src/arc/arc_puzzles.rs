@@ -5,7 +5,7 @@ mod tests {
     use crate::arc::{Image, convolution2x2, convolution3x3};
     use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding, ImageStack};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile};
-    use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, Histogram};
+    use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, Histogram, ImageDenoise};
     use crate::arc::register_arc_functions;
     use crate::config::Config;
     use crate::common::find_json_files_recursively;
@@ -1114,29 +1114,7 @@ mod tests {
 
         let background_color: u8 = input.most_popular_color().expect("color");
 
-        let input_padded: Image = input.zero_padding(1).expect("image");
-
-        let denoised_image: Image = convolution3x3(&input_padded, |bm| {
-            let tl: u8 = bm.get(0, 0).unwrap_or(255);
-            let tc: u8 = bm.get(1, 0).unwrap_or(255);
-            let tr: u8 = bm.get(2, 0).unwrap_or(255);
-            let cl: u8 = bm.get(0, 1).unwrap_or(255);
-            let cc: u8 = bm.get(1, 1).unwrap_or(255);
-            let cr: u8 = bm.get(2, 1).unwrap_or(255);
-            let bl: u8 = bm.get(0, 2).unwrap_or(255);
-            let bc: u8 = bm.get(1, 2).unwrap_or(255);
-            let br: u8 = bm.get(2, 2).unwrap_or(255);
-
-            let is_top_left: bool = tl == tc && cl == cc && tc == cc;
-            let is_top_right: bool = tr == tc && cr == cc && tc == cc;
-            let is_bottom_left: bool = bl == bc && cl == cc && bc == cc;
-            let is_bottom_right: bool = br == bc && cr == cc && bc == cc;
-            if is_top_left || is_top_right || is_bottom_left || is_bottom_right {
-                return Ok(cc);
-            }
-            Ok(background_color)
-        }).expect("image");
-
+        let denoised_image: Image = input.denoise_type1(background_color).expect("image");
         // println!("denoised: {:?}", denoised_image);
 
         let histogram_input_with_noise: Histogram = input.histogram_all();
