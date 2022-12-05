@@ -1,5 +1,5 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate};
-use super::{ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize};
+use super::{ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -606,6 +606,73 @@ impl UnofficialFunction for ImageResizeFunction {
     }
 }
 
+struct ImageStackFunction {
+    id: u32,
+    inputs: u8,
+    is_hstack: bool
+}
+
+impl ImageStackFunction {
+    fn hstack(id: u32, inputs: u8) -> Self {
+        Self {
+            id,
+            inputs,
+            is_hstack: true,
+        }
+    }
+
+    fn vstack(id: u32, inputs: u8) -> Self {
+        Self {
+            id,
+            inputs,
+            is_hstack: false,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageStackFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: self.inputs, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        if self.is_hstack {
+            return format!("Image.hstack. horizontal stack of {} images", self.inputs);
+        } else {
+            return format!("Image.vstack. vertical stack of {} images", self.inputs);
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != (self.inputs as usize) {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // all inputs are images
+        let mut images = Vec::<Image>::with_capacity(input.len());
+        for (index, input_item) in input.iter().enumerate() {
+            if input_item.is_negative() {
+                return Err(anyhow::anyhow!("Input[{}] must be non-negative", index));
+            }
+            let input_uint: BigUint = input_item.to_biguint().context("BigInt to BigUint")?;
+            let image: Image = input_uint.to_image()?;
+            images.push(image);
+        }
+
+        // join images
+        let result_image: Image;
+        if self.is_hstack {
+            result_image = Image::hstack(images)?;
+        } else {
+            result_image = Image::vstack(images)?;
+        }
+        let output_uint: BigUint = result_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageOffsetFunction::new(100001))));
     registry.register(Arc::new(Box::new(ImageRotateFunction::new(100002))));
@@ -646,6 +713,8 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(
         ImagePaddingFunction::new(100019, ImagePaddingFunctionMode::BottomRight
     ))));
+
+    // Image resize
     registry.register(Arc::new(Box::new(
         ImageResizeFunction::new(100020, ImageResizeFunctionMode::XYMul2
     ))));
@@ -655,4 +724,24 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(
         ImageResizeFunction::new(100022, ImageResizeFunctionMode::XYDiv2
     ))));
+
+    // Image horizontal stack
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100032, 2))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100033, 3))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100034, 4))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100035, 5))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100036, 6))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100037, 7))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100038, 8))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100039, 9))));
+
+    // Image vertical stack
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100042, 2))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100043, 3))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100044, 4))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100045, 5))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100046, 6))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100047, 7))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100048, 8))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100049, 9))));
 }

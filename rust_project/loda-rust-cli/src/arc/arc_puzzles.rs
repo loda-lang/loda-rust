@@ -846,6 +846,47 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_130001_puzzle_7fe24cdd_loda() {
+        let model: Model = Model::load_testdata("7fe24cdd").expect("model");
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+
+        let program = "
+        mov $5,$0 ; original corner
+
+        ; construct top half
+        mov $1,$0
+        mov $2,1
+        f21 $1,100002 ; rotate cw
+        f21 $0,100032 ; hstack
+        mov $8,$0 ; top half
+
+        ; construct bottom half
+        mov $0,$5
+        mov $1,2
+        f21 $0,100002 ; rotate cw cw
+        mov $7,$0
+        mov $0,$5
+        mov $1,3
+        f21 $0,100002 ; rotate cw cw cw
+        mov $1,$7
+        f21 $0,100032 ; hstack
+        mov $9,$0
+
+        ; join top half and bottom half
+        f21 $8,100042 ; vstack
+        mov $0,$8
+        ";
+
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
+    }
+
     // #[test]
     fn test_140000_traverse_testdata() {
         let config = Config::load();
