@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::arc::image_overlay::ImageOverlay;
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage, ImageHistogram, ImageRotate};
     use crate::arc::{Image, convolution2x2, convolution3x3};
     use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding, ImageStack};
@@ -1016,21 +1017,10 @@ mod tests {
 
         let background_pixel_color: u8 = input.most_popular_color().expect("color");
         let flipped_image: Image = input.flip_y().expect("image");
-        let mut result_image: Image = input.clone();
-        for y in 0..input.height() {
-            for x in 0..input.width() {
-                let pixel_value: u8 = flipped_image.get(x as i32, y as i32).unwrap_or(255); 
-                if pixel_value == background_pixel_color {
-                    continue;
-                }
-                match result_image.set(x as i32, y as i32, pixel_value) {
-                    Some(()) => {},
-                    None => {
-                        return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
-                    }
-                }
-            }
-        }
+        let result_image: Image = input.overlay_with_mask_color(
+            &flipped_image, 
+            background_pixel_color
+        ).expect("image");
 
         assert_eq!(result_image, output);
         Ok(())
