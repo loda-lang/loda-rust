@@ -884,6 +884,29 @@ mod tests {
         assert_eq!(count, 4);
     }
 
+    #[test]
+    fn test_140000_puzzle_9565186b() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("9565186b")?;
+        assert_eq!(model.train().len(), 4);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.train()[3].input().to_image().expect("image");
+        // let output: Image = model.train()[3].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let pixel_color: u8 = input.most_popular_color().expect("color");
+        let image: Image = input.replace_colors_other_than(pixel_color, 5).expect("image");
+        assert_eq!(image, output);
+        Ok(())
+    }
+
     // #[test]
     fn test_140000_traverse_testdata() {
         let config = Config::load();
