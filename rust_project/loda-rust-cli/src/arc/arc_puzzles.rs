@@ -973,8 +973,36 @@ mod tests {
         assert_eq!(count, 4);
     }
 
+    const PROGRAM_44F52BB0: &'static str = "
+    mov $1,$0
+    f11 $1,100010 ; flip x
+    cmp $0,$1
+    mov $2,1 ; color when there is symmetry
+    mul $2,$0
+    cmp $0,0
+    mul $0,7 ; color when there is no symmetry
+    add $2,$0
+    mov $0,1 ; output image width
+    mov $1,1 ; output image height
+    f31 $0,100006 ; create image
+    ";
+
+    #[test]
+    fn test_160000_puzzle_44f52bb0_loda() {
+        let model: Model = Model::load_testdata("44f52bb0").expect("model");
+        let program = PROGRAM_44F52BB0;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 8);
+    }
+
     // #[test]
-    fn test_160000_traverse_testdata() {
+    fn test_170000_traverse_testdata() {
         let config = Config::load();
         let path: PathBuf = config.arc_repository_data_training();
         let paths: Vec<PathBuf> = find_json_files_recursively(&path);
@@ -1073,6 +1101,7 @@ mod tests {
         
         const PROGRAMS: &'static [&'static str] = &[
             PROGRAM_3AF2C5A8,
+            PROGRAM_44F52BB0,
             PROGRAM_7468F01A,
             PROGRAM_7FE24CDD,
             PROGRAM_90C28CC7,
