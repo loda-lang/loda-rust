@@ -1035,7 +1035,12 @@ mod tests {
 
                 let mut count = 0;
                 for pair in &pairs {
-                    let output: Image = run_image_inner(&program_runner, &pair.input, &mut cache).expect("image");
+                    let output: Image = match run_image_inner(&program_runner, &pair.input, &mut cache) {
+                        Ok(value) => value,
+                        Err(_error) => {
+                            break;
+                        }
+                    };
 
                     if output == pair.output {
                         count += 1;
