@@ -176,14 +176,21 @@ impl UnofficialFunction for ImageRemoveDuplicatesFunction {
 }
 
 
-pub struct ImageReplaceColorFunction {
+enum ImageReplaceColorFunctionMode {
+    ReplaceColor,
+    ReplaceColorsOtherThan,
+}
+
+struct ImageReplaceColorFunction {
     id: u32,
+    mode: ImageReplaceColorFunctionMode,
 }
 
 impl ImageReplaceColorFunction {
-    pub fn new(id: u32) -> Self {
+    fn new(id: u32, mode: ImageReplaceColorFunctionMode) -> Self {
         Self {
             id,
+            mode,
         }
     }
 }
@@ -194,7 +201,14 @@ impl UnofficialFunction for ImageReplaceColorFunction {
     }
 
     fn name(&self) -> String {
-        "Image: replace color x with color y".to_string()
+        match self.mode {
+            ImageReplaceColorFunctionMode::ReplaceColor => {
+                return "Image: replace color x with color y".to_string();
+            },
+            ImageReplaceColorFunctionMode::ReplaceColorsOtherThan => {
+                return "Image: replace colors other than x with color y".to_string();
+            },
+        }
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
@@ -210,12 +224,21 @@ impl UnofficialFunction for ImageReplaceColorFunction {
         let input_image: Image = input0_uint.to_image()?;
 
         // input1 is color x
-        let from_color: u8 = input[1].to_u8().context("u8 from_color")?;
+        let color_x: u8 = input[1].to_u8().context("u8 from_color")?;
 
         // input2 is color y
-        let to_color: u8 = input[2].to_u8().context("u8 to_color")?;
+        let color_y: u8 = input[2].to_u8().context("u8 to_color")?;
 
-        let output_image: Image = input_image.replace_color(from_color, to_color)?;
+        let output_image: Image;
+        match self.mode {
+            ImageReplaceColorFunctionMode::ReplaceColor => {
+                output_image = input_image.replace_color(color_x, color_y)?;
+            },
+            ImageReplaceColorFunctionMode::ReplaceColorsOtherThan => {
+                output_image = input_image.replace_colors_other_than(color_x, color_y)?;
+            },
+        }
+
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
@@ -678,7 +701,6 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageRotateFunction::new(100002))));
     registry.register(Arc::new(Box::new(ImageTrimFunction::new(100003))));
     registry.register(Arc::new(Box::new(ImageRemoveDuplicatesFunction::new(100004))));
-    registry.register(Arc::new(Box::new(ImageReplaceColorFunction::new(100005))));
     registry.register(Arc::new(Box::new(ImageWithColorFunction::new(100006))));
     registry.register(Arc::new(Box::new(ImageSetPixelFunction::new(100007))));
     registry.register(Arc::new(Box::new(ImageGetPixelFunction::new(100008))));
@@ -744,4 +766,12 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100047, 7))));
     registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100048, 8))));
     registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100049, 9))));
+
+    // Replace color
+    registry.register(Arc::new(Box::new(
+        ImageReplaceColorFunction::new(100050, ImageReplaceColorFunctionMode::ReplaceColor
+    ))));
+    registry.register(Arc::new(Box::new(
+        ImageReplaceColorFunction::new(100051, ImageReplaceColorFunctionMode::ReplaceColorsOtherThan
+    ))));
 }

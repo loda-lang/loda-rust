@@ -555,7 +555,7 @@ mod tests {
     f31 $0,100001 ; offset dx,dy
     mov $1,8
     mov $2,2
-    f31 $0,100005 ; replace color with color
+    f31 $0,100050 ; replace color with color
     ";
 
     #[test]
