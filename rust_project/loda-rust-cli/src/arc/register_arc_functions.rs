@@ -699,13 +699,23 @@ impl UnofficialFunction for ImageStackFunction {
 struct ImagePopularColorFunction {
     id: u32,
     outputs: u8,
+    is_popular: bool,
 }
 
 impl ImagePopularColorFunction {
-    fn new(id: u32, outputs: u8) -> Self {
+    fn popular(id: u32, outputs: u8) -> Self {
         Self {
             id,
             outputs,
+            is_popular: true,
+        }
+    }
+
+    fn unpopular(id: u32, outputs: u8) -> Self {
+        Self {
+            id,
+            outputs,
+            is_popular: false,
         }
     }
 }
@@ -716,7 +726,11 @@ impl UnofficialFunction for ImagePopularColorFunction {
     }
 
     fn name(&self) -> String {
-        format!("Image the {} most popular colors, sorted by popularity", self.outputs)
+        if self.is_popular {
+            return format!("Image the {} most popular colors, sorted by popularity", self.outputs);
+        } else {
+            return format!("Image the {} most unpopular colors, sorted by unpopularity", self.outputs);
+        }
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
@@ -732,7 +746,12 @@ impl UnofficialFunction for ImagePopularColorFunction {
         let image: Image = input0_uint.to_image()?;
 
         let histogram: Histogram = image.histogram_all();
-        let pairs: Vec<(u32, u8)> = histogram.pairs_descending();
+        let pairs: Vec<(u32, u8)>;
+        if self.is_popular {
+            pairs = histogram.pairs_descending();
+        } else {
+            pairs = histogram.pairs_ascending();
+        }
         let mut colors: Vec<i32> = pairs.iter().map(|(_, color)| (*color) as i32).collect();
 
         // Take N of the most popular colors
@@ -889,14 +908,25 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
         ImageReplaceColorFunction::new(100051, ImageReplaceColorFunctionMode::ReplaceColorsOtherThan
     ))));
 
-    // Popular color
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100061, 1))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100062, 2))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100063, 3))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100064, 4))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100065, 5))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100066, 6))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100067, 7))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100068, 8))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100069, 9))));
+    // Popular colors
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100061, 1))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100062, 2))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100063, 3))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100064, 4))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100065, 5))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100066, 6))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100067, 7))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100068, 8))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100069, 9))));
+
+    // Unpopular colors
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100071, 1))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100072, 2))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100073, 3))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100074, 4))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100075, 5))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100076, 6))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100077, 7))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100078, 8))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100079, 9))));
 }
