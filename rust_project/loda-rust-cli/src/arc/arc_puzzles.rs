@@ -1115,7 +1115,7 @@ mod tests {
         }
         println!("number of items: {}", items.len());
 
-        const PROGRAM1: &'static str = "
+        const _PROGRAM1: &'static str = "
         mov $1,1
         f21 $0,100002 ; rotate
         ";
@@ -1150,34 +1150,34 @@ mod tests {
         f11 $0,100004 ; remove duplicates
         ";
 
-        const PROGRAM10: &'static str = "
+        const _PROGRAM10: &'static str = "
         mov $1,0
         f21 $0,100013 ; pad by 1 pixel evenly
         ";
 
-        const PROGRAM11: &'static str = "
+        const _PROGRAM11: &'static str = "
         mov $1,0
         f21 $0,100014 ; pad by 1 pixel top/bottom
         ";
 
-        const PROGRAM12: &'static str = "
+        const _PROGRAM12: &'static str = "
         mov $1,0
         f21 $0,100015 ; pad by 1 pixel left/right
         ";
 
-        const PROGRAM13: &'static str = "
+        const _PROGRAM13: &'static str = "
         f11 $0,100003 ; trim
         mov $1,-1
         f21 $0,100002 ; rotate
         ";
 
-        const PROGRAM14: &'static str = "
+        const _PROGRAM14: &'static str = "
         f11 $0,100003 ; trim
         mov $1,1
         f21 $0,100002 ; rotate
         ";
 
-        const PROGRAM15: &'static str = "
+        const _PROGRAM15: &'static str = "
         f11 $0,100003 ; trim
         mov $1,2
         f21 $0,100002 ; rotate
@@ -1191,7 +1191,7 @@ mod tests {
         f11 $0,100021 ; resize x*3 y*3
         ";
         
-        const PROGRAM18: &'static str = "
+        const _PROGRAM18: &'static str = "
         f11 $0,100022 ; resize x/2 y/2
         ";
         
@@ -1205,7 +1205,7 @@ mod tests {
             PROGRAM_90C28CC7,
             PROGRAM_9565186B,
             PROGRAM_A79310A0,
-            PROGRAM1, 
+            // PROGRAM1, 
             PROGRAM2, 
             PROGRAM3,
             PROGRAM4,
@@ -1213,15 +1213,15 @@ mod tests {
             PROGRAM6,
             PROGRAM7,
             PROGRAM8,
-            PROGRAM10,
-            PROGRAM11,
-            PROGRAM12,
-            PROGRAM13,
-            PROGRAM14,
-            PROGRAM15,
+            // PROGRAM10,
+            // PROGRAM11,
+            // PROGRAM12,
+            // PROGRAM13,
+            // PROGRAM14,
+            // PROGRAM15,
             PROGRAM16,
             PROGRAM17,
-            PROGRAM18,
+            // PROGRAM18,
         ];
 
         let mut dm = create_dependency_manager();
@@ -1234,10 +1234,12 @@ mod tests {
         let mut cache = ProgramCache::new();
         let mut count_match: usize = 0;
         let mut count_mismatch: usize = 0;
+        let mut found_program_indexes: Vec<usize> = vec!();
         for item in &items {
             let pairs: Vec<ImagePair> = item.model.images_all().expect("pairs");
     
-            for program_runner in &program_runners {
+            let mut found_one_or_more_solutions = false;
+            for (program_index, program_runner) in program_runners.iter().enumerate() {
 
                 let mut count = 0;
                 for pair in &pairs {
@@ -1254,13 +1256,22 @@ mod tests {
                 }
     
                 if count == pairs.len() {
-                    count_match += 1;
-                } else {
-                    count_mismatch += 1;
+                    found_one_or_more_solutions = true;
+                    found_program_indexes.push(program_index);
+                    println!("program {} is a solution for {:?}", program_index, item.id);
                 }
             }
+
+            if found_one_or_more_solutions {
+                count_match += 1;
+            } else {
+                count_mismatch += 1;
+            }
         }
+        found_program_indexes.sort();
+
         println!("number of matches: {} mismatches: {}", count_match, count_mismatch);
+        println!("found_program_indexes: {:?}", found_program_indexes);
 
     }
 
