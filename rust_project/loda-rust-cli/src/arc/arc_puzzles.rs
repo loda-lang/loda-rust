@@ -1264,11 +1264,13 @@ mod tests {
 
     }
 
+    #[derive(Clone, Debug)]
     enum ItemId {
         None,
         Path { path: PathBuf },
     }
     
+    #[derive(Clone, Debug)]
     struct Item {
         id: ItemId,
         model: Model,

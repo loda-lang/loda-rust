@@ -48,7 +48,7 @@ impl GridToImage for Grid {
 }
 
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct TaskPair {
     input: Grid,
     output: Grid,
@@ -70,7 +70,7 @@ pub struct ImagePair {
     pub output: Image,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 enum ModelImagePairMode {
     All,
     Train,
@@ -78,7 +78,7 @@ enum ModelImagePairMode {
 }
 
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct Model {
     train: Vec<TaskPair>,
     test: Vec<TaskPair>,
