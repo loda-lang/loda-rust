@@ -14,15 +14,12 @@ impl ImageTrim for Image {
         // Determine what is the most popular pixel value
         // traverses the border of the bitmap, and builds a histogram
         let histogram: Histogram = self.histogram_border()?;
-        let mut found_count: u32 = 0;
-        let mut found_value: usize = 0;
-        for (pixel_value, number_of_occurences) in histogram.counters().iter().enumerate() {
-            if *number_of_occurences > found_count {
-                found_count = *number_of_occurences;
-                found_value = pixel_value;
+        let popular_border_pixel_value: u8 = match histogram.most_popular() {
+            Some(value) => value,
+            None => {
+                return Ok(Image::empty());
             }
-        }
-        let popular_border_pixel_value: u8 = (found_value & 255) as u8;
+        };
 
         // Find bounding box
         let x_max: i32 = (self.width() as i32) - 1;
