@@ -64,7 +64,7 @@ impl ImageStack for Image {
                 return Ok(Image::empty());
             }
         };
-        let width = first_image.height();
+        let width = first_image.width();
 
         // Compute height of all the images combined
         // Verify that the width is the same of all the images
