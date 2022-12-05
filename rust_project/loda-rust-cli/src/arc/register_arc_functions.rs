@@ -1,6 +1,6 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
-use super::{Histogram, ImageOverlay};
+use super::{Histogram, ImageOverlay, ImageOutline};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -822,6 +822,52 @@ impl UnofficialFunction for ImageOverlayAnotherImageByColorMaskFunction {
     }
 }
 
+struct ImageOutlineFunction {
+    id: u32,
+}
+
+impl ImageOutlineFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageOutlineFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Image: Draw outline around things that aren't the background".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        // input1 is pixel_color 
+        let outline_color: u8 = input[1].to_u8().context("u8 pixel_color")?;
+
+        // input2 is pixel_color 
+        let background_color: u8 = input[2].to_u8().context("u8 pixel_color")?;
+
+        let output_image: Image = image.outline_type1(outline_color, background_color)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageOffsetFunction::new(100001))));
@@ -928,4 +974,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100077, 7))));
     registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100078, 8))));
     registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100079, 9))));
+    
+    // Draw outline
+    registry.register(Arc::new(Box::new(ImageOutlineFunction::new(100080))));
 }
