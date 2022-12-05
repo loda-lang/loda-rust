@@ -1,6 +1,6 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
-use super::{Histogram};
+use super::{Histogram, ImageOverlay};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -753,12 +753,63 @@ impl UnofficialFunction for ImagePopularColorFunction {
     }
 }
 
+pub struct ImageOverlayAnotherImageByColorMaskFunction {
+    id: u32,
+}
+
+impl ImageOverlayAnotherImageByColorMaskFunction {
+    pub fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageOverlayAnotherImageByColorMaskFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Image: Overlay another image by using a color as mask".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image0: Image = input0_uint.to_image()?;
+
+        // input1 is image
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let image1: Image = input1_uint.to_image()?;
+
+        // input2 is pixel_color 
+        let pixel_color: u8 = input[2].to_u8().context("u8 pixel_color")?;
+
+        let output_image: Image = image0.overlay_with_mask_color(&image1, pixel_color)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageOffsetFunction::new(100001))));
     registry.register(Arc::new(Box::new(ImageRotateFunction::new(100002))));
     registry.register(Arc::new(Box::new(ImageTrimFunction::new(100003))));
     registry.register(Arc::new(Box::new(ImageRemoveDuplicatesFunction::new(100004))));
+    registry.register(Arc::new(Box::new(ImageOverlayAnotherImageByColorMaskFunction::new(100005))));
     registry.register(Arc::new(Box::new(ImageWithColorFunction::new(100006))));
     registry.register(Arc::new(Box::new(ImageSetPixelFunction::new(100007))));
     registry.register(Arc::new(Box::new(ImageGetPixelFunction::new(100008))));
