@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::arc::image_overlay::ImageOverlay;
-    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage, ImageHistogram, ImageRotate};
+    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage, ImageOutline, ImageRotate};
     use crate::arc::{Image, convolution2x2, convolution3x3};
     use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding, ImageStack};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile};
@@ -1065,28 +1065,9 @@ mod tests {
 
         let pixel_color: u8 = input.least_popular_color().expect("color");
         let image: Image = input.replace_colors_other_than(pixel_color, 0).expect("image");
-
         let outline_color: u8 = 2;
         let background_color: u8 = 0;
-        let input_padded: Image = image.padding_with_color(1, background_color).expect("image");
-        let result_image: Image = convolution3x3(&input_padded, |bm| {
-            let center_pixel_value: u8 = bm.get(1, 1).unwrap_or(255);
-            if center_pixel_value != background_color {
-                return Ok(center_pixel_value);
-            }
-            for y in 0..3i32 {
-                for x in 0..3i32 {
-                    if x == 1 && y == 1 {
-                        continue;
-                    }
-                    let pixel_value: u8 = bm.get(x, y).unwrap_or(255);
-                    if pixel_value != center_pixel_value {
-                        return Ok(outline_color);
-                    }
-                }
-            }
-            Ok(background_color)
-        }).expect("image");
+        let result_image: Image = image.outline_type1(outline_color, background_color).expect("image");
 
         assert_eq!(result_image, output);
         Ok(())
