@@ -47,12 +47,12 @@ impl Histogram {
         Some((found_index & 255) as u8)
     }
 
-    /// The most frequent occurring comes first.
+    /// The least frequent occuring comes first.
     /// 
     /// The medium frequent occuring comes middle.
     /// 
-    /// The least frequent are at the end.
-    pub fn sorted_pairs(&self) -> Vec<(u32,u8)> {
+    /// The most frequent occurring comes last.
+    pub fn pairs_ascending(&self) -> Vec<(u32,u8)> {
         let mut pairs = Vec::<(u32, u8)>::with_capacity(256);
         for (index, number_of_occurences) in self.counters.iter().enumerate() {
             if *number_of_occurences > 0 {
@@ -60,6 +60,16 @@ impl Histogram {
             }
         }
         pairs.sort();
+        pairs
+    }
+
+    /// The most frequent occurring comes first.
+    /// 
+    /// The medium frequent occuring comes middle.
+    /// 
+    /// The least frequent occurring are at the end.
+    pub fn pairs_descending(&self) -> Vec<(u32,u8)> {
+        let mut pairs = self.pairs_ascending();
         pairs.reverse();
         pairs
     }
@@ -117,7 +127,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_sorted_pairs() {
+    fn test_30000_pairs_descending() {
         // Arrange
         let mut h = Histogram::new();
         let values: [u8; 8] = [3, 42, 42, 3, 2, 3, 4, 5];
@@ -126,10 +136,27 @@ mod tests {
         }
 
         // Act
-        let pairs: Vec<(u32, u8)> = h.sorted_pairs();
+        let pairs: Vec<(u32, u8)> = h.pairs_descending();
 
         // Assert
         let expected: Vec<(u32, u8)> = vec![(3, 3), (2, 42), (1, 5), (1, 4), (1, 2)];
+        assert_eq!(pairs, expected);
+    }
+
+    #[test]
+    fn test_30001_pairs_ascending() {
+        // Arrange
+        let mut h = Histogram::new();
+        let values: [u8; 8] = [3, 42, 42, 3, 2, 3, 4, 5];
+        for value in values {
+            h.increment(value);
+        }
+
+        // Act
+        let pairs: Vec<(u32, u8)> = h.pairs_ascending();
+
+        // Assert
+        let expected: Vec<(u32, u8)> = vec![(1, 2), (1, 4), (1, 5), (2, 42), (3, 3)];
         assert_eq!(pairs, expected);
     }
 
@@ -150,7 +177,7 @@ mod tests {
         h.increment_pixel(&image, 50, 50);
 
         // Assert
-        let pairs = h.sorted_pairs();
+        let pairs = h.pairs_descending();
         assert_eq!(pairs.is_empty(), true);
     }
 }

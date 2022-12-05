@@ -732,7 +732,7 @@ impl UnofficialFunction for ImagePopularColorFunction {
         let image: Image = input0_uint.to_image()?;
 
         let histogram: Histogram = image.histogram_all();
-        let pairs: Vec<(u32, u8)> = histogram.sorted_pairs();
+        let pairs: Vec<(u32, u8)> = histogram.pairs_descending();
         let mut colors: Vec<i32> = pairs.iter().map(|(_, color)| (*color) as i32).collect();
 
         // Take N of the most popular colors

@@ -7,7 +7,7 @@ pub trait ImageColorProfile {
 impl ImageColorProfile for Image {
     fn most_popular_color(&self) -> Option<u8> {
         let histogram: Histogram = self.histogram_all();
-        let pairs = histogram.sorted_pairs();
+        let pairs = histogram.pairs_descending();
         if pairs.len() == 1 {
             let pair: &(u32, u8) = pairs.get(0).unwrap();
             return Some(pair.1);
