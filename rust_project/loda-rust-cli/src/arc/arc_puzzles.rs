@@ -859,23 +859,20 @@ mod tests {
         mov $2,1
         f21 $1,100002 ; rotate cw
         f21 $0,100032 ; hstack
-        mov $8,$0 ; top half
+        ; $0 is top half
 
         ; construct bottom half
-        mov $0,$5
-        mov $1,2
-        f21 $0,100002 ; rotate cw cw
-        mov $7,$0
-        mov $0,$5
-        mov $1,3
-        f21 $0,100002 ; rotate cw cw cw
-        mov $1,$7
-        f21 $0,100032 ; hstack
-        mov $9,$0
+        mov $6,2
+        f21 $5,100002 ; rotate cw cw
+        mov $1,$5
+        mov $2,1
+        f21 $1,100002 ; rotate cw
+        mov $2,$5
+        f21 $1,100032 ; hstack
+        ; $1 is bottom half
 
         ; join top half and bottom half
-        f21 $8,100042 ; vstack
-        mov $0,$8
+        f21 $0,100042 ; vstack
         ";
 
         let mut count = 0;
