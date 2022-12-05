@@ -1015,15 +1015,15 @@ mod tests {
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
         let background_pixel_color: u8 = input.most_popular_color().expect("color");
+        let flipped_image: Image = input.flip_y().expect("image");
         let mut result_image: Image = input.clone();
-        let max_y: i32 = (input.height() as i32) - 1;
         for y in 0..input.height() {
             for x in 0..input.width() {
-                let pixel_value: u8 = input.get(x as i32, y as i32).unwrap_or(255); 
+                let pixel_value: u8 = flipped_image.get(x as i32, y as i32).unwrap_or(255); 
                 if pixel_value == background_pixel_color {
                     continue;
                 }
-                match result_image.set(x as i32, max_y - (y as i32), pixel_value) {
+                match result_image.set(x as i32, y as i32, pixel_value) {
                     Some(()) => {},
                     None => {
                         return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
