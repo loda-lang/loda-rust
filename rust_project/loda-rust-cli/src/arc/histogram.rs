@@ -22,8 +22,9 @@ impl Histogram {
     }
 
     pub fn increment_pixel(&mut self, image: &Image, x: i32, y: i32) {
-        let pixel_value: u8 = image.get(x, y).unwrap_or(255);
-        self.increment(pixel_value);
+        if let Some(pixel_value) = image.get(x, y) {
+            self.increment(pixel_value);
+        }
     }
 
     pub fn increment(&mut self, index: u8) {
@@ -67,6 +68,7 @@ impl Histogram {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::arc::ImageTryCreate;
 
     #[test]
     fn test_10000_increment() {
@@ -129,5 +131,26 @@ mod tests {
         // Assert
         let expected: Vec<(u32, u8)> = vec![(3, 3), (2, 42), (1, 5), (1, 4), (1, 2)];
         assert_eq!(pairs, expected);
+    }
+
+    #[test]
+    fn test_40000_increment_pixel_out_of_bounds() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2,
+            3, 4,
+        ];
+        let image: Image = Image::try_create(2, 2, pixels).expect("image");
+        let mut h = Histogram::new();
+
+        // Arrange
+        h.increment_pixel(&image, -1, -1);
+        h.increment_pixel(&image, 2, 0);
+        h.increment_pixel(&image, 0, 2);
+        h.increment_pixel(&image, 50, 50);
+
+        // Assert
+        let pairs = h.sorted_pairs();
+        assert_eq!(pairs.is_empty(), true);
     }
 }
