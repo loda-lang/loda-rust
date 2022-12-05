@@ -1,6 +1,6 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
-use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise};
+use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -911,6 +911,68 @@ impl UnofficialFunction for ImageDenoiseFunction {
     }
 }
 
+struct ImageNoiseColorFunction {
+    id: u32,
+    outputs: u8,
+}
+
+impl ImageNoiseColorFunction {
+    fn new(id: u32, outputs: u8) -> Self {
+        Self {
+            id,
+            outputs,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageNoiseColorFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: self.outputs }
+    }
+
+    fn name(&self) -> String {
+        format!("Extract from (noisy image, denoised image), the {} most noisy colors, sorted by popularity", self.outputs)
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let noisy_image: Image = input0_uint.to_image()?;
+
+        // input1 is image
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let denoised_image: Image = input1_uint.to_image()?;
+
+        let noise_color_vec: Vec<u8> = noisy_image.noise_color_vec(&denoised_image)?;
+        let mut colors: Vec<i32> = noise_color_vec.iter().map(|color| *color as i32).collect();
+
+        // Take N of the most popular colors
+        colors.truncate(self.outputs as usize);
+
+        // Pad with -1
+        while colors.len() < (self.outputs as usize) {
+            colors.push(-1);
+        }
+
+        // Convert to BigInt's
+        let mut output_vec = Vec::<BigInt>::with_capacity(self.outputs as usize);
+        for color in colors {
+            let color_bigint: BigInt = color.to_bigint().context("i32 to BigInt")?;
+            output_vec.push(color_bigint);
+        }
+        Ok(output_vec)
+    }
+}
 
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageOffsetFunction::new(100001))));
@@ -1023,4 +1085,15 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     
     // Denoise
     registry.register(Arc::new(Box::new(ImageDenoiseFunction::new(100090))));
+
+    // Extract noise colors from (noise image, denoised image)
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100101, 1))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100102, 2))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100103, 3))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100104, 4))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100105, 5))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100106, 6))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100107, 7))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100108, 8))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100109, 9))));
 }
