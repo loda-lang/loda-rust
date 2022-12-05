@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage};
+    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage, ImageHistogram};
     use crate::arc::{Image, convolution2x2, convolution3x3};
     use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding};
-    use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset};
-    use crate::arc::{ImageNgram, RecordTrigram};
+    use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile};
+    use crate::arc::{ImageNgram, RecordTrigram, Histogram};
     use crate::arc::register_arc_functions;
     use crate::config::Config;
     use crate::common::find_json_files_recursively;
@@ -382,13 +382,15 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
+        let background_pixel_color: u8 = input.most_popular_color().expect("pixel");
+
         // Traverse columns
         let mut stack: Vec<u8> = vec!();
         for x in 0..input.width() {
-            // Take the pixel greater than 0 and append the pixel to the stack
+            // Take foreground pixels that is different than the background color, and append the foreground pixel to the stack
             for y in 0..input.height() {
                 let pixel_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
-                if pixel_value > 0 {
+                if pixel_value != background_pixel_color {
                     stack.push(pixel_value);
                 }
             }
