@@ -907,6 +907,27 @@ mod tests {
         Ok(())
     }
 
+    const PROGRAM_9565186B: &'static str = "
+    mov $1,$0
+    f11 $1,100061 ; most popular color
+    mov $2,5
+    f31 $0,100051 ; replace colors other than color
+    ";
+
+    #[test]
+    fn test_140001_puzzle_9565186b_loda() {
+        let model: Model = Model::load_testdata("9565186b").expect("model");
+        let program = PROGRAM_9565186B;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 5);
+    }
+
     // #[test]
     fn test_140000_traverse_testdata() {
         let config = Config::load();
@@ -1009,6 +1030,7 @@ mod tests {
             PROGRAM_7468F01A,
             PROGRAM_7FE24CDD,
             PROGRAM_90C28CC7,
+            PROGRAM_9565186B,
             PROGRAM_A79310A0,
             PROGRAM1, 
             PROGRAM2, 
