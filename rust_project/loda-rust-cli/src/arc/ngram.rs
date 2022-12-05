@@ -180,9 +180,9 @@ mod tests {
     fn test_10001_bigram_y() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            1, 2, 1, 9,
-            2, 1, 2, 1,
             1, 2, 1, 2,
+            2, 1, 2, 1,
+            1, 2, 1, 9,
         ];
         let input: Image = Image::try_create(4, 3, pixels).expect("image");
 
@@ -225,10 +225,10 @@ mod tests {
     fn test_20001_trigram_y() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            1, 2, 1, 9,
             2, 1, 2, 1,
             1, 2, 1, 2,
             2, 1, 2, 1,
+            1, 2, 1, 9,
         ];
         let input: Image = Image::try_create(4, 4, pixels).expect("image");
 
@@ -243,5 +243,4 @@ mod tests {
         ];
         assert_eq!(trigrams, expected);
     }
-
 }
