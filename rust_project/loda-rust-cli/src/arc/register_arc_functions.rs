@@ -1,5 +1,6 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate};
-use super::{ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
+use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
+use super::{Histogram};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -695,6 +696,63 @@ impl UnofficialFunction for ImageStackFunction {
     }
 }
 
+struct ImagePopularColorFunction {
+    id: u32,
+    outputs: u8,
+}
+
+impl ImagePopularColorFunction {
+    fn new(id: u32, outputs: u8) -> Self {
+        Self {
+            id,
+            outputs,
+        }
+    }
+}
+
+impl UnofficialFunction for ImagePopularColorFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: self.outputs }
+    }
+
+    fn name(&self) -> String {
+        format!("Image the {} most popular colors, sorted by popularity", self.outputs)
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        let histogram: Histogram = image.histogram_all();
+        let pairs: Vec<(u32, u8)> = histogram.sorted_pairs();
+        let mut colors: Vec<i32> = pairs.iter().map(|(_, color)| (*color) as i32).collect();
+
+        // Take N of the most popular colors
+        colors.truncate(self.outputs as usize);
+
+        // Pad with -1
+        while colors.len() < (self.outputs as usize) {
+            colors.push(-1);
+        }
+
+        // Convert to BigInt's
+        let mut output_vec = Vec::<BigInt>::with_capacity(self.outputs as usize);
+        for color in colors {
+            let color_bigint: BigInt = color.to_bigint().context("i32 to BigInt")?;
+            output_vec.push(color_bigint);
+        }
+        Ok(output_vec)
+    }
+}
+
 
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageOffsetFunction::new(100001))));
@@ -705,6 +763,8 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageSetPixelFunction::new(100007))));
     registry.register(Arc::new(Box::new(ImageGetPixelFunction::new(100008))));
     registry.register(Arc::new(Box::new(ImageGetSizeFunction::new(100009))));
+
+    // Flip
     registry.register(Arc::new(Box::new(
         ImageFlipFunction::new(100010, ImageFlipFunctionMode::FlipX
     ))));
@@ -714,6 +774,8 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(
         ImageFlipFunction::new(100012, ImageFlipFunctionMode::FlipXY
     ))));
+
+    // Padding
     registry.register(Arc::new(Box::new(
         ImagePaddingFunction::new(100013, ImagePaddingFunctionMode::Even
     ))));
@@ -767,6 +829,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100048, 8))));
     registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100049, 9))));
 
+    
     // Replace color
     registry.register(Arc::new(Box::new(
         ImageReplaceColorFunction::new(100050, ImageReplaceColorFunctionMode::ReplaceColor
@@ -774,4 +837,15 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(
         ImageReplaceColorFunction::new(100051, ImageReplaceColorFunctionMode::ReplaceColorsOtherThan
     ))));
+
+    // Popular color
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100061, 1))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100062, 2))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100063, 3))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100064, 4))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100065, 5))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100066, 6))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100067, 7))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100068, 8))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::new(100069, 9))));
 }
