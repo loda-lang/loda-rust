@@ -1130,10 +1130,6 @@ mod tests {
         let noise_color: u8 = histogram.most_popular().expect("noise pixel");
         // println!("noise color: {}", noise_color);
 
-        // Pick the object color
-        let object_color: u8 = denoised_image.least_popular_color().expect("object color");
-        // println!("object color: {}", object_color);
-
         // Remove background around the object
         let trimmed_image: Image = denoised_image.trim().expect("image");
 
@@ -1141,7 +1137,7 @@ mod tests {
         let image_without_duplicates: Image = trimmed_image.remove_duplicates().expect("image");
 
         // Change color of the object
-        let result_image: Image = image_without_duplicates.replace_color(object_color, noise_color).expect("image");
+        let result_image: Image = image_without_duplicates.replace_colors_other_than(background_color, noise_color).expect("image");
 
         assert_eq!(result_image, output);
         Ok(())
