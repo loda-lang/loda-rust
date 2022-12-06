@@ -35,6 +35,7 @@ mod tests {
 
         let input_padded: Image = input.zero_padding(1).expect("image");
 
+        // TODO: port to LODA
         let result_bm: Image = convolution3x3(&input_padded, |bm| {
             let mut found = false;
             for y in 0..3i32 {
@@ -75,6 +76,7 @@ mod tests {
 
         let input_padded: Image = input.zero_padding(1).expect("image");
 
+        // TODO: port to LODA
         let result_bm: Image = convolution3x3(&input_padded, |bm| {
             let value: u8 = bm.get(1, 1).unwrap_or(255);
             if value != 5 {
@@ -128,6 +130,7 @@ mod tests {
 
         let input_trimmed: Image = input.trim().expect("image");
 
+        // TODO: port to LODA
         let mut result_bitmap = Image::zero(3, 3);
         for y in 0..3 {
             for x in 0..3 {
@@ -281,6 +284,7 @@ mod tests {
 
     #[test]
     fn test_60000_puzzle_63613498() -> anyhow::Result<()> {
+        // TODO: port to LODA
         let model: Model = Model::load_testdata("63613498")?;
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
@@ -371,6 +375,7 @@ mod tests {
 
     #[test]
     fn test_70000_puzzle_cdecee7f() -> anyhow::Result<()> {
+        // TODO: port to LODA
         let model: Model = Model::load_testdata("cdecee7f")?;
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
@@ -442,6 +447,7 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
+        // TODO: port to LODA
         let mut result_bitmap: Image = Image::zero(9, 9);
         for y in 0..input.height() {
             for x in 0..input.width() {
@@ -672,6 +678,7 @@ mod tests {
 
     #[test]
     fn test_110000_puzzle_0dfd9992() -> anyhow::Result<()> {
+        // TODO: port to LODA
         let model: Model = Model::load_testdata("0dfd9992")?;
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
@@ -785,6 +792,7 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
+        // TODO: port to LODA
         let mut image = input.clone();
         for yy in 0..((image.height() as i32) - 2) {
             for xx in 0..((image.width() as i32) - 2) {
