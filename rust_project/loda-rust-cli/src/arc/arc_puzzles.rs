@@ -471,7 +471,7 @@ mod tests {
     }
 
     #[test]
-    fn test_90000_puzzle_b9b7f026() -> anyhow::Result<()> {
+    fn test_90000_puzzle_b9b7f026_manual() -> anyhow::Result<()> {
         let model: Model = Model::load_testdata("b9b7f026")?;
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
@@ -497,6 +497,35 @@ mod tests {
         let result_bitmap: Image = Image::color(1, 1, corner_color);
         assert_eq!(result_bitmap, output);
         Ok(())
+    }
+
+    const PROGRAM_B9B7F026: &'static str = "
+    mov $1,$0
+    f11 $1,100061 ; most popular color
+    ; $1 is background color
+    f21 $0,100110 ; detect holes
+
+    mov $2,$0
+    f11 $2,100071 ; least popular color
+    ; $2 is the corner color
+
+    mov $0,1 ; width=1
+    mov $1,1 ; height=1
+    f31 $0,100006 ; create image with color
+    ";
+
+    #[test]
+    fn test_90001_puzzle_b9b7f026_loda() {
+        let model: Model = Model::load_testdata("b9b7f026").expect("model");
+        let program = PROGRAM_B9B7F026;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
     }
 
     #[test]
@@ -1258,6 +1287,7 @@ mod tests {
             PROGRAM_90C28CC7,
             PROGRAM_9565186B,
             PROGRAM_A79310A0,
+            PROGRAM_B9B7F026,
             // PROGRAM1, 
             PROGRAM2, 
             PROGRAM3,
