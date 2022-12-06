@@ -490,24 +490,11 @@ mod tests {
         // Detect corners / holes
         let corner_image: Image = input.detect_hole_type1(background_color).expect("image");
         // println!("input: {:?}", input);
-        // println!("corner_bitmap: {:?}", corner_image);
+        // println!("corner_image: {:?}", corner_image);
 
         // Extract color of the corner
-        let mut result_bitmap: Image = Image::zero(1, 1);
-        for y in 0..corner_image.height() {
-            for x in 0..corner_image.width() {
-                let pixel_value: u8 = corner_image.get(x as i32, y as i32).unwrap_or(255);
-                if pixel_value == background_color {
-                    continue;
-                }
-                match result_bitmap.set(0, 0, pixel_value) {
-                    Some(()) => {},
-                    None => {
-                        return Err(anyhow::anyhow!("Unable to set pixel in the result_bitmap"));
-                    }
-                }
-            }
-        }
+        let corner_color: u8 = corner_image.least_popular_color().expect("color");
+        let result_bitmap: Image = Image::color(1, 1, corner_color);
         assert_eq!(result_bitmap, output);
         Ok(())
     }
