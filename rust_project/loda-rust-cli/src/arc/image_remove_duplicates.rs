@@ -8,8 +8,7 @@ pub trait ImageRemoveDuplicates {
 
 impl ImageRemoveDuplicates for Image {
     fn remove_duplicate_rows(&self) -> anyhow::Result<Image> {
-        let len: usize = (self.width() as usize) * (self.height() as usize);
-        if len == 0 {
+        if self.is_empty() {
             return Ok(Image::empty());
         }
         let x_max: i32 = (self.width() as i32) - 1;
@@ -104,7 +103,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_remove_duplicate_columns_big2() {
+    fn test_10001_remove_duplicate_rows_big2() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 0, 0, 0,
