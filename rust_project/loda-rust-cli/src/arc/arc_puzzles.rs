@@ -6,7 +6,7 @@ mod tests {
     use crate::arc::{Image, convolution2x2, convolution3x3};
     use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding, ImageStack};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile};
-    use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, Histogram, ImageDenoise};
+    use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, Histogram, ImageDenoise, ImageDetectHole};
     use crate::arc::register_arc_functions;
     use crate::config::Config;
     use crate::common::find_json_files_recursively;
@@ -485,36 +485,19 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
-        // Detect corners
-        let corner_bitmap: Image = convolution2x2(&input, |bm| {
-            let pixel00: u8 = bm.get(0, 0).unwrap_or(255);
-            let pixel10: u8 = bm.get(1, 0).unwrap_or(255);
-            let pixel01: u8 = bm.get(0, 1).unwrap_or(255);
-            let pixel11: u8 = bm.get(1, 1).unwrap_or(255);
-            let mut mask: u8 = 0;
-            if pixel00 == pixel10 { mask |= 1; }
-            if pixel01 == pixel11 { mask |= 2; }
-            if pixel00 == pixel01 { mask |= 4; }
-            if pixel10 == pixel11 { mask |= 8; }
-            let value: u8 = match mask {
-                5 => pixel00,
-                6 => pixel01,
-                9 => pixel10,
-                10 => pixel11,
-                _ => 0,
-            };
-            Ok(value)
-        }).expect("image");
+        let background_color: u8 = input.most_popular_color().expect("color");
 
+        // Detect corners / holes
+        let corner_image: Image = input.detect_hole_type1(background_color).expect("image");
         // println!("input: {:?}", input);
-        // println!("bitmap0: {:?}", bitmap0);
+        // println!("corner_bitmap: {:?}", corner_image);
 
         // Extract color of the corner
         let mut result_bitmap: Image = Image::zero(1, 1);
-        for y in 0..corner_bitmap.height() {
-            for x in 0..corner_bitmap.width() {
-                let pixel_value: u8 = corner_bitmap.get(x as i32, y as i32).unwrap_or(255);
-                if pixel_value == 0 {
+        for y in 0..corner_image.height() {
+            for x in 0..corner_image.width() {
+                let pixel_value: u8 = corner_image.get(x as i32, y as i32).unwrap_or(255);
+                if pixel_value == background_color {
                     continue;
                 }
                 match result_bitmap.set(0, 0, pixel_value) {
