@@ -139,4 +139,28 @@ mod tests {
         let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
+
+    #[test]
+    fn test_10002_remove_rowcolumn() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2,
+            3, 4,
+        ];
+        let input: Image = Image::try_create(2, 2, pixels).expect("image");
+        let columns = BitSet::new();
+        let rows = BitSet::new();
+
+        // Act
+        let actual: Image = input.remove_rowcolumn(&rows, &columns).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 2,
+            3, 4,
+        ];
+        let expected: Image = Image::try_create(2, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
 }

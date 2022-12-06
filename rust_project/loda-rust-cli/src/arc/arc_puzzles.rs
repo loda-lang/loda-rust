@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveRowColumn};
+    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveRowColumn, ImageRemoveGrid};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage, ImageOutline, ImageRotate};
     use crate::arc::{Image, convolution2x2, convolution3x3};
     use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding, ImageStack};
@@ -1191,41 +1191,17 @@ mod tests {
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[0].input().to_image().expect("image");
+        // let output: Image = model.train()[0].output().to_image().expect("image");
         // let input: Image = model.train()[1].input().to_image().expect("image");
         // let output: Image = model.train()[1].output().to_image().expect("image");
         // let input: Image = model.train()[2].input().to_image().expect("image");
         // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
+        let input: Image = model.test()[0].input().to_image().expect("image");
+        let output: Image = model.test()[0].output().to_image().expect("image");
 
-        // Remove duplicate rows/columns
         let without_duplicates: Image = input.remove_duplicates().expect("image");
-
-        let histogram_rows: Vec<Histogram> = without_duplicates.histogram_rows();
-        let histogram_columns: Vec<Histogram> = without_duplicates.histogram_columns();
-        // println!("rows: {:?}", histogram_rows);
-        // println!("cols: {:?}", histogram_columns);
-
-        // find overlap between the two histograms, where the count is 1
-        let mut delete_rows = BitSet::with_capacity(256);
-        for (index, histogram) in histogram_rows.iter().enumerate() {
-            if histogram.number_of_counters_greater_than_zero() == 1 {
-                delete_rows.insert(index);
-            }
-        }
-        let mut delete_columns = BitSet::with_capacity(256);
-        for (index, histogram) in histogram_columns.iter().enumerate() {
-            if histogram.number_of_counters_greater_than_zero() == 1 {
-                delete_columns.insert(index);
-            }
-        }
-        // println!("delete_rows: {:?}", delete_rows);
-        // println!("delete_columns: {:?}", delete_columns);
-
-        // Delete the rows/columns
-        let result_image: Image = without_duplicates.remove_rowcolumn(&delete_rows, &delete_columns).expect("image");
+        let result_image: Image = without_duplicates.remove_grid().expect("image");
         assert_eq!(result_image, output);
         Ok(())
     }
