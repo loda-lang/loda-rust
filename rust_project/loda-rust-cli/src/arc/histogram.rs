@@ -95,6 +95,17 @@ impl Histogram {
         pairs.reverse();
         pairs
     }
+
+    /// Number of counters that are greater than zero.
+    pub fn number_of_counters_greater_than_zero(&self) -> u32 {
+        let mut count: u32 = 0;
+        for number_of_occurences in &self.counters {
+            if *number_of_occurences > 0 {
+                count += 1;
+            }
+        }
+        count
+    }
 }
 
 #[cfg(test)]
@@ -231,5 +242,43 @@ mod tests {
         // Assert
         let pairs = h.pairs_descending();
         assert_eq!(pairs.is_empty(), true);
+    }
+
+    #[test]
+    fn test_60000_number_of_counters_greater_than_zero_empty() {
+        let h = Histogram::new();
+        let actual: u32 = h.number_of_counters_greater_than_zero();
+        assert_eq!(actual, 0);
+    }
+
+    #[test]
+    fn test_60001_number_of_counters_greater_than_zero_some() {
+        // Arrange
+        let mut h = Histogram::new();
+        let values: [u8; 8] = [3, 42, 42, 3, 2, 3, 4, 5];
+        for value in values {
+            h.increment(value);
+        }
+
+        // Act
+        let actual: u32 = h.number_of_counters_greater_than_zero();
+
+        // Assert
+        assert_eq!(actual, 5);
+    }
+
+    #[test]
+    fn test_60002_number_of_counters_greater_than_zero_all() {
+        // Arrange
+        let mut h = Histogram::new();
+        for i in 0..=255 {
+            h.increment(i);
+        }
+
+        // Act
+        let actual: u32 = h.number_of_counters_greater_than_zero();
+
+        // Assert
+        assert_eq!(actual, 256);
     }
 }
