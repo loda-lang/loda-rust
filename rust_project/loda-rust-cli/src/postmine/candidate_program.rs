@@ -129,6 +129,14 @@ impl CandidateProgram {
         &self.path_keep
     }
 
+    /// Prefix error messages with `;`, so that when they can be inserted into a LODA program
+    /// and the LODA program is still a valid program.
+    fn prefix_with_semicolon<I: AsRef<str>>(input: I) -> String {
+        // let v: Vec<&str> = input.as_ref().split("\n").collect();
+        // v.join("\n; ")
+        input.as_ref().replace("\n", "\n; ")
+    }
+
     pub fn perform_reject<I: AsRef<str>>(&mut self, reason_reject: I) -> anyhow::Result<()> {
         if self.state != State::PendingProcessing {
             return Err(anyhow::anyhow!("perform_reject of candidate program with already resolved state"));
@@ -140,7 +148,8 @@ impl CandidateProgram {
             .append(true)
             .open(&self.path_reject)
             .with_context(|| format!("perform_reject: Unable to open in append-mode. path: {:?}", &self.path_reject))?;
-        writeln!(file, "\n; reject-reason: {}", reason_reject.as_ref())
+        let reason: String = Self::prefix_with_semicolon(reason_reject.as_ref());
+        writeln!(file, "\n; reject-reason: {}", reason)
             .with_context(|| format!("perform_reject: Unable to append to rejection-reason to file: {:?}", &self.path_reject))?;
         self.state = State::Reject;
         Ok(())
@@ -157,7 +166,8 @@ impl CandidateProgram {
             .append(true)
             .open(&self.path_keep)
             .with_context(|| format!("perform_keep: Unable to open in append-mode. path: {:?}", &self.path_keep))?;
-        writeln!(file, "\n; keep-reason: {}", reason_keep.as_ref())
+        let reason: String = Self::prefix_with_semicolon(reason_keep.as_ref());
+        writeln!(file, "\n; keep-reason: {}", reason)
             .with_context(|| format!("perform_keep: Unable to append to keep-reason to file: {:?}", &self.path_keep))?;
         self.state = State::Keep;
         Ok(())
@@ -223,7 +233,14 @@ mul $0,2
     }
 
     #[test]
-    fn test_20000_perform_reject() -> Result<(), Box<dyn Error>> {
+    fn test_20000_prefix_with_semicolon() {
+        assert_eq!(CandidateProgram::prefix_with_semicolon("x"), "x");
+        assert_eq!(CandidateProgram::prefix_with_semicolon("x\ny"), "x\n; y");
+        assert_eq!(CandidateProgram::prefix_with_semicolon("x\ny\nz"), "x\n; y\n; z");
+    }
+
+    #[test]
+    fn test_30000_perform_reject() -> Result<(), Box<dyn Error>> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
         let basedir = PathBuf::from(&tempdir.path()).join("test_20000_perform_reject");
@@ -244,18 +261,18 @@ add $0,$1
         let mut candidate_program: CandidateProgram = CandidateProgram::new(&input_path)?;
 
         // Act
-        candidate_program.perform_reject("REJECT-REASON")?;
+        candidate_program.perform_reject("REJECT-REASON1\nREJECT-REASON2\nREJECT-REASON3")?;
 
         // Assert
         assert_eq!(candidate_program.path_original().is_file(), false);
         assert_eq!(candidate_program.path_reject().is_file(), true);
         let output_content: String = fs::read_to_string(candidate_program.path_reject())?;
-        assert_eq!(output_content.ends_with("\n; reject-reason: REJECT-REASON\n"), true);
+        assert_eq!(output_content.ends_with("\n; reject-reason: REJECT-REASON1\n; REJECT-REASON2\n; REJECT-REASON3\n"), true);
         Ok(())
     }
 
     #[test]
-    fn test_20001_perform_keep() -> Result<(), Box<dyn Error>> {
+    fn test_30001_perform_keep() -> Result<(), Box<dyn Error>> {
         // Arrange
         let tempdir = tempfile::tempdir().unwrap();
         let basedir = PathBuf::from(&tempdir.path()).join("test_20001_perform_keep");
@@ -276,13 +293,13 @@ add $0,$1
         let mut candidate_program: CandidateProgram = CandidateProgram::new(&input_path)?;
 
         // Act
-        candidate_program.perform_keep("KEEP-REASON")?;
+        candidate_program.perform_keep("KEEP-REASON1\nKEEP-REASON2\nKEEP-REASON3")?;
 
         // Assert
         assert_eq!(candidate_program.path_original().is_file(), false);
         assert_eq!(candidate_program.path_keep().is_file(), true);
         let output_content: String = fs::read_to_string(candidate_program.path_keep())?;
-        assert_eq!(output_content.ends_with("\n; keep-reason: KEEP-REASON\n"), true);
+        assert_eq!(output_content.ends_with("\n; keep-reason: KEEP-REASON1\n; KEEP-REASON2\n; KEEP-REASON3\n"), true);
         Ok(())
     }
 }
