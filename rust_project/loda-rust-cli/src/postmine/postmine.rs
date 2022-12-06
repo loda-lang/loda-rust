@@ -286,8 +286,6 @@ impl PostMine {
                 Ok(value) => value,
                 Err(error) => {
                     let reason = format!("Couldn't eval program with loda-cpp, {:?}", error);
-                    let msg = format!("Rejecting {}, {}", candidate_program.borrow(), reason);
-                    pb.println(msg);
                     candidate_program.borrow_mut().perform_reject(reason)
                         .map_err(|e| anyhow::anyhow!("eval_using_loda_cpp -> perform_reject. path_original: {:?} error: {:?}", path_original, e))?;
                     count_failure += 1;
