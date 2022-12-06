@@ -51,6 +51,24 @@ impl Histogram {
         Some((found_index & 255) as u8)
     }
 
+    pub fn least_popular(&self) -> Option<u8> {
+        let mut found_count: u32 = u32::MAX;
+        let mut found_index: usize = 0;
+        for (index, number_of_occurences) in self.counters.iter().enumerate() {
+            if *number_of_occurences == 0 {
+                continue;
+            }
+            if *number_of_occurences < found_count {
+                found_count = *number_of_occurences;
+                found_index = index;
+            }
+        }
+        if found_count == u32::MAX {
+            return None;
+        }
+        Some((found_index & 255) as u8)
+    }
+
     /// The least frequent occuring comes first.
     /// 
     /// The medium frequent occuring comes middle.
@@ -131,7 +149,37 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_pairs_descending() {
+    fn test_30000_least_popular_some() {
+        // Arrange
+        let mut h = Histogram::new();
+        h.increment(42);
+        h.increment(3);
+        h.increment(2);
+        h.increment(3);
+        h.increment(42);
+        h.increment(3);
+
+        // Act
+        let color: Option<u8> = h.least_popular();
+
+        // Assert
+        assert_eq!(color, Some(2));
+    }
+
+    #[test]
+    fn test_30001_least_popular_none() {
+        // Arrange
+        let h = Histogram::new();
+
+        // Act
+        let color: Option<u8> = h.least_popular();
+
+        // Assert
+        assert_eq!(color, None);
+    }
+
+    #[test]
+    fn test_40000_pairs_descending() {
         // Arrange
         let mut h = Histogram::new();
         let values: [u8; 8] = [3, 42, 42, 3, 2, 3, 4, 5];
@@ -148,7 +196,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30001_pairs_ascending() {
+    fn test_40001_pairs_ascending() {
         // Arrange
         let mut h = Histogram::new();
         let values: [u8; 8] = [3, 42, 42, 3, 2, 3, 4, 5];
@@ -165,7 +213,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_increment_pixel_out_of_bounds() {
+    fn test_50000_increment_pixel_out_of_bounds() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 2,
