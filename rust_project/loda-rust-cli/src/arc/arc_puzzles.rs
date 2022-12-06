@@ -1206,6 +1206,25 @@ mod tests {
         Ok(())
     }
 
+    const PROGRAM_1190E5A7: &'static str = "
+    f11 $0,100004 ; remove duplicates
+    f11 $0,100120 ; remove grid
+    ";
+
+    #[test]
+    fn test_200001_puzzle_1190e5a7_loda() {
+        let model: Model = Model::load_testdata("1190e5a7").expect("model");
+        let program = PROGRAM_1190E5A7;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
+    }
+
     // #[test]
     fn test_210000_traverse_testdata() {
         let config = Config::load();
@@ -1305,6 +1324,7 @@ mod tests {
         ";
         
         const PROGRAMS: &'static [&'static str] = &[
+            PROGRAM_1190E5A7,
             PROGRAM_31AA019C,
             PROGRAM_3AF2C5A8,
             PROGRAM_44F52BB0,
