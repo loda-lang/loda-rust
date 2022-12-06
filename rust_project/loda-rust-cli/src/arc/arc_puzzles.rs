@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::image_noise_color::ImageNoiseColor;
-    use crate::arc::image_overlay::ImageOverlay;
+    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveRowColumn};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage, ImageOutline, ImageRotate};
     use crate::arc::{Image, convolution2x2, convolution3x3};
     use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding, ImageStack};
@@ -1186,7 +1185,7 @@ mod tests {
         assert_eq!(count, 4);
     }
 
-    // #[test]
+    #[test]
     fn test_200000_puzzle_1190e5a7() -> anyhow::Result<()> {
         let model: Model = Model::load_testdata("1190e5a7")?;
         assert_eq!(model.train().len(), 3);
@@ -1206,13 +1205,28 @@ mod tests {
 
         let histogram_rows: Vec<Histogram> = without_duplicates.histogram_rows();
         let histogram_columns: Vec<Histogram> = without_duplicates.histogram_columns();
+        // println!("rows: {:?}", histogram_rows);
+        // println!("cols: {:?}", histogram_columns);
 
-        // find overlap between histograms, where the count is 1
+        // find overlap between the two histograms, where the count is 1
+        let mut delete_rows = BitSet::with_capacity(256);
+        for (index, histogram) in histogram_rows.iter().enumerate() {
+            if histogram.number_of_counters_greater_than_zero() == 1 {
+                delete_rows.insert(index);
+            }
+        }
+        let mut delete_columns = BitSet::with_capacity(256);
+        for (index, histogram) in histogram_columns.iter().enumerate() {
+            if histogram.number_of_counters_greater_than_zero() == 1 {
+                delete_columns.insert(index);
+            }
+        }
+        // println!("delete_rows: {:?}", delete_rows);
+        // println!("delete_columns: {:?}", delete_columns);
 
-        // let image_a: Image = without_duplicates.remove_rows(row_indexes).expect("image");
-        // let result_image: Image = image_a.remove_columns(column_indexes).expect("image");
-
-        // assert_eq!(result_image, output);
+        // Delete the rows/columns
+        let result_image: Image = without_duplicates.remove_rowcolumn(&delete_rows, &delete_columns).expect("image");
+        assert_eq!(result_image, output);
         Ok(())
     }
 
