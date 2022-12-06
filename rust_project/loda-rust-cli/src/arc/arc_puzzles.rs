@@ -1187,7 +1187,37 @@ mod tests {
     }
 
     // #[test]
-    fn test_200000_traverse_testdata() {
+    fn test_200000_puzzle_1190e5a7() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("1190e5a7")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        // Remove duplicate rows/columns
+        let without_duplicates: Image = input.remove_duplicates().expect("image");
+
+        let histogram_rows: Vec<Histogram> = without_duplicates.histogram_rows();
+        let histogram_columns: Vec<Histogram> = without_duplicates.histogram_columns();
+
+        // find overlap between histograms, where the count is 1
+
+        // let image_a: Image = without_duplicates.remove_rows(row_indexes).expect("image");
+        // let result_image: Image = image_a.remove_columns(column_indexes).expect("image");
+
+        // assert_eq!(result_image, output);
+        Ok(())
+    }
+
+    // #[test]
+    fn test_210000_traverse_testdata() {
         let config = Config::load();
         let path: PathBuf = config.arc_repository_data_training();
         let paths: Vec<PathBuf> = find_json_files_recursively(&path);
