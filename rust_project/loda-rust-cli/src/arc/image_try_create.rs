@@ -7,14 +7,14 @@ pub trait ImageTryCreate {
 impl ImageTryCreate for Image {
     fn try_create(width: u8, height: u8, pixels: Vec<u8>) -> anyhow::Result<Image> {
         if width == 0 && height > 0 {
-            return Err(anyhow::anyhow!("width=0, but height>0, expected both to be zero"));
+            return Err(anyhow::anyhow!("ImageTryCreate.try_create() width=0, but height>0, expected both to be zero"));
         }
         if width > 0 && height == 0 {
-            return Err(anyhow::anyhow!("height=0, but width>0, expected both to be zero"));
+            return Err(anyhow::anyhow!("ImageTryCreate.try_create() height=0, but width>0, expected both to be zero"));
         }
         let len: usize = (width as usize) * (height as usize);
         if len != pixels.len() {
-            return Err(anyhow::anyhow!("Number of pixels {} doesn't match width {} x height {}", pixels.len(), width, height));
+            return Err(anyhow::anyhow!("ImageTryCreate.try_create() Number of pixels {} doesn't match width {} x height {}", pixels.len(), width, height));
         }
         let instance = Self::create_raw(width, height, pixels);
         Ok(instance)
