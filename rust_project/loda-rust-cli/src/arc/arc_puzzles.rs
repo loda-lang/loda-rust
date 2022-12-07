@@ -626,6 +626,51 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_100003_puzzle_a79310a0_manual_without_hashmap() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("a79310a0").expect("model");
+
+        // These images contain 2 colors. Build a mapping from source color to target color
+        let train_pairs: Vec<ImagePair> = model.images_train().expect("pairs");
+        let mut palette_images = Vec::<Image>::new();
+        for (index, pair) in train_pairs.iter().enumerate() {
+            let input_histogram = pair.input.histogram_all();
+            if input_histogram.number_of_counters_greater_than_zero() != 2 {
+                return Err(anyhow::anyhow!("input[{}] Expected exactly 2 colors", index));
+            }
+            let output_histogram = pair.output.histogram_all();
+            if output_histogram.number_of_counters_greater_than_zero() != 2 {
+                return Err(anyhow::anyhow!("output[{}] Expected exactly 2 colors", index));
+            }
+            let replace_from_color0: u8 = input_histogram.most_popular().expect("u8");
+            let replace_to_color0: u8 = output_histogram.most_popular().expect("u8");
+
+            let replace_from_color1: u8 = input_histogram.least_popular().expect("u8");
+            let replace_to_color1: u8 = output_histogram.least_popular().expect("u8");
+
+            let mut image = Image::zero(2, 2);
+            image.set(0, 0, replace_from_color0).expect("set pixel");
+            image.set(0, 1, replace_to_color0).expect("set pixel");
+            image.set(1, 0, replace_from_color1).expect("set pixel");
+            image.set(1, 1, replace_to_color1).expect("set pixel");
+            palette_images.push(image);
+        }
+        let palette_image: Image = Image::hstack(palette_images).expect("image");
+
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+
+            let mut image: Image = pair.input.offset_wrap(0, 1).expect("image");
+            image = image.replace_colors_with_palette_image(&palette_image).expect("image");
+
+            assert_eq!(image, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
+        Ok(())
+    }
+
     const PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS: &'static str = r#"
     ; MEMORY LAYOUT
     ; $97 = length of "train" vector
@@ -700,14 +745,14 @@ mod tests {
 
     ; MEMORY LAYOUT - OUTPUT DATA
     ; $0 = output number
-    ; $102 = output image 0
-    ; $112 = output image 1
-    ; $122 = output image 2
-    ; $132 = output image 3
+    ; $102 = computed_output image 0
+    ; $112 = computed_output image 1
+    ; $122 = computed_output image 2
+    ; $132 = computed_output image 3
     "#;
 
     #[test]
-    fn test_100003_puzzle_a79310a0_loop_over_images_in_loda() -> anyhow::Result<()> {
+    fn test_100004_puzzle_a79310a0_loop_over_images_in_loda() -> anyhow::Result<()> {
         let model: Model = Model::load_testdata("a79310a0").expect("model");
 
         let program = PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS;
