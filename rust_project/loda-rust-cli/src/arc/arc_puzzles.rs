@@ -626,26 +626,36 @@ mod tests {
         Ok(())
     }
 
-    const PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS: &'static str = "
-    ; input
-    ; $97 = number of elements in 'train' vector
-    ; $98 = number of elements in 'test' vector
-    ; $99 = total number of 'train' + 'test' elements
+    const PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS: &'static str = r#"
+    ; MEMORY LAYOUT WHEN PROGRAM IS STARTED
+    ; $97 = length of "train" vector
+    ; $98 = length of "test" vector
+    ; $99 = length of "train"+"test" vectors
+    ; ---
     ; $100 = train[0] input
     ; $101 = train[0] output
+    ; $102..109 is reserved for train[0] extra data
+    ; ---
     ; $110 = train[1] input
     ; $111 = train[1] output
+    ; $112..119 is reserved for train[1] extra data
+    ; ---
     ; $120 = train[2] input
     ; $121 = train[2] output
+    ; $122..129 is reserved for train[2] extra data
+    ; ---
     ; $130 = train[3] input
     ; $131 = train[3] output
+    ; $132..139 is reserved for train[3] extra data
+    ; ---
     ; $140 = test[0] input image
     ; $141 = test[0] output image <---- this is not provided, it's up to the program to generate it.
+    ; $142..149 is reserved for test[0] extra data
 
     mov $8,0 ; number of images
 
     ; process training data
-    mov $0,$97 ; number of items in 'train' vector
+    mov $0,$97 ; set iteration counter = length of "train" vector
     mov $1,100 ; address of first training data train[0].input 
     mov $2,101 ; address of first training data train[0].output 
     lpb $0
@@ -664,7 +674,7 @@ mod tests {
 
     ; output
     ; $0 = test[0] output image
-    ";
+    "#;
 
     #[test]
     fn test_100003_puzzle_a79310a0_loop_over_images_in_loda() -> anyhow::Result<()> {
@@ -722,10 +732,7 @@ mod tests {
         }
         
         // Invoke the actual run() function
-        let run_result = program_runner.program().run(&mut state, &mut cache);
-        
-        // In case run failed, then return the error
-        run_result.context("run_result error in program.run")?;
+        program_runner.program().run(&mut state, &mut cache).context("run_result error in program.run")?;
         
         // Output vector
         let output_count: u8 = 1;
