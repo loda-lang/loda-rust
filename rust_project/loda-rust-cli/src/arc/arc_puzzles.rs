@@ -632,7 +632,7 @@ mod tests {
 
         // These images contain 2 colors. Build a mapping from source color to target color
         let train_pairs: Vec<ImagePair> = model.images_train().expect("pairs");
-        let mut palette_images = Vec::<Image>::new();
+        let mut palette_image = Image::empty();
         for (index, pair) in train_pairs.iter().enumerate() {
             let input_histogram = pair.input.histogram_all();
             if input_histogram.number_of_counters_greater_than_zero() != 2 {
@@ -653,9 +653,8 @@ mod tests {
             image.set(0, 1, replace_to_color0).expect("set pixel");
             image.set(1, 0, replace_from_color1).expect("set pixel");
             image.set(1, 1, replace_to_color1).expect("set pixel");
-            palette_images.push(image);
+            palette_image = palette_image.hjoin(image).expect("image");
         }
-        let palette_image: Image = Image::hstack(palette_images).expect("image");
 
         let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
         let mut count = 0;
