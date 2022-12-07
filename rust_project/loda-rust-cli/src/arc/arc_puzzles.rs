@@ -683,6 +683,8 @@ mod tests {
     ; $142 = test[0] computed_output
     ; $143..149 is reserved for test[0] extra data
     
+    mov $10,0 ; palette image accumulated
+
     ; process "train" vector
     mov $8,0 ; number of "train" iterations
     mov $0,$97 ; set iteration counter = length of "train" vector
@@ -693,6 +695,10 @@ mod tests {
         mov $32,$$2 ; load train[x].output image
 
         ; do something to the images
+
+        ;f21 $31,100130 ; build palette image with color mapping from input to output
+        ;mov $11,$31
+        ;f21 $11,100032 ; hstack of the palette images
 
         add $8,1 ; increment number of "train" iterations
 
