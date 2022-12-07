@@ -106,6 +106,37 @@ impl Histogram {
         }
         count
     }
+
+    /// Returns an `Image` where `width` is the number of counters greater than zero, and `height=2`.
+    /// 
+    /// The top row is the counter values, clamped to 255. None of the counters are zero.
+    /// 
+    /// The bottom row is the color values.
+    /// 
+    /// The most popular colors are to the left side.
+    /// 
+    /// The least popular colors are to the right side.
+    pub fn to_image(&self) -> anyhow::Result<Image> {
+        let pairs: Vec<(u32, u8)> = self.pairs_descending();
+        let mut image = Image::zero(pairs.len() as u8, 2);
+        for (index, pair) in pairs.iter().enumerate() {
+            let clamped_count: u8 = u32::min(pair.0, u8::max as u32) as u8;
+            let color: u8 = pair.1;
+            match image.set(index as i32, 0, clamped_count) {
+                Some(()) => {},
+                None => {
+                    return Err(anyhow::anyhow!("Histogram.to_image: Unable to set pixel ({}, {})", index, 0));
+                }
+            }
+            match image.set(index as i32, 1, color) {
+                Some(()) => {},
+                None => {
+                    return Err(anyhow::anyhow!("Histogram.to_image: Unable to set pixel ({}, {})", index, 1));
+                }
+            }
+        }
+        Ok(image)
+    }
 }
 
 #[cfg(test)]
@@ -280,5 +311,33 @@ mod tests {
 
         // Assert
         assert_eq!(actual, 256);
+    }
+
+    #[test]
+    fn test_70000_to_image() {
+        // Arrange
+        let mut h = Histogram::new();
+        let values: [u8; 10] = [0, 0, 1, 1, 1, 9, 9, 5, 3, 3];
+        for value in values {
+            h.increment(value);
+        }
+
+        // Act
+        let actual: Image = h.to_image().expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            3, 2, 2, 2, 1,
+            1, 9, 3, 0, 5,
+        ];
+        let expected_image: Image = Image::try_create(5, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected_image);
+    }
+
+    #[test]
+    fn test_70001_to_image_empty() {
+        let h = Histogram::new();
+        let actual: Image = h.to_image().expect("image");
+        assert_eq!(actual, Image::empty());
     }
 }
