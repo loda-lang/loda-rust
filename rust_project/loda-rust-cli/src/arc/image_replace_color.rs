@@ -10,18 +10,14 @@ impl ImageReplaceColor for Image {
         if self.is_empty() {
             return Ok(Image::empty());
         }
-        
-        let x_max: i32 = (self.width() as i32) - 1;
-        let y_max: i32 = (self.height() as i32) - 1;
-
-        let mut bitmap = Image::zero(self.width(), self.height());
-        for y in 0..=y_max {
-            for x in 0..=x_max {
+        let mut image = Image::zero(self.width(), self.height());
+        for y in 0..(self.height() as i32) {
+            for x in 0..(self.width() as i32) {
                 let mut pixel_value: u8 = self.get(x, y).unwrap_or(255);
                 if pixel_value == source {
                     pixel_value = destination;
                 }
-                match bitmap.set(x, y, pixel_value) {
+                match image.set(x, y, pixel_value) {
                     Some(()) => {},
                     None => {
                         return Err(anyhow::anyhow!("Integrity error. Unable to set pixel ({}, {}) inside the result bitmap", x, y));
@@ -29,25 +25,21 @@ impl ImageReplaceColor for Image {
                 }
             }
         }
-        return Ok(bitmap);
+        return Ok(image);
     }
 
     fn replace_colors_other_than(&self, source: u8, destination: u8) -> anyhow::Result<Image> {
         if self.is_empty() {
             return Ok(Image::empty());
         }
-        
-        let x_max: i32 = (self.width() as i32) - 1;
-        let y_max: i32 = (self.height() as i32) - 1;
-
-        let mut bitmap = Image::zero(self.width(), self.height());
-        for y in 0..=y_max {
-            for x in 0..=x_max {
+        let mut image = Image::zero(self.width(), self.height());
+        for y in 0..(self.height() as i32) {
+            for x in 0..(self.width() as i32) {
                 let mut pixel_value: u8 = self.get(x, y).unwrap_or(255);
                 if pixel_value != source {
                     pixel_value = destination;
                 }
-                match bitmap.set(x, y, pixel_value) {
+                match image.set(x, y, pixel_value) {
                     Some(()) => {},
                     None => {
                         return Err(anyhow::anyhow!("Integrity error. Unable to set pixel ({}, {}) inside the result bitmap", x, y));
@@ -55,7 +47,7 @@ impl ImageReplaceColor for Image {
                 }
             }
         }
-        return Ok(bitmap);
+        return Ok(image);
     }
 }
 
