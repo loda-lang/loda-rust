@@ -9,11 +9,12 @@ mod tests {
     use crate::arc::register_arc_functions;
     use crate::config::Config;
     use crate::common::find_json_files_recursively;
-    use loda_rust_core::execute::ProgramId;
+    use loda_rust_core::execute::{ProgramId, ProgramState};
     use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
     use loda_rust_core::execute::NodeRegisterLimit;
     use loda_rust_core::unofficial_function::UnofficialFunctionRegistry;
     use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+    use anyhow::Context;
     use bit_set::BitSet;
     use num_bigint::{BigInt, BigUint, ToBigInt};
     use num_traits::Signed;
@@ -622,6 +623,114 @@ mod tests {
             count += 1;
         }
         assert_eq!(count, 4);
+        Ok(())
+    }
+
+    const PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS: &'static str = "
+    ; input
+    ; MAYBE $80 = test[0] input image
+    ; $99 = number of training pairs
+    ; $100 = train[0] input
+    ; $101 = train[0] output
+    ; $110 = train[1] input
+    ; $111 = train[1] output
+    ; $120 = train[2] input
+    ; $121 = train[2] output
+    ; $130 = train[3] input
+    ; $131 = train[3] output
+    ; MAYBE $140 = test[0] input image
+
+    mov $8,0 ; number of images
+
+    ; process training data
+    mov $0,$99 ; number of remaining iterations
+    mov $1,100 ; address of first training data train[0].input 
+    mov $2,101 ; address of first training data train[0].output 
+    lpb $0
+        mov $31,$$1 ; load train[x].input image
+        mov $32,$$2 ; load train[x].output image
+
+        add $8,1
+
+        ; next iteration
+        sub $0,1
+        add $1,10 ; jump to address of next training input image
+        add $2,10 ; jump to address of next training output image
+    lpe
+
+    mov $0,$8
+
+    ; output
+    ; $0 = test[0] output image
+    ";
+
+    #[test]
+    fn test_100003_puzzle_a79310a0_loop_over_images_in_loda() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("a79310a0").expect("model");
+
+        let program = PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS;
+
+        let program_str: &str = program.as_ref();
+        let mut dm = create_dependency_manager();
+        let program_runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, program_str).expect("ProgramRunner");
+        let mut cache = ProgramCache::new();
+
+        // Blank state
+        let step_count_limit: u64 = 1000000000;
+        let mut state = ProgramState::new(
+            RunMode::Silent, 
+            step_count_limit, 
+            NodeRegisterLimit::Unlimited,
+            NodeLoopLimit::Unlimited,
+        );
+        
+        // Prepare starting state
+        let train_pairs: Vec<ImagePair> = model.images_train().expect("pairs");
+        // memory[99] = train.len()
+        let number_of_training_data: BigInt = train_pairs.len().to_bigint().expect("number of training data to_bigint");
+        state.set_u64(99, number_of_training_data).context("input vector, set_u64")?;
+        // memory[x*10+100] = train[x].input
+        for (index, pair) in train_pairs.iter().enumerate() {
+            let image_number_uint: BigUint = pair.input.to_number().expect("pair.input image to number");
+            let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
+            state.set_u64((index * 10 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
+        }
+        // memory[x*10+101] = train[x].output
+        for (index, pair) in train_pairs.iter().enumerate() {
+            let image_number_uint: BigUint = pair.output.to_number().expect("pair.output image to number");
+            let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.output BigUint to BigInt");
+            state.set_u64((index * 10 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
+        }
+        
+        // Invoke the actual run() function
+        let run_result = program_runner.program().run(&mut state, &mut cache);
+        
+        // In case run failed, then return the error
+        run_result.context("run_result error in program.run")?;
+        
+        // Output vector
+        let output_count: u8 = 1;
+        let mut output_vec = Vec::<BigInt>::with_capacity(output_count as usize);
+        for index in 0..output_count {
+            let value: BigInt = state.get_u64(index as u64).clone();
+            output_vec.push(value);
+        }
+
+        // Output
+        if output_vec.len() != 1 {
+            return Err(anyhow::anyhow!("output_vec. Expected 1 output value, but got {:?}", output_vec.len()));
+        }
+        let output0_int: &BigInt = &output_vec[0];
+
+        let expected_output: BigInt = 3.to_bigint().unwrap();
+        assert_eq!(*output0_int, expected_output);
+
+        // if output0_int.is_negative() {
+        //     return Err(anyhow::anyhow!("output0. Expected non-negative number, but got {:?}", output0_int));
+        // }
+        // let output0_uint: BigUint = output0_int.to_biguint().expect("output biguint");
+        // let output0_image: Image = output0_uint.to_image().expect("output uint to image");
+
         Ok(())
     }
 
