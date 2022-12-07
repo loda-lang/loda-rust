@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveRowColumn, ImageRemoveGrid};
+    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage, ImageOutline, ImageRotate};
     use crate::arc::{Image, convolution2x2, convolution3x3};
     use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding, ImageStack};
-    use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile};
-    use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, Histogram, ImageDenoise, ImageDetectHole};
+    use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, PaletteImage};
+    use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole};
     use crate::arc::register_arc_functions;
     use crate::config::Config;
     use crate::common::find_json_files_recursively;
@@ -633,26 +633,8 @@ mod tests {
         // These images contain 2 colors. Build a mapping from source color to target color
         let train_pairs: Vec<ImagePair> = model.images_train().expect("pairs");
         let mut palette_image = Image::empty();
-        for (index, pair) in train_pairs.iter().enumerate() {
-            let input_histogram = pair.input.histogram_all();
-            if input_histogram.number_of_counters_greater_than_zero() != 2 {
-                return Err(anyhow::anyhow!("input[{}] Expected exactly 2 colors", index));
-            }
-            let output_histogram = pair.output.histogram_all();
-            if output_histogram.number_of_counters_greater_than_zero() != 2 {
-                return Err(anyhow::anyhow!("output[{}] Expected exactly 2 colors", index));
-            }
-            let replace_from_color0: u8 = input_histogram.most_popular().expect("u8");
-            let replace_to_color0: u8 = output_histogram.most_popular().expect("u8");
-
-            let replace_from_color1: u8 = input_histogram.least_popular().expect("u8");
-            let replace_to_color1: u8 = output_histogram.least_popular().expect("u8");
-
-            let mut image = Image::zero(2, 2);
-            image.set(0, 0, replace_from_color0).expect("set pixel");
-            image.set(0, 1, replace_to_color0).expect("set pixel");
-            image.set(1, 0, replace_from_color1).expect("set pixel");
-            image.set(1, 1, replace_to_color1).expect("set pixel");
+        for pair in &train_pairs {
+            let image: Image = PaletteImage::palette_image(&pair.input, &pair.output, false)?;
             palette_image = palette_image.hjoin(image).expect("image");
         }
 
