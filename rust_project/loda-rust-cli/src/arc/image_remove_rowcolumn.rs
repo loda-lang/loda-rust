@@ -64,7 +64,7 @@ impl ImageRemoveRowColumn for Image {
                 }
             }
         }
-        return Ok(output_image);
+        Ok(output_image)
     }
 }
 
