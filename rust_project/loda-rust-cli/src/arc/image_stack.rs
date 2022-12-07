@@ -1,11 +1,17 @@
 use super::Image;
 
 pub trait ImageStack {
-    // Horizontal stack - place images side by side
+    // Horizontal stack multiple images - place images side by side
     fn hstack(images: Vec<Image>) -> anyhow::Result<Image>;
 
-    // Vertical stack - place images on top of each other
+    // Vertical stack multiple images - place images on top of each other
     fn vstack(images: Vec<Image>) -> anyhow::Result<Image>;
+
+    // Horizontal join two images together, side-by-side
+    fn hjoin(&self, other: Image) -> anyhow::Result<Image>;
+
+    // Vertical join two images together, on top of each other
+    fn vjoin(&self, other: Image) -> anyhow::Result<Image>;
 }
 
 impl ImageStack for Image {
@@ -123,6 +129,14 @@ impl ImageStack for Image {
         }
 
         Ok(result_image)
+    }
+
+    fn hjoin(&self, other: Image) -> anyhow::Result<Image> {
+        Image::hstack(vec![self.clone(), other])
+    }
+
+    fn vjoin(&self, other: Image) -> anyhow::Result<Image> {
+        Image::vstack(vec![self.clone(), other])
     }
 }
 
@@ -269,5 +283,43 @@ mod tests {
 
         // Assert
         assert_eq!(actual, Image::empty());
+    }
+
+    #[test]
+    fn test_30000_hjoin() {
+        // Arrange
+        let image0: Image = Image::color(2, 2, 5);
+        let image1: Image = Image::color(2, 2, 6);
+
+        // Act
+        let actual: Image = image0.hjoin(image1).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            5, 5, 6, 6,
+            5, 5, 6, 6,
+        ];
+        let expected: Image = Image::try_create(4, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30001_vjoin() {
+        // Arrange
+        let image0: Image = Image::color(2, 2, 5);
+        let image1: Image = Image::color(2, 2, 6);
+
+        // Act
+        let actual: Image = image0.vjoin(image1).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            5, 5, 
+            5, 5, 
+            6, 6,
+            6, 6,
+        ];
+        let expected: Image = Image::try_create(2, 4, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
     }
 }
