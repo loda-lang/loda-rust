@@ -1,7 +1,7 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole};
-use super::{ImageRemoveGrid};
+use super::{ImageRemoveGrid, PaletteImage};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -1058,6 +1058,59 @@ impl UnofficialFunction for ImageRemoveGridFunction {
     }
 }
 
+struct ImageBuildPaletteMapFunction {
+    id: u32,
+    reverse: bool,
+}
+
+impl ImageBuildPaletteMapFunction {
+    fn new(id: u32, reverse: bool) -> Self {
+        Self {
+            id,
+            reverse,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageBuildPaletteMapFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        if self.reverse {
+            return "Construct a reverse color mapping from one image to another image. Both images must have the same number of unique colors.".to_string()
+        } else {
+            return "Construct a forward color mapping from one image to another image. Both images must have the same number of unique colors.".to_string()
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image0: Image = input0_uint.to_image()?;
+
+        // input1 is image
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let image1: Image = input1_uint.to_image()?;
+
+        let output_image: Image = PaletteImage::palette_image(&image0, &image1, self.reverse)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageOffsetFunction::new(100001))));
     registry.register(Arc::new(Box::new(ImageRotateFunction::new(100002))));
@@ -1186,4 +1239,8 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Remove grid
     registry.register(Arc::new(Box::new(ImageRemoveGridFunction::new(100120))));
+
+    // Color mapping from one image to another image
+    registry.register(Arc::new(Box::new(ImageBuildPaletteMapFunction::new(100130, false))));
+    registry.register(Arc::new(Box::new(ImageBuildPaletteMapFunction::new(100131, true))));
 }

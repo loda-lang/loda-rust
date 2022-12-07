@@ -14,7 +14,7 @@ impl PaletteImage {
         let count0: u32 = histogram0.number_of_counters_greater_than_zero();
         let count1: u32 = histogram1.number_of_counters_greater_than_zero();
         if count0 != count1 {
-            return Err(anyhow::anyhow!("both images must have the same number of colors, cannot construct mapping"));
+            return Err(anyhow::anyhow!("both images must have the same number of colors, cannot construct mapping. image0 has {} colors. image1 has {} colors.", count0, count1));
         }
 
         let histogram_image0: Image = histogram0.to_image()?;
