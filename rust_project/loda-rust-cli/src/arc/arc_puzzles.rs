@@ -581,8 +581,15 @@ mod tests {
 
     #[test]
     fn test_100002_puzzle_a79310a0_manual_without_hardcoded_colors() -> anyhow::Result<()> {
+        // Pseudo code for a LODA program:
+        // Loop through training input/output images.
+        // Extract color palette from image. Nx2 where N is the number of histogram entries. Top row is the color, bottom row the count.
+        // Merge color palette images. hstack images.
+        // Remove duplicates from palette images.
+        // Use color palette images for replacement.
+
         let model: Model = Model::load_testdata("a79310a0").expect("model");
-        
+
         // These images contain 2 colors. Build a mapping from source color to target color
         let train_pairs: Vec<ImagePair> = model.images_train().expect("pairs");
         let mut color_replacements = HashMap::<u8, u8>::new();
