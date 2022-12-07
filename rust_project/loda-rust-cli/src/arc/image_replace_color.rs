@@ -4,6 +4,7 @@ use std::collections::HashMap;
 pub trait ImageReplaceColor {
     fn replace_color(&self, source: u8, destination: u8) -> anyhow::Result<Image>;
     fn replace_colors_with_hashmap(&self, replacements: &HashMap::<u8, u8>) -> anyhow::Result<Image>;
+    fn replace_colors_with_palette_image(&self, palette_image: &Image) -> anyhow::Result<Image>;
     fn replace_colors_other_than(&self, source: u8, destination: u8) -> anyhow::Result<Image>;
 }
 
@@ -27,7 +28,7 @@ impl ImageReplaceColor for Image {
                 }
             }
         }
-        return Ok(image);
+        Ok(image)
     }
 
     fn replace_colors_with_hashmap(&self, replacements: &HashMap::<u8, u8>) -> anyhow::Result<Image> {
@@ -52,7 +53,26 @@ impl ImageReplaceColor for Image {
                 }
             }
         }
-        return Ok(image);
+        Ok(image)
+    }
+
+    fn replace_colors_with_palette_image(&self, palette_image: &Image) -> anyhow::Result<Image> {
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+        if palette_image.is_empty() {
+            return Ok(self.clone());
+        }
+        if palette_image.height() != 2 {
+            return Err(anyhow::anyhow!("ImageReplaceColor.replace_colors_with_palette_image the height of the palette image must be 2. Top row is for source color, bottom row is for destination color."));
+        }
+        let mut replacements = HashMap::<u8, u8>::new();
+        for x in 0..(palette_image.width() as i32) {
+            let source_color: u8 = palette_image.get(x, 0).unwrap_or(255);
+            let destination_color: u8 = palette_image.get(x, 1).unwrap_or(255);
+            replacements.insert(source_color, destination_color);
+        }
+        self.replace_colors_with_hashmap(&replacements)
     }
 
     fn replace_colors_other_than(&self, source: u8, destination: u8) -> anyhow::Result<Image> {
@@ -74,7 +94,7 @@ impl ImageReplaceColor for Image {
                 }
             }
         }
-        return Ok(image);
+        Ok(image)
     }
 }
 
@@ -134,7 +154,35 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_replace_colors_other_than() {
+    fn test_30000_replace_colors_with_palette_image() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            0, 0, 0, 7,
+            0, 3, 0, 3,
+            0, 0, 3, 2,
+        ];
+        let input: Image = Image::try_create(4, 3, input_pixels).expect("image");
+        let palette_pixels: Vec<u8> = vec![
+            0, 2, 3,
+            1, 3, 4,
+        ];
+        let palette: Image = Image::try_create(3, 2, palette_pixels).expect("image");
+
+        // Act
+        let actual: Image = input.replace_colors_with_palette_image(&palette).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 1, 7,
+            1, 4, 1, 4,
+            1, 1, 4, 3,
+        ];
+        let expected: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_40000_replace_colors_other_than() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 0, 0, 5,
