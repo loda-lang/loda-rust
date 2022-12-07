@@ -628,8 +628,9 @@ mod tests {
 
     const PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS: &'static str = "
     ; input
-    ; MAYBE $80 = test[0] input image
-    ; $99 = number of training pairs
+    ; $97 = number of elements in 'train' vector
+    ; $98 = number of elements in 'test' vector
+    ; $99 = total number of 'train' + 'test' elements
     ; $100 = train[0] input
     ; $101 = train[0] output
     ; $110 = train[1] input
@@ -638,12 +639,13 @@ mod tests {
     ; $121 = train[2] output
     ; $130 = train[3] input
     ; $131 = train[3] output
-    ; MAYBE $140 = test[0] input image
+    ; $140 = test[0] input image
+    ; $141 = test[0] output image <---- this is not provided, it's up to the program to generate it.
 
     mov $8,0 ; number of images
 
     ; process training data
-    mov $0,$99 ; number of remaining iterations
+    mov $0,$97 ; number of items in 'train' vector
     mov $1,100 ; address of first training data train[0].input 
     mov $2,101 ; address of first training data train[0].output 
     lpb $0
@@ -685,10 +687,20 @@ mod tests {
         );
         
         // Prepare starting state
-        let train_pairs: Vec<ImagePair> = model.images_train().expect("pairs");
-        // memory[99] = train.len()
-        let number_of_training_data: BigInt = train_pairs.len().to_bigint().expect("number of training data to_bigint");
-        state.set_u64(99, number_of_training_data).context("input vector, set_u64")?;
+        let train_pairs: Vec<ImagePair> = model.images_train().expect("train pairs");
+        let test_pairs: Vec<ImagePair> = model.images_test().expect("test pairs");
+        let count_train: usize = train_pairs.len();
+        let count_test: usize = test_pairs.len();
+        let count_all: usize = count_train + count_test;
+        // memory[97] = length of "train" vector
+        let count_train_bigint: BigInt = count_train.to_bigint().expect("count_train.to_bigint");
+        state.set_u64(97, count_train_bigint).context("set_u64 count_train_bigint")?;
+        // memory[98] = length of "test" vector
+        let count_test_bigint: BigInt = count_test.to_bigint().expect("count_test.to_bigint");
+        state.set_u64(98, count_test_bigint).context("set_u64 count_test_bigint")?;
+        // memory[99] = length of "train"+"test" vectors
+        let count_all_bigint: BigInt = count_all.to_bigint().expect("count_all.to_bigint");
+        state.set_u64(99, count_all_bigint).context("set_u64 count_all_bigint")?;
         // memory[x*10+100] = train[x].input
         for (index, pair) in train_pairs.iter().enumerate() {
             let image_number_uint: BigUint = pair.input.to_number().expect("pair.input image to number");
@@ -700,6 +712,13 @@ mod tests {
             let image_number_uint: BigUint = pair.output.to_number().expect("pair.output image to number");
             let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.output BigUint to BigInt");
             state.set_u64((index * 10 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
+        }
+        // memory[(count_train + x)*10+100] = test[x].input
+        for (index, pair) in test_pairs.iter().enumerate() {
+            let image_number_uint: BigUint = pair.input.to_number().expect("pair.input image to number");
+            let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
+            let set_index: usize = (count_train + index) * 10 + 100;
+            state.set_u64(set_index as u64, image_number_int).context("pair.input, set_u64")?;
         }
         
         // Invoke the actual run() function
