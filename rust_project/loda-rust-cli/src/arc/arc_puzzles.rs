@@ -17,6 +17,7 @@ mod tests {
     use bit_set::BitSet;
     use num_bigint::{BigInt, BigUint, ToBigInt};
     use num_traits::Signed;
+    use std::collections::HashMap;
     use std::path::PathBuf;
 
     #[test]
@@ -576,6 +577,47 @@ mod tests {
             count += 1;
         }
         assert_eq!(count, 4);
+    }
+
+    #[test]
+    fn test_100002_puzzle_a79310a0_manual_without_hardcoded_colors() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("a79310a0").expect("model");
+        
+        // These images contain 2 colors. Build a mapping from source color to target color
+        let train_pairs: Vec<ImagePair> = model.images_train().expect("pairs");
+        let mut color_replacements = HashMap::<u8, u8>::new();
+        for (index, pair) in train_pairs.iter().enumerate() {
+            let input_histogram = pair.input.histogram_all();
+            if input_histogram.number_of_counters_greater_than_zero() != 2 {
+                return Err(anyhow::anyhow!("input[{}] Expected exactly 2 colors", index));
+            }
+            let output_histogram = pair.output.histogram_all();
+            if output_histogram.number_of_counters_greater_than_zero() != 2 {
+                return Err(anyhow::anyhow!("output[{}] Expected exactly 2 colors", index));
+            }
+            let in_color0: u8 = input_histogram.most_popular().expect("u8");
+            let out_color0: u8 = output_histogram.most_popular().expect("u8");
+            color_replacements.insert(in_color0, out_color0);
+
+            let in_color1: u8 = input_histogram.least_popular().expect("u8");
+            let out_color1: u8 = output_histogram.least_popular().expect("u8");
+            color_replacements.insert(in_color1, out_color1);
+        }
+
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+
+            let mut image: Image = pair.input.offset_wrap(0, 1).expect("image");
+            for (key, value) in &color_replacements {
+                image = image.replace_color(*key, *value).expect("image");
+            }
+
+            assert_eq!(image, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
+        Ok(())
     }
 
     /// Detect corners and edges
