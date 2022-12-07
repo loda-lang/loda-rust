@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 pub trait ImageReplaceColor {
     fn replace_color(&self, source: u8, destination: u8) -> anyhow::Result<Image>;
-    fn replace_color_with_map(&self, replacements: &HashMap::<u8, u8>) -> anyhow::Result<Image>;
+    fn replace_colors_with_hashmap(&self, replacements: &HashMap::<u8, u8>) -> anyhow::Result<Image>;
     fn replace_colors_other_than(&self, source: u8, destination: u8) -> anyhow::Result<Image>;
 }
 
@@ -30,7 +30,7 @@ impl ImageReplaceColor for Image {
         return Ok(image);
     }
 
-    fn replace_color_with_map(&self, replacements: &HashMap::<u8, u8>) -> anyhow::Result<Image> {
+    fn replace_colors_with_hashmap(&self, replacements: &HashMap::<u8, u8>) -> anyhow::Result<Image> {
         if self.is_empty() {
             return Ok(Image::empty());
         }
@@ -107,7 +107,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_replace_color_with_map() {
+    fn test_20000_replace_colors_with_hashmap() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 7,
@@ -121,7 +121,7 @@ mod tests {
         replacements.insert(3, 4);
 
         // Act
-        let actual: Image = input.replace_color_with_map(&replacements).expect("image");
+        let actual: Image = input.replace_colors_with_hashmap(&replacements).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![

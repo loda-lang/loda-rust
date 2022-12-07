@@ -609,7 +609,7 @@ mod tests {
         for (index, pair) in pairs.iter().enumerate() {
 
             let mut image: Image = pair.input.offset_wrap(0, 1).expect("image");
-            image = image.replace_color_with_map(&color_replacements).expect("image");
+            image = image.replace_colors_with_hashmap(&color_replacements).expect("image");
 
             assert_eq!(image, pair.output, "pair: {}", index);
             count += 1;
