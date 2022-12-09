@@ -1,7 +1,7 @@
 use super::{EvalError, Node, NodeLoopLimit, ProgramCache, Program, ProgramRunnerManager, ProgramSerializer, ProgramState, RegisterIndex, RunMode, ValidateCallError};
 use anyhow::Context;
 use num_bigint::BigInt;
-use num_traits::{Signed, Zero, One};
+use num_traits::{Signed, One};
 
 pub struct NodeUnofficialLoopSubtract {
     register: RegisterIndex,
@@ -40,7 +40,7 @@ impl Node for NodeUnofficialLoopSubtract {
         let mut current_counter: BigInt;
         {
             let counter: &BigInt = state.get_u64(self.register.0);
-            if counter.is_negative() || counter.is_zero() {
+            if !counter.is_positive() {
                 state.increment_step_count()?;
                 return Ok(())
             }
@@ -51,18 +51,19 @@ impl Node for NodeUnofficialLoopSubtract {
         let mut cycles = 0;
         loop {
             self.program.run(state, cache)?;
+            state.increment_step_count()?;
 
             {
                 let counter: &BigInt = state.get_u64(self.register.0);
-                if counter != &current_counter {
-                    state.increment_step_count()?;
+                let has_counter_been_modified: bool = counter != &current_counter;
+                if has_counter_been_modified {
                     if state.run_mode() == RunMode::Verbose {
-                        println!("LOOP CYCLE EXIT");
+                        println!("LOOP CYCLE EXIT - break, the counter has been modified");
                     }
-                    return Ok(())
+                    break;
                 }
-                current_counter = counter - BigInt::one();
-                if current_counter.is_zero() || current_counter.is_negative() {
+                current_counter = current_counter - BigInt::one();
+                if !current_counter.is_positive() {
                     println!("reached the end of the loop");
                     break;
                 }
@@ -77,7 +78,7 @@ impl Node for NodeUnofficialLoopSubtract {
                     cycles += 1;
                     if cycles > limit_count {
                         let error = Err(EvalError::LoopCountExceededLimit);
-                        return error.context("NodeLoopSimple loop count exceeded limit");
+                        return error.context("NodeUnofficialLoopSubtract loop count exceeded limit");
                     }
                 }
             }
@@ -86,7 +87,6 @@ impl Node for NodeUnofficialLoopSubtract {
             }
         }
 
-        state.increment_step_count()?;
         Ok(())
     }
 
