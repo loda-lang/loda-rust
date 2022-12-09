@@ -26,7 +26,7 @@ pub fn validate_loops(instruction_vec: &Vec<Instruction>) -> Result<(), Validate
     for instruction in instruction_vec {
         let id: InstructionId = instruction.instruction_id.clone();
         match id {
-            InstructionId::LoopBegin => {
+            InstructionId::LoopBegin | InstructionId::UnofficialLoopBeginSubtract => {
                 if level >= MAX_ALLOWED_NESTING_LEVEL {
                     return Err(ValidateLoopError::TooDeep);
                 }
@@ -151,5 +151,17 @@ mod tests {
         let result = validate_loops(&v);
         assert_eq!(result.is_err(), true);
         assert_eq!(result.err().unwrap(), ValidateLoopError::TooDeep);
+    }
+
+    #[test]
+    fn test_40000_unofficial_loop_subtract_valid_simple() {
+        let instruction_ids: Vec<InstructionId> = vec![
+            InstructionId::UnofficialLoopBeginSubtract, 
+                InstructionId::Move, 
+            InstructionId::LoopEnd, 
+        ];
+        let v: Vec<Instruction> = convert(instruction_ids);
+        let result = validate_loops(&v);
+        assert_eq!(result.is_ok(), true);
     }
 }
