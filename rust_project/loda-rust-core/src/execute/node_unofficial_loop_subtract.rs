@@ -2,7 +2,6 @@ use super::{EvalError, Node, NodeLoopLimit, ProgramCache, Program, ProgramRunner
 use anyhow::Context;
 use num_bigint::BigInt;
 use num_traits::{Signed, Zero, One};
-use std::{cmp::Ordering, ops::Sub};
 
 pub struct NodeUnofficialLoopSubtract {
     register: RegisterIndex,
@@ -41,7 +40,7 @@ impl Node for NodeUnofficialLoopSubtract {
         let mut current_counter: BigInt;
         {
             let counter: &BigInt = state.get_u64(self.register.0);
-            if counter.is_negative() {
+            if counter.is_negative() || counter.is_zero() {
                 state.increment_step_count()?;
                 return Ok(())
             }

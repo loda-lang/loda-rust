@@ -365,7 +365,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_unofficial_loop_subtract_instruction() {
+    fn test_20000_unofficial_loop_subtract_instruction_normal() {
       let input = r#"
         mov $1,0 ; sum
         lps $0
@@ -373,12 +373,90 @@ mod tests {
         lpe
         mov $0,$1
         "#;
-
         let program: Program = parse(input).expect("program");
         let runner = ProgramRunner::new(
             ProgramId::ProgramWithoutId,
             program
         );
-        assert_eq!(runner.inspect(4), "0,1,3,6");
+        assert_eq!(runner.inspect(6), "0,1,3,6,10,15");
+    }
+
+    #[test]
+    fn test_20001_unofficial_loop_subtract_instruction_break_in_first_iteration() {
+      let input = r#"
+        mov $2,0 ; iteration counter
+        lps $0
+          add $2,1 ; increment iteration counter
+          mov $0,0 ; break the loop immediately
+        lpe
+        mov $0,$2
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        assert_eq!(runner.inspect(6), "0,1,1,1,1,1");
+    }
+
+    #[test]
+    fn test_20002_unofficial_loop_subtract_instruction_break_in_second_iteration() {
+      let input = r#"
+        mov $2,0 ; iteration counter
+        lps $0
+          add $2,1 ; increment iteration counter
+          mov $3,$2
+          cmp $3,2 ; index where to reset
+          cmp $3,0
+          mul $0,$3 ; continue while 1, break when 0
+        lpe
+        mov $0,$2
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        assert_eq!(runner.inspect(6), "0,1,2,2,2,2");
+    }
+
+    #[test]
+    fn test_20003_unofficial_loop_subtract_instruction_break_when_setting_a_higher_value() {
+      let input = r#"
+        mov $2,0 ; iteration counter
+        lps $0
+          add $2,1 ; increment iteration counter
+          mov $3,$2
+          cmp $3,3 ; index where to reset
+          add $0,$3 ; continue while 0, break when setting a value that is higher
+        lpe
+        mov $0,$2
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        assert_eq!(runner.inspect(6), "0,1,2,3,3,3");
+    }
+
+    #[test]
+    fn test_20004_unofficial_loop_subtract_instruction_break_when_setting_a_lower_value() {
+      let input = r#"
+        mov $2,0 ; iteration counter
+        lps $0
+          add $2,1 ; increment iteration counter
+          mov $3,$2
+          cmp $3,4 ; index where to reset
+          sub $0,$3 ; continue while 0, break when setting a value that is lower
+        lpe
+        mov $0,$2
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        assert_eq!(runner.inspect(7), "0,1,2,3,4,4,4");
     }
 }
