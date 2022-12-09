@@ -4,6 +4,7 @@ use std::fmt;
 #[derive(Debug, PartialEq)]
 pub enum CreateInstructionErrorType {
     ExpectZeroParameters,
+    ExpectOneParameter,
     ExpectOneOrTwoParameters,
     ExpectTwoParameters,
     ParameterMustBeRegister,

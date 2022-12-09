@@ -14,6 +14,8 @@ use crate::unofficial_function::{UnofficialFunction, UnofficialFunctionId, Unoff
 use std::sync::Arc;
 
 impl Instruction {
+    /// Checks that exactly 0 parameters are provided.
+    /// 
     /// Loop end (lpe) takes zero parameters.
     fn expect_zero_parameters(&self) -> Result<(), CreateInstructionError> {
         if self.parameter_vec.len() != 0 {
@@ -26,6 +28,36 @@ impl Instruction {
         Ok(())
     }
 
+    /// Checks that exactly 1 parameter is provided.
+    /// 
+    /// The unofficial `loop subtract` instruction `lps $1` takes just 1 parameter.
+    fn expect_one_parameter(&self) -> Result<(), CreateInstructionError> {
+        if self.parameter_vec.len() != 1 {
+            let err = CreateInstructionError::new(
+                self.line_number,
+                CreateInstructionErrorType::ExpectOneParameter,
+            );
+            return Err(err);
+        }
+        Ok(())
+    }
+
+    /// Checks that exactly 2 parameters are provided.
+    /// 
+    /// The instruction `add $1,1` takes 2 parameters.
+    fn expect_two_parameters(&self) -> Result<(), CreateInstructionError> {
+        if self.parameter_vec.len() != 2 {
+            let err = CreateInstructionError::new(
+                self.line_number,
+                CreateInstructionErrorType::ExpectTwoParameters,
+            );
+            return Err(err);
+        }
+        Ok(())
+    }
+
+    /// Checks that 1 or 2 parameters are provided.
+    /// 
     /// Loop begin (lpb) takes a required parameter and a 2nd optional parameter.
     fn expect_one_or_two_parameters(&self) -> Result<(), CreateInstructionError> {
         let len = self.parameter_vec.len();
@@ -33,18 +65,6 @@ impl Instruction {
             let err = CreateInstructionError::new(
                 self.line_number,
                 CreateInstructionErrorType::ExpectOneOrTwoParameters,
-            );
-            return Err(err);
-        }
-        Ok(())
-    }
-
-    /// The instruction `add $1,1` takes 2 parameters.
-    fn expect_two_parameters(&self) -> Result<(), CreateInstructionError> {
-        if self.parameter_vec.len() != 2 {
-            let err = CreateInstructionError::new(
-                self.line_number,
-                CreateInstructionErrorType::ExpectTwoParameters,
             );
             return Err(err);
         }
