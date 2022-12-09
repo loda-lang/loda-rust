@@ -690,20 +690,19 @@ mod tests {
     mov $0,$97 ; set iteration counter = length of "train" vector
     mov $1,100 ; address of first training data train[0].input
     mov $2,101 ; address of first training data train[0].output
-    lpb $0
+    lps $0
         mov $31,$$1 ; load train[x].input image
         mov $32,$$2 ; load train[x].output image
 
         ; do something to the images
 
-        ;f21 $31,100130 ; build palette image with color mapping from input to output
-        ;mov $11,$31
-        ;f21 $11,100032 ; hstack of the palette images
+        f21 $31,100130 ; build palette image with color mapping from input to output
+        mov $11,$31
+        f21 $11,100032 ; hstack of the palette images
 
         add $8,1 ; increment number of "train" iterations
 
         ; next iteration
-        sub $0,1
         add $1,10 ; jump to address of next training input image
         add $2,10 ; jump to address of next training output image
     lpe
@@ -713,17 +712,23 @@ mod tests {
     mov $0,$99 ; set iteration counter = length of "train"+"test" vectors
     mov $1,100 ; address of vector[0].input
     mov $2,103 ; address of vector[0].computed_output
-    lpb $0
+    lps $0
         mov $31,$$1 ; load vector[x].input image
 
-        ; do something to the image
-        
+        ; change offset of the image
+        mov $32,0 ; offset x=0
+        mov $33,1 ; offset y=+1
+        f31 $31,100001 ; offset x, y
+
+        ; replace colors of the image using the palette image
+        mov $32,$11 ; palette image
+        f21 $31,100052 ; replace colors using palette image
+
         mov $$2,$31 ; save vector[x].computed_output image
 
         add $9,1 ; increment number of "train"+"test" iterations
 
         ; next iteration
-        sub $0,1
         add $1,10 ; jump to address of next input image
         add $2,10 ; jump to address of next computed_output image
     lpe
