@@ -419,6 +419,9 @@ impl CreateProgram {
                     )?;
                     program.push_boxed(node);
                 },
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    // do nothing
+                }
             }
         }
     

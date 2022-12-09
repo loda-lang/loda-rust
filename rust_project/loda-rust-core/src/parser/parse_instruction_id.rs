@@ -40,6 +40,7 @@ impl ParseInstructionId for InstructionId {
             "seq" => Ok(Self::EvalSequence),
             "sub" => Ok(Self::Subtract),
             "trn" => Ok(Self::Truncate),
+            "lps" => Ok(Self::UnofficialLoopBeginSubtract),
             _     => {
                 if input.starts_with('f') && input.len() == 3 {
                     let char1: char = input.chars().nth(1).unwrap();
@@ -90,6 +91,10 @@ mod tests {
         {
             let instruction_id: InstructionId = InstructionId::parse("seq", 1).unwrap();
             assert_eq!(instruction_id, InstructionId::EvalSequence);
+        }
+        {
+            let instruction_id: InstructionId = InstructionId::parse("lps", 1).unwrap();
+            assert_eq!(instruction_id, InstructionId::UnofficialLoopBeginSubtract);
         }
         {
             let instruction_id: InstructionId = InstructionId::parse("f11", 1).unwrap();

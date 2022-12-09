@@ -20,7 +20,8 @@ pub enum InstructionId {
     Power,
     Subtract,
     Truncate,
-    UnofficialFunction { input_count: u8, output_count: u8 }
+    UnofficialFunction { input_count: u8, output_count: u8 },
+    UnofficialLoopBeginSubtract,
 }
 
 impl fmt::Display for InstructionId {
@@ -46,7 +47,8 @@ impl fmt::Display for InstructionId {
             Self::Truncate     => "trn",
             Self::UnofficialFunction { input_count, output_count } => {
                 return write!(f, "f{}{}", input_count, output_count);
-            }
+            },
+            Self::UnofficialLoopBeginSubtract => "lps",
         };
         f.write_str(s)
     }
@@ -62,6 +64,8 @@ mod tests {
         assert_ne!(InstructionId::Add, InstructionId::Subtract);
         assert_eq!(InstructionId::UnofficialFunction { input_count: 7, output_count: 6 }, InstructionId::UnofficialFunction { input_count: 7, output_count: 6 });
         assert_ne!(InstructionId::UnofficialFunction { input_count: 7, output_count: 6 }, InstructionId::UnofficialFunction { input_count: 6, output_count: 7 });
+        assert_eq!(InstructionId::UnofficialLoopBeginSubtract, InstructionId::UnofficialLoopBeginSubtract);
+        assert_ne!(InstructionId::UnofficialLoopBeginSubtract, InstructionId::LoopBegin);
     }
 
     #[test]
@@ -69,8 +73,10 @@ mod tests {
         assert_eq!(InstructionId::DivideIf.to_string(), "dif");
         assert_eq!(InstructionId::Multiply.to_string(), "mul");
         assert_eq!(InstructionId::Truncate.to_string(), "trn");
-
+        
         let instruction = InstructionId::UnofficialFunction { input_count: 7, output_count: 6 };
         assert_eq!(instruction.to_string(), "f76");
+
+        assert_eq!(InstructionId::UnofficialLoopBeginSubtract.to_string(), "lps");
     }
 }
