@@ -363,4 +363,22 @@ mod tests {
         );
         assert_eq!(runner.inspect(15), "1,0,1,0,2,1,0,3,3,1,0,4,6,4,1");
     }
+
+    #[test]
+    fn test_20000_unofficial_loop_subtract_instruction() {
+      let input = r#"
+        mov $1,0 ; sum
+        lps $0
+          add $1,$0 ; add to sum
+        lpe
+        mov $0,$1
+        "#;
+
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        assert_eq!(runner.inspect(4), "0,1,3,6");
+    }
 }

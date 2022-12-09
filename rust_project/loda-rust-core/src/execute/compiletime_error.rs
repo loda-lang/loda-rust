@@ -9,6 +9,7 @@ pub enum CreateInstructionErrorType {
     ExpectTwoParameters,
     ParameterMustBeRegister,
     ParameterMustBeConstant,
+    ParameterMustBeDirect,
     ConstantMustBeNonNegative,
     LoopWithConstantRangeIsTooHigh,
     RegisterIndexMustBeNonNegative,

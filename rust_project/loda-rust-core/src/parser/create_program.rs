@@ -10,6 +10,7 @@ use crate::execute::node_loop_slow::*;
 use crate::execute::node_seq::*;
 use crate::execute::compiletime_error::*;
 use crate::execute::NodeUnofficialFunction;
+use crate::execute::NodeUnofficialLoopSubtract;
 use crate::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use std::sync::Arc;
 
@@ -219,6 +220,8 @@ enum LoopType {
     /// Optimized where `target` is `ParameterType::Direct` and `source` is `ParameterType::Direct`.
     /// Popularity is low.
     RangeLengthFromRegister(RegisterIndex),
+
+    UnofficialLoopSubtract,
 }
 
 fn node_loop_range_parameter_constant(instruction: &Instruction, parameter: &InstructionParameter) -> Result<LoopType, CreateInstructionError> {
@@ -311,6 +314,28 @@ fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstr
     Ok(ls)
 }
 
+fn process_unofficial_loopbeginsubtract(instruction: &Instruction) -> Result<LoopScope, CreateInstructionError> {
+    instruction.expect_one_parameter()?;
+
+    let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
+    let register0 = RegisterIndexAndType::from_parameter(instruction, parameter0)?;
+    let register_index0 = register0.register_index;
+
+    if register0.register_type != RegisterType::Direct {
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::ParameterMustBeDirect,
+        );
+        return Err(err);
+    }
+
+    let ls = LoopScope {
+        register: register_index0,
+        loop_type: LoopType::UnofficialLoopSubtract,
+    };
+    Ok(ls)
+}
+
 pub struct CreateProgram {
     node_calc_semantic_mode: NodeCalcSemanticMode,
 }
@@ -332,6 +357,11 @@ impl CreateProgram {
             match id {
                 InstructionId::LoopBegin => {
                     let loopscope: LoopScope = process_loopbegin(&instruction)?;
+                    stack_vec.push((program, loopscope));
+                    program = Program::new();
+                },
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    let loopscope: LoopScope = process_unofficial_loopbeginsubtract(&instruction)?;
                     stack_vec.push((program, loopscope));
                     program = Program::new();
                 },
@@ -363,6 +393,9 @@ impl CreateProgram {
                         },
                         LoopType::RangeLengthFromRegister(register_with_range_length) => {
                             program.push(NodeLoopRegister::new(loop_register, register_with_range_length, program_child));
+                        },
+                        LoopType::UnofficialLoopSubtract => {
+                            program.push(NodeUnofficialLoopSubtract::new(loop_register, program_child));
                         }
                     }
                 },
@@ -438,9 +471,6 @@ impl CreateProgram {
                         unofficial_function_registry,
                     )?;
                     program.push_boxed(node);
-                },
-                InstructionId::UnofficialLoopBeginSubtract => {
-                    // do nothing
                 }
             }
         }
