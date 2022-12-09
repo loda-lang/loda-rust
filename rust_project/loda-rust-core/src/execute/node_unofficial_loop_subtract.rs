@@ -64,7 +64,7 @@ impl Node for NodeUnofficialLoopSubtract {
                 }
                 current_counter = current_counter - BigInt::one();
                 if !current_counter.is_positive() {
-                    println!("reached the end of the loop");
+                    // reached the end of the loop
                     break;
                 }
                 state.set_u64(self.register.0, current_counter.clone())
