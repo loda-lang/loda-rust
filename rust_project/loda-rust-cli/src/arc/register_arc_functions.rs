@@ -8,6 +8,45 @@ use num_traits::{Signed, ToPrimitive};
 use std::sync::Arc;
 use anyhow::Context;
 
+struct ImageDebugFunction {
+    id: u32,
+}
+
+impl ImageDebugFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageDebugFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 0 }
+    }
+
+    fn name(&self) -> String {
+        "Debug an image by printing it to console/stdout".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+        println!("image: {:?}", input_image);
+
+        // no output
+        Ok(vec!())
+    }
+}
+
 struct ImageOffsetFunction {
     id: u32,
 }
@@ -1159,6 +1198,7 @@ impl UnofficialFunction for ImageBuildPaletteMapFunction {
 }
 
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
+    registry.register(Arc::new(Box::new(ImageDebugFunction::new(100000))));
     registry.register(Arc::new(Box::new(ImageOffsetFunction::new(100001))));
     registry.register(Arc::new(Box::new(ImageRotateFunction::new(100002))));
     registry.register(Arc::new(Box::new(ImageTrimFunction::new(100003))));
