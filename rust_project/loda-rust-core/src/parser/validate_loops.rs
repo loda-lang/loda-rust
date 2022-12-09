@@ -2,7 +2,7 @@ use std::fmt;
 use super::instruction_id::InstructionId;
 use super::instruction::Instruction;
 
-const MAX_ALLOWED_NESTING_LEVEL: u16 = 255;
+const MAX_ALLOWED_NESTING_LEVEL: u8 = 255;
 
 #[derive(Debug, PartialEq)]
 pub enum ValidateLoopError {
@@ -22,7 +22,7 @@ impl fmt::Display for ValidateLoopError {
 }
 
 pub fn validate_loops(instruction_vec: &Vec<Instruction>) -> Result<(), ValidateLoopError> {
-    let mut level: u16 = 0;
+    let mut level: u8 = 0;
     for instruction in instruction_vec {
         let id: InstructionId = instruction.instruction_id.clone();
         match id {
