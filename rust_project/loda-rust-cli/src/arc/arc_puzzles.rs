@@ -711,7 +711,7 @@ mod tests {
     mov $9,0 ; number of "train"+"test" iterations
     mov $0,$99 ; set iteration counter = length of "train"+"test" vectors
     mov $1,100 ; address of vector[0].input
-    mov $2,103 ; address of vector[0].computed_output
+    mov $2,102 ; address of vector[0].computed_output
     lps $0
         mov $31,$$1 ; load vector[x].input image
 
@@ -818,11 +818,33 @@ mod tests {
         let expected_output: BigInt = 3.to_bigint().unwrap();
         assert_eq!(*output0_int, expected_output);
 
-        // if output0_int.is_negative() {
-        //     return Err(anyhow::anyhow!("output0. Expected non-negative number, but got {:?}", output0_int));
-        // }
-        // let output0_uint: BigUint = output0_int.to_biguint().expect("output biguint");
-        // let output0_image: Image = output0_uint.to_image().expect("output uint to image");
+        // Compare computed images with train[x].output
+        for (index, pair) in train_pairs.iter().enumerate() {
+            let address: u64 = (index as u64) * 10 + 102;
+            let computed_int: BigInt = state.get_u64(address).clone();
+            if computed_int.is_negative() {
+                return Err(anyhow::anyhow!("output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
+            }
+            let computed_uint: BigUint = computed_int.to_biguint().expect("output biguint");
+            let computed_image: Image = computed_uint.to_image().expect("output uint to image");
+            
+            let expected_image: Image = pair.output.clone();
+            assert_eq!(computed_image, expected_image, "output[{}]. The computed output, doesn't match train[{}].output", address, index);
+        }
+
+        // Compare computed images with test[x].output
+        for (index, pair) in test_pairs.iter().enumerate() {
+            let address: u64 = ((index + count_train) as u64) * 10 + 102;
+            let computed_int: BigInt = state.get_u64(address).clone();
+            if computed_int.is_negative() {
+                return Err(anyhow::anyhow!("output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
+            }
+            let computed_uint: BigUint = computed_int.to_biguint().expect("output biguint");
+            let computed_image: Image = computed_uint.to_image().expect("output uint to image");
+            
+            let expected_image: Image = pair.output.clone();
+            assert_eq!(computed_image, expected_image, "output[{}]. The computed output, doesn't match test[{}].output", address, index);
+        }
 
         Ok(())
     }
