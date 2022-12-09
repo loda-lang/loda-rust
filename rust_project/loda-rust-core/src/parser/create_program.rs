@@ -123,8 +123,8 @@ fn create_node_unofficial_function(
     output_count: u8,
     unofficial_function_registry: &UnofficialFunctionRegistry
 ) -> Result<BoxNode, CreateInstructionError> {
-    // Check the instruction `fxx` has input count in the range [1..9]
-    if input_count < 1 || input_count > 9 {
+    // Check the instruction `fxx` has input count in the range [0..9]
+    if input_count > 9 {
         let err = CreateInstructionError::new(
             instruction.line_number,
             CreateInstructionErrorType::UnofficialFunctionInvalidInputOutputCount,
@@ -132,8 +132,8 @@ fn create_node_unofficial_function(
         return Err(err);
     }
 
-    // Check the instruction `fxx` has output count in the range [1..9]
-    if output_count < 1 || output_count > 9 {
+    // Check the instruction `fxx` has output count in the range [0..9]
+    if output_count > 9 {
         let err = CreateInstructionError::new(
             instruction.line_number,
             CreateInstructionErrorType::UnofficialFunctionInvalidInputOutputCount,

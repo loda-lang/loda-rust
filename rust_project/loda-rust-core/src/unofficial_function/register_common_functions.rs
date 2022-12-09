@@ -16,8 +16,8 @@ pub fn register_common_functions(registry: &UnofficialFunctionRegistry) {
     }
     {
         let id: u32 = 3;
-        for input_count in 2..9u8 {
-            registry.register(Arc::new(Box::new(SortFunction::new(id, input_count))));
+        for inout_count in 2..9u8 {
+            registry.register(Arc::new(Box::new(SortFunction::new(id, inout_count))));
         }
     }
 }
