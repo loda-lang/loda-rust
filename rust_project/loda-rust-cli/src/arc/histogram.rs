@@ -13,10 +13,12 @@ impl Histogram {
         }
     }
 
+    #[allow(dead_code)]
     pub fn counters(&self) -> &[u32; 256] {
         &self.counters
     }
 
+    #[allow(dead_code)]
     pub fn to_vec(&self) -> Vec<u32> {
         self.counters.to_vec()
     }
@@ -36,6 +38,7 @@ impl Histogram {
         self.counters[index as usize] = 0;
     }
 
+    #[allow(dead_code)]
     pub fn most_popular(&self) -> Option<u8> {
         let mut found_count: u32 = 0;
         let mut found_index: usize = 0;
@@ -51,6 +54,7 @@ impl Histogram {
         Some((found_index & 255) as u8)
     }
 
+    #[allow(dead_code)]
     pub fn least_popular(&self) -> Option<u8> {
         let mut found_count: u32 = u32::MAX;
         let mut found_index: usize = 0;

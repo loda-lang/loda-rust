@@ -1216,6 +1216,7 @@ impl UnofficialFunction for ImageBuildPaletteMapFunction {
     }
 }
 
+#[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
         ($create_instance:expr) => {
