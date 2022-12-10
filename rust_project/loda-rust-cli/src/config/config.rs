@@ -55,6 +55,7 @@ pub struct Config {
     miner_filter_mode: MinerFilterMode,
     miner_cpu_strategy: MinerCPUStrategy,
     arc_repository_data_training: PathBuf,
+    loda_arc_challenge_repository: PathBuf,
 }
 
 impl Config {
@@ -402,6 +403,21 @@ impl Config {
         assert!(path.is_dir());
         PathBuf::from(path)
     }
+
+    #[allow(dead_code)]
+    pub fn loda_arc_challenge_repository(&self) -> PathBuf {
+        let path = &self.loda_arc_challenge_repository;
+        assert!(path.is_absolute());
+        assert!(path.is_dir());
+        PathBuf::from(path)
+    }
+
+    pub fn loda_arc_challenge_repository_programs(&self) -> PathBuf {
+        let name = Path::new("programs");
+        let path = self.loda_arc_challenge_repository().join(name);
+        assert!(path.is_dir());
+        path
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -422,6 +438,7 @@ struct ConfigFallback {
     miner_filter_mode: MinerFilterMode,
     miner_cpu_strategy: MinerCPUStrategy,
     arc_repository_data_training: String,
+    loda_arc_challenge_repository: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -442,6 +459,7 @@ struct ConfigCustom {
     miner_filter_mode: Option<MinerFilterMode>,
     miner_cpu_strategy: Option<MinerCPUStrategy>,
     arc_repository_data_training: Option<String>,
+    loda_arc_challenge_repository: Option<String>,
 }
 
 fn load_config_from_home_dir() -> Config {
@@ -517,6 +535,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
     let miner_filter_mode: MinerFilterMode = custom.miner_filter_mode.unwrap_or(fallback.miner_filter_mode);
     let miner_cpu_strategy: MinerCPUStrategy = custom.miner_cpu_strategy.unwrap_or(fallback.miner_cpu_strategy);
     let arc_repository_data_training: String = custom.arc_repository_data_training.unwrap_or(fallback.arc_repository_data_training);
+    let loda_arc_challenge_repository: String = custom.loda_arc_challenge_repository.unwrap_or(fallback.loda_arc_challenge_repository);
     Config {
         basedir: basedir,
         loda_programs_repository: simpleenv.resolve_path(&loda_programs_repository),
@@ -535,6 +554,7 @@ fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: Pat
         miner_filter_mode: miner_filter_mode,
         miner_cpu_strategy: miner_cpu_strategy,
         arc_repository_data_training: simpleenv.resolve_path(&arc_repository_data_training),
+        loda_arc_challenge_repository: simpleenv.resolve_path(&loda_arc_challenge_repository),
     }
 }
 
@@ -653,6 +673,7 @@ mod tests {
         assert_has_suffix(&config.loda_patterns_repository, "/git/loda-patterns")?;
         assert_has_suffix(&config.loda_outlier_programs_repository, "/git/loda-outlier-programs")?;
         assert_has_suffix(&config.arc_repository_data_training, "/git/ARC/data/training")?;
+        assert_has_suffix(&config.loda_arc_challenge_repository, "/git/loda-arc-challenge")?;
         assert_eq!(config.miner_filter_mode, MinerFilterMode::New);
         assert_eq!(config.miner_cpu_strategy, MinerCPUStrategy::Max);
         Ok(())
