@@ -1453,37 +1453,27 @@ mod tests {
             // PROGRAM18,
         ];
 
-        let mut dm = RunWithProgram::create_dependency_manager();
-        let mut program_runners = Vec::<ProgramRunner>::new();
-        for program_string in PROGRAMS {
-            let program_runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, program_string).expect("ProgramRunner");
-            program_runners.push(program_runner);
-        }
-
-        let mut cache = ProgramCache::new();
         let mut count_match: usize = 0;
         let mut count_mismatch: usize = 0;
         let mut found_program_indexes: Vec<usize> = vec!();
         for item in &items {
+            let model: Model = item.model.clone();
+            let instance = RunWithProgram::new(model).expect("RunWithProgram");
+
             let pairs: Vec<ImagePair> = item.model.images_all().expect("pairs");
     
             let mut found_one_or_more_solutions = false;
-            for (program_index, program_runner) in program_runners.iter().enumerate() {
+            for (program_index, program_string) in PROGRAMS.iter().enumerate() {
 
-                let mut count = 0;
-                for pair in &pairs {
-                    let output: Image = match run_image_inner(&program_runner, &pair.input, &mut cache) {
-                        Ok(value) => value,
-                        Err(_error) => {
-                            break;
-                        }
-                    };
-
-                    if output == pair.output {
-                        count += 1;
+                let result: RunWithProgramResult = match instance.run_simple(program_string) {
+                    Ok(value) => value,
+                    Err(_error) => {
+                        continue;
                     }
-                }
-    
+                };
+
+                let count: usize = result.count_train_correct() + result.count_test_correct();
+
                 if count == pairs.len() {
                     found_one_or_more_solutions = true;
                     found_program_indexes.push(program_index);
