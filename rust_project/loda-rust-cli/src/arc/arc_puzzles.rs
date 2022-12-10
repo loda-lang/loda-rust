@@ -626,7 +626,7 @@ mod tests {
         Ok(())
     }
 
-    const PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS: &'static str = r#"
+    const ADVANCED_PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS: &'static str = r#"
     mov $10,0 ; palette image accumulated
 
     ; process "train" vector
@@ -690,7 +690,7 @@ mod tests {
     #[test]
     fn test_100004_puzzle_a79310a0_loop_over_images_in_loda() -> anyhow::Result<()> {
         let model: Model = Model::load_testdata("a79310a0").expect("model");
-        let program = PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS;
+        let program = ADVANCED_PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS;
         let instance = RunWithProgram::new(model).expect("RunWithProgram");
         let result: RunWithProgramResult = instance.run_advanced(program).expect("result");
         assert_eq!(result.messages(), "");
@@ -1453,6 +1453,36 @@ mod tests {
             // PROGRAM18,
         ];
 
+        enum ProgramType {
+            Simple,
+            Advance,
+        }
+
+        struct ProgramItem {
+            name: String,
+            program_string: String,
+            program_type: ProgramType,
+        }
+
+        let mut name_program_type_vec: Vec<ProgramItem> = vec!();
+        for (program_index, program_string) in PROGRAMS.iter().enumerate() {
+            let item = ProgramItem {
+                name: format!("simple[{}]", program_index),
+                program_string: program_string.to_string(),
+                program_type: ProgramType::Simple,
+            };
+            name_program_type_vec.push(item);
+        }
+
+        {
+            let item = ProgramItem {
+                name: "advanced[0]".to_string(),
+                program_string: ADVANCED_PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS.to_string(),
+                program_type: ProgramType::Advance,
+            };
+            name_program_type_vec.push(item);
+        }
+
         let mut count_match: usize = 0;
         let mut count_mismatch: usize = 0;
         let mut found_program_indexes: Vec<usize> = vec!();
@@ -1463,14 +1493,27 @@ mod tests {
             let pairs: Vec<ImagePair> = item.model.images_all().expect("pairs");
     
             let mut found_one_or_more_solutions = false;
-            for (program_index, program_string) in PROGRAMS.iter().enumerate() {
+            for (program_index, program_item) in name_program_type_vec.iter().enumerate() {
 
-                let result: RunWithProgramResult = match instance.run_simple(program_string) {
-                    Ok(value) => value,
-                    Err(_error) => {
-                        continue;
+                let result: RunWithProgramResult;
+                match program_item.program_type {
+                    ProgramType::Simple => {
+                        result = match instance.run_simple(&program_item.program_string) {
+                            Ok(value) => value,
+                            Err(_error) => {
+                                continue;
+                            }
+                        };
+                    },
+                    ProgramType::Advance => {
+                        result = match instance.run_advanced(&program_item.program_string) {
+                            Ok(value) => value,
+                            Err(_error) => {
+                                continue;
+                            }
+                        };
                     }
-                };
+                }
 
                 let count: usize = result.count_train_correct() + result.count_test_correct();
 
