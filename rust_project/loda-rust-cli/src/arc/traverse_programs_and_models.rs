@@ -90,6 +90,7 @@ impl TraverseProgramsAndModels {
                 id: ProgramItemId::Path { path: path.clone() },
                 program_string,
                 program_type,
+                number_of_models: 0,
             };
             program_item_vec.push(item);
         }
@@ -116,7 +117,7 @@ impl TraverseProgramsAndModels {
             let pairs: Vec<ImagePair> = model_item.model.images_all().expect("pairs");
     
             let mut found_one_or_more_solutions = false;
-            for (program_index, program_item) in self.program_item_vec.iter().enumerate() {
+            for (program_index, program_item) in self.program_item_vec.iter_mut().enumerate() {
 
                 let result: RunWithProgramResult;
                 match program_item.program_type {
@@ -145,6 +146,8 @@ impl TraverseProgramsAndModels {
                     found_program_indexes.push(program_index);
                     let message = format!("program: {:?} is a solution for model: {:?}", program_item.id, model_item.id);
                     pb.println(message);
+
+                    program_item.number_of_models += 1;
                 }
             }
 
@@ -166,6 +169,12 @@ impl TraverseProgramsAndModels {
 
         println!("number of matches: {} mismatches: {}", count_match, count_mismatch);
         println!("found_program_indexes: {:?}", found_program_indexes);
+
+        for program in &self.program_item_vec {
+            if program.number_of_models == 0 {
+                println!("unused program {:?}, it doesn't solve any of the models, and can be removed", program.id);
+            }
+        }
 
         Ok(())
     }
@@ -200,4 +209,5 @@ struct ProgramItem {
     id: ProgramItemId,
     program_string: String,
     program_type: ProgramType,
+    number_of_models: usize,
 }
