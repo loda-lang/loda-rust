@@ -9,6 +9,26 @@ use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::Signed;
 use std::path::PathBuf;
 
+pub struct RunWithProgramResult {
+    message_items: Vec::<String>,
+    count_train_correct: usize,
+    count_test_correct: usize,
+}
+
+impl RunWithProgramResult {
+    pub fn messages(&self) -> String {
+        self.message_items.join("\n")
+    }
+
+    pub fn count_train_correct(&self) -> usize {
+        self.count_train_correct
+    }
+
+    pub fn count_test_correct(&self) -> usize {
+        self.count_test_correct
+    }
+}
+
 pub struct RunWithProgram {
     train_pairs: Vec<ImagePair>,
     test_pairs: Vec<ImagePair>,
@@ -55,13 +75,12 @@ impl RunWithProgram {
     lpe
     "#;
 
-    pub fn run_simple<S: AsRef<str>>(&self, simple_program: S) -> anyhow::Result<()> {
+    pub fn run_simple<S: AsRef<str>>(&self, simple_program: S) -> anyhow::Result<RunWithProgramResult> {
         let program = format!("{}\n{}\n{}", Self::SIMPLE_PROGRAM_PRE, simple_program.as_ref(), Self::SIMPLE_PROGRAM_POST);
-        self.run_advanced(program)?;
-        Ok(())
+        self.run_advanced(program)
     }
 
-    pub fn run_advanced<S: AsRef<str>>(&self, program: S) -> anyhow::Result<()> {
+    pub fn run_advanced<S: AsRef<str>>(&self, program: S) -> anyhow::Result<RunWithProgramResult> {
         let program_str: &str = program.as_ref();
 
         let mut dm = Self::create_dependency_manager();
@@ -82,9 +101,7 @@ impl RunWithProgram {
         // Invoke the actual run() function
         program_runner.program().run(&mut state, &mut cache).context("run_result error in program.run")?;
 
-        self.process_output(&state)?;
-
-        Ok(())
+        self.process_output(&state)
     }
         
     /// Prepare the starting state of the program
@@ -159,54 +176,59 @@ impl RunWithProgram {
         Ok(())
     }
 
-    fn process_output(&self, state: &ProgramState) -> anyhow::Result<()> {
+    fn process_output(&self, state: &ProgramState) -> anyhow::Result<RunWithProgramResult> {
 
-        // Output vector
-        // let output_count: u8 = 1;
-        // let mut output_vec = Vec::<BigInt>::with_capacity(output_count as usize);
-        // for index in 0..output_count {
-        //     let value: BigInt = state.get_u64(index as u64).clone();
-        //     output_vec.push(value);
-        // }
-
-        // // Output
-        // if output_vec.len() != 1 {
-        //     return Err(anyhow::anyhow!("output_vec. Expected 1 output value, but got {:?}", output_vec.len()));
-        // }
-        // let output0_int: &BigInt = &output_vec[0];
-
-        // let expected_output: BigInt = 3.to_bigint().unwrap();
-        // assert_eq!(*output0_int, expected_output);
+        let mut message_items = Vec::<String>::new();
 
         // Compare computed images with train[x].output
+        let mut count_train_correct: usize = 0;
         for (index, pair) in self.train_pairs.iter().enumerate() {
             let address: u64 = (index as u64) * 10 + 102;
             let computed_int: BigInt = state.get_u64(address).clone();
             if computed_int.is_negative() {
-                return Err(anyhow::anyhow!("output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
+                message_items.push(format!("train. output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
+                continue;
             }
             let computed_uint: BigUint = computed_int.to_biguint().expect("output biguint");
             let computed_image: Image = computed_uint.to_image().expect("output uint to image");
             
             let expected_image: Image = pair.output.clone();
-            assert_eq!(computed_image, expected_image, "output[{}]. The computed output, doesn't match train[{}].output", address, index);
+            if computed_image != expected_image {
+                let s = format!("train. output[{}]. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", address, index, expected_image, computed_image);
+                message_items.push(s);
+                continue;
+            }
+            count_train_correct += 1;
         }
         let count_train: usize = self.train_pairs.len();
 
         // Compare computed images with test[x].output
+        let mut count_test_correct: usize = 0;
         for (index, pair) in self.test_pairs.iter().enumerate() {
             let address: u64 = ((index + count_train) as u64) * 10 + 102;
             let computed_int: BigInt = state.get_u64(address).clone();
             if computed_int.is_negative() {
-                return Err(anyhow::anyhow!("output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
+                message_items.push(format!("test. output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
+                continue;
             }
             let computed_uint: BigUint = computed_int.to_biguint().expect("output biguint");
             let computed_image: Image = computed_uint.to_image().expect("output uint to image");
             
             let expected_image: Image = pair.output.clone();
-            assert_eq!(computed_image, expected_image, "output[{}]. The computed output, doesn't match test[{}].output", address, index);
+            if computed_image != expected_image {
+                let s = format!("test. output[{}]. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", address, index, expected_image, computed_image);
+                message_items.push(s);
+                continue;
+            }
+            count_test_correct += 1;
         }
         
-        Ok(())
+        let result = RunWithProgramResult { 
+            message_items,
+            count_train_correct,
+            count_test_correct,
+        };
+
+        Ok(result)
     }
 }

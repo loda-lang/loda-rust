@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram};
+    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram, RunWithProgramResult};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage, ImageOutline, ImageRotate};
     use crate::arc::{Image, convolution2x2, convolution3x3};
     use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding, ImageStack};
@@ -175,14 +175,11 @@ mod tests {
     fn test_40001_puzzle_90c28cc7_loda() {
         let model: Model = Model::load_testdata("90c28cc7").expect("model");
         let program = PROGRAM_90C28CC7;
-        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-        let mut count = 0;
-        for (index, pair) in pairs.iter().enumerate() {
-            let output: Image = run_image(program, &pair.input).expect("image");
-            assert_eq!(output, pair.output, "pair: {}", index);
-            count += 1;
-        }
-        assert_eq!(count, 4);
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     fn run_image<S: AsRef<str>>(program: S, input: &Image) -> anyhow::Result<Image> {
@@ -258,14 +255,11 @@ mod tests {
     fn test_50001_puzzle_7468f01a_loda() {
         let model: Model = Model::load_testdata("7468f01a").expect("model");
         let program = PROGRAM_7468F01A;
-        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-        let mut count = 0;
-        for (index, pair) in pairs.iter().enumerate() {
-            let output: Image = run_image(program, &pair.input).expect("image");
-            assert_eq!(output, pair.output, "pair: {}", index);
-            count += 1;
-        }
-        assert_eq!(count, 4);
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
@@ -510,18 +504,11 @@ mod tests {
     fn test_90001_puzzle_b9b7f026_loda() {
         let model: Model = Model::load_testdata("b9b7f026").expect("model");
         let program = PROGRAM_B9B7F026;
-        let instance = RunWithProgram::new(model).expect("ARCProgramRunner");
-        instance.run_simple(program).expect("success");
-        // TODO: return stats, with number of successful matches
-
-        // let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-        // let mut count = 0;
-        // for (index, pair) in pairs.iter().enumerate() {
-        //     let output: Image = run_image(program, &pair.input).expect("image");
-        //     assert_eq!(output, pair.output, "pair: {}", index);
-        //     count += 1;
-        // }
-        // assert_eq!(count, 4);
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
@@ -560,18 +547,11 @@ mod tests {
         let model: Model = Model::load_testdata("a79310a0").expect("model");
         let program = PROGRAM_A79310A0;
 
-        let instance = RunWithProgram::new(model).expect("ARCProgramRunner");
-        instance.run_simple(program).expect("success");
-        // TODO: return stats, with number of successful matches
-
-        // let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-        // let mut count = 0;
-        // for (index, pair) in pairs.iter().enumerate() {
-        //     let output: Image = run_image(program, &pair.input).expect("image");
-        //     assert_eq!(output, pair.output, "pair: {}", index);
-        //     count += 1;
-        // }
-        // assert_eq!(count, 4);
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
@@ -710,12 +690,12 @@ mod tests {
     #[test]
     fn test_100004_puzzle_a79310a0_loop_over_images_in_loda() -> anyhow::Result<()> {
         let model: Model = Model::load_testdata("a79310a0").expect("model");
-
         let program = PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS;
-
-        let instance = RunWithProgram::new(model).expect("ARCProgramRunner");
-        instance.run_advanced(program).expect("success");
-
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_advanced(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
         Ok(())
     }
 
@@ -1023,14 +1003,11 @@ mod tests {
     fn test_130001_puzzle_7fe24cdd_loda() {
         let model: Model = Model::load_testdata("7fe24cdd").expect("model");
         let program = PROGRAM_7FE24CDD;
-        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-        let mut count = 0;
-        for (index, pair) in pairs.iter().enumerate() {
-            let output: Image = run_image(program, &pair.input).expect("image");
-            assert_eq!(output, pair.output, "pair: {}", index);
-            count += 1;
-        }
-        assert_eq!(count, 4);
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
@@ -1067,14 +1044,11 @@ mod tests {
     fn test_140001_puzzle_9565186b_loda() {
         let model: Model = Model::load_testdata("9565186b").expect("model");
         let program = PROGRAM_9565186B;
-        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-        let mut count = 0;
-        for (index, pair) in pairs.iter().enumerate() {
-            let output: Image = run_image(program, &pair.input).expect("image");
-            assert_eq!(output, pair.output, "pair: {}", index);
-            count += 1;
-        }
-        assert_eq!(count, 5);
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 4);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
@@ -1112,14 +1086,11 @@ mod tests {
     fn test_150001_puzzle_3af2c5a8_loda() {
         let model: Model = Model::load_testdata("3af2c5a8").expect("model");
         let program = PROGRAM_3AF2C5A8;
-        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-        let mut count = 0;
-        for (index, pair) in pairs.iter().enumerate() {
-            let output: Image = run_image(program, &pair.input).expect("image");
-            assert_eq!(output, pair.output, "pair: {}", index);
-            count += 1;
-        }
-        assert_eq!(count, 4);
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_44F52BB0: &'static str = "
@@ -1140,14 +1111,11 @@ mod tests {
     fn test_160000_puzzle_44f52bb0_loda() {
         let model: Model = Model::load_testdata("44f52bb0").expect("model");
         let program = PROGRAM_44F52BB0;
-        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-        let mut count = 0;
-        for (index, pair) in pairs.iter().enumerate() {
-            let output: Image = run_image(program, &pair.input).expect("image");
-            assert_eq!(output, pair.output, "pair: {}", index);
-            count += 1;
-        }
-        assert_eq!(count, 8);
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 6);
+        assert_eq!(result.count_test_correct(), 2);
     }
 
     #[test]
@@ -1186,14 +1154,11 @@ mod tests {
     fn test_170001_puzzle_496994bd_loda() {
         let model: Model = Model::load_testdata("496994bd").expect("model");
         let program = PROGRAM_496994BD;
-        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-        let mut count = 0;
-        for (index, pair) in pairs.iter().enumerate() {
-            let output: Image = run_image(program, &pair.input).expect("image");
-            assert_eq!(output, pair.output, "pair: {}", index);
-            count += 1;
-        }
-        assert_eq!(count, 3);
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
@@ -1235,14 +1200,11 @@ mod tests {
     fn test_180001_puzzle_31aa019c_loda() {
         let model: Model = Model::load_testdata("31aa019c").expect("model");
         let program = PROGRAM_31AA019C;
-        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-        let mut count = 0;
-        for (index, pair) in pairs.iter().enumerate() {
-            let output: Image = run_image(program, &pair.input).expect("image");
-            assert_eq!(output, pair.output, "pair: {}", index);
-            count += 1;
-        }
-        assert_eq!(count, 4);
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
@@ -1316,14 +1278,11 @@ mod tests {
     fn test_190001_puzzle_5ad4f10b_loda() {
         let model: Model = Model::load_testdata("5ad4f10b").expect("model");
         let program = PROGRAM_5AD4F10B;
-        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-        let mut count = 0;
-        for (index, pair) in pairs.iter().enumerate() {
-            let output: Image = run_image(program, &pair.input).expect("image");
-            assert_eq!(output, pair.output, "pair: {}", index);
-            count += 1;
-        }
-        assert_eq!(count, 4);
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
@@ -1356,14 +1315,11 @@ mod tests {
     fn test_200001_puzzle_1190e5a7_loda() {
         let model: Model = Model::load_testdata("1190e5a7").expect("model");
         let program = PROGRAM_1190E5A7;
-        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-        let mut count = 0;
-        for (index, pair) in pairs.iter().enumerate() {
-            let output: Image = run_image(program, &pair.input).expect("image");
-            assert_eq!(output, pair.output, "pair: {}", index);
-            count += 1;
-        }
-        assert_eq!(count, 4);
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     // #[test]
