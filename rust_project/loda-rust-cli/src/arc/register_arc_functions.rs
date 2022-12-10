@@ -1198,137 +1198,151 @@ impl UnofficialFunction for ImageBuildPaletteMapFunction {
 }
 
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
+    // Developer tools
     registry.register(Arc::new(Box::new(ImageDebugFunction::new(100000))));
-    registry.register(Arc::new(Box::new(ImageOffsetFunction::new(100001))));
-    registry.register(Arc::new(Box::new(ImageRotateFunction::new(100002))));
-    registry.register(Arc::new(Box::new(ImageTrimFunction::new(100003))));
-    registry.register(Arc::new(Box::new(ImageRemoveDuplicatesFunction::new(100004))));
-    registry.register(Arc::new(Box::new(ImageOverlayAnotherImageByColorMaskFunction::new(100005))));
-    registry.register(Arc::new(Box::new(ImageWithColorFunction::new(100006))));
-    registry.register(Arc::new(Box::new(ImageSetPixelFunction::new(100007))));
-    registry.register(Arc::new(Box::new(ImageGetPixelFunction::new(100008))));
-    registry.register(Arc::new(Box::new(ImageGetSizeFunction::new(100009))));
+
+    // Basic
+    registry.register(Arc::new(Box::new(ImageGetSizeFunction::new(101000))));
+    registry.register(Arc::new(Box::new(ImageWithColorFunction::new(101001))));
+    registry.register(Arc::new(Box::new(ImageSetPixelFunction::new(101007))));
+    registry.register(Arc::new(Box::new(ImageGetPixelFunction::new(101008))));
 
     // Flip
     registry.register(Arc::new(Box::new(
-        ImageFlipFunction::new(100010, ImageFlipFunctionMode::FlipX
+        ImageFlipFunction::new(101010, ImageFlipFunctionMode::FlipX
     ))));
     registry.register(Arc::new(Box::new(
-        ImageFlipFunction::new(100011, ImageFlipFunctionMode::FlipY
+        ImageFlipFunction::new(101011, ImageFlipFunctionMode::FlipY
     ))));
     registry.register(Arc::new(Box::new(
-        ImageFlipFunction::new(100012, ImageFlipFunctionMode::FlipXY
+        ImageFlipFunction::new(101012, ImageFlipFunctionMode::FlipXY
     ))));
 
     // Padding
     registry.register(Arc::new(Box::new(
-        ImagePaddingFunction::new(100013, ImagePaddingFunctionMode::Even
+        ImagePaddingFunction::new(101013, ImagePaddingFunctionMode::Even
     ))));
     registry.register(Arc::new(Box::new(
-        ImagePaddingFunction::new(100014, ImagePaddingFunctionMode::TopBottom
+        ImagePaddingFunction::new(101014, ImagePaddingFunctionMode::TopBottom
     ))));
     registry.register(Arc::new(Box::new(
-        ImagePaddingFunction::new(100015, ImagePaddingFunctionMode::LeftRight
+        ImagePaddingFunction::new(101015, ImagePaddingFunctionMode::LeftRight
     ))));
     registry.register(Arc::new(Box::new(
-        ImagePaddingFunction::new(100016, ImagePaddingFunctionMode::TopLeft
+        ImagePaddingFunction::new(101016, ImagePaddingFunctionMode::TopLeft
     ))));
     registry.register(Arc::new(Box::new(
-        ImagePaddingFunction::new(100017, ImagePaddingFunctionMode::TopRight
+        ImagePaddingFunction::new(101017, ImagePaddingFunctionMode::TopRight
     ))));
     registry.register(Arc::new(Box::new(
-        ImagePaddingFunction::new(100018, ImagePaddingFunctionMode::BottomLeft
+        ImagePaddingFunction::new(101018, ImagePaddingFunctionMode::BottomLeft
     ))));
     registry.register(Arc::new(Box::new(
-        ImagePaddingFunction::new(100019, ImagePaddingFunctionMode::BottomRight
+        ImagePaddingFunction::new(101019, ImagePaddingFunctionMode::BottomRight
     ))));
 
     // Image resize
     registry.register(Arc::new(Box::new(
-        ImageResizeFunction::new(100020, ImageResizeFunctionMode::XYMul2
+        ImageResizeFunction::new(101020, ImageResizeFunctionMode::XYMul2
     ))));
     registry.register(Arc::new(Box::new(
-        ImageResizeFunction::new(100021, ImageResizeFunctionMode::XYMul3
+        ImageResizeFunction::new(101021, ImageResizeFunctionMode::XYMul3
     ))));
     registry.register(Arc::new(Box::new(
-        ImageResizeFunction::new(100022, ImageResizeFunctionMode::XYDiv2
+        ImageResizeFunction::new(101022, ImageResizeFunctionMode::XYDiv2
     ))));
 
     // Image horizontal stack
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100032, 2))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100033, 3))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100034, 4))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100035, 5))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100036, 6))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100037, 7))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100038, 8))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(100039, 9))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101032, 2))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101033, 3))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101034, 4))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101035, 5))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101036, 6))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101037, 7))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101038, 8))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101039, 9))));
 
     // Image vertical stack
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100042, 2))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100043, 3))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100044, 4))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100045, 5))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100046, 6))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100047, 7))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100048, 8))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(100049, 9))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101042, 2))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101043, 3))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101044, 4))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101045, 5))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101046, 6))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101047, 7))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101048, 8))));
+    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101049, 9))));
     
     // Replace color
     registry.register(Arc::new(Box::new(
-        ImageReplaceColorFunction::new(100050, ImageReplaceColorFunctionMode::ReplaceColor
+        ImageReplaceColorFunction::new(101050, ImageReplaceColorFunctionMode::ReplaceColor
     ))));
     registry.register(Arc::new(Box::new(
-        ImageReplaceColorFunction::new(100051, ImageReplaceColorFunctionMode::ReplaceColorsOtherThan
+        ImageReplaceColorFunction::new(101051, ImageReplaceColorFunctionMode::ReplaceColorsOtherThan
     ))));
-    registry.register(Arc::new(Box::new(ImageReplaceColorsWithPaletteImageFunction::new(100052))));
+    registry.register(Arc::new(Box::new(ImageReplaceColorsWithPaletteImageFunction::new(101052))));
 
     // Popular colors
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100061, 1))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100062, 2))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100063, 3))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100064, 4))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100065, 5))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100066, 6))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100067, 7))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100068, 8))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(100069, 9))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101061, 1))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101062, 2))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101063, 3))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101064, 4))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101065, 5))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101066, 6))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101067, 7))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101068, 8))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101069, 9))));
 
     // Unpopular colors
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100071, 1))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100072, 2))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100073, 3))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100074, 4))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100075, 5))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100076, 6))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100077, 7))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100078, 8))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(100079, 9))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101071, 1))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101072, 2))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101073, 3))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101074, 4))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101075, 5))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101076, 6))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101077, 7))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101078, 8))));
+    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101079, 9))));
     
     // Draw outline
-    registry.register(Arc::new(Box::new(ImageOutlineFunction::new(100080))));
+    registry.register(Arc::new(Box::new(ImageOutlineFunction::new(101080))));
     
     // Denoise
-    registry.register(Arc::new(Box::new(ImageDenoiseFunction::new(100090))));
+    registry.register(Arc::new(Box::new(ImageDenoiseFunction::new(101090))));
 
     // Extract noise colors from (noise image, denoised image)
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100101, 1))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100102, 2))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100103, 3))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100104, 4))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100105, 5))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100106, 6))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100107, 7))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100108, 8))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(100109, 9))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101101, 1))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101102, 2))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101103, 3))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101104, 4))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101105, 5))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101106, 6))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101107, 7))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101108, 8))));
+    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101109, 9))));
 
-    // Denoise
-    registry.register(Arc::new(Box::new(ImageDetectHoleFunction::new(100110))));
+    // Detect hole
+    registry.register(Arc::new(Box::new(ImageDetectHoleFunction::new(101110))));
 
     // Remove grid
-    registry.register(Arc::new(Box::new(ImageRemoveGridFunction::new(100120))));
+    registry.register(Arc::new(Box::new(ImageRemoveGridFunction::new(101120))));
 
     // Color mapping from one image to another image
-    registry.register(Arc::new(Box::new(ImageBuildPaletteMapFunction::new(100130, false))));
-    registry.register(Arc::new(Box::new(ImageBuildPaletteMapFunction::new(100131, true))));
+    registry.register(Arc::new(Box::new(ImageBuildPaletteMapFunction::new(101130, false))));
+    registry.register(Arc::new(Box::new(ImageBuildPaletteMapFunction::new(101131, true))));
+
+    // Remove duplicates
+    registry.register(Arc::new(Box::new(ImageRemoveDuplicatesFunction::new(101140))));
+
+    // Overlay by color
+    registry.register(Arc::new(Box::new(ImageOverlayAnotherImageByColorMaskFunction::new(101150))));
+
+    // Trim
+    registry.register(Arc::new(Box::new(ImageTrimFunction::new(101160))));
+
+    // Rotate
+    registry.register(Arc::new(Box::new(ImageRotateFunction::new(101170))));
+
+    // Offset
+    registry.register(Arc::new(Box::new(ImageOffsetFunction::new(101180))));
+
 }

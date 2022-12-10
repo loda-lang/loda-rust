@@ -171,8 +171,8 @@ mod tests {
     }
 
     const PROGRAM_90C28CC7: &'static str = "
-    f11 $0,100003 ; trim
-    f11 $0,100004 ; remove duplicates
+    f11 $0,101160 ; trim
+    f11 $0,101140 ; remove duplicates
     ";
 
     #[test]
@@ -265,8 +265,8 @@ mod tests {
     }
 
     const PROGRAM_7468F01A: &'static str = "
-    f11 $0,100003 ; trim
-    f11 $0,100010 ; flip x
+    f11 $0,101160 ; trim
+    f11 $0,101010 ; flip x
     ";
 
     #[test]
@@ -508,17 +508,17 @@ mod tests {
 
     const PROGRAM_B9B7F026: &'static str = "
     mov $1,$0
-    f11 $1,100061 ; most popular color
+    f11 $1,101061 ; most popular color
     ; $1 is background color
-    f21 $0,100110 ; detect holes
+    f21 $0,101110 ; detect holes
 
     mov $2,$0
-    f11 $2,100071 ; least popular color
+    f11 $2,101071 ; least popular color
     ; $2 is the corner color
 
     mov $0,1 ; width=1
     mov $1,1 ; height=1
-    f31 $0,100006 ; create image with color
+    f31 $0,101001 ; create image with color
     ";
 
     #[test]
@@ -560,10 +560,10 @@ mod tests {
     const PROGRAM_A79310A0: &'static str = "
     mov $1,0
     mov $2,1
-    f31 $0,100001 ; offset dx,dy
+    f31 $0,101180 ; offset dx,dy
     mov $1,8
     mov $2,2
-    f31 $0,100050 ; replace color with color
+    f31 $0,101050 ; replace color with color
     ";
 
     #[test]
@@ -696,9 +696,9 @@ mod tests {
 
         ; do something to the images
 
-        f21 $31,100130 ; build palette image with color mapping from input to output
+        f21 $31,101130 ; build palette image with color mapping from input to output
         mov $11,$31
-        f21 $11,100032 ; hstack of the palette images
+        f21 $11,101032 ; hstack of the palette images
 
         add $8,1 ; increment number of "train" iterations
 
@@ -718,11 +718,11 @@ mod tests {
         ; change offset of the image
         mov $32,0 ; offset x=0
         mov $33,1 ; offset y=+1
-        f31 $31,100001 ; offset x, y
+        f31 $31,101180 ; offset x, y
 
         ; replace colors of the image using the palette image
         mov $32,$11 ; palette image
-        f21 $31,100052 ; replace colors using palette image
+        f21 $31,101052 ; replace colors using palette image
 
         mov $$2,$31 ; save vector[x].computed_output image
 
@@ -1131,22 +1131,22 @@ mod tests {
     ; construct top half
     mov $1,$0
     mov $2,1
-    f21 $1,100002 ; rotate cw
-    f21 $0,100032 ; hstack
+    f21 $1,101170 ; rotate cw
+    f21 $0,101032 ; hstack
     ; $0 is top half
 
     ; construct bottom half
     mov $6,2
-    f21 $5,100002 ; rotate cw cw
+    f21 $5,101170 ; rotate cw cw
     mov $1,$5
     mov $2,1
-    f21 $1,100002 ; rotate cw
+    f21 $1,101170 ; rotate cw
     mov $2,$5
-    f21 $1,100032 ; hstack
+    f21 $1,101032 ; hstack
     ; $1 is bottom half
 
     ; join top half and bottom half
-    f21 $0,100042 ; vstack
+    f21 $0,101042 ; vstack
     ";
 
     #[test]
@@ -1188,9 +1188,9 @@ mod tests {
 
     const PROGRAM_9565186B: &'static str = "
     mov $1,$0
-    f11 $1,100061 ; most popular color
+    f11 $1,101061 ; most popular color
     mov $2,5
-    f31 $0,100051 ; replace colors other than color
+    f31 $0,101051 ; replace colors other than color
     ";
 
     #[test]
@@ -1231,11 +1231,11 @@ mod tests {
 
     const PROGRAM_3AF2C5A8: &'static str = "
     mov $1,$0
-    f11 $1,100010 ; flip x
-    f21 $0,100032 ; hstack
+    f11 $1,101010 ; flip x
+    f21 $0,101032 ; hstack
     mov $1,$0
-    f11 $1,100011 ; flip y
-    f21 $0,100042 ; vstack
+    f11 $1,101011 ; flip y
+    f21 $0,101042 ; vstack
     ";
 
     #[test]
@@ -1254,7 +1254,7 @@ mod tests {
 
     const PROGRAM_44F52BB0: &'static str = "
     mov $1,$0
-    f11 $1,100010 ; flip x
+    f11 $1,101010 ; flip x
     cmp $0,$1
     mov $2,1 ; color when there is symmetry
     mul $2,$0
@@ -1263,7 +1263,7 @@ mod tests {
     add $2,$0
     mov $0,1 ; output image width
     mov $1,1 ; output image height
-    f31 $0,100006 ; create image
+    f31 $0,101001 ; create image
     ";
 
     #[test]
@@ -1307,9 +1307,9 @@ mod tests {
     const PROGRAM_496994BD: &'static str = "
     mov $1,$0
     mov $2,$0
-    f11 $2,100061 ; most popular color
-    f11 $1,100011 ; flip y
-    f31 $0,100005 ; overlay
+    f11 $2,101061 ; most popular color
+    f11 $1,101011 ; flip y
+    f31 $0,101150 ; overlay
     ";
 
     #[test]
@@ -1353,12 +1353,12 @@ mod tests {
 
     const PROGRAM_31AA019C: &'static str = "
     mov $1,$0
-    f11 $1,100071 ; most unpopular color
+    f11 $1,101071 ; most unpopular color
     mov $2,0 ; background color
-    f31 $0,100051 ; replace colors other than
+    f31 $0,101051 ; replace colors other than
     mov $1,2 ; outline color
     mov $2,0 ; background color
-    f31 $0,100080 ; draw outline
+    f31 $0,101080 ; draw outline
     ";
 
     #[test]
@@ -1419,27 +1419,27 @@ mod tests {
     mov $3,$0
     mov $9,$0
 
-    f11 $3,100061 ; most popular color
+    f11 $3,101061 ; most popular color
     ; $3 is background_color
 
     mov $5,$0 ; noisy image
     mov $6,$3 ; background_color
-    f21 $5,100090 ; denoise image
+    f21 $5,101090 ; denoise image
     ; $5 is denoised image
 
     ; $9 is noisy image
     mov $10,$5 ; denoised image
-    f21 $9,100101 ; extract 1 noise color
+    f21 $9,101101 ; extract 1 noise color
     ; $9 is the most popular noise color
 
     mov $12,$5 ; denoised image
-    f11 $12,100003 ; trim
-    f11 $12,100004 ; remove duplicates
+    f11 $12,101160 ; trim
+    f11 $12,101140 ; remove duplicates
 
     mov $0,$12
     mov $1,$3 ; background color
     mov $2,$9 ; noise color
-    f31 $0,100051 ; replace colors other than
+    f31 $0,101051 ; replace colors other than
     ";
 
     #[test]
@@ -1478,8 +1478,8 @@ mod tests {
     }
 
     const PROGRAM_1190E5A7: &'static str = "
-    f11 $0,100004 ; remove duplicates
-    f11 $0,100120 ; remove grid
+    f11 $0,101140 ; remove duplicates
+    f11 $0,101120 ; remove grid
     ";
 
     #[test]
@@ -1516,82 +1516,82 @@ mod tests {
 
         const _PROGRAM1: &'static str = "
         mov $1,1
-        f21 $0,100002 ; rotate
+        f21 $0,101170 ; rotate
         ";
 
         const PROGRAM2: &'static str = "
         mov $1,2
-        f21 $0,100002 ; rotate
+        f21 $0,101170 ; rotate
         ";
 
         const PROGRAM3: &'static str = "
         mov $1,-1
-        f21 $0,100002 ; rotate
+        f21 $0,101170 ; rotate
         ";
 
         const PROGRAM4: &'static str = "
-        f11 $0,100003 ; trim
+        f11 $0,101160 ; trim
         ";
 
         const PROGRAM5: &'static str = "
-        f11 $0,100010 ; flip x
+        f11 $0,101010 ; flip x
         ";
 
         const PROGRAM6: &'static str = "
-        f11 $0,100011 ; flip y
+        f11 $0,101011 ; flip y
         ";
 
         const PROGRAM7: &'static str = "
-        f11 $0,100012 ; flip xy
+        f11 $0,101012 ; flip xy
         ";
 
         const PROGRAM8: &'static str = "
-        f11 $0,100004 ; remove duplicates
+        f11 $0,101140 ; remove duplicates
         ";
 
         const _PROGRAM10: &'static str = "
         mov $1,0
-        f21 $0,100013 ; pad by 1 pixel evenly
+        f21 $0,101013 ; pad by 1 pixel evenly
         ";
 
         const _PROGRAM11: &'static str = "
         mov $1,0
-        f21 $0,100014 ; pad by 1 pixel top/bottom
+        f21 $0,101014 ; pad by 1 pixel top/bottom
         ";
 
         const _PROGRAM12: &'static str = "
         mov $1,0
-        f21 $0,100015 ; pad by 1 pixel left/right
+        f21 $0,101015 ; pad by 1 pixel left/right
         ";
 
         const _PROGRAM13: &'static str = "
-        f11 $0,100003 ; trim
+        f11 $0,101160 ; trim
         mov $1,-1
-        f21 $0,100002 ; rotate
+        f21 $0,101170 ; rotate
         ";
 
         const _PROGRAM14: &'static str = "
-        f11 $0,100003 ; trim
+        f11 $0,101160 ; trim
         mov $1,1
-        f21 $0,100002 ; rotate
+        f21 $0,101170 ; rotate
         ";
 
         const _PROGRAM15: &'static str = "
-        f11 $0,100003 ; trim
+        f11 $0,101160 ; trim
         mov $1,2
-        f21 $0,100002 ; rotate
+        f21 $0,101170 ; rotate
         ";
         
         const PROGRAM16: &'static str = "
-        f11 $0,100020 ; resize x*2 y*2
+        f11 $0,101020 ; resize x*2 y*2
         ";
         
         const PROGRAM17: &'static str = "
-        f11 $0,100021 ; resize x*3 y*3
+        f11 $0,101021 ; resize x*3 y*3
         ";
         
         const _PROGRAM18: &'static str = "
-        f11 $0,100022 ; resize x/2 y/2
+        f11 $0,101022 ; resize x/2 y/2
         ";
         
         const PROGRAMS: &'static [&'static str] = &[
