@@ -32,7 +32,6 @@ mod index_for_pixel;
 mod ngram;
 mod number_to_image;
 mod palette_image;
-mod program_with_callback;
 mod read_testdata;
 mod register_arc_functions;
 mod run_with_program;

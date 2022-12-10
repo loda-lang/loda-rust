@@ -78,7 +78,6 @@ mod tests {
     use super::*;
     use loda_rust_core::execute::ProgramId;
     use crate::arc::ImageTryCreate;
-    use crate::config::Config;
     use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
     use loda_rust_core::unofficial_function::UnofficialFunctionRegistry;
     use std::path::PathBuf;
@@ -113,13 +112,10 @@ mod tests {
         lpe
         mov $0,$5
         ";
-
-        let config = Config::load();
-        let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
     
         let mut dm = DependencyManager::new(
-            DependencyManagerFileSystemMode::System,
-            loda_programs_oeis_dir,
+            DependencyManagerFileSystemMode::Virtual,
+            PathBuf::from("non-existing-dir"),
             UnofficialFunctionRegistry::new(),
         );
         let result_parse = dm.parse(ProgramId::ProgramWithoutId, program);
