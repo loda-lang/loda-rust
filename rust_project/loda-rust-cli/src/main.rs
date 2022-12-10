@@ -20,6 +20,7 @@ mod pattern;
 mod postmine;
 mod similar;
 mod subcommand_analytics;
+mod subcommand_arc;
 mod subcommand_dependencies;
 mod subcommand_evaluate;
 mod subcommand_export_dataset;
@@ -30,6 +31,7 @@ mod subcommand_similar;
 mod subcommand_test;
 
 use subcommand_analytics::subcommand_analytics;
+use subcommand_arc::SubcommandARC;
 use subcommand_dependencies::subcommand_dependencies;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 use subcommand_export_dataset::SubcommandExportDataset;
@@ -131,6 +133,11 @@ async fn main() -> anyhow::Result<()> {
                 .about("Verify that integration with the 'lodacpp' executable is working.")
                 .hide(true)
         )
+        .subcommand(
+            Command::new("arc")
+                .about("ARC Challenge daemon process. Press CTRL-C to stop it.")
+                .hide(true)
+        )
         .get_matches();
 
     if let Some(sub_m) = matches.subcommand_matches("evaluate") {
@@ -216,6 +223,11 @@ async fn main() -> anyhow::Result<()> {
 
     if let Some(_sub_m) = matches.subcommand_matches("test-integration-with-lodacpp") {
         SubcommandTest::test_integration_with_lodacpp()?;
+        return Ok(());
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("arc") {
+        SubcommandARC::run().await?;
         return Ok(());
     }
 
