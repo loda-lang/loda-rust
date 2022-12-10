@@ -1,9 +1,13 @@
-use super::{Model, Image, GridToImage, ImagePair};
+use super::{Model, ImagePair};
+use super::{RunWithProgram, RunWithProgramResult};
 use crate::config::Config;
 use crate::common::find_json_files_recursively;
 use crate::common::find_asm_files_recursively;
 use std::fs;
 use std::path::PathBuf;
+use std::time::Instant;
+use console::Style;
+use indicatif::{HumanDuration, ProgressBar};
 
 pub struct TraverseProgramsAndModels {
     config: Config,
@@ -97,6 +101,72 @@ impl TraverseProgramsAndModels {
     }
 
     fn run_inner(&mut self) -> anyhow::Result<()> {
+
+        let mut count_match: usize = 0;
+        let mut count_mismatch: usize = 0;
+        let mut found_program_indexes: Vec<usize> = vec!();
+
+        let start = Instant::now();
+        let pb = ProgressBar::new((self.model_item_vec.len()+1) as u64);
+        for model_item in &self.model_item_vec {
+            pb.inc(1);
+            let model: Model = model_item.model.clone();
+            let instance = RunWithProgram::new(model).expect("RunWithProgram");
+
+            let pairs: Vec<ImagePair> = model_item.model.images_all().expect("pairs");
+    
+            let mut found_one_or_more_solutions = false;
+            for (program_index, program_item) in self.program_item_vec.iter().enumerate() {
+
+                let result: RunWithProgramResult;
+                match program_item.program_type {
+                    ProgramType::Simple => {
+                        result = match instance.run_simple(&program_item.program_string) {
+                            Ok(value) => value,
+                            Err(_error) => {
+                                continue;
+                            }
+                        };
+                    },
+                    ProgramType::Advance => {
+                        result = match instance.run_advanced(&program_item.program_string) {
+                            Ok(value) => value,
+                            Err(_error) => {
+                                continue;
+                            }
+                        };
+                    }
+                }
+
+                let count: usize = result.count_train_correct() + result.count_test_correct();
+
+                if count == pairs.len() {
+                    found_one_or_more_solutions = true;
+                    found_program_indexes.push(program_index);
+                    let message = format!("program: {:?} is a solution for model: {:?}", program_item.id, model_item.id);
+                    pb.println(message);
+                }
+            }
+
+            if found_one_or_more_solutions {
+                count_match += 1;
+            } else {
+                count_mismatch += 1;
+            }
+        }
+        pb.finish_and_clear();
+        let green_bold = Style::new().green().bold();        
+        println!(
+            "{:>12} processing programs/models in {}",
+            green_bold.apply_to("Finished"),
+            HumanDuration(start.elapsed())
+        );
+
+        found_program_indexes.sort();
+
+        println!("number of matches: {} mismatches: {}", count_match, count_mismatch);
+        println!("found_program_indexes: {:?}", found_program_indexes);
+
         Ok(())
     }
 }
