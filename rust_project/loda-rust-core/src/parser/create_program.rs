@@ -10,10 +10,13 @@ use crate::execute::node_loop_slow::*;
 use crate::execute::node_seq::*;
 use crate::execute::compiletime_error::*;
 use crate::execute::NodeUnofficialFunction;
+use crate::execute::NodeUnofficialLoopSubtract;
 use crate::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use std::sync::Arc;
 
 impl Instruction {
+    /// Checks that exactly 0 parameters are provided.
+    /// 
     /// Loop end (lpe) takes zero parameters.
     fn expect_zero_parameters(&self) -> Result<(), CreateInstructionError> {
         if self.parameter_vec.len() != 0 {
@@ -26,6 +29,36 @@ impl Instruction {
         Ok(())
     }
 
+    /// Checks that exactly 1 parameter is provided.
+    /// 
+    /// The unofficial `loop subtract` instruction `lps $1` takes just 1 parameter.
+    fn expect_one_parameter(&self) -> Result<(), CreateInstructionError> {
+        if self.parameter_vec.len() != 1 {
+            let err = CreateInstructionError::new(
+                self.line_number,
+                CreateInstructionErrorType::ExpectOneParameter,
+            );
+            return Err(err);
+        }
+        Ok(())
+    }
+
+    /// Checks that exactly 2 parameters are provided.
+    /// 
+    /// The instruction `add $1,1` takes 2 parameters.
+    fn expect_two_parameters(&self) -> Result<(), CreateInstructionError> {
+        if self.parameter_vec.len() != 2 {
+            let err = CreateInstructionError::new(
+                self.line_number,
+                CreateInstructionErrorType::ExpectTwoParameters,
+            );
+            return Err(err);
+        }
+        Ok(())
+    }
+
+    /// Checks that 1 or 2 parameters are provided.
+    /// 
     /// Loop begin (lpb) takes a required parameter and a 2nd optional parameter.
     fn expect_one_or_two_parameters(&self) -> Result<(), CreateInstructionError> {
         let len = self.parameter_vec.len();
@@ -33,18 +66,6 @@ impl Instruction {
             let err = CreateInstructionError::new(
                 self.line_number,
                 CreateInstructionErrorType::ExpectOneOrTwoParameters,
-            );
-            return Err(err);
-        }
-        Ok(())
-    }
-
-    /// The instruction `add $1,1` takes 2 parameters.
-    fn expect_two_parameters(&self) -> Result<(), CreateInstructionError> {
-        if self.parameter_vec.len() != 2 {
-            let err = CreateInstructionError::new(
-                self.line_number,
-                CreateInstructionErrorType::ExpectTwoParameters,
             );
             return Err(err);
         }
@@ -102,8 +123,8 @@ fn create_node_unofficial_function(
     output_count: u8,
     unofficial_function_registry: &UnofficialFunctionRegistry
 ) -> Result<BoxNode, CreateInstructionError> {
-    // Check the instruction `fxx` has input count in the range [1..9]
-    if input_count < 1 || input_count > 9 {
+    // Check the instruction `fxx` has input count in the range [0..9]
+    if input_count > 9 {
         let err = CreateInstructionError::new(
             instruction.line_number,
             CreateInstructionErrorType::UnofficialFunctionInvalidInputOutputCount,
@@ -111,8 +132,8 @@ fn create_node_unofficial_function(
         return Err(err);
     }
 
-    // Check the instruction `fxx` has output count in the range [1..9]
-    if output_count < 1 || output_count > 9 {
+    // Check the instruction `fxx` has output count in the range [0..9]
+    if output_count > 9 {
         let err = CreateInstructionError::new(
             instruction.line_number,
             CreateInstructionErrorType::UnofficialFunctionInvalidInputOutputCount,
@@ -199,6 +220,8 @@ enum LoopType {
     /// Optimized where `target` is `ParameterType::Direct` and `source` is `ParameterType::Direct`.
     /// Popularity is low.
     RangeLengthFromRegister(RegisterIndex),
+
+    UnofficialLoopSubtract,
 }
 
 fn node_loop_range_parameter_constant(instruction: &Instruction, parameter: &InstructionParameter) -> Result<LoopType, CreateInstructionError> {
@@ -291,6 +314,28 @@ fn process_loopbegin(instruction: &Instruction) -> Result<LoopScope, CreateInstr
     Ok(ls)
 }
 
+fn process_unofficial_loopbeginsubtract(instruction: &Instruction) -> Result<LoopScope, CreateInstructionError> {
+    instruction.expect_one_parameter()?;
+
+    let parameter0: &InstructionParameter = instruction.parameter_vec.first().unwrap();
+    let register0 = RegisterIndexAndType::from_parameter(instruction, parameter0)?;
+    let register_index0 = register0.register_index;
+
+    if register0.register_type != RegisterType::Direct {
+        let err = CreateInstructionError::new(
+            instruction.line_number,
+            CreateInstructionErrorType::ParameterMustBeDirect,
+        );
+        return Err(err);
+    }
+
+    let ls = LoopScope {
+        register: register_index0,
+        loop_type: LoopType::UnofficialLoopSubtract,
+    };
+    Ok(ls)
+}
+
 pub struct CreateProgram {
     node_calc_semantic_mode: NodeCalcSemanticMode,
 }
@@ -312,6 +357,11 @@ impl CreateProgram {
             match id {
                 InstructionId::LoopBegin => {
                     let loopscope: LoopScope = process_loopbegin(&instruction)?;
+                    stack_vec.push((program, loopscope));
+                    program = Program::new();
+                },
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    let loopscope: LoopScope = process_unofficial_loopbeginsubtract(&instruction)?;
                     stack_vec.push((program, loopscope));
                     program = Program::new();
                 },
@@ -343,6 +393,9 @@ impl CreateProgram {
                         },
                         LoopType::RangeLengthFromRegister(register_with_range_length) => {
                             program.push(NodeLoopRegister::new(loop_register, register_with_range_length, program_child));
+                        },
+                        LoopType::UnofficialLoopSubtract => {
+                            program.push(NodeUnofficialLoopSubtract::new(loop_register, program_child));
                         }
                     }
                 },
@@ -418,7 +471,7 @@ impl CreateProgram {
                         unofficial_function_registry,
                     )?;
                     program.push_boxed(node);
-                },
+                }
             }
         }
     

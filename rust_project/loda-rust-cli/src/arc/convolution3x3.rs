@@ -33,6 +33,7 @@ pub fn convolution3x3<F>(bitmap: &Image, callback: F) -> anyhow::Result<Image>
     Ok(computed_bitmap)
 }
 
+#[allow(dead_code)]
 fn conv3x3_max(bm: &Image) -> anyhow::Result<u8> {
     let mut value: u8 = 0;
     for pixel in bm.pixels() {
@@ -41,6 +42,7 @@ fn conv3x3_max(bm: &Image) -> anyhow::Result<u8> {
     Ok(value)
 }
 
+#[allow(dead_code)]
 fn conv3x3_min(bm: &Image) -> anyhow::Result<u8> {
     let mut value: u8 = 255;
     for pixel in bm.pixels() {

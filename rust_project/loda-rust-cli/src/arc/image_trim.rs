@@ -1,4 +1,4 @@
-use super::{Image, ImageHistogram};
+use super::{Histogram, Image, ImageHistogram};
 
 pub trait ImageTrim {
     fn trim(&self) -> anyhow::Result<Image>;
@@ -6,23 +6,19 @@ pub trait ImageTrim {
 
 impl ImageTrim for Image {
     fn trim(&self) -> anyhow::Result<Image> {
-        let len: usize = (self.width() as usize) * (self.height() as usize);
-        if len == 0 {
+        if self.is_empty() {
             return Ok(Image::empty());
         }
         
         // Determine what is the most popular pixel value
         // traverses the border of the bitmap, and builds a histogram
-        let histogram: Vec<u32> = self.histogram_border()?;
-        let mut found_count: u32 = 0;
-        let mut found_value: usize = 0;
-        for (pixel_value, number_of_occurences) in histogram.iter().enumerate() {
-            if *number_of_occurences > found_count {
-                found_count = *number_of_occurences;
-                found_value = pixel_value;
+        let histogram: Histogram = self.histogram_border();
+        let popular_border_pixel_value: u8 = match histogram.most_popular() {
+            Some(value) => value,
+            None => {
+                return Ok(Image::empty());
             }
-        }
-        let popular_border_pixel_value: u8 = (found_value & 255) as u8;
+        };
 
         // Find bounding box
         let x_max: i32 = (self.width() as i32) - 1;

@@ -40,6 +40,7 @@ impl ParseInstructionId for InstructionId {
             "seq" => Ok(Self::EvalSequence),
             "sub" => Ok(Self::Subtract),
             "trn" => Ok(Self::Truncate),
+            "lps" => Ok(Self::UnofficialLoopBeginSubtract),
             _     => {
                 if input.starts_with('f') && input.len() == 3 {
                     let char1: char = input.chars().nth(1).unwrap();
@@ -52,7 +53,7 @@ impl ParseInstructionId for InstructionId {
                             return Err(ParseInstructionIdError::UnrecognizedInstructionId(line_number));
                         }
                     };
-                    if function_count_input_u32 == 0 || function_count_input_u32 > 9 {
+                    if function_count_input_u32 > 9 {
                         return Err(ParseInstructionIdError::UnrecognizedInstructionId(line_number));
                     }
                     let input_count: u8 = function_count_input_u32 as u8;
@@ -64,7 +65,7 @@ impl ParseInstructionId for InstructionId {
                             return Err(ParseInstructionIdError::UnrecognizedInstructionId(line_number));
                         }
                     };
-                    if function_count_output_u32 == 0 || function_count_output_u32 > 9 {
+                    if function_count_output_u32 > 9 {
                         return Err(ParseInstructionIdError::UnrecognizedInstructionId(line_number));
                     }
                     let output_count: u8 = function_count_output_u32 as u8;
@@ -84,23 +85,39 @@ mod tests {
     #[test]
     fn test_10000_parse_ok() {
         {
-            let instruction_id: InstructionId = InstructionId::parse("add", 1).unwrap();
+            let instruction_id: InstructionId = InstructionId::parse("add", 1).expect("InstructionId");
             assert_eq!(instruction_id, InstructionId::Add);
         }
         {
-            let instruction_id: InstructionId = InstructionId::parse("seq", 1).unwrap();
+            let instruction_id: InstructionId = InstructionId::parse("seq", 1).expect("InstructionId");
             assert_eq!(instruction_id, InstructionId::EvalSequence);
         }
         {
-            let instruction_id: InstructionId = InstructionId::parse("f11", 1).unwrap();
+            let instruction_id: InstructionId = InstructionId::parse("lps", 1).expect("InstructionId");
+            assert_eq!(instruction_id, InstructionId::UnofficialLoopBeginSubtract);
+        }
+        {
+            let instruction_id: InstructionId = InstructionId::parse("f00", 1).expect("InstructionId");
+            assert_eq!(instruction_id, InstructionId::UnofficialFunction { input_count: 0, output_count: 0 });
+        }
+        {
+            let instruction_id: InstructionId = InstructionId::parse("f01", 1).expect("InstructionId");
+            assert_eq!(instruction_id, InstructionId::UnofficialFunction { input_count: 0, output_count: 1 });
+        }
+        {
+            let instruction_id: InstructionId = InstructionId::parse("f10", 1).expect("InstructionId");
+            assert_eq!(instruction_id, InstructionId::UnofficialFunction { input_count: 1, output_count: 0 });
+        }
+        {
+            let instruction_id: InstructionId = InstructionId::parse("f11", 1).expect("InstructionId");
             assert_eq!(instruction_id, InstructionId::UnofficialFunction { input_count: 1, output_count: 1 });
         }
         {
-            let instruction_id: InstructionId = InstructionId::parse("f32", 1).unwrap();
+            let instruction_id: InstructionId = InstructionId::parse("f32", 1).expect("InstructionId");
             assert_eq!(instruction_id, InstructionId::UnofficialFunction { input_count: 3, output_count: 2 });
         }
         {
-            let instruction_id: InstructionId = InstructionId::parse("f99", 1).unwrap();
+            let instruction_id: InstructionId = InstructionId::parse("f99", 1).expect("InstructionId");
             assert_eq!(instruction_id, InstructionId::UnofficialFunction { input_count: 9, output_count: 9 });
         }
     }
@@ -128,11 +145,8 @@ mod tests {
         InstructionId::parse("_add", 1).expect_err("should fail");
         InstructionId::parse("addd", 1).expect_err("should fail");
 
-        // The instruction `fxx` is `UnofficialFunction`, where `x` must be in the range [1..9]
+        // The instruction `fxx` is `UnofficialFunction`, where `x` must be in the range [0..9]
         InstructionId::parse("fxx", 1).expect_err("should fail");
-        InstructionId::parse("f00", 1).expect_err("should fail");
-        InstructionId::parse("f01", 1).expect_err("should fail");
-        InstructionId::parse("f10", 1).expect_err("should fail");
         InstructionId::parse("f", 1).expect_err("should fail");
         InstructionId::parse("f1", 1).expect_err("should fail");
         InstructionId::parse("f1x", 1).expect_err("should fail");

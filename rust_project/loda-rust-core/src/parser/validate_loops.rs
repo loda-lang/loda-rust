@@ -2,6 +2,8 @@ use std::fmt;
 use super::instruction_id::InstructionId;
 use super::instruction::Instruction;
 
+const MAX_ALLOWED_NESTING_LEVEL: u8 = 255;
+
 #[derive(Debug, PartialEq)]
 pub enum ValidateLoopError {
     TooDeep,
@@ -24,8 +26,8 @@ pub fn validate_loops(instruction_vec: &Vec<Instruction>) -> Result<(), Validate
     for instruction in instruction_vec {
         let id: InstructionId = instruction.instruction_id.clone();
         match id {
-            InstructionId::LoopBegin => {
-                if level == 255 {
+            InstructionId::LoopBegin | InstructionId::UnofficialLoopBeginSubtract => {
+                if level >= MAX_ALLOWED_NESTING_LEVEL {
                     return Err(ValidateLoopError::TooDeep);
                 }
                 level += 1;
@@ -49,31 +51,18 @@ pub fn validate_loops(instruction_vec: &Vec<Instruction>) -> Result<(), Validate
 mod tests {
     use super::*;
 
-    fn push_begin(instruction_vec: &mut Vec<Instruction>) {
-        let instruction = Instruction {
-            instruction_id: InstructionId::LoopBegin,
-            parameter_vec: vec!(),
-            line_number: 1,
-        };
-        instruction_vec.push(instruction);
-    }
-
-    fn push_end(instruction_vec: &mut Vec<Instruction>) {
-        let instruction = Instruction {
-            instruction_id: InstructionId::LoopEnd,
-            parameter_vec: vec!(),
-            line_number: 1,
-        };
-        instruction_vec.push(instruction);
-    }
-
-    fn push_move(instruction_vec: &mut Vec<Instruction>) {
-        let instruction = Instruction {
-            instruction_id: InstructionId::Move,
-            parameter_vec: vec!(),
-            line_number: 1,
-        };
-        instruction_vec.push(instruction);
+    /// Translate from `InstructionId` vec to `Instruction` vec.
+    fn convert(instruction_ids: Vec<InstructionId>) -> Vec<Instruction> {
+        let mut instructions = Vec::<Instruction>::new();
+        for (index, instruction_id) in instruction_ids.iter().enumerate() {
+            let instruction = Instruction {
+                instruction_id: *instruction_id,
+                parameter_vec: vec!(),
+                line_number: index + 1,
+            };
+            instructions.push(instruction);
+        }
+        instructions
     }
 
     #[test]
@@ -85,32 +74,38 @@ mod tests {
 
     #[test]
     fn test_10001_valid_simple() {
-        let mut v: Vec<Instruction> = vec!();
-        push_begin(&mut v);
-            push_move(&mut v);
-        push_end(&mut v);
+        let instruction_ids: Vec<InstructionId> = vec![
+            InstructionId::LoopBegin, 
+                InstructionId::Move, 
+            InstructionId::LoopEnd, 
+        ];
+        let v: Vec<Instruction> = convert(instruction_ids);
         let result = validate_loops(&v);
         assert_eq!(result.is_ok(), true);
     }
 
     #[test]
     fn test_10002_valid_nested() {
-        let mut v: Vec<Instruction> = vec!();
-        push_begin(&mut v);
-            push_move(&mut v);
-            push_begin(&mut v);
-                push_move(&mut v);
-            push_end(&mut v);
-            push_move(&mut v);
-        push_end(&mut v);
+        let instruction_ids: Vec<InstructionId> = vec![
+            InstructionId::LoopBegin, 
+                InstructionId::Move, 
+                InstructionId::LoopBegin, 
+                    InstructionId::Move, 
+                InstructionId::LoopEnd, 
+                InstructionId::Move, 
+            InstructionId::LoopEnd, 
+        ];
+        let v: Vec<Instruction> = convert(instruction_ids);
         let result = validate_loops(&v);
         assert_eq!(result.is_ok(), true);
     }
 
     #[test]
     fn test_20000_invalid_endingtoosoon() {
-        let mut v: Vec<Instruction> = vec!();
-        push_end(&mut v);
+        let instruction_ids: Vec<InstructionId> = vec![
+            InstructionId::LoopEnd,
+        ];
+        let v: Vec<Instruction> = convert(instruction_ids);
         let result = validate_loops(&v);
         assert_eq!(result.is_err(), true);
         assert_eq!(result.err().unwrap(), ValidateLoopError::EndingTooSoon);
@@ -118,25 +113,55 @@ mod tests {
 
     #[test]
     fn test_20001_invalid_unbalanced() {
-        let mut v: Vec<Instruction> = vec!();
-        push_begin(&mut v);
+        let instruction_ids: Vec<InstructionId> = vec![
+            InstructionId::LoopBegin,
+        ];
+        let v: Vec<Instruction> = convert(instruction_ids);
         let result = validate_loops(&v);
         assert_eq!(result.is_err(), true);
         assert_eq!(result.err().unwrap(), ValidateLoopError::Unbalanced);
     }
 
     #[test]
-    fn test_20002_invalid_toodeep() {
-        let mut v: Vec<Instruction> = vec!();
-        for _ in 0..260 {
-            push_begin(&mut v);
+    fn test_30000_deeply_nested_ok() {
+        let mut instruction_ids: Vec<InstructionId> = vec!();
+        for _ in 0..=254 {
+            instruction_ids.push(InstructionId::LoopBegin);
         }
-        push_move(&mut v);
-        for _ in 0..260 {
-            push_end(&mut v);
+        instruction_ids.push(InstructionId::Move);
+        for _ in 0..=254 {
+            instruction_ids.push(InstructionId::LoopEnd);
         }
+        let v: Vec<Instruction> = convert(instruction_ids);
+        let result = validate_loops(&v);
+        assert_eq!(result.is_ok(), true);
+    }
+
+    #[test]
+    fn test_30001_deeply_nested_error_toodeep() {
+        let mut instruction_ids: Vec<InstructionId> = vec!();
+        for _ in 0..=255 {
+            instruction_ids.push(InstructionId::LoopBegin);
+        }
+        instruction_ids.push(InstructionId::Move);
+        for _ in 0..=255 {
+            instruction_ids.push(InstructionId::LoopEnd);
+        }
+        let v: Vec<Instruction> = convert(instruction_ids);
         let result = validate_loops(&v);
         assert_eq!(result.is_err(), true);
         assert_eq!(result.err().unwrap(), ValidateLoopError::TooDeep);
+    }
+
+    #[test]
+    fn test_40000_unofficial_loop_subtract_valid_simple() {
+        let instruction_ids: Vec<InstructionId> = vec![
+            InstructionId::UnofficialLoopBeginSubtract, 
+                InstructionId::Move, 
+            InstructionId::LoopEnd, 
+        ];
+        let v: Vec<Instruction> = convert(instruction_ids);
+        let result = validate_loops(&v);
+        assert_eq!(result.is_ok(), true);
     }
 }

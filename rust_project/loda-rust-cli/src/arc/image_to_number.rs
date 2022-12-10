@@ -10,7 +10,7 @@ impl ImageToNumber for Image {
     fn to_number(&self) -> anyhow::Result<BigUint> {
         let mut value = BigUint::zero();
         if self.pixels().len() != ((self.width() as usize) * (self.height() as usize)) {
-            return Err(anyhow::anyhow!("Integrity error. Number of pixels {} doesn't match width {} x height {}", self.pixels().len(), self.width(), self.height()))
+            return Err(anyhow::anyhow!("ImageToNumber.to_number() Number of pixels {} doesn't match width {} x height {}", self.pixels().len(), self.width(), self.height()))
         }
         for pixel_value in self.pixels().iter().rev() {
             value *= 256u16;

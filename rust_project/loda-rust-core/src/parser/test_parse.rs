@@ -206,9 +206,7 @@ mod tests {
 
     #[test]
     fn test_10000_fibonacci() {
-        let result = parse(INPUT_A000045);
-        assert_eq!(result.is_ok(), true);
-        let program = result.unwrap();
+        let program: Program = parse(INPUT_A000045).expect("program");
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(45),
           program
@@ -218,9 +216,7 @@ mod tests {
 
     #[test]
     fn test_10001_powers_of_2() {
-        let result = parse(INPUT_A000079);
-        assert_eq!(result.is_ok(), true);
-        let program = result.unwrap();
+        let program: Program = parse(INPUT_A000079).expect("program");
         let runner = ProgramRunner::new(
           ProgramId::ProgramOEIS(79),
           program
@@ -229,12 +225,10 @@ mod tests {
     }
 
     fn program_that_calls_another_program() -> ProgramRunner {
-        let result0 = parse(INPUT_A000079);
-        assert_eq!(result0.is_ok(), true);
-        let program0 = result0.unwrap();
+        let program0: Program = parse(INPUT_A000079).expect("program");
         let runner0 = ProgramRunner::new(
-          ProgramId::ProgramOEIS(79),
-          program0
+            ProgramId::ProgramOEIS(79),
+            program0
         );
 
         let mut pm = ProgramRunnerManager::new();
@@ -244,12 +238,9 @@ mod tests {
         let input = r#"
         seq $0,79
         sub $0,1
-        mov $1,$0
         "#;
     
-        let result1 = parse(input);
-        assert_eq!(result1.is_ok(), true);
-        let mut program = result1.unwrap();
+        let mut program: Program = parse(input).expect("program");
 
         // Obtain a list of dependencies.
         let mut program_id_vec: Vec<u64> = vec!();
@@ -295,97 +286,177 @@ mod tests {
 
     #[test]
     fn test_10004_loop_restoring_previous_state_a000196() {
-        let result = parse(INPUT_A000196);
-        assert_eq!(result.is_ok(), true);
-        let program = result.unwrap();
+        let program: Program = parse(INPUT_A000196).expect("program");
         let runner = ProgramRunner::new(
-          ProgramId::ProgramOEIS(196),
-          program
+            ProgramId::ProgramOEIS(196),
+            program
         );
         assert_eq!(runner.inspect(20), "0,1,1,1,2,2,2,2,2,3,3,3,3,3,3,3,4,4,4,4");
     }
 
     #[test]
     fn test_10005_loop_restoring_previous_state_a005131() {
-        let result = parse(INPUT_A005131);
-        assert_eq!(result.is_ok(), true);
-        let program = result.unwrap();
+        let program: Program = parse(INPUT_A005131).expect("program");
         let runner = ProgramRunner::new(
-          ProgramId::ProgramOEIS(5131),
-          program
+            ProgramId::ProgramOEIS(5131),
+            program
         );
         assert_eq!(runner.inspect(20), "1,0,1,1,2,1,1,4,1,1,6,1,1,8,1,1,10,1,1,12");
     }
 
     #[test]
     fn test_10006_clear_memory_range_with_constant() {
-        let result = parse(INPUT_A002624);
-        assert_eq!(result.is_ok(), true);
-        let program = result.unwrap();
+        let program: Program = parse(INPUT_A002624).expect("program");
         let runner = ProgramRunner::new(
-          ProgramId::ProgramOEIS(2624),
-          program
+            ProgramId::ProgramOEIS(2624),
+            program
         );
         assert_eq!(runner.inspect(10), "1,3,8,16,30,50,80,120,175,245");
     }
 
     #[test]
     fn test_10007_clear_memory_range_with_register() {
-        let result = parse(INPUT_A002791);
-        assert_eq!(result.is_ok(), true);
-        let program = result.unwrap();
+        let program: Program = parse(INPUT_A002791).expect("program");
         let runner = ProgramRunner::new(
-          ProgramId::ProgramOEIS(2791),
-          program
+            ProgramId::ProgramOEIS(2791),
+            program
         );
         assert_eq!(runner.inspect(15), "1,5,10,21,21,38,29,53,46,65,45,102,53,89,90");
     }
 
     #[test]
     fn test_10008_use_of_power_instruction() {
-        let result = parse(INPUT_A284429);
-        assert_eq!(result.is_ok(), true);
-        let program = result.unwrap();
+        let program: Program = parse(INPUT_A284429).expect("program");
         let runner = ProgramRunner::new(
-          ProgramId::ProgramOEIS(284429),
-          program
+            ProgramId::ProgramOEIS(284429),
+            program
         );
         assert_eq!(runner.inspect(10), "2,1,3,5,1,3,8,1,3,11");
     }
 
     #[test]
     fn test_10009_use_of_loop_with_contant_greater_than_one() {
-        let result = parse(INPUT_A007958);
-        assert_eq!(result.is_ok(), true);
-        let program = result.unwrap();
+        let program: Program = parse(INPUT_A007958).expect("program");
         let runner = ProgramRunner::new(
-          ProgramId::ProgramOEIS(7958),
-          program
+            ProgramId::ProgramOEIS(7958),
+            program
         );
         assert_eq!(runner.inspect(15), "10,12,14,16,18,30,32,34,36,38,50,52,54,56,58");
     }
 
     #[test]
     fn test_10010_use_of_loop_with_range_length_from_register1() {
-        let result = parse(INPUT_A253472);
-        assert_eq!(result.is_ok(), true);
-        let program = result.unwrap();
+        let program: Program = parse(INPUT_A253472).expect("program");
         let runner = ProgramRunner::new(
-          ProgramId::ProgramOEIS(253472),
-          program
+            ProgramId::ProgramOEIS(253472),
+            program
         );
         assert_eq!(runner.inspect(15), "4,7,8,9,12,13,14,15,16,17,18,19,20,21,22");
     }
 
     #[test]
     fn test_10011_use_of_loop_with_range_length_from_register2() {
-        let result = parse(INPUT_A206735);
-        assert_eq!(result.is_ok(), true);
-        let program = result.unwrap();
+        let program: Program = parse(INPUT_A206735).expect("program");
         let runner = ProgramRunner::new(
-          ProgramId::ProgramOEIS(206735),
-          program
+            ProgramId::ProgramOEIS(206735),
+            program
         );
         assert_eq!(runner.inspect(15), "1,0,1,0,2,1,0,3,3,1,0,4,6,4,1");
+    }
+
+    #[test]
+    fn test_20000_unofficial_loop_subtract_instruction_normal() {
+      let input = r#"
+        mov $1,0 ; sum
+        lps $0
+          add $1,$0 ; add to sum
+        lpe
+        mov $0,$1
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        assert_eq!(runner.inspect(6), "0,1,3,6,10,15");
+    }
+
+    #[test]
+    fn test_20001_unofficial_loop_subtract_instruction_break_in_first_iteration() {
+      let input = r#"
+        mov $2,0 ; iteration counter
+        lps $0
+          add $2,1 ; increment iteration counter
+          mov $0,0 ; break the loop immediately
+        lpe
+        mov $0,$2
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        assert_eq!(runner.inspect(6), "0,1,1,1,1,1");
+    }
+
+    #[test]
+    fn test_20002_unofficial_loop_subtract_instruction_break_in_second_iteration() {
+      let input = r#"
+        mov $2,0 ; iteration counter
+        lps $0
+          add $2,1 ; increment iteration counter
+          mov $3,$2
+          cmp $3,2 ; index where to reset
+          cmp $3,0
+          mul $0,$3 ; continue while 1, break when 0
+        lpe
+        mov $0,$2
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        assert_eq!(runner.inspect(6), "0,1,2,2,2,2");
+    }
+
+    #[test]
+    fn test_20003_unofficial_loop_subtract_instruction_break_when_setting_a_higher_value() {
+      let input = r#"
+        mov $2,0 ; iteration counter
+        lps $0
+          add $2,1 ; increment iteration counter
+          mov $3,$2
+          cmp $3,3 ; index where to reset
+          add $0,$3 ; continue while 0, break when setting a value that is higher
+        lpe
+        mov $0,$2
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        assert_eq!(runner.inspect(6), "0,1,2,3,3,3");
+    }
+
+    #[test]
+    fn test_20004_unofficial_loop_subtract_instruction_break_when_setting_a_lower_value() {
+      let input = r#"
+        mov $2,0 ; iteration counter
+        lps $0
+          add $2,1 ; increment iteration counter
+          mov $3,$2
+          cmp $3,4 ; index where to reset
+          sub $0,$3 ; continue while 0, break when setting a value that is lower
+        lpe
+        mov $0,$2
+        "#;
+        let program: Program = parse(input).expect("program");
+        let runner = ProgramRunner::new(
+            ProgramId::ProgramWithoutId,
+            program
+        );
+        assert_eq!(runner.inspect(7), "0,1,2,3,4,4,4");
     }
 }

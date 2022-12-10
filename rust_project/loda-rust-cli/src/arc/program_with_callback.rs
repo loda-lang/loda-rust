@@ -17,17 +17,7 @@ mod tests {
         mov $0,100
         mov $1,10
         mov $2,1
-        f31 $0,1 ; Sum of 3 values
-
-        ;mov $0,257
-        ;mov $1,1
-        ;mov $2,0
-        ;f31 $0,100001
-
-        ;mov $0,257
-        ;mov $1,1
-        ;mov $2,0
-        ;f11 $0,100002
+        f31 $0,1000 ; Sum of 3 values
         ";
 
         let config = Config::load();

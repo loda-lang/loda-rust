@@ -1,19 +1,24 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage};
+    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid};
+    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage, ImageOutline, ImageRotate};
     use crate::arc::{Image, convolution2x2, convolution3x3};
-    use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding};
-    use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset};
-    use crate::arc::{ImageNgram, RecordTrigram};
+    use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding, ImageStack};
+    use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, PaletteImage};
+    use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole};
     use crate::arc::register_arc_functions;
-    use loda_rust_core::execute::ProgramId;
+    use crate::config::Config;
+    use crate::common::find_json_files_recursively;
+    use loda_rust_core::execute::{ProgramId, ProgramState};
     use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
     use loda_rust_core::execute::NodeRegisterLimit;
     use loda_rust_core::unofficial_function::UnofficialFunctionRegistry;
     use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
+    use anyhow::Context;
     use bit_set::BitSet;
     use num_bigint::{BigInt, BigUint, ToBigInt};
     use num_traits::Signed;
+    use std::collections::HashMap;
     use std::path::PathBuf;
 
     #[test]
@@ -31,6 +36,7 @@ mod tests {
 
         let input_padded: Image = input.zero_padding(1).expect("image");
 
+        // TODO: port to LODA
         let result_bm: Image = convolution3x3(&input_padded, |bm| {
             let mut found = false;
             for y in 0..3i32 {
@@ -71,6 +77,7 @@ mod tests {
 
         let input_padded: Image = input.zero_padding(1).expect("image");
 
+        // TODO: port to LODA
         let result_bm: Image = convolution3x3(&input_padded, |bm| {
             let value: u8 = bm.get(1, 1).unwrap_or(255);
             if value != 5 {
@@ -124,6 +131,7 @@ mod tests {
 
         let input_trimmed: Image = input.trim().expect("image");
 
+        // TODO: port to LODA
         let mut result_bitmap = Image::zero(3, 3);
         for y in 0..3 {
             for x in 0..3 {
@@ -162,16 +170,16 @@ mod tests {
         Ok(())
     }
 
+    const PROGRAM_90C28CC7: &'static str = "
+    f11 $0,101160 ; trim
+    f11 $0,101140 ; remove duplicates
+    ";
+
     #[test]
     fn test_40001_puzzle_90c28cc7_loda() {
         let model: Model = Model::load_testdata("90c28cc7").expect("model");
+        let program = PROGRAM_90C28CC7;
         let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-
-        let program = "
-        f11 $0,100003 ; trim
-        f11 $0,100004 ; remove duplicates
-        ";
-
         let mut count = 0;
         for (index, pair) in pairs.iter().enumerate() {
             let output: Image = run_image(program, &pair.input).expect("image");
@@ -181,31 +189,33 @@ mod tests {
         assert_eq!(count, 4);
     }
 
-    fn run_image<S: AsRef<str>>(program: S, input: &Image) -> anyhow::Result<Image> {
-        let program_str: &str = program.as_ref();
-        let program_string: String = program_str.to_string();
-        let input_number_uint: BigUint = input.to_number().expect("input image to number");
-        let input_number_int: BigInt = input_number_uint.to_bigint().expect("input BigUint to BigInt");
-
-        let output_count: u8 = 1;
-
+    fn create_dependency_manager() -> DependencyManager {
         let registry = UnofficialFunctionRegistry::new();
         register_arc_functions(&registry);
-
-        let mut dm = DependencyManager::new(
+        let dm = DependencyManager::new(
             DependencyManagerFileSystemMode::Virtual,
             PathBuf::from("non-existing-dir"),
             registry,
         );
-        let result_parse = dm.parse(ProgramId::ProgramWithoutId, &program_string);
+        dm
+    }
 
-        let program_runner: ProgramRunner = result_parse.expect("ProgramRunner");
-
-        let step_count_limit: u64 = 1000000000;
+    fn run_image<S: AsRef<str>>(program: S, input: &Image) -> anyhow::Result<Image> {
+        let program_str: &str = program.as_ref();
+        let mut dm = create_dependency_manager();
+        let program_runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, program_str).expect("ProgramRunner");
         let mut cache = ProgramCache::new();
+        run_image_inner(&program_runner, input, &mut cache)
+    }
+    
+    fn run_image_inner(program_runner: &ProgramRunner, input: &Image, mut cache: &mut ProgramCache) -> anyhow::Result<Image> {
+        let output_count: u8 = 1;
+        let step_count_limit: u64 = 1000000000;
         let mut step_count: u64 = 0;
-
+        
         // Input
+        let input_number_uint: BigUint = input.to_number().expect("input image to number");
+        let input_number_int: BigInt = input_number_uint.to_bigint().expect("input BigUint to BigInt");
         let input_bigint: Vec<BigInt> = vec![input_number_int];
         
         // Run
@@ -254,16 +264,16 @@ mod tests {
         Ok(())
     }
 
+    const PROGRAM_7468F01A: &'static str = "
+    f11 $0,101160 ; trim
+    f11 $0,101190 ; flip x
+    ";
+
     #[test]
     fn test_50001_puzzle_7468f01a_loda() {
         let model: Model = Model::load_testdata("7468f01a").expect("model");
+        let program = PROGRAM_7468F01A;
         let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-
-        let program = "
-        f11 $0,100003 ; trim
-        f11 $0,100010 ; flip x
-        ";
-
         let mut count = 0;
         for (index, pair) in pairs.iter().enumerate() {
             let output: Image = run_image(program, &pair.input).expect("image");
@@ -275,6 +285,7 @@ mod tests {
 
     #[test]
     fn test_60000_puzzle_63613498() -> anyhow::Result<()> {
+        // TODO: port to LODA
         let model: Model = Model::load_testdata("63613498")?;
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
@@ -365,6 +376,7 @@ mod tests {
 
     #[test]
     fn test_70000_puzzle_cdecee7f() -> anyhow::Result<()> {
+        // TODO: port to LODA
         let model: Model = Model::load_testdata("cdecee7f")?;
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
@@ -378,13 +390,15 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
+        let background_pixel_color: u8 = input.most_popular_color().expect("pixel");
+
         // Traverse columns
         let mut stack: Vec<u8> = vec!();
         for x in 0..input.width() {
-            // Take the pixel greater than 0 and append the pixel to the stack
+            // Take foreground pixels that is different than the background color, and append the foreground pixel to the stack
             for y in 0..input.height() {
                 let pixel_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
-                if pixel_value > 0 {
+                if pixel_value != background_pixel_color {
                     stack.push(pixel_value);
                 }
             }
@@ -434,6 +448,7 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
+        // TODO: port to LODA
         let mut result_bitmap: Image = Image::zero(9, 9);
         for y in 0..input.height() {
             for x in 0..input.width() {
@@ -463,7 +478,7 @@ mod tests {
     }
 
     #[test]
-    fn test_90000_puzzle_b9b7f026() -> anyhow::Result<()> {
+    fn test_90000_puzzle_b9b7f026_manual() -> anyhow::Result<()> {
         let model: Model = Model::load_testdata("b9b7f026")?;
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
@@ -477,48 +492,47 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
-        // Detect corners
-        let corner_bitmap: Image = convolution2x2(&input, |bm| {
-            let pixel00: u8 = bm.get(0, 0).unwrap_or(255);
-            let pixel10: u8 = bm.get(1, 0).unwrap_or(255);
-            let pixel01: u8 = bm.get(0, 1).unwrap_or(255);
-            let pixel11: u8 = bm.get(1, 1).unwrap_or(255);
-            let mut mask: u8 = 0;
-            if pixel00 == pixel10 { mask |= 1; }
-            if pixel01 == pixel11 { mask |= 2; }
-            if pixel00 == pixel01 { mask |= 4; }
-            if pixel10 == pixel11 { mask |= 8; }
-            let value: u8 = match mask {
-                5 => pixel00,
-                6 => pixel01,
-                9 => pixel10,
-                10 => pixel11,
-                _ => 0,
-            };
-            Ok(value)
-        }).expect("image");
+        let background_color: u8 = input.most_popular_color().expect("color");
 
+        // Detect corners / holes
+        let corner_image: Image = input.detect_hole_type1(background_color).expect("image");
         // println!("input: {:?}", input);
-        // println!("bitmap0: {:?}", bitmap0);
+        // println!("corner_image: {:?}", corner_image);
 
         // Extract color of the corner
-        let mut result_bitmap: Image = Image::zero(1, 1);
-        for y in 0..corner_bitmap.height() {
-            for x in 0..corner_bitmap.width() {
-                let pixel_value: u8 = corner_bitmap.get(x as i32, y as i32).unwrap_or(255);
-                if pixel_value == 0 {
-                    continue;
-                }
-                match result_bitmap.set(0, 0, pixel_value) {
-                    Some(()) => {},
-                    None => {
-                        return Err(anyhow::anyhow!("Unable to set pixel in the result_bitmap"));
-                    }
-                }
-            }
-        }
+        let corner_color: u8 = corner_image.least_popular_color().expect("color");
+        let result_bitmap: Image = Image::color(1, 1, corner_color);
         assert_eq!(result_bitmap, output);
         Ok(())
+    }
+
+    const PROGRAM_B9B7F026: &'static str = "
+    mov $1,$0
+    f11 $1,101060 ; most popular color
+    ; $1 is background color
+    f21 $0,101110 ; detect holes
+
+    mov $2,$0
+    f11 $2,101070 ; least popular color
+    ; $2 is the corner color
+
+    mov $0,1 ; width=1
+    mov $1,1 ; height=1
+    f31 $0,101010 ; create image with color
+    ";
+
+    #[test]
+    fn test_90001_puzzle_b9b7f026_loda() {
+        let model: Model = Model::load_testdata("b9b7f026").expect("model");
+        let program = PROGRAM_B9B7F026;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
     }
 
     #[test]
@@ -543,20 +557,20 @@ mod tests {
         Ok(())
     }
 
+    const PROGRAM_A79310A0: &'static str = "
+    mov $1,0
+    mov $2,1
+    f31 $0,101180 ; offset dx,dy
+    mov $1,8
+    mov $2,2
+    f31 $0,101050 ; replace color with color
+    ";
+
     #[test]
     fn test_100001_puzzle_a79310a0_loda() {
         let model: Model = Model::load_testdata("a79310a0").expect("model");
+        let program = PROGRAM_A79310A0;
         let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-
-        let program = "
-        mov $1,0
-        mov $2,1
-        f31 $0,100001 ; offset dx,dy
-        mov $1,8
-        mov $2,2
-        f31 $0,100005 ; replace color with color
-        ";
-
         let mut count = 0;
         for (index, pair) in pairs.iter().enumerate() {
             let output: Image = run_image(program, &pair.input).expect("image");
@@ -566,6 +580,274 @@ mod tests {
         assert_eq!(count, 4);
     }
 
+    #[test]
+    fn test_100002_puzzle_a79310a0_manual_without_hardcoded_colors() -> anyhow::Result<()> {
+        // Pseudo code for a LODA program:
+        // Loop through training input/output images.
+        // Extract color palette from image. Nx2 where N is the number of histogram entries. Top row is the color, bottom row the count.
+        // Merge color palette images. hstack images.
+        // Remove duplicates from palette images.
+        // Use color palette images for replacement.
+
+        let model: Model = Model::load_testdata("a79310a0").expect("model");
+
+        // These images contain 2 colors. Build a mapping from source color to target color
+        let train_pairs: Vec<ImagePair> = model.images_train().expect("pairs");
+        let mut color_replacements = HashMap::<u8, u8>::new();
+        for (index, pair) in train_pairs.iter().enumerate() {
+            let input_histogram = pair.input.histogram_all();
+            if input_histogram.number_of_counters_greater_than_zero() != 2 {
+                return Err(anyhow::anyhow!("input[{}] Expected exactly 2 colors", index));
+            }
+            let output_histogram = pair.output.histogram_all();
+            if output_histogram.number_of_counters_greater_than_zero() != 2 {
+                return Err(anyhow::anyhow!("output[{}] Expected exactly 2 colors", index));
+            }
+            let in_color0: u8 = input_histogram.most_popular().expect("u8");
+            let out_color0: u8 = output_histogram.most_popular().expect("u8");
+            color_replacements.insert(in_color0, out_color0);
+
+            let in_color1: u8 = input_histogram.least_popular().expect("u8");
+            let out_color1: u8 = output_histogram.least_popular().expect("u8");
+            color_replacements.insert(in_color1, out_color1);
+        }
+
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+
+            let mut image: Image = pair.input.offset_wrap(0, 1).expect("image");
+            image = image.replace_colors_with_hashmap(&color_replacements).expect("image");
+
+            assert_eq!(image, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
+        Ok(())
+    }
+
+    #[test]
+    fn test_100003_puzzle_a79310a0_manual_without_hashmap() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("a79310a0").expect("model");
+
+        // These images contain 2 colors. Build a mapping from source color to target color
+        let train_pairs: Vec<ImagePair> = model.images_train().expect("pairs");
+        let mut palette_image = Image::empty();
+        for pair in &train_pairs {
+            let image: Image = PaletteImage::palette_image(&pair.input, &pair.output, false)?;
+            palette_image = palette_image.hjoin(image).expect("image");
+        }
+
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+
+            let mut image: Image = pair.input.offset_wrap(0, 1).expect("image");
+            image = image.replace_colors_with_palette_image(&palette_image).expect("image");
+
+            assert_eq!(image, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
+        Ok(())
+    }
+
+    const PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS: &'static str = r#"
+    ; MEMORY LAYOUT
+    ; $97 = length of "train" vector
+    ; $98 = length of "test" vector
+    ; $99 = length of "train"+"test" vectors
+    ; ---
+    ; $100 = train[0] input
+    ; $101 = train[0] expected_output
+    ; $102 = train[0] computed_output
+    ; $103..109 is reserved for train[0] extra data
+    ; ---
+    ; $110 = train[1] input
+    ; $111 = train[1] expected_output
+    ; $112 = train[1] computed_output
+    ; $113..119 is reserved for train[1] extra data
+    ; ---
+    ; $120 = train[2] input
+    ; $121 = train[2] expected_output
+    ; $122 = train[2] computed_output
+    ; $123..129 is reserved for train[2] extra data
+    ; ---
+    ; $130 = train[3] input
+    ; $131 = train[3] expected_output
+    ; $132 = train[3] computed_output
+    ; $133..139 is reserved for train[3] extra data
+    ; ---
+    ; $140 = test[0] input
+    ; $141 = test[0] expected_output <---- this is not provided, it's up to the program to compute it.
+    ; $142 = test[0] computed_output
+    ; $143..149 is reserved for test[0] extra data
+    
+    mov $10,0 ; palette image accumulated
+
+    ; process "train" vector
+    mov $8,0 ; number of "train" iterations
+    mov $0,$97 ; set iteration counter = length of "train" vector
+    mov $1,100 ; address of first training data train[0].input
+    mov $2,101 ; address of first training data train[0].output
+    lps $0
+        mov $31,$$1 ; load train[x].input image
+        mov $32,$$2 ; load train[x].output image
+
+        ; do something to the images
+
+        f21 $31,101130 ; build palette image with color mapping from input to output
+        mov $11,$31
+        f21 $11,101030 ; hstack of the palette images
+
+        add $8,1 ; increment number of "train" iterations
+
+        ; next iteration
+        add $1,10 ; jump to address of next training input image
+        add $2,10 ; jump to address of next training output image
+    lpe
+    
+    ; process "train"+"test" vectors
+    mov $9,0 ; number of "train"+"test" iterations
+    mov $0,$99 ; set iteration counter = length of "train"+"test" vectors
+    mov $1,100 ; address of vector[0].input
+    mov $2,102 ; address of vector[0].computed_output
+    lps $0
+        mov $31,$$1 ; load vector[x].input image
+
+        ; change offset of the image
+        mov $32,0 ; offset x=0
+        mov $33,1 ; offset y=+1
+        f31 $31,101180 ; offset x, y
+
+        ; replace colors of the image using the palette image
+        mov $32,$11 ; palette image
+        f21 $31,101052 ; replace colors using palette image
+
+        mov $$2,$31 ; save vector[x].computed_output image
+
+        add $9,1 ; increment number of "train"+"test" iterations
+
+        ; next iteration
+        add $1,10 ; jump to address of next input image
+        add $2,10 ; jump to address of next computed_output image
+    lpe
+
+    mov $0,$8
+
+    ; MEMORY LAYOUT - OUTPUT DATA
+    ; $0 = output number
+    ; $102 = computed_output image 0
+    ; $112 = computed_output image 1
+    ; $122 = computed_output image 2
+    ; $132 = computed_output image 3
+    "#;
+
+    #[test]
+    fn test_100004_puzzle_a79310a0_loop_over_images_in_loda() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("a79310a0").expect("model");
+
+        let program = PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS;
+
+        let program_str: &str = program.as_ref();
+        let mut dm = create_dependency_manager();
+        let program_runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, program_str).expect("ProgramRunner");
+        let mut cache = ProgramCache::new();
+
+        // Blank state
+        let step_count_limit: u64 = 1000000000;
+        let mut state = ProgramState::new(
+            RunMode::Silent, 
+            step_count_limit, 
+            NodeRegisterLimit::Unlimited,
+            NodeLoopLimit::Unlimited,
+        );
+        
+        // Prepare starting state
+        let train_pairs: Vec<ImagePair> = model.images_train().expect("train pairs");
+        let test_pairs: Vec<ImagePair> = model.images_test().expect("test pairs");
+        let count_train: usize = train_pairs.len();
+        let count_test: usize = test_pairs.len();
+        let count_all: usize = count_train + count_test;
+        // memory[97] = length of "train" vector
+        let count_train_bigint: BigInt = count_train.to_bigint().expect("count_train.to_bigint");
+        state.set_u64(97, count_train_bigint).context("set_u64 count_train_bigint")?;
+        // memory[98] = length of "test" vector
+        let count_test_bigint: BigInt = count_test.to_bigint().expect("count_test.to_bigint");
+        state.set_u64(98, count_test_bigint).context("set_u64 count_test_bigint")?;
+        // memory[99] = length of "train"+"test" vectors
+        let count_all_bigint: BigInt = count_all.to_bigint().expect("count_all.to_bigint");
+        state.set_u64(99, count_all_bigint).context("set_u64 count_all_bigint")?;
+        // memory[x*10+100] = train[x].input
+        for (index, pair) in train_pairs.iter().enumerate() {
+            let image_number_uint: BigUint = pair.input.to_number().expect("pair.input image to number");
+            let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
+            state.set_u64((index * 10 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
+        }
+        // memory[x*10+101] = train[x].output
+        for (index, pair) in train_pairs.iter().enumerate() {
+            let image_number_uint: BigUint = pair.output.to_number().expect("pair.output image to number");
+            let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.output BigUint to BigInt");
+            state.set_u64((index * 10 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
+        }
+        // memory[(count_train + x)*10+100] = test[x].input
+        for (index, pair) in test_pairs.iter().enumerate() {
+            let image_number_uint: BigUint = pair.input.to_number().expect("pair.input image to number");
+            let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
+            let set_index: usize = (count_train + index) * 10 + 100;
+            state.set_u64(set_index as u64, image_number_int).context("pair.input, set_u64")?;
+        }
+        
+        // Invoke the actual run() function
+        program_runner.program().run(&mut state, &mut cache).context("run_result error in program.run")?;
+        
+        // Output vector
+        let output_count: u8 = 1;
+        let mut output_vec = Vec::<BigInt>::with_capacity(output_count as usize);
+        for index in 0..output_count {
+            let value: BigInt = state.get_u64(index as u64).clone();
+            output_vec.push(value);
+        }
+
+        // Output
+        if output_vec.len() != 1 {
+            return Err(anyhow::anyhow!("output_vec. Expected 1 output value, but got {:?}", output_vec.len()));
+        }
+        let output0_int: &BigInt = &output_vec[0];
+
+        let expected_output: BigInt = 3.to_bigint().unwrap();
+        assert_eq!(*output0_int, expected_output);
+
+        // Compare computed images with train[x].output
+        for (index, pair) in train_pairs.iter().enumerate() {
+            let address: u64 = (index as u64) * 10 + 102;
+            let computed_int: BigInt = state.get_u64(address).clone();
+            if computed_int.is_negative() {
+                return Err(anyhow::anyhow!("output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
+            }
+            let computed_uint: BigUint = computed_int.to_biguint().expect("output biguint");
+            let computed_image: Image = computed_uint.to_image().expect("output uint to image");
+            
+            let expected_image: Image = pair.output.clone();
+            assert_eq!(computed_image, expected_image, "output[{}]. The computed output, doesn't match train[{}].output", address, index);
+        }
+
+        // Compare computed images with test[x].output
+        for (index, pair) in test_pairs.iter().enumerate() {
+            let address: u64 = ((index + count_train) as u64) * 10 + 102;
+            let computed_int: BigInt = state.get_u64(address).clone();
+            if computed_int.is_negative() {
+                return Err(anyhow::anyhow!("output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
+            }
+            let computed_uint: BigUint = computed_int.to_biguint().expect("output biguint");
+            let computed_image: Image = computed_uint.to_image().expect("output uint to image");
+            
+            let expected_image: Image = pair.output.clone();
+            assert_eq!(computed_image, expected_image, "output[{}]. The computed output, doesn't match test[{}].output", address, index);
+        }
+
+        Ok(())
+    }
 
     /// Detect corners and edges
     fn mask_and_repair_areas(input: &Image) -> anyhow::Result<(Image, Image)> {
@@ -666,6 +948,7 @@ mod tests {
 
     #[test]
     fn test_110000_puzzle_0dfd9992() -> anyhow::Result<()> {
+        // TODO: port to LODA
         let model: Model = Model::load_testdata("0dfd9992")?;
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
@@ -779,6 +1062,7 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
+        // TODO: port to LODA
         let mut image = input.clone();
         for yy in 0..((image.height() as i32) - 2) {
             for xx in 0..((image.width() as i32) - 2) {
@@ -811,4 +1095,601 @@ mod tests {
         assert_eq!(image, output);
         Ok(())
     }
+
+    #[test]
+    fn test_130000_puzzle_7fe24cdd() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("7fe24cdd")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        // println!("input: {:?}", input);
+
+        let row0: Image = Image::hstack(vec![input.clone(), input.rotate(1).expect("image")])?;
+        let row1: Image = Image::hstack(vec![input.rotate(3).expect("image"), input.rotate(2).expect("image")])?;
+        // println!("row0: {:?}", row0);
+        // println!("row1: {:?}", row1);
+
+        let image = Image::vstack(vec![row0.clone(), row1.clone()])?;
+        // println!("image: {:?}", image);
+
+        assert_eq!(image, output);
+        Ok(())
+    }
+
+    const PROGRAM_7FE24CDD: &'static str = "
+    mov $5,$0 ; original corner
+
+    ; construct top half
+    mov $1,$0
+    mov $2,1
+    f21 $1,101170 ; rotate cw
+    f21 $0,101030 ; hstack
+    ; $0 is top half
+
+    ; construct bottom half
+    mov $6,2
+    f21 $5,101170 ; rotate cw cw
+    mov $1,$5
+    mov $2,1
+    f21 $1,101170 ; rotate cw
+    mov $2,$5
+    f21 $1,101030 ; hstack
+    ; $1 is bottom half
+
+    ; join top half and bottom half
+    f21 $0,101040 ; vstack
+    ";
+
+    #[test]
+    fn test_130001_puzzle_7fe24cdd_loda() {
+        let model: Model = Model::load_testdata("7fe24cdd").expect("model");
+        let program = PROGRAM_7FE24CDD;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
+    }
+
+    #[test]
+    fn test_140000_puzzle_9565186b() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("9565186b")?;
+        assert_eq!(model.train().len(), 4);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.train()[3].input().to_image().expect("image");
+        // let output: Image = model.train()[3].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let pixel_color: u8 = input.most_popular_color().expect("color");
+        let image: Image = input.replace_colors_other_than(pixel_color, 5).expect("image");
+        assert_eq!(image, output);
+        Ok(())
+    }
+
+    const PROGRAM_9565186B: &'static str = "
+    mov $1,$0
+    f11 $1,101060 ; most popular color
+    mov $2,5
+    f31 $0,101051 ; replace colors other than color
+    ";
+
+    #[test]
+    fn test_140001_puzzle_9565186b_loda() {
+        let model: Model = Model::load_testdata("9565186b").expect("model");
+        let program = PROGRAM_9565186B;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 5);
+    }
+
+    #[test]
+    fn test_150000_puzzle_3af2c5a8() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("3af2c5a8")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        // let input: Image = model.train()[0].input().to_image().expect("image");
+        // let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        let input: Image = model.test()[0].input().to_image().expect("image");
+        let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let row0: Image = Image::hstack(vec![input.clone(), input.flip_x().expect("image")])?;
+        let row1: Image = row0.flip_y().expect("image");
+        let image = Image::vstack(vec![row0.clone(), row1.clone()])?;
+        assert_eq!(image, output);
+        Ok(())
+    }
+
+    const PROGRAM_3AF2C5A8: &'static str = "
+    mov $1,$0
+    f11 $1,101190 ; flip x
+    f21 $0,101030 ; hstack
+    mov $1,$0
+    f11 $1,101191 ; flip y
+    f21 $0,101040 ; vstack
+    ";
+
+    #[test]
+    fn test_150001_puzzle_3af2c5a8_loda() {
+        let model: Model = Model::load_testdata("3af2c5a8").expect("model");
+        let program = PROGRAM_3AF2C5A8;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
+    }
+
+    const PROGRAM_44F52BB0: &'static str = "
+    mov $1,$0
+    f11 $1,101190 ; flip x
+    cmp $0,$1
+    mov $2,1 ; color when there is symmetry
+    mul $2,$0
+    cmp $0,0
+    mul $0,7 ; color when there is no symmetry
+    add $2,$0
+    mov $0,1 ; output image width
+    mov $1,1 ; output image height
+    f31 $0,101010 ; create image
+    ";
+
+    #[test]
+    fn test_160000_puzzle_44f52bb0_loda() {
+        let model: Model = Model::load_testdata("44f52bb0").expect("model");
+        let program = PROGRAM_44F52BB0;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 8);
+    }
+
+    #[test]
+    fn test_170000_puzzle_496994bd() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("496994bd")?;
+        assert_eq!(model.train().len(), 2);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let background_pixel_color: u8 = input.most_popular_color().expect("color");
+        let flipped_image: Image = input.flip_y().expect("image");
+        let result_image: Image = input.overlay_with_mask_color(
+            &flipped_image, 
+            background_pixel_color
+        ).expect("image");
+
+        assert_eq!(result_image, output);
+        Ok(())
+    }
+
+    const PROGRAM_496994BD: &'static str = "
+    mov $1,$0
+    mov $2,$0
+    f11 $2,101060 ; most popular color
+    f11 $1,101191 ; flip y
+    f31 $0,101150 ; overlay
+    ";
+
+    #[test]
+    fn test_170001_puzzle_496994bd_loda() {
+        let model: Model = Model::load_testdata("496994bd").expect("model");
+        let program = PROGRAM_496994BD;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 3);
+    }
+
+    #[test]
+    fn test_180000_puzzle_31aa019c() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("31aa019c")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let pixel_color: u8 = input.least_popular_color().expect("color");
+        let image: Image = input.replace_colors_other_than(pixel_color, 0).expect("image");
+        let outline_color: u8 = 2;
+        let background_color: u8 = 0;
+        let result_image: Image = image.outline_type1(outline_color, background_color).expect("image");
+
+        assert_eq!(result_image, output);
+        Ok(())
+    }
+
+    const PROGRAM_31AA019C: &'static str = "
+    mov $1,$0
+    f11 $1,101070 ; most unpopular color
+    mov $2,0 ; background color
+    f31 $0,101051 ; replace colors other than
+    mov $1,2 ; outline color
+    mov $2,0 ; background color
+    f31 $0,101080 ; draw outline
+    ";
+
+    #[test]
+    fn test_180001_puzzle_31aa019c_loda() {
+        let model: Model = Model::load_testdata("31aa019c").expect("model");
+        let program = PROGRAM_31AA019C;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
+    }
+
+    #[test]
+    fn test_190000_puzzle_5ad4f10b() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("5ad4f10b")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let background_color: u8 = input.most_popular_color().expect("color");
+
+        let denoised_image: Image = input.denoise_type1(background_color).expect("image");
+        // println!("denoised: {:?}", denoised_image);
+
+        // Pick the most popular noise color
+        let noise_color_vec: Vec<u8> = input.noise_color_vec(&denoised_image).expect("vec with colors");
+        let noise_color: u8 = *noise_color_vec.first().expect("1 or more colors");
+        // println!("noise color: {}", noise_color);
+
+        // Remove background around the object
+        let trimmed_image: Image = denoised_image.trim().expect("image");
+
+        // Remove duplicate rows/columns
+        let image_without_duplicates: Image = trimmed_image.remove_duplicates().expect("image");
+
+        // Change color of the object
+        let result_image: Image = image_without_duplicates.replace_colors_other_than(background_color, noise_color).expect("image");
+
+        assert_eq!(result_image, output);
+        Ok(())
+    }
+
+    const PROGRAM_5AD4F10B: &'static str = "
+    mov $1,$0
+    mov $2,$0
+    mov $3,$0
+    mov $9,$0
+
+    f11 $3,101060 ; most popular color
+    ; $3 is background_color
+
+    mov $5,$0 ; noisy image
+    mov $6,$3 ; background_color
+    f21 $5,101090 ; denoise image
+    ; $5 is denoised image
+
+    ; $9 is noisy image
+    mov $10,$5 ; denoised image
+    f21 $9,101100 ; extract 1 noise color
+    ; $9 is the most popular noise color
+
+    mov $12,$5 ; denoised image
+    f11 $12,101160 ; trim
+    f11 $12,101140 ; remove duplicates
+
+    mov $0,$12
+    mov $1,$3 ; background color
+    mov $2,$9 ; noise color
+    f31 $0,101051 ; replace colors other than
+    ";
+
+    #[test]
+    fn test_190001_puzzle_5ad4f10b_loda() {
+        let model: Model = Model::load_testdata("5ad4f10b").expect("model");
+        let program = PROGRAM_5AD4F10B;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
+    }
+
+    #[test]
+    fn test_200000_puzzle_1190e5a7() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("1190e5a7")?;
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        // let input: Image = model.train()[0].input().to_image().expect("image");
+        // let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        let input: Image = model.test()[0].input().to_image().expect("image");
+        let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let without_duplicates: Image = input.remove_duplicates().expect("image");
+        let result_image: Image = without_duplicates.remove_grid().expect("image");
+        assert_eq!(result_image, output);
+        Ok(())
+    }
+
+    const PROGRAM_1190E5A7: &'static str = "
+    f11 $0,101140 ; remove duplicates
+    f11 $0,101120 ; remove grid
+    ";
+
+    #[test]
+    fn test_200001_puzzle_1190e5a7_loda() {
+        let model: Model = Model::load_testdata("1190e5a7").expect("model");
+        let program = PROGRAM_1190E5A7;
+        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        let mut count = 0;
+        for (index, pair) in pairs.iter().enumerate() {
+            let output: Image = run_image(program, &pair.input).expect("image");
+            assert_eq!(output, pair.output, "pair: {}", index);
+            count += 1;
+        }
+        assert_eq!(count, 4);
+    }
+
+    // #[test]
+    #[allow(dead_code)]
+    fn test_210000_traverse_testdata() {
+        let config = Config::load();
+        let path: PathBuf = config.arc_repository_data_training();
+        let paths: Vec<PathBuf> = find_json_files_recursively(&path);
+        println!("number of json files: {}", paths.len());
+        
+        let mut items = Vec::<Item>::new();
+        for path in &paths {
+            let model = Model::load_with_json_file(path).expect("model");
+            let item = Item {
+                id: ItemId::Path { path: path.clone() },
+                model,
+            };
+            items.push(item);
+        }
+        println!("number of items: {}", items.len());
+
+        const _PROGRAM1: &'static str = "
+        mov $1,1
+        f21 $0,101170 ; rotate
+        ";
+
+        const PROGRAM2: &'static str = "
+        mov $1,2
+        f21 $0,101170 ; rotate
+        ";
+
+        const PROGRAM3: &'static str = "
+        mov $1,-1
+        f21 $0,101170 ; rotate
+        ";
+
+        const PROGRAM4: &'static str = "
+        f11 $0,101160 ; trim
+        ";
+
+        const PROGRAM5: &'static str = "
+        f11 $0,101190 ; flip x
+        ";
+
+        const PROGRAM6: &'static str = "
+        f11 $0,101191 ; flip y
+        ";
+
+        const PROGRAM7: &'static str = "
+        f11 $0,101192 ; flip xy
+        ";
+
+        const PROGRAM8: &'static str = "
+        f11 $0,101140 ; remove duplicates
+        ";
+
+        const _PROGRAM10: &'static str = "
+        mov $1,0
+        f21 $0,101240 ; pad by 1 pixel evenly
+        ";
+
+        const _PROGRAM11: &'static str = "
+        mov $1,0
+        f21 $0,101220 ; pad by 1 pixel top/bottom
+        ";
+
+        const _PROGRAM12: &'static str = "
+        mov $1,0
+        f21 $0,101221 ; pad by 1 pixel left/right
+        ";
+
+        const _PROGRAM13: &'static str = "
+        f11 $0,101160 ; trim
+        mov $1,-1
+        f21 $0,101170 ; rotate
+        ";
+
+        const _PROGRAM14: &'static str = "
+        f11 $0,101160 ; trim
+        mov $1,1
+        f21 $0,101170 ; rotate
+        ";
+
+        const _PROGRAM15: &'static str = "
+        f11 $0,101160 ; trim
+        mov $1,2
+        f21 $0,101170 ; rotate
+        ";
+        
+        const PROGRAM16: &'static str = "
+        f11 $0,101200 ; resize x*2 y*2
+        ";
+        
+        const PROGRAM17: &'static str = "
+        f11 $0,101201 ; resize x*3 y*3
+        ";
+        
+        const _PROGRAM18: &'static str = "
+        f11 $0,101202 ; resize x/2 y/2
+        ";
+        
+        const PROGRAMS: &'static [&'static str] = &[
+            PROGRAM_1190E5A7,
+            PROGRAM_31AA019C,
+            PROGRAM_3AF2C5A8,
+            PROGRAM_44F52BB0,
+            PROGRAM_496994BD,
+            PROGRAM_5AD4F10B,
+            PROGRAM_7468F01A,
+            PROGRAM_7FE24CDD,
+            PROGRAM_90C28CC7,
+            PROGRAM_9565186B,
+            PROGRAM_A79310A0,
+            PROGRAM_B9B7F026,
+            // PROGRAM1, 
+            PROGRAM2, 
+            PROGRAM3,
+            PROGRAM4,
+            PROGRAM5,
+            PROGRAM6,
+            PROGRAM7,
+            PROGRAM8,
+            // PROGRAM10,
+            // PROGRAM11,
+            // PROGRAM12,
+            // PROGRAM13,
+            // PROGRAM14,
+            // PROGRAM15,
+            PROGRAM16,
+            PROGRAM17,
+            // PROGRAM18,
+        ];
+
+        let mut dm = create_dependency_manager();
+        let mut program_runners = Vec::<ProgramRunner>::new();
+        for program_string in PROGRAMS {
+            let program_runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, program_string).expect("ProgramRunner");
+            program_runners.push(program_runner);
+        }
+
+        let mut cache = ProgramCache::new();
+        let mut count_match: usize = 0;
+        let mut count_mismatch: usize = 0;
+        let mut found_program_indexes: Vec<usize> = vec!();
+        for item in &items {
+            let pairs: Vec<ImagePair> = item.model.images_all().expect("pairs");
+    
+            let mut found_one_or_more_solutions = false;
+            for (program_index, program_runner) in program_runners.iter().enumerate() {
+
+                let mut count = 0;
+                for pair in &pairs {
+                    let output: Image = match run_image_inner(&program_runner, &pair.input, &mut cache) {
+                        Ok(value) => value,
+                        Err(_error) => {
+                            break;
+                        }
+                    };
+
+                    if output == pair.output {
+                        count += 1;
+                    }
+                }
+    
+                if count == pairs.len() {
+                    found_one_or_more_solutions = true;
+                    found_program_indexes.push(program_index);
+                    println!("program {} is a solution for {:?}", program_index, item.id);
+                }
+            }
+
+            if found_one_or_more_solutions {
+                count_match += 1;
+            } else {
+                count_mismatch += 1;
+            }
+        }
+        found_program_indexes.sort();
+
+        println!("number of matches: {} mismatches: {}", count_match, count_mismatch);
+        println!("found_program_indexes: {:?}", found_program_indexes);
+
+    }
+
+    #[allow(dead_code)]
+    #[derive(Clone, Debug)]
+    enum ItemId {
+        None,
+        Path { path: PathBuf },
+    }
+    
+    #[allow(dead_code)]
+    #[derive(Clone, Debug)]
+    struct Item {
+        id: ItemId,
+        model: Model,
+    }
+    
 }

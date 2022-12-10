@@ -13,15 +13,16 @@ impl ImageRotate for Image {
         let x_max: i32 = (self.width() as i32) - 1;
         let y_max: i32 = (self.height() as i32) - 1;
 
-        // Copy pixels, with x y swapped
+        // Copy pixels with coordinates rotated
         let mut bitmap = Image::zero(self.height(), self.width());
         for y in 0..=y_max {
             for x in 0..=x_max {
                 let pixel_value: u8 = self.get(x, y).unwrap_or(255);
-                match bitmap.set(y, x, pixel_value) {
+                let set_y: i32 = y_max - y;
+                match bitmap.set(set_y, x, pixel_value) {
                     Some(()) => {},
                     None => {
-                        return Err(anyhow::anyhow!("Integrity error. Unable to set pixel ({}, {}) inside the result bitmap", y, x));
+                        return Err(anyhow::anyhow!("Integrity error. Unable to set pixel ({}, {}) inside the result bitmap", set_y, x));
                     }
                 }
             }
@@ -61,9 +62,9 @@ mod tests {
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
-            1, 4,
-            2, 5,
-            3, 6,
+            4, 1,
+            5, 2,
+            6, 3,
         ];
         let expected: Image = Image::try_create(2, 3, expected_pixels).expect("image");
         assert_eq!(actual, expected);
@@ -73,10 +74,10 @@ mod tests {
     fn test_10001_rotate_cw_long() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            1,
-            2,
-            3,
             4,
+            3,
+            2,
+            1,
         ];
         let input: Image = Image::try_create(1, 4, pixels).expect("image");
 
@@ -92,7 +93,31 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_rotate_cw_multiple_times() {
+    fn test_10002_rotate_cw_square() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            8, 5, 0,
+            8, 5, 3,
+            0, 3, 2,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        // let actual: Image = input.rotate(1).expect("image");
+        let actual: Image = input.rotate_cw().expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 8, 8,
+            3, 5, 5,
+            2, 3, 0,
+        ];
+        let expected: Image = Image::try_create(3, 3, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10003_rotate_cw_multiple_times() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0,

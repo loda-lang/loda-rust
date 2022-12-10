@@ -17,6 +17,10 @@ impl ProgramRunner {
         }
     }
 
+    pub fn program(&self) -> &Program {
+        &self.program
+    }
+
     pub fn run(
         &self, 
         input: RegisterValue,
