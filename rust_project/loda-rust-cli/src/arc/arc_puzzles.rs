@@ -627,47 +627,47 @@ mod tests {
     }
 
     const ADVANCED_PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS: &'static str = r#"
-    mov $10,0 ; palette image accumulated
+    mov $40,0 ; palette image accumulated
 
     ; process "train" vector
-    mov $0,$97 ; set iteration counter = length of "train" vector
-    mov $1,100 ; address of first training data train[0].input
-    mov $2,101 ; address of first training data train[0].output
-    lps $0
-        mov $31,$$1 ; load train[x].input image
-        mov $32,$$2 ; load train[x].output image
+    mov $80,$97 ; set iteration counter = length of "train" vector
+    mov $81,100 ; address of first training data train[0].input
+    mov $82,101 ; address of first training data train[0].output
+    lps $80
+        mov $0,$$81 ; load train[x].input image
+        mov $1,$$82 ; load train[x].output image
 
         ; analyze the images
-        f21 $31,101130 ; build palette image with color mapping from input to output
-        mov $11,$31
-        f21 $11,101030 ; hstack of the palette images
+        f21 $0,101130 ; build palette image with color mapping from input to output
+        mov $41,$0
+        f21 $40,101030 ; hstack of the palette images
 
         ; next iteration
-        add $1,10 ; jump to address of next training input image
-        add $2,10 ; jump to address of next training output image
+        add $81,10 ; jump to address of next training input image
+        add $82,10 ; jump to address of next training output image
     lpe
     
     ; process "train"+"test" vectors
-    mov $0,$99 ; set iteration counter = length of "train"+"test" vectors
-    mov $1,100 ; address of vector[0].input
-    mov $2,102 ; address of vector[0].computed_output
-    lps $0
-        mov $31,$$1 ; load vector[x].input image
+    mov $80,$99 ; set iteration counter = length of "train"+"test" vectors
+    mov $81,100 ; address of vector[0].input
+    mov $82,102 ; address of vector[0].computed_output
+    lps $80
+        mov $0,$$81 ; load vector[x].input image
 
         ; change offset of the image
-        mov $32,0 ; offset x=0
-        mov $33,1 ; offset y=+1
-        f31 $31,101180 ; offset x, y
+        mov $1,0 ; offset x=0
+        mov $2,1 ; offset y=+1
+        f31 $0,101180 ; offset x, y
 
         ; replace colors of the image using the palette image
-        mov $32,$11 ; palette image
-        f21 $31,101052 ; replace colors using palette image
+        mov $1,$40 ; palette image
+        f21 $0,101052 ; replace colors using palette image
 
-        mov $$2,$31 ; save vector[x].computed_output image
+        mov $$82,$0 ; save vector[x].computed_output image
 
         ; next iteration
-        add $1,10 ; jump to address of next input image
-        add $2,10 ; jump to address of next computed_output image
+        add $81,10 ; jump to address of next input image
+        add $82,10 ; jump to address of next computed_output image
     lpe
     "#;
 
