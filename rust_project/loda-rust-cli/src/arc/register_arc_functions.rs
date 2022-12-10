@@ -1234,24 +1234,14 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageWithColorFunction::new(101010))));
 
     // Image horizontal stack
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101030, 2))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101030, 3))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101030, 4))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101030, 5))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101030, 6))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101030, 7))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101030, 8))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101030, 9))));
+    for n in 2..=9 {
+        registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101030, n))));
+    }
 
     // Image vertical stack
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101040, 2))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101040, 3))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101040, 4))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101040, 5))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101040, 6))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101040, 7))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101040, 8))));
-    registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101040, 9))));
+    for n in 2..=9 {
+        registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101040, n))));
+    }
     
     // Replace color
     registry.register(Arc::new(Box::new(
@@ -1263,26 +1253,14 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageReplaceColorsWithPaletteImageFunction::new(101052))));
 
     // Extract popular colors
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101060, 1))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101060, 2))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101060, 3))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101060, 4))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101060, 5))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101060, 6))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101060, 7))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101060, 8))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101060, 9))));
+    for n in 1..=9 {
+        registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101060, n))));
+    }
 
     // Extract unpopular colors
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101070, 1))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101070, 2))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101070, 3))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101070, 4))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101070, 5))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101070, 6))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101070, 7))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101070, 8))));
-    registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101070, 9))));
+    for n in 1..=9 {
+        registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101070, n))));
+    }
     
     // Draw outline
     registry.register(Arc::new(Box::new(ImageOutlineFunction::new(101080))));
@@ -1291,15 +1269,9 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageDenoiseFunction::new(101090))));
 
     // Extract noise colors from (noise image, denoised image)
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101100, 1))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101100, 2))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101100, 3))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101100, 4))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101100, 5))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101100, 6))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101100, 7))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101100, 8))));
-    registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101100, 9))));
+    for n in 1..=9 {
+        registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101100, n))));
+    }
 
     // Detect hole
     registry.register(Arc::new(Box::new(ImageDetectHoleFunction::new(101110))));
