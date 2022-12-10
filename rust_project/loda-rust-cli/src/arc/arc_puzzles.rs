@@ -1497,6 +1497,7 @@ mod tests {
     }
 
     // #[test]
+    #[allow(dead_code)]
     fn test_210000_traverse_testdata() {
         let config = Config::load();
         let path: PathBuf = config.arc_repository_data_training();
@@ -1677,12 +1678,14 @@ mod tests {
 
     }
 
+    #[allow(dead_code)]
     #[derive(Clone, Debug)]
     enum ItemId {
         None,
         Path { path: PathBuf },
     }
     
+    #[allow(dead_code)]
     #[derive(Clone, Debug)]
     struct Item {
         id: ItemId,
