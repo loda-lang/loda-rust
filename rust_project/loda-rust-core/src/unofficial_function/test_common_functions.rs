@@ -16,7 +16,7 @@ mod tests {
         mov $1,100
         mov $2,10
         mov $3,1
-        f41 $0,1 ; Sum of 4 values
+        f41 $0,1000 ; Sum of 4 values
         ";
         let v: i64 = run(program, 0).expect("output");
         assert_eq!(v, 1111);
@@ -28,7 +28,7 @@ mod tests {
         mov $0,2
         mov $1,3
         mov $2,4
-        f31 $0,2 ; Product of 3 values
+        f31 $0,1010 ; Product of 3 values
         ";
         let v: i64 = run(program, 0).expect("output");
         assert_eq!(v, 24);
@@ -41,7 +41,7 @@ mod tests {
         mov $1,100
         mov $2,-20
         mov $3,98
-        f44 $0,3 ; Sorting 4 values
+        f44 $0,1020 ; Sorting 4 values
         ";
         let v: i64 = run(program, 0).expect("output");
         assert_eq!(v, -20);
@@ -53,7 +53,7 @@ mod tests {
         mov $8,5
         mov $5,3
         mov $6,4
-        f21 $$8,2 ; Product of 2 values
+        f21 $$8,1010 ; Product of 2 values
         mov $0,$5
         ";
         let v: i64 = run(program, 0).expect("output");
@@ -66,7 +66,7 @@ mod tests {
         mov $8,1
         mov $1,3
         mov $2,4
-        f21 $$8,2 ; Product of 2 values
+        f21 $$8,1010 ; Product of 2 values
         mov $0,$1
         ";
         let v: i64 = run(program, 0).expect("output");
@@ -79,7 +79,7 @@ mod tests {
         mov $8,0
         mov $0,3
         mov $1,4
-        f21 $$8,2 ; Product of 2 values
+        f21 $$8,1010 ; Product of 2 values
         ";
         let v: i64 = run(program, 0).expect("output");
         assert_eq!(v, 12);
@@ -89,7 +89,7 @@ mod tests {
     fn test_20003_indirect_memory_access_error_negative_address() {
         let program = "
         mov $8,-1
-        f21 $$8,2 ; Product of 2 values
+        f21 $$8,1010 ; Product of 2 values
         ";
         run(program, 0).expect_err("negative address");
     }

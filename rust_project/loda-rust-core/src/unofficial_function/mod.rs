@@ -1,5 +1,6 @@
 //! Unofficial functions specific for `LODA-RUST`, that may become official in the future.
 
+mod debug;
 mod product;
 mod register_common_functions;
 mod sort;
@@ -10,6 +11,7 @@ mod unofficial_function;
 mod unofficial_function_id;
 mod unofficial_function_registry;
 
+pub use debug::DebugFunction;
 pub use product::ProductFunction;
 pub use register_common_functions::register_common_functions;
 pub use sort::SortFunction;
