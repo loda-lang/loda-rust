@@ -630,7 +630,6 @@ mod tests {
     mov $10,0 ; palette image accumulated
 
     ; process "train" vector
-    mov $8,0 ; number of "train" iterations
     mov $0,$97 ; set iteration counter = length of "train" vector
     mov $1,100 ; address of first training data train[0].input
     mov $2,101 ; address of first training data train[0].output
@@ -643,8 +642,6 @@ mod tests {
         f21 $31,101130 ; build palette image with color mapping from input to output
         mov $11,$31
         f21 $11,101030 ; hstack of the palette images
-
-        add $8,1 ; increment number of "train" iterations
 
         ; next iteration
         add $1,10 ; jump to address of next training input image
@@ -676,15 +673,6 @@ mod tests {
         add $1,10 ; jump to address of next input image
         add $2,10 ; jump to address of next computed_output image
     lpe
-
-    mov $0,$8
-
-    ; MEMORY LAYOUT - OUTPUT DATA
-    ; $0 = output number
-    ; $102 = computed_output image 0
-    ; $112 = computed_output image 1
-    ; $122 = computed_output image 2
-    ; $132 = computed_output image 3
     "#;
 
     #[test]

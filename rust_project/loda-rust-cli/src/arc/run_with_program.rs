@@ -106,7 +106,11 @@ impl RunWithProgram {
         
     /// Prepare the starting state of the program
     ///
-    /// MEMORY LAYOUT
+    /// Variable number of items in the `train` vector and `test` vector.
+    /// 
+    /// Memory layout:
+    /// 
+    /// ```
     /// $97 = length of "train" vector
     /// $98 = length of "test" vector
     /// $99 = length of "train"+"test" vectors
@@ -135,6 +139,7 @@ impl RunWithProgram {
     /// $141 = test[0] expected_output <---- this is not provided, it's up to the program to compute it.
     /// $142 = test[0] computed_output
     /// $143..149 is reserved for test[0] extra data
+    /// ```
     fn initial_memory_layout(&self, state: &mut ProgramState) -> anyhow::Result<()> {
         let count_train: usize = self.train_pairs.len();
         let count_test: usize = self.test_pairs.len();
@@ -176,6 +181,18 @@ impl RunWithProgram {
         Ok(())
     }
 
+    /// Extract images from `ProgramState`
+    /// 
+    /// Variable number of items in the `train` vector and `test` vector.
+    /// 
+    /// Memory layout:
+    /// 
+    /// ```
+    /// $102 = train[0] computed_output image
+    /// $112 = train[1] computed_output image
+    /// $122 = train[2] computed_output image
+    /// $132 = test[0] computed_output image
+    /// ```
     fn process_output(&self, state: &ProgramState) -> anyhow::Result<RunWithProgramResult> {
 
         let mut message_items = Vec::<String>::new();
