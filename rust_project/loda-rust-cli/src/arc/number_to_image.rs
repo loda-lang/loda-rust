@@ -17,11 +17,11 @@ impl NumberToImage for BigUint {
         let width_u16: u16 = match width_biguint.to_u16() {
             Some(value) => value,
             None => {
-                return Err(anyhow::anyhow!("cannot convert width to u16"));
+                return Err(anyhow::anyhow!("cannot convert width to u16. self: {:?}", self));
             }
         };
         if width_u16 > (u8::MAX as u16) {
-            return Err(anyhow::anyhow!("cannot convert width to u8"));
+            return Err(anyhow::anyhow!("cannot convert width to u8. self: {:?}", self));
         }
         let width = width_u16 as u8;
 
@@ -33,11 +33,11 @@ impl NumberToImage for BigUint {
         let height_u16: u16 = match height_biguint.to_u16() {
             Some(value) => value,
             None => {
-                return Err(anyhow::anyhow!("cannot convert height to u16"));
+                return Err(anyhow::anyhow!("cannot convert height to u16. self: {:?}", self));
             }
         };
         if height_u16 > (u8::MAX as u16) {
-            return Err(anyhow::anyhow!("cannot convert height to u8"));
+            return Err(anyhow::anyhow!("cannot convert height to u8. self: {:?}", self));
         }
         let height = height_u16 as u8;
 
@@ -51,11 +51,11 @@ impl NumberToImage for BigUint {
             let pixel_u16: u16 = match pixel_biguint.to_u16() {
                 Some(value) => value,
                 None => {
-                    return Err(anyhow::anyhow!("cannot convert pixel to u16"));
+                    return Err(anyhow::anyhow!("cannot convert pixel to u16. self: {:?}", self));
                 }
             };
             if pixel_u16 > (u8::MAX as u16) {
-                return Err(anyhow::anyhow!("cannot convert pixel to u8"));
+                return Err(anyhow::anyhow!("cannot convert pixel to u8. self: {:?}", self));
             }
             pixels.push(pixel_u16 as u8);
     
@@ -65,7 +65,7 @@ impl NumberToImage for BigUint {
 
         let size: usize = (width as usize) * (height as usize);
         if pixels.len() > size {
-            return Err(anyhow::anyhow!("there are more pixel data (length: {}) than width {} x height {}", pixels.len(), width, height));
+            return Err(anyhow::anyhow!("there are more pixel data (length: {}) than width {} x height {}. self: {:?}", pixels.len(), width, height, self));
         }
 
         // If there are too few pixels, then pad until we reach the size
