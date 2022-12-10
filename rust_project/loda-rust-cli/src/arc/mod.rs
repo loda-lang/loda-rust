@@ -35,6 +35,7 @@ mod palette_image;
 mod program_with_callback;
 mod read_testdata;
 mod register_arc_functions;
+mod run_with_program;
 mod test_convert;
 
 pub use arc_json_model::{Grid, GridToImage, ImagePair, Model, TaskPair};
@@ -69,3 +70,4 @@ pub use number_to_image::NumberToImage;
 pub use palette_image::PaletteImage;
 pub use read_testdata::read_testdata;
 pub use register_arc_functions::register_arc_functions;
+pub use run_with_program::RunWithProgram;
