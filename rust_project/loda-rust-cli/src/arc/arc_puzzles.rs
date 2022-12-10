@@ -518,7 +518,7 @@ mod tests {
 
     mov $0,1 ; width=1
     mov $1,1 ; height=1
-    f31 $0,101001 ; create image with color
+    f31 $0,101010 ; create image with color
     ";
 
     #[test]
@@ -1263,7 +1263,7 @@ mod tests {
     add $2,$0
     mov $0,1 ; output image width
     mov $1,1 ; output image height
-    f31 $0,101001 ; create image
+    f31 $0,101010 ; create image
     ";
 
     #[test]

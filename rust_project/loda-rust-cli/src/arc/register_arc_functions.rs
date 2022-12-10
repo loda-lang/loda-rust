@@ -476,25 +476,39 @@ impl UnofficialFunction for ImageGetPixelFunction {
     }
 }
 
-struct ImageGetSizeFunction {
-    id: u32,
+enum ImageGetAttributeFunctionMode {
+    Width,
+    Height,
 }
 
-impl ImageGetSizeFunction {
-    fn new(id: u32) -> Self {
+struct ImageGetAttributeFunction {
+    id: u32,
+    mode: ImageGetAttributeFunctionMode,
+}
+
+impl ImageGetAttributeFunction {
+    fn new(id: u32, mode: ImageGetAttributeFunctionMode) -> Self {
         Self {
             id,
+            mode,
         }
     }
 }
 
-impl UnofficialFunction for ImageGetSizeFunction {
+impl UnofficialFunction for ImageGetAttributeFunction {
     fn id(&self) -> UnofficialFunctionId {
-        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 2 }
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
     }
 
     fn name(&self) -> String {
-        "Image: get size of image -> (width, height)".to_string()
+        match self.mode {
+            ImageGetAttributeFunctionMode::Width => {
+                return "Get width of image".to_string();
+            },
+            ImageGetAttributeFunctionMode::Height => {
+                return "Get height of image".to_string();
+            }
+        }
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
@@ -509,13 +523,18 @@ impl UnofficialFunction for ImageGetSizeFunction {
         let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
         let image: Image = input0_uint.to_image()?;
 
-        // Return (width, height)
-        let width: BigInt = image.width().to_bigint().context("u8 to BigInt")?;
-        let height: BigInt = image.height().to_bigint().context("u8 to BigInt")?;
-        Ok(vec![width, height])
+        let value: BigInt;
+        match self.mode {
+            ImageGetAttributeFunctionMode::Width => {
+                value = image.width().to_bigint().context("u8 to BigInt")?;
+            },
+            ImageGetAttributeFunctionMode::Height => {
+                value = image.height().to_bigint().context("u8 to BigInt")?;
+            }
+        }
+        Ok(vec![value])
     }
 }
-
 
 enum ImageFlipFunctionMode {
     FlipX,
@@ -1202,10 +1221,17 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     registry.register(Arc::new(Box::new(ImageDebugFunction::new(100000))));
 
     // Basic
-    registry.register(Arc::new(Box::new(ImageGetSizeFunction::new(101000))));
-    registry.register(Arc::new(Box::new(ImageWithColorFunction::new(101001))));
+    registry.register(Arc::new(Box::new(
+        ImageGetAttributeFunction::new(101000, ImageGetAttributeFunctionMode::Width)
+    )));
+    registry.register(Arc::new(Box::new(
+        ImageGetAttributeFunction::new(101001, ImageGetAttributeFunctionMode::Height)
+    )));
     registry.register(Arc::new(Box::new(ImageGetPixelFunction::new(101002))));
     registry.register(Arc::new(Box::new(ImageSetPixelFunction::new(101003))));
+
+    // Create image
+    registry.register(Arc::new(Box::new(ImageWithColorFunction::new(101010))));
 
     // Image horizontal stack
     registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101030, 2))));
