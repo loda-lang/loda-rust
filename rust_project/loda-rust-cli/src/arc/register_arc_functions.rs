@@ -1216,134 +1216,106 @@ impl UnofficialFunction for ImageBuildPaletteMapFunction {
     }
 }
 
-pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
+macro_rules! register_function {
+    ($registry:expr, $create_instance:expr) => {
+        $registry.register(Arc::new(Box::new($create_instance)));
+    }
+}
+
+pub fn register_arc_functions(r: &UnofficialFunctionRegistry) {
     // Developer tools
-    registry.register(Arc::new(Box::new(ImageDebugFunction::new(100000))));
+    register_function!(r, ImageDebugFunction::new(100000));
 
     // Basic
-    registry.register(Arc::new(Box::new(
-        ImageGetAttributeFunction::new(101000, ImageGetAttributeFunctionMode::Width)
-    )));
-    registry.register(Arc::new(Box::new(
-        ImageGetAttributeFunction::new(101001, ImageGetAttributeFunctionMode::Height)
-    )));
-    registry.register(Arc::new(Box::new(ImageGetPixelFunction::new(101002))));
-    registry.register(Arc::new(Box::new(ImageSetPixelFunction::new(101003))));
+    register_function!(r, ImageGetAttributeFunction::new(101000, ImageGetAttributeFunctionMode::Width));
+    register_function!(r, ImageGetAttributeFunction::new(101001, ImageGetAttributeFunctionMode::Height));
+    register_function!(r, ImageGetPixelFunction::new(101002));
+    register_function!(r, ImageSetPixelFunction::new(101003));
 
     // Create image
-    registry.register(Arc::new(Box::new(ImageWithColorFunction::new(101010))));
+    register_function!(r, ImageWithColorFunction::new(101010));
 
     // Image horizontal stack
     for n in 2..=9 {
-        registry.register(Arc::new(Box::new(ImageStackFunction::hstack(101030, n))));
+        register_function!(r, ImageStackFunction::hstack(101030, n));
     }
 
     // Image vertical stack
     for n in 2..=9 {
-        registry.register(Arc::new(Box::new(ImageStackFunction::vstack(101040, n))));
+        register_function!(r, ImageStackFunction::vstack(101040, n));
     }
     
     // Replace color
-    registry.register(Arc::new(Box::new(
-        ImageReplaceColorFunction::new(101050, ImageReplaceColorFunctionMode::ReplaceColor
-    ))));
-    registry.register(Arc::new(Box::new(
-        ImageReplaceColorFunction::new(101051, ImageReplaceColorFunctionMode::ReplaceColorsOtherThan
-    ))));
-    registry.register(Arc::new(Box::new(ImageReplaceColorsWithPaletteImageFunction::new(101052))));
+    register_function!(r, ImageReplaceColorFunction::new(101050, ImageReplaceColorFunctionMode::ReplaceColor));
+    register_function!(r, ImageReplaceColorFunction::new(101051, ImageReplaceColorFunctionMode::ReplaceColorsOtherThan));
+    register_function!(r, ImageReplaceColorsWithPaletteImageFunction::new(101052));
 
     // Extract popular colors
     for n in 1..=9 {
-        registry.register(Arc::new(Box::new(ImagePopularColorFunction::popular(101060, n))));
+        register_function!(r, ImagePopularColorFunction::popular(101060, n));
     }
 
     // Extract unpopular colors
     for n in 1..=9 {
-        registry.register(Arc::new(Box::new(ImagePopularColorFunction::unpopular(101070, n))));
+        register_function!(r, ImagePopularColorFunction::unpopular(101070, n));
     }
     
     // Draw outline
-    registry.register(Arc::new(Box::new(ImageOutlineFunction::new(101080))));
+    register_function!(r, ImageOutlineFunction::new(101080));
     
     // Denoise
-    registry.register(Arc::new(Box::new(ImageDenoiseFunction::new(101090))));
+    register_function!(r, ImageDenoiseFunction::new(101090));
 
     // Extract noise colors from (noise image, denoised image)
     for n in 1..=9 {
-        registry.register(Arc::new(Box::new(ImageNoiseColorFunction::new(101100, n))));
+        register_function!(r, ImageNoiseColorFunction::new(101100, n));
     }
 
     // Detect hole
-    registry.register(Arc::new(Box::new(ImageDetectHoleFunction::new(101110))));
+    register_function!(r, ImageDetectHoleFunction::new(101110));
 
     // Remove grid
-    registry.register(Arc::new(Box::new(ImageRemoveGridFunction::new(101120))));
+    register_function!(r, ImageRemoveGridFunction::new(101120));
 
     // Color mapping from one image to another image
-    registry.register(Arc::new(Box::new(ImageBuildPaletteMapFunction::new(101130, false))));
-    registry.register(Arc::new(Box::new(ImageBuildPaletteMapFunction::new(101131, true))));
+    register_function!(r, ImageBuildPaletteMapFunction::new(101130, false));
+    register_function!(r, ImageBuildPaletteMapFunction::new(101131, true));
 
     // Remove duplicates
-    registry.register(Arc::new(Box::new(ImageRemoveDuplicatesFunction::new(101140))));
+    register_function!(r, ImageRemoveDuplicatesFunction::new(101140));
 
     // Overlay by color
-    registry.register(Arc::new(Box::new(ImageOverlayAnotherImageByColorMaskFunction::new(101150))));
+    register_function!(r, ImageOverlayAnotherImageByColorMaskFunction::new(101150));
 
     // Trim
-    registry.register(Arc::new(Box::new(ImageTrimFunction::new(101160))));
+    register_function!(r, ImageTrimFunction::new(101160));
 
     // Rotate
-    registry.register(Arc::new(Box::new(ImageRotateFunction::new(101170))));
+    register_function!(r, ImageRotateFunction::new(101170));
 
     // Offset
-    registry.register(Arc::new(Box::new(ImageOffsetFunction::new(101180))));
+    register_function!(r, ImageOffsetFunction::new(101180));
 
     // Flip
-    registry.register(Arc::new(Box::new(
-        ImageFlipFunction::new(101190, ImageFlipFunctionMode::FlipX
-    ))));
-    registry.register(Arc::new(Box::new(
-        ImageFlipFunction::new(101191, ImageFlipFunctionMode::FlipY
-    ))));
-    registry.register(Arc::new(Box::new(
-        ImageFlipFunction::new(101192, ImageFlipFunctionMode::FlipXY
-    ))));
+    register_function!(r, ImageFlipFunction::new(101190, ImageFlipFunctionMode::FlipX));
+    register_function!(r, ImageFlipFunction::new(101191, ImageFlipFunctionMode::FlipY));
+    register_function!(r, ImageFlipFunction::new(101192, ImageFlipFunctionMode::FlipXY));
 
     // Image resize
-    registry.register(Arc::new(Box::new(
-        ImageResizeFunction::new(101200, ImageResizeFunctionMode::XYMul2
-    ))));
-    registry.register(Arc::new(Box::new(
-        ImageResizeFunction::new(101201, ImageResizeFunctionMode::XYMul3
-    ))));
-    registry.register(Arc::new(Box::new(
-        ImageResizeFunction::new(101202, ImageResizeFunctionMode::XYDiv2
-    ))));
+    register_function!(r, ImageResizeFunction::new(101200, ImageResizeFunctionMode::XYMul2));
+    register_function!(r, ImageResizeFunction::new(101201, ImageResizeFunctionMode::XYMul3));
+    register_function!(r, ImageResizeFunction::new(101202, ImageResizeFunctionMode::XYDiv2));
 
     // Padding top/bottom, left/right
-    registry.register(Arc::new(Box::new(
-        ImagePaddingFunction::new(101220, ImagePaddingFunctionMode::TopBottom
-    ))));
-    registry.register(Arc::new(Box::new(
-        ImagePaddingFunction::new(101221, ImagePaddingFunctionMode::LeftRight
-    ))));
+    register_function!(r, ImagePaddingFunction::new(101220, ImagePaddingFunctionMode::TopBottom));
+    register_function!(r, ImagePaddingFunction::new(101221, ImagePaddingFunctionMode::LeftRight));
 
     // Padding in corners
-    registry.register(Arc::new(Box::new(
-        ImagePaddingFunction::new(101230, ImagePaddingFunctionMode::TopLeft
-    ))));
-    registry.register(Arc::new(Box::new(
-        ImagePaddingFunction::new(101231, ImagePaddingFunctionMode::TopRight
-    ))));
-    registry.register(Arc::new(Box::new(
-        ImagePaddingFunction::new(101232, ImagePaddingFunctionMode::BottomLeft
-    ))));
-    registry.register(Arc::new(Box::new(
-        ImagePaddingFunction::new(101233, ImagePaddingFunctionMode::BottomRight
-    ))));
+    register_function!(r, ImagePaddingFunction::new(101230, ImagePaddingFunctionMode::TopLeft));
+    register_function!(r, ImagePaddingFunction::new(101231, ImagePaddingFunctionMode::TopRight));
+    register_function!(r, ImagePaddingFunction::new(101232, ImagePaddingFunctionMode::BottomLeft));
+    register_function!(r, ImagePaddingFunction::new(101233, ImagePaddingFunctionMode::BottomRight));
 
     // Padding evenly
-    registry.register(Arc::new(Box::new(
-        ImagePaddingFunction::new(101240, ImagePaddingFunctionMode::Even
-    ))));
+    register_function!(r, ImagePaddingFunction::new(101240, ImagePaddingFunctionMode::Even));
 }
