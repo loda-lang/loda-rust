@@ -510,14 +510,18 @@ mod tests {
     fn test_90001_puzzle_b9b7f026_loda() {
         let model: Model = Model::load_testdata("b9b7f026").expect("model");
         let program = PROGRAM_B9B7F026;
-        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-        let mut count = 0;
-        for (index, pair) in pairs.iter().enumerate() {
-            let output: Image = run_image(program, &pair.input).expect("image");
-            assert_eq!(output, pair.output, "pair: {}", index);
-            count += 1;
-        }
-        assert_eq!(count, 4);
+        let instance = RunWithProgram::new(model).expect("ARCProgramRunner");
+        instance.run_simple(program).expect("success");
+        // TODO: return stats, with number of successful matches
+
+        // let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        // let mut count = 0;
+        // for (index, pair) in pairs.iter().enumerate() {
+        //     let output: Image = run_image(program, &pair.input).expect("image");
+        //     assert_eq!(output, pair.output, "pair: {}", index);
+        //     count += 1;
+        // }
+        // assert_eq!(count, 4);
     }
 
     #[test]
@@ -555,14 +559,19 @@ mod tests {
     fn test_100001_puzzle_a79310a0_loda() {
         let model: Model = Model::load_testdata("a79310a0").expect("model");
         let program = PROGRAM_A79310A0;
-        let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-        let mut count = 0;
-        for (index, pair) in pairs.iter().enumerate() {
-            let output: Image = run_image(program, &pair.input).expect("image");
-            assert_eq!(output, pair.output, "pair: {}", index);
-            count += 1;
-        }
-        assert_eq!(count, 4);
+
+        let instance = RunWithProgram::new(model).expect("ARCProgramRunner");
+        instance.run_simple(program).expect("success");
+        // TODO: return stats, with number of successful matches
+
+        // let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+        // let mut count = 0;
+        // for (index, pair) in pairs.iter().enumerate() {
+        //     let output: Image = run_image(program, &pair.input).expect("image");
+        //     assert_eq!(output, pair.output, "pair: {}", index);
+        //     count += 1;
+        // }
+        // assert_eq!(count, 4);
     }
 
     #[test]
@@ -705,7 +714,7 @@ mod tests {
         let program = PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS;
 
         let instance = RunWithProgram::new(model).expect("ARCProgramRunner");
-        instance.run(program).expect("success");
+        instance.run_advanced(program).expect("success");
 
         Ok(())
     }

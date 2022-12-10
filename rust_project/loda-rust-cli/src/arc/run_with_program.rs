@@ -35,7 +35,33 @@ impl RunWithProgram {
         dm
     }
 
-    pub fn run<S: AsRef<str>>(&self, program: S) -> anyhow::Result<()> {
+    const SIMPLE_PROGRAM_PRE: &'static str = r#"
+    ; process "train"+"test" vectors
+    mov $80,$99 ; set iteration counter = length of "train"+"test" vectors
+    mov $81,100 ; address of vector[0].input
+    mov $82,102 ; address of vector[0].computed_output
+    lps $80
+        mov $0,$$81 ; load vector[x].input image
+        ; before: do stuff to the image
+        "#;
+
+    const SIMPLE_PROGRAM_POST: &'static str = r#"
+        ; after: do stuff to the image
+        mov $$82,$0 ; save vector[x].computed_output image
+
+        ; next iteration
+        add $81,10 ; jump to address of next input image
+        add $82,10 ; jump to address of next computed_output image
+    lpe
+    "#;
+
+    pub fn run_simple<S: AsRef<str>>(&self, simple_program: S) -> anyhow::Result<()> {
+        let program = format!("{}\n{}\n{}", Self::SIMPLE_PROGRAM_PRE, simple_program.as_ref(), Self::SIMPLE_PROGRAM_POST);
+        self.run_advanced(program)?;
+        Ok(())
+    }
+
+    pub fn run_advanced<S: AsRef<str>>(&self, program: S) -> anyhow::Result<()> {
         let program_str: &str = program.as_ref();
 
         let mut dm = Self::create_dependency_manager();
@@ -61,7 +87,7 @@ impl RunWithProgram {
         Ok(())
     }
         
-    /// Prepare starting state of the program
+    /// Prepare the starting state of the program
     ///
     /// MEMORY LAYOUT
     /// $97 = length of "train" vector
@@ -96,27 +122,33 @@ impl RunWithProgram {
         let count_train: usize = self.train_pairs.len();
         let count_test: usize = self.test_pairs.len();
         let count_all: usize = count_train + count_test;
+
         // memory[97] = length of "train" vector
         let count_train_bigint: BigInt = count_train.to_bigint().expect("count_train.to_bigint");
         state.set_u64(97, count_train_bigint).context("set_u64 count_train_bigint")?;
+
         // memory[98] = length of "test" vector
         let count_test_bigint: BigInt = count_test.to_bigint().expect("count_test.to_bigint");
         state.set_u64(98, count_test_bigint).context("set_u64 count_test_bigint")?;
+
         // memory[99] = length of "train"+"test" vectors
         let count_all_bigint: BigInt = count_all.to_bigint().expect("count_all.to_bigint");
         state.set_u64(99, count_all_bigint).context("set_u64 count_all_bigint")?;
+
         // memory[x*10+100] = train[x].input
         for (index, pair) in self.train_pairs.iter().enumerate() {
             let image_number_uint: BigUint = pair.input.to_number().expect("pair.input image to number");
             let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
             state.set_u64((index * 10 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
         }
+
         // memory[x*10+101] = train[x].output
         for (index, pair) in self.train_pairs.iter().enumerate() {
             let image_number_uint: BigUint = pair.output.to_number().expect("pair.output image to number");
             let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.output BigUint to BigInt");
             state.set_u64((index * 10 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
         }
+
         // memory[(count_train + x)*10+100] = test[x].input
         for (index, pair) in self.test_pairs.iter().enumerate() {
             let image_number_uint: BigUint = pair.input.to_number().expect("pair.input image to number");
@@ -130,21 +162,21 @@ impl RunWithProgram {
     fn process_output(&self, state: &ProgramState) -> anyhow::Result<()> {
 
         // Output vector
-        let output_count: u8 = 1;
-        let mut output_vec = Vec::<BigInt>::with_capacity(output_count as usize);
-        for index in 0..output_count {
-            let value: BigInt = state.get_u64(index as u64).clone();
-            output_vec.push(value);
-        }
+        // let output_count: u8 = 1;
+        // let mut output_vec = Vec::<BigInt>::with_capacity(output_count as usize);
+        // for index in 0..output_count {
+        //     let value: BigInt = state.get_u64(index as u64).clone();
+        //     output_vec.push(value);
+        // }
 
-        // Output
-        if output_vec.len() != 1 {
-            return Err(anyhow::anyhow!("output_vec. Expected 1 output value, but got {:?}", output_vec.len()));
-        }
-        let output0_int: &BigInt = &output_vec[0];
+        // // Output
+        // if output_vec.len() != 1 {
+        //     return Err(anyhow::anyhow!("output_vec. Expected 1 output value, but got {:?}", output_vec.len()));
+        // }
+        // let output0_int: &BigInt = &output_vec[0];
 
-        let expected_output: BigInt = 3.to_bigint().unwrap();
-        assert_eq!(*output0_int, expected_output);
+        // let expected_output: BigInt = 3.to_bigint().unwrap();
+        // assert_eq!(*output0_int, expected_output);
 
         // Compare computed images with train[x].output
         for (index, pair) in self.train_pairs.iter().enumerate() {
