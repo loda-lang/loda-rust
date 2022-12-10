@@ -637,8 +637,7 @@ mod tests {
         mov $31,$$1 ; load train[x].input image
         mov $32,$$2 ; load train[x].output image
 
-        ; do something to the images
-
+        ; analyze the images
         f21 $31,101130 ; build palette image with color mapping from input to output
         mov $11,$31
         f21 $11,101030 ; hstack of the palette images
@@ -649,7 +648,6 @@ mod tests {
     lpe
     
     ; process "train"+"test" vectors
-    mov $9,0 ; number of "train"+"test" iterations
     mov $0,$99 ; set iteration counter = length of "train"+"test" vectors
     mov $1,100 ; address of vector[0].input
     mov $2,102 ; address of vector[0].computed_output
@@ -666,8 +664,6 @@ mod tests {
         f21 $31,101052 ; replace colors using palette image
 
         mov $$2,$31 ; save vector[x].computed_output image
-
-        add $9,1 ; increment number of "train"+"test" iterations
 
         ; next iteration
         add $1,10 ; jump to address of next input image
