@@ -36,6 +36,7 @@ mod read_testdata;
 mod register_arc_functions;
 mod run_with_program;
 mod test_convert;
+mod traverse_programs_and_models;
 
 pub use arc_json_model::{Grid, GridToImage, ImagePair, Model, TaskPair};
 pub use convolution2x2::convolution2x2;
@@ -70,3 +71,4 @@ pub use palette_image::PaletteImage;
 pub use read_testdata::read_testdata;
 pub use register_arc_functions::register_arc_functions;
 pub use run_with_program::{RunWithProgram, RunWithProgramResult};
+pub use traverse_programs_and_models::TraverseProgramsAndModels;

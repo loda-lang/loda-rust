@@ -1,10 +1,11 @@
 //! The `loda-rust arc` subcommand, perform ARC Challenge experiments.
+use crate::arc::TraverseProgramsAndModels;
 
-pub struct SubcommandARC {}
+pub struct SubcommandARC;
 
 impl SubcommandARC {
     pub async fn run() -> anyhow::Result<()> {
-        println!("hello");
+        TraverseProgramsAndModels::run().await?;
         Ok(())
     }
 }
