@@ -1520,7 +1520,7 @@ mod tests {
                 if count == pairs.len() {
                     found_one_or_more_solutions = true;
                     found_program_indexes.push(program_index);
-                    println!("program {} is a solution for {:?}", program_index, item.id);
+                    println!("program[{}], name: {} is a solution for {:?}", program_index, program_item.name, item.id);
                 }
             }
 
