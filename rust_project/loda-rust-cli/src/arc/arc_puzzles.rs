@@ -22,31 +22,64 @@ mod tests {
         // let input: Image = model.test[0].input.to_image().expect("image");
         // let output: Image = model.test[0].output.to_image().expect("image");
 
-        let input_padded: Image = input.padding_with_color(1, 0).expect("image");
-
-        // TODO: port to LODA
-        let result_bm: Image = convolution3x3(&input_padded, |bm| {
-            let mut found = false;
-            for y in 0..3i32 {
-                for x in 0..3i32 {
-                    if x == 1 && y == 1 {
-                        continue;
-                    }
-                    let pixel_value: u8 = bm.get(x, y).unwrap_or(255);
-                    if pixel_value == 5 {
-                        found = true;
-                    }
-                }
-            }
-            let mut value: u8 = bm.get(1, 1).unwrap_or(255);
-            if found {
-                value = 1;
-            }
-            Ok(value)
-        }).expect("image");
+        let background_pixel_color: u8 = input.most_popular_color().expect("pixel");
+        let result_bm: Image = input.outline_type1(1, background_pixel_color).expect("image");
 
         assert_eq!(result_bm, output);
+        Ok(())
+    }
 
+    const ADVANCED_PROGRAM_4258A5F9: &'static str = r#"
+    mov $40,0 ; outline color
+
+    ; process "train" vector
+    mov $80,$97 ; set iteration counter = length of "train" vector
+    mov $81,100 ; address of first training data train[0].input
+    mov $82,101 ; address of first training data train[0].output
+    lps $80
+        mov $0,$$81 ; load train[x].input image
+        mov $1,$$82 ; load train[x].output image
+
+        ; analyze the output images
+        f12 $1,101070 ; least popular colors
+        mov $40,$2 ; get the outline color
+
+        ; next iteration
+        add $81,10 ; jump to address of next training input image
+        add $82,10 ; jump to address of next training output image
+    lpe
+    
+    ; process "train"+"test" vectors
+    mov $80,$99 ; set iteration counter = length of "train"+"test" vectors
+    mov $81,100 ; address of vector[0].input
+    mov $82,102 ; address of vector[0].computed_output
+    lps $80
+        mov $0,$$81 ; load vector[x].input image
+
+        mov $5,$0
+        f11 $5,101060 ; most popular color
+
+        mov $1,$40 ; outline color
+        mov $2,$5 ; background color
+        f31 $0,101080 ; draw outline
+
+        mov $$82,$0 ; save vector[x].computed_output image
+
+        ; next iteration
+        add $81,10 ; jump to address of next input image
+        add $82,10 ; jump to address of next computed_output image
+    lpe
+    "#;
+
+    #[test]
+    fn test_10001_puzzle_4258a5f9_loda() -> anyhow::Result<()> {
+        let model: Model = Model::load_testdata("4258a5f9").expect("model");
+        let program = ADVANCED_PROGRAM_4258A5F9;
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_advanced(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
         Ok(())
     }
 
@@ -595,7 +628,7 @@ mod tests {
         Ok(())
     }
 
-    const ADVANCED_PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS: &'static str = r#"
+    const ADVANCED_PROGRAM_A79310A0: &'static str = r#"
     mov $40,0 ; palette image accumulated
 
     ; process "train" vector
@@ -643,7 +676,7 @@ mod tests {
     #[test]
     fn test_100004_puzzle_a79310a0_loop_over_images_in_loda() -> anyhow::Result<()> {
         let model: Model = Model::load_testdata("a79310a0").expect("model");
-        let program = ADVANCED_PROGRAM_A79310A0_WITH_MULTIPLE_INPUTS;
+        let program = ADVANCED_PROGRAM_A79310A0;
         let instance = RunWithProgram::new(model).expect("RunWithProgram");
         let result: RunWithProgramResult = instance.run_advanced(program).expect("result");
         assert_eq!(result.messages(), "");
