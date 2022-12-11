@@ -96,14 +96,8 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
-        let noise_colors: Vec<u8> = input.one_pixel_noise_color_vec().expect("vec");
-        let noise_color0: u8 = *noise_colors.first().expect("1 or more noise colors");
-
-        let image_denoised: Image = input.denoise_type2(noise_color0).expect("image");
-
-        let w: u8 = input.width() / 3;
-        let h: u8 = input.height() / 3;
-        let result_image: Image = image_denoised.resize(w, h).expect("image");
+        let image_denoised: Image = input.denoise_type3(3).expect("image");
+        let result_image: Image = image_denoised.remove_duplicates().expect("image");
 
         assert_eq!(result_image, output);
         Ok(())

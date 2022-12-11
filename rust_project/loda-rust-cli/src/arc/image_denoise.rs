@@ -1,8 +1,9 @@
-use super::{Image, ImageHistogram, ImagePadding, Histogram, convolution3x3};
+use super::{Image, ImageHistogram, ImagePadding, ImageNoiseColor, Histogram, convolution3x3};
 
 pub trait ImageDenoise {
     fn denoise_type1(&self, background_color: u8) -> anyhow::Result<Image>;
     fn denoise_type2(&self, noise_color: u8) -> anyhow::Result<Image>;
+    fn denoise_type3(&self, repair_iterations: u8) -> anyhow::Result<Image>;
 }
 
 impl ImageDenoise for Image {
@@ -89,6 +90,23 @@ impl ImageDenoise for Image {
         })?;
 
         Ok(denoised_image)
+    }
+
+    fn denoise_type3(&self, repair_iterations: u8) -> anyhow::Result<Image> {
+        if repair_iterations == 0 {
+            return Err(anyhow::anyhow!("The number of repair iterations must be 1 or greater"));
+        }
+        let mut noise_color_vec: Vec<u8> = self.one_pixel_noise_color_vec()?;
+        noise_color_vec.reverse();
+
+        let mut image: Image = self.clone();
+        for (index, noise_color) in noise_color_vec.iter().enumerate() {
+            if index >= (repair_iterations as usize) {
+                break;
+            }
+            image = image.denoise_type2(*noise_color)?;
+        }
+        Ok(image)
     }
 }
 
@@ -210,6 +228,60 @@ mod tests {
             0, 0, 0, 7, 7, 7, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(9, 9, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30000_denoise_type3_single_pixel_little_denoising() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            5, 0, 1, 0, 0,
+            0, 0, 0, 3, 3,
+            0, 5, 0, 3, 3,
+            2, 2, 0, 3, 3,
+            2, 2, 5, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, input_pixels).expect("image");
+
+        // Act
+        let actual: Image = input.denoise_type3(1).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            5, 0, 0, 0, 0,
+            0, 0, 0, 3, 3,
+            0, 5, 0, 3, 3,
+            2, 2, 0, 3, 3,
+            2, 2, 5, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30001_denoise_type3_single_pixel_more_denoising() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            5, 0, 1, 0, 0,
+            0, 0, 0, 3, 3,
+            0, 5, 0, 3, 3,
+            2, 2, 0, 3, 3,
+            2, 2, 5, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, input_pixels).expect("image");
+
+        // Act
+        let actual: Image = input.denoise_type3(2).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 0, 0, 3, 3,
+            0, 0, 0, 3, 3,
+            2, 2, 0, 3, 3,
+            2, 2, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }
