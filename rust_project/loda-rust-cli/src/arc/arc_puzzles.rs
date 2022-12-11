@@ -1384,15 +1384,27 @@ mod tests {
         ";
         
         const PROGRAM16: &'static str = "
-        f11 $0,101200 ; resize x*2 y*2
+        mov $1,$0
+        mov $2,$0
+        f11 $1,101000 ; get width
+        f11 $2,101001 ; get height
+        mul $1,2
+        mul $2,2
+        ; $1 is width
+        ; $2 is height
+        f31 $0,101200 ; resize image
         ";
         
         const PROGRAM17: &'static str = "
-        f11 $0,101201 ; resize x*3 y*3
-        ";
-        
-        const _PROGRAM18: &'static str = "
-        f11 $0,101202 ; resize x/2 y/2
+        mov $1,$0
+        mov $2,$0
+        f11 $1,101000 ; get width
+        f11 $2,101001 ; get height
+        mul $1,3
+        mul $2,3
+        ; $1 is width
+        ; $2 is height
+        f31 $0,101200 ; resize image
         ";
         
         const PROGRAMS: &'static [&'static str] = &[
@@ -1424,7 +1436,6 @@ mod tests {
             // PROGRAM15,
             PROGRAM16,
             PROGRAM17,
-            // PROGRAM18,
         ];
 
         enum ProgramType {

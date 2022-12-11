@@ -677,38 +677,29 @@ impl UnofficialFunction for ImagePaddingFunction {
     }
 }
 
-#[derive(Debug)]
-enum ImageResizeFunctionMode {
-    XYMul2,
-    XYMul3,
-    XYDiv2,
-}
-
 struct ImageResizeFunction {
     id: u32,
-    mode: ImageResizeFunctionMode,
 }
 
 impl ImageResizeFunction {
-    fn new(id: u32, mode: ImageResizeFunctionMode) -> Self {
+    fn new(id: u32) -> Self {
         Self {
             id,
-            mode,
         }
     }
 }
 
 impl UnofficialFunction for ImageResizeFunction {
     fn id(&self) -> UnofficialFunctionId {
-        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
     }
 
     fn name(&self) -> String {
-        format!("ImageResizeFunction {:?}", self.mode)
+        format!("Resize image to size width x height")
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
-        if input.len() != 1 {
+        if input.len() != 3 {
             return Err(anyhow::anyhow!("Wrong number of inputs"));
         }
 
@@ -717,20 +708,16 @@ impl UnofficialFunction for ImageResizeFunction {
             return Err(anyhow::anyhow!("Input[0] must be non-negative"));
         }
         let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
-        let mut image: Image = input0_uint.to_image()?;
+        let image: Image = input0_uint.to_image()?;
 
-        match self.mode {
-            ImageResizeFunctionMode::XYMul2 => {
-                image = image.resize(image.width() * 2, image.height() * 2)?;
-            },
-            ImageResizeFunctionMode::XYMul3 => {
-                image = image.resize(image.width() * 3, image.height() * 3)?;
-            },
-            ImageResizeFunctionMode::XYDiv2 => {
-                image = image.resize(image.width() / 2, image.height() / 2)?;
-            },
-        }
-        let output_uint: BigUint = image.to_number()?;
+        // input1 is width
+        let width: u8 = input[1].to_u8().context("u8 width")?;
+
+        // input2 is height
+        let height: u8 = input[2].to_u8().context("u8 height")?;
+
+        let output_image = image.resize(width, height)?;
+        let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
     }
@@ -1303,9 +1290,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageFlipFunction::new(101192, ImageFlipFunctionMode::FlipXY));
 
     // Image resize
-    register_function!(ImageResizeFunction::new(101200, ImageResizeFunctionMode::XYMul2));
-    register_function!(ImageResizeFunction::new(101201, ImageResizeFunctionMode::XYMul3));
-    register_function!(ImageResizeFunction::new(101202, ImageResizeFunctionMode::XYDiv2));
+    register_function!(ImageResizeFunction::new(101200));
 
     // Padding top/bottom, left/right
     register_function!(ImagePaddingFunction::new(101220, ImagePaddingFunctionMode::TopBottom));
