@@ -1347,20 +1347,24 @@ impl UnofficialFunction for ImageBuildPaletteMapFunction {
 }
 
 #[derive(Debug)]
-enum ImageGetRowColumnFunctionMode {
-    Top,
-    Bottom,
-    Left,
-    Right,
+enum ImageExtractRowColumnFunctionMode {
+    GetTop,
+    GetBottom,
+    GetLeft,
+    GetRight,
+    RemoveTop,
+    RemoveBottom,
+    RemoveLeft,
+    RemoveRight,
 }
 
-struct ImageGetRowColumnFunction {
+struct ImageExtractRowColumnFunction {
     id: u32,
-    mode: ImageGetRowColumnFunctionMode,
+    mode: ImageExtractRowColumnFunctionMode,
 }
 
-impl ImageGetRowColumnFunction {
-    fn new(id: u32, mode: ImageGetRowColumnFunctionMode) -> Self {
+impl ImageExtractRowColumnFunction {
+    fn new(id: u32, mode: ImageExtractRowColumnFunctionMode) -> Self {
         Self {
             id,
             mode,
@@ -1368,24 +1372,36 @@ impl ImageGetRowColumnFunction {
     }
 }
 
-impl UnofficialFunction for ImageGetRowColumnFunction {
+impl UnofficialFunction for ImageExtractRowColumnFunction {
     fn id(&self) -> UnofficialFunctionId {
         UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
     }
 
     fn name(&self) -> String {
         match self.mode {
-            ImageGetRowColumnFunctionMode::Top => {
-                return "extract N top rows".to_string();
+            ImageExtractRowColumnFunctionMode::GetTop => {
+                return "get N top rows".to_string();
             },
-            ImageGetRowColumnFunctionMode::Bottom => {
-                return "extract N bottom rows".to_string();
+            ImageExtractRowColumnFunctionMode::GetBottom => {
+                return "get N bottom rows".to_string();
             },
-            ImageGetRowColumnFunctionMode::Left => {
-                return "extract N left columns".to_string();
+            ImageExtractRowColumnFunctionMode::GetLeft => {
+                return "get N left columns".to_string();
             },
-            ImageGetRowColumnFunctionMode::Right => {
-                return "extract N right columns".to_string();
+            ImageExtractRowColumnFunctionMode::GetRight => {
+                return "get N right columns".to_string();
+            },
+            ImageExtractRowColumnFunctionMode::RemoveTop => {
+                return "remove N top rows".to_string();
+            },
+            ImageExtractRowColumnFunctionMode::RemoveBottom => {
+                return "remove N bottom rows".to_string();
+            },
+            ImageExtractRowColumnFunctionMode::RemoveLeft => {
+                return "remove N left columns".to_string();
+            },
+            ImageExtractRowColumnFunctionMode::RemoveRight => {
+                return "remove N right columns".to_string();
             },
         }
     }
@@ -1406,17 +1422,29 @@ impl UnofficialFunction for ImageGetRowColumnFunction {
         let n: u8 = input[1].to_u8().context("u8 padding_count")?;
 
         match self.mode {
-            ImageGetRowColumnFunctionMode::Top => {
+            ImageExtractRowColumnFunctionMode::GetTop => {
                 image = image.top_rows(n)?;
             },
-            ImageGetRowColumnFunctionMode::Bottom => {
+            ImageExtractRowColumnFunctionMode::GetBottom => {
                 image = image.bottom_rows(n)?;
             },
-            ImageGetRowColumnFunctionMode::Left => {
+            ImageExtractRowColumnFunctionMode::GetLeft => {
                 image = image.left_columns(n)?;
             },
-            ImageGetRowColumnFunctionMode::Right => {
+            ImageExtractRowColumnFunctionMode::GetRight => {
                 image = image.right_columns(n)?;
+            },
+            ImageExtractRowColumnFunctionMode::RemoveTop => {
+                image = image.remove_top_rows(n)?;
+            },
+            ImageExtractRowColumnFunctionMode::RemoveBottom => {
+                image = image.remove_bottom_rows(n)?;
+            },
+            ImageExtractRowColumnFunctionMode::RemoveLeft => {
+                image = image.remove_left_columns(n)?;
+            },
+            ImageExtractRowColumnFunctionMode::RemoveRight => {
+                image = image.remove_right_columns(n)?;
             },
         }
         let output_uint: BigUint = image.to_number()?;
@@ -1565,11 +1593,15 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImagePaddingFunction::new(101212, ImagePaddingFunctionMode::Left));
     register_function!(ImagePaddingFunction::new(101213, ImagePaddingFunctionMode::Right));
 
-    // Get N rows/columns
-    register_function!(ImageGetRowColumnFunction::new(101220, ImageGetRowColumnFunctionMode::Top));
-    register_function!(ImageGetRowColumnFunction::new(101221, ImageGetRowColumnFunctionMode::Bottom));
-    register_function!(ImageGetRowColumnFunction::new(101222, ImageGetRowColumnFunctionMode::Left));
-    register_function!(ImageGetRowColumnFunction::new(101223, ImageGetRowColumnFunctionMode::Right));
+    // Extract N rows/columns
+    register_function!(ImageExtractRowColumnFunction::new(101220, ImageExtractRowColumnFunctionMode::GetTop));
+    register_function!(ImageExtractRowColumnFunction::new(101221, ImageExtractRowColumnFunctionMode::GetBottom));
+    register_function!(ImageExtractRowColumnFunction::new(101222, ImageExtractRowColumnFunctionMode::GetLeft));
+    register_function!(ImageExtractRowColumnFunction::new(101223, ImageExtractRowColumnFunctionMode::GetRight));
+    register_function!(ImageExtractRowColumnFunction::new(101224, ImageExtractRowColumnFunctionMode::RemoveTop));
+    register_function!(ImageExtractRowColumnFunction::new(101225, ImageExtractRowColumnFunctionMode::RemoveBottom));
+    register_function!(ImageExtractRowColumnFunction::new(101226, ImageExtractRowColumnFunctionMode::RemoveLeft));
+    register_function!(ImageExtractRowColumnFunction::new(101227, ImageExtractRowColumnFunctionMode::RemoveRight));
     
     // Histogram
     register_function!(ImageHistogramFunction::new(101230));
