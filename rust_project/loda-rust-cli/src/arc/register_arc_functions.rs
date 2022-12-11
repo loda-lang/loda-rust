@@ -919,6 +919,59 @@ impl UnofficialFunction for ImageOverlayAnotherImageByColorMaskFunction {
     }
 }
 
+struct ImageOverlayAnotherImageAtPositionFunction {
+    id: u32,
+}
+
+impl ImageOverlayAnotherImageAtPositionFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageOverlayAnotherImageAtPositionFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 4, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Image: Overlay another image at position (x, y)".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 4 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image0: Image = input0_uint.to_image()?;
+
+        // input1 is image
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let image1: Image = input1_uint.to_image()?;
+
+        // input2 is position x
+        let position_x: i32 = input[2].to_i32().context("i32 position x")?;
+
+        // input3 is position y
+        let position_y: i32 = input[3].to_i32().context("i32 position y")?;
+
+        let output_image: Image = image0.overlay_with_position(&image1, position_x, position_y)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct ImageOutlineFunction {
     id: u32,
 }
@@ -1445,6 +1498,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Overlay by color
     register_function!(ImageOverlayAnotherImageByColorMaskFunction::new(101150));
+    register_function!(ImageOverlayAnotherImageAtPositionFunction::new(101151));
 
     // Trim
     register_function!(ImageTrimFunction::new(101160));
