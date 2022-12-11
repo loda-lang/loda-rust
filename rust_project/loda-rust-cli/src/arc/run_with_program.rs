@@ -2,7 +2,7 @@ use super::{Image, ImagePair, ImageToNumber, Model, NumberToImage, register_arc_
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
-use loda_rust_core::unofficial_function::UnofficialFunctionRegistry;
+use loda_rust_core::unofficial_function::{UnofficialFunctionRegistry, register_common_functions};
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use anyhow::Context;
 use num_bigint::{BigInt, BigUint, ToBigInt};
@@ -53,6 +53,7 @@ impl RunWithProgram {
 
     pub fn create_dependency_manager() -> DependencyManager {
         let registry = UnofficialFunctionRegistry::new();
+        register_common_functions(&registry);
         register_arc_functions(&registry);
         let dm = DependencyManager::new(
             DependencyManagerFileSystemMode::Virtual,
