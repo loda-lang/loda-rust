@@ -1,7 +1,7 @@
 use super::{Image, ImageRemoveRowColumn};
 use bit_set::BitSet;
 
-pub trait ImageGetRowColumn {
+pub trait ImageExtractRowColumn {
     /// Take N rows from the top of the image.
     fn top_rows(&self, row_count: u8) -> anyhow::Result<Image>;
 
@@ -27,7 +27,7 @@ pub trait ImageGetRowColumn {
     fn remove_right_columns(&self, column_count: u8) -> anyhow::Result<Image>;
 }
 
-impl ImageGetRowColumn for Image {
+impl ImageExtractRowColumn for Image {
     fn top_rows(&self, row_count: u8) -> anyhow::Result<Image> {
         extract_top_bottom(&self, row_count, 0)
     }

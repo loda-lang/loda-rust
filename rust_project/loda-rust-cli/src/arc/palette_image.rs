@@ -1,4 +1,4 @@
-use super::{Image, ImageHistogram, ImageGetRowColumn, ImageStack, ImageSymmetry};
+use super::{Image, ImageHistogram, ImageExtractRowColumn, ImageStack, ImageSymmetry};
 
 pub struct PaletteImage;
 
