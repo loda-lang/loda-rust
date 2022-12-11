@@ -2,8 +2,8 @@
 mod tests {
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram, RunWithProgramResult, ImageGetRowColumn};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate};
-    use crate::arc::{Image, convolution2x2, convolution3x3};
-    use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding, ImageStack};
+    use crate::arc::{Image, convolution2x2};
+    use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImageStack};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, PaletteImage};
     use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole};
     use bit_set::BitSet;
@@ -96,44 +96,12 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
-        let input_padded: Image = input.padding_with_color(1, 0).expect("image");
+        let image_denoised: Image = input.denoise_type2(5).expect("image");
+        let w: u8 = input.width() / 3;
+        let h: u8 = input.height() / 3;
+        let result_image: Image = image_denoised.resize(w, h).expect("image");
 
-        // TODO: port to LODA
-        let result_bm: Image = convolution3x3(&input_padded, |bm| {
-            let value: u8 = bm.get(1, 1).unwrap_or(255);
-            if value != 5 {
-                // not a noisy pixel
-                return Ok(value);
-            }
-            // this is a noise pixel. Look at the surrounding pixels, and take the most popular
-            let mut histogram: Vec<u8> = vec![0; 256];
-            for y in 0..3i32 {
-                for x in 0..3i32 {
-                    let pixel_value: u8 = bm.get(x, y).unwrap_or(255);
-                    let original_count: u8 = match histogram.get(pixel_value as usize) {
-                        Some(value) => *value,
-                        None => {
-                            return Err(anyhow::anyhow!("Integrity error. Counter in histogram out of bounds"));
-                        }
-                    };
-                    let count: u8 = (original_count + 1) & 255;
-                    histogram[pixel_value as usize] = count;
-                }
-            }
-            let mut found_count: u8 = 0;
-            let mut found_value: usize = 0;
-            for (pixel_value, number_of_occurences) in histogram.iter().enumerate() {
-                if *number_of_occurences > found_count {
-                    found_count = *number_of_occurences;
-                    found_value = pixel_value;
-                }
-            }
-            let value: u8 = (found_value & 255) as u8;
-            Ok(value)
-        }).expect("image");
-
-        let result_bm2 = result_bm.resize(3, 3).expect("image");
-        assert_eq!(result_bm2, output);
+        assert_eq!(result_image, output);
         Ok(())
     }
 

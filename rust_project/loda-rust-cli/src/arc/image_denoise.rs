@@ -1,7 +1,8 @@
-use super::{Image, ImagePadding, convolution3x3};
+use super::{Image, ImageHistogram, ImagePadding, Histogram, convolution3x3};
 
 pub trait ImageDenoise {
     fn denoise_type1(&self, background_color: u8) -> anyhow::Result<Image>;
+    fn denoise_type2(&self, noise_color: u8) -> anyhow::Result<Image>;
 }
 
 impl ImageDenoise for Image {
@@ -29,6 +30,64 @@ impl ImageDenoise for Image {
             }
             Ok(background_color)
         })?;
+        Ok(denoised_image)
+    }
+
+    fn denoise_type2(&self, noise_color: u8) -> anyhow::Result<Image> {
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+        
+        // find an unused color for use as padding_color
+        let histogram: Histogram = self.histogram_all();
+        let padding_color: u8 = match histogram.unused_color() {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("All colors are used in the histogram. Cannot pick a padding color"));
+            }
+        };
+
+        let input_padded: Image = self.padding_with_color(1, padding_color)?;
+
+        let denoised_image: Image = convolution3x3(&input_padded, |bm| {
+            let value: u8 = bm.get(1, 1).unwrap_or(255);
+            if value != noise_color {
+                // not a noisy pixel
+                return Ok(value);
+            }
+            // this is a noise pixel. Look at the surrounding pixels, and take the most popular
+            let mut histogram: Vec<u8> = vec![0; 256];
+            for y in 0..3i32 {
+                for x in 0..3i32 {
+                    if y == 1 && x == 1 {
+                        continue;
+                    }
+                    let pixel_value: u8 = bm.get(x, y).unwrap_or(255);
+                    if pixel_value == padding_color {
+                        continue;
+                    }
+                    let original_count: u8 = match histogram.get(pixel_value as usize) {
+                        Some(value) => *value,
+                        None => {
+                            return Err(anyhow::anyhow!("Integrity error. Counter in histogram out of bounds"));
+                        }
+                    };
+                    let count: u8 = (original_count + 1) & 255;
+                    histogram[pixel_value as usize] = count;
+                }
+            }
+            let mut found_count: u8 = 0;
+            let mut found_value: usize = 0;
+            for (pixel_value, number_of_occurences) in histogram.iter().enumerate() {
+                if *number_of_occurences > found_count {
+                    found_count = *number_of_occurences;
+                    found_value = pixel_value;
+                }
+            }
+            let value: u8 = (found_value & 255) as u8;
+            Ok(value)
+        })?;
+
         Ok(denoised_image)
     }
 }
@@ -81,6 +140,76 @@ mod tests {
             2, 2, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20000_denoise_type2_some_objects() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            3, 3, 3, 0, 0, 0, 8, 8, 8,
+            3, 3, 3, 0, 0, 0, 8, 5, 8,
+            3, 3, 3, 0, 0, 0, 8, 8, 8,
+            0, 0, 0, 7, 5, 7, 0, 0, 0,
+            0, 0, 0, 7, 7, 7, 0, 0, 0,
+            0, 0, 0, 7, 7, 7, 0, 0, 0,
+            6, 6, 6, 0, 0, 5, 9, 9, 9,
+            6, 6, 6, 0, 0, 0, 9, 9, 9,
+            6, 5, 6, 0, 5, 0, 9, 9, 5,
+        ];
+        let input: Image = Image::try_create(9, 9, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.denoise_type2(5).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            3, 3, 3, 0, 0, 0, 8, 8, 8,
+            3, 3, 3, 0, 0, 0, 8, 8, 8,
+            3, 3, 3, 0, 0, 0, 8, 8, 8,
+            0, 0, 0, 7, 7, 7, 0, 0, 0,
+            0, 0, 0, 7, 7, 7, 0, 0, 0,
+            0, 0, 0, 7, 7, 7, 0, 0, 0,
+            6, 6, 6, 0, 0, 0, 9, 9, 9,
+            6, 6, 6, 0, 0, 0, 9, 9, 9,
+            6, 6, 6, 0, 0, 0, 9, 9, 9,
+        ];
+        let expected: Image = Image::try_create(9, 9, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20001_denoise_type2_some_objects() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 2, 2, 2, 0, 0, 0,
+            0, 5, 0, 2, 2, 2, 0, 0, 0,
+            0, 0, 0, 2, 2, 2, 0, 0, 0,
+            5, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 5, 0, 0, 0, 5, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 5, 0, 7, 7, 7, 0, 0, 0,
+            0, 0, 0, 7, 7, 5, 0, 0, 0,
+            0, 0, 0, 7, 7, 7, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(9, 9, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.denoise_type2(5).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 2, 2, 2, 0, 0, 0,
+            0, 0, 0, 2, 2, 2, 0, 0, 0,
+            0, 0, 0, 2, 2, 2, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 7, 7, 7, 0, 0, 0,
+            0, 0, 0, 7, 7, 7, 0, 0, 0,
+            0, 0, 0, 7, 7, 7, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(9, 9, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }
