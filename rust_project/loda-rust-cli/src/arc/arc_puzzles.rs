@@ -103,6 +103,23 @@ mod tests {
         Ok(())
     }
 
+    const PROGRAM_5614DBCF: &'static str = "
+    mov $1,3 ; number of noise colors to remove
+    f21 $0,101092 ; denoise type 3
+    f11 $0,101140 ; remove duplicates
+    ";
+
+    #[test]
+    fn test_20001_puzzle_5614dbcf_loda() {
+        let model: Model = Model::load_testdata("5614dbcf").expect("model");
+        let program = PROGRAM_5614DBCF;
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
     #[test]
     fn test_30000_puzzle_2013d3e2() -> anyhow::Result<()> {
         let model: Model = Model::load_testdata("2013d3e2")?;
