@@ -1,4 +1,4 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageGetRowColumn};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole};
 use super::{ImageRemoveGrid, PaletteImage};
@@ -1207,6 +1207,85 @@ impl UnofficialFunction for ImageBuildPaletteMapFunction {
     }
 }
 
+#[derive(Debug)]
+enum ImageGetRowColumnFunctionMode {
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
+
+struct ImageGetRowColumnFunction {
+    id: u32,
+    mode: ImageGetRowColumnFunctionMode,
+}
+
+impl ImageGetRowColumnFunction {
+    fn new(id: u32, mode: ImageGetRowColumnFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageGetRowColumnFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            ImageGetRowColumnFunctionMode::Top => {
+                return "extract N top rows".to_string();
+            },
+            ImageGetRowColumnFunctionMode::Bottom => {
+                return "extract N bottom rows".to_string();
+            },
+            ImageGetRowColumnFunctionMode::Left => {
+                return "extract N left columns".to_string();
+            },
+            ImageGetRowColumnFunctionMode::Right => {
+                return "extract N right columns".to_string();
+            },
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let mut image: Image = input0_uint.to_image()?;
+
+        // input1 is number of rows/columns
+        let n: u8 = input[1].to_u8().context("u8 padding_count")?;
+
+        match self.mode {
+            ImageGetRowColumnFunctionMode::Top => {
+                image = image.top_rows(n)?;
+            },
+            ImageGetRowColumnFunctionMode::Bottom => {
+                image = image.bottom_rows(n)?;
+            },
+            ImageGetRowColumnFunctionMode::Left => {
+                image = image.left_columns(n)?;
+            },
+            ImageGetRowColumnFunctionMode::Right => {
+                image = image.right_columns(n)?;
+            },
+        }
+        let output_uint: BigUint = image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -1301,4 +1380,10 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImagePaddingFunction::new(101211, ImagePaddingFunctionMode::Bottom));
     register_function!(ImagePaddingFunction::new(101212, ImagePaddingFunctionMode::Left));
     register_function!(ImagePaddingFunction::new(101213, ImagePaddingFunctionMode::Right));
+
+    // Get N rows/columns
+    register_function!(ImageGetRowColumnFunction::new(101220, ImageGetRowColumnFunctionMode::Top));
+    register_function!(ImageGetRowColumnFunction::new(101221, ImageGetRowColumnFunctionMode::Bottom));
+    register_function!(ImageGetRowColumnFunction::new(101222, ImageGetRowColumnFunctionMode::Left));
+    register_function!(ImageGetRowColumnFunction::new(101223, ImageGetRowColumnFunctionMode::Right));
 }
