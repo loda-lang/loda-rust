@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram, RunWithProgramResult};
+    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram, RunWithProgramResult, ImageGetRowColumn};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageToNumber, NumberToImage, ImageOutline, ImageRotate};
     use crate::arc::{Image, convolution2x2, convolution3x3};
     use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImagePadding, ImageStack};
@@ -127,21 +127,11 @@ mod tests {
 
         let input_trimmed: Image = input.trim().expect("image");
 
-        // TODO: port to LODA
-        let mut result_bitmap = Image::zero(3, 3);
-        for y in 0..3 {
-            for x in 0..3 {
-                let pixel_value: u8 = input_trimmed.get(x, y).unwrap_or(255);
-                match result_bitmap.set(x, y, pixel_value) {
-                    Some(()) => {},
-                    None => {
-                        return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
-                    }
-                }
-            }
-        }
+        // Extract top/left corner
+        let top_rows: Image = input_trimmed.top_rows(input_trimmed.height() / 2).expect("image");
+        let result_image: Image = top_rows.left_columns(input_trimmed.height() / 2).expect("image");
 
-        assert_eq!(result_bitmap, output);
+        assert_eq!(result_image, output);
         Ok(())
     }
 
