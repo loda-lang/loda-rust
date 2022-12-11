@@ -3,7 +3,7 @@ mod tests {
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram, RunWithProgramResult, ImageGetRowColumn};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate};
     use crate::arc::{Image, convolution2x2};
-    use crate::arc::{ImageResize, ImageTrim, ImageRemoveDuplicates, ImageStack};
+    use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, PaletteImage};
     use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole};
     use bit_set::BitSet;
@@ -407,31 +407,18 @@ mod tests {
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
         // TODO: port to LODA
-        let mut result_bitmap: Image = Image::zero(9, 9);
+        let mut image: Image = Image::zero(9, 9);
         for y in 0..input.height() {
             for x in 0..input.width() {
                 let mask_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
                 if mask_value == 0 {
                     continue;
                 }
-                // Copy the entire input image
-                for yy in 0..input.height() {
-                    for xx in 0..input.width() {
-                        let pixel_value: u8 = input.get(xx as i32, yy as i32).unwrap_or(255);
-                        let set_x: i32 = (xx as i32) + (x as i32) * 3;
-                        let set_y: i32 = (yy as i32) + (y as i32) * 3;
-                        match result_bitmap.set(set_x, set_y, pixel_value) {
-                            Some(()) => {},
-                            None => {
-                                return Err(anyhow::anyhow!("Unable to set pixel ({}, {}) in the result_bitmap", set_x, set_y));
-                            }
-                        }
-                    }
-                }
+                image = image.overlay_with_position(&input, (x * 3) as i32, (y * 3) as i32)?;
             }
         }
 
-        assert_eq!(result_bitmap, output);
+        assert_eq!(image, output);
         Ok(())
     }
 
