@@ -1315,75 +1315,37 @@ mod tests {
         }
         println!("number of items: {}", items.len());
 
-        const _PROGRAM1: &'static str = "
-        mov $1,1
+        const PROGRAM1: &'static str = "
+        mov $1,2
         f21 $0,101170 ; rotate
         ";
 
         const PROGRAM2: &'static str = "
-        mov $1,2
+        mov $1,-1
         f21 $0,101170 ; rotate
         ";
 
         const PROGRAM3: &'static str = "
-        mov $1,-1
-        f21 $0,101170 ; rotate
+        f11 $0,101160 ; trim
         ";
 
         const PROGRAM4: &'static str = "
-        f11 $0,101160 ; trim
-        ";
-
-        const PROGRAM5: &'static str = "
         f11 $0,101190 ; flip x
         ";
 
-        const PROGRAM6: &'static str = "
+        const PROGRAM5: &'static str = "
         f11 $0,101191 ; flip y
         ";
 
-        const PROGRAM7: &'static str = "
+        const PROGRAM6: &'static str = "
         f11 $0,101192 ; flip xy
         ";
 
-        const PROGRAM8: &'static str = "
+        const PROGRAM7: &'static str = "
         f11 $0,101140 ; remove duplicates
         ";
-
-        const _PROGRAM10: &'static str = "
-        mov $1,0
-        f21 $0,101240 ; pad by 1 pixel evenly
-        ";
-
-        const _PROGRAM11: &'static str = "
-        mov $1,0
-        f21 $0,101220 ; pad by 1 pixel top/bottom
-        ";
-
-        const _PROGRAM12: &'static str = "
-        mov $1,0
-        f21 $0,101221 ; pad by 1 pixel left/right
-        ";
-
-        const _PROGRAM13: &'static str = "
-        f11 $0,101160 ; trim
-        mov $1,-1
-        f21 $0,101170 ; rotate
-        ";
-
-        const _PROGRAM14: &'static str = "
-        f11 $0,101160 ; trim
-        mov $1,1
-        f21 $0,101170 ; rotate
-        ";
-
-        const _PROGRAM15: &'static str = "
-        f11 $0,101160 ; trim
-        mov $1,2
-        f21 $0,101170 ; rotate
-        ";
         
-        const PROGRAM16: &'static str = "
+        const PROGRAM8: &'static str = "
         mov $1,$0
         mov $2,$0
         f11 $1,101000 ; get width
@@ -1395,7 +1357,7 @@ mod tests {
         f31 $0,101200 ; resize image
         ";
         
-        const PROGRAM17: &'static str = "
+        const PROGRAM9: &'static str = "
         mov $1,$0
         mov $2,$0
         f11 $1,101000 ; get width
@@ -1420,22 +1382,15 @@ mod tests {
             PROGRAM_9565186B,
             PROGRAM_A79310A0,
             PROGRAM_B9B7F026,
-            // PROGRAM1, 
-            PROGRAM2, 
+            PROGRAM1,
+            PROGRAM2,
             PROGRAM3,
             PROGRAM4,
             PROGRAM5,
             PROGRAM6,
             PROGRAM7,
             PROGRAM8,
-            // PROGRAM10,
-            // PROGRAM11,
-            // PROGRAM12,
-            // PROGRAM13,
-            // PROGRAM14,
-            // PROGRAM15,
-            PROGRAM16,
-            PROGRAM17,
+            PROGRAM9,
         ];
 
         enum ProgramType {
