@@ -601,13 +601,10 @@ impl UnofficialFunction for ImageFlipFunction {
 
 #[derive(Debug)]
 enum ImagePaddingFunctionMode {
-    Even,
-    TopBottom,
-    LeftRight,
-    TopLeft,
-    TopRight,
-    BottomLeft,
-    BottomRight,
+    Top,
+    Bottom,
+    Left,
+    Right,
 }
 
 struct ImagePaddingFunction {
@@ -626,15 +623,28 @@ impl ImagePaddingFunction {
 
 impl UnofficialFunction for ImagePaddingFunction {
     fn id(&self) -> UnofficialFunctionId {
-        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
     }
 
     fn name(&self) -> String {
-        format!("ImagePaddingFunction {:?} pad by one pixel with color", self.mode)
+        match self.mode {
+            ImagePaddingFunctionMode::Top => {
+                return "top padding by N rows with color".to_string();
+            },
+            ImagePaddingFunctionMode::Bottom => {
+                return "bottom padding by N rows with color".to_string();
+            },
+            ImagePaddingFunctionMode::Left => {
+                return "left padding by N columns with color".to_string();
+            },
+            ImagePaddingFunctionMode::Right => {
+                return "right padding by N columns with color".to_string();
+            },
+        }
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
-        if input.len() != 2 {
+        if input.len() != 3 {
             return Err(anyhow::anyhow!("Wrong number of inputs"));
         }
 
@@ -645,30 +655,24 @@ impl UnofficialFunction for ImagePaddingFunction {
         let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
         let mut image: Image = input0_uint.to_image()?;
 
-        // input1 is pixel_color 
-        let pixel_color: u8 = input[1].to_u8().context("u8 pixel_color")?;
+        // input1 is number of rows/columns
+        let n: u8 = input[1].to_u8().context("u8 padding_count")?;
+
+        // input2 is pixel_color 
+        let pixel_color: u8 = input[2].to_u8().context("u8 pixel_color")?;
 
         match self.mode {
-            ImagePaddingFunctionMode::Even => {
-                image = image.padding_advanced(1, 1, 1, 1, pixel_color)?;
+            ImagePaddingFunctionMode::Top => {
+                image = image.padding_advanced(n, 0, 0, 0, pixel_color)?;
             },
-            ImagePaddingFunctionMode::TopBottom => {
-                image = image.padding_advanced(1, 0, 0, 1, pixel_color)?;
+            ImagePaddingFunctionMode::Bottom => {
+                image = image.padding_advanced(0, 0, 0, n, pixel_color)?;
             },
-            ImagePaddingFunctionMode::LeftRight => {
-                image = image.padding_advanced(0, 1, 1, 0, pixel_color)?;
+            ImagePaddingFunctionMode::Left => {
+                image = image.padding_advanced(0, n, 0, 0, pixel_color)?;
             },
-            ImagePaddingFunctionMode::TopLeft => {
-                image = image.padding_advanced(1, 1, 0, 0, pixel_color)?;
-            },
-            ImagePaddingFunctionMode::TopRight => {
-                image = image.padding_advanced(1, 0, 1, 0, pixel_color)?;
-            },
-            ImagePaddingFunctionMode::BottomLeft => {
-                image = image.padding_advanced(0, 1, 0, 1, pixel_color)?;
-            },
-            ImagePaddingFunctionMode::BottomRight => {
-                image = image.padding_advanced(0, 0, 1, 1, pixel_color)?;
+            ImagePaddingFunctionMode::Right => {
+                image = image.padding_advanced(0, 0, n, 0, pixel_color)?;
             },
         }
         let output_uint: BigUint = image.to_number()?;
@@ -1292,16 +1296,9 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     // Image resize
     register_function!(ImageResizeFunction::new(101200));
 
-    // Padding top/bottom, left/right
-    register_function!(ImagePaddingFunction::new(101220, ImagePaddingFunctionMode::TopBottom));
-    register_function!(ImagePaddingFunction::new(101221, ImagePaddingFunctionMode::LeftRight));
-
-    // Padding in corners
-    register_function!(ImagePaddingFunction::new(101230, ImagePaddingFunctionMode::TopLeft));
-    register_function!(ImagePaddingFunction::new(101231, ImagePaddingFunctionMode::TopRight));
-    register_function!(ImagePaddingFunction::new(101232, ImagePaddingFunctionMode::BottomLeft));
-    register_function!(ImagePaddingFunction::new(101233, ImagePaddingFunctionMode::BottomRight));
-
-    // Padding evenly
-    register_function!(ImagePaddingFunction::new(101240, ImagePaddingFunctionMode::Even));
+    // Padding
+    register_function!(ImagePaddingFunction::new(101210, ImagePaddingFunctionMode::Top));
+    register_function!(ImagePaddingFunction::new(101211, ImagePaddingFunctionMode::Bottom));
+    register_function!(ImagePaddingFunction::new(101212, ImagePaddingFunctionMode::Left));
+    register_function!(ImagePaddingFunction::new(101213, ImagePaddingFunctionMode::Right));
 }
