@@ -965,11 +965,11 @@ impl UnofficialFunction for ImageOutlineFunction {
     }
 }
 
-struct ImageDenoiseFunction {
+struct ImageDenoiseType1Function {
     id: u32,
 }
 
-impl ImageDenoiseFunction {
+impl ImageDenoiseType1Function {
     fn new(id: u32) -> Self {
         Self {
             id,
@@ -977,13 +977,13 @@ impl ImageDenoiseFunction {
     }
 }
 
-impl UnofficialFunction for ImageDenoiseFunction {
+impl UnofficialFunction for ImageDenoiseType1Function {
     fn id(&self) -> UnofficialFunctionId {
         UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
     }
 
     fn name(&self) -> String {
-        "Image: denoise noisy pixels. Takes a background color parameter.".to_string()
+        "Denoise type1. denoise noisy pixels. Takes a 2nd parameter: background color.".to_string()
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
@@ -1002,6 +1002,92 @@ impl UnofficialFunction for ImageDenoiseFunction {
         let background_color: u8 = input[1].to_u8().context("u8 pixel_color")?;
 
         let output_image: Image = image.denoise_type1(background_color)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct ImageDenoiseType2Function {
+    id: u32,
+}
+
+impl ImageDenoiseType2Function {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageDenoiseType2Function {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Denoise type2. denoise noisy pixels. Takes a 2nd parameter: noise color.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        // input1 is pixel_color 
+        let noise_color: u8 = input[1].to_u8().context("u8 pixel_color")?;
+
+        let output_image: Image = image.denoise_type2(noise_color)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct ImageDenoiseType3Function {
+    id: u32,
+}
+
+impl ImageDenoiseType3Function {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageDenoiseType3Function {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Denoise type3. denoise noisy pixels. Takes a 2nd parameter: number of repair iterations.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        // input1 is repair_iterations 
+        let repair_iterations: u8 = input[1].to_u8().context("u8 repair_iterations")?;
+
+        let output_image: Image = image.denoise_type3(repair_iterations)?;
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
@@ -1335,7 +1421,9 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageOutlineFunction::new(101080));
     
     // Denoise
-    register_function!(ImageDenoiseFunction::new(101090));
+    register_function!(ImageDenoiseType1Function::new(101090));
+    register_function!(ImageDenoiseType2Function::new(101091));
+    register_function!(ImageDenoiseType3Function::new(101092));
 
     // Extract noise colors from (noise image, denoised image)
     for n in 1..=9 {
