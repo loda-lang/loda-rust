@@ -422,6 +422,73 @@ mod tests {
         Ok(())
     }
 
+    const PROGRAM_007BBFB7: &'static str = "
+    mov $22,0 ; background color
+    mov $19,$0
+
+    mov $20,$0
+    f11 $20,101000 ; get width
+
+    mov $21,$0
+    f11 $21,101000 ; get height
+
+    mov $0,$20
+    pow $0,2 ; width * width
+    mov $1,$21
+    pow $1,2 ; height * height
+    mov $2,0 ; fill color
+    f31 $0,101010 ; create image of size 9x9 with color 0
+
+    mov $11,0 ; reset y position
+
+    mov $8,$21 ; height
+    lps $8 ; loop over rows
+
+        mov $10,0 ; reset x position
+
+        mov $9,$20 ; width
+        lps $9 ; loop over columns
+
+            mov $3,$19 ; input image
+            mov $4,$10 ; x
+            mov $5,$11 ; y
+            f31 $3,101002 ; get pixel
+
+            cmp $3,$22
+            cmp $3,0
+            ; if the pixel is differnt than the background color
+            ; then overlay the image
+            lps $3
+
+                mov $1,$19 ; the image to be overlayed
+
+                mov $2,$10 ; x
+                mul $2,$20 ; x * width
+
+                mov $3,$11 ; y
+                mul $3,$21 ; y * width
+
+                f41 $0,101151 ; overlay with image
+            lpe
+
+            add $10,1 ; next column
+        lpe
+
+        add $11,1 ; next row
+    lpe
+    ";
+
+    #[test]
+    fn test_80001_puzzle_007bbfb7_loda() {
+        let model: Model = Model::load_testdata("007bbfb7").expect("model");
+        let program = PROGRAM_007BBFB7;
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 5);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
     #[test]
     fn test_90000_puzzle_b9b7f026_manual() {
         let model: Model = Model::load_testdata("b9b7f026").expect("model");
