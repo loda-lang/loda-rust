@@ -8,6 +8,7 @@ use anyhow::Context;
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::Signed;
 use std::path::PathBuf;
+use std::fmt;
 
 pub struct RunWithProgramResult {
     message_items: Vec::<String>,
@@ -26,6 +27,12 @@ impl RunWithProgramResult {
 
     pub fn count_test_correct(&self) -> usize {
         self.count_test_correct
+    }
+}
+
+impl fmt::Debug for RunWithProgramResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "RunWithProgramResult count_train_correct: {} count_test_correct: {}\n message {}", self.count_train_correct, self.count_test_correct, self.messages())
     }
 }
 
