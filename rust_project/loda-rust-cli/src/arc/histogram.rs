@@ -141,6 +141,16 @@ impl Histogram {
         }
         Ok(image)
     }
+
+    /// Find the lowest available color, that is not used in the histogram
+    pub fn unused_color(&self) -> Option<u8> {
+        for index in 0..=255u8 {
+            if self.counters[index as usize] == 0 {
+                return Some(index);
+            }
+        }
+        None
+    }
 }
 
 #[cfg(test)]
@@ -343,5 +353,36 @@ mod tests {
         let h = Histogram::new();
         let actual: Image = h.to_image().expect("image");
         assert_eq!(actual, Image::empty());
+    }
+
+    #[test]
+    fn test_80000_unused_color_some() {
+        // Arrange
+        let mut h = Histogram::new();
+        let values: [u8; 11] = [0, 0, 2, 1, 1, 1, 9, 9, 5, 3, 3];
+        for value in values {
+            h.increment(value);
+        }
+
+        // Act
+        let actual: Option<u8> = h.unused_color();
+
+        // Assert
+        assert_eq!(actual, Some(4));
+    }
+
+    #[test]
+    fn test_80001_unused_color_none() {
+        // Arrange
+        let mut h = Histogram::new();
+        for value in 0..=255u8 {
+            h.increment(value);
+        }
+
+        // Act
+        let actual: Option<u8> = h.unused_color();
+
+        // Assert
+        assert_eq!(actual, None);
     }
 }
