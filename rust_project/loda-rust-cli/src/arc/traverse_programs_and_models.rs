@@ -25,6 +25,7 @@ impl TraverseProgramsAndModels {
         };
         instance.load_arc_models()?;
         instance.load_programs()?;
+        // instance.model_item_vec_filter()?;
         instance.run_inner()?;
         Ok(())
     }
@@ -40,6 +41,7 @@ impl TraverseProgramsAndModels {
             let item = ModelItem {
                 id: ModelItemId::Path { path: path.clone() },
                 model,
+                enabled: true,
             };
             model_item_vec.push(item);
         }
@@ -47,6 +49,25 @@ impl TraverseProgramsAndModels {
             error!("Skipped some models. paths.len()={}, but model_item_vec.len()={}", paths.len(), model_item_vec.len());
         }
         self.model_item_vec = model_item_vec;
+        Ok(())
+    }
+
+    fn model_item_vec_filter(&mut self) -> anyhow::Result<()> {
+        let pattern: String = "f8ff".to_string();
+        for model_item in self.model_item_vec.iter_mut() {
+            model_item.enabled = false;
+        }
+        for model_item in self.model_item_vec.iter_mut() {
+            match &model_item.id {
+                ModelItemId::None => {},
+                ModelItemId::Path { path } => {
+                    let s: String = path.to_string_lossy().to_string();
+                    if s.contains(&pattern) {
+                        model_item.enabled = true;
+                    }
+                }
+            }
+        }
         Ok(())
     }
 
@@ -103,6 +124,8 @@ impl TraverseProgramsAndModels {
 
     fn run_inner(&mut self) -> anyhow::Result<()> {
 
+        let verbose: bool = false;
+
         let mut count_match: usize = 0;
         let mut count_mismatch: usize = 0;
         let mut found_program_indexes: Vec<usize> = vec!();
@@ -111,6 +134,9 @@ impl TraverseProgramsAndModels {
         let pb = ProgressBar::new((self.model_item_vec.len()+1) as u64);
         for model_item in &self.model_item_vec {
             pb.inc(1);
+            if !model_item.enabled {
+                continue;
+            }
             let model: Model = model_item.model.clone();
             let instance = RunWithProgram::new(model).expect("RunWithProgram");
 
@@ -124,7 +150,10 @@ impl TraverseProgramsAndModels {
                     ProgramType::Simple => {
                         result = match instance.run_simple(&program_item.program_string) {
                             Ok(value) => value,
-                            Err(_error) => {
+                            Err(error) => {
+                                if verbose {
+                                    error!("model: {:?} simple-program: {:?} error: {:?}", model_item.id, program_item.id, error);
+                                }
                                 continue;
                             }
                         };
@@ -132,11 +161,18 @@ impl TraverseProgramsAndModels {
                     ProgramType::Advance => {
                         result = match instance.run_advanced(&program_item.program_string) {
                             Ok(value) => value,
-                            Err(_error) => {
+                            Err(error) => {
+                                if verbose {
+                                    error!("model: {:?} advanced-program: {:?} error: {:?}", model_item.id, program_item.id, error);
+                                }
                                 continue;
                             }
                         };
                     }
+                }
+
+                if verbose {
+                    println!("model: {:?} program: {:?} result: {:?}", model_item.id, program_item.id, result);
                 }
 
                 let count: usize = result.count_train_correct() + result.count_test_correct();
@@ -190,6 +226,7 @@ enum ModelItemId {
 struct ModelItem {
     id: ModelItemId,
     model: Model,
+    enabled: bool,
 }
 
 #[derive(Clone, Debug)]
