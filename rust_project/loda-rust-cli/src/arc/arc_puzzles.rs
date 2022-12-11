@@ -10,8 +10,8 @@ mod tests {
     use std::collections::HashMap;
 
     #[test]
-    fn test_10000_puzzle_4258a5f9() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("4258a5f9")?;
+    fn test_10000_puzzle_4258a5f9() {
+        let model: Model = Model::load_testdata("4258a5f9").expect("model");
         assert_eq!(model.train().len(), 2);
         assert_eq!(model.test().len(), 1);
 
@@ -26,7 +26,6 @@ mod tests {
         let result_bm: Image = input.outline_type1(1, background_pixel_color).expect("image");
 
         assert_eq!(result_bm, output);
-        Ok(())
     }
 
     const ADVANCED_PROGRAM_4258A5F9: &'static str = r#"
@@ -72,7 +71,7 @@ mod tests {
     "#;
 
     #[test]
-    fn test_10001_puzzle_4258a5f9_loda() -> anyhow::Result<()> {
+    fn test_10001_puzzle_4258a5f9_loda() {
         let model: Model = Model::load_testdata("4258a5f9").expect("model");
         let program = ADVANCED_PROGRAM_4258A5F9;
         let instance = RunWithProgram::new(model).expect("RunWithProgram");
@@ -80,12 +79,11 @@ mod tests {
         assert_eq!(result.messages(), "");
         assert_eq!(result.count_train_correct(), 2);
         assert_eq!(result.count_test_correct(), 1);
-        Ok(())
     }
 
     #[test]
-    fn test_20000_puzzle_5614dbcf() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("5614dbcf")?;
+    fn test_20000_puzzle_5614dbcf() {
+        let model: Model = Model::load_testdata("5614dbcf").expect("model");
         assert_eq!(model.train().len(), 2);
         assert_eq!(model.test().len(), 1);
 
@@ -100,7 +98,6 @@ mod tests {
         let result_image: Image = image_denoised.remove_duplicates().expect("image");
 
         assert_eq!(result_image, output);
-        Ok(())
     }
 
     const PROGRAM_5614DBCF: &'static str = "
@@ -121,8 +118,8 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_puzzle_2013d3e2() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("2013d3e2")?;
+    fn test_30000_puzzle_2013d3e2() {
+        let model: Model = Model::load_testdata("2013d3e2").expect("model");
         assert_eq!(model.train().len(), 2);
         assert_eq!(model.test().len(), 1);
 
@@ -140,7 +137,6 @@ mod tests {
         let result_image: Image = top_rows.left_columns(input_trimmed.height() / 2).expect("image");
 
         assert_eq!(result_image, output);
-        Ok(())
     }
 
     const PROGRAM_2013D3E2: &'static str = "
@@ -174,8 +170,8 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_puzzle_90c28cc7_manual() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("90c28cc7")?;
+    fn test_40000_puzzle_90c28cc7_manual() {
+        let model: Model = Model::load_testdata("90c28cc7").expect("model");
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
@@ -191,7 +187,6 @@ mod tests {
         let input_trimmed: Image = input.trim().expect("image");
         let result_bitmap: Image = input_trimmed.remove_duplicates().expect("image");
         assert_eq!(result_bitmap, output);
-        Ok(())
     }
 
     const PROGRAM_90C28CC7: &'static str = "
@@ -211,8 +206,8 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_puzzle_7468f01a_manual() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("7468f01a")?;
+    fn test_50000_puzzle_7468f01a_manual() {
+        let model: Model = Model::load_testdata("7468f01a").expect("model");
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
@@ -228,7 +223,6 @@ mod tests {
         let input_trimmed: Image = input.trim().expect("image");
         let result_bitmap: Image = input_trimmed.flip_x().expect("image");
         assert_eq!(result_bitmap, output);
-        Ok(())
     }
 
     const PROGRAM_7468F01A: &'static str = "
@@ -250,7 +244,7 @@ mod tests {
     #[test]
     fn test_60000_puzzle_63613498() -> anyhow::Result<()> {
         // TODO: port to LODA
-        let model: Model = Model::load_testdata("63613498")?;
+        let model: Model = Model::load_testdata("63613498").expect("model");
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
@@ -341,7 +335,7 @@ mod tests {
     #[test]
     fn test_70000_puzzle_cdecee7f() -> anyhow::Result<()> {
         // TODO: port to LODA
-        let model: Model = Model::load_testdata("cdecee7f")?;
+        let model: Model = Model::load_testdata("cdecee7f").expect("model");
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
@@ -442,8 +436,8 @@ mod tests {
     }
 
     #[test]
-    fn test_90000_puzzle_b9b7f026_manual() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("b9b7f026")?;
+    fn test_90000_puzzle_b9b7f026_manual() {
+        let model: Model = Model::load_testdata("b9b7f026").expect("model");
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
@@ -467,7 +461,6 @@ mod tests {
         let corner_color: u8 = corner_image.least_popular_color().expect("color");
         let result_bitmap: Image = Image::color(1, 1, corner_color);
         assert_eq!(result_bitmap, output);
-        Ok(())
     }
 
     const PROGRAM_B9B7F026: &'static str = "
@@ -497,8 +490,8 @@ mod tests {
     }
 
     #[test]
-    fn test_100000_puzzle_a79310a0_manual() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("a79310a0")?;
+    fn test_100000_puzzle_a79310a0_manual() {
+        let model: Model = Model::load_testdata("a79310a0").expect("model");
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
@@ -515,7 +508,6 @@ mod tests {
         let bitmap1: Image = bitmap0.replace_color(8, 2).expect("image");
 
         assert_eq!(bitmap1, output);
-        Ok(())
     }
 
     const PROGRAM_A79310A0: &'static str = "
@@ -586,14 +578,14 @@ mod tests {
     }
 
     #[test]
-    fn test_100003_puzzle_a79310a0_manual_without_hashmap() -> anyhow::Result<()> {
+    fn test_100003_puzzle_a79310a0_manual_without_hashmap() {
         let model: Model = Model::load_testdata("a79310a0").expect("model");
 
         // These images contain 2 colors. Build a mapping from source color to target color
         let train_pairs: Vec<ImagePair> = model.images_train().expect("pairs");
         let mut palette_image = Image::empty();
         for pair in &train_pairs {
-            let image: Image = PaletteImage::palette_image(&pair.input, &pair.output, false)?;
+            let image: Image = PaletteImage::palette_image(&pair.input, &pair.output, false).expect("image");
             palette_image = palette_image.hjoin(image).expect("image");
         }
 
@@ -608,7 +600,6 @@ mod tests {
             count += 1;
         }
         assert_eq!(count, 4);
-        Ok(())
     }
 
     const ADVANCED_PROGRAM_A79310A0: &'static str = r#"
@@ -657,7 +648,7 @@ mod tests {
     "#;
 
     #[test]
-    fn test_100004_puzzle_a79310a0_loop_over_images_in_loda() -> anyhow::Result<()> {
+    fn test_100004_puzzle_a79310a0_loop_over_images_in_loda() {
         let model: Model = Model::load_testdata("a79310a0").expect("model");
         let program = ADVANCED_PROGRAM_A79310A0;
         let instance = RunWithProgram::new(model).expect("RunWithProgram");
@@ -665,7 +656,6 @@ mod tests {
         assert_eq!(result.messages(), "");
         assert_eq!(result.count_train_correct(), 3);
         assert_eq!(result.count_test_correct(), 1);
-        Ok(())
     }
 
     /// Detect corners and edges
@@ -916,8 +906,8 @@ mod tests {
     }
 
     #[test]
-    fn test_130000_puzzle_7fe24cdd() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("7fe24cdd")?;
+    fn test_130000_puzzle_7fe24cdd() {
+        let model: Model = Model::load_testdata("7fe24cdd").expect("model");
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
@@ -932,16 +922,15 @@ mod tests {
 
         // println!("input: {:?}", input);
 
-        let row0: Image = Image::hstack(vec![input.clone(), input.rotate(1).expect("image")])?;
-        let row1: Image = Image::hstack(vec![input.rotate(3).expect("image"), input.rotate(2).expect("image")])?;
+        let row0: Image = Image::hstack(vec![input.clone(), input.rotate(1).expect("image")]).expect("image");
+        let row1: Image = Image::hstack(vec![input.rotate(3).expect("image"), input.rotate(2).expect("image")]).expect("image");
         // println!("row0: {:?}", row0);
         // println!("row1: {:?}", row1);
 
-        let image = Image::vstack(vec![row0.clone(), row1.clone()])?;
+        let image = Image::vstack(vec![row0.clone(), row1.clone()]).expect("image");
         // println!("image: {:?}", image);
 
         assert_eq!(image, output);
-        Ok(())
     }
 
     const PROGRAM_7FE24CDD: &'static str = "
@@ -980,8 +969,8 @@ mod tests {
     }
 
     #[test]
-    fn test_140000_puzzle_9565186b() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("9565186b")?;
+    fn test_140000_puzzle_9565186b() {
+        let model: Model = Model::load_testdata("9565186b").expect("model");
         assert_eq!(model.train().len(), 4);
         assert_eq!(model.test().len(), 1);
 
@@ -999,7 +988,6 @@ mod tests {
         let pixel_color: u8 = input.most_popular_color().expect("color");
         let image: Image = input.replace_colors_other_than(pixel_color, 5).expect("image");
         assert_eq!(image, output);
-        Ok(())
     }
 
     const PROGRAM_9565186B: &'static str = "
@@ -1021,8 +1009,8 @@ mod tests {
     }
 
     #[test]
-    fn test_150000_puzzle_3af2c5a8() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("3af2c5a8")?;
+    fn test_150000_puzzle_3af2c5a8() {
+        let model: Model = Model::load_testdata("3af2c5a8").expect("model");
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
@@ -1035,11 +1023,10 @@ mod tests {
         let input: Image = model.test()[0].input().to_image().expect("image");
         let output: Image = model.test()[0].output().to_image().expect("image");
 
-        let row0: Image = Image::hstack(vec![input.clone(), input.flip_x().expect("image")])?;
+        let row0: Image = Image::hstack(vec![input.clone(), input.flip_x().expect("image")]).expect("image");
         let row1: Image = row0.flip_y().expect("image");
-        let image = Image::vstack(vec![row0.clone(), row1.clone()])?;
+        let image = Image::vstack(vec![row0.clone(), row1.clone()]).expect("image");
         assert_eq!(image, output);
-        Ok(())
     }
 
     const PROGRAM_3AF2C5A8: &'static str = "
@@ -1088,8 +1075,8 @@ mod tests {
     }
 
     #[test]
-    fn test_170000_puzzle_496994bd() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("496994bd")?;
+    fn test_170000_puzzle_496994bd() {
+        let model: Model = Model::load_testdata("496994bd").expect("model");
         assert_eq!(model.train().len(), 2);
         assert_eq!(model.test().len(), 1);
 
@@ -1108,7 +1095,6 @@ mod tests {
         ).expect("image");
 
         assert_eq!(result_image, output);
-        Ok(())
     }
 
     const PROGRAM_496994BD: &'static str = "
@@ -1131,8 +1117,8 @@ mod tests {
     }
 
     #[test]
-    fn test_180000_puzzle_31aa019c() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("31aa019c")?;
+    fn test_180000_puzzle_31aa019c() {
+        let model: Model = Model::load_testdata("31aa019c").expect("model");
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
@@ -1152,7 +1138,6 @@ mod tests {
         let result_image: Image = image.outline_type1(outline_color, background_color).expect("image");
 
         assert_eq!(result_image, output);
-        Ok(())
     }
 
     const PROGRAM_31AA019C: &'static str = "
@@ -1177,8 +1162,8 @@ mod tests {
     }
 
     #[test]
-    fn test_190000_puzzle_5ad4f10b() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("5ad4f10b")?;
+    fn test_190000_puzzle_5ad4f10b() {
+        let model: Model = Model::load_testdata("5ad4f10b").expect("model");
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
@@ -1211,7 +1196,6 @@ mod tests {
         let result_image: Image = image_without_duplicates.replace_colors_other_than(background_color, noise_color).expect("image");
 
         assert_eq!(result_image, output);
-        Ok(())
     }
 
     const PROGRAM_5AD4F10B: &'static str = "
@@ -1255,8 +1239,8 @@ mod tests {
     }
 
     #[test]
-    fn test_200000_puzzle_1190e5a7() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("1190e5a7")?;
+    fn test_200000_puzzle_1190e5a7() {
+        let model: Model = Model::load_testdata("1190e5a7").expect("model");
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
@@ -1272,7 +1256,6 @@ mod tests {
         let without_duplicates: Image = input.remove_duplicates().expect("image");
         let result_image: Image = without_duplicates.remove_grid().expect("image");
         assert_eq!(result_image, output);
-        Ok(())
     }
 
     const PROGRAM_1190E5A7: &'static str = "
