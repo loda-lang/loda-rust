@@ -30,7 +30,7 @@ mod tests {
         // let input: Image = model.test[0].input.to_image().expect("image");
         // let output: Image = model.test[0].output.to_image().expect("image");
 
-        let input_padded: Image = input.zero_padding(1).expect("image");
+        let input_padded: Image = input.padding_with_color(1, 0).expect("image");
 
         // TODO: port to LODA
         let result_bm: Image = convolution3x3(&input_padded, |bm| {
@@ -71,7 +71,7 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
-        let input_padded: Image = input.zero_padding(1).expect("image");
+        let input_padded: Image = input.padding_with_color(1, 0).expect("image");
 
         // TODO: port to LODA
         let result_bm: Image = convolution3x3(&input_padded, |bm| {
