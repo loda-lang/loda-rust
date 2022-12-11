@@ -135,6 +135,36 @@ mod tests {
         Ok(())
     }
 
+    const PROGRAM_2013D3E2: &'static str = "
+    f11 $0,101160 ; trim
+
+    mov $4,$0
+    mov $5,$0
+
+    f11 $4,101000 ; get width
+    f11 $5,101001 ; get height
+
+    div $4,2
+    div $5,2
+
+    mov $1,$4
+    f21 $0,101220 ; get top rows
+    
+    mov $1,$5
+    f21 $0,101222 ; get left columns
+    ";
+
+    #[test]
+    fn test_30001_puzzle_2013d3e2_loda() {
+        let model: Model = Model::load_testdata("2013d3e2").expect("model");
+        let program = PROGRAM_2013D3E2;
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
     #[test]
     fn test_40000_puzzle_90c28cc7_manual() -> anyhow::Result<()> {
         let model: Model = Model::load_testdata("90c28cc7")?;
