@@ -1425,6 +1425,48 @@ impl UnofficialFunction for ImageGetRowColumnFunction {
     }
 }
 
+struct ImageHistogramFunction {
+    id: u32,
+}
+
+impl ImageHistogramFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageHistogramFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Histogram of image. The most popular to the left, least popular to the right. The top row is the counters. The bottom row is the colors.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        let histogram: Histogram = image.histogram_all();
+        let image: Image = histogram.to_image()?;
+
+        let output_uint: BigUint = image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -1528,4 +1570,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageGetRowColumnFunction::new(101221, ImageGetRowColumnFunctionMode::Bottom));
     register_function!(ImageGetRowColumnFunction::new(101222, ImageGetRowColumnFunctionMode::Left));
     register_function!(ImageGetRowColumnFunction::new(101223, ImageGetRowColumnFunctionMode::Right));
+    
+    // Histogram
+    register_function!(ImageHistogramFunction::new(101230));
 }
