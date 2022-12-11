@@ -406,7 +406,6 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
-        // TODO: port to LODA
         let mut image: Image = Image::zero(9, 9);
         for y in 0..input.height() {
             for x in 0..input.width() {
