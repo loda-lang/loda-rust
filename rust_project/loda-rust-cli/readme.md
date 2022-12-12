@@ -4,7 +4,7 @@
 
 It can be installed on macOS, Linux.
 
-See [Installation Guide](documents/install.md).
+See [Installation Guide](https://github.com/loda-lang/loda-rust/blob/develop/documents/install.md).
 
 
 # Usage
