@@ -1,4 +1,28 @@
-# LODA Rust
+# LODA-RUST
+
+---
+
+## Examples of LODA programs
+
+<table>
+<tr>
+<td>Program</td><td>Plot</td>
+</tr>
+<tr>
+<td><a href="https://loda-lang.org/edit/?oeis=2487"><img src="documents/a002487_program.jpg"><br>Run in browser</a></td>
+<td><a href="https://loda-lang.org/edit/?oeis=2487"><img src="documents/a002487_plot.jpg"></a></td>
+</tr>
+<tr>
+<td><a href="https://loda-lang.org/edit/?oeis=3188"><img src="documents/a003188_program.jpg"><br>Run in browser</a></td>
+<td><a href="https://loda-lang.org/edit/?oeis=3188"><img src="documents/a003188_plot.jpg"></a></td>
+</tr>
+<tr>
+<td><a href="https://loda-lang.org/edit/?oeis=10"><img src="documents/a000010_program.jpg"><br>Run in browser</a></td>
+<td><a href="https://loda-lang.org/edit/?oeis=10"><img src="documents/a000010_plot.jpg"></a></td>
+</tr>
+</table>
+
+---
 
 Hi, I'm Simon Strandgaard. I'm a fan of the [On-Line Encyclopedia of Integer Sequences® (OEIS®)](https://oeis.org/) and a fan of AI. 
 This is my attempt at doing a crossover of both. This is experimental stuff.
