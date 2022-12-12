@@ -2,7 +2,9 @@
 
 Web editor for the [LODA language](https://loda-lang.org/) so programs can run in the browser.
 
-### Examples to try out
+<br>
+
+**Examples to try out:**
 
 <table>
 <tr>
@@ -21,23 +23,31 @@ Web editor for the [LODA language](https://loda-lang.org/) so programs can run i
 
 ---
 
-Hi, I'm Simon Strandgaard. I'm a fan of the [On-Line Encyclopedia of Integer Sequences® (OEIS®)](https://oeis.org/) and a fan of AI. 
-This is my attempt at doing a crossover of both. This is experimental stuff.
+# What is LODA-RUST
 
-This repo is inspired by [Christian Krause's LODA project](https://github.com/loda-lang/loda-cpp) for mining integer sequences.
-LODA has proved to be remarkable good at making programs that correspond to OEIS integer sequences.
+LODA-RUST is a Rust implementation of the [LODA-CPP project](https://github.com/loda-lang/loda-cpp).
+
+The web editor uses LODA-RUST to run LODA programs in the browser.
+
+The LODA-RUST command line interface is available for Linux/macOS/Windows. It can do these things:
+- Evaluate a LODA program.
+- Identify recurring patterns across LODA programs.
+- Experimental LODA miner.
+
+[LODA-RUST install guide](documents/install.md)
 
 
-# Vision for LODA
+# Mining using LODA-RUST
 
-"Type in a few numbers, and get a formula".
+Please instead use [Christian Krause's LODA miner](https://loda-lang.org/mining/), it's better.
+
+The LODA-RUST miner is experimental, and not yet as good. 
+
+[LODA-RUST mining guide](/documents/mining.md) and [verbose guide to mining on raspberrypi](https://github.com/loda-lang/loda-rust/blob/develop/documents/mining-on-raspberrypi.md).
 
 
-# Contributing
+# Contribute
 
-Christian Krause's [loda-cpp miner](https://github.com/loda-lang/loda-cpp) have discovered 100000 programs so far. You can run the miner on your computer, and submit the programs being found.
+If you have CPU to spare, [run the LODA miner](https://loda-lang.org/mining/) and help discover new programs.
 
-You can implement LODA programs for OEIS sequences that doesn't already have a LODA program.
-
-Join our Slack community.
-
+[Join the LODA community on Slack](https://loda-lang.slack.com/)
