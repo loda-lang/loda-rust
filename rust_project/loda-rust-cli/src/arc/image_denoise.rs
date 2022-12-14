@@ -162,6 +162,33 @@ mod tests {
     }
 
     #[test]
+    fn test_10002_denoise_type1_diagonal_single_pixel() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            3, 0, 3, 0, 0,
+            0, 0, 0, 3, 3,
+            0, 3, 0, 3, 3,
+            2, 2, 0, 3, 3,
+            2, 2, 3, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, input_pixels).expect("image");
+
+        // Act
+        let actual: Image = input.denoise_type1(0).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 0, 0, 3, 3,
+            0, 0, 0, 3, 3,
+            2, 2, 0, 3, 3,
+            2, 2, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+    
+    #[test]
     fn test_20000_denoise_type2_some_objects() {
         // Arrange
         let pixels: Vec<u8> = vec![
