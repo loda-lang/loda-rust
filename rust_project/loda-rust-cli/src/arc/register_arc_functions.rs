@@ -1,7 +1,7 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole};
-use super::{ImageRemoveGrid, PaletteImage};
+use super::{ImageRemoveGrid, PaletteImage, ImageMask};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -1584,6 +1584,112 @@ impl UnofficialFunction for ImageNumberOfUniqueColorsFunction {
     }
 }
 
+#[derive(Debug)]
+enum ImageToMaskFunctionFunctionMode {
+    WhereColorIs,
+    WhereColorIsDifferent,
+}
+
+struct ImageToMaskFunction {
+    id: u32,
+    mode: ImageToMaskFunctionFunctionMode,
+}
+
+impl ImageToMaskFunction {
+    fn new(id: u32, mode: ImageToMaskFunctionFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageToMaskFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            ImageToMaskFunctionFunctionMode::WhereColorIs => {
+                return "Convert to a mask image by converting `color` to 1 and converting anything else to to 0.".to_string();
+            },
+            ImageToMaskFunctionFunctionMode::WhereColorIsDifferent => {
+                return "Convert to a mask image by converting `color` to 0 and converting anything else to to 1.".to_string();
+            },
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        // input1 is pixel_color 
+        let color: u8 = input[1].to_u8().context("u8 pixel_color")?;
+
+        let output_image: Image;
+        match self.mode {
+            ImageToMaskFunctionFunctionMode::WhereColorIs => {
+                output_image = image.to_mask_where_color_is(color);
+            },
+            ImageToMaskFunctionFunctionMode::WhereColorIsDifferent => {
+                output_image = image.to_mask_where_color_is_different(color);
+            },
+        }
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct ImageInvertMaskFunction {
+    id: u32,
+}
+
+impl ImageInvertMaskFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageInvertMaskFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Inverts a mask image by converting 0 to 1 and converting [1..255] to 0.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        let output_image: Image = image.invert_mask();
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -1698,4 +1804,9 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Unique colors
     register_function!(ImageNumberOfUniqueColorsFunction::new(101240));
+
+    // Mask
+    register_function!(ImageToMaskFunction::new(101250, ImageToMaskFunctionFunctionMode::WhereColorIs));
+    register_function!(ImageToMaskFunction::new(101251, ImageToMaskFunctionFunctionMode::WhereColorIsDifferent));
+    register_function!(ImageInvertMaskFunction::new(101252));
 }
