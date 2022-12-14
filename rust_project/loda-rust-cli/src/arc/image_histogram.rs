@@ -158,11 +158,11 @@ mod tests {
     fn test_30000_histogram_with_mask() {
         // Arrange
         let mask_pixels: Vec<u8> = vec![
+            0, 1, 0, 1, 1,
             0, 1, 0, 1, 0,
+            0, 1, 1, 1, 0,
             0, 1, 0, 1, 0,
-            0, 1, 0, 1, 0,
-            0, 1, 0, 1, 0,
-            0, 1, 0, 1, 0,
+            1, 1, 0, 1, 0,
         ];
         let mask: Image = Image::try_create(5, 5, mask_pixels).expect("image");
         let image_pixels: Vec<u8> = vec![
@@ -180,11 +180,11 @@ mod tests {
 
         // Assert
         let mut expected: Vec<u32> = vec![0; 256];
-        expected[0] = 2;
+        expected[0] = 3;
         expected[1] = 2;
-        expected[2] = 2;
+        expected[2] = 3;
         expected[3] = 2;
-        expected[4] = 2;
+        expected[4] = 3;
         assert_eq!(histogram_vec, expected);
     }
 
