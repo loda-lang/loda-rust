@@ -1495,6 +1495,54 @@ impl UnofficialFunction for ImageHistogramFunction {
     }
 }
 
+struct ImageHistogramWithMaskFunction {
+    id: u32,
+}
+
+impl ImageHistogramWithMaskFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageHistogramWithMaskFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Histogram of image using a mask. Only where the mask is non-zero, are the image pixels added to the histogram.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        // input1 is image
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let mask: Image = input1_uint.to_image()?;
+
+        let histogram: Histogram = image.histogram_with_mask(&mask)?;
+        let output_image: Image = histogram.to_image()?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct ImageNumberOfUniqueColorsFunction {
     id: u32,
 }
@@ -1646,6 +1694,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     
     // Histogram
     register_function!(ImageHistogramFunction::new(101230));
+    register_function!(ImageHistogramWithMaskFunction::new(101231));
 
     // Unique colors
     register_function!(ImageNumberOfUniqueColorsFunction::new(101240));
