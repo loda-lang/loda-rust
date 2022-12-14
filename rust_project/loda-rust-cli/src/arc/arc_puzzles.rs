@@ -3,7 +3,7 @@ mod tests {
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram, RunWithProgramResult, ImageExtractRowColumn};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate};
     use crate::arc::{Image, convolution2x2};
-    use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack};
+    use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageSegment, ImageSegmentAlgorithm};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, PaletteImage};
     use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole};
     use bit_set::BitSet;
@@ -1325,5 +1325,76 @@ mod tests {
         assert_eq!(result.messages(), "");
         assert_eq!(result.count_train_correct(), 3);
         assert_eq!(result.count_test_correct(), 1);
+    }
+    
+    #[test]
+    fn test_210000_puzzle_39a8645d() {
+        let model: Model = Model::load_testdata("39a8645d").expect("model");
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let object_mask_vec: Vec<Image> = input.find_object_masks(ImageSegmentAlgorithm::All).expect("image");
+
+        // Preserve colors of original image where the mask is on
+        let mut objects = Vec::<Image>::new();
+        let background_color: u8 = input.most_popular_color().expect("color");
+        for mask in &object_mask_vec {
+            let mut image: Image = input.clone();
+            // If the mask is on, then preserve the pixel as it is.
+            // If the mask is off, then clear the pixel.
+            for y in 0..(image.height() as i32) {
+                for x in 0..(image.width() as i32) {
+                    let mask_value: u8 = mask.get(x, y).unwrap_or(255);
+                    if mask_value == 0 {
+                        let _ = image.set(x, y, background_color);
+                    }
+                }
+            }
+            let object: Image = image.trim().expect("image");
+            objects.push(object);
+        }
+
+        // Build histogram of objects
+        let mut histogram = HashMap::<Image,u32>::new();
+        for object in objects {
+            let counter = histogram.entry(object).or_insert(0);
+            *counter += 1;
+        }
+
+        #[derive(Debug)]
+        struct Record {
+            pub count: u32,
+            pub image: Image,
+        }
+
+        // Convert from dictionary to array
+        let mut records = Vec::<Record>::new();
+        for (histogram_key, histogram_count) in &histogram {
+            let record = Record {
+                count: *histogram_count,
+                image: histogram_key.clone(),
+            };
+            records.push(record);
+        }
+
+        // Move the most frequently occuring items to the top
+        // Move the lesser used items to the bottom
+        records.sort_unstable_by_key(|item| item.count);
+        records.reverse();
+        
+        // Pick the item that is most popular
+        let record0: &Record = records.first().expect("record");
+
+        let result_image: Image = record0.image.clone();
+        assert_eq!(result_image, output);
     }
 }
