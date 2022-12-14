@@ -1495,6 +1495,47 @@ impl UnofficialFunction for ImageHistogramFunction {
     }
 }
 
+struct ImageNumberOfUniqueColorsFunction {
+    id: u32,
+}
+
+impl ImageNumberOfUniqueColorsFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageNumberOfUniqueColorsFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Number of unique colors in image.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        let histogram: Histogram = image.histogram_all();
+        let color_count: u32 = histogram.number_of_counters_greater_than_zero();
+
+        let output: BigInt = color_count.to_bigint().context("u32 to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -1605,4 +1646,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     
     // Histogram
     register_function!(ImageHistogramFunction::new(101230));
+
+    // Unique colors
+    register_function!(ImageNumberOfUniqueColorsFunction::new(101240));
 }
