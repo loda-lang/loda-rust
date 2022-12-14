@@ -31,7 +31,7 @@ mod subcommand_similar;
 mod subcommand_test;
 
 use subcommand_analytics::subcommand_analytics;
-use subcommand_arc::SubcommandARC;
+use subcommand_arc::{SubcommandARC, SubcommandARCMode};
 use subcommand_dependencies::subcommand_dependencies;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
 use subcommand_export_dataset::SubcommandExportDataset;
@@ -135,8 +135,12 @@ async fn main() -> anyhow::Result<()> {
         )
         .subcommand(
             Command::new("arc")
-                .about("ARC Challenge daemon process. Press CTRL-C to stop it.")
+                .about("ARC Challenge run all tests.")
                 .hide(true)
+                .arg(
+                    Arg::new("pattern")
+                        .help("Only run tests where the filename contains the pattern")
+                )
         )
         .get_matches();
 
@@ -226,8 +230,23 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if let Some(_sub_m) = matches.subcommand_matches("arc") {
-        SubcommandARC::run().await?;
+    if let Some(sub_m) = matches.subcommand_matches("arc") {
+        let mode: SubcommandARCMode;
+        if let Some(raw) = sub_m.value_of("pattern") {
+            let re = Regex::new("^[a-fA-F0-9]+$").unwrap();
+            let captures = match re.captures(raw) {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Unable to pattern, expected hexadecimal text ala \"a7f2\" or \"f00d\""));
+                }
+            };
+            let capture0: &str = captures.get(0).map_or("", |m| m.as_str());
+            let pattern_string: String = capture0.to_string();
+            mode = SubcommandARCMode::RunVerboseTestsOnlyForFilename { pattern: pattern_string };
+        } else {
+            mode = SubcommandARCMode::RunAllTests;
+        }
+        SubcommandARC::run(mode)?;
         return Ok(());
     }
 

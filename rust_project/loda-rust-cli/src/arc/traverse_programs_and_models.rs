@@ -16,7 +16,7 @@ pub struct TraverseProgramsAndModels {
 }
 
 impl TraverseProgramsAndModels {
-    pub async fn run() -> anyhow::Result<()> {
+    pub fn new() -> anyhow::Result<Self> {
         let config = Config::load();
         let mut instance = Self { 
             config,
@@ -25,9 +25,7 @@ impl TraverseProgramsAndModels {
         };
         instance.load_arc_models()?;
         instance.load_programs()?;
-        // instance.model_item_vec_filter()?;
-        instance.run_inner()?;
-        Ok(())
+        Ok(instance)
     }
 
     fn load_arc_models(&mut self) -> anyhow::Result<()> {
@@ -52,21 +50,25 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn model_item_vec_filter(&mut self) -> anyhow::Result<()> {
-        let pattern: String = "f8ff".to_string();
+    pub fn filter_model_item_vec_by_pattern(&mut self, pattern: &String) -> anyhow::Result<()> {
         for model_item in self.model_item_vec.iter_mut() {
             model_item.enabled = false;
         }
+        let mut number_of_enabled: usize = 0;
         for model_item in self.model_item_vec.iter_mut() {
             match &model_item.id {
                 ModelItemId::None => {},
                 ModelItemId::Path { path } => {
                     let s: String = path.to_string_lossy().to_string();
-                    if s.contains(&pattern) {
+                    if s.contains(pattern) {
                         model_item.enabled = true;
+                        number_of_enabled += 1;
                     }
                 }
             }
+        }
+        if number_of_enabled == 0 {
+            return Err(anyhow::anyhow!("No files match the pattern: {}", pattern));
         }
         Ok(())
     }
@@ -122,10 +124,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn run_inner(&mut self) -> anyhow::Result<()> {
-
-        let verbose: bool = false;
-
+    pub fn run(&mut self, verbose: bool) -> anyhow::Result<()> {
         let mut count_match: usize = 0;
         let mut count_mismatch: usize = 0;
         let mut found_program_indexes: Vec<usize> = vec!();
