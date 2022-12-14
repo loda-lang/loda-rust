@@ -61,7 +61,7 @@ pub use image_remove_rowcolumn::ImageRemoveRowColumn;
 pub use image_replace_color::ImageReplaceColor;
 pub use image_resize::ImageResize;
 pub use image_rotate::ImageRotate;
-pub use image_segment::ImageSegment;
+pub use image_segment::{ImageSegment, ImageSegmentAlgorithm};
 pub use image_stack::ImageStack;
 pub use image_symmetry::ImageSymmetry;
 pub use image_to_number::ImageToNumber;
