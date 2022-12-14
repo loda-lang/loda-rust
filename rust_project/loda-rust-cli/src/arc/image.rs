@@ -1,7 +1,11 @@
 use super::index_for_pixel::index_for_pixel;
 use std::fmt;
 
-/// Tiny 2D grid with 4 bits per pixel, max size 256 x 256 pixels.
+/// Tiny 2D grid with 8 bits per pixel.
+/// 
+/// The max size is 255x255 pixels.
+/// 
+/// The smalles image size is 0x0 pixels.
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub struct Image {
     width: u8,
