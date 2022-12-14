@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram, RunWithProgramResult, ImageExtractRowColumn};
-    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate};
+    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageMask};
     use crate::arc::{Image, convolution2x2};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageSegment, ImageSegmentAlgorithm};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, PaletteImage};
@@ -1348,17 +1348,9 @@ mod tests {
         let mut objects = Vec::<Image>::new();
         let background_color: u8 = input.most_popular_color().expect("color");
         for mask in &object_mask_vec {
-            let mut image: Image = input.clone();
             // If the mask is on, then preserve the pixel as it is.
             // If the mask is off, then clear the pixel.
-            for y in 0..(image.height() as i32) {
-                for x in 0..(image.width() as i32) {
-                    let mask_value: u8 = mask.get(x, y).unwrap_or(255);
-                    if mask_value == 0 {
-                        let _ = image.set(x, y, background_color);
-                    }
-                }
-            }
+            let image: Image = mask.select_from_image(&input, background_color).expect("image");
             let object: Image = image.trim().expect("image");
             objects.push(object);
         }
