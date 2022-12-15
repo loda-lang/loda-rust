@@ -2,13 +2,13 @@ use super::Image;
 
 #[derive(Debug, PartialEq)]
 pub enum ImageDetectColorSymmetryMode {
-    /// Empty image
+    /// Empty image.
     Empty,
 
     /// When the colors differ in some way that no symmetry is detected.
     NoSymmetryDetected,
 
-    /// Symmetry. When all the pixels have the same value
+    /// Symmetry. When all the pixels have the same value.
     Same,
 
     /// Horizontal symmetry. There is one color per row. And muliple colors are across the rows.
