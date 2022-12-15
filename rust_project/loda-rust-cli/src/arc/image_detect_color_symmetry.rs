@@ -2,11 +2,20 @@ use super::Image;
 
 #[derive(Debug, PartialEq)]
 pub enum ImageDetectColorSymmetryMode {
-    Same,
-    Rows,
-    Columns,
-    Different,
+    /// Empty image
     Empty,
+
+    /// When the colors differ in some way that no symmetry is detected.
+    NoSymmetryDetected,
+
+    /// Symmetry. When all the pixels have the same value
+    Same,
+
+    /// Horizontal symmetry. There is one color per row. And muliple colors are across the rows.
+    Rows,
+
+    /// Vertical symmetry. There is one color per column. And muliple colors are across the columns.
+    Columns,
 }
 
 pub trait ImageDetectColorSymmetry {
@@ -22,7 +31,7 @@ impl ImageDetectColorSymmetry for Image {
         let rows: bool = has_same_value_in_rows(&self);
         match (cols, rows) {
             (false, false) => {
-                return ImageDetectColorSymmetryMode::Different;
+                return ImageDetectColorSymmetryMode::NoSymmetryDetected;
             },
             (false, true) => {
                 return ImageDetectColorSymmetryMode::Columns;
@@ -87,7 +96,7 @@ mod tests {
         let actual: ImageDetectColorSymmetryMode = input.detect_color_symmetry();
 
         // Assert
-        assert_eq!(actual, ImageDetectColorSymmetryMode::Different);
+        assert_eq!(actual, ImageDetectColorSymmetryMode::NoSymmetryDetected);
     }
 
     #[test]
@@ -104,7 +113,7 @@ mod tests {
         let actual: ImageDetectColorSymmetryMode = input.detect_color_symmetry();
 
         // Assert
-        assert_eq!(actual, ImageDetectColorSymmetryMode::Different);
+        assert_eq!(actual, ImageDetectColorSymmetryMode::NoSymmetryDetected);
     }
 
     #[test]
@@ -121,7 +130,7 @@ mod tests {
         let actual: ImageDetectColorSymmetryMode = input.detect_color_symmetry();
 
         // Assert
-        assert_eq!(actual, ImageDetectColorSymmetryMode::Different);
+        assert_eq!(actual, ImageDetectColorSymmetryMode::NoSymmetryDetected);
     }
 
     #[test]
