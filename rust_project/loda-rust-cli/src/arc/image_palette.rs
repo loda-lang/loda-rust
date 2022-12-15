@@ -1,7 +1,8 @@
-use super::{Image, ImageHistogram, ImageExtractRowColumn, ImageStack, ImageSymmetry};
+use super::{Image, ImageHistogram, ImageExtractRowColumn, ImageStack, ImageTryCreate, ImageRotate};
+use super::{ImageSymmetry, ImageDetectColorSymmetry, ImageDetectColorSymmetryMode};
 
 pub trait ImageCreatePalette {
-    /// Histogram mapping from `self` (the source image) to `target_image`.
+    /// Color mapping from `self` (the source image) to `target_image`, based on histogram data.
     /// 
     /// This is intended for scenarios where two image have the exact same number of unique colors.
     /// 
@@ -13,6 +14,13 @@ pub trait ImageCreatePalette {
     /// - Top row is the source colors.
     /// - Bottom row is the destination colors.
     fn palette_using_histogram(&self, target_image: &Image, reverse: bool) -> anyhow::Result<Image>;
+    
+    /// Color mapping from `self` (the source image) to `target_image`, based on color symmetry data.
+    /// 
+    /// Result image:
+    /// - Top row is the source colors.
+    /// - Bottom row is the destination colors.
+    fn palette_using_color_symmetry(&self, target_image: &Image, reverse: bool) -> anyhow::Result<Image>;
 }
 
 impl ImageCreatePalette for Image {
@@ -30,16 +38,84 @@ impl ImageCreatePalette for Image {
         // The colors are stored in the bottom rows of the histogram image.
 
         // Extract the color rows
-        let row_with_colors0: Image = histogram_image0.bottom_rows(1)?;
-        let mut row_with_colors1: Image = histogram_image1.bottom_rows(1)?;
+        let source_colors: Image = histogram_image0.bottom_rows(1)?;
+        let mut target_colors: Image = histogram_image1.bottom_rows(1)?;
 
         if reverse {
-            row_with_colors1 = row_with_colors1.flip_x()?;
+            target_colors = target_colors.flip_x()?;
         }
 
         // Top row is the source colors 
         // Bottom row is the destination colors 
-        let palette_image: Image = row_with_colors0.vjoin(row_with_colors1)?;
+        let palette_image: Image = source_colors.vjoin(target_colors)?;
+        Ok(palette_image)
+    }
+
+    fn palette_using_color_symmetry(&self, target_image: &Image, reverse: bool) -> anyhow::Result<Image> {
+        let source_colors: Image;
+        match self.detect_color_symmetry() {
+            ImageDetectColorSymmetryMode::Empty => {
+                return Err(anyhow::anyhow!("Expected non-empty image, but self is empty"));
+            },
+            ImageDetectColorSymmetryMode::NoSymmetryDetected => {
+                return Err(anyhow::anyhow!("Detected no symmetry in the source image"));
+            },
+            ImageDetectColorSymmetryMode::Same => {
+                match target_image.detect_color_symmetry() {
+                    ImageDetectColorSymmetryMode::Same => {
+                        let source_color: u8 = self.get(0, 0).unwrap_or(255);
+                        let target_color: u8 = target_image.get(0, 0).unwrap_or(255);
+                        let image: Image = Image::try_create(1, 2, vec![source_color, target_color])?;
+                        return Ok(image);
+                    },
+                    _ => {
+                        return Err(anyhow::anyhow!("Detected full symmetry in the source image, but no full symmetry in the target image. Unclear what mapping to pick."));
+                    }
+                }
+            },
+            ImageDetectColorSymmetryMode::Rows => {
+                let image: Image = self.left_columns(1)?;
+                source_colors = image.rotate_ccw()?;
+            },
+            ImageDetectColorSymmetryMode::Columns => {
+                source_colors = self.top_rows(1)?;
+            }
+        }
+
+        let mut target_colors: Image;
+        match target_image.detect_color_symmetry() {
+            ImageDetectColorSymmetryMode::Empty => {
+                return Err(anyhow::anyhow!("Expected non-empty image, but self is empty"));
+            },
+            ImageDetectColorSymmetryMode::NoSymmetryDetected => {
+                return Err(anyhow::anyhow!("Detected no symmetry in the source image"));
+            },
+            ImageDetectColorSymmetryMode::Same => {
+                let target_color: u8 = target_image.get(0, 0).unwrap_or(255);
+                target_colors = Image::color(source_colors.width(), 1, target_color);
+            },
+            ImageDetectColorSymmetryMode::Rows => {
+                let image: Image = target_image.left_columns(1)?;
+                target_colors = image.rotate_ccw()?;
+                if target_colors.width() != source_colors.width() {
+                    return Err(anyhow::anyhow!("target_image.columns: Mismatch in number of symmetric colors. Cannot construct a meaningful palette."));
+                }
+            },
+            ImageDetectColorSymmetryMode::Columns => {
+                target_colors = target_image.top_rows(1)?;
+                if target_colors.width() != source_colors.width() {
+                    return Err(anyhow::anyhow!("target_image.rows: Mismatch in number of symmetric colors. Cannot construct a meaningful palette."));
+                }
+            }
+        }
+
+        if reverse {
+            target_colors = target_colors.flip_x()?;
+        }
+
+        // Top row is the source colors 
+        // Bottom row is the destination colors 
+        let palette_image: Image = source_colors.vjoin(target_colors)?;
         Ok(palette_image)
     }
 }
@@ -162,7 +238,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_error_mismatch_in_number_of_unique_colors() {
+    fn test_10004_error_mismatch_in_number_of_unique_colors() {
         // Arrange
         let input0_pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1,
@@ -182,5 +258,170 @@ mod tests {
 
         // Act
         input0.palette_using_histogram(&input1, true).expect_err("mismatch in number of unique colors");
+    }
+
+    #[test]
+    fn test_20000_color_symmetry_same_to_same() {
+        // Arrange
+        let input0_pixels: Vec<u8> = vec![
+            3, 3,
+            3, 3,
+            3, 3,
+        ];
+        let input0: Image = Image::try_create(2, 3, input0_pixels).expect("image");
+
+        let input1_pixels: Vec<u8> = vec![
+            4, 4, 4, 4,
+            4, 4, 4, 4,
+        ];
+        let input1: Image = Image::try_create(4, 2, input1_pixels).expect("image");
+
+        // Act
+        let actual: Image = input0.palette_using_color_symmetry(&input1, false).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            3, // top row is source color
+            4, // bottom row is the target color
+        ];
+        let expected: Image = Image::try_create(1, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20001_color_symmetry_same_to_error() {
+        // Arrange
+        let input0_pixels: Vec<u8> = vec![
+            3, 3,
+            3, 3,
+            3, 3,
+        ];
+        let input0: Image = Image::try_create(2, 3, input0_pixels).expect("image");
+
+        let input1_pixels: Vec<u8> = vec![
+            4, 4, 4, 4,
+            4, 4, 4, 5,
+        ];
+        let input1: Image = Image::try_create(4, 2, input1_pixels).expect("image");
+
+        // Act
+        input0.palette_using_color_symmetry(&input1, false).expect_err("should fail");
+    }
+
+    #[test]
+    fn test_20002_color_symmetry_rows_to_rows() {
+        // Arrange
+        let input0_pixels: Vec<u8> = vec![
+            3, 1, 2,
+            3, 1, 2,
+            3, 1, 2,
+            3, 1, 2,
+        ];
+        let input0: Image = Image::try_create(3, 4, input0_pixels).expect("image");
+
+        let input1_pixels: Vec<u8> = vec![
+            4, 5, 6,
+            4, 5, 6,
+            4, 5, 6,
+        ];
+        let input1: Image = Image::try_create(3, 3, input1_pixels).expect("image");
+
+        // Act
+        let actual: Image = input0.palette_using_color_symmetry(&input1, false).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            3, 1, 2, // top row is a copy of a row in input0
+            4, 5, 6, // bottom row a copy of a row in input1
+        ];
+        let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20003_color_symmetry_columns_to_columns() {
+        // Arrange
+        let input0_pixels: Vec<u8> = vec![
+            3, 3, 3, 3,
+            1, 1, 1, 1,
+            2, 2, 2, 2,
+        ];
+        let input0: Image = Image::try_create(4, 3, input0_pixels).expect("image");
+
+        let input1_pixels: Vec<u8> = vec![
+            4, 4,
+            5, 5,
+            6, 6,
+        ];
+        let input1: Image = Image::try_create(2, 3, input1_pixels).expect("image");
+
+        // Act
+        let actual: Image = input0.palette_using_color_symmetry(&input1, false).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            3, 1, 2, // top row is a copy of a row in input0
+            4, 5, 6, // bottom row a copy of a row in input1
+        ];
+        let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20004_color_symmetry_row_to_columns() {
+        // Arrange
+        let input0_pixels: Vec<u8> = vec![
+            3, 3, 3, 3,
+            1, 1, 1, 1,
+            2, 2, 2, 2,
+        ];
+        let input0: Image = Image::try_create(4, 3, input0_pixels).expect("image");
+
+        let input1_pixels: Vec<u8> = vec![
+            4, 5, 6,
+            4, 5, 6,
+        ];
+        let input1: Image = Image::try_create(3, 2, input1_pixels).expect("image");
+
+        // Act
+        let actual: Image = input0.palette_using_color_symmetry(&input1, false).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            3, 1, 2, // top row is a copy of a row in input0
+            4, 5, 6, // bottom row a copy of a row in input1
+        ];
+        let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20005_color_symmetry_columns_to_rows() {
+        // Arrange
+        let input0_pixels: Vec<u8> = vec![
+            3, 1, 2,
+            3, 1, 2,
+            3, 1, 2,
+            3, 1, 2,
+        ];
+        let input0: Image = Image::try_create(3, 4, input0_pixels).expect("image");
+
+        let input1_pixels: Vec<u8> = vec![
+            4, 4,
+            5, 5,
+            6, 6,
+        ];
+        let input1: Image = Image::try_create(2, 3, input1_pixels).expect("image");
+
+        // Act
+        let actual: Image = input0.palette_using_color_symmetry(&input1, false).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            3, 1, 2, // top row is a copy of a row in input0
+            4, 5, 6, // bottom row a copy of a row in input1
+        ];
+        let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
     }
 }
