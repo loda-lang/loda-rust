@@ -2,6 +2,7 @@ use super::Image;
 
 pub trait ImageRotate {
     fn rotate_cw(&self) -> anyhow::Result<Image>;
+    fn rotate_ccw(&self) -> anyhow::Result<Image>;
     fn rotate(&self, direction: i8) -> anyhow::Result<Image>;
 }
 
@@ -28,6 +29,10 @@ impl ImageRotate for Image {
             }
         }
         return Ok(bitmap);
+    }
+
+    fn rotate_ccw(&self) -> anyhow::Result<Image> {
+        self.rotate(-1)
     }
 
     fn rotate(&self, direction: i8) -> anyhow::Result<Image> {
@@ -190,6 +195,29 @@ mod tests {
         let bitmap1: Image = input.rotate_cw().expect("image");
         let bitmap2: Image = bitmap1.rotate_cw().expect("image");
         let expected: Image = bitmap2.rotate_cw().expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30000_rotate_ccw() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1,
+            2, 2, 2, 3,
+        ];
+        let input: Image = Image::try_create(4, 2, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.rotate_ccw().expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 3,
+            1, 2,
+            1, 2,
+            1, 2,
+        ];
+        let expected: Image = Image::try_create(2, 4, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }
