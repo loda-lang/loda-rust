@@ -176,14 +176,22 @@ impl UnofficialFunction for ImageTrimFunction {
     }
 }
 
+enum ImageRemoveDuplicatesFunctionMode {
+    RowsAndColumns,
+    Rows,
+    Columns,
+}
+
 struct ImageRemoveDuplicatesFunction {
     id: u32,
+    mode: ImageRemoveDuplicatesFunctionMode,
 }
 
 impl ImageRemoveDuplicatesFunction {
-    fn new(id: u32) -> Self {
+    fn new(id: u32, mode: ImageRemoveDuplicatesFunctionMode) -> Self {
         Self {
             id,
+            mode,
         }
     }
 }
@@ -194,7 +202,17 @@ impl UnofficialFunction for ImageRemoveDuplicatesFunction {
     }
 
     fn name(&self) -> String {
-        "Image: Remove duplicate rows/columns".to_string()
+        match self.mode {
+            ImageRemoveDuplicatesFunctionMode::RowsAndColumns => {
+                return "Image: Remove duplicate rows/columns".to_string();
+            },
+            ImageRemoveDuplicatesFunctionMode::Rows => {
+                return "Image: Remove duplicate rows".to_string();
+            },
+            ImageRemoveDuplicatesFunctionMode::Columns => {
+                return "Image: Remove duplicate columns".to_string();
+            }
+        }
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
@@ -209,7 +227,19 @@ impl UnofficialFunction for ImageRemoveDuplicatesFunction {
         let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
         let input_image: Image = input0_uint.to_image()?;
 
-        let output_image: Image = input_image.remove_duplicates()?;
+        let output_image: Image; 
+        match self.mode {
+            ImageRemoveDuplicatesFunctionMode::RowsAndColumns => {
+                output_image = input_image.remove_duplicates()?;
+            },
+            ImageRemoveDuplicatesFunctionMode::Rows => {
+                output_image = input_image.remove_duplicate_rows()?;
+            },
+            ImageRemoveDuplicatesFunctionMode::Columns => {
+                output_image = input_image.remove_duplicate_columns()?;
+            }
+        }
+        
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
@@ -1759,7 +1789,9 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageBuildPaletteMapFunction::new(101131, true));
 
     // Remove duplicates
-    register_function!(ImageRemoveDuplicatesFunction::new(101140));
+    register_function!(ImageRemoveDuplicatesFunction::new(101140, ImageRemoveDuplicatesFunctionMode::RowsAndColumns));
+    register_function!(ImageRemoveDuplicatesFunction::new(101141, ImageRemoveDuplicatesFunctionMode::Rows));
+    register_function!(ImageRemoveDuplicatesFunction::new(101142, ImageRemoveDuplicatesFunctionMode::Columns));
 
     // Overlay by color
     register_function!(ImageOverlayAnotherImageByColorMaskFunction::new(101150));
