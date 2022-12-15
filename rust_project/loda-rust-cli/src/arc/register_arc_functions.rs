@@ -1323,16 +1323,23 @@ impl UnofficialFunction for ImageRemoveGridFunction {
     }
 }
 
+enum ImageBuildPaletteMapFunctionMode {
+    HistogramBased,
+    ColorSymmetryBased,
+}
+
 struct ImageBuildPaletteMapFunction {
     id: u32,
     reverse: bool,
+    mode: ImageBuildPaletteMapFunctionMode,
 }
 
 impl ImageBuildPaletteMapFunction {
-    fn new(id: u32, reverse: bool) -> Self {
+    fn new(id: u32, reverse: bool, mode: ImageBuildPaletteMapFunctionMode) -> Self {
         Self {
             id,
             reverse,
+            mode,
         }
     }
 }
@@ -1343,10 +1350,19 @@ impl UnofficialFunction for ImageBuildPaletteMapFunction {
     }
 
     fn name(&self) -> String {
+        let suffix: String;
         if self.reverse {
-            return "Construct a reverse color mapping from one image to another image. Both images must have the same number of unique colors.".to_string()
+            suffix = " The mapping is reversed".to_string();
         } else {
-            return "Construct a forward color mapping from one image to another image. Both images must have the same number of unique colors.".to_string()
+            suffix = " The mapping is forward".to_string();
+        }
+        match self.mode {
+            ImageBuildPaletteMapFunctionMode::HistogramBased => {
+                return format!("Construct a color mapping from one image to another image, based on histogram. Both images must have the same number of unique colors.{}", suffix);
+            },
+            ImageBuildPaletteMapFunctionMode::ColorSymmetryBased => {
+                return format!("Construct a color mapping from one image to another image, based on color symmetry.{}", suffix);
+            },
         }
     }
 
@@ -1369,7 +1385,16 @@ impl UnofficialFunction for ImageBuildPaletteMapFunction {
         let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
         let image1: Image = input1_uint.to_image()?;
 
-        let output_image: Image = image0.palette_using_histogram(&image1, self.reverse)?;
+        let output_image: Image;
+        match self.mode {
+            ImageBuildPaletteMapFunctionMode::HistogramBased => {
+                output_image = image0.palette_using_histogram(&image1, self.reverse)?;
+            },
+            ImageBuildPaletteMapFunctionMode::ColorSymmetryBased => {
+                output_image = image0.palette_using_color_symmetry(&image1, self.reverse)?;
+            },
+        }
+
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
@@ -1785,8 +1810,10 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageRemoveGridFunction::new(101120));
 
     // Color mapping from one image to another image
-    register_function!(ImageBuildPaletteMapFunction::new(101130, false));
-    register_function!(ImageBuildPaletteMapFunction::new(101131, true));
+    register_function!(ImageBuildPaletteMapFunction::new(101130, false, ImageBuildPaletteMapFunctionMode::HistogramBased));
+    register_function!(ImageBuildPaletteMapFunction::new(101131, true, ImageBuildPaletteMapFunctionMode::HistogramBased));
+    register_function!(ImageBuildPaletteMapFunction::new(101132, false, ImageBuildPaletteMapFunctionMode::ColorSymmetryBased));
+    register_function!(ImageBuildPaletteMapFunction::new(101133, true, ImageBuildPaletteMapFunctionMode::ColorSymmetryBased));
 
     // Remove duplicates
     register_function!(ImageRemoveDuplicatesFunction::new(101140, ImageRemoveDuplicatesFunctionMode::RowsAndColumns));
