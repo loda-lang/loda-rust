@@ -85,10 +85,10 @@ impl ImageCreatePalette for Image {
         let mut target_colors: Image;
         match target_image.detect_color_symmetry() {
             ImageDetectColorSymmetryMode::Empty => {
-                return Err(anyhow::anyhow!("Expected non-empty image, but self is empty"));
+                return Err(anyhow::anyhow!("Expected non-empty image, but target_image is empty"));
             },
             ImageDetectColorSymmetryMode::NoSymmetryDetected => {
-                return Err(anyhow::anyhow!("Detected no symmetry in the source image"));
+                return Err(anyhow::anyhow!("Detected no symmetry in the target image"));
             },
             ImageDetectColorSymmetryMode::Same => {
                 let target_color: u8 = target_image.get(0, 0).unwrap_or(255);
