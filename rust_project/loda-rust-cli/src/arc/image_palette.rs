@@ -1,20 +1,28 @@
 use super::{Image, ImageHistogram, ImageExtractRowColumn, ImageStack, ImageSymmetry};
 
-pub struct PaletteImage;
-
-impl PaletteImage {
+pub trait ImageCreatePalette {
+    /// Histogram mapping from `self` (the source image) to `target_image`.
+    /// 
     /// This is intended for scenarios where two image have the exact same number of unique colors.
     /// 
     /// If the number of unique colors are different, then an error is returned.
     /// 
     /// If the 2 or more colors have the same count, then their ordering is random.
-    pub fn palette_image(image0: &Image, image1: &Image, reverse: bool) -> anyhow::Result<Image> {
-        let histogram0 = image0.histogram_all();
-        let histogram1 = image1.histogram_all();
+    /// 
+    /// Result image:
+    /// - Top row is the source colors.
+    /// - Bottom row is the destination colors.
+    fn palette_using_histogram(&self, target_image: &Image, reverse: bool) -> anyhow::Result<Image>;
+}
+
+impl ImageCreatePalette for Image {
+    fn palette_using_histogram(&self, target_image: &Image, reverse: bool) -> anyhow::Result<Image> {
+        let histogram0 = self.histogram_all();
+        let histogram1 = target_image.histogram_all();
         let count0: u32 = histogram0.number_of_counters_greater_than_zero();
         let count1: u32 = histogram1.number_of_counters_greater_than_zero();
         if count0 != count1 {
-            return Err(anyhow::anyhow!("both images must have the same number of colors, cannot construct mapping. image0 has {} colors. image1 has {} colors.", count0, count1));
+            return Err(anyhow::anyhow!("both images must have the same number of colors, cannot construct mapping. self has {} colors. target_image has {} colors.", count0, count1));
         }
 
         let histogram_image0: Image = histogram0.to_image()?;
@@ -57,7 +65,7 @@ mod tests {
         let input1: Image = Image::try_create(6, 1, input1_pixels).expect("image");
 
         // Act
-        let actual: Image = PaletteImage::palette_image(&input0, &input1, false).expect("image");
+        let actual: Image = input0.palette_using_histogram(&input1, false).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -84,7 +92,7 @@ mod tests {
         let input1: Image = Image::try_create(6, 1, input1_pixels).expect("image");
 
         // Act
-        let actual: Image = PaletteImage::palette_image(&input0, &input1, true).expect("image");
+        let actual: Image = input0.palette_using_histogram(&input1, true).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -113,7 +121,7 @@ mod tests {
         let input1: Image = Image::try_create(3, 1, input1_pixels).expect("image");
 
         // Act
-        let actual: Image = PaletteImage::palette_image(&input0, &input1, false).expect("image");
+        let actual: Image = input0.palette_using_histogram(&input1, false).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -142,7 +150,7 @@ mod tests {
         let input1: Image = Image::try_create(3, 1, input1_pixels).expect("image");
 
         // Act
-        let actual: Image = PaletteImage::palette_image(&input0, &input1, true).expect("image");
+        let actual: Image = input0.palette_using_histogram(&input1, true).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -173,6 +181,6 @@ mod tests {
         // input1 has 3 unique colors
 
         // Act
-        PaletteImage::palette_image(&input0, &input1, true).expect_err("mismatch in number of unique colors");
+        input0.palette_using_histogram(&input1, true).expect_err("mismatch in number of unique colors");
     }
 }

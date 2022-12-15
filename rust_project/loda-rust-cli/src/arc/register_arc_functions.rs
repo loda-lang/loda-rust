@@ -1,7 +1,7 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole};
-use super::{ImageRemoveGrid, PaletteImage, ImageMask};
+use super::{ImageRemoveGrid, ImageCreatePalette, ImageMask};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -1369,7 +1369,7 @@ impl UnofficialFunction for ImageBuildPaletteMapFunction {
         let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
         let image1: Image = input1_uint.to_image()?;
 
-        let output_image: Image = PaletteImage::palette_image(&image0, &image1, self.reverse)?;
+        let output_image: Image = image0.palette_using_histogram(&image1, self.reverse)?;
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])

@@ -4,7 +4,7 @@ mod tests {
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageMask};
     use crate::arc::{Image, convolution2x2};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageSegment, ImageSegmentAlgorithm};
-    use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, PaletteImage};
+    use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
     use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole};
     use bit_set::BitSet;
     use std::collections::HashMap;
@@ -638,7 +638,7 @@ mod tests {
         let train_pairs: Vec<ImagePair> = model.images_train().expect("pairs");
         let mut palette_image = Image::empty();
         for pair in &train_pairs {
-            let image: Image = PaletteImage::palette_image(&pair.input, &pair.output, false).expect("image");
+            let image: Image = pair.input.palette_using_histogram(&pair.output, false).expect("image");
             palette_image = palette_image.hjoin(image).expect("image");
         }
 
