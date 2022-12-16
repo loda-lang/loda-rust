@@ -68,6 +68,10 @@ impl GenomeItem {
         self.mutation_locked
     }
 
+    pub fn set_mutation_locked(&mut self, mutation_locked: bool) {
+        self.mutation_locked = mutation_locked;
+    }
+
     pub fn is_enabled(&self) -> bool {
         self.enabled
     }

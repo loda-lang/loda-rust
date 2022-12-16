@@ -161,7 +161,14 @@ impl TraverseProgramsAndModels {
         println!("; INPUT PROGRAM\n; program_index: {}\n; id: {:?}\n\n{}", program_index, program_item.id, initial_parsed_program);
 
         let genome_vec: Vec<GenomeItem> = initial_parsed_program.to_genome_item_vec();
+
+        // locking rows
+        // for i in 0..3 {
+        //     genome_vec[i].set_mutation_locked(true);
+        // }
+
         genome.set_genome_vec(genome_vec);
+
         
         let mut dependency_manager: DependencyManager = RunWithProgram::create_dependency_manager();
 
