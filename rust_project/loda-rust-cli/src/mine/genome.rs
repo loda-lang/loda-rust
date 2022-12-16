@@ -1095,6 +1095,8 @@ impl Genome {
 
     /// Flip `source` to `Constant`, and assign a value from histogram.
     /// 
+    /// Ignore rows where `source` already is `Constant`.
+    /// 
     /// Return `true` when the mutation was successful.
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
@@ -1102,6 +1104,9 @@ impl Genome {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
             if genome_item.is_mutation_locked() {
+                continue;
+            }
+            if genome_item.source_type() == ParameterType::Constant {
                 continue;
             }
             match genome_item.instruction_id() {
@@ -1114,9 +1119,6 @@ impl Genome {
                     continue;
                 },
                 _ => {}
-            }
-            if genome_item.source_type() != ParameterType::Constant {
-                continue;
             }
             indexes.push(index);
         }
