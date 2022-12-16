@@ -1225,27 +1225,33 @@ impl Genome {
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     pub fn mutate_enabled<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        let length: usize = self.genome_vec.len();
-        if length < 1 {
-            return false;
-        }
-        let index: usize = rng.gen_range(0..length);
-        let genome_item: &mut GenomeItem = &mut self.genome_vec[index];
-
-        // Try a few times
-        for _ in 0..Self::MUTATE_RETRIES {
-            if !genome_item.mutate_enabled() {
-                // Picked an instruction that doesn't make sense to toggle, 
-                // such as `lpb` in which case the `lpe` also must be toggled, so `lpb` and `lpe` are avoided.
-                // such as instructions that use ParameterType::Indirect, which is highly sensitive.
-                // Try pick a different value
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
             }
-            // Successfully mutated
-            return true;
+            if genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            if genome_item.target_type() == RegisterType::Indirect {
+                continue;
+            }
+            if genome_item.source_type() == ParameterType::Indirect {
+                continue;
+            }
+            indexes.push(index);
         }
-        // To many tries, without picking a different value. No mutation happened.
-        false
+        if indexes.is_empty() {
+            return false;
+        }
+
+        let index: &usize = indexes.choose(rng).unwrap();
+        let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
+        let flipped = !genome_item.is_enabled();
+        genome_item.set_enabled(flipped);
+
+        // Successfully mutated
+        true
     }
 
     /// Return `true` when the mutation was successful.

@@ -146,27 +146,6 @@ impl GenomeItem {
         true
     }
 
-    pub fn mutate_enabled(&mut self) -> bool {
-        // Prevent messing up loop begin/end.
-        let is_loop = 
-            self.instruction_id == InstructionId::LoopBegin || 
-            self.instruction_id == InstructionId::LoopEnd;
-        if is_loop {
-            return false;
-        }
-
-        // Prevent messing up programs that use ParameterType::Indirect
-        let is_indirect = 
-            self.source_type == ParameterType::Indirect ||
-            self.target_type == RegisterType::Indirect;
-        if is_indirect {
-            return false;
-        }
-
-        self.enabled = !self.enabled;
-        true
-    }
-
     pub fn mutate_swap_source_target_value(&mut self) -> bool {
         if self.target_value == self.source_value {
             // No mutation happened
