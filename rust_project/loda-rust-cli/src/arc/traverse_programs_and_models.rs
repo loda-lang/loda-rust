@@ -4,6 +4,8 @@ use crate::config::Config;
 use crate::common::find_json_files_recursively;
 use crate::common::find_asm_files_recursively;
 use crate::mine::{Genome, GenomeItem, ToGenomeItemVec, create_genome_mutate_context, GenomeMutateContext};
+use loda_rust_core::control::DependencyManager;
+use loda_rust_core::execute::{ProgramSerializer, ProgramId, ProgramRunner};
 use loda_rust_core::parser::ParsedProgram;
 use std::fs;
 use std::path::PathBuf;
@@ -128,7 +130,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn genome_experiments(&mut self) -> anyhow::Result<()> {
+    fn mutate_program(&self, program_index: usize, program_item: &ProgramItem) -> anyhow::Result<()> {
         println!("loading context");
         let start = Instant::now();
         let context: GenomeMutateContext = create_genome_mutate_context(&self.config);
@@ -139,33 +141,64 @@ impl TraverseProgramsAndModels {
         let initial_random_seed: u64 = 0;
         let mut rng: StdRng = StdRng::seed_from_u64(initial_random_seed);
 
-        for (program_index, program_item) in self.program_item_vec.iter_mut().enumerate() {
+        let program_content: String;
+        match program_item.program_type {
+            ProgramType::Simple => {
+                program_content = RunWithProgram::convert_simple_to_full(&program_item.program_string);
+            },
+            ProgramType::Advance => {
+                program_content = program_item.program_string.clone();
+            }
+        }
 
+        let initial_parsed_program: ParsedProgram = match ParsedProgram::parse_program(&program_content) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("cannot parse the program: {:?}", error));
+            }
+        };
 
-            let program_content: String;
-            match program_item.program_type {
-                ProgramType::Simple => {
-                    program_content = RunWithProgram::convert_simple_to_full(&program_item.program_string);
-                },
-                ProgramType::Advance => {
-                    program_content = program_item.program_string.clone();
-                }
+        println!("; INPUT PROGRAM\n; program_index: {}\n; id: {:?}\n\n{}", program_index, program_item.id, initial_parsed_program);
+
+        let genome_vec: Vec<GenomeItem> = initial_parsed_program.to_genome_item_vec();
+        genome.set_genome_vec(genome_vec);
+        
+        let mut dependency_manager: DependencyManager = RunWithProgram::create_dependency_manager();
+
+        let mut number_of_successful_mutations: usize = 0;
+        for _ in 0..40 {
+            let mutate_success: bool = genome.mutate(&mut rng, &context);
+            if !mutate_success {
+                continue;
             }
 
-            let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&program_content) {
-                Ok(value) => value,
-                Err(error) => {
-                    return Err(anyhow::anyhow!("cannot parse the program: {:?}", error));
-                }
-            };
+            let parsed_program: ParsedProgram = genome.to_parsed_program();
+            let program_runner: ProgramRunner = dependency_manager.parse_stage2(ProgramId::ProgramWithoutId, &parsed_program).expect("ProgramRunner");
+    
+            number_of_successful_mutations += 1;
 
-            println!("program: {:?}", parsed_program);
+            let mut serializer = ProgramSerializer::new();
+            serializer.append_comment(format!("MUTATION {}", number_of_successful_mutations));
+            serializer.append_comment(format!("program_index {}", program_index));
+            serializer.append_comment(format!("program id {:?}", program_item.id));
+            serializer.append_empty_line();
+            program_runner.serialize(&mut serializer);
+            serializer.append_empty_line();
+            for message in genome.message_vec() {
+                serializer.append_comment(message);
+            }
+            serializer.append_empty_line();
+            let candidate_program: String = serializer.to_string();
+            println!("; ------\n\n{}", candidate_program);
 
-            let genome_vec: Vec<GenomeItem> = parsed_program.to_genome_item_vec();
-            genome.set_genome_vec(genome_vec);
+        }
 
-            genome.mutate(&mut rng, &context);
+        Ok(())
+    }
 
+    fn genome_experiments(&self) -> anyhow::Result<()> {
+        for (program_index, program_item) in self.program_item_vec.iter().enumerate() {
+            self.mutate_program(program_index, &program_item)?;
             println!("break after first iteration");
             break;
         }
