@@ -1258,24 +1258,28 @@ impl Genome {
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     pub fn mutate_swap_rows<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        let length: usize = self.genome_vec.len();
-        if length < 2 {
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            // Prevent messing with loop begin/end instructions.
+            if genome_item.instruction_id() == InstructionId::LoopBegin {
+                continue;
+            }
+            if genome_item.instruction_id() == InstructionId::LoopEnd {
+                continue;
+            }
+            indexes.push(index);
+        }
+        if indexes.len() < 2 {
             return false;
         }
-        let index0: usize = rng.gen_range(0..length);
-        let index1: usize = rng.gen_range(0..length);
+
+        let chosen_indexes: Vec<usize> = indexes.choose_multiple(rng, 2).cloned().collect();
+        if chosen_indexes.len() < 2 {
+            return false;
+        }
+        let index0: usize = chosen_indexes[0];
+        let index1: usize = chosen_indexes[1];
         if index0 == index1 {
-            return false;
-        }
-        let instruction0: InstructionId = self.genome_vec[index0].instruction_id();
-        let instruction1: InstructionId = self.genome_vec[index1].instruction_id();
-        // Prevent messing with loop begin/end instructions.
-        let is_loop = 
-            instruction0 == InstructionId::LoopBegin || 
-            instruction0 == InstructionId::LoopEnd ||
-            instruction1 == InstructionId::LoopBegin || 
-            instruction1 == InstructionId::LoopEnd;
-        if is_loop {
             return false;
         }
         self.genome_vec.swap(index0, index1);
