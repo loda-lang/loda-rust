@@ -3,13 +3,15 @@ use super::{RunWithProgram, RunWithProgramResult};
 use crate::config::Config;
 use crate::common::find_json_files_recursively;
 use crate::common::find_asm_files_recursively;
-use crate::mine::{Genome, GenomeItem, ToGenomeItemVec};
+use crate::mine::{Genome, GenomeItem, ToGenomeItemVec, create_genome_mutate_context, GenomeMutateContext};
+use loda_rust_core::parser::ParsedProgram;
 use std::fs;
 use std::path::PathBuf;
 use std::time::Instant;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
-use loda_rust_core::parser::ParsedProgram;
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 
 pub struct TraverseProgramsAndModels {
     config: Config,
@@ -127,7 +129,15 @@ impl TraverseProgramsAndModels {
     }
 
     fn genome_experiments(&mut self) -> anyhow::Result<()> {
+        println!("loading context");
+        let start = Instant::now();
+        let context: GenomeMutateContext = create_genome_mutate_context(&self.config);
+        println!("loaded context. elapsed: {}", HumanDuration(start.elapsed()));
+
         let mut genome = Genome::new();
+
+        let initial_random_seed: u64 = 0;
+        let mut rng: StdRng = StdRng::seed_from_u64(initial_random_seed);
 
         for (program_index, program_item) in self.program_item_vec.iter_mut().enumerate() {
 
@@ -153,6 +163,8 @@ impl TraverseProgramsAndModels {
 
             let genome_vec: Vec<GenomeItem> = parsed_program.to_genome_item_vec();
             genome.set_genome_vec(genome_vec);
+
+            genome.mutate(&mut rng, &context);
 
             println!("break after first iteration");
             break;
