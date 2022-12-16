@@ -803,7 +803,7 @@ impl Genome {
             if genome_item.is_mutation_locked() {
                 continue;
             }
-            if genome_item.source_type() != ParameterType::Direct {
+            if genome_item.target_type() != RegisterType::Direct {
                 continue;
             }
             if genome_item.instruction_id() == InstructionId::LoopEnd {
@@ -821,12 +821,12 @@ impl Genome {
         // Mutate one of the instructions
         let index: &usize = indexes.choose(rng).unwrap();
         let genome_item: &mut GenomeItem = &mut self.genome_vec[*index];
-        let value: i32 = genome_item.source_value();
+        let value: i32 = genome_item.target_value();
         if value <= i32::MIN {
             return false;
         }
         let new_value = value - 1;
-        genome_item.set_source_value(new_value);
+        genome_item.set_target_value(new_value);
         true
     }
 
