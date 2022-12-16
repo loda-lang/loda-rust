@@ -330,7 +330,7 @@ impl Genome {
             genome_item.set_source_value(picked_value);
             return true;
         }
-        // To many tries, without picking a different value. No mutation happened.
+        // Too many tries, without picking a different value. No mutation happened.
         false
     }
 
@@ -550,7 +550,7 @@ impl Genome {
             return true;
         }
 
-        // To many tries, without picking a different value. No mutation happened.
+        // Too many tries, without picking a different value. No mutation happened.
         false
     }
     
@@ -884,41 +884,49 @@ impl Genome {
         if genome_item.instruction_id() == InstructionId::LoopEnd {
             return false;
         }
-        let suggested_value: TargetValue = match context.suggest_target(rng, prev_word, next_word) {
-            Some(value) => value,
-            None => {
-                return false;
-            }
-        };
-        let parameter_value: i32;
-        let parameter_type: RegisterType;
-        match suggested_value {
-            TargetValue::Direct(value) => {
-                if value < 0 {
-                    return false;
+
+        // Try a few times
+        for _ in 0..Self::MUTATE_RETRIES {
+            let suggested_value: TargetValue = match context.suggest_target(rng, prev_word, next_word) {
+                Some(value) => value,
+                None => {
+                    continue;
                 }
-                parameter_type = RegisterType::Direct;
-                parameter_value = value; 
-            },
-            TargetValue::Indirect(value) => {
-                if value < 0 {
-                    return false;
+            };
+            let parameter_value: i32;
+            let parameter_type: RegisterType;
+            match suggested_value {
+                TargetValue::Direct(value) => {
+                    if value < 0 {
+                        continue;
+                    }
+                    parameter_type = RegisterType::Direct;
+                    parameter_value = value; 
+                },
+                TargetValue::Indirect(value) => {
+                    if value < 0 {
+                        continue;
+                    }
+                    parameter_type = RegisterType::Indirect;
+                    parameter_value = value; 
+                },
+                _ => {
+                    continue;
                 }
-                parameter_type = RegisterType::Indirect;
-                parameter_value = value; 
-            },
-            _ => {
-                return false;
+            };
+            let same_value: bool = parameter_value == genome_item.target_value();
+            let same_type: bool = parameter_type == genome_item.target_type();
+            if same_value && same_type {
+                continue;
             }
-        };
-        let same_value: bool = parameter_value == genome_item.target_value();
-        let same_type: bool = parameter_type == genome_item.target_type();
-        if same_value && same_type {
-            return false;
+            genome_item.set_target_value(parameter_value);
+            genome_item.set_target_type(parameter_type);
+
+            // Successfully picked a good value/type
+            return true;
         }
-        genome_item.set_target_value(parameter_value);
-        genome_item.set_target_type(parameter_type);
-        true
+        // Too many tries, without picking a different value. No mutation happened.
+        false
     }
 
     /// Return `true` when the mutation was successful.
@@ -979,7 +987,7 @@ impl Genome {
             // Successfully picked a good instruction
             return true;
         }
-        // To many tries, without picking a different value. No mutation happened.
+        // Too many tries, without picking a different value. No mutation happened.
         false
     }
 
