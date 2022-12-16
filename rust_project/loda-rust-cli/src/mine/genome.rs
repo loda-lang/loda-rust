@@ -90,13 +90,13 @@ impl Genome {
         let contents: String = match fs::read_to_string(&path_to_program) {
             Ok(value) => value,
             Err(error) => {
-                return Err(anyhow::anyhow!("loading program_id: {:?}, something went wrong reading the file: {:?}", program_id, error));
+                return Err(anyhow::anyhow!("load_program_with_id program_id: {:?}, cannot read the file: {:?}", program_id, error));
             }
         };
         let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&contents) {
             Ok(value) => value,
             Err(error) => {
-                return Err(anyhow::anyhow!("loading program_id: {:?}, something went wrong parsing the program: {:?}", program_id, error));
+                return Err(anyhow::anyhow!("load_program_with_id program_id: {:?}, cannot parse the program: {:?}", program_id, error));
             }
         };
         Ok(parsed_program)
