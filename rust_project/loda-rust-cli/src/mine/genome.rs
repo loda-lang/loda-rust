@@ -1113,9 +1113,6 @@ impl Genome {
     pub fn mutate_set_source_to_direct<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
-            if index == 0 {
-                continue;
-            }
             if genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
             }
