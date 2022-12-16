@@ -83,8 +83,12 @@ impl RunWithProgram {
     lpe
     "#;
 
+    pub fn convert_simple_to_full<S: AsRef<str>>(simple_program: S) -> String {
+        format!("{}\n{}\n{}", Self::SIMPLE_PROGRAM_PRE, simple_program.as_ref(), Self::SIMPLE_PROGRAM_POST)
+    }
+
     pub fn run_simple<S: AsRef<str>>(&self, simple_program: S) -> anyhow::Result<RunWithProgramResult> {
-        let program = format!("{}\n{}\n{}", Self::SIMPLE_PROGRAM_PRE, simple_program.as_ref(), Self::SIMPLE_PROGRAM_POST);
+        let program = Self::convert_simple_to_full(simple_program);
         self.run_advanced(program)
     }
 
