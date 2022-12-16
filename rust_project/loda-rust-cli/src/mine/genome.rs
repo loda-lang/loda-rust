@@ -1213,12 +1213,8 @@ impl Genome {
             if genome_item.is_mutation_locked() {
                 continue;
             }
-            match genome_item.instruction_id() {
-                InstructionId::LoopBegin | 
-                InstructionId::UnofficialLoopBeginSubtract => {
-                    continue;
-                },
-                _ => {}
+            if genome_item.instruction_id() != InstructionId::LoopBegin {
+                continue;
             }
             indexes.push(index);
         }
