@@ -1290,12 +1290,17 @@ impl Genome {
     /// 
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     pub fn mutate_swap_adjacent_rows<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        let length: usize = self.genome_vec.len();
-        if length < 3 {
+        let mut indexes: Vec<usize> = vec!();
+        for (index, _genome_item) in self.genome_vec.iter().enumerate() {
+            indexes.push(index);
+        }
+        let length: usize = indexes.len();
+        if length < 2 {
             return false;
         }
-        let index0: usize = rng.gen_range(0..length-1);
-        let index1: usize = index0 + 1;
+        let position: usize = rng.gen_range(0..length-1);
+        let index0: usize = indexes[position];
+        let index1: usize = indexes[position + 1];
         let instruction0: InstructionId = self.genome_vec[index0].instruction_id();
         let instruction1: InstructionId = self.genome_vec[index1].instruction_id();
         // Prevent reversing the order of the loop begin/end instructions.
