@@ -3,11 +3,13 @@ use super::{RunWithProgram, RunWithProgramResult};
 use crate::config::Config;
 use crate::common::find_json_files_recursively;
 use crate::common::find_asm_files_recursively;
+use crate::mine::{Genome, GenomeItem, ToGenomeItemVec};
 use std::fs;
 use std::path::PathBuf;
 use std::time::Instant;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
+use loda_rust_core::parser::ParsedProgram;
 
 pub struct TraverseProgramsAndModels {
     config: Config,
@@ -124,7 +126,44 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    fn genome_experiments(&mut self) -> anyhow::Result<()> {
+        let mut genome = Genome::new();
+
+        for (program_index, program_item) in self.program_item_vec.iter_mut().enumerate() {
+
+
+            let program_content: String;
+            match program_item.program_type {
+                ProgramType::Simple => {
+                    program_content = RunWithProgram::convert_simple_to_full(&program_item.program_string);
+                },
+                ProgramType::Advance => {
+                    program_content = program_item.program_string.clone();
+                }
+            }
+
+            let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&program_content) {
+                Ok(value) => value,
+                Err(error) => {
+                    return Err(anyhow::anyhow!("cannot parse the program: {:?}", error));
+                }
+            };
+
+            println!("program: {:?}", parsed_program);
+
+            let genome_vec: Vec<GenomeItem> = parsed_program.to_genome_item_vec();
+            genome.set_genome_vec(genome_vec);
+
+            println!("break after first iteration");
+            break;
+        }
+        Ok(())
+    }
+
     pub fn run(&mut self, verbose: bool) -> anyhow::Result<()> {
+        // self.genome_experiments()?;
+        // return Ok(());
+
         let mut count_match: usize = 0;
         let mut count_mismatch: usize = 0;
         let mut found_program_indexes: Vec<usize> = vec!();
