@@ -463,8 +463,6 @@ impl Genome {
             // It makes it hard to make sense of what is going on in the loop.
             // It's a valid construct, but it's not desired.
             // That's why `lpb` is skipped.
-            //
-            // It makes no sense mutating a `lpe` instruction.
             match genome_item.instruction_id() {
                 InstructionId::EvalSequence | 
                 InstructionId::LoopBegin | 
@@ -506,71 +504,54 @@ impl Genome {
             return false;
         }
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index1];
-        let suggested_value: SourceValue = match context.suggest_source(rng, prev_word, next_word) {
-            Some(value) => value,
-            None => {
-                return false;
-            }
-        };
-        if genome_item.instruction_id() == InstructionId::EvalSequence {
+
+        // Try a few times
+        for _ in 0..Self::MUTATE_RETRIES {
+            let suggested_value: SourceValue = match context.suggest_source(rng, prev_word, next_word) {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
+            let parameter_value: i32;
+            let parameter_type: ParameterType;
             match suggested_value {
                 SourceValue::Constant(value) => {
-                    if value == genome_item.source_value() {
-                        return false;
-                    }
+                    parameter_type = ParameterType::Constant;
+                    parameter_value = value; 
+                },
+                SourceValue::Direct(value) => {
                     if value < 0 {
-                        return false;
+                        continue;
                     }
-                    let new_program_id: u32 = value as u32;
-                    let available_program_ids: &Vec<u32> = context.available_program_ids();
-                    if !available_program_ids.contains(&new_program_id) {
-                        // The suggested program that isn't among the available programs.
-                        // This happens when the histogram csv files are outdated with the latest LODA repository.
-                        return false;
-                    }            
-                    genome_item.set_source_value(value);
-                    genome_item.set_source_type(ParameterType::Constant);
-                    return true;
+                    parameter_type = ParameterType::Direct;
+                    parameter_value = value; 
+                },
+                SourceValue::Indirect(value) => {
+                    if value < 0 {
+                        continue;
+                    }
+                    parameter_type = ParameterType::Indirect;
+                    parameter_value = value; 
                 },
                 _ => {
-                    // Do nothing. The `seq` instruction can only have ParameterType::Constant.
-                    return false;
+                    continue;
                 }
+            };
+            let same_value: bool = parameter_value == genome_item.source_value();
+            let same_type: bool = parameter_type == genome_item.source_type();
+            if same_value && same_type {
+                continue;
             }
+            genome_item.set_source_value(parameter_value);
+            genome_item.set_source_type(parameter_type);
+
+            // Successfully picked a good value/type
+            return true;
         }
-        let parameter_value: i32;
-        let parameter_type: ParameterType;
-        match suggested_value {
-            SourceValue::Constant(value) => {
-                parameter_type = ParameterType::Constant;
-                parameter_value = value; 
-            },
-            SourceValue::Direct(value) => {
-                if value < 0 {
-                    return false;
-                }
-                parameter_type = ParameterType::Direct;
-                parameter_value = value; 
-            },
-            SourceValue::Indirect(value) => {
-                if value < 0 {
-                    return false;
-                }
-                parameter_type = ParameterType::Indirect;
-                parameter_value = value; 
-            },
-            _ => {
-                return false;
-            }
-        };
-        let same_value: bool = parameter_value == genome_item.source_value();
-        let same_type: bool = parameter_type == genome_item.source_type();
-        if same_value && same_type {
-            return false;
-        }
-        genome_item.set_source_value(parameter_value);
-        genome_item.set_source_type(parameter_type);
-        true
+
+        // To many tries, without picking a different value. No mutation happened.
+        false
     }
     
 
