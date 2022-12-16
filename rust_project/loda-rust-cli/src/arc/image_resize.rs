@@ -6,14 +6,10 @@ pub trait ImageResize {
 
 impl ImageResize for Image {
     fn resize(&self, width: u8, height: u8) -> anyhow::Result<Image> {
-        let len: usize = (width as usize) * (height as usize);
-        if len == 0 {
+        if self.is_empty() {
             return Ok(Image::empty());
         }
-        let mut bitmap = Image::zero(width, height);
-        if self.width() == 0 || self.height() == 0 {
-            return Ok(bitmap);
-        }
+        let mut image = Image::zero(width, height);
         let original_width: i32 = self.width() as i32;
         let original_height: i32 = self.height() as i32;
         let new_width: i32 = width as i32;
@@ -24,7 +20,7 @@ impl ImageResize for Image {
                 let yy: i32 = (y as i32) * original_height / new_height;
                 let pixel_value = self.get(xx, yy)
                     .unwrap_or(0);
-                match bitmap.set(x as i32, y as i32, pixel_value) {
+                match image.set(x as i32, y as i32, pixel_value) {
                     Some(()) => {},
                     None => {
                         return Err(anyhow::anyhow!("cannot set pixel at ({}, {})", x, y));
@@ -32,7 +28,7 @@ impl ImageResize for Image {
                 }
             }
         }
-        Ok(bitmap)
+        Ok(image)
     }
 }
 

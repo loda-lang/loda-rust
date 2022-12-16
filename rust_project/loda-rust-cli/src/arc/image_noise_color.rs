@@ -1,7 +1,9 @@
-use super::{Image, ImageHistogram, Histogram};
+use super::{Image, ImageHistogram, Histogram, ImagePadding, convolution3x3};
 
 pub trait ImageNoiseColor {
     fn noise_color_vec(&self, denoised_image: &Image) -> anyhow::Result<Vec<u8>>;
+    fn count_duplicate_pixels_in_3x3(&self) -> anyhow::Result<Image>;
+    fn one_pixel_noise_color_vec(&self) -> anyhow::Result<Vec<u8>>;
 }
 
 impl ImageNoiseColor for Image {
@@ -24,6 +26,63 @@ impl ImageNoiseColor for Image {
             let color: u8 = pair.1;
             histogram.set_counter_to_zero(color);
         }
+        // The first element is the most frequently occuring noise
+        // The last element is the least frequently occuring noise
+        let pairs: Vec<(u32, u8)> = histogram.pairs_descending();
+        let noise_colors: Vec<u8> = pairs.iter().map(|(_count,color)| *color).collect();
+        Ok(noise_colors)
+    }
+
+    fn count_duplicate_pixels_in_3x3(&self) -> anyhow::Result<Image> {
+        // find an unused color for use as padding_color
+        let histogram: Histogram = self.histogram_all();
+        let padding_color: u8 = match histogram.unused_color() {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("All colors are used in the histogram. Cannot pick a padding color"));
+            }
+        };
+        let image_padded: Image = self.padding_with_color(1, padding_color)?;
+
+        let image: Image = convolution3x3(&image_padded, |bm| {
+            let center_color: u8 = bm.get(1, 1).unwrap_or(255);
+            let mut count: u8 = 1;
+            for y in 0..3i32 {
+                for x in 0..3i32 {
+                    if y == 1 && x == 1 {
+                        continue;
+                    }
+                    let pixel_value: u8 = bm.get(x, y).unwrap_or(255);
+                    if pixel_value == padding_color {
+                        continue;
+                    }
+                    if pixel_value == center_color {
+                        count += 1;
+                        continue;
+                    }
+                }
+            }
+            Ok(count)
+        })?;
+        Ok(image)
+    }
+
+    fn one_pixel_noise_color_vec(&self) -> anyhow::Result<Vec<u8>> {
+        let count_image: Image = self.count_duplicate_pixels_in_3x3()?;
+
+        // Histogram of all pixels where the count is just 1
+        let mut histogram = Histogram::new();
+        for y in 0..(self.height() as i32) {
+            for x in 0..(self.width() as i32) {
+                let count_value: u8 = count_image.get(x, y).unwrap_or(255);
+                if count_value > 1 {
+                    continue;
+                }
+                let pixel_value: u8 = self.get(x, y).unwrap_or(255);
+                histogram.increment(pixel_value);
+            }
+        }
+
         // The first element is the most frequently occuring noise
         // The last element is the least frequently occuring noise
         let pairs: Vec<(u32, u8)> = histogram.pairs_descending();
@@ -59,7 +118,7 @@ mod tests {
         let input_denoised: Image = Image::try_create(5, 5, input_denoised_pixels).expect("image");
 
         // Act
-        let actual: Vec<u8> = input_with_noise.noise_color_vec(&input_denoised).expect("image");
+        let actual: Vec<u8> = input_with_noise.noise_color_vec(&input_denoised).expect("vec");
 
         // Assert
         let expected: Vec<u8> = vec!();
@@ -88,7 +147,7 @@ mod tests {
         let input_denoised: Image = Image::try_create(5, 5, input_denoised_pixels).expect("image");
 
         // Act
-        let actual: Vec<u8> = input_with_noise.noise_color_vec(&input_denoised).expect("image");
+        let actual: Vec<u8> = input_with_noise.noise_color_vec(&input_denoised).expect("vec");
 
         // Assert
         let expected: Vec<u8> = vec![1];
@@ -117,7 +176,7 @@ mod tests {
         let input_denoised: Image = Image::try_create(5, 5, input_denoised_pixels).expect("image");
 
         // Act
-        let actual: Vec<u8> = input_with_noise.noise_color_vec(&input_denoised).expect("image");
+        let actual: Vec<u8> = input_with_noise.noise_color_vec(&input_denoised).expect("vec");
 
         // Assert
         let expected: Vec<u8> = vec![1, 5];
@@ -146,7 +205,54 @@ mod tests {
         let input_denoised: Image = Image::try_create(5, 5, input_denoised_pixels).expect("image");
 
         // Act
-        let actual: Vec<u8> = input_with_noise.noise_color_vec(&input_denoised).expect("image");
+        let actual: Vec<u8> = input_with_noise.noise_color_vec(&input_denoised).expect("vec");
+
+        // Assert
+        let expected: Vec<u8> = vec![5, 1];
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20000_count_duplicate_pixels_in_3x3() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            5, 0, 1, 0, 0,
+            0, 0, 0, 3, 3,
+            0, 5, 0, 3, 3,
+            2, 2, 0, 3, 3,
+            2, 2, 5, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, input_pixels).expect("image");
+
+        // Act
+        let actual: Image = input.count_duplicate_pixels_in_3x3().expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 4, 1, 3, 2,
+            4, 6, 5, 4, 4,
+            3, 1, 4, 6, 6,
+            4, 4, 3, 4, 4,
+            4, 4, 1, 3, 2,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30000_one_pixel_noise_color_vec() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            5, 0, 1, 0, 0,
+            0, 0, 0, 3, 3,
+            0, 5, 0, 3, 3,
+            2, 2, 0, 3, 3,
+            2, 2, 5, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, input_pixels).expect("image");
+
+        // Act
+        let actual: Vec<u8> = input.one_pixel_noise_color_vec().expect("vec");
 
         // Assert
         let expected: Vec<u8> = vec![5, 1];

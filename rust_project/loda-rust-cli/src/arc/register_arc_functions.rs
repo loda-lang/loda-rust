@@ -1,7 +1,7 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole};
-use super::{ImageRemoveGrid, PaletteImage};
+use super::{ImageRemoveGrid, ImageCreatePalette, ImageMask};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -176,14 +176,22 @@ impl UnofficialFunction for ImageTrimFunction {
     }
 }
 
+enum ImageRemoveDuplicatesFunctionMode {
+    RowsAndColumns,
+    Rows,
+    Columns,
+}
+
 struct ImageRemoveDuplicatesFunction {
     id: u32,
+    mode: ImageRemoveDuplicatesFunctionMode,
 }
 
 impl ImageRemoveDuplicatesFunction {
-    fn new(id: u32) -> Self {
+    fn new(id: u32, mode: ImageRemoveDuplicatesFunctionMode) -> Self {
         Self {
             id,
+            mode,
         }
     }
 }
@@ -194,7 +202,17 @@ impl UnofficialFunction for ImageRemoveDuplicatesFunction {
     }
 
     fn name(&self) -> String {
-        "Image: Remove duplicate rows/columns".to_string()
+        match self.mode {
+            ImageRemoveDuplicatesFunctionMode::RowsAndColumns => {
+                return "Image: Remove duplicate rows/columns".to_string();
+            },
+            ImageRemoveDuplicatesFunctionMode::Rows => {
+                return "Image: Remove duplicate rows".to_string();
+            },
+            ImageRemoveDuplicatesFunctionMode::Columns => {
+                return "Image: Remove duplicate columns".to_string();
+            }
+        }
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
@@ -209,7 +227,19 @@ impl UnofficialFunction for ImageRemoveDuplicatesFunction {
         let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
         let input_image: Image = input0_uint.to_image()?;
 
-        let output_image: Image = input_image.remove_duplicates()?;
+        let output_image: Image; 
+        match self.mode {
+            ImageRemoveDuplicatesFunctionMode::RowsAndColumns => {
+                output_image = input_image.remove_duplicates()?;
+            },
+            ImageRemoveDuplicatesFunctionMode::Rows => {
+                output_image = input_image.remove_duplicate_rows()?;
+            },
+            ImageRemoveDuplicatesFunctionMode::Columns => {
+                output_image = input_image.remove_duplicate_columns()?;
+            }
+        }
+        
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
@@ -601,13 +631,10 @@ impl UnofficialFunction for ImageFlipFunction {
 
 #[derive(Debug)]
 enum ImagePaddingFunctionMode {
-    Even,
-    TopBottom,
-    LeftRight,
-    TopLeft,
-    TopRight,
-    BottomLeft,
-    BottomRight,
+    Top,
+    Bottom,
+    Left,
+    Right,
 }
 
 struct ImagePaddingFunction {
@@ -626,15 +653,28 @@ impl ImagePaddingFunction {
 
 impl UnofficialFunction for ImagePaddingFunction {
     fn id(&self) -> UnofficialFunctionId {
-        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
     }
 
     fn name(&self) -> String {
-        format!("ImagePaddingFunction {:?} pad by one pixel with color", self.mode)
+        match self.mode {
+            ImagePaddingFunctionMode::Top => {
+                return "top padding by N rows with color".to_string();
+            },
+            ImagePaddingFunctionMode::Bottom => {
+                return "bottom padding by N rows with color".to_string();
+            },
+            ImagePaddingFunctionMode::Left => {
+                return "left padding by N columns with color".to_string();
+            },
+            ImagePaddingFunctionMode::Right => {
+                return "right padding by N columns with color".to_string();
+            },
+        }
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
-        if input.len() != 2 {
+        if input.len() != 3 {
             return Err(anyhow::anyhow!("Wrong number of inputs"));
         }
 
@@ -645,30 +685,24 @@ impl UnofficialFunction for ImagePaddingFunction {
         let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
         let mut image: Image = input0_uint.to_image()?;
 
-        // input1 is pixel_color 
-        let pixel_color: u8 = input[1].to_u8().context("u8 pixel_color")?;
+        // input1 is number of rows/columns
+        let n: u8 = input[1].to_u8().context("u8 padding_count")?;
+
+        // input2 is pixel_color 
+        let pixel_color: u8 = input[2].to_u8().context("u8 pixel_color")?;
 
         match self.mode {
-            ImagePaddingFunctionMode::Even => {
-                image = image.padding_advanced(1, 1, 1, 1, pixel_color)?;
+            ImagePaddingFunctionMode::Top => {
+                image = image.padding_advanced(n, 0, 0, 0, pixel_color)?;
             },
-            ImagePaddingFunctionMode::TopBottom => {
-                image = image.padding_advanced(1, 0, 0, 1, pixel_color)?;
+            ImagePaddingFunctionMode::Bottom => {
+                image = image.padding_advanced(0, 0, 0, n, pixel_color)?;
             },
-            ImagePaddingFunctionMode::LeftRight => {
-                image = image.padding_advanced(0, 1, 1, 0, pixel_color)?;
+            ImagePaddingFunctionMode::Left => {
+                image = image.padding_advanced(0, n, 0, 0, pixel_color)?;
             },
-            ImagePaddingFunctionMode::TopLeft => {
-                image = image.padding_advanced(1, 1, 0, 0, pixel_color)?;
-            },
-            ImagePaddingFunctionMode::TopRight => {
-                image = image.padding_advanced(1, 0, 1, 0, pixel_color)?;
-            },
-            ImagePaddingFunctionMode::BottomLeft => {
-                image = image.padding_advanced(0, 1, 0, 1, pixel_color)?;
-            },
-            ImagePaddingFunctionMode::BottomRight => {
-                image = image.padding_advanced(0, 0, 1, 1, pixel_color)?;
+            ImagePaddingFunctionMode::Right => {
+                image = image.padding_advanced(0, 0, n, 0, pixel_color)?;
             },
         }
         let output_uint: BigUint = image.to_number()?;
@@ -677,38 +711,29 @@ impl UnofficialFunction for ImagePaddingFunction {
     }
 }
 
-#[derive(Debug)]
-enum ImageResizeFunctionMode {
-    XYMul2,
-    XYMul3,
-    XYDiv2,
-}
-
 struct ImageResizeFunction {
     id: u32,
-    mode: ImageResizeFunctionMode,
 }
 
 impl ImageResizeFunction {
-    fn new(id: u32, mode: ImageResizeFunctionMode) -> Self {
+    fn new(id: u32) -> Self {
         Self {
             id,
-            mode,
         }
     }
 }
 
 impl UnofficialFunction for ImageResizeFunction {
     fn id(&self) -> UnofficialFunctionId {
-        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
     }
 
     fn name(&self) -> String {
-        format!("ImageResizeFunction {:?}", self.mode)
+        format!("Resize image to size width x height")
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
-        if input.len() != 1 {
+        if input.len() != 3 {
             return Err(anyhow::anyhow!("Wrong number of inputs"));
         }
 
@@ -717,20 +742,16 @@ impl UnofficialFunction for ImageResizeFunction {
             return Err(anyhow::anyhow!("Input[0] must be non-negative"));
         }
         let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
-        let mut image: Image = input0_uint.to_image()?;
+        let image: Image = input0_uint.to_image()?;
 
-        match self.mode {
-            ImageResizeFunctionMode::XYMul2 => {
-                image = image.resize(image.width() * 2, image.height() * 2)?;
-            },
-            ImageResizeFunctionMode::XYMul3 => {
-                image = image.resize(image.width() * 3, image.height() * 3)?;
-            },
-            ImageResizeFunctionMode::XYDiv2 => {
-                image = image.resize(image.width() / 2, image.height() / 2)?;
-            },
-        }
-        let output_uint: BigUint = image.to_number()?;
+        // input1 is width
+        let width: u8 = input[1].to_u8().context("u8 width")?;
+
+        // input2 is height
+        let height: u8 = input[2].to_u8().context("u8 height")?;
+
+        let output_image = image.resize(width, height)?;
+        let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
     }
@@ -928,6 +949,59 @@ impl UnofficialFunction for ImageOverlayAnotherImageByColorMaskFunction {
     }
 }
 
+struct ImageOverlayAnotherImageAtPositionFunction {
+    id: u32,
+}
+
+impl ImageOverlayAnotherImageAtPositionFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageOverlayAnotherImageAtPositionFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 4, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Image: Overlay another image at position (x, y)".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 4 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image0: Image = input0_uint.to_image()?;
+
+        // input1 is image
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let image1: Image = input1_uint.to_image()?;
+
+        // input2 is position x
+        let position_x: i32 = input[2].to_i32().context("i32 position x")?;
+
+        // input3 is position y
+        let position_y: i32 = input[3].to_i32().context("i32 position y")?;
+
+        let output_image: Image = image0.overlay_with_position(&image1, position_x, position_y)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct ImageOutlineFunction {
     id: u32,
 }
@@ -974,11 +1048,11 @@ impl UnofficialFunction for ImageOutlineFunction {
     }
 }
 
-struct ImageDenoiseFunction {
+struct ImageDenoiseType1Function {
     id: u32,
 }
 
-impl ImageDenoiseFunction {
+impl ImageDenoiseType1Function {
     fn new(id: u32) -> Self {
         Self {
             id,
@@ -986,13 +1060,13 @@ impl ImageDenoiseFunction {
     }
 }
 
-impl UnofficialFunction for ImageDenoiseFunction {
+impl UnofficialFunction for ImageDenoiseType1Function {
     fn id(&self) -> UnofficialFunctionId {
         UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
     }
 
     fn name(&self) -> String {
-        "Image: denoise noisy pixels. Takes a background color parameter.".to_string()
+        "Denoise type1. denoise noisy pixels. Takes a 2nd parameter: background color.".to_string()
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
@@ -1011,6 +1085,92 @@ impl UnofficialFunction for ImageDenoiseFunction {
         let background_color: u8 = input[1].to_u8().context("u8 pixel_color")?;
 
         let output_image: Image = image.denoise_type1(background_color)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct ImageDenoiseType2Function {
+    id: u32,
+}
+
+impl ImageDenoiseType2Function {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageDenoiseType2Function {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Denoise type2. denoise noisy pixels. Takes a 2nd parameter: noise color.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        // input1 is pixel_color 
+        let noise_color: u8 = input[1].to_u8().context("u8 pixel_color")?;
+
+        let output_image: Image = image.denoise_type2(noise_color)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct ImageDenoiseType3Function {
+    id: u32,
+}
+
+impl ImageDenoiseType3Function {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageDenoiseType3Function {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Denoise type3. denoise noisy pixels. Takes a 2nd parameter: number of repair iterations.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        // input1 is repair_iterations 
+        let repair_iterations: u8 = input[1].to_u8().context("u8 repair_iterations")?;
+
+        let output_image: Image = image.denoise_type3(repair_iterations)?;
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
@@ -1163,16 +1323,23 @@ impl UnofficialFunction for ImageRemoveGridFunction {
     }
 }
 
+enum ImageBuildPaletteMapFunctionMode {
+    HistogramBased,
+    ColorSymmetryBased,
+}
+
 struct ImageBuildPaletteMapFunction {
     id: u32,
     reverse: bool,
+    mode: ImageBuildPaletteMapFunctionMode,
 }
 
 impl ImageBuildPaletteMapFunction {
-    fn new(id: u32, reverse: bool) -> Self {
+    fn new(id: u32, reverse: bool, mode: ImageBuildPaletteMapFunctionMode) -> Self {
         Self {
             id,
             reverse,
+            mode,
         }
     }
 }
@@ -1183,10 +1350,19 @@ impl UnofficialFunction for ImageBuildPaletteMapFunction {
     }
 
     fn name(&self) -> String {
+        let suffix: String;
         if self.reverse {
-            return "Construct a reverse color mapping from one image to another image. Both images must have the same number of unique colors.".to_string()
+            suffix = " The mapping is reversed".to_string();
         } else {
-            return "Construct a forward color mapping from one image to another image. Both images must have the same number of unique colors.".to_string()
+            suffix = " The mapping is forward".to_string();
+        }
+        match self.mode {
+            ImageBuildPaletteMapFunctionMode::HistogramBased => {
+                return format!("Construct a color mapping from one image to another image, based on histogram. Both images must have the same number of unique colors.{}", suffix);
+            },
+            ImageBuildPaletteMapFunctionMode::ColorSymmetryBased => {
+                return format!("Construct a color mapping from one image to another image, based on color symmetry.{}", suffix);
+            },
         }
     }
 
@@ -1209,7 +1385,360 @@ impl UnofficialFunction for ImageBuildPaletteMapFunction {
         let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
         let image1: Image = input1_uint.to_image()?;
 
-        let output_image: Image = PaletteImage::palette_image(&image0, &image1, self.reverse)?;
+        let output_image: Image;
+        match self.mode {
+            ImageBuildPaletteMapFunctionMode::HistogramBased => {
+                output_image = image0.palette_using_histogram(&image1, self.reverse)?;
+            },
+            ImageBuildPaletteMapFunctionMode::ColorSymmetryBased => {
+                output_image = image0.palette_using_color_symmetry(&image1, self.reverse)?;
+            },
+        }
+
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+#[derive(Debug)]
+enum ImageExtractRowColumnFunctionMode {
+    GetTop,
+    GetBottom,
+    GetLeft,
+    GetRight,
+    RemoveTop,
+    RemoveBottom,
+    RemoveLeft,
+    RemoveRight,
+}
+
+struct ImageExtractRowColumnFunction {
+    id: u32,
+    mode: ImageExtractRowColumnFunctionMode,
+}
+
+impl ImageExtractRowColumnFunction {
+    fn new(id: u32, mode: ImageExtractRowColumnFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageExtractRowColumnFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            ImageExtractRowColumnFunctionMode::GetTop => {
+                return "get N top rows".to_string();
+            },
+            ImageExtractRowColumnFunctionMode::GetBottom => {
+                return "get N bottom rows".to_string();
+            },
+            ImageExtractRowColumnFunctionMode::GetLeft => {
+                return "get N left columns".to_string();
+            },
+            ImageExtractRowColumnFunctionMode::GetRight => {
+                return "get N right columns".to_string();
+            },
+            ImageExtractRowColumnFunctionMode::RemoveTop => {
+                return "remove N top rows".to_string();
+            },
+            ImageExtractRowColumnFunctionMode::RemoveBottom => {
+                return "remove N bottom rows".to_string();
+            },
+            ImageExtractRowColumnFunctionMode::RemoveLeft => {
+                return "remove N left columns".to_string();
+            },
+            ImageExtractRowColumnFunctionMode::RemoveRight => {
+                return "remove N right columns".to_string();
+            },
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let mut image: Image = input0_uint.to_image()?;
+
+        // input1 is number of rows/columns
+        let n: u8 = input[1].to_u8().context("u8 padding_count")?;
+
+        match self.mode {
+            ImageExtractRowColumnFunctionMode::GetTop => {
+                image = image.top_rows(n)?;
+            },
+            ImageExtractRowColumnFunctionMode::GetBottom => {
+                image = image.bottom_rows(n)?;
+            },
+            ImageExtractRowColumnFunctionMode::GetLeft => {
+                image = image.left_columns(n)?;
+            },
+            ImageExtractRowColumnFunctionMode::GetRight => {
+                image = image.right_columns(n)?;
+            },
+            ImageExtractRowColumnFunctionMode::RemoveTop => {
+                image = image.remove_top_rows(n)?;
+            },
+            ImageExtractRowColumnFunctionMode::RemoveBottom => {
+                image = image.remove_bottom_rows(n)?;
+            },
+            ImageExtractRowColumnFunctionMode::RemoveLeft => {
+                image = image.remove_left_columns(n)?;
+            },
+            ImageExtractRowColumnFunctionMode::RemoveRight => {
+                image = image.remove_right_columns(n)?;
+            },
+        }
+        let output_uint: BigUint = image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct ImageHistogramFunction {
+    id: u32,
+}
+
+impl ImageHistogramFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageHistogramFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Histogram of image. The most popular to the left, least popular to the right. The top row is the counters. The bottom row is the colors.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        let histogram: Histogram = image.histogram_all();
+        let image: Image = histogram.to_image()?;
+
+        let output_uint: BigUint = image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct ImageHistogramWithMaskFunction {
+    id: u32,
+}
+
+impl ImageHistogramWithMaskFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageHistogramWithMaskFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Histogram of image using a mask. Only where the mask is non-zero, are the image pixels added to the histogram.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        // input1 is image
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let mask: Image = input1_uint.to_image()?;
+
+        let histogram: Histogram = image.histogram_with_mask(&mask)?;
+        let output_image: Image = histogram.to_image()?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct ImageNumberOfUniqueColorsFunction {
+    id: u32,
+}
+
+impl ImageNumberOfUniqueColorsFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageNumberOfUniqueColorsFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Number of unique colors in image.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        let histogram: Histogram = image.histogram_all();
+        let color_count: u32 = histogram.number_of_counters_greater_than_zero();
+
+        let output: BigInt = color_count.to_bigint().context("u32 to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+#[derive(Debug)]
+enum ImageToMaskFunctionFunctionMode {
+    WhereColorIs,
+    WhereColorIsDifferent,
+}
+
+struct ImageToMaskFunction {
+    id: u32,
+    mode: ImageToMaskFunctionFunctionMode,
+}
+
+impl ImageToMaskFunction {
+    fn new(id: u32, mode: ImageToMaskFunctionFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageToMaskFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            ImageToMaskFunctionFunctionMode::WhereColorIs => {
+                return "Convert to a mask image by converting `color` to 1 and converting anything else to to 0.".to_string();
+            },
+            ImageToMaskFunctionFunctionMode::WhereColorIsDifferent => {
+                return "Convert to a mask image by converting `color` to 0 and converting anything else to to 1.".to_string();
+            },
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        // input1 is pixel_color 
+        let color: u8 = input[1].to_u8().context("u8 pixel_color")?;
+
+        let output_image: Image;
+        match self.mode {
+            ImageToMaskFunctionFunctionMode::WhereColorIs => {
+                output_image = image.to_mask_where_color_is(color);
+            },
+            ImageToMaskFunctionFunctionMode::WhereColorIsDifferent => {
+                output_image = image.to_mask_where_color_is_different(color);
+            },
+        }
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct ImageInvertMaskFunction {
+    id: u32,
+}
+
+impl ImageInvertMaskFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageInvertMaskFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Inverts a mask image by converting 0 to 1 and converting [1..255] to 0.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        let output_image: Image = image.invert_mask();
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
@@ -1265,7 +1794,9 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageOutlineFunction::new(101080));
     
     // Denoise
-    register_function!(ImageDenoiseFunction::new(101090));
+    register_function!(ImageDenoiseType1Function::new(101090));
+    register_function!(ImageDenoiseType2Function::new(101091));
+    register_function!(ImageDenoiseType3Function::new(101092));
 
     // Extract noise colors from (noise image, denoised image)
     for n in 1..=9 {
@@ -1279,14 +1810,19 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageRemoveGridFunction::new(101120));
 
     // Color mapping from one image to another image
-    register_function!(ImageBuildPaletteMapFunction::new(101130, false));
-    register_function!(ImageBuildPaletteMapFunction::new(101131, true));
+    register_function!(ImageBuildPaletteMapFunction::new(101130, false, ImageBuildPaletteMapFunctionMode::HistogramBased));
+    register_function!(ImageBuildPaletteMapFunction::new(101131, true, ImageBuildPaletteMapFunctionMode::HistogramBased));
+    register_function!(ImageBuildPaletteMapFunction::new(101132, false, ImageBuildPaletteMapFunctionMode::ColorSymmetryBased));
+    register_function!(ImageBuildPaletteMapFunction::new(101133, true, ImageBuildPaletteMapFunctionMode::ColorSymmetryBased));
 
     // Remove duplicates
-    register_function!(ImageRemoveDuplicatesFunction::new(101140));
+    register_function!(ImageRemoveDuplicatesFunction::new(101140, ImageRemoveDuplicatesFunctionMode::RowsAndColumns));
+    register_function!(ImageRemoveDuplicatesFunction::new(101141, ImageRemoveDuplicatesFunctionMode::Rows));
+    register_function!(ImageRemoveDuplicatesFunction::new(101142, ImageRemoveDuplicatesFunctionMode::Columns));
 
     // Overlay by color
     register_function!(ImageOverlayAnotherImageByColorMaskFunction::new(101150));
+    register_function!(ImageOverlayAnotherImageAtPositionFunction::new(101151));
 
     // Trim
     register_function!(ImageTrimFunction::new(101160));
@@ -1303,20 +1839,33 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageFlipFunction::new(101192, ImageFlipFunctionMode::FlipXY));
 
     // Image resize
-    register_function!(ImageResizeFunction::new(101200, ImageResizeFunctionMode::XYMul2));
-    register_function!(ImageResizeFunction::new(101201, ImageResizeFunctionMode::XYMul3));
-    register_function!(ImageResizeFunction::new(101202, ImageResizeFunctionMode::XYDiv2));
+    register_function!(ImageResizeFunction::new(101200));
 
-    // Padding top/bottom, left/right
-    register_function!(ImagePaddingFunction::new(101220, ImagePaddingFunctionMode::TopBottom));
-    register_function!(ImagePaddingFunction::new(101221, ImagePaddingFunctionMode::LeftRight));
+    // Padding
+    register_function!(ImagePaddingFunction::new(101210, ImagePaddingFunctionMode::Top));
+    register_function!(ImagePaddingFunction::new(101211, ImagePaddingFunctionMode::Bottom));
+    register_function!(ImagePaddingFunction::new(101212, ImagePaddingFunctionMode::Left));
+    register_function!(ImagePaddingFunction::new(101213, ImagePaddingFunctionMode::Right));
 
-    // Padding in corners
-    register_function!(ImagePaddingFunction::new(101230, ImagePaddingFunctionMode::TopLeft));
-    register_function!(ImagePaddingFunction::new(101231, ImagePaddingFunctionMode::TopRight));
-    register_function!(ImagePaddingFunction::new(101232, ImagePaddingFunctionMode::BottomLeft));
-    register_function!(ImagePaddingFunction::new(101233, ImagePaddingFunctionMode::BottomRight));
+    // Extract N rows/columns
+    register_function!(ImageExtractRowColumnFunction::new(101220, ImageExtractRowColumnFunctionMode::GetTop));
+    register_function!(ImageExtractRowColumnFunction::new(101221, ImageExtractRowColumnFunctionMode::GetBottom));
+    register_function!(ImageExtractRowColumnFunction::new(101222, ImageExtractRowColumnFunctionMode::GetLeft));
+    register_function!(ImageExtractRowColumnFunction::new(101223, ImageExtractRowColumnFunctionMode::GetRight));
+    register_function!(ImageExtractRowColumnFunction::new(101224, ImageExtractRowColumnFunctionMode::RemoveTop));
+    register_function!(ImageExtractRowColumnFunction::new(101225, ImageExtractRowColumnFunctionMode::RemoveBottom));
+    register_function!(ImageExtractRowColumnFunction::new(101226, ImageExtractRowColumnFunctionMode::RemoveLeft));
+    register_function!(ImageExtractRowColumnFunction::new(101227, ImageExtractRowColumnFunctionMode::RemoveRight));
+    
+    // Histogram
+    register_function!(ImageHistogramFunction::new(101230));
+    register_function!(ImageHistogramWithMaskFunction::new(101231));
 
-    // Padding evenly
-    register_function!(ImagePaddingFunction::new(101240, ImagePaddingFunctionMode::Even));
+    // Unique colors
+    register_function!(ImageNumberOfUniqueColorsFunction::new(101240));
+
+    // Mask
+    register_function!(ImageToMaskFunction::new(101250, ImageToMaskFunctionFunctionMode::WhereColorIs));
+    register_function!(ImageToMaskFunction::new(101251, ImageToMaskFunctionFunctionMode::WhereColorIsDifferent));
+    register_function!(ImageInvertMaskFunction::new(101252));
 }

@@ -15,7 +15,7 @@ impl DebugFunction {
 
 impl UnofficialFunction for DebugFunction {
     fn id(&self) -> UnofficialFunctionId {
-        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 0 }
     }
 
     fn name(&self) -> String {

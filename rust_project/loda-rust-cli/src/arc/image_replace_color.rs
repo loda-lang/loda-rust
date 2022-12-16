@@ -64,7 +64,7 @@ impl ImageReplaceColor for Image {
             return Ok(self.clone());
         }
         if palette_image.height() != 2 {
-            return Err(anyhow::anyhow!("ImageReplaceColor.replace_colors_with_palette_image the height of the palette image must be 2. Top row is for source color, bottom row is for destination color."));
+            return Err(anyhow::anyhow!("ImageReplaceColor.replace_colors_with_palette_image the height of the palette image must be 2. Top row is for source color, bottom row is for destination color. Expected 2, but got height={}", palette_image.height()));
         }
         let mut replacements = HashMap::<u8, u8>::new();
         for x in 0..(palette_image.width() as i32) {

@@ -1,14 +1,33 @@
 use super::{Image, ImageRemoveRowColumn};
 use bit_set::BitSet;
 
-pub trait ImageGetRowColumn {
+pub trait ImageExtractRowColumn {
+    /// Take N rows from the top of the image.
     fn top_rows(&self, row_count: u8) -> anyhow::Result<Image>;
+
+    /// Take N rows from the bottom of the image.
     fn bottom_rows(&self, row_count: u8) -> anyhow::Result<Image>;
+
+    /// Take N columns from the left of the image.
     fn left_columns(&self, column_count: u8) -> anyhow::Result<Image>;
+
+    /// Take N columns from the right of the image.
     fn right_columns(&self, column_count: u8) -> anyhow::Result<Image>;
+
+    /// Remove N rows from the top of the image, and return the remaining part of the image.
+    fn remove_top_rows(&self, row_count: u8) -> anyhow::Result<Image>;
+
+    /// Remove N rows from the bottom of the image, and return the remaining part of the image.
+    fn remove_bottom_rows(&self, row_count: u8) -> anyhow::Result<Image>;
+
+    /// Remove N columns from the left of the image, and return the remaining part of the image.
+    fn remove_left_columns(&self, column_count: u8) -> anyhow::Result<Image>;
+
+    /// Remove N columns from the right of the image, and return the remaining part of the image.
+    fn remove_right_columns(&self, column_count: u8) -> anyhow::Result<Image>;
 }
 
-impl ImageGetRowColumn for Image {
+impl ImageExtractRowColumn for Image {
     fn top_rows(&self, row_count: u8) -> anyhow::Result<Image> {
         extract_top_bottom(&self, row_count, 0)
     }
@@ -23,6 +42,38 @@ impl ImageGetRowColumn for Image {
 
     fn right_columns(&self, column_count: u8) -> anyhow::Result<Image> {
         extract_left_right(&self, 0, column_count)
+    }
+
+    fn remove_top_rows(&self, row_count: u8) -> anyhow::Result<Image> {
+        let keep_count = (self.height() as i32) - (row_count as i32);
+        if keep_count < 0 {
+            return Err(anyhow::anyhow!("remove_top_rows: More rows are scheduled for deletion than the height of the image."));
+        }
+        extract_top_bottom(&self, 0, keep_count as u8)
+    }
+
+    fn remove_bottom_rows(&self, row_count: u8) -> anyhow::Result<Image> {
+        let keep_count = (self.height() as i32) - (row_count as i32);
+        if keep_count < 0 {
+            return Err(anyhow::anyhow!("remove_bottom_rows: More rows are scheduled for deletion than the height of the image."));
+        }
+        extract_top_bottom(&self, keep_count as u8, 0)
+    }
+
+    fn remove_left_columns(&self, column_count: u8) -> anyhow::Result<Image> {
+        let keep_count = (self.width() as i32) - (column_count as i32);
+        if keep_count < 0 {
+            return Err(anyhow::anyhow!("remove_left_columns: More columns are scheduled for deletion than the width of the image."));
+        }
+        extract_left_right(&self, 0, keep_count as u8)
+    }
+
+    fn remove_right_columns(&self, column_count: u8) -> anyhow::Result<Image> {
+        let keep_count = (self.width() as i32) - (column_count as i32);
+        if keep_count < 0 {
+            return Err(anyhow::anyhow!("remove_right_columns: More columns are scheduled for deletion than the width of the image."));
+        }
+        extract_left_right(&self, keep_count as u8, 0)
     }
 }
 
@@ -401,6 +452,120 @@ mod tests {
             7, 9,
         ];
         let expected: Image = Image::try_create(2, 3, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_70000_remove_top_rows0() {
+        // Arrange
+        let input: Image = mock_image_portrait();
+
+        // Act
+        let actual: Image = input.remove_top_rows(0).expect("image");
+
+        // Assert
+        assert_eq!(actual, input);
+    }
+
+    #[test]
+    fn test_70001_remove_top_rows1() {
+        // Arrange
+        let input: Image = mock_image_portrait();
+
+        // Act
+        let actual: Image = input.remove_top_rows(1).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            3, 4,
+            5, 6,
+        ];
+        let expected: Image = Image::try_create(2, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_70002_remove_top_rows2() {
+        // Arrange
+        let input: Image = mock_image_portrait();
+
+        // Act
+        let actual: Image = input.remove_top_rows(2).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            5, 6,
+        ];
+        let expected: Image = Image::try_create(2, 1, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_70003_remove_top_rows3() {
+        // Arrange
+        let input: Image = mock_image_portrait();
+
+        // Act
+        let actual: Image = input.remove_top_rows(3).expect("image");
+
+        // Assert
+        assert_eq!(actual, Image::empty());
+    }
+
+    #[test]
+    fn test_70004_remove_top_rows4() {
+        let input: Image = mock_image_portrait();
+        input.remove_top_rows(4).expect_err("is supposed to fail");
+    }
+
+    #[test]
+    fn test_70101_remove_bottom_rows1() {
+        // Arrange
+        let input: Image = mock_image_portrait();
+
+        // Act
+        let actual: Image = input.remove_bottom_rows(1).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 2,
+            3, 4,
+        ];
+        let expected: Image = Image::try_create(2, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_70201_remove_left_columns1() {
+        // Arrange
+        let input: Image = mock_image_landscape();
+
+        // Act
+        let actual: Image = input.remove_left_columns(1).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            2, 3,
+            5, 6,
+        ];
+        let expected: Image = Image::try_create(2, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_70301_remove_right_columns1() {
+        // Arrange
+        let input: Image = mock_image_landscape();
+
+        // Act
+        let actual: Image = input.remove_right_columns(1).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 2,
+            4, 5,
+        ];
+        let expected: Image = Image::try_create(2, 2, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }

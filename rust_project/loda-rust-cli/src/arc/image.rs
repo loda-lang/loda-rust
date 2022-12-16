@@ -1,8 +1,12 @@
 use super::index_for_pixel::index_for_pixel;
 use std::fmt;
 
-/// Tiny 2D grid with 4 bits per pixel, max size 256 x 256 pixels.
-#[derive(Clone, PartialEq)]
+/// Tiny 2D grid with 8 bits per pixel.
+/// 
+/// The max size is 255x255 pixels.
+/// 
+/// The smalles image size is 0x0 pixels.
+#[derive(Clone, Hash, Eq, PartialEq)]
 pub struct Image {
     width: u8,
     height: u8,
@@ -105,6 +109,7 @@ impl fmt::Debug for Image {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
 
     #[test]
     fn test_10000_init_empty() {
@@ -218,5 +223,68 @@ mod tests {
             let bm1 = Image::zero(3, 2);
             assert_eq!(bm0, bm1);
         }
+    }
+
+    #[test]
+    fn test_40000_equal() {
+        {
+            let image0 = Image::create_raw(2, 2, vec![1, 2, 3, 4]);
+            let image1 = Image::create_raw(2, 2, vec![1, 2, 3, 4]);
+            assert_eq!(image0, image1);
+        }
+        {
+            let image0 = Image::empty();
+            let image1 = Image::empty();
+            assert_eq!(image0, image1);
+        }
+        {
+            let image0 = Image::create_raw(1, 4, vec![1, 2, 3, 4]);
+            let image1 = Image::create_raw(4, 1, vec![1, 2, 3, 4]);
+            assert_ne!(image0, image1);
+        }
+        {
+            let image0 = Image::empty();
+            let image1 = Image::create_raw(4, 1, vec![1, 2, 3, 4]);
+            assert_ne!(image0, image1);
+        }
+    }
+
+    fn mock_hashset() -> HashSet<Image> {
+        let mut images: HashSet<Image> = HashSet::<Image>::new();
+        {
+            let image = Image::create_raw(2, 2, vec![1, 2, 3, 4]);
+            images.insert(image);
+        }
+        {
+            let image = Image::create_raw(1, 1, vec![9]);
+            images.insert(image);
+        }
+        images
+    }
+
+    #[test]
+    fn test_50000_hash() {
+        let images: HashSet<Image> = mock_hashset();
+        assert_eq!(images.len(), 2);
+    }
+
+    #[test]
+    fn test_50001_hash_insert_identical_image_does_not_affect_size() {
+        let mut images: HashSet<Image> = mock_hashset();
+        {
+            let image = Image::create_raw(1, 1, vec![9]);
+            images.insert(image);
+        }
+        assert_eq!(images.len(), 2);
+    }
+
+    #[test]
+    fn test_50002_hash_remove_image() {
+        let mut images: HashSet<Image> = mock_hashset();
+        {
+            let image = Image::create_raw(1, 1, vec![9]);
+            images.remove(&image);
+        }
+        assert_eq!(images.len(), 1);
     }
 }

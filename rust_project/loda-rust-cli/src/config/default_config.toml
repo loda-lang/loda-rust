@@ -53,6 +53,10 @@ miner_program_upload_endpoint = "http://api.loda-lang.org/miner/v1/programs"
 # it can be cloned from https://github.com/fchollet/ARC
 arc_repository_data_training = "$HOME/git/ARC/data/training"
 
+# Absolute path to the "loda-arc-challenge" repository dir.
+# it can be cloned from https://github.com/neoneye/loda-arc-challenge
+loda_arc_challenge_repository = "$HOME/git/loda-arc-challenge"
+
 
 # --- MINER FILTER MODE ---
 

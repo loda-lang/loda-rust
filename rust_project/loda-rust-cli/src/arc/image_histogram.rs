@@ -1,14 +1,23 @@
 use super::{Histogram, Image};
 
 pub trait ImageHistogram {
+    /// Histogram with all pixels in the image
     fn histogram_all(&self) -> Histogram;
+    
+    /// Histogram by traversing the border of the image
     fn histogram_border(&self) -> Histogram;
+
+    /// Histogram by only traversing the pixels where the mask is on
+    fn histogram_with_mask(&self, mask: &Image) -> anyhow::Result<Histogram>;
+    
+    /// Histogram for every row
     fn histogram_rows(&self) -> Vec<Histogram>;
+    
+    /// Histogram for every column
     fn histogram_columns(&self) -> Vec<Histogram>;
 }
 
 impl ImageHistogram for Image {
-    /// Histogram with all pixels in the image
     fn histogram_all(&self) -> Histogram {
         let mut h = Histogram::new();
         for y in 0..self.height() {
@@ -19,7 +28,6 @@ impl ImageHistogram for Image {
         h
     }
 
-    /// Histogram by traversing the border of the image
     fn histogram_border(&self) -> Histogram {
         let mut h = Histogram::new();
         if self.is_empty() {
@@ -38,7 +46,26 @@ impl ImageHistogram for Image {
         h
     }
 
-    /// Histogram for every row
+    fn histogram_with_mask(&self, mask: &Image) -> anyhow::Result<Histogram> {
+        if self.width() != mask.width() || self.height() != mask.height() {
+            return Err(anyhow::anyhow!("Both images must have same size. self: {}x{} mask: {}x{}", self.width(), self.height(), mask.width(), mask.height()));
+        }
+        let mut h = Histogram::new();
+        if self.is_empty() {
+            return Ok(h);
+        }
+        for y in 0..(self.height() as i32) {
+            for x in 0..(self.width() as i32) {
+                let mask_value: u8 = mask.get(x, y).unwrap_or(255);
+                if mask_value == 0 {
+                    continue;
+                }
+                h.increment_pixel(&self, x, y);
+            }
+        }
+        Ok(h)
+    }
+
     fn histogram_rows(&self) -> Vec<Histogram> {
         if self.is_empty() {
             return vec!();
@@ -54,7 +81,6 @@ impl ImageHistogram for Image {
         return rows;
     }
 
-    /// Histogram for every column
     fn histogram_columns(&self) -> Vec<Histogram> {
         if self.is_empty() {
             return vec!();
@@ -129,7 +155,41 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_histogram_rows() {
+    fn test_30000_histogram_with_mask() {
+        // Arrange
+        let mask_pixels: Vec<u8> = vec![
+            0, 1, 0, 1, 1,
+            0, 1, 0, 1, 0,
+            0, 1, 1, 1, 0,
+            0, 1, 0, 1, 0,
+            1, 1, 0, 1, 0,
+        ];
+        let mask: Image = Image::try_create(5, 5, mask_pixels).expect("image");
+        let image_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            1, 1, 1, 1, 1,
+            2, 2, 2, 2, 2,
+            3, 3, 3, 3, 3,
+            4, 4, 4, 4, 4,
+        ];
+        let input: Image = Image::try_create(5, 5, image_pixels).expect("image");
+
+        // Act
+        let histogram: Histogram = input.histogram_with_mask(&mask).expect("histogram");
+        let histogram_vec: Vec<u32> = histogram.to_vec();
+
+        // Assert
+        let mut expected: Vec<u32> = vec![0; 256];
+        expected[0] = 3;
+        expected[1] = 2;
+        expected[2] = 3;
+        expected[3] = 2;
+        expected[4] = 3;
+        assert_eq!(histogram_vec, expected);
+    }
+
+    #[test]
+    fn test_40000_histogram_rows() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1,
@@ -156,7 +216,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_histogram_columns() {
+    fn test_50000_histogram_columns() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 2, 1, 2, 3,
