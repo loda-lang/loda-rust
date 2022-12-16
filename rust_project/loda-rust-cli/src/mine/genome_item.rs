@@ -309,6 +309,24 @@ impl GenomeItem {
                 };
                 return vec![parameter0, parameter1];
             },
+            InstructionId::UnofficialLoopBeginSubtract => {
+                let parameter0: InstructionParameter;
+                match self.target_type {
+                    RegisterType::Direct => {
+                        parameter0 = InstructionParameter {
+                            parameter_type: ParameterType::Direct,
+                            parameter_value: (self.target_value.abs()) as i64,
+                        };
+                    },
+                    RegisterType::Indirect => {
+                        parameter0 = InstructionParameter {
+                            parameter_type: ParameterType::Indirect,
+                            parameter_value: (self.target_value.abs()) as i64,
+                        };
+                    },
+                }
+                return vec![parameter0];
+            },
             InstructionId::LoopEnd => {
                 return vec!();
             },
