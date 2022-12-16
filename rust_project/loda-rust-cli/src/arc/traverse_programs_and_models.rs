@@ -198,6 +198,9 @@ impl TraverseProgramsAndModels {
             let candidate_program: String = serializer.to_string();
             println!("; ------\n\n{}", candidate_program);
 
+            if number_of_successful_mutations > 5 {
+                break;
+            }
         }
 
         Ok(())
