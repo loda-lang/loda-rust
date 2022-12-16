@@ -25,6 +25,11 @@ pub enum MutateEvalSequenceCategory {
 
 #[derive(Clone, Debug)]
 pub struct GenomeItem {
+    /// The `Genome` avoids modifying `GenomeItem`s that have `mutation_locked=true`.
+    /// this is when a program follows a rigid pattern,
+    /// where narrow areas in the program are to be mutated.
+    mutation_locked: bool,
+
     enabled: bool,
     instruction_id: InstructionId,
     target_type: RegisterType,
@@ -36,6 +41,7 @@ pub struct GenomeItem {
 impl GenomeItem {
     pub fn new(instruction_id: InstructionId, target_type: RegisterType, target_value: i32, source_type: ParameterType, source_value: i32) -> Self {
         Self {
+            mutation_locked: false,
             enabled: true,
             instruction_id: instruction_id,
             target_type: target_type,
@@ -56,6 +62,10 @@ impl GenomeItem {
             return true;
         }
         false
+    }
+
+    pub fn is_mutation_locked(&self) -> bool {
+        self.mutation_locked
     }
 
     pub fn is_enabled(&self) -> bool {

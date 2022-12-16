@@ -158,6 +158,9 @@ impl Genome {
         // Identify the instructions
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             if genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
@@ -211,6 +214,9 @@ impl Genome {
         // Identify the instructions
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             if genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
@@ -284,6 +290,9 @@ impl Genome {
         // Identify the instructions that use constants
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             if genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
@@ -340,6 +349,9 @@ impl Genome {
     pub fn increment_source_value_where_type_is_direct<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             if genome_item.source_type() != ParameterType::Direct {
                 continue;
             }
@@ -380,6 +392,9 @@ impl Genome {
     pub fn decrement_source_value_where_type_is_direct<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             if genome_item.source_type() != ParameterType::Direct {
                 continue;
             }
@@ -443,6 +458,9 @@ impl Genome {
 
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             // Don't make any changes to the `loop range length` parameter.
             // It makes it hard to make sense of what is going on in the loop.
             // It's a valid construct, but it's not desired.
@@ -568,6 +586,9 @@ impl Genome {
         }
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             // Don't make any changes to the the loop instructions `lpb` and `lpe`.
             if genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
@@ -760,6 +781,9 @@ impl Genome {
     pub fn increment_target_value_where_type_is_direct<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             if genome_item.target_type() != RegisterType::Direct {
                 continue;
             }
@@ -794,6 +818,9 @@ impl Genome {
     pub fn decrement_target_value_where_type_is_direct<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             if genome_item.source_type() != ParameterType::Direct {
                 continue;
             }
@@ -869,6 +896,9 @@ impl Genome {
             None => {}
         };
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index1];
+        if genome_item.is_mutation_locked() {
+            return false;
+        }
         if genome_item.instruction_id() == InstructionId::LoopEnd {
             return false;
         }
@@ -942,6 +972,9 @@ impl Genome {
             None => None
         };
         let genome_item: &mut GenomeItem = &mut self.genome_vec[index1];
+        if genome_item.is_mutation_locked() {
+            return false;
+        }
         let original_instruction: InstructionId = genome_item.instruction_id();
 
         // Try a few times
@@ -1067,6 +1100,9 @@ impl Genome {
     pub fn mutate_set_source_to_constant<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             if genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
             }
@@ -1113,6 +1149,9 @@ impl Genome {
     pub fn mutate_set_source_to_direct<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             if genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
             }
@@ -1168,6 +1207,9 @@ impl Genome {
     pub fn mutate_disable_loop<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             if genome_item.instruction_id() != InstructionId::LoopBegin {
                 continue;
             }
@@ -1193,6 +1235,9 @@ impl Genome {
     pub fn mutate_swap_registers<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             if genome_item.target_type() != RegisterType::Direct {
                 continue;
             }
@@ -1227,6 +1272,9 @@ impl Genome {
     pub fn mutate_enabled<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             if genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
             }
@@ -1260,6 +1308,9 @@ impl Genome {
     pub fn mutate_swap_rows<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             // Prevent messing with loop begin/end instructions.
             if genome_item.instruction_id() == InstructionId::LoopBegin {
                 continue;
@@ -1291,7 +1342,10 @@ impl Genome {
     /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
     pub fn mutate_swap_adjacent_rows<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
         let mut indexes: Vec<usize> = vec!();
-        for (index, _genome_item) in self.genome_vec.iter().enumerate() {
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             indexes.push(index);
         }
         let length: usize = indexes.len();
@@ -1495,6 +1549,9 @@ impl Genome {
     pub fn mutate_instruction_seq<R: Rng + ?Sized>(&mut self, rng: &mut R, context: &GenomeMutateContext, category: MutateEvalSequenceCategory) -> bool {
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            if genome_item.is_mutation_locked() {
+                continue;
+            }
             if genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
