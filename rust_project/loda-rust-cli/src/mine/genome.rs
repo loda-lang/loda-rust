@@ -155,7 +155,6 @@ impl Genome {
     /// 
     /// Return `false` in case the mutation had no effect.
     pub fn increment_source_value_where_type_is_constant<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        // Identify the instructions
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
             if genome_item.is_mutation_locked() {
@@ -164,17 +163,16 @@ impl Genome {
             if genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
-            if genome_item.instruction_id() == InstructionId::EvalSequence {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::LoopBegin {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::LoopEnd {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::Clear {
-                continue;
+            match genome_item.instruction_id() {
+                InstructionId::EvalSequence | 
+                InstructionId::LoopBegin | 
+                InstructionId::LoopEnd |
+                InstructionId::Clear |
+                InstructionId::UnofficialFunction { .. } |
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    continue;
+                },
+                _ => {}
             }
             indexes.push(index);
         }
@@ -211,7 +209,6 @@ impl Genome {
     /// 
     /// Return `false` in case the mutation had no effect.
     pub fn decrement_source_value_where_type_is_constant<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
-        // Identify the instructions
         let mut indexes: Vec<usize> = vec!();
         for (index, genome_item) in self.genome_vec.iter().enumerate() {
             if genome_item.is_mutation_locked() {
@@ -220,17 +217,16 @@ impl Genome {
             if genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
-            if genome_item.instruction_id() == InstructionId::EvalSequence {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::LoopBegin {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::LoopEnd {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::Clear {
-                continue;
+            match genome_item.instruction_id() {
+                InstructionId::EvalSequence | 
+                InstructionId::LoopBegin | 
+                InstructionId::LoopEnd |
+                InstructionId::Clear |
+                InstructionId::UnofficialFunction { .. } |
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    continue;
+                },
+                _ => {}
             }
             indexes.push(index);
         }
@@ -296,17 +292,16 @@ impl Genome {
             if genome_item.source_type() != ParameterType::Constant {
                 continue;
             }
-            if genome_item.instruction_id() == InstructionId::EvalSequence {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::LoopBegin {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::LoopEnd {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::Clear {
-                continue;
+            match genome_item.instruction_id() {
+                InstructionId::EvalSequence | 
+                InstructionId::LoopBegin | 
+                InstructionId::LoopEnd |
+                InstructionId::Clear |
+                InstructionId::UnofficialFunction { .. } |
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    continue;
+                },
+                _ => {}
             }
             indexes.push(index);
         }
@@ -355,14 +350,15 @@ impl Genome {
             if genome_item.source_type() != ParameterType::Direct {
                 continue;
             }
-            if genome_item.instruction_id() == InstructionId::Clear {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::LoopBegin {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::LoopEnd {
-                continue;
+            match genome_item.instruction_id() {
+                InstructionId::LoopBegin | 
+                InstructionId::LoopEnd |
+                InstructionId::Clear |
+                InstructionId::UnofficialFunction { .. } |
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    continue;
+                },
+                _ => {}
             }
             indexes.push(index);
         }
@@ -398,14 +394,15 @@ impl Genome {
             if genome_item.source_type() != ParameterType::Direct {
                 continue;
             }
-            if genome_item.instruction_id() == InstructionId::Clear {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::LoopBegin {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::LoopEnd {
-                continue;
+            match genome_item.instruction_id() {
+                InstructionId::LoopBegin | 
+                InstructionId::LoopEnd |
+                InstructionId::Clear |
+                InstructionId::UnofficialFunction { .. } |
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    continue;
+                },
+                _ => {}
             }
             if genome_item.source_value() <= 0 {
                 continue;
@@ -461,22 +458,23 @@ impl Genome {
             if genome_item.is_mutation_locked() {
                 continue;
             }
+
             // Don't make any changes to the `loop range length` parameter.
             // It makes it hard to make sense of what is going on in the loop.
             // It's a valid construct, but it's not desired.
             // That's why `lpb` is skipped.
-            if genome_item.instruction_id() == InstructionId::LoopBegin {
-                continue;
-            }
+            //
             // It makes no sense mutating a `lpe` instruction.
-            if genome_item.instruction_id() == InstructionId::LoopEnd {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::EvalSequence {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::Clear {
-                continue;
+            match genome_item.instruction_id() {
+                InstructionId::EvalSequence | 
+                InstructionId::LoopBegin | 
+                InstructionId::LoopEnd |
+                InstructionId::Clear |
+                InstructionId::UnofficialFunction { .. } |
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    continue;
+                },
+                _ => {}
             }
             indexes.push(index);
         }
@@ -589,12 +587,14 @@ impl Genome {
             if genome_item.is_mutation_locked() {
                 continue;
             }
-            // Don't make any changes to the the loop instructions `lpb` and `lpe`.
-            if genome_item.instruction_id() == InstructionId::LoopBegin {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::LoopEnd {
-                continue;
+            // Don't make changes to the the loop instructions `lpb` and `lpe` and the unofficial `lps`.
+            match genome_item.instruction_id() {
+                InstructionId::LoopBegin | 
+                InstructionId::LoopEnd |
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    continue;
+                },
+                _ => {}
             }
             indexes.push(index);
         }
@@ -665,14 +665,13 @@ impl Genome {
             }
         };
 
-        if genome_item.instruction_id() == InstructionId::LoopBegin {
-            return false;
-        }
-        if genome_item.instruction_id() == InstructionId::LoopEnd {
-            return false;
-        }
-        if genome_item.instruction_id() == InstructionId::Clear {
-            return false;
+        match genome_item.instruction_id() {
+            InstructionId::LoopBegin | 
+            InstructionId::LoopEnd |
+            InstructionId::UnofficialLoopBeginSubtract => {
+                return false;
+            },
+            _ => {}
         }
 
         self.genome_vec[index1] = genome_item;
@@ -760,11 +759,13 @@ impl Genome {
             }
         };
 
-        if genome_item.instruction_id() == InstructionId::LoopBegin {
-            return false;
-        }
-        if genome_item.instruction_id() == InstructionId::LoopEnd {
-            return false;
+        match genome_item.instruction_id() {
+            InstructionId::LoopBegin | 
+            InstructionId::LoopEnd |
+            InstructionId::UnofficialLoopBeginSubtract => {
+                return false;
+            },
+            _ => {}
         }
 
         self.genome_vec.insert(index1, genome_item);
@@ -1103,17 +1104,16 @@ impl Genome {
             if genome_item.is_mutation_locked() {
                 continue;
             }
-            if genome_item.instruction_id() == InstructionId::LoopBegin {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::LoopEnd {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::Clear {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::EvalSequence {
-                continue;
+            match genome_item.instruction_id() {
+                InstructionId::EvalSequence | 
+                InstructionId::LoopBegin | 
+                InstructionId::LoopEnd |
+                InstructionId::Clear |
+                InstructionId::UnofficialFunction { .. } |
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    continue;
+                },
+                _ => {}
             }
             if genome_item.source_type() != ParameterType::Constant {
                 continue;
@@ -1152,17 +1152,16 @@ impl Genome {
             if genome_item.is_mutation_locked() {
                 continue;
             }
-            if genome_item.instruction_id() == InstructionId::LoopBegin {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::LoopEnd {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::Clear {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::EvalSequence {
-                continue;
+            match genome_item.instruction_id() {
+                InstructionId::EvalSequence | 
+                InstructionId::LoopBegin | 
+                InstructionId::LoopEnd |
+                InstructionId::Clear |
+                InstructionId::UnofficialFunction { .. } |
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    continue;
+                },
+                _ => {}
             }
             if genome_item.source_type() != ParameterType::Direct {
                 continue;
@@ -1210,8 +1209,12 @@ impl Genome {
             if genome_item.is_mutation_locked() {
                 continue;
             }
-            if genome_item.instruction_id() != InstructionId::LoopBegin {
-                continue;
+            match genome_item.instruction_id() {
+                InstructionId::LoopBegin | 
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    continue;
+                },
+                _ => {}
             }
             indexes.push(index);
         }
@@ -1275,11 +1278,13 @@ impl Genome {
             if genome_item.is_mutation_locked() {
                 continue;
             }
-            if genome_item.instruction_id() == InstructionId::LoopBegin {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::LoopEnd {
-                continue;
+            match genome_item.instruction_id() {
+                InstructionId::LoopBegin | 
+                InstructionId::LoopEnd |
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    continue;
+                },
+                _ => {}
             }
             if genome_item.target_type() == RegisterType::Indirect {
                 continue;
@@ -1312,11 +1317,13 @@ impl Genome {
                 continue;
             }
             // Prevent messing with loop begin/end instructions.
-            if genome_item.instruction_id() == InstructionId::LoopBegin {
-                continue;
-            }
-            if genome_item.instruction_id() == InstructionId::LoopEnd {
-                continue;
+            match genome_item.instruction_id() {
+                InstructionId::LoopBegin | 
+                InstructionId::LoopEnd |
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    continue;
+                },
+                _ => {}
             }
             indexes.push(index);
         }
@@ -1359,7 +1366,7 @@ impl Genome {
         let instruction1: InstructionId = self.genome_vec[index1].instruction_id();
         // Prevent reversing the order of the loop begin/end instructions.
         let is_loop = 
-            instruction0 == InstructionId::LoopBegin && 
+            matches!(instruction0, InstructionId::LoopBegin | InstructionId::UnofficialLoopBeginSubtract) && 
             instruction1 == InstructionId::LoopEnd;
         if is_loop {
             return false;

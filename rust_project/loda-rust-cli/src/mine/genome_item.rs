@@ -138,23 +138,29 @@ impl GenomeItem {
             return false;
         }
 
-        // If there is a Call instruction then don't touch it.
-        let is_call = 
-            self.instruction_id == InstructionId::EvalSequence ||
-            new_instruction_id == InstructionId::EvalSequence;
-        if is_call {
-            return false;
-        }    
+        // Abort if the current instruction is special
+        match self.instruction_id {
+            InstructionId::EvalSequence | 
+            InstructionId::LoopBegin | 
+            InstructionId::LoopEnd |
+            InstructionId::UnofficialFunction { .. } |
+            InstructionId::UnofficialLoopBeginSubtract => {
+                return false;
+            },
+            _ => {}
+        }
 
-        // Prevent messing up loop begin/end.
-        let is_loop = 
-            self.instruction_id == InstructionId::LoopBegin || 
-            self.instruction_id == InstructionId::LoopEnd ||
-            new_instruction_id == InstructionId::LoopBegin || 
-            new_instruction_id == InstructionId::LoopEnd;
-        if is_loop {
-            return false;
-        }    
+        // Abort if the new instruction is special
+        match new_instruction_id {
+            InstructionId::EvalSequence | 
+            InstructionId::LoopBegin | 
+            InstructionId::LoopEnd |
+            InstructionId::UnofficialFunction { .. } |
+            InstructionId::UnofficialLoopBeginSubtract => {
+                return false;
+            },
+            _ => {}
+        }
 
         self.instruction_id = new_instruction_id;
         true
