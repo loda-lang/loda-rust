@@ -96,7 +96,13 @@ impl RunWithProgram {
         let program_str: &str = program.as_ref();
 
         let mut dm = Self::create_dependency_manager();
-        let program_runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, program_str).expect("ProgramRunner");
+        let program_runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, program_str)
+            .map_err(|e| anyhow::anyhow!("couldn't parse program string. error: {:?}", e))?;
+
+        self.run_program_runner(&program_runner)
+    }
+
+    pub fn run_program_runner(&self, program_runner: &ProgramRunner) -> anyhow::Result<RunWithProgramResult> {
         let mut cache = ProgramCache::new();
 
         // Blank state
