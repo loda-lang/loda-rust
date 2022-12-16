@@ -1,5 +1,6 @@
 use super::Image;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum ImageSegmentAlgorithm {
     /// Visit 4 neighbors around a pixel.

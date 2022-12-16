@@ -215,6 +215,7 @@ impl TraverseProgramsAndModels {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 enum ModelItemId {
     None,
@@ -234,6 +235,7 @@ enum ProgramType {
     Advance,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 enum ProgramItemId {
     None,
