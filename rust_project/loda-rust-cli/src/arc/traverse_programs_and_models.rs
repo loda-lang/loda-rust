@@ -9,7 +9,8 @@ use loda_rust_core::execute::{ProgramSerializer, ProgramId, ProgramRunner};
 use loda_rust_core::parser::ParsedProgram;
 use std::cell::RefCell;
 use std::collections::HashSet;
-use std::fs;
+use std::fs::{self, File};
+use std::io::Write;
 use std::path::{PathBuf, Path};
 use std::rc::Rc;
 use std::time::Instant;
@@ -165,7 +166,7 @@ impl TraverseProgramsAndModels {
             }
         };
 
-        println!("; INPUT PROGRAM\n; filename: {:?}\n\n{}", program_item.id.file_name(), initial_parsed_program);
+        // println!("; INPUT PROGRAM\n; filename: {:?}\n\n{}", program_item.id.file_name(), initial_parsed_program);
 
         let genome_vec: Vec<GenomeItem> = initial_parsed_program.to_genome_item_vec();
 
@@ -193,6 +194,8 @@ impl TraverseProgramsAndModels {
             number_of_successful_mutations += 1;
 
             let mut serializer = ProgramSerializer::new();
+            serializer.append_comment("Submitted by Simon Strandgaard");
+            serializer.append_comment("Program Type: advanced");
             serializer.append_comment(format!("MUTATION {}", number_of_successful_mutations));
             serializer.append_comment(format!("original program {:?}", program_item.id.file_name()));
             serializer.append_empty_line();
@@ -233,6 +236,7 @@ impl TraverseProgramsAndModels {
         // return Ok(());
 
         let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
+        let path_programs = self.config.loda_arc_challenge_repository_programs();
 
         let mut record_vec = Vec::<Record>::new();
 
@@ -247,7 +251,6 @@ impl TraverseProgramsAndModels {
 
                 let program_filename: String = record.program_filename.clone();
                 for program_item in &self.program_item_vec {
-                    // let item: &mut ProgramItem = &program_item.borrow_mut();
                     if program_item.borrow().id.file_name() == program_filename {
                         program_item.borrow_mut().number_of_models += 1;
                     }
@@ -266,6 +269,20 @@ impl TraverseProgramsAndModels {
             if program_item.borrow().number_of_models == 0 {
                 scheduled_program_item_vec.push(program_item.clone());
             }
+        }
+
+        if scheduled_program_item_vec.is_empty() {
+            let number_of_mutations: u64 = 10;
+
+            for program_item in &self.program_item_vec {
+                for i in 0..number_of_mutations {
+                    let random_seed: u64 = i;
+                    let mutated_program: ProgramItem = self.mutate_program(&program_item.borrow(), random_seed)?;
+                    scheduled_program_item_vec.push(Rc::new(RefCell::new(mutated_program)));
+                    // println!("pushed mutated program");
+                }
+            }
+            println!("scheduled_program_item_vec.len: {}", scheduled_program_item_vec.len());
         }
 
         let mut number_of_models_for_processing: u64 = 0;
@@ -331,18 +348,32 @@ impl TraverseProgramsAndModels {
 
                 if count == pairs.len() {
                     found_one_or_more_solutions = true;
-                    let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.id);
-                    pb.println(message);
 
                     let model_filename: String = model_item.id.file_name();
-                    let program_filename: String = program_item.borrow().id.file_name();
+                    let mut program_filename: String = program_item.borrow().id.file_name();
+
+                    let is_mutation: bool = program_item.borrow().id == ProgramItemId::None;
+                    let is_first: bool = program_item.borrow().number_of_models == 0;
+                    if is_mutation && is_first {
+                        let content: String = program_item.borrow().program_string.clone();
+                        let mut s: String = model_filename.clone();
+                        s = s.replace(".json", "-x.asm");
+                        program_filename = s.clone();
+                        let path = path_programs.join(Path::new(&s));
+                        let mut file = File::create(&path)?;
+                        file.write_all(content.as_bytes())?;
+                    }
+
                     let record = Record {
-                        model_filename,
+                        model_filename: model_filename,
                         program_filename,
                     };
                     record_vec.push(record);
 
                     program_item.borrow_mut().number_of_models += 1;
+
+                    let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.id);
+                    pb.println(message);
                 }
             }
 
@@ -363,6 +394,9 @@ impl TraverseProgramsAndModels {
         println!("number of matches: {} mismatches: {}", count_match, count_mismatch);
 
         for program_item in &scheduled_program_item_vec {
+            if program_item.borrow().id == ProgramItemId::None {
+                continue;
+            }
             if program_item.borrow().number_of_models == 0 {
                 println!("unused program {:?}, it doesn't solve any of the models, and can be removed", program_item.borrow().id);
             }
@@ -421,7 +455,7 @@ enum ProgramType {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 enum ProgramItemId {
     None,
     Path { path: PathBuf },
