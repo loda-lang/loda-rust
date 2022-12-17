@@ -146,6 +146,7 @@ impl TraverseProgramsAndModels {
 
     fn mutate_program(&self, program_item: &ProgramItem, random_seed: u64) -> anyhow::Result<ProgramItem> {
         let mut genome = Genome::new();
+        genome.append_message(format!("template: {:?}", program_item.id.file_name()));
 
         let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
 
@@ -180,7 +181,6 @@ impl TraverseProgramsAndModels {
         
         let mut dependency_manager: DependencyManager = RunWithProgram::create_dependency_manager();
 
-        let mut number_of_successful_mutations: usize = 0;
         let max_number_of_retries = 40;
         for _ in 0..max_number_of_retries {
             let mutate_success: bool = genome.mutate(&mut rng, &self.context);
@@ -192,13 +192,9 @@ impl TraverseProgramsAndModels {
             let program_runner: ProgramRunner = dependency_manager.parse_stage2(ProgramId::ProgramWithoutId, &parsed_program)
                 .map_err(|e| anyhow::anyhow!("parse_stage2 with program: {:?}. error: {:?}", genome.to_string(), e))?;
     
-            number_of_successful_mutations += 1;
-
             let mut serializer = ProgramSerializer::new();
             serializer.append_comment("Submitted by Simon Strandgaard");
             serializer.append_comment("Program Type: advanced");
-            serializer.append_comment(format!("MUTATION {}", number_of_successful_mutations));
-            serializer.append_comment(format!("original program {:?}", program_item.id.file_name()));
             serializer.append_empty_line();
             program_runner.serialize(&mut serializer);
             serializer.append_empty_line();
@@ -277,13 +273,13 @@ impl TraverseProgramsAndModels {
 
             for program_item in &self.program_item_vec {
                 for i in 0..number_of_mutations {
-                    let random_seed: u64 = i + 40;
+                    let random_seed: u64 = i + 100;
                     match self.mutate_program(&program_item.borrow(), random_seed) {
                         Ok(mutated_program) => {
                             scheduled_program_item_vec.push(Rc::new(RefCell::new(mutated_program)));
                         },
                         Err(error) => {
-                            error!("cannot mutate program. {:?}", error);
+                            debug!("Skipping this mutation. The original program cannot be mutated. {:?}", error);
                             break;
                         }
                     }
