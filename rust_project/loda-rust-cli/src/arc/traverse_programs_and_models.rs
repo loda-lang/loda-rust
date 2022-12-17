@@ -143,7 +143,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn mutate_program(&self, program_item: &ProgramItem, random_seed: u64) -> anyhow::Result<()> {
+    fn mutate_program(&self, program_item: &ProgramItem, random_seed: u64) -> anyhow::Result<ProgramItem> {
         let mut genome = Genome::new();
 
         let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
@@ -180,7 +180,8 @@ impl TraverseProgramsAndModels {
         let mut dependency_manager: DependencyManager = RunWithProgram::create_dependency_manager();
 
         let mut number_of_successful_mutations: usize = 0;
-        for _ in 0..40 {
+        let max_number_of_retries = 40;
+        for _ in 0..max_number_of_retries {
             let mutate_success: bool = genome.mutate(&mut rng, &self.context);
             if !mutate_success {
                 continue;
@@ -204,18 +205,23 @@ impl TraverseProgramsAndModels {
             let candidate_program: String = serializer.to_string();
             println!("; ------\n\n{}", candidate_program);
 
-            if number_of_successful_mutations > 5 {
-                break;
-            }
+            let mutated_program_item = ProgramItem {
+                id: ProgramItemId::None,
+                program_string: candidate_program,
+                program_type: ProgramType::Advance,
+                number_of_models: 0,
+            };
+
+            return Ok(mutated_program_item);
         }
 
-        Ok(())
+        Err(anyhow::anyhow!("unable to create a mutation in {} attempts", max_number_of_retries))
     }
 
     fn genome_experiments(&self) -> anyhow::Result<()> {
         for program_item in &self.program_item_vec {
             let random_seed: u64 = 0;
-            self.mutate_program(&program_item.borrow(), random_seed)?;
+            let _ = self.mutate_program(&program_item.borrow(), random_seed)?;
             println!("break after first iteration");
             break;
         }
