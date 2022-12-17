@@ -225,9 +225,9 @@ impl RunWithProgram {
                 continue;
             }
             let computed_uint: BigUint = computed_int.to_biguint()
-                .ok_or_else(|| { anyhow::anyhow!("computed_int.to_biguint return None") })?;
+                .ok_or_else(|| { anyhow::anyhow!("process_output -> train -> computed_int.to_biguint return None") })?;
             let computed_image: Image = computed_uint.to_image()
-                .map_err(|e| anyhow::anyhow!("computed_uint.to_image. error: {:?}", e))?;
+                .map_err(|e| anyhow::anyhow!("process_output -> train -> computed_uint.to_image. error: {:?}", e))?;
             
             let expected_image: Image = pair.output.clone();
             if computed_image != expected_image {
@@ -248,8 +248,10 @@ impl RunWithProgram {
                 message_items.push(format!("test. output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
                 continue;
             }
-            let computed_uint: BigUint = computed_int.to_biguint().expect("output biguint");
-            let computed_image: Image = computed_uint.to_image().expect("output uint to image");
+            let computed_uint: BigUint = computed_int.to_biguint()
+                .ok_or_else(|| { anyhow::anyhow!("process_output -> test -> computed_int.to_biguint return None") })?;
+            let computed_image: Image = computed_uint.to_image()
+                .map_err(|e| anyhow::anyhow!("process_output -> test -> computed_uint.to_image. error: {:?}", e))?;
             
             let expected_image: Image = pair.output.clone();
             if computed_image != expected_image {
