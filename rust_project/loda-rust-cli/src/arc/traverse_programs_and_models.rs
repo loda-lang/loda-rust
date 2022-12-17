@@ -143,11 +143,10 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn mutate_program(&self, program_index: usize, program_item: &ProgramItem) -> anyhow::Result<()> {
+    fn mutate_program(&self, program_item: &ProgramItem, random_seed: u64) -> anyhow::Result<()> {
         let mut genome = Genome::new();
 
-        let initial_random_seed: u64 = 0;
-        let mut rng: StdRng = StdRng::seed_from_u64(initial_random_seed);
+        let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
 
         let program_content: String;
         match program_item.program_type {
@@ -166,7 +165,7 @@ impl TraverseProgramsAndModels {
             }
         };
 
-        println!("; INPUT PROGRAM\n; program_index: {}\n; id: {:?}\n\n{}", program_index, program_item.id, initial_parsed_program);
+        println!("; INPUT PROGRAM\n; filename: {:?}\n\n{}", program_item.id.file_name(), initial_parsed_program);
 
         let genome_vec: Vec<GenomeItem> = initial_parsed_program.to_genome_item_vec();
 
@@ -194,8 +193,7 @@ impl TraverseProgramsAndModels {
 
             let mut serializer = ProgramSerializer::new();
             serializer.append_comment(format!("MUTATION {}", number_of_successful_mutations));
-            serializer.append_comment(format!("program_index {}", program_index));
-            serializer.append_comment(format!("program id {:?}", program_item.id));
+            serializer.append_comment(format!("original program {:?}", program_item.id.file_name()));
             serializer.append_empty_line();
             program_runner.serialize(&mut serializer);
             serializer.append_empty_line();
@@ -215,8 +213,9 @@ impl TraverseProgramsAndModels {
     }
 
     fn genome_experiments(&self) -> anyhow::Result<()> {
-        for (program_index, program_item) in self.program_item_vec.iter().enumerate() {
-            self.mutate_program(program_index, &program_item.borrow())?;
+        for program_item in &self.program_item_vec {
+            let random_seed: u64 = 0;
+            self.mutate_program(&program_item.borrow(), random_seed)?;
             println!("break after first iteration");
             break;
         }
