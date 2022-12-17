@@ -7,6 +7,7 @@ use crate::mine::{Genome, GenomeItem, ToGenomeItemVec, create_genome_mutate_cont
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{ProgramSerializer, ProgramId, ProgramRunner};
 use loda_rust_core::parser::ParsedProgram;
+use std::collections::HashSet;
 use std::fs;
 use std::path::{PathBuf, Path};
 use std::time::Instant;
@@ -224,16 +225,51 @@ impl TraverseProgramsAndModels {
 
         let mut count_match: usize = 0;
         let mut count_mismatch: usize = 0;
-        let mut found_program_indexes = Vec::<usize>::new();
         let mut record_vec = Vec::<Record>::new();
 
-        let start = Instant::now();
-        let pb = ProgressBar::new((self.model_item_vec.len()+1) as u64);
+        let ignore_models_with_a_solution: bool = path_solutions_csv.is_file();
+        if ignore_models_with_a_solution {
+            record_vec = Record::load_record_vec(&path_solutions_csv)?;
+            println!("solutions.csv: number of rows: {}", record_vec.len());
+    
+            let mut file_names_to_ignore = HashSet::<String>::new();
+            for record in &record_vec {
+                file_names_to_ignore.insert(record.model_filename.clone());
+
+                let program_filename: String = record.program_filename.clone();
+                for program_item in self.program_item_vec.iter_mut() {
+                    if program_item.id.file_name() == program_filename {
+                        program_item.number_of_models += 1;
+                    }
+                }
+            }
+            for model_item in self.model_item_vec.iter_mut() {
+                let file_name: String = model_item.id.file_name();
+                if file_names_to_ignore.contains(&file_name) {
+                    model_item.enabled = false;
+                }
+            }
+        }
+
+        let mut number_of_models_for_processing: u64 = 0;
+        let mut number_of_models_ignored: u64 = 0;
         for model_item in &self.model_item_vec {
-            pb.inc(1);
+            if model_item.enabled {
+                number_of_models_for_processing += 1;
+            } else {
+                number_of_models_ignored += 1;
+            }
+        }
+        println!("number of models for processing: {}", number_of_models_for_processing);
+        println!("number of models being ignored: {}", number_of_models_ignored);
+
+        let start = Instant::now();
+        let pb = ProgressBar::new(number_of_models_for_processing+1);
+        for model_item in &self.model_item_vec {
             if !model_item.enabled {
                 continue;
             }
+            pb.inc(1);
             let model: Model = model_item.model.clone();
             let instance = RunWithProgram::new(model).expect("RunWithProgram");
 
@@ -276,14 +312,11 @@ impl TraverseProgramsAndModels {
 
                 if count == pairs.len() {
                     found_one_or_more_solutions = true;
-                    found_program_indexes.push(program_index);
                     let message = format!("program: {:?} is a solution for model: {:?}", program_item.id, model_item.id);
                     pb.println(message);
 
-
                     let model_filename: String = model_item.id.file_name();
                     let program_filename: String = program_item.id.file_name();
-
                     let record = Record {
                         model_filename,
                         program_filename,
@@ -308,10 +341,7 @@ impl TraverseProgramsAndModels {
             HumanDuration(start.elapsed())
         );
 
-        found_program_indexes.sort();
-
         println!("number of matches: {} mismatches: {}", count_match, count_mismatch);
-        println!("found_program_indexes: {:?}", found_program_indexes);
 
         for program in &self.program_item_vec {
             if program.number_of_models == 0 {
@@ -421,4 +451,3 @@ impl Record {
         Ok(record_vec)
     }
 }
-
