@@ -1,19 +1,20 @@
 use super::{Model, ImagePair};
 use super::{RunWithProgram, RunWithProgramResult};
 use crate::config::Config;
-use crate::common::find_json_files_recursively;
+use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
 use crate::common::find_asm_files_recursively;
 use crate::mine::{Genome, GenomeItem, ToGenomeItemVec, create_genome_mutate_context, GenomeMutateContext};
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{ProgramSerializer, ProgramId, ProgramRunner};
 use loda_rust_core::parser::ParsedProgram;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use std::time::Instant;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
+use serde::{Serialize, Deserialize};
 
 pub struct TraverseProgramsAndModels {
     config: Config,
@@ -219,9 +220,12 @@ impl TraverseProgramsAndModels {
         // self.genome_experiments()?;
         // return Ok(());
 
+        let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
+
         let mut count_match: usize = 0;
         let mut count_mismatch: usize = 0;
-        let mut found_program_indexes: Vec<usize> = vec!();
+        let mut found_program_indexes = Vec::<usize>::new();
+        let mut record_vec = Vec::<Record>::new();
 
         let start = Instant::now();
         let pb = ProgressBar::new((self.model_item_vec.len()+1) as u64);
@@ -276,6 +280,16 @@ impl TraverseProgramsAndModels {
                     let message = format!("program: {:?} is a solution for model: {:?}", program_item.id, model_item.id);
                     pb.println(message);
 
+
+                    let model_filename: String = model_item.id.file_name();
+                    let program_filename: String = program_item.id.file_name();
+
+                    let record = Record {
+                        model_filename,
+                        program_filename,
+                    };
+                    record_vec.push(record);
+
                     program_item.number_of_models += 1;
                 }
             }
@@ -305,6 +319,14 @@ impl TraverseProgramsAndModels {
             }
         }
 
+        record_vec.sort_unstable_by_key(|item| (item.model_filename.clone(), item.program_filename.clone()));
+        match create_csv_file(&record_vec, &path_solutions_csv) {
+            Ok(()) => {},
+            Err(error) => {
+                error!("Unable to save csv file: {:?}", error);
+            }
+        }
+    
         Ok(())
     }
 }
@@ -314,6 +336,26 @@ impl TraverseProgramsAndModels {
 enum ModelItemId {
     None,
     Path { path: PathBuf },
+}
+
+impl ModelItemId {
+    fn file_name(&self) -> String {
+        match self {
+            ModelItemId::None => {
+                return "None".to_string();
+            },
+            ModelItemId::Path { path } => {
+                match path.file_name() {
+                    Some(value) => {
+                        return value.to_string_lossy().to_string();
+                    },
+                    None => {
+                        return "Path without a file_name".to_string();
+                    }
+                }
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -336,6 +378,26 @@ enum ProgramItemId {
     Path { path: PathBuf },
 }
 
+impl ProgramItemId {
+    fn file_name(&self) -> String {
+        match self {
+            ProgramItemId::None => {
+                return "None".to_string();
+            },
+            ProgramItemId::Path { path } => {
+                match path.file_name() {
+                    Some(value) => {
+                        return value.to_string_lossy().to_string();
+                    },
+                    None => {
+                        return "Path without a file_name".to_string();
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 struct ProgramItem {
     id: ProgramItemId,
@@ -343,3 +405,20 @@ struct ProgramItem {
     program_type: ProgramType,
     number_of_models: usize,
 }
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Record {
+    #[serde(rename = "model filename")]
+    model_filename: String,
+    #[serde(rename = "program filename")]
+    program_filename: String,
+}
+
+impl Record {
+    fn load_record_vec(csv_path: &Path) -> anyhow::Result<Vec<Record>> {
+        let record_vec: Vec<Record> = parse_csv_file(csv_path)
+            .map_err(|e| anyhow::anyhow!("unable to parse csv file. error: {:?}", e))?;
+        Ok(record_vec)
+    }
+}
+
