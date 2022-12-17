@@ -106,7 +106,7 @@ impl RunWithProgram {
         let mut cache = ProgramCache::new();
 
         // Blank state
-        let step_count_limit: u64 = 1000;
+        let step_count_limit: u64 = 900;
         let mut state = ProgramState::new(
             RunMode::Silent, 
             step_count_limit, 
