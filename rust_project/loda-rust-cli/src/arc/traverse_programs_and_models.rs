@@ -226,8 +226,6 @@ impl TraverseProgramsAndModels {
 
         let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
 
-        let mut count_match: usize = 0;
-        let mut count_mismatch: usize = 0;
         let mut record_vec = Vec::<Record>::new();
 
         let ignore_models_with_a_solution: bool = path_solutions_csv.is_file();
@@ -254,6 +252,13 @@ impl TraverseProgramsAndModels {
             }
         }
 
+        let mut scheduled_program_item_vec = Vec::<ProgramItem>::new();
+        for program_item in self.program_item_vec.iter_mut() {
+            if program_item.number_of_models == 0 {
+                scheduled_program_item_vec.push(program_item.clone());
+            }
+        }
+
         let mut number_of_models_for_processing: u64 = 0;
         let mut number_of_models_ignored: u64 = 0;
         for model_item in &self.model_item_vec {
@@ -266,6 +271,8 @@ impl TraverseProgramsAndModels {
         println!("number of models for processing: {}", number_of_models_for_processing);
         println!("number of models being ignored: {}", number_of_models_ignored);
 
+        let mut count_match: usize = 0;
+        let mut count_mismatch: usize = 0;
         let start = Instant::now();
         let pb = ProgressBar::new(number_of_models_for_processing+1);
         for model_item in &self.model_item_vec {
@@ -279,7 +286,7 @@ impl TraverseProgramsAndModels {
             let pairs: Vec<ImagePair> = model_item.model.images_all().expect("pairs");
     
             let mut found_one_or_more_solutions = false;
-            for (program_index, program_item) in self.program_item_vec.iter_mut().enumerate() {
+            for (program_index, program_item) in scheduled_program_item_vec.iter_mut().enumerate() {
 
                 let result: RunWithProgramResult;
                 match program_item.program_type {
@@ -346,7 +353,7 @@ impl TraverseProgramsAndModels {
 
         println!("number of matches: {} mismatches: {}", count_match, count_mismatch);
 
-        for program in &self.program_item_vec {
+        for program in &scheduled_program_item_vec {
             if program.number_of_models == 0 {
                 println!("unused program {:?}, it doesn't solve any of the models, and can be removed", program.id);
             }
