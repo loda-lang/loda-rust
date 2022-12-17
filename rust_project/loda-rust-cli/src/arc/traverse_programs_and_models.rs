@@ -189,7 +189,8 @@ impl TraverseProgramsAndModels {
             }
 
             let parsed_program: ParsedProgram = genome.to_parsed_program();
-            let program_runner: ProgramRunner = dependency_manager.parse_stage2(ProgramId::ProgramWithoutId, &parsed_program).expect("ProgramRunner");
+            let program_runner: ProgramRunner = dependency_manager.parse_stage2(ProgramId::ProgramWithoutId, &parsed_program)
+                .map_err(|e| anyhow::anyhow!("parse_stage2 with program: {:?}. error: {:?}", genome.to_string(), e))?;
     
             number_of_successful_mutations += 1;
 
@@ -276,10 +277,16 @@ impl TraverseProgramsAndModels {
 
             for program_item in &self.program_item_vec {
                 for i in 0..number_of_mutations {
-                    let random_seed: u64 = i;
-                    let mutated_program: ProgramItem = self.mutate_program(&program_item.borrow(), random_seed)?;
-                    scheduled_program_item_vec.push(Rc::new(RefCell::new(mutated_program)));
-                    // println!("pushed mutated program");
+                    let random_seed: u64 = i + 40;
+                    match self.mutate_program(&program_item.borrow(), random_seed) {
+                        Ok(mutated_program) => {
+                            scheduled_program_item_vec.push(Rc::new(RefCell::new(mutated_program)));
+                        },
+                        Err(error) => {
+                            error!("cannot mutate program. {:?}", error);
+                            break;
+                        }
+                    }
                 }
             }
             println!("scheduled_program_item_vec.len: {}", scheduled_program_item_vec.len());
