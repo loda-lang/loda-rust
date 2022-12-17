@@ -19,6 +19,7 @@ use serde::{Serialize, Deserialize};
 
 pub struct TraverseProgramsAndModels {
     config: Config,
+    context: GenomeMutateContext,
     model_item_vec: Vec<ModelItem>,
     program_item_vec: Vec<ProgramItem>,
 }
@@ -26,8 +27,15 @@ pub struct TraverseProgramsAndModels {
 impl TraverseProgramsAndModels {
     pub fn new() -> anyhow::Result<Self> {
         let config = Config::load();
+
+        println!("loading genome mutate context");
+        let start = Instant::now();
+        let context: GenomeMutateContext = create_genome_mutate_context(&config);
+        println!("loaded genome mutate context. elapsed: {}", HumanDuration(start.elapsed()));
+
         let mut instance = Self { 
             config,
+            context,
             model_item_vec: vec!(),
             program_item_vec: vec!(),
         };
@@ -133,11 +141,6 @@ impl TraverseProgramsAndModels {
     }
 
     fn mutate_program(&self, program_index: usize, program_item: &ProgramItem) -> anyhow::Result<()> {
-        println!("loading context");
-        let start = Instant::now();
-        let context: GenomeMutateContext = create_genome_mutate_context(&self.config);
-        println!("loaded context. elapsed: {}", HumanDuration(start.elapsed()));
-
         let mut genome = Genome::new();
 
         let initial_random_seed: u64 = 0;
@@ -176,7 +179,7 @@ impl TraverseProgramsAndModels {
 
         let mut number_of_successful_mutations: usize = 0;
         for _ in 0..40 {
-            let mutate_success: bool = genome.mutate(&mut rng, &context);
+            let mutate_success: bool = genome.mutate(&mut rng, &self.context);
             if !mutate_success {
                 continue;
             }
