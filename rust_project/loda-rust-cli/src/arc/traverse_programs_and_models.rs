@@ -7,9 +7,11 @@ use crate::mine::{Genome, GenomeItem, ToGenomeItemVec, create_genome_mutate_cont
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{ProgramSerializer, ProgramId, ProgramRunner};
 use loda_rust_core::parser::ParsedProgram;
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::fs;
 use std::path::{PathBuf, Path};
+use std::rc::Rc;
 use std::time::Instant;
 use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
@@ -21,7 +23,7 @@ pub struct TraverseProgramsAndModels {
     config: Config,
     context: GenomeMutateContext,
     model_item_vec: Vec<ModelItem>,
-    program_item_vec: Vec<ProgramItem>,
+    program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
 }
 
 impl TraverseProgramsAndModels {
@@ -94,7 +96,7 @@ impl TraverseProgramsAndModels {
         let paths: Vec<PathBuf> = find_asm_files_recursively(&path);
         println!("loda_arc_challenge_repository_programs. number of asm files: {}", paths.len());
 
-        let mut program_item_vec: Vec<ProgramItem> = vec!();
+        let mut program_item_vec: Vec<Rc<RefCell<ProgramItem>>> = vec!();
         for path in &paths {
 
             let program_string: String = match fs::read_to_string(path) {
@@ -125,12 +127,13 @@ impl TraverseProgramsAndModels {
                 }
             }
 
-            let item = ProgramItem {
+            let instance = ProgramItem {
                 id: ProgramItemId::Path { path: path.clone() },
                 program_string,
                 program_type,
                 number_of_models: 0,
             };
+            let item = Rc::new(RefCell::new(instance));
             program_item_vec.push(item);
         }
         if program_item_vec.len() != paths.len() {
@@ -213,7 +216,7 @@ impl TraverseProgramsAndModels {
 
     fn genome_experiments(&self) -> anyhow::Result<()> {
         for (program_index, program_item) in self.program_item_vec.iter().enumerate() {
-            self.mutate_program(program_index, &program_item)?;
+            self.mutate_program(program_index, &program_item.borrow())?;
             println!("break after first iteration");
             break;
         }
@@ -238,9 +241,10 @@ impl TraverseProgramsAndModels {
                 file_names_to_ignore.insert(record.model_filename.clone());
 
                 let program_filename: String = record.program_filename.clone();
-                for program_item in self.program_item_vec.iter_mut() {
-                    if program_item.id.file_name() == program_filename {
-                        program_item.number_of_models += 1;
+                for program_item in &self.program_item_vec {
+                    // let item: &mut ProgramItem = &program_item.borrow_mut();
+                    if program_item.borrow().id.file_name() == program_filename {
+                        program_item.borrow_mut().number_of_models += 1;
                     }
                 }
             }
@@ -252,9 +256,9 @@ impl TraverseProgramsAndModels {
             }
         }
 
-        let mut scheduled_program_item_vec = Vec::<ProgramItem>::new();
+        let mut scheduled_program_item_vec: Vec<Rc<RefCell<ProgramItem>>> = Vec::<Rc<RefCell<ProgramItem>>>::new();
         for program_item in self.program_item_vec.iter_mut() {
-            if program_item.number_of_models == 0 {
+            if program_item.borrow().number_of_models == 0 {
                 scheduled_program_item_vec.push(program_item.clone());
             }
         }
@@ -289,24 +293,24 @@ impl TraverseProgramsAndModels {
             for (program_index, program_item) in scheduled_program_item_vec.iter_mut().enumerate() {
 
                 let result: RunWithProgramResult;
-                match program_item.program_type {
+                match program_item.borrow().program_type {
                     ProgramType::Simple => {
-                        result = match instance.run_simple(&program_item.program_string) {
+                        result = match instance.run_simple(&program_item.borrow().program_string) {
                             Ok(value) => value,
                             Err(error) => {
                                 if verbose {
-                                    error!("model: {:?} simple-program: {:?} error: {:?}", model_item.id, program_item.id, error);
+                                    error!("model: {:?} simple-program: {:?} error: {:?}", model_item.id, program_item.borrow().id, error);
                                 }
                                 continue;
                             }
                         };
                     },
                     ProgramType::Advance => {
-                        result = match instance.run_advanced(&program_item.program_string) {
+                        result = match instance.run_advanced(&program_item.borrow().program_string) {
                             Ok(value) => value,
                             Err(error) => {
                                 if verbose {
-                                    error!("model: {:?} advanced-program: {:?} error: {:?}", model_item.id, program_item.id, error);
+                                    error!("model: {:?} advanced-program: {:?} error: {:?}", model_item.id, program_item.borrow().id, error);
                                 }
                                 continue;
                             }
@@ -315,25 +319,25 @@ impl TraverseProgramsAndModels {
                 }
 
                 if verbose {
-                    println!("model: {:?} program: {:?} result: {:?}", model_item.id, program_item.id, result);
+                    println!("model: {:?} program: {:?} result: {:?}", model_item.id, program_item.borrow().id, result);
                 }
 
                 let count: usize = result.count_train_correct() + result.count_test_correct();
 
                 if count == pairs.len() {
                     found_one_or_more_solutions = true;
-                    let message = format!("program: {:?} is a solution for model: {:?}", program_item.id, model_item.id);
+                    let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.id);
                     pb.println(message);
 
                     let model_filename: String = model_item.id.file_name();
-                    let program_filename: String = program_item.id.file_name();
+                    let program_filename: String = program_item.borrow().id.file_name();
                     let record = Record {
                         model_filename,
                         program_filename,
                     };
                     record_vec.push(record);
 
-                    program_item.number_of_models += 1;
+                    program_item.borrow_mut().number_of_models += 1;
                 }
             }
 
@@ -353,9 +357,9 @@ impl TraverseProgramsAndModels {
 
         println!("number of matches: {} mismatches: {}", count_match, count_mismatch);
 
-        for program in &scheduled_program_item_vec {
-            if program.number_of_models == 0 {
-                println!("unused program {:?}, it doesn't solve any of the models, and can be removed", program.id);
+        for program_item in &scheduled_program_item_vec {
+            if program_item.borrow().number_of_models == 0 {
+                println!("unused program {:?}, it doesn't solve any of the models, and can be removed", program_item.borrow().id);
             }
         }
 
