@@ -1,4 +1,4 @@
-use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions};
+use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions, StackStrings};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -105,6 +105,8 @@ impl RunWithProgram {
     }
 
     pub fn run_program_runner(&self, program_runner: &ProgramRunner) -> anyhow::Result<RunWithProgramResult> {
+        // self.print_full_state();
+
         let mut cache = ProgramCache::new();
 
         // Blank state
@@ -122,6 +124,16 @@ impl RunWithProgram {
         program_runner.program().run(&mut state, &mut cache).context("run_result error in program.run")?;
 
         self.process_output(&state)
+    }
+
+    fn print_full_state(&self) {
+        println!("model: {:?}", self.model.id());
+        for (index, pair) in self.train_pairs.iter().enumerate() {
+            let input = format!("input\n{}", pair.input.to_unicode_string());
+            let output = format!("output\n{}", pair.output.to_unicode_string());
+            let s: String = StackStrings::hstack(vec![input, output], " | ");
+            println!("model: {:?} train#{}\n{}", self.model.id(), index, s);
+        }
     }
         
     /// Prepare the starting state of the program
@@ -247,7 +259,10 @@ impl RunWithProgram {
                     continue;
                 }
                 if pretty_print {
-                    println!("model: {:?} train#{} incorrect. computed {}\nexpected {}", self.model.id(), index, computed_image.to_unicode_string(), expected_image.to_unicode_string());
+                    let computed_output_pretty = format!("computed output {}", computed_image.to_unicode_string());
+                    let expected_output_pretty = format!("expected output {}", expected_image.to_unicode_string());
+                    let comparison_pretty: String = StackStrings::hstack(vec![computed_output_pretty, expected_output_pretty], " | ");
+                    println!("model: {:?} train#{} incorrect.\n{}", self.model.id(), index, comparison_pretty);
                 }
                 continue;
             }
