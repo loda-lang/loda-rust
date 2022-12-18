@@ -42,6 +42,7 @@ anyhow = "1.0.58"
 subprocess = "0.2.9"
 bastion = { version = "0.4.5", features = ["tokio-runtime"] }
 reqwest = "0.11.12"
+unicode-width = "0.1.7"
 
 [dev-dependencies]
 tempfile = "3.3.0"

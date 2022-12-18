@@ -1,3 +1,5 @@
+use unicode_width::UnicodeWidthStr;
+
 struct TextColumn {
     rows: Vec<String>,
     max_len: usize,
@@ -7,7 +9,8 @@ impl TextColumn {
     fn find_max_len(rows: &Vec<String>) -> usize {
         let mut found: usize = 0;
         for row in rows {
-            found = usize::max(row.len(), found);
+            let l: usize = UnicodeWidthStr::width(row.as_str());
+            found = usize::max(l, found);
         }
         found
     }
@@ -102,4 +105,18 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
+    #[test]
+    fn test_10002_with_separator_and_emoji() {
+        // Arrange
+        let a = "⬛\n⬛⬛\n⬛⬛⬛".to_string();
+        let b = "bbb\nb\nbb\nb".to_string();
+        let c = "c\nc\nc\nc".to_string();
+
+        // Act
+        let actual: String = StackStrings::hstack(vec![a, b, c], "|");
+
+        // Assert
+        let expected = "⬛   |bbb|c\n⬛⬛|b  |c\n⬛⬛⬛|bb |c\n      |b  |c";
+        assert_eq!(actual, expected);
+    }
 }

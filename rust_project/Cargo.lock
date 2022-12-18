@@ -1583,6 +1583,7 @@ dependencies = [
  "tide",
  "tokio",
  "toml",
+ "unicode-width",
  "wait-timeout",
  "walkdir",
 ]
