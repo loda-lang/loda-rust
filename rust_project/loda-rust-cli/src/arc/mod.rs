@@ -39,6 +39,7 @@ mod image_palette;
 mod read_testdata;
 mod register_arc_functions;
 mod run_with_program;
+mod stack_strings;
 mod test_convert;
 mod traverse_programs_and_models;
 
@@ -79,4 +80,5 @@ pub use image_palette::ImageCreatePalette;
 pub use read_testdata::read_testdata;
 pub use register_arc_functions::register_arc_functions;
 pub use run_with_program::{RunWithProgram, RunWithProgramResult};
+pub use stack_strings::StackStrings;
 pub use traverse_programs_and_models::TraverseProgramsAndModels;
