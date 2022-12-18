@@ -42,7 +42,7 @@ mod run_with_program;
 mod test_convert;
 mod traverse_programs_and_models;
 
-pub use arc_json_model::{Grid, GridToImage, ImagePair, Model, TaskPair};
+pub use arc_json_model::{Grid, GridToImage, ImagePair, Model, ModelItemId, TaskPair};
 pub use convolution2x2::convolution2x2;
 pub use convolution3x3::convolution3x3;
 pub use image_find::ImageFind;
