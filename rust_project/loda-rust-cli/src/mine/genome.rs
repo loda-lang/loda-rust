@@ -30,6 +30,7 @@ pub enum MutateGenome {
     ReplaceTargetWithHistogram,
     ReplaceLineWithHistogram,
     InsertLineWithHistogram,
+    CopyLine,
     ToggleEnabled,
     SwapRows,
     SwapAdjacentRows,
@@ -750,6 +751,44 @@ impl Genome {
         }
 
         self.genome_vec.insert(index1, genome_item);
+        true
+    }
+
+    /// Make a copy of an existing line.
+    /// 
+    /// Return `true` when the mutation was successful.
+    /// 
+    /// Return `false` in case of failure, such as empty genome, bad parameters for instruction.
+    pub fn copy_line<R: Rng + ?Sized>(&mut self, rng: &mut R) -> bool {
+        let mut indexes: Vec<usize> = vec!();
+        for (index, genome_item) in self.genome_vec.iter().enumerate() {
+            // We are not interested in copying loop related instructions, since loop require balancing start/end of the scope.
+            match genome_item.instruction_id() {
+                InstructionId::LoopBegin | 
+                InstructionId::LoopEnd |
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    continue;
+                },
+                _ => {}
+            }
+            indexes.push(index);
+        }
+        if indexes.is_empty() {
+            return false;
+        }
+
+        // Make a copy
+        let copy_from_index: &usize = indexes.choose(rng).unwrap();
+        let genome_item: GenomeItem = self.genome_vec[*copy_from_index].clone();
+
+        let length: usize = self.genome_vec.len();
+        if length < 1 {
+            return false;
+        }
+
+        // Insert a new line into the program
+        let insert_index: usize = rng.gen_range(0..length);
+        self.genome_vec.insert(insert_index, genome_item);
         true
     }
 
@@ -1602,6 +1641,7 @@ impl Genome {
             (MutateGenome::ReplaceTargetWithHistogram, 10),
             (MutateGenome::ReplaceLineWithHistogram, 100),
             (MutateGenome::InsertLineWithHistogram, 50),
+            (MutateGenome::CopyLine, 200),
             (MutateGenome::ToggleEnabled, 10),
             (MutateGenome::SwapRows, 10),
             (MutateGenome::SwapAdjacentRows, 10),
@@ -1666,6 +1706,9 @@ impl Genome {
             },
             MutateGenome::InsertLineWithHistogram => {
                 self.insert_line_with_histogram(rng, context)
+            },
+            MutateGenome::CopyLine => {
+                self.copy_line(rng)
             },
             MutateGenome::ToggleEnabled => {
                 self.mutate_enabled(rng)
