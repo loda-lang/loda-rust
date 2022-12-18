@@ -1,7 +1,7 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole};
-use super::{ImageRemoveGrid, ImageCreatePalette, ImageMask};
+use super::{ImageRemoveGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -40,7 +40,7 @@ impl UnofficialFunction for ImageDebugFunction {
         }
         let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
         let input_image: Image = input0_uint.to_image()?;
-        println!("image: {:?}", input_image);
+        println!("image: {}", input_image.to_unicode_string());
 
         // no output
         Ok(vec!())
