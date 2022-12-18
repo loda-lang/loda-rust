@@ -63,7 +63,7 @@ impl RunWithProgram {
         dm
     }
 
-    const SIMPLE_PROGRAM_PRE: &'static str = r#"
+    pub const SIMPLE_PROGRAM_PRE: &'static str = r#"
     ; process "train"+"test" vectors
     mov $80,$99 ; set iteration counter = length of "train"+"test" vectors
     mov $81,100 ; address of vector[0].input
@@ -73,7 +73,7 @@ impl RunWithProgram {
         ; before: do stuff to the image
         "#;
 
-    const SIMPLE_PROGRAM_POST: &'static str = r#"
+    pub const SIMPLE_PROGRAM_POST: &'static str = r#"
         ; after: do stuff to the image
         mov $$82,$0 ; save vector[x].computed_output image
 

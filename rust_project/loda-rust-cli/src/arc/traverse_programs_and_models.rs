@@ -25,6 +25,7 @@ pub struct TraverseProgramsAndModels {
     context: GenomeMutateContext,
     model_item_vec: Vec<ModelItem>,
     program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
+    locked_instruction_hashset: HashSet<String>,
 }
 
 impl TraverseProgramsAndModels {
@@ -41,9 +42,11 @@ impl TraverseProgramsAndModels {
             context,
             model_item_vec: vec!(),
             program_item_vec: vec!(),
+            locked_instruction_hashset: HashSet::new(),
         };
         instance.load_arc_models()?;
         instance.load_programs()?;
+        instance.init_locked_instruction_hashset()?;
         Ok(instance)
     }
 
@@ -144,6 +147,41 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    pub const INSTRUCTIONS_TO_LOCK: &'static str = r#"
+    mov $80,$97 ; set iteration counter = length of "train" vector
+    mov $81,100 ; address of first training data train[0].input
+    mov $82,101 ; address of first training data train[0].output
+    lps $80
+      mov $0,$$81 ; load train[x].input image
+      mov $1,$$82 ; load train[x].output image
+    
+      ; do stuff
+      
+      ; next iteration
+      add $81,10 ; jump to address of next training input image
+      add $82,10 ; jump to address of next training output image
+    lpe
+    "#;
+
+    fn init_locked_instruction_hashset(&mut self) -> anyhow::Result<()> {
+        self.insert_program_into_locked_instruction_hashset(RunWithProgram::SIMPLE_PROGRAM_PRE)?;
+        self.insert_program_into_locked_instruction_hashset(RunWithProgram::SIMPLE_PROGRAM_POST)?;
+        self.insert_program_into_locked_instruction_hashset(Self::INSTRUCTIONS_TO_LOCK)?;
+        Ok(())
+    }
+
+    fn insert_program_into_locked_instruction_hashset<S: AsRef<str>>(&mut self, program: S) -> anyhow::Result<()> {
+        let program_str: &str = program.as_ref();
+        let parsed_program: ParsedProgram = ParsedProgram::parse_program(program_str)
+            .map_err(|e| anyhow::anyhow!("parse with program: {:?}. error: {:?}", program_str, e))?;
+        for instruction in &parsed_program.instruction_vec {
+            let s: String = instruction.to_string();
+            println!("locked instruction: {:?}", s);
+            self.locked_instruction_hashset.insert(s);
+        }
+        Ok(())
+    }
+
     fn mutate_program(&self, program_item: &ProgramItem, random_seed: u64) -> anyhow::Result<ProgramItem> {
         let mut genome = Genome::new();
         genome.append_message(format!("template: {:?}", program_item.id.file_name()));
@@ -169,12 +207,15 @@ impl TraverseProgramsAndModels {
 
         // println!("; INPUT PROGRAM\n; filename: {:?}\n\n{}", program_item.id.file_name(), initial_parsed_program);
 
-        let genome_vec: Vec<GenomeItem> = initial_parsed_program.to_genome_item_vec();
+        let mut genome_vec: Vec<GenomeItem> = initial_parsed_program.to_genome_item_vec();
 
-        // locking rows
-        // for i in 0..3 {
-        //     genome_vec[i].set_mutation_locked(true);
-        // }
+        // locking rows that are not to be mutated
+        for genome_item in genome_vec.iter_mut() {
+            let program_line: String = genome_item.to_line_string();
+            if self.locked_instruction_hashset.contains(&program_line) {
+                genome_item.set_mutation_locked(true);
+            }
+        }
 
         genome.set_genome_vec(genome_vec);
 
