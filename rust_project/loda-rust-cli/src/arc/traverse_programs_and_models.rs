@@ -182,7 +182,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn mutate_program(&self, program_item: &ProgramItem, random_seed: u64) -> anyhow::Result<ProgramItem> {
+    fn mutate_program(&self, program_item: &ProgramItem, random_seed: u64, mutation_count: usize) -> anyhow::Result<ProgramItem> {
         let mut genome = Genome::new();
         genome.append_message(format!("template: {:?}", program_item.id.file_name()));
 
@@ -223,9 +223,15 @@ impl TraverseProgramsAndModels {
         let mut dependency_manager: DependencyManager = RunWithProgram::create_dependency_manager();
 
         let max_number_of_retries = 40;
+        let mut number_of_mutations: usize = 0;
         for _ in 0..max_number_of_retries {
             let mutate_success: bool = genome.mutate(&mut rng, &self.context);
             if !mutate_success {
+                continue;
+            }
+            number_of_mutations += 1;
+
+            if number_of_mutations < mutation_count {
                 continue;
             }
 
@@ -262,7 +268,8 @@ impl TraverseProgramsAndModels {
     fn genome_experiments(&self) -> anyhow::Result<()> {
         for program_item in &self.program_item_vec {
             let random_seed: u64 = 0;
-            let _ = self.mutate_program(&program_item.borrow(), random_seed)?;
+            let mutation_count: usize = 1;
+            let _ = self.mutate_program(&program_item.borrow(), random_seed, mutation_count)?;
             println!("break after first iteration");
             break;
         }
@@ -310,12 +317,13 @@ impl TraverseProgramsAndModels {
         }
 
         if scheduled_program_item_vec.is_empty() {
-            let number_of_mutations: u64 = 10;
+            let number_of_mutations: u64 = 40;
 
             for program_item in &self.program_item_vec {
                 for i in 0..number_of_mutations {
-                    let random_seed: u64 = i + 100;
-                    match self.mutate_program(&program_item.borrow(), random_seed) {
+                    let random_seed: u64 = i + 200;
+                    let mutation_count: usize = ((i % 4) + 1) as usize;
+                    match self.mutate_program(&program_item.borrow(), random_seed, mutation_count) {
                         Ok(mutated_program) => {
                             scheduled_program_item_vec.push(Rc::new(RefCell::new(mutated_program)));
                         },
