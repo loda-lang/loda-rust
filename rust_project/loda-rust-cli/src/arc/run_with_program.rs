@@ -1,4 +1,4 @@
-use super::{Image, ImagePair, ImageToNumber, Model, NumberToImage, register_arc_functions};
+use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -37,6 +37,7 @@ impl fmt::Debug for RunWithProgramResult {
 }
 
 pub struct RunWithProgram {
+    model: Model,
     train_pairs: Vec<ImagePair>,
     test_pairs: Vec<ImagePair>,
 }
@@ -46,6 +47,7 @@ impl RunWithProgram {
         let train_pairs: Vec<ImagePair> = model.images_train()?;
         let test_pairs: Vec<ImagePair> = model.images_test()?;
         Ok(Self {
+            model,
             train_pairs,
             test_pairs,
         })
@@ -212,6 +214,7 @@ impl RunWithProgram {
     /// $132 = test[0] computed_output image
     /// ```
     fn process_output(&self, state: &ProgramState) -> anyhow::Result<RunWithProgramResult> {
+        let pretty_print = false;
 
         let mut message_items = Vec::<String>::new();
 
@@ -233,7 +236,23 @@ impl RunWithProgram {
             if computed_image != expected_image {
                 let s = format!("train. output[{}]. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", address, index, expected_image, computed_image);
                 message_items.push(s);
+
+                if computed_image == pair.input {
+                    // println!("train#{} incorrect. same as input", index);
+                    continue;
+                }
+                let same_size = computed_image.width() == expected_image.width() && computed_image.height() == expected_image.height();
+                if !same_size {
+                    // println!("train#{} incorrect. computed {}x{} expected {}x{}", index, computed_image.width(), computed_image.height(), expected_image.width(), expected_image.height());
+                    continue;
+                }
+                if pretty_print {
+                    println!("model: {:?} train#{} incorrect. computed {}\nexpected {}", self.model.id(), index, computed_image.to_unicode_string(), expected_image.to_unicode_string());
+                }
                 continue;
+            }
+            if pretty_print {
+                println!("model: {:?} train#{} correct {}", self.model.id(), index, computed_image.to_unicode_string());
             }
             count_train_correct += 1;
         }
