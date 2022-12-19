@@ -1,34 +1,63 @@
 use super::{Image, ImageToHTML};
 use serde::{Serialize};
+use std::time::Duration;
+use std::thread;
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref HTML_LOG_INNER: HtmlLogInner = HtmlLogInner::new();
+}
 
 #[derive(Debug, Serialize)]
 struct PostMessage {
     message: String,
 }
 
-pub struct HtmlLog;
+pub struct HtmlLogInner {
+    client: reqwest::blocking::Client,
+}
 
-impl HtmlLog {
-    pub fn post_event(html: String) {
+impl HtmlLogInner {
+    fn new() -> Self {
+        let client: reqwest::blocking::Client = reqwest::blocking::Client::new();
+        Self {
+            client
+        }
+    }
+
+    fn post_event(&self, html: String) {
         let message = PostMessage {
             message: html
         };
 
-        let client = reqwest::blocking::Client::new();
-        let res = client.post("http://localhost:9000/event")
+        let result = self.client.post("http://localhost:9000/event")
+            .timeout(Duration::from_secs(2))
             .json(&message)
-            .send().expect("could not POST event");
-        if res.status() != 200 {
-            error!("{:#?}", res);
+            .send();
+        let response = match result {
+            Ok(v) => v,
+            Err(error) => {
+                error!("could not POST request. {:?}", error);
+                thread::sleep(Duration::from_millis(300));
+                return;
+            }
+        };
+        if response.status() != 200 {
+            error!("Expected status 200, but got something else. {:#?}", response);
+            thread::sleep(Duration::from_millis(300));
         }
     }
+}
 
+pub struct HtmlLog;
+
+impl HtmlLog {
     /// Example: 
     ///
     /// HtmlLog::image(&input);
     pub fn image(image: &Image) {
         let s = image.to_html();
-        Self::post_event(s);
+        HTML_LOG_INNER.post_event(s);
     }    
 
     /// Example: 
@@ -39,6 +68,6 @@ impl HtmlLog {
         let compare_item_vec: Vec<String> = html_vec.iter().map(|html| format!("<span class=\"compare-item\">{}</span>", html)).collect();
         let compare_items: String = compare_item_vec.join("");
         let s = format!("<div class=\"compare\">{}</div>", compare_items);
-        Self::post_event(s);
+        HTML_LOG_INNER.post_event(s);
     }
 }
