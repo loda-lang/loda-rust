@@ -1,4 +1,4 @@
-use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions, StackStrings};
+use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions, StackStrings, HtmlLog};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -263,6 +263,8 @@ impl RunWithProgram {
                     let expected_output_pretty = format!("expected output {}", expected_image.to_unicode_string());
                     let comparison_pretty: String = StackStrings::hstack(vec![computed_output_pretty, expected_output_pretty], " | ");
                     println!("model: {:?} train#{} incorrect.\n{}", self.model.id(), index, comparison_pretty);
+
+                    HtmlLog::compare_images(vec![computed_image.clone(), expected_image.clone()]);
                 }
                 continue;
             }
