@@ -1345,4 +1345,19 @@ mod tests {
         let result_image: Image = PopularObjects::most_popular_object(&input).expect("image");
         assert_eq!(result_image, output);
     }
+
+    const PROGRAM_39A8645D: &'static str = "
+    f11 $0,102000 ; most popular object
+    ";
+
+    #[test]
+    fn test_210001_puzzle_39a8645d_loda() {
+        let model: Model = Model::load_testdata("39a8645d").expect("model");
+        let program = PROGRAM_39A8645D;
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+    }
 }

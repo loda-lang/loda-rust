@@ -1,4 +1,4 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole};
 use super::{ImageRemoveGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting};
@@ -1745,6 +1745,46 @@ impl UnofficialFunction for ImageInvertMaskFunction {
     }
 }
 
+struct ImageMostPopularObjectFunction {
+    id: u32,
+}
+
+impl ImageMostPopularObjectFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageMostPopularObjectFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Image: Extracts the most popular object.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        let output_image: Image = PopularObjects::most_popular_object(&image)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -1868,4 +1908,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageToMaskFunction::new(101250, ImageToMaskFunctionFunctionMode::WhereColorIs));
     register_function!(ImageToMaskFunction::new(101251, ImageToMaskFunctionFunctionMode::WhereColorIsDifferent));
     register_function!(ImageInvertMaskFunction::new(101252));
+
+    // Objects
+    register_function!(ImageMostPopularObjectFunction::new(102000));
 }
