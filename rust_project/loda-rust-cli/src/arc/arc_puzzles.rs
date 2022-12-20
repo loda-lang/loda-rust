@@ -1360,4 +1360,23 @@ mod tests {
         assert_eq!(result.count_train_correct(), 3);
         assert_eq!(result.count_test_correct(), 1);
     }
+    
+    #[test]
+    fn test_220000_puzzle_88a62173() {
+        let model: Model = Model::load_testdata("88a62173").expect("model");
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let result_image: Image = PopularObjects::least_popular_object(&input).expect("image");
+        assert_eq!(result_image, output);
+    }
 }
