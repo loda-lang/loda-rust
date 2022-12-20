@@ -47,14 +47,21 @@ impl UnofficialFunction for ImageDebugFunction {
     }
 }
 
+enum ImageOffsetFunctionMode {
+    Wrap,
+    Clamp,
+}
+
 struct ImageOffsetFunction {
     id: u32,
+    mode: ImageOffsetFunctionMode,
 }
 
 impl ImageOffsetFunction {
-    fn new(id: u32) -> Self {
+    fn new(id: u32, mode: ImageOffsetFunctionMode) -> Self {
         Self {
             id,
+            mode,
         }
     }
 }
@@ -65,7 +72,14 @@ impl UnofficialFunction for ImageOffsetFunction {
     }
 
     fn name(&self) -> String {
-        "Adjust image offset(dx, dy) with wrap".to_string()
+        match self.mode {
+            ImageOffsetFunctionMode::Wrap => {
+                return "Adjust image offset(dx, dy) with wrap".to_string()
+            },
+            ImageOffsetFunctionMode::Clamp => {
+                return "Adjust image offset(dx, dy) with clamp".to_string()
+            },
+        }
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
@@ -86,7 +100,15 @@ impl UnofficialFunction for ImageOffsetFunction {
         // input2 is dy
         let dy: i32 = input[2].to_i32().context("to_i32 dy")?;
 
-        let output_image: Image = input_image.offset_wrap(dx, dy)?;
+        let output_image: Image;
+        match self.mode {
+            ImageOffsetFunctionMode::Wrap => {
+                output_image = input_image.offset_wrap(dx, dy)?;
+            },
+            ImageOffsetFunctionMode::Clamp => {
+                output_image = input_image.offset_clamp(dx, dy)?;
+            },
+        }
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
@@ -1893,7 +1915,8 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageRotateFunction::new(101170));
 
     // Offset
-    register_function!(ImageOffsetFunction::new(101180));
+    register_function!(ImageOffsetFunction::new(101180, ImageOffsetFunctionMode::Wrap));
+    register_function!(ImageOffsetFunction::new(101181, ImageOffsetFunctionMode::Clamp));
 
     // Flip
     register_function!(ImageFlipFunction::new(101190, ImageFlipFunctionMode::FlipX));
