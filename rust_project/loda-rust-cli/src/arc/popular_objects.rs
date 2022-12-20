@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use anyhow::Context;
+
 use crate::arc::{ImageColorProfile, ImageMask, ImageTrim};
 
 use super::{Image, ImageSegment, ImageSegmentAlgorithm};
@@ -9,16 +11,20 @@ pub struct PopularObjects;
 impl PopularObjects {
 
     pub fn most_popular_object(input: &Image) -> anyhow::Result<Image> {
-        let object_mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::All).expect("image");
+        let object_mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::All)
+            .with_context(|| "most_popular_object find_objects")?;
 
         // Preserve colors of original image where the mask is on
         let mut objects = Vec::<Image>::new();
-        let background_color: u8 = input.most_popular_color().expect("color");
+        let background_color: u8 = input.most_popular_color()
+            .with_context(|| "most_popular_object most_popular_color")?;
         for mask in &object_mask_vec {
             // If the mask is on, then preserve the pixel as it is.
             // If the mask is off, then clear the pixel.
-            let image: Image = mask.select_from_image(&input, background_color).expect("image");
-            let object: Image = image.trim().expect("image");
+            let image: Image = mask.select_from_image(&input, background_color)
+                .with_context(|| "most_popular_object select_from_image")?;
+            let object: Image = image.trim()
+                .with_context(|| "most_popular_object trim")?;
             if object.is_empty() {
                 continue;
             }
@@ -48,14 +54,14 @@ impl PopularObjects {
             records.push(record);
         }
 
-        // Move the most frequently occuring items to the top
-        // Move the lesser used items to the bottom
+        // Move the most frequently occuring items to the end
+        // Move the lesser used items to the front
         records.sort_unstable_by_key(|item| item.count);
-        records.reverse();
         
         // Pick the item that is most popular
-        let record0: &Record = records.first().expect("record");
-        Ok(record0.image.clone())
+        let record: Record = records.pop()
+            .with_context(|| "most_popular_object pop")?;
+        Ok(record.image)
     }
 }
 
