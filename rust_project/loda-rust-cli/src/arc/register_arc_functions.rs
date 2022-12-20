@@ -1745,25 +1745,39 @@ impl UnofficialFunction for ImageInvertMaskFunction {
     }
 }
 
-struct ImageMostPopularObjectFunction {
-    id: u32,
+enum ImagePopularObjectFunctionMode {
+    MostPopular,
+    LeastPopular,
 }
 
-impl ImageMostPopularObjectFunction {
-    fn new(id: u32) -> Self {
+struct ImagePopularObjectFunction {
+    id: u32,
+    mode: ImagePopularObjectFunctionMode,
+}
+
+impl ImagePopularObjectFunction {
+    fn new(id: u32, mode: ImagePopularObjectFunctionMode) -> Self {
         Self {
             id,
+            mode,
         }
     }
 }
 
-impl UnofficialFunction for ImageMostPopularObjectFunction {
+impl UnofficialFunction for ImagePopularObjectFunction {
     fn id(&self) -> UnofficialFunctionId {
         UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
     }
 
     fn name(&self) -> String {
-        "Image: Extracts the most popular object.".to_string()
+        match self.mode {
+            ImagePopularObjectFunctionMode::MostPopular => {
+                return "Image: Extracts the most popular object.".to_string()
+            },
+            ImagePopularObjectFunctionMode::LeastPopular => {
+                return "Image: Extracts the least popular object.".to_string()
+            },
+        }
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
@@ -1778,7 +1792,15 @@ impl UnofficialFunction for ImageMostPopularObjectFunction {
         let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
         let image: Image = input0_uint.to_image()?;
 
-        let output_image: Image = PopularObjects::most_popular_object(&image)?;
+        let output_image: Image;
+        match self.mode {
+            ImagePopularObjectFunctionMode::MostPopular => {
+                output_image = PopularObjects::most_popular_object(&image)?;
+            },
+            ImagePopularObjectFunctionMode::LeastPopular => {
+                output_image = PopularObjects::least_popular_object(&image)?;
+            },
+        }
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
@@ -1910,5 +1932,6 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageInvertMaskFunction::new(101252));
 
     // Objects
-    register_function!(ImageMostPopularObjectFunction::new(102000));
+    register_function!(ImagePopularObjectFunction::new(102000, ImagePopularObjectFunctionMode::MostPopular));
+    register_function!(ImagePopularObjectFunction::new(102001, ImagePopularObjectFunctionMode::LeastPopular));
 }
