@@ -28,6 +28,9 @@ pub trait ImageSegment {
 
     /// Identify clusters of connected pixels
     fn find_object_masks(&self, algorithm: ImageSegmentAlgorithm) -> anyhow::Result<Vec<Image>>;
+    
+    /// Identify clusters of connected pixels with an `ignore_mask` of areas to be ignored
+    fn find_object_masks_with_ignore_mask(&self, algorithm: ImageSegmentAlgorithm, ignore_mask: Image) -> anyhow::Result<Vec<Image>>;
 }
 
 impl ImageSegment for Image {
@@ -95,16 +98,28 @@ impl ImageSegment for Image {
     }
 
     fn find_object_masks(&self, algorithm: ImageSegmentAlgorithm) -> anyhow::Result<Vec<Image>> {
+        let ignore_mask = Image::zero(self.width(), self.height());
+        self.find_object_masks_with_ignore_mask(algorithm, ignore_mask)
+    }
+
+    fn find_object_masks_with_ignore_mask(&self, algorithm: ImageSegmentAlgorithm, ignore_mask: Image) -> anyhow::Result<Vec<Image>> {
+        if ignore_mask.width() != self.width() || ignore_mask.height() != self.height() {
+            return Err(anyhow::anyhow!("The size of the ignore_mask must be the same, but is different"));
+        }
         let mut object_mask_vec = Vec::<Image>::new();
-        let mut accumulated_mask = Image::zero(self.width(), self.height());
+        let mut accumulated_mask: Image = ignore_mask.clone();
         for y in 0..(self.height() as i32) {
             for x in 0..(self.width() as i32) {
+                // Only visit pixels that have not yet been visited
                 let mask_value: u8 = accumulated_mask.get(x, y).unwrap_or(255);
                 if mask_value > 0 {
+                    // This pixel has already been visited, ignore it
                     continue;
                 }
+
+                // Flood fill
                 let color: u8 = self.get(x, y).unwrap_or(255);
-                let mut object_mask = Image::zero(self.width(), self.height());
+                let mut object_mask = ignore_mask.clone();
                 match algorithm {
                     ImageSegmentAlgorithm::Neighbors => {
                         object_mask.flood_fill_visit_neighbors(&self, x, y, color);
@@ -114,7 +129,17 @@ impl ImageSegment for Image {
                     },
                 }
 
-                // copy the mask into the accumulated mask, so that the pixel doesn't get visited again
+                // Clear pixels that are in the original ignore_mask
+                for yy in 0..(self.height() as i32) {
+                    for xx in 0..(self.width() as i32) {
+                        let mask_value: u8 = ignore_mask.get(xx, yy).unwrap_or(255);
+                        if mask_value > 0 {
+                            let _ = object_mask.set(xx, yy, 0);
+                        }
+                    }
+                }
+
+                // Copy the mask into the accumulated mask, so that the pixel doesn't get visited again
                 for yy in 0..(self.height() as i32) {
                     for xx in 0..(self.width() as i32) {
                         let mask_value: u8 = object_mask.get(xx, yy).unwrap_or(255);
@@ -490,6 +515,80 @@ mod tests {
             1, 1, 0,
         ];
         let expected = Image::create_raw(3, 3*2, expected_pixels);
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_60000_find_object_masks_with_ignore_mask() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            9, 5, 5, 
+            5, 9, 5, 
+            5, 5, 9,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+        let mask_pixels: Vec<u8> = vec![
+            1, 1, 0,
+            1, 1, 0,
+            0, 0, 0,
+        ];
+        let ignore_mask: Image = Image::try_create(3, 3, mask_pixels).expect("image");
+
+        // Act
+        let mask_vec: Vec<Image> = input.find_object_masks_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("image");
+
+        // Assert
+        assert_eq!(mask_vec.len(), 2);
+        let output: Image = Image::vstack(mask_vec).expect("image");
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 1,
+            0, 0, 1,
+            1, 1, 0,
+
+            0, 0, 0,
+            0, 0, 0,
+            0, 0, 1,
+        ];
+        let expected = Image::create_raw(3, 3*2, expected_pixels);
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_60001_find_object_masks_with_ignore_mask() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 6, 6, 
+            5, 5, 6, 6,
+            5, 5, 6, 6,
+            5, 5, 6, 6,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+        let mask_pixels: Vec<u8> = vec![
+            0, 0, 0, 0,
+            0, 1, 1, 0,
+            0, 1, 1, 0,
+            0, 0, 0, 0,
+        ];
+        let ignore_mask: Image = Image::try_create(4, 4, mask_pixels).expect("image");
+
+        // Act
+        let mask_vec: Vec<Image> = input.find_object_masks_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("image");
+
+        // Assert
+        assert_eq!(mask_vec.len(), 2);
+        let output: Image = Image::vstack(mask_vec).expect("image");
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 0, 0, 
+            1, 0, 0, 0,
+            1, 0, 0, 0,
+            1, 1, 0, 0,
+
+            0, 0, 1, 1, 
+            0, 0, 0, 1,
+            0, 0, 0, 1,
+            0, 0, 1, 1, 
+        ];
+        let expected = Image::create_raw(4, 4*2, expected_pixels);
         assert_eq!(output, expected);
     }
 }
