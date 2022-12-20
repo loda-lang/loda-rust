@@ -27,10 +27,14 @@ pub trait ImageSegment {
     fn flood_fill_visit_all(&mut self, image: &Image, x: i32, y: i32, color: u8);
 
     /// Identify clusters of connected pixels
-    fn find_object_masks(&self, algorithm: ImageSegmentAlgorithm) -> anyhow::Result<Vec<Image>>;
+    /// 
+    /// Each object is a mask, where it's 1 the object is present, where it's 0 there is no object.
+    fn find_objects(&self, algorithm: ImageSegmentAlgorithm) -> anyhow::Result<Vec<Image>>;
     
     /// Identify clusters of connected pixels with an `ignore_mask` of areas to be ignored
-    fn find_object_masks_with_ignore_mask(&self, algorithm: ImageSegmentAlgorithm, ignore_mask: Image) -> anyhow::Result<Vec<Image>>;
+    /// 
+    /// Each object is a mask, where it's 1 the object is present, where it's 0 there is no object.
+    fn find_objects_with_ignore_mask(&self, algorithm: ImageSegmentAlgorithm, ignore_mask: Image) -> anyhow::Result<Vec<Image>>;
 }
 
 impl ImageSegment for Image {
@@ -97,12 +101,12 @@ impl ImageSegment for Image {
         self.flood_fill_visit_all(image, x+1, y+1, color);
     }
 
-    fn find_object_masks(&self, algorithm: ImageSegmentAlgorithm) -> anyhow::Result<Vec<Image>> {
+    fn find_objects(&self, algorithm: ImageSegmentAlgorithm) -> anyhow::Result<Vec<Image>> {
         let ignore_mask = Image::zero(self.width(), self.height());
-        self.find_object_masks_with_ignore_mask(algorithm, ignore_mask)
+        self.find_objects_with_ignore_mask(algorithm, ignore_mask)
     }
 
-    fn find_object_masks_with_ignore_mask(&self, algorithm: ImageSegmentAlgorithm, ignore_mask: Image) -> anyhow::Result<Vec<Image>> {
+    fn find_objects_with_ignore_mask(&self, algorithm: ImageSegmentAlgorithm, ignore_mask: Image) -> anyhow::Result<Vec<Image>> {
         if ignore_mask.width() != self.width() || ignore_mask.height() != self.height() {
             return Err(anyhow::anyhow!("The size of the ignore_mask must be the same, but is different"));
         }
@@ -371,7 +375,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_find_object_masks_neighbors() {
+    fn test_40000_find_objects_neighbors() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,
@@ -382,7 +386,7 @@ mod tests {
         let input: Image = Image::try_create(5, 4, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_object_masks(ImageSegmentAlgorithm::Neighbors).expect("image");
+        let mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::Neighbors).expect("image");
 
         // Assert
         assert_eq!(mask_vec.len(), 3);
@@ -408,7 +412,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40001_find_object_masks_neighbors() {
+    fn test_40001_find_objects_neighbors() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,
@@ -420,7 +424,7 @@ mod tests {
         let input: Image = Image::try_create(5, 5, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_object_masks(ImageSegmentAlgorithm::Neighbors).expect("image");
+        let mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::Neighbors).expect("image");
 
         // Assert
         assert_eq!(mask_vec.len(), 3);
@@ -449,7 +453,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40002_find_object_masks_neighbors() {
+    fn test_40002_find_objects_neighbors() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 5, 5, 
@@ -459,7 +463,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_object_masks(ImageSegmentAlgorithm::Neighbors).expect("image");
+        let mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::Neighbors).expect("image");
 
         // Assert
         assert_eq!(mask_vec.len(), 5);
@@ -490,7 +494,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_find_object_masks_all() {
+    fn test_50000_find_objects_all() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 5, 5, 
@@ -500,7 +504,7 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_object_masks(ImageSegmentAlgorithm::All).expect("image");
+        let mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::All).expect("image");
 
         // Assert
         assert_eq!(mask_vec.len(), 2);
@@ -519,7 +523,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60000_find_object_masks_with_ignore_mask() {
+    fn test_60000_find_objects_with_ignore_mask() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 5, 5, 
@@ -535,7 +539,7 @@ mod tests {
         let ignore_mask: Image = Image::try_create(3, 3, mask_pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_object_masks_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("image");
+        let mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("image");
 
         // Assert
         assert_eq!(mask_vec.len(), 2);
@@ -554,7 +558,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60001_find_object_masks_with_ignore_mask() {
+    fn test_60001_find_objects_with_ignore_mask() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 6, 6, 
@@ -572,7 +576,7 @@ mod tests {
         let ignore_mask: Image = Image::try_create(4, 4, mask_pixels).expect("image");
 
         // Act
-        let mask_vec: Vec<Image> = input.find_object_masks_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("image");
+        let mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("image");
 
         // Assert
         assert_eq!(mask_vec.len(), 2);

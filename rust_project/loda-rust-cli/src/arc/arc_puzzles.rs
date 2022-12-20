@@ -1342,7 +1342,7 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
-        let object_mask_vec: Vec<Image> = input.find_object_masks(ImageSegmentAlgorithm::All).expect("image");
+        let object_mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::All).expect("image");
 
         // Preserve colors of original image where the mask is on
         let mut objects = Vec::<Image>::new();
