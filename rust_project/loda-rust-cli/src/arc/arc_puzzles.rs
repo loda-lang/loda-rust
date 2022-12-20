@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram, RunWithProgramResult, ImageExtractRowColumn};
-    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageMask};
-    use crate::arc::{Image, convolution2x2};
-    use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageSegment, ImageSegmentAlgorithm};
+    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate};
+    use crate::arc::{Image, convolution2x2, PopularObjects};
+    use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
     use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole};
     use bit_set::BitSet;
@@ -1342,51 +1342,7 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
-        let object_mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::All).expect("image");
-
-        // Preserve colors of original image where the mask is on
-        let mut objects = Vec::<Image>::new();
-        let background_color: u8 = input.most_popular_color().expect("color");
-        for mask in &object_mask_vec {
-            // If the mask is on, then preserve the pixel as it is.
-            // If the mask is off, then clear the pixel.
-            let image: Image = mask.select_from_image(&input, background_color).expect("image");
-            let object: Image = image.trim().expect("image");
-            objects.push(object);
-        }
-
-        // Build histogram of objects
-        let mut histogram = HashMap::<Image,u32>::new();
-        for object in objects {
-            let counter = histogram.entry(object).or_insert(0);
-            *counter += 1;
-        }
-
-        #[derive(Debug)]
-        struct Record {
-            pub count: u32,
-            pub image: Image,
-        }
-
-        // Convert from dictionary to array
-        let mut records = Vec::<Record>::new();
-        for (histogram_key, histogram_count) in &histogram {
-            let record = Record {
-                count: *histogram_count,
-                image: histogram_key.clone(),
-            };
-            records.push(record);
-        }
-
-        // Move the most frequently occuring items to the top
-        // Move the lesser used items to the bottom
-        records.sort_unstable_by_key(|item| item.count);
-        records.reverse();
-        
-        // Pick the item that is most popular
-        let record0: &Record = records.first().expect("record");
-
-        let result_image: Image = record0.image.clone();
+        let result_image: Image = PopularObjects::most_popular_object(&input).expect("image");
         assert_eq!(result_image, output);
     }
 }
