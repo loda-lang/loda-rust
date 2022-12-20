@@ -31,7 +31,7 @@ impl HtmlLogInner {
         };
 
         let result = self.client.post("http://localhost:9000/event")
-            .timeout(Duration::from_secs(2))
+            .timeout(Duration::from_secs(5))
             .json(&message)
             .send();
         let response = match result {
@@ -42,9 +42,18 @@ impl HtmlLogInner {
                 return;
             }
         };
-        if response.status() != 200 {
-            error!("Expected status 200, but got something else. {:#?}", response);
-            thread::sleep(Duration::from_millis(300));
+        match response.status() {
+            reqwest::StatusCode::OK => {
+                // do nothing
+            },
+            reqwest::StatusCode::PAYLOAD_TOO_LARGE => {
+                error!("Request payload is too large! {:#?}", response);
+                thread::sleep(Duration::from_millis(300));
+            },
+            s => {
+                error!("Expected status 200, but got something else. status: {:?} {:#?}", s, response);
+                thread::sleep(Duration::from_millis(300));
+            }
         }
     }
 }
