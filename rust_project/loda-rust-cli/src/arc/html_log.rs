@@ -1,5 +1,5 @@
 use super::{Image, ImageToHTML};
-use serde::{Serialize};
+use serde::Serialize;
 use std::time::Duration;
 use std::thread;
 use lazy_static::lazy_static;
@@ -19,7 +19,15 @@ pub struct HtmlLogInner {
 
 impl HtmlLogInner {
     fn new() -> Self {
-        let client: reqwest::blocking::Client = reqwest::blocking::Client::new();
+        // let optional_proxy_url: Option<String> = Some("http://localhost:8888".to_string());
+        let optional_proxy_url: Option<String> = None;
+        let mut builder = reqwest::blocking::ClientBuilder::new();
+        if let Some(proxy_url) = optional_proxy_url {
+            let proxy: reqwest::Proxy = reqwest::Proxy::http(proxy_url).expect("proxy");
+            builder = builder.proxy(proxy);
+        }
+        let client: reqwest::blocking::Client = builder.build().expect("client");
+        
         Self {
             client
         }
@@ -30,7 +38,9 @@ impl HtmlLogInner {
             message: html
         };
 
-        let result = self.client.post("http://localhost:9000/event")
+        let url = "http://localhost:9000/event";
+
+        let result = self.client.post(url)
             .timeout(Duration::from_secs(5))
             .json(&message)
             .send();
