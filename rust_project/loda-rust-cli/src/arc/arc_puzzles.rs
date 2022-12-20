@@ -1394,4 +1394,33 @@ mod tests {
         assert_eq!(result.count_train_correct(), 3);
         assert_eq!(result.count_test_correct(), 1);
     }
+    
+    #[test]
+    fn test_230000_puzzle_bbc9ae5d() {
+        let model: Model = Model::load_testdata("bbc9ae5d").expect("model");
+        assert_eq!(model.train().len(), 5);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.train()[3].input().to_image().expect("image");
+        // let output: Image = model.train()[3].output().to_image().expect("image");
+        // let input: Image = model.train()[4].input().to_image().expect("image");
+        // let output: Image = model.train()[4].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let repeat_count: u8 = input.width() / 2;
+        let mut result_image: Image = Image::empty();
+        for i in 0..repeat_count {
+            let m = input.clone();
+            let j = m.offset_clamp(i as i32, 0).expect("image");
+            result_image = result_image.vjoin(j).expect("image");
+        }
+        assert_eq!(result_image, output);
+    }
 }
