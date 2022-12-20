@@ -1,4 +1,4 @@
-use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions, StackStrings, HtmlLog};
+use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions, StackStrings};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -226,7 +226,7 @@ impl RunWithProgram {
     /// $132 = test[0] computed_output image
     /// ```
     fn process_output(&self, state: &ProgramState) -> anyhow::Result<RunWithProgramResult> {
-        let pretty_print = false;
+        let pretty_print = true;
 
         let mut message_items = Vec::<String>::new();
 
@@ -258,14 +258,14 @@ impl RunWithProgram {
                     // println!("train#{} incorrect. computed {}x{} expected {}x{}", index, computed_image.width(), computed_image.height(), expected_image.width(), expected_image.height());
                     continue;
                 }
-                if pretty_print {
-                    let computed_output_pretty = format!("computed output {}", computed_image.to_unicode_string());
-                    let expected_output_pretty = format!("expected output {}", expected_image.to_unicode_string());
-                    let comparison_pretty: String = StackStrings::hstack(vec![computed_output_pretty, expected_output_pretty], " | ");
-                    println!("model: {:?} train#{} incorrect.\n{}", self.model.id(), index, comparison_pretty);
+                // if pretty_print {
+                    // let computed_output_pretty = format!("computed output {}", computed_image.to_unicode_string());
+                    // let expected_output_pretty = format!("expected output {}", expected_image.to_unicode_string());
+                    // let comparison_pretty: String = StackStrings::hstack(vec![computed_output_pretty, expected_output_pretty], " | ");
+                    // println!("model: {:?} train#{} incorrect.\n{}", self.model.id(), index, comparison_pretty);
 
-                    HtmlLog::compare_images(vec![computed_image.clone(), expected_image.clone()]);
-                }
+                    // HtmlLog::compare_images(vec![computed_image.clone(), expected_image.clone()]);
+                // }
                 continue;
             }
             if pretty_print {
@@ -294,6 +294,9 @@ impl RunWithProgram {
                 let s = format!("test. output[{}]. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", address, index, expected_image, computed_image);
                 message_items.push(s);
                 continue;
+            }
+            if pretty_print {
+                println!("model: {:?} test#{} correct {}", self.model.id(), index, computed_image.to_unicode_string());
             }
             count_test_correct += 1;
         }
