@@ -176,7 +176,6 @@ impl TraverseProgramsAndModels {
             .map_err(|e| anyhow::anyhow!("parse with program: {:?}. error: {:?}", program_str, e))?;
         for instruction in &parsed_program.instruction_vec {
             let s: String = instruction.to_string();
-            println!("locked instruction: {:?}", s);
             self.locked_instruction_hashset.insert(s);
         }
         Ok(())
