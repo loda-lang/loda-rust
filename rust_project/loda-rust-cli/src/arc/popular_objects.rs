@@ -1,10 +1,6 @@
-use std::collections::HashMap;
-
+use super::{Image, ImageSegment, ImageSegmentAlgorithm, ImageColorProfile, ImageMask, ImageTrim};
 use anyhow::Context;
-
-use crate::arc::{ImageColorProfile, ImageMask, ImageTrim};
-
-use super::{Image, ImageSegment, ImageSegmentAlgorithm};
+use std::collections::HashMap;
 
 pub struct PopularObjects;
 
