@@ -5,7 +5,7 @@ use crate::common::RecordSkipgram;
 use crate::common::RecordUnigram;
 use crate::config::Config;
 use loda_rust_core;
-use loda_rust_core::parser::{InstructionParameter, ParsedProgram};
+use loda_rust_core::parser::{InstructionId, InstructionParameter, ParsedProgram};
 use std::path::PathBuf;
 use std::error::Error;
 use std::collections::HashMap;
@@ -150,6 +150,18 @@ impl AnalyzeSourceNgram {
             if instruction.parameter_vec.len() < 2 {
                 words.push("NONE".to_string());
                 continue;
+            }
+            match instruction.instruction_id {
+                InstructionId::EvalSequence | 
+                InstructionId::LoopBegin | 
+                InstructionId::LoopEnd |
+                InstructionId::Clear |
+                InstructionId::UnofficialFunction { .. } |
+                InstructionId::UnofficialLoopBeginSubtract => {
+                    words.push("NONE".to_string());
+                    continue;
+                },
+                _ => {}
             }
             let parameter: &InstructionParameter = &instruction.parameter_vec[1];
             words.push(parameter.to_string());
