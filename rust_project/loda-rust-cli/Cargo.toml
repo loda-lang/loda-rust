@@ -13,6 +13,7 @@ path = "src/main.rs"
 
 [dependencies]
 loda-rust-core = { path = "../loda-rust-core" }
+libc = "0.2"
 env_logger = "0.9.0"
 log = "0.4.17"
 clap = "3.2.5"

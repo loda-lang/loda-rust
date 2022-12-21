@@ -47,10 +47,31 @@ extern crate num_traits;
 
 use clap::{Arg, Command};
 
+fn register_panic_handler() {
+    let default_panic = std::panic::take_hook();
+
+    std::panic::set_hook(Box::new(move |panic_info| {
+        default_panic(panic_info);
+
+        // Don't forget to enable core dumps on your shell with eg `ulimit -c unlimited`
+        let pid = std::process::id();
+        eprintln!("dumping core for pid {}", std::process::id());
+
+        use libc::kill;
+        use libc::SIGQUIT;
+
+        unsafe { kill(pid.try_into().unwrap(), SIGQUIT) };
+    }));
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Initialize logging from the `RUST_LOG` environment variable.
     env_logger::init();
+
+    register_panic_handler();
+
+    // panic!("boom");
 
     let matches = Command::new("loda-rust")
         .version("0.0.1")
