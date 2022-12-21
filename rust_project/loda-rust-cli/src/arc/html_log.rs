@@ -13,7 +13,7 @@ struct PostMessage {
     message: String,
 }
 
-pub struct HtmlLogInner {
+struct HtmlLogInner {
     client: reqwest::blocking::Client,
 }
 
@@ -33,6 +33,7 @@ impl HtmlLogInner {
         }
     }
 
+    #[allow(dead_code)]
     fn post_event(&self, html: String) {
         let message = PostMessage {
             message: html
@@ -68,12 +69,14 @@ impl HtmlLogInner {
     }
 }
 
+#[allow(dead_code)]
 pub struct HtmlLog;
 
 impl HtmlLog {
     /// Example: 
     ///
     /// HtmlLog::image(&input);
+    #[allow(dead_code)]
     pub fn image(image: &Image) {
         let s = image.to_html();
         HTML_LOG_INNER.post_event(s);
@@ -82,6 +85,7 @@ impl HtmlLog {
     /// Example: 
     /// 
     /// HtmlLog::compare_images(vec![input.clone(), output.clone()]);
+    #[allow(dead_code)]
     pub fn compare_images(images: Vec<Image>) {
         let html_vec: Vec<String> = images.iter().map(|image| image.to_html()).collect();
         let compare_item_vec: Vec<String> = html_vec.iter().map(|html| format!("<span class=\"compare-item\">{}</span>", html)).collect();

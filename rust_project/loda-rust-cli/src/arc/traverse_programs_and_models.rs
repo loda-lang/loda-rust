@@ -264,6 +264,7 @@ impl TraverseProgramsAndModels {
         Err(anyhow::anyhow!("unable to create a mutation in {} attempts", max_number_of_retries))
     }
 
+    #[allow(dead_code)]
     fn genome_experiments(&self) -> anyhow::Result<()> {
         for program_item in &self.program_item_vec {
             let random_seed: u64 = 0;
@@ -363,7 +364,7 @@ impl TraverseProgramsAndModels {
             let pairs: Vec<ImagePair> = model_item.model.images_all().expect("pairs");
     
             let mut found_one_or_more_solutions = false;
-            for (program_index, program_item) in scheduled_program_item_vec.iter_mut().enumerate() {
+            for (_program_index, program_item) in scheduled_program_item_vec.iter_mut().enumerate() {
 
                 let result: RunWithProgramResult;
                 match program_item.borrow().program_type {

@@ -126,6 +126,7 @@ impl RunWithProgram {
         self.process_output(&state)
     }
 
+    #[allow(dead_code)]
     fn print_full_state(&self) {
         println!("model: {:?}", self.model.id());
         for (index, pair) in self.train_pairs.iter().enumerate() {
