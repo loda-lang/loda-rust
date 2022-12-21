@@ -1,7 +1,8 @@
 use crate::config::Config;
 use crate::common::SimpleLog;
 use crate::mine::PopulateBloomfilter;
-use super::{AnalyzeDependencies, AnalyzeIndirectMemoryAccess, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramComplexity, AnalyzeLineNgram, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, AnalyticsTimestampFile, ValidatePrograms, compute_program_rank};
+use super::{AnalyzeDependencies, AnalyzeIndirectMemoryAccess, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyticsMode};
+use super::{AnalyzeProgramComplexity, AnalyzeLineNgram, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, AnalyticsTimestampFile, ValidatePrograms, compute_program_rank};
 use std::fs;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -30,6 +31,9 @@ impl Analytics {
 
     /// Always generate the `~/.loda-rust/analytics` directory.
     pub fn run_force() -> anyhow::Result<()> {
+        let mode = AnalyticsMode::ARC;
+        // let mode = AnalyticsMode::OEIS;
+
         let start_time = Instant::now();
         let config = Config::load();
         let analytics_dir_path: PathBuf = config.analytics_dir();
@@ -47,7 +51,7 @@ impl Analytics {
         
         HistogramStrippedFile::run(simple_log.clone())?;
         ValidatePrograms::run(simple_log.clone())?;
-        Self::run_batch_program_analyzer(simple_log.clone())?;
+        Self::run_batch_program_analyzer(simple_log.clone(), mode)?;
         // compute_program_rank();
 
         DontMine::run(simple_log.clone())
@@ -63,13 +67,13 @@ impl Analytics {
         Ok(())
     }
 
-    fn run_batch_program_analyzer(simple_log: SimpleLog) -> anyhow::Result<()> {
+    fn run_batch_program_analyzer(simple_log: SimpleLog, mode: AnalyticsMode) -> anyhow::Result<()> {
         let plugin_dependencies = Rc::new(RefCell::new(AnalyzeDependencies::new()));
         let plugin_indirect_memory_access = Rc::new(RefCell::new(AnalyzeIndirectMemoryAccess::new()));
         let plugin_instruction_constant = Rc::new(RefCell::new(AnalyzeInstructionConstant::new()));
         let plugin_instruction_ngram = Rc::new(RefCell::new(AnalyzeInstructionNgram::new()));
         let plugin_source_ngram = Rc::new(RefCell::new(AnalyzeSourceNgram::new()));
-        let plugin_line_ngram = Rc::new(RefCell::new(AnalyzeLineNgram::new()));
+        let plugin_line_ngram = Rc::new(RefCell::new(AnalyzeLineNgram::new(mode)));
         let plugin_target_ngram = Rc::new(RefCell::new(AnalyzeTargetNgram::new()));
         let plugin_program_complexity = Rc::new(RefCell::new(AnalyzeProgramComplexity::new()));
         let plugin_vec: Vec<BatchProgramAnalyzerPluginItem> = vec![
