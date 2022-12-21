@@ -2,6 +2,7 @@ use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, oeis_
 use loda_rust_core;
 use super::AnalyticsError;
 use crate::config::Config;
+use crate::arc::RunWithProgram;
 use loda_rust_core::parser::ParsedProgram;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -74,7 +75,8 @@ impl BatchProgramAnalyzer {
         let invalid_program_ids: Vec<u32> = load_program_ids_csv_file(&programs_invalid_file)?;
         let ignore_program_ids: HashSet<u32> = invalid_program_ids.into_iter().collect();
     
-        let dir_containing_programs: PathBuf = self.config.loda_programs_oeis_dir();
+        let dir_containing_programs: PathBuf = self.config.loda_arc_challenge_repository_programs();
+        // let dir_containing_programs: PathBuf = self.config.loda_programs_oeis_dir();
         let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
         let number_of_paths = paths.len();
         if number_of_paths <= 0 {
@@ -112,20 +114,21 @@ impl BatchProgramAnalyzer {
         path_to_program: &PathBuf,
         ignore_program_ids: &HashSet<u32>
     ) -> Result<(), Box<dyn Error>> {
-        let program_id: u32 = match oeis_id_from_path(&path_to_program) {
-            Some(oeis_id) => oeis_id.raw(),
-            None => {
-                debug!("Unable to extract program_id from {:?}", path_to_program);
-                self.number_of_program_files_that_could_not_be_loaded += 1;
-                return Ok(());
-            }
-        };
-        if ignore_program_ids.contains(&program_id) {
-            debug!("Ignoring program_id {:?}", program_id);
-            self.number_of_program_files_ignored += 1;
-            return Ok(());
-        }
-        let contents: String = match fs::read_to_string(&path_to_program) {
+        let program_id: u32 = 1;
+        // let program_id: u32 = match oeis_id_from_path(&path_to_program) {
+        //     Some(oeis_id) => oeis_id.raw(),
+        //     None => {
+        //         debug!("Unable to extract program_id from {:?}", path_to_program);
+        //         self.number_of_program_files_that_could_not_be_loaded += 1;
+        //         return Ok(());
+        //     }
+        // };
+        // if ignore_program_ids.contains(&program_id) {
+        //     debug!("Ignoring program_id {:?}", program_id);
+        //     self.number_of_program_files_ignored += 1;
+        //     return Ok(());
+        // }
+        let mut contents: String = match fs::read_to_string(&path_to_program) {
             Ok(value) => value,
             Err(error) => {
                 debug!("loading program_id: {:?}, something went wrong reading the file: {:?}", program_id, error);
@@ -133,6 +136,11 @@ impl BatchProgramAnalyzer {
                 return Ok(());
             }
         };
+        // detect if it's a "simple" program, and wrap it in the "advanced" template
+        let is_simple: bool = contents.contains("Program Type: simple");
+        if is_simple {
+            contents = RunWithProgram::convert_simple_to_full(contents);
+        }
         let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&contents) {
             Ok(value) => value,
             Err(error) => {

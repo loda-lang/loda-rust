@@ -110,7 +110,7 @@ pub struct AnalyzeLineNgram {
 }
 
 impl AnalyzeLineNgram {
-    const IGNORE_CONSTANTS_GREATER_THAN: i64 = 100;
+    const IGNORE_CONSTANTS_GREATER_THAN: i64 = 10000000000;
 
     pub fn new() -> Self {
         Self {
@@ -130,6 +130,7 @@ impl AnalyzeLineNgram {
             // junk data
             // If there are magic constants, then entirely ignore the program.
             // For the `seq` instruction allow constants.
+            // TODO: deal with InstructionId::UnofficialFunction
             if instruction.instruction_id != InstructionId::EvalSequence {
                 if instruction.parameter_vec.len() == 2 {
                     if let Some(parameter) = instruction.parameter_vec.last() {

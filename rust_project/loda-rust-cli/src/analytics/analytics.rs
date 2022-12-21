@@ -48,7 +48,7 @@ impl Analytics {
         HistogramStrippedFile::run(simple_log.clone())?;
         ValidatePrograms::run(simple_log.clone())?;
         Self::run_batch_program_analyzer(simple_log.clone())?;
-        compute_program_rank();
+        // compute_program_rank();
 
         DontMine::run(simple_log.clone())
             .map_err(|e| anyhow::anyhow!("Analytics::run. DontMine::run. error: {:?}", e))?;
