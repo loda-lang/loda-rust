@@ -1,7 +1,7 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole};
-use super::{ImageRemoveGrid, ImageCreatePalette, ImageMask};
+use super::{ImageRemoveGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -40,21 +40,28 @@ impl UnofficialFunction for ImageDebugFunction {
         }
         let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
         let input_image: Image = input0_uint.to_image()?;
-        println!("image: {:?}", input_image);
+        println!("image: {}", input_image.to_unicode_string());
 
         // no output
         Ok(vec!())
     }
 }
 
+enum ImageOffsetFunctionMode {
+    Wrap,
+    Clamp,
+}
+
 struct ImageOffsetFunction {
     id: u32,
+    mode: ImageOffsetFunctionMode,
 }
 
 impl ImageOffsetFunction {
-    fn new(id: u32) -> Self {
+    fn new(id: u32, mode: ImageOffsetFunctionMode) -> Self {
         Self {
             id,
+            mode,
         }
     }
 }
@@ -65,7 +72,14 @@ impl UnofficialFunction for ImageOffsetFunction {
     }
 
     fn name(&self) -> String {
-        "Adjust image offset(dx, dy) with wrap".to_string()
+        match self.mode {
+            ImageOffsetFunctionMode::Wrap => {
+                return "Adjust image offset(dx, dy) with wrap".to_string()
+            },
+            ImageOffsetFunctionMode::Clamp => {
+                return "Adjust image offset(dx, dy) with clamp".to_string()
+            },
+        }
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
@@ -86,7 +100,15 @@ impl UnofficialFunction for ImageOffsetFunction {
         // input2 is dy
         let dy: i32 = input[2].to_i32().context("to_i32 dy")?;
 
-        let output_image: Image = input_image.offset_wrap(dx, dy)?;
+        let output_image: Image;
+        match self.mode {
+            ImageOffsetFunctionMode::Wrap => {
+                output_image = input_image.offset_wrap(dx, dy)?;
+            },
+            ImageOffsetFunctionMode::Clamp => {
+                output_image = input_image.offset_clamp(dx, dy)?;
+            },
+        }
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
@@ -1745,6 +1767,68 @@ impl UnofficialFunction for ImageInvertMaskFunction {
     }
 }
 
+enum ImagePopularObjectFunctionMode {
+    MostPopular,
+    LeastPopular,
+}
+
+struct ImagePopularObjectFunction {
+    id: u32,
+    mode: ImagePopularObjectFunctionMode,
+}
+
+impl ImagePopularObjectFunction {
+    fn new(id: u32, mode: ImagePopularObjectFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for ImagePopularObjectFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            ImagePopularObjectFunctionMode::MostPopular => {
+                return "Image: Extracts the most popular object.".to_string()
+            },
+            ImagePopularObjectFunctionMode::LeastPopular => {
+                return "Image: Extracts the least popular object.".to_string()
+            },
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        let output_image: Image;
+        match self.mode {
+            ImagePopularObjectFunctionMode::MostPopular => {
+                output_image = PopularObjects::most_popular_object(&image)?;
+            },
+            ImagePopularObjectFunctionMode::LeastPopular => {
+                output_image = PopularObjects::least_popular_object(&image)?;
+            },
+        }
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -1831,7 +1915,8 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageRotateFunction::new(101170));
 
     // Offset
-    register_function!(ImageOffsetFunction::new(101180));
+    register_function!(ImageOffsetFunction::new(101180, ImageOffsetFunctionMode::Wrap));
+    register_function!(ImageOffsetFunction::new(101181, ImageOffsetFunctionMode::Clamp));
 
     // Flip
     register_function!(ImageFlipFunction::new(101190, ImageFlipFunctionMode::FlipX));
@@ -1868,4 +1953,8 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageToMaskFunction::new(101250, ImageToMaskFunctionFunctionMode::WhereColorIs));
     register_function!(ImageToMaskFunction::new(101251, ImageToMaskFunctionFunctionMode::WhereColorIsDifferent));
     register_function!(ImageInvertMaskFunction::new(101252));
+
+    // Objects
+    register_function!(ImagePopularObjectFunction::new(102000, ImagePopularObjectFunctionMode::MostPopular));
+    register_function!(ImagePopularObjectFunction::new(102001, ImagePopularObjectFunctionMode::LeastPopular));
 }

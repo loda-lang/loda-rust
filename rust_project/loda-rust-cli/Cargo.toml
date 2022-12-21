@@ -1,6 +1,6 @@
 [package]
 name = "loda-rust-cli"
-version = "2022.12.16"
+version = "2022.12.21"
 authors = ["Simon Strandgaard <neoneye@gmail.com>"]
 description = "Command line interface for LODA Rust"
 repository = "https://github.com/loda-lang/loda-rust"
@@ -41,7 +41,8 @@ wait-timeout = "0.2.0"
 anyhow = "1.0.58"
 subprocess = "0.2.9"
 bastion = { version = "0.4.5", features = ["tokio-runtime"] }
-reqwest = "0.11.12"
+reqwest = { version = "0.11.12", features = ["blocking", "json"] }
+unicode-width = "0.1.7"
 
 [dev-dependencies]
 tempfile = "3.3.0"

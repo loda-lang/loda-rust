@@ -1,4 +1,4 @@
-use super::{Image, ImagePair, ImageToNumber, Model, NumberToImage, register_arc_functions};
+use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions, StackStrings};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -37,6 +37,7 @@ impl fmt::Debug for RunWithProgramResult {
 }
 
 pub struct RunWithProgram {
+    model: Model,
     train_pairs: Vec<ImagePair>,
     test_pairs: Vec<ImagePair>,
 }
@@ -46,6 +47,7 @@ impl RunWithProgram {
         let train_pairs: Vec<ImagePair> = model.images_train()?;
         let test_pairs: Vec<ImagePair> = model.images_test()?;
         Ok(Self {
+            model,
             train_pairs,
             test_pairs,
         })
@@ -63,7 +65,7 @@ impl RunWithProgram {
         dm
     }
 
-    const SIMPLE_PROGRAM_PRE: &'static str = r#"
+    pub const SIMPLE_PROGRAM_PRE: &'static str = r#"
     ; process "train"+"test" vectors
     mov $80,$99 ; set iteration counter = length of "train"+"test" vectors
     mov $81,100 ; address of vector[0].input
@@ -73,7 +75,7 @@ impl RunWithProgram {
         ; before: do stuff to the image
         "#;
 
-    const SIMPLE_PROGRAM_POST: &'static str = r#"
+    pub const SIMPLE_PROGRAM_POST: &'static str = r#"
         ; after: do stuff to the image
         mov $$82,$0 ; save vector[x].computed_output image
 
@@ -83,8 +85,12 @@ impl RunWithProgram {
     lpe
     "#;
 
+    pub fn convert_simple_to_full<S: AsRef<str>>(simple_program: S) -> String {
+        format!("{}\n{}\n{}", Self::SIMPLE_PROGRAM_PRE, simple_program.as_ref(), Self::SIMPLE_PROGRAM_POST)
+    }
+
     pub fn run_simple<S: AsRef<str>>(&self, simple_program: S) -> anyhow::Result<RunWithProgramResult> {
-        let program = format!("{}\n{}\n{}", Self::SIMPLE_PROGRAM_PRE, simple_program.as_ref(), Self::SIMPLE_PROGRAM_POST);
+        let program = Self::convert_simple_to_full(simple_program);
         self.run_advanced(program)
     }
 
@@ -92,11 +98,19 @@ impl RunWithProgram {
         let program_str: &str = program.as_ref();
 
         let mut dm = Self::create_dependency_manager();
-        let program_runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, program_str).expect("ProgramRunner");
+        let program_runner: ProgramRunner = dm.parse(ProgramId::ProgramWithoutId, program_str)
+            .map_err(|e| anyhow::anyhow!("couldn't parse program string. error: {:?}", e))?;
+
+        self.run_program_runner(&program_runner)
+    }
+
+    pub fn run_program_runner(&self, program_runner: &ProgramRunner) -> anyhow::Result<RunWithProgramResult> {
+        // self.print_full_state();
+
         let mut cache = ProgramCache::new();
 
         // Blank state
-        let step_count_limit: u64 = 1000;
+        let step_count_limit: u64 = 900;
         let mut state = ProgramState::new(
             RunMode::Silent, 
             step_count_limit, 
@@ -110,6 +124,17 @@ impl RunWithProgram {
         program_runner.program().run(&mut state, &mut cache).context("run_result error in program.run")?;
 
         self.process_output(&state)
+    }
+
+    #[allow(dead_code)]
+    fn print_full_state(&self) {
+        println!("model: {:?}", self.model.id());
+        for (index, pair) in self.train_pairs.iter().enumerate() {
+            let input = format!("input\n{}", pair.input.to_unicode_string());
+            let output = format!("output\n{}", pair.output.to_unicode_string());
+            let s: String = StackStrings::hstack(vec![input, output], " | ");
+            println!("model: {:?} train#{}\n{}", self.model.id(), index, s);
+        }
     }
         
     /// Prepare the starting state of the program
@@ -202,6 +227,7 @@ impl RunWithProgram {
     /// $132 = test[0] computed_output image
     /// ```
     fn process_output(&self, state: &ProgramState) -> anyhow::Result<RunWithProgramResult> {
+        let pretty_print = true;
 
         let mut message_items = Vec::<String>::new();
 
@@ -214,14 +240,37 @@ impl RunWithProgram {
                 message_items.push(format!("train. output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
                 continue;
             }
-            let computed_uint: BigUint = computed_int.to_biguint().expect("output biguint");
-            let computed_image: Image = computed_uint.to_image().expect("output uint to image");
+            let computed_uint: BigUint = computed_int.to_biguint()
+                .ok_or_else(|| { anyhow::anyhow!("process_output -> train -> computed_int.to_biguint return None") })?;
+            let computed_image: Image = computed_uint.to_image()
+                .map_err(|e| anyhow::anyhow!("process_output -> train -> computed_uint.to_image. error: {:?}", e))?;
             
             let expected_image: Image = pair.output.clone();
             if computed_image != expected_image {
                 let s = format!("train. output[{}]. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", address, index, expected_image, computed_image);
                 message_items.push(s);
+
+                if computed_image == pair.input {
+                    // println!("train#{} incorrect. same as input", index);
+                    continue;
+                }
+                let same_size = computed_image.width() == expected_image.width() && computed_image.height() == expected_image.height();
+                if !same_size {
+                    // println!("train#{} incorrect. computed {}x{} expected {}x{}", index, computed_image.width(), computed_image.height(), expected_image.width(), expected_image.height());
+                    continue;
+                }
+                // if pretty_print {
+                    // let computed_output_pretty = format!("computed output {}", computed_image.to_unicode_string());
+                    // let expected_output_pretty = format!("expected output {}", expected_image.to_unicode_string());
+                    // let comparison_pretty: String = StackStrings::hstack(vec![computed_output_pretty, expected_output_pretty], " | ");
+                    // println!("model: {:?} train#{} incorrect.\n{}", self.model.id(), index, comparison_pretty);
+
+                    // HtmlLog::compare_images(vec![computed_image.clone(), expected_image.clone()]);
+                // }
                 continue;
+            }
+            if pretty_print {
+                println!("model: {:?} train#{} correct {}", self.model.id(), index, computed_image.to_unicode_string());
             }
             count_train_correct += 1;
         }
@@ -236,14 +285,19 @@ impl RunWithProgram {
                 message_items.push(format!("test. output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
                 continue;
             }
-            let computed_uint: BigUint = computed_int.to_biguint().expect("output biguint");
-            let computed_image: Image = computed_uint.to_image().expect("output uint to image");
+            let computed_uint: BigUint = computed_int.to_biguint()
+                .ok_or_else(|| { anyhow::anyhow!("process_output -> test -> computed_int.to_biguint return None") })?;
+            let computed_image: Image = computed_uint.to_image()
+                .map_err(|e| anyhow::anyhow!("process_output -> test -> computed_uint.to_image. error: {:?}", e))?;
             
             let expected_image: Image = pair.output.clone();
             if computed_image != expected_image {
                 let s = format!("test. output[{}]. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", address, index, expected_image, computed_image);
                 message_items.push(s);
                 continue;
+            }
+            if pretty_print {
+                println!("model: {:?} test#{} correct {}", self.model.id(), index, computed_image.to_unicode_string());
             }
             count_test_correct += 1;
         }

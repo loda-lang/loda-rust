@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram, RunWithProgramResult, ImageExtractRowColumn};
-    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageMask};
-    use crate::arc::{Image, convolution2x2};
-    use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageSegment, ImageSegmentAlgorithm};
+    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate};
+    use crate::arc::{Image, convolution2x2, PopularObjects};
+    use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
     use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole};
     use bit_set::BitSet;
@@ -1342,51 +1342,120 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
-        let object_mask_vec: Vec<Image> = input.find_object_masks(ImageSegmentAlgorithm::All).expect("image");
-
-        // Preserve colors of original image where the mask is on
-        let mut objects = Vec::<Image>::new();
-        let background_color: u8 = input.most_popular_color().expect("color");
-        for mask in &object_mask_vec {
-            // If the mask is on, then preserve the pixel as it is.
-            // If the mask is off, then clear the pixel.
-            let image: Image = mask.select_from_image(&input, background_color).expect("image");
-            let object: Image = image.trim().expect("image");
-            objects.push(object);
-        }
-
-        // Build histogram of objects
-        let mut histogram = HashMap::<Image,u32>::new();
-        for object in objects {
-            let counter = histogram.entry(object).or_insert(0);
-            *counter += 1;
-        }
-
-        #[derive(Debug)]
-        struct Record {
-            pub count: u32,
-            pub image: Image,
-        }
-
-        // Convert from dictionary to array
-        let mut records = Vec::<Record>::new();
-        for (histogram_key, histogram_count) in &histogram {
-            let record = Record {
-                count: *histogram_count,
-                image: histogram_key.clone(),
-            };
-            records.push(record);
-        }
-
-        // Move the most frequently occuring items to the top
-        // Move the lesser used items to the bottom
-        records.sort_unstable_by_key(|item| item.count);
-        records.reverse();
-        
-        // Pick the item that is most popular
-        let record0: &Record = records.first().expect("record");
-
-        let result_image: Image = record0.image.clone();
+        let result_image: Image = PopularObjects::most_popular_object(&input).expect("image");
         assert_eq!(result_image, output);
+    }
+
+    const PROGRAM_39A8645D: &'static str = "
+    f11 $0,102000 ; most popular object
+    ";
+
+    #[test]
+    fn test_210001_puzzle_39a8645d_loda() {
+        let model: Model = Model::load_testdata("39a8645d").expect("model");
+        let program = PROGRAM_39A8645D;
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+    
+    #[test]
+    fn test_220000_puzzle_88a62173() {
+        let model: Model = Model::load_testdata("88a62173").expect("model");
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let result_image: Image = PopularObjects::least_popular_object(&input).expect("image");
+        assert_eq!(result_image, output);
+    }
+
+    const PROGRAM_88A62173: &'static str = "
+    f11 $0,102001 ; least popular object
+    ";
+
+    #[test]
+    fn test_220001_puzzle_88a62173_loda() {
+        let model: Model = Model::load_testdata("88a62173").expect("model");
+        let program = PROGRAM_88A62173;
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+    
+    #[test]
+    fn test_230000_puzzle_bbc9ae5d() {
+        let model: Model = Model::load_testdata("bbc9ae5d").expect("model");
+        assert_eq!(model.train().len(), 5);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.train()[3].input().to_image().expect("image");
+        // let output: Image = model.train()[3].output().to_image().expect("image");
+        // let input: Image = model.train()[4].input().to_image().expect("image");
+        // let output: Image = model.train()[4].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let repeat_count: u8 = input.width() / 2;
+        let mut result_image: Image = Image::empty();
+        for i in 0..repeat_count {
+            let m = input.clone();
+            let j = m.offset_clamp(i as i32, 0).expect("image");
+            result_image = result_image.vjoin(j).expect("image");
+        }
+        assert_eq!(result_image, output);
+    }
+
+    const PROGRAM_BBC9AE5D: &'static str = "
+    mov $10,$0
+    f11 $10,101000 ; get image width
+    div $10,2
+    ; $10 is the height of the final image
+    
+    mov $2,0
+    mov $7,0
+    lps $10
+
+        ; clone the input image, and offset it
+        mov $4,$7
+        mov $5,0
+        mov $3,$0
+        f31 $3,101181 ; offset clamp
+
+        ; glue onto the bottom of the result image
+        f21 $2,101040 ; vstack
+
+        add $7,1
+    lpe
+    mov $0,$2
+    ";
+
+    #[test]
+    fn test_230001_puzzle_bbc9ae5d_loda() {
+        let model: Model = Model::load_testdata("bbc9ae5d").expect("model");
+        let program = PROGRAM_BBC9AE5D;
+        let instance = RunWithProgram::new(model).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 5);
+        assert_eq!(result.count_test_correct(), 1);
     }
 }

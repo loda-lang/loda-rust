@@ -25,6 +25,11 @@ pub enum MutateEvalSequenceCategory {
 
 #[derive(Clone, Debug)]
 pub struct GenomeItem {
+    /// The `Genome` avoids modifying `GenomeItem`s that have `mutation_locked=true`.
+    /// this is when a program follows a rigid pattern,
+    /// where narrow areas in the program are to be mutated.
+    mutation_locked: bool,
+
     enabled: bool,
     instruction_id: InstructionId,
     target_type: RegisterType,
@@ -36,6 +41,7 @@ pub struct GenomeItem {
 impl GenomeItem {
     pub fn new(instruction_id: InstructionId, target_type: RegisterType, target_value: i32, source_type: ParameterType, source_value: i32) -> Self {
         Self {
+            mutation_locked: false,
             enabled: true,
             instruction_id: instruction_id,
             target_type: target_type,
@@ -56,6 +62,14 @@ impl GenomeItem {
             return true;
         }
         false
+    }
+
+    pub fn is_mutation_locked(&self) -> bool {
+        self.mutation_locked
+    }
+
+    pub fn set_mutation_locked(&mut self, mutation_locked: bool) {
+        self.mutation_locked = mutation_locked;
     }
 
     pub fn is_enabled(&self) -> bool {
@@ -124,46 +138,31 @@ impl GenomeItem {
             return false;
         }
 
-        // If there is a Call instruction then don't touch it.
-        let is_call = 
-            self.instruction_id == InstructionId::EvalSequence ||
-            new_instruction_id == InstructionId::EvalSequence;
-        if is_call {
-            return false;
-        }    
+        // Abort if the current instruction is special
+        match self.instruction_id {
+            InstructionId::EvalSequence | 
+            InstructionId::LoopBegin | 
+            InstructionId::LoopEnd |
+            InstructionId::UnofficialFunction { .. } |
+            InstructionId::UnofficialLoopBeginSubtract => {
+                return false;
+            },
+            _ => {}
+        }
 
-        // Prevent messing up loop begin/end.
-        let is_loop = 
-            self.instruction_id == InstructionId::LoopBegin || 
-            self.instruction_id == InstructionId::LoopEnd ||
-            new_instruction_id == InstructionId::LoopBegin || 
-            new_instruction_id == InstructionId::LoopEnd;
-        if is_loop {
-            return false;
-        }    
+        // Abort if the new instruction is special
+        match new_instruction_id {
+            InstructionId::EvalSequence | 
+            InstructionId::LoopBegin | 
+            InstructionId::LoopEnd |
+            InstructionId::UnofficialFunction { .. } |
+            InstructionId::UnofficialLoopBeginSubtract => {
+                return false;
+            },
+            _ => {}
+        }
 
         self.instruction_id = new_instruction_id;
-        true
-    }
-
-    pub fn mutate_enabled(&mut self) -> bool {
-        // Prevent messing up loop begin/end.
-        let is_loop = 
-            self.instruction_id == InstructionId::LoopBegin || 
-            self.instruction_id == InstructionId::LoopEnd;
-        if is_loop {
-            return false;
-        }
-
-        // Prevent messing up programs that use ParameterType::Indirect
-        let is_indirect = 
-            self.source_type == ParameterType::Indirect ||
-            self.target_type == RegisterType::Indirect;
-        if is_indirect {
-            return false;
-        }
-
-        self.enabled = !self.enabled;
         true
     }
 
@@ -308,6 +307,24 @@ impl GenomeItem {
                     parameter_value: (self.source_value.abs()) as i64,
                 };
                 return vec![parameter0, parameter1];
+            },
+            InstructionId::UnofficialLoopBeginSubtract => {
+                let parameter0: InstructionParameter;
+                match self.target_type {
+                    RegisterType::Direct => {
+                        parameter0 = InstructionParameter {
+                            parameter_type: ParameterType::Direct,
+                            parameter_value: (self.target_value.abs()) as i64,
+                        };
+                    },
+                    RegisterType::Indirect => {
+                        parameter0 = InstructionParameter {
+                            parameter_type: ParameterType::Indirect,
+                            parameter_value: (self.target_value.abs()) as i64,
+                        };
+                    },
+                }
+                return vec![parameter0];
             },
             InstructionId::LoopEnd => {
                 return vec!();

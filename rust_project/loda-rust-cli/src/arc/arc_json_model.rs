@@ -1,7 +1,8 @@
 use super::{Image, ImageTryCreate};
 use super::read_testdata;
+use std::fmt;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use serde::Deserialize;
 
 #[allow(dead_code)]
@@ -78,13 +79,68 @@ enum ModelImagePairMode {
 }
 
 #[allow(dead_code)]
+#[derive(Clone)]
+pub enum ModelItemId {
+    None,
+    Custom { identifier: String },
+    Path { path: PathBuf },
+}
+
+impl ModelItemId {
+    pub fn identifier(&self) -> String {
+        match self {
+            ModelItemId::None => {
+                return "None".to_string();
+            },
+            ModelItemId::Custom { identifier } => {
+                return identifier.to_string();
+            }
+            ModelItemId::Path { path } => {
+                match path.file_stem() {
+                    Some(value) => {
+                        return value.to_string_lossy().to_string();
+                    },
+                    None => {
+                        return "Path without a file_stem".to_string();
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl fmt::Debug for ModelItemId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self.identifier())
+    }
+}
+
+impl fmt::Display for ModelItemId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.identifier())
+    }
+}
+
 #[derive(Clone, Deserialize, Debug)]
+struct DeserializeModel {
+    train: Vec<TaskPair>,
+    test: Vec<TaskPair>,
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
 pub struct Model {
+    id: ModelItemId,
     train: Vec<TaskPair>,
     test: Vec<TaskPair>,
 }
 
 impl Model {
+    #[allow(dead_code)]
+    pub fn id(&self) -> &ModelItemId {
+        &self.id
+    }
+
     #[allow(dead_code)]
     pub fn train(&self) -> &Vec<TaskPair> {
         &self.train
@@ -131,8 +187,14 @@ impl Model {
 
     #[allow(dead_code)]
     pub fn load_testdata(name: &str) -> anyhow::Result<Model> {
+        let custom_identifier = format!("{}", name);
         let json: String = read_testdata(name)?;
-        let model: Model = serde_json::from_str(&json)?;
+        let deserialize_model: DeserializeModel = serde_json::from_str(&json)?;
+        let model = Model {
+            id: ModelItemId::Custom { identifier: custom_identifier },
+            train: deserialize_model.train,
+            test: deserialize_model.test,
+        };
         Ok(model)
     }
     
@@ -150,7 +212,12 @@ impl Model {
                 return Err(anyhow::anyhow!("cannot load file, error: {:?} path: {:?}", error, json_file));
             }
         };
-        let model: Model = serde_json::from_str(&json)?;
+        let deserialize_model: DeserializeModel = serde_json::from_str(&json)?;
+        let model = Model {
+            id: ModelItemId::Path { path: PathBuf::from(json_file) },
+            train: deserialize_model.train,
+            test: deserialize_model.test,
+        };
         Ok(model)
     }
 }
@@ -196,6 +263,7 @@ mod tests {
         let model: Model = Model::load_testdata("6150a2bd")?;
         assert_eq!(model.train.len(), 2);
         assert_eq!(model.test.len(), 1);
+        assert_eq!(model.id.identifier(), "6150a2bd");
         Ok(())
     }
 
@@ -215,6 +283,7 @@ mod tests {
         // Assert
         assert_eq!(model.train.len(), 2);
         assert_eq!(model.test.len(), 1);
+        assert_eq!(model.id.identifier(), "hello");
         Ok(())
     }
 }

@@ -15,7 +15,7 @@
         {regex: /[$][$]\d+/, token: "number"},
         {regex: /[$]\d+/, token: "number"},
         {regex: /-?\d+/, token: "number"},
-        {regex: /\s*(?:mov|add|sub|trn|mul|div|dif|mod|pow|gcd|bin|cmp|min|max|lpb|lpe|clr|seq)\b/,
+        {regex: /\s*(?:mov|add|sub|trn|mul|div|dif|mod|pow|gcd|bin|cmp|min|max|lpb|lpe|clr|seq|lps|f\d\d)\b/,
           token: "keyword", sol: true },
         {regex: /;.*/, token: "comment"},
       ],
