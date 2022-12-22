@@ -1,16 +1,15 @@
+use super::{AnalyticsDirectory, AnalyticsMode, BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 use crate::common::create_csv_file;
 use crate::common::RecordBigram;
 use crate::common::RecordTrigram;
 use crate::common::RecordSkipgram;
 use crate::common::RecordUnigram;
-use crate::config::Config;
 use loda_rust_core;
 use loda_rust_core::parser::ParameterType;
 use loda_rust_core::parser::{InstructionId, ParsedProgram};
 use std::path::PathBuf;
 use std::error::Error;
 use std::collections::HashMap;
-use super::{AnalyticsMode, BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
 type HistogramBigramKey = (String,String);
 type HistogramTrigramKey = (String,String,String);
@@ -101,7 +100,7 @@ type HistogramSkipgramKey = (String,String);
 /// 
 /// [N-gram]: <https://en.wikipedia.org/wiki/N-gram>
 pub struct AnalyzeLineNgram {
-    config: Config,
+    analytics_directory: AnalyticsDirectory,
     limit_lower: i64,
     limit_upper: i64,
     histogram_unigram: HashMap<String,u32>,
@@ -112,8 +111,7 @@ pub struct AnalyzeLineNgram {
 }
 
 impl AnalyzeLineNgram {
-
-    pub fn new(mode: AnalyticsMode) -> Self {
+    pub fn new(analytics_directory: AnalyticsDirectory, mode: AnalyticsMode) -> Self {
         match mode {
             AnalyticsMode::OEIS => {
                 // When mining for OEIS sequences, then magic constants are unwanted.
@@ -121,7 +119,7 @@ impl AnalyzeLineNgram {
                 // However a values like 123456789 is considered huge and magic.
                 let limit_lower: i64 = -100;
                 let limit_upper: i64 = 100;
-                return Self::create(limit_lower, limit_upper);
+                return Self::create(analytics_directory, limit_lower, limit_upper);
             },
             AnalyticsMode::ARC => {
                 // No particular preference about the lower limit.
@@ -131,14 +129,14 @@ impl AnalyzeLineNgram {
                 // The input registers are between 100 and 200.
                 // Thus the `magic_constant_upper_limit` is 200.
                 let limit_upper: i64 = 200;
-                return Self::create(limit_lower, limit_upper);
+                return Self::create(analytics_directory, limit_lower, limit_upper);
             },
         }
     }
 
-    fn create(limit_lower: i64, limit_upper: i64) -> Self {
+    fn create(analytics_directory: AnalyticsDirectory, limit_lower: i64, limit_upper: i64) -> Self {
         Self {
-            config: Config::load(),
+            analytics_directory,
             limit_lower,
             limit_upper,
             histogram_unigram: HashMap::new(),
@@ -272,7 +270,7 @@ impl AnalyzeLineNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_histogram_line_unigram_file();
+        let output_path: PathBuf = self.analytics_directory.histogram_line_unigram_file();
         create_csv_file(&records, &output_path)
     }
 
@@ -294,7 +292,7 @@ impl AnalyzeLineNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_histogram_line_bigram_file();
+        let output_path: PathBuf = self.analytics_directory.histogram_line_bigram_file();
         create_csv_file(&records, &output_path)
     }
 
@@ -317,7 +315,7 @@ impl AnalyzeLineNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_histogram_line_trigram_file();
+        let output_path: PathBuf = self.analytics_directory.histogram_line_trigram_file();
         create_csv_file(&records, &output_path)
     }
 
@@ -339,7 +337,7 @@ impl AnalyzeLineNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_histogram_line_skipgram_file();
+        let output_path: PathBuf = self.analytics_directory.histogram_line_skipgram_file();
         create_csv_file(&records, &output_path)
     }
 }

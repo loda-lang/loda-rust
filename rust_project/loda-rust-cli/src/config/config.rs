@@ -77,30 +77,6 @@ impl Config {
         path
     }
 
-    pub fn analytics_dir_histogram_line_unigram_file(&self) -> PathBuf {
-        let path = self.analytics_dir().join("histogram_line_unigram.csv");
-        assert!(path.is_absolute());
-        PathBuf::from(path)
-    }
-
-    pub fn analytics_dir_histogram_line_bigram_file(&self) -> PathBuf {
-        let path = self.analytics_dir().join("histogram_line_bigram.csv");
-        assert!(path.is_absolute());
-        PathBuf::from(path)
-    }
-
-    pub fn analytics_dir_histogram_line_trigram_file(&self) -> PathBuf {
-        let path = self.analytics_dir().join("histogram_line_trigram.csv");
-        assert!(path.is_absolute());
-        PathBuf::from(path)
-    }
-
-    pub fn analytics_dir_histogram_line_skipgram_file(&self) -> PathBuf {
-        let path = self.analytics_dir().join("histogram_line_skipgram.csv");
-        assert!(path.is_absolute());
-        PathBuf::from(path)
-    }
-
     pub fn analytics_dir_histogram_oeis_stripped_file(&self) -> PathBuf {
         let path = self.analytics_dir().join("histogram_oeis_stripped.csv");
         assert!(path.is_absolute());

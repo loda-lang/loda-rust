@@ -111,7 +111,7 @@ impl Analytics {
         let plugin_instruction_constant = Rc::new(RefCell::new(AnalyzeInstructionConstant::new(self.analytics_directory.clone())));
         let plugin_instruction_ngram = Rc::new(RefCell::new(AnalyzeInstructionNgram::new(self.analytics_directory.clone())));
         let plugin_source_ngram = Rc::new(RefCell::new(AnalyzeSourceNgram::new(self.analytics_directory.clone())));
-        let plugin_line_ngram = Rc::new(RefCell::new(AnalyzeLineNgram::new(self.analytics_mode)));
+        let plugin_line_ngram = Rc::new(RefCell::new(AnalyzeLineNgram::new(self.analytics_directory.clone(), self.analytics_mode)));
         let plugin_target_ngram = Rc::new(RefCell::new(AnalyzeTargetNgram::new(self.analytics_directory.clone())));
         let plugin_program_complexity = Rc::new(RefCell::new(AnalyzeProgramComplexity::new(self.analytics_directory.clone())));
         let plugin_vec: Vec<BatchProgramAnalyzerPluginItem> = vec![

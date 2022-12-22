@@ -20,7 +20,7 @@ pub fn create_genome_mutate_context(config: &Config) -> anyhow::Result<GenomeMut
 
     let loda_rust_repository: PathBuf = config.loda_rust_repository();
     let instruction_trigram_csv: PathBuf = analytics_directory.histogram_instruction_trigram_file();
-    let line_trigram_csv: PathBuf = config.analytics_dir_histogram_line_trigram_file();
+    let line_trigram_csv: PathBuf = analytics_directory.histogram_line_trigram_file();
     let source_trigram_csv: PathBuf = analytics_directory.histogram_source_trigram_file();
     let target_trigram_csv: PathBuf = analytics_directory.histogram_target_trigram_file();
 
