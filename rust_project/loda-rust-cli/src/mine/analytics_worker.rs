@@ -73,12 +73,12 @@ fn perform_sync_and_analytics(
         MinerSyncExecuteStatus::NoChange => {
             // Data is already uptodate, then skip no need to regenerate analytics.
             println!("BEFORE analytics - run_if_expired");
-            Analytics::run_if_expired()
+            Analytics::oeis_run_if_expired()
         },
         MinerSyncExecuteStatus::Changed => {
             // Data has been modified, then analytics needs to be regenerated.
             println!("BEFORE analytics - run_force");
-            Analytics::run_force()
+            Analytics::oeis_run_force()
         }
     };
     match analytics_run_result {

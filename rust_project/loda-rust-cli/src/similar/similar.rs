@@ -52,7 +52,7 @@ pub struct Similar {
 impl Similar {
     pub fn run() -> anyhow::Result<()> {
         // Regenerate the `~/.loda-rust/analytics` directory
-        Analytics::run_if_expired()?;
+        Analytics::oeis_run_if_expired()?;
         let config = Config::load();
         if !config.analytics_dir().is_dir() {
             return Err(anyhow::anyhow!("Expected dir: {:?}, but it's missing.", config.analytics_dir()));

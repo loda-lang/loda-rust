@@ -63,7 +63,7 @@ impl SubcommandExportDataset {
     }
 
     fn run(&mut self) -> anyhow::Result<()> {
-        Analytics::run_if_expired()?;
+        Analytics::oeis_run_if_expired()?;
         self.load_stripped_file()?;
         self.process_program_files()?;
         self.save()?;
