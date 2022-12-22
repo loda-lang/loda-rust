@@ -1,6 +1,5 @@
 use super::{AnalyticsDirectory, BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 use crate::common::{create_csv_file, save_program_ids_csv_file};
-use crate::config::Config;
 use loda_rust_core;
 use loda_rust_core::parser::{InstructionId, ParsedProgram};
 use std::path::PathBuf;
@@ -63,7 +62,6 @@ impl ProgramComplexityClassification {
 
 pub struct AnalyzeProgramComplexity {
     analytics_directory: AnalyticsDirectory,
-    config: Config,
     classifications: HashMap<u32, ProgramComplexityClassification>,
 }
 
@@ -71,7 +69,6 @@ impl AnalyzeProgramComplexity {
     pub fn new(analytics_directory: AnalyticsDirectory) -> Self {
         Self {
             analytics_directory,
-            config: Config::load(),
             classifications: HashMap::new(),
         }
     }
@@ -124,7 +121,7 @@ impl AnalyzeProgramComplexity {
         records.sort_unstable_by_key(|item| (item.program_id));
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_complexity_all_file();
+        let output_path: PathBuf = self.analytics_directory.complexity_all_file();
         create_csv_file(&records, &output_path)
     }
 
