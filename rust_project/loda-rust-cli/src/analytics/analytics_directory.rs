@@ -43,4 +43,10 @@ impl AnalyticsDirectory {
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
+
+    pub fn programs_invalid_file(&self) -> PathBuf {
+        let path = self.analytics_directory.join("programs_invalid.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
 }

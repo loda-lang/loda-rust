@@ -87,7 +87,7 @@ impl Analytics {
 
     fn run_oeis_tasks(&self, simple_log: SimpleLog) -> anyhow::Result<()> {
         HistogramStrippedFile::run(simple_log.clone())?;
-        ValidatePrograms::run(simple_log.clone())?;
+        ValidatePrograms::run(self.analytics_directory.clone(), simple_log.clone())?;
         self.run_batch_program_analyzer(simple_log.clone())?;
         compute_program_rank();
 
@@ -124,7 +124,12 @@ impl Analytics {
             plugin_target_ngram,
             plugin_program_complexity,
         ];
-        let mut analyzer = BatchProgramAnalyzer::new(self.analytics_mode, plugin_vec, simple_log);
+        let mut analyzer = BatchProgramAnalyzer::new(
+            self.analytics_directory.clone(), 
+            self.analytics_mode, 
+            plugin_vec, 
+            simple_log
+        );
         return analyzer.run();
     }
 }

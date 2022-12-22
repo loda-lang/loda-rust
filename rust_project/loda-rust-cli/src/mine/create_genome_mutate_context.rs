@@ -1,6 +1,9 @@
+use anyhow::Context;
+
 use crate::config::Config;
 use crate::common::RecordTrigram;
 use crate::common::load_program_ids_csv_file;
+use crate::analytics::AnalyticsDirectory;
 use super::{PopularProgramContainer, RecentProgramContainer, HistogramInstructionConstant};
 use super::GenomeMutateContext;
 use super::SuggestInstruction;
@@ -10,7 +13,11 @@ use super::SuggestTarget;
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
 
-pub fn create_genome_mutate_context(config: &Config) -> GenomeMutateContext {
+pub fn create_genome_mutate_context(config: &Config) -> anyhow::Result<GenomeMutateContext> {
+    let analytics_directory = AnalyticsDirectory::new(
+        config.analytics_dir()
+    ).with_context(||"unable to create AnalyticsDirectory instance")?;
+
     let loda_rust_repository: PathBuf = config.loda_rust_repository();
     let instruction_trigram_csv: PathBuf = config.analytics_dir_histogram_instruction_trigram_file();
     let line_trigram_csv: PathBuf = config.analytics_dir_histogram_line_trigram_file();
@@ -56,7 +63,7 @@ pub fn create_genome_mutate_context(config: &Config) -> GenomeMutateContext {
     debug!("indirect_memory_access_program_ids = {}", indirect_memory_access_program_ids.len());
 
     // Load the invalid program_ids, that are defunct, such as cannot execute, cyclic-dependency.
-    let programs_invalid_file = config.analytics_dir_programs_invalid_file();
+    let programs_invalid_file = analytics_directory.programs_invalid_file();
     let invalid_program_ids: Vec<u32> = match load_program_ids_csv_file(&programs_invalid_file) {
         Ok(value) => value,
         Err(error) => {
@@ -125,5 +132,5 @@ pub fn create_genome_mutate_context(config: &Config) -> GenomeMutateContext {
         Some(suggest_target)
     );
     assert_eq!(context.has_available_programs(), true);
-    context
+    Ok(context)
 }

@@ -57,7 +57,7 @@ impl DontMine {
     /// If the `loda-programs` repo contains a program that is invalid,
     /// then we want to mine for the program anyways.
     fn remove_invalid_programs(&mut self) -> Result<(), Box<dyn Error>> {
-        let path: PathBuf = self.config.analytics_dir_programs_invalid_file();
+        let path: PathBuf = self.analytics_directory.programs_invalid_file();
         let program_ids: Vec<u32> = load_program_ids_csv_file(&path)?;
         let mut remove_count = 0;
         for program_id in program_ids {

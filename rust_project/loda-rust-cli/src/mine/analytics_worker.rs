@@ -127,7 +127,8 @@ fn perform_sync_and_analytics(
     println!("populating funnel");
     let funnel: Funnel = Funnel::create_funnel_with_file_data(&config);
     println!("populating genome_mutate_context");
-    let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(&config);
+    let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(&config)
+        .expect("analytics_worker couldn't create GenomeMutateContext");
     
     // Pass on funnel+genome_mutate_context to miner_workers
     println!("analytics_worker: sending analytics data to miner_workers");

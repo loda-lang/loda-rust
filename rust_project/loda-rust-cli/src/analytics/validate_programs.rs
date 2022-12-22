@@ -1,3 +1,4 @@
+use super::AnalyticsDirectory;
 use crate::common::{find_asm_files_recursively, oeis_ids_from_paths, ToOeisIdVec, SimpleLog};
 use loda_rust_core::oeis::{OeisId, OeisIdHashSet};
 use loda_rust_core;
@@ -80,14 +81,14 @@ The outputted file: `programs_invalid_verbose.csv` has this format:
 pub struct ValidatePrograms {}
 
 impl ValidatePrograms {
-    pub fn run(simple_log: SimpleLog) -> anyhow::Result<()> {
+    pub fn run(analytics_directory: AnalyticsDirectory, simple_log: SimpleLog) -> anyhow::Result<()> {
         let start = Instant::now();
         simple_log.println("\nValidatePrograms");
         println!("Validate programs");
         let config = Config::load();
         let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
         let programs_valid_csv_file: PathBuf = config.analytics_dir_programs_valid_file();
-        let programs_invalid_csv_file: PathBuf = config.analytics_dir_programs_invalid_file();
+        let programs_invalid_csv_file: PathBuf = analytics_directory.programs_invalid_file();
         let programs_invalid_verbose_csv_file: PathBuf = config.analytics_dir_programs_invalid_verbose_file();
 
         // Obtain paths to loda asm files

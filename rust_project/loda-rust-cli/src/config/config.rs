@@ -227,12 +227,6 @@ impl Config {
         PathBuf::from(path)
     }
 
-    pub fn analytics_dir_programs_invalid_file(&self) -> PathBuf {
-        let path = self.analytics_dir().join("programs_invalid.csv");
-        assert!(path.is_absolute());
-        PathBuf::from(path)
-    }
-
     pub fn analytics_dir_programs_invalid_verbose_file(&self) -> PathBuf {
         let path = self.analytics_dir().join("programs_invalid_verbose.csv");
         assert!(path.is_absolute());

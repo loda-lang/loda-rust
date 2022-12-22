@@ -34,7 +34,7 @@ impl TraverseProgramsAndModels {
 
         println!("loading genome mutate context");
         let start = Instant::now();
-        let context: GenomeMutateContext = create_genome_mutate_context(&config);
+        let context: GenomeMutateContext = create_genome_mutate_context(&config)?;
         println!("loaded genome mutate context. elapsed: {}", HumanDuration(start.elapsed()));
 
         let mut instance = Self { 

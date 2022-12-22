@@ -372,7 +372,7 @@ impl PopulateBloomfilter {
     }
 
     fn obtain_invalid_program_ids(&self) -> anyhow::Result<OeisIdHashSet> {
-        let path = self.config.analytics_dir_programs_invalid_file();
+        let path = self.analytics_directory.programs_invalid_file();
         let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)
             .map_err(|e| anyhow::anyhow!("obtain_invalid_program_ids - unable to load program_ids. error: {:?}", e))?;
         let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();

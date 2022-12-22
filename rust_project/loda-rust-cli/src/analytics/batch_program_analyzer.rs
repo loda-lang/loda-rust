@@ -1,6 +1,6 @@
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, oeis_id_from_path, SimpleLog};
 use loda_rust_core;
-use super::{AnalyticsError, AnalyticsMode};
+use super::{AnalyticsDirectory, AnalyticsError, AnalyticsMode};
 use crate::config::Config;
 use crate::arc::RunWithProgram;
 use loda_rust_core::parser::ParsedProgram;
@@ -35,6 +35,7 @@ pub trait BatchProgramAnalyzerPlugin {
 pub type BatchProgramAnalyzerPluginItem = Rc<RefCell<dyn BatchProgramAnalyzerPlugin>>;
 
 pub struct BatchProgramAnalyzer {
+    analytics_directory: AnalyticsDirectory,
     analytics_mode: AnalyticsMode,
     simple_log: SimpleLog,
     config: Config,
@@ -45,8 +46,9 @@ pub struct BatchProgramAnalyzer {
 }
 
 impl BatchProgramAnalyzer {
-    pub fn new(analytics_mode: AnalyticsMode, plugin_vec: Vec<BatchProgramAnalyzerPluginItem>, simple_log: SimpleLog) -> Self {
+    pub fn new(analytics_directory: AnalyticsDirectory, analytics_mode: AnalyticsMode, plugin_vec: Vec<BatchProgramAnalyzerPluginItem>, simple_log: SimpleLog) -> Self {
         Self {
+            analytics_directory,
             analytics_mode,
             simple_log,
             config: Config::load(),
@@ -73,7 +75,7 @@ impl BatchProgramAnalyzer {
     fn analyze_the_valid_program_files(&mut self) -> Result<(), Box<dyn Error>> {
         self.simple_log.println("BatchProgramAnalyzer");
 
-        let programs_invalid_file = self.config.analytics_dir_programs_invalid_file();
+        let programs_invalid_file = self.analytics_directory.programs_invalid_file();
         let invalid_program_ids: Vec<u32> = load_program_ids_csv_file(&programs_invalid_file)?;
         let ignore_program_ids: HashSet<u32> = invalid_program_ids.into_iter().collect();
     
