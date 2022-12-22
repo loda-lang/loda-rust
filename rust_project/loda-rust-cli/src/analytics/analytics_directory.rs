@@ -21,4 +21,9 @@ impl AnalyticsDirectory {
         PathBuf::from(path)
     }
 
+    pub fn analytics_log_file(&self) -> PathBuf {
+        let path = self.analytics_directory.join("analytics_log.txt");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
 }

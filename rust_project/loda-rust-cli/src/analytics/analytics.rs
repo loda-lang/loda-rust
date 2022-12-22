@@ -69,7 +69,7 @@ impl Analytics {
         let config = Config::load();
         let analytics_dir_path: PathBuf = config.analytics_dir();
         let timestamp_file_path: PathBuf = self.analytics_directory.last_analytics_timestamp_file();
-        let logfile_path: PathBuf = config.analytics_dir_analytics_log_file();
+        let logfile_path: PathBuf = self.analytics_directory.analytics_log_file();
 
         // Ensure that the `analytics` dir exist
         if !analytics_dir_path.is_dir() {
