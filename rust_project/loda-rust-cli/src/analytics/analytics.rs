@@ -107,7 +107,7 @@ impl Analytics {
 
     fn run_batch_program_analyzer(&self, simple_log: SimpleLog) -> anyhow::Result<()> {
         let plugin_dependencies = Rc::new(RefCell::new(AnalyzeDependencies::new()));
-        let plugin_indirect_memory_access = Rc::new(RefCell::new(AnalyzeIndirectMemoryAccess::new()));
+        let plugin_indirect_memory_access = Rc::new(RefCell::new(AnalyzeIndirectMemoryAccess::new(self.analytics_directory.clone())));
         let plugin_instruction_constant = Rc::new(RefCell::new(AnalyzeInstructionConstant::new()));
         let plugin_instruction_ngram = Rc::new(RefCell::new(AnalyzeInstructionNgram::new()));
         let plugin_source_ngram = Rc::new(RefCell::new(AnalyzeSourceNgram::new()));

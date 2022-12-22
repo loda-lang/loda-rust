@@ -1,7 +1,6 @@
-use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
+use super::{AnalyticsDirectory, BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 use crate::common::create_csv_file;
 use crate::common::ToOeisIdVec;
-use crate::config::Config;
 use loda_rust_core;
 use loda_rust_core::parser::ParsedProgram;
 use loda_rust_core::oeis::{OeisId, OeisIdHashSet};
@@ -35,14 +34,14 @@ use serde::Serialize;
 /// 
 /// As of 2022-Oct-01 there are 1626 programs that makes use of dollar dollar syntax.
 pub struct AnalyzeIndirectMemoryAccess {
-    config: Config,
+    analytics_directory: AnalyticsDirectory,
     programs_that_uses_indirect: OeisIdHashSet,
 }
 
 impl AnalyzeIndirectMemoryAccess {
-    pub fn new() -> Self {
+    pub fn new(analytics_directory: AnalyticsDirectory) -> Self {
         Self {
-            config: Config::load(),
+            analytics_directory,
             programs_that_uses_indirect: HashSet::new(),
         }
     }
@@ -72,7 +71,7 @@ impl BatchProgramAnalyzerPlugin for AnalyzeIndirectMemoryAccess {
             records.push(Record { program_id: oeis_id.raw() });
         }
 
-        let output_path: PathBuf = self.config.analytics_dir_indirect_memory_access_file();
+        let output_path: PathBuf = self.analytics_directory.indirect_memory_access_file();
         create_csv_file(&records, &output_path)
     }
 

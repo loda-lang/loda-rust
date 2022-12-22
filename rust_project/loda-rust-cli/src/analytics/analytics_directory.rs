@@ -74,4 +74,10 @@ impl AnalyticsDirectory {
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
+
+    pub fn indirect_memory_access_file(&self) -> PathBuf {
+        let path = self.analytics_directory.join("indirect_memory_access.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
 }

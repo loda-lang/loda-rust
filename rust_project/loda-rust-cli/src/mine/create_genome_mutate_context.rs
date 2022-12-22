@@ -53,7 +53,7 @@ pub fn create_genome_mutate_context(config: &Config) -> anyhow::Result<GenomeMut
     debug!("number_of_valid_program_ids = {}", valid_program_ids.len());
 
     // Load the valid program_ids, that can execute.
-    let indirect_memory_access_csv: PathBuf = config.analytics_dir_indirect_memory_access_file();
+    let indirect_memory_access_csv: PathBuf = analytics_directory.indirect_memory_access_file();
     let indirect_memory_access_program_ids: Vec<u32> = match load_program_ids_csv_file(&indirect_memory_access_csv) {
         Ok(value) => value,
         Err(error) => {
