@@ -1,22 +1,21 @@
+use super::{AnalyticsDirectory, BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 use crate::common::create_csv_file;
-use crate::config::Config;
 use loda_rust_core;
 use loda_rust_core::parser::{InstructionId, InstructionParameter, ParameterType, ParsedProgram};
 use std::path::PathBuf;
 use std::error::Error;
 use serde::Serialize;
 use std::convert::TryFrom;
-use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
 pub struct AnalyzeDependencies {
-    config: Config,
+    analytics_directory: AnalyticsDirectory,
     dependencies: Vec<RecordDependency>,
 }
 
 impl AnalyzeDependencies {
-    pub fn new() -> Self {
+    pub fn new(analytics_directory: AnalyticsDirectory) -> Self {
         Self {
-            config: Config::load(),
+            analytics_directory,
             dependencies: vec!(),
         }
     }
@@ -48,7 +47,7 @@ impl BatchProgramAnalyzerPlugin for AnalyzeDependencies {
         records.sort_unstable_by_key(|item| (item.caller_program_id, item.callee_program_id));
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_dependencies_file();
+        let output_path: PathBuf = self.analytics_directory.dependencies_file();
         create_csv_file(&records, &output_path)
     }
 

@@ -62,7 +62,6 @@ impl AnalyticsDirectory {
         PathBuf::from(path)
     }
 
-
     pub fn complexity_all_file(&self) -> PathBuf {
         let path = self.analytics_directory.join("complexity_all.csv");
         assert!(path.is_absolute());
@@ -77,6 +76,12 @@ impl AnalyticsDirectory {
 
     pub fn indirect_memory_access_file(&self) -> PathBuf {
         let path = self.analytics_directory.join("indirect_memory_access.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
+    pub fn dependencies_file(&self) -> PathBuf {
+        let path = self.analytics_directory.join("dependencies.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }

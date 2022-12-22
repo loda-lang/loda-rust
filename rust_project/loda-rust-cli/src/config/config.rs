@@ -77,12 +77,6 @@ impl Config {
         path
     }
 
-    pub fn analytics_dir_dependencies_file(&self) -> PathBuf {
-        let path = self.analytics_dir().join("dependencies.csv");
-        assert!(path.is_absolute());
-        PathBuf::from(path)
-    }
-
     pub fn analytics_dir_program_rank_file(&self) -> PathBuf {
         let path = self.analytics_dir().join("program_rank.csv");
         assert!(path.is_absolute());

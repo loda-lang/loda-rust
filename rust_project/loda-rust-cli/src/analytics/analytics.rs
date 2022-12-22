@@ -89,7 +89,7 @@ impl Analytics {
         HistogramStrippedFile::run(simple_log.clone())?;
         ValidatePrograms::run(self.analytics_directory.clone(), simple_log.clone())?;
         self.run_batch_program_analyzer(simple_log.clone())?;
-        compute_program_rank();
+        compute_program_rank(self.analytics_directory.clone());
 
         DontMine::run(self.analytics_directory.clone(), simple_log.clone())
             .map_err(|e| anyhow::anyhow!("Analytics.run_force. DontMine::run. error: {:?}", e))?;
@@ -106,7 +106,7 @@ impl Analytics {
     }
 
     fn run_batch_program_analyzer(&self, simple_log: SimpleLog) -> anyhow::Result<()> {
-        let plugin_dependencies = Rc::new(RefCell::new(AnalyzeDependencies::new()));
+        let plugin_dependencies = Rc::new(RefCell::new(AnalyzeDependencies::new(self.analytics_directory.clone())));
         let plugin_indirect_memory_access = Rc::new(RefCell::new(AnalyzeIndirectMemoryAccess::new(self.analytics_directory.clone())));
         let plugin_instruction_constant = Rc::new(RefCell::new(AnalyzeInstructionConstant::new()));
         let plugin_instruction_ngram = Rc::new(RefCell::new(AnalyzeInstructionNgram::new()));
