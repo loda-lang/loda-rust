@@ -1,5 +1,5 @@
 //! The `loda-rust similar` subcommand, identifies similar programs.
-use crate::analytics::Analytics;
+use crate::analytics::{Analytics, AnalyticsDirectory};
 use crate::common::{find_asm_files_recursively, oeis_id_from_path};
 use crate::common::RecordBigram;
 use crate::common::SimpleLog;
@@ -44,6 +44,7 @@ const MAX_NUMBER_OF_ROWS_IN_OUTPUT_CSV_FILE: usize = 25;
 ///
 /// [LSH/MinHash]: https://en.wikipedia.org/wiki/MinHash
 pub struct Similar {
+    analytics_directory: AnalyticsDirectory,
     simple_log: SimpleLog,
     config: Config,
     similar_programs: PathBuf,
@@ -58,6 +59,10 @@ impl Similar {
             return Err(anyhow::anyhow!("Expected dir: {:?}, but it's missing.", config.analytics_dir()));
         }
 
+        let analytics_directory = AnalyticsDirectory::new(
+            config.analytics_dir()
+        ).with_context(||"unable to create AnalyticsDirectory instance")?;
+
         // Ensure that the `similar-programs` dir exist
         let similar_programs: PathBuf = config.similar_programs();
         if !similar_programs.is_dir() {
@@ -70,9 +75,10 @@ impl Similar {
             .map_err(|e| anyhow::anyhow!("Unable to create log file at path: {:?}. error: {:?}", log_path, e))?;
     
         let mut instance = Self {
-            simple_log: simple_log,
-            config: config,
-            similar_programs: similar_programs,
+            analytics_directory,
+            simple_log,
+            config,
+            similar_programs,
         };
         instance.run_inner()
     }
@@ -82,7 +88,7 @@ impl Similar {
 
         let loda_programs_oeis_dir: PathBuf = self.config.loda_programs_oeis_dir();
         
-        let instruction_bigram_csv: PathBuf = self.config.analytics_dir_histogram_instruction_bigram_file();
+        let instruction_bigram_csv: PathBuf = self.analytics_directory.histogram_instruction_bigram_file();
         let instruction_vec: Vec<RecordBigram> = RecordBigram::parse_csv(&instruction_bigram_csv).expect("Unable to load instruction bigram csv");
         let number_of_bigram_rows: usize = instruction_vec.len();
         debug!("number of bigram rows: {}", number_of_bigram_rows);
