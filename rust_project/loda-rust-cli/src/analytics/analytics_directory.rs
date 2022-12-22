@@ -85,4 +85,10 @@ impl AnalyticsDirectory {
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
+
+    pub fn program_rank_file(&self) -> PathBuf {
+        let path = self.analytics_directory.join("program_rank.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
 }

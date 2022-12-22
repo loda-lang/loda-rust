@@ -38,7 +38,7 @@ struct RecordDependency {
 pub fn compute_program_rank(analytics_directory: AnalyticsDirectory) {
     let config = Config::load();
     let input_path: PathBuf = analytics_directory.dependencies_file();
-    let output_rank_path: PathBuf = config.analytics_dir_program_rank_file();
+    let output_rank_path: PathBuf = analytics_directory.program_rank_file();
     let output_popularity_path: PathBuf = config.analytics_dir_program_popularity_file();
     let pr: Pagerank<u32> = calculate_pagerank(&input_path);
     create_dependencies_csv_file(&pr, &output_rank_path);
