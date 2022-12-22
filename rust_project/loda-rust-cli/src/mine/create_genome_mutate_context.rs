@@ -15,7 +15,7 @@ use std::collections::HashSet;
 
 pub fn create_genome_mutate_context(config: &Config) -> anyhow::Result<GenomeMutateContext> {
     let analytics_directory = AnalyticsDirectory::new(
-        config.analytics_dir()
+        config.analytics_oeis_dir()
     ).with_context(||"unable to create AnalyticsDirectory instance")?;
 
     let loda_rust_repository: PathBuf = config.loda_rust_repository();

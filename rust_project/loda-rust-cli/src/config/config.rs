@@ -71,8 +71,14 @@ impl Config {
         PathBuf::from(&self.basedir)
     }
 
-    pub fn analytics_dir(&self) -> PathBuf {
-        let path = self.basedir.join("analytics");
+    pub fn analytics_oeis_dir(&self) -> PathBuf {
+        let path = self.basedir.join("analytics-oeis");
+        assert!(path.is_absolute());
+        path
+    }
+
+    pub fn analytics_arc_dir(&self) -> PathBuf {
+        let path = self.basedir.join("analytics-arc");
         assert!(path.is_absolute());
         path
     }

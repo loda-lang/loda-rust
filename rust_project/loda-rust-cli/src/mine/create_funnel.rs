@@ -9,7 +9,7 @@ pub trait CreateFunnel {
 
 impl CreateFunnel for Funnel {
     fn create_funnel_with_file_data(config: &Config) -> Funnel {
-        let analytics_dir: PathBuf = config.analytics_dir();
+        let analytics_dir: PathBuf = config.analytics_oeis_dir();
         let names: [NamedCacheFile; 4] = match config.miner_filter_mode() {
             MinerFilterMode::All => NamedCacheFile::group_all(),
             MinerFilterMode::New => NamedCacheFile::group_new(),

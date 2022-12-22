@@ -135,7 +135,7 @@ impl PostMine {
         let loda_submitted_by: String = config.loda_submitted_by();
 
         let analytics_directory = AnalyticsDirectory::new(
-            config.analytics_dir()
+            config.analytics_oeis_dir()
         ).with_context(||"unable to create AnalyticsDirectory instance")?;
 
         let instance = Self {

@@ -38,8 +38,14 @@ impl Analytics {
 
     pub fn new(analytics_mode: AnalyticsMode) -> anyhow::Result<Self> {
         let config = Config::load();
+
+        let analytics_dir: PathBuf = match analytics_mode {
+            AnalyticsMode::OEIS => config.analytics_oeis_dir(),
+            AnalyticsMode::ARC => config.analytics_arc_dir()
+        };
+        
         let analytics_directory = AnalyticsDirectory::new(
-            config.analytics_dir()
+            analytics_dir
         ).with_context(||"unable to create AnalyticsDirectory instance")?;
         let instance = Self {
             analytics_mode,

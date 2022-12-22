@@ -338,7 +338,7 @@ impl PopulateBloomfilter {
         assert!(oeis_stripped_file.is_absolute());
         assert!(oeis_stripped_file.is_file());
 
-        let analytics_dir: PathBuf = self.config.analytics_dir();
+        let analytics_dir: PathBuf = self.config.analytics_oeis_dir();
         let funnel10_path: PathBuf = names[0].resolve_path(&analytics_dir);
         let funnel20_path: PathBuf = names[1].resolve_path(&analytics_dir);
         let funnel30_path: PathBuf = names[2].resolve_path(&analytics_dir);

@@ -55,7 +55,7 @@ impl SubcommandExportDataset {
     pub fn export_dataset() -> anyhow::Result<()> {
         let config = Config::load();
         let analytics_directory = AnalyticsDirectory::new(
-            config.analytics_dir()
+            config.analytics_oeis_dir()
         ).with_context(||"unable to create AnalyticsDirectory instance")?;
 
         let mut instance = Self {
@@ -206,7 +206,7 @@ impl SubcommandExportDataset {
         let mut records: Vec<Record> = self.records.clone();
         records.sort_unstable_by_key(|item| (item.program_id));
 
-        let output_path: PathBuf = self.config.analytics_dir().join("dataset.csv");
+        let output_path: PathBuf = self.config.analytics_oeis_dir().join("dataset.csv");
         match create_csv_file(&records, &output_path) {
             Ok(_) => {},
             Err(error) => {

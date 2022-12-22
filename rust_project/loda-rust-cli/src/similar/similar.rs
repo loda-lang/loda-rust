@@ -55,12 +55,12 @@ impl Similar {
         // Regenerate the `~/.loda-rust/analytics` directory
         Analytics::oeis_run_if_expired()?;
         let config = Config::load();
-        if !config.analytics_dir().is_dir() {
-            return Err(anyhow::anyhow!("Expected dir: {:?}, but it's missing.", config.analytics_dir()));
+        if !config.analytics_oeis_dir().is_dir() {
+            return Err(anyhow::anyhow!("Expected dir: {:?}, but it's missing.", config.analytics_oeis_dir()));
         }
 
         let analytics_directory = AnalyticsDirectory::new(
-            config.analytics_dir()
+            config.analytics_oeis_dir()
         ).with_context(||"unable to create AnalyticsDirectory instance")?;
 
         // Ensure that the `similar-programs` dir exist
