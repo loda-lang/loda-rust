@@ -1,3 +1,4 @@
+use std::fs;
 use std::path::{Path,PathBuf};
 
 pub struct AnalyticsDirectory {
@@ -13,6 +14,15 @@ impl AnalyticsDirectory {
             analytics_directory,
         };
         Ok(instance)
+    }
+
+    /// Ensure that the `analytics` dir exist, before writing files to the dir.
+    pub fn create_if_needed(&self) -> anyhow::Result<()> {
+        if !self.analytics_directory.is_dir() {
+            fs::create_dir(&self.analytics_directory)?;
+        }
+        assert!(self.analytics_directory.is_dir());
+        Ok(())
     }
 
     pub fn last_analytics_timestamp_file(&self) -> PathBuf {
