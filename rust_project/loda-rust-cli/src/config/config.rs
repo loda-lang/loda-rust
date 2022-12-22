@@ -221,12 +221,6 @@ impl Config {
         PathBuf::from(path)
     }
 
-    pub fn analytics_dir_programs_valid_file(&self) -> PathBuf {
-        let path = self.analytics_dir().join("programs_valid.csv");
-        assert!(path.is_absolute());
-        PathBuf::from(path)
-    }
-
     pub fn mine_event_dir(&self) -> PathBuf {
         let name = Path::new("mine-event");
         let path = self.basedir.join(name);

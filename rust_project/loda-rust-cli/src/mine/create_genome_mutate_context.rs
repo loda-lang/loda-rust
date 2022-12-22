@@ -43,7 +43,7 @@ pub fn create_genome_mutate_context(config: &Config) -> anyhow::Result<GenomeMut
     }
 
     // Load the valid program_ids, that can execute.
-    let programs_valid_file = config.analytics_dir_programs_valid_file();
+    let programs_valid_file = analytics_directory.programs_valid_file();
     let valid_program_ids: Vec<u32> = match load_program_ids_csv_file(&programs_valid_file) {
         Ok(value) => value,
         Err(error) => {

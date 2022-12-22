@@ -87,7 +87,7 @@ impl ValidatePrograms {
         println!("Validate programs");
         let config = Config::load();
         let loda_programs_oeis_dir: PathBuf = config.loda_programs_oeis_dir();
-        let programs_valid_csv_file: PathBuf = config.analytics_dir_programs_valid_file();
+        let programs_valid_csv_file: PathBuf = analytics_directory.programs_valid_file();
         let programs_invalid_csv_file: PathBuf = analytics_directory.programs_invalid_file();
         let programs_invalid_verbose_csv_file: PathBuf = analytics_directory.programs_invalid_verbose_file();
 
