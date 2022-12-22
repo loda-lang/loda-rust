@@ -113,7 +113,7 @@ impl Analytics {
         let plugin_source_ngram = Rc::new(RefCell::new(AnalyzeSourceNgram::new()));
         let plugin_line_ngram = Rc::new(RefCell::new(AnalyzeLineNgram::new(self.analytics_mode)));
         let plugin_target_ngram = Rc::new(RefCell::new(AnalyzeTargetNgram::new()));
-        let plugin_program_complexity = Rc::new(RefCell::new(AnalyzeProgramComplexity::new()));
+        let plugin_program_complexity = Rc::new(RefCell::new(AnalyzeProgramComplexity::new(self.analytics_directory.clone())));
         let plugin_vec: Vec<BatchProgramAnalyzerPluginItem> = vec![
             plugin_dependencies,
             plugin_indirect_memory_access,

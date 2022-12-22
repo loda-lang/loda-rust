@@ -35,7 +35,7 @@ impl DontMine {
     /// Ignore simple programs, that doesn't have complex loops nor dependencies to other sequences.
     /// It doesn't make sense trying to optimize a program that is already well-optimized.
     fn extend_program_ids_with_dont_optimize_csv(&mut self) -> Result<(), Box<dyn Error>> {
-        let path: PathBuf = self.config.analytics_dir_complexity_dont_optimize_file();
+        let path: PathBuf = self.analytics_directory.complexity_dont_optimize_file();
         let program_ids: Vec<u32> = load_program_ids_csv_file(&path)?;
         let content = format!("number of program ids in the 'dont_optimize.csv' file: {:?}", program_ids.len());
         self.simple_log.println(content);

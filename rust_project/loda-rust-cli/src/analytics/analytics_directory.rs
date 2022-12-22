@@ -61,4 +61,10 @@ impl AnalyticsDirectory {
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
+
+    pub fn complexity_dont_optimize_file(&self) -> PathBuf {
+        let path = self.analytics_directory.join("complexity_dont_optimize.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
 }
