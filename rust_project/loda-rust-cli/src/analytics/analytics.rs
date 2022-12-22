@@ -110,7 +110,7 @@ impl Analytics {
         let plugin_indirect_memory_access = Rc::new(RefCell::new(AnalyzeIndirectMemoryAccess::new(self.analytics_directory.clone())));
         let plugin_instruction_constant = Rc::new(RefCell::new(AnalyzeInstructionConstant::new(self.analytics_directory.clone())));
         let plugin_instruction_ngram = Rc::new(RefCell::new(AnalyzeInstructionNgram::new(self.analytics_directory.clone())));
-        let plugin_source_ngram = Rc::new(RefCell::new(AnalyzeSourceNgram::new()));
+        let plugin_source_ngram = Rc::new(RefCell::new(AnalyzeSourceNgram::new(self.analytics_directory.clone())));
         let plugin_line_ngram = Rc::new(RefCell::new(AnalyzeLineNgram::new(self.analytics_mode)));
         let plugin_target_ngram = Rc::new(RefCell::new(AnalyzeTargetNgram::new(self.analytics_directory.clone())));
         let plugin_program_complexity = Rc::new(RefCell::new(AnalyzeProgramComplexity::new(self.analytics_directory.clone())));

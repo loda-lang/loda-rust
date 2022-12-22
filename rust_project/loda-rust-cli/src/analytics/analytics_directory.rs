@@ -151,4 +151,28 @@ impl AnalyticsDirectory {
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
+
+    pub fn histogram_source_unigram_file(&self) -> PathBuf {
+        let path = self.analytics_directory.join("histogram_source_unigram.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
+    pub fn histogram_source_bigram_file(&self) -> PathBuf {
+        let path = self.analytics_directory.join("histogram_source_bigram.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
+    pub fn histogram_source_trigram_file(&self) -> PathBuf {
+        let path = self.analytics_directory.join("histogram_source_trigram.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
+    pub fn histogram_source_skipgram_file(&self) -> PathBuf {
+        let path = self.analytics_directory.join("histogram_source_skipgram.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
 }

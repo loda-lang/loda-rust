@@ -1,15 +1,14 @@
+use super::{AnalyticsDirectory, BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 use crate::common::create_csv_file;
 use crate::common::RecordBigram;
 use crate::common::RecordTrigram;
 use crate::common::RecordSkipgram;
 use crate::common::RecordUnigram;
-use crate::config::Config;
 use loda_rust_core;
 use loda_rust_core::parser::{InstructionId, InstructionParameter, ParsedProgram};
 use std::path::PathBuf;
 use std::error::Error;
 use std::collections::HashMap;
-use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
 type HistogramBigramKey = (String,String);
 type HistogramTrigramKey = (String,String,String);
@@ -125,7 +124,7 @@ type HistogramSkipgramKey = (String,String);
 /// 
 /// [N-gram]: <https://en.wikipedia.org/wiki/N-gram>
 pub struct AnalyzeSourceNgram {
-    config: Config,
+    analytics_directory: AnalyticsDirectory,
     histogram_unigram: HashMap<String,u32>,
     histogram_bigram: HashMap<HistogramBigramKey,u32>,
     histogram_trigram: HashMap<HistogramTrigramKey,u32>,
@@ -133,9 +132,9 @@ pub struct AnalyzeSourceNgram {
 }
 
 impl AnalyzeSourceNgram {
-    pub fn new() -> Self {
+    pub fn new(analytics_directory: AnalyticsDirectory) -> Self {
         Self {
-            config: Config::load(),
+            analytics_directory,
             histogram_unigram: HashMap::new(),
             histogram_bigram: HashMap::new(),
             histogram_trigram: HashMap::new(),
@@ -254,7 +253,7 @@ impl AnalyzeSourceNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_histogram_source_unigram_file();
+        let output_path: PathBuf = self.analytics_directory.histogram_source_unigram_file();
         create_csv_file(&records, &output_path)
     }
 
@@ -276,7 +275,7 @@ impl AnalyzeSourceNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_histogram_source_bigram_file();
+        let output_path: PathBuf = self.analytics_directory.histogram_source_bigram_file();
         create_csv_file(&records, &output_path)
     }
 
@@ -299,7 +298,7 @@ impl AnalyzeSourceNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_histogram_source_trigram_file();
+        let output_path: PathBuf = self.analytics_directory.histogram_source_trigram_file();
         create_csv_file(&records, &output_path)
     }
 
@@ -321,7 +320,7 @@ impl AnalyzeSourceNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_histogram_source_skipgram_file();
+        let output_path: PathBuf = self.analytics_directory.histogram_source_skipgram_file();
         create_csv_file(&records, &output_path)
     }
 }
