@@ -91,10 +91,10 @@ impl Analytics {
         self.run_batch_program_analyzer(simple_log.clone())?;
         compute_program_rank();
 
-        DontMine::run(simple_log.clone())
+        DontMine::run(self.analytics_directory.clone(), simple_log.clone())
             .map_err(|e| anyhow::anyhow!("Analytics.run_force. DontMine::run. error: {:?}", e))?;
 
-        PopulateBloomfilter::run(simple_log.clone())
+        PopulateBloomfilter::run(self.analytics_directory.clone(), simple_log.clone())
             .map_err(|e| anyhow::anyhow!("Analytics.run_force. PopulateBloomfilter::run. error: {:?}", e))?;
 
         Ok(())

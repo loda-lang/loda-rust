@@ -77,12 +77,6 @@ impl Config {
         path
     }
 
-    pub fn analytics_dir_dont_mine_file(&self) -> PathBuf {
-        let path = self.analytics_dir().join("dont_mine.csv");
-        assert!(path.is_absolute());
-        PathBuf::from(path)
-    }
-
     pub fn analytics_dir_dependencies_file(&self) -> PathBuf {
         let path = self.analytics_dir().join("dependencies.csv");
         assert!(path.is_absolute());

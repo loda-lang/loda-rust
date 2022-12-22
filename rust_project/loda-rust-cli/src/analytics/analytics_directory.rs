@@ -1,6 +1,7 @@
 use std::fs;
-use std::path::{Path,PathBuf};
+use std::path::PathBuf;
 
+#[derive(Clone, Debug)]
 pub struct AnalyticsDirectory {
     analytics_directory: PathBuf,
 }
@@ -33,6 +34,12 @@ impl AnalyticsDirectory {
 
     pub fn analytics_log_file(&self) -> PathBuf {
         let path = self.analytics_directory.join("analytics_log.txt");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
+
+    pub fn dont_mine_file(&self) -> PathBuf {
+        let path = self.analytics_directory.join("dont_mine.csv");
         assert!(path.is_absolute());
         PathBuf::from(path)
     }

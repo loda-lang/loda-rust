@@ -4,6 +4,7 @@ use crate::common::{oeis_ids_from_program_string, OeisIdStringMap};
 use crate::common::{load_program_ids_csv_file, PendingProgramsWithPriority, SimpleLog};
 use crate::oeis::{ProcessStrippedFile, StrippedRow};
 use crate::lodacpp::{LodaCpp, LodaCppCheck, LodaCppCheckResult, LodaCppCheckStatus, LodaCppEvalTermsExecute, LodaCppEvalTerms, LodaCppMinimize};
+use crate::analytics::AnalyticsDirectory;
 use super::{batch_lookup_names, terms_from_program, FormatProgram, path_for_oeis_program};
 use super::{CandidateProgram, CompareTwoPrograms, CompareTwoProgramsResult, ParentDirAndChildFile, State, StatusOfExistingProgram, ValidateSingleProgram};
 use super::{MineEventDirectoryMaintenance, PostmineDirectoryMaintenance};
@@ -44,6 +45,7 @@ type CandidateProgramItem = Rc<RefCell<CandidateProgram>>;
 /// Rejection, there are lots of ways the mined program is not a keeper.
 /// then the input file gets renamed to `20220826-210851-140750305.reject.asm`
 pub struct PostMine {
+    analytics_directory: AnalyticsDirectory,
     config: Config,
     loda_submitted_by: String,
     lodacpp: LodaCpp,
@@ -132,11 +134,16 @@ impl PostMine {
 
         let loda_submitted_by: String = config.loda_submitted_by();
 
+        let analytics_directory = AnalyticsDirectory::new(
+            config.analytics_dir()
+        ).with_context(||"unable to create AnalyticsDirectory instance")?;
+
         let instance = Self {
-            config: config,
-            loda_submitted_by: loda_submitted_by,
-            lodacpp: lodacpp,
-            path_timestamped_postmine_dir: path_timestamped_postmine_dir,
+            analytics_directory,
+            config,
+            loda_submitted_by,
+            lodacpp,
+            path_timestamped_postmine_dir,
             paths_for_processing: vec!(),
             candidate_programs: vec!(),
             dontmine_hashset: HashSet::new(),
@@ -144,11 +151,11 @@ impl PostMine {
             valid_program_ids_hashset: HashSet::new(),
             oeis_id_name_map: OeisIdStringMap::new(),
             oeis_id_terms_map: OeisIdStringMap::new(),
-            loda_programs_oeis_dir: loda_programs_oeis_dir,
-            loda_outlier_programs_repository_oeis_divergent: loda_outlier_programs_repository_oeis_divergent,
-            validate_single_program: validate_single_program,
+            loda_programs_oeis_dir,
+            loda_outlier_programs_repository_oeis_divergent,
+            validate_single_program,
             iteration: 0,
-            focus_only_on_new_programs: focus_only_on_new_programs,
+            focus_only_on_new_programs,
             found_program_callback: None,
         };
         Ok(instance)
@@ -234,7 +241,7 @@ impl PostMine {
     /// The list loaded from `~/.loda-rust/analytics/dont_mine.csv`
     /// which is populated with the content of `loda-program/oeis/deny.txt`.
     fn obtain_dontmine_program_ids(&mut self) -> anyhow::Result<()> {
-        let path = self.config.analytics_dir_dont_mine_file();
+        let path = self.analytics_directory.dont_mine_file();
         let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)
             .map_err(|e| anyhow::anyhow!("obtain_dontmine_program_ids - unable to load program_ids. error: {:?}", e))?;
         let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();

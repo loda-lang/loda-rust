@@ -3,23 +3,25 @@ use crate::config::Config;
 use std::error::Error;
 use std::path::PathBuf;
 use std::collections::HashSet;
-use super::load_program_ids_from_deny_file;
+use super::{AnalyticsDirectory, load_program_ids_from_deny_file};
 use crate::common::{load_program_ids_csv_file, save_program_ids_csv_file};
 
 /// Generate the `dontmine.csv` file.
 /// 
 /// These are the program ids that should NOT be mined.
 pub struct DontMine {
+    analytics_directory: AnalyticsDirectory,
     simple_log: SimpleLog,
     config: Config,
     program_ids: HashSet<u32>
 }
 
 impl DontMine {
-    pub fn run(simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
+    pub fn run(analytics_directory: AnalyticsDirectory, simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
         simple_log.println("\nDontMine");
         let mut instance = Self {
-            simple_log: simple_log,
+            analytics_directory,
+            simple_log,
             config: Config::load(),
             program_ids: HashSet::new()
         };
@@ -78,7 +80,7 @@ impl DontMine {
         let program_ids_sorted: Vec<u32> = Self::sorted_vec(&self.program_ids);
         let content = format!("number of program ids in the 'dontmine.csv' file: {:?}", program_ids_sorted.len());
         self.simple_log.println(content);
-        let output_path: PathBuf = self.config.analytics_dir_dont_mine_file();
+        let output_path: PathBuf = self.analytics_directory.dont_mine_file();
         save_program_ids_csv_file(&program_ids_sorted, &output_path)
     }
 }
