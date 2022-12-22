@@ -199,4 +199,10 @@ impl AnalyticsDirectory {
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
+
+    pub fn histogram_oeis_stripped_file(&self) -> PathBuf {
+        let path = self.analytics_directory.join("histogram_oeis_stripped.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
 }

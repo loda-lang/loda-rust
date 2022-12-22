@@ -1,3 +1,4 @@
+use super::AnalyticsDirectory;
 use loda_rust_core::util::BigIntVec;
 use loda_rust_core::oeis::OeisIdHashSet;
 use crate::mine::FunnelConfig;
@@ -64,17 +65,19 @@ static DISCARD_EXTREME_VALUES_BEYOND_THIS_LIMIT: i64 = 400;
 /// Number of extreme values: 4084887,
 /// that are outside the range -400 .. +400.
 pub struct HistogramStrippedFile {
+    analytics_directory: AnalyticsDirectory,
     config: Config,
     simple_log: SimpleLog,
     histogram: HashMap<i64,u32>,
 }
 
 impl HistogramStrippedFile {
-    pub fn run(simple_log: SimpleLog) -> anyhow::Result<()> {
+    pub fn run(analytics_directory: AnalyticsDirectory, simple_log: SimpleLog) -> anyhow::Result<()> {
         let config = Config::load();
         let mut instance = Self {
-            config: config,
-            simple_log: simple_log,
+            analytics_directory,
+            config,
+            simple_log,
             histogram: HashMap::new(),
         };
         instance.run_inner()?;
@@ -190,7 +193,7 @@ impl HistogramStrippedFile {
         records.reverse();
     
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_histogram_oeis_stripped_file();
+        let output_path: PathBuf = self.analytics_directory.histogram_oeis_stripped_file();
         create_csv_file(&records, &output_path)
             .map_err(|e| anyhow::anyhow!("HistogramStrippedFile.save - create_csv_file error: {:?}", e))?;
         Ok(())

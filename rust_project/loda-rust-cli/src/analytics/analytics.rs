@@ -86,7 +86,7 @@ impl Analytics {
     }
 
     fn run_oeis_tasks(&self, simple_log: SimpleLog) -> anyhow::Result<()> {
-        HistogramStrippedFile::run(simple_log.clone())?;
+        HistogramStrippedFile::run(self.analytics_directory.clone(), simple_log.clone())?;
         ValidatePrograms::run(self.analytics_directory.clone(), simple_log.clone())?;
         self.run_batch_program_analyzer(simple_log.clone())?;
         compute_program_rank(self.analytics_directory.clone());
