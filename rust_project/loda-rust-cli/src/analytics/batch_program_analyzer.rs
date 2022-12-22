@@ -1,6 +1,6 @@
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, oeis_id_from_path, SimpleLog};
 use loda_rust_core;
-use super::AnalyticsError;
+use super::{AnalyticsError, AnalyticsMode};
 use crate::config::Config;
 use crate::arc::RunWithProgram;
 use loda_rust_core::parser::ParsedProgram;
@@ -35,6 +35,7 @@ pub trait BatchProgramAnalyzerPlugin {
 pub type BatchProgramAnalyzerPluginItem = Rc<RefCell<dyn BatchProgramAnalyzerPlugin>>;
 
 pub struct BatchProgramAnalyzer {
+    analytics_mode: AnalyticsMode,
     simple_log: SimpleLog,
     config: Config,
     number_of_program_files_that_could_not_be_loaded: usize,
@@ -44,14 +45,15 @@ pub struct BatchProgramAnalyzer {
 }
 
 impl BatchProgramAnalyzer {
-    pub fn new(plugin_vec: Vec<BatchProgramAnalyzerPluginItem>, simple_log: SimpleLog) -> Self {
+    pub fn new(analytics_mode: AnalyticsMode, plugin_vec: Vec<BatchProgramAnalyzerPluginItem>, simple_log: SimpleLog) -> Self {
         Self {
-            simple_log: simple_log,
+            analytics_mode,
+            simple_log,
             config: Config::load(),
             number_of_program_files_that_could_not_be_loaded: 0,
             number_of_program_files_ignored: 0,
             number_of_program_files_successfully_analyzed: 0,
-            plugin_vec: plugin_vec,
+            plugin_vec,
         }
     }
 
@@ -75,8 +77,11 @@ impl BatchProgramAnalyzer {
         let invalid_program_ids: Vec<u32> = load_program_ids_csv_file(&programs_invalid_file)?;
         let ignore_program_ids: HashSet<u32> = invalid_program_ids.into_iter().collect();
     
-        let dir_containing_programs: PathBuf = self.config.loda_arc_challenge_repository_programs();
-        // let dir_containing_programs: PathBuf = self.config.loda_programs_oeis_dir();
+        let dir_containing_programs: PathBuf = match self.analytics_mode {
+            AnalyticsMode::OEIS => self.config.loda_programs_oeis_dir(),
+            AnalyticsMode::ARC => self.config.loda_arc_challenge_repository_programs(),
+        };
+
         let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
         let number_of_paths = paths.len();
         if number_of_paths <= 0 {
@@ -114,20 +119,32 @@ impl BatchProgramAnalyzer {
         path_to_program: &PathBuf,
         ignore_program_ids: &HashSet<u32>
     ) -> Result<(), Box<dyn Error>> {
-        let program_id: u32 = 1;
-        // let program_id: u32 = match oeis_id_from_path(&path_to_program) {
-        //     Some(oeis_id) => oeis_id.raw(),
-        //     None => {
-        //         debug!("Unable to extract program_id from {:?}", path_to_program);
-        //         self.number_of_program_files_that_could_not_be_loaded += 1;
-        //         return Ok(());
-        //     }
-        // };
-        // if ignore_program_ids.contains(&program_id) {
-        //     debug!("Ignoring program_id {:?}", program_id);
-        //     self.number_of_program_files_ignored += 1;
-        //     return Ok(());
-        // }
+        let program_id: u32;
+        match self.analytics_mode {
+            AnalyticsMode::OEIS => {
+                // Extract OEIS id from program path
+                program_id = match oeis_id_from_path(&path_to_program) {
+                    Some(oeis_id) => oeis_id.raw(),
+                    None => {
+                        debug!("Unable to extract program_id from {:?}", path_to_program);
+                        self.number_of_program_files_that_could_not_be_loaded += 1;
+                        return Ok(());
+                    }
+                };
+            },
+            AnalyticsMode::ARC => {
+                // ARC programs use a filename ala `39a8645d-1.asm`, so it doesn't work with an integer `program_id`.
+                program_id = 1;
+            },
+        }
+
+        // Some programs are to be ignored
+        if ignore_program_ids.contains(&program_id) {
+            debug!("Ignoring program_id {:?}", program_id);
+            self.number_of_program_files_ignored += 1;
+            return Ok(());
+        }
+
         let mut contents: String = match fs::read_to_string(&path_to_program) {
             Ok(value) => value,
             Err(error) => {
@@ -136,10 +153,12 @@ impl BatchProgramAnalyzer {
                 return Ok(());
             }
         };
-        // detect if it's a "simple" program, and wrap it in the "advanced" template
-        let is_simple: bool = contents.contains("Program Type: simple");
-        if is_simple {
-            contents = RunWithProgram::convert_simple_to_full(contents);
+        if self.analytics_mode == AnalyticsMode::ARC {
+            // detect if it's a "simple" program, and wrap it in the "advanced" template
+            let is_simple: bool = contents.contains("Program Type: simple");
+            if is_simple {
+                contents = RunWithProgram::convert_simple_to_full(contents);
+            }
         }
         let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&contents) {
             Ok(value) => value,

@@ -124,7 +124,7 @@ impl Analytics {
             plugin_target_ngram,
             plugin_program_complexity,
         ];
-        let mut analyzer = BatchProgramAnalyzer::new(plugin_vec, simple_log);
+        let mut analyzer = BatchProgramAnalyzer::new(self.analytics_mode, plugin_vec, simple_log);
         return analyzer.run();
     }
 }
