@@ -1,12 +1,11 @@
+use super::{AnalyticsDirectory, BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 use crate::common::create_csv_file;
-use crate::config::Config;
 use loda_rust_core;
 use loda_rust_core::parser::{Instruction, InstructionId, InstructionParameter, ParameterType, ParsedProgram};
 use std::path::PathBuf;
 use std::error::Error;
 use std::collections::HashMap;
 use serde::Serialize;
-use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
 type HistogramKey = (InstructionId,i32);
 
@@ -43,16 +42,16 @@ static DISCARD_EXTREME_VALUES_BEYOND_THIS_LIMIT: i64 = 10000;
 /// 69;bin;2
 /// ```
 pub struct AnalyzeInstructionConstant {
-    config: Config,
+    analytics_directory: AnalyticsDirectory,
     histogram: HashMap<HistogramKey,u32>,
     number_of_constant_processed_unsuccessful: u32,
     number_of_constant_processed_successful: u32,
 }
 
 impl AnalyzeInstructionConstant {
-    pub fn new() -> Self {
+    pub fn new(analytics_directory: AnalyticsDirectory) -> Self {
         Self {
-            config: Config::load(),
+            analytics_directory,
             histogram: HashMap::new(),
             number_of_constant_processed_unsuccessful: 0,
             number_of_constant_processed_successful: 0,
@@ -134,7 +133,7 @@ impl BatchProgramAnalyzerPlugin for AnalyzeInstructionConstant {
         let records: Vec<Record> = Record::sorted_records_from_histogram(&self.histogram);
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_histogram_instruction_constant_file();
+        let output_path: PathBuf = self.analytics_directory.histogram_instruction_constant_file();
         create_csv_file(&records, &output_path)
     }
 

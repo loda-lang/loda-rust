@@ -24,7 +24,7 @@ pub fn create_genome_mutate_context(config: &Config) -> anyhow::Result<GenomeMut
     let source_trigram_csv: PathBuf = config.analytics_dir_histogram_source_trigram_file();
     let target_trigram_csv: PathBuf = config.analytics_dir_histogram_target_trigram_file();
 
-    let path_histogram: PathBuf = config.analytics_dir_histogram_instruction_constant_file();
+    let path_histogram: PathBuf = analytics_directory.histogram_instruction_constant_file();
     let histogram_instruction_constant: Option<HistogramInstructionConstant>;
     if path_histogram.is_file() {
         histogram_instruction_constant = match HistogramInstructionConstant::load_csv_file(&path_histogram) {
