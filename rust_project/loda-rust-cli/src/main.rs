@@ -30,7 +30,7 @@ mod subcommand_pattern;
 mod subcommand_similar;
 mod subcommand_test;
 
-use subcommand_analytics::subcommand_analytics;
+use subcommand_analytics::SubcommandAnalytics;
 use subcommand_arc::{SubcommandARC, SubcommandARCMode};
 use subcommand_dependencies::subcommand_dependencies;
 use subcommand_evaluate::{subcommand_evaluate,SubcommandEvaluateMode};
@@ -97,8 +97,13 @@ async fn main() -> anyhow::Result<()> {
                 .about("Create the $HOME/.loda-rust directory")
         )
         .subcommand(
-            Command::new("analytics")
-                .about("Prepare data needed for mining, by analyzing the existing programs.")
+            Command::new("analytics-oeis")
+                .about("Prepare data needed for mining OEIS sequences, by analyzing the existing programs.")
+                .hide(true)
+        )
+        .subcommand(
+            Command::new("analytics-arc")
+                .about("Prepare data needed for mining ARC puzzles, by analyzing the existing programs.")
                 .hide(true)
         )
         .subcommand(
@@ -194,8 +199,13 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if let Some(_sub_m) = matches.subcommand_matches("analytics") {
-        subcommand_analytics()?;
+    if let Some(_sub_m) = matches.subcommand_matches("analytics-oeis") {
+        SubcommandAnalytics::oeis()?;
+        return Ok(());
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("analytics-arc") {
+        SubcommandAnalytics::arc()?;
         return Ok(());
     }
 
