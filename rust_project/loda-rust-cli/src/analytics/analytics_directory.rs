@@ -91,4 +91,10 @@ impl AnalyticsDirectory {
         assert!(path.is_absolute());
         PathBuf::from(path)
     }
+
+    pub fn program_popularity_file(&self) -> PathBuf {
+        let path = self.analytics_directory.join("program_popularity.csv");
+        assert!(path.is_absolute());
+        PathBuf::from(path)
+    }
 }

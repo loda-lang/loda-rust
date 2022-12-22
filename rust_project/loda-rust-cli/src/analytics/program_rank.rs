@@ -1,6 +1,5 @@
 use super::AnalyticsDirectory;
 use crate::common::{create_csv_file, parse_csv_file};
-use crate::config::Config;
 use simple_pagerank::Pagerank;
 use std::path::{Path, PathBuf};
 use serde::{Serialize, Deserialize};
@@ -36,10 +35,9 @@ struct RecordDependency {
 /// 33;6
 /// ```
 pub fn compute_program_rank(analytics_directory: AnalyticsDirectory) {
-    let config = Config::load();
     let input_path: PathBuf = analytics_directory.dependencies_file();
     let output_rank_path: PathBuf = analytics_directory.program_rank_file();
-    let output_popularity_path: PathBuf = config.analytics_dir_program_popularity_file();
+    let output_popularity_path: PathBuf = analytics_directory.program_popularity_file();
     let pr: Pagerank<u32> = calculate_pagerank(&input_path);
     create_dependencies_csv_file(&pr, &output_rank_path);
     create_popularity_csv_file(&pr, &output_popularity_path, HIGHEST_POPULARITY_VALUE);

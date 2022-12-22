@@ -83,7 +83,7 @@ pub fn create_genome_mutate_context(config: &Config) -> anyhow::Result<GenomeMut
     }
 
     // Load the clusters with popular/unpopular program ids
-    let program_popularity_file = config.analytics_dir_program_popularity_file();
+    let program_popularity_file = analytics_directory.program_popularity_file();
     let popular_program_container: PopularProgramContainer = match PopularProgramContainer::load(&program_popularity_file) {
         Ok(value) => value,
         Err(error) => {
