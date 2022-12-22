@@ -1,5 +1,6 @@
 //! Prepare data needed for mining, by analyzing the existing programs.
 mod analytics;
+mod analytics_directory;
 mod analytics_error;
 mod analytics_mode;
 mod analytics_timestamp_file;
@@ -20,6 +21,7 @@ mod validate_programs;
 
 pub use analytics::Analytics;
 pub use analytics_mode::AnalyticsMode;
+pub use analytics_directory::AnalyticsDirectory;
 pub use analytics_error::AnalyticsError;
 pub use analytics_timestamp_file::AnalyticsTimestampFile;
 pub use analyze_dependencies::AnalyzeDependencies;
