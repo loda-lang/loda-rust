@@ -5,7 +5,6 @@ use super::{AnalyticsMode, AnalyticsDirectory};
 use super::{AnalyzeDependencies, AnalyzeIndirectMemoryAccess, AnalyzeInstructionConstant, AnalyzeInstructionNgram};
 use super::{AnalyzeProgramComplexity, AnalyzeLineNgram, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, AnalyticsTimestampFile, ValidatePrograms, compute_program_rank};
 use anyhow::Context;
-use std::fs;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::Instant;
@@ -73,22 +72,36 @@ impl Analytics {
 
         let simple_log = SimpleLog::new(&logfile_path)
             .map_err(|e| anyhow::anyhow!("Analytics.run_force - simple_log error: {:?}", e))?;
-        
+       
+        match self.analytics_mode {
+            AnalyticsMode::OEIS => self.run_oeis_tasks(simple_log.clone())?,
+            AnalyticsMode::ARC => self.run_arc_tasks(simple_log.clone())?
+        }
+    
+        AnalyticsTimestampFile::save_now(&timestamp_file_path)?;
+        let content = format!("\nsubcommand_analytics finished, elapsed: {:?} ms", start_time.elapsed().as_millis());
+        simple_log.println(content);
+    
+        Ok(())
+    }
+
+    fn run_oeis_tasks(&self, simple_log: SimpleLog) -> anyhow::Result<()> {
         HistogramStrippedFile::run(simple_log.clone())?;
         ValidatePrograms::run(simple_log.clone())?;
         self.run_batch_program_analyzer(simple_log.clone())?;
-        // compute_program_rank();
+        compute_program_rank();
 
         DontMine::run(simple_log.clone())
             .map_err(|e| anyhow::anyhow!("Analytics.run_force. DontMine::run. error: {:?}", e))?;
 
         PopulateBloomfilter::run(simple_log.clone())
             .map_err(|e| anyhow::anyhow!("Analytics.run_force. PopulateBloomfilter::run. error: {:?}", e))?;
-    
-        AnalyticsTimestampFile::save_now(&timestamp_file_path)?;
-        let content = format!("\nsubcommand_analytics finished, elapsed: {:?} ms", start_time.elapsed().as_millis());
-        simple_log.println(content);
-    
+
+        Ok(())
+    }
+
+    fn run_arc_tasks(&self, simple_log: SimpleLog) -> anyhow::Result<()> {
+        self.run_batch_program_analyzer(simple_log.clone())?;
         Ok(())
     }
 
