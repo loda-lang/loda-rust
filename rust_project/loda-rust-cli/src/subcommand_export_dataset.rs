@@ -1,9 +1,10 @@
 //! The `loda-rust export-dataset` subcommand, exports terms and programs to a CSV file.
-use crate::analytics::Analytics;
+use crate::analytics::{Analytics, AnalyticsDirectory};
 use crate::config::Config;
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, oeis_id_from_path};
 use crate::common::create_csv_file;
 use crate::oeis::{ProcessStrippedFile, StrippedRow};
+use anyhow::Context;
 use loda_rust_core::util::BigIntVecToString;
 use loda_rust_core::oeis::OeisIdHashSet;
 use loda_rust_core::oeis::OeisId;
@@ -42,6 +43,7 @@ pub type OeisIdToTermsSet = HashMap::<OeisId, String>;
 /// 1953;0,2,3,4,6,7,9,10,12,13,14,16,17,19,20,21,23,24,26,27;mov $1,$0\nmul $0,2\npow $1,2\nlpb $1\nsub $1,1\nadd $0,2\ntrn $1,$0\nlpe\ndiv $0,2
 /// ```
 pub struct SubcommandExportDataset {
+    analytics_directory: AnalyticsDirectory,
     config: Config,
     count_ignored: usize,
     count_insufficient_number_of_terms: usize,
@@ -51,8 +53,14 @@ pub struct SubcommandExportDataset {
 
 impl SubcommandExportDataset {
     pub fn export_dataset() -> anyhow::Result<()> {
+        let config = Config::load();
+        let analytics_directory = AnalyticsDirectory::new(
+            config.analytics_oeis_dir()
+        ).with_context(||"unable to create AnalyticsDirectory instance")?;
+
         let mut instance = Self {
-            config: Config::load(),
+            analytics_directory,
+            config,
             count_ignored: 0,
             count_insufficient_number_of_terms: 0,
             records: vec!(),
@@ -63,7 +71,7 @@ impl SubcommandExportDataset {
     }
 
     fn run(&mut self) -> anyhow::Result<()> {
-        Analytics::run_if_expired()?;
+        Analytics::oeis_run_if_expired()?;
         self.load_stripped_file()?;
         self.process_program_files()?;
         self.save()?;
@@ -103,7 +111,7 @@ impl SubcommandExportDataset {
     }
 
     fn process_program_files(&mut self) -> anyhow::Result<()> {
-        let programs_invalid_file = self.config.analytics_dir_programs_invalid_file();
+        let programs_invalid_file = self.analytics_directory.programs_invalid_file();
         let invalid_program_ids: Vec<u32> = match load_program_ids_csv_file(&programs_invalid_file) {
             Ok(value) => value,
             Err(error) => {
@@ -198,7 +206,7 @@ impl SubcommandExportDataset {
         let mut records: Vec<Record> = self.records.clone();
         records.sort_unstable_by_key(|item| (item.program_id));
 
-        let output_path: PathBuf = self.config.analytics_dir().join("dataset.csv");
+        let output_path: PathBuf = self.config.analytics_oeis_dir().join("dataset.csv");
         match create_csv_file(&records, &output_path) {
             Ok(_) => {},
             Err(error) => {

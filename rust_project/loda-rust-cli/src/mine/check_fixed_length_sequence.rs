@@ -3,6 +3,7 @@ use loda_rust_core::util::BigIntVec;
 use loda_rust_core::oeis::{OeisId, OeisIdHashSet};
 use super::{FunnelConfig, WildcardChecker};
 use crate::config::Config;
+use crate::analytics::AnalyticsDirectory;
 use crate::common::{load_program_ids_csv_file, SimpleLog};
 use crate::oeis::{ProcessStrippedFile, StrippedRow};
 use num_bigint::{BigInt, ToBigInt};
@@ -291,16 +292,18 @@ fn create_cache_files(
 }
 
 pub struct PopulateBloomfilter {
+    analytics_directory: AnalyticsDirectory,
     config: Config,
     simple_log: SimpleLog,
 }
 
 impl PopulateBloomfilter {
-    pub fn run(simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
+    pub fn run(analytics_directory: AnalyticsDirectory, simple_log: SimpleLog) -> Result<(), Box<dyn Error>> {
         let config = Config::load();
         let instance = Self {
-            config: config,
-            simple_log: simple_log
+            analytics_directory,
+            config,
+            simple_log
         };
         instance.populate_bloomfilter_all()?;
         instance.populate_bloomfilter_new()?;
@@ -335,7 +338,7 @@ impl PopulateBloomfilter {
         assert!(oeis_stripped_file.is_absolute());
         assert!(oeis_stripped_file.is_file());
 
-        let analytics_dir: PathBuf = self.config.analytics_dir();
+        let analytics_dir: PathBuf = self.config.analytics_oeis_dir();
         let funnel10_path: PathBuf = names[0].resolve_path(&analytics_dir);
         let funnel20_path: PathBuf = names[1].resolve_path(&analytics_dir);
         let funnel30_path: PathBuf = names[2].resolve_path(&analytics_dir);
@@ -359,7 +362,7 @@ impl PopulateBloomfilter {
     }
 
     fn obtain_dontmine_program_ids(&self) -> anyhow::Result<OeisIdHashSet> {
-        let path = self.config.analytics_dir_dont_mine_file();
+        let path = self.analytics_directory.dont_mine_file();
         let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)
             .map_err(|e| anyhow::anyhow!("obtain_dontmine_program_ids - unable to load program_ids. error: {:?}", e))?;
         let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();
@@ -369,7 +372,7 @@ impl PopulateBloomfilter {
     }
 
     fn obtain_invalid_program_ids(&self) -> anyhow::Result<OeisIdHashSet> {
-        let path = self.config.analytics_dir_programs_invalid_file();
+        let path = self.analytics_directory.programs_invalid_file();
         let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)
             .map_err(|e| anyhow::anyhow!("obtain_invalid_program_ids - unable to load program_ids. error: {:?}", e))?;
         let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();
@@ -379,7 +382,7 @@ impl PopulateBloomfilter {
     }
 
     fn obtain_valid_program_ids(&self) -> anyhow::Result<OeisIdHashSet> {
-        let path = self.config.analytics_dir_programs_valid_file();
+        let path = self.analytics_directory.programs_valid_file();
         let program_ids_raw: Vec<u32> = load_program_ids_csv_file(&path)
             .map_err(|e| anyhow::anyhow!("obtain_valid_program_ids - unable to load program_ids. error: {:?}", e))?;
         let program_ids: Vec<OeisId> = program_ids_raw.iter().map(|x| OeisId::from(*x)).collect();

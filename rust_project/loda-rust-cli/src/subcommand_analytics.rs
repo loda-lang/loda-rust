@@ -1,6 +1,14 @@
-//! The `loda-rust analytics` subcommand, populates histograms/bloomfilters.
+//! The `loda-rust analytics-MODE` subcommands, prepares data for mining such as histograms/bloomfilters.
 use crate::analytics::Analytics;
 
-pub fn subcommand_analytics() -> anyhow::Result<()> {
-    Analytics::run_force()
+pub struct SubcommandAnalytics;
+
+impl SubcommandAnalytics {
+    pub fn oeis() -> anyhow::Result<()> {
+        Analytics::oeis_run_force()
+    }
+
+    pub fn arc() -> anyhow::Result<()> {
+        Analytics::arc_run_force()
+    }
 }

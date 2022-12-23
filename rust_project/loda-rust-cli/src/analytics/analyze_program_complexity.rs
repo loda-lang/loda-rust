@@ -1,12 +1,11 @@
+use super::{AnalyticsDirectory, BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 use crate::common::{create_csv_file, save_program_ids_csv_file};
-use crate::config::Config;
 use loda_rust_core;
 use loda_rust_core::parser::{InstructionId, ParsedProgram};
 use std::path::PathBuf;
 use std::error::Error;
 use std::collections::HashMap;
 use serde::Serialize;
-use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
 const IGNORE_ANY_PROGRAM_SHORTER_THAN: usize = 8;
 const IGNORE_PROGRAM_WITHOUT_LOOPS_SHORTER_THAN: usize = 13;
@@ -62,14 +61,14 @@ impl ProgramComplexityClassification {
 }
 
 pub struct AnalyzeProgramComplexity {
-    config: Config,
+    analytics_directory: AnalyticsDirectory,
     classifications: HashMap<u32, ProgramComplexityClassification>,
 }
 
 impl AnalyzeProgramComplexity {
-    pub fn new() -> Self {
+    pub fn new(analytics_directory: AnalyticsDirectory) -> Self {
         Self {
-            config: Config::load(),
+            analytics_directory,
             classifications: HashMap::new(),
         }
     }
@@ -122,7 +121,7 @@ impl AnalyzeProgramComplexity {
         records.sort_unstable_by_key(|item| (item.program_id));
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_complexity_all_file();
+        let output_path: PathBuf = self.analytics_directory.complexity_all_file();
         create_csv_file(&records, &output_path)
     }
 
@@ -140,7 +139,7 @@ impl AnalyzeProgramComplexity {
 
     fn save_dont_optimize(&self) -> Result<(), Box<dyn Error>> {
         let program_ids = self.extract_dont_optimize_program_ids();
-        let output_path: PathBuf = self.config.analytics_dir_complexity_dont_optimize_file();
+        let output_path: PathBuf = self.analytics_directory.complexity_dont_optimize_file();
         save_program_ids_csv_file(&program_ids, &output_path)
     }
 }

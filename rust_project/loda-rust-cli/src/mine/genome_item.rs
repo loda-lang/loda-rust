@@ -253,9 +253,9 @@ impl GenomeItem {
             // This happens when the csv files are outdated with the latest LODA repository.
             return false;
         }
-        let current_soruce_value: i32 = self.source_value();
-        if current_soruce_value >= 0 {
-            let is_same = (current_soruce_value as u32) == new_program_id;
+        let current_source_value: i32 = self.source_value();
+        if current_source_value >= 0 {
+            let is_same = (current_source_value as u32) == new_program_id;
             if is_same {
                 // Failed to pick a different program
                 return false;

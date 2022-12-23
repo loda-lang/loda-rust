@@ -1,16 +1,15 @@
+use super::{AnalyticsDirectory, AnalyticsMode, BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 use crate::common::create_csv_file;
 use crate::common::RecordBigram;
 use crate::common::RecordTrigram;
 use crate::common::RecordSkipgram;
 use crate::common::RecordUnigram;
-use crate::config::Config;
 use loda_rust_core;
 use loda_rust_core::parser::ParameterType;
 use loda_rust_core::parser::{InstructionId, ParsedProgram};
 use std::path::PathBuf;
 use std::error::Error;
 use std::collections::HashMap;
-use super::{BatchProgramAnalyzerPlugin, BatchProgramAnalyzerContext};
 
 type HistogramBigramKey = (String,String);
 type HistogramTrigramKey = (String,String,String);
@@ -101,7 +100,9 @@ type HistogramSkipgramKey = (String,String);
 /// 
 /// [N-gram]: <https://en.wikipedia.org/wiki/N-gram>
 pub struct AnalyzeLineNgram {
-    config: Config,
+    analytics_directory: AnalyticsDirectory,
+    limit_lower: i64,
+    limit_upper: i64,
     histogram_unigram: HashMap<String,u32>,
     histogram_bigram: HashMap<HistogramBigramKey,u32>,
     histogram_trigram: HashMap<HistogramTrigramKey,u32>,
@@ -110,11 +111,34 @@ pub struct AnalyzeLineNgram {
 }
 
 impl AnalyzeLineNgram {
-    const IGNORE_CONSTANTS_GREATER_THAN: i64 = 100;
+    pub fn new(analytics_directory: AnalyticsDirectory, mode: AnalyticsMode) -> Self {
+        match mode {
+            AnalyticsMode::OEIS => {
+                // When mining for OEIS sequences, then magic constants are unwanted.
+                // Values like 3, or 7 are considered nice values.
+                // However a values like 123456789 is considered huge and magic.
+                let limit_lower: i64 = -100;
+                let limit_upper: i64 = 100;
+                return Self::create(analytics_directory, limit_lower, limit_upper);
+            },
+            AnalyticsMode::ARC => {
+                // No particular preference about the lower limit.
+                let limit_lower: i64 = -100;
 
-    pub fn new() -> Self {
+                // It's a big memory layout of the ARC puzzles.
+                // The input registers are between 100 and 200.
+                // Thus the `magic_constant_upper_limit` is 200.
+                let limit_upper: i64 = 200;
+                return Self::create(analytics_directory, limit_lower, limit_upper);
+            },
+        }
+    }
+
+    fn create(analytics_directory: AnalyticsDirectory, limit_lower: i64, limit_upper: i64) -> Self {
         Self {
-            config: Config::load(),
+            analytics_directory,
+            limit_lower,
+            limit_upper,
             histogram_unigram: HashMap::new(),
             histogram_bigram: HashMap::new(),
             histogram_trigram: HashMap::new(),
@@ -127,14 +151,26 @@ impl AnalyzeLineNgram {
         let mut words: Vec<String> = vec!();
         words.push("START".to_string());
         for instruction in &parsed_program.instruction_vec {
-            // junk data
-            // If there are magic constants, then entirely ignore the program.
-            // For the `seq` instruction allow constants.
-            if instruction.instruction_id != InstructionId::EvalSequence {
+            // Ignore programs that serves as bad examples. Huge magic constants are unwanted.
+            // When there is a huge magic constant, then ignore the program.
+            // For the `seq` instruction allow huge constants.
+            // For the unofficial `fxy` instructions allow huge constants.
+            let should_reject_extreme_source_constant: bool = match instruction.instruction_id {
+                InstructionId::EvalSequence | 
+                InstructionId::UnofficialFunction { .. }  => false,
+                _ => true
+            };
+            if should_reject_extreme_source_constant {
                 if instruction.parameter_vec.len() == 2 {
                     if let Some(parameter) = instruction.parameter_vec.last() {
                         if parameter.parameter_type == ParameterType::Constant {
-                            if parameter.parameter_value.abs() > Self::IGNORE_CONSTANTS_GREATER_THAN {
+                            if parameter.parameter_value < self.limit_lower {
+                                debug!("Encountered a magic value that is lower than {}. Ignoring program. Instruction: {}", self.limit_lower, instruction);
+                                self.ignore_count += 1;
+                                return vec!();
+                            }
+                            if parameter.parameter_value > self.limit_upper {
+                                debug!("Encountered a magic value that is higher than {}. Ignoring program. Instruction: {}", self.limit_upper, instruction);
                                 self.ignore_count += 1;
                                 return vec!();
                             }
@@ -234,7 +270,7 @@ impl AnalyzeLineNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_histogram_line_unigram_file();
+        let output_path: PathBuf = self.analytics_directory.histogram_line_unigram_file();
         create_csv_file(&records, &output_path)
     }
 
@@ -256,7 +292,7 @@ impl AnalyzeLineNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_histogram_line_bigram_file();
+        let output_path: PathBuf = self.analytics_directory.histogram_line_bigram_file();
         create_csv_file(&records, &output_path)
     }
 
@@ -279,7 +315,7 @@ impl AnalyzeLineNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_histogram_line_trigram_file();
+        let output_path: PathBuf = self.analytics_directory.histogram_line_trigram_file();
         create_csv_file(&records, &output_path)
     }
 
@@ -301,7 +337,7 @@ impl AnalyzeLineNgram {
         records.reverse();
 
         // Save as a CSV file
-        let output_path: PathBuf = self.config.analytics_dir_histogram_line_skipgram_file();
+        let output_path: PathBuf = self.analytics_directory.histogram_line_skipgram_file();
         create_csv_file(&records, &output_path)
     }
 }
@@ -329,13 +365,13 @@ impl BatchProgramAnalyzerPlugin for AnalyzeLineNgram {
     }
 
     fn human_readable_summary(&self) -> String {
-        let rows: Vec<String> = vec![
+        let items: Vec<String> = vec![
             format!("unigram: {:?}", self.histogram_unigram.len()),
             format!("bigram: {:?}", self.histogram_bigram.len()),
             format!("trigram: {:?}", self.histogram_trigram.len()),
             format!("skipgram: {:?}", self.histogram_skipgram.len()),
             format!("ignore count: {:?}", self.ignore_count),
         ];
-        rows.join(", ")
+        items.join(", ")
     }
 }

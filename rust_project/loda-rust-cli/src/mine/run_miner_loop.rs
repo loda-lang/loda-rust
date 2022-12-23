@@ -102,7 +102,7 @@ impl RunMinerLoop {
             mine_event_dir: PathBuf::from(mine_event_dir),
             cache: ProgramCache::with_capacity(capacity),
             prevent_flooding: prevent_flooding,
-            context: GenomeMutateContext::new_empty(),
+            context: GenomeMutateContext::empty(),
             genome: Genome::new(),
             rng: rng,
             metric: MetricsRunMinerLoop::new(),

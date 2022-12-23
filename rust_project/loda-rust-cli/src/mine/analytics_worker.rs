@@ -1,10 +1,10 @@
-use crate::analytics::Analytics;
+use crate::analytics::{Analytics, AnalyticsDirectory};
 use crate::common::PendingProgramsWithPriority;
 use crate::config::Config;
 use crate::mine::{CoordinatorWorkerMessage, MineEventDirectoryState};
 use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
 use super::{CreateFunnel, Funnel, FunnelConfig};
-use super::{create_genome_mutate_context, GenomeMutateContext};
+use super::{CreateGenomeMutateContextMode, create_genome_mutate_context, GenomeMutateContext};
 use super::MinerWorkerMessageWithAnalytics;
 use super::{create_prevent_flooding, PreventFlooding};
 use super::{MinerSyncExecute, MinerSyncExecuteStatus};
@@ -73,12 +73,12 @@ fn perform_sync_and_analytics(
         MinerSyncExecuteStatus::NoChange => {
             // Data is already uptodate, then skip no need to regenerate analytics.
             println!("BEFORE analytics - run_if_expired");
-            Analytics::run_if_expired()
+            Analytics::oeis_run_if_expired()
         },
         MinerSyncExecuteStatus::Changed => {
             // Data has been modified, then analytics needs to be regenerated.
             println!("BEFORE analytics - run_force");
-            Analytics::run_force()
+            Analytics::oeis_run_force()
         }
     };
     match analytics_run_result {
@@ -126,8 +126,13 @@ fn perform_sync_and_analytics(
 
     println!("populating funnel");
     let funnel: Funnel = Funnel::create_funnel_with_file_data(&config);
+
     println!("populating genome_mutate_context");
-    let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(&config);
+    let analytics_directory = AnalyticsDirectory::new(
+        config.analytics_oeis_dir()
+    ).expect("unable to create AnalyticsDirectory instance");
+    let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(CreateGenomeMutateContextMode::OEIS, &config, analytics_directory)
+        .expect("analytics_worker couldn't create GenomeMutateContext");
     
     // Pass on funnel+genome_mutate_context to miner_workers
     println!("analytics_worker: sending analytics data to miner_workers");
