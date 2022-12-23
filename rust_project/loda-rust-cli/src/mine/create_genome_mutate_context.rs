@@ -18,6 +18,8 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
     let source_trigram_csv: PathBuf = analytics_directory.histogram_source_trigram_file();
     let target_trigram_csv: PathBuf = analytics_directory.histogram_target_trigram_file();
 
+    let recent_program_csv = loda_rust_repository.join(Path::new("resources/program_creation_dates.csv"));
+
     let path_histogram: PathBuf = analytics_directory.histogram_instruction_constant_file();
     let histogram_instruction_constant: Option<HistogramInstructionConstant>;
     if path_histogram.is_file() {
@@ -78,22 +80,14 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
 
     // Load the clusters with popular/unpopular program ids
     let program_popularity_file = analytics_directory.program_popularity_file();
-    let popular_program_container: PopularProgramContainer = match PopularProgramContainer::load(&program_popularity_file) {
-        Ok(value) => value,
-        Err(error) => {
-            panic!("Unable to load file. path: {:?} error: {:?}", program_popularity_file, error);
-        }
-    };
 
     let mut creator = CreateGenomeMutateContext::new();
     creator.init_suggest_instruction(&instruction_trigram_csv)?;
     creator.init_suggest_line(&line_trigram_csv)?;
     creator.init_suggest_source(&source_trigram_csv)?;
     creator.init_suggest_target(&target_trigram_csv)?;
-
-    // Load the clusters with newest/oldest program ids
-    let recent_program_csv = loda_rust_repository.join(Path::new("resources/program_creation_dates.csv"));
     creator.init_recent_program_container(&recent_program_csv)?;
+    creator.init_popular_program_container(&program_popularity_file)?;
 
     let initial_genome_program_ids = optimize_program_ids;
     
@@ -102,7 +96,7 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
         initial_genome_program_ids,
         indirect_memory_access_program_ids,
         invalid_program_ids_hashset,
-        popular_program_container,
+        creator.popular_program_container,
         creator.recent_program_container,
         histogram_instruction_constant,
         creator.suggest_instruction,
@@ -120,6 +114,7 @@ struct CreateGenomeMutateContext {
     suggest_source: Option<SuggestSource>,
     suggest_target: Option<SuggestTarget>,
     recent_program_container: Option<RecentProgramContainer>,
+    popular_program_container: Option<PopularProgramContainer>,
 }
 
 impl CreateGenomeMutateContext {
@@ -130,6 +125,7 @@ impl CreateGenomeMutateContext {
             suggest_source: None,
             suggest_target: None,
             recent_program_container: None,
+            popular_program_container: None,
         }
     }
 
@@ -173,8 +169,17 @@ impl CreateGenomeMutateContext {
     fn init_recent_program_container(&mut self, recent_program_csv: &Path) -> anyhow::Result<()> {
         let instance = RecentProgramContainer::load(recent_program_csv)
             .map_err(|e| anyhow::anyhow!("Unable to load recent_program_csv error: {:?}", e))?;
-        debug!("recent_program_container: {:?}", instance.cluster_program_ids().len());
+        debug!("recent_program_container. number of clusters: {:?}", instance.cluster_program_ids().len());
         self.recent_program_container = Some(instance);
+        Ok(())
+    }
+
+    /// Load the clusters with popular/unpopular program ids
+    fn init_popular_program_container(&mut self, popular_program_csv: &Path) -> anyhow::Result<()> {
+        let instance = PopularProgramContainer::load(popular_program_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load popular_program_csv error: {:?}", e))?;
+        debug!("popular_program_container. number of clusters: {:?}", instance.cluster_program_ids().len());
+        self.popular_program_container = Some(instance);
         Ok(())
     }
 }

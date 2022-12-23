@@ -15,7 +15,7 @@ pub struct GenomeMutateContext {
     initial_genome_program_ids: Vec<u32>, 
     indirect_memory_access_program_ids: Vec<u32>,
     invalid_program_ids: HashSet<u32>,
-    popular_program_container: PopularProgramContainer,
+    popular_program_container: Option<PopularProgramContainer>,
     recent_program_container: Option<RecentProgramContainer>,
     histogram_instruction_constant: Option<HistogramInstructionConstant>,
     suggest_instruction: Option<SuggestInstruction>,
@@ -30,7 +30,7 @@ impl GenomeMutateContext {
         initial_genome_program_ids: Vec<u32>, 
         indirect_memory_access_program_ids: Vec<u32>,
         invalid_program_ids: HashSet<u32>,
-        popular_program_container: PopularProgramContainer, 
+        popular_program_container: Option<PopularProgramContainer>, 
         recent_program_container: Option<RecentProgramContainer>,
         histogram_instruction_constant: Option<HistogramInstructionConstant>,
         suggest_instruction: Option<SuggestInstruction>,
@@ -59,7 +59,7 @@ impl GenomeMutateContext {
             initial_genome_program_ids: vec!(),
             indirect_memory_access_program_ids: vec!(),
             invalid_program_ids: HashSet::<u32>::new(),
-            popular_program_container: PopularProgramContainer::new_empty(),
+            popular_program_container: None,
             recent_program_container: None,
             histogram_instruction_constant: None,
             suggest_instruction: None,
@@ -104,19 +104,43 @@ impl GenomeMutateContext {
     }
 
     pub fn choose_weighted_by_popularity<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
-        self.popular_program_container.choose_weighted_by_popularity(rng)
+        let popular_program_container: &PopularProgramContainer = match &self.popular_program_container {
+            Some(value) => value,
+            None => {
+                return None;
+            }
+        };
+        popular_program_container.choose_weighted_by_popularity(rng)
     }
 
     pub fn choose_most_popular<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
-        self.popular_program_container.choose_most_popular(rng)
+        let popular_program_container: &PopularProgramContainer = match &self.popular_program_container {
+            Some(value) => value,
+            None => {
+                return None;
+            }
+        };
+        popular_program_container.choose_most_popular(rng)
     }
 
     pub fn choose_medium_popular<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
-        self.popular_program_container.choose_medium_popular(rng)
+        let popular_program_container: &PopularProgramContainer = match &self.popular_program_container {
+            Some(value) => value,
+            None => {
+                return None;
+            }
+        };
+        popular_program_container.choose_medium_popular(rng)
     }
 
     pub fn choose_least_popular<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
-        self.popular_program_container.choose_least_popular(rng)
+        let popular_program_container: &PopularProgramContainer = match &self.popular_program_container {
+            Some(value) => value,
+            None => {
+                return None;
+            }
+        };
+        popular_program_container.choose_least_popular(rng)
     }
 
     pub fn choose_recent_program<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
