@@ -18,18 +18,9 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
     let source_trigram_csv: PathBuf = analytics_directory.histogram_source_trigram_file();
     let target_trigram_csv: PathBuf = analytics_directory.histogram_target_trigram_file();
     let histogram_instruction_constant_csv: PathBuf = analytics_directory.histogram_instruction_constant_file();
+    let valid_program_ids_csv = analytics_directory.programs_valid_file();
 
     let recent_program_csv = loda_rust_repository.join(Path::new("resources/program_creation_dates.csv"));
-
-    // Load the valid program_ids, that can execute.
-    let programs_valid_file = analytics_directory.programs_valid_file();
-    let valid_program_ids: Vec<u32> = match load_program_ids_csv_file(&programs_valid_file) {
-        Ok(value) => value,
-        Err(error) => {
-            panic!("Unable to load file. path: {:?} error: {:?}", programs_valid_file, error);
-        }
-    };
-    debug!("number_of_valid_program_ids = {}", valid_program_ids.len());
 
     // Load the valid program_ids, that can execute.
     let indirect_memory_access_csv: PathBuf = analytics_directory.indirect_memory_access_file();
@@ -52,15 +43,6 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
     debug!("number_of_invalid_program_ids = {}", invalid_program_ids.len());
     let invalid_program_ids_hashset: HashSet<u32> = invalid_program_ids.into_iter().collect();
 
-    // Determine the complex programs that are to be optimized
-    let mut optimize_program_ids = Vec::<u32>::new();
-    for program_id in &valid_program_ids {
-        if invalid_program_ids_hashset.contains(program_id) {
-            continue;
-        }
-        optimize_program_ids.push(*program_id);
-    }
-
     // Load the clusters with popular/unpopular program ids
     let program_popularity_file = analytics_directory.program_popularity_file();
 
@@ -72,11 +54,22 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
     creator.init_recent_program_container(&recent_program_csv)?;
     creator.init_popular_program_container(&program_popularity_file)?;
     creator.init_histogram_instruction_constant(&histogram_instruction_constant_csv)?;
+    creator.init_valid_program_ids(&valid_program_ids_csv)?;
 
-    let initial_genome_program_ids = optimize_program_ids;
-    
+    // Programs for initializing the genome. Remove all invalid program.
+    let mut initial_genome_program_ids = Vec::<u32>::new();
+    if let Some(valid_program_ids) = &creator.valid_program_ids {
+        for program_id in valid_program_ids {
+            if invalid_program_ids_hashset.contains(program_id) {
+                debug!("initial_genome_program_ids: removed invalid program: {:?}", program_id);
+                continue;
+            }
+            initial_genome_program_ids.push(*program_id);
+        }
+    }
+
     let context = GenomeMutateContext::new(
-        valid_program_ids,
+        creator.valid_program_ids.unwrap_or_default(),
         initial_genome_program_ids,
         indirect_memory_access_program_ids,
         invalid_program_ids_hashset,
@@ -100,6 +93,7 @@ struct CreateGenomeMutateContext {
     recent_program_container: Option<RecentProgramContainer>,
     popular_program_container: Option<PopularProgramContainer>,
     histogram_instruction_constant: Option<HistogramInstructionConstant>,
+    valid_program_ids: Option<Vec<u32>>,
 }
 
 impl CreateGenomeMutateContext {
@@ -112,6 +106,7 @@ impl CreateGenomeMutateContext {
             recent_program_container: None,
             popular_program_container: None,
             histogram_instruction_constant: None,
+            valid_program_ids: None,
         }
     }
 
@@ -174,6 +169,15 @@ impl CreateGenomeMutateContext {
             .map_err(|e| anyhow::anyhow!("Unable to load histogram_instruction_constant_csv error: {:?}", e))?;
         debug!("histogram_instruction_constant. number of items: {:?}", instance.number_of_items());
         self.histogram_instruction_constant = Some(instance);
+        Ok(())
+    }
+
+    /// The programs that can execute.
+    fn init_valid_program_ids(&mut self, valid_program_ids_csv: &Path) -> anyhow::Result<()> {
+        let program_ids: Vec<u32> = load_program_ids_csv_file(valid_program_ids_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load valid_program_ids_csv error: {:?}", e))?;
+        debug!("valid_program_ids. number of program ids: {:?}", program_ids.len());
+        self.valid_program_ids = Some(program_ids);
         Ok(())
     }
 }
