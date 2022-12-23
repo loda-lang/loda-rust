@@ -4,7 +4,7 @@ use crate::config::Config;
 use crate::mine::{CoordinatorWorkerMessage, MineEventDirectoryState};
 use crate::oeis::{load_terms_to_program_id_set, TermsToProgramIdSet};
 use super::{CreateFunnel, Funnel, FunnelConfig};
-use super::{create_genome_mutate_context, GenomeMutateContext};
+use super::{CreateGenomeMutateContextMode, create_genome_mutate_context, GenomeMutateContext};
 use super::MinerWorkerMessageWithAnalytics;
 use super::{create_prevent_flooding, PreventFlooding};
 use super::{MinerSyncExecute, MinerSyncExecuteStatus};
@@ -131,7 +131,7 @@ fn perform_sync_and_analytics(
     let analytics_directory = AnalyticsDirectory::new(
         config.analytics_oeis_dir()
     ).expect("unable to create AnalyticsDirectory instance");
-    let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(&config, analytics_directory)
+    let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(CreateGenomeMutateContextMode::OEIS, &config, analytics_directory)
         .expect("analytics_worker couldn't create GenomeMutateContext");
     
     // Pass on funnel+genome_mutate_context to miner_workers
