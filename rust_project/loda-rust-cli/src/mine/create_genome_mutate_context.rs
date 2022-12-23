@@ -17,26 +17,9 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
     let line_trigram_csv: PathBuf = analytics_directory.histogram_line_trigram_file();
     let source_trigram_csv: PathBuf = analytics_directory.histogram_source_trigram_file();
     let target_trigram_csv: PathBuf = analytics_directory.histogram_target_trigram_file();
+    let histogram_instruction_constant_csv: PathBuf = analytics_directory.histogram_instruction_constant_file();
 
     let recent_program_csv = loda_rust_repository.join(Path::new("resources/program_creation_dates.csv"));
-
-    let path_histogram: PathBuf = analytics_directory.histogram_instruction_constant_file();
-    let histogram_instruction_constant: Option<HistogramInstructionConstant>;
-    if path_histogram.is_file() {
-        histogram_instruction_constant = match HistogramInstructionConstant::load_csv_file(&path_histogram) {
-            Ok(value) => {
-                debug!("Optional histogram: loaded successful");
-                Some(value)
-            },
-            Err(error) => {
-                error!("Optional histogram: {:?} error: {:?}", path_histogram, error);
-                None
-            }
-        };
-    } else {
-        println!("Optional histogram: Not found at path {:?}", path_histogram);
-        histogram_instruction_constant = None;
-    }
 
     // Load the valid program_ids, that can execute.
     let programs_valid_file = analytics_directory.programs_valid_file();
@@ -88,6 +71,7 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
     creator.init_suggest_target(&target_trigram_csv)?;
     creator.init_recent_program_container(&recent_program_csv)?;
     creator.init_popular_program_container(&program_popularity_file)?;
+    creator.init_histogram_instruction_constant(&histogram_instruction_constant_csv)?;
 
     let initial_genome_program_ids = optimize_program_ids;
     
@@ -98,7 +82,7 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
         invalid_program_ids_hashset,
         creator.popular_program_container,
         creator.recent_program_container,
-        histogram_instruction_constant,
+        creator.histogram_instruction_constant,
         creator.suggest_instruction,
         creator.suggest_line,
         creator.suggest_source,
@@ -115,6 +99,7 @@ struct CreateGenomeMutateContext {
     suggest_target: Option<SuggestTarget>,
     recent_program_container: Option<RecentProgramContainer>,
     popular_program_container: Option<PopularProgramContainer>,
+    histogram_instruction_constant: Option<HistogramInstructionConstant>,
 }
 
 impl CreateGenomeMutateContext {
@@ -126,6 +111,7 @@ impl CreateGenomeMutateContext {
             suggest_target: None,
             recent_program_container: None,
             popular_program_container: None,
+            histogram_instruction_constant: None,
         }
     }
 
@@ -180,6 +166,14 @@ impl CreateGenomeMutateContext {
             .map_err(|e| anyhow::anyhow!("Unable to load popular_program_csv error: {:?}", e))?;
         debug!("popular_program_container. number of clusters: {:?}", instance.cluster_program_ids().len());
         self.popular_program_container = Some(instance);
+        Ok(())
+    }
+
+    fn init_histogram_instruction_constant(&mut self, histogram_instruction_constant_csv: &Path) -> anyhow::Result<()> {
+        let instance = HistogramInstructionConstant::load_csv_file(histogram_instruction_constant_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load histogram_instruction_constant_csv error: {:?}", e))?;
+        debug!("histogram_instruction_constant. number of items: {:?}", instance.number_of_items());
+        self.histogram_instruction_constant = Some(instance);
         Ok(())
     }
 }

@@ -39,6 +39,10 @@ pub struct HistogramInstructionConstant {
 }
 
 impl HistogramInstructionConstant {
+    pub fn number_of_items(&self) -> usize {
+        self.instruction_and_valueweightvector.len()
+    }
+
     #[allow(dead_code)]
     pub fn load_csv_file(path: &Path) -> Result<HistogramInstructionConstant, Box<dyn Error>> {
         let file = File::open(path)?;
