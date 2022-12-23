@@ -1,7 +1,6 @@
-use crate::config::Config;
 use crate::analytics::AnalyticsDirectory;
 use super::{GenomeMutateContext, GenomeMutateContextBuilder};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CreateGenomeMutateContextMode {
@@ -9,10 +8,8 @@ pub enum CreateGenomeMutateContextMode {
     ARC,
 }
 
-pub fn create_genome_mutate_context(mode: CreateGenomeMutateContextMode, config: &Config, analytics_directory: AnalyticsDirectory) -> anyhow::Result<GenomeMutateContext> {
-    let loda_rust_repository: PathBuf = config.loda_rust_repository();
-    let recent_program_csv = loda_rust_repository.join(Path::new("resources/program_creation_dates.csv"));
-
+pub fn create_genome_mutate_context(mode: CreateGenomeMutateContextMode, analytics_directory: AnalyticsDirectory) -> anyhow::Result<GenomeMutateContext> {
+    let program_modified_csv: PathBuf = analytics_directory.program_modified_file();
     let instruction_trigram_csv: PathBuf = analytics_directory.histogram_instruction_trigram_file();
     let line_trigram_csv: PathBuf = analytics_directory.histogram_line_trigram_file();
     let source_trigram_csv: PathBuf = analytics_directory.histogram_source_trigram_file();
@@ -31,7 +28,7 @@ pub fn create_genome_mutate_context(mode: CreateGenomeMutateContextMode, config:
     builder.histogram_instruction_constant(&histogram_instruction_constant_csv)?;
 
     if mode == CreateGenomeMutateContextMode::OEIS {
-        builder.recent_programs(&recent_program_csv)?;
+        builder.recent_programs(&program_modified_csv)?;
         builder.popular_programs(&popular_program_csv)?;
         builder.valid_programs(&valid_program_csv)?;
         builder.invalid_programs(&invalid_program_csv)?;

@@ -132,6 +132,7 @@ impl Config {
         PathBuf::from(path)
     }
 
+    #[allow(dead_code)]
     pub fn loda_rust_repository(&self) -> PathBuf {
         let path = &self.loda_rust_repository;
         assert!(path.is_absolute());

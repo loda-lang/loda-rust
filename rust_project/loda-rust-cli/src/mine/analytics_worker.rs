@@ -131,7 +131,7 @@ fn perform_sync_and_analytics(
     let analytics_directory = AnalyticsDirectory::new(
         config.analytics_oeis_dir()
     ).expect("unable to create AnalyticsDirectory instance");
-    let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(CreateGenomeMutateContextMode::OEIS, &config, analytics_directory)
+    let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(CreateGenomeMutateContextMode::OEIS, analytics_directory)
         .expect("analytics_worker couldn't create GenomeMutateContext");
     
     // Pass on funnel+genome_mutate_context to miner_workers
