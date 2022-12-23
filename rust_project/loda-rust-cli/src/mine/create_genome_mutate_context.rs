@@ -94,21 +94,11 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
         }
     };
 
-    let instruction_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(&instruction_trigram_csv).expect("Unable to load instruction trigram csv");
-    let mut suggest_instruction = SuggestInstruction::new();
-    suggest_instruction.populate(&instruction_trigram_vec);
-
-    let line_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(&line_trigram_csv).expect("Unable to load line trigram csv");
-    let mut suggest_line = SuggestLine::new();
-    suggest_line.populate(&line_trigram_vec);
-
-    let source_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(&source_trigram_csv).expect("Unable to load source trigram csv");
-    let mut suggest_source = SuggestSource::new();
-    suggest_source.populate(&source_trigram_vec);
-
-    let target_trigram_vec: Vec<RecordTrigram> = RecordTrigram::parse_csv(&target_trigram_csv).expect("Unable to load target trigram csv");
-    let mut suggest_target = SuggestTarget::new();
-    suggest_target.populate(&target_trigram_vec);
+    let mut creator = CreateGenomeMutateContext::new();
+    creator.init_suggest_instruction(&instruction_trigram_csv)?;
+    creator.init_suggest_line(&line_trigram_csv)?;
+    creator.init_suggest_source(&source_trigram_csv)?;
+    creator.init_suggest_target(&target_trigram_csv)?;
 
     let initial_genome_program_ids = optimize_program_ids;
     
@@ -120,11 +110,65 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
         popular_program_container,
         recent_program_container,
         histogram_instruction_constant,
-        Some(suggest_instruction),
-        Some(suggest_line),
-        Some(suggest_source),
-        Some(suggest_target)
+        creator.suggest_instruction,
+        creator.suggest_line,
+        creator.suggest_source,
+        creator.suggest_target,
     );
     assert_eq!(context.has_available_programs(), true);
     Ok(context)
+}
+
+struct CreateGenomeMutateContext {
+    suggest_instruction: Option<SuggestInstruction>,
+    suggest_line: Option<SuggestLine>,
+    suggest_source: Option<SuggestSource>,
+    suggest_target: Option<SuggestTarget>,
+}
+
+impl CreateGenomeMutateContext {
+    fn new() -> Self {
+        Self {
+            suggest_instruction: None,
+            suggest_line: None,
+            suggest_source: None,
+            suggest_target: None,
+        }
+    }
+
+    fn init_suggest_instruction(&mut self, instruction_trigram_csv: &Path) -> anyhow::Result<()> {
+        let records: Vec<RecordTrigram> = RecordTrigram::parse_csv(&instruction_trigram_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load instruction_trigram_csv error: {:?}", e))?;
+        let mut instance = SuggestInstruction::new();
+        instance.populate(&records);
+        self.suggest_instruction = Some(instance);
+        Ok(())
+    }
+
+    fn init_suggest_line(&mut self, line_trigram_csv: &Path) -> anyhow::Result<()> {
+        let records: Vec<RecordTrigram> = RecordTrigram::parse_csv(&line_trigram_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load line_trigram_csv error: {:?}", e))?;
+        let mut instance = SuggestLine::new();
+        instance.populate(&records);
+        self.suggest_line = Some(instance);
+        Ok(())
+    }
+
+    fn init_suggest_source(&mut self, source_trigram_csv: &Path) -> anyhow::Result<()> {
+        let records: Vec<RecordTrigram> = RecordTrigram::parse_csv(&source_trigram_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load source_trigram_csv error: {:?}", e))?;
+        let mut instance = SuggestSource::new();
+        instance.populate(&records);
+        self.suggest_source = Some(instance);
+        Ok(())
+    }
+
+    fn init_suggest_target(&mut self, target_trigram_csv: &Path) -> anyhow::Result<()> {
+        let records: Vec<RecordTrigram> = RecordTrigram::parse_csv(target_trigram_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load target_trigram_csv error: {:?}", e))?;
+        let mut instance = SuggestTarget::new();
+        instance.populate(&records);
+        self.suggest_target = Some(instance);
+        Ok(())
+    }
 }
