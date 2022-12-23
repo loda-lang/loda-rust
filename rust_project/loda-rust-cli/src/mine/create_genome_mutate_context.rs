@@ -18,7 +18,9 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
     let source_trigram_csv: PathBuf = analytics_directory.histogram_source_trigram_file();
     let target_trigram_csv: PathBuf = analytics_directory.histogram_target_trigram_file();
     let histogram_instruction_constant_csv: PathBuf = analytics_directory.histogram_instruction_constant_file();
+    let program_popularity_file = analytics_directory.program_popularity_file();
     let valid_program_ids_csv = analytics_directory.programs_valid_file();
+    let invalid_program_ids_csv = analytics_directory.programs_invalid_file();
 
     let recent_program_csv = loda_rust_repository.join(Path::new("resources/program_creation_dates.csv"));
 
@@ -32,20 +34,6 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
     };
     debug!("indirect_memory_access_program_ids = {}", indirect_memory_access_program_ids.len());
 
-    // Load the invalid program_ids, that are defunct, such as cannot execute, cyclic-dependency.
-    let programs_invalid_file = analytics_directory.programs_invalid_file();
-    let invalid_program_ids: Vec<u32> = match load_program_ids_csv_file(&programs_invalid_file) {
-        Ok(value) => value,
-        Err(error) => {
-            panic!("Unable to load file. path: {:?} error: {:?}", programs_invalid_file, error);
-        }
-    };
-    debug!("number_of_invalid_program_ids = {}", invalid_program_ids.len());
-    let invalid_program_ids_hashset: HashSet<u32> = invalid_program_ids.into_iter().collect();
-
-    // Load the clusters with popular/unpopular program ids
-    let program_popularity_file = analytics_directory.program_popularity_file();
-
     let mut creator = CreateGenomeMutateContext::new();
     creator.init_suggest_instruction(&instruction_trigram_csv)?;
     creator.init_suggest_line(&line_trigram_csv)?;
@@ -55,8 +43,13 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
     creator.init_popular_program_container(&program_popularity_file)?;
     creator.init_histogram_instruction_constant(&histogram_instruction_constant_csv)?;
     creator.init_valid_program_ids(&valid_program_ids_csv)?;
+    creator.init_invalid_program_ids(&invalid_program_ids_csv)?;
 
     // Programs for initializing the genome. Remove all invalid program.
+    let mut invalid_program_ids_hashset = HashSet::<u32>::new();
+    if let Some(hashset) = &creator.invalid_program_ids_hashset {
+        invalid_program_ids_hashset = hashset.clone();
+    }
     let mut initial_genome_program_ids = Vec::<u32>::new();
     if let Some(valid_program_ids) = &creator.valid_program_ids {
         for program_id in valid_program_ids {
@@ -72,7 +65,7 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
         creator.valid_program_ids.unwrap_or_default(),
         initial_genome_program_ids,
         indirect_memory_access_program_ids,
-        invalid_program_ids_hashset,
+        creator.invalid_program_ids_hashset.unwrap_or_default(),
         creator.popular_program_container,
         creator.recent_program_container,
         creator.histogram_instruction_constant,
@@ -94,6 +87,7 @@ struct CreateGenomeMutateContext {
     popular_program_container: Option<PopularProgramContainer>,
     histogram_instruction_constant: Option<HistogramInstructionConstant>,
     valid_program_ids: Option<Vec<u32>>,
+    invalid_program_ids_hashset: Option<HashSet<u32>>,
 }
 
 impl CreateGenomeMutateContext {
@@ -107,6 +101,7 @@ impl CreateGenomeMutateContext {
             popular_program_container: None,
             histogram_instruction_constant: None,
             valid_program_ids: None,
+            invalid_program_ids_hashset: None,
         }
     }
 
@@ -178,6 +173,16 @@ impl CreateGenomeMutateContext {
             .map_err(|e| anyhow::anyhow!("Unable to load valid_program_ids_csv error: {:?}", e))?;
         debug!("valid_program_ids. number of program ids: {:?}", program_ids.len());
         self.valid_program_ids = Some(program_ids);
+        Ok(())
+    }
+
+    /// The invalid program_ids, that are defunct, such as cannot execute, cyclic-dependency.
+    fn init_invalid_program_ids(&mut self, invalid_program_ids_csv: &Path) -> anyhow::Result<()> {
+        let program_ids: Vec<u32> = load_program_ids_csv_file(invalid_program_ids_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load invalid_program_ids_csv error: {:?}", e))?;
+        debug!("invalid_program_ids. number of program ids: {:?}", program_ids.len());
+        let program_ids_hashset: HashSet<u32> = program_ids.into_iter().collect();
+        self.invalid_program_ids_hashset = Some(program_ids_hashset);
         Ok(())
     }
 }
