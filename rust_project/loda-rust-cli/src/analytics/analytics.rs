@@ -1,10 +1,11 @@
-use crate::config::Config;
-use crate::common::SimpleLog;
-use crate::mine::PopulateBloomfilter;
 use super::{AnalyticsMode, AnalyticsDirectory};
 use super::{AnalyzeDependencies, AnalyzeIndirectMemoryAccess, AnalyzeInstructionConstant, AnalyzeInstructionNgram};
 use super::{AnalyzeProgramComplexity, AnalyzeLineNgram, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, AnalyticsTimestampFile, ValidatePrograms, compute_program_rank};
+use crate::config::Config;
+use crate::mine::PopulateBloomfilter;
+use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, oeis_id_from_path, SimpleLog};
 use anyhow::Context;
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::Instant;
@@ -15,6 +16,7 @@ const ANALYTICS_TIMESTAMP_FILE_EXPIRE_AFTER_MINUTES: u32 = 30;
 pub struct Analytics {
     analytics_mode: AnalyticsMode,
     analytics_directory: AnalyticsDirectory,
+    config: Config,
 }
 
 impl Analytics {
@@ -50,6 +52,7 @@ impl Analytics {
         let instance = Self {
             analytics_mode,
             analytics_directory,
+            config,
         };
         Ok(instance)
     }
@@ -94,7 +97,45 @@ impl Analytics {
     fn run_oeis_tasks(&self, simple_log: SimpleLog) -> anyhow::Result<()> {
         HistogramStrippedFile::run(self.analytics_directory.clone(), simple_log.clone())?;
         ValidatePrograms::run(self.analytics_directory.clone(), simple_log.clone())?;
-        self.run_batch_program_analyzer(simple_log.clone())?;
+
+        let programs_invalid_file = self.analytics_directory.programs_invalid_file();
+        let invalid_program_ids: Vec<u32> = load_program_ids_csv_file(&programs_invalid_file)
+            .map_err(|e| anyhow::anyhow!("run_oeis_tasks: load_program_ids_csv_file -> load_program_ids_csv_file. error: {:?}", e))?;
+
+        let ignore_program_ids: HashSet<u32> = invalid_program_ids.into_iter().collect();
+    
+        let dir_containing_programs: PathBuf = self.config.loda_programs_oeis_dir();
+        let all_program_paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
+
+        let mut program_paths = Vec::<PathBuf>::new();
+        let mut number_of_program_files_that_could_not_be_loaded = 0;
+        let mut number_of_program_files_ignored = 0;
+        for path in &all_program_paths {
+            let program_id = match oeis_id_from_path(path) {
+                Some(oeis_id) => oeis_id.raw(),
+                None => {
+                    debug!("Unable to extract program_id from {:?}", path);
+                    number_of_program_files_that_could_not_be_loaded += 1;
+                    continue;
+                }
+            };
+
+            if ignore_program_ids.contains(&program_id) {
+                debug!("Ignoring program_id {:?}", program_id);
+                number_of_program_files_ignored += 1;
+                continue;
+            }
+
+            program_paths.push(path.clone());
+        }
+
+        let content = format!("number of program files that could not be loaded: {:?}", number_of_program_files_that_could_not_be_loaded);
+        simple_log.println(content);
+        let content = format!("number of program files that was ignored: {:?}", number_of_program_files_ignored);
+        simple_log.println(content);
+
+        self.run_batch_program_analyzer(simple_log.clone(), program_paths)?;
+
         compute_program_rank(self.analytics_directory.clone());
 
         DontMine::run(self.analytics_directory.clone(), simple_log.clone())
@@ -107,11 +148,18 @@ impl Analytics {
     }
 
     fn run_arc_tasks(&self, simple_log: SimpleLog) -> anyhow::Result<()> {
-        self.run_batch_program_analyzer(simple_log.clone())?;
+        let dir_containing_programs: PathBuf = self.config.loda_arc_challenge_repository_programs();
+        let program_paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
+
+        self.run_batch_program_analyzer(simple_log.clone(), program_paths)?;
         Ok(())
     }
 
-    fn run_batch_program_analyzer(&self, simple_log: SimpleLog) -> anyhow::Result<()> {
+    fn run_batch_program_analyzer(&self, simple_log: SimpleLog, program_paths: Vec<PathBuf>) -> anyhow::Result<()> {
+        if program_paths.is_empty() {
+            return Err(anyhow::anyhow!("Expected 1 or more programs, but there are no programs to analyze"));
+        }
+
         let plugin_dependencies = Rc::new(RefCell::new(AnalyzeDependencies::new(self.analytics_directory.clone())));
         let plugin_indirect_memory_access = Rc::new(RefCell::new(AnalyzeIndirectMemoryAccess::new(self.analytics_directory.clone())));
         let plugin_instruction_constant = Rc::new(RefCell::new(AnalyzeInstructionConstant::new(self.analytics_directory.clone())));
@@ -131,10 +179,10 @@ impl Analytics {
             plugin_program_complexity,
         ];
         let mut analyzer = BatchProgramAnalyzer::new(
-            self.analytics_directory.clone(), 
             self.analytics_mode, 
             plugin_vec, 
-            simple_log
+            simple_log,
+            program_paths
         );
         return analyzer.run();
     }

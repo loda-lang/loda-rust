@@ -1,7 +1,6 @@
 use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, oeis_id_from_path, SimpleLog};
 use loda_rust_core;
 use super::{AnalyticsDirectory, AnalyticsError, AnalyticsMode};
-use crate::config::Config;
 use crate::arc::RunWithProgram;
 use loda_rust_core::parser::ParsedProgram;
 use std::collections::HashSet;
@@ -35,66 +34,60 @@ pub trait BatchProgramAnalyzerPlugin {
 pub type BatchProgramAnalyzerPluginItem = Rc<RefCell<dyn BatchProgramAnalyzerPlugin>>;
 
 pub struct BatchProgramAnalyzer {
-    analytics_directory: AnalyticsDirectory,
     analytics_mode: AnalyticsMode,
+    plugin_vec: Vec<BatchProgramAnalyzerPluginItem>,
     simple_log: SimpleLog,
-    config: Config,
+    program_paths: Vec<PathBuf>,
     number_of_program_files_that_could_not_be_loaded: usize,
     number_of_program_files_ignored: usize,
     number_of_program_files_successfully_analyzed: usize,
-    plugin_vec: Vec<BatchProgramAnalyzerPluginItem>,
 }
 
 impl BatchProgramAnalyzer {
-    pub fn new(analytics_directory: AnalyticsDirectory, analytics_mode: AnalyticsMode, plugin_vec: Vec<BatchProgramAnalyzerPluginItem>, simple_log: SimpleLog) -> Self {
+    pub fn new(
+        analytics_mode: AnalyticsMode, 
+        plugin_vec: Vec<BatchProgramAnalyzerPluginItem>, 
+        simple_log: SimpleLog,
+        program_paths: Vec<PathBuf>,
+    ) -> Self {
         Self {
-            analytics_directory,
             analytics_mode,
+            plugin_vec,
             simple_log,
-            config: Config::load(),
+            program_paths,
             number_of_program_files_that_could_not_be_loaded: 0,
             number_of_program_files_ignored: 0,
             number_of_program_files_successfully_analyzed: 0,
-            plugin_vec,
         }
     }
 
     pub fn run(&mut self) -> anyhow::Result<()> {
         println!("Run batch-program-analyzer");
+        self.simple_log.println("BatchProgramAnalyzer");
+
         self.analyze_the_valid_program_files()
             .map_err(|e| anyhow::anyhow!("BatchProgramAnalyzer.run. analyze_the_valid_program_files. error: {:?}", e))?;
 
-        self.save_result_files()
+        self.save_result_files()    
             .map_err(|e| anyhow::anyhow!("BatchProgramAnalyzer.run. save_result_files. error: {:?}", e))?;
 
-        self.save_summary()
+        self.save_summary()    
             .map_err(|e| anyhow::anyhow!("BatchProgramAnalyzer.run. save_summary. error: {:?}", e))?;
-        Ok(())
-    }
+        Ok(())    
+    }    
 
     fn analyze_the_valid_program_files(&mut self) -> Result<(), Box<dyn Error>> {
-        self.simple_log.println("BatchProgramAnalyzer");
-
-        let programs_invalid_file = self.analytics_directory.programs_invalid_file();
-        let invalid_program_ids: Vec<u32> = load_program_ids_csv_file(&programs_invalid_file)?;
-        let ignore_program_ids: HashSet<u32> = invalid_program_ids.into_iter().collect();
-    
-        let dir_containing_programs: PathBuf = match self.analytics_mode {
-            AnalyticsMode::OEIS => self.config.loda_programs_oeis_dir(),
-            AnalyticsMode::ARC => self.config.loda_arc_challenge_repository_programs(),
-        };
-
-        let paths: Vec<PathBuf> = find_asm_files_recursively(&dir_containing_programs);
-        let number_of_paths = paths.len();
+        let number_of_paths = self.program_paths.len();
         if number_of_paths <= 0 {
             let message = "Expected 1 or more programs, but there are no programs to analyze";
             return Err(Box::new(AnalyticsError::BatchProgramAnalyzer(message.to_string())));
-        }
-
+        }    
+        
         let pb = ProgressBar::new(number_of_paths as u64);
         let start = Instant::now();
-        for path in paths {
-            self.analyze_program_file(&path, &ignore_program_ids)?;
+        let program_paths: Vec<PathBuf> = self.program_paths.clone();
+        for program_path in program_paths {
+            self.analyze_program_file(program_path)?;
             pb.inc(1);
         }
         pb.finish_and_clear();
@@ -118,17 +111,16 @@ impl BatchProgramAnalyzer {
 
     fn analyze_program_file(
         &mut self, 
-        path_to_program: &PathBuf,
-        ignore_program_ids: &HashSet<u32>
+        program_path: PathBuf,
     ) -> Result<(), Box<dyn Error>> {
         let program_id: u32;
         match self.analytics_mode {
             AnalyticsMode::OEIS => {
                 // Extract OEIS id from program path
-                program_id = match oeis_id_from_path(&path_to_program) {
+                program_id = match oeis_id_from_path(&program_path) {
                     Some(oeis_id) => oeis_id.raw(),
                     None => {
-                        debug!("Unable to extract program_id from {:?}", path_to_program);
+                        debug!("Unable to extract program_id from {:?}", program_path);
                         self.number_of_program_files_that_could_not_be_loaded += 1;
                         return Ok(());
                     }
@@ -140,14 +132,7 @@ impl BatchProgramAnalyzer {
             },
         }
 
-        // Some programs are to be ignored
-        if ignore_program_ids.contains(&program_id) {
-            debug!("Ignoring program_id {:?}", program_id);
-            self.number_of_program_files_ignored += 1;
-            return Ok(());
-        }
-
-        let mut contents: String = match fs::read_to_string(&path_to_program) {
+        let mut contents: String = match fs::read_to_string(&program_path) {
             Ok(value) => value,
             Err(error) => {
                 debug!("loading program_id: {:?}, something went wrong reading the file: {:?}", program_id, error);
