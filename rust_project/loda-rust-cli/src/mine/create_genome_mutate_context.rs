@@ -85,20 +85,15 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
         }
     };
 
-    // Load the clusters with newest/oldest program ids
-    let recent_program_file = loda_rust_repository.join(Path::new("resources/program_creation_dates.csv"));
-    let recent_program_container: RecentProgramContainer = match RecentProgramContainer::load(&recent_program_file) {
-        Ok(value) => value,
-        Err(error) => {
-            panic!("Unable to load file. path: {:?} error: {:?}", recent_program_file, error);
-        }
-    };
-
     let mut creator = CreateGenomeMutateContext::new();
     creator.init_suggest_instruction(&instruction_trigram_csv)?;
     creator.init_suggest_line(&line_trigram_csv)?;
     creator.init_suggest_source(&source_trigram_csv)?;
     creator.init_suggest_target(&target_trigram_csv)?;
+
+    // Load the clusters with newest/oldest program ids
+    let recent_program_csv = loda_rust_repository.join(Path::new("resources/program_creation_dates.csv"));
+    creator.init_recent_program_container(&recent_program_csv)?;
 
     let initial_genome_program_ids = optimize_program_ids;
     
@@ -108,7 +103,7 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
         indirect_memory_access_program_ids,
         invalid_program_ids_hashset,
         popular_program_container,
-        recent_program_container,
+        creator.recent_program_container,
         histogram_instruction_constant,
         creator.suggest_instruction,
         creator.suggest_line,
@@ -124,6 +119,7 @@ struct CreateGenomeMutateContext {
     suggest_line: Option<SuggestLine>,
     suggest_source: Option<SuggestSource>,
     suggest_target: Option<SuggestTarget>,
+    recent_program_container: Option<RecentProgramContainer>,
 }
 
 impl CreateGenomeMutateContext {
@@ -133,6 +129,7 @@ impl CreateGenomeMutateContext {
             suggest_line: None,
             suggest_source: None,
             suggest_target: None,
+            recent_program_container: None,
         }
     }
 
@@ -169,6 +166,15 @@ impl CreateGenomeMutateContext {
         let mut instance = SuggestTarget::new();
         instance.populate(&records);
         self.suggest_target = Some(instance);
+        Ok(())
+    }
+
+    /// Load the clusters with newest/oldest program ids
+    fn init_recent_program_container(&mut self, recent_program_csv: &Path) -> anyhow::Result<()> {
+        let instance = RecentProgramContainer::load(recent_program_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load recent_program_csv error: {:?}", e))?;
+        debug!("recent_program_container: {:?}", instance.cluster_program_ids().len());
+        self.recent_program_container = Some(instance);
         Ok(())
     }
 }

@@ -16,7 +16,7 @@ pub struct GenomeMutateContext {
     indirect_memory_access_program_ids: Vec<u32>,
     invalid_program_ids: HashSet<u32>,
     popular_program_container: PopularProgramContainer,
-    recent_program_container: RecentProgramContainer,
+    recent_program_container: Option<RecentProgramContainer>,
     histogram_instruction_constant: Option<HistogramInstructionConstant>,
     suggest_instruction: Option<SuggestInstruction>,
     suggest_line: Option<SuggestLine>,
@@ -31,7 +31,7 @@ impl GenomeMutateContext {
         indirect_memory_access_program_ids: Vec<u32>,
         invalid_program_ids: HashSet<u32>,
         popular_program_container: PopularProgramContainer, 
-        recent_program_container: RecentProgramContainer,
+        recent_program_container: Option<RecentProgramContainer>,
         histogram_instruction_constant: Option<HistogramInstructionConstant>,
         suggest_instruction: Option<SuggestInstruction>,
         suggest_line: Option<SuggestLine>,
@@ -60,7 +60,7 @@ impl GenomeMutateContext {
             indirect_memory_access_program_ids: vec!(),
             invalid_program_ids: HashSet::<u32>::new(),
             popular_program_container: PopularProgramContainer::new_empty(),
-            recent_program_container: RecentProgramContainer::new_empty(),
+            recent_program_container: None,
             histogram_instruction_constant: None,
             suggest_instruction: None,
             suggest_line: None,
@@ -120,7 +120,13 @@ impl GenomeMutateContext {
     }
 
     pub fn choose_recent_program<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
-        self.recent_program_container.choose(rng)
+        let recent_program_container: &RecentProgramContainer = match &self.recent_program_container {
+            Some(value) => value,
+            None => {
+                return None;
+            }
+        };
+        recent_program_container.choose(rng)
     }
 
     pub fn has_histogram_instruction_constant(&self) -> bool {

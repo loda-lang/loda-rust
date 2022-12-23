@@ -42,12 +42,6 @@ pub struct RecentProgramContainer {
 }
 
 impl RecentProgramContainer {
-    pub fn new_empty() -> Self {
-        Self {
-            cluster_program_ids: vec!(),
-        }
-    }
-
     pub fn load(path: &Path) -> Result<Self, Box<dyn Error>> {
         let file = File::open(path)?;
         let mut reader = BufReader::new(file);
@@ -55,7 +49,7 @@ impl RecentProgramContainer {
     }
 
     #[allow(dead_code)]
-    fn cluster_program_ids(&self) -> &Vec<Vec<u32>> {
+    pub fn cluster_program_ids(&self) -> &Vec<Vec<u32>> {
         &self.cluster_program_ids
     }
 
