@@ -1,5 +1,3 @@
-use anyhow::Context;
-
 use crate::config::Config;
 use crate::common::RecordTrigram;
 use crate::common::load_program_ids_csv_file;
@@ -13,11 +11,7 @@ use super::SuggestTarget;
 use std::path::{Path, PathBuf};
 use std::collections::HashSet;
 
-pub fn create_genome_mutate_context(config: &Config) -> anyhow::Result<GenomeMutateContext> {
-    let analytics_directory = AnalyticsDirectory::new(
-        config.analytics_oeis_dir()
-    ).with_context(||"unable to create AnalyticsDirectory instance")?;
-
+pub fn create_genome_mutate_context(config: &Config, analytics_directory: AnalyticsDirectory) -> anyhow::Result<GenomeMutateContext> {
     let loda_rust_repository: PathBuf = config.loda_rust_repository();
     let instruction_trigram_csv: PathBuf = analytics_directory.histogram_instruction_trigram_file();
     let line_trigram_csv: PathBuf = analytics_directory.histogram_line_trigram_file();

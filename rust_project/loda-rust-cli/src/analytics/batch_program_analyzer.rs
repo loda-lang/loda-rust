@@ -1,9 +1,8 @@
-use crate::common::{find_asm_files_recursively, load_program_ids_csv_file, oeis_id_from_path, SimpleLog};
+use crate::common::{oeis_id_from_path, SimpleLog};
 use loda_rust_core;
-use super::{AnalyticsDirectory, AnalyticsError, AnalyticsMode};
+use super::{AnalyticsError, AnalyticsMode};
 use crate::arc::RunWithProgram;
 use loda_rust_core::parser::ParsedProgram;
-use std::collections::HashSet;
 use std::path::PathBuf;
 use std::error::Error;
 use std::fs;

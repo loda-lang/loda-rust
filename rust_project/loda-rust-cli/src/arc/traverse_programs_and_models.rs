@@ -1,9 +1,11 @@
 use super::{Model, ImagePair};
 use super::{RunWithProgram, RunWithProgramResult};
+use crate::analytics::AnalyticsDirectory;
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
 use crate::common::find_asm_files_recursively;
 use crate::mine::{Genome, GenomeItem, ToGenomeItemVec, create_genome_mutate_context, GenomeMutateContext};
+use anyhow::Context;
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{ProgramSerializer, ProgramId, ProgramRunner};
 use loda_rust_core::parser::ParsedProgram;
@@ -34,7 +36,12 @@ impl TraverseProgramsAndModels {
 
         println!("loading genome mutate context");
         let start = Instant::now();
-        let context: GenomeMutateContext = create_genome_mutate_context(&config)?;
+
+        let analytics_directory = AnalyticsDirectory::new(
+            config.analytics_arc_dir()
+        ).with_context(||"unable to create AnalyticsDirectory instance")?;
+
+        let context: GenomeMutateContext = create_genome_mutate_context(&config, analytics_directory)?;
         println!("loaded genome mutate context. elapsed: {}", HumanDuration(start.elapsed()));
 
         let mut instance = Self { 

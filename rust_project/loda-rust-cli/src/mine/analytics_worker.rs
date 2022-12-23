@@ -1,4 +1,4 @@
-use crate::analytics::Analytics;
+use crate::analytics::{Analytics, AnalyticsDirectory};
 use crate::common::PendingProgramsWithPriority;
 use crate::config::Config;
 use crate::mine::{CoordinatorWorkerMessage, MineEventDirectoryState};
@@ -126,8 +126,12 @@ fn perform_sync_and_analytics(
 
     println!("populating funnel");
     let funnel: Funnel = Funnel::create_funnel_with_file_data(&config);
+
     println!("populating genome_mutate_context");
-    let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(&config)
+    let analytics_directory = AnalyticsDirectory::new(
+        config.analytics_oeis_dir()
+    ).expect("unable to create AnalyticsDirectory instance");
+    let genome_mutate_context: GenomeMutateContext = create_genome_mutate_context(&config, analytics_directory)
         .expect("analytics_worker couldn't create GenomeMutateContext");
     
     // Pass on funnel+genome_mutate_context to miner_workers
