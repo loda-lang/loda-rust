@@ -13,21 +13,21 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
     let target_trigram_csv: PathBuf = analytics_directory.histogram_target_trigram_file();
     let histogram_instruction_constant_csv: PathBuf = analytics_directory.histogram_instruction_constant_file();
     let popular_program_csv: PathBuf = analytics_directory.program_popularity_file();
-    let valid_program_ids_csv: PathBuf = analytics_directory.programs_valid_file();
-    let invalid_program_ids_csv: PathBuf = analytics_directory.programs_invalid_file();
+    let valid_program_csv: PathBuf = analytics_directory.programs_valid_file();
+    let invalid_program_csv: PathBuf = analytics_directory.programs_invalid_file();
     let indirect_memory_access_csv: PathBuf = analytics_directory.indirect_memory_access_file();
 
     let mut builder = GenomeMutateContextBuilder::new();
-    builder.init_suggest_instruction(&instruction_trigram_csv)?;
-    builder.init_suggest_line(&line_trigram_csv)?;
-    builder.init_suggest_source(&source_trigram_csv)?;
-    builder.init_suggest_target(&target_trigram_csv)?;
-    builder.init_recent_program_container(&recent_program_csv)?;
-    builder.init_popular_program_container(&popular_program_csv)?;
-    builder.init_histogram_instruction_constant(&histogram_instruction_constant_csv)?;
-    builder.init_valid_program_ids(&valid_program_ids_csv)?;
-    builder.init_invalid_program_ids(&invalid_program_ids_csv)?;
-    builder.init_indirect_memory_access_program_ids(&indirect_memory_access_csv)?;
+    builder.suggest_instruction(&instruction_trigram_csv)?;
+    builder.suggest_line(&line_trigram_csv)?;
+    builder.suggest_source(&source_trigram_csv)?;
+    builder.suggest_target(&target_trigram_csv)?;
+    builder.recent_programs(&recent_program_csv)?;
+    builder.popular_programs(&popular_program_csv)?;
+    builder.histogram_instruction_constant(&histogram_instruction_constant_csv)?;
+    builder.valid_programs(&valid_program_csv)?;
+    builder.invalid_programs(&invalid_program_csv)?;
+    builder.indirect_memory_access_program_ids(&indirect_memory_access_csv)?;
 
     let context: GenomeMutateContext = builder.build()?;
     Ok(context)
