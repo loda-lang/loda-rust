@@ -138,7 +138,9 @@ impl ValidatePrograms {
                     // error!("Cannot load program {:?}: {:?}", oeis_id, error);
                     let row_simple = format!("{:?}\n", oeis_id.raw());
                     programs_invalid_csv.write_all(row_simple.as_bytes())?;
-                    let row_verbose = format!("{:?};LOAD;{:?}\n", oeis_id.raw(), error);
+                    let mut error_message = format!("{:?}", error);
+                    error_message = error_message.replace("\n", "<BR>");
+                    let row_verbose = format!("{:?};LOAD;{}\n", oeis_id.raw(), error_message);
                     programs_invalid_verbose_csv.write_all(row_verbose.as_bytes())?;
                     number_of_invalid_programs += 1;
                     pb.inc(1);
@@ -151,7 +153,9 @@ impl ValidatePrograms {
                     // error!("Cannot run program {:?}: {:?}", oeis_id, error);
                     let row_simple = format!("{:?}\n", oeis_id.raw());
                     programs_invalid_csv.write_all(row_simple.as_bytes())?;
-                    let row_verbose = format!("{:?};COMPUTE;{:?}\n", oeis_id.raw(), error);
+                    let mut error_message = format!("{:?}", error);
+                    error_message = error_message.replace("\n", "<BR>");
+                    let row_verbose = format!("{:?};COMPUTE;{}\n", oeis_id.raw(), error_message);
                     programs_invalid_verbose_csv.write_all(row_verbose.as_bytes())?;
                     number_of_invalid_programs += 1;
                     pb.inc(1);
