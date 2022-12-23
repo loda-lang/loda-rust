@@ -13,6 +13,7 @@ use console::Style;
 use indicatif::{HumanDuration, ProgressBar};
 
 pub struct BatchProgramAnalyzerContext {
+    pub program_path: PathBuf,
     pub program_id: u32,
     pub parsed_program: ParsedProgram,
 }
@@ -155,6 +156,7 @@ impl BatchProgramAnalyzer {
             }
         };
         let context = BatchProgramAnalyzerContext {
+            program_path: program_path,
             program_id: program_id,
             parsed_program: parsed_program,
         };
