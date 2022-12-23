@@ -13,26 +13,17 @@ use std::collections::HashSet;
 
 pub fn create_genome_mutate_context(config: &Config, analytics_directory: AnalyticsDirectory) -> anyhow::Result<GenomeMutateContext> {
     let loda_rust_repository: PathBuf = config.loda_rust_repository();
+    let recent_program_csv = loda_rust_repository.join(Path::new("resources/program_creation_dates.csv"));
+
     let instruction_trigram_csv: PathBuf = analytics_directory.histogram_instruction_trigram_file();
     let line_trigram_csv: PathBuf = analytics_directory.histogram_line_trigram_file();
     let source_trigram_csv: PathBuf = analytics_directory.histogram_source_trigram_file();
     let target_trigram_csv: PathBuf = analytics_directory.histogram_target_trigram_file();
     let histogram_instruction_constant_csv: PathBuf = analytics_directory.histogram_instruction_constant_file();
-    let program_popularity_file = analytics_directory.program_popularity_file();
-    let valid_program_ids_csv = analytics_directory.programs_valid_file();
-    let invalid_program_ids_csv = analytics_directory.programs_invalid_file();
-
-    let recent_program_csv = loda_rust_repository.join(Path::new("resources/program_creation_dates.csv"));
-
-    // Load the valid program_ids, that can execute.
+    let popular_program_csv: PathBuf = analytics_directory.program_popularity_file();
+    let valid_program_ids_csv: PathBuf = analytics_directory.programs_valid_file();
+    let invalid_program_ids_csv: PathBuf = analytics_directory.programs_invalid_file();
     let indirect_memory_access_csv: PathBuf = analytics_directory.indirect_memory_access_file();
-    let indirect_memory_access_program_ids: Vec<u32> = match load_program_ids_csv_file(&indirect_memory_access_csv) {
-        Ok(value) => value,
-        Err(error) => {
-            panic!("Unable to load file. path: {:?} error: {:?}", indirect_memory_access_csv, error);
-        }
-    };
-    debug!("indirect_memory_access_program_ids = {}", indirect_memory_access_program_ids.len());
 
     let mut creator = CreateGenomeMutateContext::new();
     creator.init_suggest_instruction(&instruction_trigram_csv)?;
@@ -40,10 +31,11 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
     creator.init_suggest_source(&source_trigram_csv)?;
     creator.init_suggest_target(&target_trigram_csv)?;
     creator.init_recent_program_container(&recent_program_csv)?;
-    creator.init_popular_program_container(&program_popularity_file)?;
+    creator.init_popular_program_container(&popular_program_csv)?;
     creator.init_histogram_instruction_constant(&histogram_instruction_constant_csv)?;
     creator.init_valid_program_ids(&valid_program_ids_csv)?;
     creator.init_invalid_program_ids(&invalid_program_ids_csv)?;
+    creator.init_indirect_memory_access_program_ids(&indirect_memory_access_csv)?;
 
     // Programs for initializing the genome. Remove all invalid program.
     let mut invalid_program_ids_hashset = HashSet::<u32>::new();
@@ -64,7 +56,7 @@ pub fn create_genome_mutate_context(config: &Config, analytics_directory: Analyt
     let context = GenomeMutateContext::new(
         creator.valid_program_ids.unwrap_or_default(),
         initial_genome_program_ids,
-        indirect_memory_access_program_ids,
+        creator.indirect_memory_access_program_ids.unwrap_or_default(),
         creator.invalid_program_ids_hashset.unwrap_or_default(),
         creator.popular_program_container,
         creator.recent_program_container,
@@ -88,6 +80,7 @@ struct CreateGenomeMutateContext {
     histogram_instruction_constant: Option<HistogramInstructionConstant>,
     valid_program_ids: Option<Vec<u32>>,
     invalid_program_ids_hashset: Option<HashSet<u32>>,
+    indirect_memory_access_program_ids: Option<Vec<u32>>,
 }
 
 impl CreateGenomeMutateContext {
@@ -102,6 +95,7 @@ impl CreateGenomeMutateContext {
             histogram_instruction_constant: None,
             valid_program_ids: None,
             invalid_program_ids_hashset: None,
+            indirect_memory_access_program_ids: None,
         }
     }
 
@@ -183,6 +177,17 @@ impl CreateGenomeMutateContext {
         debug!("invalid_program_ids. number of program ids: {:?}", program_ids.len());
         let program_ids_hashset: HashSet<u32> = program_ids.into_iter().collect();
         self.invalid_program_ids_hashset = Some(program_ids_hashset);
+        Ok(())
+    }
+
+    /// The programs that makes use of indirect memory access.
+    /// 
+    /// These programs trend to use several memory cells.
+    fn init_indirect_memory_access_program_ids(&mut self, indirect_memory_access_csv: &Path) -> anyhow::Result<()> {
+        let program_ids: Vec<u32> = load_program_ids_csv_file(indirect_memory_access_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load indirect_memory_access_csv error: {:?}", e))?;
+        debug!("indirect_memory_access_program_ids. number of program ids: {:?}", program_ids.len());
+        self.indirect_memory_access_program_ids = Some(program_ids);
         Ok(())
     }
 }
