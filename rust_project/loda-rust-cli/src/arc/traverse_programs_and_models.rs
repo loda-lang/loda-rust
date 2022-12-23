@@ -1,6 +1,6 @@
 use super::{Model, ImagePair};
 use super::{RunWithProgram, RunWithProgramResult};
-use crate::analytics::AnalyticsDirectory;
+use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
 use crate::common::find_asm_files_recursively;
@@ -32,6 +32,8 @@ pub struct TraverseProgramsAndModels {
 
 impl TraverseProgramsAndModels {
     pub fn new() -> anyhow::Result<Self> {
+        Analytics::arc_run_if_expired()?;
+
         let config = Config::load();
 
         println!("loading genome mutate context");
@@ -39,7 +41,7 @@ impl TraverseProgramsAndModels {
 
         let analytics_directory = AnalyticsDirectory::new(
             config.analytics_arc_dir()
-        ).with_context(||"unable to create AnalyticsDirectory instance")?;
+        ).with_context(||"unable to create AnalyticsDirectory instance")?;    
 
         let context: GenomeMutateContext = create_genome_mutate_context(CreateGenomeMutateContextMode::ARC, &config, analytics_directory)?;
         println!("loaded genome mutate context. elapsed: {}", HumanDuration(start.elapsed()));

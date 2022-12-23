@@ -32,13 +32,19 @@ impl Analytics {
         Ok(())
     }
 
+    pub fn arc_run_if_expired() -> anyhow::Result<()> {
+        let instance = Self::new(AnalyticsMode::ARC)?;
+        instance.run_if_expired()?;
+        Ok(())
+    }
+
     pub fn arc_run_force() -> anyhow::Result<()> {
         let instance = Self::new(AnalyticsMode::ARC)?;
         instance.run_force()?;
         Ok(())
     }
 
-    pub fn new(analytics_mode: AnalyticsMode) -> anyhow::Result<Self> {
+    fn new(analytics_mode: AnalyticsMode) -> anyhow::Result<Self> {
         let config = Config::load();
 
         let analytics_dir: PathBuf = match analytics_mode {
@@ -60,7 +66,7 @@ impl Analytics {
     /// If data is still somewhat up to date, then do nothing.
     /// 
     /// If data is too old then regenerate the `~/.loda-rust/analytics` directory.
-    pub fn run_if_expired(&self) -> anyhow::Result<()> {
+    fn run_if_expired(&self) -> anyhow::Result<()> {
         let timestamp_file_path: PathBuf = self.analytics_directory.last_analytics_timestamp_file();
         let expire_minutes = ANALYTICS_TIMESTAMP_FILE_EXPIRE_AFTER_MINUTES;
         if !AnalyticsTimestampFile::is_expired(&timestamp_file_path, expire_minutes) {
@@ -72,7 +78,7 @@ impl Analytics {
     }
 
     /// Always generate content of the `~/.loda-rust/analytics` directory.
-    pub fn run_force(&self) -> anyhow::Result<()> {
+    fn run_force(&self) -> anyhow::Result<()> {
         let start_time = Instant::now();
         let timestamp_file_path: PathBuf = self.analytics_directory.last_analytics_timestamp_file();
         let logfile_path: PathBuf = self.analytics_directory.analytics_log_file();
