@@ -45,7 +45,7 @@ pub use create_prevent_flooding::create_prevent_flooding;
 pub use cronjob_worker::{cronjob_worker, CronjobWorkerMessage};
 pub use funnel::Funnel;
 pub use funnel_config::FunnelConfig;
-pub use genome_mutate_context::GenomeMutateContext;
+pub use genome_mutate_context::{GenomeMutateContext, GenomeMutateContextBuilder};
 pub use genome::{Genome, MutateGenome};
 pub use genome_item::{GenomeItem, MutateEvalSequenceCategory, ToGenomeItem, ToGenomeItemVec};
 pub use histogram_instruction_constant::HistogramInstructionConstant;

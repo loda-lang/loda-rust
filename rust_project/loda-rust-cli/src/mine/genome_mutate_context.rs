@@ -4,10 +4,13 @@ use super::{SuggestLine, LineValue};
 use super::{SuggestSource, SourceValue};
 use super::{SuggestTarget, TargetValue};
 use loda_rust_core::parser::InstructionId;
+use crate::common::RecordTrigram;
+use crate::common::load_program_ids_csv_file;
+use std::path::Path;
+use std::collections::HashSet;
 use std::fmt;
 use rand::Rng;
 use rand::seq::SliceRandom;
-use std::collections::HashSet;
 
 #[derive(Clone)]
 pub struct GenomeMutateContext {
@@ -25,35 +28,7 @@ pub struct GenomeMutateContext {
 }
 
 impl GenomeMutateContext {
-    pub fn new(
-        valid_program_ids: Vec<u32>, 
-        initial_genome_program_ids: Vec<u32>, 
-        indirect_memory_access_program_ids: Vec<u32>,
-        invalid_program_ids: HashSet<u32>,
-        popular_program_container: Option<PopularProgramContainer>, 
-        recent_program_container: Option<RecentProgramContainer>,
-        histogram_instruction_constant: Option<HistogramInstructionConstant>,
-        suggest_instruction: Option<SuggestInstruction>,
-        suggest_line: Option<SuggestLine>,
-        suggest_source: Option<SuggestSource>,
-        suggest_target: Option<SuggestTarget>
-    ) -> Self {
-        Self {
-            valid_program_ids: valid_program_ids,
-            initial_genome_program_ids: initial_genome_program_ids,
-            indirect_memory_access_program_ids: indirect_memory_access_program_ids,
-            invalid_program_ids: invalid_program_ids,
-            popular_program_container: popular_program_container,
-            recent_program_container: recent_program_container,
-            histogram_instruction_constant: histogram_instruction_constant,
-            suggest_instruction: suggest_instruction,
-            suggest_line: suggest_line,
-            suggest_source: suggest_source,
-            suggest_target: suggest_target
-        }
-    }
-
-    pub fn new_empty() -> Self {
+    pub fn empty() -> Self {
         Self {
             valid_program_ids: vec!(),
             initial_genome_program_ids: vec!(),
@@ -75,10 +50,6 @@ impl GenomeMutateContext {
 
     pub fn available_program_ids(&self) -> &Vec<u32> {
         &self.valid_program_ids
-    }
-
-    pub fn has_available_programs(&self) -> bool {
-        !self.valid_program_ids.is_empty()
     }
 
     pub fn choose_initial_genome_program<R: Rng + ?Sized>(&self, rng: &mut R) -> Option<u32> {
@@ -227,5 +198,160 @@ impl GenomeMutateContext {
 impl fmt::Debug for GenomeMutateContext {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "GenomeMutateContext")
+    }
+}
+
+pub struct GenomeMutateContextBuilder {
+    suggest_instruction: Option<SuggestInstruction>,
+    suggest_line: Option<SuggestLine>,
+    suggest_source: Option<SuggestSource>,
+    suggest_target: Option<SuggestTarget>,
+    recent_program_container: Option<RecentProgramContainer>,
+    popular_program_container: Option<PopularProgramContainer>,
+    histogram_instruction_constant: Option<HistogramInstructionConstant>,
+    valid_program_ids: Option<Vec<u32>>,
+    invalid_program_ids_hashset: Option<HashSet<u32>>,
+    indirect_memory_access_program_ids: Option<Vec<u32>>,
+}
+
+impl GenomeMutateContextBuilder {
+    pub fn new() -> Self {
+        Self {
+            suggest_instruction: None,
+            suggest_line: None,
+            suggest_source: None,
+            suggest_target: None,
+            recent_program_container: None,
+            popular_program_container: None,
+            histogram_instruction_constant: None,
+            valid_program_ids: None,
+            invalid_program_ids_hashset: None,
+            indirect_memory_access_program_ids: None,
+        }
+    }
+
+    pub fn build(self) -> anyhow::Result<GenomeMutateContext> {
+        // Programs for initializing the genome. Remove all invalid program.
+        let mut invalid_program_ids_hashset = HashSet::<u32>::new();
+        if let Some(hashset) = &self.invalid_program_ids_hashset {
+            invalid_program_ids_hashset = hashset.clone();
+        }
+        let mut initial_genome_program_ids = Vec::<u32>::new();
+        if let Some(valid_program_ids) = &self.valid_program_ids {
+            for program_id in valid_program_ids {
+                if invalid_program_ids_hashset.contains(program_id) {
+                    debug!("initial_genome_program_ids: removed invalid program: {:?}", program_id);
+                    continue;
+                }
+                initial_genome_program_ids.push(*program_id);
+            }
+        }
+
+        let instance = GenomeMutateContext {
+            valid_program_ids: self.valid_program_ids.unwrap_or_default(),
+            initial_genome_program_ids: initial_genome_program_ids,
+            indirect_memory_access_program_ids: self.indirect_memory_access_program_ids.unwrap_or_default(),
+            invalid_program_ids: self.invalid_program_ids_hashset.unwrap_or_default(),
+            popular_program_container: self.popular_program_container,
+            recent_program_container: self.recent_program_container,
+            histogram_instruction_constant: self.histogram_instruction_constant,
+            suggest_instruction: self.suggest_instruction,
+            suggest_line: self.suggest_line,
+            suggest_source: self.suggest_source,
+            suggest_target: self.suggest_target,
+        };
+        Ok(instance)
+    }
+
+    pub fn init_suggest_instruction(&mut self, instruction_trigram_csv: &Path) -> anyhow::Result<()> {
+        let records: Vec<RecordTrigram> = RecordTrigram::parse_csv(&instruction_trigram_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load instruction_trigram_csv error: {:?}", e))?;
+        let mut instance = SuggestInstruction::new();
+        instance.populate(&records);
+        self.suggest_instruction = Some(instance);
+        Ok(())
+    }
+
+    pub fn init_suggest_line(&mut self, line_trigram_csv: &Path) -> anyhow::Result<()> {
+        let records: Vec<RecordTrigram> = RecordTrigram::parse_csv(&line_trigram_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load line_trigram_csv error: {:?}", e))?;
+        let mut instance = SuggestLine::new();
+        instance.populate(&records);
+        self.suggest_line = Some(instance);
+        Ok(())
+    }
+
+    pub fn init_suggest_source(&mut self, source_trigram_csv: &Path) -> anyhow::Result<()> {
+        let records: Vec<RecordTrigram> = RecordTrigram::parse_csv(&source_trigram_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load source_trigram_csv error: {:?}", e))?;
+        let mut instance = SuggestSource::new();
+        instance.populate(&records);
+        self.suggest_source = Some(instance);
+        Ok(())
+    }
+
+    pub fn init_suggest_target(&mut self, target_trigram_csv: &Path) -> anyhow::Result<()> {
+        let records: Vec<RecordTrigram> = RecordTrigram::parse_csv(target_trigram_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load target_trigram_csv error: {:?}", e))?;
+        let mut instance = SuggestTarget::new();
+        instance.populate(&records);
+        self.suggest_target = Some(instance);
+        Ok(())
+    }
+
+    /// Load the clusters with newest/oldest program ids
+    pub fn init_recent_program_container(&mut self, recent_program_csv: &Path) -> anyhow::Result<()> {
+        let instance = RecentProgramContainer::load(recent_program_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load recent_program_csv error: {:?}", e))?;
+        debug!("recent_program_container. number of clusters: {:?}", instance.cluster_program_ids().len());
+        self.recent_program_container = Some(instance);
+        Ok(())
+    }
+
+    /// Load the clusters with popular/unpopular program ids
+    pub fn init_popular_program_container(&mut self, popular_program_csv: &Path) -> anyhow::Result<()> {
+        let instance = PopularProgramContainer::load(popular_program_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load popular_program_csv error: {:?}", e))?;
+        debug!("popular_program_container. number of clusters: {:?}", instance.cluster_program_ids().len());
+        self.popular_program_container = Some(instance);
+        Ok(())
+    }
+
+    pub fn init_histogram_instruction_constant(&mut self, histogram_instruction_constant_csv: &Path) -> anyhow::Result<()> {
+        let instance = HistogramInstructionConstant::load_csv_file(histogram_instruction_constant_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load histogram_instruction_constant_csv error: {:?}", e))?;
+        debug!("histogram_instruction_constant. number of items: {:?}", instance.number_of_items());
+        self.histogram_instruction_constant = Some(instance);
+        Ok(())
+    }
+
+    /// The programs that can execute.
+    pub fn init_valid_program_ids(&mut self, valid_program_ids_csv: &Path) -> anyhow::Result<()> {
+        let program_ids: Vec<u32> = load_program_ids_csv_file(valid_program_ids_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load valid_program_ids_csv error: {:?}", e))?;
+        debug!("valid_program_ids. number of program ids: {:?}", program_ids.len());
+        self.valid_program_ids = Some(program_ids);
+        Ok(())
+    }
+
+    /// The invalid program_ids, that are defunct, such as cannot execute, cyclic-dependency.
+    pub fn init_invalid_program_ids(&mut self, invalid_program_ids_csv: &Path) -> anyhow::Result<()> {
+        let program_ids: Vec<u32> = load_program_ids_csv_file(invalid_program_ids_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load invalid_program_ids_csv error: {:?}", e))?;
+        debug!("invalid_program_ids. number of program ids: {:?}", program_ids.len());
+        let program_ids_hashset: HashSet<u32> = program_ids.into_iter().collect();
+        self.invalid_program_ids_hashset = Some(program_ids_hashset);
+        Ok(())
+    }
+
+    /// The programs that makes use of indirect memory access.
+    /// 
+    /// These programs trend to have a big memory foot print.
+    pub fn init_indirect_memory_access_program_ids(&mut self, indirect_memory_access_csv: &Path) -> anyhow::Result<()> {
+        let program_ids: Vec<u32> = load_program_ids_csv_file(indirect_memory_access_csv)
+            .map_err(|e| anyhow::anyhow!("Unable to load indirect_memory_access_csv error: {:?}", e))?;
+        debug!("indirect_memory_access_program_ids. number of program ids: {:?}", program_ids.len());
+        self.indirect_memory_access_program_ids = Some(program_ids);
+        Ok(())
     }
 }
