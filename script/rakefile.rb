@@ -23,11 +23,6 @@ file 'data/top100.md' do
     ruby 'task_top100.rb'
 end
 
-desc "extract creation date for all programs"
-file 'data/program_creation_dates.csv' do
-    ruby 'task_program_creation_dates.rb'
-end
-
 desc "Process the mined programs"
 task :process_mined_programs do
     ruby 'task_add_mined_programs_to_repo.rb'
