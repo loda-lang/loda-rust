@@ -43,7 +43,7 @@ impl TraverseProgramsAndModels {
             config.analytics_arc_dir()
         ).with_context(||"unable to create AnalyticsDirectory instance")?;    
 
-        let context: GenomeMutateContext = create_genome_mutate_context(CreateGenomeMutateContextMode::ARC, &config, analytics_directory)?;
+        let context: GenomeMutateContext = create_genome_mutate_context(CreateGenomeMutateContextMode::ARC, analytics_directory)?;
         println!("loaded genome mutate context. elapsed: {}", HumanDuration(start.elapsed()));
 
         let mut instance = Self { 

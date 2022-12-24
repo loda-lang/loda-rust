@@ -145,4 +145,8 @@ impl AnalyticsDirectory {
     pub fn histogram_oeis_stripped_file(&self) -> PathBuf {
         self.analytics_directory.join("histogram_oeis_stripped.csv")
     }
+
+    pub fn program_modified_file(&self) -> PathBuf {
+        self.analytics_directory.join("program_modified.csv")
+    }
 }

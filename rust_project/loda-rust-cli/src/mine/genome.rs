@@ -1650,7 +1650,7 @@ impl Genome {
             (MutateGenome::CallMostPopularProgram, 10),
             (MutateGenome::CallMediumPopularProgram, 20),
             (MutateGenome::CallLeastPopularProgram, 50),
-            // (MutateGenome::CallRecentProgram, 1),
+            (MutateGenome::CallRecentProgram, 300),
             (MutateGenome::CallProgramThatUsesIndirectMemoryAccess, 0),
         ];
         let mutation: &MutateGenome = &mutation_vec.choose_weighted(rng, |item| item.1).unwrap().0;

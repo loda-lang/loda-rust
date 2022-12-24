@@ -23,11 +23,6 @@ file 'data/top100.md' do
     ruby 'task_top100.rb'
 end
 
-desc "extract creation date for all programs"
-file 'data/program_creation_dates.csv' do
-    ruby 'task_program_creation_dates.rb'
-end
-
 desc "Process the mined programs"
 task :process_mined_programs do
     ruby 'task_add_mined_programs_to_repo.rb'
@@ -37,6 +32,11 @@ end
 desc "Remove already processed programs with suffix .keep.asm and .reject.asm"
 task :clean_mineevent_dir do
     ruby 'task_cleanup_processed_files_from_mineevent_dir.rb'
+end
+
+desc "Image with an overview of what files already exist and what is yet to be mined"
+file 'data/loda_file_status_image.pbm' do
+    ruby 'task_file_status_image.rb'
 end
 
 task :default do

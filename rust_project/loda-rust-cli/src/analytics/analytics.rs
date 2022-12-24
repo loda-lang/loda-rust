@@ -1,5 +1,5 @@
 use super::{AnalyticsMode, AnalyticsDirectory};
-use super::{AnalyzeDependencies, AnalyzeIndirectMemoryAccess, AnalyzeInstructionConstant, AnalyzeInstructionNgram};
+use super::{AnalyzeDependencies, AnalyzeIndirectMemoryAccess, AnalyzeInstructionConstant, AnalyzeInstructionNgram, AnalyzeProgramModified};
 use super::{AnalyzeProgramComplexity, AnalyzeLineNgram, AnalyzeSourceNgram, AnalyzeTargetNgram, BatchProgramAnalyzer, BatchProgramAnalyzerPluginItem, DontMine, HistogramStrippedFile, AnalyticsTimestampFile, ValidatePrograms, compute_program_rank};
 use crate::config::Config;
 use crate::mine::PopulateBloomfilter;
@@ -174,6 +174,7 @@ impl Analytics {
         let plugin_line_ngram = Rc::new(RefCell::new(AnalyzeLineNgram::new(self.analytics_directory.clone(), self.analytics_mode)));
         let plugin_target_ngram = Rc::new(RefCell::new(AnalyzeTargetNgram::new(self.analytics_directory.clone())));
         let plugin_program_complexity = Rc::new(RefCell::new(AnalyzeProgramComplexity::new(self.analytics_directory.clone())));
+        let plugin_program_modified = Rc::new(RefCell::new(AnalyzeProgramModified::new(self.analytics_directory.clone())));
         let plugin_vec: Vec<BatchProgramAnalyzerPluginItem> = vec![
             plugin_dependencies,
             plugin_indirect_memory_access,
@@ -183,6 +184,7 @@ impl Analytics {
             plugin_line_ngram,
             plugin_target_ngram,
             plugin_program_complexity,
+            plugin_program_modified,
         ];
         let mut analyzer = BatchProgramAnalyzer::new(
             self.analytics_mode, 

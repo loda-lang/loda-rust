@@ -106,7 +106,7 @@ struct Record {
     #[serde(rename = "program id")]
     program_id: u32,
 
-    #[serde(rename = "creation date")]
+    #[serde(rename = "modified")]
     creation_date: u32, // format like this: yyyymmdd, eg. 19841230
 }
 
@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn test_10000_process_csv_data() {
         let data = "\
-program id;creation date
+program id;modified
 4;20190115
 5;20190119
 
