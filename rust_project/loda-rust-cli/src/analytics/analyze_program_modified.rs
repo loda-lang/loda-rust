@@ -7,6 +7,19 @@ use std::time::SystemTime;
 use serde::Serialize;
 use std::fs::{self, Metadata};
 
+/// This analyzer determines when was the program files last modified and 
+/// generates a `program_modified.csv` with this format:
+/// 
+/// ```
+/// program id;modified
+/// 4;20190115
+/// 5;20190119
+/// 6;20210316
+/// 7;20181012
+/// 8;20210118
+/// 10;20210225
+/// 12;20190115
+/// ```
 pub struct AnalyzeProgramModified {
     analytics_directory: AnalyticsDirectory,
     record_vec: Vec<Record>,
@@ -86,7 +99,6 @@ impl BatchProgramAnalyzerPlugin for AnalyzeProgramModified {
 struct Record {
     #[serde(rename = "program id")]
     program_id: u32,
-    #[serde(rename = "modified")]
     modified: String,
 }
 
