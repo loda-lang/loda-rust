@@ -26,7 +26,7 @@ class Config
         dict = dict_fallback.merge(dict_custom)
         
         @dot_loda_rust = dot_loda_rust
-        @analytics_dir = File.join(dot_loda_rust, 'analytics')
+        @analytics_dir = File.join(dot_loda_rust, 'analytics-oeis')
         @loda_programs_repository = Config.resolve_path(dict, 'loda_programs_repository', homedir)
         @loda_rust_executable = Config.resolve_path(dict, 'loda_rust_executable', homedir)
         @loda_cpp_executable = Config.resolve_path(dict, 'loda_cpp_executable', homedir)

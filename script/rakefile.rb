@@ -34,6 +34,11 @@ task :clean_mineevent_dir do
     ruby 'task_cleanup_processed_files_from_mineevent_dir.rb'
 end
 
+desc "Image with an overview of what files already exist and what is yet to be mined"
+file 'data/loda_file_status_image.pbm' do
+    ruby 'task_file_status_image.rb'
+end
+
 task :default do
     system 'rake -T'
 end
