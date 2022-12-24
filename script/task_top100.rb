@@ -442,9 +442,10 @@ end
 rows = []
 rows << "# Top 100 important LODA programs"
 rows << ''
-rows << 'The LODA programs repository is a directed acyclic graph (DAG). This top 100 list is the most important programs. Several programs in the entire graph may depend on one or more of the top100 programs, but the top 100 programs do not depend on any programs outside the top 100.'
+rows << 'The LODA programs repository is a directed acyclic graph (DAG). This top 100 list is the most important programs. Several programs in the entire graph may depend on one or more of the top 100 programs, but the top 100 programs do not depend on any programs outside the top 100.'
 rows << ''
-rows << 'Several programs in this list have few references in OEIS.'
+rows << 'There is a relationship between the top 100 programs and the OEIS number of references.'
+rows << 'Although there are some exceptions. Several programs in top 100 have few references in OEIS. Are these integer sequences underappreciated by humans?'
 rows << ''
 rows << "Rank | LODA (callers) | OEIS (refs) | Name"
 rows << "---- | ---- | ---- | ----"
