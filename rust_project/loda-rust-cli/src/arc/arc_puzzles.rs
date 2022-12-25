@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram, RunWithProgramResult, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask};
+    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram, RunWithProgramResult, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate};
     use crate::arc::{Image, convolution2x2, PopularObjects};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount};
@@ -1516,6 +1516,64 @@ mod tests {
             // Overlay each object onto the result image
             result_image = mask_image.select_from_images(&result_image, &colored_object_image).expect("image");
         }
+        
+        assert_eq!(result_image, output);
+    }
+
+    #[test]
+    fn test_250000_puzzle_7bb29440() {
+        let model: Model = Model::load_testdata("7bb29440").expect("model");
+        assert_eq!(model.train().len(), 5);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.train()[3].input().to_image().expect("image");
+        // let output: Image = model.train()[3].output().to_image().expect("image");
+        // let input: Image = model.train()[4].input().to_image().expect("image");
+        // let output: Image = model.train()[4].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let background_color: u8 = input.histogram_border().most_popular().expect("color");
+        let object_mask: Image = input.to_mask_where_color_is(background_color);
+
+        // Objects that is not the background
+        let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, object_mask.clone())
+            .expect("find_objects_with_ignore_mask");
+
+        // Traverse each object, and count holes in each object
+        let mut object_count_vec = Vec::<(Image, u32)>::new();
+        for mask_image in &object_mask_vec {
+            let histogram: Histogram = input.histogram_with_mask(&mask_image).expect("histogram");
+            let mut pairs: Vec<(u32,u8)> = histogram.pairs_ascending();
+
+            // Remove the background color of the rectangle
+            pairs.pop();
+
+            // Number of holes inside the rectangle
+            let mut pixel_count: u32 = 0;
+            for pair in &pairs {
+                pixel_count += pair.0;
+            }
+
+            object_count_vec.push((mask_image.clone(), pixel_count));
+        }
+
+        // Sort objects by their number of pixels
+        object_count_vec.sort_unstable_by_key(|item| (item.1));
+
+        // Pick the first the object with lowest pixel count
+        let (mask_image, _pixel_count) = object_count_vec.first().expect("first object");
+
+        // Extract pixels from input image, just for the object
+        let image: Image = mask_image.select_from_image(&input, background_color).expect("image");
+
+        let result_image = image.trim().expect("image");
         
         assert_eq!(result_image, output);
     }
