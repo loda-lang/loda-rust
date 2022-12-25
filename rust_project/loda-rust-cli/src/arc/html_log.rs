@@ -3,6 +3,7 @@ use serde::Serialize;
 use std::time::Duration;
 use std::thread;
 use lazy_static::lazy_static;
+use html_escape;
 
 lazy_static! {
     static ref HTML_LOG_INNER: HtmlLogInner = HtmlLogInner::new();
@@ -73,6 +74,15 @@ impl HtmlLogInner {
 pub struct HtmlLog;
 
 impl HtmlLog {
+    /// Example: 
+    ///
+    /// HtmlLog::text(&format!("hello world"));
+    #[allow(dead_code)]
+    pub fn text(text: &String) {
+        let s = html_escape::encode_text(text);
+        HTML_LOG_INNER.post_event(s.to_string());
+    }    
+
     /// Example: 
     ///
     /// HtmlLog::image(&input);
