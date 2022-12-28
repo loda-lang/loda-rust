@@ -67,7 +67,7 @@ impl Node for NodeSeq {
         let mut step_count: u64 = state.step_count();
 
         // Invoke the actual run() function
-        let input_value = RegisterValue(input.clone());
+        let input_value = RegisterValue(input);
         let run_result = self.program_runner_rc.run(
             input_value, 
             state.run_mode(), 
