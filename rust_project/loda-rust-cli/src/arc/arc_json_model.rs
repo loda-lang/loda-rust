@@ -21,14 +21,14 @@ impl GridToImage for Grid {
             return Ok(Image::empty());
         }
         if height_usize > (u8::MAX as usize) {
-            return Err(anyhow::anyhow!("Too many rows in input data. Max 256 is possible"));
+            return Err(anyhow::anyhow!("Too many rows in input data. Max 255 is possible"));
         }
         let height: u8 = height_usize as u8;
 
         // Extract width
         let width_usize: usize = self[0].len(); // At this point we know there is 1 or more rows
         if width_usize > (u8::MAX as usize) {
-            return Err(anyhow::anyhow!("Too many columns in input data. Max 256 is possible"));
+            return Err(anyhow::anyhow!("Too many columns in input data. Max 255 is possible"));
         }
         let width: u8 = width_usize as u8;
 
