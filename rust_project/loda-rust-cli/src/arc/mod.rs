@@ -1,6 +1,7 @@
 //! ARC challenge experiments
 mod arc_json_model;
 mod arc_puzzles;
+mod arcathon_solution_json;
 mod convolution2x2;
 mod convolution3x3;
 mod convolution_with_program;
