@@ -23,12 +23,15 @@ use rand::SeedableRng;
 use rand::rngs::StdRng;
 use serde::{Serialize, Deserialize};
 
+static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
+
 pub struct TraverseProgramsAndModels {
     config: Config,
     context: GenomeMutateContext,
     model_item_vec: Vec<ModelItem>,
     program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
     locked_instruction_hashset: HashSet<String>,
+    path_solution_teamid_json: PathBuf,
 }
 
 impl TraverseProgramsAndModels {
@@ -47,12 +50,15 @@ impl TraverseProgramsAndModels {
         let context: GenomeMutateContext = create_genome_mutate_context(CreateGenomeMutateContextMode::ARC, analytics_directory)?;
         println!("loaded genome mutate context. elapsed: {}", HumanDuration(start.elapsed()));
 
+        let path_solution_teamid_json: PathBuf = config.arc_repository_data().join(Path::new(SOLUTIONS_FILENAME));
+
         let mut instance = Self { 
             config,
             context,
             model_item_vec: vec!(),
             program_item_vec: vec!(),
             locked_instruction_hashset: HashSet::new(),
+            path_solution_teamid_json: path_solution_teamid_json,
         };
         instance.load_arc_models()?;
         instance.load_programs()?;
@@ -292,9 +298,38 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    fn load_solutions_json(&self) -> anyhow::Result<Tasks> {
+        let solution_teamid_json_string: String = match fs::read_to_string(&self.path_solution_teamid_json) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("something went wrong reading the file: {:?} error: {:?}", self.path_solution_teamid_json, error));
+            }
+        };
+        let tasks: Tasks = match serde_json::from_str(&solution_teamid_json_string) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("Could not parse archaton_solution_json file, path: {:?} error: {:?} json: {:?}", self.path_solution_teamid_json, error, solution_teamid_json_string));
+            }
+        };
+        Ok(tasks)
+    }
+
+    fn write_solutions_json(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     pub fn run(&mut self, verbose: bool) -> anyhow::Result<()> {
         // self.genome_experiments()?;
         // return Ok(());
+
+        let tasks: Tasks = match self.load_solutions_json() {
+            Ok(value) => value,
+            Err(error) => {
+                error!("Starting out with zero tasks. Unable to load existing solutions file: {:?}", error);
+                vec!()
+            }
+        };
+        println!("tasks.len: {}", tasks.len());
 
         let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
         let path_programs = self.config.loda_arc_challenge_repository_programs();
