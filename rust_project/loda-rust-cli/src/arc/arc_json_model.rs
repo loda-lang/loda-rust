@@ -199,9 +199,9 @@ impl Model {
     }
     
     #[allow(dead_code)]
-    pub fn load(name: &str, arc_repository_data_training: &Path) -> anyhow::Result<Model> {
+    pub fn load(name: &str, arc_repository_data: &Path) -> anyhow::Result<Model> {
         let filename_json = format!("{}.json", name);
-        let path = arc_repository_data_training.join(filename_json);
+        let path = arc_repository_data.join(filename_json);
         Self::load_with_json_file(&path)
     }
 

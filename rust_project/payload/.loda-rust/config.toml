@@ -1,3 +1,3 @@
-arc_repository_data_training = "/data/training"
+arc_repository_data = "/data"
 
 loda_arc_challenge_repository = "/root/loda-arc-challenge"

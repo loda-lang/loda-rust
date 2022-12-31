@@ -60,9 +60,9 @@ impl TraverseProgramsAndModels {
     }
 
     fn load_arc_models(&mut self) -> anyhow::Result<()> {
-        let path: PathBuf = self.config.arc_repository_data_training();
+        let path: PathBuf = self.config.arc_repository_data();
         let paths: Vec<PathBuf> = find_json_files_recursively(&path);
-        println!("arc_repository_data_training. number of json files: {}", paths.len());
+        println!("arc_repository_data. number of json files: {}", paths.len());
 
         let mut model_item_vec = Vec::<ModelItem>::new();
         for path in &paths {
