@@ -67,7 +67,13 @@ impl TraverseProgramsAndModels {
 
         let mut model_item_vec = Vec::<ModelItem>::new();
         for path in &paths {
-            let model = Model::load_with_json_file(path).expect("model");
+            let model = match Model::load_with_json_file(path) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Ignoring file. Cannot parse arc_json_model file. path: {:?} error: {:?}", path, error);
+                    continue;
+                }
+            };
             let item = ModelItem {
                 id: ModelItemId::Path { path: path.clone() },
                 model,
