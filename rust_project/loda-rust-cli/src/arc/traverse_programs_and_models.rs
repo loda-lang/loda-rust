@@ -382,13 +382,15 @@ impl TraverseProgramsAndModels {
         // }
 
         let mut scheduled_program_item_vec: Vec<Rc<RefCell<ProgramItem>>> = Vec::<Rc<RefCell<ProgramItem>>>::new();
-        // for program_item in self.program_item_vec.iter_mut() {
-        //     if program_item.borrow().number_of_models == 0 {
-        //         scheduled_program_item_vec.push(program_item.clone());
-        //     }
-        // }
+        for program_item in self.program_item_vec.iter_mut() {
+            if program_item.borrow().number_of_models == 0 {
+                scheduled_program_item_vec.push(program_item.clone());
+            }
+        }
 
-        if scheduled_program_item_vec.is_empty() {
+        let schedule_mutations: bool = true;
+        // let schedule_mutations: bool = scheduled_program_item_vec.is_empty();
+        if schedule_mutations {
             let number_of_mutations: u64 = 40;
 
             for program_item in &self.program_item_vec {
@@ -571,6 +573,7 @@ impl TraverseProgramsAndModels {
             }
         }
     
+        println!("Done!");
         Ok(())
     }
 }
