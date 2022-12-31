@@ -271,7 +271,7 @@ impl TraverseProgramsAndModels {
             }
             serializer.append_empty_line();
             let candidate_program: String = serializer.to_string();
-            println!("; ------\n\n{}", candidate_program);
+            // println!("; ------\n\n{}", candidate_program);
 
             let mutated_program_item = ProgramItem {
                 id: ProgramItemId::None,
@@ -352,44 +352,41 @@ impl TraverseProgramsAndModels {
         }
         println!("number_of_disabled_model_items: {:?}", number_of_disabled_model_items);
 
-
-        // return Ok(());
-
         let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
         let path_programs = self.config.loda_arc_challenge_repository_programs();
 
         let mut record_vec = Vec::<Record>::new();
 
-        let ignore_models_with_a_solution: bool = path_solutions_csv.is_file();
-        if ignore_models_with_a_solution {
-            record_vec = Record::load_record_vec(&path_solutions_csv)?;
-            println!("solutions.csv: number of rows: {}", record_vec.len());
+        // let ignore_models_with_a_solution: bool = path_solutions_csv.is_file();
+        // if ignore_models_with_a_solution {
+        //     record_vec = Record::load_record_vec(&path_solutions_csv)?;
+        //     println!("solutions.csv: number of rows: {}", record_vec.len());
     
-            let mut file_names_to_ignore = HashSet::<String>::new();
-            for record in &record_vec {
-                file_names_to_ignore.insert(record.model_filename.clone());
+        //     let mut file_names_to_ignore = HashSet::<String>::new();
+        //     for record in &record_vec {
+        //         file_names_to_ignore.insert(record.model_filename.clone());
 
-                let program_filename: String = record.program_filename.clone();
-                for program_item in &self.program_item_vec {
-                    if program_item.borrow().id.file_name() == program_filename {
-                        program_item.borrow_mut().number_of_models += 1;
-                    }
-                }
-            }
-            for model_item in self.model_item_vec.iter_mut() {
-                let file_name: String = model_item.id.file_name();
-                if file_names_to_ignore.contains(&file_name) {
-                    model_item.enabled = false;
-                }
-            }
-        }
+        //         let program_filename: String = record.program_filename.clone();
+        //         for program_item in &self.program_item_vec {
+        //             if program_item.borrow().id.file_name() == program_filename {
+        //                 program_item.borrow_mut().number_of_models += 1;
+        //             }
+        //         }
+        //     }
+        //     for model_item in self.model_item_vec.iter_mut() {
+        //         let file_name: String = model_item.id.file_name();
+        //         if file_names_to_ignore.contains(&file_name) {
+        //             model_item.enabled = false;
+        //         }
+        //     }
+        // }
 
         let mut scheduled_program_item_vec: Vec<Rc<RefCell<ProgramItem>>> = Vec::<Rc<RefCell<ProgramItem>>>::new();
-        for program_item in self.program_item_vec.iter_mut() {
-            if program_item.borrow().number_of_models == 0 {
-                scheduled_program_item_vec.push(program_item.clone());
-            }
-        }
+        // for program_item in self.program_item_vec.iter_mut() {
+        //     if program_item.borrow().number_of_models == 0 {
+        //         scheduled_program_item_vec.push(program_item.clone());
+        //     }
+        // }
 
         if scheduled_program_item_vec.is_empty() {
             let number_of_mutations: u64 = 40;
@@ -430,7 +427,8 @@ impl TraverseProgramsAndModels {
         let mut count_mismatch: usize = 0;
         let start = Instant::now();
         let pb = ProgressBar::new(number_of_models_for_processing+1);
-        for model_item in &self.model_item_vec {
+        for model_item in self.model_item_vec.iter_mut() {
+            // for model_item in &self.model_item_vec {
             if !model_item.enabled {
                 continue;
             }
@@ -503,6 +501,21 @@ impl TraverseProgramsAndModels {
 
                     let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.id);
                     pb.println(message);
+
+                    let predictions: Vec<Prediction> = result.predictions().clone();
+                    let test_item = TestItem { 
+                        output_id: 0,
+                        number_of_predictions: predictions.len() as u8,
+                        predictions: predictions,
+                    };
+
+                    let task_name: String = model_item.id.file_stem();
+                    let task_item = TaskItem {
+                        task_name: task_name,
+                        test_vec: vec![test_item],
+                    };
+                    current_tasks.push(task_item);
+                    model_item.enabled = false;
                 }
             }
 
