@@ -298,7 +298,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn load_solutions_json(&self) -> anyhow::Result<Tasks> {
+    fn read_solutions_json(&self) -> anyhow::Result<Tasks> {
         let solution_teamid_json_string: String = match fs::read_to_string(&self.path_solution_teamid_json) {
             Ok(value) => value,
             Err(error) => {
@@ -322,14 +322,35 @@ impl TraverseProgramsAndModels {
         // self.genome_experiments()?;
         // return Ok(());
 
-        let tasks: Tasks = match self.load_solutions_json() {
+        println!("initial model_item_vec.len: {:?}", self.model_item_vec.len());
+
+
+        let initial_tasks: Tasks = match self.read_solutions_json() {
             Ok(value) => value,
             Err(error) => {
                 error!("Starting out with zero tasks. Unable to load existing solutions file: {:?}", error);
                 vec!()
             }
         };
-        println!("tasks.len: {}", tasks.len());
+        println!("initial_tasks.len: {}", initial_tasks.len());
+
+        let mut task_names_to_ignore = HashSet::<String>::new();
+        for task in &initial_tasks {
+            task_names_to_ignore.insert(task.task_name.clone());
+        }
+
+        let mut number_of_disabled_model_items: usize = 0;
+        for model_item in self.model_item_vec.iter_mut() {
+            let file_stem: String = model_item.id.file_stem();
+            if task_names_to_ignore.contains(&file_stem) {
+                model_item.enabled = false;
+                number_of_disabled_model_items += 1;
+            }
+        }
+        println!("number_of_disabled_model_items: {:?}", number_of_disabled_model_items);
+
+
+        // return Ok(());
 
         let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
         let path_programs = self.config.loda_arc_challenge_repository_programs();
@@ -537,6 +558,24 @@ impl ModelItemId {
                     },
                     None => {
                         return "Path without a file_name".to_string();
+                    }
+                }
+            }
+        }
+    }
+
+    fn file_stem(&self) -> String {
+        match self {
+            ModelItemId::None => {
+                return "None".to_string();
+            },
+            ModelItemId::Path { path } => {
+                match path.file_stem() {
+                    Some(value) => {
+                        return value.to_string_lossy().to_string();
+                    },
+                    None => {
+                        return "Path without a file_stem".to_string();
                     }
                 }
             }
