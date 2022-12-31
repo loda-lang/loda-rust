@@ -314,10 +314,6 @@ impl TraverseProgramsAndModels {
         Ok(tasks)
     }
 
-    fn write_solutions_json(&self) -> anyhow::Result<()> {
-        Ok(())
-    }
-
     pub fn run(&mut self, verbose: bool) -> anyhow::Result<()> {
         // self.genome_experiments()?;
         // return Ok(());
