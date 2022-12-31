@@ -421,6 +421,8 @@ impl TraverseProgramsAndModels {
         println!("number of models for processing: {}", number_of_models_for_processing);
         println!("number of models being ignored: {}", number_of_models_ignored);
 
+        let mut current_tasks: Tasks = initial_tasks;
+
         let mut count_match: usize = 0;
         let mut count_mismatch: usize = 0;
         let start = Instant::now();
@@ -505,6 +507,25 @@ impl TraverseProgramsAndModels {
                 count_match += 1;
             } else {
                 count_mismatch += 1;
+            }
+
+            // found_one_or_more_solutions = true;
+            if found_one_or_more_solutions {
+                let json: String = match serde_json::to_string(&current_tasks) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        error!("unable to serialize tasks to json: {:?}", error);
+                        continue;
+                    }
+                };
+                match fs::write(&self.path_solution_teamid_json, json) {
+                    Ok(()) => {},
+                    Err(error) => {
+                        error!("unable to save solutions file. path: {:?} error: {:?}", self.path_solution_teamid_json, error);
+                        continue;
+                    }
+                }
+                println!("updated solutions file: tasks.len(): {}", current_tasks.len());
             }
         }
         pb.finish_and_clear();
