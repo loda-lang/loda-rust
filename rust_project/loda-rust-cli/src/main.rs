@@ -55,8 +55,8 @@ async fn main() -> anyhow::Result<()> {
     let matches = Command::new("loda-rust")
         .version("0.0.1")
         .about("Experimental tool")
-        .arg_required_else_help(true)
-        .subcommand_required(true)
+        // .arg_required_else_help(true)
+        // .subcommand_required(true)
         .subcommand(
             Command::new("evaluate")
                 .alias("eval")
@@ -260,5 +260,6 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    panic!("No arguments provided");
+    SubcommandARC::run(SubcommandARCMode::RunAllTests)?;
+    Ok(())
 }
