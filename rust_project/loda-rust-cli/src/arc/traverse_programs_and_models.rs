@@ -1,5 +1,6 @@
 use super::{Model, ImagePair};
 use super::{RunWithProgram, RunWithProgramResult};
+use super::{Prediction, TestItem, TaskItem, Tasks};
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};

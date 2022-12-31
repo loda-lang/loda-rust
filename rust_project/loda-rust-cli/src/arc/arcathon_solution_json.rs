@@ -2,27 +2,27 @@ use super::Grid;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Deserialize, Serialize)]
-struct Prediction {
-    prediction_id: u8,
-    output: Grid,
+pub struct Prediction {
+    pub prediction_id: u8,
+    pub output: Grid,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
-struct TestItem {
-    output_id: u8,
-    number_of_predictions: u8,
-    predictions: Vec<Prediction>,
+pub struct TestItem {
+    pub output_id: u8,
+    pub number_of_predictions: u8,
+    pub predictions: Vec<Prediction>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
-struct TaskItem {
-    task_name: String,
+pub struct TaskItem {
+    pub task_name: String,
 
     #[serde(rename = "test")]
-    test_vec: Vec<TestItem>,
+    pub test_vec: Vec<TestItem>,
 }
 
-type Tasks = Vec<TaskItem>;
+pub type Tasks = Vec<TaskItem>;
 
 #[cfg(test)]
 mod tests {
