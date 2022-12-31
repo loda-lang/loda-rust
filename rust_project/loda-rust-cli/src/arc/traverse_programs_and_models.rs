@@ -322,6 +322,9 @@ impl TraverseProgramsAndModels {
         // self.genome_experiments()?;
         // return Ok(());
 
+        let verify_test_output = false;
+        println!("verify_test_output: {:?}", verify_test_output);
+
         println!("initial model_item_vec.len: {:?}", self.model_item_vec.len());
 
 
@@ -433,7 +436,7 @@ impl TraverseProgramsAndModels {
             }
             pb.inc(1);
             let model: Model = model_item.model.clone();
-            let instance = RunWithProgram::new(model).expect("RunWithProgram");
+            let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
 
             let pairs: Vec<ImagePair> = model_item.model.images_all().expect("pairs");
     

@@ -1,20 +1,20 @@
 use super::Grid;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Prediction {
     pub prediction_id: u8,
     pub output: Grid,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TestItem {
     pub output_id: u8,
     pub number_of_predictions: u8,
     pub predictions: Vec<Prediction>,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TaskItem {
     pub task_name: String,
 
