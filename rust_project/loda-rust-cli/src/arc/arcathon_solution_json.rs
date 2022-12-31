@@ -117,4 +117,20 @@ mod tests {
         assert_eq!(tasks[0].test_vec.len(), 2);
         assert_eq!(tasks[1].test_vec.len(), 1);
     }
+
+    #[test]
+    fn test_20001_deserialize() {
+        // Arrange
+        let json: String = read_testdata("solution_notXORdinary").expect("string");
+
+        // Act
+        let tasks: Tasks = serde_json::from_str(&json).expect("tasks");
+
+        // Assert
+        assert_eq!(tasks.len(), 10);
+        assert_eq!(tasks[0].task_name, "44f52bb0");
+        assert_eq!(tasks[1].task_name, "4258a5f9");
+        assert_eq!(tasks[0].test_vec.len(), 1);
+        assert_eq!(tasks[1].test_vec.len(), 1);
+    }
 }
