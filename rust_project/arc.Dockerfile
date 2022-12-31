@@ -14,4 +14,5 @@ RUN cargo build --release -p loda-rust-cli
 ####################################################################################################
 FROM debian:bullseye-slim
 COPY --from=builder /my_builddir/target/release/loda-rust /usr/local/bin/loda-rust
+COPY ./payload /root
 CMD ["loda-rust"]
