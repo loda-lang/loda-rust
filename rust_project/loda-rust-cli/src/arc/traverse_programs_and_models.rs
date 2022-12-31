@@ -31,6 +31,7 @@ pub struct TraverseProgramsAndModels {
     model_item_vec: Vec<ModelItem>,
     program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
     locked_instruction_hashset: HashSet<String>,
+    path_solution_dir: PathBuf,
     path_solution_teamid_json: PathBuf,
 }
 
@@ -50,7 +51,8 @@ impl TraverseProgramsAndModels {
         let context: GenomeMutateContext = create_genome_mutate_context(CreateGenomeMutateContextMode::ARC, analytics_directory)?;
         println!("loaded genome mutate context. elapsed: {}", HumanDuration(start.elapsed()));
 
-        let path_solution_teamid_json: PathBuf = config.arc_repository_data().join(Path::new(SOLUTIONS_FILENAME));
+        let path_solution_dir: PathBuf = config.arc_repository_data().join(Path::new("solution"));
+        let path_solution_teamid_json: PathBuf = path_solution_dir.join(Path::new(SOLUTIONS_FILENAME));
 
         let mut instance = Self { 
             config,
@@ -58,7 +60,8 @@ impl TraverseProgramsAndModels {
             model_item_vec: vec!(),
             program_item_vec: vec!(),
             locked_instruction_hashset: HashSet::new(),
-            path_solution_teamid_json: path_solution_teamid_json,
+            path_solution_dir,
+            path_solution_teamid_json,
         };
         instance.load_arc_models()?;
         instance.load_programs()?;
@@ -420,6 +423,11 @@ impl TraverseProgramsAndModels {
         println!("number of models being ignored: {}", number_of_models_ignored);
 
         let mut current_tasks: Tasks = initial_tasks;
+        Self::save_solutions(
+            &self.path_solution_dir,
+            &self.path_solution_teamid_json,
+            &current_tasks
+        );
 
         let mut count_match: usize = 0;
         let mut count_mismatch: usize = 0;
@@ -525,21 +533,11 @@ impl TraverseProgramsAndModels {
 
             // found_one_or_more_solutions = true;
             if found_one_or_more_solutions {
-                let json: String = match serde_json::to_string(&current_tasks) {
-                    Ok(value) => value,
-                    Err(error) => {
-                        error!("unable to serialize tasks to json: {:?}", error);
-                        continue;
-                    }
-                };
-                match fs::write(&self.path_solution_teamid_json, json) {
-                    Ok(()) => {},
-                    Err(error) => {
-                        error!("unable to save solutions file. path: {:?} error: {:?}", self.path_solution_teamid_json, error);
-                        continue;
-                    }
-                }
-                println!("updated solutions file: tasks.len(): {}", current_tasks.len());
+                Self::save_solutions(
+                    &self.path_solution_dir,
+                    &self.path_solution_teamid_json,
+                    &current_tasks
+                );
             }
         }
         pb.finish_and_clear();
@@ -571,6 +569,32 @@ impl TraverseProgramsAndModels {
     
         println!("Done!");
         Ok(())
+    }
+
+    fn save_solutions(path_solution_dir: &Path, path_solution_teamid_json: &Path, tasks: &Tasks) {
+        if !path_solution_dir.exists() {
+                match fs::create_dir(path_solution_dir) {
+                Ok(_) => {},
+                Err(err) => {
+                    panic!("Unable to create solution directory: {:?}, error: {:?}", path_solution_dir, err);
+                }
+            }
+        }
+        let json: String = match serde_json::to_string(&tasks) {
+            Ok(value) => value,
+            Err(error) => {
+                error!("unable to serialize tasks to json: {:?}", error);
+                return;
+            }
+        };
+        match fs::write(&path_solution_teamid_json, json) {
+            Ok(()) => {},
+            Err(error) => {
+                error!("unable to save solutions file. path: {:?} error: {:?}", path_solution_teamid_json, error);
+                return;
+            }
+        }
+        println!("updated solutions file: tasks.len(): {}", tasks.len());
     }
 }
 
