@@ -1,4 +1,4 @@
-use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions, StackStrings};
+use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions, StackStrings, Prediction, Grid};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -14,6 +14,7 @@ pub struct RunWithProgramResult {
     message_items: Vec::<String>,
     count_train_correct: usize,
     count_test_correct: usize,
+    predictions: Vec<Prediction>,
 }
 
 impl RunWithProgramResult {
@@ -28,6 +29,10 @@ impl RunWithProgramResult {
     pub fn count_test_correct(&self) -> usize {
         self.count_test_correct
     }
+
+    pub fn predictions(&self) -> &Vec<Prediction> {
+        &self.predictions
+    }
 }
 
 impl fmt::Debug for RunWithProgramResult {
@@ -37,16 +42,18 @@ impl fmt::Debug for RunWithProgramResult {
 }
 
 pub struct RunWithProgram {
+    verify_test_output: bool,
     model: Model,
     train_pairs: Vec<ImagePair>,
     test_pairs: Vec<ImagePair>,
 }
 
 impl RunWithProgram {
-    pub fn new(model: Model) -> anyhow::Result<Self> {
+    pub fn new(model: Model, verify_test_output: bool) -> anyhow::Result<Self> {
         let train_pairs: Vec<ImagePair> = model.images_train()?;
         let test_pairs: Vec<ImagePair> = model.images_test()?;
         Ok(Self {
+            verify_test_output,
             model,
             train_pairs,
             test_pairs,
@@ -227,7 +234,7 @@ impl RunWithProgram {
     /// $132 = test[0] computed_output image
     /// ```
     fn process_output(&self, state: &ProgramState) -> anyhow::Result<RunWithProgramResult> {
-        let pretty_print = true;
+        let pretty_print = false;
 
         let mut message_items = Vec::<String>::new();
 
@@ -276,6 +283,8 @@ impl RunWithProgram {
         }
         let count_train: usize = self.train_pairs.len();
 
+        let mut predictions = Vec::<Prediction>::new();
+
         // Compare computed images with test[x].output
         let mut count_test_correct: usize = 0;
         for (index, pair) in self.test_pairs.iter().enumerate() {
@@ -290,24 +299,51 @@ impl RunWithProgram {
             let computed_image: Image = computed_uint.to_image()
                 .map_err(|e| anyhow::anyhow!("process_output -> test -> computed_uint.to_image. error: {:?}", e))?;
             
-            let expected_image: Image = pair.output.clone();
-            if computed_image != expected_image {
-                let s = format!("test. output[{}]. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", address, index, expected_image, computed_image);
-                message_items.push(s);
-                continue;
+            if self.verify_test_output {
+                let expected_image: Image = pair.output.clone();
+                if computed_image != expected_image {
+                    let s = format!("test. output[{}]. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", address, index, expected_image, computed_image);
+                    message_items.push(s);
+                    continue;
+                }
             }
             if pretty_print {
                 println!("model: {:?} test#{} correct {}", self.model.id(), index, computed_image.to_unicode_string());
             }
+
+            let grid: Grid = Self::image_to_grid(&computed_image);
+            let prediction = Prediction {
+                prediction_id: index as u8,
+                output: grid,
+            };
+            // println!("prediction: {:?}", prediction);
+            predictions.push(prediction);
+
             count_test_correct += 1;
         }
+
+        // println!("predictions: {:?}", predictions);
         
         let result = RunWithProgramResult { 
             message_items,
             count_train_correct,
             count_test_correct,
+            predictions,
         };
 
         Ok(result)
+    }
+
+    fn image_to_grid(image: &Image) -> Grid {
+        let mut grid = Grid::new();
+        for y in 0..image.height() {
+            let mut row = Vec::<u8>::new();
+            for x in 0..image.width() {
+                let pixel_value: u8 = image.get(x as i32, y as i32).unwrap_or(255);
+                row.push(pixel_value);
+            }
+            grid.push(row);
+        }
+        grid
     }
 }

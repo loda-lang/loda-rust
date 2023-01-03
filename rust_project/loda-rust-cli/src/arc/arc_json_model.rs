@@ -21,14 +21,14 @@ impl GridToImage for Grid {
             return Ok(Image::empty());
         }
         if height_usize > (u8::MAX as usize) {
-            return Err(anyhow::anyhow!("Too many rows in input data. Max 256 is possible"));
+            return Err(anyhow::anyhow!("Too many rows in input data. Max 255 is possible"));
         }
         let height: u8 = height_usize as u8;
 
         // Extract width
         let width_usize: usize = self[0].len(); // At this point we know there is 1 or more rows
         if width_usize > (u8::MAX as usize) {
-            return Err(anyhow::anyhow!("Too many columns in input data. Max 256 is possible"));
+            return Err(anyhow::anyhow!("Too many columns in input data. Max 255 is possible"));
         }
         let width: u8 = width_usize as u8;
 
@@ -199,9 +199,9 @@ impl Model {
     }
     
     #[allow(dead_code)]
-    pub fn load(name: &str, arc_repository_data_training: &Path) -> anyhow::Result<Model> {
+    pub fn load(name: &str, arc_repository_data: &Path) -> anyhow::Result<Model> {
         let filename_json = format!("{}.json", name);
-        let path = arc_repository_data_training.join(filename_json);
+        let path = arc_repository_data.join(filename_json);
         Self::load_with_json_file(&path)
     }
 

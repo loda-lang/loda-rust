@@ -1,5 +1,6 @@
 use super::{Model, ImagePair};
 use super::{RunWithProgram, RunWithProgramResult};
+use super::{Prediction, TestItem, TaskItem, Tasks};
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
@@ -22,12 +23,16 @@ use rand::SeedableRng;
 use rand::rngs::StdRng;
 use serde::{Serialize, Deserialize};
 
+static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
+
 pub struct TraverseProgramsAndModels {
     config: Config,
     context: GenomeMutateContext,
     model_item_vec: Vec<ModelItem>,
     program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
     locked_instruction_hashset: HashSet<String>,
+    path_solution_dir: PathBuf,
+    path_solution_teamid_json: PathBuf,
 }
 
 impl TraverseProgramsAndModels {
@@ -46,12 +51,17 @@ impl TraverseProgramsAndModels {
         let context: GenomeMutateContext = create_genome_mutate_context(CreateGenomeMutateContextMode::ARC, analytics_directory)?;
         println!("loaded genome mutate context. elapsed: {}", HumanDuration(start.elapsed()));
 
+        let path_solution_dir: PathBuf = config.arc_repository_data().join(Path::new("solution"));
+        let path_solution_teamid_json: PathBuf = path_solution_dir.join(Path::new(SOLUTIONS_FILENAME));
+
         let mut instance = Self { 
             config,
             context,
             model_item_vec: vec!(),
             program_item_vec: vec!(),
             locked_instruction_hashset: HashSet::new(),
+            path_solution_dir,
+            path_solution_teamid_json,
         };
         instance.load_arc_models()?;
         instance.load_programs()?;
@@ -60,13 +70,19 @@ impl TraverseProgramsAndModels {
     }
 
     fn load_arc_models(&mut self) -> anyhow::Result<()> {
-        let path: PathBuf = self.config.arc_repository_data_training();
+        let path: PathBuf = self.config.arc_repository_data();
         let paths: Vec<PathBuf> = find_json_files_recursively(&path);
-        println!("arc_repository_data_training. number of json files: {}", paths.len());
+        println!("arc_repository_data. number of json files: {}", paths.len());
 
         let mut model_item_vec = Vec::<ModelItem>::new();
         for path in &paths {
-            let model = Model::load_with_json_file(path).expect("model");
+            let model = match Model::load_with_json_file(path) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Ignoring file. Cannot parse arc_json_model file. path: {:?} error: {:?}", path, error);
+                    continue;
+                }
+            };
             let item = ModelItem {
                 id: ModelItemId::Path { path: path.clone() },
                 model,
@@ -258,7 +274,7 @@ impl TraverseProgramsAndModels {
             }
             serializer.append_empty_line();
             let candidate_program: String = serializer.to_string();
-            println!("; ------\n\n{}", candidate_program);
+            // println!("; ------\n\n{}", candidate_program);
 
             let mutated_program_item = ProgramItem {
                 id: ProgramItemId::None,
@@ -285,38 +301,84 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    fn read_solutions_json(&self) -> anyhow::Result<Tasks> {
+        let solution_teamid_json_string: String = match fs::read_to_string(&self.path_solution_teamid_json) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("something went wrong reading the file: {:?} error: {:?}", self.path_solution_teamid_json, error));
+            }
+        };
+        let tasks: Tasks = match serde_json::from_str(&solution_teamid_json_string) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("Could not parse archaton_solution_json file, path: {:?} error: {:?} json: {:?}", self.path_solution_teamid_json, error, solution_teamid_json_string));
+            }
+        };
+        Ok(tasks)
+    }
+
     pub fn run(&mut self, verbose: bool) -> anyhow::Result<()> {
         // self.genome_experiments()?;
         // return Ok(());
+
+        let verify_test_output = false;
+        println!("verify_test_output: {:?}", verify_test_output);
+
+        println!("initial model_item_vec.len: {:?}", self.model_item_vec.len());
+
+
+        let initial_tasks: Tasks = match self.read_solutions_json() {
+            Ok(value) => value,
+            Err(error) => {
+                error!("Starting out with zero tasks. Unable to load existing solutions file: {:?}", error);
+                vec!()
+            }
+        };
+        println!("initial_tasks.len: {}", initial_tasks.len());
+
+        let mut task_names_to_ignore = HashSet::<String>::new();
+        for task in &initial_tasks {
+            task_names_to_ignore.insert(task.task_name.clone());
+        }
+
+        let mut number_of_disabled_model_items: usize = 0;
+        for model_item in self.model_item_vec.iter_mut() {
+            let file_stem: String = model_item.id.file_stem();
+            if task_names_to_ignore.contains(&file_stem) {
+                model_item.enabled = false;
+                number_of_disabled_model_items += 1;
+            }
+        }
+        println!("number_of_disabled_model_items: {:?}", number_of_disabled_model_items);
 
         let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
         let path_programs = self.config.loda_arc_challenge_repository_programs();
 
         let mut record_vec = Vec::<Record>::new();
 
-        let ignore_models_with_a_solution: bool = path_solutions_csv.is_file();
-        if ignore_models_with_a_solution {
-            record_vec = Record::load_record_vec(&path_solutions_csv)?;
-            println!("solutions.csv: number of rows: {}", record_vec.len());
+        // let ignore_models_with_a_solution: bool = path_solutions_csv.is_file();
+        // if ignore_models_with_a_solution {
+        //     record_vec = Record::load_record_vec(&path_solutions_csv)?;
+        //     println!("solutions.csv: number of rows: {}", record_vec.len());
     
-            let mut file_names_to_ignore = HashSet::<String>::new();
-            for record in &record_vec {
-                file_names_to_ignore.insert(record.model_filename.clone());
+        //     let mut file_names_to_ignore = HashSet::<String>::new();
+        //     for record in &record_vec {
+        //         file_names_to_ignore.insert(record.model_filename.clone());
 
-                let program_filename: String = record.program_filename.clone();
-                for program_item in &self.program_item_vec {
-                    if program_item.borrow().id.file_name() == program_filename {
-                        program_item.borrow_mut().number_of_models += 1;
-                    }
-                }
-            }
-            for model_item in self.model_item_vec.iter_mut() {
-                let file_name: String = model_item.id.file_name();
-                if file_names_to_ignore.contains(&file_name) {
-                    model_item.enabled = false;
-                }
-            }
-        }
+        //         let program_filename: String = record.program_filename.clone();
+        //         for program_item in &self.program_item_vec {
+        //             if program_item.borrow().id.file_name() == program_filename {
+        //                 program_item.borrow_mut().number_of_models += 1;
+        //             }
+        //         }
+        //     }
+        //     for model_item in self.model_item_vec.iter_mut() {
+        //         let file_name: String = model_item.id.file_name();
+        //         if file_names_to_ignore.contains(&file_name) {
+        //             model_item.enabled = false;
+        //         }
+        //     }
+        // }
 
         let mut scheduled_program_item_vec: Vec<Rc<RefCell<ProgramItem>>> = Vec::<Rc<RefCell<ProgramItem>>>::new();
         for program_item in self.program_item_vec.iter_mut() {
@@ -325,7 +387,9 @@ impl TraverseProgramsAndModels {
             }
         }
 
-        if scheduled_program_item_vec.is_empty() {
+        let schedule_mutations: bool = true;
+        // let schedule_mutations: bool = scheduled_program_item_vec.is_empty();
+        if schedule_mutations {
             let number_of_mutations: u64 = 40;
 
             for program_item in &self.program_item_vec {
@@ -358,17 +422,25 @@ impl TraverseProgramsAndModels {
         println!("number of models for processing: {}", number_of_models_for_processing);
         println!("number of models being ignored: {}", number_of_models_ignored);
 
+        let mut current_tasks: Tasks = initial_tasks;
+        Self::save_solutions(
+            &self.path_solution_dir,
+            &self.path_solution_teamid_json,
+            &current_tasks
+        );
+
         let mut count_match: usize = 0;
         let mut count_mismatch: usize = 0;
         let start = Instant::now();
         let pb = ProgressBar::new(number_of_models_for_processing+1);
-        for model_item in &self.model_item_vec {
+        for model_item in self.model_item_vec.iter_mut() {
+            // for model_item in &self.model_item_vec {
             if !model_item.enabled {
                 continue;
             }
             pb.inc(1);
             let model: Model = model_item.model.clone();
-            let instance = RunWithProgram::new(model).expect("RunWithProgram");
+            let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
 
             let pairs: Vec<ImagePair> = model_item.model.images_all().expect("pairs");
     
@@ -435,6 +507,21 @@ impl TraverseProgramsAndModels {
 
                     let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.id);
                     pb.println(message);
+
+                    let predictions: Vec<Prediction> = result.predictions().clone();
+                    let test_item = TestItem { 
+                        output_id: 0,
+                        number_of_predictions: predictions.len() as u8,
+                        predictions: predictions,
+                    };
+
+                    let task_name: String = model_item.id.file_stem();
+                    let task_item = TaskItem {
+                        task_name: task_name,
+                        test_vec: vec![test_item],
+                    };
+                    current_tasks.push(task_item);
+                    model_item.enabled = false;
                 }
             }
 
@@ -442,6 +529,15 @@ impl TraverseProgramsAndModels {
                 count_match += 1;
             } else {
                 count_mismatch += 1;
+            }
+
+            // found_one_or_more_solutions = true;
+            if found_one_or_more_solutions {
+                Self::save_solutions(
+                    &self.path_solution_dir,
+                    &self.path_solution_teamid_json,
+                    &current_tasks
+                );
             }
         }
         pb.finish_and_clear();
@@ -471,7 +567,34 @@ impl TraverseProgramsAndModels {
             }
         }
     
+        println!("Done!");
         Ok(())
+    }
+
+    fn save_solutions(path_solution_dir: &Path, path_solution_teamid_json: &Path, tasks: &Tasks) {
+        if !path_solution_dir.exists() {
+                match fs::create_dir(path_solution_dir) {
+                Ok(_) => {},
+                Err(err) => {
+                    panic!("Unable to create solution directory: {:?}, error: {:?}", path_solution_dir, err);
+                }
+            }
+        }
+        let json: String = match serde_json::to_string(&tasks) {
+            Ok(value) => value,
+            Err(error) => {
+                error!("unable to serialize tasks to json: {:?}", error);
+                return;
+            }
+        };
+        match fs::write(&path_solution_teamid_json, json) {
+            Ok(()) => {},
+            Err(error) => {
+                error!("unable to save solutions file. path: {:?} error: {:?}", path_solution_teamid_json, error);
+                return;
+            }
+        }
+        println!("updated solutions file: tasks.len(): {}", tasks.len());
     }
 }
 
@@ -495,6 +618,24 @@ impl ModelItemId {
                     },
                     None => {
                         return "Path without a file_name".to_string();
+                    }
+                }
+            }
+        }
+    }
+
+    fn file_stem(&self) -> String {
+        match self {
+            ModelItemId::None => {
+                return "None".to_string();
+            },
+            ModelItemId::Path { path } => {
+                match path.file_stem() {
+                    Some(value) => {
+                        return value.to_string_lossy().to_string();
+                    },
+                    None => {
+                        return "Path without a file_stem".to_string();
                     }
                 }
             }

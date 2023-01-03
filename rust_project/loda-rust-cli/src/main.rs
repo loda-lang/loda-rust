@@ -147,6 +147,11 @@ async fn main() -> anyhow::Result<()> {
                         .help("Only run tests where the filename contains the pattern")
                 )
         )
+        .subcommand(
+            Command::new("arc-competition")
+                .about("ARC Challenge - experiments participating in the ARCathon competition. Runs inside a Docker image.")
+                .hide(true)
+        )
         .get_matches();
 
     if let Some(sub_m) = matches.subcommand_matches("evaluate") {
@@ -257,6 +262,11 @@ async fn main() -> anyhow::Result<()> {
             mode = SubcommandARCMode::RunAllTests;
         }
         SubcommandARC::run(mode)?;
+        return Ok(());
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("arc-competition") {
+        SubcommandARC::run(SubcommandARCMode::RunAllTests)?;
         return Ok(());
     }
 
