@@ -55,8 +55,8 @@ async fn main() -> anyhow::Result<()> {
     let matches = Command::new("loda-rust")
         .version("0.0.1")
         .about("Experimental tool")
-        // .arg_required_else_help(true)
-        // .subcommand_required(true)
+        .arg_required_else_help(true)
+        .subcommand_required(true)
         .subcommand(
             Command::new("evaluate")
                 .alias("eval")
@@ -146,6 +146,11 @@ async fn main() -> anyhow::Result<()> {
                     Arg::new("pattern")
                         .help("Only run tests where the filename contains the pattern")
                 )
+        )
+        .subcommand(
+            Command::new("arc-competition")
+                .about("ARC Challenge - experiments participating in the ARCathon competition. Runs inside a Docker image.")
+                .hide(true)
         )
         .get_matches();
 
@@ -260,6 +265,10 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    SubcommandARC::run(SubcommandARCMode::RunAllTests)?;
-    Ok(())
+    if let Some(_sub_m) = matches.subcommand_matches("arc-competition") {
+        SubcommandARC::run(SubcommandARCMode::RunAllTests)?;
+        return Ok(());
+    }
+
+    panic!("No arguments provided");
 }
