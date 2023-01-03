@@ -9,8 +9,8 @@ end
 
 desc "Prepare the contents of the /root dir. This is to be invoked before 'buildx-build'."
 task "payload" do
-    system("rsync -a --delete --exclude='.git/' /Users/neoneye/git/loda-arc-challenge/ payload/loda-arc-challenge")
-    system("rsync -a --delete /Users/neoneye/.loda-rust/analytics-arc/ payload/.loda-rust/analytics-arc")
+    system("rsync -a --delete --exclude='.git/' ~/git/loda-arc-challenge/ payload/loda-arc-challenge")
+    system("rsync -a --delete ~/.loda-rust/analytics-arc/ payload/.loda-rust/analytics-arc")
 end
 
 desc "Create a docker image with the LODA-RUST executable inside"
