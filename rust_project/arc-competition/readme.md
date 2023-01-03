@@ -25,7 +25,7 @@ rake run            # Runs the LODA-RUST process in an isolated container, in an
 rake shell          # Runs an interactive bash shell inside the docker image, so it's possible to troubleshoot
 ```
 
-The `payload` dir is places in the `/root` dir inside the docker image.
+The `payload` dir is copied into the `/root` dir inside the docker image, which is the `$HOME` dir.
 
 The `secret_data` dir is mounted at `/data` inside the docker image. This is how the docker image communicates with the outside world.
 
