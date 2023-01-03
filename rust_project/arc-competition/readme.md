@@ -29,6 +29,5 @@ The `payload` dir is copied into the `/root` dir inside the docker image, which 
 
 The `secret_data` dir is mounted at `/data` inside the docker image. This is how the docker image communicates with the outside world.
 
-The `/data/solution/solution_notXORdinary.json` contains the predicted solutions.
-While the puzzle solver code is running, it continuesly updates this file with its findings.
+The `/data/solution/solution_notXORdinary.json` contains the predicted solutions. While the puzzle solver code is running, it continuously updates this file with its findings.
 
