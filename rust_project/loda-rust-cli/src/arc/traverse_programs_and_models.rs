@@ -700,6 +700,7 @@ struct Record {
 }
 
 impl Record {
+    #[allow(dead_code)]
     fn load_record_vec(csv_path: &Path) -> anyhow::Result<Vec<Record>> {
         let record_vec: Vec<Record> = parse_csv_file(csv_path)
             .map_err(|e| anyhow::anyhow!("unable to parse csv file. error: {:?}", e))?;
