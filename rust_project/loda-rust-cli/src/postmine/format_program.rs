@@ -115,7 +115,8 @@ impl FormatProgram {
                     serializer.append_comment(format!("{}: {}", oeis_id, name));
                 },
                 None => {
-                    return Err(anyhow::anyhow!("missing sequence name for oeis_id {} for program {:?} content: {:?}", oeis_id, &self.program_path, self.program_content));
+                    error!("missing sequence name for oeis_id {} for program {:?}, please update to latest OEIS stripped/names files", oeis_id, &self.program_path);
+                    serializer.append_comment(format!("{}: Missing sequence name", oeis_id));
                 }
             }
         }
@@ -194,6 +195,18 @@ mod tests {
         fp.oeis_id_name_map(oeis_id_name_map);
         let formatted_program: String = fp.build()?;
         assert_eq!(formatted_program, "\nseq $0,45 ; Fibonacci\n");
+        Ok(())
+    }
+
+    #[test]
+    fn test_40002_format_program_without_name_for_program_oeis_id() -> Result<(), Box<dyn Error>> {
+        let oeis_id_name_map = OeisIdStringMap::new();
+        let program = "mul $0,2".to_string();
+        let mut fp = FormatProgram::new(program);
+        fp.program_oeis_id(OeisId::from(123456));
+        fp.oeis_id_name_map(oeis_id_name_map);
+        let formatted_program: String = fp.build()?;
+        assert_eq!(formatted_program, "; A123456: Missing sequence name\n\nmul $0,2\n");
         Ok(())
     }
 
