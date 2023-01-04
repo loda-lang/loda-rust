@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram, RunWithProgramResult, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
-    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate};
+    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageBorder};
     use crate::arc::{Image, convolution2x2, PopularObjects};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
@@ -1718,6 +1718,71 @@ mod tests {
         let mut result_image: Image = mask_image_biggest.clone();
         result_image = result_image.replace_color(0, background_color).expect("image");
         result_image = result_image.replace_color(1, fill_color).expect("image");
+
+        assert_eq!(result_image, output);
+    }
+
+    #[test]
+    fn test_290000_puzzle_00d62c1b() {
+        let model: Model = Model::load_testdata("00d62c1b").expect("model");
+        assert_eq!(model.train().len(), 5);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.train()[3].input().to_image().expect("image");
+        // let output: Image = model.train()[3].output().to_image().expect("image");
+        // let input: Image = model.train()[4].input().to_image().expect("image");
+        // let output: Image = model.train()[4].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let replacement_color: u8 = 4;
+        let background_color: u8 = input.histogram_border().most_popular().expect("color");
+        let border_mask_image: Image = Image::border_inner(input.width(), input.height(), 0, 1, 1).expect("image");
+
+        // Objects that is not the background
+        let object_mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::Neighbors).expect("find_objects");
+
+        // Traverse the interior objects. Replace color for the interior object.
+        let mut result_image: Image = input.clone();
+        for mask_image in &object_mask_vec {
+            let mask_image_border_overlap: Image = border_mask_image.select_from_image(mask_image, 0).expect("image");
+            let border_histogram: Histogram = input.histogram_with_mask(&mask_image_border_overlap).expect("histogram");
+            if let Some(border_color) = border_histogram.most_popular() {
+                if border_color == background_color {
+                    // println!("skip background object: {:?}", mask_image);
+                    continue;
+                }
+            }
+            
+            let mask_neighbour: Image = mask_image.outline_mask_neighbour().expect("image");
+
+            // println!("mask_image: {:?}", mask_image);
+            // println!("mask_neighbour: {:?}", mask_neighbour);
+            let histogram: Histogram = input.histogram_with_mask(&mask_neighbour).expect("histogram");
+            let pairs: Vec<(u32,u8)> = histogram.pairs_ascending();
+            if pairs.len() != 1 {
+                println!("expected 1 color in the histogram, but got: {:?}", pairs); 
+                continue;
+            }
+            let outline_color: u8 = histogram.most_popular().expect("expected 1 color");
+            if outline_color == background_color {
+                // Ignore non-interior objects
+                continue;
+            }
+            // println!("outline_color: {:?}", outline_color);
+            // println!("mask_image: {:?}", mask_image);
+            // println!("mask_neighbour: {:?}", mask_neighbour);
+
+            // Replace color only for the interior objects
+            let mask_inverted: Image = mask_image.invert_mask();
+            result_image = mask_inverted.select_from_image(&result_image, replacement_color).expect("image");
+        }
 
         assert_eq!(result_image, output);
     }
