@@ -1743,7 +1743,7 @@ mod tests {
 
         let replacement_color: u8 = 4;
         let background_color: u8 = input.histogram_border().most_popular().expect("color");
-        let border_mask_image: Image = Image::border_inner(input.width(), input.height(), 0, 1, 1).expect("image");
+        let border_mask_image: Image = Image::border_inside(input.width(), input.height(), 0, 1, 1).expect("image");
 
         // Objects that is not the background
         let object_mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::Neighbors).expect("find_objects");

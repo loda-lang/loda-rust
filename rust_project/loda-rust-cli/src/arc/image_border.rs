@@ -1,11 +1,14 @@
 use super::{Image, ImagePadding};
 
 pub trait ImageBorder {
-    fn border_inner(width: u8, height: u8, fill_color: u8, border_color: u8, border_size: u8) -> anyhow::Result<Image>;
+    /// Draw border inside an empty image.
+    /// 
+    /// Similar to CSS `border` with `box-sizing: border-box`.
+    fn border_inside(width: u8, height: u8, fill_color: u8, border_color: u8, border_size: u8) -> anyhow::Result<Image>;
 }
 
 impl ImageBorder for Image {
-    fn border_inner(width: u8, height: u8, fill_color: u8, border_color: u8, border_size: u8) -> anyhow::Result<Image> {
+    fn border_inside(width: u8, height: u8, fill_color: u8, border_color: u8, border_size: u8) -> anyhow::Result<Image> {
         if width == 0 || height == 0 {
             return Ok(Image::empty());
         }
@@ -31,9 +34,9 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_border_inner() {
+    fn test_10000_border_inside() {
         // Act
-        let actual: Image = Image::border_inner(6, 5, 1, 9, 3).expect("image");
+        let actual: Image = Image::border_inside(6, 5, 1, 9, 3).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -48,9 +51,9 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_border_inner() {
+    fn test_10001_border_inside() {
         // Act
-        let actual: Image = Image::border_inner(6, 5, 1, 9, 2).expect("image");
+        let actual: Image = Image::border_inside(6, 5, 1, 9, 2).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -65,9 +68,9 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_border_inner() {
+    fn test_10002_border_inside() {
         // Act
-        let actual: Image = Image::border_inner(6, 5, 1, 9, 1).expect("image");
+        let actual: Image = Image::border_inside(6, 5, 1, 9, 1).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -82,9 +85,9 @@ mod tests {
     }
 
     #[test]
-    fn test_10003_border_inner() {
+    fn test_10003_border_inside() {
         // Act
-        let actual: Image = Image::border_inner(6, 5, 1, 9, 0).expect("image");
+        let actual: Image = Image::border_inside(6, 5, 1, 9, 0).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
