@@ -1625,4 +1625,45 @@ mod tests {
 
         assert_eq!(result_image, output);
     }
+
+    #[test]
+    fn test_270000_puzzle_7f4411dc() {
+        let model: Model = Model::load_testdata("7f4411dc").expect("model");
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let background_color: u8 = input.histogram_border().most_popular().expect("color");
+        let result_image: Image = input.denoise_type1(background_color).expect("image");
+        assert_eq!(result_image, output);
+    }
+
+    const PROGRAM_7F4411DC: &'static str = "
+    mov $1,$0
+    f11 $1,101060 ; most popular color
+
+    ; $0 is noisy image
+    ; $1 is background_color
+    f21 $0,101090 ; denoise type 1
+    ; $0 is denoised image
+    ";
+
+    #[test]
+    fn test_270001_puzzle_7f4411dc_loda() {
+        let model: Model = Model::load_testdata("7f4411dc").expect("model");
+        let program = PROGRAM_7F4411DC;
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+    }
 }
