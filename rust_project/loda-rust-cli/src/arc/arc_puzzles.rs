@@ -1577,4 +1577,52 @@ mod tests {
         
         assert_eq!(result_image, output);
     }
+
+    #[test]
+    fn test_260000_puzzle_5521c0d9() {
+        let model: Model = Model::load_testdata("5521c0d9").expect("model");
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let background_color: u8 = input.histogram_border().most_popular().expect("color");
+        let object_mask: Image = input.to_mask_where_color_is(background_color);
+
+        // Objects that is not the background
+        let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, object_mask.clone())
+            .expect("find_objects_with_ignore_mask");
+
+        // Adjust offsets for all objects
+        let mut result_image: Image = Image::color(input.width(), input.height(), background_color);
+        for mask_image in &object_mask_vec {
+
+            // Bounding box of object
+            let (_x0, y0, _x1, _y1) = match mask_image.bounding_box() {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
+
+            // Determine how much to adjust offset
+            let distance_from_bottom: i32 = (input.height() as i32) - (y0 as i32);
+            let offset_y: i32 = -distance_from_bottom;
+
+            // Adjust offset
+            let mask_with_offset: Image = mask_image.offset_wrap(0, offset_y).expect("image");
+            let image_with_offset: Image = input.offset_wrap(0, offset_y).expect("image");
+
+            result_image = mask_with_offset.select_from_images(&result_image, &image_with_offset).expect("image");
+        }
+
+        assert_eq!(result_image, output);
+    }
 }
