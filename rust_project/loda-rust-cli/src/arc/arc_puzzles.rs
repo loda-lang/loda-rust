@@ -1666,4 +1666,60 @@ mod tests {
         assert_eq!(result.count_train_correct(), 3);
         assert_eq!(result.count_test_correct(), 1);
     }
+
+    #[test]
+    fn test_280000_puzzle_aabf363d() {
+        let model: Model = Model::load_testdata("aabf363d").expect("model");
+        assert_eq!(model.train().len(), 2);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let background_color: u8 = input.histogram_border().most_popular().expect("color");
+        let object_mask: Image = input.to_mask_where_color_is(background_color);
+
+        // Objects that is not the background
+        let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, object_mask.clone())
+            .expect("find_objects_with_ignore_mask");
+
+        // Traverse each object, and measure object size
+        let mut object_count_vec = Vec::<(Image, u32)>::new();
+        for mask_image in &object_mask_vec {
+            let histogram: Histogram = input.histogram_with_mask(&mask_image).expect("histogram");
+            let pairs: Vec<(u32,u8)> = histogram.pairs_ascending();
+
+            // Measure size of the object
+            let mut pixel_count: u32 = 0;
+            for pair in &pairs {
+                if pair.1 == background_color {
+                    continue;
+                }
+                pixel_count += pair.0;
+            }
+
+            object_count_vec.push((mask_image.clone(), pixel_count));
+        }
+
+        // Sort objects by their number of pixels
+        object_count_vec.sort_unstable_by_key(|item| (item.1));
+
+        // Pick the first the object with lowest pixel count
+        let (mask_image_biggest, _pixel_count) = object_count_vec.last().expect("first object");
+        let (mask_image_smallest, _pixel_count) = object_count_vec.first().expect("first object");
+
+        let histogram_smallest: Histogram = input.histogram_with_mask(&mask_image_smallest).expect("histogram");
+        let fill_color: u8 = histogram_smallest.most_popular().expect("color");
+
+        let mut result_image: Image = mask_image_biggest.clone();
+        result_image = result_image.replace_color(0, background_color).expect("image");
+        result_image = result_image.replace_color(1, fill_color).expect("image");
+
+        assert_eq!(result_image, output);
+    }
+
 }
