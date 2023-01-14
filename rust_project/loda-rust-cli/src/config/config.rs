@@ -340,7 +340,7 @@ impl SimpleEnvironment {
     }
 }
 
-fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: PathBuf) -> Config {
+pub fn config_from_toml_content(toml_content: String, basedir: PathBuf, homedir: PathBuf) -> Config {
     assert!(homedir.is_absolute());
     let simpleenv = SimpleEnvironment::new(homedir);
     let fallback: ConfigFallback = toml::from_str(&DEFAULT_CONFIG).unwrap();
