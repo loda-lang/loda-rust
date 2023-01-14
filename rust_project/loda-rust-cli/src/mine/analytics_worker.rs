@@ -64,7 +64,7 @@ fn perform_sync_and_analytics(
         Ok(value) => value,
         Err(error) => {
             Bastion::stop();
-            panic!("Problem executing MinerSyncExecute: {:?}", error);
+            panic!("Problem executing MinerSyncExecute. config.miner_sync_executable_command_windows: {:?}  config.miner_sync_executable: {:?}  error: {:?}", command_windows, executable_path, error);
         }
     };
     println!("Successfully executed MinerSyncExecute. status: {:?}", sync_status);
