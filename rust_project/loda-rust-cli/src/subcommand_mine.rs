@@ -1,5 +1,5 @@
 //! The `loda-rust mine` subcommand, runs the miner daemon process.
-use crate::config::{Config, NumberOfWorkers};
+use crate::config::{Config, NumberOfWorkers, ValidateConfig, ValidateConfigTask};
 use crate::mine::{analytics_worker, cronjob_worker, miner_worker, postmine_worker, upload_worker};
 use crate::mine::{MetricsWorker, PreventFlooding};
 use crate::mine::{coordinator_worker, CoordinatorWorkerMessage};
@@ -29,7 +29,7 @@ impl SubcommandMine {
     ) -> anyhow::Result<()> {
         Bastion::init();
         
-        let instance = SubcommandMine::new(metrics_mode);
+        let instance = SubcommandMine::new(metrics_mode)?;
         instance.prepare_mineevent_dir()?;
         instance.print_info();
         instance.start_metrics_worker()?;
@@ -70,15 +70,16 @@ impl SubcommandMine {
 
     fn new(
         metrics_mode: SubcommandMineMetricsMode
-    ) -> Self {
+    ) -> anyhow::Result<Self> {
         let config = Config::load();
+        config.validate_config_for_task(ValidateConfigTask::OeisMine)?;
         let number_of_workers: usize = config.resolve_number_of_miner_workers();
-        Self {
+        Ok(Self {
             metrics_mode: metrics_mode,
             number_of_workers: number_of_workers,
             config: config,
             prevent_flooding: Arc::new(Mutex::new(PreventFlooding::new())),
-        }
+        })
     }
 
     /// Create the `~/.loda-rust/mine-event` dir if needed
