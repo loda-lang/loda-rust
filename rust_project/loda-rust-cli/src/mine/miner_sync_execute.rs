@@ -41,14 +41,15 @@ impl MinerSyncExecute {
         }
 
         let output_stdout: String = String::from_utf8_lossy(&output.stdout).trim().to_string();    
+        let output_stderr: String = String::from_utf8_lossy(&output.stderr).trim().to_string();    
         if !output.status.success() {
-            return Err(anyhow::anyhow!("MinerSyncExecute with failing error code. executable_path: {:?} output: {:?}", executable_path, output_stdout));
+            return Err(anyhow::anyhow!("MinerSyncExecute with failing error code. executable_path: {:?} stdout: {:?} stderr: {:?}", executable_path, output_stdout, output_stderr));
         }
         let strings = output_stdout.trim().split("\n");
         let last_line: &str = match strings.last() {
             Some(value) => value,
             None => {
-                return Err(anyhow::anyhow!("MinerSyncExecute no output. Expected one or more lines of text output. executable_path: {:?}", executable_path));
+                return Err(anyhow::anyhow!("MinerSyncExecute no output to stdout. Expected one or more lines of text printed to stdout. executable_path: {:?} stderr: {:?}", executable_path, output_stderr));
             }
         };
         match last_line {
@@ -59,7 +60,7 @@ impl MinerSyncExecute {
                 return Ok(MinerSyncExecuteStatus::Changed);
             },
             _ => {
-                return Err(anyhow::anyhow!("MinerSyncExecute Output last line is invalid. executable_path: {:?} output: {:?} last_line: {:?}", executable_path, output_stdout, last_line));
+                return Err(anyhow::anyhow!("MinerSyncExecute Output last line is invalid. executable_path: {:?} stdout: {:?} stderr: {:?} last_line: {:?}", executable_path, output_stdout, output_stderr, last_line));
             }
         }
     }
