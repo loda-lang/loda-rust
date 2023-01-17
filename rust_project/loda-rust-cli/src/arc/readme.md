@@ -1,4 +1,4 @@
-# LODA-RUST - ARC Challenge
+# ARC is Abstraction and Reasoning Corpus
 
 Try solve a few of the easy puzzles
 https://volotat.github.io/ARC-Game/

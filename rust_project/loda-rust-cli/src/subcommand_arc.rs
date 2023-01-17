@@ -5,6 +5,7 @@ use crate::arc::TraverseProgramsAndModels;
 pub enum SubcommandARCMode {
     RunVerboseTestsOnlyForFilename { pattern: String },
     RunAllTests,
+    Competition,
 }
 
 pub struct SubcommandARC;
@@ -20,7 +21,10 @@ impl SubcommandARC {
             SubcommandARCMode::RunVerboseTestsOnlyForFilename { pattern } => {
                 instance.filter_model_item_vec_by_pattern(&pattern)?;
                 verbose = true;
-            }
+            },
+            SubcommandARCMode::Competition => {
+
+            },
         }
         instance.run(verbose)?;
         Ok(())

@@ -266,7 +266,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("arc-competition") {
-        SubcommandARC::run(SubcommandARCMode::RunAllTests)?;
+        SubcommandARC::run(SubcommandARCMode::Competition)?;
         return Ok(());
     }
 
