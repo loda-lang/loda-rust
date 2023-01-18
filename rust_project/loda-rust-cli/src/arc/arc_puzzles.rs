@@ -611,8 +611,8 @@ mod tests {
             let out_color0: u8 = output_histogram.most_popular_color().expect("u8");
             color_replacements.insert(in_color0, out_color0);
 
-            let in_color1: u8 = input_histogram.least_popular().expect("u8");
-            let out_color1: u8 = output_histogram.least_popular().expect("u8");
+            let in_color1: u8 = input_histogram.least_popular_color().expect("u8");
+            let out_color1: u8 = output_histogram.least_popular_color().expect("u8");
             color_replacements.insert(in_color1, out_color1);
         }
 
