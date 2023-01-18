@@ -252,7 +252,7 @@ async fn main() -> anyhow::Result<()> {
             let captures = match re.captures(raw) {
                 Some(value) => value,
                 None => {
-                    return Err(anyhow::anyhow!("Unable to pattern, expected hexadecimal text ala \"a7f2\" or \"f00d\""));
+                    return Err(anyhow::anyhow!("Unable to parse pattern, expected hexadecimal text ala \"a7f2\" or \"f00d\""));
                 }
             };
             let capture0: &str = captures.get(0).map_or("", |m| m.as_str());
