@@ -56,9 +56,17 @@ impl Histogram {
     }
 
     #[allow(dead_code)]
-    pub fn most_popular(&self) -> Option<u8> {
+    pub fn most_popular_color(&self) -> Option<u8> {
         if let Some((color, _count)) = self.most_popular_pair() {
             return Some(color);
+        }
+        None
+    }
+
+    #[allow(dead_code)]
+    pub fn most_popular_count(&self) -> Option<u32> {
+        if let Some((_color, count)) = self.most_popular_pair() {
+            return Some(count);
         }
         None
     }
@@ -214,33 +222,63 @@ mod tests {
     }
 
     #[test]
-    fn test_20002_most_popular_some() {
+    fn test_20002_most_popular_color_some() {
         // Arrange
         let mut h = Histogram::new();
         h.increment(42);
         h.increment(42);
-        h.increment(3);
-        h.increment(3);
-        h.increment(3);
+        h.increment(9);
+        h.increment(9);
+        h.increment(9);
         h.increment(2);
 
         // Act
-        let color: Option<u8> = h.most_popular();
+        let color: Option<u8> = h.most_popular_color();
 
         // Assert
-        assert_eq!(color, Some(3));
+        assert_eq!(color, Some(9));
     }
 
     #[test]
-    fn test_20003_most_popular_none() {
+    fn test_20003_most_popular_color_none() {
         // Arrange
         let h = Histogram::new();
 
         // Act
-        let color: Option<u8> = h.most_popular();
+        let color: Option<u8> = h.most_popular_color();
 
         // Assert
         assert_eq!(color, None);
+    }
+
+    #[test]
+    fn test_20004_most_popular_count_some() {
+        // Arrange
+        let mut h = Histogram::new();
+        h.increment(42);
+        h.increment(42);
+        h.increment(9);
+        h.increment(9);
+        h.increment(9);
+        h.increment(2);
+
+        // Act
+        let count: Option<u32> = h.most_popular_count();
+
+        // Assert
+        assert_eq!(count, Some(3));
+    }
+
+    #[test]
+    fn test_20005_most_popular_count_none() {
+        // Arrange
+        let h = Histogram::new();
+
+        // Act
+        let count: Option<u32> = h.most_popular_count();
+
+        // Assert
+        assert_eq!(count, None);
     }
 
     #[test]

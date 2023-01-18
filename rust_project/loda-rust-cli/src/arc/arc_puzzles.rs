@@ -607,8 +607,8 @@ mod tests {
             if output_histogram.number_of_counters_greater_than_zero() != 2 {
                 return Err(anyhow::anyhow!("output[{}] Expected exactly 2 colors", index));
             }
-            let in_color0: u8 = input_histogram.most_popular().expect("u8");
-            let out_color0: u8 = output_histogram.most_popular().expect("u8");
+            let in_color0: u8 = input_histogram.most_popular_color().expect("u8");
+            let out_color0: u8 = output_histogram.most_popular_color().expect("u8");
             color_replacements.insert(in_color0, out_color0);
 
             let in_color1: u8 = input_histogram.least_popular().expect("u8");
@@ -1539,7 +1539,7 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
-        let background_color: u8 = input.histogram_border().most_popular().expect("color");
+        let background_color: u8 = input.histogram_border().most_popular_color().expect("color");
         let object_mask: Image = input.to_mask_where_color_is(background_color);
 
         // Objects that is not the background
@@ -1593,7 +1593,7 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
-        let background_color: u8 = input.histogram_border().most_popular().expect("color");
+        let background_color: u8 = input.histogram_border().most_popular_color().expect("color");
         let object_mask: Image = input.to_mask_where_color_is(background_color);
 
         // Objects that is not the background
@@ -1641,7 +1641,7 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
-        let background_color: u8 = input.histogram_border().most_popular().expect("color");
+        let background_color: u8 = input.histogram_border().most_popular_color().expect("color");
         let result_image: Image = input.denoise_type1(background_color).expect("image");
         assert_eq!(result_image, output);
     }
@@ -1680,7 +1680,7 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
-        let background_color: u8 = input.histogram_border().most_popular().expect("color");
+        let background_color: u8 = input.histogram_border().most_popular_color().expect("color");
         let object_mask: Image = input.to_mask_where_color_is(background_color);
 
         // Objects that is not the background
@@ -1713,7 +1713,7 @@ mod tests {
         let (mask_image_smallest, _pixel_count) = object_count_vec.first().expect("first object");
 
         let histogram_smallest: Histogram = input.histogram_with_mask(&mask_image_smallest).expect("histogram");
-        let fill_color: u8 = histogram_smallest.most_popular().expect("color");
+        let fill_color: u8 = histogram_smallest.most_popular_color().expect("color");
 
         let mut result_image: Image = mask_image_biggest.clone();
         result_image = result_image.replace_color(0, background_color).expect("image");
@@ -1742,7 +1742,7 @@ mod tests {
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
         let replacement_color: u8 = 4;
-        let background_color: u8 = input.histogram_border().most_popular().expect("color");
+        let background_color: u8 = input.histogram_border().most_popular_color().expect("color");
         let border_mask_image: Image = Image::border_inside(input.width(), input.height(), 0, 1, 1).expect("image");
 
         // Objects that is not the background
@@ -1753,7 +1753,7 @@ mod tests {
         for mask_image in &object_mask_vec {
             let mask_image_border_overlap: Image = border_mask_image.select_from_image(mask_image, 0).expect("image");
             let border_histogram: Histogram = input.histogram_with_mask(&mask_image_border_overlap).expect("histogram");
-            if let Some(border_color) = border_histogram.most_popular() {
+            if let Some(border_color) = border_histogram.most_popular_color() {
                 if border_color == background_color {
                     // println!("skip background object: {:?}", mask_image);
                     continue;
@@ -1770,7 +1770,7 @@ mod tests {
                 println!("expected 1 color in the histogram, but got: {:?}", pairs); 
                 continue;
             }
-            let outline_color: u8 = histogram.most_popular().expect("expected 1 color");
+            let outline_color: u8 = histogram.most_popular_color().expect("expected 1 color");
             if outline_color == background_color {
                 // Ignore non-interior objects
                 continue;
@@ -1802,7 +1802,7 @@ mod tests {
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
 
-        let background_color: u8 = input.histogram_all().most_popular().expect("color");
+        let background_color: u8 = input.histogram_all().most_popular_color().expect("color");
         let ignore_mask = input.to_mask_where_color_is(background_color);
         let color_when_there_is_no_neighbour: u8 = 255;
 
@@ -1838,16 +1838,13 @@ mod tests {
                     histogram.increment(color_right);
                 }
 
-                match histogram.most_popular_pair() {
-                    Some((_color, count)) => {
-                        if count < 2 {
-                            continue;
-                        }
-                    },
-                    None => {
+                if let Some(count) = histogram.most_popular_count() {
+                    if count < 2 {
                         continue;
                     }
-                };
+                } else {
+                    continue;
+                }
 
                 let color_value: u8 = input.get(x, y).unwrap_or(255);
                 let _ = result_image.set(x, y, color_value);

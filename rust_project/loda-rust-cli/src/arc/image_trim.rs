@@ -13,7 +13,7 @@ impl ImageTrim for Image {
         // Determine what is the most popular pixel value
         // traverses the border of the bitmap, and builds a histogram
         let histogram: Histogram = self.histogram_border();
-        let popular_border_pixel_value: u8 = match histogram.most_popular() {
+        let popular_border_pixel_value: u8 = match histogram.most_popular_color() {
             Some(value) => value,
             None => {
                 return Ok(Image::empty());
