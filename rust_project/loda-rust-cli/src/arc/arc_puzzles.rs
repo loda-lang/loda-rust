@@ -2,7 +2,7 @@
 mod tests {
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram, RunWithProgramResult, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageBorder};
-    use crate::arc::{Image, convolution2x2, PopularObjects};
+    use crate::arc::{Image, convolution2x2, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
     use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole};
@@ -1782,6 +1782,88 @@ mod tests {
             // Replace color only for the interior objects
             let mask_inverted: Image = mask_image.invert_mask();
             result_image = mask_inverted.select_from_image(&result_image, replacement_color).expect("image");
+        }
+
+        assert_eq!(result_image, output);
+    }
+
+    #[test]
+    fn test_300000_puzzle_ae3edfdc() {
+        let model: Model = Model::load_testdata("ae3edfdc").expect("model");
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let background_color: u8 = input.histogram_all().most_popular().expect("color");
+        let ignore_mask = input.to_mask_where_color_is(background_color);
+        let color_when_there_is_no_neighbour: u8 = 255;
+
+        let neighbour_up: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Up, color_when_there_is_no_neighbour).expect("image");
+        let neighbour_left: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Left, color_when_there_is_no_neighbour).expect("image");
+        let neighbour_right: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Right, color_when_there_is_no_neighbour).expect("image");
+        let neighbour_down: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Down, color_when_there_is_no_neighbour).expect("image");
+
+        let mut result_image: Image = Image::color(input.width(), input.height(), background_color);
+        for y in 0..(input.height() as i32) {
+            for x in 0..(input.width() as i32) {
+                let mask_value: u8 = ignore_mask.get(x, y).unwrap_or(255);
+                if mask_value == 1 {
+                    continue;
+                }
+
+                let color_up: u8 = neighbour_up.get(x, y).unwrap_or(255);
+                let color_down: u8 = neighbour_down.get(x, y).unwrap_or(255);
+                let color_left: u8 = neighbour_left.get(x, y).unwrap_or(255);
+                let color_right: u8 = neighbour_right.get(x, y).unwrap_or(255);
+
+                let mut histogram = Histogram::new();
+                if color_up != color_when_there_is_no_neighbour {
+                    histogram.increment(color_up);
+                }
+                if color_down != color_when_there_is_no_neighbour {
+                    histogram.increment(color_down);
+                }
+                if color_left != color_when_there_is_no_neighbour {
+                    histogram.increment(color_left);
+                }
+                if color_right != color_when_there_is_no_neighbour {
+                    histogram.increment(color_right);
+                }
+
+                match histogram.most_popular_pair() {
+                    Some((_color, count)) => {
+                        if count < 2 {
+                            continue;
+                        }
+                    },
+                    None => {
+                        continue;
+                    }
+                };
+
+                let color_value: u8 = input.get(x, y).unwrap_or(255);
+                let _ = result_image.set(x, y, color_value);
+                if color_up != color_when_there_is_no_neighbour {
+                    let _ = result_image.set(x, y - 1, color_up);
+                }
+                if color_down != color_when_there_is_no_neighbour {
+                    let _ = result_image.set(x, y + 1, color_down);
+                }
+                if color_left != color_when_there_is_no_neighbour {
+                    let _ = result_image.set(x - 1, y, color_left);
+                }
+                if color_right != color_when_there_is_no_neighbour {
+                    let _ = result_image.set(x + 1, y, color_right);
+                }
+            }
         }
 
         assert_eq!(result_image, output);
