@@ -39,7 +39,7 @@ impl Histogram {
     }
 
     #[allow(dead_code)]
-    pub fn most_popular(&self) -> Option<u8> {
+    pub fn most_popular_pair(&self) -> Option<(u8, u32)> {
         let mut found_count: u32 = 0;
         let mut found_index: usize = 0;
         for (index, number_of_occurences) in self.counters.iter().enumerate() {
@@ -51,7 +51,16 @@ impl Histogram {
         if found_count == 0 {
             return None;
         }
-        Some((found_index & 255) as u8)
+        let color_value: u8 = (found_index & 255) as u8;
+        Some((color_value, found_count))
+    }
+
+    #[allow(dead_code)]
+    pub fn most_popular(&self) -> Option<u8> {
+        if let Some((color, _count)) = self.most_popular_pair() {
+            return Some(color);
+        }
+        None
     }
 
     #[allow(dead_code)]
@@ -175,7 +184,37 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_most_popular_some() {
+    fn test_20000_most_popular_pair_some() {
+        // Arrange
+        let mut h = Histogram::new();
+        h.increment(42);
+        h.increment(42);
+        h.increment(3);
+        h.increment(3);
+        h.increment(3);
+        h.increment(2);
+
+        // Act
+        let color_count: Option<(u8, u32)> = h.most_popular_pair();
+
+        // Assert
+        assert_eq!(color_count, Some((3,3)));
+    }
+
+    #[test]
+    fn test_20001_most_popular_pair_none() {
+        // Arrange
+        let h = Histogram::new();
+
+        // Act
+        let color_count: Option<(u8, u32)> = h.most_popular_pair();
+
+        // Assert
+        assert_eq!(color_count, None);
+    }
+
+    #[test]
+    fn test_20002_most_popular_some() {
         // Arrange
         let mut h = Histogram::new();
         h.increment(42);
@@ -193,7 +232,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_most_popular_none() {
+    fn test_20003_most_popular_none() {
         // Arrange
         let h = Histogram::new();
 
