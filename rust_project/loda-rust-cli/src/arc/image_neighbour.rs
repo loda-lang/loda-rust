@@ -151,7 +151,6 @@ impl ImageNeighbour for Image {
             for (x, y) in inner_positions {
                 if let Some(color_value) = current_color {
                     let _ = result_image.set(x, y, color_value);
-                    continue;
                 }
 
                 let mask_value: u8 = ignore_mask.get(x, y).unwrap_or(255);
@@ -472,7 +471,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_color_of_neighbour_left() {
+    fn test_20000_color_of_neighbour_left_3x4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 9,
@@ -494,6 +493,30 @@ mod tests {
             3, 3, 3,
         ];
         let expected = Image::create_raw(3, 4, expected_pixels);
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_20000_color_of_neighbour_left_6x3() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 9, 5, 0, 0,
+            0, 9, 0, 0, 5, 0,
+            9, 0, 0, 0, 0, 5,
+        ];
+        let input: Image = Image::try_create(6, 3, pixels).expect("image");
+        let ignore_mask = input.to_mask_where_color_is(0);
+
+        // Act
+        let output: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Left, 3).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            3, 3, 3, 9, 5, 5,
+            3, 3, 9, 9, 9, 5,
+            3, 9, 9, 9, 9, 9,
+        ];
+        let expected = Image::create_raw(6, 3, expected_pixels);
         assert_eq!(output, expected);
     }
 
