@@ -289,18 +289,6 @@ impl TraverseProgramsAndModels {
         Err(anyhow::anyhow!("unable to create a mutation in {} attempts", max_number_of_retries))
     }
 
-    #[allow(dead_code)]
-    fn genome_experiments(&self) -> anyhow::Result<()> {
-        for program_item in &self.program_item_vec {
-            let random_seed: u64 = 0;
-            let mutation_count: usize = 1;
-            let _ = self.mutate_program(&program_item.borrow(), random_seed, mutation_count)?;
-            println!("break after first iteration");
-            break;
-        }
-        Ok(())
-    }
-
     fn read_solutions_json(&self) -> anyhow::Result<Tasks> {
         let solution_teamid_json_string: String = match fs::read_to_string(&self.path_solution_teamid_json) {
             Ok(value) => value,
@@ -318,9 +306,6 @@ impl TraverseProgramsAndModels {
     }
 
     pub fn run(&mut self, verbose: bool) -> anyhow::Result<()> {
-        // self.genome_experiments()?;
-        // return Ok(());
-
         let verify_test_output = false;
         println!("verify_test_output: {:?}", verify_test_output);
 
