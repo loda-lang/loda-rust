@@ -18,7 +18,7 @@ use std::path::{PathBuf, Path};
 use std::rc::Rc;
 use std::time::Instant;
 use console::Style;
-use indicatif::{HumanDuration, ProgressBar};
+use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use serde::{Serialize, Deserialize};
@@ -417,7 +417,16 @@ impl TraverseProgramsAndModels {
         let mut count_match: usize = 0;
         let mut count_mismatch: usize = 0;
         let start = Instant::now();
-        let pb = ProgressBar::new(number_of_models_for_processing+1);
+
+        let multi_progress = MultiProgress::new();
+        let progress_style: ProgressStyle = ProgressStyle::with_template(
+            "{prefix} [{elapsed_precise}] {wide_bar} {pos:>5}/{len:5} {msg}",
+        )?;
+
+        let pb = multi_progress.add(ProgressBar::new(number_of_models_for_processing+1));
+        pb.set_style(progress_style.clone());
+        pb.set_prefix("Model  ");
+
         for model_item in self.model_item_vec.iter_mut() {
             pb.inc(1);
             if !model_item.enabled {
@@ -429,7 +438,12 @@ impl TraverseProgramsAndModels {
             let pairs: Vec<ImagePair> = model_item.model.images_all().expect("pairs");
     
             let mut found_one_or_more_solutions = false;
+
+            let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(scheduled_program_item_vec.len() as u64 + 1));
+            pb2.set_style(progress_style.clone());
+            pb2.set_prefix("Program");
             for (_program_index, program_item) in scheduled_program_item_vec.iter_mut().enumerate() {
+                pb2.inc(1);
 
                 let result: RunWithProgramResult;
                 match program_item.borrow().program_type {
@@ -458,7 +472,8 @@ impl TraverseProgramsAndModels {
                 }
 
                 if verbose {
-                    println!("model: {:?} program: {:?} result: {:?}", model_item.id, program_item.borrow().id, result);
+                    let s = format!("model: {:?} program: {:?} result: {:?}", model_item.id, program_item.borrow().id, result);
+                    pb.println(s);
                 }
 
                 let count: usize = result.count_train_correct() + result.count_test_correct();
@@ -508,6 +523,8 @@ impl TraverseProgramsAndModels {
                     model_item.enabled = false;
                 }
             }
+
+            pb2.finish_and_clear();
 
             if found_one_or_more_solutions {
                 count_match += 1;
@@ -578,7 +595,7 @@ impl TraverseProgramsAndModels {
                 return;
             }
         }
-        println!("updated solutions file: tasks.len(): {}", tasks.len());
+        debug!("updated solutions file: tasks.len(): {}", tasks.len());
     }
 }
 
