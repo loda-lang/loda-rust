@@ -1991,4 +1991,33 @@ mod tests {
         assert_eq!(result_image, output);
     }
 
+    #[test]
+    fn test_340000_puzzle_f8ff0b80() {
+        let model: Model = Model::load_testdata("f8ff0b80").expect("model");
+        assert_eq!(model.train().len(), 3);
+        assert_eq!(model.test().len(), 1);
+
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let input: Image = model.train()[1].input().to_image().expect("image");
+        // let output: Image = model.train()[1].output().to_image().expect("image");
+        // let input: Image = model.train()[2].input().to_image().expect("image");
+        // let output: Image = model.train()[2].output().to_image().expect("image");
+        // let input: Image = model.test()[0].input().to_image().expect("image");
+        // let output: Image = model.test()[0].output().to_image().expect("image");
+
+        let histogram: Histogram = input.histogram_all();
+        let histogram_image: Image = histogram.to_image().expect("image");
+
+        // Take the row with the colors, discard the row with the counters
+        let colors = histogram_image.bottom_rows(1).expect("image");
+
+        // Discard the 1 most popular color
+        let trimmed = colors.remove_left_columns(1).expect("image");
+
+        let result_image = trimmed.rotate(1).expect("image");
+
+        assert_eq!(result_image, output);
+    }
+
 }
