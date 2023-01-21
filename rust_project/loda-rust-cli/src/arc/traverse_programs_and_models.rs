@@ -419,11 +419,10 @@ impl TraverseProgramsAndModels {
         let start = Instant::now();
         let pb = ProgressBar::new(number_of_models_for_processing+1);
         for model_item in self.model_item_vec.iter_mut() {
-            // for model_item in &self.model_item_vec {
+            pb.inc(1);
             if !model_item.enabled {
                 continue;
             }
-            pb.inc(1);
             let model: Model = model_item.model.clone();
             let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
 
