@@ -348,6 +348,7 @@ impl TraverseProgramsAndModels {
         let mut count_error_compute: usize = 0;
         let mut count_error_incorrect: usize = 0;
         let mut count_partial_match: usize = 0;
+        let mut count_dangerous_false_positive: usize = 0;
 
         let pb = ProgressBar::new(self.program_item_vec.len() as u64 + 1);
         for (program_index, program_item) in self.program_item_vec.iter().enumerate() {
@@ -391,10 +392,15 @@ impl TraverseProgramsAndModels {
             let expected = format!("({},{})", pairs_train.len(), pairs_test.len());
             let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
             if actual != expected {
-                let count_correct = result.count_train_correct() + result.count_test_correct();
-                if count_correct > 0 {
-                    count_partial_match += 1;
-                    pb.println(format!("Partial solution. Expected {} but got {}. {:?}", expected, actual, program_item.borrow().id.file_name()));
+                if result.count_train_correct() == pairs_train.len() && result.count_test_correct() != pairs_test.len() {
+                    pb.println(format!("Dangerous false positive. Expected {} but got {}. {:?}", expected, actual, program_item.borrow().id.file_name()));
+                    count_dangerous_false_positive += 1;
+                } else {
+                    let count_correct = result.count_train_correct() + result.count_test_correct();
+                    if count_correct > 0 {
+                        count_partial_match += 1;
+                        pb.println(format!("Partial solution. Expected {} but got {}. {:?}", expected, actual, program_item.borrow().id.file_name()));
+                    }
                 }
                 if verbose {
                     pb.println(format!("ERROR: in row {}. program: {:?}. Expected {}, but got {}", program_index, program_item, expected, actual));
@@ -412,6 +418,9 @@ impl TraverseProgramsAndModels {
         debug!("count_partial_match: {}", count_partial_match);
         debug!("count_error_compute: {}", count_error_compute);
         debug!("count_error_incorrect: {}", count_error_incorrect);
+        if count_dangerous_false_positive > 0 {
+            error!("Encountered {} dangerous false positive solutions. These are unwanted.", count_dangerous_false_positive);
+        }
 
         if count_ok > 0 {
             let green_bold = Style::new().green().bold();        
