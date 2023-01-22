@@ -55,7 +55,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    pub fn new() -> anyhow::Result<Self> {
+    fn new() -> anyhow::Result<Self> {
         Analytics::arc_run_if_expired()?;
 
         let config = Config::load();
@@ -116,7 +116,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    pub fn filter_model_item_vec_by_pattern(&mut self, pattern: &String) -> anyhow::Result<()> {
+    fn filter_model_item_vec_by_pattern(&mut self, pattern: &String) -> anyhow::Result<()> {
         for model_item in self.model_item_vec.iter_mut() {
             model_item.enabled = false;
         }
@@ -191,7 +191,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    pub const INSTRUCTIONS_TO_LOCK: &'static str = r#"
+    const INSTRUCTIONS_TO_LOCK: &'static str = r#"
     mov $80,$97 ; set iteration counter = length of "train" vector
     mov $81,100 ; address of first training data train[0].input
     mov $82,101 ; address of first training data train[0].output
@@ -324,7 +324,7 @@ impl TraverseProgramsAndModels {
         Ok(tasks)
     }
 
-    pub fn run(&mut self, verbose: bool) -> anyhow::Result<()> {
+    fn run(&mut self, verbose: bool) -> anyhow::Result<()> {
         let verify_test_output = false;
         println!("verify_test_output: {:?}", verify_test_output);
 

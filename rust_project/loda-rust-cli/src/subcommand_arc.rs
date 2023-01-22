@@ -17,7 +17,6 @@ pub struct SubcommandARC;
 
 impl SubcommandARC {
     pub fn run(mode: SubcommandARCMode) -> anyhow::Result<()> {
-        println!("mode: {:?}", mode);
         match mode {
             SubcommandARCMode::CheckAllExistingSolutions => {
                 return TraverseProgramsAndModels::check_all_existing_solutions();
