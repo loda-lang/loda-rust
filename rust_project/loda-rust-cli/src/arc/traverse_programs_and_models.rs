@@ -344,200 +344,126 @@ impl TraverseProgramsAndModels {
 
     fn run_check_all_existing_solutions(&mut self, verbose: bool) -> anyhow::Result<()> {
         let verify_test_output = true;
-        println!("verify_test_output: {:?}", verify_test_output);
-
-        println!("initial model_item_vec.len: {:?}", self.model_item_vec.len());
 
         let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
         if !path_solutions_csv.is_file() {
             return Err(anyhow::anyhow!("there is no existing solutions.csv file, so the solutions cannot be checked. path_solutions_csv: {:?}", path_solutions_csv));
         }
 
-        let path_programs = self.config.loda_arc_challenge_repository_programs();
+        let record_vec: Vec<Record> = Record::load_record_vec(&path_solutions_csv)?;
+        debug!("solutions.csv: number of rows: {}", record_vec.len());
 
-        let mut record_vec: Vec<Record> = Record::load_record_vec(&path_solutions_csv)?;
-        println!("solutions.csv: number of rows: {}", record_vec.len());
+        let mut count_ok: usize = 0;
+        let mut count_error_other: usize = 0;
+        let mut count_error_compute: usize = 0;
+        let mut count_error_incorrect: usize = 0;
 
-        let mut file_names_to_ignore = HashSet::<String>::new();
-        for record in &record_vec {
-            file_names_to_ignore.insert(record.model_filename.clone());
+        let pb = ProgressBar::new(record_vec.len() as u64 + 1);
+        for (record_index, record) in record_vec.iter().enumerate() {
+            pb.inc(1);
 
+            // Extract the puzzle model
+            let mut candidate_model_items = Vec::<ModelItem>::new();
+            for model_item in &self.model_item_vec {
+                let file_name: String = model_item.id.file_name();
+                if file_name == record.model_filename {
+                    candidate_model_items.push(model_item.clone());
+                }
+            }
+            // There is supposed to be exactly 1 puzzle with this name.
+            if candidate_model_items.len() >= 2 {
+                pb.println(format!("ERROR: Expected 1 puzzle model for row in csv file, but got multiple. record_index: {}", record_index));
+                count_error_other += 1;
+                continue;
+            }
+            let model_item: ModelItem = match candidate_model_items.pop() {
+                Some(value) => value,
+                None => {
+                    pb.println(format!("ERROR: No puzzle model for row in csv file. record_index: {}", record_index));
+                    count_error_other += 1;
+                    continue;
+                }
+            };
+
+            // Extract the solution model
+            let mut candidate_programs = Vec::<Rc::<RefCell::<ProgramItem>>>::new();
             let program_filename: String = record.program_filename.clone();
             for program_item in &self.program_item_vec {
-                if program_item.borrow().id.file_name() == program_filename {
-                    program_item.borrow_mut().number_of_models += 1;
+                let this_file_name: String = program_item.borrow_mut().id.file_name();
+                if this_file_name == program_filename {
+                    candidate_programs.push(program_item.clone());
                 }
             }
-        }
-        for model_item in self.model_item_vec.iter_mut() {
-            let file_name: String = model_item.id.file_name();
-            if file_names_to_ignore.contains(&file_name) {
-                model_item.enabled = false;
-            }
-        }
-
-        let mut scheduled_program_item_vec: Vec<Rc<RefCell<ProgramItem>>> = Vec::<Rc<RefCell<ProgramItem>>>::new();
-        for program_item in self.program_item_vec.iter_mut() {
-            if program_item.borrow().number_of_models == 0 {
-                scheduled_program_item_vec.push(program_item.clone());
-            }
-        }
-
-        let mut number_of_models_for_processing: u64 = 0;
-        let mut number_of_models_ignored: u64 = 0;
-        for model_item in &self.model_item_vec {
-            if model_item.enabled {
-                number_of_models_for_processing += 1;
-            } else {
-                number_of_models_ignored += 1;
-            }
-        }
-        println!("number of models for processing: {}", number_of_models_for_processing);
-        println!("number of models being ignored: {}", number_of_models_ignored);
-
-        let mut count_match: usize = 0;
-        let mut count_mismatch: usize = 0;
-        let start = Instant::now();
-
-        let multi_progress = MultiProgress::new();
-        let progress_style: ProgressStyle = ProgressStyle::with_template(
-            "{prefix} [{elapsed_precise}] {wide_bar} {pos:>5}/{len:5} {msg}",
-        )?;
-
-        let pb = multi_progress.add(ProgressBar::new(number_of_models_for_processing+1));
-        pb.set_style(progress_style.clone());
-        pb.set_prefix("Model  ");
-
-        for model_item in self.model_item_vec.iter_mut() {
-            pb.inc(1);
-            if !model_item.enabled {
+            // There is supposed to be exactly 1 solution with this name.
+            if candidate_programs.len() >= 2 {
+                pb.println(format!("ERROR: Expected 1 solution model for row in csv file, but got multiple. record_index: {}", record_index));
+                count_error_other += 1;
                 continue;
             }
-            let model: Model = model_item.model.clone();
-            let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
-
-            let pairs: Vec<ImagePair> = model_item.model.images_all().expect("pairs");
+            let program_item: Rc<RefCell<ProgramItem>> = match candidate_programs.pop() {
+                Some(value) => value,
+                None => {
+                    pb.println(format!("ERROR: No solution model for row in csv file. record_index: {}", record_index));
+                    count_error_other += 1;
+                    continue;
+                }
+            };
     
-            let mut found_one_or_more_solutions = false;
+            let instance = RunWithProgram::new(model_item.model.clone(), verify_test_output).expect("RunWithProgram");
+            let pairs_train: Vec<ImagePair> = model_item.model.images_train().expect("pairs");
+            let pairs_test: Vec<ImagePair> = model_item.model.images_test().expect("pairs");
 
-            let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(scheduled_program_item_vec.len() as u64 + 1));
-            pb2.set_style(progress_style.clone());
-            pb2.set_prefix("Program");
-            for (_program_index, program_item) in scheduled_program_item_vec.iter_mut().enumerate() {
-                pb2.inc(1);
-
-                let result: RunWithProgramResult;
-                match program_item.borrow().program_type {
-                    ProgramType::Simple => {
-                        result = match instance.run_simple(&program_item.borrow().program_string) {
-                            Ok(value) => value,
-                            Err(error) => {
-                                if verbose {
-                                    error!("model: {:?} simple-program: {:?} error: {:?}", model_item.id, program_item.borrow().id, error);
-                                }
-                                continue;
-                            }
-                        };
-                    },
-                    ProgramType::Advance => {
-                        result = match instance.run_advanced(&program_item.borrow().program_string) {
-                            Ok(value) => value,
-                            Err(error) => {
-                                if verbose {
-                                    error!("model: {:?} advanced-program: {:?} error: {:?}", model_item.id, program_item.borrow().id, error);
-                                }
-                                continue;
-                            }
-                        };
-                    }
-                }
-
-                if verbose {
-                    let s = format!("model: {:?} program: {:?} result: {:?}", model_item.id, program_item.borrow().id, result);
-                    pb.println(s);
-                }
-
-                let count: usize = result.count_train_correct() + result.count_test_correct();
-
-                if count == pairs.len() {
-                    found_one_or_more_solutions = true;
-
-                    let model_filename: String = model_item.id.file_name();
-                    let mut program_filename: String = program_item.borrow().id.file_name();
-
-                    let is_mutation: bool = program_item.borrow().id == ProgramItemId::None;
-                    let is_first: bool = program_item.borrow().number_of_models == 0;
-                    if is_mutation && is_first {
-                        let content: String = program_item.borrow().program_string.clone();
-                        let mut s: String = model_filename.clone();
-                        s = s.replace(".json", "-x.asm");
-                        program_filename = s.clone();
-                        let path = path_programs.join(Path::new(&s));
-                        let mut file = File::create(&path)?;
-                        file.write_all(content.as_bytes())?;
-                    }
-
-                    let record = Record {
-                        model_filename: model_filename,
-                        program_filename,
+            let result: RunWithProgramResult;
+            match program_item.borrow().program_type {
+                ProgramType::Simple => {
+                    result = match instance.run_simple(&program_item.borrow().program_string) {
+                        Ok(value) => value,
+                        Err(error) => {
+                            count_error_compute += 1;
+                            pb.println(format!("ERROR: in row {}. record: {:?}. Run failed with error {:?}", record_index, record, error));
+                            continue;
+                        }
                     };
-                    record_vec.push(record);
-
-                    program_item.borrow_mut().number_of_models += 1;
-
-                    let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.id);
-                    pb.println(message);
-
-                    let predictions: Vec<Prediction> = result.predictions().clone();
-                    let test_item = TestItem { 
-                        output_id: 0,
-                        number_of_predictions: predictions.len() as u8,
-                        predictions: predictions,
+                },
+                ProgramType::Advance => {
+                    result = match instance.run_advanced(&program_item.borrow().program_string) {
+                        Ok(value) => value,
+                        Err(error) => {
+                            count_error_compute += 1;
+                            pb.println(format!("ERROR: in row {}. record: {:?}. Run failed with error {:?}", record_index, record, error));
+                            continue;
+                        }
                     };
-
-                    let task_name: String = model_item.id.file_stem();
-                    let task_item = TaskItem {
-                        task_name: task_name,
-                        test_vec: vec![test_item],
-                    };
-                    // current_tasks.push(task_item);
-                    model_item.enabled = false;
                 }
             }
 
-            pb2.finish_and_clear();
-
-            if found_one_or_more_solutions {
-                count_match += 1;
-            } else {
-                count_mismatch += 1;
+            if verbose {
+                let s = format!("model: {:?} program: {:?} result: {:?}", model_item.id, program_item.borrow().id, result);
+                pb.println(s);
             }
+
+            let expected = format!("({},{})", pairs_train.len(), pairs_test.len());
+            let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
+            if actual != expected {
+                pb.println(format!("ERROR: in row {}. record: {:?}. Expected {}, but got {}", record_index, record, expected, actual));
+                count_error_incorrect += 1;
+                continue;
+            }
+
+            count_ok += 1;
         }
         pb.finish_and_clear();
-        let green_bold = Style::new().green().bold();        
-        println!(
-            "{:>12} processing programs/models in {}",
-            green_bold.apply_to("Finished"),
-            HumanDuration(start.elapsed())
-        );
 
-        println!("number of matches: {} mismatches: {}", count_match, count_mismatch);
-
-        for program_item in &scheduled_program_item_vec {
-            if program_item.borrow().id == ProgramItemId::None {
-                continue;
-            }
-            if program_item.borrow().number_of_models == 0 {
-                println!("unused program {:?}, it doesn't solve any of the models, and can be removed", program_item.borrow().id);
-            }
-        }
-
-        record_vec.sort_unstable_by_key(|item| (item.model_filename.clone(), item.program_filename.clone()));
-        match create_csv_file(&record_vec, &path_solutions_csv) {
-            Ok(()) => {},
-            Err(error) => {
-                error!("Unable to save csv file: {:?}", error);
-            }
+        if count_ok == record_vec.len() {
+            let green_bold = Style::new().green().bold();        
+            println!("{}", green_bold.apply_to("Status: All solutions passes ok"));
+        } else {
+            println!("count_ok: {}", count_ok);
+            println!("count_error_other: {}", count_error_other);
+            println!("count_error_compute: {}", count_error_compute);
+            println!("count_error_incorrect: {}", count_error_incorrect);
+            let count_error: usize = count_error_incorrect + count_error_other + count_error_compute;
+            error!("There are {} errors that needs to be resolved. csv file: {:?}", count_error, path_solutions_csv);
         }
         Ok(())
     }
