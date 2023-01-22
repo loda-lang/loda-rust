@@ -82,8 +82,8 @@ impl TraverseProgramsAndModels {
             path_solution_dir,
             path_solution_teamid_json,
         };
-        instance.load_arc_models()?;
-        instance.load_programs()?;
+        instance.load_puzzle_files()?;
+        instance.load_solution_files()?;
         instance.init_locked_instruction_hashset()?;
         Ok(instance)
     }
@@ -98,7 +98,8 @@ impl TraverseProgramsAndModels {
         true
     }
 
-    fn load_arc_models(&mut self) -> anyhow::Result<()> {
+    /// Load all the ARC puzzle files into memory
+    fn load_puzzle_files(&mut self) -> anyhow::Result<()> {
         let repo_path: PathBuf = self.config.arc_repository_data();
         let all_json_paths: Vec<PathBuf> = find_json_files_recursively(&repo_path);
 
@@ -107,7 +108,7 @@ impl TraverseProgramsAndModels {
             .into_iter()
             .filter(Self::files_to_keep)
             .collect();
-        println!("arc_repository_data. number of json files: {}", paths.len());
+        debug!("arc_repository_data. number of json files: {}", paths.len());
 
         let mut model_item_vec = Vec::<ModelItem>::new();
         for path in &paths {
@@ -155,10 +156,11 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn load_programs(&mut self) -> anyhow::Result<()> {
+    /// Load all `.asm` programs into memory
+    fn load_solution_files(&mut self) -> anyhow::Result<()> {
         let path: PathBuf = self.config.loda_arc_challenge_repository_programs();
         let paths: Vec<PathBuf> = find_asm_files_recursively(&path);
-        println!("loda_arc_challenge_repository_programs. number of asm files: {}", paths.len());
+        debug!("loda_arc_challenge_repository_programs. number of asm files: {}", paths.len());
 
         let mut program_item_vec: Vec<Rc<RefCell<ProgramItem>>> = vec!();
         for path in &paths {
