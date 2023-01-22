@@ -44,13 +44,13 @@ impl TraverseProgramsAndModels {
 
     pub fn eval_single_puzzle_with_all_existing_solutions(pattern: String) -> anyhow::Result<()> {
         let instance = TraverseProgramsAndModels::new()?;
-        instance.eval_single_puzzle_with_all_existing_solutions_inner(&pattern, false)?;
+        instance.eval_single_puzzle_with_all_existing_solutions_inner(&pattern)?;
         Ok(())
     }
 
     pub fn check_all_existing_solutions() -> anyhow::Result<()> {
         let instance = TraverseProgramsAndModels::new()?;
-        instance.check_all_existing_solutions_inner(false)?;
+        instance.check_all_existing_solutions_inner()?;
         Ok(())
     }
 
@@ -318,7 +318,8 @@ impl TraverseProgramsAndModels {
         Ok(tasks)
     }
 
-    fn eval_single_puzzle_with_all_existing_solutions_inner(&self, pattern: &String, verbose: bool) -> anyhow::Result<()> {
+    fn eval_single_puzzle_with_all_existing_solutions_inner(&self, pattern: &String) -> anyhow::Result<()> {
+        let verbose = false;
         let verify_test_output = true;
 
         // Extract the puzzle model
@@ -433,7 +434,8 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn check_all_existing_solutions_inner(&self, verbose: bool) -> anyhow::Result<()> {
+    fn check_all_existing_solutions_inner(&self) -> anyhow::Result<()> {
+        let verbose = false;
         let verify_test_output = true;
 
         let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
