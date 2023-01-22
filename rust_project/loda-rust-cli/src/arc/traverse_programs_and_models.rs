@@ -42,16 +42,15 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    pub fn eval_by_filename(pattern: String) -> anyhow::Result<()> {
+    pub fn eval_single_puzzle_with_all_existing_solutions(pattern: String) -> anyhow::Result<()> {
         let mut instance = TraverseProgramsAndModels::new()?;
-        instance.filter_model_item_vec_by_pattern(&pattern)?;
-        instance.run_check_all_existing_solutions(true)?;
+        instance.eval_single_puzzle_with_all_existing_solutions_inner(&pattern, false)?;
         Ok(())
     }
 
     pub fn check_all_existing_solutions() -> anyhow::Result<()> {
         let mut instance = TraverseProgramsAndModels::new()?;
-        instance.run_check_all_existing_solutions(false)?;
+        instance.check_all_existing_solutions_inner(false)?;
         Ok(())
     }
 
@@ -130,29 +129,6 @@ impl TraverseProgramsAndModels {
             error!("Skipped some models. paths.len()={}, but model_item_vec.len()={}", paths.len(), model_item_vec.len());
         }
         self.model_item_vec = model_item_vec;
-        Ok(())
-    }
-
-    fn filter_model_item_vec_by_pattern(&mut self, pattern: &String) -> anyhow::Result<()> {
-        for model_item in self.model_item_vec.iter_mut() {
-            model_item.enabled = false;
-        }
-        let mut number_of_enabled: usize = 0;
-        for model_item in self.model_item_vec.iter_mut() {
-            match &model_item.id {
-                ModelItemId::None => {},
-                ModelItemId::Path { path } => {
-                    let s: String = path.to_string_lossy().to_string();
-                    if s.contains(pattern) {
-                        model_item.enabled = true;
-                        number_of_enabled += 1;
-                    }
-                }
-            }
-        }
-        if number_of_enabled == 0 {
-            return Err(anyhow::anyhow!("No files match the pattern: {}", pattern));
-        }
         Ok(())
     }
 
@@ -342,7 +318,113 @@ impl TraverseProgramsAndModels {
         Ok(tasks)
     }
 
-    fn run_check_all_existing_solutions(&mut self, verbose: bool) -> anyhow::Result<()> {
+    fn eval_single_puzzle_with_all_existing_solutions_inner(&mut self, pattern: &String, verbose: bool) -> anyhow::Result<()> {
+        let verify_test_output = true;
+
+        // Extract the puzzle model
+        let mut candidate_model_items = Vec::<ModelItem>::new();
+        for model_item in &self.model_item_vec {
+            let file_stem: String = model_item.id.file_stem();
+            if file_stem.contains(pattern) {
+                candidate_model_items.push(model_item.clone());
+            }
+        }
+        // There is supposed to be exactly 1 puzzle with this name.
+        if candidate_model_items.len() >= 2 {
+            return Err(anyhow::anyhow!("There are {} puzzles that matches the pattern, please specify a longer pattern: {:?}", candidate_model_items.len(), pattern));
+        }
+        let model_item: ModelItem = match candidate_model_items.pop() {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("No puzzle matches the specified pattern: {:?}", pattern));
+            }
+        };
+
+        let pairs_train: Vec<ImagePair> = model_item.model.images_train().expect("pairs");
+        let pairs_test: Vec<ImagePair> = model_item.model.images_test().expect("pairs");
+        println!("Evaluating the puzzle: {:?} train-pairs: {} test-pairs: {}", model_item.id, pairs_train.len(), pairs_test.len());
+
+        let mut count_ok: usize = 0;
+        let mut count_error_compute: usize = 0;
+        let mut count_error_incorrect: usize = 0;
+        let mut count_partial_match: usize = 0;
+
+        let pb = ProgressBar::new(self.program_item_vec.len() as u64 + 1);
+        for (program_index, program_item) in self.program_item_vec.iter().enumerate() {
+            pb.inc(1);
+
+            let instance = RunWithProgram::new(model_item.model.clone(), verify_test_output).expect("RunWithProgram");
+
+            let result: RunWithProgramResult;
+            match program_item.borrow().program_type {
+                ProgramType::Simple => {
+                    result = match instance.run_simple(&program_item.borrow().program_string) {
+                        Ok(value) => value,
+                        Err(error) => {
+                            count_error_compute += 1;
+                            if verbose {
+                                pb.println(format!("ERROR: in row {}. program: {:?}. Run failed with error {:?}", program_index, program_item, error));
+                            }
+                            continue;
+                        }
+                    };
+                },
+                ProgramType::Advance => {
+                    result = match instance.run_advanced(&program_item.borrow().program_string) {
+                        Ok(value) => value,
+                        Err(error) => {
+                            count_error_compute += 1;
+                            if verbose {
+                                pb.println(format!("ERROR: in row {}. program: {:?}. Run failed with error {:?}", program_index, program_item, error));
+                            }
+                            continue;
+                        }
+                    };
+                }
+            }
+
+            if verbose {
+                let s = format!("model: {:?} program: {:?} result: {:?}", model_item.id, program_item.borrow().id, result);
+                pb.println(s);
+            }
+
+            let expected = format!("({},{})", pairs_train.len(), pairs_test.len());
+            let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
+            if actual != expected {
+                let count_correct = result.count_train_correct() + result.count_test_correct();
+                if count_correct > 0 {
+                    count_partial_match += 1;
+                    pb.println(format!("Partial solution. Expected {} but got {}. {:?}", expected, actual, program_item.borrow().id.file_name()));
+                }
+                if verbose {
+                    pb.println(format!("ERROR: in row {}. program: {:?}. Expected {}, but got {}", program_index, program_item, expected, actual));
+                }
+                count_error_incorrect += 1;
+                continue;
+            }
+
+            count_ok += 1;
+            pb.println(format!("Found a solution: {:?}", program_item.borrow().id.file_name()));
+        }
+        pb.finish_and_clear();
+
+        debug!("STATS:");
+        debug!("count_partial_match: {}", count_partial_match);
+        debug!("count_error_compute: {}", count_error_compute);
+        debug!("count_error_incorrect: {}", count_error_incorrect);
+
+        if count_ok > 0 {
+            let green_bold = Style::new().green().bold();        
+            let s = format!("Status: Found {} solutions", count_ok);
+            println!("{}", green_bold.apply_to(&s));
+        } else {
+            let green_bold = Style::new().red().bold();        
+            println!("{}", green_bold.apply_to("Status: Found no solutions among the existing programs"));
+        }
+        Ok(())
+    }
+
+    fn check_all_existing_solutions_inner(&mut self, verbose: bool) -> anyhow::Result<()> {
         let verify_test_output = true;
 
         let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));

@@ -6,8 +6,8 @@ pub enum SubcommandARCMode {
     /// Check that all the existing solutions still works.
     CheckAllExistingSolutions,
 
-    /// Eval a single puzzle or solution and see the internal state of what is going on.
-    EvalByFilename { pattern: String },
+    /// Eval a single puzzle with all the existing solutions.
+    EvalSinglePuzzle { pattern: String },
 
     /// The code being executed inside the docker image submitted for the `ARCathon 1` contest.
     Competition,
@@ -21,8 +21,8 @@ impl SubcommandARC {
             SubcommandARCMode::CheckAllExistingSolutions => {
                 return TraverseProgramsAndModels::check_all_existing_solutions();
             },
-            SubcommandARCMode::EvalByFilename { pattern } => {
-                return TraverseProgramsAndModels::eval_by_filename(pattern);
+            SubcommandARCMode::EvalSinglePuzzle { pattern } => {
+                return TraverseProgramsAndModels::eval_single_puzzle_with_all_existing_solutions(pattern);
             },
             SubcommandARCMode::Competition => {
                 return TraverseProgramsAndModels::arc_competition();
