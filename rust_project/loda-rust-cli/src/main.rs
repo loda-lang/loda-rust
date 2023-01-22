@@ -140,16 +140,22 @@ async fn main() -> anyhow::Result<()> {
         )
         .subcommand(
             Command::new("arc")
-                .about("ARC Challenge run all tests.")
+                .about("ARC - Eval a single puzzle or solution and see the internal state of what is going on.")
                 .hide(true)
                 .arg(
                     Arg::new("pattern")
                         .help("Only run tests where the filename contains the pattern")
+                        .required(true)
                 )
         )
         .subcommand(
+            Command::new("arc-check")
+                .about("ARC - Check that all the existing solutions still works.")
+                .hide(true)
+        )
+        .subcommand(
             Command::new("arc-competition")
-                .about("ARC Challenge - experiments participating in the ARCathon competition. Runs inside a Docker image.")
+                .about("ARC - The code being executed inside the docker image submitted for the `ARCathon 1` contest.")
                 .hide(true)
         )
         .get_matches();
@@ -246,22 +252,23 @@ async fn main() -> anyhow::Result<()> {
     }
 
     if let Some(sub_m) = matches.subcommand_matches("arc") {
-        let mode: SubcommandARCMode;
-        if let Some(raw) = sub_m.value_of("pattern") {
-            let re = Regex::new("^[a-fA-F0-9]+$").unwrap();
-            let captures = match re.captures(raw) {
-                Some(value) => value,
-                None => {
-                    return Err(anyhow::anyhow!("Unable to parse pattern, expected hexadecimal text ala \"a7f2\" or \"f00d\""));
-                }
-            };
-            let capture0: &str = captures.get(0).map_or("", |m| m.as_str());
-            let pattern_string: String = capture0.to_string();
-            mode = SubcommandARCMode::RunVerboseTestsOnlyForFilename { pattern: pattern_string };
-        } else {
-            mode = SubcommandARCMode::RunAllTests;
-        }
+        let pattern_raw: &str = sub_m.value_of("pattern").expect("pattern");
+        let re = Regex::new("^[a-fA-F0-9]+$").unwrap();
+        let captures = match re.captures(pattern_raw) {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Unable to parse pattern, expected hexadecimal text ala \"a7f2\" or \"f00d\""));
+            }
+        };
+        let capture0: &str = captures.get(0).map_or("", |m| m.as_str());
+        let pattern_string: String = capture0.to_string();
+        let mode = SubcommandARCMode::EvalByFilename { pattern: pattern_string };
         SubcommandARC::run(mode)?;
+        return Ok(());
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("arc-check") {
+        SubcommandARC::run(SubcommandARCMode::CheckAllExistingSolutions)?;
         return Ok(());
     }
 

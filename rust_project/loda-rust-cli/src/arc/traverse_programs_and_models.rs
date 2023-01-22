@@ -36,6 +36,25 @@ pub struct TraverseProgramsAndModels {
 }
 
 impl TraverseProgramsAndModels {
+    pub fn arc_competition() -> anyhow::Result<()> {
+        let mut instance = TraverseProgramsAndModels::new()?;
+        instance.run(false)?;
+        Ok(())
+    }
+
+    pub fn eval_by_filename(pattern: String) -> anyhow::Result<()> {
+        let mut instance = TraverseProgramsAndModels::new()?;
+        instance.filter_model_item_vec_by_pattern(&pattern)?;
+        instance.run(true)?;
+        Ok(())
+    }
+
+    pub fn check_all_existing_solutions() -> anyhow::Result<()> {
+        let mut instance = TraverseProgramsAndModels::new()?;
+        instance.run(false)?;
+        Ok(())
+    }
+
     pub fn new() -> anyhow::Result<Self> {
         Analytics::arc_run_if_expired()?;
 
