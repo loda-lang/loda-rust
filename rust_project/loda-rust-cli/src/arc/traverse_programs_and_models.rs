@@ -28,7 +28,7 @@ static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 pub struct TraverseProgramsAndModels {
     config: Config,
     context: GenomeMutateContext,
-    model_item_vec: Vec<ModelItem>,
+    model_item_vec: Vec<Rc<RefCell<ModelItem>>>,
     program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
     locked_instruction_hashset: HashSet<String>,
     path_solution_dir: PathBuf,
@@ -116,7 +116,7 @@ impl TraverseProgramsAndModels {
             .collect();
         debug!("arc_repository_data. number of json files: {}", paths.len());
 
-        let mut model_item_vec = Vec::<ModelItem>::new();
+        let mut model_item_vec: Vec<Rc<RefCell<ModelItem>>> = vec!();
         for path in &paths {
             let model = match Model::load_with_json_file(path) {
                 Ok(value) => value,
@@ -125,11 +125,12 @@ impl TraverseProgramsAndModels {
                     continue;
                 }
             };
-            let item = ModelItem {
+            let instance = ModelItem {
                 id: ModelItemId::Path { path: path.clone() },
                 model,
                 enabled: true,
             };
+            let item = Rc::new(RefCell::new(instance));
             model_item_vec.push(item);
         }
         if model_item_vec.len() != paths.len() {
@@ -332,9 +333,9 @@ impl TraverseProgramsAndModels {
         // Extract the puzzle model
         let mut candidate_model_items = Vec::<ModelItem>::new();
         for model_item in &self.model_item_vec {
-            let file_stem: String = model_item.id.file_stem();
+            let file_stem: String = model_item.borrow().id.file_stem();
             if file_stem.contains(pattern) {
-                candidate_model_items.push(model_item.clone());
+                candidate_model_items.push(model_item.borrow().clone());
             }
         }
         // There is supposed to be exactly 1 puzzle with this name.
@@ -465,9 +466,9 @@ impl TraverseProgramsAndModels {
             // Extract the puzzle model
             let mut candidate_model_items = Vec::<ModelItem>::new();
             for model_item in &self.model_item_vec {
-                let file_name: String = model_item.id.file_name();
+                let file_name: String = model_item.borrow().id.file_name();
                 if file_name == record.model_filename {
-                    candidate_model_items.push(model_item.clone());
+                    candidate_model_items.push(model_item.borrow().clone());
                 }
             }
             // There is supposed to be exactly 1 puzzle with this name.
@@ -600,13 +601,13 @@ impl TraverseProgramsAndModels {
                 pb.inc(1);
             }
 
-            let print_prefix_puzzle_id: String = format!("Puzzle#{} {:?}", model_index, model_item.id.file_name());
+            let print_prefix_puzzle_id: String = format!("Puzzle#{} {:?}", model_index, model_item.borrow().id.file_name());
 
-            let model: Model = model_item.model.clone();
+            let model: Model = model_item.borrow().model.clone();
+            let pairs_train: Vec<ImagePair> = model.images_train().expect("pairs");
+            let pairs_test: Vec<ImagePair> = model.images_test().expect("pairs");
+
             let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
-
-            let pairs_train: Vec<ImagePair> = model_item.model.images_train().expect("pairs");
-            let pairs_test: Vec<ImagePair> = model_item.model.images_test().expect("pairs");
     
             let pb2 = multi_progress.insert_after(&pb, ProgressBar::new( self.program_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
@@ -625,7 +626,7 @@ impl TraverseProgramsAndModels {
                             Err(error) => {
                                 count_compute_error += 1;
                                 if verbose {
-                                    error!("model: {:?} simple-program: {:?} error: {:?}", model_item.id, program_item.borrow().id, error);
+                                    error!("model: {:?} simple-program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
                                 }
                                 continue;
                             }
@@ -637,7 +638,7 @@ impl TraverseProgramsAndModels {
                             Err(error) => {
                                 count_compute_error += 1;
                                 if verbose {
-                                    error!("model: {:?} advanced-program: {:?} error: {:?}", model_item.id, program_item.borrow().id, error);
+                                    error!("model: {:?} advanced-program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
                                 }
                                 continue;
                             }
@@ -646,7 +647,7 @@ impl TraverseProgramsAndModels {
                 }
 
                 if verbose {
-                    let s = format!("model: {:?} program: {:?} result: {:?}", model_item.id, program_item.borrow().id, result);
+                    let s = format!("model: {:?} program: {:?} result: {:?}", model_item.borrow().id, program_item.borrow().id, result);
                     pb.println(s);
                 }
 
@@ -675,7 +676,7 @@ impl TraverseProgramsAndModels {
                 count_ok += 1;
                 program_item.borrow_mut().number_of_models += 1;
 
-                let model_filename: String = model_item.id.file_name();
+                let model_filename: String = model_item.borrow().id.file_name();
                 let program_filename: String = program_item.borrow().id.file_name();
                 let record = Record {
                     model_filename: model_filename,
@@ -750,9 +751,9 @@ impl TraverseProgramsAndModels {
 
         let mut number_of_disabled_model_items: usize = 0;
         for model_item in self.model_item_vec.iter_mut() {
-            let file_stem: String = model_item.id.file_stem();
+            let file_stem: String = model_item.borrow().id.file_stem();
             if task_names_to_ignore.contains(&file_stem) {
-                model_item.enabled = false;
+                model_item.borrow_mut().enabled = false;
                 number_of_disabled_model_items += 1;
             }
         }
@@ -777,8 +778,8 @@ impl TraverseProgramsAndModels {
                 }
                 let puzzle_filename: String = record.model_filename.clone();
                 for model_item in self.model_item_vec.iter_mut() {
-                    if model_item.id.file_name() == puzzle_filename {
-                        model_item.enabled = false;
+                    if model_item.borrow().id.file_name() == puzzle_filename {
+                        model_item.borrow_mut().enabled = false;
                     }
                 }
             }
@@ -789,7 +790,7 @@ impl TraverseProgramsAndModels {
             let mut number_of_solved_puzzles: usize = 0;
             let mut number_of_unsolved_puzzles: usize = 0;
             for model_item in self.model_item_vec.iter_mut() {
-                if model_item.enabled {
+                if model_item.borrow().enabled {
                     number_of_unsolved_puzzles += 1;
                 } else {
                     number_of_solved_puzzles += 1;
@@ -832,7 +833,7 @@ impl TraverseProgramsAndModels {
         let mut number_of_models_for_processing: u64 = 0;
         let mut number_of_models_ignored: u64 = 0;
         for model_item in &self.model_item_vec {
-            if model_item.enabled {
+            if model_item.borrow().enabled {
                 number_of_models_for_processing += 1;
             } else {
                 number_of_models_ignored += 1;
@@ -875,13 +876,14 @@ impl TraverseProgramsAndModels {
                     pb2.inc(1);
                 }
 
-                if !model_item.enabled {
+                if !model_item.borrow().enabled {
                     continue;
                 }
-                let model: Model = model_item.model.clone();
+                let model: Model = model_item.borrow().model.clone();
+
+                let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+
                 let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
-    
-                let pairs: Vec<ImagePair> = model_item.model.images_all().expect("pairs");
     
                 let result: RunWithProgramResult;
                 match program_item.borrow().program_type {
@@ -890,7 +892,7 @@ impl TraverseProgramsAndModels {
                             Ok(value) => value,
                             Err(error) => {
                                 if verbose {
-                                    error!("model: {:?} simple-program: {:?} error: {:?}", model_item.id, program_item.borrow().id, error);
+                                    error!("model: {:?} simple-program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
                                 }
                                 continue;
                             }
@@ -901,7 +903,7 @@ impl TraverseProgramsAndModels {
                             Ok(value) => value,
                             Err(error) => {
                                 if verbose {
-                                    error!("model: {:?} advanced-program: {:?} error: {:?}", model_item.id, program_item.borrow().id, error);
+                                    error!("model: {:?} advanced-program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
                                 }
                                 continue;
                             }
@@ -910,7 +912,7 @@ impl TraverseProgramsAndModels {
                 }
 
                 if verbose {
-                    let s = format!("model: {:?} program: {:?} result: {:?}", model_item.id, program_item.borrow().id, result);
+                    let s = format!("model: {:?} program: {:?} result: {:?}", model_item.borrow().id, program_item.borrow().id, result);
                     pb.println(s);
                 }
 
@@ -919,7 +921,7 @@ impl TraverseProgramsAndModels {
                 if count == pairs.len() {
                     found_one_or_more_solutions = true;
 
-                    let model_filename: String = model_item.id.file_name();
+                    let model_filename: String = model_item.borrow().id.file_name();
                     let mut program_filename: String = program_item.borrow().id.file_name();
 
                     let is_mutation: bool = program_item.borrow().id == ProgramItemId::None;
@@ -943,7 +945,7 @@ impl TraverseProgramsAndModels {
 
                     program_item.borrow_mut().number_of_models += 1;
 
-                    let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.id);
+                    let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.borrow().id);
                     pb.println(message);
 
                     let predictions: Vec<Prediction> = result.predictions().clone();
@@ -953,13 +955,13 @@ impl TraverseProgramsAndModels {
                         predictions: predictions,
                     };
 
-                    let task_name: String = model_item.id.file_stem();
+                    let task_name: String = model_item.borrow().id.file_stem();
                     let task_item = TaskItem {
                         task_name: task_name,
                         test_vec: vec![test_item],
                     };
                     current_tasks.push(task_item);
-                    model_item.enabled = false;
+                    model_item.borrow_mut().enabled = false;
                 }
             }
 
