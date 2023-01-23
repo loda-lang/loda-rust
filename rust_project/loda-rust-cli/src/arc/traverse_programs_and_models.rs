@@ -731,10 +731,8 @@ impl TraverseProgramsAndModels {
 
     fn run_arc_competition(&mut self, verbose: bool) -> anyhow::Result<()> {
         let verify_test_output = false;
-        println!("verify_test_output: {:?}", verify_test_output);
 
         println!("initial model_item_vec.len: {:?}", self.model_item_vec.len());
-
 
         let initial_tasks: Tasks = match self.read_solutions_json() {
             Ok(value) => value,
@@ -765,29 +763,41 @@ impl TraverseProgramsAndModels {
 
         let mut record_vec = Vec::<Record>::new();
 
-        // let ignore_models_with_a_solution: bool = path_solutions_csv.is_file();
-        // if ignore_models_with_a_solution {
-        //     record_vec = Record::load_record_vec(&path_solutions_csv)?;
-        //     println!("solutions.csv: number of rows: {}", record_vec.len());
+        let ignore_puzzles_with_a_solution: bool = path_solutions_csv.is_file();
+        if ignore_puzzles_with_a_solution {
+            record_vec = Record::load_record_vec(&path_solutions_csv)?;
+            debug!("solutions.csv: number of rows: {}", record_vec.len());
     
-        //     let mut file_names_to_ignore = HashSet::<String>::new();
-        //     for record in &record_vec {
-        //         file_names_to_ignore.insert(record.model_filename.clone());
+            for record in &record_vec {
+                let program_filename: String = record.program_filename.clone();
+                for program_item in &self.program_item_vec {
+                    if program_item.borrow().id.file_name() == program_filename {
+                        program_item.borrow_mut().number_of_models += 1;
+                    }
+                }
+                let puzzle_filename: String = record.model_filename.clone();
+                for model_item in self.model_item_vec.iter_mut() {
+                    if model_item.id.file_name() == puzzle_filename {
+                        model_item.enabled = false;
+                    }
+                }
+            }
+        }
 
-        //         let program_filename: String = record.program_filename.clone();
-        //         for program_item in &self.program_item_vec {
-        //             if program_item.borrow().id.file_name() == program_filename {
-        //                 program_item.borrow_mut().number_of_models += 1;
-        //             }
-        //         }
-        //     }
-        //     for model_item in self.model_item_vec.iter_mut() {
-        //         let file_name: String = model_item.id.file_name();
-        //         if file_names_to_ignore.contains(&file_name) {
-        //             model_item.enabled = false;
-        //         }
-        //     }
-        // }
+        // Summary of what puzzles are to be solved
+        {
+            let mut number_of_solved_puzzles: usize = 0;
+            let mut number_of_unsolved_puzzles: usize = 0;
+            for model_item in self.model_item_vec.iter_mut() {
+                if model_item.enabled {
+                    number_of_unsolved_puzzles += 1;
+                } else {
+                    number_of_solved_puzzles += 1;
+                }
+            }
+            println!("puzzles solved: {}", number_of_solved_puzzles);
+            println!("puzzles unsolved: {}", number_of_unsolved_puzzles);
+        }
 
         let mut scheduled_program_item_vec: Vec<Rc<RefCell<ProgramItem>>> = Vec::<Rc<RefCell<ProgramItem>>>::new();
         for program_item in self.program_item_vec.iter_mut() {
@@ -849,7 +859,7 @@ impl TraverseProgramsAndModels {
 
         let pb = multi_progress.add(ProgressBar::new(number_of_models_for_processing));
         pb.set_style(progress_style.clone());
-        pb.set_prefix("Model  ");
+        pb.set_prefix("Puzzle  ");
 
         for (model_index, model_item) in self.model_item_vec.iter_mut().enumerate() {
             if model_index > 0 {
@@ -867,7 +877,7 @@ impl TraverseProgramsAndModels {
 
             let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(scheduled_program_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
-            pb2.set_prefix("Program");
+            pb2.set_prefix("Solution");
             for (program_index, program_item) in scheduled_program_item_vec.iter_mut().enumerate() {
                 if program_index > 0 {
                     pb2.inc(1);
@@ -929,6 +939,7 @@ impl TraverseProgramsAndModels {
                         program_filename,
                     };
                     record_vec.push(record);
+                    Record::save_solutions_csv(&record_vec, &path_solutions_csv);
 
                     program_item.borrow_mut().number_of_models += 1;
 
@@ -988,14 +999,6 @@ impl TraverseProgramsAndModels {
             }
         }
 
-        record_vec.sort_unstable_by_key(|item| (item.model_filename.clone(), item.program_filename.clone()));
-        match create_csv_file(&record_vec, &path_solutions_csv) {
-            Ok(()) => {},
-            Err(error) => {
-                error!("Unable to save csv file: {:?}", error);
-            }
-        }
-    
         println!("Done!");
         Ok(())
     }
