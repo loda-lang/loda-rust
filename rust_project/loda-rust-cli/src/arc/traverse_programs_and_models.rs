@@ -873,6 +873,7 @@ impl TraverseProgramsAndModels {
             pb2.set_prefix("Puzzle  ");
             for (model_index, model_item) in self.model_item_vec.iter_mut().enumerate() {
                 if model_index > 0 {
+                    pb.tick();
                     pb2.inc(1);
                 }
 
