@@ -54,6 +54,13 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    /// Compare all puzzles with all solutions and output a CSV file
+    pub fn generate_solution_csv() -> anyhow::Result<()> {
+        let mut instance = TraverseProgramsAndModels::new()?;
+        instance.generate_solution_csv_inner()?;
+        Ok(())
+    }
+
     fn new() -> anyhow::Result<Self> {
         Analytics::arc_run_if_expired()?;
 
@@ -561,6 +568,177 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    fn generate_solution_csv_inner(&mut self) -> anyhow::Result<()> {
+        let verbose = false;
+        let verify_test_output = true;
+
+        let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
+
+        let mut record_vec = Vec::<Record>::new();
+        Self::save_solutions_csv(&record_vec, &path_solutions_csv);
+
+        let start = Instant::now();
+
+        let mut count_ok: usize = 0;
+        let mut count_dangerous_false_positive: usize = 0;
+        let mut count_partial_match: usize = 0;
+        let mut count_incorrect: usize = 0;
+        let mut count_compute_error: usize = 0;
+
+        let multi_progress = MultiProgress::new();
+        let progress_style: ProgressStyle = ProgressStyle::with_template(
+            "{prefix} [{elapsed_precise}] {wide_bar} {pos:>5}/{len:5} {msg}",
+        )?;
+
+        let pb = multi_progress.add(ProgressBar::new(self.model_item_vec.len() as u64));
+        pb.set_style(progress_style.clone());
+        pb.set_prefix("Puzzle  ");
+        pb.tick();
+
+        for (model_index, model_item) in self.model_item_vec.iter_mut().enumerate() {
+            if model_index > 0 {
+                pb.inc(1);
+            }
+
+            let print_prefix_puzzle_id: String = format!("Puzzle#{} {:?}", model_index, model_item.id.file_name());
+
+            let model: Model = model_item.model.clone();
+            let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
+
+            let pairs_train: Vec<ImagePair> = model_item.model.images_train().expect("pairs");
+            let pairs_test: Vec<ImagePair> = model_item.model.images_test().expect("pairs");
+    
+            let pb2 = multi_progress.insert_after(&pb, ProgressBar::new( self.program_item_vec.len() as u64));
+            pb2.set_style(progress_style.clone());
+            pb2.set_prefix("Solution");
+            pb2.tick();
+            for (program_index, program_item) in self.program_item_vec.iter_mut().enumerate() {
+                if program_index > 0 {
+                    pb2.inc(1);
+                }
+
+                let result: RunWithProgramResult;
+                match program_item.borrow().program_type {
+                    ProgramType::Simple => {
+                        result = match instance.run_simple(&program_item.borrow().program_string) {
+                            Ok(value) => value,
+                            Err(error) => {
+                                count_compute_error += 1;
+                                if verbose {
+                                    error!("model: {:?} simple-program: {:?} error: {:?}", model_item.id, program_item.borrow().id, error);
+                                }
+                                continue;
+                            }
+                        };
+                    },
+                    ProgramType::Advance => {
+                        result = match instance.run_advanced(&program_item.borrow().program_string) {
+                            Ok(value) => value,
+                            Err(error) => {
+                                count_compute_error += 1;
+                                if verbose {
+                                    error!("model: {:?} advanced-program: {:?} error: {:?}", model_item.id, program_item.borrow().id, error);
+                                }
+                                continue;
+                            }
+                        };
+                    }
+                }
+
+                if verbose {
+                    let s = format!("model: {:?} program: {:?} result: {:?}", model_item.id, program_item.borrow().id, result);
+                    pb.println(s);
+                }
+
+                let expected = format!("({},{})", pairs_train.len(), pairs_test.len());
+                let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
+                if actual != expected {
+                    if result.count_train_correct() == pairs_train.len() && result.count_test_correct() != pairs_test.len() {
+                        pb.println(format!("{} - Dangerous false positive. Expected {} but got {}. {:?}", print_prefix_puzzle_id, expected, actual, program_item.borrow().id.file_name()));
+                        count_dangerous_false_positive += 1;
+                        continue;
+                    }
+                    let count_correct = result.count_train_correct() + result.count_test_correct();
+                    if count_correct > 0 {
+                        count_partial_match += 1;
+                        pb.println(format!("{} - Partial solution. Expected {} but got {}. {:?}", print_prefix_puzzle_id, expected, actual, program_item.borrow().id.file_name()));
+                        continue;
+                    }
+                    if verbose {
+                        pb.println(format!("ERROR: in row {}. program: {:?}. Expected {}, but got {}", program_index, program_item, expected, actual));
+                    }
+                    count_incorrect += 1;
+                    continue;
+                }
+    
+                pb.println(format!("{} - Found a solution: {:?}", print_prefix_puzzle_id, program_item.borrow().id.file_name()));
+                count_ok += 1;
+
+                let model_filename: String = model_item.id.file_name();
+                let program_filename: String = program_item.borrow().id.file_name();
+                let record = Record {
+                    model_filename: model_filename,
+                    program_filename,
+                };
+                record_vec.push(record);
+                Self::save_solutions_csv(&record_vec, &path_solutions_csv);
+            }
+
+            pb2.finish_and_clear();
+        }
+        pb.finish_and_clear();
+        let green_bold = Style::new().green().bold();        
+        println!(
+            "{:>12} processing all puzzles with all solutions in {}",
+            green_bold.apply_to("Finished"),
+            HumanDuration(start.elapsed())
+        );
+
+        Self::save_solutions_csv(&record_vec, &path_solutions_csv);
+
+        // Print out names of unused programs that serves no purpose and can be removed
+        let mut unused_programs = Vec::<String>::new();
+        for program_item in &self.program_item_vec {
+            if program_item.borrow().id == ProgramItemId::None {
+                continue;
+            }
+            if program_item.borrow().number_of_models == 0 {
+                let filename: String = program_item.borrow().id.file_name();
+                unused_programs.push(filename);
+            }
+        }
+        if !unused_programs.is_empty() {
+            error!("There are {} unused programs. These doesn't solve any of the models, and can be removed.", unused_programs.len());
+            for filename in unused_programs {
+                println!("UNUSED {:?}", filename);
+            }
+        }
+    
+        // Stats
+        println!("row count in solutions csv file: {}", record_vec.len());
+        println!("count_ok: {}", count_ok);
+        println!("count_incorrect: {}", count_incorrect);
+        println!("count_compute_error: {}", count_compute_error);
+        println!("count_partial_match: {}", count_partial_match);
+        if count_dangerous_false_positive > 0 {
+            error!("count_dangerous_false_positive: {}", count_dangerous_false_positive);
+        } else {
+            println!("count_dangerous_false_positive: {}", count_dangerous_false_positive);
+        }
+        Ok(())
+    }
+
+    fn save_solutions_csv(record_vec: &Vec<Record>, path_csv: &Path) {
+        let mut record_vec: Vec<Record> = record_vec.clone();
+        record_vec.sort_unstable_by_key(|item| (item.model_filename.clone(), item.program_filename.clone()));
+        match create_csv_file(&record_vec, &path_csv) {
+            Ok(()) => {},
+            Err(error) => {
+                error!("Unable to save csv file: {:?}", error);
+            }
+        }
+    }
+
     fn run_arc_competition(&mut self, verbose: bool) -> anyhow::Result<()> {
         let verify_test_output = false;
         println!("verify_test_output: {:?}", verify_test_output);
@@ -948,7 +1126,7 @@ struct ProgramItem {
     number_of_models: usize,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 struct Record {
     #[serde(rename = "model filename")]
     model_filename: String,

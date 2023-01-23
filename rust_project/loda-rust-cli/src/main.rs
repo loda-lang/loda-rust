@@ -154,6 +154,11 @@ async fn main() -> anyhow::Result<()> {
                 .hide(true)
         )
         .subcommand(
+            Command::new("arc-generate-solution-csv")
+                .about("ARC - Populate the 'solutions.csv' file by trying out all puzzles with all solutions.")
+                .hide(true)
+        )
+        .subcommand(
             Command::new("arc-competition")
                 .about("ARC - The code being executed inside the docker image submitted for the `ARCathon 1` contest.")
                 .hide(true)
@@ -269,6 +274,11 @@ async fn main() -> anyhow::Result<()> {
 
     if let Some(_sub_m) = matches.subcommand_matches("arc-check") {
         SubcommandARC::run(SubcommandARCMode::CheckAllExistingSolutions)?;
+        return Ok(());
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("arc-generate-solution-csv") {
+        SubcommandARC::run(SubcommandARCMode::GenerateSolutionCSV)?;
         return Ok(());
     }
 
