@@ -847,12 +847,14 @@ impl TraverseProgramsAndModels {
             "{prefix} [{elapsed_precise}] {wide_bar} {pos:>5}/{len:5} {msg}",
         )?;
 
-        let pb = multi_progress.add(ProgressBar::new(number_of_models_for_processing+1));
+        let pb = multi_progress.add(ProgressBar::new(number_of_models_for_processing));
         pb.set_style(progress_style.clone());
         pb.set_prefix("Model  ");
 
-        for model_item in self.model_item_vec.iter_mut() {
-            pb.inc(1);
+        for (model_index, model_item) in self.model_item_vec.iter_mut().enumerate() {
+            if model_index > 0 {
+                pb.inc(1);
+            }
             if !model_item.enabled {
                 continue;
             }
@@ -863,11 +865,13 @@ impl TraverseProgramsAndModels {
     
             let mut found_one_or_more_solutions = false;
 
-            let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(scheduled_program_item_vec.len() as u64 + 1));
+            let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(scheduled_program_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
             pb2.set_prefix("Program");
-            for (_program_index, program_item) in scheduled_program_item_vec.iter_mut().enumerate() {
-                pb2.inc(1);
+            for (program_index, program_item) in scheduled_program_item_vec.iter_mut().enumerate() {
+                if program_index > 0 {
+                    pb2.inc(1);
+                }
 
                 let result: RunWithProgramResult;
                 match program_item.borrow().program_type {
