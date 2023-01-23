@@ -673,6 +673,7 @@ impl TraverseProgramsAndModels {
     
                 pb.println(format!("{} - Found a solution: {:?}", print_prefix_puzzle_id, program_item.borrow().id.file_name()));
                 count_ok += 1;
+                program_item.borrow_mut().number_of_models += 1;
 
                 let model_filename: String = model_item.id.file_name();
                 let program_filename: String = program_item.borrow().id.file_name();
