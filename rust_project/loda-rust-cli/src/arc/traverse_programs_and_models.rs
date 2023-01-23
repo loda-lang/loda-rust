@@ -575,7 +575,7 @@ impl TraverseProgramsAndModels {
         let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
 
         let mut record_vec = Vec::<Record>::new();
-        Self::save_solutions_csv(&record_vec, &path_solutions_csv);
+        Record::save_solutions_csv(&record_vec, &path_solutions_csv);
 
         let start = Instant::now();
 
@@ -682,7 +682,7 @@ impl TraverseProgramsAndModels {
                     program_filename,
                 };
                 record_vec.push(record);
-                Self::save_solutions_csv(&record_vec, &path_solutions_csv);
+                Record::save_solutions_csv(&record_vec, &path_solutions_csv);
             }
 
             pb2.finish_and_clear();
@@ -695,7 +695,7 @@ impl TraverseProgramsAndModels {
             HumanDuration(start.elapsed())
         );
 
-        Self::save_solutions_csv(&record_vec, &path_solutions_csv);
+        Record::save_solutions_csv(&record_vec, &path_solutions_csv);
 
         // Print out names of unused programs that serves no purpose and can be removed
         let mut unused_programs = Vec::<String>::new();
@@ -727,17 +727,6 @@ impl TraverseProgramsAndModels {
             println!("count_dangerous_false_positive: {}", count_dangerous_false_positive);
         }
         Ok(())
-    }
-
-    fn save_solutions_csv(record_vec: &Vec<Record>, path_csv: &Path) {
-        let mut record_vec: Vec<Record> = record_vec.clone();
-        record_vec.sort_unstable_by_key(|item| (item.model_filename.clone(), item.program_filename.clone()));
-        match create_csv_file(&record_vec, &path_csv) {
-            Ok(()) => {},
-            Err(error) => {
-                error!("Unable to save csv file: {:?}", error);
-            }
-        }
     }
 
     fn run_arc_competition(&mut self, verbose: bool) -> anyhow::Result<()> {
@@ -1136,10 +1125,20 @@ struct Record {
 }
 
 impl Record {
-    #[allow(dead_code)]
     fn load_record_vec(csv_path: &Path) -> anyhow::Result<Vec<Record>> {
         let record_vec: Vec<Record> = parse_csv_file(csv_path)
             .map_err(|e| anyhow::anyhow!("unable to parse csv file. error: {:?}", e))?;
         Ok(record_vec)
+    }
+
+    fn save_solutions_csv(record_vec: &Vec<Record>, path_csv: &Path) {
+        let mut record_vec: Vec<Record> = record_vec.clone();
+        record_vec.sort_unstable_by_key(|item| (item.model_filename.clone(), item.program_filename.clone()));
+        match create_csv_file(&record_vec, &path_csv) {
+            Ok(()) => {},
+            Err(error) => {
+                error!("Unable to save csv file: {:?}", error);
+            }
+        }
     }
 }
