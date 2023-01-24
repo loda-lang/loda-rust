@@ -11,6 +11,7 @@ use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{ProgramSerializer, ProgramId, ProgramRunner};
 use loda_rust_core::parser::ParsedProgram;
 use chrono::prelude::*;
+use std::time::{SystemTime, Duration};
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::fs::{self, File};
@@ -747,6 +748,11 @@ impl TraverseProgramsAndModels {
     }
 
     fn run_arc_competition(&mut self) -> anyhow::Result<()> {
+        let duration: Duration = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .expect("Duration since UNIX_EPOCH failed");
+        let initial_random_seed: u64 = duration.as_secs();
+
         println!("initial model_item_vec.len: {:?}", self.model_item_vec.len());
         let mut scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = self.model_item_vec.clone();
 
@@ -833,8 +839,10 @@ impl TraverseProgramsAndModels {
         
             println!("{} - Mutation: {}", timestamp, mutation_index);
 
+            let random_seed: u64 = (initial_random_seed * 0x1000000) + mutation_index;
+            // debug!("random_seed: {:#x}", random_seed);
+
             // Create new mutated programs in every iteration
-            let random_seed: u64 = mutation_index; 
             let mutation_count: usize = 5;
             state.scheduled_program_item_vec = self.create_mutated_programs(random_seed, mutation_count);
 
