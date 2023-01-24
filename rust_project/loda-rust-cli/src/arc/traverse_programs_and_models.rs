@@ -229,7 +229,8 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn mutate_program(&self, program_item: &ProgramItem, random_seed: u64, mutation_count: usize, bloom: &Bloom::<String>) -> anyhow::Result<ProgramItem> {
+    /// The `bloom` parameter, helps ensure that the mutated programs are different than previously tried out programs.
+    fn mutate_program(&self, program_item: &ProgramItem, random_seed: u64, mutation_count: usize, bloom: &mut Bloom::<String>) -> anyhow::Result<ProgramItem> {
         let mut genome = Genome::new();
         genome.append_message(format!("template: {:?}", program_item.id.file_name()));
 
@@ -277,6 +278,8 @@ impl TraverseProgramsAndModels {
 
             // This program mutation is not contained in the bloomfilter.
             // Proceed making a program out of it.
+
+            bloom.set(&bloom_key);
     
             let program_runner: ProgramRunner = dependency_manager.parse_stage2(ProgramId::ProgramWithoutId, &parsed_program)
                 .map_err(|e| anyhow::anyhow!("parse_stage2 with program: {:?}. error: {:?}", genome.to_string(), e))?;
@@ -741,7 +744,8 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn create_mutated_programs(&self, random_seed: u64, mutation_count: usize, bloom: &Bloom::<String>) -> Vec<Rc<RefCell<ProgramItem>>> {
+    /// The `bloom` parameter, helps ensure that the mutated programs are different than previously tried out programs.
+    fn create_mutated_programs(&self, random_seed: u64, mutation_count: usize, bloom: &mut Bloom::<String>) -> Vec<Rc<RefCell<ProgramItem>>> {
         let mut result_program_item_vec: Vec<Rc<RefCell<ProgramItem>>> = Vec::<Rc<RefCell<ProgramItem>>>::new();
         for program_item in &self.program_item_vec {
             match self.mutate_program(&program_item.borrow(), random_seed, mutation_count, bloom) {
@@ -837,6 +841,8 @@ impl TraverseProgramsAndModels {
         let bloom_items_count = 1000000;
         let false_positive_rate = 0.01;
         let mut bloom = Bloom::<String>::new_for_fp_rate(bloom_items_count, false_positive_rate);
+
+        // Register the existing programs in the bloomfilter, so that these never gets suggested as a candidate solution
         for program_item in &self.program_item_vec {
             match program_item.borrow().bloom_key() {
                 Ok(bloom_key) => {
@@ -871,21 +877,10 @@ impl TraverseProgramsAndModels {
             let random_seed: u64 = (initial_random_seed * 0x1000000) + mutation_index;
             // debug!("random_seed: {:#x}", random_seed);
 
+
             // Create new mutated programs in every iteration
-            let mutation_count: usize = 5;
-            state.scheduled_program_item_vec = self.create_mutated_programs(random_seed, mutation_count, &bloom);
-
-
-            for program_item in &state.scheduled_program_item_vec {
-                match program_item.borrow().bloom_key() {
-                    Ok(bloom_key) => {
-                        bloom.set(&bloom_key);
-                    },
-                    Err(error) => {
-                        error!("unable to create bloom_key for program: {:?}", error);
-                    }
-                }
-            }
+            let mutation_count: usize = ((random_seed % 4) + 1) as usize;
+            state.scheduled_program_item_vec = self.create_mutated_programs(random_seed, mutation_count, &mut bloom);
 
             // Evaluate all puzzles with all candidate programs
             state.run_one_batch()?;
