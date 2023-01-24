@@ -958,14 +958,12 @@ impl BatchState {
                     continue;
                 }
 
-                // Found a solution.
+                // This may be a solution.
 
                 let model_filename: String = model_item.borrow().id.file_name();
-                let mut program_filename: String = program_item.borrow().id.file_name();
 
-                let is_mutation: bool = program_item.borrow().id == ProgramItemId::None;
-                let is_first: bool = program_item.borrow().number_of_models == 0;
-                if is_mutation && is_first {
+                let program_filename: String;
+                {
                     let content: String = program_item.borrow().program_string.clone();
                     let mut s: String = model_filename.clone();
                     s = s.replace(".json", "-x.asm");
@@ -981,8 +979,6 @@ impl BatchState {
                 };
                 self.record_vec.push(record);
                 Record::save_solutions_csv(&self.record_vec, &self.path_solutions_csv);
-
-                program_item.borrow_mut().number_of_models += 1;
 
                 let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.borrow().id);
                 pb.println(message);
