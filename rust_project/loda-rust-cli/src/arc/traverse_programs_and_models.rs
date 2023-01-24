@@ -893,37 +893,34 @@ impl BatchState {
         let verify_test_output = false;
         let verbose = false;
 
+        let mut remove_model_items: Vec<Rc<RefCell<ModelItem>>> = vec!();
+
         let multi_progress = MultiProgress::new();
         let progress_style: ProgressStyle = ProgressStyle::with_template(
             "{prefix} [{elapsed_precise}] {wide_bar} {pos:>5}/{len:5} {msg}",
         )?;
 
-        let pb = multi_progress.add(ProgressBar::new(self.scheduled_program_item_vec.len() as u64));
+        let pb = multi_progress.add(ProgressBar::new(self.scheduled_model_item_vec.len() as u64));
         pb.set_style(progress_style.clone());
-        pb.set_prefix("Solution");
-        for (program_index, program_item) in self.scheduled_program_item_vec.iter_mut().enumerate() {
-            if program_index > 0 {
+        pb.set_prefix("Puzzle  ");
+        for (model_index, model_item) in self.scheduled_model_item_vec.iter_mut().enumerate() {
+            if model_index > 0 {
                 pb.inc(1);
             }
     
-            let mut found_one_or_more_solutions = false;
-            let mut remove_model_items: Vec<Rc<RefCell<ModelItem>>> = vec!();
-
-            let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(self.scheduled_model_item_vec.len() as u64));
+            let model: Model = model_item.borrow().model.clone();
+            let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+            let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
+    
+            let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(self.scheduled_program_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
-            pb2.set_prefix("Puzzle  ");
-            for (model_index, model_item) in self.scheduled_model_item_vec.iter_mut().enumerate() {
-                if model_index > 0 {
+            pb2.set_prefix("Solution");
+            for (program_index, program_item) in self.scheduled_program_item_vec.iter_mut().enumerate() {
+                if program_index > 0 {
                     pb.tick();
                     pb2.inc(1);
                 }
 
-                let model: Model = model_item.borrow().model.clone();
-
-                let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-
-                let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
-    
                 let result: RunWithProgramResult;
                 match program_item.borrow().program_type {
                     ProgramType::Simple => {
@@ -956,73 +953,75 @@ impl BatchState {
                 }
 
                 let count: usize = result.count_train_correct() + result.count_test_correct();
-
-                if count == pairs.len() {
-                    found_one_or_more_solutions = true;
-
-                    let model_filename: String = model_item.borrow().id.file_name();
-                    let mut program_filename: String = program_item.borrow().id.file_name();
-
-                    let is_mutation: bool = program_item.borrow().id == ProgramItemId::None;
-                    let is_first: bool = program_item.borrow().number_of_models == 0;
-                    if is_mutation && is_first {
-                        let content: String = program_item.borrow().program_string.clone();
-                        let mut s: String = model_filename.clone();
-                        s = s.replace(".json", "-x.asm");
-                        program_filename = s.clone();
-                        let path = self.path_programs.join(Path::new(&s));
-                        let mut file = File::create(&path)?;
-                        file.write_all(content.as_bytes())?;
-                    }
-
-                    let record = Record {
-                        model_filename: model_filename,
-                        program_filename,
-                    };
-                    self.record_vec.push(record);
-                    Record::save_solutions_csv(&self.record_vec, &self.path_solutions_csv);
-
-                    program_item.borrow_mut().number_of_models += 1;
-
-                    let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.borrow().id);
-                    pb.println(message);
-
-                    let predictions: Vec<Prediction> = result.predictions().clone();
-                    let test_item = TestItem { 
-                        output_id: 0,
-                        number_of_predictions: predictions.len() as u8,
-                        predictions: predictions,
-                    };
-
-                    let task_name: String = model_item.borrow().id.file_stem();
-                    let task_item = TaskItem {
-                        task_name: task_name,
-                        test_vec: vec![test_item],
-                    };
-                    self.current_tasks.push(task_item);
-                    remove_model_items.push(Rc::clone(model_item));
+                if count != pairs.len() {
+                    // This is not a solution. Proceed to the next candidate solution.
+                    continue;
                 }
-            }
-            pb2.finish_and_clear();
 
-            // Remove solved puzzles from the scheduled_model_item_vec
-            if !remove_model_items.is_empty() {
-                self.scheduled_model_item_vec = ModelItem::remove_model_items(
-                    &self.scheduled_model_item_vec, 
-                    &remove_model_items
-                );
-            }
+                // Found a solution.
 
-            // found_one_or_more_solutions = true;
-            if found_one_or_more_solutions {
+                let model_filename: String = model_item.borrow().id.file_name();
+                let mut program_filename: String = program_item.borrow().id.file_name();
+
+                let is_mutation: bool = program_item.borrow().id == ProgramItemId::None;
+                let is_first: bool = program_item.borrow().number_of_models == 0;
+                if is_mutation && is_first {
+                    let content: String = program_item.borrow().program_string.clone();
+                    let mut s: String = model_filename.clone();
+                    s = s.replace(".json", "-x.asm");
+                    program_filename = s.clone();
+                    let path = self.path_programs.join(Path::new(&s));
+                    let mut file = File::create(&path)?;
+                    file.write_all(content.as_bytes())?;
+                }
+
+                let record = Record {
+                    model_filename: model_filename,
+                    program_filename,
+                };
+                self.record_vec.push(record);
+                Record::save_solutions_csv(&self.record_vec, &self.path_solutions_csv);
+
+                program_item.borrow_mut().number_of_models += 1;
+
+                let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.borrow().id);
+                pb.println(message);
+
+                let predictions: Vec<Prediction> = result.predictions().clone();
+                let test_item = TestItem { 
+                    output_id: 0,
+                    number_of_predictions: predictions.len() as u8,
+                    predictions: predictions,
+                };
+
+                let task_name: String = model_item.borrow().id.file_stem();
+                let task_item = TaskItem {
+                    task_name: task_name,
+                    test_vec: vec![test_item],
+                };
+                self.current_tasks.push(task_item);
                 save_solutions(
                     &self.path_solution_dir,
                     &self.path_solution_teamid_json,
                     &self.current_tasks
                 );
+
+                remove_model_items.push(Rc::clone(model_item));
+
+                // This is a solution to this puzzle. No need to loop through the remaining programs.
+                break;
             }
+            pb2.finish_and_clear();
         }
         pb.finish_and_clear();
+
+        // Remove solved puzzles from the scheduled_model_item_vec
+        if !remove_model_items.is_empty() {
+            self.scheduled_model_item_vec = ModelItem::remove_model_items(
+                &self.scheduled_model_item_vec, 
+                &remove_model_items
+            );
+        }
 
         Ok(())
     }
