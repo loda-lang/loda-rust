@@ -38,7 +38,7 @@ pub struct TraverseProgramsAndModels {
 impl TraverseProgramsAndModels {
     pub fn arc_competition() -> anyhow::Result<()> {
         let mut instance = TraverseProgramsAndModels::new()?;
-        instance.run_arc_competition(false)?;
+        instance.run_arc_competition()?;
         Ok(())
     }
 
@@ -729,51 +729,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn remove_model_items_where_filestem_contains(
-        model_item_vec: &Vec<Rc<RefCell<ModelItem>>>,
-        names_for_removal: &HashSet<String>
-    ) -> Vec<Rc<RefCell<ModelItem>>> {
-        let mut result_items: Vec<Rc<RefCell<ModelItem>>> = vec!();
-        for model_item in model_item_vec {
-            let file_stem: String = model_item.borrow().id.file_stem();
-            if !names_for_removal.contains(&file_stem) {
-                result_items.push(Rc::clone(model_item));
-            }
-        }
-        result_items
-    }
-
-    fn remove_model_items(
-        model_item_vec: &Vec<Rc<RefCell<ModelItem>>>,
-        model_item_vec_for_removal: &Vec<Rc<RefCell<ModelItem>>>
-    ) -> Vec<Rc<RefCell<ModelItem>>> {
-        if model_item_vec_for_removal.is_empty() {
-            return model_item_vec.clone();
-        }
-        let count_before: usize = model_item_vec.len();
-        let mut result_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = vec!();
-        for model_item in model_item_vec {
-            let mut keep = true;
-            for remove_model_item in model_item_vec_for_removal {
-                if Rc::ptr_eq(&remove_model_item, &model_item) {
-                    keep = false;
-                    break;
-                }
-            }
-            if keep {
-                result_model_item_vec.push(Rc::clone(model_item));
-            }
-        }
-        let count_after: usize = result_model_item_vec.len();
-        if count_after > count_before {
-            error!("Expected removal to shrink vector, but it grows. {} != {} + {}", count_before, count_after, model_item_vec_for_removal.len());
-        }
-        result_model_item_vec
-    }
-
-    fn run_arc_competition(&mut self, verbose: bool) -> anyhow::Result<()> {
-        let verify_test_output = false;
-
+    fn run_arc_competition(&mut self) -> anyhow::Result<()> {
         println!("initial model_item_vec.len: {:?}", self.model_item_vec.len());
         let mut scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = self.model_item_vec.clone();
 
@@ -815,7 +771,7 @@ impl TraverseProgramsAndModels {
         }
         debug!("puzzle_names_to_ignore: {:?}", puzzle_names_to_ignore);
 
-        scheduled_model_item_vec = Self::remove_model_items_where_filestem_contains(
+        scheduled_model_item_vec = ModelItem::remove_model_items_where_filestem_contains(
             &scheduled_model_item_vec, 
             &puzzle_names_to_ignore
         );
@@ -869,12 +825,47 @@ impl TraverseProgramsAndModels {
             println!("puzzles unsolved: {}", number_of_unsolved_puzzles);
         }
 
-        let mut current_tasks: Tasks = initial_tasks;
-        Self::save_solutions(
+        let current_tasks: Tasks = initial_tasks;
+        save_solutions(
             &self.path_solution_dir,
             &self.path_solution_teamid_json,
             &current_tasks
         );
+
+        let mut state = BatchState {
+            path_solutions_csv,
+            path_programs,
+            path_solution_dir: self.path_solution_dir.clone(),
+            path_solution_teamid_json: self.path_solution_teamid_json.clone(),
+            scheduled_model_item_vec,
+            scheduled_program_item_vec,
+            record_vec,
+            current_tasks,
+        };
+
+        state.run_one_batch()?;
+
+        println!("Done!");
+
+        Ok(())
+    }
+}
+
+struct BatchState {
+    path_solutions_csv: PathBuf,
+    path_programs: PathBuf,
+    path_solution_dir: PathBuf,
+    path_solution_teamid_json: PathBuf,
+    scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>>,
+    scheduled_program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
+    record_vec: Vec::<Record>,
+    current_tasks: Tasks,
+}
+
+impl BatchState {
+    fn run_one_batch(&mut self) -> anyhow::Result<()> {
+        let verify_test_output = false;
+        let verbose = false;
 
         let mut count_match: usize = 0;
         let mut count_mismatch: usize = 0;
@@ -885,10 +876,10 @@ impl TraverseProgramsAndModels {
             "{prefix} [{elapsed_precise}] {wide_bar} {pos:>5}/{len:5} {msg}",
         )?;
 
-        let pb = multi_progress.add(ProgressBar::new(scheduled_program_item_vec.len() as u64));
+        let pb = multi_progress.add(ProgressBar::new(self.scheduled_program_item_vec.len() as u64));
         pb.set_style(progress_style.clone());
         pb.set_prefix("Solution");
-        for (program_index, program_item) in scheduled_program_item_vec.iter_mut().enumerate() {
+        for (program_index, program_item) in self.scheduled_program_item_vec.iter_mut().enumerate() {
             if program_index > 0 {
                 pb.inc(1);
             }
@@ -896,10 +887,10 @@ impl TraverseProgramsAndModels {
             let mut found_one_or_more_solutions = false;
             let mut remove_model_items: Vec<Rc<RefCell<ModelItem>>> = vec!();
 
-            let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(scheduled_model_item_vec.len() as u64));
+            let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(self.scheduled_model_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
             pb2.set_prefix("Puzzle  ");
-            for (model_index, model_item) in scheduled_model_item_vec.iter_mut().enumerate() {
+            for (model_index, model_item) in self.scheduled_model_item_vec.iter_mut().enumerate() {
                 if model_index > 0 {
                     pb.tick();
                     pb2.inc(1);
@@ -957,7 +948,7 @@ impl TraverseProgramsAndModels {
                         let mut s: String = model_filename.clone();
                         s = s.replace(".json", "-x.asm");
                         program_filename = s.clone();
-                        let path = path_programs.join(Path::new(&s));
+                        let path = self.path_programs.join(Path::new(&s));
                         let mut file = File::create(&path)?;
                         file.write_all(content.as_bytes())?;
                     }
@@ -966,8 +957,8 @@ impl TraverseProgramsAndModels {
                         model_filename: model_filename,
                         program_filename,
                     };
-                    record_vec.push(record);
-                    Record::save_solutions_csv(&record_vec, &path_solutions_csv);
+                    self.record_vec.push(record);
+                    Record::save_solutions_csv(&self.record_vec, &self.path_solutions_csv);
 
                     program_item.borrow_mut().number_of_models += 1;
 
@@ -986,7 +977,7 @@ impl TraverseProgramsAndModels {
                         task_name: task_name,
                         test_vec: vec![test_item],
                     };
-                    current_tasks.push(task_item);
+                    self.current_tasks.push(task_item);
                     remove_model_items.push(Rc::clone(model_item));
                 }
             }
@@ -994,7 +985,10 @@ impl TraverseProgramsAndModels {
 
             // Remove solved puzzles from the scheduled_model_item_vec
             if !remove_model_items.is_empty() {
-                scheduled_model_item_vec = Self::remove_model_items(&scheduled_model_item_vec, &remove_model_items);
+                self.scheduled_model_item_vec = ModelItem::remove_model_items(
+                    &self.scheduled_model_item_vec, 
+                    &remove_model_items
+                );
             }
 
             if found_one_or_more_solutions {
@@ -1005,10 +999,10 @@ impl TraverseProgramsAndModels {
 
             // found_one_or_more_solutions = true;
             if found_one_or_more_solutions {
-                Self::save_solutions(
+                save_solutions(
                     &self.path_solution_dir,
                     &self.path_solution_teamid_json,
-                    &current_tasks
+                    &self.current_tasks
                 );
             }
         }
@@ -1022,45 +1016,10 @@ impl TraverseProgramsAndModels {
 
         println!("number of matches: {} mismatches: {}", count_match, count_mismatch);
 
-        for program_item in &scheduled_program_item_vec {
-            if program_item.borrow().id == ProgramItemId::None {
-                continue;
-            }
-            if program_item.borrow().number_of_models == 0 {
-                println!("unused program {:?}, it doesn't solve any of the models, and can be removed", program_item.borrow().id);
-            }
-        }
-
-        println!("Done!");
         Ok(())
     }
-
-    fn save_solutions(path_solution_dir: &Path, path_solution_teamid_json: &Path, tasks: &Tasks) {
-        if !path_solution_dir.exists() {
-                match fs::create_dir(path_solution_dir) {
-                Ok(_) => {},
-                Err(err) => {
-                    panic!("Unable to create solution directory: {:?}, error: {:?}", path_solution_dir, err);
-                }
-            }
-        }
-        let json: String = match serde_json::to_string(&tasks) {
-            Ok(value) => value,
-            Err(error) => {
-                error!("unable to serialize tasks to json: {:?}", error);
-                return;
-            }
-        };
-        match fs::write(&path_solution_teamid_json, json) {
-            Ok(()) => {},
-            Err(error) => {
-                error!("unable to save solutions file. path: {:?} error: {:?}", path_solution_teamid_json, error);
-                return;
-            }
-        }
-        debug!("updated solutions file: tasks.len(): {}", tasks.len());
-    }
 }
+
 
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
@@ -1111,6 +1070,50 @@ impl ModelItemId {
 struct ModelItem {
     id: ModelItemId,
     model: Model,
+}
+
+impl ModelItem {
+    fn remove_model_items_where_filestem_contains(
+        model_item_vec: &Vec<Rc<RefCell<ModelItem>>>,
+        names_for_removal: &HashSet<String>
+    ) -> Vec<Rc<RefCell<ModelItem>>> {
+        let mut result_items: Vec<Rc<RefCell<ModelItem>>> = vec!();
+        for model_item in model_item_vec {
+            let file_stem: String = model_item.borrow().id.file_stem();
+            if !names_for_removal.contains(&file_stem) {
+                result_items.push(Rc::clone(model_item));
+            }
+        }
+        result_items
+    }
+
+    fn remove_model_items(
+        model_item_vec: &Vec<Rc<RefCell<ModelItem>>>,
+        model_item_vec_for_removal: &Vec<Rc<RefCell<ModelItem>>>
+    ) -> Vec<Rc<RefCell<ModelItem>>> {
+        if model_item_vec_for_removal.is_empty() {
+            return model_item_vec.clone();
+        }
+        let count_before: usize = model_item_vec.len();
+        let mut result_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = vec!();
+        for model_item in model_item_vec {
+            let mut keep = true;
+            for remove_model_item in model_item_vec_for_removal {
+                if Rc::ptr_eq(&remove_model_item, &model_item) {
+                    keep = false;
+                    break;
+                }
+            }
+            if keep {
+                result_model_item_vec.push(Rc::clone(model_item));
+            }
+        }
+        let count_after: usize = result_model_item_vec.len();
+        if count_after > count_before {
+            error!("Expected removal to shrink vector, but it grows. {} != {} + {}", count_before, count_after, model_item_vec_for_removal.len());
+        }
+        result_model_item_vec
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1179,4 +1182,30 @@ impl Record {
             }
         }
     }
+}
+
+fn save_solutions(path_solution_dir: &Path, path_solution_teamid_json: &Path, tasks: &Tasks) {
+    if !path_solution_dir.exists() {
+            match fs::create_dir(path_solution_dir) {
+            Ok(_) => {},
+            Err(err) => {
+                panic!("Unable to create solution directory: {:?}, error: {:?}", path_solution_dir, err);
+            }
+        }
+    }
+    let json: String = match serde_json::to_string(&tasks) {
+        Ok(value) => value,
+        Err(error) => {
+            error!("unable to serialize tasks to json: {:?}", error);
+            return;
+        }
+    };
+    match fs::write(&path_solution_teamid_json, json) {
+        Ok(()) => {},
+        Err(error) => {
+            error!("unable to save solutions file. path: {:?} error: {:?}", path_solution_teamid_json, error);
+            return;
+        }
+    }
+    debug!("updated solutions file: tasks.len(): {}", tasks.len());
 }
