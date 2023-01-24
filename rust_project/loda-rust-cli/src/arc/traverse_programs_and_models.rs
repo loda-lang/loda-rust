@@ -229,8 +229,12 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    /// Create mutations of a single program.
+    /// 
     /// The `bloom` parameter, helps ensure that the mutated programs are different than previously tried out programs.
-    fn mutate_program(&self, program_item: &ProgramItem, random_seed: u64, mutation_count: usize, bloom: &mut Bloom::<String>) -> anyhow::Result<ProgramItem> {
+    /// 
+    /// Returns a vector with length `number_of_programs_to_generate`.
+    fn create_mutations_of_program(&self, program_item: &ProgramItem, random_seed: u64, number_of_programs_to_generate: usize, bloom: &mut Bloom::<String>) -> anyhow::Result<RcProgramItemVec> {
         let mut genome = Genome::new();
         genome.append_message(format!("template: {:?}", program_item.id.file_name()));
 
@@ -254,17 +258,12 @@ impl TraverseProgramsAndModels {
         
         let mut dependency_manager: DependencyManager = RunWithProgram::create_dependency_manager();
 
+        let mut result_program_item_vec: RcProgramItemVec = RcProgramItemVec::with_capacity(number_of_programs_to_generate);
+
         let max_number_of_retries = 100;
-        let mut number_of_mutations: usize = 0;
         for _ in 0..max_number_of_retries {
             let mutate_success: bool = genome.mutate(&mut rng, &self.context);
             if !mutate_success {
-                continue;
-            }
-
-            number_of_mutations += 1;
-
-            if number_of_mutations < mutation_count {
                 continue;
             }
 
@@ -303,11 +302,40 @@ impl TraverseProgramsAndModels {
                 program_type: ProgramType::Advance,
                 number_of_models: 0,
             };
-
-            return Ok(mutated_program_item);
+            result_program_item_vec.push(Rc::new(RefCell::new(mutated_program_item)));
+            if result_program_item_vec.len() >= number_of_programs_to_generate {
+                return Ok(result_program_item_vec);
+            }
         }
+        if result_program_item_vec.is_empty() {
+            return Err(anyhow::anyhow!("unable to mutate in {} attempts, {:?}", max_number_of_retries, program_item.id.file_name()));
+        }
+        Ok(result_program_item_vec)
+    }
 
-        Err(anyhow::anyhow!("unable to create a mutation in {} attempts", max_number_of_retries))
+    /// Create mutantions of all the existing programs.
+    /// 
+    /// The `bloom` parameter, helps ensure that the mutated programs are different than previously tried out programs.
+    /// 
+    /// Returns a vector with length `number_of_programs_to_generate` x number of available programs.
+    fn create_mutations_of_all_programs(
+        &self, 
+        random_seed: u64, 
+        number_of_programs_to_generate: usize, 
+        bloom: &mut Bloom::<String>
+    ) -> RcProgramItemVec {
+        let mut result_program_item_vec: RcProgramItemVec = RcProgramItemVec::new();
+        for program_item in &self.program_item_vec {
+            match self.create_mutations_of_program(&program_item.borrow(), random_seed, number_of_programs_to_generate, bloom) {
+                Ok(mut mutated_programs) => {
+                    result_program_item_vec.append(&mut mutated_programs);
+                },
+                Err(error) => {
+                    debug!("Skipping mutation. {:?}", error);
+                }
+            }
+        }
+        result_program_item_vec
     }
 
     fn read_solutions_json(&self) -> anyhow::Result<Tasks> {
@@ -744,27 +772,12 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    /// The `bloom` parameter, helps ensure that the mutated programs are different than previously tried out programs.
-    fn create_mutated_programs(&self, random_seed: u64, mutation_count: usize, bloom: &mut Bloom::<String>) -> Vec<Rc<RefCell<ProgramItem>>> {
-        let mut result_program_item_vec: Vec<Rc<RefCell<ProgramItem>>> = Vec::<Rc<RefCell<ProgramItem>>>::new();
-        for program_item in &self.program_item_vec {
-            match self.mutate_program(&program_item.borrow(), random_seed, mutation_count, bloom) {
-                Ok(mutated_program) => {
-                    result_program_item_vec.push(Rc::new(RefCell::new(mutated_program)));
-                },
-                Err(error) => {
-                    debug!("Skipping this mutation. The original program cannot be mutated. {:?}", error);
-                    break;
-                }
-            }
-        }
-        result_program_item_vec
-    }
-
     fn run_arc_competition(&mut self) -> anyhow::Result<()> {
         // When participating in the constest, then we want to try the known solutions.
         // However it's slow, so while developing we only want mutations.
         let try_known_solutions = true;
+
+        let number_of_programs_to_generate: usize = 3;
 
         let duration: Duration = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
@@ -888,8 +901,7 @@ impl TraverseProgramsAndModels {
 
 
             // Create new mutated programs in every iteration
-            let mutation_count: usize = ((random_seed % 4) + 1) as usize;
-            state.scheduled_program_item_vec = self.create_mutated_programs(random_seed, mutation_count, &mut bloom);
+            state.scheduled_program_item_vec = self.create_mutations_of_all_programs(random_seed, number_of_programs_to_generate, &mut bloom);
 
             // Evaluate all puzzles with all candidate programs
             state.run_one_batch()?;
@@ -1177,6 +1189,9 @@ impl ProgramItemId {
         }
     }
 }
+
+type RcProgramItem = Rc<RefCell<ProgramItem>>;
+type RcProgramItemVec = Vec<RcProgramItem>;
 
 #[derive(Clone, Debug)]
 struct ProgramItem {
