@@ -457,12 +457,25 @@ impl TraverseProgramsAndModels {
 
         let mut count_ok: usize = 0;
         let mut count_error_other: usize = 0;
+        let mut count_error_duplicate: usize = 0;
         let mut count_error_compute: usize = 0;
         let mut count_error_incorrect: usize = 0;
 
-        let pb = ProgressBar::new(record_vec.len() as u64 + 1);
+        let mut unique_records = HashSet::<Record>::new();
+
+        let pb = ProgressBar::new(record_vec.len() as u64);
         for (record_index, record) in record_vec.iter().enumerate() {
-            pb.inc(1);
+            if record_index > 0 {
+                pb.inc(1);
+            }
+
+            // The rows are supposed to be unique
+            if unique_records.contains(&record) {
+                pb.println(format!("ERROR: Expected unique rows, but this is a duplicate. record_index: {}", record_index));
+                count_error_duplicate += 1;
+                continue;
+            }
+            unique_records.insert(record.clone());
 
             // Extract the puzzle model
             let mut candidate_model_items = Vec::<ModelItem>::new();
@@ -562,6 +575,7 @@ impl TraverseProgramsAndModels {
         } else {
             println!("count_ok: {}", count_ok);
             println!("count_error_other: {}", count_error_other);
+            println!("count_error_duplicate: {}", count_error_duplicate);
             println!("count_error_compute: {}", count_error_compute);
             println!("count_error_incorrect: {}", count_error_incorrect);
             let count_error: usize = count_error_incorrect + count_error_other + count_error_compute;
@@ -1151,7 +1165,7 @@ struct ProgramItem {
     number_of_models: usize,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Serialize, PartialEq)]
 struct Record {
     #[serde(rename = "model filename")]
     model_filename: String,
