@@ -128,7 +128,6 @@ impl TraverseProgramsAndModels {
             let instance = ModelItem {
                 id: ModelItemId::Path { path: path.clone() },
                 model,
-                enabled: true,
             };
             let item = Rc::new(RefCell::new(instance));
             model_item_vec.push(item);
@@ -730,10 +729,53 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    fn remove_model_items_where_filestem_contains(
+        model_item_vec: &Vec<Rc<RefCell<ModelItem>>>,
+        names_for_removal: &HashSet<String>
+    ) -> Vec<Rc<RefCell<ModelItem>>> {
+        let mut result_items: Vec<Rc<RefCell<ModelItem>>> = vec!();
+        for model_item in model_item_vec {
+            let file_stem: String = model_item.borrow().id.file_stem();
+            if !names_for_removal.contains(&file_stem) {
+                result_items.push(Rc::clone(model_item));
+            }
+        }
+        result_items
+    }
+
+    fn remove_model_items(
+        model_item_vec: &Vec<Rc<RefCell<ModelItem>>>,
+        model_item_vec_for_removal: &Vec<Rc<RefCell<ModelItem>>>
+    ) -> Vec<Rc<RefCell<ModelItem>>> {
+        if model_item_vec_for_removal.is_empty() {
+            return model_item_vec.clone();
+        }
+        let count_before: usize = model_item_vec.len();
+        let mut result_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = vec!();
+        for model_item in model_item_vec {
+            let mut keep = true;
+            for remove_model_item in model_item_vec_for_removal {
+                if Rc::ptr_eq(&remove_model_item, &model_item) {
+                    keep = false;
+                    break;
+                }
+            }
+            if keep {
+                result_model_item_vec.push(Rc::clone(model_item));
+            }
+        }
+        let count_after: usize = result_model_item_vec.len();
+        if count_after > count_before {
+            error!("Expected removal to shrink vector, but it grows. {} != {} + {}", count_before, count_after, model_item_vec_for_removal.len());
+        }
+        result_model_item_vec
+    }
+
     fn run_arc_competition(&mut self, verbose: bool) -> anyhow::Result<()> {
         let verify_test_output = false;
 
         println!("initial model_item_vec.len: {:?}", self.model_item_vec.len());
+        let mut scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = self.model_item_vec.clone();
 
         let initial_tasks: Tasks = match self.read_solutions_json() {
             Ok(value) => value,
@@ -744,20 +786,10 @@ impl TraverseProgramsAndModels {
         };
         println!("initial_tasks.len: {}", initial_tasks.len());
 
-        let mut task_names_to_ignore = HashSet::<String>::new();
+        let mut puzzle_names_to_ignore = HashSet::<String>::new();
         for task in &initial_tasks {
-            task_names_to_ignore.insert(task.task_name.clone());
+            puzzle_names_to_ignore.insert(task.task_name.clone());
         }
-
-        let mut number_of_disabled_model_items: usize = 0;
-        for model_item in self.model_item_vec.iter_mut() {
-            let file_stem: String = model_item.borrow().id.file_stem();
-            if task_names_to_ignore.contains(&file_stem) {
-                model_item.borrow_mut().enabled = false;
-                number_of_disabled_model_items += 1;
-            }
-        }
-        println!("number_of_disabled_model_items: {:?}", number_of_disabled_model_items);
 
         let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
         let path_programs = self.config.loda_arc_challenge_repository_programs();
@@ -776,34 +808,24 @@ impl TraverseProgramsAndModels {
                         program_item.borrow_mut().number_of_models += 1;
                     }
                 }
-                let puzzle_filename: String = record.model_filename.clone();
-                for model_item in self.model_item_vec.iter_mut() {
-                    if model_item.borrow().id.file_name() == puzzle_filename {
-                        model_item.borrow_mut().enabled = false;
-                    }
-                }
+                let puzzle_filename_with_json_suffix: String = record.model_filename.clone();
+                let puzzle_filename = puzzle_filename_with_json_suffix.replace(".json", "");
+                puzzle_names_to_ignore.insert(puzzle_filename);
             }
         }
+        debug!("puzzle_names_to_ignore: {:?}", puzzle_names_to_ignore);
 
-        // Summary of what puzzles are to be solved
-        {
-            let mut number_of_solved_puzzles: usize = 0;
-            let mut number_of_unsolved_puzzles: usize = 0;
-            for model_item in self.model_item_vec.iter_mut() {
-                if model_item.borrow().enabled {
-                    number_of_unsolved_puzzles += 1;
-                } else {
-                    number_of_solved_puzzles += 1;
-                }
-            }
-            println!("puzzles solved: {}", number_of_solved_puzzles);
-            println!("puzzles unsolved: {}", number_of_unsolved_puzzles);
-        }
+        scheduled_model_item_vec = Self::remove_model_items_where_filestem_contains(
+            &scheduled_model_item_vec, 
+            &puzzle_names_to_ignore
+        );
+
+        println!("scheduled_model_item_vec.len(): {}", scheduled_model_item_vec.len());
 
         let mut scheduled_program_item_vec: Vec<Rc<RefCell<ProgramItem>>> = Vec::<Rc<RefCell<ProgramItem>>>::new();
         for program_item in self.program_item_vec.iter_mut() {
             if program_item.borrow().number_of_models == 0 {
-                scheduled_program_item_vec.push(program_item.clone());
+                scheduled_program_item_vec.push(Rc::clone(program_item));
             }
         }
 
@@ -830,17 +852,22 @@ impl TraverseProgramsAndModels {
             println!("scheduled_program_item_vec.len: {}", scheduled_program_item_vec.len());
         }
 
-        let mut number_of_models_for_processing: u64 = 0;
-        let mut number_of_models_ignored: u64 = 0;
-        for model_item in &self.model_item_vec {
-            if model_item.borrow().enabled {
-                number_of_models_for_processing += 1;
-            } else {
-                number_of_models_ignored += 1;
+        // Summary of what puzzles are to be solved
+        {
+            let mut number_of_solved_puzzles: usize = 0;
+            let mut number_of_unsolved_puzzles: usize = 0;
+            for model_item in &self.model_item_vec {
+                for model_item2 in &scheduled_model_item_vec {
+                    if Rc::ptr_eq(&model_item, &model_item2) {
+                        number_of_unsolved_puzzles += 1;
+                    } else {
+                        number_of_solved_puzzles += 1;
+                    }
+                }
             }
+            println!("puzzles solved: {}", number_of_solved_puzzles);
+            println!("puzzles unsolved: {}", number_of_unsolved_puzzles);
         }
-        println!("number of models for processing: {}", number_of_models_for_processing);
-        println!("number of models being ignored: {}", number_of_models_ignored);
 
         let mut current_tasks: Tasks = initial_tasks;
         Self::save_solutions(
@@ -867,19 +894,17 @@ impl TraverseProgramsAndModels {
             }
     
             let mut found_one_or_more_solutions = false;
+            let mut remove_model_items: Vec<Rc<RefCell<ModelItem>>> = vec!();
 
-            let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(number_of_models_for_processing));
+            let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(scheduled_model_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
             pb2.set_prefix("Puzzle  ");
-            for (model_index, model_item) in self.model_item_vec.iter_mut().enumerate() {
+            for (model_index, model_item) in scheduled_model_item_vec.iter_mut().enumerate() {
                 if model_index > 0 {
                     pb.tick();
                     pb2.inc(1);
                 }
 
-                if !model_item.borrow().enabled {
-                    continue;
-                }
                 let model: Model = model_item.borrow().model.clone();
 
                 let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
@@ -962,11 +987,15 @@ impl TraverseProgramsAndModels {
                         test_vec: vec![test_item],
                     };
                     current_tasks.push(task_item);
-                    model_item.borrow_mut().enabled = false;
+                    remove_model_items.push(Rc::clone(model_item));
                 }
             }
-
             pb2.finish_and_clear();
+
+            // Remove solved puzzles from the scheduled_model_item_vec
+            if !remove_model_items.is_empty() {
+                scheduled_model_item_vec = Self::remove_model_items(&scheduled_model_item_vec, &remove_model_items);
+            }
 
             if found_one_or_more_solutions {
                 count_match += 1;
@@ -1082,7 +1111,6 @@ impl ModelItemId {
 struct ModelItem {
     id: ModelItemId,
     model: Model,
-    enabled: bool,
 }
 
 #[derive(Clone, Debug)]
