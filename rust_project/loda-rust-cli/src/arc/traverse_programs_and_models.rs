@@ -578,8 +578,8 @@ impl TraverseProgramsAndModels {
             println!("count_error_duplicate: {}", count_error_duplicate);
             println!("count_error_compute: {}", count_error_compute);
             println!("count_error_incorrect: {}", count_error_incorrect);
-            let count_error: usize = count_error_incorrect + count_error_other + count_error_compute;
-            error!("There are {} errors that needs to be resolved. csv file: {:?}", count_error, path_solutions_csv);
+            let sum: usize = count_error_other + count_error_duplicate + count_error_compute + count_error_incorrect;
+            error!("There are {} errors that needs to be resolved. csv file: {:?}", sum, path_solutions_csv);
         }
         Ok(())
     }
