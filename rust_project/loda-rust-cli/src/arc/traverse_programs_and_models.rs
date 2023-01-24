@@ -6,6 +6,7 @@ use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
 use crate::common::find_asm_files_recursively;
 use crate::mine::{Genome, GenomeItem, ToGenomeItemVec, CreateGenomeMutateContextMode, create_genome_mutate_context, GenomeMutateContext};
+use bloomfilter::*;
 use anyhow::Context;
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{ProgramSerializer, ProgramId, ProgramRunner};
@@ -228,28 +229,13 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn mutate_program(&self, program_item: &ProgramItem, random_seed: u64, mutation_count: usize) -> anyhow::Result<ProgramItem> {
+    fn mutate_program(&self, program_item: &ProgramItem, random_seed: u64, mutation_count: usize, bloom: &Bloom::<String>) -> anyhow::Result<ProgramItem> {
         let mut genome = Genome::new();
         genome.append_message(format!("template: {:?}", program_item.id.file_name()));
 
         let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
 
-        let program_content: String;
-        match program_item.program_type {
-            ProgramType::Simple => {
-                program_content = RunWithProgram::convert_simple_to_full(&program_item.program_string);
-            },
-            ProgramType::Advance => {
-                program_content = program_item.program_string.clone();
-            }
-        }
-
-        let initial_parsed_program: ParsedProgram = match ParsedProgram::parse_program(&program_content) {
-            Ok(value) => value,
-            Err(error) => {
-                return Err(anyhow::anyhow!("cannot parse the program: {:?}", error));
-            }
-        };
+        let initial_parsed_program: ParsedProgram = program_item.parsed_program()?;
 
         // println!("; INPUT PROGRAM\n; filename: {:?}\n\n{}", program_item.id.file_name(), initial_parsed_program);
 
@@ -264,17 +250,17 @@ impl TraverseProgramsAndModels {
         }
 
         genome.set_genome_vec(genome_vec);
-
         
         let mut dependency_manager: DependencyManager = RunWithProgram::create_dependency_manager();
 
-        let max_number_of_retries = 40;
+        let max_number_of_retries = 100;
         let mut number_of_mutations: usize = 0;
         for _ in 0..max_number_of_retries {
             let mutate_success: bool = genome.mutate(&mut rng, &self.context);
             if !mutate_success {
                 continue;
             }
+
             number_of_mutations += 1;
 
             if number_of_mutations < mutation_count {
@@ -282,6 +268,16 @@ impl TraverseProgramsAndModels {
             }
 
             let parsed_program: ParsedProgram = genome.to_parsed_program();
+            let bloom_key: String = parsed_program.to_string();
+            if bloom.check(&bloom_key) {
+                // It's likely that this program mutation has already has been explored in the past. Ignore it.
+                // debug!("skip program mutation that already have been tried out");
+                continue;                
+            }
+
+            // This program mutation is not contained in the bloomfilter.
+            // Proceed making a program out of it.
+    
             let program_runner: ProgramRunner = dependency_manager.parse_stage2(ProgramId::ProgramWithoutId, &parsed_program)
                 .map_err(|e| anyhow::anyhow!("parse_stage2 with program: {:?}. error: {:?}", genome.to_string(), e))?;
     
@@ -745,10 +741,10 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn create_mutated_programs(&self, random_seed: u64, mutation_count: usize) -> Vec<Rc<RefCell<ProgramItem>>> {
+    fn create_mutated_programs(&self, random_seed: u64, mutation_count: usize, bloom: &Bloom::<String>) -> Vec<Rc<RefCell<ProgramItem>>> {
         let mut result_program_item_vec: Vec<Rc<RefCell<ProgramItem>>> = Vec::<Rc<RefCell<ProgramItem>>>::new();
         for program_item in &self.program_item_vec {
-            match self.mutate_program(&program_item.borrow(), random_seed, mutation_count) {
+            match self.mutate_program(&program_item.borrow(), random_seed, mutation_count, bloom) {
                 Ok(mutated_program) => {
                     result_program_item_vec.push(Rc::new(RefCell::new(mutated_program)));
                 },
@@ -838,6 +834,20 @@ impl TraverseProgramsAndModels {
             &current_tasks
         );
 
+        let bloom_items_count = 1000000;
+        let false_positive_rate = 0.01;
+        let mut bloom = Bloom::<String>::new_for_fp_rate(bloom_items_count, false_positive_rate);
+        for program_item in &self.program_item_vec {
+            match program_item.borrow().bloom_key() {
+                Ok(bloom_key) => {
+                    bloom.set(&bloom_key);
+                },
+                Err(error) => {
+                    error!("unable to create bloom_key for program: {:?}", error);
+                }
+            }
+        }
+
         let mut state = BatchState {
             path_solutions_csv,
             path_programs,
@@ -863,7 +873,19 @@ impl TraverseProgramsAndModels {
 
             // Create new mutated programs in every iteration
             let mutation_count: usize = 5;
-            state.scheduled_program_item_vec = self.create_mutated_programs(random_seed, mutation_count);
+            state.scheduled_program_item_vec = self.create_mutated_programs(random_seed, mutation_count, &bloom);
+
+
+            for program_item in &state.scheduled_program_item_vec {
+                match program_item.borrow().bloom_key() {
+                    Ok(bloom_key) => {
+                        bloom.set(&bloom_key);
+                    },
+                    Err(error) => {
+                        error!("unable to create bloom_key for program: {:?}", error);
+                    }
+                }
+            }
 
             // Evaluate all puzzles with all candidate programs
             state.run_one_batch()?;
@@ -1158,6 +1180,36 @@ struct ProgramItem {
     program_string: String,
     program_type: ProgramType,
     number_of_models: usize,
+}
+
+impl ProgramItem {
+    fn parsed_program(&self) -> anyhow::Result<ParsedProgram> {
+        let program_content: String;
+        match self.program_type {
+            ProgramType::Simple => {
+                program_content = RunWithProgram::convert_simple_to_full(&self.program_string);
+            },
+            ProgramType::Advance => {
+                program_content = self.program_string.clone();
+            }
+        }
+        let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&program_content) {
+            Ok(value) => value,
+            Err(error) => {
+                return Err(anyhow::anyhow!("cannot parse the program: {:?}", error));
+            }
+        };
+        Ok(parsed_program)
+    }
+
+    /// Returns a compacted version of the program, that is only intended for use in the bloomfilter.
+    /// Inserts header/footer if it's a simple program. Keeps the program if it's an adavanced program.
+    /// There are no comments or unneccessary spacing.
+    fn bloom_key(&self) -> anyhow::Result<String> {
+        let pp: ParsedProgram = self.parsed_program()?;
+        let compact_program_string: String = pp.to_string();
+        Ok(compact_program_string)
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Serialize, PartialEq)]
