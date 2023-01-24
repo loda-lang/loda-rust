@@ -179,11 +179,29 @@ impl TraverseProgramsAndModels {
                 }
             }
 
+            let program_content: String;
+            match program_type {
+                ProgramType::Simple => {
+                    program_content = RunWithProgram::convert_simple_to_full(&program_string);
+                },
+                ProgramType::Advance => {
+                    program_content = program_string.clone();
+                }
+            }
+            let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&program_content) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("cannot parse the program. Skipping program. path: {:?} error: {:?}", path, error);
+                    continue;
+                }
+            };
+
             let instance = ProgramItem {
                 id: ProgramItemId::Path { path: path.clone() },
                 program_string,
                 program_type,
                 number_of_models: 0,
+                parsed_program,
             };
             let item = Rc::new(RefCell::new(instance));
             program_item_vec.push(item);
@@ -240,11 +258,7 @@ impl TraverseProgramsAndModels {
 
         let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
 
-        let initial_parsed_program: ParsedProgram = program_item.parsed_program()?;
-
-        // println!("; INPUT PROGRAM\n; filename: {:?}\n\n{}", program_item.id.file_name(), initial_parsed_program);
-
-        let mut genome_vec: Vec<GenomeItem> = initial_parsed_program.to_genome_item_vec();
+        let mut genome_vec: Vec<GenomeItem> = program_item.parsed_program.to_genome_item_vec();
 
         // locking rows that are not to be mutated
         for genome_item in genome_vec.iter_mut() {
@@ -301,6 +315,7 @@ impl TraverseProgramsAndModels {
                 program_string: candidate_program,
                 program_type: ProgramType::Advance,
                 number_of_models: 0,
+                parsed_program,
             };
             result_program_item_vec.push(Rc::new(RefCell::new(mutated_program_item)));
             if result_program_item_vec.len() >= number_of_programs_to_generate {
@@ -1199,34 +1214,15 @@ struct ProgramItem {
     program_string: String,
     program_type: ProgramType,
     number_of_models: usize,
+    parsed_program: ParsedProgram,
 }
 
 impl ProgramItem {
-    fn parsed_program(&self) -> anyhow::Result<ParsedProgram> {
-        let program_content: String;
-        match self.program_type {
-            ProgramType::Simple => {
-                program_content = RunWithProgram::convert_simple_to_full(&self.program_string);
-            },
-            ProgramType::Advance => {
-                program_content = self.program_string.clone();
-            }
-        }
-        let parsed_program: ParsedProgram = match ParsedProgram::parse_program(&program_content) {
-            Ok(value) => value,
-            Err(error) => {
-                return Err(anyhow::anyhow!("cannot parse the program: {:?}", error));
-            }
-        };
-        Ok(parsed_program)
-    }
-
     /// Returns a compacted version of the program, that is only intended for use in the bloomfilter.
     /// Inserts header/footer if it's a simple program. Keeps the program if it's an adavanced program.
     /// There are no comments or unneccessary spacing.
     fn bloom_key(&self) -> anyhow::Result<String> {
-        let pp: ParsedProgram = self.parsed_program()?;
-        let compact_program_string: String = pp.to_string();
+        let compact_program_string: String = self.parsed_program.to_string();
         Ok(compact_program_string)
     }
 }
