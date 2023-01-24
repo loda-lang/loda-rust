@@ -36,6 +36,7 @@ pub struct TraverseProgramsAndModels {
     locked_instruction_hashset: HashSet<String>,
     path_solution_dir: PathBuf,
     path_solution_teamid_json: PathBuf,
+    dependency_manager: DependencyManager,
 }
 
 impl TraverseProgramsAndModels {
@@ -82,6 +83,8 @@ impl TraverseProgramsAndModels {
         let path_solution_dir: PathBuf = config.arc_repository_data().join(Path::new("solution"));
         let path_solution_teamid_json: PathBuf = path_solution_dir.join(Path::new(SOLUTIONS_FILENAME));
 
+        let dependency_manager: DependencyManager = RunWithProgram::create_dependency_manager();
+
         let mut instance = Self { 
             config,
             context,
@@ -90,6 +93,7 @@ impl TraverseProgramsAndModels {
             locked_instruction_hashset: HashSet::new(),
             path_solution_dir,
             path_solution_teamid_json,
+            dependency_manager,
         };
         instance.load_puzzle_files()?;
         instance.load_solution_files()?;
@@ -252,13 +256,13 @@ impl TraverseProgramsAndModels {
     /// The `bloom` parameter, helps ensure that the mutated programs are different than previously tried out programs.
     /// 
     /// Returns a vector with length `number_of_programs_to_generate`.
-    fn create_mutations_of_program(&self, program_item: &ProgramItem, random_seed: u64, number_of_programs_to_generate: usize, bloom: &mut Bloom::<String>) -> anyhow::Result<RcProgramItemVec> {
+    fn create_mutations_of_program(&mut self, program_item: RcProgramItem, random_seed: u64, number_of_programs_to_generate: usize, bloom: &mut Bloom::<String>) -> anyhow::Result<RcProgramItemVec> {
         let mut genome = Genome::new();
-        genome.append_message(format!("template: {:?}", program_item.id.file_name()));
+        genome.append_message(format!("template: {:?}", program_item.borrow().id.file_name()));
 
         let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
 
-        let mut genome_vec: Vec<GenomeItem> = program_item.parsed_program.to_genome_item_vec();
+        let mut genome_vec: Vec<GenomeItem> = program_item.borrow().parsed_program.to_genome_item_vec();
 
         // locking rows that are not to be mutated
         for genome_item in genome_vec.iter_mut() {
@@ -270,8 +274,6 @@ impl TraverseProgramsAndModels {
 
         genome.set_genome_vec(genome_vec);
         
-        let mut dependency_manager: DependencyManager = RunWithProgram::create_dependency_manager();
-
         let mut result_program_item_vec: RcProgramItemVec = RcProgramItemVec::with_capacity(number_of_programs_to_generate);
 
         let max_number_of_retries = 100;
@@ -294,7 +296,7 @@ impl TraverseProgramsAndModels {
 
             bloom.set(&bloom_key);
     
-            let program_runner: ProgramRunner = dependency_manager.parse_stage2(ProgramId::ProgramWithoutId, &parsed_program)
+            let program_runner: ProgramRunner = self.dependency_manager.parse_stage2(ProgramId::ProgramWithoutId, &parsed_program)
                 .map_err(|e| anyhow::anyhow!("parse_stage2 with program: {:?}. error: {:?}", genome.to_string(), e))?;
     
             let mut serializer = ProgramSerializer::new();
@@ -323,7 +325,7 @@ impl TraverseProgramsAndModels {
             }
         }
         if result_program_item_vec.is_empty() {
-            return Err(anyhow::anyhow!("unable to mutate in {} attempts, {:?}", max_number_of_retries, program_item.id.file_name()));
+            return Err(anyhow::anyhow!("unable to mutate in {} attempts, {:?}", max_number_of_retries, program_item.borrow().id.file_name()));
         }
         Ok(result_program_item_vec)
     }
@@ -334,14 +336,14 @@ impl TraverseProgramsAndModels {
     /// 
     /// Returns a vector with length `number_of_programs_to_generate` x number of available programs.
     fn create_mutations_of_all_programs(
-        &self, 
+        &mut self,
         random_seed: u64, 
         number_of_programs_to_generate: usize, 
         bloom: &mut Bloom::<String>
     ) -> RcProgramItemVec {
         let mut result_program_item_vec: RcProgramItemVec = RcProgramItemVec::new();
-        for program_item in &self.program_item_vec {
-            match self.create_mutations_of_program(&program_item.borrow(), random_seed, number_of_programs_to_generate, bloom) {
+        for program_item in self.program_item_vec.clone() {
+            match self.create_mutations_of_program(program_item, random_seed, number_of_programs_to_generate, bloom) {
                 Ok(mut mutated_programs) => {
                     result_program_item_vec.append(&mut mutated_programs);
                 },
@@ -899,7 +901,7 @@ impl TraverseProgramsAndModels {
 
         if try_known_solutions {
             println!("Run with known solutions without mutations");
-            state.run_one_batch()?;
+            state.run_one_batch(&mut self.dependency_manager)?;
         }
 
         // loop until all puzzles have been solved
@@ -919,7 +921,7 @@ impl TraverseProgramsAndModels {
             state.scheduled_program_item_vec = self.create_mutations_of_all_programs(random_seed, number_of_programs_to_generate, &mut bloom);
 
             // Evaluate all puzzles with all candidate programs
-            state.run_one_batch()?;
+            state.run_one_batch(&mut self.dependency_manager)?;
 
             mutation_index += 1;
         }
@@ -942,7 +944,7 @@ struct BatchState {
 }
 
 impl BatchState {
-    fn run_one_batch(&mut self) -> anyhow::Result<()> {
+    fn run_one_batch(&mut self, dependency_manager: &mut DependencyManager) -> anyhow::Result<()> {
         let verify_test_output = false;
         let verbose = false;
 
@@ -974,32 +976,27 @@ impl BatchState {
                     pb2.inc(1);
                 }
 
-                let result: RunWithProgramResult;
-                match program_item.borrow().program_type {
-                    ProgramType::Simple => {
-                        result = match instance.run_simple(&program_item.borrow().program_string) {
-                            Ok(value) => value,
-                            Err(error) => {
-                                if verbose {
-                                    error!("model: {:?} simple-program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
-                                }
-                                continue;
-                            }
-                        };
-                    },
-                    ProgramType::Advance => {
-                        result = match instance.run_advanced(&program_item.borrow().program_string) {
-                            Ok(value) => value,
-                            Err(error) => {
-                                if verbose {
-                                    error!("model: {:?} advanced-program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
-                                }
-                                continue;
-                            }
-                        };
-                    }
-                }
+                let parsed_program: ParsedProgram = program_item.borrow().parsed_program.clone();
+                // TODO: move program_runner into the ProgramItem instance
 
+                let program_runner: ProgramRunner = match dependency_manager.parse_stage2(ProgramId::ProgramWithoutId, &parsed_program) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        error!("parse_stage2 model: {:?} program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
+                        continue;
+                    }
+                };
+
+                let result: RunWithProgramResult = match instance.run_program_runner(&program_runner) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        if verbose {
+                            error!("run_program_runner model: {:?} program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
+                        }
+                        continue;
+                    }
+                };
+        
                 if verbose {
                     let s = format!("model: {:?} program: {:?} result: {:?}", model_item.borrow().id, program_item.borrow().id, result);
                     pb.println(s);
