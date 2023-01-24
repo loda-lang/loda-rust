@@ -10,6 +10,7 @@ use anyhow::Context;
 use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{ProgramSerializer, ProgramId, ProgramRunner};
 use loda_rust_core::parser::ParsedProgram;
+use chrono::prelude::*;
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::fs::{self, File};
@@ -729,6 +730,22 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    fn create_mutated_programs(&self, random_seed: u64, mutation_count: usize) -> Vec<Rc<RefCell<ProgramItem>>> {
+        let mut result_program_item_vec: Vec<Rc<RefCell<ProgramItem>>> = Vec::<Rc<RefCell<ProgramItem>>>::new();
+        for program_item in &self.program_item_vec {
+            match self.mutate_program(&program_item.borrow(), random_seed, mutation_count) {
+                Ok(mutated_program) => {
+                    result_program_item_vec.push(Rc::new(RefCell::new(mutated_program)));
+                },
+                Err(error) => {
+                    debug!("Skipping this mutation. The original program cannot be mutated. {:?}", error);
+                    break;
+                }
+            }
+        }
+        result_program_item_vec
+    }
+
     fn run_arc_competition(&mut self) -> anyhow::Result<()> {
         println!("initial model_item_vec.len: {:?}", self.model_item_vec.len());
         let mut scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = self.model_item_vec.clone();
@@ -758,12 +775,6 @@ impl TraverseProgramsAndModels {
             debug!("solutions.csv: number of rows: {}", record_vec.len());
     
             for record in &record_vec {
-                let program_filename: String = record.program_filename.clone();
-                for program_item in &self.program_item_vec {
-                    if program_item.borrow().id.file_name() == program_filename {
-                        program_item.borrow_mut().number_of_models += 1;
-                    }
-                }
                 let puzzle_filename_with_json_suffix: String = record.model_filename.clone();
                 let puzzle_filename = puzzle_filename_with_json_suffix.replace(".json", "");
                 puzzle_names_to_ignore.insert(puzzle_filename);
@@ -776,37 +787,7 @@ impl TraverseProgramsAndModels {
             &puzzle_names_to_ignore
         );
 
-        println!("scheduled_model_item_vec.len(): {}", scheduled_model_item_vec.len());
-
-        let mut scheduled_program_item_vec: Vec<Rc<RefCell<ProgramItem>>> = Vec::<Rc<RefCell<ProgramItem>>>::new();
-        for program_item in self.program_item_vec.iter_mut() {
-            if program_item.borrow().number_of_models == 0 {
-                scheduled_program_item_vec.push(Rc::clone(program_item));
-            }
-        }
-
-        let schedule_mutations: bool = true;
-        // let schedule_mutations: bool = scheduled_program_item_vec.is_empty();
-        if schedule_mutations {
-            let number_of_mutations: u64 = 40;
-
-            for program_item in &self.program_item_vec {
-                for i in 0..number_of_mutations {
-                    let random_seed: u64 = i + 200;
-                    let mutation_count: usize = ((i % 4) + 1) as usize;
-                    match self.mutate_program(&program_item.borrow(), random_seed, mutation_count) {
-                        Ok(mutated_program) => {
-                            scheduled_program_item_vec.push(Rc::new(RefCell::new(mutated_program)));
-                        },
-                        Err(error) => {
-                            debug!("Skipping this mutation. The original program cannot be mutated. {:?}", error);
-                            break;
-                        }
-                    }
-                }
-            }
-            println!("scheduled_program_item_vec.len: {}", scheduled_program_item_vec.len());
-        }
+        // println!("scheduled_model_item_vec.len(): {}", scheduled_model_item_vec.len());
 
         // Summary of what puzzles are to be solved
         {
@@ -838,12 +819,30 @@ impl TraverseProgramsAndModels {
             path_solution_dir: self.path_solution_dir.clone(),
             path_solution_teamid_json: self.path_solution_teamid_json.clone(),
             scheduled_model_item_vec,
-            scheduled_program_item_vec,
+            scheduled_program_item_vec: vec!(),
             record_vec,
             current_tasks,
         };
 
-        state.run_one_batch()?;
+        // loop until all puzzles have been solved
+        let mut mutation_index: u64 = 0;
+        while !state.scheduled_model_item_vec.is_empty() {
+
+            let datetime: DateTime<Utc> = Utc::now();
+            let timestamp = datetime.to_rfc3339_opts(SecondsFormat::Secs, true).to_string();
+        
+            println!("{} - Mutation: {}", timestamp, mutation_index);
+
+            // Create new mutated programs in every iteration
+            let random_seed: u64 = mutation_index; 
+            let mutation_count: usize = 5;
+            state.scheduled_program_item_vec = self.create_mutated_programs(random_seed, mutation_count);
+
+            // Evaluate all puzzles with all candidate programs
+            state.run_one_batch()?;
+
+            mutation_index += 1;
+        }
 
         println!("Done!");
 
@@ -866,10 +865,6 @@ impl BatchState {
     fn run_one_batch(&mut self) -> anyhow::Result<()> {
         let verify_test_output = false;
         let verbose = false;
-
-        let mut count_match: usize = 0;
-        let mut count_mismatch: usize = 0;
-        let start = Instant::now();
 
         let multi_progress = MultiProgress::new();
         let progress_style: ProgressStyle = ProgressStyle::with_template(
@@ -991,12 +986,6 @@ impl BatchState {
                 );
             }
 
-            if found_one_or_more_solutions {
-                count_match += 1;
-            } else {
-                count_mismatch += 1;
-            }
-
             // found_one_or_more_solutions = true;
             if found_one_or_more_solutions {
                 save_solutions(
@@ -1007,14 +996,6 @@ impl BatchState {
             }
         }
         pb.finish_and_clear();
-        let green_bold = Style::new().green().bold();        
-        println!(
-            "{:>12} processing programs/models in {}",
-            green_bold.apply_to("Finished"),
-            HumanDuration(start.elapsed())
-        );
-
-        println!("number of matches: {} mismatches: {}", count_match, count_mismatch);
 
         Ok(())
     }
