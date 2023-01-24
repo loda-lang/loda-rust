@@ -12,6 +12,7 @@ use loda_rust_core::control::DependencyManager;
 use loda_rust_core::execute::{ProgramSerializer, ProgramId, ProgramRunner};
 use loda_rust_core::parser::ParsedProgram;
 use chrono::prelude::*;
+use std::fmt;
 use std::time::{SystemTime, Duration};
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -200,12 +201,21 @@ impl TraverseProgramsAndModels {
                 }
             };
 
+            let program_runner: ProgramRunner = match self.dependency_manager.parse_stage2(ProgramId::ProgramWithoutId, &parsed_program) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("cannot create ProgramRunner. Skipping program. path: {:?} error: {:?}", path, error);
+                    continue;
+                }
+            };
+
             let instance = ProgramItem {
                 id: ProgramItemId::Path { path: path.clone() },
                 program_string,
                 program_type,
                 number_of_models: 0,
                 parsed_program,
+                program_runner,
             };
             let item = Rc::new(RefCell::new(instance));
             program_item_vec.push(item);
@@ -292,12 +302,18 @@ impl TraverseProgramsAndModels {
             }
 
             // This program mutation is not contained in the bloomfilter.
-            // Proceed making a program out of it.
 
+            // This ensures that we don't try out this mutation again.
             bloom.set(&bloom_key);
-    
-            let program_runner: ProgramRunner = self.dependency_manager.parse_stage2(ProgramId::ProgramWithoutId, &parsed_program)
-                .map_err(|e| anyhow::anyhow!("parse_stage2 with program: {:?}. error: {:?}", genome.to_string(), e))?;
+            
+            // Proceed making a program out of it.
+            let program_runner: ProgramRunner = match self.dependency_manager.parse_stage2(ProgramId::ProgramWithoutId, &parsed_program) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("ignoring program mutation. parse_stage2 with program: {:?}. error: {:?}", genome.to_string(), error);
+                    continue;
+                }
+            };
     
             let mut serializer = ProgramSerializer::new();
             serializer.append_comment("Submitted by Simon Strandgaard");
@@ -318,6 +334,7 @@ impl TraverseProgramsAndModels {
                 program_type: ProgramType::Advance,
                 number_of_models: 0,
                 parsed_program,
+                program_runner,
             };
             result_program_item_vec.push(Rc::new(RefCell::new(mutated_program_item)));
             if result_program_item_vec.len() >= number_of_programs_to_generate {
@@ -901,7 +918,7 @@ impl TraverseProgramsAndModels {
 
         if try_known_solutions {
             println!("Run with known solutions without mutations");
-            state.run_one_batch(&mut self.dependency_manager)?;
+            state.run_one_batch()?;
         }
 
         // loop until all puzzles have been solved
@@ -921,7 +938,7 @@ impl TraverseProgramsAndModels {
             state.scheduled_program_item_vec = self.create_mutations_of_all_programs(random_seed, number_of_programs_to_generate, &mut bloom);
 
             // Evaluate all puzzles with all candidate programs
-            state.run_one_batch(&mut self.dependency_manager)?;
+            state.run_one_batch()?;
 
             mutation_index += 1;
         }
@@ -944,7 +961,7 @@ struct BatchState {
 }
 
 impl BatchState {
-    fn run_one_batch(&mut self, dependency_manager: &mut DependencyManager) -> anyhow::Result<()> {
+    fn run_one_batch(&mut self) -> anyhow::Result<()> {
         let verify_test_output = false;
         let verbose = false;
 
@@ -976,18 +993,8 @@ impl BatchState {
                     pb2.inc(1);
                 }
 
-                let parsed_program: ParsedProgram = program_item.borrow().parsed_program.clone();
-                // TODO: move program_runner into the ProgramItem instance
-
-                let program_runner: ProgramRunner = match dependency_manager.parse_stage2(ProgramId::ProgramWithoutId, &parsed_program) {
-                    Ok(value) => value,
-                    Err(error) => {
-                        error!("parse_stage2 model: {:?} program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
-                        continue;
-                    }
-                };
-
-                let result: RunWithProgramResult = match instance.run_program_runner(&program_runner) {
+                let program_runner: &ProgramRunner = &program_item.borrow().program_runner;
+                let result: RunWithProgramResult = match instance.run_program_runner(program_runner) {
                     Ok(value) => value,
                     Err(error) => {
                         if verbose {
@@ -1205,13 +1212,13 @@ impl ProgramItemId {
 type RcProgramItem = Rc<RefCell<ProgramItem>>;
 type RcProgramItemVec = Vec<RcProgramItem>;
 
-#[derive(Clone, Debug)]
 struct ProgramItem {
     id: ProgramItemId,
     program_string: String,
     program_type: ProgramType,
     number_of_models: usize,
     parsed_program: ParsedProgram,
+    program_runner: ProgramRunner,
 }
 
 impl ProgramItem {
@@ -1221,6 +1228,12 @@ impl ProgramItem {
     fn bloom_key(&self) -> anyhow::Result<String> {
         let compact_program_string: String = self.parsed_program.to_string();
         Ok(compact_program_string)
+    }
+}
+
+impl fmt::Debug for ProgramItem {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "ProgramItem {:?} program {:?}", self.id, self.program_string)
     }
 }
 
