@@ -762,6 +762,10 @@ impl TraverseProgramsAndModels {
     }
 
     fn run_arc_competition(&mut self) -> anyhow::Result<()> {
+        // When participating in the constest, then we want to try the known solutions.
+        // However it's slow, so while developing we only want mutations.
+        let try_known_solutions = true;
+
         let duration: Duration = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .expect("Duration since UNIX_EPOCH failed");
@@ -860,10 +864,15 @@ impl TraverseProgramsAndModels {
             path_solution_dir: self.path_solution_dir.clone(),
             path_solution_teamid_json: self.path_solution_teamid_json.clone(),
             scheduled_model_item_vec,
-            scheduled_program_item_vec: vec!(),
+            scheduled_program_item_vec: self.program_item_vec.clone(),
             record_vec,
             current_tasks,
         };
+
+        if try_known_solutions {
+            println!("Run with known solutions without mutations");
+            state.run_one_batch()?;
+        }
 
         // loop until all puzzles have been solved
         let mut mutation_index: u64 = 0;
