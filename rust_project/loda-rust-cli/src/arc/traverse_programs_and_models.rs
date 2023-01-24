@@ -800,12 +800,17 @@ impl TraverseProgramsAndModels {
             let mut number_of_solved_puzzles: usize = 0;
             let mut number_of_unsolved_puzzles: usize = 0;
             for model_item in &self.model_item_vec {
+                let mut is_same = false;
                 for model_item2 in &scheduled_model_item_vec {
                     if Rc::ptr_eq(&model_item, &model_item2) {
-                        number_of_unsolved_puzzles += 1;
-                    } else {
-                        number_of_solved_puzzles += 1;
+                        is_same = true;
+                        break;
                     }
+                }
+                if is_same {
+                    number_of_unsolved_puzzles += 1;
+                } else {
+                    number_of_solved_puzzles += 1;
                 }
             }
             println!("puzzles solved: {}", number_of_solved_puzzles);
