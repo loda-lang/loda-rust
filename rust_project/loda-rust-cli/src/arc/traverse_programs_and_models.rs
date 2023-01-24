@@ -471,7 +471,7 @@ impl TraverseProgramsAndModels {
 
             // The rows are supposed to be unique
             if unique_records.contains(&record) {
-                pb.println(format!("ERROR: Expected unique rows, but this is a duplicate. record_index: {}", record_index));
+                pb.println(format!("ERROR: in row {}. Expected unique rows, but this is a duplicate.", record_index));
                 count_error_duplicate += 1;
                 continue;
             }
@@ -487,14 +487,14 @@ impl TraverseProgramsAndModels {
             }
             // There is supposed to be exactly 1 puzzle with this name.
             if candidate_model_items.len() >= 2 {
-                pb.println(format!("ERROR: Expected 1 puzzle model for row in csv file, but got multiple. record_index: {}", record_index));
+                pb.println(format!("ERROR: in row {}. Expected 1 puzzle for row in csv file, but got multiple.", record_index));
                 count_error_other += 1;
                 continue;
             }
             let model_item: ModelItem = match candidate_model_items.pop() {
                 Some(value) => value,
                 None => {
-                    pb.println(format!("ERROR: No puzzle model for row in csv file. record_index: {}", record_index));
+                    pb.println(format!("ERROR: in row {}. Missing puzzle.", record_index));
                     count_error_other += 1;
                     continue;
                 }
@@ -511,14 +511,14 @@ impl TraverseProgramsAndModels {
             }
             // There is supposed to be exactly 1 solution with this name.
             if candidate_programs.len() >= 2 {
-                pb.println(format!("ERROR: Expected 1 solution model for row in csv file, but got multiple. record_index: {}", record_index));
+                pb.println(format!("ERROR: in row {}. Expected 1 solution for row in csv file, but got multiple.", record_index));
                 count_error_other += 1;
                 continue;
             }
             let program_item: Rc<RefCell<ProgramItem>> = match candidate_programs.pop() {
                 Some(value) => value,
                 None => {
-                    pb.println(format!("ERROR: No solution model for row in csv file. record_index: {}", record_index));
+                    pb.println(format!("ERROR: in row {}. Missing solution.", record_index));
                     count_error_other += 1;
                     continue;
                 }
