@@ -419,7 +419,7 @@ impl TraverseProgramsAndModels {
             }
 
             count_ok += 1;
-            pb.println(format!("Found a solution: {:?}", program_item.borrow().id.file_name()));
+            pb.println(format!("Solution: {:?}", program_item.borrow().id.file_name()));
         }
         pb.finish_and_clear();
 
@@ -686,7 +686,7 @@ impl TraverseProgramsAndModels {
                     continue;
                 }
     
-                pb.println(format!("{} - Found a solution: {:?}", print_prefix_puzzle_id, program_item.borrow().id.file_name()));
+                pb.println(format!("{} - Solution: {:?}", print_prefix_puzzle_id, program_item.borrow().id.file_name()));
                 count_ok += 1;
                 program_item.borrow_mut().number_of_models += 1;
 
