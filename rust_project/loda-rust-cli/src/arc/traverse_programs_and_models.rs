@@ -806,6 +806,17 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    fn run_arc_competition_config(&self) -> RunArcCompetitionConfig {
+        let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
+
+        RunArcCompetitionConfig {
+            path_solutions_csv,
+            path_programs: self.config.loda_arc_challenge_repository_programs(),
+            path_solution_dir: self.path_solution_dir.clone(),
+            path_solution_teamid_json: self.path_solution_teamid_json.clone(),
+        }
+    }
+
     fn run_arc_competition(&mut self) -> anyhow::Result<()> {
         // When participating in the constest, then we want to try the known solutions.
         // However it's slow, so while developing we only want mutations.
@@ -835,14 +846,13 @@ impl TraverseProgramsAndModels {
             puzzle_names_to_ignore.insert(task.task_name.clone());
         }
 
-        let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
-        let path_programs = self.config.loda_arc_challenge_repository_programs();
+        let config: RunArcCompetitionConfig = self.run_arc_competition_config();
 
         let mut record_vec = Vec::<Record>::new();
 
-        let ignore_puzzles_with_a_solution: bool = path_solutions_csv.is_file();
+        let ignore_puzzles_with_a_solution: bool = config.path_solutions_csv.is_file();
         if ignore_puzzles_with_a_solution {
-            record_vec = Record::load_record_vec(&path_solutions_csv)?;
+            record_vec = Record::load_record_vec(&config.path_solutions_csv)?;
             debug!("solutions.csv: number of rows: {}", record_vec.len());
     
             for record in &record_vec {
@@ -906,10 +916,7 @@ impl TraverseProgramsAndModels {
         }
 
         let mut state = BatchState {
-            path_solutions_csv,
-            path_programs,
-            path_solution_dir: self.path_solution_dir.clone(),
-            path_solution_teamid_json: self.path_solution_teamid_json.clone(),
+            config,
             scheduled_model_item_vec,
             scheduled_program_item_vec: self.program_item_vec.clone(),
             record_vec,
@@ -949,11 +956,16 @@ impl TraverseProgramsAndModels {
     }
 }
 
-struct BatchState {
+#[derive(Debug)]
+struct RunArcCompetitionConfig {
     path_solutions_csv: PathBuf,
     path_programs: PathBuf,
     path_solution_dir: PathBuf,
     path_solution_teamid_json: PathBuf,
+}
+
+struct BatchState {
+    config: RunArcCompetitionConfig,
     scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>>,
     scheduled_program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
     record_vec: Vec::<Record>,
@@ -1023,14 +1035,14 @@ impl BatchState {
                 let program_filename: String;
                 {
                     let name: String = model_filename.replace(".json", "");
-                    program_filename = match ProgramItem::unique_name_for_saving(&self.path_programs, &name) {
+                    program_filename = match ProgramItem::unique_name_for_saving(&self.config.path_programs, &name) {
                         Ok(filename) => filename,
                         Err(error) => {
                             error!("cannot save file, because of error: {:?}", error);
                             continue;
                         }
                     };
-                    let path = self.path_programs.join(Path::new(&program_filename));
+                    let path = self.config.path_programs.join(Path::new(&program_filename));
                     let mut file = File::create(&path)?;
                     let content: String = program_item.borrow().program_string.clone();
                     file.write_all(content.as_bytes())?;
@@ -1041,7 +1053,7 @@ impl BatchState {
                     program_filename,
                 };
                 self.record_vec.push(record);
-                Record::save_solutions_csv(&self.record_vec, &self.path_solutions_csv);
+                Record::save_solutions_csv(&self.record_vec, &self.config.path_solutions_csv);
 
                 let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.borrow().id);
                 pb.println(message);
@@ -1060,8 +1072,8 @@ impl BatchState {
                 };
                 self.current_tasks.push(task_item);
                 save_solutions_json(
-                    &self.path_solution_dir,
-                    &self.path_solution_teamid_json,
+                    &self.config.path_solution_dir,
+                    &self.config.path_solution_teamid_json,
                     &self.current_tasks
                 );
 
