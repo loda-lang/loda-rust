@@ -1019,14 +1019,20 @@ impl BatchState {
 
                 let model_filename: String = model_item.borrow().id.file_name();
 
+                // Save the model to disk
                 let program_filename: String;
                 {
-                    let content: String = program_item.borrow().program_string.clone();
-                    let mut s: String = model_filename.clone();
-                    s = s.replace(".json", "-x.asm");
-                    program_filename = s.clone();
-                    let path = self.path_programs.join(Path::new(&s));
+                    let name: String = model_filename.replace(".json", "");
+                    program_filename = match ProgramItem::unique_name_for_saving(&self.path_programs, &name) {
+                        Ok(filename) => filename,
+                        Err(error) => {
+                            error!("cannot save file, because of error: {:?}", error);
+                            continue;
+                        }
+                    };
+                    let path = self.path_programs.join(Path::new(&program_filename));
                     let mut file = File::create(&path)?;
+                    let content: String = program_item.borrow().program_string.clone();
                     file.write_all(content.as_bytes())?;
                 }
 
@@ -1228,6 +1234,20 @@ impl ProgramItem {
     fn bloom_key(&self) -> anyhow::Result<String> {
         let compact_program_string: String = self.parsed_program.to_string();
         Ok(compact_program_string)
+    }
+
+    fn unique_name_for_saving(dir_path: &Path, name: &str) -> anyhow::Result<String> {
+        assert!(dir_path.is_dir());
+        assert!(dir_path.is_absolute());
+        let max_number_of_variants: usize = 30;
+        for variant_index in 1..max_number_of_variants {
+            let filename = format!("{}-{}.asm", name, variant_index);
+            let file_path: PathBuf = dir_path.join(&filename);
+            if !file_path.is_file() {
+                return Ok(filename);
+            }
+        }
+        Err(anyhow::anyhow!("ProgramItem: Cannot construct unique filename for {:?} inside dir: {:?}", name, dir_path))
     }
 }
 
