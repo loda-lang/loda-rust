@@ -883,7 +883,7 @@ impl TraverseProgramsAndModels {
         }
 
         let current_tasks: Tasks = initial_tasks;
-        save_solutions(
+        save_solutions_json(
             &self.path_solution_dir,
             &self.path_solution_teamid_json,
             &current_tasks
@@ -1059,7 +1059,7 @@ impl BatchState {
                     test_vec: vec![test_item],
                 };
                 self.current_tasks.push(task_item);
-                save_solutions(
+                save_solutions_json(
                     &self.path_solution_dir,
                     &self.path_solution_teamid_json,
                     &self.current_tasks
@@ -1284,7 +1284,7 @@ impl Record {
     }
 }
 
-fn save_solutions(path_solution_dir: &Path, path_solution_teamid_json: &Path, tasks: &Tasks) {
+fn save_solutions_json(path_solution_dir: &Path, path_solution_teamid_json: &Path, tasks: &Tasks) {
     if !path_solution_dir.exists() {
             match fs::create_dir(path_solution_dir) {
             Ok(_) => {},
