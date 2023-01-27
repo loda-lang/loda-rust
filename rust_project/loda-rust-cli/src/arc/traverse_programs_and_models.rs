@@ -920,7 +920,8 @@ impl TraverseProgramsAndModels {
             scheduled_program_item_vec: vec!(),
         };
         
-        let state = BatchState {
+        let mut state = BatchState {
+            remove_model_items: vec!(),
             record_vec,
             current_tasks,
         };
@@ -928,12 +929,11 @@ impl TraverseProgramsAndModels {
         let mut runner = BatchRunner {
             config,
             plan,
-            state,
         };
 
         if try_known_solutions {
             println!("Run with known solutions without mutations");
-            runner.run_one_batch()?;
+            runner.run_one_batch(&mut state)?;
         }
 
         // loop until all puzzles have been solved
@@ -953,7 +953,7 @@ impl TraverseProgramsAndModels {
             runner.plan.scheduled_program_item_vec = self.create_mutations_of_all_programs(random_seed, number_of_programs_to_generate, &mut bloom);
 
             // Evaluate all puzzles with all candidate programs
-            runner.run_one_batch()?;
+            runner.run_one_batch(&mut state)?;
 
             mutation_index += 1;
         }
@@ -979,6 +979,7 @@ struct BatchPlan {
 }
 
 struct BatchState {
+    remove_model_items: Vec<Rc<RefCell<ModelItem>>>,
     record_vec: Vec::<Record>,
     current_tasks: Tasks,
 }
@@ -986,15 +987,12 @@ struct BatchState {
 struct BatchRunner {
     config: RunArcCompetitionConfig,
     plan: BatchPlan,
-    state: BatchState,
 }
 
 impl BatchRunner {
-    fn run_one_batch(&mut self) -> anyhow::Result<()> {
+    fn run_one_batch(&mut self, state: &mut BatchState) -> anyhow::Result<()> {
         let verify_test_output = false;
         let verbose = false;
-
-        let mut remove_model_items: Vec<Rc<RefCell<ModelItem>>> = vec!();
 
         let multi_progress = MultiProgress::new();
         let progress_style: ProgressStyle = ProgressStyle::with_template(
@@ -1051,7 +1049,7 @@ impl BatchRunner {
                 // Save the model to disk
                 let program_filename: String;
                 {
-                    let name: String = model_filename.replace(".json", "");
+                    let name: String = model_item.borrow().id.file_stem();
                     program_filename = match ProgramItem::unique_name_for_saving(&self.config.path_programs, &name) {
                         Ok(filename) => filename,
                         Err(error) => {
@@ -1069,8 +1067,8 @@ impl BatchRunner {
                     model_filename: model_filename,
                     program_filename,
                 };
-                self.state.record_vec.push(record);
-                Record::save_solutions_csv(&self.state.record_vec, &self.config.path_solutions_csv);
+                state.record_vec.push(record);
+                Record::save_solutions_csv(&state.record_vec, &self.config.path_solutions_csv);
 
                 let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.borrow().id);
                 pb.println(message);
@@ -1087,14 +1085,14 @@ impl BatchRunner {
                     task_name: task_name,
                     test_vec: vec![test_item],
                 };
-                self.state.current_tasks.push(task_item);
+                state.current_tasks.push(task_item);
                 save_solutions_json(
                     &self.config.path_solution_dir,
                     &self.config.path_solution_teamid_json,
-                    &self.state.current_tasks
+                    &state.current_tasks
                 );
 
-                remove_model_items.push(Rc::clone(model_item));
+                state.remove_model_items.push(Rc::clone(model_item));
 
                 // This is a solution to this puzzle. No need to loop through the remaining programs.
                 break;
@@ -1104,11 +1102,12 @@ impl BatchRunner {
         pb.finish_and_clear();
 
         // Remove solved puzzles from the scheduled_model_item_vec
-        if !remove_model_items.is_empty() {
+        if !state.remove_model_items.is_empty() {
             self.plan.scheduled_model_item_vec = ModelItem::remove_model_items(
                 &self.plan.scheduled_model_item_vec, 
-                &remove_model_items
+                &state.remove_model_items
             );
+            state.remove_model_items.clear();
         }
 
         Ok(())
