@@ -920,21 +920,25 @@ impl TraverseProgramsAndModels {
             scheduled_program_item_vec: vec!(),
         };
         
-        let mut state = BatchState {
-            config,
-            plan,
+        let state = BatchState {
             record_vec,
             current_tasks,
         };
 
+        let mut runner = BatchRunner {
+            config,
+            plan,
+            state,
+        };
+
         if try_known_solutions {
             println!("Run with known solutions without mutations");
-            state.run_one_batch()?;
+            runner.run_one_batch()?;
         }
 
         // loop until all puzzles have been solved
         let mut mutation_index: u64 = 0;
-        while !state.plan.scheduled_model_item_vec.is_empty() {
+        while !runner.plan.scheduled_model_item_vec.is_empty() {
 
             let datetime: DateTime<Utc> = Utc::now();
             let timestamp = datetime.to_rfc3339_opts(SecondsFormat::Secs, true).to_string();
@@ -946,10 +950,10 @@ impl TraverseProgramsAndModels {
 
 
             // Create new mutated programs in every iteration
-            state.plan.scheduled_program_item_vec = self.create_mutations_of_all_programs(random_seed, number_of_programs_to_generate, &mut bloom);
+            runner.plan.scheduled_program_item_vec = self.create_mutations_of_all_programs(random_seed, number_of_programs_to_generate, &mut bloom);
 
             // Evaluate all puzzles with all candidate programs
-            state.run_one_batch()?;
+            runner.run_one_batch()?;
 
             mutation_index += 1;
         }
@@ -975,13 +979,17 @@ struct BatchPlan {
 }
 
 struct BatchState {
-    config: RunArcCompetitionConfig,
-    plan: BatchPlan,
     record_vec: Vec::<Record>,
     current_tasks: Tasks,
 }
 
-impl BatchState {
+struct BatchRunner {
+    config: RunArcCompetitionConfig,
+    plan: BatchPlan,
+    state: BatchState,
+}
+
+impl BatchRunner {
     fn run_one_batch(&mut self) -> anyhow::Result<()> {
         let verify_test_output = false;
         let verbose = false;
@@ -1061,8 +1069,8 @@ impl BatchState {
                     model_filename: model_filename,
                     program_filename,
                 };
-                self.record_vec.push(record);
-                Record::save_solutions_csv(&self.record_vec, &self.config.path_solutions_csv);
+                self.state.record_vec.push(record);
+                Record::save_solutions_csv(&self.state.record_vec, &self.config.path_solutions_csv);
 
                 let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.borrow().id);
                 pb.println(message);
@@ -1079,11 +1087,11 @@ impl BatchState {
                     task_name: task_name,
                     test_vec: vec![test_item],
                 };
-                self.current_tasks.push(task_item);
+                self.state.current_tasks.push(task_item);
                 save_solutions_json(
                     &self.config.path_solution_dir,
                     &self.config.path_solution_teamid_json,
-                    &self.current_tasks
+                    &self.state.current_tasks
                 );
 
                 remove_model_items.push(Rc::clone(model_item));
