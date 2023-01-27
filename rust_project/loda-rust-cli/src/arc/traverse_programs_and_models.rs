@@ -917,7 +917,7 @@ impl TraverseProgramsAndModels {
 
         let plan = BatchPlan {
             scheduled_model_item_vec,
-            scheduled_program_item_vec: vec!(),
+            scheduled_program_item_vec: self.program_item_vec.clone(),
         };
         
         let mut state = BatchState {
