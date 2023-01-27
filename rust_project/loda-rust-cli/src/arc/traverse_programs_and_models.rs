@@ -935,6 +935,7 @@ impl TraverseProgramsAndModels {
         if try_known_solutions {
             println!("Run with known solutions without mutations");
             runner.run_one_batch(&mut state)?;
+            self.transfer_discovered_programs(&mut state);
         }
 
         // loop until all puzzles have been solved
@@ -955,15 +956,7 @@ impl TraverseProgramsAndModels {
 
             // Evaluate all puzzles with all candidate programs
             runner.run_one_batch(&mut state)?;
-
-            // Move discovered programs to the original programs vector
-            if !state.discovered_program_item_vec.is_empty() {
-                self.program_item_vec.append(&mut state.discovered_program_item_vec);
-                if !state.discovered_program_item_vec.is_empty() {
-                    error!("Expected state.discovered_program_item_vec to be empty after moving the elements");
-                }
-
-            }
+            self.transfer_discovered_programs(&mut state);
             
             mutation_index += 1;
         }
@@ -971,6 +964,18 @@ impl TraverseProgramsAndModels {
         println!("Done!");
 
         Ok(())
+    }
+
+    /// Move discovered programs to the original programs vector
+    fn transfer_discovered_programs(&mut self, state: &mut BatchState) {
+        if state.discovered_program_item_vec.is_empty() {
+            return;
+        }
+        println!("transferred {:?} solutions", state.discovered_program_item_vec.len());
+        self.program_item_vec.append(&mut state.discovered_program_item_vec);
+        if !state.discovered_program_item_vec.is_empty() {
+            error!("Expected state.discovered_program_item_vec to be empty after moving the elements");
+        }
     }
 }
 
