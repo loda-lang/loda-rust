@@ -1001,6 +1001,69 @@ struct BatchState {
     current_tasks: Tasks,
 }
 
+impl BatchState {
+    fn save_solution(
+        &mut self, 
+        config: &RunArcCompetitionConfig, 
+        model_item: Rc<RefCell<ModelItem>>, 
+        program_item: Rc<RefCell<ProgramItem>>,
+        run_with_program_result: RunWithProgramResult,
+        progress_bar: &ProgressBar,
+    ) -> anyhow::Result<()> {
+        let model_filename: String = model_item.borrow().id.file_name();
+
+        // Save the model to disk
+        let program_filename: String;
+        {
+            let name: String = model_item.borrow().id.file_stem();
+            program_filename = match ProgramItem::unique_name_for_saving(&config.path_programs, &name) {
+                Ok(filename) => filename,
+                Err(error) => {
+                    error!("cannot save file, because of error: {:?}", error);
+                    return Err(anyhow::anyhow!("cannot save file, because of error: {:?}", error));
+                }
+            };
+            let path = config.path_programs.join(Path::new(&program_filename));
+            let mut file = File::create(&path)?;
+            let content: String = program_item.borrow().program_string.clone();
+            file.write_all(content.as_bytes())?;
+        }
+
+        let record = Record {
+            model_filename: model_filename,
+            program_filename,
+        };
+        self.record_vec.push(record);
+        Record::save_solutions_csv(&self.record_vec, &config.path_solutions_csv);
+
+        let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.borrow().id);
+        progress_bar.println(message);
+
+        let predictions: Vec<Prediction> = run_with_program_result.predictions().clone();
+        let test_item = TestItem { 
+            output_id: 0,
+            number_of_predictions: predictions.len() as u8,
+            predictions: predictions,
+        };
+
+        let task_name: String = model_item.borrow().id.file_stem();
+        let task_item = TaskItem {
+            task_name: task_name,
+            test_vec: vec![test_item],
+        };
+        self.current_tasks.push(task_item);
+        save_solutions_json(
+            &config.path_solution_dir,
+            &config.path_solution_teamid_json,
+            &self.current_tasks
+        );
+
+        self.remove_model_items.push(Rc::clone(&model_item));
+
+        Ok(())
+    }
+}
+
 struct BatchRunner {
     config: RunArcCompetitionConfig,
     plan: BatchPlan,
@@ -1013,6 +1076,9 @@ impl BatchRunner {
         Ok(())
     }
 
+    /// Outer loop traverses the unsolved puzzles.
+    /// 
+    /// Inner loop traverses the candidate solutions.
     fn run_one_batch_inner(&self, state: &mut BatchState) -> anyhow::Result<()> {
         let verify_test_output = false;
         let verbose = false;
@@ -1024,7 +1090,7 @@ impl BatchRunner {
 
         let pb = multi_progress.add(ProgressBar::new(self.plan.scheduled_model_item_vec.len() as u64));
         pb.set_style(progress_style.clone());
-        pb.set_prefix("Puzzle  ");
+        pb.set_prefix("Unsolved puzzle   ");
         for (model_index, model_item) in self.plan.scheduled_model_item_vec.iter().enumerate() {
             if model_index > 0 {
                 pb.inc(1);
@@ -1036,7 +1102,7 @@ impl BatchRunner {
     
             let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(self.plan.scheduled_program_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
-            pb2.set_prefix("Solution");
+            pb2.set_prefix("Candidate solution");
             for (program_index, program_item) in self.plan.scheduled_program_item_vec.iter().enumerate() {
                 if program_index > 0 {
                     pb.tick();
@@ -1044,7 +1110,7 @@ impl BatchRunner {
                 }
 
                 let program_runner: &ProgramRunner = &program_item.borrow().program_runner;
-                let result: RunWithProgramResult = match instance.run_program_runner(program_runner) {
+                let run_with_program_result: RunWithProgramResult = match instance.run_program_runner(program_runner) {
                     Ok(value) => value,
                     Err(error) => {
                         if verbose {
@@ -1055,11 +1121,11 @@ impl BatchRunner {
                 };
         
                 if verbose {
-                    let s = format!("model: {:?} program: {:?} result: {:?}", model_item.borrow().id, program_item.borrow().id, result);
+                    let s = format!("model: {:?} program: {:?} result: {:?}", model_item.borrow().id, program_item.borrow().id, run_with_program_result);
                     pb.println(s);
                 }
 
-                let count: usize = result.count_train_correct() + result.count_test_correct();
+                let count: usize = run_with_program_result.count_train_correct() + run_with_program_result.count_test_correct();
                 if count != pairs.len() {
                     // This is not a solution. Proceed to the next candidate solution.
                     continue;
@@ -1067,58 +1133,26 @@ impl BatchRunner {
 
                 // This may be a solution.
 
-                let model_filename: String = model_item.borrow().id.file_name();
-
-                // Save the model to disk
-                let program_filename: String;
-                {
-                    let name: String = model_item.borrow().id.file_stem();
-                    program_filename = match ProgramItem::unique_name_for_saving(&self.config.path_programs, &name) {
-                        Ok(filename) => filename,
-                        Err(error) => {
-                            error!("cannot save file, because of error: {:?}", error);
-                            continue;
-                        }
-                    };
-                    let path = self.config.path_programs.join(Path::new(&program_filename));
-                    let mut file = File::create(&path)?;
-                    let content: String = program_item.borrow().program_string.clone();
-                    file.write_all(content.as_bytes())?;
-                }
-
-                let record = Record {
-                    model_filename: model_filename,
-                    program_filename,
-                };
-                state.record_vec.push(record);
-                Record::save_solutions_csv(&state.record_vec, &self.config.path_solutions_csv);
-
-                let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.borrow().id);
-                pb.println(message);
-
-                let predictions: Vec<Prediction> = result.predictions().clone();
-                let test_item = TestItem { 
-                    output_id: 0,
-                    number_of_predictions: predictions.len() as u8,
-                    predictions: predictions,
-                };
-
-                let task_name: String = model_item.borrow().id.file_stem();
-                let task_item = TaskItem {
-                    task_name: task_name,
-                    test_vec: vec![test_item],
-                };
-                state.current_tasks.push(task_item);
-                save_solutions_json(
-                    &self.config.path_solution_dir,
-                    &self.config.path_solution_teamid_json,
-                    &state.current_tasks
+                let save_result = state.save_solution(
+                    &self.config, 
+                    Rc::clone(model_item), 
+                    Rc::clone(program_item), 
+                    run_with_program_result, 
+                    &pb
                 );
 
-                state.remove_model_items.push(Rc::clone(model_item));
-
-                // This is a solution to this puzzle. No need to loop through the remaining programs.
-                break;
+                match save_result {
+                    Ok(()) => {
+                        // This is a solution to this puzzle. No need to loop through the remaining programs.
+                        break;
+                    },
+                    Err(error) => {
+                        error!("Unable to save solution. {:?}", error);
+                        // Something went wrong saving this solution. Consider this puzzle as still being unsolved.
+                        // Loop through the remaining programs to check for another solution.
+                        continue;
+                    }
+                }
             }
             pb2.finish_and_clear();
         }
