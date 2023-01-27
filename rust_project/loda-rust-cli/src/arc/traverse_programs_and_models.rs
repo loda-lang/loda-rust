@@ -915,10 +915,14 @@ impl TraverseProgramsAndModels {
             }
         }
 
+        let plan = BatchPlan {
+            scheduled_model_item_vec,
+            scheduled_program_item_vec: vec!(),
+        };
+        
         let mut state = BatchState {
             config,
-            scheduled_model_item_vec,
-            scheduled_program_item_vec: self.program_item_vec.clone(),
+            plan,
             record_vec,
             current_tasks,
         };
@@ -930,7 +934,7 @@ impl TraverseProgramsAndModels {
 
         // loop until all puzzles have been solved
         let mut mutation_index: u64 = 0;
-        while !state.scheduled_model_item_vec.is_empty() {
+        while !state.plan.scheduled_model_item_vec.is_empty() {
 
             let datetime: DateTime<Utc> = Utc::now();
             let timestamp = datetime.to_rfc3339_opts(SecondsFormat::Secs, true).to_string();
@@ -942,7 +946,7 @@ impl TraverseProgramsAndModels {
 
 
             // Create new mutated programs in every iteration
-            state.scheduled_program_item_vec = self.create_mutations_of_all_programs(random_seed, number_of_programs_to_generate, &mut bloom);
+            state.plan.scheduled_program_item_vec = self.create_mutations_of_all_programs(random_seed, number_of_programs_to_generate, &mut bloom);
 
             // Evaluate all puzzles with all candidate programs
             state.run_one_batch()?;
@@ -964,10 +968,15 @@ struct RunArcCompetitionConfig {
     path_solution_teamid_json: PathBuf,
 }
 
-struct BatchState {
-    config: RunArcCompetitionConfig,
+#[derive(Debug)]
+struct BatchPlan {
     scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>>,
     scheduled_program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
+}
+
+struct BatchState {
+    config: RunArcCompetitionConfig,
+    plan: BatchPlan,
     record_vec: Vec::<Record>,
     current_tasks: Tasks,
 }
@@ -984,10 +993,10 @@ impl BatchState {
             "{prefix} [{elapsed_precise}] {wide_bar} {pos:>5}/{len:5} {msg}",
         )?;
 
-        let pb = multi_progress.add(ProgressBar::new(self.scheduled_model_item_vec.len() as u64));
+        let pb = multi_progress.add(ProgressBar::new(self.plan.scheduled_model_item_vec.len() as u64));
         pb.set_style(progress_style.clone());
         pb.set_prefix("Puzzle  ");
-        for (model_index, model_item) in self.scheduled_model_item_vec.iter_mut().enumerate() {
+        for (model_index, model_item) in self.plan.scheduled_model_item_vec.iter_mut().enumerate() {
             if model_index > 0 {
                 pb.inc(1);
             }
@@ -996,10 +1005,10 @@ impl BatchState {
             let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
             let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
     
-            let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(self.scheduled_program_item_vec.len() as u64));
+            let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(self.plan.scheduled_program_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
             pb2.set_prefix("Solution");
-            for (program_index, program_item) in self.scheduled_program_item_vec.iter_mut().enumerate() {
+            for (program_index, program_item) in self.plan.scheduled_program_item_vec.iter_mut().enumerate() {
                 if program_index > 0 {
                     pb.tick();
                     pb2.inc(1);
@@ -1088,8 +1097,8 @@ impl BatchState {
 
         // Remove solved puzzles from the scheduled_model_item_vec
         if !remove_model_items.is_empty() {
-            self.scheduled_model_item_vec = ModelItem::remove_model_items(
-                &self.scheduled_model_item_vec, 
+            self.plan.scheduled_model_item_vec = ModelItem::remove_model_items(
+                &self.plan.scheduled_model_item_vec, 
                 &remove_model_items
             );
         }
