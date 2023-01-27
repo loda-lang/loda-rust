@@ -1036,7 +1036,7 @@ impl BatchState {
         self.record_vec.push(record);
         Record::save_solutions_csv(&self.record_vec, &config.path_solutions_csv);
 
-        let message = format!("program: {:?} is a solution for model: {:?}", program_item.borrow().id, model_item.borrow().id);
+        let message = format!("Puzzle {:?}, Found a solution: {:?}", model_item.borrow().id.file_stem(), program_item.borrow().id);
         progress_bar.println(message);
 
         let predictions: Vec<Prediction> = run_with_program_result.predictions().clone();
@@ -1147,7 +1147,7 @@ impl BatchRunner {
                         break;
                     },
                     Err(error) => {
-                        error!("Unable to save solution. {:?}", error);
+                        error!("Unable to save solution. model: {:?} error: {:?}", model_item.borrow().id, error);
                         // Something went wrong saving this solution. Consider this puzzle as still being unsolved.
                         // Loop through the remaining programs to check for another solution.
                         continue;
