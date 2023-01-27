@@ -978,6 +978,23 @@ struct BatchPlan {
     scheduled_program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
 }
 
+impl BatchPlan {
+    fn reschedule(&mut self, state: &mut BatchState) -> anyhow::Result<()> {
+        if state.remove_model_items.is_empty() {
+            return Ok(());
+        }
+        
+        // Remove solved puzzles from the scheduled_model_item_vec
+        self.scheduled_model_item_vec = ModelItem::remove_model_items(
+            &self.scheduled_model_item_vec, 
+            &state.remove_model_items
+        );
+        state.remove_model_items.clear();
+
+        Ok(())
+    }
+}
+
 struct BatchState {
     remove_model_items: Vec<Rc<RefCell<ModelItem>>>,
     record_vec: Vec::<Record>,
@@ -991,6 +1008,12 @@ struct BatchRunner {
 
 impl BatchRunner {
     fn run_one_batch(&mut self, state: &mut BatchState) -> anyhow::Result<()> {
+        self.run_one_batch_inner(state)?;
+        self.plan.reschedule(state)?;
+        Ok(())
+    }
+
+    fn run_one_batch_inner(&self, state: &mut BatchState) -> anyhow::Result<()> {
         let verify_test_output = false;
         let verbose = false;
 
@@ -1002,7 +1025,7 @@ impl BatchRunner {
         let pb = multi_progress.add(ProgressBar::new(self.plan.scheduled_model_item_vec.len() as u64));
         pb.set_style(progress_style.clone());
         pb.set_prefix("Puzzle  ");
-        for (model_index, model_item) in self.plan.scheduled_model_item_vec.iter_mut().enumerate() {
+        for (model_index, model_item) in self.plan.scheduled_model_item_vec.iter().enumerate() {
             if model_index > 0 {
                 pb.inc(1);
             }
@@ -1014,7 +1037,7 @@ impl BatchRunner {
             let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(self.plan.scheduled_program_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
             pb2.set_prefix("Solution");
-            for (program_index, program_item) in self.plan.scheduled_program_item_vec.iter_mut().enumerate() {
+            for (program_index, program_item) in self.plan.scheduled_program_item_vec.iter().enumerate() {
                 if program_index > 0 {
                     pb.tick();
                     pb2.inc(1);
@@ -1101,19 +1124,9 @@ impl BatchRunner {
         }
         pb.finish_and_clear();
 
-        // Remove solved puzzles from the scheduled_model_item_vec
-        if !state.remove_model_items.is_empty() {
-            self.plan.scheduled_model_item_vec = ModelItem::remove_model_items(
-                &self.plan.scheduled_model_item_vec, 
-                &state.remove_model_items
-            );
-            state.remove_model_items.clear();
-        }
-
         Ok(())
     }
 }
-
 
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
