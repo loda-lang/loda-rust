@@ -922,6 +922,7 @@ impl TraverseProgramsAndModels {
         
         let mut state = BatchState {
             remove_model_items: vec!(),
+            discovered_program_item_vec: vec!(),
             record_vec,
             current_tasks,
         };
@@ -955,6 +956,15 @@ impl TraverseProgramsAndModels {
             // Evaluate all puzzles with all candidate programs
             runner.run_one_batch(&mut state)?;
 
+            // Move discovered programs to the original programs vector
+            if !state.discovered_program_item_vec.is_empty() {
+                self.program_item_vec.append(&mut state.discovered_program_item_vec);
+                if !state.discovered_program_item_vec.is_empty() {
+                    error!("Expected state.discovered_program_item_vec to be empty after moving the elements");
+                }
+
+            }
+            
             mutation_index += 1;
         }
 
@@ -997,6 +1007,7 @@ impl BatchPlan {
 
 struct BatchState {
     remove_model_items: Vec<Rc<RefCell<ModelItem>>>,
+    discovered_program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
     record_vec: Vec::<Record>,
     current_tasks: Tasks,
 }
@@ -1014,6 +1025,7 @@ impl BatchState {
 
         // Save the model to disk
         let program_filename: String;
+        let program_path: PathBuf;
         {
             let name: String = model_item.borrow().id.file_stem();
             program_filename = match ProgramItem::unique_name_for_saving(&config.path_programs, &name) {
@@ -1023,8 +1035,8 @@ impl BatchState {
                     return Err(anyhow::anyhow!("cannot save file, because of error: {:?}", error));
                 }
             };
-            let path = config.path_programs.join(Path::new(&program_filename));
-            let mut file = File::create(&path)?;
+            program_path = config.path_programs.join(Path::new(&program_filename));
+            let mut file = File::create(&program_path)?;
             let content: String = program_item.borrow().program_string.clone();
             file.write_all(content.as_bytes())?;
         }
@@ -1059,6 +1071,10 @@ impl BatchState {
         );
 
         self.remove_model_items.push(Rc::clone(&model_item));
+
+        // Update path and append to discovered programs
+        program_item.borrow_mut().id = ProgramItemId::Path { path: program_path };
+        self.discovered_program_item_vec.push(program_item);
 
         Ok(())
     }
@@ -1103,28 +1119,32 @@ impl BatchRunner {
             let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(self.plan.scheduled_program_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
             pb2.set_prefix("Candidate solution");
-            for (program_index, program_item) in self.plan.scheduled_program_item_vec.iter().enumerate() {
+            for program_index in 0..self.plan.scheduled_program_item_vec.len() {
                 if program_index > 0 {
                     pb.tick();
                     pb2.inc(1);
                 }
-
-                let program_runner: &ProgramRunner = &program_item.borrow().program_runner;
-                let run_with_program_result: RunWithProgramResult = match instance.run_program_runner(program_runner) {
-                    Ok(value) => value,
-                    Err(error) => {
-                        if verbose {
-                            error!("run_program_runner model: {:?} program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
+                let program_item: &Rc<RefCell<ProgramItem>> = &self.plan.scheduled_program_item_vec[program_index];
+                
+                let run_with_program_result: RunWithProgramResult;
+                {
+                    let program_runner: &ProgramRunner = &program_item.borrow().program_runner;
+                    run_with_program_result = match instance.run_program_runner(program_runner) {
+                        Ok(value) => value,
+                        Err(error) => {
+                            if verbose {
+                                error!("run_program_runner model: {:?} program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
+                            }
+                            continue;
                         }
-                        continue;
+                    };
+                    if verbose {
+                        let s = format!("model: {:?} program: {:?} result: {:?}", model_item.borrow().id, program_item.borrow().id, run_with_program_result);
+                        pb.println(s);
                     }
-                };
-        
-                if verbose {
-                    let s = format!("model: {:?} program: {:?} result: {:?}", model_item.borrow().id, program_item.borrow().id, run_with_program_result);
-                    pb.println(s);
-                }
 
+                }    
+        
                 let count: usize = run_with_program_result.count_train_correct() + run_with_program_result.count_test_correct();
                 if count != pairs.len() {
                     // This is not a solution. Proceed to the next candidate solution.
