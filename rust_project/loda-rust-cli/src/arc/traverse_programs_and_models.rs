@@ -579,7 +579,7 @@ impl TraverseProgramsAndModels {
             let program_item: Rc<RefCell<ProgramItem>> = match candidate_programs.pop() {
                 Some(value) => value,
                 None => {
-                    pb.println(format!("ERROR: in row {}. Missing solution.", record_index));
+                    pb.println(format!("ERROR: in row {}. record: {:?}. Missing solution.", record_index, record));
                     count_error_other += 1;
                     continue;
                 }
