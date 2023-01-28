@@ -1036,44 +1036,57 @@ impl BatchState {
         run_with_program_result: RunWithProgramResult,
         progress_bar: &ProgressBar,
     ) -> anyhow::Result<()> {
-        let model_filename: String = model_item.borrow().id.file_name();
+        let model_id: ModelItemId = model_item.borrow().id.clone(); 
 
-        // Save the model to disk
-        let program_filename: String;
-        let program_path: PathBuf;
-        {
-            let name: String = model_item.borrow().id.file_stem();
-            program_filename = match ProgramItem::unique_name_for_saving(&config.path_programs, &name) {
+        // Save the program to disk.
+        // Don't save the program when it already exist in the file system.
+        let is_new_program: bool = program_item.borrow().id == ProgramItemId::None;
+        if is_new_program {
+            let name: String = model_id.file_stem();
+            let program_filename: String = match ProgramItem::unique_name_for_saving(&config.path_programs, &name) {
                 Ok(filename) => filename,
                 Err(error) => {
-                    error!("cannot save file, because of error: {:?}", error);
                     return Err(anyhow::anyhow!("cannot save file, because of error: {:?}", error));
                 }
             };
-            program_path = config.path_programs.join(Path::new(&program_filename));
+            let program_path: PathBuf = config.path_programs.join(Path::new(&program_filename));
             let mut file = File::create(&program_path)?;
             let content: String = program_item.borrow().program_string.clone();
             file.write_all(content.as_bytes())?;
+            program_item.borrow_mut().id = ProgramItemId::Path { path: program_path };
         }
 
-        let record = Record {
-            model_filename: model_filename,
-            program_filename,
-        };
-        self.record_vec.push(record);
-        Record::save_solutions_csv(&self.record_vec, &config.path_solutions_csv);
+        let program_id: ProgramItemId = program_item.borrow().id.clone(); 
+        if program_id == ProgramItemId::None {
+            return Err(anyhow::anyhow!("Expected ProgramItem.id to be a Path, but got None. {:?}", program_item));
+        }
 
-        let message = format!("Puzzle {:?}, Found a solution: {:?}", model_item.borrow().id.file_stem(), program_item.borrow().id);
+        // Print that the puzzle has been solved using a new/existing program
+        let solution_type: &str;
+        if is_new_program {
+            solution_type = "a new";
+        } else {
+            solution_type = "an existing";
+        }
+        let message = format!("Puzzle {:?} solved with {} program: {:?}", model_id.file_stem(), solution_type, program_id.file_name());
         progress_bar.println(message);
 
+        // Update CSV file
+        let record = Record {
+            model_filename: model_id.file_name(),
+            program_filename: program_id.file_name(),
+        };    
+        self.record_vec.push(record);
+        Record::save_solutions_csv(&self.record_vec, &config.path_solutions_csv);
+        
+        // Update JSON file
         let predictions: Vec<Prediction> = run_with_program_result.predictions().clone();
         let test_item = TestItem { 
             output_id: 0,
             number_of_predictions: predictions.len() as u8,
             predictions: predictions,
         };
-
-        let task_name: String = model_item.borrow().id.file_stem();
+        let task_name: String = model_id.file_stem();
         let task_item = TaskItem {
             task_name: task_name,
             test_vec: vec![test_item],
@@ -1085,11 +1098,14 @@ impl BatchState {
             &self.current_tasks
         );
 
+        // Append the puzzle to the solved puzzles
         self.remove_model_items.push(Rc::clone(&model_item));
 
-        // Update path and append to discovered programs
-        program_item.borrow_mut().id = ProgramItemId::Path { path: program_path };
-        self.discovered_program_item_vec.push(program_item);
+        // Append new programs to discovered programs
+        // Ignore existing programs
+        if is_new_program {
+            self.discovered_program_item_vec.push(program_item);
+        }
 
         Ok(())
     }
