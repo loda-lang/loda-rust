@@ -821,9 +821,10 @@ impl TraverseProgramsAndModels {
     }
 
     fn run_arc_competition(&mut self) -> anyhow::Result<()> {
-        // When participating in the constest, then we want to try the known solutions.
-        // However it's slow, so while developing we only want mutations.
-        let try_known_solutions = true;
+        // When participating in the contest, then we want first to try out the existing solutions.
+        // This may be a solution to one of the hidden puzzles.
+        // However it's slow, so it's disabled while developing, where we only want to explore mutations.
+        let try_existing_solutions = true;
 
         let number_of_programs_to_generate: usize = 3;
 
@@ -936,8 +937,8 @@ impl TraverseProgramsAndModels {
             plan,
         };
 
-        if try_known_solutions {
-            println!("Run with known solutions without mutations");
+        if try_existing_solutions {
+            println!("Run existing solutions without mutations");
             runner.run_one_batch(&mut state)?;
             self.transfer_discovered_programs(&mut state)?;
         }
