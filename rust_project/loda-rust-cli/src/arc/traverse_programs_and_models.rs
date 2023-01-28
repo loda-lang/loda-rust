@@ -73,7 +73,7 @@ impl TraverseProgramsAndModels {
         let mut instance = Self { 
             config,
             arc_config,
-            context: GenomeMutateContext::empty(),
+            context: GenomeMutateContext::default(),
             model_item_vec: vec!(),
             program_item_vec: vec!(),
             locked_instruction_hashset: HashSet::new(),
