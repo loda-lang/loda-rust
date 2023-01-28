@@ -790,6 +790,20 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    /// Eliminate duplicates in the program_item_vec
+    fn dedup_program_item_vec(&mut self) {
+        let count_before: usize = self.program_item_vec.len();
+        let mut uniques = HashSet::<ProgramItemId>::new();
+        self.program_item_vec.retain(|program_item| {
+            let program_id: ProgramItemId = program_item.borrow().id.clone();
+            uniques.insert(program_id)
+        });
+        let count_after: usize = self.program_item_vec.len();
+        if count_before != count_after {
+            println!("Removed duplicates from program_item_vec. count_before: {} count_after: {}", count_before, count_after);
+        }
+    }
+
     fn reload_analytics_dir(&mut self) -> anyhow::Result<()> {
         println!("loading genome mutate context");
         let start = Instant::now();
@@ -813,6 +827,7 @@ impl TraverseProgramsAndModels {
 
         let number_of_programs_to_generate: usize = 3;
 
+        self.dedup_program_item_vec();
         self.reload_analytics_dir()?;
 
         let duration: Duration = SystemTime::now()
@@ -960,10 +975,16 @@ impl TraverseProgramsAndModels {
             return Ok(());
         }
         println!("transferred {:?} solutions", state.discovered_program_item_vec.len());
+
         self.program_item_vec.append(&mut state.discovered_program_item_vec);
         if !state.discovered_program_item_vec.is_empty() {
             error!("Expected state.discovered_program_item_vec to be empty after moving the elements");
         }
+
+        // When a program solves multiple puzzles, 
+        // then the program gets appended multiple times. 
+        // This eliminates the duplicates.
+        self.dedup_program_item_vec();
 
         // Regenerate analytics when new programs have been mined
         self.reload_analytics_dir()?;
@@ -1039,7 +1060,10 @@ impl BatchState {
         let model_id: ModelItemId = model_item.borrow().id.clone(); 
 
         // Save the program to disk.
+        //
         // Don't save the program when it already exist in the file system.
+        // On launch of the miner, then first try out all the existing programs with the puzzles. This may yield a match.
+        // In which case we don't want to save the already existing program to disk.
         let is_new_program: bool = program_item.borrow().id == ProgramItemId::None;
         if is_new_program {
             let name: String = model_id.file_stem();
@@ -1315,7 +1339,7 @@ enum ProgramType {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 enum ProgramItemId {
     None,
     Path { path: PathBuf },
