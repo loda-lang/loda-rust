@@ -66,27 +66,14 @@ impl TraverseProgramsAndModels {
     }
 
     fn new() -> anyhow::Result<Self> {
-        Analytics::arc_run_if_expired()?;
-
         let config = Config::load();
         let arc_config = RunArcCompetitionConfig::new(&config);
-
-        println!("loading genome mutate context");
-        let start = Instant::now();
-
-        let analytics_directory = AnalyticsDirectory::new(
-            config.analytics_arc_dir()
-        ).with_context(||"unable to create AnalyticsDirectory instance")?;    
-
-        let context: GenomeMutateContext = create_genome_mutate_context(CreateGenomeMutateContextMode::ARC, analytics_directory)?;
-        println!("loaded genome mutate context. elapsed: {}", HumanDuration(start.elapsed()));
-
         let dependency_manager: DependencyManager = RunWithProgram::create_dependency_manager();
 
         let mut instance = Self { 
             config,
             arc_config,
-            context,
+            context: GenomeMutateContext::empty(),
             model_item_vec: vec!(),
             program_item_vec: vec!(),
             locked_instruction_hashset: HashSet::new(),
@@ -803,12 +790,30 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    fn reload_analytics_dir(&mut self) -> anyhow::Result<()> {
+        println!("loading genome mutate context");
+        let start = Instant::now();
+
+        Analytics::arc_run_force()?;
+
+        let analytics_directory = AnalyticsDirectory::new(
+            self.arc_config.path_analytics_arc_dir.clone()
+        ).with_context(||"unable to create AnalyticsDirectory instance")?;    
+
+        let context: GenomeMutateContext = create_genome_mutate_context(CreateGenomeMutateContextMode::ARC, analytics_directory)?;
+        self.context = context;
+        println!("loaded genome mutate context. elapsed: {}", HumanDuration(start.elapsed()));
+        Ok(())
+    }
+
     fn run_arc_competition(&mut self) -> anyhow::Result<()> {
         // When participating in the constest, then we want to try the known solutions.
         // However it's slow, so while developing we only want mutations.
         let try_known_solutions = true;
 
         let number_of_programs_to_generate: usize = 3;
+
+        self.reload_analytics_dir()?;
 
         let duration: Duration = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
@@ -919,7 +924,7 @@ impl TraverseProgramsAndModels {
         if try_known_solutions {
             println!("Run with known solutions without mutations");
             runner.run_one_batch(&mut state)?;
-            self.transfer_discovered_programs(&mut state);
+            self.transfer_discovered_programs(&mut state)?;
         }
 
         // loop until all puzzles have been solved
@@ -939,7 +944,7 @@ impl TraverseProgramsAndModels {
 
             // Evaluate all puzzles with all candidate programs
             runner.run_one_batch(&mut state)?;
-            self.transfer_discovered_programs(&mut state);
+            self.transfer_discovered_programs(&mut state)?;
             
             mutation_index += 1;
         }
@@ -950,20 +955,25 @@ impl TraverseProgramsAndModels {
     }
 
     /// Move discovered programs to the original programs vector
-    fn transfer_discovered_programs(&mut self, state: &mut BatchState) {
+    fn transfer_discovered_programs(&mut self, state: &mut BatchState) -> anyhow::Result<()> {
         if state.discovered_program_item_vec.is_empty() {
-            return;
+            return Ok(());
         }
         println!("transferred {:?} solutions", state.discovered_program_item_vec.len());
         self.program_item_vec.append(&mut state.discovered_program_item_vec);
         if !state.discovered_program_item_vec.is_empty() {
             error!("Expected state.discovered_program_item_vec to be empty after moving the elements");
         }
+
+        // Regenerate analytics when new programs have been mined
+        self.reload_analytics_dir()?;
+        Ok(())
     }
 }
 
 #[derive(Clone, Debug)]
 struct RunArcCompetitionConfig {
+    path_analytics_arc_dir: PathBuf,
     path_solutions_csv: PathBuf,
     path_programs: PathBuf,
     path_solution_dir: PathBuf,
@@ -978,6 +988,7 @@ impl RunArcCompetitionConfig {
         let path_solution_teamid_json: PathBuf = path_solution_dir.join(Path::new(SOLUTIONS_FILENAME));
 
         RunArcCompetitionConfig {
+            path_analytics_arc_dir: config.analytics_arc_dir(),
             path_solutions_csv,
             path_programs: config.loda_arc_challenge_repository_programs(),
             path_solution_dir,
