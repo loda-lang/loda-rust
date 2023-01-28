@@ -31,12 +31,11 @@ static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 
 pub struct TraverseProgramsAndModels {
     config: Config,
+    arc_config: RunArcCompetitionConfig,
     context: GenomeMutateContext,
     model_item_vec: Vec<Rc<RefCell<ModelItem>>>,
     program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
     locked_instruction_hashset: HashSet<String>,
-    path_solution_dir: PathBuf,
-    path_solution_teamid_json: PathBuf,
     dependency_manager: DependencyManager,
 }
 
@@ -70,6 +69,7 @@ impl TraverseProgramsAndModels {
         Analytics::arc_run_if_expired()?;
 
         let config = Config::load();
+        let arc_config = RunArcCompetitionConfig::new(&config);
 
         println!("loading genome mutate context");
         let start = Instant::now();
@@ -81,19 +81,15 @@ impl TraverseProgramsAndModels {
         let context: GenomeMutateContext = create_genome_mutate_context(CreateGenomeMutateContextMode::ARC, analytics_directory)?;
         println!("loaded genome mutate context. elapsed: {}", HumanDuration(start.elapsed()));
 
-        let path_solution_dir: PathBuf = config.arc_repository_data().join(Path::new("solution"));
-        let path_solution_teamid_json: PathBuf = path_solution_dir.join(Path::new(SOLUTIONS_FILENAME));
-
         let dependency_manager: DependencyManager = RunWithProgram::create_dependency_manager();
 
         let mut instance = Self { 
             config,
+            arc_config,
             context,
             model_item_vec: vec!(),
             program_item_vec: vec!(),
             locked_instruction_hashset: HashSet::new(),
-            path_solution_dir,
-            path_solution_teamid_json,
             dependency_manager,
         };
         instance.load_puzzle_files()?;
@@ -373,16 +369,17 @@ impl TraverseProgramsAndModels {
     }
 
     fn read_solutions_json(&self) -> anyhow::Result<Tasks> {
-        let solution_teamid_json_string: String = match fs::read_to_string(&self.path_solution_teamid_json) {
+        let path: &Path = &self.arc_config.path_solution_teamid_json;
+        let solution_teamid_json_string: String = match fs::read_to_string(path) {
             Ok(value) => value,
             Err(error) => {
-                return Err(anyhow::anyhow!("something went wrong reading the file: {:?} error: {:?}", self.path_solution_teamid_json, error));
+                return Err(anyhow::anyhow!("something went wrong reading the file: {:?} error: {:?}", path, error));
             }
         };
         let tasks: Tasks = match serde_json::from_str(&solution_teamid_json_string) {
             Ok(value) => value,
             Err(error) => {
-                return Err(anyhow::anyhow!("Could not parse archaton_solution_json file, path: {:?} error: {:?} json: {:?}", self.path_solution_teamid_json, error, solution_teamid_json_string));
+                return Err(anyhow::anyhow!("Could not parse archaton_solution_json file, path: {:?} error: {:?} json: {:?}", path, error, solution_teamid_json_string));
             }
         };
         Ok(tasks)
@@ -806,17 +803,6 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn run_arc_competition_config(&self) -> RunArcCompetitionConfig {
-        let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
-
-        RunArcCompetitionConfig {
-            path_solutions_csv,
-            path_programs: self.config.loda_arc_challenge_repository_programs(),
-            path_solution_dir: self.path_solution_dir.clone(),
-            path_solution_teamid_json: self.path_solution_teamid_json.clone(),
-        }
-    }
-
     fn run_arc_competition(&mut self) -> anyhow::Result<()> {
         // When participating in the constest, then we want to try the known solutions.
         // However it's slow, so while developing we only want mutations.
@@ -846,13 +832,11 @@ impl TraverseProgramsAndModels {
             puzzle_names_to_ignore.insert(task.task_name.clone());
         }
 
-        let config: RunArcCompetitionConfig = self.run_arc_competition_config();
-
         let mut record_vec = Vec::<Record>::new();
 
-        let ignore_puzzles_with_a_solution: bool = config.path_solutions_csv.is_file();
+        let ignore_puzzles_with_a_solution: bool = self.arc_config.path_solutions_csv.is_file();
         if ignore_puzzles_with_a_solution {
-            record_vec = Record::load_record_vec(&config.path_solutions_csv)?;
+            record_vec = Record::load_record_vec(&self.arc_config.path_solutions_csv)?;
             debug!("solutions.csv: number of rows: {}", record_vec.len());
     
             for record in &record_vec {
@@ -894,8 +878,8 @@ impl TraverseProgramsAndModels {
 
         let current_tasks: Tasks = initial_tasks;
         save_solutions_json(
-            &self.path_solution_dir,
-            &self.path_solution_teamid_json,
+            &self.arc_config.path_solution_dir,
+            &self.arc_config.path_solution_teamid_json,
             &current_tasks
         );
 
@@ -928,7 +912,7 @@ impl TraverseProgramsAndModels {
         };
 
         let mut runner = BatchRunner {
-            config,
+            config: self.arc_config.clone(),
             plan,
         };
 
@@ -949,7 +933,6 @@ impl TraverseProgramsAndModels {
 
             let random_seed: u64 = (initial_random_seed * 0x1000000) + mutation_index;
             // debug!("random_seed: {:#x}", random_seed);
-
 
             // Create new mutated programs in every iteration
             runner.plan.scheduled_program_item_vec = self.create_mutations_of_all_programs(random_seed, number_of_programs_to_generate, &mut bloom);
@@ -979,12 +962,28 @@ impl TraverseProgramsAndModels {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct RunArcCompetitionConfig {
     path_solutions_csv: PathBuf,
     path_programs: PathBuf,
     path_solution_dir: PathBuf,
     path_solution_teamid_json: PathBuf,
+}
+
+impl RunArcCompetitionConfig {
+    fn new(config: &Config) -> Self {
+        let path_solutions_csv = config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
+
+        let path_solution_dir: PathBuf = config.arc_repository_data().join(Path::new("solution"));
+        let path_solution_teamid_json: PathBuf = path_solution_dir.join(Path::new(SOLUTIONS_FILENAME));
+
+        RunArcCompetitionConfig {
+            path_solutions_csv,
+            path_programs: config.loda_arc_challenge_repository_programs(),
+            path_solution_dir,
+            path_solution_teamid_json,
+        }
+    }
 }
 
 #[derive(Debug)]
