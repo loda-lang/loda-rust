@@ -302,10 +302,20 @@ impl RunWithProgram {
             if self.verify_test_output {
                 let expected_image: Image = pair.output.clone();
                 if computed_image != expected_image {
-                    let s = format!("test. output[{}]. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", address, index, expected_image, computed_image);
+                    let s = format!("test. output[{}]. The computed output, doesn't match test[{}].output.\nExpected {:?}\nActual {:?}", address, index, expected_image, computed_image);
                     message_items.push(s);
                     continue;
                 }
+            }
+
+            // Verify that the output image is 1x1 or bigger.
+            // Reject a "cheating" program. These a programs that copy from the expected_output to the actual_output.
+            // For the test_pairs the expected_output is set to the empty image 0x0.
+            // If the output has the size of 0x0, it seems like it has been "cheating".
+            if computed_image.is_empty() {
+                let s = format!("test. output[{}]. Expected an output image, but no image was computed", address);
+                message_items.push(s);
+                continue;
             }
             if pretty_print {
                 println!("model: {:?} test#{} correct {}", self.model.id(), index, computed_image.to_unicode_string());
