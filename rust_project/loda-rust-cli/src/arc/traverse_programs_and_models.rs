@@ -1026,6 +1026,99 @@ struct BatchPlan {
 }
 
 impl BatchPlan {
+    /// Outer loop traverses the unsolved puzzles.
+    /// 
+    /// Inner loop traverses the candidate solutions.
+    fn run_one_batch(
+        &self, 
+        config: &RunArcCompetitionConfig,
+        state: &mut BatchState,
+    ) -> anyhow::Result<()> {
+        let verify_test_output = false;
+        let verbose = false;
+
+        let multi_progress = MultiProgress::new();
+        let progress_style: ProgressStyle = ProgressStyle::with_template(
+            "{prefix} [{elapsed_precise}] {wide_bar} {pos:>5}/{len:5} {msg}",
+        )?;
+
+        let pb = multi_progress.add(ProgressBar::new(self.scheduled_model_item_vec.len() as u64));
+        pb.set_style(progress_style.clone());
+        pb.set_prefix("Unsolved puzzle   ");
+        for (model_index, model_item) in self.scheduled_model_item_vec.iter().enumerate() {
+            if model_index > 0 {
+                pb.inc(1);
+            }
+    
+            let model: Model = model_item.borrow().model.clone();
+            let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+            let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
+    
+            let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(self.scheduled_program_item_vec.len() as u64));
+            pb2.set_style(progress_style.clone());
+            pb2.set_prefix("Candidate solution");
+            for program_index in 0..self.scheduled_program_item_vec.len() {
+                if program_index > 0 {
+                    pb.tick();
+                    pb2.inc(1);
+                }
+                let program_item: &Rc<RefCell<ProgramItem>> = &self.scheduled_program_item_vec[program_index];
+                
+                let run_with_program_result: RunWithProgramResult;
+                {
+                    let program_runner: &ProgramRunner = &program_item.borrow().program_runner;
+                    run_with_program_result = match instance.run_program_runner(program_runner) {
+                        Ok(value) => value,
+                        Err(error) => {
+                            if verbose {
+                                error!("run_program_runner model: {:?} program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
+                            }
+                            continue;
+                        }
+                    };
+                    if verbose {
+                        let s = format!("model: {:?} program: {:?} result: {:?}", model_item.borrow().id, program_item.borrow().id, run_with_program_result);
+                        pb.println(s);
+                    }
+
+                }    
+        
+                let count: usize = run_with_program_result.count_train_correct() + run_with_program_result.count_test_correct();
+                if count != pairs.len() {
+                    // This is not a solution. Proceed to the next candidate solution.
+                    continue;
+                }
+
+                // This may be a solution.
+
+                let save_result = state.save_solution(
+                    config, 
+                    Rc::clone(model_item), 
+                    Rc::clone(program_item), 
+                    run_with_program_result, 
+                    &pb
+                );
+
+                match save_result {
+                    Ok(()) => {
+                        // This is a solution to this puzzle. No need to loop through the remaining programs.
+                        break;
+                    },
+                    Err(error) => {
+                        error!("Unable to save solution. model: {:?} error: {:?}", model_item.borrow().id, error);
+                        // Something went wrong saving this solution. Consider this puzzle as still being unsolved.
+                        // Loop through the remaining programs to check for another solution.
+                        continue;
+                    }
+                }
+            }
+            pb2.finish_and_clear();
+        }
+        pb.finish_and_clear();
+
+        Ok(())
+    }
+
     fn reschedule(&mut self, state: &mut BatchState) -> anyhow::Result<()> {
         if state.remove_model_items.is_empty() {
             return Ok(());
@@ -1143,97 +1236,8 @@ struct BatchRunner {
 
 impl BatchRunner {
     fn run_one_batch(&mut self, state: &mut BatchState) -> anyhow::Result<()> {
-        self.run_one_batch_inner(state)?;
+        self.plan.run_one_batch(&self.config, state)?;
         self.plan.reschedule(state)?;
-        Ok(())
-    }
-
-    /// Outer loop traverses the unsolved puzzles.
-    /// 
-    /// Inner loop traverses the candidate solutions.
-    fn run_one_batch_inner(&self, state: &mut BatchState) -> anyhow::Result<()> {
-        let verify_test_output = false;
-        let verbose = false;
-
-        let multi_progress = MultiProgress::new();
-        let progress_style: ProgressStyle = ProgressStyle::with_template(
-            "{prefix} [{elapsed_precise}] {wide_bar} {pos:>5}/{len:5} {msg}",
-        )?;
-
-        let pb = multi_progress.add(ProgressBar::new(self.plan.scheduled_model_item_vec.len() as u64));
-        pb.set_style(progress_style.clone());
-        pb.set_prefix("Unsolved puzzle   ");
-        for (model_index, model_item) in self.plan.scheduled_model_item_vec.iter().enumerate() {
-            if model_index > 0 {
-                pb.inc(1);
-            }
-    
-            let model: Model = model_item.borrow().model.clone();
-            let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
-            let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
-    
-            let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(self.plan.scheduled_program_item_vec.len() as u64));
-            pb2.set_style(progress_style.clone());
-            pb2.set_prefix("Candidate solution");
-            for program_index in 0..self.plan.scheduled_program_item_vec.len() {
-                if program_index > 0 {
-                    pb.tick();
-                    pb2.inc(1);
-                }
-                let program_item: &Rc<RefCell<ProgramItem>> = &self.plan.scheduled_program_item_vec[program_index];
-                
-                let run_with_program_result: RunWithProgramResult;
-                {
-                    let program_runner: &ProgramRunner = &program_item.borrow().program_runner;
-                    run_with_program_result = match instance.run_program_runner(program_runner) {
-                        Ok(value) => value,
-                        Err(error) => {
-                            if verbose {
-                                error!("run_program_runner model: {:?} program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
-                            }
-                            continue;
-                        }
-                    };
-                    if verbose {
-                        let s = format!("model: {:?} program: {:?} result: {:?}", model_item.borrow().id, program_item.borrow().id, run_with_program_result);
-                        pb.println(s);
-                    }
-
-                }    
-        
-                let count: usize = run_with_program_result.count_train_correct() + run_with_program_result.count_test_correct();
-                if count != pairs.len() {
-                    // This is not a solution. Proceed to the next candidate solution.
-                    continue;
-                }
-
-                // This may be a solution.
-
-                let save_result = state.save_solution(
-                    &self.config, 
-                    Rc::clone(model_item), 
-                    Rc::clone(program_item), 
-                    run_with_program_result, 
-                    &pb
-                );
-
-                match save_result {
-                    Ok(()) => {
-                        // This is a solution to this puzzle. No need to loop through the remaining programs.
-                        break;
-                    },
-                    Err(error) => {
-                        error!("Unable to save solution. model: {:?} error: {:?}", model_item.borrow().id, error);
-                        // Something went wrong saving this solution. Consider this puzzle as still being unsolved.
-                        // Loop through the remaining programs to check for another solution.
-                        continue;
-                    }
-                }
-            }
-            pb2.finish_and_clear();
-        }
-        pb.finish_and_clear();
-
         Ok(())
     }
 }
