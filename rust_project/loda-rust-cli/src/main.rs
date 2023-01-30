@@ -144,7 +144,7 @@ async fn main() -> anyhow::Result<()> {
                 .hide(true)
                 .arg(
                     Arg::new("pattern")
-                        .help("File name of the puzzle, it doesn't have to be the full")
+                        .help("File name of the puzzle, it doesn't have to be the full name / path.")
                         .required(true)
                 )
         )
