@@ -76,12 +76,22 @@ pub struct HtmlLog;
 impl HtmlLog {
     /// Example: 
     ///
-    /// HtmlLog::text(&format!("hello world"));
+    /// HtmlLog::text("hello world");
     #[allow(dead_code)]
-    pub fn text(text: &String) {
-        let s = html_escape::encode_text(text);
+    pub fn text<S: AsRef<str>>(text: S) {
+        let text_str: &str = text.as_ref();
+        let s = html_escape::encode_text(text_str);
         HTML_LOG_INNER.post_event(s.to_string());
-    }    
+    }
+
+    /// Example: 
+    ///
+    /// HtmlLog::html("hello <b>world</b>");
+    #[allow(dead_code)]
+    pub fn html<S: AsRef<str>>(html: S) {
+        let html_str: &str = html.as_ref();
+        HTML_LOG_INNER.post_event(html_str.to_string());
+    }
 
     /// Example: 
     ///
@@ -98,9 +108,9 @@ impl HtmlLog {
     #[allow(dead_code)]
     pub fn compare_images(images: Vec<Image>) {
         let html_vec: Vec<String> = images.iter().map(|image| image.to_html()).collect();
-        let compare_item_vec: Vec<String> = html_vec.iter().map(|html| format!("<span class=\"compare-item\">{}</span>", html)).collect();
+        let compare_item_vec: Vec<String> = html_vec.iter().map(|html| format!("<span class=\"themearc compare-item\">{}</span>", html)).collect();
         let compare_items: String = compare_item_vec.join("");
-        let s = format!("<div class=\"compare\">{}</div>", compare_items);
+        let s = format!("<div class=\"themearc compare\">{}</div>", compare_items);
         HTML_LOG_INNER.post_event(s);
     }
 }

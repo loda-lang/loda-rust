@@ -494,6 +494,64 @@ mod tests {
     }
 
     #[test]
+    fn test_40003_find_objects_neighbors() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 
+            0, 1, 0, 
+            0, 0, 0, 
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::Neighbors).expect("image");
+
+        // Assert
+        assert_eq!(mask_vec.len(), 2);
+        let output: Image = Image::vstack(mask_vec).expect("image");
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 1,
+            1, 0, 1,
+            1, 1, 1,
+
+            0, 0, 0, 
+            0, 1, 0, 
+            0, 0, 0, 
+        ];
+        let expected = Image::create_raw(3, 3*2, expected_pixels);
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_40004_find_objects_neighbors() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1,
+            1, 0, 1,
+            1, 1, 1,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::Neighbors).expect("image");
+
+        // Assert
+        assert_eq!(mask_vec.len(), 2);
+        let output: Image = Image::vstack(mask_vec).expect("image");
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 1,
+            1, 0, 1,
+            1, 1, 1,
+
+            0, 0, 0, 
+            0, 1, 0, 
+            0, 0, 0, 
+        ];
+        let expected = Image::create_raw(3, 3*2, expected_pixels);
+        assert_eq!(output, expected);
+    }
+
+    #[test]
     fn test_50000_find_objects_all() {
         // Arrange
         let pixels: Vec<u8> = vec![

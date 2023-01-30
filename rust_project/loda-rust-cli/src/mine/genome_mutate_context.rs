@@ -28,22 +28,6 @@ pub struct GenomeMutateContext {
 }
 
 impl GenomeMutateContext {
-    pub fn empty() -> Self {
-        Self {
-            valid_program_ids: vec!(),
-            initial_genome_program_ids: vec!(),
-            indirect_memory_access_program_ids: vec!(),
-            invalid_program_ids: HashSet::<u32>::new(),
-            popular_program_container: None,
-            recent_program_container: None,
-            histogram_instruction_constant: None,
-            suggest_instruction: None,
-            suggest_line: None,
-            suggest_source: None,
-            suggest_target: None,
-        }
-    }
-
     pub fn is_program_id_invalid(&self, program_id: u32) -> bool {
         self.invalid_program_ids.contains(&program_id)
     }
@@ -192,6 +176,24 @@ impl GenomeMutateContext {
             }
         };
         suggest_target.choose_weighted(rng, prev_word, next_word)
+    }
+}
+
+impl Default for GenomeMutateContext {
+    fn default() -> Self { 
+        Self {
+            valid_program_ids: vec!(),
+            initial_genome_program_ids: vec!(),
+            indirect_memory_access_program_ids: vec!(),
+            invalid_program_ids: HashSet::<u32>::new(),
+            popular_program_container: None,
+            recent_program_container: None,
+            histogram_instruction_constant: None,
+            suggest_instruction: None,
+            suggest_line: None,
+            suggest_source: None,
+            suggest_target: None,
+        }
     }
 }
 

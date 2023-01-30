@@ -139,17 +139,28 @@ async fn main() -> anyhow::Result<()> {
                 .hide(true)
         )
         .subcommand(
-            Command::new("arc")
-                .about("ARC Challenge run all tests.")
+            Command::new("arc-puzzle")
+                .about("ARC - Eval a single puzzle with all the existing solutions.")
                 .hide(true)
                 .arg(
                     Arg::new("pattern")
-                        .help("Only run tests where the filename contains the pattern")
+                        .help("File name of the puzzle, it doesn't have to be the full")
+                        .required(true)
                 )
         )
         .subcommand(
+            Command::new("arc-check")
+                .about("ARC - Check that all the existing solutions still works.")
+                .hide(true)
+        )
+        .subcommand(
+            Command::new("arc-generate-solution-csv")
+                .about("ARC - Populate the 'solutions.csv' file by trying out all puzzles with all solutions.")
+                .hide(true)
+        )
+        .subcommand(
             Command::new("arc-competition")
-                .about("ARC Challenge - experiments participating in the ARCathon competition. Runs inside a Docker image.")
+                .about("ARC - The code being executed inside the docker image submitted for the `ARCathon 1` contest.")
                 .hide(true)
         )
         .get_matches();
@@ -245,28 +256,34 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if let Some(sub_m) = matches.subcommand_matches("arc") {
-        let mode: SubcommandARCMode;
-        if let Some(raw) = sub_m.value_of("pattern") {
-            let re = Regex::new("^[a-fA-F0-9]+$").unwrap();
-            let captures = match re.captures(raw) {
-                Some(value) => value,
-                None => {
-                    return Err(anyhow::anyhow!("Unable to pattern, expected hexadecimal text ala \"a7f2\" or \"f00d\""));
-                }
-            };
-            let capture0: &str = captures.get(0).map_or("", |m| m.as_str());
-            let pattern_string: String = capture0.to_string();
-            mode = SubcommandARCMode::RunVerboseTestsOnlyForFilename { pattern: pattern_string };
-        } else {
-            mode = SubcommandARCMode::RunAllTests;
-        }
+    if let Some(sub_m) = matches.subcommand_matches("arc-puzzle") {
+        let pattern_raw: &str = sub_m.value_of("pattern").expect("pattern");
+        let re = Regex::new("^[a-fA-F0-9]+$").unwrap();
+        let captures = match re.captures(pattern_raw) {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("Unable to parse pattern, expected hexadecimal text ala \"a7f2\" or \"f00d\""));
+            }
+        };
+        let capture0: &str = captures.get(0).map_or("", |m| m.as_str());
+        let pattern_string: String = capture0.to_string();
+        let mode = SubcommandARCMode::EvalSinglePuzzle { pattern: pattern_string };
         SubcommandARC::run(mode)?;
         return Ok(());
     }
 
+    if let Some(_sub_m) = matches.subcommand_matches("arc-check") {
+        SubcommandARC::run(SubcommandARCMode::CheckAllExistingSolutions)?;
+        return Ok(());
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("arc-generate-solution-csv") {
+        SubcommandARC::run(SubcommandARCMode::GenerateSolutionCSV)?;
+        return Ok(());
+    }
+
     if let Some(_sub_m) = matches.subcommand_matches("arc-competition") {
-        SubcommandARC::run(SubcommandARCMode::RunAllTests)?;
+        SubcommandARC::run(SubcommandARCMode::Competition)?;
         return Ok(());
     }
 

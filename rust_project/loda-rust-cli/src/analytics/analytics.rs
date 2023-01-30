@@ -32,6 +32,7 @@ impl Analytics {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn arc_run_if_expired() -> anyhow::Result<()> {
         let instance = Self::new(AnalyticsMode::ARC)?;
         instance.run_if_expired()?;
