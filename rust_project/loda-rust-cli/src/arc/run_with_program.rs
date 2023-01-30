@@ -309,7 +309,7 @@ impl RunWithProgram {
             }
 
             // Verify that the output image is 1x1 or bigger.
-            // Reject a "cheating" program. These a programs that copy from the expected_output to the actual_output.
+            // Reject a "cheating" program. These are programs that copy from the expected_output to the actual_output.
             // For the test_pairs the expected_output is set to the empty image 0x0.
             // If the output has the size of 0x0, it seems like it has been "cheating".
             if computed_image.is_empty() {
