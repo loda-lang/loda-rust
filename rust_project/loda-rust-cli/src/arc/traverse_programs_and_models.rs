@@ -405,9 +405,12 @@ impl TraverseProgramsAndModels {
         let mut count_partial_match: usize = 0;
         let mut count_dangerous_false_positive: usize = 0;
 
-        let pb = ProgressBar::new(self.program_item_vec.len() as u64 + 1);
+        let pb = ProgressBar::new(self.program_item_vec.len() as u64);
+        pb.tick();
         for (program_index, program_item) in self.program_item_vec.iter().enumerate() {
-            pb.inc(1);
+            if program_index > 0 {
+                pb.inc(1);
+            }
 
             let instance = RunWithProgram::new(model_item.model.clone(), verify_test_output).expect("RunWithProgram");
 
