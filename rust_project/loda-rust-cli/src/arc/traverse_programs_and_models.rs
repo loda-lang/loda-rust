@@ -196,7 +196,6 @@ impl TraverseProgramsAndModels {
                 id: ProgramItemId::Path { path: path.clone() },
                 program_string,
                 program_type,
-                number_of_models: 0,
                 parsed_program,
                 program_runner,
             };
@@ -315,7 +314,6 @@ impl TraverseProgramsAndModels {
                 id: ProgramItemId::None,
                 program_string: candidate_program,
                 program_type: ProgramType::Advance,
-                number_of_models: 0,
                 parsed_program,
                 program_runner,
             };
@@ -637,12 +635,13 @@ impl TraverseProgramsAndModels {
         let verify_test_output = true;
 
         let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
-
+        
         let mut unique_records = HashSet::<Record>::new();
         Record::save_solutions_csv(&unique_records, &path_solutions_csv);
-
+        
         let start = Instant::now();
-
+        
+        let mut visited_program_paths = HashSet::<PathBuf>::new();
         let mut count_ok: usize = 0;
         let mut count_dangerous_false_positive: usize = 0;
         let mut count_partial_match: usize = 0;
@@ -709,8 +708,10 @@ impl TraverseProgramsAndModels {
                     }
                 }
 
+                let program_id: ProgramItemId = program_item.borrow().id.clone();
+
                 if verbose {
-                    let s = format!("model: {:?} program: {:?} result: {:?}", model_item.borrow().id, program_item.borrow().id, result);
+                    let s = format!("model: {:?} program: {:?} result: {:?}", model_item.borrow().id, program_id, result);
                     pb.println(s);
                 }
 
@@ -718,14 +719,14 @@ impl TraverseProgramsAndModels {
                 let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
                 if actual != expected {
                     if result.count_train_correct() == pairs_train.len() && result.count_test_correct() != pairs_test.len() {
-                        pb.println(format!("{} - Dangerous false positive. Expected {} but got {}. {:?}", print_prefix_puzzle_id, expected, actual, program_item.borrow().id.file_name()));
+                        pb.println(format!("{} - Dangerous false positive. Expected {} but got {}. {:?}", print_prefix_puzzle_id, expected, actual, program_id.file_name()));
                         count_dangerous_false_positive += 1;
                         continue;
                     }
                     let count_correct = result.count_train_correct() + result.count_test_correct();
                     if count_correct > 0 {
                         count_partial_match += 1;
-                        pb.println(format!("{} - Partial solution. Expected {} but got {}. {:?}", print_prefix_puzzle_id, expected, actual, program_item.borrow().id.file_name()));
+                        pb.println(format!("{} - Partial solution. Expected {} but got {}. {:?}", print_prefix_puzzle_id, expected, actual, program_id.file_name()));
                         continue;
                     }
                     if verbose {
@@ -734,10 +735,18 @@ impl TraverseProgramsAndModels {
                     count_incorrect += 1;
                     continue;
                 }
+
     
-                pb.println(format!("{} - Solution: {:?}", print_prefix_puzzle_id, program_item.borrow().id.file_name()));
+                pb.println(format!("{} - Solution: {:?}", print_prefix_puzzle_id, program_id.file_name()));
                 count_ok += 1;
-                program_item.borrow_mut().number_of_models += 1;
+                match program_id {
+                    ProgramItemId::Path { path } => {
+                        visited_program_paths.insert(path.clone());
+                    },
+                    ProgramItemId::None => {
+                        pb.println(format!("{} - Encountered a solution without a path.", print_prefix_puzzle_id));
+                    }
+                }
 
                 let model_filename: String = model_item.borrow().id.file_name();
                 let program_filename: String = program_item.borrow().id.file_name();
@@ -762,12 +771,15 @@ impl TraverseProgramsAndModels {
         // Print out names of unused programs that serves no purpose and can be removed
         let mut unused_programs = Vec::<String>::new();
         for program_item in &self.program_item_vec {
-            if program_item.borrow().id == ProgramItemId::None {
-                continue;
-            }
-            if program_item.borrow().number_of_models == 0 {
-                let filename: String = program_item.borrow().id.file_name();
-                unused_programs.push(filename);
+            let program_id: ProgramItemId = program_item.borrow().id.clone();
+            let path: PathBuf = match program_id {
+                ProgramItemId::Path { ref path } => path.clone(),
+                ProgramItemId::None => {
+                    continue;
+                }
+            };
+            if !visited_program_paths.contains(&path) {
+                unused_programs.push(program_id.file_name());
             }
         }
         if !unused_programs.is_empty() {
@@ -1382,7 +1394,6 @@ struct ProgramItem {
     id: ProgramItemId,
     program_string: String,
     program_type: ProgramType,
-    number_of_models: usize,
     parsed_program: ParsedProgram,
     program_runner: ProgramRunner,
 }
