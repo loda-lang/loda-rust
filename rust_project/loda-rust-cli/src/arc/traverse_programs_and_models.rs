@@ -635,8 +635,8 @@ impl TraverseProgramsAndModels {
 
         let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
 
-        let mut record_vec = Vec::<Record>::new();
-        Record::save_solutions_csv(&record_vec, &path_solutions_csv);
+        let mut unique_records = HashSet::<Record>::new();
+        Record::save_solutions_csv(&unique_records, &path_solutions_csv);
 
         let start = Instant::now();
 
@@ -742,8 +742,8 @@ impl TraverseProgramsAndModels {
                     model_filename: model_filename,
                     program_filename,
                 };
-                record_vec.push(record);
-                Record::save_solutions_csv(&record_vec, &path_solutions_csv);
+                unique_records.insert(record);
+                Record::save_solutions_csv(&unique_records, &path_solutions_csv);
             }
 
             pb2.finish_and_clear();
@@ -755,8 +755,6 @@ impl TraverseProgramsAndModels {
             green_bold.apply_to("Finished"),
             HumanDuration(start.elapsed())
         );
-
-        Record::save_solutions_csv(&record_vec, &path_solutions_csv);
 
         // Print out names of unused programs that serves no purpose and can be removed
         let mut unused_programs = Vec::<String>::new();
@@ -777,7 +775,7 @@ impl TraverseProgramsAndModels {
         }
     
         // Stats
-        println!("row count in solutions csv file: {}", record_vec.len());
+        println!("row count in solutions csv file: {}", unique_records.len());
         println!("count_ok: {}", count_ok);
         println!("count_incorrect: {}", count_incorrect);
         println!("count_compute_error: {}", count_compute_error);
@@ -853,13 +851,17 @@ impl TraverseProgramsAndModels {
             puzzle_names_to_ignore.insert(task.task_name.clone());
         }
 
-        let mut record_vec = Vec::<Record>::new();
+        let mut unique_records = HashSet::<Record>::new();
 
         let ignore_puzzles_with_a_solution: bool = self.arc_config.path_solutions_csv.is_file();
         if ignore_puzzles_with_a_solution {
-            record_vec = Record::load_record_vec(&self.arc_config.path_solutions_csv)?;
+            let record_vec = Record::load_record_vec(&self.arc_config.path_solutions_csv)?;
             debug!("solutions.csv: number of rows: {}", record_vec.len());
     
+            for record in &record_vec {
+                unique_records.insert(record.clone());
+            }
+
             for record in &record_vec {
                 let puzzle_filename_with_json_suffix: String = record.model_filename.clone();
                 let puzzle_filename = puzzle_filename_with_json_suffix.replace(".json", "");
@@ -928,7 +930,7 @@ impl TraverseProgramsAndModels {
         let mut state = BatchState {
             remove_model_items: vec!(),
             discovered_program_item_vec: vec!(),
-            record_vec,
+            unique_records,
             current_tasks,
         };
 
@@ -1138,7 +1140,7 @@ impl BatchPlan {
 struct BatchState {
     remove_model_items: Vec<Rc<RefCell<ModelItem>>>,
     discovered_program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
-    record_vec: Vec::<Record>,
+    unique_records: HashSet::<Record>,
     current_tasks: Tasks,
 }
 
@@ -1193,9 +1195,9 @@ impl BatchState {
         let record = Record {
             model_filename: model_id.file_name(),
             program_filename: program_id.file_name(),
-        };    
-        self.record_vec.push(record);
-        Record::save_solutions_csv(&self.record_vec, &config.path_solutions_csv);
+        };
+        self.unique_records.insert(record);
+        Record::save_solutions_csv(&self.unique_records, &config.path_solutions_csv);
         
         // Update JSON file
         let predictions: Vec<Prediction> = run_with_program_result.predictions().clone();
@@ -1427,8 +1429,8 @@ impl Record {
         Ok(record_vec)
     }
 
-    fn save_solutions_csv(record_vec: &Vec<Record>, path_csv: &Path) {
-        let mut record_vec: Vec<Record> = record_vec.clone();
+    fn save_solutions_csv(unique_records: &HashSet<Record>, path_csv: &Path) {
+        let mut record_vec: Vec<Record> = unique_records.iter().map(|record| record.clone()).collect();
         record_vec.sort_unstable_by_key(|item| (item.model_filename.clone(), item.program_filename.clone()));
         match create_csv_file(&record_vec, &path_csv) {
             Ok(()) => {},
