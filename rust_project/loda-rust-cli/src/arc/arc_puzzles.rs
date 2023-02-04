@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram, RunWithProgramResult, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
+    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple};
+    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageBorder};
     use crate::arc::{Image, convolution2x2, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount};
@@ -1962,62 +1963,47 @@ mod tests {
 
     #[test]
     fn test_330000_puzzle_f8b3ba0a() {
+        let solution: SolutionSimple = |data| {
+            let histogram: Histogram = data.image.histogram_all();
+            let histogram_image: Image = histogram.to_image().expect("image");
+    
+            // Take the row with the colors, discard the row with the counters
+            let colors = histogram_image.bottom_rows(1).expect("image");
+    
+            // Discard the 2 most popular colors
+            let trimmed = colors.remove_left_columns(2).expect("image");
+    
+            let output = trimmed.rotate(1).expect("image");
+            Ok(output)
+        };
         let model: Model = Model::load_testdata("f8b3ba0a").expect("model");
-        assert_eq!(model.train().len(), 4);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.train()[3].input().to_image().expect("image");
-        // let output: Image = model.train()[3].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let histogram: Histogram = input.histogram_all();
-        let histogram_image: Image = histogram.to_image().expect("image");
-
-        // Take the row with the colors, discard the row with the counters
-        let colors = histogram_image.bottom_rows(1).expect("image");
-
-        // Discard the 2 most popular colors
-        let trimmed = colors.remove_left_columns(2).expect("image");
-
-        let result_image = trimmed.rotate(1).expect("image");
-
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 4);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
     fn test_340000_puzzle_f8ff0b80() {
+        let solution: SolutionSimple = |data| {
+            let histogram: Histogram = data.image.histogram_all();
+            let histogram_image: Image = histogram.to_image().expect("image");
+    
+            // Take the row with the colors, discard the row with the counters
+            let colors = histogram_image.bottom_rows(1).expect("image");
+    
+            // Discard the 1 most popular color
+            let trimmed = colors.remove_left_columns(1).expect("image");
+    
+            let output = trimmed.rotate(1).expect("image");
+            Ok(output)
+        };
         let model: Model = Model::load_testdata("f8ff0b80").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let histogram: Histogram = input.histogram_all();
-        let histogram_image: Image = histogram.to_image().expect("image");
-
-        // Take the row with the colors, discard the row with the counters
-        let colors = histogram_image.bottom_rows(1).expect("image");
-
-        // Discard the 1 most popular color
-        let trimmed = colors.remove_left_columns(1).expect("image");
-
-        let result_image = trimmed.rotate(1).expect("image");
-
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
-
 }
