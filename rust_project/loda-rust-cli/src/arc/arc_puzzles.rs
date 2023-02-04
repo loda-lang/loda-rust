@@ -12,21 +12,18 @@ mod tests {
 
     #[test]
     fn test_10000_puzzle_4258a5f9() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_pixel_color: u8 = input.most_popular_color().expect("pixel");
+            let result_image: Image = input.outline_type1(1, background_pixel_color).expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("4258a5f9").expect("model");
-        assert_eq!(model.train().len(), 2);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train[1].input.to_image().expect("image");
-        // let output: Image = model.train[1].output.to_image().expect("image");
-        // let input: Image = model.test[0].input.to_image().expect("image");
-        // let output: Image = model.test[0].output.to_image().expect("image");
-
-        let background_pixel_color: u8 = input.most_popular_color().expect("pixel");
-        let result_bm: Image = input.outline_type1(1, background_pixel_color).expect("image");
-
-        assert_eq!(result_bm, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const ADVANCED_PROGRAM_4258A5F9: &'static str = r#"
@@ -84,21 +81,17 @@ mod tests {
 
     #[test]
     fn test_20000_puzzle_5614dbcf() {
+        let solution: SolutionSimple = |data| {
+            let image_denoised: Image = data.image.denoise_type3(3).expect("image");
+            let result_image: Image = image_denoised.remove_duplicates().expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("5614dbcf").expect("model");
-        assert_eq!(model.train().len(), 2);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let image_denoised: Image = input.denoise_type3(3).expect("image");
-        let result_image: Image = image_denoised.remove_duplicates().expect("image");
-
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_5614DBCF: &'static str = "
@@ -120,24 +113,20 @@ mod tests {
 
     #[test]
     fn test_30000_puzzle_2013d3e2() {
+        let solution: SolutionSimple = |data| {
+            let input_trimmed: Image = data.image.trim().expect("image");
+
+            // Extract top/left corner
+            let top_rows: Image = input_trimmed.top_rows(input_trimmed.height() / 2).expect("image");
+            let result_image: Image = top_rows.left_columns(input_trimmed.height() / 2).expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("2013d3e2").expect("model");
-        assert_eq!(model.train().len(), 2);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let input_trimmed: Image = input.trim().expect("image");
-
-        // Extract top/left corner
-        let top_rows: Image = input_trimmed.top_rows(input_trimmed.height() / 2).expect("image");
-        let result_image: Image = top_rows.left_columns(input_trimmed.height() / 2).expect("image");
-
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_2013D3E2: &'static str = "
@@ -172,22 +161,18 @@ mod tests {
 
     #[test]
     fn test_40000_puzzle_90c28cc7_manual() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let input_trimmed: Image = input.trim().expect("image");
+            let result_image: Image = input_trimmed.remove_duplicates().expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("90c28cc7").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let input_trimmed: Image = input.trim().expect("image");
-        let result_bitmap: Image = input_trimmed.remove_duplicates().expect("image");
-        assert_eq!(result_bitmap, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_90C28CC7: &'static str = "
@@ -208,22 +193,18 @@ mod tests {
 
     #[test]
     fn test_50000_puzzle_7468f01a_manual() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let input_trimmed: Image = input.trim().expect("image");
+            let result_image: Image = input_trimmed.flip_x().expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("7468f01a").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let input_trimmed: Image = input.trim().expect("image");
-        let result_bitmap: Image = input_trimmed.flip_x().expect("image");
-        assert_eq!(result_bitmap, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_7468F01A: &'static str = "
@@ -391,35 +372,27 @@ mod tests {
     }
 
     #[test]
-    fn test_80000_puzzle_007bbfb7() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("007bbfb7")?;
-        assert_eq!(model.train().len(), 5);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.train()[3].input().to_image().expect("image");
-        // let output: Image = model.train()[3].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let mut image: Image = Image::zero(9, 9);
-        for y in 0..input.height() {
-            for x in 0..input.width() {
-                let mask_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
-                if mask_value == 0 {
-                    continue;
+    fn test_80000_puzzle_007bbfb7() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let mut image: Image = Image::zero(9, 9);
+            for y in 0..input.height() {
+                for x in 0..input.width() {
+                    let mask_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
+                    if mask_value == 0 {
+                        continue;
+                    }
+                    image = image.overlay_with_position(&input, (x * 3) as i32, (y * 3) as i32)?;
                 }
-                image = image.overlay_with_position(&input, (x * 3) as i32, (y * 3) as i32)?;
             }
-        }
-
-        assert_eq!(image, output);
-        Ok(())
+            Ok(image)
+        };
+        let model: Model = Model::load_testdata("007bbfb7").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 5);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_007BBFB7: &'static str = "
@@ -491,30 +464,26 @@ mod tests {
 
     #[test]
     fn test_90000_puzzle_b9b7f026_manual() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_color: u8 = input.most_popular_color().expect("color");
+
+            // Detect corners / holes
+            let corner_image: Image = input.detect_hole_type1(background_color).expect("image");
+            // println!("input: {:?}", input);
+            // println!("corner_image: {:?}", corner_image);
+    
+            // Extract color of the corner
+            let corner_color: u8 = corner_image.least_popular_color().expect("color");
+            let result_image: Image = Image::color(1, 1, corner_color);
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("b9b7f026").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let background_color: u8 = input.most_popular_color().expect("color");
-
-        // Detect corners / holes
-        let corner_image: Image = input.detect_hole_type1(background_color).expect("image");
-        // println!("input: {:?}", input);
-        // println!("corner_image: {:?}", corner_image);
-
-        // Extract color of the corner
-        let corner_color: u8 = corner_image.least_popular_color().expect("color");
-        let result_bitmap: Image = Image::color(1, 1, corner_color);
-        assert_eq!(result_bitmap, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_B9B7F026: &'static str = "
@@ -545,23 +514,17 @@ mod tests {
 
     #[test]
     fn test_100000_puzzle_a79310a0_manual() {
+        let solution: SolutionSimple = |data| {
+            let image_with_offset: Image = data.image.offset_wrap(0, 1).expect("image");
+            let result_image: Image = image_with_offset.replace_color(8, 2).expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("a79310a0").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let bitmap0: Image = input.offset_wrap(0, 1).expect("image");
-        let bitmap1: Image = bitmap0.replace_color(8, 2).expect("image");
-
-        assert_eq!(bitmap1, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_A79310A0: &'static str = "
@@ -913,50 +876,46 @@ mod tests {
     }
 
     #[test]
-    fn test_120000_puzzle_3bdb4ada() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("3bdb4ada")?;
-        assert_eq!(model.train().len(), 2);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        // TODO: port to LODA
-        let mut image = input.clone();
-        for yy in 0..((image.height() as i32) - 2) {
-            for xx in 0..((image.width() as i32) - 2) {
-                let top_left_pixel_value: u8 = image.get(xx, yy).unwrap_or(255);
-                let mut same_count = 1;
-                for y in 0..3 {
-                    for x in 0..3 {
-                        if x == 1 && y == 1 {
-                            continue;
-                        }
-                        if x == 0 && y == 0 {
-                            continue;
-                        }
-                        let pixel_value: u8 = image.get(xx + x, yy + y).unwrap_or(255); 
-                        if pixel_value == top_left_pixel_value {
-                            same_count += 1;
+    fn test_120000_puzzle_3bdb4ada() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let mut image = input.clone();
+            for yy in 0..((image.height() as i32) - 2) {
+                for xx in 0..((image.width() as i32) - 2) {
+                    let top_left_pixel_value: u8 = image.get(xx, yy).unwrap_or(255);
+                    let mut same_count = 1;
+                    for y in 0..3 {
+                        for x in 0..3 {
+                            if x == 1 && y == 1 {
+                                continue;
+                            }
+                            if x == 0 && y == 0 {
+                                continue;
+                            }
+                            let pixel_value: u8 = image.get(xx + x, yy + y).unwrap_or(255); 
+                            if pixel_value == top_left_pixel_value {
+                                same_count += 1;
+                            }
                         }
                     }
-                }
-                if same_count == 8 {
-                    match image.set(xx + 1, yy + 1, 0) {
-                        Some(()) => {},
-                        None => {
-                            return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
+                    if same_count == 8 {
+                        match image.set(xx + 1, yy + 1, 0) {
+                            Some(()) => {},
+                            None => {
+                                return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
+                            }
                         }
                     }
                 }
             }
-        }
-        assert_eq!(image, output);
-        Ok(())
+            Ok(image)
+        };
+        let model: Model = Model::load_testdata("3bdb4ada").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
