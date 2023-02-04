@@ -41,6 +41,17 @@ impl fmt::Debug for RunWithProgramResult {
     }
 }
 
+pub trait SolutionAdvanced {
+    fn run(&self, train_pairs: Vec<ImagePair>, test_pairs: Vec<ImagePair>) -> anyhow::Result<Vec<Image>>;
+}
+
+pub struct SolutionSimpleData {
+    pub index: usize,
+    pub image: Image,
+}
+
+pub type SolutionSimple = fn(SolutionSimpleData) -> anyhow::Result<Image>;
+
 pub struct RunWithProgram {
     verify_test_output: bool,
     model: Model,
@@ -111,6 +122,33 @@ impl RunWithProgram {
         self.run_program_runner(&program_runner)
     }
 
+    #[allow(dead_code)]
+    pub fn run_solution_advanced(&self, solution: &dyn SolutionAdvanced) -> anyhow::Result<RunWithProgramResult> {
+        let train_pairs = self.train_pairs.clone();
+        let mut test_pairs = self.test_pairs.clone();
+        for pair in test_pairs.iter_mut() {
+            pair.output = Image::empty();
+        }
+        let computed_images: Vec<Image> = solution.run(train_pairs, test_pairs)?;
+        self.process_computed_images(computed_images)
+    }
+
+    #[allow(dead_code)]
+    pub fn run_solution(&self, callback: SolutionSimple) -> anyhow::Result<RunWithProgramResult> {
+        let mut pairs: Vec<ImagePair> = self.train_pairs.clone();
+        pairs.extend(self.test_pairs.clone());
+        let mut computed_images = Vec::<Image>::new();
+        for (index, pair) in pairs.iter().enumerate() {
+            let data = SolutionSimpleData {
+                index,
+                image: pair.input.clone(),
+            };
+            let computed_image: Image = callback(data)?;
+            computed_images.push(computed_image);
+        }
+        self.process_computed_images(computed_images)
+    }
+
     pub fn run_program_runner(&self, program_runner: &ProgramRunner) -> anyhow::Result<RunWithProgramResult> {
         // self.print_full_state();
 
@@ -130,7 +168,9 @@ impl RunWithProgram {
         // Invoke the actual run() function
         program_runner.program().run(&mut state, &mut cache).context("run_result error in program.run")?;
 
-        self.process_output(&state)
+        let number_of_images: usize = self.train_pairs.len() + self.test_pairs.len();
+        let computed_images: Vec<Image> = state.computed_images(number_of_images)?;
+        self.process_computed_images(computed_images)
     }
 
     #[allow(dead_code)]
@@ -221,11 +261,8 @@ impl RunWithProgram {
         Ok(())
     }
 
-    fn process_output(&self, state: &ProgramState) -> anyhow::Result<RunWithProgramResult> {
+    fn process_computed_images(&self, computed_images: Vec<Image>) -> anyhow::Result<RunWithProgramResult> {
         let pretty_print = false;
-
-        let number_of_images: usize = self.train_pairs.len() + self.test_pairs.len();
-        let computed_images: Vec<Image> = state.computed_images(number_of_images)?;
 
         let mut message_items = Vec::<String>::new();
 
