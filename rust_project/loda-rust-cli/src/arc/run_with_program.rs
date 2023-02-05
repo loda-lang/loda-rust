@@ -1,4 +1,4 @@
-use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions, StackStrings, Prediction, Grid};
+use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions, StackStrings, Prediction, Grid, HtmlLog, ImageToHTML};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -264,6 +264,8 @@ impl RunWithProgram {
     fn process_computed_images(&self, computed_images: Vec<Image>) -> anyhow::Result<RunWithProgramResult> {
         let pretty_print = false;
 
+        let mut status_texts = Vec::<String>::new();
+
         let mut message_items = Vec::<String>::new();
 
         // Compare computed images with train[x].output
@@ -273,32 +275,17 @@ impl RunWithProgram {
             
             let expected_image: Image = pair.output.clone();
             if *computed_image == expected_image {
-                if pretty_print {
-                    println!("model: {:?} train#{} correct {}", self.model.id(), index, computed_image.to_unicode_string());
-                }
                 count_train_correct += 1;
+                if pretty_print {
+                    status_texts.push(format!("OK"));
+                }
                 continue;
             }
             let s = format!("train. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", index, expected_image, computed_image);
             message_items.push(s);
-
-            if *computed_image == pair.input {
-                // println!("train#{} incorrect. same as input", index);
-                continue;
+            if pretty_print {
+                status_texts.push(format!("Incorrect"));
             }
-            let same_size = computed_image.width() == expected_image.width() && computed_image.height() == expected_image.height();
-            if !same_size {
-                // println!("train#{} incorrect. computed {}x{} expected {}x{}", index, computed_image.width(), computed_image.height(), expected_image.width(), expected_image.height());
-                continue;
-            }
-            // if pretty_print {
-                // let computed_output_pretty = format!("computed output {}", computed_image.to_unicode_string());
-                // let expected_output_pretty = format!("expected output {}", expected_image.to_unicode_string());
-                // let comparison_pretty: String = StackStrings::hstack(vec![computed_output_pretty, expected_output_pretty], " | ");
-                // println!("model: {:?} train#{} incorrect.\n{}", self.model.id(), index, comparison_pretty);
-
-                // HtmlLog::compare_images(vec![computed_image.clone(), expected_image.clone()]);
-            // }
         }
         let count_train: usize = self.train_pairs.len();
 
@@ -314,12 +301,18 @@ impl RunWithProgram {
                 if *computed_image != expected_image {
                     let s = format!("test. The computed output, doesn't match test[{}].output.\nExpected {:?}\nActual {:?}", index, expected_image, computed_image);
                     message_items.push(s);
+                    if pretty_print {
+                        status_texts.push(format!("Incorrect"));
+                    }
                     continue;
                 }
-            }
-
-            if pretty_print {
-                println!("model: {:?} test#{} correct {}", self.model.id(), index, computed_image.to_unicode_string());
+                if pretty_print {
+                    status_texts.push(format!("OK"));
+                }
+            } else {
+                if pretty_print {
+                    status_texts.push(format!("Unverified"));
+                }
             }
 
             let grid: Grid = Self::image_to_grid(&computed_image);
@@ -327,14 +320,15 @@ impl RunWithProgram {
                 prediction_id: index as u8,
                 output: grid,
             };
-            // println!("prediction: {:?}", prediction);
             predictions.push(prediction);
 
             count_test_correct += 1;
         }
 
-        // println!("predictions: {:?}", predictions);
-        
+        if pretty_print {
+            self.inspect_computed_images(&computed_images, &status_texts);
+        }
+
         let result = RunWithProgramResult { 
             message_items,
             count_train_correct,
@@ -356,6 +350,45 @@ impl RunWithProgram {
             grid.push(row);
         }
         grid
+    }
+
+    fn inspect_computed_images(&self, computed_images: &Vec<Image>, status_texts: &Vec<String>) {
+        let mut pairs: Vec<ImagePair> = self.train_pairs.clone();
+        pairs.extend(self.test_pairs.clone());
+
+        let mut row_input: String = "<tr>".to_string();
+        let mut row_expected_output: String = "<tr>".to_string();
+        for pair in &pairs {
+            {
+                row_input += "<td>";
+                row_input += &pair.input.to_html();
+                row_input += "</td>";
+            }
+            {
+                row_expected_output += "<td>";
+                row_expected_output += &pair.output.to_html();
+                row_expected_output += "</td>";
+            }
+        }
+        row_input += "</tr>";
+        row_expected_output += "</tr>";
+
+        let mut row_computed_output: String = "<tr>".to_string();
+        for computed_image in computed_images {
+            row_computed_output += "<td>";
+            row_computed_output += &computed_image.to_html();
+            row_computed_output += "</td>";
+        }
+        row_computed_output += "</tr>";
+
+        let mut row_status: String = "<tr>".to_string();
+        for text in status_texts {
+            row_status += &format!("<td>{}</td>", text);
+        }
+        row_status += "</tr>";
+
+        let html = format!("<h2>{}</h2><table>{}{}{}{}</table>", self.model.id().identifier(), row_input, row_expected_output, row_computed_output, row_status);
+        HtmlLog::html(html);
     }
 }
 
