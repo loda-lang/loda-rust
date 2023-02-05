@@ -358,7 +358,7 @@ impl RunWithProgram {
 
         // Table row with input and row with expected output
         let mut row_input: String = "<tr>".to_string();
-        let mut row_expected_output: String = "<tr>".to_string();
+        let mut row_output: String = "<tr>".to_string();
         for pair in &pairs {
             {
                 row_input += "<td>";
@@ -366,22 +366,22 @@ impl RunWithProgram {
                 row_input += "</td>";
             }
             {
-                row_expected_output += "<td>";
-                row_expected_output += &pair.output.to_html();
-                row_expected_output += "</td>";
+                row_output += "<td>";
+                row_output += &pair.output.to_html();
+                row_output += "</td>";
             }
         }
-        row_input += "</tr>";
-        row_expected_output += "</tr>";
+        row_input += "<td>Input</td></tr>";
+        row_output += "<td>Output</td></tr>";
 
         // Table row with computed output
-        let mut row_computed_output: String = "<tr>".to_string();
+        let mut row_predicted: String = "<tr>".to_string();
         for computed_image in computed_images {
-            row_computed_output += "<td>";
-            row_computed_output += &computed_image.to_html();
-            row_computed_output += "</td>";
+            row_predicted += "<td>";
+            row_predicted += &computed_image.to_html();
+            row_predicted += "</td>";
         }
-        row_computed_output += "</tr>";
+        row_predicted += "<td>Predicted</td></tr>";
 
         // Table row with status text
         let mut row_status: String = "<tr>".to_string();
@@ -390,7 +390,7 @@ impl RunWithProgram {
         }
         row_status += "</tr>";
 
-        let html = format!("<h2>{}</h2><table>{}{}{}{}</table>", self.model.id().identifier(), row_input, row_expected_output, row_computed_output, row_status);
+        let html = format!("<h2>{}</h2><table>{}{}{}{}</table>", self.model.id().identifier(), row_input, row_output, row_predicted, row_status);
         HtmlLog::html(html);
     }
 }
