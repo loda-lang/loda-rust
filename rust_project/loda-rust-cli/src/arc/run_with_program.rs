@@ -264,7 +264,7 @@ impl RunWithProgram {
     fn process_computed_images(&self, computed_images: Vec<Image>) -> anyhow::Result<RunWithProgramResult> {
         let pretty_print = false;
 
-        let mut status_texts = Vec::<String>::new();
+        let mut status_texts = Vec::<&str>::new();
 
         let mut message_items = Vec::<String>::new();
 
@@ -277,14 +277,14 @@ impl RunWithProgram {
             if *computed_image == expected_image {
                 count_train_correct += 1;
                 if pretty_print {
-                    status_texts.push(format!("OK"));
+                    status_texts.push("OK");
                 }
                 continue;
             }
             let s = format!("train. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", index, expected_image, computed_image);
             message_items.push(s);
             if pretty_print {
-                status_texts.push(format!("Incorrect"));
+                status_texts.push("Incorrect");
             }
         }
         let count_train: usize = self.train_pairs.len();
@@ -302,16 +302,16 @@ impl RunWithProgram {
                     let s = format!("test. The computed output, doesn't match test[{}].output.\nExpected {:?}\nActual {:?}", index, expected_image, computed_image);
                     message_items.push(s);
                     if pretty_print {
-                        status_texts.push(format!("Incorrect"));
+                        status_texts.push("Incorrect");
                     }
                     continue;
                 }
                 if pretty_print {
-                    status_texts.push(format!("OK"));
+                    status_texts.push("OK");
                 }
             } else {
                 if pretty_print {
-                    status_texts.push(format!("Unverified"));
+                    status_texts.push("Unverified");
                 }
             }
 
@@ -352,10 +352,11 @@ impl RunWithProgram {
         grid
     }
 
-    fn inspect_computed_images(&self, computed_images: &Vec<Image>, status_texts: &Vec<String>) {
+    fn inspect_computed_images(&self, computed_images: &Vec<Image>, status_texts: &Vec<&str>) {
         let mut pairs: Vec<ImagePair> = self.train_pairs.clone();
         pairs.extend(self.test_pairs.clone());
 
+        // Table row with input and row with expected output
         let mut row_input: String = "<tr>".to_string();
         let mut row_expected_output: String = "<tr>".to_string();
         for pair in &pairs {
@@ -373,6 +374,7 @@ impl RunWithProgram {
         row_input += "</tr>";
         row_expected_output += "</tr>";
 
+        // Table row with computed output
         let mut row_computed_output: String = "<tr>".to_string();
         for computed_image in computed_images {
             row_computed_output += "<td>";
@@ -381,6 +383,7 @@ impl RunWithProgram {
         }
         row_computed_output += "</tr>";
 
+        // Table row with status text
         let mut row_status: String = "<tr>".to_string();
         for text in status_texts {
             row_status += &format!("<td>{}</td>", text);
