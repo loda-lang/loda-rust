@@ -1661,10 +1661,10 @@ mod tests {
             let ignore_mask = input.to_mask_where_color_is(background_color);
             let color_when_there_is_no_neighbour: u8 = 255;
     
-            let neighbour_up: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Up, color_when_there_is_no_neighbour).expect("image");
-            let neighbour_left: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Left, color_when_there_is_no_neighbour).expect("image");
-            let neighbour_right: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Right, color_when_there_is_no_neighbour).expect("image");
-            let neighbour_down: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Down, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_up: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Up, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_left: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Left, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Right, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_down: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Down, color_when_there_is_no_neighbour).expect("image");
     
             let mut result_image: Image = Image::color(input.width(), input.height(), background_color);
             for y in 0..(input.height() as i32) {
@@ -1735,10 +1735,10 @@ mod tests {
             let ignore_mask = input.to_mask_where_color_is(background_color);
             let color_when_there_is_no_neighbour: u8 = 255;
     
-            let neighbour_up_left: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::UpLeft, color_when_there_is_no_neighbour).expect("image");
-            let neighbour_up_right: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::UpRight, color_when_there_is_no_neighbour).expect("image");
-            let neighbour_down_left: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::DownLeft, color_when_there_is_no_neighbour).expect("image");
-            let neighbour_down_right: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::DownRight, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_up_left: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpLeft, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_up_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpRight, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_down_left: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownLeft, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_down_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, color_when_there_is_no_neighbour).expect("image");
     
             let mut result_image: Image = input.clone();
             for y in 0..(input.height() as i32) {
@@ -1914,10 +1914,10 @@ mod tests {
             let ignore_mask = input.to_mask_where_color_is(background_color);
             let color_when_there_is_no_neighbour: u8 = 255;
 
-            let neighbour_up_left: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::UpLeft, color_when_there_is_no_neighbour).expect("image");
-            let neighbour_up_right: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::UpRight, color_when_there_is_no_neighbour).expect("image");
-            let neighbour_down_left: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::DownLeft, color_when_there_is_no_neighbour).expect("image");
-            let neighbour_down_right: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::DownRight, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_up_left: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpLeft, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_up_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpRight, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_down_left: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownLeft, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_down_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, color_when_there_is_no_neighbour).expect("image");
 
             let mut result_image: Image = input.clone();
             for y in 0..(input.height() as i32) {

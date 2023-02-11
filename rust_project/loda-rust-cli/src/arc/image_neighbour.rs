@@ -128,11 +128,11 @@ impl ImageNeighbourDirection {
 }
 
 pub trait ImageNeighbour {
-    fn color_of_neighbour(&self, ignore_mask: &Image, direction: ImageNeighbourDirection, color_when_there_is_no_neighbour: u8) -> anyhow::Result<Image>;
+    fn neighbour_color(&self, ignore_mask: &Image, direction: ImageNeighbourDirection, color_when_there_is_no_neighbour: u8) -> anyhow::Result<Image>;
 }
 
 impl ImageNeighbour for Image {
-    fn color_of_neighbour(&self, ignore_mask: &Image, direction: ImageNeighbourDirection, color_when_there_is_no_neighbour: u8) -> anyhow::Result<Image> {
+    fn neighbour_color(&self, ignore_mask: &Image, direction: ImageNeighbourDirection, color_when_there_is_no_neighbour: u8) -> anyhow::Result<Image> {
         if ignore_mask.width() != self.width() || ignore_mask.height() != self.height() {
             return Err(anyhow::anyhow!("The size of the ignore_mask must be the same, but is different"));
         }
@@ -483,7 +483,7 @@ mod tests {
         let ignore_mask = input.to_mask_where_color_is(0);
 
         // Act
-        let output: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Left, 3).expect("image");
+        let output: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Left, 3).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -508,7 +508,7 @@ mod tests {
         let ignore_mask = input.to_mask_where_color_is(0);
 
         // Act
-        let output: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Left, 3).expect("image");
+        let output: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Left, 3).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -533,7 +533,7 @@ mod tests {
         let ignore_mask = input.to_mask_where_color_is(0);
 
         // Act
-        let output: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Right, 3).expect("image");
+        let output: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Right, 3).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -558,7 +558,7 @@ mod tests {
         let ignore_mask = input.to_mask_where_color_is(0);
 
         // Act
-        let output: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Up, 3).expect("image");
+        let output: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Up, 3).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -582,7 +582,7 @@ mod tests {
         let ignore_mask = input.to_mask_where_color_is(0);
 
         // Act
-        let output: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Down, 3).expect("image");
+        let output: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Down, 3).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -607,7 +607,7 @@ mod tests {
         let ignore_mask = input.to_mask_where_color_is(0);
 
         // Act
-        let output: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::UpLeft, 3).expect("image");
+        let output: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpLeft, 3).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -633,7 +633,7 @@ mod tests {
         let ignore_mask = input.to_mask_where_color_is(0);
 
         // Act
-        let output: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::UpRight, 3).expect("image");
+        let output: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpRight, 3).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -659,7 +659,7 @@ mod tests {
         let ignore_mask = input.to_mask_where_color_is(0);
 
         // Act
-        let output: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::DownLeft, 3).expect("image");
+        let output: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownLeft, 3).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -685,7 +685,7 @@ mod tests {
         let ignore_mask = input.to_mask_where_color_is(0);
 
         // Act
-        let output: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::DownRight, 3).expect("image");
+        let output: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, 3).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![

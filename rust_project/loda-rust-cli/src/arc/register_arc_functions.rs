@@ -1921,7 +1921,7 @@ impl UnofficialFunction for ImageNeighbourFunction {
             ImageNeighbourFunctionMode::DownLeft => ImageNeighbourDirection::DownLeft,
             ImageNeighbourFunctionMode::DownRight => ImageNeighbourDirection::DownRight,
         };
-        image = image.color_of_neighbour(&ignore_mask, direction, color_when_there_is_no_neighbour)?;
+        image = image.neighbour_color(&ignore_mask, direction, color_when_there_is_no_neighbour)?;
         let output_uint: BigUint = image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
