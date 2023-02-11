@@ -128,6 +128,9 @@ impl ImageNeighbourDirection {
 }
 
 pub trait ImageNeighbour {
+    /// Shoot out a ray in a direction and determine what is the color of nearest visible object.
+    /// 
+    /// The `ignore_mask` can be used for suppressing pixels that should not be considered visible.
     fn neighbour_color(&self, ignore_mask: &Image, direction: ImageNeighbourDirection, color_when_there_is_no_neighbour: u8) -> anyhow::Result<Image>;
 }
 
@@ -471,7 +474,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_color_of_neighbour_left_3x4() {
+    fn test_20000_neighbour_color_left_3x4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 9,
@@ -497,7 +500,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_color_of_neighbour_left_6x3() {
+    fn test_20000_neighbour_color_left_6x3() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 9, 5, 0, 0,
@@ -521,7 +524,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_color_of_neighbour_right() {
+    fn test_20001_neighbour_color_right() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 9,
@@ -547,7 +550,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20002_color_of_neighbour_up() {
+    fn test_20002_neighbour_color_up() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 9, 0,
@@ -571,7 +574,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20003_color_of_neighbour_down() {
+    fn test_20003_neighbour_color_down() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 9, 0,
@@ -595,7 +598,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20004_color_of_neighbour_upleft() {
+    fn test_20004_neighbour_color_upleft() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 9, 0,
@@ -621,7 +624,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20005_color_of_neighbour_upright() {
+    fn test_20005_neighbour_color_upright() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 9, 0, 0,
@@ -647,7 +650,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20006_color_of_neighbour_downleft() {
+    fn test_20006_neighbour_color_downleft() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
@@ -673,7 +676,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20007_color_of_neighbour_downright() {
+    fn test_20007_neighbour_color_downright() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
