@@ -128,10 +128,17 @@ impl ImageNeighbourDirection {
 }
 
 pub trait ImageNeighbour {
-    /// Shoot out a ray in a direction and determine what is the color of nearest visible object.
+    /// Shoot out a ray in `direction` and determine what is the color of nearest visible object.
     /// 
     /// The `ignore_mask` can be used for suppressing pixels that should not be considered visible.
     fn neighbour_color(&self, ignore_mask: &Image, direction: ImageNeighbourDirection, color_when_there_is_no_neighbour: u8) -> anyhow::Result<Image>;
+
+    /// Shoot out a ray in `direction` and determine the distance to the nearest visible object.
+    /// 
+    /// The `ignore_mask` can be used for suppressing pixels that should not be considered visible.
+    /// 
+    /// The magic value `255` is used when there is no object visible. Thus the max distance is only `254`.
+    fn neighbour_distance(&self, ignore_mask: &Image, direction: ImageNeighbourDirection) -> anyhow::Result<Image>;
 }
 
 impl ImageNeighbour for Image {
@@ -162,6 +169,42 @@ impl ImageNeighbour for Image {
                 }
 
                 let color_value: u8 = self.get(x, y).unwrap_or(255);
+                current_color = Some(color_value);
+            }
+        }
+        Ok(result_image)
+    }
+
+    fn neighbour_distance(&self, ignore_mask: &Image, direction: ImageNeighbourDirection) -> anyhow::Result<Image> {
+        if ignore_mask.width() != self.width() || ignore_mask.height() != self.height() {
+            return Err(anyhow::anyhow!("The size of the ignore_mask must be the same, but is different"));
+        }
+        if self.is_empty() {
+            return Ok(self.clone());
+        }
+
+        // Plan the traversal of pixels
+        let outer_positions: Vec<Vec<(i32,i32)>> = direction.traversal_positions(self.width(), self.height());
+    
+        let mut result_image = Image::zero(self.width(), self.height());
+        // Perform traversal of the pixels
+        for inner_positions in outer_positions {
+            let mut current_color: Option<u8> = None;
+            let mut current_distance: u8 = 255;
+
+            for (x, y) in inner_positions {
+                let _ = result_image.set(x, y, current_distance);
+                if current_distance < 254 {
+                    current_distance += 1;
+                }
+                let mask_value: u8 = ignore_mask.get(x, y).unwrap_or(255);
+                if mask_value > 0 {
+                    continue;
+                }
+                let color_value: u8 = self.get(x, y).unwrap_or(255);
+                if current_color != Some(color_value) {
+                    current_distance = 0;
+                }
                 current_color = Some(color_value);
             }
         }
@@ -698,6 +741,70 @@ mod tests {
             3, 3, 3, 3,
         ];
         let expected = Image::create_raw(4, 4, expected_pixels);
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_30000_neighbour_distance_left_5x7() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 9,
+            0, 0, 0, 9, 0,
+            0, 0, 9, 0, 9,
+            0, 9, 0, 0, 9, 
+            9, 0, 9, 0, 9,
+            9, 9, 9, 9, 9,
+        ];
+        let input: Image = Image::try_create(5, 7, pixels).expect("image");
+        let ignore_mask = input.to_mask_where_color_is(0);
+
+        // Act
+        let output: Image = input.neighbour_distance(&ignore_mask, ImageNeighbourDirection::Left).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            255, 255, 255, 255, 255,
+            255, 255, 255, 255, 255,
+            255, 255, 255, 255,   0,
+            255, 255, 255,   0,   1,
+            255, 255,   0,   1,   2,
+            255,   0,   1,   2,   3,
+            255,   0,   1,   2,   3,
+        ];
+        let expected = Image::create_raw(5, 7, expected_pixels);
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_30001_neighbour_distance_left_5x7() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 9,
+            0, 0, 0, 9, 8,
+            0, 0, 9, 0, 8,
+            0, 9, 0, 0, 8, 
+            9, 0, 8, 0, 9,
+            8, 9, 8, 9, 8,
+        ];
+        let input: Image = Image::try_create(5, 7, pixels).expect("image");
+        let ignore_mask = input.to_mask_where_color_is(0);
+
+        // Act
+        let output: Image = input.neighbour_distance(&ignore_mask, ImageNeighbourDirection::Left).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            255, 255, 255, 255, 255,
+            255, 255, 255, 255, 255,
+            255, 255, 255, 255,   0,
+            255, 255, 255,   0,   1,
+            255, 255,   0,   1,   2,
+            255,   0,   1,   0,   1,
+            255,   0,   0,   0,   0,
+        ];
+        let expected = Image::create_raw(5, 7, expected_pixels);
         assert_eq!(output, expected);
     }
 }
