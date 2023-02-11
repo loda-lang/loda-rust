@@ -1068,9 +1068,14 @@ impl BatchPlan {
             }
     
             let model: Model = model_item.borrow().model.clone();
-            let pairs: Vec<ImagePair> = model.images_all().expect("pairs");
+            if verbose {
+                let number_of_train_pairs: usize = model.train().len();
+                let number_of_test_pairs: usize = model.test().len();
+                pb.println(format!("puzzle: {} train: {} test: {}", model.id().identifier(), number_of_train_pairs, number_of_test_pairs));
+            }
+
             let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
-    
+
             let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(self.scheduled_program_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
             pb2.set_prefix("Candidate solution");
@@ -1098,14 +1103,33 @@ impl BatchPlan {
                         pb.println(s);
                     }
 
-                }    
-        
-                let count: usize = run_with_program_result.count_train_correct() + run_with_program_result.count_test_correct();
-                if count != pairs.len() {
+                }
+
+                if run_with_program_result.count_train_correct() == 0 {
+                    // None of the training pairs match.
                     // This is not a solution. Proceed to the next candidate solution.
                     continue;
                 }
 
+                let count_test_empty: usize = run_with_program_result.count_test_empty();
+                if count_test_empty > 0 {
+                    // All the "test" outputs must be non-empty, to ensure that it's not a raw copy/paste of the input.
+                    // This is not a solution. Proceed to the next candidate solution.
+                    pb.println(format!("Puzzle {:?}, ignoring dangerous false-positive, that copies the expected output to the actual output.", model_item.borrow().id));
+                    continue;
+                }
+
+                let count_train_incorrect: usize = run_with_program_result.count_train_incorrect();
+                if count_train_incorrect > 0 {
+                    // Partial solution. One or more incorrect training pairs. We want all the training pairs to be satisfied.
+                    // This is not a full solution. Proceed to the next candidate solution.
+                    let count_train_correct: usize = run_with_program_result.count_train_correct();
+                    pb.println(format!("Puzzle {:?}, partial solution. correct: {} incorrect {}", model_item.borrow().id, count_train_correct, count_train_incorrect));
+                    continue;
+                }
+
+                // All the training pairs are correct.
+                // The test pairs are unverified, and with a size 1x1 or bigger.
                 // This may be a solution.
 
                 let save_result = state.save_solution(
