@@ -15,6 +15,7 @@ pub struct RunWithProgramResult {
     count_train_correct: usize,
     count_train_incorrect: usize,
     count_test_correct: usize,
+    count_test_empty: usize,
     predictions: Vec<Prediction>,
 }
 
@@ -33,6 +34,10 @@ impl RunWithProgramResult {
 
     pub fn count_test_correct(&self) -> usize {
         self.count_test_correct
+    }
+
+    pub fn count_test_empty(&self) -> usize {
+        self.count_test_empty
     }
 
     pub fn predictions(&self) -> &Vec<Prediction> {
@@ -300,9 +305,16 @@ impl RunWithProgram {
 
         // Compare computed images with test[x].output
         let mut count_test_correct: usize = 0;
+        let mut count_test_empty: usize = 0;
         for (index, pair) in self.test_pairs.iter().enumerate() {
             let computed_image: &Image = &computed_images[count_train + index];
-            
+            if computed_image.is_empty() {
+                count_test_empty += 1;
+                if pretty_print {
+                    status_texts.push("Empty");
+                }
+                continue;
+            }
             if self.verify_test_output {
                 let expected_image: Image = pair.output.clone();
                 if *computed_image != expected_image {
@@ -341,6 +353,7 @@ impl RunWithProgram {
             count_train_correct,
             count_train_incorrect,
             count_test_correct,
+            count_test_empty,
             predictions,
         };
 
