@@ -1124,7 +1124,7 @@ impl BatchPlan {
                     // Partial solution. One or more incorrect training pairs. We want all the training pairs to be satisfied.
                     // This is not a full solution. Proceed to the next candidate solution.
                     let count_train_correct: usize = run_with_program_result.count_train_correct();
-                    pb.println(format!("Puzzle {:?}, partial solution. correct: {} incorrect {}", model_item.borrow().id, count_train_correct, count_train_incorrect));
+                    pb.println(format!("Puzzle {:?}, partial solution. correct: {} incorrect: {}", model_item.borrow().id, count_train_correct, count_train_incorrect));
                     continue;
                 }
 
