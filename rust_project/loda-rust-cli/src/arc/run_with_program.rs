@@ -13,6 +13,7 @@ use std::fmt;
 pub struct RunWithProgramResult {
     message_items: Vec::<String>,
     count_train_correct: usize,
+    count_train_incorrect: usize,
     count_test_correct: usize,
     predictions: Vec<Prediction>,
 }
@@ -26,6 +27,10 @@ impl RunWithProgramResult {
         self.count_train_correct
     }
 
+    pub fn count_train_incorrect(&self) -> usize {
+        self.count_train_incorrect
+    }
+
     pub fn count_test_correct(&self) -> usize {
         self.count_test_correct
     }
@@ -37,7 +42,7 @@ impl RunWithProgramResult {
 
 impl fmt::Debug for RunWithProgramResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "RunWithProgramResult count_train_correct: {} count_test_correct: {}\n message {}", self.count_train_correct, self.count_test_correct, self.messages())
+        write!(f, "RunWithProgramResult count_train_correct: {} count_train_incorrect: {} count_test_correct: {}\n message {}", self.count_train_correct, self.count_train_incorrect, self.count_test_correct, self.messages())
     }
 }
 
@@ -270,6 +275,7 @@ impl RunWithProgram {
 
         // Compare computed images with train[x].output
         let mut count_train_correct: usize = 0;
+        let mut count_train_incorrect: usize = 0;
         for (index, pair) in self.train_pairs.iter().enumerate() {
             let computed_image: &Image = &computed_images[index];
             
@@ -281,6 +287,7 @@ impl RunWithProgram {
                 }
                 continue;
             }
+            count_train_incorrect += 1;
             let s = format!("train. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", index, expected_image, computed_image);
             message_items.push(s);
             if pretty_print {
@@ -332,6 +339,7 @@ impl RunWithProgram {
         let result = RunWithProgramResult { 
             message_items,
             count_train_correct,
+            count_train_incorrect,
             count_test_correct,
             predictions,
         };
