@@ -1108,6 +1108,7 @@ impl BatchPlan {
                 if run_with_program_result.count_train_correct() == 0 {
                     // None of the training pairs match.
                     // This is not a solution. Proceed to the next candidate solution.
+                    // pb.println(format!("Puzzle {:?}, count_train_correct is zero. Ignoring.", model_item.borrow().id));
                     continue;
                 }
 
@@ -1119,18 +1120,19 @@ impl BatchPlan {
                     continue;
                 }
 
+                let count_train_correct: usize = run_with_program_result.count_train_correct();
                 let count_train_incorrect: usize = run_with_program_result.count_train_incorrect();
                 if count_train_incorrect > 0 {
                     // Partial solution. One or more incorrect training pairs. We want all the training pairs to be satisfied.
                     // This is not a full solution. Proceed to the next candidate solution.
-                    let count_train_correct: usize = run_with_program_result.count_train_correct();
                     pb.println(format!("Puzzle {:?}, partial solution. correct: {} incorrect: {}", model_item.borrow().id, count_train_correct, count_train_incorrect));
                     continue;
                 }
 
-                // All the training pairs are correct.
-                // The test pairs are unverified, and with a size 1x1 or bigger.
+                // All the train pairs are correct.
+                // The test pairs are unverified, and have a size of 1x1 or bigger.
                 // This may be a solution.
+                pb.println(format!("Puzzle {:?}, possible solution. correct: {} incorrect: {}", model_item.borrow().id, count_train_correct, count_train_incorrect));
 
                 let save_result = state.save_solution(
                     config, 
