@@ -65,7 +65,7 @@ impl TaskPair {
     }
 }
 
-#[allow(dead_code)]
+#[derive(Clone, Debug)]
 pub struct ImagePair {
     pub input: Image,
     pub output: Image,

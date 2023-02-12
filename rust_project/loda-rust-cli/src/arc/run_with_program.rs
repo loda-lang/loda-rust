@@ -1,4 +1,4 @@
-use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions, StackStrings, Prediction, Grid};
+use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions, StackStrings, Prediction, Grid, HtmlLog, ImageToHTML};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -6,14 +6,16 @@ use loda_rust_core::unofficial_function::{UnofficialFunctionRegistry, register_c
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use anyhow::Context;
 use num_bigint::{BigInt, BigUint, ToBigInt};
-use num_traits::Signed;
+use num_traits::{Signed, One};
 use std::path::PathBuf;
 use std::fmt;
 
 pub struct RunWithProgramResult {
     message_items: Vec::<String>,
     count_train_correct: usize,
+    count_train_incorrect: usize,
     count_test_correct: usize,
+    count_test_empty: usize,
     predictions: Vec<Prediction>,
 }
 
@@ -26,8 +28,16 @@ impl RunWithProgramResult {
         self.count_train_correct
     }
 
+    pub fn count_train_incorrect(&self) -> usize {
+        self.count_train_incorrect
+    }
+
     pub fn count_test_correct(&self) -> usize {
         self.count_test_correct
+    }
+
+    pub fn count_test_empty(&self) -> usize {
+        self.count_test_empty
     }
 
     pub fn predictions(&self) -> &Vec<Prediction> {
@@ -37,9 +47,20 @@ impl RunWithProgramResult {
 
 impl fmt::Debug for RunWithProgramResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "RunWithProgramResult count_train_correct: {} count_test_correct: {}\n message {}", self.count_train_correct, self.count_test_correct, self.messages())
+        write!(f, "RunWithProgramResult count_train_correct: {} count_train_incorrect: {} count_test_correct: {}\n message {}", self.count_train_correct, self.count_train_incorrect, self.count_test_correct, self.messages())
     }
 }
+
+pub trait SolutionAdvanced {
+    fn run(&self, train_pairs: Vec<ImagePair>, test_pairs: Vec<ImagePair>) -> anyhow::Result<Vec<Image>>;
+}
+
+pub struct SolutionSimpleData {
+    pub index: usize,
+    pub image: Image,
+}
+
+pub type SolutionSimple = fn(SolutionSimpleData) -> anyhow::Result<Image>;
 
 pub struct RunWithProgram {
     verify_test_output: bool,
@@ -111,13 +132,40 @@ impl RunWithProgram {
         self.run_program_runner(&program_runner)
     }
 
+    #[allow(dead_code)]
+    pub fn run_solution_advanced(&self, solution: &dyn SolutionAdvanced) -> anyhow::Result<RunWithProgramResult> {
+        let train_pairs = self.train_pairs.clone();
+        let mut test_pairs = self.test_pairs.clone();
+        for pair in test_pairs.iter_mut() {
+            pair.output = Image::empty();
+        }
+        let computed_images: Vec<Image> = solution.run(train_pairs, test_pairs)?;
+        self.process_computed_images(computed_images)
+    }
+
+    #[allow(dead_code)]
+    pub fn run_solution(&self, callback: SolutionSimple) -> anyhow::Result<RunWithProgramResult> {
+        let mut pairs: Vec<ImagePair> = self.train_pairs.clone();
+        pairs.extend(self.test_pairs.clone());
+        let mut computed_images = Vec::<Image>::new();
+        for (index, pair) in pairs.iter().enumerate() {
+            let data = SolutionSimpleData {
+                index,
+                image: pair.input.clone(),
+            };
+            let computed_image: Image = callback(data)?;
+            computed_images.push(computed_image);
+        }
+        self.process_computed_images(computed_images)
+    }
+
     pub fn run_program_runner(&self, program_runner: &ProgramRunner) -> anyhow::Result<RunWithProgramResult> {
         // self.print_full_state();
 
         let mut cache = ProgramCache::new();
 
         // Blank state
-        let step_count_limit: u64 = 900;
+        let step_count_limit: u64 = 30000;
         let mut state = ProgramState::new(
             RunMode::Silent, 
             step_count_limit, 
@@ -130,7 +178,9 @@ impl RunWithProgram {
         // Invoke the actual run() function
         program_runner.program().run(&mut state, &mut cache).context("run_result error in program.run")?;
 
-        self.process_output(&state)
+        let number_of_images: usize = self.train_pairs.len() + self.test_pairs.len();
+        let computed_images: Vec<Image> = state.computed_images(number_of_images)?;
+        self.process_computed_images(computed_images)
     }
 
     #[allow(dead_code)]
@@ -218,68 +268,44 @@ impl RunWithProgram {
             let set_index: usize = (count_train + index) * 10 + 100;
             state.set_u64(set_index as u64, image_number_int).context("pair.input, set_u64")?;
         }
+        // The program is never supposed to read from the the test[x].output register.
+        // memory[(count_train + x)*10+101] is where the program is supposed to write its predicted output.
+        // Use `-1` as placeholder so it's easy to spot when the image is missing.
+        for (index, _pair) in self.test_pairs.iter().enumerate() {
+            let set_index: usize = (count_train + index) * 10 + 101;
+            let value: BigInt = -BigInt::one();
+            state.set_u64(set_index as u64, value).context("pair.output, set_u64")?;
+        }
         Ok(())
     }
 
-    /// Extract images from `ProgramState`
-    /// 
-    /// Variable number of items in the `train` vector and `test` vector.
-    /// 
-    /// Memory layout:
-    /// 
-    /// ```
-    /// $102 = train[0] computed_output image
-    /// $112 = train[1] computed_output image
-    /// $122 = train[2] computed_output image
-    /// $132 = test[0] computed_output image
-    /// ```
-    fn process_output(&self, state: &ProgramState) -> anyhow::Result<RunWithProgramResult> {
+    fn process_computed_images(&self, computed_images: Vec<Image>) -> anyhow::Result<RunWithProgramResult> {
         let pretty_print = false;
+
+        let mut status_texts = Vec::<&str>::new();
 
         let mut message_items = Vec::<String>::new();
 
         // Compare computed images with train[x].output
         let mut count_train_correct: usize = 0;
+        let mut count_train_incorrect: usize = 0;
         for (index, pair) in self.train_pairs.iter().enumerate() {
-            let address: u64 = (index as u64) * 10 + 102;
-            let computed_int: BigInt = state.get_u64(address).clone();
-            if computed_int.is_negative() {
-                message_items.push(format!("train. output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
-                continue;
-            }
-            let computed_uint: BigUint = computed_int.to_biguint()
-                .ok_or_else(|| { anyhow::anyhow!("process_output -> train -> computed_int.to_biguint return None") })?;
-            let computed_image: Image = computed_uint.to_image()
-                .map_err(|e| anyhow::anyhow!("process_output -> train -> computed_uint.to_image. error: {:?}", e))?;
+            let computed_image: &Image = &computed_images[index];
             
             let expected_image: Image = pair.output.clone();
-            if computed_image != expected_image {
-                let s = format!("train. output[{}]. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", address, index, expected_image, computed_image);
-                message_items.push(s);
-
-                if computed_image == pair.input {
-                    // println!("train#{} incorrect. same as input", index);
-                    continue;
+            if *computed_image == expected_image {
+                count_train_correct += 1;
+                if pretty_print {
+                    status_texts.push("OK");
                 }
-                let same_size = computed_image.width() == expected_image.width() && computed_image.height() == expected_image.height();
-                if !same_size {
-                    // println!("train#{} incorrect. computed {}x{} expected {}x{}", index, computed_image.width(), computed_image.height(), expected_image.width(), expected_image.height());
-                    continue;
-                }
-                // if pretty_print {
-                    // let computed_output_pretty = format!("computed output {}", computed_image.to_unicode_string());
-                    // let expected_output_pretty = format!("expected output {}", expected_image.to_unicode_string());
-                    // let comparison_pretty: String = StackStrings::hstack(vec![computed_output_pretty, expected_output_pretty], " | ");
-                    // println!("model: {:?} train#{} incorrect.\n{}", self.model.id(), index, comparison_pretty);
-
-                    // HtmlLog::compare_images(vec![computed_image.clone(), expected_image.clone()]);
-                // }
                 continue;
             }
+            count_train_incorrect += 1;
+            let s = format!("train. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", index, expected_image, computed_image);
+            message_items.push(s);
             if pretty_print {
-                println!("model: {:?} train#{} correct {}", self.model.id(), index, computed_image.to_unicode_string());
+                status_texts.push("Incorrect");
             }
-            count_train_correct += 1;
         }
         let count_train: usize = self.train_pairs.len();
 
@@ -287,38 +313,33 @@ impl RunWithProgram {
 
         // Compare computed images with test[x].output
         let mut count_test_correct: usize = 0;
+        let mut count_test_empty: usize = 0;
         for (index, pair) in self.test_pairs.iter().enumerate() {
-            let address: u64 = ((index + count_train) as u64) * 10 + 102;
-            let computed_int: BigInt = state.get_u64(address).clone();
-            if computed_int.is_negative() {
-                message_items.push(format!("test. output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
+            let computed_image: &Image = &computed_images[count_train + index];
+            if computed_image.is_empty() {
+                count_test_empty += 1;
+                if pretty_print {
+                    status_texts.push("Empty");
+                }
                 continue;
             }
-            let computed_uint: BigUint = computed_int.to_biguint()
-                .ok_or_else(|| { anyhow::anyhow!("process_output -> test -> computed_int.to_biguint return None") })?;
-            let computed_image: Image = computed_uint.to_image()
-                .map_err(|e| anyhow::anyhow!("process_output -> test -> computed_uint.to_image. error: {:?}", e))?;
-            
             if self.verify_test_output {
                 let expected_image: Image = pair.output.clone();
-                if computed_image != expected_image {
-                    let s = format!("test. output[{}]. The computed output, doesn't match test[{}].output.\nExpected {:?}\nActual {:?}", address, index, expected_image, computed_image);
+                if *computed_image != expected_image {
+                    let s = format!("test. The computed output, doesn't match test[{}].output.\nExpected {:?}\nActual {:?}", index, expected_image, computed_image);
                     message_items.push(s);
+                    if pretty_print {
+                        status_texts.push("Incorrect");
+                    }
                     continue;
                 }
-            }
-
-            // Verify that the output image is 1x1 or bigger.
-            // Reject a "cheating" program. These a programs that copy from the expected_output to the actual_output.
-            // For the test_pairs the expected_output is set to the empty image 0x0.
-            // If the output has the size of 0x0, it seems like it has been "cheating".
-            if computed_image.is_empty() {
-                let s = format!("test. output[{}]. Expected an output image, but no image was computed", address);
-                message_items.push(s);
-                continue;
-            }
-            if pretty_print {
-                println!("model: {:?} test#{} correct {}", self.model.id(), index, computed_image.to_unicode_string());
+                if pretty_print {
+                    status_texts.push("OK");
+                }
+            } else {
+                if pretty_print {
+                    status_texts.push("Unverified");
+                }
             }
 
             let grid: Grid = Self::image_to_grid(&computed_image);
@@ -326,18 +347,21 @@ impl RunWithProgram {
                 prediction_id: index as u8,
                 output: grid,
             };
-            // println!("prediction: {:?}", prediction);
             predictions.push(prediction);
 
             count_test_correct += 1;
         }
 
-        // println!("predictions: {:?}", predictions);
-        
+        if pretty_print {
+            self.inspect_computed_images(&computed_images, &status_texts);
+        }
+
         let result = RunWithProgramResult { 
             message_items,
             count_train_correct,
+            count_train_incorrect,
             count_test_correct,
+            count_test_empty,
             predictions,
         };
 
@@ -355,5 +379,92 @@ impl RunWithProgram {
             grid.push(row);
         }
         grid
+    }
+
+    fn inspect_computed_images(&self, computed_images: &Vec<Image>, status_texts: &Vec<&str>) {
+        let mut pairs: Vec<ImagePair> = self.train_pairs.clone();
+        pairs.extend(self.test_pairs.clone());
+
+        // Table row with input and row with expected output
+        let mut row_input: String = "<tr>".to_string();
+        let mut row_output: String = "<tr>".to_string();
+        for pair in &pairs {
+            {
+                row_input += "<td>";
+                row_input += &pair.input.to_html();
+                row_input += "</td>";
+            }
+            {
+                row_output += "<td>";
+                row_output += &pair.output.to_html();
+                row_output += "</td>";
+            }
+        }
+        row_input += "<td>Input</td></tr>";
+        row_output += "<td>Output</td></tr>";
+
+        // Table row with computed output
+        let mut row_predicted: String = "<tr>".to_string();
+        for computed_image in computed_images {
+            row_predicted += "<td>";
+            row_predicted += &computed_image.to_html();
+            row_predicted += "</td>";
+        }
+        row_predicted += "<td>Predicted</td></tr>";
+
+        // Table row with status text
+        let mut row_status: String = "<tr>".to_string();
+        for text in status_texts {
+            row_status += &format!("<td>{}</td>", text);
+        }
+        row_status += "</tr>";
+
+        let html = format!("<h2>{}</h2><table>{}{}{}{}</table>", self.model.id().identifier(), row_input, row_output, row_predicted, row_status);
+        HtmlLog::html(html);
+    }
+}
+
+trait ComputedImages {
+    fn computed_images(&self, number_of_images: usize) -> anyhow::Result<Vec<Image>>;
+}
+
+impl ComputedImages for ProgramState {
+    /// Extract images from `ProgramState`
+    /// 
+    /// Variable number of items in the `train` vector and `test` vector.
+    /// 
+    /// The first image is at the address `102`. Add `10` to get to the following images.
+    /// 
+    /// Memory layout:
+    /// 
+    /// ```
+    /// $102 = train[0] computed_output image
+    /// $112 = train[1] computed_output image
+    /// $122 = train[2] computed_output image
+    /// $132 = test[0] computed_output image
+    /// $142 = test[1] computed_output image
+    /// ```
+    fn computed_images(&self, number_of_images: usize) -> anyhow::Result<Vec<Image>> {
+        let mut images = Vec::<Image>::with_capacity(number_of_images);
+        for index in 0..number_of_images {
+            let address: u64 = (index as u64) * 10 + 102;
+            let computed_int: BigInt = self.get_u64(address).clone();
+            if computed_int.is_negative() {
+                return Err(anyhow::anyhow!("computed_images. output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
+            }
+            let computed_uint: BigUint = computed_int.to_biguint()
+                .ok_or_else(|| anyhow::anyhow!("computed_images. output[{}] computed_int.to_biguint return None", address))?;
+            let computed_image: Image = computed_uint.to_image()
+                .map_err(|e| anyhow::anyhow!("computed_images. output[{}] computed_uint.to_image. error: {:?}", address, e))?;
+            if computed_image.is_empty() {
+                // Verify that the output image is 1x1 or bigger.
+                // Reject a "cheating" program. These are programs that copy from the expected_output to the actual_output.
+                // For the test_pairs the expected_output is set to the empty image 0x0.
+                // If the output has the size of 0x0, it seems like it has been "cheating".
+                return Err(anyhow::anyhow!("computed_images. output[{}]. Expected an image bigger than 0x0, but image was empty", address));
+            }
+            images.push(computed_image);
+        }
+        Ok(images)
     }
 }

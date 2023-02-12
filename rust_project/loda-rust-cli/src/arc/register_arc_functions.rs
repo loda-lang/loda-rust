@@ -1,7 +1,7 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole};
-use super::{ImageRemoveGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting};
+use super::{ImageRemoveGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting, ImageNeighbour, ImageNeighbourDirection};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
 use num_traits::{Signed, ToPrimitive};
@@ -1829,6 +1829,105 @@ impl UnofficialFunction for ImagePopularObjectFunction {
     }
 }
 
+#[derive(Debug)]
+enum ImageNeighbourFunctionMode {
+    Up,
+    Down,
+    Left,
+    Right,
+    UpLeft,
+    UpRight,
+    DownLeft,
+    DownRight,
+}
+
+struct ImageNeighbourFunction {
+    id: u32,
+    mode: ImageNeighbourFunctionMode,
+}
+
+impl ImageNeighbourFunction {
+    fn new(id: u32, mode: ImageNeighbourFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageNeighbourFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            ImageNeighbourFunctionMode::Up => {
+                return "color of nearest neighbour pixel 'up'".to_string();
+            },
+            ImageNeighbourFunctionMode::Down => {
+                return "color of nearest neighbour pixel 'down'".to_string();
+            },
+            ImageNeighbourFunctionMode::Left => {
+                return "color of nearest neighbour pixel 'left'".to_string();
+            },
+            ImageNeighbourFunctionMode::Right => {
+                return "color of nearest neighbour pixel 'right'".to_string();
+            },
+            ImageNeighbourFunctionMode::UpLeft => {
+                return "color of nearest neighbour pixel 'up left'".to_string();
+            },
+            ImageNeighbourFunctionMode::UpRight => {
+                return "color of nearest neighbour pixel 'up right'".to_string();
+            },
+            ImageNeighbourFunctionMode::DownLeft => {
+                return "color of nearest neighbour pixel 'down left'".to_string();
+            },
+            ImageNeighbourFunctionMode::DownRight => {
+                return "color of nearest neighbour pixel 'down right'".to_string();
+            },
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let mut image: Image = input0_uint.to_image()?;
+
+        // input1 is ignore_mask
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let ignore_mask: Image = input1_uint.to_image()?;
+
+        // input2 is color_when_there_is_no_neighbour
+        let color_when_there_is_no_neighbour: u8 = input[2].to_u8().context("u8 color_when_there_is_no_neighbour")?;
+
+        let direction: ImageNeighbourDirection = match self.mode {
+            ImageNeighbourFunctionMode::Up => ImageNeighbourDirection::Up,
+            ImageNeighbourFunctionMode::Down => ImageNeighbourDirection::Down,
+            ImageNeighbourFunctionMode::Left => ImageNeighbourDirection::Left,
+            ImageNeighbourFunctionMode::Right => ImageNeighbourDirection::Right,
+            ImageNeighbourFunctionMode::UpLeft => ImageNeighbourDirection::UpLeft,
+            ImageNeighbourFunctionMode::UpRight => ImageNeighbourDirection::UpRight,
+            ImageNeighbourFunctionMode::DownLeft => ImageNeighbourDirection::DownLeft,
+            ImageNeighbourFunctionMode::DownRight => ImageNeighbourDirection::DownRight,
+        };
+        image = image.neighbour_color(&ignore_mask, direction, color_when_there_is_no_neighbour)?;
+        let output_uint: BigUint = image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -1953,6 +2052,16 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageToMaskFunction::new(101250, ImageToMaskFunctionFunctionMode::WhereColorIs));
     register_function!(ImageToMaskFunction::new(101251, ImageToMaskFunctionFunctionMode::WhereColorIsDifferent));
     register_function!(ImageInvertMaskFunction::new(101252));
+
+    // Color of neighbour pixel
+    register_function!(ImageNeighbourFunction::new(102060, ImageNeighbourFunctionMode::Up));
+    register_function!(ImageNeighbourFunction::new(102061, ImageNeighbourFunctionMode::Down));
+    register_function!(ImageNeighbourFunction::new(102062, ImageNeighbourFunctionMode::Left));
+    register_function!(ImageNeighbourFunction::new(102063, ImageNeighbourFunctionMode::Right));
+    register_function!(ImageNeighbourFunction::new(102064, ImageNeighbourFunctionMode::UpLeft));
+    register_function!(ImageNeighbourFunction::new(102065, ImageNeighbourFunctionMode::UpRight));
+    register_function!(ImageNeighbourFunction::new(102066, ImageNeighbourFunctionMode::DownLeft));
+    register_function!(ImageNeighbourFunction::new(102067, ImageNeighbourFunctionMode::DownRight));
 
     // Objects
     register_function!(ImagePopularObjectFunction::new(102000, ImagePopularObjectFunctionMode::MostPopular));

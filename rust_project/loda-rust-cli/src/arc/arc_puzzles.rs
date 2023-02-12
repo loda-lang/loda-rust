@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, RunWithProgram, RunWithProgramResult, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
+    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple};
+    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageBorder};
     use crate::arc::{Image, convolution2x2, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount};
@@ -11,21 +12,18 @@ mod tests {
 
     #[test]
     fn test_10000_puzzle_4258a5f9() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_pixel_color: u8 = input.most_popular_color().expect("pixel");
+            let result_image: Image = input.outline_type1(1, background_pixel_color).expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("4258a5f9").expect("model");
-        assert_eq!(model.train().len(), 2);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train[1].input.to_image().expect("image");
-        // let output: Image = model.train[1].output.to_image().expect("image");
-        // let input: Image = model.test[0].input.to_image().expect("image");
-        // let output: Image = model.test[0].output.to_image().expect("image");
-
-        let background_pixel_color: u8 = input.most_popular_color().expect("pixel");
-        let result_bm: Image = input.outline_type1(1, background_pixel_color).expect("image");
-
-        assert_eq!(result_bm, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const ADVANCED_PROGRAM_4258A5F9: &'static str = r#"
@@ -83,21 +81,17 @@ mod tests {
 
     #[test]
     fn test_20000_puzzle_5614dbcf() {
+        let solution: SolutionSimple = |data| {
+            let image_denoised: Image = data.image.denoise_type3(3).expect("image");
+            let result_image: Image = image_denoised.remove_duplicates().expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("5614dbcf").expect("model");
-        assert_eq!(model.train().len(), 2);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let image_denoised: Image = input.denoise_type3(3).expect("image");
-        let result_image: Image = image_denoised.remove_duplicates().expect("image");
-
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_5614DBCF: &'static str = "
@@ -119,24 +113,20 @@ mod tests {
 
     #[test]
     fn test_30000_puzzle_2013d3e2() {
+        let solution: SolutionSimple = |data| {
+            let input_trimmed: Image = data.image.trim().expect("image");
+
+            // Extract top/left corner
+            let top_rows: Image = input_trimmed.top_rows(input_trimmed.height() / 2).expect("image");
+            let result_image: Image = top_rows.left_columns(input_trimmed.height() / 2).expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("2013d3e2").expect("model");
-        assert_eq!(model.train().len(), 2);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let input_trimmed: Image = input.trim().expect("image");
-
-        // Extract top/left corner
-        let top_rows: Image = input_trimmed.top_rows(input_trimmed.height() / 2).expect("image");
-        let result_image: Image = top_rows.left_columns(input_trimmed.height() / 2).expect("image");
-
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_2013D3E2: &'static str = "
@@ -171,22 +161,18 @@ mod tests {
 
     #[test]
     fn test_40000_puzzle_90c28cc7_manual() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let input_trimmed: Image = input.trim().expect("image");
+            let result_image: Image = input_trimmed.remove_duplicates().expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("90c28cc7").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let input_trimmed: Image = input.trim().expect("image");
-        let result_bitmap: Image = input_trimmed.remove_duplicates().expect("image");
-        assert_eq!(result_bitmap, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_90C28CC7: &'static str = "
@@ -207,22 +193,18 @@ mod tests {
 
     #[test]
     fn test_50000_puzzle_7468f01a_manual() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let input_trimmed: Image = input.trim().expect("image");
+            let result_image: Image = input_trimmed.flip_x().expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("7468f01a").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let input_trimmed: Image = input.trim().expect("image");
-        let result_bitmap: Image = input_trimmed.flip_x().expect("image");
-        assert_eq!(result_bitmap, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_7468F01A: &'static str = "
@@ -390,35 +372,27 @@ mod tests {
     }
 
     #[test]
-    fn test_80000_puzzle_007bbfb7() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("007bbfb7")?;
-        assert_eq!(model.train().len(), 5);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.train()[3].input().to_image().expect("image");
-        // let output: Image = model.train()[3].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let mut image: Image = Image::zero(9, 9);
-        for y in 0..input.height() {
-            for x in 0..input.width() {
-                let mask_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
-                if mask_value == 0 {
-                    continue;
+    fn test_80000_puzzle_007bbfb7() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let mut image: Image = Image::zero(9, 9);
+            for y in 0..input.height() {
+                for x in 0..input.width() {
+                    let mask_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
+                    if mask_value == 0 {
+                        continue;
+                    }
+                    image = image.overlay_with_position(&input, (x * 3) as i32, (y * 3) as i32)?;
                 }
-                image = image.overlay_with_position(&input, (x * 3) as i32, (y * 3) as i32)?;
             }
-        }
-
-        assert_eq!(image, output);
-        Ok(())
+            Ok(image)
+        };
+        let model: Model = Model::load_testdata("007bbfb7").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 5);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_007BBFB7: &'static str = "
@@ -490,30 +464,26 @@ mod tests {
 
     #[test]
     fn test_90000_puzzle_b9b7f026_manual() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_color: u8 = input.most_popular_color().expect("color");
+
+            // Detect corners / holes
+            let corner_image: Image = input.detect_hole_type1(background_color).expect("image");
+            // println!("input: {:?}", input);
+            // println!("corner_image: {:?}", corner_image);
+    
+            // Extract color of the corner
+            let corner_color: u8 = corner_image.least_popular_color().expect("color");
+            let result_image: Image = Image::color(1, 1, corner_color);
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("b9b7f026").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let background_color: u8 = input.most_popular_color().expect("color");
-
-        // Detect corners / holes
-        let corner_image: Image = input.detect_hole_type1(background_color).expect("image");
-        // println!("input: {:?}", input);
-        // println!("corner_image: {:?}", corner_image);
-
-        // Extract color of the corner
-        let corner_color: u8 = corner_image.least_popular_color().expect("color");
-        let result_bitmap: Image = Image::color(1, 1, corner_color);
-        assert_eq!(result_bitmap, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_B9B7F026: &'static str = "
@@ -544,23 +514,17 @@ mod tests {
 
     #[test]
     fn test_100000_puzzle_a79310a0_manual() {
+        let solution: SolutionSimple = |data| {
+            let image_with_offset: Image = data.image.offset_wrap(0, 1).expect("image");
+            let result_image: Image = image_with_offset.replace_color(8, 2).expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("a79310a0").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let bitmap0: Image = input.offset_wrap(0, 1).expect("image");
-        let bitmap1: Image = bitmap0.replace_color(8, 2).expect("image");
-
-        assert_eq!(bitmap1, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_A79310A0: &'static str = "
@@ -912,78 +876,63 @@ mod tests {
     }
 
     #[test]
-    fn test_120000_puzzle_3bdb4ada() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("3bdb4ada")?;
-        assert_eq!(model.train().len(), 2);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        // TODO: port to LODA
-        let mut image = input.clone();
-        for yy in 0..((image.height() as i32) - 2) {
-            for xx in 0..((image.width() as i32) - 2) {
-                let top_left_pixel_value: u8 = image.get(xx, yy).unwrap_or(255);
-                let mut same_count = 1;
-                for y in 0..3 {
-                    for x in 0..3 {
-                        if x == 1 && y == 1 {
-                            continue;
-                        }
-                        if x == 0 && y == 0 {
-                            continue;
-                        }
-                        let pixel_value: u8 = image.get(xx + x, yy + y).unwrap_or(255); 
-                        if pixel_value == top_left_pixel_value {
-                            same_count += 1;
+    fn test_120000_puzzle_3bdb4ada() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let mut image = input.clone();
+            for yy in 0..((image.height() as i32) - 2) {
+                for xx in 0..((image.width() as i32) - 2) {
+                    let top_left_pixel_value: u8 = image.get(xx, yy).unwrap_or(255);
+                    let mut same_count = 1;
+                    for y in 0..3 {
+                        for x in 0..3 {
+                            if x == 1 && y == 1 {
+                                continue;
+                            }
+                            if x == 0 && y == 0 {
+                                continue;
+                            }
+                            let pixel_value: u8 = image.get(xx + x, yy + y).unwrap_or(255); 
+                            if pixel_value == top_left_pixel_value {
+                                same_count += 1;
+                            }
                         }
                     }
-                }
-                if same_count == 8 {
-                    match image.set(xx + 1, yy + 1, 0) {
-                        Some(()) => {},
-                        None => {
-                            return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
+                    if same_count == 8 {
+                        match image.set(xx + 1, yy + 1, 0) {
+                            Some(()) => {},
+                            None => {
+                                return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
+                            }
                         }
                     }
                 }
             }
-        }
-        assert_eq!(image, output);
-        Ok(())
+            Ok(image)
+        };
+        let model: Model = Model::load_testdata("3bdb4ada").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
     fn test_130000_puzzle_7fe24cdd() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let row0: Image = Image::hstack(vec![input.clone(), input.rotate(1).expect("image")]).expect("image");
+            let row1: Image = Image::hstack(vec![input.rotate(3).expect("image"), input.rotate(2).expect("image")]).expect("image");
+            let result_image = Image::vstack(vec![row0.clone(), row1.clone()]).expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("7fe24cdd").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        // println!("input: {:?}", input);
-
-        let row0: Image = Image::hstack(vec![input.clone(), input.rotate(1).expect("image")]).expect("image");
-        let row1: Image = Image::hstack(vec![input.rotate(3).expect("image"), input.rotate(2).expect("image")]).expect("image");
-        // println!("row0: {:?}", row0);
-        // println!("row1: {:?}", row1);
-
-        let image = Image::vstack(vec![row0.clone(), row1.clone()]).expect("image");
-        // println!("image: {:?}", image);
-
-        assert_eq!(image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_7FE24CDD: &'static str = "
@@ -1023,24 +972,18 @@ mod tests {
 
     #[test]
     fn test_140000_puzzle_9565186b() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let pixel_color: u8 = input.most_popular_color().expect("color");
+            let result_image: Image = input.replace_colors_other_than(pixel_color, 5).expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("9565186b").expect("model");
-        assert_eq!(model.train().len(), 4);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.train()[3].input().to_image().expect("image");
-        // let output: Image = model.train()[3].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let pixel_color: u8 = input.most_popular_color().expect("color");
-        let image: Image = input.replace_colors_other_than(pixel_color, 5).expect("image");
-        assert_eq!(image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 4);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_9565186B: &'static str = "
@@ -1063,23 +1006,19 @@ mod tests {
 
     #[test]
     fn test_150000_puzzle_3af2c5a8() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let row0: Image = Image::hstack(vec![input.clone(), input.flip_x().expect("image")]).expect("image");
+            let row1: Image = row0.flip_y().expect("image");
+            let result_image = Image::vstack(vec![row0.clone(), row1.clone()]).expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("3af2c5a8").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        // let input: Image = model.train()[0].input().to_image().expect("image");
-        // let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        let input: Image = model.test()[0].input().to_image().expect("image");
-        let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let row0: Image = Image::hstack(vec![input.clone(), input.flip_x().expect("image")]).expect("image");
-        let row1: Image = row0.flip_y().expect("image");
-        let image = Image::vstack(vec![row0.clone(), row1.clone()]).expect("image");
-        assert_eq!(image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_3AF2C5A8: &'static str = "
@@ -1129,25 +1068,22 @@ mod tests {
 
     #[test]
     fn test_170000_puzzle_496994bd() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_pixel_color: u8 = input.most_popular_color().expect("color");
+            let flipped_image: Image = input.flip_y().expect("image");
+            let result_image: Image = input.overlay_with_mask_color(
+                &flipped_image, 
+                background_pixel_color
+            ).expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("496994bd").expect("model");
-        assert_eq!(model.train().len(), 2);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let background_pixel_color: u8 = input.most_popular_color().expect("color");
-        let flipped_image: Image = input.flip_y().expect("image");
-        let result_image: Image = input.overlay_with_mask_color(
-            &flipped_image, 
-            background_pixel_color
-        ).expect("image");
-
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_496994BD: &'static str = "
@@ -1171,26 +1107,21 @@ mod tests {
 
     #[test]
     fn test_180000_puzzle_31aa019c() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let pixel_color: u8 = input.least_popular_color().expect("color");
+            let image: Image = input.replace_colors_other_than(pixel_color, 0).expect("image");
+            let outline_color: u8 = 2;
+            let background_color: u8 = 0;
+            let result_image: Image = image.outline_type1(outline_color, background_color).expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("31aa019c").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let pixel_color: u8 = input.least_popular_color().expect("color");
-        let image: Image = input.replace_colors_other_than(pixel_color, 0).expect("image");
-        let outline_color: u8 = 2;
-        let background_color: u8 = 0;
-        let result_image: Image = image.outline_type1(outline_color, background_color).expect("image");
-
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_31AA019C: &'static str = "
@@ -1216,39 +1147,34 @@ mod tests {
 
     #[test]
     fn test_190000_puzzle_5ad4f10b() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_color: u8 = input.most_popular_color().expect("color");
+
+            let denoised_image: Image = input.denoise_type1(background_color).expect("image");
+            // println!("denoised: {:?}", denoised_image);
+    
+            // Pick the most popular noise color
+            let noise_color_vec: Vec<u8> = input.noise_color_vec(&denoised_image).expect("vec with colors");
+            let noise_color: u8 = *noise_color_vec.first().expect("1 or more colors");
+            // println!("noise color: {}", noise_color);
+    
+            // Remove background around the object
+            let trimmed_image: Image = denoised_image.trim().expect("image");
+    
+            // Remove duplicate rows/columns
+            let image_without_duplicates: Image = trimmed_image.remove_duplicates().expect("image");
+    
+            // Change color of the object
+            let result_image: Image = image_without_duplicates.replace_colors_other_than(background_color, noise_color).expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("5ad4f10b").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let background_color: u8 = input.most_popular_color().expect("color");
-
-        let denoised_image: Image = input.denoise_type1(background_color).expect("image");
-        // println!("denoised: {:?}", denoised_image);
-
-        // Pick the most popular noise color
-        let noise_color_vec: Vec<u8> = input.noise_color_vec(&denoised_image).expect("vec with colors");
-        let noise_color: u8 = *noise_color_vec.first().expect("1 or more colors");
-        // println!("noise color: {}", noise_color);
-
-        // Remove background around the object
-        let trimmed_image: Image = denoised_image.trim().expect("image");
-
-        // Remove duplicate rows/columns
-        let image_without_duplicates: Image = trimmed_image.remove_duplicates().expect("image");
-
-        // Change color of the object
-        let result_image: Image = image_without_duplicates.replace_colors_other_than(background_color, noise_color).expect("image");
-
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_5AD4F10B: &'static str = "
@@ -1293,22 +1219,17 @@ mod tests {
 
     #[test]
     fn test_200000_puzzle_1190e5a7() {
+        let solution: SolutionSimple = |data| {
+            let without_duplicates: Image = data.image.remove_duplicates().expect("image");
+            let result_image: Image = without_duplicates.remove_grid().expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("1190e5a7").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        // let input: Image = model.train()[0].input().to_image().expect("image");
-        // let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        let input: Image = model.test()[0].input().to_image().expect("image");
-        let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let without_duplicates: Image = input.remove_duplicates().expect("image");
-        let result_image: Image = without_duplicates.remove_grid().expect("image");
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_1190E5A7: &'static str = "
@@ -1329,21 +1250,16 @@ mod tests {
     
     #[test]
     fn test_210000_puzzle_39a8645d() {
+        let solution: SolutionSimple = |data| {
+            let result_image: Image = PopularObjects::most_popular_object(&data.image).expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("39a8645d").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let result_image: Image = PopularObjects::most_popular_object(&input).expect("image");
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_39A8645D: &'static str = "
@@ -1363,21 +1279,16 @@ mod tests {
     
     #[test]
     fn test_220000_puzzle_88a62173() {
+        let solution: SolutionSimple = |data| {
+            let result_image: Image = PopularObjects::least_popular_object(&data.image).expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("88a62173").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let result_image: Image = PopularObjects::least_popular_object(&input).expect("image");
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_88A62173: &'static str = "
@@ -1397,31 +1308,23 @@ mod tests {
     
     #[test]
     fn test_230000_puzzle_bbc9ae5d() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let repeat_count: u8 = input.width() / 2;
+            let mut result_image: Image = Image::empty();
+            for i in 0..repeat_count {
+                let m = input.clone();
+                let j = m.offset_clamp(i as i32, 0).expect("image");
+                result_image = result_image.vjoin(j).expect("image");
+            }
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("bbc9ae5d").expect("model");
-        assert_eq!(model.train().len(), 5);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.train()[3].input().to_image().expect("image");
-        // let output: Image = model.train()[3].output().to_image().expect("image");
-        // let input: Image = model.train()[4].input().to_image().expect("image");
-        // let output: Image = model.train()[4].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let repeat_count: u8 = input.width() / 2;
-        let mut result_image: Image = Image::empty();
-        for i in 0..repeat_count {
-            let m = input.clone();
-            let j = m.offset_clamp(i as i32, 0).expect("image");
-            result_image = result_image.vjoin(j).expect("image");
-        }
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 5);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_BBC9AE5D: &'static str = "
@@ -1461,189 +1364,164 @@ mod tests {
 
     #[test]
     fn test_240000_puzzle_ea32f347() {
-        let model: Model = Model::load_testdata("ea32f347").expect("model");
-        assert_eq!(model.train().len(), 4);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.train()[3].input().to_image().expect("image");
-        // let output: Image = model.train()[3].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let background_color: u8 = input.most_popular_color().expect("color");
-        let background_ignore_mask: Image = input.to_mask_where_color_is(background_color);
-        // println!("background_ignore_mask: {:?}", background_ignore_mask);
-
-        // Objects that is not the background
-        let object_mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, background_ignore_mask)
-            .expect("find_objects_with_ignore_mask");
-
-        // Count the number of pixels in each object
-        let f = |image: &Image| -> (Image, u32) {
-            let count: u32 = image.mask_count_one();
-            (image.clone(), count)
-        };
-        let mut object_count_vec: Vec<(Image, u32)> = object_mask_vec.iter().map(f).collect();
-
-        // Sort objects by their number of pixels
-        object_count_vec.sort_unstable_by_key(|item| (item.1));
-        object_count_vec.reverse();
-
-        // Object size to color value
-        let mut color_mapping = HashMap::<usize, u8>::new();
-        color_mapping.insert(0, 1); // biggest object
-        color_mapping.insert(1, 4); // medium object
-        color_mapping.insert(2, 2); // smallest object
-
-        // Build the result image
-        let mut result_image: Image = Image::color(input.width(), input.height(), background_color);
-        for (index, item) in object_count_vec.iter().enumerate() {
-            let mask_image: Image = item.0.clone();
-            // Obtain color for the object size
-            let mut assign_color: u8 = 255;
-            if let Some(color) = color_mapping.get(&index) {
-                assign_color = *color;
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_color: u8 = input.most_popular_color().expect("color");
+            let background_ignore_mask: Image = input.to_mask_where_color_is(background_color);
+            // println!("background_ignore_mask: {:?}", background_ignore_mask);
+    
+            // Objects that is not the background
+            let object_mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, background_ignore_mask)
+                .expect("find_objects_with_ignore_mask");
+    
+            // Count the number of pixels in each object
+            let f = |image: &Image| -> (Image, u32) {
+                let count: u32 = image.mask_count_one();
+                (image.clone(), count)
+            };
+            let mut object_count_vec: Vec<(Image, u32)> = object_mask_vec.iter().map(f).collect();
+    
+            // Sort objects by their number of pixels
+            object_count_vec.sort_unstable_by_key(|item| (item.1));
+            object_count_vec.reverse();
+    
+            // Object size to color value
+            let mut color_mapping = HashMap::<usize, u8>::new();
+            color_mapping.insert(0, 1); // biggest object
+            color_mapping.insert(1, 4); // medium object
+            color_mapping.insert(2, 2); // smallest object
+    
+            // Build the result image
+            let mut result_image: Image = Image::color(input.width(), input.height(), background_color);
+            for (index, item) in object_count_vec.iter().enumerate() {
+                let mask_image: Image = item.0.clone();
+                // Obtain color for the object size
+                let mut assign_color: u8 = 255;
+                if let Some(color) = color_mapping.get(&index) {
+                    assign_color = *color;
+                }
+                // Change color of the object
+                let colored_object_image: Image = mask_image.replace_color(1, assign_color).expect("Image");
+    
+                // Overlay each object onto the result image
+                result_image = mask_image.select_from_images(&result_image, &colored_object_image).expect("image");
             }
-            // Change color of the object
-            let colored_object_image: Image = mask_image.replace_color(1, assign_color).expect("Image");
-
-            // Overlay each object onto the result image
-            result_image = mask_image.select_from_images(&result_image, &colored_object_image).expect("image");
-        }
-        
-        assert_eq!(result_image, output);
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("ea32f347").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 4);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
     fn test_250000_puzzle_7bb29440() {
-        let model: Model = Model::load_testdata("7bb29440").expect("model");
-        assert_eq!(model.train().len(), 5);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.train()[3].input().to_image().expect("image");
-        // let output: Image = model.train()[3].output().to_image().expect("image");
-        // let input: Image = model.train()[4].input().to_image().expect("image");
-        // let output: Image = model.train()[4].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let background_color: u8 = input.histogram_border().most_popular_color().expect("color");
-        let object_mask: Image = input.to_mask_where_color_is(background_color);
-
-        // Objects that is not the background
-        let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, object_mask.clone())
-            .expect("find_objects_with_ignore_mask");
-
-        // Traverse each object, and count holes in each object
-        let mut object_count_vec = Vec::<(Image, u32)>::new();
-        for mask_image in &object_mask_vec {
-            let histogram: Histogram = input.histogram_with_mask(&mask_image).expect("histogram");
-            let mut pairs: Vec<(u32,u8)> = histogram.pairs_ascending();
-
-            // Remove the background color of the rectangle
-            pairs.pop();
-
-            // Number of holes inside the rectangle
-            let mut pixel_count: u32 = 0;
-            for pair in &pairs {
-                pixel_count += pair.0;
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_color: u8 = input.histogram_border().most_popular_color().expect("color");
+            let object_mask: Image = input.to_mask_where_color_is(background_color);
+    
+            // Objects that is not the background
+            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, object_mask.clone())
+                .expect("find_objects_with_ignore_mask");
+    
+            // Traverse each object, and count holes in each object
+            let mut object_count_vec = Vec::<(Image, u32)>::new();
+            for mask_image in &object_mask_vec {
+                let histogram: Histogram = input.histogram_with_mask(&mask_image).expect("histogram");
+                let mut pairs: Vec<(u32,u8)> = histogram.pairs_ascending();
+    
+                // Remove the background color of the rectangle
+                pairs.pop();
+    
+                // Number of holes inside the rectangle
+                let mut pixel_count: u32 = 0;
+                for pair in &pairs {
+                    pixel_count += pair.0;
+                }
+    
+                object_count_vec.push((mask_image.clone(), pixel_count));
             }
-
-            object_count_vec.push((mask_image.clone(), pixel_count));
-        }
-
-        // Sort objects by their number of pixels
-        object_count_vec.sort_unstable_by_key(|item| (item.1));
-
-        // Pick the first the object with lowest pixel count
-        let (mask_image, _pixel_count) = object_count_vec.first().expect("first object");
-
-        // Extract pixels from input image, just for the object
-        let image: Image = mask_image.select_from_image(&input, background_color).expect("image");
-
-        let result_image = image.trim().expect("image");
-        
-        assert_eq!(result_image, output);
+    
+            // Sort objects by their number of pixels
+            object_count_vec.sort_unstable_by_key(|item| (item.1));
+    
+            // Pick the first the object with lowest pixel count
+            let (mask_image, _pixel_count) = object_count_vec.first().expect("first object");
+    
+            // Extract pixels from input image, just for the object
+            let image: Image = mask_image.select_from_image(&input, background_color).expect("image");
+    
+            let result_image = image.trim().expect("image");
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("7bb29440").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 5);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
     fn test_260000_puzzle_5521c0d9() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_color: u8 = input.histogram_border().most_popular_color().expect("color");
+            let object_mask: Image = input.to_mask_where_color_is(background_color);
+    
+            // Objects that is not the background
+            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, object_mask.clone())
+                .expect("find_objects_with_ignore_mask");
+    
+            // Adjust offsets for all objects
+            let mut result_image: Image = Image::color(input.width(), input.height(), background_color);
+            for mask_image in &object_mask_vec {
+    
+                // Bounding box of object
+                let (_x0, y0, _x1, _y1) = match mask_image.bounding_box() {
+                    Some(value) => value,
+                    None => {
+                        continue;
+                    }
+                };
+    
+                // Determine how much to adjust offset
+                let distance_from_bottom: i32 = (input.height() as i32) - (y0 as i32);
+                let offset_y: i32 = -distance_from_bottom;
+    
+                // Adjust offset
+                let mask_with_offset: Image = mask_image.offset_wrap(0, offset_y).expect("image");
+                let image_with_offset: Image = input.offset_wrap(0, offset_y).expect("image");
+    
+                result_image = mask_with_offset.select_from_images(&result_image, &image_with_offset).expect("image");
+            }
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("5521c0d9").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let background_color: u8 = input.histogram_border().most_popular_color().expect("color");
-        let object_mask: Image = input.to_mask_where_color_is(background_color);
-
-        // Objects that is not the background
-        let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, object_mask.clone())
-            .expect("find_objects_with_ignore_mask");
-
-        // Adjust offsets for all objects
-        let mut result_image: Image = Image::color(input.width(), input.height(), background_color);
-        for mask_image in &object_mask_vec {
-
-            // Bounding box of object
-            let (_x0, y0, _x1, _y1) = match mask_image.bounding_box() {
-                Some(value) => value,
-                None => {
-                    continue;
-                }
-            };
-
-            // Determine how much to adjust offset
-            let distance_from_bottom: i32 = (input.height() as i32) - (y0 as i32);
-            let offset_y: i32 = -distance_from_bottom;
-
-            // Adjust offset
-            let mask_with_offset: Image = mask_image.offset_wrap(0, offset_y).expect("image");
-            let image_with_offset: Image = input.offset_wrap(0, offset_y).expect("image");
-
-            result_image = mask_with_offset.select_from_images(&result_image, &image_with_offset).expect("image");
-        }
-
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
     fn test_270000_puzzle_7f4411dc() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_color: u8 = input.histogram_border().most_popular_color().expect("color");
+            let result_image: Image = input.denoise_type1(background_color).expect("image");
+            Ok(result_image)
+        };
         let model: Model = Model::load_testdata("7f4411dc").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let background_color: u8 = input.histogram_border().most_popular_color().expect("color");
-        let result_image: Image = input.denoise_type1(background_color).expect("image");
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     const PROGRAM_7F4411DC: &'static str = "
@@ -1669,355 +1547,453 @@ mod tests {
 
     #[test]
     fn test_280000_puzzle_aabf363d() {
-        let model: Model = Model::load_testdata("aabf363d").expect("model");
-        assert_eq!(model.train().len(), 2);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let background_color: u8 = input.histogram_border().most_popular_color().expect("color");
-        let object_mask: Image = input.to_mask_where_color_is(background_color);
-
-        // Objects that is not the background
-        let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, object_mask.clone())
-            .expect("find_objects_with_ignore_mask");
-
-        // Traverse each object, and measure object size
-        let mut object_count_vec = Vec::<(Image, u32)>::new();
-        for mask_image in &object_mask_vec {
-            let histogram: Histogram = input.histogram_with_mask(&mask_image).expect("histogram");
-            let pairs: Vec<(u32,u8)> = histogram.pairs_ascending();
-
-            // Measure size of the object
-            let mut pixel_count: u32 = 0;
-            for pair in &pairs {
-                if pair.1 == background_color {
-                    continue;
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_color: u8 = input.histogram_border().most_popular_color().expect("color");
+            let object_mask: Image = input.to_mask_where_color_is(background_color);
+    
+            // Objects that is not the background
+            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, object_mask.clone())
+                .expect("find_objects_with_ignore_mask");
+    
+            // Traverse each object, and measure object size
+            let mut object_count_vec = Vec::<(Image, u32)>::new();
+            for mask_image in &object_mask_vec {
+                let histogram: Histogram = input.histogram_with_mask(&mask_image).expect("histogram");
+                let pairs: Vec<(u32,u8)> = histogram.pairs_ascending();
+    
+                // Measure size of the object
+                let mut pixel_count: u32 = 0;
+                for pair in &pairs {
+                    if pair.1 == background_color {
+                        continue;
+                    }
+                    pixel_count += pair.0;
                 }
-                pixel_count += pair.0;
+    
+                object_count_vec.push((mask_image.clone(), pixel_count));
             }
-
-            object_count_vec.push((mask_image.clone(), pixel_count));
-        }
-
-        // Sort objects by their number of pixels
-        object_count_vec.sort_unstable_by_key(|item| (item.1));
-
-        // Pick the first the object with lowest pixel count
-        let (mask_image_biggest, _pixel_count) = object_count_vec.last().expect("first object");
-        let (mask_image_smallest, _pixel_count) = object_count_vec.first().expect("first object");
-
-        let histogram_smallest: Histogram = input.histogram_with_mask(&mask_image_smallest).expect("histogram");
-        let fill_color: u8 = histogram_smallest.most_popular_color().expect("color");
-
-        let mut result_image: Image = mask_image_biggest.clone();
-        result_image = result_image.replace_color(0, background_color).expect("image");
-        result_image = result_image.replace_color(1, fill_color).expect("image");
-
-        assert_eq!(result_image, output);
+    
+            // Sort objects by their number of pixels
+            object_count_vec.sort_unstable_by_key(|item| (item.1));
+    
+            // Pick the first the object with lowest pixel count
+            let (mask_image_biggest, _pixel_count) = object_count_vec.last().expect("first object");
+            let (mask_image_smallest, _pixel_count) = object_count_vec.first().expect("first object");
+    
+            let histogram_smallest: Histogram = input.histogram_with_mask(&mask_image_smallest).expect("histogram");
+            let fill_color: u8 = histogram_smallest.most_popular_color().expect("color");
+    
+            let mut result_image: Image = mask_image_biggest.clone();
+            result_image = result_image.replace_color(0, background_color).expect("image");
+            result_image = result_image.replace_color(1, fill_color).expect("image");
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("aabf363d").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
     fn test_290000_puzzle_00d62c1b() {
-        let model: Model = Model::load_testdata("00d62c1b").expect("model");
-        assert_eq!(model.train().len(), 5);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.train()[3].input().to_image().expect("image");
-        // let output: Image = model.train()[3].output().to_image().expect("image");
-        // let input: Image = model.train()[4].input().to_image().expect("image");
-        // let output: Image = model.train()[4].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let replacement_color: u8 = 4;
-        let background_color: u8 = input.histogram_border().most_popular_color().expect("color");
-        let border_mask_image: Image = Image::border_inside(input.width(), input.height(), 0, 1, 1).expect("image");
-
-        // Objects that is not the background
-        let object_mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::Neighbors).expect("find_objects");
-
-        // Traverse the interior objects. Replace color for the interior object.
-        let mut result_image: Image = input.clone();
-        for mask_image in &object_mask_vec {
-            let mask_image_border_overlap: Image = border_mask_image.select_from_image(mask_image, 0).expect("image");
-            let border_histogram: Histogram = input.histogram_with_mask(&mask_image_border_overlap).expect("histogram");
-            if let Some(border_color) = border_histogram.most_popular_color() {
-                if border_color == background_color {
-                    // println!("skip background object: {:?}", mask_image);
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let replacement_color: u8 = 4;
+            let background_color: u8 = input.histogram_border().most_popular_color().expect("color");
+            let border_mask_image: Image = Image::border_inside(input.width(), input.height(), 0, 1, 1).expect("image");
+    
+            // Objects that is not the background
+            let object_mask_vec: Vec<Image> = input.find_objects(ImageSegmentAlgorithm::Neighbors).expect("find_objects");
+    
+            // Traverse the interior objects. Replace color for the interior object.
+            let mut result_image: Image = input.clone();
+            for mask_image in &object_mask_vec {
+                let mask_image_border_overlap: Image = border_mask_image.select_from_image(mask_image, 0).expect("image");
+                let border_histogram: Histogram = input.histogram_with_mask(&mask_image_border_overlap).expect("histogram");
+                if let Some(border_color) = border_histogram.most_popular_color() {
+                    if border_color == background_color {
+                        // println!("skip background object: {:?}", mask_image);
+                        continue;
+                    }
+                }
+                
+                let mask_neighbour: Image = mask_image.outline_mask_neighbour().expect("image");
+    
+                // println!("mask_image: {:?}", mask_image);
+                // println!("mask_neighbour: {:?}", mask_neighbour);
+                let histogram: Histogram = input.histogram_with_mask(&mask_neighbour).expect("histogram");
+                let pairs: Vec<(u32,u8)> = histogram.pairs_ascending();
+                if pairs.len() != 1 {
+                    println!("expected 1 color in the histogram, but got: {:?}", pairs); 
                     continue;
                 }
+                let outline_color: u8 = histogram.most_popular_color().expect("expected 1 color");
+                if outline_color == background_color {
+                    // Ignore non-interior objects
+                    continue;
+                }
+                // println!("outline_color: {:?}", outline_color);
+                // println!("mask_image: {:?}", mask_image);
+                // println!("mask_neighbour: {:?}", mask_neighbour);
+    
+                // Replace color only for the interior objects
+                let mask_inverted: Image = mask_image.invert_mask();
+                result_image = mask_inverted.select_from_image(&result_image, replacement_color).expect("image");
             }
-            
-            let mask_neighbour: Image = mask_image.outline_mask_neighbour().expect("image");
-
-            // println!("mask_image: {:?}", mask_image);
-            // println!("mask_neighbour: {:?}", mask_neighbour);
-            let histogram: Histogram = input.histogram_with_mask(&mask_neighbour).expect("histogram");
-            let pairs: Vec<(u32,u8)> = histogram.pairs_ascending();
-            if pairs.len() != 1 {
-                println!("expected 1 color in the histogram, but got: {:?}", pairs); 
-                continue;
-            }
-            let outline_color: u8 = histogram.most_popular_color().expect("expected 1 color");
-            if outline_color == background_color {
-                // Ignore non-interior objects
-                continue;
-            }
-            // println!("outline_color: {:?}", outline_color);
-            // println!("mask_image: {:?}", mask_image);
-            // println!("mask_neighbour: {:?}", mask_neighbour);
-
-            // Replace color only for the interior objects
-            let mask_inverted: Image = mask_image.invert_mask();
-            result_image = mask_inverted.select_from_image(&result_image, replacement_color).expect("image");
-        }
-
-        assert_eq!(result_image, output);
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("00d62c1b").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 5);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
     fn test_300000_puzzle_ae3edfdc() {
-        let model: Model = Model::load_testdata("ae3edfdc").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let background_color: u8 = input.histogram_all().most_popular_color().expect("color");
-        let ignore_mask = input.to_mask_where_color_is(background_color);
-        let color_when_there_is_no_neighbour: u8 = 255;
-
-        let neighbour_up: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Up, color_when_there_is_no_neighbour).expect("image");
-        let neighbour_left: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Left, color_when_there_is_no_neighbour).expect("image");
-        let neighbour_right: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Right, color_when_there_is_no_neighbour).expect("image");
-        let neighbour_down: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::Down, color_when_there_is_no_neighbour).expect("image");
-
-        let mut result_image: Image = Image::color(input.width(), input.height(), background_color);
-        for y in 0..(input.height() as i32) {
-            for x in 0..(input.width() as i32) {
-                let mask_value: u8 = ignore_mask.get(x, y).unwrap_or(255);
-                if mask_value == 1 {
-                    continue;
-                }
-
-                let color_up: u8 = neighbour_up.get(x, y).unwrap_or(255);
-                let color_down: u8 = neighbour_down.get(x, y).unwrap_or(255);
-                let color_left: u8 = neighbour_left.get(x, y).unwrap_or(255);
-                let color_right: u8 = neighbour_right.get(x, y).unwrap_or(255);
-
-                let mut histogram = Histogram::new();
-                if color_up != color_when_there_is_no_neighbour {
-                    histogram.increment(color_up);
-                }
-                if color_down != color_when_there_is_no_neighbour {
-                    histogram.increment(color_down);
-                }
-                if color_left != color_when_there_is_no_neighbour {
-                    histogram.increment(color_left);
-                }
-                if color_right != color_when_there_is_no_neighbour {
-                    histogram.increment(color_right);
-                }
-
-                if let Some(count) = histogram.most_popular_count() {
-                    if count < 2 {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_color: u8 = input.histogram_all().most_popular_color().expect("color");
+            let ignore_mask = input.to_mask_where_color_is(background_color);
+            let color_when_there_is_no_neighbour: u8 = 255;
+    
+            let neighbour_up: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Up, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_left: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Left, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Right, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_down: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Down, color_when_there_is_no_neighbour).expect("image");
+    
+            let mut result_image: Image = Image::color(input.width(), input.height(), background_color);
+            for y in 0..(input.height() as i32) {
+                for x in 0..(input.width() as i32) {
+                    let mask_value: u8 = ignore_mask.get(x, y).unwrap_or(255);
+                    if mask_value == 1 {
                         continue;
                     }
-                } else {
-                    continue;
-                }
-
-                let color_value: u8 = input.get(x, y).unwrap_or(255);
-                let _ = result_image.set(x, y, color_value);
-                if color_up != color_when_there_is_no_neighbour {
-                    let _ = result_image.set(x, y - 1, color_up);
-                }
-                if color_down != color_when_there_is_no_neighbour {
-                    let _ = result_image.set(x, y + 1, color_down);
-                }
-                if color_left != color_when_there_is_no_neighbour {
-                    let _ = result_image.set(x - 1, y, color_left);
-                }
-                if color_right != color_when_there_is_no_neighbour {
-                    let _ = result_image.set(x + 1, y, color_right);
+    
+                    let color_up: u8 = neighbour_up.get(x, y).unwrap_or(255);
+                    let color_down: u8 = neighbour_down.get(x, y).unwrap_or(255);
+                    let color_left: u8 = neighbour_left.get(x, y).unwrap_or(255);
+                    let color_right: u8 = neighbour_right.get(x, y).unwrap_or(255);
+    
+                    let mut histogram = Histogram::new();
+                    if color_up != color_when_there_is_no_neighbour {
+                        histogram.increment(color_up);
+                    }
+                    if color_down != color_when_there_is_no_neighbour {
+                        histogram.increment(color_down);
+                    }
+                    if color_left != color_when_there_is_no_neighbour {
+                        histogram.increment(color_left);
+                    }
+                    if color_right != color_when_there_is_no_neighbour {
+                        histogram.increment(color_right);
+                    }
+    
+                    if let Some(count) = histogram.most_popular_count() {
+                        if count < 2 {
+                            continue;
+                        }
+                    } else {
+                        continue;
+                    }
+    
+                    let color_value: u8 = input.get(x, y).unwrap_or(255);
+                    let _ = result_image.set(x, y, color_value);
+                    if color_up != color_when_there_is_no_neighbour {
+                        let _ = result_image.set(x, y - 1, color_up);
+                    }
+                    if color_down != color_when_there_is_no_neighbour {
+                        let _ = result_image.set(x, y + 1, color_down);
+                    }
+                    if color_left != color_when_there_is_no_neighbour {
+                        let _ = result_image.set(x - 1, y, color_left);
+                    }
+                    if color_right != color_when_there_is_no_neighbour {
+                        let _ = result_image.set(x + 1, y, color_right);
+                    }
                 }
             }
-        }
-
-        assert_eq!(result_image, output);
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("ae3edfdc").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
     fn test_310000_puzzle_1f876c06() {
-        let model: Model = Model::load_testdata("1f876c06").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let background_color: u8 = input.histogram_all().most_popular_color().expect("color");
-        let ignore_mask = input.to_mask_where_color_is(background_color);
-        let color_when_there_is_no_neighbour: u8 = 255;
-
-        let neighbour_up_left: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::UpLeft, color_when_there_is_no_neighbour).expect("image");
-        let neighbour_up_right: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::UpRight, color_when_there_is_no_neighbour).expect("image");
-        let neighbour_down_left: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::DownLeft, color_when_there_is_no_neighbour).expect("image");
-        let neighbour_down_right: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::DownRight, color_when_there_is_no_neighbour).expect("image");
-
-        let mut result_image: Image = input.clone();
-        for y in 0..(input.height() as i32) {
-            for x in 0..(input.width() as i32) {
-                let color_up_left: u8 = neighbour_up_left.get(x, y).unwrap_or(255);
-                let color_up_right: u8 = neighbour_up_right.get(x, y).unwrap_or(255);
-                let color_down_left: u8 = neighbour_down_left.get(x, y).unwrap_or(255);
-                let color_down_right: u8 = neighbour_down_right.get(x, y).unwrap_or(255);
-
-                if color_down_left == color_up_right && color_down_left != color_when_there_is_no_neighbour {
-                    let _ = result_image.set(x, y, color_down_left);
-                }
-                if color_down_right == color_up_left && color_down_right != color_when_there_is_no_neighbour {
-                    let _ = result_image.set(x, y, color_down_right);
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_color: u8 = input.histogram_all().most_popular_color().expect("color");
+            let ignore_mask = input.to_mask_where_color_is(background_color);
+            let color_when_there_is_no_neighbour: u8 = 255;
+    
+            let neighbour_up_left: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpLeft, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_up_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpRight, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_down_left: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownLeft, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_down_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, color_when_there_is_no_neighbour).expect("image");
+    
+            let mut result_image: Image = input.clone();
+            for y in 0..(input.height() as i32) {
+                for x in 0..(input.width() as i32) {
+                    let color_up_left: u8 = neighbour_up_left.get(x, y).unwrap_or(255);
+                    let color_up_right: u8 = neighbour_up_right.get(x, y).unwrap_or(255);
+                    let color_down_left: u8 = neighbour_down_left.get(x, y).unwrap_or(255);
+                    let color_down_right: u8 = neighbour_down_right.get(x, y).unwrap_or(255);
+    
+                    if color_down_left == color_up_right && color_down_left != color_when_there_is_no_neighbour {
+                        let _ = result_image.set(x, y, color_down_left);
+                    }
+                    if color_down_right == color_up_left && color_down_right != color_when_there_is_no_neighbour {
+                        let _ = result_image.set(x, y, color_down_right);
+                    }
                 }
             }
-        }
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("1f876c06").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+    }
 
-        assert_eq!(result_image, output);
+    const PROGRAM_1F876C06: &'static str = "
+    mov $20,255 ; color when there is no neighbour
+
+    mov $21,$0
+    f11 $21,101000 ; get width
+    
+    mov $22,$0
+    f11 $22,101001 ; get height
+
+    ; ignore mask
+    mov $1,$0
+    mov $2,$0
+    f11 $2,101060 ; most popular color
+    f21 $1,101250 ; mask where color is
+    ; $2 is most popular color
+    ; $1 is the ignore mask
+
+    ; neighbour_up_left
+    mov $10,$0
+    mov $11,$1
+    mov $12,$20
+    f31 $10,102064 ; neighbour 'UpLeft'
+    mov $3,$10
+
+    ; neighbour_up_right
+    mov $10,$0
+    mov $11,$1
+    mov $13,$20
+    f31 $10,102065 ; neighbour 'UpRight'
+    mov $4,$10
+
+    ; neighbour_down_left
+    mov $10,$0
+    mov $11,$1
+    mov $13,$20
+    f31 $10,102066 ; neighbour 'DownLeft'
+    mov $5,$10
+
+    ; neighbour_down_right
+    mov $10,$0
+    mov $11,$1
+    mov $13,$20
+    f31 $10,102067 ; neighbour 'DownRight'
+    mov $6,$10
+
+    mov $14,$0 ; clone input image
+
+    mov $41,0 ; reset y position
+
+    mov $8,$22 ; height
+    lps $8 ; loop over rows
+        mov $40,0 ; reset x position
+        mov $9,$21 ; width
+        lps $9 ; loop over columns
+
+            ; color of 'UpLeft'
+            mov $10,$3 ; neighbour_up_left
+            mov $11,$40 ; x
+            mov $12,$41 ; y
+            f31 $10,101002 ; get pixel
+            mov $30,$10
+
+            ; color of 'UpRight'
+            mov $10,$4 ; neighbour_up_right
+            mov $11,$40 ; x
+            mov $12,$41 ; y
+            f31 $10,101002 ; get pixel
+            mov $31,$10
+
+            ; color of 'DownLeft'
+            mov $10,$5 ; neighbour_down_left
+            mov $11,$40 ; x
+            mov $12,$41 ; y
+            f31 $10,101002 ; get pixel
+            mov $32,$10
+
+            ; color of 'DownRight'
+            mov $10,$6 ; neighbour_down_right
+            mov $11,$40 ; x
+            mov $12,$41 ; y
+            f31 $10,101002 ; get pixel
+            mov $33,$10
+
+            ; $30 = color_up_left
+            ; $31 = color_up_right
+            ; $32 = color_down_left
+            ; $33 = color_down_right
+
+            ;if color_down_left == color_up_right && color_down_left != color_when_there_is_no_neighbour {
+            ;    let _ = result_image.set(x, y, color_down_left);
+            ;}
+            mov $18,$32
+            cmp $18,$31
+            mov $19,$32
+            cmp $19,$20
+            cmp $19,0
+            mul $19,$18
+            lps $19
+                mov $15,$40 ; x
+                mov $16,$41 ; y
+                mov $17,$32
+                f41 $14,101003 ; set pixel
+            lpe
+            mov $17,$32
+
+            ;if color_down_right == color_up_left && color_down_right != color_when_there_is_no_neighbour {
+            ;    let _ = result_image.set(x, y, color_down_right);
+            ;}
+            mov $18,$33
+            cmp $18,$30
+            mov $19,$33
+            cmp $19,$20
+            cmp $19,0
+            mul $19,$18
+            lps $19
+                mov $15,$40 ; x
+                mov $16,$41 ; y
+                mov $17,$30
+                f41 $14,101003 ; set pixel
+            lpe
+
+            add $40,1 ; next column
+        lpe
+        add $41,1 ; next row
+    lpe
+
+    mov $0,$14
+    ";
+
+    #[test]
+    fn test_310001_puzzle_1f876c06_loda() {
+        let model: Model = Model::load_testdata("1f876c06").expect("model");
+        let program = PROGRAM_1F876C06;
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
     fn test_320000_puzzle_623ea044() {
-        let model: Model = Model::load_testdata("623ea044").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let background_color: u8 = input.histogram_all().most_popular_color().expect("color");
+            let ignore_mask = input.to_mask_where_color_is(background_color);
+            let color_when_there_is_no_neighbour: u8 = 255;
 
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
+            let neighbour_up_left: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpLeft, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_up_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::UpRight, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_down_left: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownLeft, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_down_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, color_when_there_is_no_neighbour).expect("image");
 
-        let background_color: u8 = input.histogram_all().most_popular_color().expect("color");
-        let ignore_mask = input.to_mask_where_color_is(background_color);
-        let color_when_there_is_no_neighbour: u8 = 255;
+            let mut result_image: Image = input.clone();
+            for y in 0..(input.height() as i32) {
+                for x in 0..(input.width() as i32) {
+                    let color_up_left: u8 = neighbour_up_left.get(x, y).unwrap_or(255);
+                    let color_up_right: u8 = neighbour_up_right.get(x, y).unwrap_or(255);
+                    let color_down_left: u8 = neighbour_down_left.get(x, y).unwrap_or(255);
+                    let color_down_right: u8 = neighbour_down_right.get(x, y).unwrap_or(255);
 
-        let neighbour_up_left: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::UpLeft, color_when_there_is_no_neighbour).expect("image");
-        let neighbour_up_right: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::UpRight, color_when_there_is_no_neighbour).expect("image");
-        let neighbour_down_left: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::DownLeft, color_when_there_is_no_neighbour).expect("image");
-        let neighbour_down_right: Image = input.color_of_neighbour(&ignore_mask, ImageNeighbourDirection::DownRight, color_when_there_is_no_neighbour).expect("image");
-
-        let mut result_image: Image = input.clone();
-        for y in 0..(input.height() as i32) {
-            for x in 0..(input.width() as i32) {
-                let color_up_left: u8 = neighbour_up_left.get(x, y).unwrap_or(255);
-                let color_up_right: u8 = neighbour_up_right.get(x, y).unwrap_or(255);
-                let color_down_left: u8 = neighbour_down_left.get(x, y).unwrap_or(255);
-                let color_down_right: u8 = neighbour_down_right.get(x, y).unwrap_or(255);
-
-                if color_up_left != color_when_there_is_no_neighbour {
-                    let _ = result_image.set(x, y, color_up_left);
-                }
-                if color_up_right != color_when_there_is_no_neighbour {
-                    let _ = result_image.set(x, y, color_up_right);
-                }
-                if color_down_left != color_when_there_is_no_neighbour {
-                    let _ = result_image.set(x, y, color_down_left);
-                }
-                if color_down_right != color_when_there_is_no_neighbour {
-                    let _ = result_image.set(x, y, color_down_right);
+                    if color_up_left != color_when_there_is_no_neighbour {
+                        let _ = result_image.set(x, y, color_up_left);
+                    }
+                    if color_up_right != color_when_there_is_no_neighbour {
+                        let _ = result_image.set(x, y, color_up_right);
+                    }
+                    if color_down_left != color_when_there_is_no_neighbour {
+                        let _ = result_image.set(x, y, color_down_left);
+                    }
+                    if color_down_right != color_when_there_is_no_neighbour {
+                        let _ = result_image.set(x, y, color_down_right);
+                    }
                 }
             }
-        }
-
-        assert_eq!(result_image, output);
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("623ea044").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
     fn test_330000_puzzle_f8b3ba0a() {
+        let solution: SolutionSimple = |data| {
+            let histogram: Histogram = data.image.histogram_all();
+            let histogram_image: Image = histogram.to_image().expect("image");
+    
+            // Take the row with the colors, discard the row with the counters
+            let colors = histogram_image.bottom_rows(1).expect("image");
+    
+            // Discard the 2 most popular colors
+            let trimmed = colors.remove_left_columns(2).expect("image");
+    
+            let output = trimmed.rotate(1).expect("image");
+            Ok(output)
+        };
         let model: Model = Model::load_testdata("f8b3ba0a").expect("model");
-        assert_eq!(model.train().len(), 4);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.train()[3].input().to_image().expect("image");
-        // let output: Image = model.train()[3].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let histogram: Histogram = input.histogram_all();
-        let histogram_image: Image = histogram.to_image().expect("image");
-
-        // Take the row with the colors, discard the row with the counters
-        let colors = histogram_image.bottom_rows(1).expect("image");
-
-        // Discard the 2 most popular colors
-        let trimmed = colors.remove_left_columns(2).expect("image");
-
-        let result_image = trimmed.rotate(1).expect("image");
-
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 4);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
     fn test_340000_puzzle_f8ff0b80() {
+        let solution: SolutionSimple = |data| {
+            let histogram: Histogram = data.image.histogram_all();
+            let histogram_image: Image = histogram.to_image().expect("image");
+    
+            // Take the row with the colors, discard the row with the counters
+            let colors = histogram_image.bottom_rows(1).expect("image");
+    
+            // Discard the 1 most popular color
+            let trimmed = colors.remove_left_columns(1).expect("image");
+    
+            let output = trimmed.rotate(1).expect("image");
+            Ok(output)
+        };
         let model: Model = Model::load_testdata("f8ff0b80").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let histogram: Histogram = input.histogram_all();
-        let histogram_image: Image = histogram.to_image().expect("image");
-
-        // Take the row with the colors, discard the row with the counters
-        let colors = histogram_image.bottom_rows(1).expect("image");
-
-        // Discard the 1 most popular color
-        let trimmed = colors.remove_left_columns(1).expect("image");
-
-        let result_image = trimmed.rotate(1).expect("image");
-
-        assert_eq!(result_image, output);
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
-
 }
