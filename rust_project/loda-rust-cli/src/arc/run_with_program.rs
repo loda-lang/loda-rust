@@ -6,7 +6,7 @@ use loda_rust_core::unofficial_function::{UnofficialFunctionRegistry, register_c
 use loda_rust_core::control::{DependencyManager,DependencyManagerFileSystemMode};
 use anyhow::Context;
 use num_bigint::{BigInt, BigUint, ToBigInt};
-use num_traits::Signed;
+use num_traits::{Signed, One};
 use std::path::PathBuf;
 use std::fmt;
 
@@ -267,6 +267,14 @@ impl RunWithProgram {
             let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
             let set_index: usize = (count_train + index) * 10 + 100;
             state.set_u64(set_index as u64, image_number_int).context("pair.input, set_u64")?;
+        }
+        // The program is never supposed to read from the the test[x].output register.
+        // memory[(count_train + x)*10+101] is where the program is supposed to write its predicted output.
+        // Use `-1` as placeholder so it's easy to spot when the image is missing.
+        for (index, _pair) in self.test_pairs.iter().enumerate() {
+            let set_index: usize = (count_train + index) * 10 + 101;
+            let value: BigInt = -BigInt::one();
+            state.set_u64(set_index as u64, value).context("pair.output, set_u64")?;
         }
         Ok(())
     }
