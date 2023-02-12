@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple};
+    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, ImageResize};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageBorder};
     use crate::arc::{Image, convolution2x2, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
@@ -2099,6 +2099,83 @@ mod tests {
         let result: RunWithProgramResult = instance.run_simple(program).expect("result");
         assert_eq!(result.messages(), "");
         assert_eq!(result.count_train_correct(), 6);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
+    #[test]
+    fn test_360000_puzzle_6b9890af() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let histogram: Histogram = input.histogram_all();
+            let background_color: u8 = histogram.most_popular_color().expect("color");
+
+            let ignore_mask: Image = input.to_mask_where_color_is(background_color);
+            let mut objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("images");
+
+            if objects.len() != 2 {
+                return Err(anyhow::anyhow!("Expected exactly 2 objects, but got a different count"));
+            }
+
+            objects.sort_unstable_by(|lhs, rhs| { 
+                let a = lhs.mask_count_one();
+                let b = rhs.mask_count_one();
+                a.cmp(&b)
+            });
+
+            let smallest_object: Image = match objects.first() {
+                Some(image) => image.clone(),
+                None => {
+                    return Err(anyhow::anyhow!("Expected an object, but got none"));
+                }
+            };
+
+            let biggest_object: Image = match objects.last() {
+                Some(image) => image.clone(),
+                None => {
+                    return Err(anyhow::anyhow!("Expected an object, but got none"));
+                }
+            };
+
+            // Extract the biggest object
+            let biggest_image_full: Image = biggest_object.select_from_image(&input, background_color).expect("image");
+            let biggest_image: Image = biggest_image_full.trim().expect("image");
+
+            // Extract the smallest object
+            let smallest_image_full: Image = smallest_object.select_from_image(&input, background_color).expect("image");
+            let smallest_image: Image = smallest_image_full.trim().expect("image");
+
+            let width: u8 = biggest_image.width();
+            let x_ratio = width / smallest_image.width();
+            let x_ratio_remain = width % smallest_image.width();
+            // println!("x_ratio: {} {}", x_ratio, x_ratio_remain);
+
+            let height: u8 = biggest_image.height();
+            let y_ratio = height / smallest_image.height();
+            let y_ratio_remain = height % smallest_image.height();
+            // println!("y_ratio: {} {}", y_ratio, y_ratio_remain);
+
+            if x_ratio != y_ratio {
+                return Err(anyhow::anyhow!("Expected same ratio, but different x y ratio: {} {}", x_ratio, y_ratio));
+            }
+
+            // Scale up the smallest object so it fits inside the biggest object
+            let new_width: u8 = smallest_image.width() * x_ratio;
+            let new_height: u8 = smallest_image.height() * y_ratio;
+            let fit_image: Image = smallest_image.resize(new_width, new_height).expect("image");
+            
+            // Overlay the smallest object on top of the biggest object
+            let mut output: Image = biggest_image;
+            let x = (x_ratio_remain / 2) as i32;
+            let y = (y_ratio_remain / 2) as i32;
+            output = output.overlay_with_position(&fit_image, x, y).expect("image");
+
+            Ok(output)
+        };
+        let model: Model = Model::load_testdata("6b9890af").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
         assert_eq!(result.count_test_correct(), 1);
     }
 }
