@@ -14,5 +14,5 @@ RUN cargo build --release -p loda-rust-cli
 ####################################################################################################
 FROM --platform=linux/amd64 debian:bullseye-slim
 COPY --from=builder /my_builddir/target/release/loda-rust /usr/local/bin/loda-rust
-COPY ./payload /root
+COPY ./arc-competition/payload /root
 CMD ["loda-rust", "arc-competition"]
