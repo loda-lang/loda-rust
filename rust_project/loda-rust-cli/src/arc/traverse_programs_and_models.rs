@@ -814,6 +814,8 @@ impl TraverseProgramsAndModels {
         let count_after: usize = self.program_item_vec.len();
         if count_before != count_after {
             println!("Removed duplicates from program_item_vec. count_before: {} count_after: {}", count_before, count_after);
+        } else {
+            println!("Great, no duplicates found");
         }
     }
 
@@ -842,6 +844,8 @@ impl TraverseProgramsAndModels {
         let number_of_programs_to_generate: usize = 3;
 
         println!("{} - Start of program", Self::human_readable_utc_timestamp());
+        println!("initial program_item_vec: {}", self.program_item_vec.len());
+        println!("initial model_item_vec.len: {}", self.model_item_vec.len());
 
         self.dedup_program_item_vec();
         self.reload_analytics_dir()?;
@@ -851,7 +855,6 @@ impl TraverseProgramsAndModels {
             .expect("Duration since UNIX_EPOCH failed");
         let initial_random_seed: u64 = duration.as_secs();
 
-        println!("initial model_item_vec.len: {:?}", self.model_item_vec.len());
         let mut scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = self.model_item_vec.clone();
 
         let initial_tasks: Tasks = match self.read_solutions_json() {
