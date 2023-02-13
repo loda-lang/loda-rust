@@ -841,6 +841,8 @@ impl TraverseProgramsAndModels {
 
         let number_of_programs_to_generate: usize = 3;
 
+        println!("{} - Start of program", Self::human_readable_utc_timestamp());
+
         self.dedup_program_item_vec();
         self.reload_analytics_dir()?;
 
@@ -955,7 +957,7 @@ impl TraverseProgramsAndModels {
         };
 
         if try_existing_solutions {
-            println!("Run existing solutions without mutations");
+            println!("{} - Run existing solutions without mutations", Self::human_readable_utc_timestamp());
             runner.run_one_batch(&mut state)?;
             self.transfer_discovered_programs(&mut state)?;
         }
@@ -963,11 +965,7 @@ impl TraverseProgramsAndModels {
         // loop until all puzzles have been solved
         let mut mutation_index: u64 = 0;
         while !runner.plan.scheduled_model_item_vec.is_empty() {
-
-            let datetime: DateTime<Utc> = Utc::now();
-            let timestamp = datetime.to_rfc3339_opts(SecondsFormat::Secs, true).to_string();
-        
-            println!("{} - Mutation: {}", timestamp, mutation_index);
+            println!("{} - Mutation: {}", Self::human_readable_utc_timestamp(), mutation_index);
 
             let random_seed: u64 = (initial_random_seed * 0x1000000) + mutation_index;
             // debug!("random_seed: {:#x}", random_seed);
@@ -982,9 +980,15 @@ impl TraverseProgramsAndModels {
             mutation_index += 1;
         }
 
+        println!("{} - it seems all the puzzles have been solved.", Self::human_readable_utc_timestamp());
         println!("Done!");
 
         Ok(())
+    }
+
+    fn human_readable_utc_timestamp() -> String {
+        let datetime: DateTime<Utc> = Utc::now();
+        datetime.to_rfc3339_opts(SecondsFormat::Secs, true).to_string()
     }
 
     /// Move discovered programs to the original programs vector
@@ -1053,6 +1057,11 @@ impl BatchPlan {
     ) -> anyhow::Result<()> {
         let verify_test_output = false;
         let verbose = false;
+        let max_duration_seconds: u64 = 60;
+
+        let mut start_time = Instant::now();
+        let mut slowest_program_elapsed = Duration::ZERO;
+        let mut slowest_program_name = String::new();
 
         let multi_progress = MultiProgress::new();
         let progress_style: ProgressStyle = ProgressStyle::with_template(
@@ -1084,12 +1093,39 @@ impl BatchPlan {
                     pb.tick();
                     pb2.inc(1);
                 }
+
+                let elapsed: Duration = start_time.elapsed();
+                if elapsed.as_secs() >= max_duration_seconds {
+                    let total_number_of_solutions: usize = state.current_tasks.len();
+                    let message = format!(
+                        "{} - Status.  Total number of solutions: {}  Slowest program: {:?} {}", 
+                        TraverseProgramsAndModels::human_readable_utc_timestamp(), 
+                        total_number_of_solutions,
+                        slowest_program_name,
+                        HumanDuration(slowest_program_elapsed)
+                    );
+                    pb.println(message);
+                    start_time = Instant::now();
+                    slowest_program_elapsed = Duration::ZERO;
+                    slowest_program_name = String::new();
+                }
+    
                 let program_item: &Rc<RefCell<ProgramItem>> = &self.scheduled_program_item_vec[program_index];
                 
                 let run_with_program_result: RunWithProgramResult;
                 {
+                    let before_run_program = Instant::now();
+
                     let program_runner: &ProgramRunner = &program_item.borrow().program_runner;
-                    run_with_program_result = match instance.run_program_runner(program_runner) {
+                    let result = instance.run_program_runner(program_runner);
+
+                    let program_run_elapsed: Duration = before_run_program.elapsed();
+                    if program_run_elapsed > slowest_program_elapsed {
+                        slowest_program_elapsed = program_run_elapsed;
+                        slowest_program_name = program_item.borrow().id.file_name();
+                    }
+    
+                    run_with_program_result = match result {
                         Ok(value) => value,
                         Err(error) => {
                             if verbose {
@@ -1102,7 +1138,6 @@ impl BatchPlan {
                         let s = format!("model: {:?} program: {:?} result: {:?}", model_item.borrow().id, program_item.borrow().id, run_with_program_result);
                         pb.println(s);
                     }
-
                 }
 
                 if run_with_program_result.count_train_correct() == 0 {
@@ -1116,7 +1151,7 @@ impl BatchPlan {
                 if count_test_empty > 0 {
                     // All the "test" outputs must be non-empty, to ensure that it's not a raw copy/paste of the input.
                     // This is not a solution. Proceed to the next candidate solution.
-                    pb.println(format!("Puzzle {:?}, ignoring dangerous false-positive, that copies the expected output to the actual output.", model_item.borrow().id));
+                    pb.println(format!("{} - Puzzle {:?}, ignoring dangerous false-positive, that copies the expected output to the actual output.", TraverseProgramsAndModels::human_readable_utc_timestamp(), model_item.borrow().id));
                     continue;
                 }
 
@@ -1125,14 +1160,16 @@ impl BatchPlan {
                 if count_train_incorrect > 0 {
                     // Partial solution. One or more incorrect training pairs. We want all the training pairs to be satisfied.
                     // This is not a full solution. Proceed to the next candidate solution.
-                    pb.println(format!("Puzzle {:?}, partial solution. correct: {} incorrect: {}", model_item.borrow().id, count_train_correct, count_train_incorrect));
+                    if verbose {
+                        pb.println(format!("{} - Puzzle {:?}, partial solution. correct: {} incorrect: {}", TraverseProgramsAndModels::human_readable_utc_timestamp(), model_item.borrow().id, count_train_correct, count_train_incorrect));
+                    }
                     continue;
                 }
 
                 // All the train pairs are correct.
                 // The test pairs are unverified, and have a size of 1x1 or bigger.
                 // This may be a solution.
-                pb.println(format!("Puzzle {:?}, possible solution. correct: {} incorrect: {}", model_item.borrow().id, count_train_correct, count_train_incorrect));
+                pb.println(format!("{} - Puzzle {:?}, possible solution. correct: {} incorrect: {}", TraverseProgramsAndModels::human_readable_utc_timestamp(), model_item.borrow().id, count_train_correct, count_train_incorrect));
 
                 let save_result = state.save_solution(
                     config, 
