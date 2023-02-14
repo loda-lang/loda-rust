@@ -2178,4 +2178,38 @@ mod tests {
         assert_eq!(result.count_train_correct(), 3);
         assert_eq!(result.count_test_correct(), 1);
     }
+
+    #[test]
+    fn test_370000_puzzle_2281f1f4() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let background_color: u8 = 0;
+            let set_value: u8 = 2;
+            let row: Image = input.top_rows(1).expect("image");
+            let column: Image = input.right_columns(1).expect("image");
+            let mut output: Image = input.clone();
+            for y in 0..output.height() {
+                for x in 0..output.width() {
+                    if y == 0 {
+                        continue;
+                    }
+                    if x + 1 == output.width() {
+                        continue;
+                    }
+                    let value0: u8 = row.get(x as i32, 0).unwrap_or(255); 
+                    let value1: u8 = column.get(0, y as i32).unwrap_or(255);
+                    if value0 > background_color && value1 > background_color {
+                        _ = output.set(x as i32, y as i32, set_value);
+                    }
+                }
+            }
+            Ok(output)
+        };
+        let model: Model = Model::load_testdata("2281f1f4").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+    }
 }
