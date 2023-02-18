@@ -2212,4 +2212,70 @@ mod tests {
         assert_eq!(result.count_train_correct(), 3);
         assert_eq!(result.count_test_correct(), 1);
     }
+
+    #[test]
+    fn test_380000_puzzle_d687bc17_manual() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let mut area: Image = input.remove_left_columns(1).expect("image");
+            area = area.remove_right_columns(1).expect("image");
+            area = area.remove_top_rows(1).expect("image");
+            area = area.remove_bottom_rows(1).expect("image");
+
+            let most_popular_color: u8 = area.most_popular_color().expect("color");
+            let overlay: Image = Image::color(area.width(), area.height(), most_popular_color);
+
+            let mut output: Image = input.overlay_with_position(&overlay, 1, 1).expect("image");
+
+            let histogram_rows: Vec<Histogram> = area.histogram_rows();
+            let histogram_columns: Vec<Histogram> = area.histogram_columns();
+
+            for (y, histogram_row) in histogram_rows.iter().enumerate() {
+                let y1: i32 = (y + 1) as i32;
+                let counters: &[u32; 256] = histogram_row.counters();
+                {
+                    let color: u8 = output.get(0, y1).unwrap_or(255);
+                    let count: u32 = counters[color as usize];
+                    for i in 0..count {
+                        _ = output.set((i + 1) as i32, y1, color);
+                    }
+                }
+                {
+                    let color: u8 = output.get((output.width() as i32) - 1, y1).unwrap_or(255);
+                    let count: u32 = counters[color as usize];
+                    for i in 0..count {
+                        _ = output.set((output.width() as i32) - (i + 2) as i32, y1, color);
+                    }
+                }
+            }
+
+            for (x, histogram_column) in histogram_columns.iter().enumerate() {
+                let x1: i32 = (x + 1) as i32;
+                let counters: &[u32; 256] = histogram_column.counters();
+                {
+                    let color: u8 = output.get(x1, 0).unwrap_or(255);
+                    let count: u32 = counters[color as usize];
+                    for i in 0..count {
+                        _ = output.set(x1, (i + 1) as i32, color);
+                    }
+                }
+                {
+                    let color: u8 = output.get(x1, (output.height() as i32) - 1).unwrap_or(255);
+                    let count: u32 = counters[color as usize];
+                    for i in 0..count {
+                        _ = output.set(x1, (output.height() as i32) - (i + 2) as i32, color);
+                    }
+                }
+            }
+
+            Ok(output)
+        };
+        let model: Model = Model::load_testdata("d687bc17").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
 }
