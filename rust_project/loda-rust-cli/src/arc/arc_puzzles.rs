@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple};
+    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, ImageResize};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageBorder};
     use crate::arc::{Image, convolution2x2, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
@@ -1996,4 +1996,287 @@ mod tests {
         assert_eq!(result.count_train_correct(), 3);
         assert_eq!(result.count_test_correct(), 1);
     }
+
+    #[test]
+    fn test_350000_puzzle_a68b268e() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let histogram: Histogram = input.histogram_all();
+            let background_color: u8 = histogram.most_popular_color().expect("color");
+
+            let top: Image = input.top_rows(4).expect("image");
+            let top_left: Image = top.left_columns(4).expect("image");
+            let top_right: Image = top.right_columns(4).expect("image");
+            let bottom: Image = input.bottom_rows(4).expect("image");
+            let bottom_left: Image = bottom.left_columns(4).expect("image");
+            let bottom_right: Image = bottom.right_columns(4).expect("image");
+
+            let mut output: Image = bottom_right;
+            output = output.overlay_with_mask_color(&bottom_left, background_color).expect("image");
+            output = output.overlay_with_mask_color(&top_right, background_color).expect("image");
+            output = output.overlay_with_mask_color(&top_left, background_color).expect("image");
+            Ok(output)
+        };
+        let model: Model = Model::load_testdata("a68b268e").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 6);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
+    const PROGRAM_A68B268E: &'static str = "
+    mov $1,$0
+    f11 $1,101060 ; most popular color
+
+    ; W = compute (width-1) / 2
+    mov $2,$0
+    f11 $2,101000 ; Get width of image
+    sub $2,1
+    div $2,2
+
+    ; H = compute (height-1) / 2
+    mov $3,$0
+    f11 $3,101001 ; Get height of image
+    sub $3,1
+    div $3,2
+
+    ; top left corner of size WxH
+    mov $10,$0
+    mov $11,$3
+    f21 $10,101220 ; get N top rows
+    mov $11,$2
+    f21 $10,101222 ; get N left columns
+  
+    ; top right corner of size WxH
+    mov $15,$0
+    mov $16,$3
+    f21 $15,101220 ; get N top rows
+    mov $16,$2
+    f21 $15,101223 ; get N right columns
+  
+    ; bottom left corner of size WxH
+    mov $20,$0
+    mov $21,$3
+    f21 $20,101221 ; get N bottom rows
+    mov $21,$2
+    f21 $20,101222 ; get N left columns
+
+    ; bottom right corner of size WxH
+    mov $25,$0
+    mov $26,$3
+    f21 $25,101221 ; get N bottom rows
+    mov $26,$2
+    f21 $25,101223 ; get N right columns
+
+    ; zstack where the images are placed on top of each other
+    ; zindex 0 - the bottom
+    mov $30,$25 ; bottom right
+
+    ; zindex 1
+    mov $31,$20 ; bottom left
+    mov $32,$1 ; most popular color
+    f31 $30,101150 ; overlay image
+
+    ; zindex 2
+    mov $31,$15 ; top right
+    mov $32,$1 ; most popular color
+    f31 $30,101150 ; overlay image
+
+    ; zindex 3 - the top
+    mov $31,$10 ; top left
+    mov $32,$1 ; most popular color
+    f31 $30,101150 ; overlay image
+
+    mov $0,$30
+    ";
+
+    #[test]
+    fn test_350001_puzzle_a68b268e_loda() {
+        let model: Model = Model::load_testdata("a68b268e").expect("model");
+        let program = PROGRAM_A68B268E;
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 6);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
+    #[test]
+    fn test_360000_puzzle_6b9890af() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let histogram: Histogram = input.histogram_all();
+            let background_color: u8 = histogram.most_popular_color().expect("color");
+
+            let ignore_mask: Image = input.to_mask_where_color_is(background_color);
+            let mut objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("images");
+
+            if objects.len() != 2 {
+                return Err(anyhow::anyhow!("Expected exactly 2 objects, but got a different count"));
+            }
+
+            objects.sort_unstable_by(|lhs, rhs| { 
+                let a = lhs.mask_count_one();
+                let b = rhs.mask_count_one();
+                a.cmp(&b)
+            });
+
+            let smallest_object: Image = match objects.first() {
+                Some(image) => image.clone(),
+                None => {
+                    return Err(anyhow::anyhow!("Expected an object, but got none"));
+                }
+            };
+
+            let biggest_object: Image = match objects.last() {
+                Some(image) => image.clone(),
+                None => {
+                    return Err(anyhow::anyhow!("Expected an object, but got none"));
+                }
+            };
+
+            // Extract the biggest object
+            let biggest_image_full: Image = biggest_object.select_from_image(&input, background_color).expect("image");
+            let biggest_image: Image = biggest_image_full.trim().expect("image");
+
+            // Extract the smallest object
+            let smallest_image_full: Image = smallest_object.select_from_image(&input, background_color).expect("image");
+            let smallest_image: Image = smallest_image_full.trim().expect("image");
+
+            let width: u8 = biggest_image.width();
+            let x_ratio = width / smallest_image.width();
+            let x_ratio_remain = width % smallest_image.width();
+            // println!("x_ratio: {} {}", x_ratio, x_ratio_remain);
+
+            let height: u8 = biggest_image.height();
+            let y_ratio = height / smallest_image.height();
+            let y_ratio_remain = height % smallest_image.height();
+            // println!("y_ratio: {} {}", y_ratio, y_ratio_remain);
+
+            if x_ratio != y_ratio {
+                return Err(anyhow::anyhow!("Expected same ratio, but different x y ratio: {} {}", x_ratio, y_ratio));
+            }
+
+            // Scale up the smallest object so it fits inside the biggest object
+            let new_width: u8 = smallest_image.width() * x_ratio;
+            let new_height: u8 = smallest_image.height() * y_ratio;
+            let fit_image: Image = smallest_image.resize(new_width, new_height).expect("image");
+            
+            // Overlay the smallest object on top of the biggest object
+            let mut output: Image = biggest_image;
+            let x = (x_ratio_remain / 2) as i32;
+            let y = (y_ratio_remain / 2) as i32;
+            output = output.overlay_with_position(&fit_image, x, y).expect("image");
+
+            Ok(output)
+        };
+        let model: Model = Model::load_testdata("6b9890af").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
+    #[test]
+    fn test_370000_puzzle_2281f1f4() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let background_color: u8 = 0;
+            let set_value: u8 = 2;
+            let row: Image = input.top_rows(1).expect("image");
+            let column: Image = input.right_columns(1).expect("image");
+            let mut output: Image = input.clone();
+            for y in 0..output.height() {
+                for x in 0..output.width() {
+                    if y == 0 {
+                        continue;
+                    }
+                    if x + 1 == output.width() {
+                        continue;
+                    }
+                    let value0: u8 = row.get(x as i32, 0).unwrap_or(255); 
+                    let value1: u8 = column.get(0, y as i32).unwrap_or(255);
+                    if value0 > background_color && value1 > background_color {
+                        _ = output.set(x as i32, y as i32, set_value);
+                    }
+                }
+            }
+            Ok(output)
+        };
+        let model: Model = Model::load_testdata("2281f1f4").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
+    #[test]
+    fn test_380000_puzzle_d687bc17_manual() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let mut area: Image = input.remove_left_columns(1).expect("image");
+            area = area.remove_right_columns(1).expect("image");
+            area = area.remove_top_rows(1).expect("image");
+            area = area.remove_bottom_rows(1).expect("image");
+            let histogram_rows: Vec<Histogram> = area.histogram_rows();
+            let histogram_columns: Vec<Histogram> = area.histogram_columns();
+
+            // Empty overlay image with the most popular color
+            let most_popular_color: u8 = area.most_popular_color().expect("color");
+            let mut overlay: Image = Image::color(area.width(), area.height(), most_popular_color);
+
+            // Draw pixels for histogram_rows
+            for (y, histogram_row) in histogram_rows.iter().enumerate() {
+                let y1: i32 = (y + 1) as i32;
+                let counters: &[u32; 256] = histogram_row.counters();
+                {
+                    let color: u8 = input.get(0, y1).unwrap_or(255);
+                    let count: u32 = counters[color as usize];
+                    for i in 0..count {
+                        _ = overlay.set(i as i32, y as i32, color);
+                    }
+                }
+                {
+                    let color: u8 = input.get((input.width() as i32) - 1, y1).unwrap_or(255);
+                    let count: u32 = counters[color as usize];
+                    for i in 0..count {
+                        _ = overlay.set((overlay.width() as i32) - (i + 1) as i32, y as i32, color);
+                    }
+                }
+            }
+
+            // Draw pixels for histogram_columns
+            for (x, histogram_column) in histogram_columns.iter().enumerate() {
+                let x1: i32 = (x + 1) as i32;
+                let counters: &[u32; 256] = histogram_column.counters();
+                {
+                    let color: u8 = input.get(x1, 0).unwrap_or(255);
+                    let count: u32 = counters[color as usize];
+                    for i in 0..count {
+                        _ = overlay.set(x as i32, i as i32, color);
+                    }
+                }
+                {
+                    let color: u8 = input.get(x1, (input.height() as i32) - 1).unwrap_or(255);
+                    let count: u32 = counters[color as usize];
+                    for i in 0..count {
+                        _ = overlay.set(x as i32, (overlay.height() as i32) - (i + 1) as i32, color);
+                    }
+                }
+            }
+
+            let output: Image = input.overlay_with_position(&overlay, 1, 1).expect("image");
+            Ok(output)
+        };
+        let model: Model = Model::load_testdata("d687bc17").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
 }

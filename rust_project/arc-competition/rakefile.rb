@@ -1,3 +1,5 @@
+require 'time'
+
 # The docker image can be pulled from here:
 # https://hub.docker.com/r/neoneye/loda-rust-cli/tags
 DOCKER_IMAGE = "neoneye/loda-rust-cli:latest"
@@ -37,6 +39,16 @@ task "shell" do
     pwd = Dir.pwd
     image = DOCKER_IMAGE
     system("docker run -it --mount type=bind,source=#{pwd}/secret_data,target=/data #{image} /bin/bash")
+end
+
+desc "Export docker image to tar file"
+task "save-tar" do
+    pwd = Dir.pwd
+    image = DOCKER_IMAGE
+    timestamp = Time.now.utc.iso8601
+    filename = "docker_lodarust_arc_#{timestamp}.tar" 
+    system("docker pull #{image}")
+    system("docker save #{image} > '#{filename}'")
 end
 
 task :default do
