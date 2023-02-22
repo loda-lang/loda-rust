@@ -27,6 +27,10 @@ use rand::rngs::StdRng;
 use serde::{Serialize, Deserialize};
 
 static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
+
+/// There is a penalty if the ARCathon executable is running longer than 24 hours.
+/// Some of the solutions takes minutes to evaluate, so the executable cannot stop instantly. 
+/// Thus the limit is several minutes shorter so we are sure that the executable has stopped.
 static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = ((23 * 60) + 30) * 60;
 
 pub struct TraverseProgramsAndModels {
