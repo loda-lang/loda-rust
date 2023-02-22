@@ -13,14 +13,13 @@ use loda_rust_core::execute::{ProgramSerializer, ProgramId, ProgramRunner};
 use loda_rust_core::parser::ParsedProgram;
 use chrono::prelude::*;
 use std::fmt;
-use std::time::{SystemTime, Duration};
+use std::time::{Duration, Instant, SystemTime};
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{PathBuf, Path};
 use std::rc::Rc;
-use std::time::Instant;
 use console::Style;
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use rand::SeedableRng;
@@ -28,6 +27,7 @@ use rand::rngs::StdRng;
 use serde::{Serialize, Deserialize};
 
 static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
+static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = ((23 * 60) + 30) * 60;
 
 pub struct TraverseProgramsAndModels {
     config: Config,
@@ -836,6 +836,9 @@ impl TraverseProgramsAndModels {
     }
 
     fn run_arc_competition(&mut self) -> anyhow::Result<()> {
+        let execute_start_time: Instant = Instant::now();
+        let execute_time_limit: Duration = Duration::from_secs(ARC_COMPETITION_EXECUTE_DURATION_SECONDS);
+
         // When participating in the contest, then we want first to try out the existing solutions.
         // This may be a solution to one of the hidden puzzles.
         // However it's slow, so it's disabled while developing, where we only want to explore mutations.
@@ -943,6 +946,8 @@ impl TraverseProgramsAndModels {
         }
 
         let plan = BatchPlan {
+            execute_start_time,
+            execute_time_limit,
             scheduled_model_item_vec,
             scheduled_program_item_vec: self.program_item_vec.clone(),
         };
@@ -952,6 +957,7 @@ impl TraverseProgramsAndModels {
             discovered_program_item_vec: vec!(),
             unique_records,
             current_tasks,
+            terminate_due_to_timeout: false,
         };
 
         let mut runner = BatchRunner {
@@ -967,7 +973,15 @@ impl TraverseProgramsAndModels {
 
         // loop until all puzzles have been solved
         let mut mutation_index: u64 = 0;
-        while !runner.plan.scheduled_model_item_vec.is_empty() {
+        loop {
+            if runner.plan.scheduled_model_item_vec.is_empty() {
+                println!("{} - It seems all the puzzles have been solved.", Self::human_readable_utc_timestamp());
+                break;
+            }
+            if state.terminate_due_to_timeout {
+                println!("{} - Terminating due to timeout.", Self::human_readable_utc_timestamp());
+                break;
+            }
             println!("{} - Mutation: {}", Self::human_readable_utc_timestamp(), mutation_index);
 
             let random_seed: u64 = (initial_random_seed * 0x1000000) + mutation_index;
@@ -982,10 +996,9 @@ impl TraverseProgramsAndModels {
             
             mutation_index += 1;
         }
+        println!("{} - Executable elapsed: {}.", Self::human_readable_utc_timestamp(), HumanDuration(execute_start_time.elapsed()));
 
-        println!("{} - it seems all the puzzles have been solved.", Self::human_readable_utc_timestamp());
         println!("Done!");
-
         Ok(())
     }
 
@@ -1045,6 +1058,8 @@ impl RunArcCompetitionConfig {
 
 #[derive(Debug)]
 struct BatchPlan {
+    execute_start_time: Instant,
+    execute_time_limit: Duration,
     scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>>,
     scheduled_program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
 }
@@ -1095,6 +1110,18 @@ impl BatchPlan {
                 if program_index > 0 {
                     pb.tick();
                     pb2.inc(1);
+                }
+
+                if self.execute_start_time.elapsed() >= self.execute_time_limit {
+                    state.terminate_due_to_timeout = true;
+                    let message = format!(
+                        "{} - Exceeded time limit for executable", 
+                        TraverseProgramsAndModels::human_readable_utc_timestamp(), 
+                    );
+                    pb.println(message);
+                    pb2.finish_and_clear();
+                    pb.finish_and_clear();
+                    return Ok(());
                 }
 
                 let elapsed: Duration = start_time.elapsed();
@@ -1223,6 +1250,7 @@ struct BatchState {
     discovered_program_item_vec: Vec<Rc<RefCell<ProgramItem>>>,
     unique_records: HashSet::<Record>,
     current_tasks: Tasks,
+    terminate_due_to_timeout: bool,
 }
 
 impl BatchState {
