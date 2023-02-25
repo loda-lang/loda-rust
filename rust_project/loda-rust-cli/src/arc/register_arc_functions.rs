@@ -1,6 +1,6 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
-use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole};
+use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
 use super::{ImageRemoveGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting, ImageNeighbour, ImageNeighbourDirection};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
@@ -1928,6 +1928,65 @@ impl UnofficialFunction for ImageNeighbourFunction {
     }
 }
 
+struct ImageImageSetPixelWhereTwoImagesAgreeFunction {
+    id: u32,
+}
+
+impl ImageImageSetPixelWhereTwoImagesAgreeFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageImageSetPixelWhereTwoImagesAgreeFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 4, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Set pixel where two images agree on the pixel value.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 4 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image0: Image = input0_uint.to_image()?;
+
+        // input1 is image
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let image1: Image = input1_uint.to_image()?;
+
+        // input2 is image
+        if input[2].is_negative() {
+            return Err(anyhow::anyhow!("Input[2] must be non-negative"));
+        }
+        let input2_uint: BigUint = input[2].to_biguint().context("BigInt to BigUint")?;
+        let image2: Image = input2_uint.to_image()?;
+
+        // input3 is the color to ignore
+        let color_must_be_different_than: u8 = input[3].to_u8().context("Input[3] u8 pixel_color")?;
+
+        let mut output_image: Image = image0;
+        output_image.set_pixel_where_two_images_agree(&image1, &image2, color_must_be_different_than)?;
+
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -2053,6 +2112,10 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageToMaskFunction::new(101251, ImageToMaskFunctionFunctionMode::WhereColorIsDifferent));
     register_function!(ImageInvertMaskFunction::new(101252));
 
+    // Objects
+    register_function!(ImagePopularObjectFunction::new(102000, ImagePopularObjectFunctionMode::MostPopular));
+    register_function!(ImagePopularObjectFunction::new(102001, ImagePopularObjectFunctionMode::LeastPopular));
+
     // Color of neighbour pixel
     register_function!(ImageNeighbourFunction::new(102060, ImageNeighbourFunctionMode::Up));
     register_function!(ImageNeighbourFunction::new(102061, ImageNeighbourFunctionMode::Down));
@@ -2063,7 +2126,6 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageNeighbourFunction::new(102066, ImageNeighbourFunctionMode::DownLeft));
     register_function!(ImageNeighbourFunction::new(102067, ImageNeighbourFunctionMode::DownRight));
 
-    // Objects
-    register_function!(ImagePopularObjectFunction::new(102000, ImagePopularObjectFunctionMode::MostPopular));
-    register_function!(ImagePopularObjectFunction::new(102001, ImagePopularObjectFunctionMode::LeastPopular));
+    // Set pixel where two images agree
+    register_function!(ImageImageSetPixelWhereTwoImagesAgreeFunction::new(102100));
 }
