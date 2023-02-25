@@ -1,5 +1,5 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects};
-use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack};
+use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
 use super::{ImageRemoveGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting, ImageNeighbour, ImageNeighbourDirection};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
@@ -1987,6 +1987,61 @@ impl UnofficialFunction for ImageSetPixelWhereTwoImagesAgreeFunction {
     }
 }
 
+struct ImageSelectBetweenTwoTilesFunction {
+    id: u32,
+}
+
+impl ImageSelectBetweenTwoTilesFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageSelectBetweenTwoTilesFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Create a big composition of tiles. When the mask is 0 then pick `tile0` as tile. When the mask is [1..255] then pick `tile1` as tile.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image0: Image = input0_uint.to_image()?;
+
+        // input1 is image
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let image1: Image = input1_uint.to_image()?;
+
+        // input2 is image
+        if input[2].is_negative() {
+            return Err(anyhow::anyhow!("Input[2] must be non-negative"));
+        }
+        let input2_uint: BigUint = input[2].to_biguint().context("BigInt to BigUint")?;
+        let image2: Image = input2_uint.to_image()?;
+
+        let output_image: Image = image0.select_two_tiles(&image1, &image2)?;
+
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -2128,4 +2183,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Set pixel where two images agree
     register_function!(ImageSetPixelWhereTwoImagesAgreeFunction::new(102100));
+
+    // Create a big composition of tiles
+    register_function!(ImageSelectBetweenTwoTilesFunction::new(102110));
 }
