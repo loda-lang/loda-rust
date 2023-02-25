@@ -4,7 +4,7 @@ mod tests {
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageBorder};
     use crate::arc::{Image, convolution2x2, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
-    use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount};
+    use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
     use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole};
     use bit_set::BitSet;
@@ -1727,17 +1727,6 @@ mod tests {
         assert_eq!(result.count_test_correct(), 1);
     }
 
-    fn set_pixel_where_colors_are_the_same(result: &mut Image, image0: &Image, image1: &Image, color_must_be_different_than: u8) {
-        for y in 0..(result.height() as i32) {
-            for x in 0..(result.width() as i32) {
-                let color0: u8 = image0.get(x, y).unwrap_or(255);
-                let color1: u8 = image1.get(x, y).unwrap_or(255);
-                if color0 == color1 && color0 != color_must_be_different_than {
-                    let _ = result.set(x, y, color0);
-                }
-            }
-        }
-    }
     #[test]
     fn test_310000_puzzle_1f876c06() {
         let solution: SolutionSimple = |data| {
@@ -1751,10 +1740,10 @@ mod tests {
             let neighbour_down_left: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownLeft, color_when_there_is_no_neighbour).expect("image");
             let neighbour_down_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, color_when_there_is_no_neighbour).expect("image");
     
-            let mut result_image: Image = input.clone();
-            set_pixel_where_colors_are_the_same(&mut result_image, &neighbour_down_left, &neighbour_up_right, color_when_there_is_no_neighbour);
-            set_pixel_where_colors_are_the_same(&mut result_image, &neighbour_up_left, &neighbour_down_right, color_when_there_is_no_neighbour);
-            Ok(result_image)
+            let mut output: Image = input.clone();
+            output.set_pixel_where_two_images_agree(&neighbour_down_left, &neighbour_up_right, color_when_there_is_no_neighbour).expect("ok");
+            output.set_pixel_where_two_images_agree(&neighbour_up_left, &neighbour_down_right, color_when_there_is_no_neighbour).expect("ok");
+            Ok(output)
         };
         let model: Model = Model::load_testdata("1f876c06").expect("model");
         let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
