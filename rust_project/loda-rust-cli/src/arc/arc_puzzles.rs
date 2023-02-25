@@ -1806,27 +1806,10 @@ mod tests {
             let neighbour_down_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, color_when_there_is_no_neighbour).expect("image");
 
             let mut result_image: Image = input.clone();
-            for y in 0..(input.height() as i32) {
-                for x in 0..(input.width() as i32) {
-                    let color_up_left: u8 = neighbour_up_left.get(x, y).unwrap_or(255);
-                    let color_up_right: u8 = neighbour_up_right.get(x, y).unwrap_or(255);
-                    let color_down_left: u8 = neighbour_down_left.get(x, y).unwrap_or(255);
-                    let color_down_right: u8 = neighbour_down_right.get(x, y).unwrap_or(255);
-
-                    if color_up_left != color_when_there_is_no_neighbour {
-                        let _ = result_image.set(x, y, color_up_left);
-                    }
-                    if color_up_right != color_when_there_is_no_neighbour {
-                        let _ = result_image.set(x, y, color_up_right);
-                    }
-                    if color_down_left != color_when_there_is_no_neighbour {
-                        let _ = result_image.set(x, y, color_down_left);
-                    }
-                    if color_down_right != color_when_there_is_no_neighbour {
-                        let _ = result_image.set(x, y, color_down_right);
-                    }
-                }
-            }
+            result_image.set_pixel_where_image_has_different_color(&neighbour_up_left, color_when_there_is_no_neighbour)?;
+            result_image.set_pixel_where_image_has_different_color(&neighbour_up_right, color_when_there_is_no_neighbour)?;
+            result_image.set_pixel_where_image_has_different_color(&neighbour_down_left, color_when_there_is_no_neighbour)?;
+            result_image.set_pixel_where_image_has_different_color(&neighbour_down_right, color_when_there_is_no_neighbour)?;
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("623ea044").expect("model");
