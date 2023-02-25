@@ -20,22 +20,17 @@ impl ImageTile for Image {
         if self.is_empty() || tile0.is_empty() || tile1.is_empty() {
             return Ok(Image::empty());
         }
-
         let tile_width: u8 = tile0.width();
         let tile_height: u8 = tile0.height();
-
-        let w: u16 = (self.width() as u16) * (tile_width as u16);
-        let h: u16 = (self.height() as u16) * (tile_height as u16);
-        if w >= (u8::MAX as u16) {
-            return Err(anyhow::anyhow!("Output image.width {} is too big. mask.width: {} tile_width: {}", w, self.width(), tile_width));
+        let output_width: u16 = (self.width() as u16) * (tile_width as u16);
+        let output_height: u16 = (self.height() as u16) * (tile_height as u16);
+        if output_width > (u8::MAX as u16) {
+            return Err(anyhow::anyhow!("Output image.width {} is too big. mask.width: {} tile_width: {}", output_width, self.width(), tile_width));
         }
-        if h >= (u8::MAX as u16) {
-            return Err(anyhow::anyhow!("Output image.height {} is too big. mask.height: {} tile_height: {}", h, self.height(), tile_height));
+        if output_height > (u8::MAX as u16) {
+            return Err(anyhow::anyhow!("Output image.height {} is too big. mask.height: {} tile_height: {}", output_height, self.height(), tile_height));
         }
-        let output_width: u8 = w as u8;
-        let output_height: u8 = h as u8;
-
-        let mut result: Image = Image::zero(output_width, output_height);
+        let mut result: Image = Image::zero(output_width as u8, output_height as u8);
         for y in 0..self.height() {
             for x in 0..self.width() {
                 let mask_value: u8 = self.get(x as i32, y as i32).unwrap_or(255);
