@@ -1987,6 +1987,58 @@ impl UnofficialFunction for ImageSetPixelWhereTwoImagesAgreeFunction {
     }
 }
 
+struct ImageSetPixelWhereImageHasDifferentColorFunction {
+    id: u32,
+}
+
+impl ImageSetPixelWhereImageHasDifferentColorFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageSetPixelWhereImageHasDifferentColorFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Set pixel where the image has a pixel value different than the color parameter.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image0: Image = input0_uint.to_image()?;
+
+        // input1 is image
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let image1: Image = input1_uint.to_image()?;
+
+        // input2 is the color
+        let color_must_be_different_than: u8 = input[2].to_u8().context("Input[2] u8 pixel_color")?;
+
+        let mut output_image: Image = image0;
+        output_image.set_pixel_where_image_has_different_color(&image1, color_must_be_different_than)?;
+
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct ImageSelectBetweenTwoTilesFunction {
     id: u32,
 }
@@ -2230,6 +2282,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Set pixel where two images agree
     register_function!(ImageSetPixelWhereTwoImagesAgreeFunction::new(102100));
+    register_function!(ImageSetPixelWhereImageHasDifferentColorFunction::new(102101));
 
     // Create a big composition of tiles
     register_function!(ImageSelectBetweenTwoTilesFunction::new(102110));
