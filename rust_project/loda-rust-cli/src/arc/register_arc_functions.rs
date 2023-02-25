@@ -1928,11 +1928,11 @@ impl UnofficialFunction for ImageNeighbourFunction {
     }
 }
 
-struct ImageImageSetPixelWhereTwoImagesAgreeFunction {
+struct ImageSetPixelWhereTwoImagesAgreeFunction {
     id: u32,
 }
 
-impl ImageImageSetPixelWhereTwoImagesAgreeFunction {
+impl ImageSetPixelWhereTwoImagesAgreeFunction {
     fn new(id: u32) -> Self {
         Self {
             id,
@@ -1940,7 +1940,7 @@ impl ImageImageSetPixelWhereTwoImagesAgreeFunction {
     }
 }
 
-impl UnofficialFunction for ImageImageSetPixelWhereTwoImagesAgreeFunction {
+impl UnofficialFunction for ImageSetPixelWhereTwoImagesAgreeFunction {
     fn id(&self) -> UnofficialFunctionId {
         UnofficialFunctionId::InputOutput { id: self.id, inputs: 4, outputs: 1 }
     }
@@ -2127,5 +2127,5 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageNeighbourFunction::new(102067, ImageNeighbourFunctionMode::DownRight));
 
     // Set pixel where two images agree
-    register_function!(ImageImageSetPixelWhereTwoImagesAgreeFunction::new(102100));
+    register_function!(ImageSetPixelWhereTwoImagesAgreeFunction::new(102100));
 }
