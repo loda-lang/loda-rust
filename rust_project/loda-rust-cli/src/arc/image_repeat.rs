@@ -1,6 +1,7 @@
 use super::{Image, ImageOverlay};
 
 pub trait ImageRepeat {
+    /// Make a big image by repeating the current image.
     fn repeat_by_count(&self, count_x: u8, count_y: u8) -> anyhow::Result<Image>;
 }
 

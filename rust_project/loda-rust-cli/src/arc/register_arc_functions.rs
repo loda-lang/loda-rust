@@ -1,5 +1,5 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects};
-use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile};
+use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
 use super::{ImageRemoveGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting, ImageNeighbour, ImageNeighbourDirection};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
@@ -2042,6 +2042,53 @@ impl UnofficialFunction for ImageSelectBetweenTwoTilesFunction {
     }
 }
 
+struct ImageRepeatFunction {
+    id: u32,
+}
+
+impl ImageRepeatFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageRepeatFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Make a big image by repeating the current image.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image0: Image = input0_uint.to_image()?;
+
+        // input1 is count_x, the number of times the image is to be repeated horizontally
+        let count_x: u8 = input[1].to_u8().context("Input[1] u8 count_x")?;
+
+        // input2 is count_y, the number of times the image is to be repeated vertically
+        let count_y: u8 = input[2].to_u8().context("Input[2] u8 count_y")?;
+
+        let output_image: Image = image0.repeat_by_count(count_x, count_y)?;
+
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -2186,4 +2233,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Create a big composition of tiles
     register_function!(ImageSelectBetweenTwoTilesFunction::new(102110));
+
+    // Create a big image by repeating the image
+    register_function!(ImageRepeatFunction::new(102120));
 }

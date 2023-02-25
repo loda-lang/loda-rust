@@ -2250,4 +2250,27 @@ mod tests {
         assert_eq!(result.count_train_correct(), 5);
         assert_eq!(result.count_test_correct(), 1);
     }
+
+    const PROGRAM_CCD554AC: &'static str = "
+    mov $1,$0
+    f11 $1,101000 ; Get width of image
+
+    mov $2,$0
+    f11 $2,101001 ; Get height of image
+
+    ; $1 is count x = width of the image
+    ; $2 is count y = height of the image
+    f31 $0,102120 ; Make a big image by repeating the current image.
+    ";
+
+    #[test]
+    fn test_400001_puzzle_ccd554ac_loda() {
+        let model: Model = Model::load_testdata("ccd554ac").expect("model");
+        let program = PROGRAM_CCD554AC;
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 6);
+        assert_eq!(result.count_test_correct(), 1);
+    }
 }
