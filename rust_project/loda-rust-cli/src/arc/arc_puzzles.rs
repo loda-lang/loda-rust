@@ -396,59 +396,30 @@ mod tests {
     }
 
     const PROGRAM_007BBFB7: &'static str = "
-    mov $22,0 ; background color
-    mov $19,$0
+    ; tile_width
+    mov $2,$0
+    f11 $2,101000 ; Get width of image
 
-    mov $20,$0
-    f11 $20,101000 ; get width
+    ; tile_height
+    mov $3,$0
+    f11 $3,101001 ; Get height of image
 
-    mov $21,$0
-    f11 $21,101000 ; get height
+    ; tile
+    mov $7,0 ; color
+    mov $6,$3 ; height
+    mov $5,$2 ; width
+    f31 $5,101010 ; Create new image with size (x, y) and filled with color z
 
-    mov $0,$20
-    pow $0,2 ; width * width
-    mov $1,$21
-    pow $1,2 ; height * height
-    mov $2,0 ; fill color
-    f31 $0,101010 ; create image of size 9x9 with color 0
+    ; mask
+    mov $10,$0 ; image
+    mov $11,$1 ; color
+    f21 $10,101251 ; Convert to a mask image by converting `color` to 0 and converting anything else to to 1.
 
-    mov $11,0 ; reset y position
+    mov $11,$5 ; tile0
+    mov $12,$0 ; tile1
+    f31 $10,102110 ; Create a big composition of tiles.
 
-    mov $8,$21 ; height
-    lps $8 ; loop over rows
-
-        mov $10,0 ; reset x position
-
-        mov $9,$20 ; width
-        lps $9 ; loop over columns
-
-            mov $3,$19 ; input image
-            mov $4,$10 ; x
-            mov $5,$11 ; y
-            f31 $3,101002 ; get pixel
-
-            cmp $3,$22
-            cmp $3,0
-            ; if the pixel is differnt than the background color
-            ; then overlay the image
-            lps $3
-
-                mov $1,$19 ; the image to be overlayed
-
-                mov $2,$10 ; x
-                mul $2,$20 ; x * width
-
-                mov $3,$11 ; y
-                mul $3,$21 ; y * width
-
-                f41 $0,101151 ; overlay with image
-            lpe
-
-            add $10,1 ; next column
-        lpe
-
-        add $11,1 ; next row
-    lpe
+    mov $0,$10
     ";
 
     #[test]
