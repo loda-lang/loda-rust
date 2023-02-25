@@ -2194,4 +2194,52 @@ mod tests {
         assert_eq!(result.count_test_correct(), 1);
     }
 
+    #[test]
+    fn test_390000_puzzle_5b6cbef5() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+
+            let background_color: u8 = 0;
+
+            let mask: Image = input.to_mask_where_color_is_different(background_color);
+
+            let tile1: Image = input.clone();
+            let tile_width: u8 = tile1.width();
+            let tile_height: u8 = tile1.height();
+            let tile0: Image = Image::color(tile_width, tile_height, background_color);
+
+            let w: u16 = (mask.width() as u16) * (tile_width as u16);
+            let h: u16 = (mask.height() as u16) * (tile_height as u16);
+            if w >= (u8::MAX as u16) {
+                return Err(anyhow::anyhow!("Output image.width {} is too big. mask.width: {} tile_width: {}", w, mask.width(), tile_width));
+            }
+            if h >= (u8::MAX as u16) {
+                return Err(anyhow::anyhow!("Output image.height {} is too big. mask.height: {} tile_height: {}", h, mask.height(), tile_height));
+            }
+            let output_width: u8 = w as u8;
+            let output_height: u8 = h as u8;
+
+            let mut result: Image = Image::zero(output_width, output_height);
+            for y in 0..mask.height() {
+                for x in 0..mask.width() {
+                    let mask_value: u8 = mask.get(x as i32, y as i32).unwrap_or(255);
+                    let tile: &Image;
+                    if mask_value == 0 {
+                        tile = &tile0;
+                    } else {
+                        tile = &tile1;
+                    }
+                    result = result.overlay_with_position(tile, (x * tile_width) as i32, (y * tile_height) as i32)?;
+                }
+            }
+
+            Ok(result)
+        };
+        let model: Model = Model::load_testdata("5b6cbef5").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 5);
+        assert_eq!(result.count_test_correct(), 1);
+    }
 }
