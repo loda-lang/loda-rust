@@ -7,6 +7,11 @@ pub trait ImageSetPixelWhere {
     /// 
     /// Suppress setting the pixel if the color happen to be `color_must_be_different_than`.
     fn set_pixel_where_two_images_agree(&mut self, image0: &Image, image1: &Image, color_must_be_different_than: u8) -> anyhow::Result<()>;
+    
+    /// Replace the pixel value at the positions where the image color differs from the `color_must_be_different_than` parameter.
+    /// 
+    /// If the image color is the same as `color_must_be_different_than` then leave the pixel untouched.
+    fn set_pixel_where_image_has_different_color(&mut self, image: &Image, color_must_be_different_than: u8) -> anyhow::Result<()>;
 }
 
 impl ImageSetPixelWhere for Image {
@@ -31,6 +36,26 @@ impl ImageSetPixelWhere for Image {
                 let color1: u8 = image1.get(x, y).unwrap_or(255);
                 if color0 == color1 && color0 != color_must_be_different_than {
                     let _ = self.set(x, y, color0);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn set_pixel_where_image_has_different_color(&mut self, image: &Image, color_must_be_different_than: u8) -> anyhow::Result<()> {
+        let width: u8 = self.width();
+        if width != image.width() {
+            return Err(anyhow::anyhow!("Expected image.width to be the same as self.width."));
+        }
+        let height: u8 = self.height();
+        if height != image.height() {
+            return Err(anyhow::anyhow!("Expected image.height to be the same as self.height."));
+        }
+        for y in 0..(height as i32) {
+            for x in 0..(width as i32) {
+                let color: u8 = image.get(x, y).unwrap_or(255);
+                if color != color_must_be_different_than {
+                    let _ = self.set(x, y, color);
                 }
             }
         }
@@ -110,6 +135,34 @@ mod tests {
             1, 1, 1, 2, 2,
             1, 1, 1, 2, 2,
             1, 1, 1, 3, 3,
+            4, 4, 4, 3, 3,
+            4, 4, 4, 3, 3,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20000_set_pixel_where_image_has_different_color() {
+        // Arrange
+        let pixels0: Vec<u8> = vec![
+            1, 1, 1, 2, 2,
+            1, 1, 1, 2, 2,
+            1, 1, 1, 3, 3,
+            4, 4, 4, 3, 3,
+            4, 4, 4, 3, 3,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels0).expect("image");
+
+        // Act
+        let mut actual = Image::color(5, 5, 9);
+        actual.set_pixel_where_image_has_different_color(&input, 1).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            9, 9, 9, 2, 2,
+            9, 9, 9, 2, 2,
+            9, 9, 9, 3, 3,
             4, 4, 4, 3, 3,
             4, 4, 4, 3, 3,
         ];
