@@ -1727,6 +1727,17 @@ mod tests {
         assert_eq!(result.count_test_correct(), 1);
     }
 
+    fn set_pixel_where_colors_are_the_same(result: &mut Image, image0: &Image, image1: &Image, color_must_be_different_than: u8) {
+        for y in 0..(result.height() as i32) {
+            for x in 0..(result.width() as i32) {
+                let color0: u8 = image0.get(x, y).unwrap_or(255);
+                let color1: u8 = image1.get(x, y).unwrap_or(255);
+                if color0 == color1 && color0 != color_must_be_different_than {
+                    let _ = result.set(x, y, color0);
+                }
+            }
+        }
+    }
     #[test]
     fn test_310000_puzzle_1f876c06() {
         let solution: SolutionSimple = |data| {
@@ -1741,21 +1752,8 @@ mod tests {
             let neighbour_down_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, color_when_there_is_no_neighbour).expect("image");
     
             let mut result_image: Image = input.clone();
-            for y in 0..(input.height() as i32) {
-                for x in 0..(input.width() as i32) {
-                    let color_up_left: u8 = neighbour_up_left.get(x, y).unwrap_or(255);
-                    let color_up_right: u8 = neighbour_up_right.get(x, y).unwrap_or(255);
-                    let color_down_left: u8 = neighbour_down_left.get(x, y).unwrap_or(255);
-                    let color_down_right: u8 = neighbour_down_right.get(x, y).unwrap_or(255);
-    
-                    if color_down_left == color_up_right && color_down_left != color_when_there_is_no_neighbour {
-                        let _ = result_image.set(x, y, color_down_left);
-                    }
-                    if color_down_right == color_up_left && color_down_right != color_when_there_is_no_neighbour {
-                        let _ = result_image.set(x, y, color_down_right);
-                    }
-                }
-            }
+            set_pixel_where_colors_are_the_same(&mut result_image, &neighbour_down_left, &neighbour_up_right, color_when_there_is_no_neighbour);
+            set_pixel_where_colors_are_the_same(&mut result_image, &neighbour_up_left, &neighbour_down_right, color_when_there_is_no_neighbour);
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("1f876c06").expect("model");
