@@ -2344,4 +2344,44 @@ mod tests {
         assert_eq!(result.count_train_correct(), 4);
         assert_eq!(result.count_test_correct(), 1);
     }
+
+    const PROGRAM_1F85A75F: &'static str = "
+    mov $3,$0
+    f11 $3,101060 ; most popular color
+    ; $3 is background_color
+
+    ; remove noisy pixels
+    mov $4,$0
+    mov $5,3 ; number of noise colors to remove
+    f21 $4,101092 ; denoise type 3
+    ;mov $0,$4
+
+    ; mask
+    mov $6,$4 ; image
+    mov $7,$3 ; color
+    f21 $6,101251 ; Convert to a mask image by converting `color` to 0 and converting anything else to to 1.
+    ;mov $0,$6
+
+    ; multiply input image by mask
+    mov $8,$6
+    mov $9,$0
+    mov $10,$3
+    f31 $8,102130 ; Pick pixels from one image.
+    mov $0,$8
+
+    ; remove space around the object
+    f11 $0,101160 ; trim
+
+    ";
+
+    #[test]
+    fn test_420000_puzzle_1f85a75f_loda() {
+        let model: Model = Model::load_testdata("1f85a75f").expect("model");
+        let program = PROGRAM_1F85A75F;
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
+    }
 }

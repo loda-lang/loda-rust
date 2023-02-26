@@ -2141,6 +2141,57 @@ impl UnofficialFunction for ImageRepeatFunction {
     }
 }
 
+struct ImageMaskSelectFromImageFunction {
+    id: u32,
+}
+
+impl ImageMaskSelectFromImageFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageMaskSelectFromImageFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Pick pixels from one image. When the mask is 0 then pick the `default_color`. When the mask is [1..255] then pick from the image.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image0: Image = input0_uint.to_image()?;
+
+        // input1 is image
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let image1: Image = input1_uint.to_image()?;
+
+        // input2 is the color
+        let color: u8 = input[2].to_u8().context("Input[2] u8 pixel_color")?;
+
+        let output_image: Image = image0.select_from_image(&image1, color)?;
+
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -2289,4 +2340,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Create a big image by repeating the image
     register_function!(ImageRepeatFunction::new(102120));
+
+    // Mask - select from image
+    register_function!(ImageMaskSelectFromImageFunction::new(102130));
 }
