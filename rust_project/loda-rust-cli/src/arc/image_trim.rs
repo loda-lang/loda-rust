@@ -1,7 +1,11 @@
 use super::{Histogram, Image, ImageHistogram};
 
 pub trait ImageTrim {
+    /// Determines the most popular border color and removes the area.
     fn trim(&self) -> anyhow::Result<Image>;
+
+    /// Remove border with the specified color.
+    fn trim_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Image>;
 }
 
 impl ImageTrim for Image {
@@ -19,6 +23,13 @@ impl ImageTrim for Image {
                 return Ok(Image::empty());
             }
         };
+        self.trim_color(popular_border_pixel_value)
+    }
+
+    fn trim_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Image> {
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
 
         // Find bounding box
         let x_max: i32 = (self.width() as i32) - 1;
@@ -30,7 +41,7 @@ impl ImageTrim for Image {
         for y in 0..=y_max {
             for x in 0..=x_max {
                 let pixel_value: u8 = self.get(x, y).unwrap_or(255);
-                if pixel_value == popular_border_pixel_value {
+                if pixel_value == color_to_be_trimmed {
                     continue;
                 }
 
@@ -85,7 +96,57 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_trim_border_with_zeroes() {
+    fn test_10000_trim_color_left() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 0, 0,
+            5, 1, 2, 0,
+            5, 3, 4, 0,
+            5, 5, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.trim_color(5).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            5, 0, 0,
+            1, 2, 0,
+            3, 4, 0,
+            5, 0, 0,
+        ];
+        let expected: Image = Image::try_create(3, 4, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10001_trim_color_right() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 0, 0,
+            5, 1, 2, 0,
+            5, 3, 4, 0,
+            5, 5, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 4, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.trim_color(0).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            5, 5, 0,
+            5, 1, 2,
+            5, 3, 4,
+            5, 5, 0,
+        ];
+        let expected: Image = Image::try_create(3, 4, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20000_trim_border_with_zeroes() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
@@ -104,7 +165,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_trim_all_10s() {
+    fn test_20001_trim_all_10s() {
         // Arrange
         let pixels: Vec<u8> = vec![
             10, 10, 10, 10, 10,
@@ -123,7 +184,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_trim_top_right() {
+    fn test_20002_trim_top_right() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -142,7 +203,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10003_trim_left_right_bottom() {
+    fn test_20003_trim_left_right_bottom() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 0,
@@ -161,7 +222,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10003_trim_no_object() {
+    fn test_20003_trim_no_object() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
@@ -180,7 +241,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10004_trim_1pixel() {
+    fn test_20004_trim_1pixel() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
@@ -199,7 +260,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10005_trim_2pixels() {
+    fn test_20005_trim_2pixels() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 0, 0, 0,
