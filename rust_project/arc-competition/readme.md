@@ -102,3 +102,29 @@ Great this looks like the content of the `secret_data` has been mounted correct 
 
 Now the `.tar` can be uploaded to the contest.
 
+### Step 7 - Publish the docker image
+
+Add the docker image `.tar` file to the [arcathon-docker-image](https://github.com/neoneye/arcathon-docker-image) repository.
+
+After `git push` has finished.
+
+Obtain the url for the docker image `.tar` file, that looks like this:
+
+```
+https://github.com/neoneye/arcathon-docker-image/raw/main/ARCathon2023/2023-02-26T13-03.tar
+```
+
+## Step 8 - Check that the docker image url actually downloads the file
+
+Paste the docker image url into the browser.
+
+Verify that a +100mb file gets downloaded.
+
+Delete the downloaded file again.
+
+## Step 9 - Submission
+
+Great. This docker image is ready to be submitted.
+
+
+
