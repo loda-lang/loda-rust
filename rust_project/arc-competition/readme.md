@@ -95,7 +95,7 @@ PROMP> rake run
 initial program_item_vec: 66
 initial model_item_vec.len: 63
 snip output
-CTRL-C to abort
+Press CTRL-C to stop it.
 ```
 
 Great this looks like the content of the `secret_data` has been mounted correct and the file has been discovered correct.
@@ -120,11 +120,27 @@ Paste the docker image url into the browser.
 
 Verify that a +100mb file gets downloaded.
 
+Verify that the file can get loaded by docker:
+
+```
+PROMPT> docker load < 2023-02-26T13-03.tar
+```
+
+Verify that the docker image can run:
+
+```
+PROMPT> docker run --mount type=bind,source="$(pwd)"/secret_data,target=/data neoneye/loda-rust-cli:latest
+prints out lots of stuff
+Press CTRL-C to stop it.
+```
+
+We have verified that the url works, and that the docker image is runnable.
+
 Delete the downloaded file again.
 
 ## Step 9 - Submission
 
 Great. This docker image is ready to be submitted.
 
-
+[ARCathon submission formula](https://lab42.global/arcathon/submission/)
 
