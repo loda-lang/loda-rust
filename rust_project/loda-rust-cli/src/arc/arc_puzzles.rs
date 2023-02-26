@@ -2466,4 +2466,42 @@ mod tests {
         assert_eq!(result.count_train_correct(), 3);
         assert_eq!(result.count_test_correct(), 1);
     }
+
+    #[test]
+    fn test_450000_puzzle_72ca375d() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_color: u8 = input.most_popular_color().expect("pixel");
+            let ignore_mask: Image = input.to_mask_where_color_is(background_color);
+            let objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("images");
+
+            // Identify the symmetric objects
+            let mut symmetric_objects: Vec<Image> = vec!();
+            for object in &objects {
+                let trimmed: Image = object.trim_color(background_color)?;
+                let mirror: Image = trimmed.flip_x()?;
+                if trimmed.eq(&mirror) {
+                    symmetric_objects.push(object.clone());
+                }
+            }
+
+            let mut output: Image = Image::empty();
+            for object in &symmetric_objects {
+                // Obtain original colors from the input image
+                let extracted_object: Image = object.select_from_image(&input, background_color)?;
+
+                // Trim borders
+                let image: Image = extracted_object.trim_color(background_color)?;
+                output = image;
+                break;
+            }
+            Ok(output)
+        };
+        let model: Model = Model::load_testdata("72ca375d").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+    }
 }
