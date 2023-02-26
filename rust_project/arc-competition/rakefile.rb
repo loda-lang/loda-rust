@@ -51,6 +51,18 @@ task "save-tar" do
     system("docker save #{image} > '#{filename}'")
 end
 
+desc "Remove the buildx instance - after building the docker image, it's no longer needed."
+task "remove-buildx-instance" do
+    buildxls = `docker buildx ls`
+    if buildxls =~ /my_loda_builder/
+        puts "will purge"
+        system("docker buildx rm my_loda_builder")
+        puts "did purge"
+    else
+        puts "nothing to be purged"
+    end
+end
+
 task :default do
     system 'rake -T'
 end

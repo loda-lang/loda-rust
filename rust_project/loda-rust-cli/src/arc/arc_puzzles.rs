@@ -4,9 +4,9 @@ mod tests {
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageBorder};
     use crate::arc::{Image, convolution2x2, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
-    use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount};
+    use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
-    use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole};
+    use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile};
     use bit_set::BitSet;
     use std::collections::HashMap;
 
@@ -396,59 +396,30 @@ mod tests {
     }
 
     const PROGRAM_007BBFB7: &'static str = "
-    mov $22,0 ; background color
-    mov $19,$0
+    ; tile_width
+    mov $2,$0
+    f11 $2,101000 ; Get width of image
 
-    mov $20,$0
-    f11 $20,101000 ; get width
+    ; tile_height
+    mov $3,$0
+    f11 $3,101001 ; Get height of image
 
-    mov $21,$0
-    f11 $21,101000 ; get height
+    ; tile
+    mov $7,0 ; color
+    mov $6,$3 ; height
+    mov $5,$2 ; width
+    f31 $5,101010 ; Create new image with size (x, y) and filled with color z
 
-    mov $0,$20
-    pow $0,2 ; width * width
-    mov $1,$21
-    pow $1,2 ; height * height
-    mov $2,0 ; fill color
-    f31 $0,101010 ; create image of size 9x9 with color 0
+    ; mask
+    mov $10,$0 ; image
+    mov $11,$1 ; color
+    f21 $10,101251 ; Convert to a mask image by converting `color` to 0 and converting anything else to to 1.
 
-    mov $11,0 ; reset y position
+    mov $11,$5 ; tile0
+    mov $12,$0 ; tile1
+    f31 $10,102110 ; Create a big composition of tiles.
 
-    mov $8,$21 ; height
-    lps $8 ; loop over rows
-
-        mov $10,0 ; reset x position
-
-        mov $9,$20 ; width
-        lps $9 ; loop over columns
-
-            mov $3,$19 ; input image
-            mov $4,$10 ; x
-            mov $5,$11 ; y
-            f31 $3,101002 ; get pixel
-
-            cmp $3,$22
-            cmp $3,0
-            ; if the pixel is differnt than the background color
-            ; then overlay the image
-            lps $3
-
-                mov $1,$19 ; the image to be overlayed
-
-                mov $2,$10 ; x
-                mul $2,$20 ; x * width
-
-                mov $3,$11 ; y
-                mul $3,$21 ; y * width
-
-                f41 $0,101151 ; overlay with image
-            lpe
-
-            add $10,1 ; next column
-        lpe
-
-        add $11,1 ; next row
-    lpe
+    mov $0,$10
     ";
 
     #[test]
@@ -1740,23 +1711,10 @@ mod tests {
             let neighbour_down_left: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownLeft, color_when_there_is_no_neighbour).expect("image");
             let neighbour_down_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, color_when_there_is_no_neighbour).expect("image");
     
-            let mut result_image: Image = input.clone();
-            for y in 0..(input.height() as i32) {
-                for x in 0..(input.width() as i32) {
-                    let color_up_left: u8 = neighbour_up_left.get(x, y).unwrap_or(255);
-                    let color_up_right: u8 = neighbour_up_right.get(x, y).unwrap_or(255);
-                    let color_down_left: u8 = neighbour_down_left.get(x, y).unwrap_or(255);
-                    let color_down_right: u8 = neighbour_down_right.get(x, y).unwrap_or(255);
-    
-                    if color_down_left == color_up_right && color_down_left != color_when_there_is_no_neighbour {
-                        let _ = result_image.set(x, y, color_down_left);
-                    }
-                    if color_down_right == color_up_left && color_down_right != color_when_there_is_no_neighbour {
-                        let _ = result_image.set(x, y, color_down_right);
-                    }
-                }
-            }
-            Ok(result_image)
+            let mut output: Image = input.clone();
+            output.set_pixel_where_two_images_agree(&neighbour_down_left, &neighbour_up_right, color_when_there_is_no_neighbour).expect("ok");
+            output.set_pixel_where_two_images_agree(&neighbour_up_left, &neighbour_down_right, color_when_there_is_no_neighbour).expect("ok");
+            Ok(output)
         };
         let model: Model = Model::load_testdata("1f876c06").expect("model");
         let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
@@ -1768,12 +1726,6 @@ mod tests {
 
     const PROGRAM_1F876C06: &'static str = "
     mov $20,255 ; color when there is no neighbour
-
-    mov $21,$0
-    f11 $21,101000 ; get width
-    
-    mov $22,$0
-    f11 $22,101001 ; get height
 
     ; ignore mask
     mov $1,$0
@@ -1811,86 +1763,20 @@ mod tests {
     f31 $10,102067 ; neighbour 'DownRight'
     mov $6,$10
 
+    ; prepare the output image
     mov $14,$0 ; clone input image
 
-    mov $41,0 ; reset y position
+    ; set pixel where the two images agree
+    mov $17,$20 ; color to ignore
+    mov $16,$5 ; neighbour_down_left
+    mov $15,$4 ; neighbour_up_right
+    f41 $14,102100 ; set pixel where two images agree
 
-    mov $8,$22 ; height
-    lps $8 ; loop over rows
-        mov $40,0 ; reset x position
-        mov $9,$21 ; width
-        lps $9 ; loop over columns
-
-            ; color of 'UpLeft'
-            mov $10,$3 ; neighbour_up_left
-            mov $11,$40 ; x
-            mov $12,$41 ; y
-            f31 $10,101002 ; get pixel
-            mov $30,$10
-
-            ; color of 'UpRight'
-            mov $10,$4 ; neighbour_up_right
-            mov $11,$40 ; x
-            mov $12,$41 ; y
-            f31 $10,101002 ; get pixel
-            mov $31,$10
-
-            ; color of 'DownLeft'
-            mov $10,$5 ; neighbour_down_left
-            mov $11,$40 ; x
-            mov $12,$41 ; y
-            f31 $10,101002 ; get pixel
-            mov $32,$10
-
-            ; color of 'DownRight'
-            mov $10,$6 ; neighbour_down_right
-            mov $11,$40 ; x
-            mov $12,$41 ; y
-            f31 $10,101002 ; get pixel
-            mov $33,$10
-
-            ; $30 = color_up_left
-            ; $31 = color_up_right
-            ; $32 = color_down_left
-            ; $33 = color_down_right
-
-            ;if color_down_left == color_up_right && color_down_left != color_when_there_is_no_neighbour {
-            ;    let _ = result_image.set(x, y, color_down_left);
-            ;}
-            mov $18,$32
-            cmp $18,$31
-            mov $19,$32
-            cmp $19,$20
-            cmp $19,0
-            mul $19,$18
-            lps $19
-                mov $15,$40 ; x
-                mov $16,$41 ; y
-                mov $17,$32
-                f41 $14,101003 ; set pixel
-            lpe
-            mov $17,$32
-
-            ;if color_down_right == color_up_left && color_down_right != color_when_there_is_no_neighbour {
-            ;    let _ = result_image.set(x, y, color_down_right);
-            ;}
-            mov $18,$33
-            cmp $18,$30
-            mov $19,$33
-            cmp $19,$20
-            cmp $19,0
-            mul $19,$18
-            lps $19
-                mov $15,$40 ; x
-                mov $16,$41 ; y
-                mov $17,$30
-                f41 $14,101003 ; set pixel
-            lpe
-
-            add $40,1 ; next column
-        lpe
-        add $41,1 ; next row
-    lpe
+    ; set pixel where the two images agree
+    mov $17,$20 ; color to ignore
+    mov $16,$6 ; neighbour_down_right
+    mov $15,$3 ; neighbour_up_left
+    f41 $14,102100 ; set pixel where two images agree
 
     mov $0,$14
     ";
@@ -1920,32 +1806,91 @@ mod tests {
             let neighbour_down_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::DownRight, color_when_there_is_no_neighbour).expect("image");
 
             let mut result_image: Image = input.clone();
-            for y in 0..(input.height() as i32) {
-                for x in 0..(input.width() as i32) {
-                    let color_up_left: u8 = neighbour_up_left.get(x, y).unwrap_or(255);
-                    let color_up_right: u8 = neighbour_up_right.get(x, y).unwrap_or(255);
-                    let color_down_left: u8 = neighbour_down_left.get(x, y).unwrap_or(255);
-                    let color_down_right: u8 = neighbour_down_right.get(x, y).unwrap_or(255);
-
-                    if color_up_left != color_when_there_is_no_neighbour {
-                        let _ = result_image.set(x, y, color_up_left);
-                    }
-                    if color_up_right != color_when_there_is_no_neighbour {
-                        let _ = result_image.set(x, y, color_up_right);
-                    }
-                    if color_down_left != color_when_there_is_no_neighbour {
-                        let _ = result_image.set(x, y, color_down_left);
-                    }
-                    if color_down_right != color_when_there_is_no_neighbour {
-                        let _ = result_image.set(x, y, color_down_right);
-                    }
-                }
-            }
+            result_image.set_pixel_where_image_has_different_color(&neighbour_up_left, color_when_there_is_no_neighbour)?;
+            result_image.set_pixel_where_image_has_different_color(&neighbour_up_right, color_when_there_is_no_neighbour)?;
+            result_image.set_pixel_where_image_has_different_color(&neighbour_down_left, color_when_there_is_no_neighbour)?;
+            result_image.set_pixel_where_image_has_different_color(&neighbour_down_right, color_when_there_is_no_neighbour)?;
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("623ea044").expect("model");
         let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
         let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
+    const PROGRAM_623EA044: &'static str = "
+    mov $20,255 ; color when there is no neighbour
+
+    ; ignore mask
+    mov $1,$0
+    mov $2,$0
+    f11 $2,101060 ; most popular color
+    f21 $1,101250 ; mask where color is
+    ; $2 is most popular color
+    ; $1 is the ignore mask
+
+    ; neighbour_up_left
+    mov $10,$0
+    mov $11,$1
+    mov $12,$20
+    f31 $10,102064 ; neighbour 'UpLeft'
+    mov $3,$10
+
+    ; neighbour_up_right
+    mov $10,$0
+    mov $11,$1
+    mov $13,$20
+    f31 $10,102065 ; neighbour 'UpRight'
+    mov $4,$10
+
+    ; neighbour_down_left
+    mov $10,$0
+    mov $11,$1
+    mov $13,$20
+    f31 $10,102066 ; neighbour 'DownLeft'
+    mov $5,$10
+
+    ; neighbour_down_right
+    mov $10,$0
+    mov $11,$1
+    mov $13,$20
+    f31 $10,102067 ; neighbour 'DownRight'
+    mov $6,$10
+
+    ; prepare the output image
+    mov $14,$0 ; clone input image
+
+    ; draw diagonal line - down right
+    mov $15,$3 ; neighbour_up_left
+    mov $16,$20
+    f31 $14,102101 ; Set pixel where the image has a pixel value different than the color parameter. 
+
+    ; draw diagonal line - down left
+    mov $15,$4 ; neighbour_up_right
+    mov $16,$20
+    f31 $14,102101 ; Set pixel where the image has a pixel value different than the color parameter. 
+
+    ; draw diagonal line - up right
+    mov $15,$5 ; neighbour_down_left
+    mov $16,$20
+    f31 $14,102101 ; Set pixel where the image has a pixel value different than the color parameter. 
+
+    ; draw diagonal line - up left
+    mov $15,$6 ; neighbour_down_right
+    mov $16,$20
+    f31 $14,102101 ; Set pixel where the image has a pixel value different than the color parameter. 
+
+    mov $0,$14
+    ";
+
+    #[test]
+    fn test_320001_puzzle_623ea044_loda() {
+        let model: Model = Model::load_testdata("623ea044").expect("model");
+        let program = PROGRAM_623EA044;
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
         assert_eq!(result.messages(), "");
         assert_eq!(result.count_train_correct(), 3);
         assert_eq!(result.count_test_correct(), 1);
@@ -2279,4 +2224,208 @@ mod tests {
         assert_eq!(result.count_test_correct(), 1);
     }
 
+    #[test]
+    fn test_390000_puzzle_5b6cbef5() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_color: u8 = 0;
+            let mask: Image = input.to_mask_where_color_is_different(background_color);
+            let tile1: Image = input.clone();
+            let tile0: Image = Image::color(tile1.width(), tile1.height(), background_color);
+            let output: Image = mask.select_two_tiles(&tile0, &tile1)?;
+            Ok(output)
+        };
+        let model: Model = Model::load_testdata("5b6cbef5").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 5);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
+    const PROGRAM_5B6CBEF5: &'static str = "
+    ; tile_width
+    mov $2,$0
+    f11 $2,101000 ; Get width of image
+
+    ; tile_height
+    mov $3,$0
+    f11 $3,101001 ; Get height of image
+
+    ; tile
+    mov $7,0 ; color
+    mov $6,$3 ; height
+    mov $5,$2 ; width
+    f31 $5,101010 ; Create new image with size (x, y) and filled with color z
+
+    ; mask
+    mov $10,$0 ; image
+    mov $11,$1 ; color
+    f21 $10,101251 ; Convert to a mask image by converting `color` to 0 and converting anything else to to 1.
+
+    mov $11,$5 ; tile0
+    mov $12,$0 ; tile1
+    f31 $10,102110 ; Create a big composition of tiles.
+
+    mov $0,$10
+    ";
+
+    #[test]
+    fn test_390001_puzzle_5b6cbef5_loda() {
+        let model: Model = Model::load_testdata("5b6cbef5").expect("model");
+        let program = PROGRAM_5B6CBEF5;
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 5);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
+    const PROGRAM_CCD554AC: &'static str = "
+    mov $1,$0
+    f11 $1,101000 ; Get width of image
+
+    mov $2,$0
+    f11 $2,101001 ; Get height of image
+
+    ; $1 is count x = width of the image
+    ; $2 is count y = height of the image
+    f31 $0,102120 ; Make a big image by repeating the current image.
+    ";
+
+    #[test]
+    fn test_400001_puzzle_ccd554ac_loda() {
+        let model: Model = Model::load_testdata("ccd554ac").expect("model");
+        let program = PROGRAM_CCD554AC;
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 6);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
+    const PROGRAM_27F8CE4F: &'static str = "
+    mov $1,$0
+    f11 $1,101060 ; most popular color
+
+    ; tile_width
+    mov $2,$0
+    f11 $2,101000 ; Get width of image
+
+    ; tile_height
+    mov $3,$0
+    f11 $3,101001 ; Get height of image
+
+    ; tile
+    mov $7,0 ; color
+    mov $6,$3 ; height
+    mov $5,$2 ; width
+    f31 $5,101010 ; Create new image with size (x, y) and filled with color z
+
+    ; mask
+    mov $10,$0 ; image
+    mov $11,$1 ; color
+    f21 $10,101251 ; Convert to a mask image by converting `color` to 0 and converting anything else to to 1.
+
+    mov $11,$0 ; tile0
+    mov $12,$5 ; tile1
+    f31 $10,102110 ; Create a big composition of tiles.
+
+    mov $0,$10
+    ";
+
+    #[test]
+    fn test_410000_puzzle_27f8ce4f_loda() {
+        let model: Model = Model::load_testdata("27f8ce4f").expect("model");
+        let program = PROGRAM_27F8CE4F;
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 4);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
+    const PROGRAM_1F85A75F: &'static str = "
+    mov $3,$0
+    f11 $3,101060 ; most popular color
+    ; $3 is background_color
+
+    ; remove noisy pixels
+    mov $4,$0
+    mov $5,3 ; number of noise colors to remove
+    f21 $4,101092 ; denoise type 3
+    ;mov $0,$4
+
+    ; mask
+    mov $6,$4 ; image
+    mov $7,$3 ; color
+    f21 $6,101251 ; Convert to a mask image by converting `color` to 0 and converting anything else to to 1.
+    ;mov $0,$6
+
+    ; multiply input image by mask
+    mov $8,$6
+    mov $9,$0
+    mov $10,$3
+    f31 $8,102130 ; Pick pixels from one image.
+    mov $0,$8
+
+    ; remove space around the object
+    f11 $0,101160 ; trim
+    ";
+
+    #[test]
+    fn test_420000_puzzle_1f85a75f_loda() {
+        let model: Model = Model::load_testdata("1f85a75f").expect("model");
+        let program = PROGRAM_1F85A75F;
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 2);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
+    const PROGRAM_80AF3007: &'static str = "
+    mov $3,$0
+    f11 $3,101060 ; most popular color
+    ; $3 is background_color
+
+    ; remove space around the object
+    mov $5,$0
+    f11 $5,101160 ; trim
+
+    ; scaled down to 3x3
+    mov $8,$5
+    mov $9,3
+    mov $10,3
+    f31 $8,101200 ; resize
+
+    ; mask
+    mov $10,$8 ; image
+    mov $11,$3 ; color
+    f21 $10,101251 ; Convert to a mask image by converting `color` to 0 and converting anything else to to 1.
+
+    ; an empty tile
+    mov $14,$3 ; color
+    mov $13,3 ; height
+    mov $12,3 ; width
+    f31 $12,101010 ; Create new image with size (x, y) and filled with color z
+
+    ; Layout tiles
+    mov $15,$10
+    mov $16,$12 ; tile0
+    mov $17,$8 ; tile1
+    f31 $15,102110 ; Create a big composition of tiles.
+    mov $0,$15
+    ";
+
+    #[test]
+    fn test_430000_puzzle_80af3007_loda() {
+        let model: Model = Model::load_testdata("80af3007").expect("model");
+        let program = PROGRAM_80AF3007;
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+    }
 }
