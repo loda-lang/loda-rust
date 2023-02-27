@@ -6,7 +6,7 @@ DOCKER_IMAGE = "neoneye/loda-rust-cli:latest"
 
 desc "Create a docker builder named 'my_loda_builder'"
 task 'buildx-create' do
-    system("docker buildx create --platform linux/arm64,linux/amd64 --name my_loda_builder")
+    system("docker buildx create --platform linux/amd64 --name my_loda_builder")
 end
 
 desc "Prepare the contents of the /root dir. This is to be invoked before 'buildx-build'."
@@ -23,7 +23,7 @@ task 'buildx-build' do
     # The Dockerfile has to be invoked within the dir where the files live.
     Dir.chdir("..") do
         system("docker buildx use my_loda_builder")
-        system("docker buildx build --platform linux/amd64,linux/arm64 -t #{image} --push . -f arc-competition/arc.Dockerfile")
+        system("docker buildx build --platform linux/amd64 -t #{image} --push . -f arc-competition/arc.Dockerfile")
     end
 end
 
