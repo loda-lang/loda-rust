@@ -846,6 +846,33 @@ mod tests {
         Ok(())
     }
 
+    // #[test]
+    fn xtest_110001_puzzle_0dfd9992() -> anyhow::Result<()> {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+
+            // Count the number of identical neighbouring pixels
+            let duplicate_count: Image = input.count_duplicate_pixels_in_neighbours().expect("image");
+
+            // Ignore the pixels where count is 0, 1, 2
+            // We are only interested in pixels where there are 3 or more neighbour pixels that are the same.
+            let mask: Image = duplicate_count.to_mask_where_color_is_equal_or_greater_than(3);
+    
+            let histogram: Histogram = input.histogram_with_mask(&mask).expect("histogram");
+            let repair_color: u8 = histogram.most_popular_color().expect("color");
+            let repair_mask: Image = input.to_mask_where_color_is(repair_color);
+    
+            Ok(repair_mask)
+        };
+        let model: Model = Model::load_testdata("0dfd9992").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+        Ok(())
+    }
+
     #[test]
     fn test_120000_puzzle_3bdb4ada() {
         let solution: SolutionSimple = |data| {
