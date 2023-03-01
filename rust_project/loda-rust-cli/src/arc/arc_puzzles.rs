@@ -694,28 +694,38 @@ mod tests {
         Ok((mask, repair_areas))
     }
 
-    fn repair_corner_top_left(bitmap: &mut Image, x: i32, y: i32, trigram_x: &Vec<RecordTrigram>, trigram_y: &Vec<RecordTrigram>) -> anyhow::Result<()> {
-        if x < 1 || y < 1 {
-            println!("repair corner top left: {}, {} - insufficient room to make bigram", x, y);
+    fn repair_corner_pixel(bitmap: &mut Image, x: i32, y: i32, trigram_x: &Vec<RecordTrigram>, trigram_y: &Vec<RecordTrigram>) -> anyhow::Result<()> {
+        if x < 0 || y < 0 || x >= (bitmap.width() as i32) || y >= (bitmap.height() as i32) {
+            println!("repair corner: {}, {} - coordinate is outside canvas", x, y);
             return Ok(());
         }
-        println!("repair corner top left: {}, {}", x, y);
+        println!("repair corner: {}, {}", x, y);
 
-        let pixel_top_top: u8 = bitmap.get(x, y - 2).unwrap_or(255);
-        let pixel_top: u8 = bitmap.get(x, y - 1).unwrap_or(255);
-        let pixel_left_left: u8 = bitmap.get(x - 2, y).unwrap_or(255);
-        let pixel_left: u8 = bitmap.get(x - 1, y).unwrap_or(255);
+        let pixel_up2: u8 = bitmap.get(x, y - 2).unwrap_or(255);
+        let pixel_up1: u8 = bitmap.get(x, y - 1).unwrap_or(255);
+        let pixel_left2: u8 = bitmap.get(x - 2, y).unwrap_or(255);
+        let pixel_left1: u8 = bitmap.get(x - 1, y).unwrap_or(255);
+        let pixel_right2: u8 = bitmap.get(x + 2, y).unwrap_or(255);
+        let pixel_right1: u8 = bitmap.get(x + 1, y).unwrap_or(255);
+        let pixel_down2: u8 = bitmap.get(x, y + 2).unwrap_or(255);
+        let pixel_down1: u8 = bitmap.get(x, y + 1).unwrap_or(255);
 
         let mut bitset_trigram_x = BitSet::with_capacity(256);
         let mut bitset_trigram_y = BitSet::with_capacity(256);
         for candidate in 0..255u8 {
             for record in trigram_x.iter() {
-                if record.word0 == pixel_left_left && record.word1 == pixel_left && record.word2 == candidate {
+                if record.word0 == pixel_left2 && record.word1 == pixel_left1 && record.word2 == candidate {
+                    bitset_trigram_x.insert(candidate as usize);
+                }
+                if record.word0 == candidate && record.word1 == pixel_right1 && record.word2 == pixel_right2 {
                     bitset_trigram_x.insert(candidate as usize);
                 }
             }
             for record in trigram_y.iter() {
-                if record.word0 == pixel_top_top && record.word1 == pixel_top && record.word2 == candidate {
+                if record.word0 == pixel_up2 && record.word1 == pixel_up1 && record.word2 == candidate {
+                    bitset_trigram_y.insert(candidate as usize);
+                }
+                if record.word0 == candidate && record.word1 == pixel_down1 && record.word2 == pixel_down2 {
                     bitset_trigram_y.insert(candidate as usize);
                 }
             }
@@ -724,20 +734,27 @@ mod tests {
         bitset_trigram.clone_from(&bitset_trigram_x);
         bitset_trigram.intersect_with(&bitset_trigram_y);
         if bitset_trigram.len() >= 2 {
-            println!("more than 1 candidate. trigram: {:?}", bitset_trigram);
+            println!("ambiguous repair color. more than 1 candidate. trigram: {:?}", bitset_trigram);
         }
 
-        let mut found_color = 255;
+        let mut found_color: Option<u8> = None;
         for index in bitset_trigram.iter() {
             if index > 255 {
                 return Err(anyhow::anyhow!("Integrity error. Encountered bitset index outside of u8 range [0..255]"));
             }
-            found_color = index as u8;
+            found_color = Some(index as u8);
             break;
         }
-        println!("repair ({}, {}) = {:?}", x, y, found_color);
+        let set_color: u8 = match found_color {
+            Some(value) => value,
+            None => {
+                println!("repair ({}, {}) = cannot repair due to insufficient data", x, y);
+                return Ok(());
+            }
+        };
 
-        match bitmap.set(x, y, found_color) {
+        println!("repair ({}, {}) = {:?}", x, y, set_color);
+        match bitmap.set(x, y, set_color) {
             Some(()) => {},
             None => {
                 return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
@@ -819,15 +836,15 @@ mod tests {
                     let repair_y = (y as i32) + 1;
     
                     // if pixel_value >= 1 && pixel_value <= 4 {
-                    //     println!("repair corner: {}, {}", x, y);
-                    //     TODO: deal with all the cases
+                        // repair_corner_pixel(&mut result_bitmap, repair_x, repair_y, &trigram_x, &trigram_y)?;
+                        // TODO: deal with all the cases
                     // }
                     // if pixel_value >= 5 {
                     //     println!("repair edge: {}, {}", x, y);
                     // }
     
                     if pixel_value == 1 {
-                        repair_corner_top_left(&mut result_bitmap, repair_x, repair_y, &trigram_x, &trigram_y)?;
+                        repair_corner_pixel(&mut result_bitmap, repair_x, repair_y, &trigram_x, &trigram_y)?;
                     }
                 }
             }
