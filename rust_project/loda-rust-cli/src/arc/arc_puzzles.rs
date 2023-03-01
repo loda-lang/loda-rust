@@ -864,7 +864,29 @@ mod tests {
             let histogram: Histogram = input.histogram_with_mask(&mask).expect("histogram");
             let repair_color: u8 = histogram.most_popular_color().expect("color");
             let repair_mask: Image = input.to_mask_where_color_is(repair_color);
-    
+
+            println!("repair color: {}", repair_color);
+
+            // Trigrams
+            let trigram_x_unfiltered: Vec<RecordTrigram> = input.trigram_x().expect("trigram");
+            let trigram_y_unfiltered: Vec<RecordTrigram> = input.trigram_y().expect("trigram");
+            // println!("trigram_x_unfiltered: {:?}", trigram_x_unfiltered);
+            // println!("trigram_y_unfiltered: {:?}", trigram_y_unfiltered);
+            println!("trigram_x_unfiltered.len: {} trigram_y_unfiltered.len: {}", trigram_x_unfiltered.len(), trigram_y_unfiltered.len());
+            // Remove trigrams that contains the repair_color
+            let trigram_x_refs: Vec<&RecordTrigram> = trigram_x_unfiltered.iter().filter(|&record| {
+                record.word0 != repair_color && record.word1 != repair_color && record.word2 != repair_color
+            }).collect();
+            let trigram_y_refs: Vec<&RecordTrigram> = trigram_y_unfiltered.iter().filter(|&record| {
+                record.word0 != repair_color && record.word1 != repair_color && record.word2 != repair_color
+            }).collect();
+            let trigram_x: Vec<RecordTrigram> = trigram_x_refs.iter().map(|&i| i.clone()).collect();
+            let trigram_y: Vec<RecordTrigram> = trigram_y_refs.iter().map(|&i| i.clone()).collect();
+            // println!("trigram_x: {:?}", trigram_x);
+            // println!("trigram_y: {:?}", trigram_y);
+            println!("trigram_x.len: {} trigram_y.len: {}", trigram_x.len(), trigram_y.len());
+
+
             Ok(repair_mask)
         };
         let model: Model = Model::load_testdata("0dfd9992").expect("model");
