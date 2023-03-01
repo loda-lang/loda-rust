@@ -5,6 +5,7 @@ pub trait ImageToHTML {
 }
 
 impl ImageToHTML for Image {
+    #[allow(dead_code)]
     fn to_html(&self) -> String {
         if self.is_empty() {
             return "<div class=\"themearc image empty\"><span class=\"themearc image size\">0x0</span></div>".to_string();
