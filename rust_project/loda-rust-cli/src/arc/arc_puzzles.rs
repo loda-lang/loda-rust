@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, ImageResize};
+    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, ImageResize, ImagePadding};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageBorder};
-    use crate::arc::{Image, convolution2x2, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
+    use crate::arc::{Image, convolution3x3, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
     use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile};
@@ -651,45 +651,62 @@ mod tests {
 
     /// Detect corners and edges
     fn mask_and_repair_areas(input: &Image) -> anyhow::Result<(Image, Image)> {
-        // Assign 0 to background, assign 1 to foreground
-        let mut mask: Image = input.clone();
-        for pixel_value in 2..=255 {
-            mask = mask.replace_color(pixel_value, 1).expect("image");
-        }
-        // println!("mask: {:?}", mask);
+        let mut mask: Image = input.to_mask_where_color_is(0);
+        mask = mask.padding_with_color(1, 255)?;
 
         // Detect corners and edges
-        let repair_areas: Image = convolution2x2(&mask, |bm| {
-            let pixel00: u8 = bm.get(0, 0).unwrap_or(255);
-            let pixel10: u8 = bm.get(1, 0).unwrap_or(255);
-            let pixel01: u8 = bm.get(0, 1).unwrap_or(255);
-            let pixel11: u8 = bm.get(1, 1).unwrap_or(255);
-            let number_of_zeros: u8 = 
-                u8::min(pixel00, 1) + 
-                u8::min(pixel10, 1) + 
-                u8::min(pixel01, 1) + 
-                u8::min(pixel11, 1);
-            if number_of_zeros <= 1 {
-                // 1 mask pixel turned on, and 3 pixels is the background, don't consider this as a corner.
-                // 0 mask pixels turned on, all 4 pixels are the background then ignore.
+        let repair_areas: Image = convolution3x3(&mask, |bm| {
+            let center_color: u8 = bm.get(1, 1).unwrap_or(255);
+            if center_color == 0 {
+                // The center pixel is not set
                 return Ok(0);
             }
+            let pairs_horizontal: [(u8,u8); 2] = [
+                (0,1), // left
+                (2,1), // right
+            ];
+            let pairs_vertical: [(u8,u8); 2] = [
+                (1,0), // top
+                (1,2)  // bottom
+            ];
+            let mut count_horizontal: u8 = 0;
+            for (x, y) in pairs_horizontal {
+                let color: u8 = bm.get(x as i32, y as i32).unwrap_or(255);
+                if color > 0 {
+                    count_horizontal += 1;
+                }
+            }
+            let mut count_vertical: u8 = 0;
+            for (x, y) in pairs_vertical {
+                let color: u8 = bm.get(x as i32, y as i32).unwrap_or(255);
+                if color > 0 {
+                    count_vertical += 1;
+                }
+            }
 
-            let mut mask: u8 = 0;
-            if pixel00 == pixel10 { mask |= 1; }
-            if pixel01 == pixel11 { mask |= 2; }
-            if pixel00 == pixel01 { mask |= 4; }
-            if pixel10 == pixel11 { mask |= 8; }
-            let value: u8 = match mask {
-                3 => 5, // edge, rows differ
-                5 => 1, // corner top left
-                6 => 2, // corner bottom left
-                9 => 3, // corner top right
-                10 => 4, // corner bottom right
-                12 => 6, // edge, columns differ
-                _ => 0,
-            };
-            Ok(value)
+            match (count_horizontal, count_vertical) {
+                (0, 0) => {
+                    // The pixels up/left/right/down all have valid pixel data
+                    // The center pixel has yet to be computed.
+                    return Ok(1);
+                },
+                (1, 1) => {
+                    // This is a corner
+                    return Ok(1);
+                },
+                (0, 1) => {
+                    // This is a corner
+                    return Ok(1);
+                },
+                (1, 0) => {
+                    // This is a corner
+                    return Ok(1);
+                },
+                _ => {
+                    // This is not a corner
+                    return Ok(0);
+                }
+            }
         }).expect("image");
         Ok((mask, repair_areas))
     }
@@ -820,6 +837,8 @@ mod tests {
         let mut last_repair_count: usize = 0;
         for iteration in 0..13 {
             let (mask, repair_areas) = mask_and_repair_areas(&result_bitmap)?;
+            // HtmlLog::html(mask.to_html());
+            // HtmlLog::html(repair_areas.to_html());
             println!("iteration#{} mask: {:?}", iteration, mask);
             println!("iteration#{} repair areas: {:?}", iteration, repair_areas);
             let mut repair_count: usize = 0;
@@ -832,17 +851,8 @@ mod tests {
                     repair_count += 1;
     
                     // repair position
-                    let repair_x = (x as i32) + 1;
-                    let repair_y = (y as i32) + 1;
-    
-                    // if pixel_value >= 1 && pixel_value <= 4 {
-                        // repair_corner_pixel(&mut result_bitmap, repair_x, repair_y, &trigram_x, &trigram_y)?;
-                        // TODO: deal with all the cases
-                    // }
-                    // if pixel_value >= 5 {
-                    //     println!("repair edge: {}, {}", x, y);
-                    // }
-    
+                    let repair_x = x as i32;
+                    let repair_y = y as i32;
                     if pixel_value == 1 {
                         repair_corner_pixel(&mut result_bitmap, repair_x, repair_y, &trigram_x, &trigram_y)?;
                     }
@@ -855,6 +865,7 @@ mod tests {
                     break;
                 }
             }
+            // HtmlLog::html(result_bitmap.to_html());
             if repair_count == 0 {
                 println!("repair done. no more pixels to be repaired");
                 break;
