@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, ImageResize, HtmlLog, ImageToHTML};
+    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, ImageResize};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageBorder};
     use crate::arc::{Image, convolution2x2, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
@@ -9,6 +9,9 @@ mod tests {
     use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile};
     use bit_set::BitSet;
     use std::collections::HashMap;
+
+    #[allow(unused_imports)]
+    use crate::arc::{HtmlLog, ImageToHTML};
 
     #[test]
     fn test_10000_puzzle_4258a5f9() {
