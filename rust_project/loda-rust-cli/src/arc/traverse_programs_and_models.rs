@@ -839,6 +839,23 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    /// Print out lots of useful info.
+    /// 
+    /// I have tried submitting a docker image built with the wrong architecture. I don't want to repeat that.
+    fn print_system_info() {
+        println!("env::consts::ARCH: {}", std::env::consts::ARCH);
+        println!("env::consts::OS: {}", std::env::consts::OS);
+
+        const VERSION: &str = env!("CARGO_PKG_VERSION");
+        let build_mode: &str;
+        if cfg!(debug_assertions) {
+            build_mode = "DEBUG (terrible performance!)";
+        } else {
+            build_mode = "RELEASE";
+        }
+        println!("LODA-RUST version: {}, build: {}", VERSION, build_mode);
+    }
+
     fn run_arc_competition(&mut self) -> anyhow::Result<()> {
         let execute_start_time: Instant = Instant::now();
         let execute_time_limit: Duration = Duration::from_secs(ARC_COMPETITION_EXECUTE_DURATION_SECONDS);
@@ -851,6 +868,7 @@ impl TraverseProgramsAndModels {
         let number_of_programs_to_generate: usize = 3;
 
         println!("{} - Start of program", Self::human_readable_utc_timestamp());
+        Self::print_system_info();
         println!("initial program_item_vec: {}", self.program_item_vec.len());
         println!("initial model_item_vec.len: {}", self.model_item_vec.len());
 

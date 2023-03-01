@@ -2428,4 +2428,109 @@ mod tests {
         assert_eq!(result.count_train_correct(), 3);
         assert_eq!(result.count_test_correct(), 1);
     }
+
+    #[test]
+    fn test_440000_puzzle_73ccf9c2() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_color: u8 = input.most_popular_color().expect("pixel");
+            let ignore_mask: Image = input.to_mask_where_color_is(background_color);
+            let objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("images");
+
+            // Identify the asymmetric objects
+            let mut asymmetric_objects: Vec<Image> = vec!();
+            for object in &objects {
+                let trimmed: Image = object.trim_color(background_color)?;
+                let mirror: Image = trimmed.flip_x()?;
+                if !trimmed.eq(&mirror) {
+                    asymmetric_objects.push(object.clone());
+                }
+            }
+
+            let mut output: Image = Image::empty();
+            for object in &asymmetric_objects {
+                // Obtain original colors from the input image
+                let extracted_object: Image = object.select_from_image(&input, background_color)?;
+
+                // Trim borders
+                let image: Image = extracted_object.trim_color(background_color)?;
+                output = image;
+                break;
+            }
+            Ok(output)
+        };
+        let model: Model = Model::load_testdata("73ccf9c2").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
+    #[test]
+    fn test_450000_puzzle_72ca375d() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_color: u8 = input.most_popular_color().expect("pixel");
+            let ignore_mask: Image = input.to_mask_where_color_is(background_color);
+            let objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("images");
+
+            // Identify the symmetric objects
+            let mut symmetric_objects: Vec<Image> = vec!();
+            for object in &objects {
+                let trimmed: Image = object.trim_color(background_color)?;
+                let mirror: Image = trimmed.flip_x()?;
+                if trimmed.eq(&mirror) {
+                    symmetric_objects.push(object.clone());
+                }
+            }
+
+            let mut output: Image = Image::empty();
+            for object in &symmetric_objects {
+                // Obtain original colors from the input image
+                let extracted_object: Image = object.select_from_image(&input, background_color)?;
+
+                // Trim borders
+                let image: Image = extracted_object.trim_color(background_color)?;
+                output = image;
+                break;
+            }
+            Ok(output)
+        };
+        let model: Model = Model::load_testdata("72ca375d").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+    }
+
+    #[test]
+    fn test_460000_puzzle_dbc1a6ce() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let background_color: u8 = input.histogram_all().most_popular_color().expect("color");
+            let ignore_mask = input.to_mask_where_color_is(background_color);
+            let color_when_there_is_no_neighbour: u8 = 255;
+
+            let neighbour_up: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Up, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_down: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Down, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_left: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Left, color_when_there_is_no_neighbour).expect("image");
+            let neighbour_right: Image = input.neighbour_color(&ignore_mask, ImageNeighbourDirection::Right, color_when_there_is_no_neighbour).expect("image");
+
+            let mut lines: Image = input.clone();
+            lines.set_pixel_where_two_images_agree(&neighbour_up, &neighbour_down, color_when_there_is_no_neighbour).expect("ok");
+            lines.set_pixel_where_two_images_agree(&neighbour_left, &neighbour_right, color_when_there_is_no_neighbour).expect("ok");
+            lines = lines.replace_color(1, 8)?;
+
+            let result_image: Image = ignore_mask.select_from_images(&input, &lines)?;
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("dbc1a6ce").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 4);
+        assert_eq!(result.count_test_correct(), 1);
+    }
 }
