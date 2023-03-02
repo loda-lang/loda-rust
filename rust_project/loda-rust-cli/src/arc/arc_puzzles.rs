@@ -797,48 +797,22 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_110000_puzzle_0dfd9992() -> anyhow::Result<()> {
-        // TODO: port to LODA
-        let model: Model = Model::load_testdata("0dfd9992")?;
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
+    fn repair_image(image: &Image, repair_mask: &Image, trigram_x: &Vec<RecordTrigram>, trigram_y: &Vec<RecordTrigram>) -> anyhow::Result<Image> {
+        if image.width() != repair_mask.width() {
+            return Err(anyhow::anyhow!("The width must be the same"));
+        }
+        if image.height() != repair_mask.height() {
+            return Err(anyhow::anyhow!("The height must be the same"));
+        }
+        if image.is_empty() {
+            return Ok(Image::empty());
+        }
+        let mut mask_with_1px_border = repair_mask.padding_with_color(1, 255)?;
 
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-
-        // TODO: make the rest of the tests pass OK. Currently these fails.
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        // Trigrams
-        let trigram_x_unfiltered: Vec<RecordTrigram> = input.trigram_x().expect("trigram");
-        let trigram_y_unfiltered: Vec<RecordTrigram> = input.trigram_y().expect("trigram");
-        // println!("trigram_x_unfiltered: {:?}", trigram_x_unfiltered);
-        // println!("trigram_y_unfiltered: {:?}", trigram_y_unfiltered);
-        // Remove trigrams where the background pixel (0) is contained in
-        let trigram_x_refs: Vec<&RecordTrigram> = trigram_x_unfiltered.iter().filter(|&record| {
-            record.word0 != 0 && record.word1 != 0 && record.word2 != 0
-        }).collect();
-        let trigram_y_refs: Vec<&RecordTrigram> = trigram_y_unfiltered.iter().filter(|&record| {
-            record.word0 != 0 && record.word1 != 0 && record.word2 != 0
-        }).collect();
-        let trigram_x: Vec<RecordTrigram> = trigram_x_refs.iter().map(|&i| i.clone()).collect();
-        let trigram_y: Vec<RecordTrigram> = trigram_y_refs.iter().map(|&i| i.clone()).collect();
-        // println!("trigram_x: {:?}", trigram_x);
-        // println!("trigram_y: {:?}", trigram_y);
-        
-        let mut mask_with_1px_border: Image = input.to_mask_where_color_is(0);
-        mask_with_1px_border = mask_with_1px_border.padding_with_color(1, 255)?;
-
-        let mut result_bitmap: Image = input.clone();
+        let mut result_bitmap: Image = image.clone();
 
         let mut last_repair_count: usize = 0;
-        for iteration in 0..13 {
+        for iteration in 0..10 {
             // HtmlLog::html(result_bitmap.to_html());
             // HtmlLog::html(mask_with_1px_border.to_html());
             let repairable_pixels: Image = identify_repairable_pixels(&mask_with_1px_border)?;
@@ -874,13 +848,11 @@ mod tests {
             }
             last_repair_count = repair_count;
         }
-
-        assert_eq!(result_bitmap, output);
-        Ok(())
+        Ok(result_bitmap)
     }
 
-    // #[test]
-    fn xtest_110001_puzzle_0dfd9992() -> anyhow::Result<()> {
+    #[test]
+    fn test_110000_puzzle_0dfd9992() -> anyhow::Result<()> {
         let solution: SolutionSimple = |data| {
             let input = data.image;
 
@@ -916,8 +888,8 @@ mod tests {
             // println!("trigram_y: {:?}", trigram_y);
             println!("trigram_x.len: {} trigram_y.len: {}", trigram_x.len(), trigram_y.len());
 
-
-            Ok(repair_mask)
+            let result_image: Image = repair_image(&input, &repair_mask, &trigram_x, &trigram_y)?;
+            Ok(result_image)
         };
         let model: Model = Model::load_testdata("0dfd9992").expect("model");
         let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
