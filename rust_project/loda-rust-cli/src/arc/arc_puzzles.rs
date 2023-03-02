@@ -649,12 +649,21 @@ mod tests {
         assert_eq!(result.count_test_correct(), 1);
     }
 
-    /// Detect corners and edges
-    fn mask_and_repair_areas(input: &Image) -> anyhow::Result<(Image, Image)> {
+    /// Find damaged pixels that have some pixel data around the center pixel,
+    /// so that it can be repaired using trigram repair.
+    /// 
+    /// Set `color=1` when it's a candidates for repair.
+    /// - A damaged pixel that has data all around it, that's a good candidate for repair.
+    /// 
+    /// Set `color=0` when it's not a candidate for repair.
+    /// - It makes no sense to try to repair a pixel that is already in good condition.
+    /// - It makes no sense to try to repair a pixel that so damaged that it has insufficient data for repairing it.
+    /// - A damaged pixel that has 3 damaged pixels around it and 1 neighbour with data, that's also a terrible candidate.
+    /// - A damaged pixel that has all damaged pixels around it, that cannot be repaired.
+    fn identify_repairable_pixels(input: &Image) -> anyhow::Result<Image> {
         let mut mask: Image = input.to_mask_where_color_is(0);
         mask = mask.padding_with_color(1, 255)?;
 
-        // Detect corners and edges
         let repair_areas: Image = convolution3x3(&mask, |bm| {
             let center_color: u8 = bm.get(1, 1).unwrap_or(255);
             if center_color == 0 {
@@ -708,24 +717,28 @@ mod tests {
                 }
             }
         }).expect("image");
-        Ok((mask, repair_areas))
+        Ok(repair_areas)
     }
 
-    fn repair_corner_pixel(bitmap: &mut Image, x: i32, y: i32, trigram_x: &Vec<RecordTrigram>, trigram_y: &Vec<RecordTrigram>) -> anyhow::Result<()> {
-        if x < 0 || y < 0 || x >= (bitmap.width() as i32) || y >= (bitmap.height() as i32) {
-            println!("repair corner: {}, {} - coordinate is outside canvas", x, y);
-            return Ok(());
+    /// Returns `true` when the pixel was successfully repaired.
+    /// 
+    /// Returns `false` when the pixel couldn't be repaired.
+    /// 
+    /// Returns an error in case the coordinate is outside the canvas.
+    fn repair_pixel(image: &mut Image, x: i32, y: i32, trigram_x: &Vec<RecordTrigram>, trigram_y: &Vec<RecordTrigram>) -> anyhow::Result<bool> {
+        if x < 0 || y < 0 || x >= (image.width() as i32) || y >= (image.height() as i32) {
+            return Err(anyhow::anyhow!("Unable to repair pixel. The coordinate ({}, {}) is outside image size.", x, y));
         }
         println!("repair corner: {}, {}", x, y);
 
-        let pixel_up2: u8 = bitmap.get(x, y - 2).unwrap_or(255);
-        let pixel_up1: u8 = bitmap.get(x, y - 1).unwrap_or(255);
-        let pixel_left2: u8 = bitmap.get(x - 2, y).unwrap_or(255);
-        let pixel_left1: u8 = bitmap.get(x - 1, y).unwrap_or(255);
-        let pixel_right2: u8 = bitmap.get(x + 2, y).unwrap_or(255);
-        let pixel_right1: u8 = bitmap.get(x + 1, y).unwrap_or(255);
-        let pixel_down2: u8 = bitmap.get(x, y + 2).unwrap_or(255);
-        let pixel_down1: u8 = bitmap.get(x, y + 1).unwrap_or(255);
+        let pixel_up2: u8    = image.get(x, y - 2).unwrap_or(255);
+        let pixel_up1: u8    = image.get(x, y - 1).unwrap_or(255);
+        let pixel_left2: u8  = image.get(x - 2, y).unwrap_or(255);
+        let pixel_left1: u8  = image.get(x - 1, y).unwrap_or(255);
+        let pixel_right2: u8 = image.get(x + 2, y).unwrap_or(255);
+        let pixel_right1: u8 = image.get(x + 1, y).unwrap_or(255);
+        let pixel_down2: u8  = image.get(x, y + 2).unwrap_or(255);
+        let pixel_down1: u8  = image.get(x, y + 1).unwrap_or(255);
 
         let mut bitset_trigram_x = BitSet::with_capacity(256);
         let mut bitset_trigram_y = BitSet::with_capacity(256);
@@ -766,18 +779,21 @@ mod tests {
             Some(value) => value,
             None => {
                 println!("repair ({}, {}) = cannot repair due to insufficient data", x, y);
-                return Ok(());
+                // Unable to repair the pixel.
+                return Ok(false);
             }
         };
 
         println!("repair ({}, {}) = {:?}", x, y, set_color);
-        match bitmap.set(x, y, set_color) {
-            Some(()) => {},
+        match image.set(x, y, set_color) {
+            Some(()) => {
+                // We did repair the pixel.
+                return Ok(true);
+            },
             None => {
                 return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
             }
         }
-        Ok(())
     }
 
     #[test]
@@ -797,23 +813,6 @@ mod tests {
         // let output: Image = model.train()[2].output().to_image().expect("image");
         // let input: Image = model.test()[0].input().to_image().expect("image");
         // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        // Bigrams
-        // let bigram_x_unfiltered: Vec<RecordBigram> = input.bigram_x().expect("bigram");
-        // let bigram_y_unfiltered: Vec<RecordBigram> = input.bigram_y().expect("bigram");
-        // println!("bigram_x_unfiltered: {:?}", bigram_x_unfiltered);
-        // println!("bigram_y_unfiltered: {:?}", bigram_y_unfiltered);
-        // Remove bigrams where the background pixel (0) is contained in
-        // let bigram_x_refs: Vec<&RecordBigram> = bigram_x_unfiltered.iter().filter(|&record| {
-        //     record.word0 != 0 && record.word1 != 0
-        // }).collect();
-        // let bigram_y_refs: Vec<&RecordBigram> = bigram_y_unfiltered.iter().filter(|&record| {
-        //     record.word0 != 0 && record.word1 != 0
-        // }).collect();
-        // let bigram_x: Vec<RecordBigram> = bigram_x_refs.iter().map(|&i| i.clone()).collect();
-        // let bigram_y: Vec<RecordBigram> = bigram_y_refs.iter().map(|&i| i.clone()).collect();
-        // println!("bigram_x: {:?}", bigram_x);
-        // println!("bigram_y: {:?}", bigram_y);
 
         // Trigrams
         let trigram_x_unfiltered: Vec<RecordTrigram> = input.trigram_x().expect("trigram");
@@ -836,25 +835,20 @@ mod tests {
 
         let mut last_repair_count: usize = 0;
         for iteration in 0..13 {
-            let (mask, repair_areas) = mask_and_repair_areas(&result_bitmap)?;
-            // HtmlLog::html(mask.to_html());
-            // HtmlLog::html(repair_areas.to_html());
-            println!("iteration#{} mask: {:?}", iteration, mask);
-            println!("iteration#{} repair areas: {:?}", iteration, repair_areas);
+            // HtmlLog::html(result_bitmap.to_html());
+            let repairable_pixels: Image = identify_repairable_pixels(&result_bitmap)?;
+            // HtmlLog::html(repairable_pixels.to_html());
+            println!("iteration#{} repair areas: {:?}", iteration, repairable_pixels);
             let mut repair_count: usize = 0;
-            for y in 0..repair_areas.height() {
-                for x in 0..repair_areas.width() {
-                    let pixel_value: u8 = repair_areas.get(x as i32, y as i32).unwrap_or(255);
-                    if pixel_value == 0 {
+            for y in 0..repairable_pixels.height() {
+                for x in 0..repairable_pixels.width() {
+                    let pixel_value: u8 = repairable_pixels.get(x as i32, y as i32).unwrap_or(255);
+                    if pixel_value < 1 {
                         continue;
                     }
-                    repair_count += 1;
-    
-                    // repair position
-                    let repair_x = x as i32;
-                    let repair_y = y as i32;
-                    if pixel_value == 1 {
-                        repair_corner_pixel(&mut result_bitmap, repair_x, repair_y, &trigram_x, &trigram_y)?;
+                    let did_repair: bool = repair_pixel(&mut result_bitmap, x as i32, y as i32, &trigram_x, &trigram_y)?;
+                    if did_repair {
+                        repair_count += 1;
                     }
                 }
             }
@@ -865,7 +859,6 @@ mod tests {
                     break;
                 }
             }
-            // HtmlLog::html(result_bitmap.to_html());
             if repair_count == 0 {
                 println!("repair done. no more pixels to be repaired");
                 break;
