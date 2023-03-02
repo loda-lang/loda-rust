@@ -652,6 +652,10 @@ mod tests {
     /// Find damaged pixels that have some pixel data around the center pixel,
     /// so that it can be repaired using trigram repair.
     /// 
+    /// The `mask_with_1px_border` must have a 1 pixel border with `color=255`.
+    /// The pixels inside the mask must have `color=1` if it's damaged and needs repair.
+    /// The pixels inside the mask must have `color=0` if it's already good.
+    /// 
     /// Set `color=1` when it's a candidates for repair.
     /// - A damaged pixel that has data all around it, that's a good candidate for repair.
     /// 
@@ -660,11 +664,8 @@ mod tests {
     /// - It makes no sense to try to repair a pixel that so damaged that it has insufficient data for repairing it.
     /// - A damaged pixel that has 3 damaged pixels around it and 1 neighbour with data, that's also a terrible candidate.
     /// - A damaged pixel that has all damaged pixels around it, that cannot be repaired.
-    fn identify_repairable_pixels(input: &Image) -> anyhow::Result<Image> {
-        let mut mask: Image = input.to_mask_where_color_is(0);
-        mask = mask.padding_with_color(1, 255)?;
-
-        let repair_areas: Image = convolution3x3(&mask, |bm| {
+    fn identify_repairable_pixels(mask_with_1px_border: &Image) -> anyhow::Result<Image> {
+        let repair_areas: Image = convolution3x3(&mask_with_1px_border, |bm| {
             let center_color: u8 = bm.get(1, 1).unwrap_or(255);
             if center_color == 0 {
                 // The center pixel is not set
@@ -831,12 +832,16 @@ mod tests {
         // println!("trigram_x: {:?}", trigram_x);
         // println!("trigram_y: {:?}", trigram_y);
         
+        let mut mask_with_1px_border: Image = input.to_mask_where_color_is(0);
+        mask_with_1px_border = mask_with_1px_border.padding_with_color(1, 255)?;
+
         let mut result_bitmap: Image = input.clone();
 
         let mut last_repair_count: usize = 0;
         for iteration in 0..13 {
             // HtmlLog::html(result_bitmap.to_html());
-            let repairable_pixels: Image = identify_repairable_pixels(&result_bitmap)?;
+            // HtmlLog::html(mask_with_1px_border.to_html());
+            let repairable_pixels: Image = identify_repairable_pixels(&mask_with_1px_border)?;
             // HtmlLog::html(repairable_pixels.to_html());
             println!("iteration#{} repair areas: {:?}", iteration, repairable_pixels);
             let mut repair_count: usize = 0;
@@ -849,6 +854,10 @@ mod tests {
                     let did_repair: bool = repair_pixel(&mut result_bitmap, x as i32, y as i32, &trigram_x, &trigram_y)?;
                     if did_repair {
                         repair_count += 1;
+
+                        // Clear the pixel that just got repaired.
+                        // so that we know that we should not attempt to repair it again.
+                        _ = mask_with_1px_border.set((x as i32) + 1, (y as i32) + 1, 0);
                     }
                 }
             }
