@@ -21,8 +21,8 @@ impl ImageRepairTrigram for Image {
         }
 
         // Trigrams
-        let trigram_x_unfiltered: Vec<RecordTrigram> = self.trigram_x().expect("trigram");
-        let trigram_y_unfiltered: Vec<RecordTrigram> = self.trigram_y().expect("trigram");
+        let trigram_x_unfiltered: Vec<RecordTrigram> = self.trigram_x()?;
+        let trigram_y_unfiltered: Vec<RecordTrigram> = self.trigram_y()?;
         if IMAGE_REPAIR_VERBOSE {
             // println!("trigram_x_unfiltered: {:?}", trigram_x_unfiltered);
             // println!("trigram_y_unfiltered: {:?}", trigram_y_unfiltered);
@@ -117,7 +117,7 @@ fn identify_repairable_pixels(mask_with_1px_border: &Image) -> anyhow::Result<Im
                 return Ok(0);
             }
         }
-    }).expect("image");
+    })?;
     Ok(repair_areas)
 }
 
@@ -200,7 +200,7 @@ fn repair_pixel(image: &mut Image, x: i32, y: i32, trigram_x: &Vec<RecordTrigram
             return Ok(true);
         },
         None => {
-            return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
+            return Err(anyhow::anyhow!("Unable to set pixel inside the result image"));
         }
     }
 }
@@ -217,12 +217,12 @@ fn repair_image(image: &Image, repair_mask: &Image, trigram_x: &Vec<RecordTrigra
     }
     let mut mask_with_1px_border = repair_mask.padding_with_color(1, 255)?;
 
-    let mut result_bitmap: Image = image.clone();
+    let mut result_image: Image = image.clone();
     for iteration in 0..10 {
         let repairable_pixels: Image = identify_repairable_pixels(&mask_with_1px_border)?;
 
         if IMAGE_REPAIR_VERBOSE {
-            HtmlLog::html(result_bitmap.to_html());
+            HtmlLog::html(result_image.to_html());
             HtmlLog::html(mask_with_1px_border.to_html());
             HtmlLog::html(repairable_pixels.to_html());
             println!("iteration#{} repair areas: {:?}", iteration, repairable_pixels);
@@ -235,7 +235,7 @@ fn repair_image(image: &Image, repair_mask: &Image, trigram_x: &Vec<RecordTrigra
                 if pixel_value < 1 {
                     continue;
                 }
-                let did_repair: bool = repair_pixel(&mut result_bitmap, x as i32, y as i32, &trigram_x, &trigram_y)?;
+                let did_repair: bool = repair_pixel(&mut result_image, x as i32, y as i32, &trigram_x, &trigram_y)?;
                 if did_repair {
                     repair_count += 1;
 
@@ -256,9 +256,9 @@ fn repair_image(image: &Image, repair_mask: &Image, trigram_x: &Vec<RecordTrigra
         }
     }
     if IMAGE_REPAIR_VERBOSE {
-        HtmlLog::html(result_bitmap.to_html());
+        HtmlLog::html(result_image.to_html());
     }
-    Ok(result_bitmap)
+    Ok(result_image)
 }
 
 #[cfg(test)]
