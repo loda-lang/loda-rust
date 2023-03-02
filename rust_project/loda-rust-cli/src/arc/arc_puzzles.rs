@@ -677,8 +677,7 @@ mod tests {
     }
 
     const PROGRAM_0DFD9992: &'static str = "
-    mov $5,$0 ; original corner
-
+    mov $5,$0
     f11 $5,102141 ; Compare with the pixels above,below,left,right and count how many have the same color as the center.
 
     ; We are only interested in pixels where there are 3 or more neighbour pixels that are the same.
