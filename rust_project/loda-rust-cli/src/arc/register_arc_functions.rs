@@ -1,6 +1,6 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
-use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
+use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere, ImageRepairTrigram};
 use super::{ImageRemoveGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting, ImageNeighbour, ImageNeighbourDirection};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
@@ -1665,6 +1665,7 @@ impl UnofficialFunction for ImageNumberOfUniqueColorsFunction {
 enum ImageToMaskFunctionFunctionMode {
     WhereColorIs,
     WhereColorIsDifferent,
+    WhereColorIsEqualOrGreater,
 }
 
 struct ImageToMaskFunction {
@@ -1694,6 +1695,9 @@ impl UnofficialFunction for ImageToMaskFunction {
             ImageToMaskFunctionFunctionMode::WhereColorIsDifferent => {
                 return "Convert to a mask image by converting `color` to 0 and converting anything else to to 1.".to_string();
             },
+            ImageToMaskFunctionFunctionMode::WhereColorIsEqualOrGreater => {
+                return "Convert to a mask image by converting `pixel_color >= threshold_color` to 1 and converting anything else to to 0.".to_string();
+            },
         }
     }
 
@@ -1719,6 +1723,9 @@ impl UnofficialFunction for ImageToMaskFunction {
             },
             ImageToMaskFunctionFunctionMode::WhereColorIsDifferent => {
                 output_image = image.to_mask_where_color_is_different(color);
+            },
+            ImageToMaskFunctionFunctionMode::WhereColorIsEqualOrGreater => {
+                output_image = image.to_mask_where_color_is_equal_or_greater_than(color);
             },
         }
         let output_uint: BigUint = output_image.to_number()?;
@@ -2192,6 +2199,113 @@ impl UnofficialFunction for ImageMaskSelectFromImageFunction {
     }
 }
 
+enum ImageCountDuplicatePixelsFunctionMode {
+    All,
+    Neighbors,
+}
+
+struct ImageCountDuplicatePixelsFunction {
+    id: u32,
+    mode: ImageCountDuplicatePixelsFunctionMode,
+}
+
+impl ImageCountDuplicatePixelsFunction {
+    fn new(id: u32, mode: ImageCountDuplicatePixelsFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageCountDuplicatePixelsFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            ImageCountDuplicatePixelsFunctionMode::All => {
+                return "Traverse all pixels in the 3x3 convolution and count how many have the same color as the center.".to_string();
+            },
+            ImageCountDuplicatePixelsFunctionMode::Neighbors => {
+                return "Compare with the pixels above,below,left,right and count how many have the same color as the center.".to_string();
+            }
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        let output_image: Image; 
+        match self.mode {
+            ImageCountDuplicatePixelsFunctionMode::All => {
+                output_image = input_image.count_duplicate_pixels_in_3x3()?;
+            },
+            ImageCountDuplicatePixelsFunctionMode::Neighbors => {
+                output_image = input_image.count_duplicate_pixels_in_neighbours()?;
+            }
+        }
+        
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct ImageRepairTrigramFunction {
+    id: u32,
+}
+
+impl ImageRepairTrigramFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageRepairTrigramFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Fix damaged pixels and recreate simple repeating patterns.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let mut image: Image = input0_uint.to_image()?;
+
+        // input1 is the color to repair
+        let repair_color: u8 = input[1].to_u8().context("Input[1] u8 pixel_color")?;
+
+        image.repair_trigram_algorithm(repair_color)?;
+
+        let output_uint: BigUint = image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -2316,6 +2430,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageToMaskFunction::new(101250, ImageToMaskFunctionFunctionMode::WhereColorIs));
     register_function!(ImageToMaskFunction::new(101251, ImageToMaskFunctionFunctionMode::WhereColorIsDifferent));
     register_function!(ImageInvertMaskFunction::new(101252));
+    register_function!(ImageToMaskFunction::new(101253, ImageToMaskFunctionFunctionMode::WhereColorIsEqualOrGreater));
 
     // Objects
     register_function!(ImagePopularObjectFunction::new(102000, ImagePopularObjectFunctionMode::MostPopular));
@@ -2343,4 +2458,11 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Mask - select from image
     register_function!(ImageMaskSelectFromImageFunction::new(102130));
+    
+    // Count duplicate pixels in 3x3 convolution
+    register_function!(ImageCountDuplicatePixelsFunction::new(102140, ImageCountDuplicatePixelsFunctionMode::All));
+    register_function!(ImageCountDuplicatePixelsFunction::new(102141, ImageCountDuplicatePixelsFunctionMode::Neighbors));
+
+    // Repair damaged pixels
+    register_function!(ImageRepairTrigramFunction::new(102150));
 }
