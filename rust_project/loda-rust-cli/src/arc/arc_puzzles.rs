@@ -6,7 +6,7 @@ mod tests {
     use crate::arc::{Image, ImageRepairTrigram, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
-    use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile};
     use std::collections::HashMap;
 
     #[allow(unused_imports)]

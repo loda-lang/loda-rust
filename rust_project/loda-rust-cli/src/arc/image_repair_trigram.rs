@@ -4,6 +4,9 @@ use bit_set::BitSet;
 #[allow(unused_imports)]
 use crate::arc::{HtmlLog, ImageToHTML};
 
+const IMAGE_REPAIR_VERBOSE: bool = false;
+
+
 pub trait ImageRepairTrigram {
     /// Fix damaged pixels and recreate simple repeating patterns.
     fn repair_trigram_algorithm(&self, repair_color: u8) -> anyhow::Result<Image>;
@@ -13,14 +16,19 @@ impl ImageRepairTrigram for Image {
     fn repair_trigram_algorithm(&self, repair_color: u8) -> anyhow::Result<Image> {
         let repair_mask: Image = self.to_mask_where_color_is(repair_color);
 
-        println!("repair color: {}", repair_color);
+        if IMAGE_REPAIR_VERBOSE {
+            println!("repair color: {}", repair_color);
+        }
 
         // Trigrams
         let trigram_x_unfiltered: Vec<RecordTrigram> = self.trigram_x().expect("trigram");
         let trigram_y_unfiltered: Vec<RecordTrigram> = self.trigram_y().expect("trigram");
-        // println!("trigram_x_unfiltered: {:?}", trigram_x_unfiltered);
-        // println!("trigram_y_unfiltered: {:?}", trigram_y_unfiltered);
-        println!("trigram_x_unfiltered.len: {} trigram_y_unfiltered.len: {}", trigram_x_unfiltered.len(), trigram_y_unfiltered.len());
+        if IMAGE_REPAIR_VERBOSE {
+            // println!("trigram_x_unfiltered: {:?}", trigram_x_unfiltered);
+            // println!("trigram_y_unfiltered: {:?}", trigram_y_unfiltered);
+            println!("trigram_x_unfiltered.len: {} trigram_y_unfiltered.len: {}", trigram_x_unfiltered.len(), trigram_y_unfiltered.len());
+        }
+
         // Remove trigrams that contains the repair_color
         let trigram_x_refs: Vec<&RecordTrigram> = trigram_x_unfiltered.iter().filter(|&record| {
             record.word0 != repair_color && record.word1 != repair_color && record.word2 != repair_color
@@ -30,9 +38,11 @@ impl ImageRepairTrigram for Image {
         }).collect();
         let trigram_x: Vec<RecordTrigram> = trigram_x_refs.iter().map(|&i| i.clone()).collect();
         let trigram_y: Vec<RecordTrigram> = trigram_y_refs.iter().map(|&i| i.clone()).collect();
-        // println!("trigram_x: {:?}", trigram_x);
-        // println!("trigram_y: {:?}", trigram_y);
-        println!("trigram_x.len: {} trigram_y.len: {}", trigram_x.len(), trigram_y.len());
+        if IMAGE_REPAIR_VERBOSE {
+            // println!("trigram_x: {:?}", trigram_x);
+            // println!("trigram_y: {:?}", trigram_y);
+            println!("trigram_x.len: {} trigram_y.len: {}", trigram_x.len(), trigram_y.len());
+        }
 
         let result_image: Image = repair_image(&self, &repair_mask, &trigram_x, &trigram_y)?;
         Ok(result_image)
@@ -120,7 +130,9 @@ fn repair_pixel(image: &mut Image, x: i32, y: i32, trigram_x: &Vec<RecordTrigram
     if x < 0 || y < 0 || x >= (image.width() as i32) || y >= (image.height() as i32) {
         return Err(anyhow::anyhow!("Unable to repair pixel. The coordinate ({}, {}) is outside image size.", x, y));
     }
-    println!("repair corner: {}, {}", x, y);
+    if IMAGE_REPAIR_VERBOSE {
+        println!("repair corner: {}, {}", x, y);
+    }
 
     let pixel_up2: u8    = image.get(x, y - 2).unwrap_or(255);
     let pixel_up1: u8    = image.get(x, y - 1).unwrap_or(255);
@@ -155,7 +167,9 @@ fn repair_pixel(image: &mut Image, x: i32, y: i32, trigram_x: &Vec<RecordTrigram
     bitset_trigram.clone_from(&bitset_trigram_x);
     bitset_trigram.intersect_with(&bitset_trigram_y);
     if bitset_trigram.len() >= 2 {
-        println!("ambiguous repair color. more than 1 candidate. trigram: {:?}", bitset_trigram);
+        if IMAGE_REPAIR_VERBOSE {
+            println!("ambiguous repair color. more than 1 candidate. trigram: {:?}", bitset_trigram);
+        }
     }
 
     let mut found_color: Option<u8> = None;
@@ -169,13 +183,17 @@ fn repair_pixel(image: &mut Image, x: i32, y: i32, trigram_x: &Vec<RecordTrigram
     let set_color: u8 = match found_color {
         Some(value) => value,
         None => {
-            println!("repair ({}, {}) = cannot repair due to insufficient data", x, y);
+            if IMAGE_REPAIR_VERBOSE {
+                println!("repair ({}, {}) = cannot repair due to insufficient data", x, y);
+            }
             // Unable to repair the pixel.
             return Ok(false);
         }
     };
 
-    println!("repair ({}, {}) = {:?}", x, y, set_color);
+    if IMAGE_REPAIR_VERBOSE {
+        println!("repair ({}, {}) = {:?}", x, y, set_color);
+    }
     match image.set(x, y, set_color) {
         Some(()) => {
             // We did repair the pixel.
@@ -201,11 +219,15 @@ fn repair_image(image: &Image, repair_mask: &Image, trigram_x: &Vec<RecordTrigra
 
     let mut result_bitmap: Image = image.clone();
     for iteration in 0..10 {
-        HtmlLog::html(result_bitmap.to_html());
-        HtmlLog::html(mask_with_1px_border.to_html());
         let repairable_pixels: Image = identify_repairable_pixels(&mask_with_1px_border)?;
-        HtmlLog::html(repairable_pixels.to_html());
-        println!("iteration#{} repair areas: {:?}", iteration, repairable_pixels);
+
+        if IMAGE_REPAIR_VERBOSE {
+            HtmlLog::html(result_bitmap.to_html());
+            HtmlLog::html(mask_with_1px_border.to_html());
+            HtmlLog::html(repairable_pixels.to_html());
+            println!("iteration#{} repair areas: {:?}", iteration, repairable_pixels);
+        }
+    
         let mut repair_count: usize = 0;
         for y in 0..repairable_pixels.height() {
             for x in 0..repairable_pixels.width() {
@@ -223,13 +245,19 @@ fn repair_image(image: &Image, repair_mask: &Image, trigram_x: &Vec<RecordTrigra
                 }
             }
         }
-        println!("iteration#{} repair_count: {}", iteration, repair_count);
+        if IMAGE_REPAIR_VERBOSE {
+            println!("iteration#{} repair_count: {}", iteration, repair_count);
+        }
         if repair_count == 0 {
-            println!("repair done. no more pixels to be repaired");
+            if IMAGE_REPAIR_VERBOSE {
+                println!("repair done. no more pixels to be repaired");
+            }
             break;
         }
     }
-    HtmlLog::html(result_bitmap.to_html());
+    if IMAGE_REPAIR_VERBOSE {
+        HtmlLog::html(result_bitmap.to_html());
+    }
     Ok(result_bitmap)
 }
 
