@@ -9,11 +9,11 @@ const IMAGE_REPAIR_VERBOSE: bool = false;
 
 pub trait ImageRepairTrigram {
     /// Fix damaged pixels and recreate simple repeating patterns.
-    fn repair_trigram_algorithm(&self, repair_color: u8) -> anyhow::Result<Image>;
+    fn repair_trigram_algorithm(&mut self, repair_color: u8) -> anyhow::Result<()>;
 }
 
 impl ImageRepairTrigram for Image {
-    fn repair_trigram_algorithm(&self, repair_color: u8) -> anyhow::Result<Image> {
+    fn repair_trigram_algorithm(&mut self, repair_color: u8) -> anyhow::Result<()> {
         let repair_mask: Image = self.to_mask_where_color_is(repair_color);
 
         if IMAGE_REPAIR_VERBOSE {
@@ -44,8 +44,8 @@ impl ImageRepairTrigram for Image {
             println!("trigram_x.len: {} trigram_y.len: {}", trigram_x.len(), trigram_y.len());
         }
 
-        let result_image: Image = repair_image(&self, &repair_mask, &trigram_x, &trigram_y)?;
-        Ok(result_image)
+        repair_image(self, &repair_mask, &trigram_x, &trigram_y)?;
+        Ok(())
     }
 }
 
@@ -205,7 +205,7 @@ fn repair_pixel(image: &mut Image, x: i32, y: i32, trigram_x: &Vec<RecordTrigram
     }
 }
 
-fn repair_image(image: &Image, repair_mask: &Image, trigram_x: &Vec<RecordTrigram>, trigram_y: &Vec<RecordTrigram>) -> anyhow::Result<Image> {
+fn repair_image(image: &mut Image, repair_mask: &Image, trigram_x: &Vec<RecordTrigram>, trigram_y: &Vec<RecordTrigram>) -> anyhow::Result<()> {
     if image.width() != repair_mask.width() {
         return Err(anyhow::anyhow!("The width must be the same"));
     }
@@ -213,16 +213,15 @@ fn repair_image(image: &Image, repair_mask: &Image, trigram_x: &Vec<RecordTrigra
         return Err(anyhow::anyhow!("The height must be the same"));
     }
     if image.is_empty() {
-        return Ok(Image::empty());
+        return Ok(());
     }
     let mut mask_with_1px_border = repair_mask.padding_with_color(1, 255)?;
 
-    let mut result_image: Image = image.clone();
     for iteration in 0..10 {
         let repairable_pixels: Image = identify_repairable_pixels(&mask_with_1px_border)?;
 
         if IMAGE_REPAIR_VERBOSE {
-            HtmlLog::html(result_image.to_html());
+            HtmlLog::html(image.to_html());
             HtmlLog::html(mask_with_1px_border.to_html());
             HtmlLog::html(repairable_pixels.to_html());
             println!("iteration#{} repair areas: {:?}", iteration, repairable_pixels);
@@ -235,7 +234,7 @@ fn repair_image(image: &Image, repair_mask: &Image, trigram_x: &Vec<RecordTrigra
                 if pixel_value < 1 {
                     continue;
                 }
-                let did_repair: bool = repair_pixel(&mut result_image, x as i32, y as i32, &trigram_x, &trigram_y)?;
+                let did_repair: bool = repair_pixel(image, x as i32, y as i32, &trigram_x, &trigram_y)?;
                 if did_repair {
                     repair_count += 1;
 
@@ -256,9 +255,9 @@ fn repair_image(image: &Image, repair_mask: &Image, trigram_x: &Vec<RecordTrigra
         }
     }
     if IMAGE_REPAIR_VERBOSE {
-        HtmlLog::html(result_image.to_html());
+        HtmlLog::html(image.to_html());
     }
-    Ok(result_image)
+    Ok(())
 }
 
 #[cfg(test)]
@@ -279,7 +278,8 @@ mod tests {
         let input: Image = Image::try_create(7, 5, pixels).expect("image");
 
         // Act
-        let actual: Image = input.repair_trigram_algorithm(9).expect("image");
+        let mut actual: Image = input.clone();
+        actual.repair_trigram_algorithm(9).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -307,7 +307,8 @@ mod tests {
         let input: Image = Image::try_create(7, 6, pixels).expect("image");
 
         // Act
-        let actual: Image = input.repair_trigram_algorithm(9).expect("image");
+        let mut actual: Image = input.clone();
+        actual.repair_trigram_algorithm(9).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![

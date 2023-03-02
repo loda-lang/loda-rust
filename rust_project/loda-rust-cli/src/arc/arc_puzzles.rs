@@ -663,7 +663,8 @@ mod tests {
             let histogram: Histogram = input.histogram_with_mask(&mask).expect("histogram");
             let repair_color: u8 = histogram.most_popular_color().expect("color");
 
-            let result_image: Image = input.repair_trigram_algorithm(repair_color).expect("image");
+            let mut result_image: Image = input.clone();
+            result_image.repair_trigram_algorithm(repair_color).expect("ok");
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("0dfd9992").expect("model");
