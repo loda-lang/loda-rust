@@ -2404,16 +2404,13 @@ mod tests {
         let mut found_count: u8 = 0;
         let mut found_i: i32 = 0;
 
-        let mut buffer = Image::zero(image.width(), 20*3);
-        for x in 0..image.width() as i32 {
-            let color: u8 = image.get(x, 0).unwrap_or(255);
-            _ = buffer.set(x, 0, color);
-        }
-        for i in 1..20i32 {
-            // for y in 0..image.height() as i32 {
+        for y in 0..image.height() as i32 {
+            for i in 1..20i32 {
+                if i < found_i {
+                    continue;
+                }
 
                 let mut count_same: u8 = 0;
-                let y: i32 = 0;
                 for x in 0..image.width() as i32 {
                     let x_i = x - i;
                     if x_i < 0 {
@@ -2423,28 +2420,22 @@ mod tests {
                     let color_i: u8 = image.get(x_i, y).unwrap_or(255);
                     let mask_i: u8 = repair_mask.get(x_i, y).unwrap_or(255);
 
-                    _ = buffer.set(x, i * 2, color_i);
-
                     if mask_i > 0 {
-                        _ = buffer.set(x, i * 2+1, 1);
                         continue;
                     }
-
-
                     if color == color_i {
-                        _ = buffer.set(x, i * 2+1, 11);
                         count_same += 1;
                     }
-
                 }
-            // }
-            if found_count < count_same {
-                found_count = count_same;
-                found_i = i;
+
+                if found_count < count_same {
+                    found_count = count_same;
+                    found_i = i;
+                    println!("new optima. i: {} count: {} y: {}", found_i, found_count, y);
+                }
             }
         }
-        _ = buffer.set(0, found_i * 2+1, 1);
-        HtmlLog::html(buffer.to_html());
+        println!("found i: {} count: {}", found_i, found_count);
     }
 
     // #[test]
