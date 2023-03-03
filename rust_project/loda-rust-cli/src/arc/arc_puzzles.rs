@@ -2400,6 +2400,53 @@ mod tests {
         assert_eq!(result.count_test_correct(), 1);
     }
 
+    fn offset_repair(image: &Image, repair_mask: &Image) {
+        let mut found_count: u8 = 0;
+        let mut found_i: i32 = 0;
+
+        let mut buffer = Image::zero(image.width(), 20*3);
+        for x in 0..image.width() as i32 {
+            let color: u8 = image.get(x, 0).unwrap_or(255);
+            _ = buffer.set(x, 0, color);
+        }
+        for i in 1..20i32 {
+            // for y in 0..image.height() as i32 {
+
+                let mut count_same: u8 = 0;
+                let y: i32 = 0;
+                for x in 0..image.width() as i32 {
+                    let x_i = x - i;
+                    if x_i < 0 {
+                        continue;
+                    }
+                    let color: u8 = image.get(x, y).unwrap_or(255);
+                    let color_i: u8 = image.get(x_i, y).unwrap_or(255);
+                    let mask_i: u8 = repair_mask.get(x_i, y).unwrap_or(255);
+
+                    _ = buffer.set(x, i * 2, color_i);
+
+                    if mask_i > 0 {
+                        _ = buffer.set(x, i * 2+1, 1);
+                        continue;
+                    }
+
+
+                    if color == color_i {
+                        _ = buffer.set(x, i * 2+1, 11);
+                        count_same += 1;
+                    }
+
+                }
+            // }
+            if found_count < count_same {
+                found_count = count_same;
+                found_i = i;
+            }
+        }
+        _ = buffer.set(0, found_i * 2+1, 1);
+        HtmlLog::html(buffer.to_html());
+    }
+
     // #[test]
     fn xtest_470000_puzzle_e95e3d8e() -> anyhow::Result<()> {
         let solution: SolutionSimple = |data| {
@@ -2410,14 +2457,18 @@ mod tests {
 
             // Ignore the pixels where count is 0, 1, 2
             // We are only interested in pixels where there are 3 or more neighbour pixels that are the same.
-            let mask: Image = duplicate_count.to_mask_where_color_is_equal_or_greater_than(3);
+            let mask: Image = duplicate_count.to_mask_where_color_is_equal_or_greater_than(4);
     
             let histogram: Histogram = input.histogram_with_mask(&mask).expect("histogram");
             let repair_color: u8 = histogram.most_popular_color().expect("color");
+            let repair_mask: Image = input.to_mask_where_color_is(repair_color);
 
-            let mut result_image: Image = input.clone();
+            offset_repair(&input, &repair_mask);
+
+            // let mut result_image: Image = input.clone();
+            let mut result_image: Image = repair_mask.clone();
             // TODO: make another repair algorithm that can solve this puzzle
-            result_image.repair_trigram_algorithm(repair_color).expect("ok");
+            // result_image.repair_trigram_algorithm(repair_color).expect("ok");
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("e95e3d8e").expect("model");
