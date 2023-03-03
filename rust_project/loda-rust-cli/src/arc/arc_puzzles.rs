@@ -2467,9 +2467,52 @@ mod tests {
 
             let tile_width: Option<u8> = find_horizontal_periodicity(&input, &repair_mask);
             println!("tile_width: {:?}", tile_width);
+            let offset: u8 = tile_width.expect("tile width");
 
-            // let mut result_image: Image = input.clone();
-            let mut result_image: Image = repair_mask.clone();
+            let mut result_image: Image = input.clone();
+            for y in 0..input.height() as i32 {
+                for x in 0..input.width() as i32 {
+                    let mask_color0: u8 = repair_mask.get(x, y).unwrap_or(255);
+                    if mask_color0 == 0 {
+                        continue;
+                    }
+
+                    let x_offset_plus1: i32 = x + (offset as i32);
+                    let mask_color_offset_plus1: u8 = repair_mask.get(x_offset_plus1, y).unwrap_or(255);
+                    if mask_color_offset_plus1 == 0 {
+                        let set_color: u8 = input.get(x_offset_plus1, y).unwrap_or(255);
+                        result_image.set(x, y, set_color);
+                        continue;
+                    }
+
+                    let x_offset_minus1: i32 = x - (offset as i32);
+                    let mask_color_offset_minus1: u8 = repair_mask.get(x_offset_minus1, y).unwrap_or(255);
+                    if mask_color_offset_minus1 == 0 {
+                        let set_color: u8 = input.get(x_offset_minus1, y).unwrap_or(255);
+                        result_image.set(x, y, set_color);
+                        continue;
+                    }
+
+                    let x_offset_plus2: i32 = x + (offset as i32) * 2;
+                    let mask_color_offset_plus2: u8 = repair_mask.get(x_offset_plus2, y).unwrap_or(255);
+                    if mask_color_offset_plus2 == 0 {
+                        let set_color: u8 = input.get(x_offset_plus2, y).unwrap_or(255);
+                        result_image.set(x, y, set_color);
+                        continue;
+                    }
+
+                    let x_offset_minus2: i32 = x - (offset as i32) * 2;
+                    let mask_color_offset_minus2: u8 = repair_mask.get(x_offset_minus2, y).unwrap_or(255);
+                    if mask_color_offset_minus2 == 0 {
+                        let set_color: u8 = input.get(x_offset_minus2, y).unwrap_or(255);
+                        result_image.set(x, y, set_color);
+                        continue;
+                    }
+
+                }
+            }
+
+            // let mut result_image: Image = repair_mask.clone();
             // TODO: make another repair algorithm that can solve this puzzle
             // result_image.repair_trigram_algorithm(repair_color).expect("ok");
             Ok(result_image)
