@@ -2400,42 +2400,53 @@ mod tests {
         assert_eq!(result.count_test_correct(), 1);
     }
 
-    fn offset_repair(image: &Image, repair_mask: &Image) {
+    fn find_horizontal_periodicity(image: &Image, ignore_mask: &Image) -> Option<u8> {
+        let image_width: u8 = image.width();
         let mut found_count: u8 = 0;
-        let mut found_i: i32 = 0;
-
+        let mut found_i: u8 = 0;
+        // Loop over the rows
         for y in 0..image.height() as i32 {
-            for i in 1..20i32 {
+            // Loop over the candidate offsets
+            for i in 1..image_width {
                 if i < found_i {
+                    // Ignore i's smaller than what has already been found.
                     continue;
                 }
-
+                if found_count >= (image_width - i) {
+                    // From this point on we cannot find more matches than what has already been found.
+                    break;
+                }
                 let mut count_same: u8 = 0;
-                for x in 0..image.width() as i32 {
-                    let x_i = x - i;
+                // Loop over the columns
+                for x in 0..image_width as i32 {
+                    let x_i = x - (i as i32);
                     if x_i < 0 {
+                        continue;
+                    }
+                    let mask_i: u8 = ignore_mask.get(x_i, y).unwrap_or(255);
+                    if mask_i > 0 {
                         continue;
                     }
                     let color: u8 = image.get(x, y).unwrap_or(255);
                     let color_i: u8 = image.get(x_i, y).unwrap_or(255);
-                    let mask_i: u8 = repair_mask.get(x_i, y).unwrap_or(255);
-
-                    if mask_i > 0 {
-                        continue;
-                    }
                     if color == color_i {
                         count_same += 1;
                     }
                 }
-
+                // Determine if the candidate is better and if so, then save it
                 if found_count < count_same {
                     found_count = count_same;
                     found_i = i;
-                    println!("new optima. i: {} count: {} y: {}", found_i, found_count, y);
+                    // println!("new optima. i: {} count: {} y: {}", found_i, found_count, y);
                 }
             }
         }
-        println!("found i: {} count: {}", found_i, found_count);
+        // println!("found i: {} count: {}", found_i, found_count);
+        if found_count > 0 {
+            return Some(found_i);
+        } else {
+            return None;
+        }
     }
 
     // #[test]
@@ -2454,7 +2465,8 @@ mod tests {
             let repair_color: u8 = histogram.most_popular_color().expect("color");
             let repair_mask: Image = input.to_mask_where_color_is(repair_color);
 
-            offset_repair(&input, &repair_mask);
+            let tile_width: Option<u8> = find_horizontal_periodicity(&input, &repair_mask);
+            println!("tile_width: {:?}", tile_width);
 
             // let mut result_image: Image = input.clone();
             let mut result_image: Image = repair_mask.clone();
