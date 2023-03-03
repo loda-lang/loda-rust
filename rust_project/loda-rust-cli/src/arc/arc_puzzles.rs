@@ -2412,10 +2412,10 @@ mod tests {
                     // Ignore i's smaller than what has already been found.
                     continue;
                 }
-                if found_count >= (image_width - i) {
-                    // From this point on we cannot find more matches than what has already been found.
-                    break;
-                }
+                // if found_count >= (image_width - i) {
+                //     // From this point on we cannot find more matches than what has already been found.
+                //     break;
+                // }
                 let mut count_same: u8 = 0;
                 // Loop over the columns
                 for x in 0..image_width as i32 {
@@ -2437,11 +2437,11 @@ mod tests {
                 if found_count < count_same {
                     found_count = count_same;
                     found_i = i;
-                    // println!("new optima. i: {} count: {} y: {}", found_i, found_count, y);
+                    println!("new optima. i: {} count: {} y: {}", found_i, found_count, y);
                 }
             }
         }
-        // println!("found i: {} count: {}", found_i, found_count);
+        println!("found i: {} count: {}", found_i, found_count);
         if found_count > 0 {
             return Some(found_i);
         } else {
@@ -2454,15 +2454,8 @@ mod tests {
         let solution: SolutionSimple = |data| {
             let input = data.image;
 
-            // Count the number of identical neighbouring pixels
-            let duplicate_count: Image = input.count_duplicate_pixels_in_neighbours().expect("image");
-
-            // Ignore the pixels where count is 0, 1, 2
-            // We are only interested in pixels where there are 3 or more neighbour pixels that are the same.
-            let mask: Image = duplicate_count.to_mask_where_color_is_equal_or_greater_than(4);
-    
-            let histogram: Histogram = input.histogram_with_mask(&mask).expect("histogram");
-            let repair_color: u8 = histogram.most_popular_color().expect("color");
+            // determine what color is used for damaged pixels
+            let repair_color: u8 = 0;
             let repair_mask: Image = input.to_mask_where_color_is(repair_color);
 
             let tile_width: Option<u8> = find_horizontal_periodicity(&input, &repair_mask);
