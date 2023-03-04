@@ -2461,7 +2461,10 @@ mod tests {
             let tile_width: Option<u8> = FindPeriodicity::find_horizontal_periodicity(&input, &repair_mask)?;
             // let tile_width: Option<u8> = find_horizontal_periodicity(&input, &repair_mask);
             println!("tile_width: {:?}", tile_width);
-            let offset: u8 = tile_width.expect("tile width");
+            HtmlLog::text(format!("tile_width: {:?}", tile_width));
+            // let offset: u8 = tile_width.expect("tile width");
+            // let offset: u8 = tile_width.or_else(1);
+            let offset: u8 = tile_width.unwrap_or(1);
 
             let mut result_image: Image = input.clone();
             for y in 0..input.height() as i32 {
