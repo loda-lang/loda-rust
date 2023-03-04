@@ -6,6 +6,7 @@ mod arcathon_solution_json;
 mod convolution2x2;
 mod convolution3x3;
 mod convolution_with_program;
+mod find_periodicity;
 mod histogram;
 mod html_log;
 mod image;
