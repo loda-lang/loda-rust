@@ -1,4 +1,4 @@
-use super::Image;
+use super::{Image, ImageRotate};
 use num_bigint::BigUint;
 use num_traits::{One, ToPrimitive};
 use num_integer::Integer;
@@ -14,21 +14,26 @@ pub struct FindPeriodicity {
 impl FindPeriodicity {
     #[allow(dead_code)]
     pub fn find_horizontal_periodicity(image: &Image, ignore_mask: &Image) -> anyhow::Result<Option<u8>> {
-        if image.width() != ignore_mask.width() || image.height() != ignore_mask.height() {
-            return Err(anyhow::anyhow!("Expected same size for 'image' and 'ignore_mask'"));
-        }
-        let instance = FindPeriodicity::measure_with_ignore_mask(image, ignore_mask);
+        let instance = FindPeriodicity::measure_with_ignore_mask(image, ignore_mask)?;
         Ok(instance.period)
     }
 
     #[allow(dead_code)]
-    fn measure_without_mask(image: &Image) -> FindPeriodicity {
-        let mask = Image::zero(image.width(), image.height());
-        Self::measure_with_ignore_mask(image, &mask)
+    pub fn find_vertical_periodicity(image: &Image, ignore_mask: &Image) -> anyhow::Result<Option<u8>> {
+        let image: Image = image.rotate_cw()?;
+        let ignore_mask: Image = ignore_mask.rotate_cw()?;
+        let instance = FindPeriodicity::measure_with_ignore_mask(&image, &ignore_mask)?;
+        Ok(instance.period)
     }
 
-    #[allow(dead_code)]
-    fn measure_with_ignore_mask(image: &Image, ignore_mask: &Image) -> FindPeriodicity {
+    fn measure_with_ignore_mask(image: &Image, ignore_mask: &Image) -> anyhow::Result<FindPeriodicity> {
+        if image.width() != ignore_mask.width() || image.height() != ignore_mask.height() {
+            return Err(anyhow::anyhow!("Expected same size for 'image' and 'ignore_mask'"));
+        }
+        if image.is_empty() || image.width() < 2 {
+            return Err(anyhow::anyhow!("Image is too small to find pattern"));
+        }
+
         let image_width: u8 = image.width();
         let mut global_found_i = BigUint::one();
 
@@ -80,9 +85,10 @@ impl FindPeriodicity {
             println!("found i: {}", global_found_i);
         }
         let period: Option<u8> = global_found_i.to_u8();
-        FindPeriodicity {
+        let instance = FindPeriodicity {
             period,
-        }
+        };
+        Ok(instance)
     }
 }
 
@@ -103,9 +109,9 @@ mod tests {
         }
         let image_width: u8 = image_width_usize as u8;
 
-        let input: Image = Image::try_create(image_width, image_height, pixels)?;
-
-        let instance: FindPeriodicity = FindPeriodicity::measure_without_mask(&input);
+        let image: Image = Image::try_create(image_width, image_height, pixels)?;
+        let ignore_mask = Image::zero(image.width(), image.height());
+        let instance: FindPeriodicity = FindPeriodicity::measure_with_ignore_mask(&image, &ignore_mask)?;
         Ok(instance)
     }
 
@@ -127,7 +133,7 @@ mod tests {
         let input: Image = Image::try_create(image_width, image_height, pixels)?;
         let ignore_mask: Image = Image::try_create(image_width, image_height, ignore_pixels)?;
 
-        let instance: FindPeriodicity = FindPeriodicity::measure_with_ignore_mask(&input, &ignore_mask);
+        let instance: FindPeriodicity = FindPeriodicity::measure_with_ignore_mask(&input, &ignore_mask)?;
         Ok(instance)
     }
 
@@ -582,5 +588,49 @@ mod tests {
         ];
         let instance = find_periodicity2(2, pixels, ignore_pixels).expect("ok");
         assert_eq!(instance.period, Some(6));
+    }
+
+    #[test]
+    fn test_50000_find_horizontal_periodicity() {
+        let pixels = vec![
+            1, 5, 1, 2, 1, 5, 1, // period 4
+            3, 2, 1, 3, 2, 1, 3, // period 3
+        ];
+        let image: Image = Image::try_create(7, 2, pixels).expect("ok");
+        let ignore_pixels = vec![
+            0, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 1,
+        ];
+        let ignore_mask: Image = Image::try_create(7, 2, ignore_pixels).expect("ok");
+        let period: Option<u8> = FindPeriodicity::find_horizontal_periodicity(&image, &ignore_mask).expect("ok");
+        assert_eq!(period, Some(12));
+    }
+
+    #[test]
+    fn test_60000_find_vertical_periodicity() {
+        let pixels = vec![
+            // column0 has a period of 4
+            // column1 has a period of 3
+            1, 3,
+            5, 2,
+            1, 1,
+            2, 3,
+            1, 2,
+            5, 1, 
+            1, 3,
+        ];
+        let image: Image = Image::try_create(2, 7, pixels).expect("ok");
+        let ignore_pixels = vec![
+            1, 0, 
+            0, 0, 
+            0, 0, 
+            0, 0, 
+            0, 0, 
+            0, 0,
+            1, 0,
+        ];
+        let ignore_mask: Image = Image::try_create(2, 7, ignore_pixels).expect("ok");
+        let period: Option<u8> = FindPeriodicity::find_vertical_periodicity(&image, &ignore_mask).expect("ok");
+        assert_eq!(period, Some(12));
     }
 }
