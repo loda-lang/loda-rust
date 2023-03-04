@@ -2465,7 +2465,27 @@ mod tests {
     }
 
     #[test]
-    fn test_490000_puzzle_ea959feb() -> anyhow::Result<()> {
+    fn test_490000_puzzle_ca8f78db() -> anyhow::Result<()> {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+
+            // determine what color is used for damaged pixels
+            let repair_color: u8 = 0;
+
+            let result_image: Image = repair_repeated_patterns(&input, repair_color)?;
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("ca8f78db").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn test_500000_puzzle_ea959feb() -> anyhow::Result<()> {
         let solution: SolutionSimple = |data| {
             let input = data.image;
 
