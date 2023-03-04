@@ -2439,4 +2439,43 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_480000_puzzle_ea959feb() -> anyhow::Result<()> {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+
+            // determine what color is used for damaged pixels
+            let repair_color: u8 = 1;
+
+            // Horizontal repair
+            let repair_mask: Image = input.to_mask_where_color_is(repair_color);
+            let tile_width: Option<u8> = input.horizontal_periodicity(&repair_mask)?;
+            // println!("tile_width: {:?}", tile_width);
+            // HtmlLog::text(format!("tile_width: {:?}", tile_width));
+            let offset_x: u8 = tile_width.unwrap_or(1);
+            let mut result_image: Image = input.clone();
+            result_image.repair_offset_x(&repair_mask, offset_x)?;
+
+            result_image = result_image.rotate_cw().expect("image");
+
+            // Vertical repair
+            let repair_mask2: Image = result_image.to_mask_where_color_is(repair_color);
+            let tile_height: Option<u8> = result_image.horizontal_periodicity(&repair_mask2)?;
+            // println!("tile_height: {:?}", tile_height);
+            // HtmlLog::text(format!("tile_height: {:?}", tile_height));
+            let offset_y: u8 = tile_height.unwrap_or(1);
+            result_image.repair_offset_x(&repair_mask2, offset_y)?;
+            result_image = result_image.rotate_ccw().expect("image");
+
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("ea959feb").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+        Ok(())
+    }
+
 }
