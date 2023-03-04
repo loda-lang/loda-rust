@@ -3,6 +3,9 @@ use num_bigint::BigUint;
 use num_traits::{One, ToPrimitive};
 use num_integer::Integer;
 
+const FIND_PERIODICITY_VERBOSE: bool = false;
+
+
 #[allow(dead_code)]
 pub struct FindPeriodicity {
     period: Option<u8>,
@@ -35,7 +38,8 @@ impl FindPeriodicity {
 
             // Loop over the candidate offsets
             for i in 1..image_width {
-                let mut count_mismatches: u8 = 0;
+                let mut detected_mismatches: bool = false;
+                
                 // Loop over the columns
                 for x in 0..image_width as i32 {
                     let x_i = x - (i as i32);
@@ -53,21 +57,28 @@ impl FindPeriodicity {
                     let color: u8 = image.get(x, y).unwrap_or(255);
                     let color_i: u8 = image.get(x_i, y).unwrap_or(255);
                     if color != color_i {
-                        count_mismatches += 1;
+                        detected_mismatches = true;
+                        break;
                     }
                 }
                 // Stop when reaching the first match
-                if count_mismatches == 0 {
+                if !detected_mismatches {
                     found_i = i;
-                    println!("row: {} new optima. i: {}", y, found_i);
+                    if FIND_PERIODICITY_VERBOSE {
+                        println!("row: {} new optima. i: {}", y, found_i);
+                    }
                     break;
                 }
             }
-            println!("row: {}  i: {}", y, found_i);
+            if FIND_PERIODICITY_VERBOSE {
+                println!("row: {}  i: {}", y, found_i);
+            }
             let other = BigUint::from(found_i);
             global_found_i = global_found_i.lcm(&other);
         }
-        println!("found i: {}", global_found_i);
+        if FIND_PERIODICITY_VERBOSE {
+            println!("found i: {}", global_found_i);
+        }
         let period: Option<u8> = global_found_i.to_u8();
         FindPeriodicity {
             period,
