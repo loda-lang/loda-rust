@@ -2400,118 +2400,80 @@ mod tests {
         assert_eq!(result.count_test_correct(), 1);
     }
 
-    fn find_horizontal_periodicity(image: &Image, ignore_mask: &Image) -> Option<u8> {
-        let image_width: u8 = image.width();
-        let mut found_count: u8 = 0;
-        let mut found_i: u8 = 0;
-        // Loop over the rows
-        for y in 0..image.height() as i32 {
-            // Loop over the candidate offsets
-            for i in 1..image_width {
-                if i < found_i {
-                    // Ignore i's smaller than what has already been found.
+    fn repair_with_offset_x(result_image: &mut Image, repair_mask: &Image, original_image: &Image, offset: u8) {
+        for y in 0..result_image.height() as i32 {
+            for x in 0..result_image.width() as i32 {
+                let mask_color0: u8 = repair_mask.get(x, y).unwrap_or(255);
+                if mask_color0 == 0 {
                     continue;
                 }
-                // if found_count >= (image_width - i) {
-                //     // From this point on we cannot find more matches than what has already been found.
-                //     break;
-                // }
-                let mut count_same: u8 = 0;
-                // Loop over the columns
-                for x in 0..image_width as i32 {
-                    let x_i = x - (i as i32);
-                    if x_i < 0 {
-                        continue;
-                    }
-                    let mask_i: u8 = ignore_mask.get(x_i, y).unwrap_or(255);
-                    if mask_i > 0 {
-                        continue;
-                    }
-                    let color: u8 = image.get(x, y).unwrap_or(255);
-                    let color_i: u8 = image.get(x_i, y).unwrap_or(255);
-                    if color == color_i {
-                        count_same += 1;
-                    }
+
+                let x_offset_plus1: i32 = x + (offset as i32);
+                let mask_color_offset_plus1: u8 = repair_mask.get(x_offset_plus1, y).unwrap_or(255);
+                if mask_color_offset_plus1 == 0 {
+                    let set_color: u8 = original_image.get(x_offset_plus1, y).unwrap_or(255);
+                    result_image.set(x, y, set_color);
+                    continue;
                 }
-                // Determine if the candidate is better and if so, then save it
-                if found_count < count_same {
-                    found_count = count_same;
-                    found_i = i;
-                    println!("new optima. i: {} count: {} y: {}", found_i, found_count, y);
+
+                let x_offset_minus1: i32 = x - (offset as i32);
+                let mask_color_offset_minus1: u8 = repair_mask.get(x_offset_minus1, y).unwrap_or(255);
+                if mask_color_offset_minus1 == 0 {
+                    let set_color: u8 = original_image.get(x_offset_minus1, y).unwrap_or(255);
+                    result_image.set(x, y, set_color);
+                    continue;
                 }
+
+                let x_offset_plus2: i32 = x + (offset as i32) * 2;
+                let mask_color_offset_plus2: u8 = repair_mask.get(x_offset_plus2, y).unwrap_or(255);
+                if mask_color_offset_plus2 == 0 {
+                    let set_color: u8 = original_image.get(x_offset_plus2, y).unwrap_or(255);
+                    result_image.set(x, y, set_color);
+                    continue;
+                }
+
+                let x_offset_minus2: i32 = x - (offset as i32) * 2;
+                let mask_color_offset_minus2: u8 = repair_mask.get(x_offset_minus2, y).unwrap_or(255);
+                if mask_color_offset_minus2 == 0 {
+                    let set_color: u8 = original_image.get(x_offset_minus2, y).unwrap_or(255);
+                    result_image.set(x, y, set_color);
+                    continue;
+                }
+
             }
-        }
-        println!("found i: {} count: {}", found_i, found_count);
-        if found_count > 0 {
-            return Some(found_i);
-        } else {
-            return None;
         }
     }
 
-    // #[test]
-    fn xtest_470000_puzzle_e95e3d8e() -> anyhow::Result<()> {
+    #[test]
+    fn test_470000_puzzle_e95e3d8e() -> anyhow::Result<()> {
         let solution: SolutionSimple = |data| {
             let input = data.image;
 
             // determine what color is used for damaged pixels
             let repair_color: u8 = 0;
+
+            // Horizontal repair
             let repair_mask: Image = input.to_mask_where_color_is(repair_color);
-
             let tile_width: Option<u8> = FindPeriodicity::find_horizontal_periodicity(&input, &repair_mask)?;
-            // let tile_width: Option<u8> = find_horizontal_periodicity(&input, &repair_mask);
-            println!("tile_width: {:?}", tile_width);
-            HtmlLog::text(format!("tile_width: {:?}", tile_width));
-            // let offset: u8 = tile_width.expect("tile width");
-            // let offset: u8 = tile_width.or_else(1);
-            let offset: u8 = tile_width.unwrap_or(1);
-
+            // println!("tile_width: {:?}", tile_width);
+            // HtmlLog::text(format!("tile_width: {:?}", tile_width));
+            let offset_x: u8 = tile_width.unwrap_or(1);
             let mut result_image: Image = input.clone();
-            for y in 0..input.height() as i32 {
-                for x in 0..input.width() as i32 {
-                    let mask_color0: u8 = repair_mask.get(x, y).unwrap_or(255);
-                    if mask_color0 == 0 {
-                        continue;
-                    }
+            repair_with_offset_x(&mut result_image, &repair_mask, &input, offset_x);
+            // TODO: update the repair mask, so I don't have to recompute the repair_mask
 
-                    let x_offset_plus1: i32 = x + (offset as i32);
-                    let mask_color_offset_plus1: u8 = repair_mask.get(x_offset_plus1, y).unwrap_or(255);
-                    if mask_color_offset_plus1 == 0 {
-                        let set_color: u8 = input.get(x_offset_plus1, y).unwrap_or(255);
-                        result_image.set(x, y, set_color);
-                        continue;
-                    }
+            result_image = result_image.rotate_cw().expect("image");
+            let original: Image = result_image.clone();
 
-                    let x_offset_minus1: i32 = x - (offset as i32);
-                    let mask_color_offset_minus1: u8 = repair_mask.get(x_offset_minus1, y).unwrap_or(255);
-                    if mask_color_offset_minus1 == 0 {
-                        let set_color: u8 = input.get(x_offset_minus1, y).unwrap_or(255);
-                        result_image.set(x, y, set_color);
-                        continue;
-                    }
+            // Vertical repair
+            let repair_mask2: Image = result_image.to_mask_where_color_is(repair_color);
+            let tile_height: Option<u8> = FindPeriodicity::find_horizontal_periodicity(&result_image, &repair_mask2)?;
+            // println!("tile_height: {:?}", tile_height);
+            // HtmlLog::text(format!("tile_height: {:?}", tile_height));
+            let offset_y: u8 = tile_height.unwrap_or(1);
+            repair_with_offset_x(&mut result_image, &repair_mask2, &original, offset_y);
+            result_image = result_image.rotate_ccw().expect("image");
 
-                    let x_offset_plus2: i32 = x + (offset as i32) * 2;
-                    let mask_color_offset_plus2: u8 = repair_mask.get(x_offset_plus2, y).unwrap_or(255);
-                    if mask_color_offset_plus2 == 0 {
-                        let set_color: u8 = input.get(x_offset_plus2, y).unwrap_or(255);
-                        result_image.set(x, y, set_color);
-                        continue;
-                    }
-
-                    let x_offset_minus2: i32 = x - (offset as i32) * 2;
-                    let mask_color_offset_minus2: u8 = repair_mask.get(x_offset_minus2, y).unwrap_or(255);
-                    if mask_color_offset_minus2 == 0 {
-                        let set_color: u8 = input.get(x_offset_minus2, y).unwrap_or(255);
-                        result_image.set(x, y, set_color);
-                        continue;
-                    }
-
-                }
-            }
-
-            // let mut result_image: Image = repair_mask.clone();
-            // TODO: make another repair algorithm that can solve this puzzle
-            // result_image.repair_trigram_algorithm(repair_color).expect("ok");
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("e95e3d8e").expect("model");
