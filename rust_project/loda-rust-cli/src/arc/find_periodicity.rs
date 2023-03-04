@@ -3,11 +3,13 @@ use num_bigint::BigUint;
 use num_traits::{One, ToPrimitive};
 use num_integer::Integer;
 
+#[allow(dead_code)]
 pub struct FindPeriodicity {
     period: Option<u8>,
 }
 
 impl FindPeriodicity {
+    #[allow(dead_code)]
     pub fn find_horizontal_periodicity(image: &Image, ignore_mask: &Image) -> anyhow::Result<Option<u8>> {
         if image.width() != ignore_mask.width() || image.height() != ignore_mask.height() {
             return Err(anyhow::anyhow!("Expected same size for 'image' and 'ignore_mask'"));
@@ -16,32 +18,23 @@ impl FindPeriodicity {
         Ok(instance.period)
     }
 
+    #[allow(dead_code)]
     fn measure_without_mask(image: &Image) -> FindPeriodicity {
         let mask = Image::zero(image.width(), image.height());
         Self::measure_with_ignore_mask(image, &mask)
     }
 
+    #[allow(dead_code)]
     fn measure_with_ignore_mask(image: &Image, ignore_mask: &Image) -> FindPeriodicity {
         let image_width: u8 = image.width();
         let mut global_found_i = BigUint::one();
 
         // Loop over the rows
         for y in 0..image.height() as i32 {
-
-            let mut found_mismatches: u8 = 255;
-            let mut found_count: u8 = 0;
             let mut found_i: u8 = 0;
+
             // Loop over the candidate offsets
             for i in 1..image_width {
-                if i < found_i {
-                    // Ignore i's smaller than what has already been found.
-                    continue;
-                }
-                // if found_count >= (image_width - i) {
-                //     // From this point on we cannot find more matches than what has already been found.
-                //     break;
-                // }
-                let mut count_same: u8 = 0;
                 let mut count_mismatches: u8 = 0;
                 // Loop over the columns
                 for x in 0..image_width as i32 {
@@ -59,37 +52,18 @@ impl FindPeriodicity {
                     }
                     let color: u8 = image.get(x, y).unwrap_or(255);
                     let color_i: u8 = image.get(x_i, y).unwrap_or(255);
-                    if color == color_i {
-                        count_same += 1;
-                    } else {
+                    if color != color_i {
                         count_mismatches += 1;
                     }
                 }
-                // Determine if the candidate is better and if so, then save it
-                // if i > found_i && count_same >= found_count {
-                //     found_count = count_same;
-                //     found_i = i;
-                //     println!("row: {} new optima. i: {} count: {}", y, found_i, found_count);
-                // }
-                // if i > found_i && count_mismatches < found_mismatches {
-                // if count_mismatches < found_mismatches {
-                //     found_count = count_same;
-                //     found_i = i;
-                //     found_mismatches = count_mismatches;
-                //     println!("row: {} new optima. i: {} count: {} mismatches: {}", y, found_i, found_count, found_mismatches);
-                // }
-                // if found_mismatches == 0 {
-                //     break;
-                // }
+                // Stop when reaching the first match
                 if count_mismatches == 0 {
-                    found_count = count_same;
                     found_i = i;
-                    found_mismatches = count_mismatches;
-                    println!("row: {} new optima. i: {} count: {} mismatches: {}", y, found_i, found_count, found_mismatches);
+                    println!("row: {} new optima. i: {}", y, found_i);
                     break;
                 }
             }
-            println!("row: {}  i: {} count: {}", y, found_i, found_count);
+            println!("row: {}  i: {}", y, found_i);
             let other = BigUint::from(found_i);
             global_found_i = global_found_i.lcm(&other);
         }
