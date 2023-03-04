@@ -6,7 +6,7 @@ mod tests {
     use crate::arc::{Image, ImageRepairTrigram, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePeriodicity};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePeriodicity, ImageRepairOffset};
     use std::collections::HashMap;
 
     #[allow(unused_imports)]
@@ -2400,50 +2400,6 @@ mod tests {
         assert_eq!(result.count_test_correct(), 1);
     }
 
-    fn repair_with_offset_x(result_image: &mut Image, repair_mask: &Image, original_image: &Image, offset: u8) {
-        for y in 0..result_image.height() as i32 {
-            for x in 0..result_image.width() as i32 {
-                let mask_color0: u8 = repair_mask.get(x, y).unwrap_or(255);
-                if mask_color0 == 0 {
-                    continue;
-                }
-
-                let x_offset_plus1: i32 = x + (offset as i32);
-                let mask_color_offset_plus1: u8 = repair_mask.get(x_offset_plus1, y).unwrap_or(255);
-                if mask_color_offset_plus1 == 0 {
-                    let set_color: u8 = original_image.get(x_offset_plus1, y).unwrap_or(255);
-                    result_image.set(x, y, set_color);
-                    continue;
-                }
-
-                let x_offset_minus1: i32 = x - (offset as i32);
-                let mask_color_offset_minus1: u8 = repair_mask.get(x_offset_minus1, y).unwrap_or(255);
-                if mask_color_offset_minus1 == 0 {
-                    let set_color: u8 = original_image.get(x_offset_minus1, y).unwrap_or(255);
-                    result_image.set(x, y, set_color);
-                    continue;
-                }
-
-                let x_offset_plus2: i32 = x + (offset as i32) * 2;
-                let mask_color_offset_plus2: u8 = repair_mask.get(x_offset_plus2, y).unwrap_or(255);
-                if mask_color_offset_plus2 == 0 {
-                    let set_color: u8 = original_image.get(x_offset_plus2, y).unwrap_or(255);
-                    result_image.set(x, y, set_color);
-                    continue;
-                }
-
-                let x_offset_minus2: i32 = x - (offset as i32) * 2;
-                let mask_color_offset_minus2: u8 = repair_mask.get(x_offset_minus2, y).unwrap_or(255);
-                if mask_color_offset_minus2 == 0 {
-                    let set_color: u8 = original_image.get(x_offset_minus2, y).unwrap_or(255);
-                    result_image.set(x, y, set_color);
-                    continue;
-                }
-
-            }
-        }
-    }
-
     #[test]
     fn test_470000_puzzle_e95e3d8e() -> anyhow::Result<()> {
         let solution: SolutionSimple = |data| {
@@ -2459,11 +2415,9 @@ mod tests {
             // HtmlLog::text(format!("tile_width: {:?}", tile_width));
             let offset_x: u8 = tile_width.unwrap_or(1);
             let mut result_image: Image = input.clone();
-            repair_with_offset_x(&mut result_image, &repair_mask, &input, offset_x);
-            // TODO: update the repair mask, so I don't have to recompute the repair_mask
+            result_image.repair_offset_x(&repair_mask, offset_x)?;
 
             result_image = result_image.rotate_cw().expect("image");
-            let original: Image = result_image.clone();
 
             // Vertical repair
             let repair_mask2: Image = result_image.to_mask_where_color_is(repair_color);
@@ -2471,7 +2425,7 @@ mod tests {
             // println!("tile_height: {:?}", tile_height);
             // HtmlLog::text(format!("tile_height: {:?}", tile_height));
             let offset_y: u8 = tile_height.unwrap_or(1);
-            repair_with_offset_x(&mut result_image, &repair_mask2, &original, offset_y);
+            result_image.repair_offset_x(&repair_mask2, offset_y)?;
             result_image = result_image.rotate_ccw().expect("image");
 
             Ok(result_image)
