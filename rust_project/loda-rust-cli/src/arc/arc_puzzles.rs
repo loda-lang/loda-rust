@@ -6,7 +6,7 @@ mod tests {
     use crate::arc::{Image, ImageRepairTrigram, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, FindPeriodicity};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePeriodicity};
     use std::collections::HashMap;
 
     #[allow(unused_imports)]
@@ -2454,7 +2454,7 @@ mod tests {
 
             // Horizontal repair
             let repair_mask: Image = input.to_mask_where_color_is(repair_color);
-            let tile_width: Option<u8> = FindPeriodicity::find_horizontal_periodicity(&input, &repair_mask)?;
+            let tile_width: Option<u8> = input.horizontal_periodicity(&repair_mask)?;
             // println!("tile_width: {:?}", tile_width);
             // HtmlLog::text(format!("tile_width: {:?}", tile_width));
             let offset_x: u8 = tile_width.unwrap_or(1);
@@ -2467,7 +2467,7 @@ mod tests {
 
             // Vertical repair
             let repair_mask2: Image = result_image.to_mask_where_color_is(repair_color);
-            let tile_height: Option<u8> = FindPeriodicity::find_horizontal_periodicity(&result_image, &repair_mask2)?;
+            let tile_height: Option<u8> = result_image.horizontal_periodicity(&repair_mask2)?;
             // println!("tile_height: {:?}", tile_height);
             // HtmlLog::text(format!("tile_height: {:?}", tile_height));
             let offset_y: u8 = tile_height.unwrap_or(1);
