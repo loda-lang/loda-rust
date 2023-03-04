@@ -8,6 +8,14 @@ pub struct FindPeriodicity {
 }
 
 impl FindPeriodicity {
+    pub fn find_horizontal_periodicity(image: &Image, ignore_mask: &Image) -> anyhow::Result<Option<u8>> {
+        if image.width() != ignore_mask.width() || image.height() != ignore_mask.height() {
+            return Err(anyhow::anyhow!("Expected same size for 'image' and 'ignore_mask'"));
+        }
+        let instance = FindPeriodicity::measure_with_ignore_mask(image, ignore_mask);
+        Ok(instance.period)
+    }
+
     fn measure_without_mask(image: &Image) -> FindPeriodicity {
         let mask = Image::zero(image.width(), image.height());
         Self::measure_with_ignore_mask(image, &mask)

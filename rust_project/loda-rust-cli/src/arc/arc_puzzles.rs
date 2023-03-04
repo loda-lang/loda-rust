@@ -6,7 +6,7 @@ mod tests {
     use crate::arc::{Image, ImageRepairTrigram, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, FindPeriodicity};
     use std::collections::HashMap;
 
     #[allow(unused_imports)]
@@ -2458,7 +2458,8 @@ mod tests {
             let repair_color: u8 = 0;
             let repair_mask: Image = input.to_mask_where_color_is(repair_color);
 
-            let tile_width: Option<u8> = find_horizontal_periodicity(&input, &repair_mask);
+            let tile_width: Option<u8> = FindPeriodicity::find_horizontal_periodicity(&input, &repair_mask)?;
+            // let tile_width: Option<u8> = find_horizontal_periodicity(&input, &repair_mask);
             println!("tile_width: {:?}", tile_width);
             let offset: u8 = tile_width.expect("tile width");
 
