@@ -2400,6 +2400,30 @@ mod tests {
         assert_eq!(result.count_test_correct(), 1);
     }
 
+    fn repair_repeated_patterns(image: &Image, repair_color: u8) -> anyhow::Result<Image> {
+        let mut result_image: Image = image.clone();
+
+        // Horizontal repair
+        let repair_mask_x: Image = result_image.to_mask_where_color_is(repair_color);
+        let tile_width: Option<u8> = result_image.horizontal_periodicity(&repair_mask_x)?;
+        if let Some(offset_x) = tile_width {
+            result_image.repair_offset_x(&repair_mask_x, offset_x)?;
+        }
+
+        result_image = result_image.rotate_cw().expect("image");
+
+        // Vertical repair
+        let repair_mask_y: Image = result_image.to_mask_where_color_is(repair_color);
+        let tile_height: Option<u8> = result_image.horizontal_periodicity(&repair_mask_y)?;
+        if let Some(offset_y) = tile_height {
+            result_image.repair_offset_x(&repair_mask_y, offset_y)?;
+        }
+        
+        result_image = result_image.rotate_ccw().expect("image");
+
+        Ok(result_image)
+    }
+
     #[test]
     fn test_470000_puzzle_e95e3d8e() -> anyhow::Result<()> {
         let solution: SolutionSimple = |data| {
@@ -2408,26 +2432,7 @@ mod tests {
             // determine what color is used for damaged pixels
             let repair_color: u8 = 0;
 
-            // Horizontal repair
-            let repair_mask: Image = input.to_mask_where_color_is(repair_color);
-            let tile_width: Option<u8> = input.horizontal_periodicity(&repair_mask)?;
-            // println!("tile_width: {:?}", tile_width);
-            // HtmlLog::text(format!("tile_width: {:?}", tile_width));
-            let offset_x: u8 = tile_width.unwrap_or(1);
-            let mut result_image: Image = input.clone();
-            result_image.repair_offset_x(&repair_mask, offset_x)?;
-
-            result_image = result_image.rotate_cw().expect("image");
-
-            // Vertical repair
-            let repair_mask2: Image = result_image.to_mask_where_color_is(repair_color);
-            let tile_height: Option<u8> = result_image.horizontal_periodicity(&repair_mask2)?;
-            // println!("tile_height: {:?}", tile_height);
-            // HtmlLog::text(format!("tile_height: {:?}", tile_height));
-            let offset_y: u8 = tile_height.unwrap_or(1);
-            result_image.repair_offset_x(&repair_mask2, offset_y)?;
-            result_image = result_image.rotate_ccw().expect("image");
-
+            let result_image: Image = repair_repeated_patterns(&input, repair_color)?;
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("e95e3d8e").expect("model");
@@ -2447,26 +2452,7 @@ mod tests {
             // determine what color is used for damaged pixels
             let repair_color: u8 = 1;
 
-            // Horizontal repair
-            let repair_mask: Image = input.to_mask_where_color_is(repair_color);
-            let tile_width: Option<u8> = input.horizontal_periodicity(&repair_mask)?;
-            // println!("tile_width: {:?}", tile_width);
-            // HtmlLog::text(format!("tile_width: {:?}", tile_width));
-            let offset_x: u8 = tile_width.unwrap_or(1);
-            let mut result_image: Image = input.clone();
-            result_image.repair_offset_x(&repair_mask, offset_x)?;
-
-            result_image = result_image.rotate_cw().expect("image");
-
-            // Vertical repair
-            let repair_mask2: Image = result_image.to_mask_where_color_is(repair_color);
-            let tile_height: Option<u8> = result_image.horizontal_periodicity(&repair_mask2)?;
-            // println!("tile_height: {:?}", tile_height);
-            // HtmlLog::text(format!("tile_height: {:?}", tile_height));
-            let offset_y: u8 = tile_height.unwrap_or(1);
-            result_image.repair_offset_x(&repair_mask2, offset_y)?;
-            result_image = result_image.rotate_ccw().expect("image");
-
+            let result_image: Image = repair_repeated_patterns(&input, repair_color)?;
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("ea959feb").expect("model");
