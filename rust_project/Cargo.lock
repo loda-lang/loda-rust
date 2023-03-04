@@ -1637,6 +1637,7 @@ dependencies = [
  "loda-rust-core",
  "log",
  "num-bigint",
+ "num-integer",
  "num-traits",
  "num_cpus",
  "prometheus-client",
