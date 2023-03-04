@@ -2418,7 +2418,7 @@ mod tests {
         if let Some(offset_y) = tile_height {
             result_image.repair_offset_x(&repair_mask_y, offset_y)?;
         }
-        
+
         result_image = result_image.rotate_ccw().expect("image");
 
         Ok(result_image)
@@ -2445,7 +2445,27 @@ mod tests {
     }
 
     #[test]
-    fn test_480000_puzzle_ea959feb() -> anyhow::Result<()> {
+    fn test_480000_puzzle_1d0a4b61() -> anyhow::Result<()> {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+
+            // determine what color is used for damaged pixels
+            let repair_color: u8 = 0;
+
+            let result_image: Image = repair_repeated_patterns(&input, repair_color)?;
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("1d0a4b61").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn test_490000_puzzle_ea959feb() -> anyhow::Result<()> {
         let solution: SolutionSimple = |data| {
             let input = data.image;
 
