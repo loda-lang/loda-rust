@@ -34,12 +34,12 @@ impl FindPeriodicity {
 
         // Loop over the rows
         for y in 0..image.height() as i32 {
-            let mut found_i: u8 = 0;
+            let mut found_i: u8 = 1;
 
             // Loop over the candidate offsets
             for i in 1..image_width {
                 let mut detected_mismatches: bool = false;
-                
+
                 // Loop over the columns
                 for x in 0..image_width as i32 {
                     let x_i = x - (i as i32);
