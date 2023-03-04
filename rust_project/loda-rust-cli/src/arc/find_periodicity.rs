@@ -81,6 +81,7 @@ mod tests {
     use super::*;
     use crate::arc::ImageTryCreate;
 
+    /// This function considers all pixels. It doesn't use the ignore mask.
     fn find_periodicity1(image_height: u8, pixels: Vec<u8>) -> anyhow::Result<FindPeriodicity> {
         let image_width_remain_usize: usize = pixels.len() % (image_height as usize);
         if image_width_remain_usize > 0 {
@@ -95,6 +96,28 @@ mod tests {
         let input: Image = Image::try_create(image_width, image_height, pixels)?;
 
         let instance: FindPeriodicity = FindPeriodicity::measure_without_mask(&input);
+        Ok(instance)
+    }
+
+    /// This function takes an `ignore_pixels` parameter, and uses this to do fuzzy matching of these pixels.
+    fn find_periodicity2(image_height: u8, pixels: Vec<u8>, ignore_pixels: Vec<u8>) -> anyhow::Result<FindPeriodicity> {
+        if pixels.len() != ignore_pixels.len() {
+            return Err(anyhow::anyhow!("Expected same length of 'pixels' and 'ignore_pixels'"));
+        }
+        let image_width_remain_usize: usize = pixels.len() % (image_height as usize);
+        if image_width_remain_usize > 0 {
+            return Err(anyhow::anyhow!("pixels.len() {} is no divisible by {}", pixels.len(), image_height));
+        }
+        let image_width_usize: usize = pixels.len() / (image_height as usize);
+        if image_width_usize > (u8::MAX as usize) {
+            return Err(anyhow::anyhow!("image_width is bigger than max capacity"));
+        }
+        let image_width: u8 = image_width_usize as u8;
+
+        let input: Image = Image::try_create(image_width, image_height, pixels)?;
+        let ignore_mask: Image = Image::try_create(image_width, image_height, ignore_pixels)?;
+
+        let instance: FindPeriodicity = FindPeriodicity::measure_with_ignore_mask(&input, &ignore_mask);
         Ok(instance)
     }
 
@@ -353,5 +376,201 @@ mod tests {
         ];
         let instance = find_periodicity1(3, pixels).expect("ok");
         assert_eq!(instance.period, Some(30));
+    }
+
+    #[test]
+    fn test_40000_find_periodicity_with_mask_2rows_period2_masked1_variant1() {
+        let pixels = vec![
+            1, 2, 1, 2, 1, 2, 1, // period 2
+            3, 3, 3, 3, 3, 3, 3, // period 1
+        ];
+        let ignore_pixels = vec![
+            0, 0, 0, 0, 0, 0, 1,
+            0, 0, 0, 0, 0, 0, 0,
+        ];
+        let instance = find_periodicity2(2, pixels, ignore_pixels).expect("ok");
+        assert_eq!(instance.period, Some(2));
+    }
+
+    #[test]
+    fn test_40000_find_periodicity_with_mask_2rows_period2_masked1_variant2() {
+        let pixels = vec![
+            1, 2, 1, 2, 1, 2, 1, // period 2
+            3, 3, 3, 3, 3, 3, 3, // period 1
+        ];
+        let ignore_pixels = vec![
+            0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 1,
+        ];
+        let instance = find_periodicity2(2, pixels, ignore_pixels).expect("ok");
+        assert_eq!(instance.period, Some(2));
+    }
+
+    #[test]
+    fn test_40000_find_periodicity_with_mask_2rows_period2_masked1_variant3() {
+        let pixels = vec![
+            1, 2, 1, 2, 1, 2, 1, // period 2
+            3, 3, 3, 3, 3, 3, 3, // period 1
+        ];
+        let ignore_pixels = vec![
+            0, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0,
+        ];
+        let instance = find_periodicity2(2, pixels, ignore_pixels).expect("ok");
+        assert_eq!(instance.period, Some(2));
+    }
+
+    #[test]
+    fn test_40000_find_periodicity_with_mask_2rows_period2_masked1_variant4() {
+        let pixels = vec![
+            1, 2, 1, 2, 1, 2, 1, // period 2
+            3, 3, 3, 3, 3, 3, 3, // period 1
+        ];
+        let ignore_pixels = vec![
+            1, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+        ];
+        let instance = find_periodicity2(2, pixels, ignore_pixels).expect("ok");
+        assert_eq!(instance.period, Some(2));
+    }
+
+    #[test]
+    fn test_40001_find_periodicity_with_mask_2rows_period2_masked2_variant1() {
+        let pixels = vec![
+            1, 2, 1, 2, 1, 2, 1, // period 2
+            3, 3, 3, 3, 3, 3, 3, // period 1
+        ];
+        let ignore_pixels = vec![
+            0, 1, 0, 0, 0, 0, 0,
+            0, 0, 0, 1, 0, 0, 0,
+        ];
+        let instance = find_periodicity2(2, pixels, ignore_pixels).expect("ok");
+        assert_eq!(instance.period, Some(2));
+    }
+
+    #[test]
+    fn test_40001_find_periodicity_with_mask_2rows_period2_masked2_variant2() {
+        let pixels = vec![
+            1, 2, 1, 2, 1, 2, 1, // period 2
+            3, 3, 3, 3, 3, 3, 3, // period 1
+        ];
+        let ignore_pixels = vec![
+            0, 1, 1, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+        ];
+        let instance = find_periodicity2(2, pixels, ignore_pixels).expect("ok");
+        assert_eq!(instance.period, Some(2));
+    }
+
+    #[test]
+    fn test_40001_find_periodicity_with_mask_2rows_period2_masked2_variant3() {
+        let pixels = vec![
+            1, 2, 1, 2, 1, 2, 1, // period 2
+            3, 3, 3, 3, 3, 3, 3, // period 1
+        ];
+        let ignore_pixels = vec![
+            0, 0, 0, 0, 0, 0, 0,
+            0, 0, 1, 0, 0, 0, 1,
+        ];
+        let instance = find_periodicity2(2, pixels, ignore_pixels).expect("ok");
+        assert_eq!(instance.period, Some(2));
+    }
+
+    #[test]
+    fn test_40002_find_periodicity_with_mask_2rows_period2_masked2_variant1() {
+        let pixels = vec![
+            1, 2, 1, 2, 1, 2, 1, // period 2
+            3, 1, 3, 1, 3, 1, 3, // period 2
+        ];
+        let ignore_pixels = vec![
+            0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 1, 0, 0, 0,
+        ];
+        let instance = find_periodicity2(2, pixels, ignore_pixels).expect("ok");
+        assert_eq!(instance.period, Some(2));
+    }
+
+    #[test]
+    fn test_40002_find_periodicity_with_mask_2rows_period2_masked2_variant2() {
+        let pixels = vec![
+            1, 2, 1, 2, 1, 2, 1, // period 2
+            3, 1, 3, 1, 3, 1, 3, // period 2
+        ];
+        let ignore_pixels = vec![
+            0, 0, 0, 1, 0, 1, 0,
+            0, 0, 0, 0, 0, 0, 0,
+        ];
+        let instance = find_periodicity2(2, pixels, ignore_pixels).expect("ok");
+        assert_eq!(instance.period, Some(2));
+    }
+
+    #[test]
+    fn test_40003_find_periodicity_with_mask_2rows_period3_masked2_variant1() {
+        let pixels = vec![
+            1, 2, 3, 1, 2, 3, 1, // period 3
+            3, 2, 1, 3, 2, 1, 3, // period 3
+        ];
+        let ignore_pixels = vec![
+            0, 0, 0, 1, 0, 1, 0,
+            0, 0, 0, 0, 0, 0, 0,
+        ];
+        let instance = find_periodicity2(2, pixels, ignore_pixels).expect("ok");
+        assert_eq!(instance.period, Some(3));
+    }
+
+    #[test]
+    fn test_40003_find_periodicity_with_mask_2rows_period3_masked2_variant2() {
+        let pixels = vec![
+            1, 2, 3, 1, 2, 3, 1, // period 3
+            3, 2, 1, 3, 2, 1, 3, // period 3
+        ];
+        let ignore_pixels = vec![
+            0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 1, 1, 0, 0,
+        ];
+        let instance = find_periodicity2(2, pixels, ignore_pixels).expect("ok");
+        assert_eq!(instance.period, Some(3));
+    }
+
+    #[test]
+    fn test_40004_find_periodicity_with_mask_2rows_period6_masked2_variant1() {
+        let pixels = vec![
+            1, 2, 1, 2, 1, 2, 1, // period 2
+            3, 2, 1, 3, 2, 1, 3, // period 3
+        ];
+        let ignore_pixels = vec![
+            0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 1, 1, 0, 0,
+        ];
+        let instance = find_periodicity2(2, pixels, ignore_pixels).expect("ok");
+        assert_eq!(instance.period, Some(6));
+    }
+
+    #[test]
+    fn test_40004_find_periodicity_with_mask_2rows_period6_masked2_variant2() {
+        let pixels = vec![
+            1, 2, 1, 2, 1, 2, 1, // period 2
+            3, 2, 1, 3, 2, 1, 3, // period 3
+        ];
+        let ignore_pixels = vec![
+            1, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0,
+        ];
+        let instance = find_periodicity2(2, pixels, ignore_pixels).expect("ok");
+        assert_eq!(instance.period, Some(6));
+    }
+
+    #[test]
+    fn test_40004_find_periodicity_with_mask_2rows_period6_masked2_variant3() {
+        let pixels = vec![
+            1, 2, 1, 2, 1, 2, 1, // period 2
+            3, 2, 1, 3, 2, 1, 3, // period 3
+        ];
+        let ignore_pixels = vec![
+            0, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 1,
+        ];
+        let instance = find_periodicity2(2, pixels, ignore_pixels).expect("ok");
+        assert_eq!(instance.period, Some(6));
     }
 }
