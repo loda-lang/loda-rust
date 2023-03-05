@@ -37,13 +37,22 @@ The `/data/solution/solution_notXORdinary.json` contains the predicted solutions
 
 These are the steps to create a docker image and submit it to the contest.
 
-### Step 1 - Delete old buildx instance
+### Step 1 - Delete old docker containers and old docker images
+
+Open the `Docker Desktop` app.
+
+First manually remove old `containers`.
+
+Secondly manually remove old `images`.
+
+
+### Step 2 - Delete old buildx instance
 
 ```
 PROMP> rake remove-buildx-instance
 ```
 
-### Step 2 - Populate payload directory
+### Step 3 - Populate payload directory
 
 This is the data that is stored inside the docker image, such as program files, analytics data.
 
@@ -51,7 +60,7 @@ This is the data that is stored inside the docker image, such as program files, 
 PROMP> rake payload
 ```
 
-### Step 3 - Create buildx instance
+### Step 4 - Create buildx instance
 
 In order to cross compile for multiple architectures.
 
@@ -59,7 +68,7 @@ In order to cross compile for multiple architectures.
 PROMP> rake buildx-create
 ```
 
-### Step 4 - Create the docker image
+### Step 5 - Create the docker image
 
 This takes around 12 minutes to compile!
 
@@ -67,7 +76,7 @@ This takes around 12 minutes to compile!
 PROMP> rake buildx-build
 ```
 
-### Step 5 - Save the docker image to a tar file
+### Step 6 - Save the docker image to a tar file
 
 ```
 PROMP> rake save-tar
@@ -83,7 +92,7 @@ PROMPT> ls -la
 PROMPT>
 ```
 
-### Step 6 - Run the docker image and see if it works
+### Step 7 - Run the docker image and see if it works
 
 Manually copy around 60 json files from `ARC/data/training` to `secret_data/training`.
 
@@ -102,7 +111,7 @@ Great this looks like the content of the `secret_data` has been mounted correct 
 
 Now the `.tar` can be uploaded to the contest.
 
-### Step 7 - Publish the docker image
+### Step 8 - Publish the docker image
 
 Add the docker image `.tar` file to the [arcathon-docker-image](https://github.com/neoneye/arcathon-docker-image) repository.
 
@@ -114,7 +123,7 @@ Obtain the url for the docker image `.tar` file, that looks like this:
 https://github.com/neoneye/arcathon-docker-image/raw/main/ARCathon2023/2023-02-26T13-03.tar
 ```
 
-## Step 8 - Check that the docker image url actually downloads the file
+## Step 9 - Check that the docker image url actually downloads the file
 
 Paste the docker image url into the browser.
 
@@ -138,7 +147,7 @@ We have verified that the url works, and that the docker image is runnable.
 
 Delete the downloaded file again.
 
-## Step 9 - Submission
+## Step 10 - Submission
 
 Great. This docker image is ready to be submitted.
 
