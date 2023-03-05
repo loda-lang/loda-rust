@@ -17,7 +17,7 @@ Input/output is provided via the `/data` dir. Input is the puzzles. Output is th
 This dir contain tools that automate constructing of a docker image.
 
 ```
-PROMP> rake
+PROMPT> rake
 rake buildx-build            # Create a docker image with the LODA-RUST executable inside
 rake buildx-create           # Create a docker builder named 'my_loda_builder'
 rake payload                 # Prepare the contents of the /root dir
@@ -49,7 +49,7 @@ Secondly manually remove old `images`.
 ### Step 2 - Delete old buildx instance
 
 ```
-PROMP> rake remove-buildx-instance
+PROMPT> rake remove-buildx-instance
 ```
 
 ### Step 3 - Populate payload directory
@@ -57,7 +57,8 @@ PROMP> rake remove-buildx-instance
 This is the data that is stored inside the docker image, such as program files, analytics data.
 
 ```
-PROMP> rake payload
+PROMPT> loda-rust analytics-arc
+PROMPT> rake payload
 ```
 
 ### Step 4 - Create buildx instance
@@ -65,7 +66,7 @@ PROMP> rake payload
 In order to cross compile for multiple architectures.
 
 ```
-PROMP> rake buildx-create
+PROMPT> rake buildx-create
 ```
 
 ### Step 5 - Create the docker image
@@ -73,13 +74,13 @@ PROMP> rake buildx-create
 This takes around 12 minutes to compile!
 
 ```
-PROMP> rake buildx-build
+PROMPT> rake buildx-build
 ```
 
 ### Step 6 - Save the docker image to a tar file
 
 ```
-PROMP> rake save-tar
+PROMPT> rake save-tar
 latest: Pulling from username/loda-rust-cli
 bb263680fde1: Pull complete 
 6055b99811ee: Pull complete 
@@ -99,7 +100,7 @@ Manually copy around 60 json files from `ARC/data/training` to `secret_data/trai
 Check that this amount of json files are roughly also what is shows up when running the executable.
 
 ```
-PROMP> rake run
+PROMPT> rake run
 1984-01-01T12:06:54Z - Start of program
 initial program_item_vec: 66
 initial model_item_vec.len: 63
