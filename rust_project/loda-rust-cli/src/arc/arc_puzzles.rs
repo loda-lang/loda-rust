@@ -3,10 +3,10 @@ mod tests {
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, ImageResize};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageBorder};
-    use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
+    use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePeriodicity, ImageRepairOffset};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile};
     use std::collections::HashMap;
 
     #[allow(unused_imports)]
@@ -655,7 +655,7 @@ mod tests {
 
             let repair_color: u8 = 0;
 
-            let result_image: Image = repair_repeated_patterns(&input, repair_color).expect("image");
+            let result_image: Image = input.repair_pattern(repair_color).expect("image");
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("0dfd9992").expect("model");
@@ -2391,34 +2391,6 @@ mod tests {
         assert_eq!(result.count_test_correct(), 1);
     }
 
-    fn repair_repeated_patterns(image: &Image, repair_color: u8) -> anyhow::Result<Image> {
-        let mut result_image: Image = image.clone();
-
-        // Horizontal repair
-        let repair_mask_x: Image = result_image.to_mask_where_color_is(repair_color);
-        let tile_width: Option<u8> = result_image.horizontal_periodicity(&repair_mask_x)?;
-        if let Some(offset) = tile_width {
-            if offset < result_image.width() {
-                result_image.repair_offset_x(&repair_mask_x, offset)?;
-            }
-        }
-
-        result_image = result_image.rotate_cw().expect("image");
-
-        // Vertical repair
-        let repair_mask_y: Image = result_image.to_mask_where_color_is(repair_color);
-        let tile_height: Option<u8> = result_image.horizontal_periodicity(&repair_mask_y)?;
-        if let Some(offset) = tile_height {
-            if offset < result_image.width() {
-                result_image.repair_offset_x(&repair_mask_y, offset)?;
-            }
-        }
-
-        result_image = result_image.rotate_ccw().expect("image");
-
-        Ok(result_image)
-    }
-
     #[test]
     fn test_470000_puzzle_e95e3d8e() -> anyhow::Result<()> {
         let solution: SolutionSimple = |data| {
@@ -2427,7 +2399,7 @@ mod tests {
             // determine what color is used for damaged pixels
             let repair_color: u8 = 0;
 
-            let result_image: Image = repair_repeated_patterns(&input, repair_color)?;
+            let result_image: Image = input.repair_pattern(repair_color)?;
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("e95e3d8e").expect("model");
@@ -2447,7 +2419,7 @@ mod tests {
             // determine what color is used for damaged pixels
             let repair_color: u8 = 0;
 
-            let result_image: Image = repair_repeated_patterns(&input, repair_color)?;
+            let result_image: Image = input.repair_pattern(repair_color)?;
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("1d0a4b61").expect("model");
@@ -2467,7 +2439,7 @@ mod tests {
             // determine what color is used for damaged pixels
             let repair_color: u8 = 0;
 
-            let result_image: Image = repair_repeated_patterns(&input, repair_color)?;
+            let result_image: Image = input.repair_pattern(repair_color)?;
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("ca8f78db").expect("model");
@@ -2487,7 +2459,7 @@ mod tests {
             // determine what color is used for damaged pixels
             let repair_color: u8 = 0;
 
-            let result_image: Image = repair_repeated_patterns(&input, repair_color)?;
+            let result_image: Image = input.repair_pattern(repair_color)?;
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("29ec7d0e").expect("model");
@@ -2507,7 +2479,7 @@ mod tests {
             // determine what color is used for damaged pixels
             let repair_color: u8 = 1;
 
-            let result_image: Image = repair_repeated_patterns(&input, repair_color)?;
+            let result_image: Image = input.repair_pattern(repair_color)?;
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("ea959feb").expect("model");
