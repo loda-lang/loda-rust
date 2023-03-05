@@ -1,6 +1,7 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
-use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere, ImageRepairTrigram};
+use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
+use super::{ImageRepairPattern, ImageRepairTrigram};
 use super::{ImageRemoveGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting, ImageNeighbour, ImageNeighbourDirection};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
@@ -2280,7 +2281,7 @@ impl UnofficialFunction for ImageRepairTrigramFunction {
     }
 
     fn name(&self) -> String {
-        "Fix damaged pixels and recreate simple repeating patterns.".to_string()
+        "Fuzzy repair of pixels. Focus is a cross of 5x5 pixels and picks best candidate from trigrams.".to_string()
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
@@ -2301,6 +2302,50 @@ impl UnofficialFunction for ImageRepairTrigramFunction {
         image.repair_trigram_algorithm(repair_color)?;
 
         let output_uint: BigUint = image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct ImageRepairPatternFunction {
+    id: u32,
+}
+
+impl ImageRepairPatternFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageRepairPatternFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Repair damaged pixels and recreate big repeating patterns such as mosaics.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image: Image = input0_uint.to_image()?;
+
+        // input1 is the color to repair
+        let repair_color: u8 = input[1].to_u8().context("Input[1] u8 pixel_color")?;
+
+        let output_image: Image = image.repair_pattern(repair_color)?;
+
+        let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
         Ok(vec![output])
     }
@@ -2465,4 +2510,5 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Repair damaged pixels
     register_function!(ImageRepairTrigramFunction::new(102150));
+    register_function!(ImageRepairPatternFunction::new(102151));
 }

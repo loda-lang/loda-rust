@@ -1,7 +1,9 @@
 use super::{Image, ImageMask, ImageRotate, ImagePeriodicity, ImageRepairOffset};
 
 pub trait ImageRepairPattern {
-    /// Fix damaged pixels and recreate big repeating patterns.
+    /// Repair damaged pixels and recreate big repeating patterns such as mosaics.
+    /// 
+    /// Good for big mosaic patterns.
     fn repair_pattern(&self, repair_color: u8) -> anyhow::Result<Image>;
 }
 
