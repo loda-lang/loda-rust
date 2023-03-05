@@ -139,7 +139,7 @@ PROMPT> docker load < 2023-02-26T13-03.tar
 Verify that the docker image can run:
 
 ```
-PROMPT> docker run --mount type=bind,source="$(pwd)"/secret_data,target=/data neoneye/loda-rust-cli:latest
+PROMPT> docker run --platform linux/amd64 --mount type=bind,source="$(pwd)"/secret_data,target=/data neoneye/loda-rust-cli:latest
 prints out lots of stuff
 Press CTRL-C to stop it.
 ```
