@@ -2,7 +2,19 @@ use super::{Image, ImageHistogram, Histogram, ImagePadding, convolution3x3};
 
 pub trait ImageNoiseColor {
     fn noise_color_vec(&self, denoised_image: &Image) -> anyhow::Result<Vec<u8>>;
+
+    /// Traverse all pixels in the 3x3 convolution and count how many have the same color as the center.
+    /// 
+    /// - Returns 1 when the center pixel is unique and have no duplicates.
+    /// - Returns 2..9 depending on how many duplicates are found.
     fn count_duplicate_pixels_in_3x3(&self) -> anyhow::Result<Image>;
+
+    /// Compare with the pixels above,below,left,right and count how many have the same color as the center.
+    /// 
+    /// - Returns 1 when the center pixel is unique and have no duplicates.
+    /// - Returns 2..5 depending on how many duplicates are found.
+    fn count_duplicate_pixels_in_neighbours(&self) -> anyhow::Result<Image>;
+
     fn one_pixel_noise_color_vec(&self) -> anyhow::Result<Vec<u8>>;
 }
 
@@ -52,14 +64,36 @@ impl ImageNoiseColor for Image {
                     if y == 1 && x == 1 {
                         continue;
                     }
-                    let pixel_value: u8 = bm.get(x, y).unwrap_or(255);
-                    if pixel_value == padding_color {
-                        continue;
-                    }
-                    if pixel_value == center_color {
+                    let color: u8 = bm.get(x, y).unwrap_or(255);
+                    if color == center_color {
                         count += 1;
-                        continue;
                     }
+                }
+            }
+            Ok(count)
+        })?;
+        Ok(image)
+    }
+
+    fn count_duplicate_pixels_in_neighbours(&self) -> anyhow::Result<Image> {
+        // find an unused color for use as padding_color
+        let histogram: Histogram = self.histogram_all();
+        let padding_color: u8 = match histogram.unused_color() {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("All colors are used in the histogram. Cannot pick a padding color"));
+            }
+        };
+        let image_padded: Image = self.padding_with_color(1, padding_color)?;
+
+        let image: Image = convolution3x3(&image_padded, |bm| {
+            let center_color: u8 = bm.get(1, 1).unwrap_or(255);
+            let mut count: u8 = 1;
+            let pairs: [(u8,u8); 4] = [(1,0),(0,1),(2,1),(1,2)];
+            for (x, y) in pairs {
+                let color: u8 = bm.get(x as i32, y as i32).unwrap_or(255);
+                if color == center_color {
+                    count += 1;
                 }
             }
             Ok(count)
@@ -240,7 +274,34 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_one_pixel_noise_color_vec() {
+    fn test_30000_count_duplicate_pixels_in_neighbours() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            5, 0, 1, 0, 0,
+            0, 0, 0, 3, 3,
+            0, 5, 0, 3, 3,
+            2, 2, 0, 3, 3,
+            2, 2, 5, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, input_pixels).expect("image");
+
+        // Act
+        let actual: Image = input.count_duplicate_pixels_in_neighbours().expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 2, 1, 2, 2,
+            3, 4, 3, 3, 3,
+            2, 1, 3, 4, 4,
+            3, 3, 2, 3, 3,
+            3, 3, 1, 2, 2,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_40000_one_pixel_noise_color_vec() {
         // Arrange
         let input_pixels: Vec<u8> = vec![
             5, 0, 1, 0, 0,

@@ -1,16 +1,16 @@
 use super::Image;
 
 pub trait ImageStack {
-    // Horizontal stack multiple images - place images side by side
+    /// Horizontal stack multiple images - place images side by side
     fn hstack(images: Vec<Image>) -> anyhow::Result<Image>;
 
-    // Vertical stack multiple images - place images on top of each other
+    /// Vertical stack multiple images - place images on top of each other
     fn vstack(images: Vec<Image>) -> anyhow::Result<Image>;
 
-    // Horizontal join two images together, side-by-side
+    /// Horizontal join two images together, side-by-side
     fn hjoin(&self, other: Image) -> anyhow::Result<Image>;
 
-    // Vertical join two images together, on top of each other
+    /// Vertical join two images together, on top of each other
     fn vjoin(&self, other: Image) -> anyhow::Result<Image>;
 }
 

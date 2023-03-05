@@ -3,12 +3,14 @@ mod tests {
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, ImageResize};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageBorder};
-    use crate::arc::{Image, convolution2x2, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
+    use crate::arc::{Image, ImageRepairTrigram, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
-    use crate::arc::{ImageNgram, RecordTrigram, ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile};
-    use bit_set::BitSet;
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile};
     use std::collections::HashMap;
+
+    #[allow(unused_imports)]
+    use crate::arc::{HtmlLog, ImageToHTML};
 
     #[test]
     fn test_10000_puzzle_4258a5f9() {
@@ -646,204 +648,68 @@ mod tests {
         assert_eq!(result.count_test_correct(), 1);
     }
 
-    /// Detect corners and edges
-    fn mask_and_repair_areas(input: &Image) -> anyhow::Result<(Image, Image)> {
-        // Assign 0 to background, assign 1 to foreground
-        let mut mask: Image = input.clone();
-        for pixel_value in 2..=255 {
-            mask = mask.replace_color(pixel_value, 1).expect("image");
-        }
-        // println!("mask: {:?}", mask);
-
-        // Detect corners and edges
-        let repair_areas: Image = convolution2x2(&mask, |bm| {
-            let pixel00: u8 = bm.get(0, 0).unwrap_or(255);
-            let pixel10: u8 = bm.get(1, 0).unwrap_or(255);
-            let pixel01: u8 = bm.get(0, 1).unwrap_or(255);
-            let pixel11: u8 = bm.get(1, 1).unwrap_or(255);
-            let number_of_zeros: u8 = 
-                u8::min(pixel00, 1) + 
-                u8::min(pixel10, 1) + 
-                u8::min(pixel01, 1) + 
-                u8::min(pixel11, 1);
-            if number_of_zeros <= 1 {
-                // 1 mask pixel turned on, and 3 pixels is the background, don't consider this as a corner.
-                // 0 mask pixels turned on, all 4 pixels are the background then ignore.
-                return Ok(0);
-            }
-
-            let mut mask: u8 = 0;
-            if pixel00 == pixel10 { mask |= 1; }
-            if pixel01 == pixel11 { mask |= 2; }
-            if pixel00 == pixel01 { mask |= 4; }
-            if pixel10 == pixel11 { mask |= 8; }
-            let value: u8 = match mask {
-                3 => 5, // edge, rows differ
-                5 => 1, // corner top left
-                6 => 2, // corner bottom left
-                9 => 3, // corner top right
-                10 => 4, // corner bottom right
-                12 => 6, // edge, columns differ
-                _ => 0,
-            };
-            Ok(value)
-        }).expect("image");
-        Ok((mask, repair_areas))
-    }
-
-    fn repair_corner_top_left(bitmap: &mut Image, x: i32, y: i32, trigram_x: &Vec<RecordTrigram>, trigram_y: &Vec<RecordTrigram>) -> anyhow::Result<()> {
-        if x < 1 || y < 1 {
-            println!("repair corner top left: {}, {} - insufficient room to make bigram", x, y);
-            return Ok(());
-        }
-        println!("repair corner top left: {}, {}", x, y);
-
-        let pixel_top_top: u8 = bitmap.get(x, y - 2).unwrap_or(255);
-        let pixel_top: u8 = bitmap.get(x, y - 1).unwrap_or(255);
-        let pixel_left_left: u8 = bitmap.get(x - 2, y).unwrap_or(255);
-        let pixel_left: u8 = bitmap.get(x - 1, y).unwrap_or(255);
-
-        let mut bitset_trigram_x = BitSet::with_capacity(256);
-        let mut bitset_trigram_y = BitSet::with_capacity(256);
-        for candidate in 0..255u8 {
-            for record in trigram_x.iter() {
-                if record.word0 == pixel_left_left && record.word1 == pixel_left && record.word2 == candidate {
-                    bitset_trigram_x.insert(candidate as usize);
-                }
-            }
-            for record in trigram_y.iter() {
-                if record.word0 == pixel_top_top && record.word1 == pixel_top && record.word2 == candidate {
-                    bitset_trigram_y.insert(candidate as usize);
-                }
-            }
-        }
-        let mut bitset_trigram = BitSet::with_capacity(256);
-        bitset_trigram.clone_from(&bitset_trigram_x);
-        bitset_trigram.intersect_with(&bitset_trigram_y);
-        if bitset_trigram.len() >= 2 {
-            println!("more than 1 candidate. trigram: {:?}", bitset_trigram);
-        }
-
-        let mut found_color = 255;
-        for index in bitset_trigram.iter() {
-            if index > 255 {
-                return Err(anyhow::anyhow!("Integrity error. Encountered bitset index outside of u8 range [0..255]"));
-            }
-            found_color = index as u8;
-            break;
-        }
-        println!("repair ({}, {}) = {:?}", x, y, found_color);
-
-        match bitmap.set(x, y, found_color) {
-            Some(()) => {},
-            None => {
-                return Err(anyhow::anyhow!("Unable to set pixel inside the result bitmap"));
-            }
-        }
-        Ok(())
-    }
-
     #[test]
     fn test_110000_puzzle_0dfd9992() -> anyhow::Result<()> {
-        // TODO: port to LODA
-        let model: Model = Model::load_testdata("0dfd9992")?;
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
 
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
+            // Count the number of identical neighbouring pixels
+            let duplicate_count: Image = input.count_duplicate_pixels_in_neighbours().expect("image");
 
-        // TODO: make the rest of the tests pass OK. Currently these fails.
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        // Bigrams
-        // let bigram_x_unfiltered: Vec<RecordBigram> = input.bigram_x().expect("bigram");
-        // let bigram_y_unfiltered: Vec<RecordBigram> = input.bigram_y().expect("bigram");
-        // println!("bigram_x_unfiltered: {:?}", bigram_x_unfiltered);
-        // println!("bigram_y_unfiltered: {:?}", bigram_y_unfiltered);
-        // Remove bigrams where the background pixel (0) is contained in
-        // let bigram_x_refs: Vec<&RecordBigram> = bigram_x_unfiltered.iter().filter(|&record| {
-        //     record.word0 != 0 && record.word1 != 0
-        // }).collect();
-        // let bigram_y_refs: Vec<&RecordBigram> = bigram_y_unfiltered.iter().filter(|&record| {
-        //     record.word0 != 0 && record.word1 != 0
-        // }).collect();
-        // let bigram_x: Vec<RecordBigram> = bigram_x_refs.iter().map(|&i| i.clone()).collect();
-        // let bigram_y: Vec<RecordBigram> = bigram_y_refs.iter().map(|&i| i.clone()).collect();
-        // println!("bigram_x: {:?}", bigram_x);
-        // println!("bigram_y: {:?}", bigram_y);
-
-        // Trigrams
-        let trigram_x_unfiltered: Vec<RecordTrigram> = input.trigram_x().expect("trigram");
-        let trigram_y_unfiltered: Vec<RecordTrigram> = input.trigram_y().expect("trigram");
-        // println!("trigram_x_unfiltered: {:?}", trigram_x_unfiltered);
-        // println!("trigram_y_unfiltered: {:?}", trigram_y_unfiltered);
-        // Remove trigrams where the background pixel (0) is contained in
-        let trigram_x_refs: Vec<&RecordTrigram> = trigram_x_unfiltered.iter().filter(|&record| {
-            record.word0 != 0 && record.word1 != 0 && record.word2 != 0
-        }).collect();
-        let trigram_y_refs: Vec<&RecordTrigram> = trigram_y_unfiltered.iter().filter(|&record| {
-            record.word0 != 0 && record.word1 != 0 && record.word2 != 0
-        }).collect();
-        let trigram_x: Vec<RecordTrigram> = trigram_x_refs.iter().map(|&i| i.clone()).collect();
-        let trigram_y: Vec<RecordTrigram> = trigram_y_refs.iter().map(|&i| i.clone()).collect();
-        // println!("trigram_x: {:?}", trigram_x);
-        // println!("trigram_y: {:?}", trigram_y);
-        
-        let mut result_bitmap: Image = input.clone();
-
-        let mut last_repair_count: usize = 0;
-        for iteration in 0..13 {
-            let (mask, repair_areas) = mask_and_repair_areas(&result_bitmap)?;
-            println!("iteration#{} mask: {:?}", iteration, mask);
-            println!("iteration#{} repair areas: {:?}", iteration, repair_areas);
-            let mut repair_count: usize = 0;
-            for y in 0..repair_areas.height() {
-                for x in 0..repair_areas.width() {
-                    let pixel_value: u8 = repair_areas.get(x as i32, y as i32).unwrap_or(255);
-                    if pixel_value == 0 {
-                        continue;
-                    }
-                    repair_count += 1;
+            // Ignore the pixels where count is 0, 1, 2
+            // We are only interested in pixels where there are 3 or more neighbour pixels that are the same.
+            let mask: Image = duplicate_count.to_mask_where_color_is_equal_or_greater_than(3);
     
-                    // repair position
-                    let repair_x = (x as i32) + 1;
-                    let repair_y = (y as i32) + 1;
-    
-                    // if pixel_value >= 1 && pixel_value <= 4 {
-                    //     println!("repair corner: {}, {}", x, y);
-                    //     TODO: deal with all the cases
-                    // }
-                    // if pixel_value >= 5 {
-                    //     println!("repair edge: {}, {}", x, y);
-                    // }
-    
-                    if pixel_value == 1 {
-                        repair_corner_top_left(&mut result_bitmap, repair_x, repair_y, &trigram_x, &trigram_y)?;
-                    }
-                }
-            }
-            println!("iteration#{} repair_count: {}", iteration, repair_count);
-            if iteration > 0 {
-                if last_repair_count == repair_count {
-                    println!("making no progress with repairs done. aborting");
-                    break;
-                }
-            }
-            if repair_count == 0 {
-                println!("repair done. no more pixels to be repaired");
-                break;
-            }
-            last_repair_count = repair_count;
-        }
+            let histogram: Histogram = input.histogram_with_mask(&mask).expect("histogram");
+            let repair_color: u8 = histogram.most_popular_color().expect("color");
 
-        assert_eq!(result_bitmap, output);
+            let mut result_image: Image = input.clone();
+            result_image.repair_trigram_algorithm(repair_color).expect("ok");
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("0dfd9992").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
         Ok(())
+    }
+
+    const PROGRAM_0DFD9992: &'static str = "
+    mov $5,$0
+    f11 $5,102141 ; Compare with the pixels above,below,left,right and count how many have the same color as the center.
+
+    ; We are only interested in pixels where there are 3 or more neighbour pixels that are the same.
+    mov $6,3 ; Ignore the pixels where count is 0, 1, 2
+    f21 $5,101253 ; Convert to a mask image by converting `pixel_color >= threshold_color` to 1 and converting anything else to to 0.
+
+    mov $7,$0 ; image
+    mov $8,$5 ; mask
+    f21 $7,101231 ; Histogram of image using a mask. Only where the mask is non-zero, are the image pixels added to the histogram.
+
+    ; take the most popular color from the histogram
+    mov $8,0
+    mov $9,1
+    f31 $7,101002 ; get x=0, y=1
+    ; $7 is now the repair_color
+  
+    mov $10,$0 ; image that is to be repaired
+    mov $11,$7 ; repair color
+    f21 $10,102150 ; Fix damaged pixels and recreate simple repeating patterns.
+
+    mov $0,$10
+    ";
+
+    #[test]
+    fn test_110001_puzzle_0dfd9992_loda() {
+        let model: Model = Model::load_testdata("0dfd9992").expect("model");
+        let program = PROGRAM_0DFD9992;
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
     }
 
     #[test]
