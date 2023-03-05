@@ -20,7 +20,7 @@ impl ImageRepairOffset for Image {
             return Err(anyhow::anyhow!("Offset must be greater than zero"));
         }
         if offset >= self.width() {
-            return Err(anyhow::anyhow!("The 'offset' must be smaller than the width"));
+            return Err(anyhow::anyhow!("The offset: {} must be smaller than the width: {}", offset, self.width()));
         }
         let original: Image = self.clone();
         for y in 0..original.height() as i32 {

@@ -3,7 +3,7 @@ mod tests {
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, ImageResize};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageBorder};
-    use crate::arc::{Image, ImageRepairTrigram, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
+    use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePeriodicity, ImageRepairOffset};
@@ -653,18 +653,9 @@ mod tests {
         let solution: SolutionSimple = |data| {
             let input = data.image;
 
-            // Count the number of identical neighbouring pixels
-            let duplicate_count: Image = input.count_duplicate_pixels_in_neighbours().expect("image");
+            let repair_color: u8 = 0;
 
-            // Ignore the pixels where count is 0, 1, 2
-            // We are only interested in pixels where there are 3 or more neighbour pixels that are the same.
-            let mask: Image = duplicate_count.to_mask_where_color_is_equal_or_greater_than(3);
-    
-            let histogram: Histogram = input.histogram_with_mask(&mask).expect("histogram");
-            let repair_color: u8 = histogram.most_popular_color().expect("color");
-
-            let mut result_image: Image = input.clone();
-            result_image.repair_trigram_algorithm(repair_color).expect("ok");
+            let result_image: Image = repair_repeated_patterns(&input, repair_color).expect("image");
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("0dfd9992").expect("model");
@@ -2406,8 +2397,10 @@ mod tests {
         // Horizontal repair
         let repair_mask_x: Image = result_image.to_mask_where_color_is(repair_color);
         let tile_width: Option<u8> = result_image.horizontal_periodicity(&repair_mask_x)?;
-        if let Some(offset_x) = tile_width {
-            result_image.repair_offset_x(&repair_mask_x, offset_x)?;
+        if let Some(offset) = tile_width {
+            if offset < result_image.width() {
+                result_image.repair_offset_x(&repair_mask_x, offset)?;
+            }
         }
 
         result_image = result_image.rotate_cw().expect("image");
@@ -2415,8 +2408,10 @@ mod tests {
         // Vertical repair
         let repair_mask_y: Image = result_image.to_mask_where_color_is(repair_color);
         let tile_height: Option<u8> = result_image.horizontal_periodicity(&repair_mask_y)?;
-        if let Some(offset_y) = tile_height {
-            result_image.repair_offset_x(&repair_mask_y, offset_y)?;
+        if let Some(offset) = tile_height {
+            if offset < result_image.width() {
+                result_image.repair_offset_x(&repair_mask_y, offset)?;
+            }
         }
 
         result_image = result_image.rotate_ccw().expect("image");
@@ -2485,7 +2480,27 @@ mod tests {
     }
 
     #[test]
-    fn test_500000_puzzle_ea959feb() -> anyhow::Result<()> {
+    fn test_500000_puzzle_29ec7d0e() -> anyhow::Result<()> {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+
+            // determine what color is used for damaged pixels
+            let repair_color: u8 = 0;
+
+            let result_image: Image = repair_repeated_patterns(&input, repair_color)?;
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("29ec7d0e").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 4);
+        assert_eq!(result.count_test_correct(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn test_510000_puzzle_ea959feb() -> anyhow::Result<()> {
         let solution: SolutionSimple = |data| {
             let input = data.image;
 
