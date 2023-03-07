@@ -1618,7 +1618,7 @@ dependencies = [
 
 [[package]]
 name = "loda-rust-cli"
-version = "2023.3.2"
+version = "2023.3.5"
 dependencies = [
  "anyhow",
  "bastion",
@@ -1637,6 +1637,7 @@ dependencies = [
  "loda-rust-core",
  "log",
  "num-bigint",
+ "num-integer",
  "num-traits",
  "num_cpus",
  "prometheus-client",

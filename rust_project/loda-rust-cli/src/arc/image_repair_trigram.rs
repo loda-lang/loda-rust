@@ -8,7 +8,9 @@ const IMAGE_REPAIR_VERBOSE: bool = false;
 
 
 pub trait ImageRepairTrigram {
-    /// Fix damaged pixels and recreate simple repeating patterns.
+    /// Fuzzy repair of pixels. Focus is a cross of 5x5 pixels and picks best candidate from trigrams.
+    /// 
+    /// Not good for big mosaic patterns, with periodicity greater than 3 pixels.
     fn repair_trigram_algorithm(&mut self, repair_color: u8) -> anyhow::Result<()>;
 }
 

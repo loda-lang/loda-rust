@@ -5,7 +5,7 @@ use std::fmt;
 /// 
 /// The max size is 255x255 pixels.
 /// 
-/// The smalles image size is 0x0 pixels.
+/// The smallest image size is 0x0 pixels.
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub struct Image {
     width: u8,
@@ -80,6 +80,13 @@ impl Image {
         }
         self.pixels[index] = value;
         Some(())
+    }
+
+    /// Replace content
+    pub fn set_image(&mut self, other: Image) {
+        self.width = other.width;
+        self.height = other.height;
+        self.pixels = other.pixels;
     }
 
     pub fn human_readable(&self) -> String {
@@ -286,5 +293,16 @@ mod tests {
             images.remove(&image);
         }
         assert_eq!(images.len(), 1);
+    }
+
+    #[test]
+    fn test_60000_set_image() {
+        let mut image = Image::empty();
+        let new_image = Image::color(3, 2, 9);
+        image.set_image(new_image);
+        assert_eq!(image.width(), 3);
+        assert_eq!(image.height(), 2);
+        let expected_pixels: Vec<u8> = vec![9, 9, 9, 9, 9, 9];
+        assert_eq!(*image.pixels(), expected_pixels);
     }
 }

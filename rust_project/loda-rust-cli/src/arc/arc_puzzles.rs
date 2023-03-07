@@ -3,7 +3,7 @@ mod tests {
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, ImageResize};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageBorder};
-    use crate::arc::{Image, ImageRepairTrigram, PopularObjects, ImageNeighbour, ImageNeighbourDirection};
+    use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile};
@@ -653,18 +653,9 @@ mod tests {
         let solution: SolutionSimple = |data| {
             let input = data.image;
 
-            // Count the number of identical neighbouring pixels
-            let duplicate_count: Image = input.count_duplicate_pixels_in_neighbours().expect("image");
+            let repair_color: u8 = 0;
 
-            // Ignore the pixels where count is 0, 1, 2
-            // We are only interested in pixels where there are 3 or more neighbour pixels that are the same.
-            let mask: Image = duplicate_count.to_mask_where_color_is_equal_or_greater_than(3);
-    
-            let histogram: Histogram = input.histogram_with_mask(&mask).expect("histogram");
-            let repair_color: u8 = histogram.most_popular_color().expect("color");
-
-            let mut result_image: Image = input.clone();
-            result_image.repair_trigram_algorithm(repair_color).expect("ok");
+            let result_image: Image = input.repair_pattern(repair_color).expect("image");
             Ok(result_image)
         };
         let model: Model = Model::load_testdata("0dfd9992").expect("model");
@@ -677,28 +668,9 @@ mod tests {
     }
 
     const PROGRAM_0DFD9992: &'static str = "
-    mov $5,$0
-    f11 $5,102141 ; Compare with the pixels above,below,left,right and count how many have the same color as the center.
-
-    ; We are only interested in pixels where there are 3 or more neighbour pixels that are the same.
-    mov $6,3 ; Ignore the pixels where count is 0, 1, 2
-    f21 $5,101253 ; Convert to a mask image by converting `pixel_color >= threshold_color` to 1 and converting anything else to to 0.
-
-    mov $7,$0 ; image
-    mov $8,$5 ; mask
-    f21 $7,101231 ; Histogram of image using a mask. Only where the mask is non-zero, are the image pixels added to the histogram.
-
-    ; take the most popular color from the histogram
-    mov $8,0
-    mov $9,1
-    f31 $7,101002 ; get x=0, y=1
-    ; $7 is now the repair_color
-  
-    mov $10,$0 ; image that is to be repaired
-    mov $11,$7 ; repair color
-    f21 $10,102150 ; Fix damaged pixels and recreate simple repeating patterns.
-
-    mov $0,$10
+    ; $0 is the image that is to be repaired
+    mov $1,0 ; repair color
+    f21 $0,102151 ; Repair damaged pixels and recreate big repeating patterns such as mosaics.
     ";
 
     #[test]
@@ -2399,4 +2371,105 @@ mod tests {
         assert_eq!(result.count_train_correct(), 4);
         assert_eq!(result.count_test_correct(), 1);
     }
+
+    #[test]
+    fn test_470000_puzzle_e95e3d8e() -> anyhow::Result<()> {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+
+            // determine what color is used for damaged pixels
+            let repair_color: u8 = 0;
+
+            let result_image: Image = input.repair_pattern(repair_color)?;
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("e95e3d8e").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn test_480000_puzzle_1d0a4b61() -> anyhow::Result<()> {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+
+            // determine what color is used for damaged pixels
+            let repair_color: u8 = 0;
+
+            let result_image: Image = input.repair_pattern(repair_color)?;
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("1d0a4b61").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn test_490000_puzzle_ca8f78db() -> anyhow::Result<()> {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+
+            // determine what color is used for damaged pixels
+            let repair_color: u8 = 0;
+
+            let result_image: Image = input.repair_pattern(repair_color)?;
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("ca8f78db").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn test_500000_puzzle_29ec7d0e() -> anyhow::Result<()> {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+
+            // determine what color is used for damaged pixels
+            let repair_color: u8 = 0;
+
+            let result_image: Image = input.repair_pattern(repair_color)?;
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("29ec7d0e").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 4);
+        assert_eq!(result.count_test_correct(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn test_510000_puzzle_ea959feb() -> anyhow::Result<()> {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+
+            // determine what color is used for damaged pixels
+            let repair_color: u8 = 1;
+
+            let result_image: Image = input.repair_pattern(repair_color)?;
+            Ok(result_image)
+        };
+        let model: Model = Model::load_testdata("ea959feb").expect("model");
+        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
+        let result: RunWithProgramResult = instance.run_solution(solution).expect("result");
+        assert_eq!(result.messages(), "");
+        assert_eq!(result.count_train_correct(), 3);
+        assert_eq!(result.count_test_correct(), 1);
+        Ok(())
+    }
+
 }
