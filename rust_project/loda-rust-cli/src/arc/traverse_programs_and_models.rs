@@ -13,7 +13,7 @@ use loda_rust_core::execute::{ProgramSerializer, ProgramId, ProgramRunner};
 use loda_rust_core::parser::ParsedProgram;
 use chrono::prelude::*;
 use std::fmt;
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant};
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::fs::{self, File};
@@ -32,6 +32,8 @@ static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 /// Some of the solutions takes minutes to evaluate, so the executable cannot stop instantly. 
 /// Thus the limit is several minutes shorter so we are sure that the executable has stopped.
 static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = ((23 * 60) + 30) * 60;
+
+static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 1;
 
 pub struct TraverseProgramsAndModels {
     config: Config,
@@ -869,16 +871,15 @@ impl TraverseProgramsAndModels {
 
         println!("{} - Start of program", Self::human_readable_utc_timestamp());
         Self::print_system_info();
-        println!("initial program_item_vec: {}", self.program_item_vec.len());
-        println!("initial model_item_vec.len: {}", self.model_item_vec.len());
+
+        let initial_random_seed: u64 = ARC_COMPETITION_INITIAL_RANDOM_SEED;
+        println!("initial random seed: {}", initial_random_seed);
+
+        println!("initial number of solutions: {}", self.program_item_vec.len());
+        println!("initial number of tasks: {}", self.model_item_vec.len());
 
         self.dedup_program_item_vec();
         self.reload_analytics_dir()?;
-
-        let duration: Duration = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .expect("Duration since UNIX_EPOCH failed");
-        let initial_random_seed: u64 = duration.as_secs();
 
         let mut scheduled_model_item_vec: Vec<Rc<RefCell<ModelItem>>> = self.model_item_vec.clone();
 
