@@ -94,6 +94,133 @@ mod tests {
         run(program, 0).expect_err("negative address");
     }
 
+    #[test]
+    fn test_30000_assert_equal_ok() {
+        let program = "
+        mov $0,89
+        mov $1,89
+        f20 $0,1030 ; Assert input[0] is equal to input[1].
+        ";
+        let v: i64 = run(program, 0).expect("output");
+        assert_eq!(v, 89);
+    }
+
+    #[test]
+    fn test_30001_assert_equal_error() {
+        let program = "
+        mov $0,89
+        mov $1,42
+        f20 $0,1030 ; Assert input[0] is equal to input[1].
+        ";
+        _ = run(program, 0).expect_err("should fail");
+    }
+
+
+    #[test]
+    fn test_30002_assert_different_ok() {
+        let program = "
+        mov $0,-89
+        mov $1,-42
+        f20 $0,1031 ; Assert input[0] is different than input[1].
+        ";
+        let v: i64 = run(program, 0).expect("output");
+        assert_eq!(v, -89);
+    }
+
+    #[test]
+    fn test_30003_assert_different_error() {
+        let program = "
+        mov $0,-89
+        mov $1,-89
+        f20 $0,1031 ; Assert input[0] is different than input[1].
+        ";
+        _ = run(program, 0).expect_err("should fail");
+    }
+
+    #[test]
+    fn test_30004_assert_less_than_ok() {
+        let program = "
+        mov $0,-1000
+        mov $1,-50
+        f20 $0,1032 ; Assert input[0] is less than input[1].
+        ";
+        let v: i64 = run(program, 0).expect("output");
+        assert_eq!(v, -1000);
+    }
+
+    #[test]
+    fn test_30005_assert_less_than_error() {
+        let program = "
+        mov $0,-50
+        mov $1,-1000
+        f20 $0,1032 ; Assert input[0] is less than input[1].
+        ";
+        _ = run(program, 0).expect_err("should fail");
+    }
+
+    #[test]
+    fn test_30006_assert_less_than_or_equal_ok() {
+        let program = "
+        mov $0,9
+        mov $1,9
+        f20 $0,1033 ; Assert input[0] is less than or equal to input[1].
+        ";
+        let v: i64 = run(program, 0).expect("output");
+        assert_eq!(v, 9);
+    }
+
+    #[test]
+    fn test_30007_assert_less_than_or_equal_error() {
+        let program = "
+        mov $0,10
+        mov $1,9
+        f20 $0,1033 ; Assert input[0] is less than or equal to input[1].
+        ";
+        _ = run(program, 0).expect_err("should fail");
+    }
+
+    #[test]
+    fn test_30008_assert_greater_than_ok() {
+        let program = "
+        mov $0,-50
+        mov $1,-1000
+        f20 $0,1034 ; Assert input[0] is greater than input[1].
+        ";
+        let v: i64 = run(program, 0).expect("output");
+        assert_eq!(v, -50);
+    }
+
+    #[test]
+    fn test_30009_assert_greater_than_error() {
+        let program = "
+        mov $0,-1000
+        mov $1,-50
+        f20 $0,1034 ; Assert input[0] is greater than input[1].
+        ";
+        _ = run(program, 0).expect_err("should fail");
+    }
+
+    #[test]
+    fn test_30010_assert_greater_than_or_equal_ok() {
+        let program = "
+        mov $0,10
+        mov $1,10
+        f20 $0,1035 ; Assert input[0] is greater than or equal to input[1].
+        ";
+        let v: i64 = run(program, 0).expect("output");
+        assert_eq!(v, 10);
+    }
+
+    #[test]
+    fn test_30011_assert_greater_than_or_equal_error() {
+        let program = "
+        mov $0,9
+        mov $1,10
+        f20 $0,1035 ; Assert input[0] is greater than or equal to input[1].
+        ";
+        _ = run(program, 0).expect_err("should fail");
+    }
+
     /// Run program with 1 input and 1 output
     fn run<S: AsRef<str>>(program: S, input: i64) -> anyhow::Result<i64> {
         let program_str: &str = program.as_ref();
