@@ -254,11 +254,15 @@ impl TraverseProgramsAndModels {
     /// The `bloom` parameter, helps ensure that the mutated programs are different than previously tried out programs.
     /// 
     /// Returns a vector with length `number_of_programs_to_generate`.
-    fn create_mutations_of_program(&mut self, program_item: RcProgramItem, random_seed: u64, number_of_programs_to_generate: usize, bloom: &mut Bloom::<String>) -> anyhow::Result<RcProgramItemVec> {
+    fn create_mutations_of_program(
+        &mut self, 
+        program_item: RcProgramItem, 
+        mutation_index: u64,
+        number_of_programs_to_generate: usize, 
+        bloom: &mut Bloom::<String>
+    ) -> anyhow::Result<RcProgramItemVec> {
         let mut genome = Genome::new();
         genome.append_message(format!("template: {:?}", program_item.borrow().id.file_name()));
-
-        let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
 
         let mut genome_vec: Vec<GenomeItem> = program_item.borrow().parsed_program.to_genome_item_vec();
 
@@ -274,8 +278,28 @@ impl TraverseProgramsAndModels {
         
         let mut result_program_item_vec: RcProgramItemVec = RcProgramItemVec::with_capacity(number_of_programs_to_generate);
 
-        let max_number_of_retries = 100;
-        for _ in 0..max_number_of_retries {
+        let max_number_of_iterations = 100;
+        for iteration in 0..max_number_of_iterations {
+
+            // Notes about random seed.
+            //
+            // Originally the random generator was initialized once before entering the loop.
+            // The initial random seed was based on datetime.
+            // It was non-deterministic, and would yield different results.
+            // When new files got added to the solutions repo, then the random seed would change.
+            //
+            // Lesson learned: Reproducibility is highly valuable. 
+            // Reproduce the same results under the same circumstances, makes it possible to compare algorithms.
+            // In order to make the code deterministic:
+            // The random seed is unaffected of how many files there are. When a new file gets added, it's still the same random_seed.
+            // The random generator is reinitialized for every iteration.
+            // The random seed is unaffected by how many threads are running in parallel.
+            // However there are still several non-deterministic things that may affect the outcome,
+            // Such as the analytics file on disk, how are the rows arranged in the csv file. Bloomfilter.
+            // Such as the way the Genome::mutate() picks a mutation strategy.
+            let random_seed: u64 = mutation_index * 0x10000 + iteration + ARC_COMPETITION_INITIAL_RANDOM_SEED;
+            let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
+
             let mutate_success: bool = genome.mutate(&mut rng, &self.context);
             if !mutate_success {
                 continue;
@@ -303,6 +327,7 @@ impl TraverseProgramsAndModels {
                 }
             };
     
+            // println!("program: {:?} random_seed: {:#x}", program_item.borrow().id.file_name(), random_seed);
             let mut serializer = ProgramSerializer::new();
             serializer.append_comment("Submitted by Simon Strandgaard");
             serializer.append_comment("Program Type: advanced");
@@ -329,25 +354,25 @@ impl TraverseProgramsAndModels {
             }
         }
         if result_program_item_vec.is_empty() {
-            return Err(anyhow::anyhow!("unable to mutate in {} attempts, {:?}", max_number_of_retries, program_item.borrow().id.file_name()));
+            return Err(anyhow::anyhow!("unable to mutate in {} attempts, {:?}", max_number_of_iterations, program_item.borrow().id.file_name()));
         }
         Ok(result_program_item_vec)
     }
 
-    /// Create mutantions of all the existing programs.
+    /// Create mutations of all the existing programs.
     /// 
     /// The `bloom` parameter, helps ensure that the mutated programs are different than previously tried out programs.
     /// 
     /// Returns a vector with length `number_of_programs_to_generate` x number of available programs.
     fn create_mutations_of_all_programs(
         &mut self,
-        random_seed: u64, 
+        mutation_index: u64, 
         number_of_programs_to_generate: usize, 
         bloom: &mut Bloom::<String>
     ) -> RcProgramItemVec {
         let mut result_program_item_vec: RcProgramItemVec = RcProgramItemVec::new();
         for program_item in self.program_item_vec.clone() {
-            match self.create_mutations_of_program(program_item, random_seed, number_of_programs_to_generate, bloom) {
+            match self.create_mutations_of_program(program_item, mutation_index, number_of_programs_to_generate, bloom) {
                 Ok(mut mutated_programs) => {
                     result_program_item_vec.append(&mut mutated_programs);
                 },
@@ -872,8 +897,7 @@ impl TraverseProgramsAndModels {
         println!("{} - Start of program", Self::human_readable_utc_timestamp());
         Self::print_system_info();
 
-        let initial_random_seed: u64 = ARC_COMPETITION_INITIAL_RANDOM_SEED;
-        println!("initial random seed: {}", initial_random_seed);
+        println!("initial random seed: {}", ARC_COMPETITION_INITIAL_RANDOM_SEED);
 
         println!("initial number of solutions: {}", self.program_item_vec.len());
         println!("initial number of tasks: {}", self.model_item_vec.len());
@@ -1007,11 +1031,12 @@ impl TraverseProgramsAndModels {
             }
             println!("{} - Mutation: {}", Self::human_readable_utc_timestamp(), mutation_index);
 
-            let random_seed: u64 = (initial_random_seed * 0x1000000) + mutation_index;
-            // debug!("random_seed: {:#x}", random_seed);
-
             // Create new mutated programs in every iteration
-            runner.plan.scheduled_program_item_vec = self.create_mutations_of_all_programs(random_seed, number_of_programs_to_generate, &mut bloom);
+            runner.plan.scheduled_program_item_vec = self.create_mutations_of_all_programs(
+                mutation_index, 
+                number_of_programs_to_generate, 
+                &mut bloom
+            );
 
             // Evaluate all puzzles with all candidate programs
             runner.run_one_batch(&mut state)?;
