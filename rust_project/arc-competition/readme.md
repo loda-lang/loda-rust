@@ -66,6 +66,7 @@ PROMPT> rake remove-buildx-instance
 This is the data that is stored inside the docker image, such as program files, analytics data.
 
 ```
+PROMPT> cargo build --release -p loda-rust-cli
 PROMPT> loda-rust analytics-arc
 PROMPT> rake payload
 ```
