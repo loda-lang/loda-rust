@@ -1,6 +1,7 @@
 use super::{Image, convolution3x3, ImagePadding};
 use bloomfilter::*;
 use std::cell::Cell;
+use std::cell::RefCell;
 
 #[allow(unused_imports)]
 use crate::arc::{HtmlLog, ImageToHTML};
@@ -29,12 +30,12 @@ impl AnalyzePuzzle {
         HtmlLog::html(image.to_html());
 
         let count = Cell::<u64>::new(0);
+        let state = RefCell::<State>::new(State::new());
         let buffer_image: Image = convolution3x3(&image, |bm| {
             let mut c: u64 = count.get();
             c += 1;
             count.set(c);
 
-            // TODO: how do I mutate the bloomfilter from within this callback?
             let tl: u8 = bm.get(0, 0).unwrap_or(255);
             let tc: u8 = bm.get(1, 0).unwrap_or(255);
             let tr: u8 = bm.get(2, 0).unwrap_or(255);
@@ -45,8 +46,11 @@ impl AnalyzePuzzle {
             let bc: u8 = bm.get(1, 2).unwrap_or(255);
             let br: u8 = bm.get(2, 2).unwrap_or(255);
 
-            // TODO: generate hash
-            // TODO: insert into bloomfilter
+            // generate hash
+            let s = format!("{},{},{}\n{},{},{}\n{},{},{}", tl, tc, tr, cl, cc, cr, bl, bc, br);
+
+            // insert into bloomfilter
+            state.borrow_mut().bloom.set(&s);
 
             // TODO: generate hashes for rotated/flipped variants
             // TODO: insert hashes into another bloomfilter
@@ -56,6 +60,10 @@ impl AnalyzePuzzle {
 
         println!("count: {}", count.get());
         // TODO: return bloomfilter
+
+        let bloom_key: String = "9,9,9\n9,9,9\n9,9,9".to_string();
+        let is_contained: bool = state.borrow().bloom.check(&bloom_key);
+        println!("is_contained: {}", is_contained);
 
         Ok(())
     }
