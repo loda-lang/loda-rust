@@ -1,4 +1,5 @@
 //! ARC challenge experiments
+mod analyze_puzzle;
 mod arc_json_model;
 mod arc_json_model_to_html;
 mod arc_puzzles;
