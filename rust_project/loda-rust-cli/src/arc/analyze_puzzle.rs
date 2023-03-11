@@ -24,7 +24,9 @@ impl State {
 
 
 struct AnalyzePuzzle {
-    bloom: Bloom::<String>,
+    bloom_normal: Bloom::<String>,
+    bloom_flipped: Bloom::<String>,
+    bloom_rotated: Bloom::<String>,
 }
 
 impl AnalyzePuzzle {
@@ -33,7 +35,9 @@ impl AnalyzePuzzle {
         HtmlLog::html(image.to_html());
 
         let count = Cell::<u64>::new(0);
-        let state = RefCell::<State>::new(State::new());
+        let state_normal = RefCell::<State>::new(State::new());
+        let state_flipped = RefCell::<State>::new(State::new());
+        let state_rotated = RefCell::<State>::new(State::new());
         let _buffer_image: Image = convolution2x2(&image, |bm| {
             let mut c: u64 = count.get();
             c += 1;
@@ -43,14 +47,36 @@ impl AnalyzePuzzle {
             let tr: u8 = bm.get(1, 0).unwrap_or(255);
             let bl: u8 = bm.get(0, 1).unwrap_or(255);
             let br: u8 = bm.get(1, 1).unwrap_or(255);
-            let s = format!("{},{}\n{},{}", tl, tr, bl, br);
-
-            // insert into bloomfilter
-            state.borrow_mut().bloom.set(&s);
-
-            // TODO: generate hashes for rotated/flipped variants
-            // TODO: insert hashes into another bloomfilter
-
+            {
+                // normal
+                let s = format!("{},{}\n{},{}", tl, tr, bl, br);
+                state_normal.borrow_mut().bloom.set(&s);
+            }
+            {
+                // flip x
+                let s = format!("{},{}\n{},{}", tr, tl, br, bl);
+                state_flipped.borrow_mut().bloom.set(&s);
+            }
+            {
+                // flip y
+                let s = format!("{},{}\n{},{}", bl, br, tl, tr);
+                state_flipped.borrow_mut().bloom.set(&s);
+            }
+            {
+                // rotate cw 90
+                let s = format!("{},{}\n{},{}", bl, tl, br, tr);
+                state_rotated.borrow_mut().bloom.set(&s);
+            }
+            {
+                // rotate cw 180
+                let s = format!("{},{}\n{},{}", br, bl, tr, tl);
+                state_rotated.borrow_mut().bloom.set(&s);
+            }
+            {
+                // rotate cw 270
+                let s = format!("{},{}\n{},{}", tr, br, tl, bl);
+                state_rotated.borrow_mut().bloom.set(&s);
+            }
             Ok(0)
         })?;
         println!("count: {}", count.get());
@@ -60,13 +86,25 @@ impl AnalyzePuzzle {
         // println!("is_contained: {}", is_contained);
 
         let instance = Self {
-            bloom: state.borrow().bloom.clone(),
+            bloom_normal: state_normal.borrow().bloom.clone(),
+            bloom_flipped: state_flipped.borrow().bloom.clone(),
+            bloom_rotated: state_rotated.borrow().bloom.clone(),
         };
         Ok(instance)
     }
 
-    fn check(&self, bloom_key: &String) -> bool {
-        self.bloom.check(bloom_key)
+    fn compute_score(&self, bloom_key: &String) -> u8 {
+        let mut score: u8 = 0;
+        if self.bloom_normal.check(bloom_key) {
+            score += 1;
+        }
+        if self.bloom_flipped.check(bloom_key) {
+            score += 2;
+        }
+        if self.bloom_rotated.check(bloom_key) {
+            score += 4;
+        }
+        score
     }
 
     fn compare(&self, image: &Image) -> anyhow::Result<()> {
@@ -85,12 +123,8 @@ impl AnalyzePuzzle {
             let br: u8 = bm.get(1, 1).unwrap_or(255);
             let s = format!("{},{}\n{},{}", tl, tr, bl, br);
 
-            let mut value: u8 = 0;
-            if self.check(&s) {
-                value += 1;
-            }
-
-            Ok(value)
+            let score = self.compute_score(&s);
+            Ok(score)
         })?;
         println!("count: {}", count.get());
         HtmlLog::html(buffer_image.to_html());
