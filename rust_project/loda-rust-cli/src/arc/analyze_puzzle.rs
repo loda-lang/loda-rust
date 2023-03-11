@@ -1,4 +1,4 @@
-use super::{Image, convolution3x3, ImagePadding};
+use super::{Image, convolution2x2, ImagePadding};
 use bloomfilter::*;
 use std::cell::Cell;
 use std::cell::RefCell;
@@ -34,23 +34,16 @@ impl AnalyzePuzzle {
 
         let count = Cell::<u64>::new(0);
         let state = RefCell::<State>::new(State::new());
-        let _buffer_image: Image = convolution3x3(&image, |bm| {
+        let _buffer_image: Image = convolution2x2(&image, |bm| {
             let mut c: u64 = count.get();
             c += 1;
             count.set(c);
 
             let tl: u8 = bm.get(0, 0).unwrap_or(255);
-            let tc: u8 = bm.get(1, 0).unwrap_or(255);
-            let tr: u8 = bm.get(2, 0).unwrap_or(255);
-            let cl: u8 = bm.get(0, 1).unwrap_or(255);
-            let cc: u8 = bm.get(1, 1).unwrap_or(255);
-            let cr: u8 = bm.get(2, 1).unwrap_or(255);
-            let bl: u8 = bm.get(0, 2).unwrap_or(255);
-            let bc: u8 = bm.get(1, 2).unwrap_or(255);
-            let br: u8 = bm.get(2, 2).unwrap_or(255);
-
-            // generate hash
-            let s = format!("{},{},{}\n{},{},{}\n{},{},{}", tl, tc, tr, cl, cc, cr, bl, bc, br);
+            let tr: u8 = bm.get(1, 0).unwrap_or(255);
+            let bl: u8 = bm.get(0, 1).unwrap_or(255);
+            let br: u8 = bm.get(1, 1).unwrap_or(255);
+            let s = format!("{},{}\n{},{}", tl, tr, bl, br);
 
             // insert into bloomfilter
             state.borrow_mut().bloom.set(&s);
@@ -80,25 +73,17 @@ impl AnalyzePuzzle {
         HtmlLog::html(image.to_html());
 
         let count = Cell::<u64>::new(0);
-        let buffer_image: Image = convolution3x3(&image, |bm| {
+        let buffer_image: Image = convolution2x2(&image, |bm| {
 
             let mut c: u64 = count.get();
             c += 1;
             count.set(c);
 
             let tl: u8 = bm.get(0, 0).unwrap_or(255);
-            let tc: u8 = bm.get(1, 0).unwrap_or(255);
-            let tr: u8 = bm.get(2, 0).unwrap_or(255);
-            let cl: u8 = bm.get(0, 1).unwrap_or(255);
-            let cc: u8 = bm.get(1, 1).unwrap_or(255);
-            let cr: u8 = bm.get(2, 1).unwrap_or(255);
-            let bl: u8 = bm.get(0, 2).unwrap_or(255);
-            let bc: u8 = bm.get(1, 2).unwrap_or(255);
-            let br: u8 = bm.get(2, 2).unwrap_or(255);
-
-            // generate hash
-            let s = format!("{},{},{}\n{},{},{}\n{},{},{}", tl, tc, tr, cl, cc, cr, bl, bc, br);
-
+            let tr: u8 = bm.get(1, 0).unwrap_or(255);
+            let bl: u8 = bm.get(0, 1).unwrap_or(255);
+            let br: u8 = bm.get(1, 1).unwrap_or(255);
+            let s = format!("{},{}\n{},{}", tl, tr, bl, br);
 
             let mut value: u8 = 0;
             if self.check(&s) {
@@ -133,20 +118,25 @@ mod tests {
         let input: Image = Image::try_create(6, 7, input_pixels).expect("image");
         
         let output_pixels: Vec<u8> = vec![
-            9, 9, 9, 9, 9, 9,
-            9, 9, 9, 9, 9, 9,
-            9, 9, 9, 9, 9, 9,
-            9, 9, 9, 9, 9, 9,
-            9, 9, 9, 9, 9, 9,
-            9, 3, 9, 9, 0, 0,
-            9, 9, 9, 9, 0, 0,
+            9, 9, 9, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 9, 9, 0, 0,
+            3, 9, 9, 9, 9, 9, 0, 0,
         ];
-        let output: Image = Image::try_create(6, 7, output_pixels).expect("image");
+        let output: Image = Image::try_create(8, 7, output_pixels).expect("image");
 
         // populate bloomfilter for input
-        let ap: AnalyzePuzzle = AnalyzePuzzle::analyze(&input).expect("ok");
+        let ap0: AnalyzePuzzle = AnalyzePuzzle::analyze(&input).expect("ok");
         // identify what parts of the output is contained in the input bloomfilter
-        ap.compare(&output).expect("ok");
+        ap0.compare(&output).expect("ok");
+
+        // populate bloomfilter for output
+        let ap1: AnalyzePuzzle = AnalyzePuzzle::analyze(&output).expect("ok");
+        // identify what parts of the input is contained in the input bloomfilter
+        ap1.compare(&input).expect("ok");
 
         // TODO: populate bloomfilter for input
         // TODO: populate bloomfilter for output
