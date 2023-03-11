@@ -7,12 +7,12 @@ use std::cell::RefCell;
 use crate::arc::{HtmlLog, ImageToHTML};
 
 struct State {
-    bloom: Bloom::<String>
+    bloom: Bloom::<String>,
 }
 
 impl State {
     fn new() -> Self {
-        let bloom_items_count = 1000000;
+        let bloom_items_count = 1000;
         let false_positive_rate = 0.01;
         let bloom = Bloom::<String>::new_for_fp_rate(bloom_items_count, false_positive_rate);
 
@@ -23,15 +23,18 @@ impl State {
 }
 
 
-struct AnalyzePuzzle;
+struct AnalyzePuzzle {
+    bloom: Bloom::<String>,
+}
 
 impl AnalyzePuzzle {
-    fn populate_bloomfilter(image: &Image) -> anyhow::Result<()> {
+    /// Populate bloomfilter
+    fn analyze(image: &Image) -> anyhow::Result<Self> {
         HtmlLog::html(image.to_html());
 
         let count = Cell::<u64>::new(0);
         let state = RefCell::<State>::new(State::new());
-        let buffer_image: Image = convolution3x3(&image, |bm| {
+        let _buffer_image: Image = convolution3x3(&image, |bm| {
             let mut c: u64 = count.get();
             c += 1;
             count.set(c);
@@ -57,13 +60,55 @@ impl AnalyzePuzzle {
 
             Ok(0)
         })?;
-
         println!("count: {}", count.get());
-        // TODO: return bloomfilter
 
-        let bloom_key: String = "9,9,9\n9,9,9\n9,9,9".to_string();
-        let is_contained: bool = state.borrow().bloom.check(&bloom_key);
-        println!("is_contained: {}", is_contained);
+        // let bloom_key: String = "9,9,9\n9,9,9\n9,9,9".to_string();
+        // let is_contained: bool = state.borrow().bloom.check(&bloom_key);
+        // println!("is_contained: {}", is_contained);
+
+        let instance = Self {
+            bloom: state.borrow().bloom.clone(),
+        };
+        Ok(instance)
+    }
+
+    fn check(&self, bloom_key: &String) -> bool {
+        self.bloom.check(bloom_key)
+    }
+
+    fn compare(&self, image: &Image) -> anyhow::Result<()> {
+        HtmlLog::html(image.to_html());
+
+        let count = Cell::<u64>::new(0);
+        let buffer_image: Image = convolution3x3(&image, |bm| {
+
+            let mut c: u64 = count.get();
+            c += 1;
+            count.set(c);
+
+            let tl: u8 = bm.get(0, 0).unwrap_or(255);
+            let tc: u8 = bm.get(1, 0).unwrap_or(255);
+            let tr: u8 = bm.get(2, 0).unwrap_or(255);
+            let cl: u8 = bm.get(0, 1).unwrap_or(255);
+            let cc: u8 = bm.get(1, 1).unwrap_or(255);
+            let cr: u8 = bm.get(2, 1).unwrap_or(255);
+            let bl: u8 = bm.get(0, 2).unwrap_or(255);
+            let bc: u8 = bm.get(1, 2).unwrap_or(255);
+            let br: u8 = bm.get(2, 2).unwrap_or(255);
+
+            // generate hash
+            let s = format!("{},{},{}\n{},{},{}\n{},{},{}", tl, tc, tr, cl, cc, cr, bl, bc, br);
+
+
+            let mut value: u8 = 0;
+            if self.check(&s) {
+                value += 1;
+            }
+
+            Ok(value)
+        })?;
+        println!("count: {}", count.get());
+        HtmlLog::html(buffer_image.to_html());
 
         Ok(())
     }
@@ -79,23 +124,31 @@ mod tests {
         let input_pixels: Vec<u8> = vec![
             9, 9, 9, 9, 9, 9,
             9, 9, 9, 9, 9, 9,
+            9, 0, 0, 9, 9, 9,
+            9, 0, 0, 9, 9, 9,
             9, 9, 9, 9, 9, 9,
             9, 9, 9, 9, 9, 9,
             9, 9, 9, 9, 9, 9,
         ];
-        let input: Image = Image::try_create(6, 5, input_pixels).expect("image");
-
+        let input: Image = Image::try_create(6, 7, input_pixels).expect("image");
+        
         let output_pixels: Vec<u8> = vec![
             9, 9, 9, 9, 9, 9,
             9, 9, 9, 9, 9, 9,
             9, 9, 9, 9, 9, 9,
             9, 9, 9, 9, 9, 9,
             9, 9, 9, 9, 9, 9,
+            9, 3, 9, 9, 0, 0,
+            9, 9, 9, 9, 0, 0,
         ];
-        let output: Image = Image::try_create(6, 5, output_pixels).expect("image");
+        let output: Image = Image::try_create(6, 7, output_pixels).expect("image");
 
         // populate bloomfilter for input
-        AnalyzePuzzle::populate_bloomfilter(&input).expect("ok");
+        let ap: AnalyzePuzzle = AnalyzePuzzle::analyze(&input).expect("ok");
+        // identify what parts of the output is contained in the input bloomfilter
+        ap.compare(&output).expect("ok");
+
+        // TODO: populate bloomfilter for input
         // TODO: populate bloomfilter for output
 
         // TODO: stats_buffer_input, for each 3x3 slice of the input, if identical to output, if so set bit0=1
