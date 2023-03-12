@@ -127,6 +127,43 @@ impl BufferTask {
         }
         self.meta_label_set = label_set;
     }
+
+    fn estimated_output_size(&self) -> String {
+        if self.meta_label_set.contains(&Label::OutputSizeEqualToInputSize) {
+            return "OutputSizeEqualToInputSize".to_string();
+        }
+        for label in &self.meta_label_set {
+            match label {
+                Label::OutputSizeIsInputSizeMultipliedByScalar { scale } => {
+                    return format!("OutputSizeIsInputSizeMultipliedByScalar: {}", scale);
+                },
+                Label::OutputSizeIsInputSizeMultipliedByXY { scale_x, scale_y } => {
+                    return format!("OutputSizeIsInputSizeMultipliedByXY: {},{}", scale_x, scale_y);
+                },
+                _ => {}
+            }
+        }
+        let mut found_width: Option<u8> = None;
+        let mut found_height: Option<u8> = None;
+        for label in &self.output_label_set {
+            match label {
+                Label::OutputSizeWidth { width } => {
+                    found_width = Some(*width);
+                },
+                Label::OutputSizeHeight { height } => {
+                    found_height = Some(*height);
+                },
+                _ => {}
+            }
+        }
+        match (found_width, found_height) {
+            (Some(width), Some(height)) => {
+                return format!("Output size: {}x{}", width, height);
+            },
+            _ => {}
+        }
+        "Undecided".to_string()
+    }
 }
 
 impl TryFrom<&Model> for BufferTask {
@@ -236,19 +273,37 @@ impl TraverseProgramsAndModels {
     pub fn label_all_puzzles() -> anyhow::Result<()> {
         let instance = TraverseProgramsAndModels::new()?;
 
-        let mut count = 0;
+        let mut buffer_task_vec: Vec<BufferTask> = vec!();
         for model_item in &instance.model_item_vec {
             let model: Model = model_item.borrow().model.clone();
             let mut buffer_task: BufferTask = BufferTask::try_from(&model)?;
-            // println!("task: {:?}", buffer_task);
-
-
             Self::assign_labels_to_model(&mut buffer_task)?;
-            Self::inspect_task(&buffer_task)?;
+            buffer_task_vec.push(buffer_task);
+        }
 
+        let mut count_good = 0;
+        let mut count_undecided = 0;
+        for buffer_task in &buffer_task_vec {
+            let estimate: String = buffer_task.estimated_output_size();
+            if estimate == "Undecided" {
+                count_undecided += 1;
+                continue;
+            }
+            count_good += 1;
+        }
+        println!("Estimated output size. good: {}  missing: {}", count_good, count_undecided);
+
+        let mut count = 0;
+        for buffer_task in &buffer_task_vec {
+            let estimate: String = buffer_task.estimated_output_size();
+            if estimate != "Undecided" {
+                continue;
+            }
+
+            Self::inspect_task(buffer_task)?;
 
             count += 1;
-            if count > 20 {
+            if count > 40 {
                 break;
             }
         }
@@ -266,7 +321,14 @@ impl TraverseProgramsAndModels {
             let height_output: u8 = pair.output.image.height();
 
             let same_width: bool = width_input == width_output;
+            if same_width {
+                pair.label_set.insert(Label::OutputSizeWidthEqualToInputSizeWidth);
+            }
+
             let same_height: bool = height_input == height_output;
+            if same_height {
+                pair.label_set.insert(Label::OutputSizeHeightEqualToInputSizeHeight);
+            }
 
             let same_size: bool = same_width && same_height;
             if same_size {
@@ -278,9 +340,60 @@ impl TraverseProgramsAndModels {
 
             pair.input.label_set.insert(Label::InputSizeWidth { width: width_input });
             pair.input.label_set.insert(Label::InputSizeHeight { height: height_input });
+
+            let mut scale_x: Option<u8> = None;
+            let mut scale_y: Option<u8> = None;
+            for scale in 1..8u8 {
+                let input_width_scaled: u32 = (width_input as u32) * (scale as u32);
+                let input_height_scaled: u32 = (height_input as u32) * (scale as u32);
+                if input_width_scaled == (width_output as u32) {
+                    scale_x = Some(scale);
+                }
+                if input_height_scaled == (height_output as u32) {
+                    scale_y = Some(scale);
+                }
+            }
+            match (scale_x, scale_y) {
+                (Some(x), Some(y)) => {
+                    if x == y {
+                        pair.label_set.insert(Label::OutputSizeIsInputSizeMultipliedByScalar { scale: x });
+                        pair.label_set.insert(Label::OutputSizeIsInputSizeMultipliedByXY { scale_x: x, scale_y: y });
+                    } else {
+                        pair.label_set.insert(Label::OutputSizeIsInputSizeMultipliedByXY { scale_x: x, scale_y: y });
+                    }
+                },
+                _ => {}
+            }
+            if let Some(x) = scale_x {
+                if x >= 2 {
+                    pair.label_set.insert(Label::OutputSizeIsInputSizeMultipliedByX { scale: x });
+                }
+            }
+            if let Some(y) = scale_y {
+                if y >= 2 {
+                    pair.label_set.insert(Label::OutputSizeIsInputSizeMultipliedByY { scale: y });
+                }
+            }
+
+            for scale in 2..8u8 {
+                let width: u32 = (width_input as u32) / (scale as u32);
+                let width_remain: u32 = (width_input as u32) % (scale as u32);
+                if width_remain == 0 && width == (width_output as u32) {
+                    pair.label_set.insert(Label::OutputSizeIsInputSizeDividedByX { scale });
+                    break;
+                }
+            }
+            for scale in 2..8u8 {
+                let height: u32 = (height_input as u32) / (scale as u32);
+                let height_remain: u32 = (height_input as u32) % (scale as u32);
+                if height_remain == 0 && height == (height_output as u32) {
+                    pair.label_set.insert(Label::OutputSizeIsInputSizeDividedByY { scale });
+                    break;
+                }
+            }
+
         }
 
-        // TODO: compute intersection between all the pairs
         buffer_task.update_input_label_set();
         buffer_task.update_output_label_set();
         buffer_task.update_meta_label_set();
@@ -354,8 +467,9 @@ impl TraverseProgramsAndModels {
         row_meta_labels += "</tr>";
 
         let html = format!(
-            "<h2>{}</h2><table>{}{}{}{}{}</table>", 
+            "<h2>{}</h2><p>Estimate: {}</p><table>{}{}{}{}{}</table>",
             buffer_task.displayName, 
+            buffer_task.estimated_output_size(),
             row_input_image, 
             row_input_labels, 
             row_output_image, 

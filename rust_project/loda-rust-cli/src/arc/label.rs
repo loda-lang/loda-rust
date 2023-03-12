@@ -4,9 +4,20 @@ use std::collections::HashSet;
 pub enum Label {
     InputSizeWidth { width: u8 },
     InputSizeHeight { height: u8 },
-    OutputSizeEqualToInputSize,
     OutputSizeWidth { width: u8 },
     OutputSizeHeight { height: u8 },
+    OutputSizeEqualToInputSize,
+    OutputSizeWidthEqualToInputSizeWidth,
+    OutputSizeHeightEqualToInputSizeHeight,
+    OutputSizeIsInputSizeMultipliedByScalar { scale: u8 },
+    OutputSizeIsInputSizeMultipliedByXY { scale_x: u8, scale_y: u8 },
+    OutputSizeIsInputSizeMultipliedByX { scale: u8 },
+    OutputSizeIsInputSizeMultipliedByY { scale: u8 },
+    OutputSizeIsInputSizeDividedByX { scale: u8 },
+    OutputSizeIsInputSizeDividedByY { scale: u8 },
+    // OutputSizeIsInputSizeDividedByXY
+    // OutputSizeIsInputSizeAddConstant
+    // OutputSizeIsInputSizeMultipliedByWithPadding
 
     // Ideas for more
     // InputAspectRatio { width: u8, height: u8 },
