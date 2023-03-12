@@ -2,6 +2,7 @@ use super::{Model, ImagePair};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
 use super::{Label, LabelSet};
+use super::{Image, ImageTryCreate};
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
@@ -38,6 +39,23 @@ static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = ((23 * 60) + 30) * 60;
 
 static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 1;
+
+/*
+struct BufferImageAndLabel {
+    image: Image,
+    label_set: LabelSet,
+}
+
+type BufferInput = BufferImageAndLabel;
+type BufferOutput = BufferImageAndLabel;
+
+struct BufferInputOutputPair {
+    // enum training or evaluation
+    input: BufferInput,
+    output: BufferOutput,
+    label_set: LabelSet,
+}
+ */
 
 pub struct TraverseProgramsAndModels {
     config: Config,
