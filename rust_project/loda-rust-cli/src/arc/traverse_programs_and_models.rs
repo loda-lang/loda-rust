@@ -71,7 +71,62 @@ struct BufferTask {
     id: String,
     displayName: String,
     pairs: Vec<BufferInputOutputPair>,
-    label_set: LabelSet,
+    input_label_set: LabelSet,
+    output_label_set: LabelSet,
+    meta_label_set: LabelSet,
+}
+
+impl BufferTask {
+    fn update_input_label_set(&mut self) {
+        let mut label_set = LabelSet::new();
+        let mut is_first = true;
+        for pair in &mut self.pairs {
+            if pair.pair_type == BufferPairType::Test {
+                continue;
+            }
+            if is_first {
+                label_set = pair.input.label_set.clone();
+                is_first = false;
+                continue;
+            }
+            label_set = label_set.intersection(&pair.input.label_set).map(|l| *l).collect();
+        }
+        self.input_label_set = label_set;
+    }
+
+    fn update_output_label_set(&mut self) {
+        let mut label_set = LabelSet::new();
+        let mut is_first = true;
+        for pair in &mut self.pairs {
+            if pair.pair_type == BufferPairType::Test {
+                continue;
+            }
+            if is_first {
+                label_set = pair.output.label_set.clone();
+                is_first = false;
+                continue;
+            }
+            label_set = label_set.intersection(&pair.output.label_set).map(|l| *l).collect();
+        }
+        self.output_label_set = label_set;
+    }
+
+    fn update_meta_label_set(&mut self) {
+        let mut label_set = LabelSet::new();
+        let mut is_first = true;
+        for pair in &mut self.pairs {
+            if pair.pair_type == BufferPairType::Test {
+                continue;
+            }
+            if is_first {
+                label_set = pair.label_set.clone();
+                is_first = false;
+                continue;
+            }
+            label_set = label_set.intersection(&pair.label_set).map(|l| *l).collect();
+        }
+        self.meta_label_set = label_set;
+    }
 }
 
 impl TryFrom<&Model> for BufferTask {
@@ -132,7 +187,9 @@ impl TryFrom<&Model> for BufferTask {
             id: format!("{},task", model_identifier),
             displayName: model_identifier,
             pairs: result_pairs,
-            label_set: LabelSet::new(),
+            input_label_set: LabelSet::new(),
+            output_label_set: LabelSet::new(),
+            meta_label_set: LabelSet::new(),
         };
         return Ok(task);
     }
@@ -191,7 +248,7 @@ impl TraverseProgramsAndModels {
 
 
             count += 1;
-            if count > 10 {
+            if count > 20 {
                 break;
             }
         }
@@ -224,20 +281,9 @@ impl TraverseProgramsAndModels {
         }
 
         // TODO: compute intersection between all the pairs
-        let mut label_set = LabelSet::new();
-        let mut is_first = true;
-        for pair in &mut buffer_task.pairs {
-            if pair.pair_type == BufferPairType::Test {
-                continue;
-            }
-            if is_first {
-                label_set = pair.label_set.clone();
-                is_first = false;
-                continue;
-            }
-            label_set = label_set.intersection(&pair.label_set).map(|l| *l).collect();
-        }
-        buffer_task.label_set = label_set;
+        buffer_task.update_input_label_set();
+        buffer_task.update_output_label_set();
+        buffer_task.update_meta_label_set();
         Ok(())
     }
 
@@ -256,7 +302,7 @@ impl TraverseProgramsAndModels {
         let mut row_input_labels: String = "<tr><td>Input labels</td>".to_string();
         let mut row_output_image: String = "<tr><td>Output image</td>".to_string();
         let mut row_output_labels: String = "<tr><td>Output labels</td>".to_string();
-        let mut row_labels: String = "<tr><td>Labels</td>".to_string();
+        let mut row_meta_labels: String = "<tr><td>Meta labels</td>".to_string();
         for pair in &buffer_task.pairs {
             {
                 row_input_image += "<td>";
@@ -279,25 +325,33 @@ impl TraverseProgramsAndModels {
                 row_output_labels += "</td>";
             }
             {
-                row_labels += "<td>";
-                row_labels += &Self::labelset_to_html(&pair.label_set);
-                row_labels += "</td>";
+                row_meta_labels += "<td>";
+                row_meta_labels += &Self::labelset_to_html(&pair.label_set);
+                row_meta_labels += "</td>";
             }
         }
 
         row_input_image += "<td></td>";
-        row_input_labels += "<td></td>";
+
+        row_input_labels += "<td>";
+        row_input_labels += &Self::labelset_to_html(&buffer_task.input_label_set);
+        row_input_labels += "</td>";
+
         row_output_image += "<td></td>";
-        row_output_labels += "<td></td>";
-        row_labels += "<td>";
-        row_labels += &Self::labelset_to_html(&buffer_task.label_set);
-        row_labels += "</td>";
+
+        row_output_labels += "<td>";
+        row_output_labels += &Self::labelset_to_html(&buffer_task.output_label_set);
+        row_output_labels += "</td>";
+
+        row_meta_labels += "<td>";
+        row_meta_labels += &Self::labelset_to_html(&buffer_task.meta_label_set);
+        row_meta_labels += "</td>";
 
         row_input_image += "</tr>";
         row_input_labels += "</tr>";
         row_output_image += "</tr>";
         row_output_labels += "</tr>";
-        row_labels += "</tr>";
+        row_meta_labels += "</tr>";
 
         let html = format!(
             "<h2>{}</h2><table>{}{}{}{}{}</table>", 
@@ -306,7 +360,7 @@ impl TraverseProgramsAndModels {
             row_input_labels, 
             row_output_image, 
             row_output_labels, 
-            row_labels
+            row_meta_labels
         );
         HtmlLog::html(html);
         Ok(())
