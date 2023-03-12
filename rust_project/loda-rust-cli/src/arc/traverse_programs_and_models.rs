@@ -1,6 +1,7 @@
 use super::{Model, ImagePair};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
+use super::{Label, LabelSet};
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
@@ -78,11 +79,47 @@ impl TraverseProgramsAndModels {
     pub fn label_all_puzzles() -> anyhow::Result<()> {
         let instance = TraverseProgramsAndModels::new()?;
 
+        let mut count = 0;
         for model_item in &instance.model_item_vec {
             let model: Model = model_item.borrow().model.clone();
+            Self::assign_labels_to_model(&model)?;
             Self::inspect_model(&model)?;
-            break;
+
+            count += 1;
+            if count > 10 {
+                break;
+            }
         }
+        Ok(())
+    }
+
+    fn assign_labels_to_model(model: &Model) -> anyhow::Result<()> {
+        let pairs: Vec<ImagePair> = model.images_train()?;
+        for pair in &pairs {
+            // TODO: extend the pair struct with a LabelSet
+            // TODO: update the existing pair, instead of createing a LabelSet
+            let mut label_set = LabelSet::new();
+
+            let width_input: u8 = pair.input.width();
+            let height_input: u8 = pair.input.height();
+            let width_output: u8 = pair.output.width();
+            let height_output: u8 = pair.output.height();
+
+            let same_width: bool = width_input == width_output;
+            let same_height: bool = height_input == height_output;
+
+            let same_size: bool = same_width && same_height;
+            if same_size {
+                label_set.insert(Label::OutputSizeEqualToInputSize);
+            }
+            label_set.insert(Label::OutputSizeWidth { width: width_output });
+            label_set.insert(Label::OutputSizeHeight { height: height_output });
+
+            println!("labels: {:?}", label_set);
+        }
+
+        // TODO: compute intersection between all the pairs
+
         Ok(())
     }
 

@@ -1,23 +1,27 @@
+use std::collections::HashSet;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Label {
     OutputSizeEqualToInputSize,
+    OutputSizeWidth { width: u8 },
+    OutputSizeHeight { height: u8 },
 }
+
+pub type LabelSet = HashSet<Label>;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
 
     #[test]
-    fn test_10000_label() {
-        let mut set0: HashSet<Label> = HashSet::new();
+    fn test_10000_intersection() {
+        let mut set0: LabelSet = HashSet::new();
         set0.insert(Label::OutputSizeEqualToInputSize);
 
-        let mut set1: HashSet<Label> = HashSet::new();
+        let mut set1: LabelSet = HashSet::new();
         set1.insert(Label::OutputSizeEqualToInputSize);
 
-        let set2: HashSet<Label> = set0.intersection(&set1).map(|l| l.clone()).collect();
+        let set2: LabelSet = set0.intersection(&set1).map(|l| *l).collect();
         assert_eq!(set2.contains(&Label::OutputSizeEqualToInputSize), true);
     }
 }

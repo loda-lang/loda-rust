@@ -106,7 +106,7 @@ pub use image_to_number::ImageToNumber;
 pub use image_trim::ImageTrim;
 pub use image_try_create::ImageTryCreate;
 pub use image_unicode_formatting::ImageUnicodeFormatting;
-pub use label::Label;
+pub use label::{Label, LabelSet};
 pub use ngram::{ImageNgram, RecordBigram, RecordTrigram};
 pub use number_to_image::NumberToImage;
 pub use popular_objects::PopularObjects;
