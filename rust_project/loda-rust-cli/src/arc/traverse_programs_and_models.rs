@@ -185,7 +185,7 @@ impl TraverseProgramsAndModels {
 
 
             Self::assign_labels_to_model(&model)?;
-            Self::inspect_model(&model)?;
+            Self::inspect_task(&buffer_task)?;
 
 
             count += 1;
@@ -228,31 +228,41 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn inspect_model(model: &Model) -> anyhow::Result<()> {
-        let train_pairs: Vec<ImagePair> = model.images_train()?;
-        let test_pairs: Vec<ImagePair> = model.images_test()?;
-        let mut pairs: Vec<ImagePair> = train_pairs.clone();
-        pairs.extend(test_pairs.clone());
+    fn labelset_to_html(label_set: &LabelSet) -> String {
+        let mut label_vec: Vec<String> = label_set.iter().map(|label| format!("{:?}", label)).collect();
+        if label_vec.is_empty() {
+            return "empty".to_string();
+        }
+        label_vec.sort();
+        label_vec.join(",")
+    }
 
-        // Table row with input and row with expected output
-        let mut row_input: String = "<tr>".to_string();
-        let mut row_output: String = "<tr>".to_string();
-        for pair in &pairs {
+    fn inspect_task(buffer_task: &BufferTask) -> anyhow::Result<()> {
+        let mut row_input: String = "<tr><td>Input</td>".to_string();
+        let mut row_output: String = "<tr><td>Output</td>".to_string();
+        let mut row_labels: String = "<tr><td>Labels</td>".to_string();
+        for pair in &buffer_task.pairs {
             {
                 row_input += "<td>";
-                row_input += &pair.input.to_html();
+                row_input += &pair.input.image.to_html();
                 row_input += "</td>";
             }
             {
                 row_output += "<td>";
-                row_output += &pair.output.to_html();
+                row_output += &pair.output.image.to_html();
                 row_output += "</td>";
             }
+            {
+                row_labels += "<td>";
+                row_labels += &Self::labelset_to_html(&pair.label_set);
+                row_labels += "</td>";
+            }
         }
-        row_input += "<td>Input</td></tr>";
-        row_output += "<td>Output</td></tr>";
+        row_input += "</tr>";
+        row_output += "</tr>";
+        row_labels += "</tr>";
 
-        let html = format!("<h2>{}</h2><table>{}{}</table>", model.id().identifier(), row_input, row_output);
+        let html = format!("<h2>{}</h2><table>{}{}{}</table>", buffer_task.id, row_input, row_output, row_labels);
         HtmlLog::html(html);
         Ok(())
     }
