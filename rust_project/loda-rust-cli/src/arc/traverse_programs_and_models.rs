@@ -79,17 +79,16 @@ impl TraverseProgramsAndModels {
         let instance = TraverseProgramsAndModels::new()?;
 
         for model_item in &instance.model_item_vec {
-            let model_item_clone: ModelItem = model_item.borrow().clone();
-            Self::inspect_model(&model_item_clone)?;
-
+            let model: Model = model_item.borrow().model.clone();
+            Self::inspect_model(&model)?;
             break;
         }
         Ok(())
     }
 
-    fn inspect_model(model_item: &ModelItem) -> anyhow::Result<()> {
-        let train_pairs: Vec<ImagePair> = model_item.model.images_train()?;
-        let test_pairs: Vec<ImagePair> = model_item.model.images_test()?;
+    fn inspect_model(model: &Model) -> anyhow::Result<()> {
+        let train_pairs: Vec<ImagePair> = model.images_train()?;
+        let test_pairs: Vec<ImagePair> = model.images_test()?;
         let mut pairs: Vec<ImagePair> = train_pairs.clone();
         pairs.extend(test_pairs.clone());
 
@@ -111,7 +110,7 @@ impl TraverseProgramsAndModels {
         row_input += "<td>Input</td></tr>";
         row_output += "<td>Output</td></tr>";
 
-        let html = format!("<h2>{}</h2><table>{}{}</table>", model_item.model.id().identifier(), row_input, row_output);
+        let html = format!("<h2>{}</h2><table>{}{}</table>", model.id().identifier(), row_input, row_output);
         HtmlLog::html(html);
         Ok(())
     }
