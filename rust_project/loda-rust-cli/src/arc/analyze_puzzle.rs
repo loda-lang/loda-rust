@@ -1,4 +1,4 @@
-use super::{Image, convolution2x2, ImagePadding};
+use super::{Image, convolution2x2};
 use bloomfilter::*;
 use std::cell::Cell;
 use std::cell::RefCell;
@@ -137,6 +137,7 @@ impl AnalyzePuzzle {
 mod tests {
     use super::*;
     use crate::arc::ImageTryCreate;
+    use crate::arc::{Model, GridToImage};
 
     #[test]
     fn test_10000_analyze() {
@@ -149,7 +150,7 @@ mod tests {
             9, 9, 9, 9, 9, 9,
             9, 9, 9, 9, 9, 9,
         ];
-        let input: Image = Image::try_create(6, 7, input_pixels).expect("image");
+        let _xinput: Image = Image::try_create(6, 7, input_pixels).expect("image");
         
         let output_pixels: Vec<u8> = vec![
             9, 9, 9, 9, 9, 9, 9, 9,
@@ -160,7 +161,18 @@ mod tests {
             9, 9, 9, 9, 9, 9, 0, 0,
             3, 9, 9, 9, 9, 9, 0, 0,
         ];
-        let output: Image = Image::try_create(8, 7, output_pixels).expect("image");
+        let _xoutput: Image = Image::try_create(8, 7, output_pixels).expect("image");
+
+        // let model: Model = Model::load_testdata("ea959feb").expect("model");
+        // let model: Model = Model::load_testdata("dbc1a6ce").expect("model");
+        // let model: Model = Model::load_testdata("72ca375d").expect("model");
+        // let model: Model = Model::load_testdata("80af3007").expect("model");
+        // let model: Model = Model::load_testdata("1f85a75f").expect("model");
+        // let model: Model = Model::load_testdata("d687bc17").expect("model");
+        let model: Model = Model::load_testdata("6b9890af").expect("model");
+        let input: Image = model.train()[0].input().to_image().expect("image");
+        let output: Image = model.train()[0].output().to_image().expect("image");
+
 
         // populate bloomfilter for input
         let ap0: AnalyzePuzzle = AnalyzePuzzle::analyze(&input).expect("ok");
