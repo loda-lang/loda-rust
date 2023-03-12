@@ -114,6 +114,8 @@ impl TraverseProgramsAndModels {
             }
             label_set.insert(Label::OutputSizeWidth { width: width_output });
             label_set.insert(Label::OutputSizeHeight { height: height_output });
+            label_set.insert(Label::InputSizeWidth { width: width_input });
+            label_set.insert(Label::InputSizeHeight { height: height_input });
 
             println!("labels: {:?}", label_set);
         }
@@ -1532,6 +1534,8 @@ impl ModelItemId {
 struct ModelItem {
     id: ModelItemId,
     model: Model,
+    // It's costly to convert the json representation to image over and over. Do it once.
+    // TODO: convert model to images, LabelSet several places in the model
 }
 
 impl ModelItem {

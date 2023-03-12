@@ -2,9 +2,16 @@ use std::collections::HashSet;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Label {
+    InputSizeWidth { width: u8 },
+    InputSizeHeight { height: u8 },
     OutputSizeEqualToInputSize,
     OutputSizeWidth { width: u8 },
     OutputSizeHeight { height: u8 },
+
+    // Ideas for more
+    // InputAspectRatio { width: u8, height: u8 },
+    // OutputAspectRatio { width: u8, height: u8 },
+    // OutputAspectRatioEqualToInputAspectRatio,
 }
 
 pub type LabelSet = HashSet<Label>;
