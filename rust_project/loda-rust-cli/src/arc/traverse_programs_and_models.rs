@@ -26,6 +26,9 @@ use rand::SeedableRng;
 use rand::rngs::StdRng;
 use serde::{Serialize, Deserialize};
 
+#[allow(unused_imports)]
+use crate::arc::{HtmlLog, ImageToHTML};
+
 static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 
 /// There is a penalty if the ARCathon executable is running longer than 24 hours.
@@ -70,6 +73,49 @@ impl TraverseProgramsAndModels {
         instance.generate_solution_csv_inner()?;
         Ok(())
     }
+
+    /// Traverse all puzzles and classify each puzzle.
+    pub fn label_all_puzzles() -> anyhow::Result<()> {
+        let instance = TraverseProgramsAndModels::new()?;
+
+        for model_item in &instance.model_item_vec {
+            let model_item_clone: ModelItem = model_item.borrow().clone();
+            Self::inspect_model(&model_item_clone)?;
+
+            break;
+        }
+        Ok(())
+    }
+
+    fn inspect_model(model_item: &ModelItem) -> anyhow::Result<()> {
+        let train_pairs: Vec<ImagePair> = model_item.model.images_train()?;
+        let test_pairs: Vec<ImagePair> = model_item.model.images_test()?;
+        let mut pairs: Vec<ImagePair> = train_pairs.clone();
+        pairs.extend(test_pairs.clone());
+
+        // Table row with input and row with expected output
+        let mut row_input: String = "<tr>".to_string();
+        let mut row_output: String = "<tr>".to_string();
+        for pair in &pairs {
+            {
+                row_input += "<td>";
+                row_input += &pair.input.to_html();
+                row_input += "</td>";
+            }
+            {
+                row_output += "<td>";
+                row_output += &pair.output.to_html();
+                row_output += "</td>";
+            }
+        }
+        row_input += "<td>Input</td></tr>";
+        row_output += "<td>Output</td></tr>";
+
+        let html = format!("<h2>{}</h2><table>{}{}</table>", model_item.model.id().identifier(), row_input, row_output);
+        HtmlLog::html(html);
+        Ok(())
+    }
+
 
     fn new() -> anyhow::Result<Self> {
         let config = Config::load();

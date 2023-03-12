@@ -160,7 +160,12 @@ async fn main() -> anyhow::Result<()> {
         )
         .subcommand(
             Command::new("arc-competition")
-                .about("ARC - The code being executed inside the docker image submitted for the `ARCathon 1` contest.")
+                .about("ARC - The code being executed inside the docker image submitted for the `ARCathon` contest.")
+                .hide(true)
+        )
+        .subcommand(
+            Command::new("arc-label")
+                .about("ARC - Traverse all puzzles and classify each puzzle.")
                 .hide(true)
         )
         .get_matches();
@@ -284,6 +289,11 @@ async fn main() -> anyhow::Result<()> {
 
     if let Some(_sub_m) = matches.subcommand_matches("arc-competition") {
         SubcommandARC::run(SubcommandARCMode::Competition)?;
+        return Ok(());
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("arc-label") {
+        SubcommandARC::run(SubcommandARCMode::LabelAllPuzzles)?;
         return Ok(());
     }
 
