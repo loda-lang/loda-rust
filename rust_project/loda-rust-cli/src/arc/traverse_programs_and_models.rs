@@ -40,8 +40,10 @@ static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = ((23 * 60) + 30) * 60;
 
 static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 1;
 
-/*
+
+#[derive(Clone, Debug)]
 struct BufferImageAndLabel {
+    id: String,
     image: Image,
     label_set: LabelSet,
 }
@@ -49,13 +51,91 @@ struct BufferImageAndLabel {
 type BufferInput = BufferImageAndLabel;
 type BufferOutput = BufferImageAndLabel;
 
+#[derive(Clone, Copy, Debug)]
+enum BufferPairType {
+    Train,
+    Test,
+}
+
+#[derive(Clone, Debug)]
 struct BufferInputOutputPair {
-    // enum training or evaluation
+    id: String,
+    pair_type: BufferPairType,
     input: BufferInput,
     output: BufferOutput,
     label_set: LabelSet,
 }
- */
+
+#[derive(Clone, Debug)]
+struct BufferTask {
+    id: String,
+    pairs: Vec<BufferInputOutputPair>,
+    label_set: LabelSet,
+}
+
+impl TryFrom<&Model> for BufferTask {
+    type Error = anyhow::Error;
+
+    fn try_from(model: &Model) -> Result<Self, Self::Error> {
+        let model_identifier: String = model.id().identifier();
+        let mut result_pairs: Vec<BufferInputOutputPair> = vec!();
+
+        {
+            let pairs: Vec<ImagePair> = model.images_train()?;
+            for (index, pair) in pairs.iter().enumerate() {
+                let buffer_input = BufferInput {
+                    id: format!("{},input{},train", model_identifier, index),
+                    image: pair.input.clone(),
+                    label_set: LabelSet::new(),
+                };
+                let buffer_output = BufferOutput {
+                    id: format!("{},output{},train", model_identifier, index),
+                    image: pair.output.clone(),
+                    label_set: LabelSet::new(),
+                };
+                let result_pair = BufferInputOutputPair {
+                    id: format!("{},pair{},train", model_identifier, index),
+                    pair_type: BufferPairType::Train,
+                    input: buffer_input,
+                    output: buffer_output,
+                    label_set: LabelSet::new(),
+                };
+                result_pairs.push(result_pair);
+            }
+        }
+        {
+            let pairs: Vec<ImagePair> = model.images_test()?;
+            for (index, pair) in pairs.iter().enumerate() {
+                let buffer_input = BufferInput {
+                    id: format!("{},input{},test", model_identifier, index),
+                    image: pair.input.clone(),
+                    label_set: LabelSet::new(),
+                };
+                let buffer_output = BufferOutput {
+                    id: format!("{},output{},test", model_identifier, index),
+                    image: pair.output.clone(),
+                    label_set: LabelSet::new(),
+                };
+                let result_pair = BufferInputOutputPair {
+                    id: format!("{},pair{},test", model_identifier, index),
+                    pair_type: BufferPairType::Test,
+                    input: buffer_input,
+                    output: buffer_output,
+                    label_set: LabelSet::new(),
+                };
+                result_pairs.push(result_pair);
+            }
+        }
+    
+        let task = BufferTask {
+            id: format!("{},task", model_identifier),
+            pairs: result_pairs,
+            label_set: LabelSet::new(),
+        };
+        return Ok(task);
+    }
+}
+
 
 pub struct TraverseProgramsAndModels {
     config: Config,
@@ -100,8 +180,13 @@ impl TraverseProgramsAndModels {
         let mut count = 0;
         for model_item in &instance.model_item_vec {
             let model: Model = model_item.borrow().model.clone();
+            let buffer_task = BufferTask::try_from(&model)?;
+            // println!("task: {:?}", buffer_task);
+
+
             Self::assign_labels_to_model(&model)?;
             Self::inspect_model(&model)?;
+
 
             count += 1;
             if count > 10 {
