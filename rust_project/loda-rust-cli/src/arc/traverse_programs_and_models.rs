@@ -333,12 +333,18 @@ impl TraverseProgramsAndModels {
                     PropertyInput::InputWidth => width_input,
                     PropertyInput::InputHeight => height_input,
                 };
+                // TODO: skip, if input_property is not yet computed
+                // TODO: skip, if input_property is cannot be computed
+                // TODO: save the computed input_property in HashSet
 
                 for output_property in &output_properties {
                     let output_value: u8 = match output_property {
                         PropertyOutput::OutputWidth => width_output,
                         PropertyOutput::OutputHeight => height_output,
                     };
+                    // TODO: skip, if output_property is not yet computed
+                    // TODO: skip, if output_property is cannot be computed
+                    // TODO: save the computed output_property in HashSet
     
                     let is_same = input_value == output_value;
                     if is_same {
