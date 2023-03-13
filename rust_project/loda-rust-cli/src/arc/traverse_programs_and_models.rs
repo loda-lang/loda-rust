@@ -132,23 +132,9 @@ impl BufferTask {
         self.meta_label_set = label_set;
     }
 
-    fn estimated_output_size(&self) -> String {
-        // TODO: make a fitness function of what combo of labels leads to what output
-        // TODO: loop over all the puzzles and update the scoring of the most significant labels
-        if self.meta_label_set.contains(&Label::OutputSizeEqualToInputSize) {
-            return "OutputSizeEqualToInputSize".to_string();
-        }
-        for label in &self.meta_label_set {
-            match label {
-                Label::OutputSizeIsInputSizeMultipliedByScalar { scale } => {
-                    return format!("OutputSizeIsInputSizeMultipliedByScalar: {}", scale);
-                },
-                Label::OutputSizeIsInputSizeMultipliedByXY { scale_x, scale_y } => {
-                    return format!("OutputSizeIsInputSizeMultipliedByXY: {},{}", scale_x, scale_y);
-                },
-                _ => {}
-            }
-        }
+    fn output_size_rules_for(&self, property_output: &PropertyOutput) -> Vec<String> {
+        let mut rules: Vec<String> = vec!();
+
         let mut found_width: Option<u8> = None;
         let mut found_height: Option<u8> = None;
         for label in &self.output_label_set {
@@ -162,12 +148,78 @@ impl BufferTask {
                 _ => {}
             }
         }
-        match (found_width, found_height) {
-            (Some(width), Some(height)) => {
-                return format!("Output size: {}x{}", width, height);
-            },
-            _ => {}
+
+        match property_output {
+            PropertyOutput::OutputWidth => {
+                if let Some(width) = found_width {
+                    let s = format!("a width is always {:?}", width);
+                    rules.push(s);
+                }
+            }
+            PropertyOutput::OutputHeight => {
+                if let Some(height) = found_height {
+                    let s = format!("a height is always {:?}", height);
+                    rules.push(s);
+                }
+            }
+        };
+
+
+        for label in &self.meta_label_set {
+            match label {
+                Label::OutputPropertyIsEqualToInputProperty { output, input } => {
+                    if output != property_output {
+                        continue;
+                    }
+                    let s = format!("b {:?} = {:?}", output, input);
+                    rules.push(s);
+                },
+                Label::OutputPropertyIsInputPropertyMultipliedBy { output, input, scale } => {
+                    if output != property_output {
+                        continue;
+                    }
+                    let s = format!("c {:?} = {:?} * {}", output, input, scale);
+                    rules.push(s);
+                },
+                Label::OutputPropertyIsInputPropertyDividedBy { output, input, scale } => {
+                    if output != property_output {
+                        continue;
+                    }
+                    let s = format!("d {:?} = {:?} / {}", output, input, scale);
+                    rules.push(s);
+                },
+                _ => {}
+            }
         }
+        rules.sort();
+        rules
+    }
+
+    fn estimated_output_size(&self) -> String {
+        // TODO: make a fitness function of what combo of labels leads to what output
+        // TODO: loop over all the puzzles and update the scoring of the most significant labels
+        let output_properties: [PropertyOutput; 2] = [
+            PropertyOutput::OutputWidth, 
+            PropertyOutput::OutputHeight
+        ];
+        let mut rules_vec: Vec<String> = vec!();
+        for output_property in &output_properties {
+            let rules: Vec<String> = self.output_size_rules_for(output_property);
+            if rules.is_empty() {
+                break;
+            }
+            let name: &str = match output_property {
+                PropertyOutput::OutputWidth => "width",
+                PropertyOutput::OutputHeight => "height"
+            };
+            let combined_rule = format!("{}: {}", name, rules.join(", "));
+            rules_vec.push(combined_rule);
+        }
+        if rules_vec.len() == output_properties.len() {
+            let rules_pretty: String = rules_vec.join("<br>");
+            return rules_pretty;
+        }
+
         "Undecided".to_string()
     }
 }
@@ -379,43 +431,11 @@ impl TraverseProgramsAndModels {
                 }
             }
 
-            let same_width: bool = width_input == width_output;
-            let same_height: bool = height_input == height_output;
-
-            let same_size: bool = same_width && same_height;
-            if same_size {
-                pair.label_set.insert(Label::OutputSizeEqualToInputSize);
-            }
-
             pair.output.label_set.insert(Label::OutputSizeWidth { width: width_output });
             pair.output.label_set.insert(Label::OutputSizeHeight { height: height_output });
 
             pair.input.label_set.insert(Label::InputSizeWidth { width: width_input });
             pair.input.label_set.insert(Label::InputSizeHeight { height: height_input });
-
-            let mut scale_x: Option<u8> = None;
-            let mut scale_y: Option<u8> = None;
-            for scale in 1..8u8 {
-                let input_width_scaled: u32 = (width_input as u32) * (scale as u32);
-                let input_height_scaled: u32 = (height_input as u32) * (scale as u32);
-                if input_width_scaled == (width_output as u32) {
-                    scale_x = Some(scale);
-                }
-                if input_height_scaled == (height_output as u32) {
-                    scale_y = Some(scale);
-                }
-            }
-            match (scale_x, scale_y) {
-                (Some(x), Some(y)) => {
-                    if x == y {
-                        pair.label_set.insert(Label::OutputSizeIsInputSizeMultipliedByScalar { scale: x });
-                        pair.label_set.insert(Label::OutputSizeIsInputSizeMultipliedByXY { scale_x: x, scale_y: y });
-                    } else {
-                        pair.label_set.insert(Label::OutputSizeIsInputSizeMultipliedByXY { scale_x: x, scale_y: y });
-                    }
-                },
-                _ => {}
-            }
         }
 
         buffer_task.update_input_label_set();

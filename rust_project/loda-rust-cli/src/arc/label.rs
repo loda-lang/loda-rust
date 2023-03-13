@@ -19,14 +19,10 @@ pub enum Label {
     InputUniqueColors { color: Vec<u8> },
     OutputSizeWidth { width: u8 },
     OutputSizeHeight { height: u8 },
-    OutputSizeEqualToInputSize,
-    OutputSizeIsInputSizeMultipliedByScalar { scale: u8 },
-    OutputSizeIsInputSizeMultipliedByXY { scale_x: u8, scale_y: u8 },
     OutputPropertyIsEqualToInputProperty { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsInputPropertyMultipliedBy { output: PropertyOutput, input: PropertyInput, scale: u8 },
     OutputPropertyIsInputPropertyDividedBy { output: PropertyOutput, input: PropertyInput, scale: u8 },
     OutputPropertyIsConstant { output: PropertyOutput, value: u8, reason: String },
-    // OutputSizeIsInputSizeDividedByXY
     // OutputSizeIsInputSizeAddConstant
     // OutputSizeIsInputSizeMultipliedByWithPadding
 
@@ -45,12 +41,13 @@ mod tests {
     #[test]
     fn test_10000_intersection() {
         let mut set0: LabelSet = HashSet::new();
-        set0.insert(Label::OutputSizeEqualToInputSize);
+        set0.insert(Label::InputSizeWidth { width: 42 });
 
         let mut set1: LabelSet = HashSet::new();
-        set1.insert(Label::OutputSizeEqualToInputSize);
+        set1.insert(Label::InputSizeWidth { width: 42 });
 
         let set2: LabelSet = set0.intersection(&set1).map(|l| l.clone()).collect();
-        assert_eq!(set2.contains(&Label::OutputSizeEqualToInputSize), true);
+        let expected_label: Label = Label::InputSizeWidth { width: 42 };
+        assert_eq!(set2.contains(&expected_label), true);
     }
 }
