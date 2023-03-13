@@ -46,6 +46,10 @@ struct BufferImageAndLabel {
     id: String,
     image: Image,
     label_set: LabelSet,
+    // TODO: caching of computed properties such as: number of unique colors, background color.
+    // TODO: label_set pending to be computed
+    // TODO: label_set that cannot be computed
+    // TODO: rerun analyze until all pending properties have been computed
 }
 
 type BufferInput = BufferImageAndLabel;
