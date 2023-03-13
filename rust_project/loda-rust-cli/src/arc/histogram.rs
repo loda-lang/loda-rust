@@ -58,6 +58,17 @@ impl Histogram {
         }
     }
 
+    /// Clear counters where the other histogram has non-zero counters.
+    /// 
+    /// Performs an operation similar to: `self` AND NOT `other`.
+    pub fn subtract_histogram(&mut self, other: &Histogram) {
+        for i in 0..256 {
+            if other.counters()[i] > 0 {
+                self.counters[i] = 0;
+            }
+        }
+    }
+
     #[allow(dead_code)]
     pub fn most_popular_pair(&self) -> Option<(u8, u32)> {
         let mut found_count: u32 = 0;
@@ -644,6 +655,32 @@ mod tests {
         // Assert
         let pairs: Vec<(u32, u8)> = h.pairs_descending();
         let expected: Vec<(u32, u8)> = vec![(1, 42), (1, 5)];
+        assert_eq!(pairs, expected);
+    }
+
+    #[test]
+    fn test_120000_subtract_histogram() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment(42);
+        h0.increment(42);
+        h0.increment(5);
+        h0.increment(9);
+        h0.increment(13);
+        let mut h1 = Histogram::new();
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(5);
+        h1.increment(0);
+
+        // Act
+        let mut h: Histogram = h0.clone();
+        h.subtract_histogram(&h1);
+        
+        // Assert
+        let pairs: Vec<(u32, u8)> = h.pairs_descending();
+        let expected: Vec<(u32, u8)> = vec![(1, 13), (1, 9)];
         assert_eq!(pairs, expected);
     }
 }
