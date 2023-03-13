@@ -423,11 +423,19 @@ impl TraverseProgramsAndModels {
         for label in &buffer_task.output_label_set {
             match label {
                 Label::OutputSizeWidth { width } => {
-                    let label = Label::OutputPropertyIsConstant { output: PropertyOutput::OutputWidth, value: *width };
+                    let label = Label::OutputPropertyIsConstant { 
+                        output: PropertyOutput::OutputWidth, 
+                        value: *width,
+                        reason: "All the training outputs have this width".to_string()
+                    };
                     buffer_task.meta_label_set.insert(label);
                 },
                 Label::OutputSizeHeight { height } => {
-                    let label = Label::OutputPropertyIsConstant { output: PropertyOutput::OutputHeight, value: *height };
+                    let label = Label::OutputPropertyIsConstant { 
+                        output: PropertyOutput::OutputHeight, 
+                        value: *height,
+                        reason: "All the training outputs have this height".to_string()
+                    };
                     buffer_task.meta_label_set.insert(label);
                 },
                 _ => {}
