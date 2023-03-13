@@ -2,7 +2,7 @@ use super::{Model, ImagePair};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
 use super::{Label, LabelSet, PropertyInput, PropertyOutput};
-use super::{Image};
+use super::{Image, Histogram, ImageHistogram};
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
@@ -45,6 +45,7 @@ static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 1;
 struct BufferImageAndLabel {
     id: String,
     image: Image,
+    histogram: Histogram,
     label_set: LabelSet,
     // TODO: caching of computed properties such as: number of unique colors, background color.
     // TODO: label_set pending to be computed
@@ -234,14 +235,18 @@ impl TryFrom<&Model> for BufferTask {
         {
             let pairs: Vec<ImagePair> = model.images_train()?;
             for (index, pair) in pairs.iter().enumerate() {
+                let histogram_input: Histogram = pair.input.histogram_all();
+                let histogram_output: Histogram = pair.output.histogram_all();
                 let buffer_input = BufferInput {
                     id: format!("{},input{},train", model_identifier, index),
                     image: pair.input.clone(),
+                    histogram: histogram_input,
                     label_set: LabelSet::new(),
                 };
                 let buffer_output = BufferOutput {
                     id: format!("{},output{},train", model_identifier, index),
                     image: pair.output.clone(),
+                    histogram: histogram_output,
                     label_set: LabelSet::new(),
                 };
                 let result_pair = BufferInputOutputPair {
@@ -257,14 +262,18 @@ impl TryFrom<&Model> for BufferTask {
         {
             let pairs: Vec<ImagePair> = model.images_test()?;
             for (index, pair) in pairs.iter().enumerate() {
+                let histogram_input: Histogram = pair.input.histogram_all();
+                let histogram_output: Histogram = pair.output.histogram_all();
                 let buffer_input = BufferInput {
                     id: format!("{},input{},test", model_identifier, index),
                     image: pair.input.clone(),
+                    histogram: histogram_input,
                     label_set: LabelSet::new(),
                 };
                 let buffer_output = BufferOutput {
                     id: format!("{},output{},test", model_identifier, index),
                     image: pair.output.clone(),
+                    histogram: histogram_output,
                     label_set: LabelSet::new(),
                 };
                 let result_pair = BufferInputOutputPair {
@@ -369,9 +378,11 @@ impl TraverseProgramsAndModels {
     }
 
     fn assign_labels_to_model(buffer_task: &mut BufferTask) -> anyhow::Result<()> {
-        let input_properties: [PropertyInput; 2] = [
+        let input_properties: [PropertyInput; 4] = [
             PropertyInput::InputWidth, 
-            PropertyInput::InputHeight
+            PropertyInput::InputHeight,
+            PropertyInput::InputUniqueColorCount,
+            PropertyInput::InputUniqueColorCountMinus1,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
@@ -386,10 +397,37 @@ impl TraverseProgramsAndModels {
             let width_output: u8 = pair.output.image.width();
             let height_output: u8 = pair.output.image.height();
 
+            pair.output.label_set.insert(Label::OutputSizeWidth { width: width_output });
+            pair.output.label_set.insert(Label::OutputSizeHeight { height: height_output });
+
+            pair.input.label_set.insert(Label::InputSizeWidth { width: width_input });
+            pair.input.label_set.insert(Label::InputSizeHeight { height: height_input });
+
+            let input_unique_color_count_raw: u32 = pair.input.histogram.number_of_counters_greater_than_zero();
+            let mut input_unique_color_count: Option<u8> = None;
+            if input_unique_color_count_raw <= (u8::MAX as u32) {
+                input_unique_color_count = Some(input_unique_color_count_raw as u8);
+            }
+
+            let mut input_unique_color_count_minus1: Option<u8> = None;
+            if let Some(value) = input_unique_color_count {
+                if value >= 1 {
+                    input_unique_color_count_minus1 = Some(value - 1);
+                }
+            }
+
             for input_property in &input_properties {
-                let input_value: u8 = match input_property {
-                    PropertyInput::InputWidth => width_input,
-                    PropertyInput::InputHeight => height_input,
+                let input_value_option: Option<u8> = match input_property {
+                    PropertyInput::InputWidth => Some(width_input),
+                    PropertyInput::InputHeight => Some(height_input),
+                    PropertyInput::InputUniqueColorCount => input_unique_color_count,
+                    PropertyInput::InputUniqueColorCountMinus1 => input_unique_color_count_minus1,
+                };
+                let input_value: u8 = match input_value_option {
+                    Some(value) => value,
+                    None => {
+                        continue;
+                    }
                 };
                 // TODO: skip, if input_property is not yet computed
                 // TODO: skip, if input_property is cannot be computed
@@ -431,11 +469,6 @@ impl TraverseProgramsAndModels {
                 }
             }
 
-            pair.output.label_set.insert(Label::OutputSizeWidth { width: width_output });
-            pair.output.label_set.insert(Label::OutputSizeHeight { height: height_output });
-
-            pair.input.label_set.insert(Label::InputSizeWidth { width: width_input });
-            pair.input.label_set.insert(Label::InputSizeHeight { height: height_input });
         }
 
         buffer_task.update_input_label_set();

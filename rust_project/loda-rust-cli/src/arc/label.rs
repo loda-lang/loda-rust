@@ -4,6 +4,8 @@ use std::collections::HashSet;
 pub enum PropertyInput {
     InputWidth,
     InputHeight,
+    InputUniqueColorCount,
+    InputUniqueColorCountMinus1,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
