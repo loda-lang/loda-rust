@@ -38,6 +38,12 @@ impl Histogram {
         self.counters[index as usize] = 0;
     }
 
+    pub fn add_histogram(&mut self, other: &Histogram) {
+        for i in 0..256 {
+            self.counters[i] += other.counters()[i];
+        }
+    }
+
     #[allow(dead_code)]
     pub fn most_popular_pair(&self) -> Option<(u8, u32)> {
         let mut found_count: u32 = 0;
@@ -538,5 +544,25 @@ mod tests {
 
         // Assert
         assert_eq!(actual, None);
+    }
+
+    #[test]
+    fn test_90000_add_histogram() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment(42);
+        h0.increment(42);
+        let mut h1 = Histogram::new();
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(42);
+
+        // Act
+        let mut h: Histogram = h0.clone();
+        h.add_histogram(&h1);
+        
+        // Assert
+        assert_eq!(h.number_of_counters_greater_than_zero(), 1);
+        assert_eq!(h.most_popular_count(), Some(5));
     }
 }
