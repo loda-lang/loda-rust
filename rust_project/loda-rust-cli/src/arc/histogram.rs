@@ -1,4 +1,4 @@
-use super::Image;
+use super::{Image, ImageExtractRowColumn};
 
 /// Histogram with 256 counters
 #[derive(Clone, Debug)]
@@ -44,7 +44,7 @@ impl Histogram {
         }
     }
 
-    /// Finds the `intersection` between 2 histograms, similar to performing an `AND` operation.
+    /// Finds the `intersection` between two histograms, similar to performing an `AND` operation.
     /// 
     /// The counter is `1` when the color is present in both histograms.
     /// 
@@ -193,6 +193,17 @@ impl Histogram {
                 }
             }
         }
+        Ok(image)
+    }
+
+    /// Returns an `Image` where `width` is the number of counters greater than zero, and `height=1`.
+    /// 
+    /// The most popular colors are to the left side.
+    /// 
+    /// The least popular colors are to the right side.
+    pub fn color_image(&self) -> anyhow::Result<Image> {
+        let image: Image = self.to_image()?;
+        let image: Image = image.bottom_rows(1)?;
         Ok(image)
     }
 
@@ -530,7 +541,34 @@ mod tests {
     }
 
     #[test]
-    fn test_80000_unused_color_some() {
+    fn test_80000_color_image() {
+        // Arrange
+        let mut h = Histogram::new();
+        let values: [u8; 10] = [0, 0, 1, 1, 1, 9, 9, 5, 3, 3];
+        for value in values {
+            h.increment(value);
+        }
+
+        // Act
+        let actual: Image = h.color_image().expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 9, 3, 0, 5,
+        ];
+        let expected_image: Image = Image::try_create(5, 1, expected_pixels).expect("image");
+        assert_eq!(actual, expected_image);
+    }
+
+    #[test]
+    fn test_80001_color_image_empty() {
+        let h = Histogram::new();
+        let actual: Image = h.color_image().expect("image");
+        assert_eq!(actual, Image::empty());
+    }
+
+    #[test]
+    fn test_90000_unused_color_some() {
         // Arrange
         let mut h = Histogram::new();
         let values: [u8; 11] = [0, 0, 2, 1, 1, 1, 9, 9, 5, 3, 3];
@@ -546,7 +584,7 @@ mod tests {
     }
 
     #[test]
-    fn test_80001_unused_color_none() {
+    fn test_90001_unused_color_none() {
         // Arrange
         let mut h = Histogram::new();
         for value in 0..=255u8 {
@@ -561,7 +599,7 @@ mod tests {
     }
 
     #[test]
-    fn test_90000_add_histogram() {
+    fn test_100000_add_histogram() {
         // Arrange
         let mut h0 = Histogram::new();
         h0.increment(42);
@@ -585,7 +623,7 @@ mod tests {
     }
 
     #[test]
-    fn test_100000_intersection_histogram() {
+    fn test_110000_intersection_histogram() {
         // Arrange
         let mut h0 = Histogram::new();
         h0.increment(42);
