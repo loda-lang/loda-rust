@@ -532,12 +532,22 @@ impl TraverseProgramsAndModels {
     }
 
     fn inspect_task(buffer_task: &BufferTask) -> anyhow::Result<()> {
+        let mut row_title: String = "<tr><td></td>".to_string();
         let mut row_input_image: String = "<tr><td>Input image</td>".to_string();
         let mut row_input_labels: String = "<tr><td>Input labels</td>".to_string();
         let mut row_output_image: String = "<tr><td>Output image</td>".to_string();
         let mut row_output_labels: String = "<tr><td>Output labels</td>".to_string();
         let mut row_meta_labels: String = "<tr><td>Meta labels</td>".to_string();
         for pair in &buffer_task.pairs {
+            {
+                row_title += "<td>";
+                let title: &str = match pair.pair_type {
+                    BufferPairType::Train => "Train",
+                    BufferPairType::Test => "Test",
+                };
+                row_title += title;
+                row_title += "</td>";
+            }
             {
                 row_input_image += "<td>";
                 row_input_image += &pair.input.image.to_html();
@@ -564,6 +574,8 @@ impl TraverseProgramsAndModels {
                 row_meta_labels += "</td>";
             }
         }
+
+        row_title += "<td>Analysis</td>";
 
         row_input_image += "<td>Union<br>";
         match buffer_task.input_histogram_union.color_image() {
@@ -617,6 +629,7 @@ impl TraverseProgramsAndModels {
         row_meta_labels += &Self::labelset_to_html(&buffer_task.meta_label_set);
         row_meta_labels += "</td>";
 
+        row_title += "</tr>";
         row_input_image += "</tr>";
         row_input_labels += "</tr>";
         row_output_image += "</tr>";
@@ -624,9 +637,10 @@ impl TraverseProgramsAndModels {
         row_meta_labels += "</tr>";
 
         let html = format!(
-            "<h2>{}</h2><p>Estimate: {}</p><table>{}{}{}{}{}</table>",
+            "<h2>{}</h2><p>Estimate: {}</p><table>{}{}{}{}{}{}</table>",
             buffer_task.displayName, 
             buffer_task.estimated_output_size(),
+            row_title,
             row_input_image, 
             row_input_labels, 
             row_output_image, 
