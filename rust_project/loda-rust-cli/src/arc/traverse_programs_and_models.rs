@@ -351,9 +351,19 @@ impl TraverseProgramsAndModels {
                         if input_value_scaled == (output_value as u32) {
                             let label = Label::OutputPropertyIsInputPropertyMultipliedBy { output: *output_property, input: *input_property, scale };
                             pair.label_set.insert(label);
+                            break;
                         }
                     }
 
+                    for scale in 2..8u8 {
+                        let value: u32 = (input_value as u32) / (scale as u32);
+                        let value_remain: u32 = (input_value as u32) % (scale as u32);
+                        if value_remain == 0 && value == (output_value as u32) {
+                            let label = Label::OutputPropertyIsInputPropertyDividedBy { output: *output_property, input: *input_property, scale };
+                            pair.label_set.insert(label);
+                            break;
+                        }
+                    }
                 }
             }
 
