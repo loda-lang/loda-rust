@@ -30,6 +30,7 @@ pub enum Label {
     OutputPropertyIsEqualToInputProperty { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsInputPropertyMultipliedBy { output: PropertyOutput, input: PropertyInput, scale: u8 },
     OutputPropertyIsInputPropertyDividedBy { output: PropertyOutput, input: PropertyInput, scale: u8 },
+    OutputPropertyIsConstant { output: PropertyOutput, value: u8 },
     // OutputSizeIsInputSizeDividedByXY
     // OutputSizeIsInputSizeAddConstant
     // OutputSizeIsInputSizeMultipliedByWithPadding

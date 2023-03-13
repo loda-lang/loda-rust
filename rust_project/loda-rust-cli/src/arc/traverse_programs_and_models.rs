@@ -296,7 +296,7 @@ impl TraverseProgramsAndModels {
         let mut count = 0;
         for buffer_task in &buffer_task_vec {
             let estimate: String = buffer_task.estimated_output_size();
-            if estimate != "Undecided" {
+            if estimate == "Undecided" {
                 continue;
             }
 
@@ -450,6 +450,21 @@ impl TraverseProgramsAndModels {
         buffer_task.update_input_label_set();
         buffer_task.update_output_label_set();
         buffer_task.update_meta_label_set();
+
+        for label in &buffer_task.output_label_set {
+            match label {
+                Label::OutputSizeWidth { width } => {
+                    let label = Label::OutputPropertyIsConstant { output: PropertyOutput::OutputWidth, value: *width };
+                    buffer_task.meta_label_set.insert(label);
+                },
+                Label::OutputSizeHeight { height } => {
+                    let label = Label::OutputPropertyIsConstant { output: PropertyOutput::OutputHeight, value: *height };
+                    buffer_task.meta_label_set.insert(label);
+                },
+                _ => {}
+            }
+        }
+
         Ok(())
     }
 
