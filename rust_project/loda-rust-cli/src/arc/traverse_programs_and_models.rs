@@ -80,6 +80,7 @@ struct BufferTask {
     input_histogram_intersection: Histogram,
     output_histogram_union: Histogram,
     output_histogram_intersection: Histogram,
+    removal_histogram_intersection: Histogram,
     input_label_set: LabelSet,
     output_label_set: LabelSet,
     meta_label_set: LabelSet,
@@ -240,19 +241,26 @@ impl TryFrom<&Model> for BufferTask {
         let mut input_histogram_intersection: Histogram = Histogram::new();
         let mut output_histogram_union: Histogram = Histogram::new();
         let mut output_histogram_intersection: Histogram = Histogram::new();
+        let mut removal_histogram_intersection: Histogram = Histogram::new();
         {
             let pairs: Vec<ImagePair> = model.images_train()?;
             for (index, pair) in pairs.iter().enumerate() {
                 let histogram_input: Histogram = pair.input.histogram_all();
                 let histogram_output: Histogram = pair.output.histogram_all();
+
+                let mut histogram_removal: Histogram = histogram_input.clone();
+                histogram_removal.subtract_histogram(&histogram_output);
+
                 input_histogram_union.add_histogram(&histogram_input);
                 output_histogram_union.add_histogram(&histogram_output);
                 if index == 0 {
                     input_histogram_intersection = histogram_input.clone();
                     output_histogram_intersection = histogram_output.clone();
+                    removal_histogram_intersection = histogram_removal.clone();
                 } else {
                     input_histogram_intersection.intersection_histogram(&histogram_input);
                     output_histogram_intersection.intersection_histogram(&histogram_output);
+                    removal_histogram_intersection.intersection_histogram(&histogram_removal);
                 }
                 let buffer_input = BufferInput {
                     id: format!("{},input{},train", model_identifier, index),
@@ -312,6 +320,7 @@ impl TryFrom<&Model> for BufferTask {
             input_histogram_intersection,
             output_histogram_union,
             output_histogram_intersection,
+            removal_histogram_intersection,
             input_label_set: LabelSet::new(),
             output_label_set: LabelSet::new(),
             meta_label_set: LabelSet::new(),
@@ -634,6 +643,15 @@ impl TraverseProgramsAndModels {
         }
         row_output_image += "<br><br>Intersection<br>";
         match buffer_task.output_histogram_intersection.color_image() {
+            Ok(image) => {
+                row_output_image += &image.to_html();
+            },
+            Err(_) => {
+                row_output_image += "N/A";
+            }
+        }
+        row_output_image += "<br><br>Removal<br>";
+        match buffer_task.removal_histogram_intersection.color_image() {
             Ok(image) => {
                 row_output_image += &image.to_html();
             },
