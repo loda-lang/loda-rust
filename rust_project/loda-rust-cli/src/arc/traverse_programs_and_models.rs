@@ -133,6 +133,8 @@ impl BufferTask {
     }
 
     fn estimated_output_size(&self) -> String {
+        // TODO: make a fitness function of what combo of labels leads to what output
+        // TODO: loop over all the puzzles and update the scoring of the most significant labels
         if self.meta_label_set.contains(&Label::OutputSizeEqualToInputSize) {
             return "OutputSizeEqualToInputSize".to_string();
         }
