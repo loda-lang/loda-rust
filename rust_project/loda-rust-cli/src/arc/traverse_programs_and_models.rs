@@ -378,14 +378,7 @@ impl TraverseProgramsAndModels {
             }
 
             let same_width: bool = width_input == width_output;
-            if same_width {
-                pair.label_set.insert(Label::OutputSizeWidthEqualToInputSizeWidth);
-            }
-
             let same_height: bool = height_input == height_output;
-            if same_height {
-                pair.label_set.insert(Label::OutputSizeHeightEqualToInputSizeHeight);
-            }
 
             let same_size: bool = same_width && same_height;
             if same_size {
@@ -421,34 +414,6 @@ impl TraverseProgramsAndModels {
                 },
                 _ => {}
             }
-            if let Some(x) = scale_x {
-                if x >= 2 {
-                    pair.label_set.insert(Label::OutputSizeIsInputSizeMultipliedByX { scale: x });
-                }
-            }
-            if let Some(y) = scale_y {
-                if y >= 2 {
-                    pair.label_set.insert(Label::OutputSizeIsInputSizeMultipliedByY { scale: y });
-                }
-            }
-
-            for scale in 2..8u8 {
-                let width: u32 = (width_input as u32) / (scale as u32);
-                let width_remain: u32 = (width_input as u32) % (scale as u32);
-                if width_remain == 0 && width == (width_output as u32) {
-                    pair.label_set.insert(Label::OutputSizeIsInputSizeDividedByX { scale });
-                    break;
-                }
-            }
-            for scale in 2..8u8 {
-                let height: u32 = (height_input as u32) / (scale as u32);
-                let height_remain: u32 = (height_input as u32) % (scale as u32);
-                if height_remain == 0 && height == (height_output as u32) {
-                    pair.label_set.insert(Label::OutputSizeIsInputSizeDividedByY { scale });
-                    break;
-                }
-            }
-
         }
 
         buffer_task.update_input_label_set();
