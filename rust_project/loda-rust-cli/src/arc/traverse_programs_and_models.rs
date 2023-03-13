@@ -77,7 +77,9 @@ struct BufferTask {
     displayName: String,
     pairs: Vec<BufferInputOutputPair>,
     input_histogram_union: Histogram,
+    input_histogram_intersection: Histogram,
     output_histogram_union: Histogram,
+    output_histogram_intersection: Histogram,
     input_label_set: LabelSet,
     output_label_set: LabelSet,
     meta_label_set: LabelSet,
@@ -235,7 +237,9 @@ impl TryFrom<&Model> for BufferTask {
         let mut result_pairs: Vec<BufferInputOutputPair> = vec!();
 
         let mut input_histogram_union: Histogram = Histogram::new();
+        let mut input_histogram_intersection: Histogram = Histogram::new();
         let mut output_histogram_union: Histogram = Histogram::new();
+        let mut output_histogram_intersection: Histogram = Histogram::new();
         {
             let pairs: Vec<ImagePair> = model.images_train()?;
             for (index, pair) in pairs.iter().enumerate() {
@@ -243,6 +247,13 @@ impl TryFrom<&Model> for BufferTask {
                 let histogram_output: Histogram = pair.output.histogram_all();
                 input_histogram_union.add_histogram(&histogram_input);
                 output_histogram_union.add_histogram(&histogram_output);
+                if index == 0 {
+                    input_histogram_intersection = histogram_input.clone();
+                    output_histogram_intersection = histogram_output.clone();
+                } else {
+                    input_histogram_intersection.intersection_histogram(&histogram_input);
+                    output_histogram_intersection.intersection_histogram(&histogram_output);
+                }
                 let buffer_input = BufferInput {
                     id: format!("{},input{},train", model_identifier, index),
                     image: pair.input.clone(),
@@ -298,7 +309,9 @@ impl TryFrom<&Model> for BufferTask {
             displayName: model_identifier,
             pairs: result_pairs,
             input_histogram_union,
+            input_histogram_intersection,
             output_histogram_union,
+            output_histogram_intersection,
             input_label_set: LabelSet::new(),
             output_label_set: LabelSet::new(),
             meta_label_set: LabelSet::new(),
@@ -552,8 +565,17 @@ impl TraverseProgramsAndModels {
             }
         }
 
-        row_input_image += "<td>";
-        match buffer_task.input_histogram_union.to_image() {
+        row_input_image += "<td>Union<br>";
+        match buffer_task.input_histogram_union.color_image() {
+            Ok(image) => {
+                row_input_image += &image.to_html();
+            },
+            Err(_) => {
+                row_input_image += "N/A";
+            }
+        }
+        row_input_image += "<br><br>Intersection<br>";
+        match buffer_task.input_histogram_intersection.color_image() {
             Ok(image) => {
                 row_input_image += &image.to_html();
             },
@@ -567,8 +589,17 @@ impl TraverseProgramsAndModels {
         row_input_labels += &Self::labelset_to_html(&buffer_task.input_label_set);
         row_input_labels += "</td>";
 
-        row_output_image += "<td>";
-        match buffer_task.output_histogram_union.to_image() {
+        row_output_image += "<td>Union<br>";
+        match buffer_task.output_histogram_union.color_image() {
+            Ok(image) => {
+                row_output_image += &image.to_html();
+            },
+            Err(_) => {
+                row_output_image += "N/A";
+            }
+        }
+        row_output_image += "<br><br>Intersection<br>";
+        match buffer_task.output_histogram_intersection.color_image() {
             Ok(image) => {
                 row_output_image += &image.to_html();
             },
