@@ -12,10 +12,11 @@ pub enum PropertyOutput {
     OutputHeight,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Label {
     InputSizeWidth { width: u8 },
     InputSizeHeight { height: u8 },
+    InputUniqueColors { color: Vec<u8> },
     OutputSizeWidth { width: u8 },
     OutputSizeHeight { height: u8 },
     OutputSizeEqualToInputSize,
@@ -55,7 +56,7 @@ mod tests {
         let mut set1: LabelSet = HashSet::new();
         set1.insert(Label::OutputSizeEqualToInputSize);
 
-        let set2: LabelSet = set0.intersection(&set1).map(|l| *l).collect();
+        let set2: LabelSet = set0.intersection(&set1).map(|l| l.clone()).collect();
         assert_eq!(set2.contains(&Label::OutputSizeEqualToInputSize), true);
     }
 }

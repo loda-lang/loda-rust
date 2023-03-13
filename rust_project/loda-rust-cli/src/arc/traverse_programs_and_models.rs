@@ -93,7 +93,7 @@ impl BufferTask {
                 is_first = false;
                 continue;
             }
-            label_set = label_set.intersection(&pair.input.label_set).map(|l| *l).collect();
+            label_set = label_set.intersection(&pair.input.label_set).map(|l| l.clone()).collect();
         }
         self.input_label_set = label_set;
     }
@@ -110,7 +110,7 @@ impl BufferTask {
                 is_first = false;
                 continue;
             }
-            label_set = label_set.intersection(&pair.output.label_set).map(|l| *l).collect();
+            label_set = label_set.intersection(&pair.output.label_set).map(|l| l.clone()).collect();
         }
         self.output_label_set = label_set;
     }
@@ -127,7 +127,7 @@ impl BufferTask {
                 is_first = false;
                 continue;
             }
-            label_set = label_set.intersection(&pair.label_set).map(|l| *l).collect();
+            label_set = label_set.intersection(&pair.label_set).map(|l| l.clone()).collect();
         }
         self.meta_label_set = label_set;
     }
