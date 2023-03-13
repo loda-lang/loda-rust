@@ -399,11 +399,13 @@ impl TraverseProgramsAndModels {
     }
 
     fn assign_labels_to_model(buffer_task: &mut BufferTask) -> anyhow::Result<()> {
-        let input_properties: [PropertyInput; 4] = [
+        let input_properties: [PropertyInput; 6] = [
             PropertyInput::InputWidth, 
             PropertyInput::InputHeight,
             PropertyInput::InputUniqueColorCount,
             PropertyInput::InputUniqueColorCountMinus1,
+            PropertyInput::InputNumberOfPixelsWithMostPopularColor,
+            PropertyInput::InputNumberOfPixelsWith2ndMostPopularColor,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
@@ -437,12 +439,32 @@ impl TraverseProgramsAndModels {
                 }
             }
 
+            let mut input_number_of_pixels_with_most_popular_color: Option<u8> = None;
+            let mut input_number_of_pixels_with_2nd_most_popular_color: Option<u8> = None;
+            let histogram_pairs: Vec<(u32,u8)> = pair.input.histogram.pairs_descending();
+            for (histogram_index, histogram_pair) in histogram_pairs.iter().enumerate() {
+                if histogram_index >= 2 {
+                    break;
+                }
+                let pixel_count: u32 = histogram_pair.0;
+                if pixel_count <= (u8::MAX as u32) {
+                    if histogram_index == 0 {
+                        input_number_of_pixels_with_most_popular_color = Some(pixel_count as u8);
+                    }
+                    if histogram_index == 1 {
+                        input_number_of_pixels_with_2nd_most_popular_color = Some(pixel_count as u8);
+                    }
+                }
+            }
+
             for input_property in &input_properties {
                 let input_value_option: Option<u8> = match input_property {
                     PropertyInput::InputWidth => Some(width_input),
                     PropertyInput::InputHeight => Some(height_input),
                     PropertyInput::InputUniqueColorCount => input_unique_color_count,
                     PropertyInput::InputUniqueColorCountMinus1 => input_unique_color_count_minus1,
+                    PropertyInput::InputNumberOfPixelsWithMostPopularColor => input_number_of_pixels_with_most_popular_color,
+                    PropertyInput::InputNumberOfPixelsWith2ndMostPopularColor => input_number_of_pixels_with_2nd_most_popular_color,
                 };
                 let input_value: u8 = match input_value_option {
                     Some(value) => value,
