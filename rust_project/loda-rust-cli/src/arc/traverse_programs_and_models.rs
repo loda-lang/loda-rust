@@ -69,6 +69,7 @@ struct BufferInputOutputPair {
     input: BufferInput,
     output: BufferOutput,
     removal_histogram: Histogram,
+    insert_histogram: Histogram,
     label_set: LabelSet,
 }
 
@@ -82,6 +83,7 @@ struct BufferTask {
     output_histogram_union: Histogram,
     output_histogram_intersection: Histogram,
     removal_histogram_intersection: Histogram,
+    insert_histogram_intersection: Histogram,
     input_label_set: LabelSet,
     output_label_set: LabelSet,
     meta_label_set: LabelSet,
@@ -243,6 +245,7 @@ impl TryFrom<&Model> for BufferTask {
         let mut output_histogram_union: Histogram = Histogram::new();
         let mut output_histogram_intersection: Histogram = Histogram::new();
         let mut removal_histogram_intersection: Histogram = Histogram::new();
+        let mut insert_histogram_intersection: Histogram = Histogram::new();
         {
             let pairs: Vec<ImagePair> = model.images_train()?;
             for (index, pair) in pairs.iter().enumerate() {
@@ -252,16 +255,21 @@ impl TryFrom<&Model> for BufferTask {
                 let mut histogram_removal: Histogram = histogram_input.clone();
                 histogram_removal.subtract_histogram(&histogram_output);
 
+                let mut histogram_insert: Histogram = histogram_output.clone();
+                histogram_insert.subtract_histogram(&histogram_input);
+
                 input_histogram_union.add_histogram(&histogram_input);
                 output_histogram_union.add_histogram(&histogram_output);
                 if index == 0 {
                     input_histogram_intersection = histogram_input.clone();
                     output_histogram_intersection = histogram_output.clone();
                     removal_histogram_intersection = histogram_removal.clone();
+                    insert_histogram_intersection = histogram_insert.clone();
                 } else {
                     input_histogram_intersection.intersection_histogram(&histogram_input);
                     output_histogram_intersection.intersection_histogram(&histogram_output);
                     removal_histogram_intersection.intersection_histogram(&histogram_removal);
+                    insert_histogram_intersection.intersection_histogram(&histogram_insert);
                 }
                 let buffer_input = BufferInput {
                     id: format!("{},input{},train", model_identifier, index),
@@ -281,6 +289,7 @@ impl TryFrom<&Model> for BufferTask {
                     input: buffer_input,
                     output: buffer_output,
                     removal_histogram: histogram_removal,
+                    insert_histogram: histogram_insert,
                     label_set: LabelSet::new(),
                 };
                 result_pairs.push(result_pair);
@@ -309,6 +318,7 @@ impl TryFrom<&Model> for BufferTask {
                     input: buffer_input,
                     output: buffer_output,
                     removal_histogram: Histogram::new(),
+                    insert_histogram: Histogram::new(),
                     label_set: LabelSet::new(),
                 };
                 result_pairs.push(result_pair);
@@ -324,6 +334,7 @@ impl TryFrom<&Model> for BufferTask {
             output_histogram_union,
             output_histogram_intersection,
             removal_histogram_intersection,
+            insert_histogram_intersection,
             input_label_set: LabelSet::new(),
             output_label_set: LabelSet::new(),
             meta_label_set: LabelSet::new(),
@@ -398,16 +409,16 @@ impl TraverseProgramsAndModels {
         let mut count = 0;
         for buffer_task in &buffer_task_vec {
             let estimate: String = buffer_task.estimated_output_size();
-            if estimate != "Undecided" {
+            if estimate == "Undecided" {
                 continue;
             }
 
-            if count > 80 {
+            if count > 50 {
                 Self::inspect_task(buffer_task)?;
             }
 
             count += 1;
-            if count > 100 {
+            if count > 80 {
                 break;
             }
         }
@@ -617,6 +628,15 @@ impl TraverseProgramsAndModels {
                         row_action += "N/A";
                     }
                 }
+                row_action += "<br>Insert<br>";
+                match pair.insert_histogram.color_image() {
+                    Ok(image) => {
+                        row_action += &image.to_html();
+                    },
+                    Err(_) => {
+                        row_action += "N/A";
+                    }
+                }
                 row_action += "</td>";
             }
             {
@@ -678,6 +698,15 @@ impl TraverseProgramsAndModels {
 
         row_action += "<td>Removal<br>";
         match buffer_task.removal_histogram_intersection.color_image() {
+            Ok(image) => {
+                row_action += &image.to_html();
+            },
+            Err(_) => {
+                row_action += "N/A";
+            }
+        }
+        row_action += "<br>Insert<br>";
+        match buffer_task.insert_histogram_intersection.color_image() {
             Ok(image) => {
                 row_action += &image.to_html();
             },
