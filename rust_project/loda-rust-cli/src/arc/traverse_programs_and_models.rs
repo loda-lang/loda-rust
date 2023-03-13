@@ -1,8 +1,8 @@
 use super::{Model, ImagePair};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
-use super::{Label, LabelSet};
-use super::{Image, ImageTryCreate};
+use super::{Label, LabelSet, PropertyInput, PropertyOutput};
+use super::{Image};
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
@@ -311,6 +311,14 @@ impl TraverseProgramsAndModels {
     }
 
     fn assign_labels_to_model(buffer_task: &mut BufferTask) -> anyhow::Result<()> {
+        let input_properties: [PropertyInput; 2] = [
+            PropertyInput::InputWidth, 
+            PropertyInput::InputHeight
+        ];
+        let output_properties: [PropertyOutput; 2] = [
+            PropertyOutput::OutputWidth, 
+            PropertyOutput::OutputHeight
+        ];
         for pair in &mut buffer_task.pairs {
             if pair.pair_type == BufferPairType::Test {
                 continue;
@@ -319,6 +327,26 @@ impl TraverseProgramsAndModels {
             let height_input: u8 = pair.input.image.height();
             let width_output: u8 = pair.output.image.width();
             let height_output: u8 = pair.output.image.height();
+
+            for input_property in &input_properties {
+                let input_value: u8 = match input_property {
+                    PropertyInput::InputWidth => width_input,
+                    PropertyInput::InputHeight => height_input,
+                };
+
+                for output_property in &output_properties {
+                    let output_value: u8 = match output_property {
+                        PropertyOutput::OutputWidth => width_output,
+                        PropertyOutput::OutputHeight => height_output,
+                    };
+    
+                    let is_same = input_value == output_value;
+                    if is_same {
+                        let label = Label::OutputPropertyIsEqualToInputProperty { output: *output_property, input: *input_property };
+                        pair.label_set.insert(label);
+                    }
+                }
+            }
 
             let same_width: bool = width_input == width_output;
             if same_width {

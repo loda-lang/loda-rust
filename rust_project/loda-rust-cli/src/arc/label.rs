@@ -1,6 +1,18 @@
 use std::collections::HashSet;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PropertyInput {
+    InputWidth,
+    InputHeight,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PropertyOutput {
+    OutputWidth,
+    OutputHeight,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Label {
     InputSizeWidth { width: u8 },
     InputSizeHeight { height: u8 },
@@ -15,6 +27,7 @@ pub enum Label {
     OutputSizeIsInputSizeMultipliedByY { scale: u8 },
     OutputSizeIsInputSizeDividedByX { scale: u8 },
     OutputSizeIsInputSizeDividedByY { scale: u8 },
+    OutputPropertyIsEqualToInputProperty { output: PropertyOutput, input: PropertyInput },
     // OutputSizeIsInputSizeDividedByXY
     // OutputSizeIsInputSizeAddConstant
     // OutputSizeIsInputSizeMultipliedByWithPadding
