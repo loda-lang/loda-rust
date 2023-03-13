@@ -68,6 +68,7 @@ struct BufferInputOutputPair {
     pair_type: BufferPairType,
     input: BufferInput,
     output: BufferOutput,
+    removal_histogram: Histogram,
     label_set: LabelSet,
 }
 
@@ -279,6 +280,7 @@ impl TryFrom<&Model> for BufferTask {
                     pair_type: BufferPairType::Train,
                     input: buffer_input,
                     output: buffer_output,
+                    removal_histogram: histogram_removal,
                     label_set: LabelSet::new(),
                 };
                 result_pairs.push(result_pair);
@@ -306,6 +308,7 @@ impl TryFrom<&Model> for BufferTask {
                     pair_type: BufferPairType::Test,
                     input: buffer_input,
                     output: buffer_output,
+                    removal_histogram: Histogram::new(),
                     label_set: LabelSet::new(),
                 };
                 result_pairs.push(result_pair);
@@ -393,14 +396,16 @@ impl TraverseProgramsAndModels {
         let mut count = 0;
         for buffer_task in &buffer_task_vec {
             let estimate: String = buffer_task.estimated_output_size();
-            if estimate == "Undecided" {
+            if estimate != "Undecided" {
                 continue;
             }
 
-            Self::inspect_task(buffer_task)?;
+            if count > 80 {
+                Self::inspect_task(buffer_task)?;
+            }
 
             count += 1;
-            if count > 40 {
+            if count > 100 {
                 break;
             }
         }
@@ -568,6 +573,7 @@ impl TraverseProgramsAndModels {
         let mut row_input_labels: String = "<tr><td>Input labels</td>".to_string();
         let mut row_output_image: String = "<tr><td>Output image</td>".to_string();
         let mut row_output_labels: String = "<tr><td>Output labels</td>".to_string();
+        let mut row_action: String = "<tr><td>Action</td>".to_string();
         let mut row_meta_labels: String = "<tr><td>Meta labels</td>".to_string();
         for pair in &buffer_task.pairs {
             {
@@ -598,6 +604,18 @@ impl TraverseProgramsAndModels {
                 row_output_labels += "<td>";
                 row_output_labels += &Self::labelset_to_html(&pair.output.label_set);
                 row_output_labels += "</td>";
+            }
+            {
+                row_action += "<td>Removal<br>";
+                match pair.removal_histogram.color_image() {
+                    Ok(image) => {
+                        row_action += &image.to_html();
+                    },
+                    Err(_) => {
+                        row_action += "N/A";
+                    }
+                }
+                row_action += "</td>";
             }
             {
                 row_meta_labels += "<td>";
@@ -650,20 +668,22 @@ impl TraverseProgramsAndModels {
                 row_output_image += "N/A";
             }
         }
-        row_output_image += "<br><br>Removal<br>";
-        match buffer_task.removal_histogram_intersection.color_image() {
-            Ok(image) => {
-                row_output_image += &image.to_html();
-            },
-            Err(_) => {
-                row_output_image += "N/A";
-            }
-        }
         row_output_image += "</td>";
 
         row_output_labels += "<td>";
         row_output_labels += &Self::labelset_to_html(&buffer_task.output_label_set);
         row_output_labels += "</td>";
+
+        row_action += "<td>Removal<br>";
+        match buffer_task.removal_histogram_intersection.color_image() {
+            Ok(image) => {
+                row_action += &image.to_html();
+            },
+            Err(_) => {
+                row_action += "N/A";
+            }
+        }
+        row_action += "</td>";
 
         row_meta_labels += "<td>";
         row_meta_labels += &Self::labelset_to_html(&buffer_task.meta_label_set);
@@ -674,10 +694,11 @@ impl TraverseProgramsAndModels {
         row_input_labels += "</tr>";
         row_output_image += "</tr>";
         row_output_labels += "</tr>";
+        row_action += "</tr>";
         row_meta_labels += "</tr>";
 
         let html = format!(
-            "<h2>{}</h2><p>Estimate: {}</p><table>{}{}{}{}{}{}</table>",
+            "<h2>{}</h2><p>Estimate: {}</p><table>{}{}{}{}{}{}{}</table>",
             buffer_task.displayName, 
             buffer_task.estimated_output_size(),
             row_title,
@@ -685,6 +706,7 @@ impl TraverseProgramsAndModels {
             row_input_labels, 
             row_output_image, 
             row_output_labels, 
+            row_action,
             row_meta_labels
         );
         HtmlLog::html(html);
