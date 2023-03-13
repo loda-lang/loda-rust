@@ -345,6 +345,15 @@ impl TraverseProgramsAndModels {
                         let label = Label::OutputPropertyIsEqualToInputProperty { output: *output_property, input: *input_property };
                         pair.label_set.insert(label);
                     }
+
+                    for scale in 2..8u8 {
+                        let input_value_scaled: u32 = (input_value as u32) * (scale as u32);
+                        if input_value_scaled == (output_value as u32) {
+                            let label = Label::OutputPropertyIsInputPropertyMultipliedBy { output: *output_property, input: *input_property, scale };
+                            pair.label_set.insert(label);
+                        }
+                    }
+
                 }
             }
 
