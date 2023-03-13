@@ -44,6 +44,20 @@ impl Histogram {
         }
     }
 
+    /// Finds the `intersection` between 2 histograms, similar to performing an `AND` operation.
+    /// 
+    /// The counter is `1` when the color is present in both histograms.
+    /// 
+    /// Otherwise the counter is `0`.
+    pub fn intersection_histogram(&mut self, other: &Histogram) {
+        for i in 0..256 {
+            let a: u32 = self.counters[i];
+            let b: u32 = other.counters()[i];
+            let v: u32 = a.min(b).min(1);
+            self.counters[i] = v;
+        }
+    }
+
     #[allow(dead_code)]
     pub fn most_popular_pair(&self) -> Option<(u8, u32)> {
         let mut found_count: u32 = 0;
@@ -113,9 +127,9 @@ impl Histogram {
         None
     }
 
-    /// The least frequent occuring comes first.
+    /// The least frequent occurring comes first.
     /// 
-    /// The medium frequent occuring comes middle.
+    /// The medium frequent occurring comes middle.
     /// 
     /// The most frequent occurring comes last.
     pub fn pairs_ascending(&self) -> Vec<(u32,u8)> {
@@ -131,7 +145,7 @@ impl Histogram {
 
     /// The most frequent occurring comes first.
     /// 
-    /// The medium frequent occuring comes middle.
+    /// The medium frequent occurring comes middle.
     /// 
     /// The least frequent occurring are at the end.
     pub fn pairs_descending(&self) -> Vec<(u32,u8)> {
@@ -552,17 +566,46 @@ mod tests {
         let mut h0 = Histogram::new();
         h0.increment(42);
         h0.increment(42);
+        h0.increment(9);
         let mut h1 = Histogram::new();
         h1.increment(42);
         h1.increment(42);
         h1.increment(42);
+        h1.increment(11);
+        h1.increment(11);
 
         // Act
         let mut h: Histogram = h0.clone();
         h.add_histogram(&h1);
         
         // Assert
-        assert_eq!(h.number_of_counters_greater_than_zero(), 1);
-        assert_eq!(h.most_popular_count(), Some(5));
+        let pairs: Vec<(u32, u8)> = h.pairs_descending();
+        let expected: Vec<(u32, u8)> = vec![(5, 42), (2, 11), (1, 9)];
+        assert_eq!(pairs, expected);
+    }
+
+    #[test]
+    fn test_100000_intersection_histogram() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment(42);
+        h0.increment(42);
+        h0.increment(5);
+        h0.increment(9);
+        let mut h1 = Histogram::new();
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(5);
+        h1.increment(0);
+
+        // Act
+        let mut h: Histogram = h0.clone();
+        h.intersection_histogram(&h1);
+        
+        // Assert
+        let pairs: Vec<(u32, u8)> = h.pairs_descending();
+        let expected: Vec<(u32, u8)> = vec![(1, 42), (1, 5)];
+        assert_eq!(pairs, expected);
     }
 }
