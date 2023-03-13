@@ -393,6 +393,8 @@ impl TraverseProgramsAndModels {
         }
         println!("Estimated output size. good: {}  missing: {}", count_good, count_undecided);
 
+        // TODO: compute the output size with the test data, and compare with the expected output
+
         let mut count = 0;
         for buffer_task in &buffer_task_vec {
             let estimate: String = buffer_task.estimated_output_size();
