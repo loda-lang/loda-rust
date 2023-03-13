@@ -186,7 +186,7 @@ impl BufferTask {
                     if output != property_output {
                         continue;
                     }
-                    let s = format!("d {:?} = {:?} / {}", output, input, scale);
+                    let s = format!("c {:?} = {:?} / {}", output, input, scale);
                     rules.push(s);
                 },
                 _ => {}
