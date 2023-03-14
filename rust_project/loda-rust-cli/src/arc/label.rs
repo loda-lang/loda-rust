@@ -20,13 +20,14 @@ pub enum PropertyOutput {
 pub enum Label {
     InputSizeWidth { width: u8 },
     InputSizeHeight { height: u8 },
-    InputUniqueColors { color: Vec<u8> },
+    // InputUniqueColors { color: Vec<u8> },
     OutputSizeWidth { width: u8 },
     OutputSizeHeight { height: u8 },
     OutputPropertyIsEqualToInputProperty { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsInputPropertyMultipliedBy { output: PropertyOutput, input: PropertyInput, scale: u8 },
     OutputPropertyIsInputPropertyDividedBy { output: PropertyOutput, input: PropertyInput, scale: u8 },
     OutputPropertyIsConstant { output: PropertyOutput, value: u8, reason: String },
+    // OutputPropertySamePixelValuesAsInput { count_same: u16, count_different: u16 },
     // OutputSizeIsInputSizeAddConstant
     // OutputSizeIsInputSizeMultipliedByWithPadding
 
