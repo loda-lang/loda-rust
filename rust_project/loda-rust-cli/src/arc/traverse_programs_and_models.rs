@@ -295,8 +295,9 @@ impl BufferTask {
         "Undecided".to_string()
     }
 
-    // TODO: return an array sizes and corresponding score
-    fn predict_output_size_for_output_property_and_input(&self, property_output: &PropertyOutput, buffer_input: &BufferInput) -> Vec<String> {
+
+    /// Returns an array of tuples. Each tuple is a priority and a value.
+    fn predict_output_size_for_output_property_and_input(&self, property_output: &PropertyOutput, buffer_input: &BufferInput) -> Vec<(RulePriority, u8)> {
         let mut rules: Vec<(RulePriority, u8)> = vec!();
 
         let mut found_width: Option<u8> = None;
@@ -316,12 +317,12 @@ impl BufferTask {
         match property_output {
             PropertyOutput::OutputWidth => {
                 if let Some(width) = found_width {
-                    rules.push((RulePriority::Simple, width));
+                    rules.push((RulePriority::Medium, width));
                 }
             }
             PropertyOutput::OutputHeight => {
                 if let Some(height) = found_height {
-                    rules.push((RulePriority::Simple, height));
+                    rules.push((RulePriority::Medium, height));
                 }
             }
         };
@@ -340,7 +341,14 @@ impl BufferTask {
                             continue;
                         }
                     };
-                    rules.push((RulePriority::Medium, input_value));
+                    let mut priority = RulePriority::Medium;
+                    if *output == PropertyOutput::OutputWidth && *input == PropertyInput::InputWidth {
+                        priority = RulePriority::Simple;
+                    }
+                    if *output == PropertyOutput::OutputHeight && *input == PropertyInput::InputHeight {
+                        priority = RulePriority::Simple;
+                    }
+                    rules.push((priority, input_value));
                 },
                 Label::OutputPropertyIsInputPropertyMultipliedBy { output, input, scale } => {
                     if output != property_output {
@@ -390,43 +398,48 @@ impl BufferTask {
 
         // Simplest rules first, Advanced rules last
         rules.sort();
-        
-        // TODO: pick the simplest
-        // TODO: compute confidence score, if there are many advanced items that agree on a value, then it may be more likely
-        // if there is one simple rule, and no advanced rules, then it may be the most likely
-        // if all the rules agree on a single value, then it may be the most likely.
 
-        let strings: Vec<String> = rules.iter().map(|(_prio,value)| format!("{}", value)).collect();
-        strings
+        rules
     }
 
     fn predict_output_size_for_input(&self, input: &BufferInput) -> String {
-        // TODO: traverse the `output_size_rules` and compute the most likely sizes, and rank them.
-        // println!("predict output size");
-
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
             PropertyOutput::OutputHeight
         ];
-        let mut rules_vec: Vec<String> = vec!();
+        let mut found_width: Option<u8> = None;
+        let mut found_height: Option<u8> = None;
         for output_property in &output_properties {
-            let rules: Vec<String> = self.predict_output_size_for_output_property_and_input(output_property, input);
-            if rules.is_empty() {
-                break;
-            }
-            let name: &str = match output_property {
-                PropertyOutput::OutputWidth => "width",
-                PropertyOutput::OutputHeight => "height"
+            let rules: Vec<(RulePriority, u8)> = self.predict_output_size_for_output_property_and_input(output_property, input);
+
+            // pick the simplest rule
+            let value: u8 = match rules.first() {
+                Some((_prio, value)) => *value,
+                None => {
+                    break;
+                }
             };
-            let combined_rule = format!("{}: {}", name, rules.join(", "));
-            rules_vec.push(combined_rule);
-        }
-        if rules_vec.len() == output_properties.len() {
-            let rules_pretty: String = rules_vec.join(" - ");
-            return rules_pretty;
+
+            // TODO: compute confidence score, if there are many advanced items that agree on a value, then it may be more likely
+            // if there is one simple rule, and no advanced rules, then it may be the most likely
+            // if all the rules agree on a single value, then it may be the most likely.
+            // If there is a `IsSquare` label, then prefer the square above other choices
+            // let strings: Vec<String> = rules.iter().map(|(_prio,value)| format!("{}", value)).collect();
+
+            match output_property {
+                PropertyOutput::OutputWidth => { found_width = Some(value) },
+                PropertyOutput::OutputHeight => { found_height = Some(value) }
+            }
         }
 
-        "Undecided".to_string()
+        match (found_width, found_height) {
+            (Some(width), Some(height)) => {
+                return format!("{}x{}", width, height);
+            },
+            _ => {
+                return "Undecided".to_string()
+            }
+        }
     }
 }
 
@@ -602,20 +615,48 @@ impl TraverseProgramsAndModels {
         println!("Estimated output size. good: {}  missing: {}", count_good, count_undecided);
         
         // TODO: compute the output size with the test data, and compare with the expected output
-        // for buffer_task in &buffer_task_vec {
-        //     let estimate: String = buffer_task.estimated_output_size();
-        //     if estimate == "Undecided" {
-        //         continue;
-        //     }
+        let mut count_predict_correct: usize = 0;
+        let mut count_predict_incorrect: usize = 0;
+        let mut count_predict_correct_task: usize = 0;
+        let mut count_predict_incorrect_task: usize = 0;
+        for buffer_task in &buffer_task_vec {
+            let estimate: String = buffer_task.estimated_output_size();
+            if estimate == "Undecided" {
+                continue;
+            }
 
-        //     for pair in &buffer_task.pairs {
-        //         if pair.pair_type != BufferPairType::Test {
-        //             continue;
-        //         }
-        //         let predicted: String = buffer_task.predict_output_size_for_input(&pair.input);
-        //         println!("Predicted output size: {}", predicted);
-        //     }
-        // }
+            let mut all_correct = true;
+            for pair in &buffer_task.pairs {
+                if pair.pair_type != BufferPairType::Test {
+                    continue;
+                }
+                let predicted: String = buffer_task.predict_output_size_for_input(&pair.input);
+                // println!("Predicted output size: {}", predicted);
+
+                let expected: String = format!("{}x{}", pair.output.image.width(), pair.output.image.height());
+                if predicted == expected {
+                    count_predict_correct += 1;
+                } else {
+                    println!("Wrong output size. Expected {}, but got {}. Task id: {}", expected, predicted, buffer_task.id);
+                    count_predict_incorrect += 1;
+                    all_correct = false;
+                }
+            }
+            if all_correct {
+                count_predict_correct_task += 1;
+            } else {
+                Self::inspect_task(buffer_task)?;
+                count_predict_incorrect_task += 1;
+            }
+        }
+        {
+            let percent: usize = (100 * count_predict_correct) / (count_predict_correct + count_predict_incorrect).max(1);
+            println!("Predicted single-image: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct, count_predict_incorrect, percent);
+        }
+        {
+            let percent: usize = (100 * count_predict_correct_task) / (count_predict_correct_task + count_predict_incorrect_task).max(1);
+            println!("Predicted task: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct_task, count_predict_incorrect_task, percent);
+        }
 
         let mut count = 0;
         for buffer_task in &buffer_task_vec {
@@ -625,7 +666,7 @@ impl TraverseProgramsAndModels {
             }
 
             if count > 50 {
-                Self::inspect_task(buffer_task)?;
+                // Self::inspect_task(buffer_task)?;
             }
 
             count += 1;
