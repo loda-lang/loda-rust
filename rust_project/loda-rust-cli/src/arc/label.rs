@@ -8,6 +8,8 @@ pub enum PropertyInput {
     InputUniqueColorCountMinus1,
     InputNumberOfPixelsWithMostPopularColor,
     InputNumberOfPixelsWith2ndMostPopularColor,
+    InputWidthOfPrimaryObjectAfterSingleColorRemoval,
+    InputHeightOfPrimaryObjectAfterSingleColorRemoval,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

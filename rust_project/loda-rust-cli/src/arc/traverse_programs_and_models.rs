@@ -48,23 +48,33 @@ enum RulePriority {
 }
 
 
-
 #[derive(Clone, Debug)]
-struct BufferImageAndLabel {
+struct BufferOutput {
     id: String,
     image: Image,
     histogram: Histogram,
     label_set: LabelSet,
+}
+
+#[derive(Clone, Debug)]
+struct BufferInput {
+    id: String,
+    image: Image,
+    histogram: Histogram,
+    label_set: LabelSet,
+    input_properties: HashMap<PropertyInput, u8>,
+
     // TODO: caching of computed properties such as: number of unique colors, background color.
     // TODO: label_set pending to be computed
     // TODO: label_set that cannot be computed
     // TODO: rerun analyze until all pending properties have been computed
 }
 
-type BufferInput = BufferImageAndLabel;
-type BufferOutput = BufferImageAndLabel;
+impl BufferInput {
+    fn update_input_properties(&mut self) {
+        self.input_properties = self.resolve_input_properties();
+    }
 
-impl BufferImageAndLabel {
     fn resolve_input_properties(&self) -> HashMap<PropertyInput, u8> {
         let width_input: u8 = self.image.width();
         let height_input: u8 = self.image.height();
@@ -254,7 +264,7 @@ impl BufferTask {
                     continue;
                 }
             };
-            println!("number of objects: {} task: {}", object_images.len(), self.displayName);
+            // println!("number of objects: {} task: {}", object_images.len(), self.displayName);
             // if buffer_task.id == "8a371977,task" {
             //     for image in &object_images {
             //         HtmlLog::image(image);
@@ -281,7 +291,12 @@ impl BufferTask {
                         }
                     };
                     
-                    println!("biggest object: {}x{}", trimmed_image.width(), trimmed_image.height());
+                    let width: u8 = trimmed_image.width();
+                    let height: u8 = trimmed_image.height();
+                    // println!("biggest object: {}x{}", width, height);
+
+                    pair.input.input_properties.insert(PropertyInput::InputWidthOfPrimaryObjectAfterSingleColorRemoval, width);
+                    pair.input.input_properties.insert(PropertyInput::InputHeightOfPrimaryObjectAfterSingleColorRemoval, height);
                 }
             }
         }
@@ -569,6 +584,7 @@ impl TryFrom<&Model> for BufferTask {
                     image: pair.input.clone(),
                     histogram: histogram_input,
                     label_set: LabelSet::new(),
+                    input_properties: HashMap::new(),
                 };
                 let buffer_output = BufferOutput {
                     id: format!("{},output{},train", model_identifier, index),
@@ -598,6 +614,7 @@ impl TryFrom<&Model> for BufferTask {
                     image: pair.input.clone(),
                     histogram: histogram_input,
                     label_set: LabelSet::new(),
+                    input_properties: HashMap::new(),
                 };
                 let buffer_output = BufferOutput {
                     id: format!("{},output{},test", model_identifier, index),
@@ -765,16 +782,26 @@ impl TraverseProgramsAndModels {
     }
 
     fn assign_labels_to_model(buffer_task: &mut BufferTask) -> anyhow::Result<()> {
+        for pair in &mut buffer_task.pairs {
+            if pair.pair_type == BufferPairType::Test {
+                continue;
+            }
+            pair.input.update_input_properties();
+        }
+
         buffer_task.assign_labels_input_size_output_size();
         buffer_task.assign_labels_related_to_removal_histogram();
 
-        let input_properties: [PropertyInput; 6] = [
+
+        let input_properties: [PropertyInput; 8] = [
             PropertyInput::InputWidth, 
             PropertyInput::InputHeight,
             PropertyInput::InputUniqueColorCount,
             PropertyInput::InputUniqueColorCountMinus1,
             PropertyInput::InputNumberOfPixelsWithMostPopularColor,
             PropertyInput::InputNumberOfPixelsWith2ndMostPopularColor,
+            PropertyInput::InputWidthOfPrimaryObjectAfterSingleColorRemoval,
+            PropertyInput::InputHeightOfPrimaryObjectAfterSingleColorRemoval,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
@@ -788,9 +815,8 @@ impl TraverseProgramsAndModels {
             let width_output: u8 = pair.output.image.width();
             let height_output: u8 = pair.output.image.height();
 
-            let dict: HashMap<PropertyInput, u8> = pair.input.resolve_input_properties();
             for input_property in &input_properties {
-                let input_value_option: Option<&u8> = dict.get(input_property);
+                let input_value_option: Option<&u8> = pair.input.input_properties.get(input_property);
                 let input_value: u8 = match input_value_option {
                     Some(value) => *value,
                     None => {
@@ -878,10 +904,21 @@ impl TraverseProgramsAndModels {
         format!("<ul>{}</ul>", label_vec.join(""))
     }
 
+    fn input_properties_to_html(input_properties: &HashMap<PropertyInput, u8>) -> String {
+        let mut items: Vec<String> = input_properties.iter().map(|(key,value)| format!("{:?} {}", key, value)).collect();
+        if items.is_empty() {
+            return "empty".to_string();
+        }
+        items.sort();
+        let list_vec: Vec<String> = items.iter().map(|label| format!("<li>{}</li>", label)).collect();
+        format!("<ul>{}</ul>", list_vec.join(""))
+    }
+
     fn inspect_task(buffer_task: &BufferTask) -> anyhow::Result<()> {
         let mut row_title: String = "<tr><td></td>".to_string();
         let mut row_input_image: String = "<tr><td>Input image</td>".to_string();
         let mut row_input_labels: String = "<tr><td>Input labels</td>".to_string();
+        let mut row_input_properties: String = "<tr><td>Input properties</td>".to_string();
         let mut row_output_image: String = "<tr><td>Output image</td>".to_string();
         let mut row_output_labels: String = "<tr><td>Output labels</td>".to_string();
         let mut row_action: String = "<tr><td>Action</td>".to_string();
@@ -905,6 +942,11 @@ impl TraverseProgramsAndModels {
                 row_input_labels += "<td>";
                 row_input_labels += &Self::labelset_to_html(&pair.input.label_set);
                 row_input_labels += "</td>";
+            }
+            {
+                row_input_properties += "<td>";
+                row_input_properties += &Self::input_properties_to_html(&pair.input.input_properties);
+                row_input_properties += "</td>";
             }
             {
                 row_output_image += "<td>";
@@ -970,6 +1012,9 @@ impl TraverseProgramsAndModels {
         row_input_labels += &Self::labelset_to_html(&buffer_task.input_label_set);
         row_input_labels += "</td>";
 
+        // TODO: show intersection of input properties between all pairs
+        row_input_properties += "<td>N/A</td>";
+
         row_output_image += "<td>Union<br>";
         match buffer_task.output_histogram_union.color_image() {
             Ok(image) => {
@@ -1021,18 +1066,20 @@ impl TraverseProgramsAndModels {
         row_title += "</tr>";
         row_input_image += "</tr>";
         row_input_labels += "</tr>";
+        row_input_properties += "</tr>";
         row_output_image += "</tr>";
         row_output_labels += "</tr>";
         row_action += "</tr>";
         row_meta_labels += "</tr>";
 
         let html = format!(
-            "<h2>{}</h2><p>Estimate: {}</p><table>{}{}{}{}{}{}{}</table>",
+            "<h2>{}</h2><p>Estimate: {}</p><table>{}{}{}{}{}{}{}{}</table>",
             buffer_task.displayName, 
             buffer_task.estimated_output_size(),
             row_title,
             row_input_image, 
             row_input_labels, 
+            row_input_properties, 
             row_output_image, 
             row_output_labels, 
             row_action,
