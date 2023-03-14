@@ -40,6 +40,14 @@ static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = ((23 * 60) + 30) * 60;
 
 static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 1;
 
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+enum RulePriority {
+    Simple,
+    Medium,
+    Advanced,
+}
+
+
 
 #[derive(Clone, Debug)]
 struct BufferImageAndLabel {
@@ -289,7 +297,7 @@ impl BufferTask {
 
     // TODO: return an array sizes and corresponding score
     fn predict_output_size_for_output_property_and_input(&self, property_output: &PropertyOutput, buffer_input: &BufferInput) -> Vec<String> {
-        let mut rules: Vec<String> = vec!();
+        let mut rules: Vec<(RulePriority, u8)> = vec!();
 
         let mut found_width: Option<u8> = None;
         let mut found_height: Option<u8> = None;
@@ -308,14 +316,12 @@ impl BufferTask {
         match property_output {
             PropertyOutput::OutputWidth => {
                 if let Some(width) = found_width {
-                    let s = format!("{}", width);
-                    rules.push(s);
+                    rules.push((RulePriority::Simple, width));
                 }
             }
             PropertyOutput::OutputHeight => {
                 if let Some(height) = found_height {
-                    let s = format!("{}", height);
-                    rules.push(s);
+                    rules.push((RulePriority::Simple, height));
                 }
             }
         };
@@ -334,8 +340,7 @@ impl BufferTask {
                             continue;
                         }
                     };
-                    let s = format!("{}", input_value);
-                    rules.push(s);
+                    rules.push((RulePriority::Medium, input_value));
                 },
                 Label::OutputPropertyIsInputPropertyMultipliedBy { output, input, scale } => {
                     if output != property_output {
@@ -353,8 +358,7 @@ impl BufferTask {
                         continue;
                     }
                     let value: u8 = computed_value as u8;
-                    let s = format!("{}", value);
-                    rules.push(s);
+                    rules.push((RulePriority::Advanced, value));
                 },
                 Label::OutputPropertyIsInputPropertyDividedBy { output, input, scale } => {
                     if output != property_output {
@@ -375,14 +379,25 @@ impl BufferTask {
                     if computed_value < 1 {
                         continue;
                     }
-                    let s = format!("{}", computed_value);
-                    rules.push(s);
+                    rules.push((RulePriority::Advanced, computed_value));
                 },
                 _ => {}
             }
         }
+        if rules.is_empty() {
+            return vec!();
+        }
+
+        // Simplest rules first, Advanced rules last
         rules.sort();
-        rules
+        
+        // TODO: pick the simplest
+        // TODO: compute confidence score, if there are many advanced items that agree on a value, then it may be more likely
+        // if there is one simple rule, and no advanced rules, then it may be the most likely
+        // if all the rules agree on a single value, then it may be the most likely.
+
+        let strings: Vec<String> = rules.iter().map(|(_prio,value)| format!("{}", value)).collect();
+        strings
     }
 
     fn predict_output_size_for_input(&self, input: &BufferInput) -> String {
