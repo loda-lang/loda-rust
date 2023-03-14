@@ -231,6 +231,116 @@ impl BufferTask {
 
         "Undecided".to_string()
     }
+
+    // TODO: return an array sizes and corresponding score
+    fn predict_output_size_for_output_property_and_input(&self, property_output: &PropertyOutput, buffer_input: &BufferInput) -> Vec<String> {
+        let mut rules: Vec<String> = vec!();
+
+        let mut found_width: Option<u8> = None;
+        let mut found_height: Option<u8> = None;
+        for label in &self.output_label_set {
+            match label {
+                Label::OutputSizeWidth { width } => {
+                    found_width = Some(*width);
+                },
+                Label::OutputSizeHeight { height } => {
+                    found_height = Some(*height);
+                },
+                _ => {}
+            }
+        }
+
+        match property_output {
+            PropertyOutput::OutputWidth => {
+                if let Some(width) = found_width {
+                    // let s = format!("a width is always {:?}", width);
+                    let s = format!("{}", width);
+                    rules.push(s);
+                }
+            }
+            PropertyOutput::OutputHeight => {
+                if let Some(height) = found_height {
+                    // let s = format!("a height is always {:?}", height);
+                    let s = format!("{}", height);
+                    rules.push(s);
+                }
+            }
+        };
+
+        /* 
+
+        TODO: use the same code for resolving the properties        
+        let input_value_option: Option<u8> = match input_property {
+            PropertyInput::InputWidth => Some(width_input),
+            PropertyInput::InputHeight => Some(height_input),
+            PropertyInput::InputUniqueColorCount => input_unique_color_count,
+            PropertyInput::InputUniqueColorCountMinus1 => input_unique_color_count_minus1,
+            PropertyInput::InputNumberOfPixelsWithMostPopularColor => input_number_of_pixels_with_most_popular_color,
+            PropertyInput::InputNumberOfPixelsWith2ndMostPopularColor => input_number_of_pixels_with_2nd_most_popular_color,
+        };
+        */
+
+        for label in &self.meta_label_set {
+            match label {
+                Label::OutputPropertyIsEqualToInputProperty { output, input } => {
+                    if output != property_output {
+                        continue;
+                    }
+                    // let s = format!("b {:?} = {:?}", output, input);
+                    let s = format!("TODO 1");
+                    rules.push(s);
+                },
+                Label::OutputPropertyIsInputPropertyMultipliedBy { output, input, scale } => {
+                    if output != property_output {
+                        continue;
+                    }
+                    // let s = format!("c {:?} = {:?} * {}", output, input, scale);
+                    let s = format!("TODO 2");
+                    rules.push(s);
+                },
+                Label::OutputPropertyIsInputPropertyDividedBy { output, input, scale } => {
+                    if output != property_output {
+                        continue;
+                    }
+                    // let s = format!("c {:?} = {:?} / {}", output, input, scale);
+                    let s = format!("TODO 3");
+                    rules.push(s);
+                },
+                _ => {}
+            }
+        }
+        rules.sort();
+        rules
+    }
+
+    fn predict_output_size_for_input(&self, input: &BufferInput) -> String {
+        // TODO: traverse the `output_size_rules` and compute the most likely sizes, and rank them.
+        // println!("predict output size");
+
+        let output_properties: [PropertyOutput; 2] = [
+            PropertyOutput::OutputWidth, 
+            PropertyOutput::OutputHeight
+        ];
+        let mut rules_vec: Vec<String> = vec!();
+        for output_property in &output_properties {
+            let rules: Vec<String> = self.predict_output_size_for_output_property_and_input(output_property, input);
+            if rules.is_empty() {
+                break;
+            }
+            let name: &str = match output_property {
+                PropertyOutput::OutputWidth => "width",
+                PropertyOutput::OutputHeight => "height"
+            };
+            let combined_rule = format!("{}: {}", name, rules.join(", "));
+            rules_vec.push(combined_rule);
+        }
+        if rules_vec.len() == output_properties.len() {
+            let rules_pretty: String = rules_vec.join(" - ");
+            return rules_pretty;
+        }
+
+        "Undecided".to_string()
+    }
 }
 
 impl TryFrom<&Model> for BufferTask {
@@ -403,8 +513,22 @@ impl TraverseProgramsAndModels {
             count_good += 1;
         }
         println!("Estimated output size. good: {}  missing: {}", count_good, count_undecided);
-
+        
         // TODO: compute the output size with the test data, and compare with the expected output
+        for buffer_task in &buffer_task_vec {
+            let estimate: String = buffer_task.estimated_output_size();
+            if estimate == "Undecided" {
+                continue;
+            }
+
+            for pair in &buffer_task.pairs {
+                if pair.pair_type != BufferPairType::Test {
+                    continue;
+                }
+                let predicted: String = buffer_task.predict_output_size_for_input(&pair.input);
+                println!("Predicted output size: {}", predicted);
+            }
+        }
 
         let mut count = 0;
         for buffer_task in &buffer_task_vec {
