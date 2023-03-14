@@ -307,6 +307,81 @@ impl BufferTask {
         }
     }
 
+    fn assign_labels_related_to_input_histogram_intersection(&mut self) {
+        let removal_pairs: Vec<(u32,u8)> = self.input_histogram_intersection.pairs_descending();
+        if removal_pairs.len() != 1 {
+            return;
+        }
+        let background_color: u8 = match removal_pairs.first() {
+            Some((_count, color)) => *color,
+            None => {
+                return;
+            }
+        };
+                        
+        for pair in &mut self.pairs {
+            if pair.pair_type == BufferPairType::Test {
+                continue;
+            }
+
+            let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
+            // if self.id == "28bf18c6,task" {
+            //     HtmlLog::image(&image_mask);
+            // }
+
+            let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
+
+            // let result = image_mask.find_objects(ImageSegmentAlgorithm::All);
+            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask);
+            let object_images: Vec<Image> = match result {
+                Ok(images) => images,
+                Err(_) => {
+                    continue;
+                }
+            };
+            // println!("number of objects: {} task: {}", object_images.len(), self.displayName);
+            // if self.id == "28bf18c6,task" {
+            //     for image in &object_images {
+            //         HtmlLog::image(image);
+            //     }
+            // }
+            let mut mass_max: u32 = 0;
+            let mut found_index_mass_max: Option<usize> = None;
+            for (index, image) in object_images.iter().enumerate() {
+
+                let mass: u32 = image.mask_count_one();
+                if mass > mass_max {
+                    mass_max = mass;
+                    found_index_mass_max = Some(index);
+                }
+            }
+
+            if mass_max > 0 && mass_max <= (u8::MAX as u32) {
+                let mass_value: u8 = mass_max as u8;
+                pair.input.input_properties.insert(PropertyInput::InputMassOfPrimaryObjectAfterSingleIntersectionColor, mass_value);
+            }
+
+            if let Some(index) = found_index_mass_max {
+                if let Some(image) = object_images.get(index) {
+
+                    let trimmed_image: Image = match image.trim_color(0) {
+                        Ok(value) => value,
+                        Err(_) => {
+                            continue;
+                        }
+                    };
+                    
+                    let width: u8 = trimmed_image.width();
+                    let height: u8 = trimmed_image.height();
+                    // println!("biggest object: {}x{}", width, height);
+
+                    pair.input.input_properties.insert(PropertyInput::InputWidthOfPrimaryObjectAfterSingleIntersectionColor, width);
+                    pair.input.input_properties.insert(PropertyInput::InputHeightOfPrimaryObjectAfterSingleIntersectionColor, height);
+                }
+            }
+        }
+    }
+
     fn output_size_rules_for(&self, property_output: &PropertyOutput) -> Vec<String> {
         let mut rules: Vec<String> = vec!();
 
@@ -719,7 +794,7 @@ impl TraverseProgramsAndModels {
         }
         println!("Estimated output size. good: {}  missing: {}", count_good, count_undecided);
         
-        // TODO: compute the output size with the test data, and compare with the expected output
+        // Compute the output size with the test data, and compare with the expected output
         let mut count_predict_correct: usize = 0;
         let mut count_predict_incorrect: usize = 0;
         let mut count_predict_correct_task: usize = 0;
@@ -736,8 +811,6 @@ impl TraverseProgramsAndModels {
                     continue;
                 }
                 let predicted: String = buffer_task.predict_output_size_for_input(&pair.input);
-                // println!("Predicted output size: {}", predicted);
-
                 let expected: String = format!("{}x{}", pair.output.image.width(), pair.output.image.height());
                 if predicted == expected {
                     count_predict_correct += 1;
@@ -763,23 +836,53 @@ impl TraverseProgramsAndModels {
             println!("Predicted task: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct_task, count_predict_incorrect_task, percent);
         }
 
+        // Self::inspect_undecided(&buffer_task_vec)?;
+        // Self::inspect_decided(&buffer_task_vec)?;
+        Self::inspect_task_id(&buffer_task_vec, "28bf18c6,task")?;
+        Ok(())
+    }
+
+    fn inspect_undecided(buffer_task_vec: &Vec<BufferTask>) -> anyhow::Result<()> {
         let mut count = 0;
-        for buffer_task in &buffer_task_vec {
+        for buffer_task in buffer_task_vec {
+            let estimate: String = buffer_task.estimated_output_size();
+            if estimate == "Undecided" {
+                continue;
+            }
+            if count > 0 {
+                Self::inspect_task(buffer_task)?;
+            }
+            count += 1;
+            if count > 50 {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn inspect_decided(buffer_task_vec: &Vec<BufferTask>) -> anyhow::Result<()> {
+        let mut count = 0;
+        for buffer_task in buffer_task_vec {
             let estimate: String = buffer_task.estimated_output_size();
             if estimate != "Undecided" {
                 continue;
             }
-            // if buffer_task.id == "8a371977,task" {
-            //     // TODO: find task by id
-            //     Self::inspect_task(buffer_task)?;
-            //     break;
-            // }
-
-            if count > 53 {
+            if count > 0 {
                 Self::inspect_task(buffer_task)?;
             }
             count += 1;
-            if count > 100 {
+            if count > 50 {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn inspect_task_id(buffer_task_vec: &Vec<BufferTask>, task_id: &str) -> anyhow::Result<()> {
+        let mut count = 0;
+        for buffer_task in buffer_task_vec {
+            if buffer_task.id == task_id {
+                Self::inspect_task(buffer_task)?;
                 break;
             }
         }
@@ -796,9 +899,10 @@ impl TraverseProgramsAndModels {
 
         buffer_task.assign_labels_input_size_output_size();
         buffer_task.assign_labels_related_to_removal_histogram();
+        buffer_task.assign_labels_related_to_input_histogram_intersection();
 
 
-        let input_properties: [PropertyInput; 9] = [
+        let input_properties: [PropertyInput; 12] = [
             PropertyInput::InputWidth, 
             PropertyInput::InputHeight,
             PropertyInput::InputUniqueColorCount,
@@ -808,6 +912,9 @@ impl TraverseProgramsAndModels {
             PropertyInput::InputWidthOfPrimaryObjectAfterSingleColorRemoval,
             PropertyInput::InputHeightOfPrimaryObjectAfterSingleColorRemoval,
             PropertyInput::InputMassOfPrimaryObjectAfterSingleColorRemoval,
+            PropertyInput::InputWidthOfPrimaryObjectAfterSingleIntersectionColor,
+            PropertyInput::InputHeightOfPrimaryObjectAfterSingleIntersectionColor,
+            PropertyInput::InputMassOfPrimaryObjectAfterSingleIntersectionColor,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
