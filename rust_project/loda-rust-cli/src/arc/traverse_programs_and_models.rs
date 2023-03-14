@@ -2,7 +2,7 @@ use super::{Model, ImagePair};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
 use super::{Label, LabelSet, PropertyInput, PropertyOutput};
-use super::{Image, Histogram, ImageHistogram};
+use super::{Image, Histogram, ImageHistogram, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageTrim};
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
@@ -202,6 +202,71 @@ impl BufferTask {
             label_set = label_set.intersection(&pair.label_set).map(|l| l.clone()).collect();
         }
         self.meta_label_set = label_set;
+    }
+
+    fn assign_labels_related_to_removal_histogram(&mut self) {
+        let removal_pairs: Vec<(u32,u8)> = self.removal_histogram_intersection.pairs_descending();
+        if removal_pairs.len() != 1 {
+            return;
+        }
+        let background_color: u8 = match removal_pairs.first() {
+            Some((_count, color)) => *color,
+            None => {
+                return;
+            }
+        };
+                        
+        for pair in &mut self.pairs {
+            if pair.pair_type == BufferPairType::Test {
+                continue;
+            }
+
+            let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
+            // if buffer_task.id == "8a371977,task" {
+            //     HtmlLog::image(&image_mask);
+            // }
+
+            let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
+
+            // let result = image_mask.find_objects(ImageSegmentAlgorithm::All);
+            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask);
+            let object_images: Vec<Image> = match result {
+                Ok(images) => images,
+                Err(_) => {
+                    continue;
+                }
+            };
+            println!("number of objects: {} task: {}", object_images.len(), self.displayName);
+            // if buffer_task.id == "8a371977,task" {
+            //     for image in &object_images {
+            //         HtmlLog::image(image);
+            //     }
+            // }
+            let mut mass_max: u32 = 0;
+            let mut found_index_mass_max: Option<usize> = None;
+            for (index, image) in object_images.iter().enumerate() {
+
+                let mass: u32 = image.mask_count_one();
+                if mass > mass_max {
+                    mass_max = mass;
+                    found_index_mass_max = Some(index);
+                }
+            }
+
+            if let Some(index) = found_index_mass_max {
+                if let Some(image) = object_images.get(index) {
+
+                    let trimmed_image: Image = match image.trim_color(0) {
+                        Ok(value) => value,
+                        Err(_) => {
+                            continue;
+                        }
+                    };
+                    
+                    println!("biggest object: {}x{}", trimmed_image.width(), trimmed_image.height());
+                }
+            }
+        }
     }
 
     fn output_size_rules_for(&self, property_output: &PropertyOutput) -> Vec<String> {
@@ -645,7 +710,7 @@ impl TraverseProgramsAndModels {
             if all_correct {
                 count_predict_correct_task += 1;
             } else {
-                Self::inspect_task(buffer_task)?;
+                // Self::inspect_task(buffer_task)?;
                 count_predict_incorrect_task += 1;
             }
         }
@@ -661,16 +726,20 @@ impl TraverseProgramsAndModels {
         let mut count = 0;
         for buffer_task in &buffer_task_vec {
             let estimate: String = buffer_task.estimated_output_size();
-            if estimate == "Undecided" {
+            if estimate != "Undecided" {
                 continue;
             }
+            // if buffer_task.id == "8a371977,task" {
+            //     // TODO: find task by id
+            //     Self::inspect_task(buffer_task)?;
+            //     break;
+            // }
 
-            if count > 50 {
-                // Self::inspect_task(buffer_task)?;
+            if count > 53 {
+                Self::inspect_task(buffer_task)?;
             }
-
             count += 1;
-            if count > 80 {
+            if count > 100 {
                 break;
             }
         }
@@ -693,6 +762,8 @@ impl TraverseProgramsAndModels {
             pair.input.label_set.insert(Label::InputSizeWidth { width: width_input });
             pair.input.label_set.insert(Label::InputSizeHeight { height: height_input });
         }
+
+        buffer_task.assign_labels_related_to_removal_histogram();
 
         let input_properties: [PropertyInput; 6] = [
             PropertyInput::InputWidth, 
