@@ -204,6 +204,24 @@ impl BufferTask {
         self.meta_label_set = label_set;
     }
 
+    fn assign_labels_input_size_output_size(&mut self) {
+        for pair in &mut self.pairs {
+            if pair.pair_type == BufferPairType::Test {
+                continue;
+            }
+            let width_input: u8 = pair.input.image.width();
+            let height_input: u8 = pair.input.image.height();
+            let width_output: u8 = pair.output.image.width();
+            let height_output: u8 = pair.output.image.height();
+
+            pair.output.label_set.insert(Label::OutputSizeWidth { width: width_output });
+            pair.output.label_set.insert(Label::OutputSizeHeight { height: height_output });
+
+            pair.input.label_set.insert(Label::InputSizeWidth { width: width_input });
+            pair.input.label_set.insert(Label::InputSizeHeight { height: height_input });
+        }
+    }
+
     fn assign_labels_related_to_removal_histogram(&mut self) {
         let removal_pairs: Vec<(u32,u8)> = self.removal_histogram_intersection.pairs_descending();
         if removal_pairs.len() != 1 {
@@ -747,22 +765,7 @@ impl TraverseProgramsAndModels {
     }
 
     fn assign_labels_to_model(buffer_task: &mut BufferTask) -> anyhow::Result<()> {
-        for pair in &mut buffer_task.pairs {
-            if pair.pair_type == BufferPairType::Test {
-                continue;
-            }
-            let width_input: u8 = pair.input.image.width();
-            let height_input: u8 = pair.input.image.height();
-            let width_output: u8 = pair.output.image.width();
-            let height_output: u8 = pair.output.image.height();
-
-            pair.output.label_set.insert(Label::OutputSizeWidth { width: width_output });
-            pair.output.label_set.insert(Label::OutputSizeHeight { height: height_output });
-
-            pair.input.label_set.insert(Label::InputSizeWidth { width: width_input });
-            pair.input.label_set.insert(Label::InputSizeHeight { height: height_input });
-        }
-
+        buffer_task.assign_labels_input_size_output_size();
         buffer_task.assign_labels_related_to_removal_histogram();
 
         let input_properties: [PropertyInput; 6] = [
