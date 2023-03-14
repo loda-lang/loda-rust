@@ -17,7 +17,7 @@ use chrono::prelude::*;
 use std::fmt;
 use std::time::{Duration, Instant};
 use std::cell::RefCell;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{PathBuf, Path};
@@ -55,6 +55,61 @@ struct BufferImageAndLabel {
 
 type BufferInput = BufferImageAndLabel;
 type BufferOutput = BufferImageAndLabel;
+
+impl BufferImageAndLabel {
+    fn resolve_input_properties(&self) -> HashMap<PropertyInput, u8> {
+        let width_input: u8 = self.image.width();
+        let height_input: u8 = self.image.height();
+
+        let input_unique_color_count_raw: u32 = self.histogram.number_of_counters_greater_than_zero();
+        let mut input_unique_color_count: Option<u8> = None;
+        if input_unique_color_count_raw <= (u8::MAX as u32) {
+            input_unique_color_count = Some(input_unique_color_count_raw as u8);
+        }
+
+        let mut input_unique_color_count_minus1: Option<u8> = None;
+        if let Some(value) = input_unique_color_count {
+            if value >= 1 {
+                input_unique_color_count_minus1 = Some(value - 1);
+            }
+        }
+
+        let mut input_number_of_pixels_with_most_popular_color: Option<u8> = None;
+        let mut input_number_of_pixels_with_2nd_most_popular_color: Option<u8> = None;
+        let histogram_pairs: Vec<(u32,u8)> = self.histogram.pairs_descending();
+        for (histogram_index, histogram_pair) in histogram_pairs.iter().enumerate() {
+            if histogram_index >= 2 {
+                break;
+            }
+            let pixel_count: u32 = histogram_pair.0;
+            if pixel_count <= (u8::MAX as u32) {
+                if histogram_index == 0 {
+                    input_number_of_pixels_with_most_popular_color = Some(pixel_count as u8);
+                }
+                if histogram_index == 1 {
+                    input_number_of_pixels_with_2nd_most_popular_color = Some(pixel_count as u8);
+                }
+            }
+        }
+
+        let mut dict = HashMap::<PropertyInput, u8>::new();
+        dict.insert(PropertyInput::InputWidth, width_input);
+        dict.insert(PropertyInput::InputHeight, height_input);
+        if let Some(value) = input_unique_color_count {
+            dict.insert(PropertyInput::InputUniqueColorCount, value);
+        }
+        if let Some(value) = input_unique_color_count_minus1 {
+            dict.insert(PropertyInput::InputUniqueColorCountMinus1, value);
+        }
+        if let Some(value) = input_number_of_pixels_with_most_popular_color {
+            dict.insert(PropertyInput::InputNumberOfPixelsWithMostPopularColor, value);
+        }
+        if let Some(value) = input_number_of_pixels_with_2nd_most_popular_color {
+            dict.insert(PropertyInput::InputNumberOfPixelsWith2ndMostPopularColor, value);
+        }
+        dict
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum BufferPairType {
@@ -270,6 +325,7 @@ impl BufferTask {
         /* 
 
         TODO: use the same code for resolving the properties        
+            let dict: HashMap<PropertyInput, u8> = pair.input.resolve_input_properties();
         let input_value_option: Option<u8> = match input_property {
             PropertyInput::InputWidth => Some(width_input),
             PropertyInput::InputHeight => Some(height_input),
@@ -515,20 +571,20 @@ impl TraverseProgramsAndModels {
         println!("Estimated output size. good: {}  missing: {}", count_good, count_undecided);
         
         // TODO: compute the output size with the test data, and compare with the expected output
-        for buffer_task in &buffer_task_vec {
-            let estimate: String = buffer_task.estimated_output_size();
-            if estimate == "Undecided" {
-                continue;
-            }
+        // for buffer_task in &buffer_task_vec {
+        //     let estimate: String = buffer_task.estimated_output_size();
+        //     if estimate == "Undecided" {
+        //         continue;
+        //     }
 
-            for pair in &buffer_task.pairs {
-                if pair.pair_type != BufferPairType::Test {
-                    continue;
-                }
-                let predicted: String = buffer_task.predict_output_size_for_input(&pair.input);
-                println!("Predicted output size: {}", predicted);
-            }
-        }
+        //     for pair in &buffer_task.pairs {
+        //         if pair.pair_type != BufferPairType::Test {
+        //             continue;
+        //         }
+        //         let predicted: String = buffer_task.predict_output_size_for_input(&pair.input);
+        //         println!("Predicted output size: {}", predicted);
+        //     }
+        // }
 
         let mut count = 0;
         for buffer_task in &buffer_task_vec {
@@ -550,6 +606,22 @@ impl TraverseProgramsAndModels {
     }
 
     fn assign_labels_to_model(buffer_task: &mut BufferTask) -> anyhow::Result<()> {
+        for pair in &mut buffer_task.pairs {
+            if pair.pair_type == BufferPairType::Test {
+                continue;
+            }
+            let width_input: u8 = pair.input.image.width();
+            let height_input: u8 = pair.input.image.height();
+            let width_output: u8 = pair.output.image.width();
+            let height_output: u8 = pair.output.image.height();
+
+            pair.output.label_set.insert(Label::OutputSizeWidth { width: width_output });
+            pair.output.label_set.insert(Label::OutputSizeHeight { height: height_output });
+
+            pair.input.label_set.insert(Label::InputSizeWidth { width: width_input });
+            pair.input.label_set.insert(Label::InputSizeHeight { height: height_input });
+        }
+
         let input_properties: [PropertyInput; 6] = [
             PropertyInput::InputWidth, 
             PropertyInput::InputHeight,
@@ -566,59 +638,15 @@ impl TraverseProgramsAndModels {
             if pair.pair_type == BufferPairType::Test {
                 continue;
             }
-            let width_input: u8 = pair.input.image.width();
-            let height_input: u8 = pair.input.image.height();
+
             let width_output: u8 = pair.output.image.width();
             let height_output: u8 = pair.output.image.height();
 
-            pair.output.label_set.insert(Label::OutputSizeWidth { width: width_output });
-            pair.output.label_set.insert(Label::OutputSizeHeight { height: height_output });
-
-            pair.input.label_set.insert(Label::InputSizeWidth { width: width_input });
-            pair.input.label_set.insert(Label::InputSizeHeight { height: height_input });
-
-            let input_unique_color_count_raw: u32 = pair.input.histogram.number_of_counters_greater_than_zero();
-            let mut input_unique_color_count: Option<u8> = None;
-            if input_unique_color_count_raw <= (u8::MAX as u32) {
-                input_unique_color_count = Some(input_unique_color_count_raw as u8);
-            }
-
-            let mut input_unique_color_count_minus1: Option<u8> = None;
-            if let Some(value) = input_unique_color_count {
-                if value >= 1 {
-                    input_unique_color_count_minus1 = Some(value - 1);
-                }
-            }
-
-            let mut input_number_of_pixels_with_most_popular_color: Option<u8> = None;
-            let mut input_number_of_pixels_with_2nd_most_popular_color: Option<u8> = None;
-            let histogram_pairs: Vec<(u32,u8)> = pair.input.histogram.pairs_descending();
-            for (histogram_index, histogram_pair) in histogram_pairs.iter().enumerate() {
-                if histogram_index >= 2 {
-                    break;
-                }
-                let pixel_count: u32 = histogram_pair.0;
-                if pixel_count <= (u8::MAX as u32) {
-                    if histogram_index == 0 {
-                        input_number_of_pixels_with_most_popular_color = Some(pixel_count as u8);
-                    }
-                    if histogram_index == 1 {
-                        input_number_of_pixels_with_2nd_most_popular_color = Some(pixel_count as u8);
-                    }
-                }
-            }
-
+            let dict: HashMap<PropertyInput, u8> = pair.input.resolve_input_properties();
             for input_property in &input_properties {
-                let input_value_option: Option<u8> = match input_property {
-                    PropertyInput::InputWidth => Some(width_input),
-                    PropertyInput::InputHeight => Some(height_input),
-                    PropertyInput::InputUniqueColorCount => input_unique_color_count,
-                    PropertyInput::InputUniqueColorCountMinus1 => input_unique_color_count_minus1,
-                    PropertyInput::InputNumberOfPixelsWithMostPopularColor => input_number_of_pixels_with_most_popular_color,
-                    PropertyInput::InputNumberOfPixelsWith2ndMostPopularColor => input_number_of_pixels_with_2nd_most_popular_color,
-                };
+                let input_value_option: Option<&u8> = dict.get(input_property);
                 let input_value: u8 = match input_value_option {
-                    Some(value) => value,
+                    Some(value) => *value,
                     None => {
                         continue;
                     }
