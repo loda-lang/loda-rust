@@ -308,58 +308,74 @@ impl BufferTask {
         match property_output {
             PropertyOutput::OutputWidth => {
                 if let Some(width) = found_width {
-                    // let s = format!("a width is always {:?}", width);
                     let s = format!("{}", width);
                     rules.push(s);
                 }
             }
             PropertyOutput::OutputHeight => {
                 if let Some(height) = found_height {
-                    // let s = format!("a height is always {:?}", height);
                     let s = format!("{}", height);
                     rules.push(s);
                 }
             }
         };
 
-        /* 
-
-        TODO: use the same code for resolving the properties        
-            let dict: HashMap<PropertyInput, u8> = pair.input.resolve_input_properties();
-        let input_value_option: Option<u8> = match input_property {
-            PropertyInput::InputWidth => Some(width_input),
-            PropertyInput::InputHeight => Some(height_input),
-            PropertyInput::InputUniqueColorCount => input_unique_color_count,
-            PropertyInput::InputUniqueColorCountMinus1 => input_unique_color_count_minus1,
-            PropertyInput::InputNumberOfPixelsWithMostPopularColor => input_number_of_pixels_with_most_popular_color,
-            PropertyInput::InputNumberOfPixelsWith2ndMostPopularColor => input_number_of_pixels_with_2nd_most_popular_color,
-        };
-        */
-
+        let dict: HashMap<PropertyInput, u8> = buffer_input.resolve_input_properties();
         for label in &self.meta_label_set {
             match label {
                 Label::OutputPropertyIsEqualToInputProperty { output, input } => {
                     if output != property_output {
                         continue;
                     }
-                    // let s = format!("b {:?} = {:?}", output, input);
-                    let s = format!("TODO 1");
+                    let input_value_option: Option<&u8> = dict.get(input);
+                    let input_value: u8 = match input_value_option {
+                        Some(value) => *value,
+                        None => {
+                            continue;
+                        }
+                    };
+                    let s = format!("{}", input_value);
                     rules.push(s);
                 },
                 Label::OutputPropertyIsInputPropertyMultipliedBy { output, input, scale } => {
                     if output != property_output {
                         continue;
                     }
-                    // let s = format!("c {:?} = {:?} * {}", output, input, scale);
-                    let s = format!("TODO 2");
+                    let input_value_option: Option<&u8> = dict.get(input);
+                    let input_value: u8 = match input_value_option {
+                        Some(value) => *value,
+                        None => {
+                            continue;
+                        }
+                    };
+                    let computed_value: u32 = (input_value as u32) * (*scale as u32);
+                    if computed_value > (u8::MAX as u32) {
+                        continue;
+                    }
+                    let value: u8 = computed_value as u8;
+                    let s = format!("{}", value);
                     rules.push(s);
                 },
                 Label::OutputPropertyIsInputPropertyDividedBy { output, input, scale } => {
                     if output != property_output {
                         continue;
                     }
-                    // let s = format!("c {:?} = {:?} / {}", output, input, scale);
-                    let s = format!("TODO 3");
+                    let input_value_option: Option<&u8> = dict.get(input);
+                    let input_value: u8 = match input_value_option {
+                        Some(value) => *value,
+                        None => {
+                            continue;
+                        }
+                    };
+                    let computed_value_remain: u8 = input_value % (*scale);
+                    if computed_value_remain != 0 {
+                        continue;
+                    }
+                    let computed_value: u8 = input_value / (*scale);
+                    if computed_value < 1 {
+                        continue;
+                    }
+                    let s = format!("{}", computed_value);
                     rules.push(s);
                 },
                 _ => {}
