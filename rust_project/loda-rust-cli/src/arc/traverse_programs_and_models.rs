@@ -281,6 +281,11 @@ impl BufferTask {
                 }
             }
 
+            if mass_max > 0 && mass_max <= (u8::MAX as u32) {
+                let mass_value: u8 = mass_max as u8;
+                pair.input.input_properties.insert(PropertyInput::InputMassOfPrimaryObjectAfterSingleColorRemoval, mass_value);
+            }
+
             if let Some(index) = found_index_mass_max {
                 if let Some(image) = object_images.get(index) {
 
@@ -793,7 +798,7 @@ impl TraverseProgramsAndModels {
         buffer_task.assign_labels_related_to_removal_histogram();
 
 
-        let input_properties: [PropertyInput; 8] = [
+        let input_properties: [PropertyInput; 9] = [
             PropertyInput::InputWidth, 
             PropertyInput::InputHeight,
             PropertyInput::InputUniqueColorCount,
@@ -802,6 +807,7 @@ impl TraverseProgramsAndModels {
             PropertyInput::InputNumberOfPixelsWith2ndMostPopularColor,
             PropertyInput::InputWidthOfPrimaryObjectAfterSingleColorRemoval,
             PropertyInput::InputHeightOfPrimaryObjectAfterSingleColorRemoval,
+            PropertyInput::InputMassOfPrimaryObjectAfterSingleColorRemoval,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
