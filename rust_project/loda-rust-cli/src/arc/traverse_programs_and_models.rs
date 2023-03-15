@@ -836,9 +836,9 @@ impl TraverseProgramsAndModels {
             println!("Predicted task: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct_task, count_predict_incorrect_task, percent);
         }
 
-        // Self::inspect_undecided(&buffer_task_vec)?;
+        Self::inspect_undecided(&buffer_task_vec)?;
         // Self::inspect_decided(&buffer_task_vec)?;
-        Self::inspect_task_id(&buffer_task_vec, "28bf18c6,task")?;
+        // Self::inspect_task_id(&buffer_task_vec, "28bf18c6,task")?;
         Ok(())
     }
 
@@ -958,8 +958,10 @@ impl TraverseProgramsAndModels {
                     for scale in 2..8u8 {
                         let input_value_scaled: u32 = (input_value as u32) * (scale as u32);
                         if input_value_scaled == (output_value as u32) {
-                            let label = Label::OutputPropertyIsInputPropertyMultipliedBy { output: *output_property, input: *input_property, scale };
-                            pair.label_set.insert(label);
+                            let label0 = Label::OutputPropertyIsInputPropertyMultipliedBy { output: *output_property, input: *input_property, scale };
+                            pair.label_set.insert(label0);
+                            let label1 = Label::OutputPropertyIsInputPropertyMultipliedBySomeScale { output: *output_property, input: *input_property };
+                            pair.label_set.insert(label1);
                             break;
                         }
                     }
@@ -968,8 +970,10 @@ impl TraverseProgramsAndModels {
                         let value: u32 = (input_value as u32) / (scale as u32);
                         let value_remain: u32 = (input_value as u32) % (scale as u32);
                         if value_remain == 0 && value == (output_value as u32) {
-                            let label = Label::OutputPropertyIsInputPropertyDividedBy { output: *output_property, input: *input_property, scale };
-                            pair.label_set.insert(label);
+                            let label0 = Label::OutputPropertyIsInputPropertyDividedBy { output: *output_property, input: *input_property, scale };
+                            pair.label_set.insert(label0);
+                            let label1 = Label::OutputPropertyIsInputPropertyDividedBySomeScale { output: *output_property, input: *input_property };
+                            pair.label_set.insert(label1);
                             break;
                         }
                     }
