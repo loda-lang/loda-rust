@@ -42,7 +42,7 @@ pub enum Label {
     OutputPropertyIsInputPropertyMultipliedByInputSize { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsInputPropertyDividedBy { output: PropertyOutput, input: PropertyInput, scale: u8 },
     OutputPropertyIsInputPropertyDividedBySomeScale { output: PropertyOutput, input: PropertyInput },
-    OutputPropertyIsConstant { output: PropertyOutput, value: u8, reason: String },
+    OutputPropertyIsConstant { output: PropertyOutput, value: u8 },
 
     // Ideas for more
     // OutputImageIsPresentInInputImage

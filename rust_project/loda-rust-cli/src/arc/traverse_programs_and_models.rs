@@ -343,8 +343,7 @@ impl BufferTask {
                 let width_output: u8 = pair.output.image.width();
                 let label = Label::OutputPropertyIsConstant { 
                     output: PropertyOutput::OutputWidth, 
-                    value: width_output,
-                    reason: "training output.width".to_string()
+                    value: width_output
                 };
                 pair.label_set.insert(label);
             }
@@ -353,8 +352,7 @@ impl BufferTask {
                 let height_output: u8 = pair.output.image.height();
                 let label = Label::OutputPropertyIsConstant { 
                     output: PropertyOutput::OutputHeight, 
-                    value: height_output,
-                    reason: "training output.height".to_string()
+                    value: height_output
                 };
                 pair.label_set.insert(label);
             }
@@ -680,7 +678,7 @@ impl BufferTask {
 
         for label in &self.meta_label_set {
             match label {
-                Label::OutputPropertyIsConstant { output, value, reason } => {
+                Label::OutputPropertyIsConstant { output, value } => {
                     if output != property_output {
                         continue;
                     }
@@ -766,7 +764,7 @@ impl BufferTask {
         let dict: HashMap<PropertyInput, u8> = buffer_input.resolve_input_properties();
         for label in &self.meta_label_set {
             match label {
-                Label::OutputPropertyIsConstant { output, value, reason } => {
+                Label::OutputPropertyIsConstant { output, value } => {
                     if output != property_output {
                         continue;
                     }
@@ -1329,9 +1327,10 @@ impl TraverseProgramsAndModels {
             println!("Predicted task: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct_task, count_predict_incorrect_task, percent);
         }
 
-        Self::inspect_undecided(&buffer_task_vec)?;
+        // Self::inspect_undecided(&buffer_task_vec)?;
         // Self::inspect_decided(&buffer_task_vec)?;
         // Self::inspect_task_id(&buffer_task_vec, "28bf18c6,task")?;
+        Self::inspect_task_id(&buffer_task_vec, "5c2c9af4,task")?;
         Ok(())
     }
 
