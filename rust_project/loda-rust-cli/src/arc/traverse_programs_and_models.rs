@@ -158,6 +158,7 @@ struct BufferTask {
     removal_histogram_intersection: Histogram,
     insert_histogram_intersection: Histogram,
     input_label_set: LabelSet,
+    input_properties_intersection: HashMap<PropertyInput, u8>,
     output_label_set: LabelSet,
     meta_label_set: LabelSet,
 }
@@ -212,6 +213,39 @@ impl BufferTask {
             label_set = label_set.intersection(&pair.label_set).map(|l| l.clone()).collect();
         }
         self.meta_label_set = label_set;
+    }
+
+    fn update_input_properties_intersection(&mut self) {
+        let mut input_properties_intersection: HashMap<PropertyInput, u8> = HashMap::new();
+        let mut is_first = true;
+        for pair in &mut self.pairs {
+            if pair.pair_type == BufferPairType::Test {
+                continue;
+            }
+            if is_first {
+                input_properties_intersection = pair.input.input_properties.clone();
+                is_first = false;
+                continue;
+            }
+
+            // Intersection between `input_properties_intersection` and `pair.input.input_properties`.
+            let mut keys_for_removal: HashSet<PropertyInput> = HashSet::new();
+            for key in input_properties_intersection.keys() {
+                keys_for_removal.insert(*key);
+            }
+            for (key, value) in &pair.input.input_properties {
+                if let Some(other_value) = input_properties_intersection.get(key) {
+                    if *value == *other_value {
+                        // Both hashmaps agree about the key and value. This is a keeper.
+                        keys_for_removal.remove(key);
+                    }
+                }
+            }
+            for key in &keys_for_removal {
+                input_properties_intersection.remove(key);
+            }
+        }
+        self.input_properties_intersection = input_properties_intersection;
     }
 
     fn assign_labels_input_size_output_size(&mut self) {
@@ -726,6 +760,7 @@ impl TryFrom<&Model> for BufferTask {
             removal_histogram_intersection,
             insert_histogram_intersection,
             input_label_set: LabelSet::new(),
+            input_properties_intersection: HashMap::new(),
             output_label_set: LabelSet::new(),
             meta_label_set: LabelSet::new(),
         };
@@ -896,7 +931,7 @@ impl TraverseProgramsAndModels {
             }
             pair.input.update_input_properties();
         }
-
+        buffer_task.update_input_properties_intersection();
         buffer_task.assign_labels_input_size_output_size();
         buffer_task.assign_labels_related_to_removal_histogram();
         buffer_task.assign_labels_related_to_input_histogram_intersection();
@@ -1129,8 +1164,9 @@ impl TraverseProgramsAndModels {
         row_input_labels += &Self::labelset_to_html(&buffer_task.input_label_set);
         row_input_labels += "</td>";
 
-        // TODO: show intersection of input properties between all pairs
-        row_input_properties += "<td>N/A</td>";
+        row_input_properties += "<td>";
+        row_input_properties += &Self::input_properties_to_html(&buffer_task.input_properties_intersection);
+        row_input_properties += "</td>";
 
         row_output_image += "<td>Union<br>";
         match buffer_task.output_histogram_union.color_image() {
