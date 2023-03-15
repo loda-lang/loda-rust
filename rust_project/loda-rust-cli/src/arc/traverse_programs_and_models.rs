@@ -445,10 +445,11 @@ impl BufferTask {
         match property_output {
             PropertyOutput::OutputWidth => {
                 if let Some(width) = found_width {
+                    // TODO: instead of using `a` as prefix to rank the confidence, then use a priority enum.
                     let s = format!("a width is always {:?}", width);
                     rules.push(s);
                 }
-            }
+            },
             PropertyOutput::OutputHeight => {
                 if let Some(height) = found_height {
                     let s = format!("a height is always {:?}", height);
@@ -464,6 +465,7 @@ impl BufferTask {
                     if output != property_output {
                         continue;
                     }
+                    // TODO: instead of using `b` as prefix to rank the confidence, then use a priority enum.
                     let s = format!("b {:?} = {:?}", output, input);
                     rules.push(s);
                 },
@@ -472,6 +474,17 @@ impl BufferTask {
                         continue;
                     }
                     let s = format!("c {:?} = {:?} * {}", output, input, scale);
+                    rules.push(s);
+                },
+                Label::OutputPropertyIsInputPropertyMultipliedByInputSize { output, input } => {
+                    if output != property_output {
+                        continue;
+                    }
+                    let input_name: &str = match property_output {
+                        PropertyOutput::OutputWidth => "InputWidth",
+                        PropertyOutput::OutputHeight => "InputHeight"
+                    };
+                    let s = format!("c {:?} = {:?} * {}", output, input, input_name);
                     rules.push(s);
                 },
                 Label::OutputPropertyIsInputPropertyDividedBy { output, input, scale } => {
@@ -540,7 +553,7 @@ impl BufferTask {
                 if let Some(width) = found_width {
                     rules.push((RulePriority::Medium, width));
                 }
-            }
+            },
             PropertyOutput::OutputHeight => {
                 if let Some(height) = found_height {
                     rules.push((RulePriority::Medium, height));
@@ -583,6 +596,28 @@ impl BufferTask {
                         }
                     };
                     let computed_value: u32 = (input_value as u32) * (*scale as u32);
+                    if computed_value > (u8::MAX as u32) {
+                        continue;
+                    }
+                    let value: u8 = computed_value as u8;
+                    rules.push((RulePriority::Advanced, value));
+                },
+                Label::OutputPropertyIsInputPropertyMultipliedByInputSize { output, input } => {
+                    if output != property_output {
+                        continue;
+                    }
+                    let input_value_option: Option<&u8> = dict.get(input);
+                    let input_value: u8 = match input_value_option {
+                        Some(value) => *value,
+                        None => {
+                            continue;
+                        }
+                    };
+                    let input_size: u8 = match property_output {
+                        PropertyOutput::OutputWidth => buffer_input.image.width(),
+                        PropertyOutput::OutputHeight => buffer_input.image.height()
+                    };
+                    let computed_value: u32 = (input_value as u32) * (input_size as u32);
                     if computed_value > (u8::MAX as u32) {
                         continue;
                     }
@@ -946,7 +981,7 @@ impl TraverseProgramsAndModels {
         buffer_task.assign_labels_related_to_input_histogram_intersection();
 
 
-        let input_properties: [PropertyInput; 12] = [
+        let input_properties: [PropertyInput; 14] = [
             PropertyInput::InputWidth, 
             PropertyInput::InputHeight,
             PropertyInput::InputUniqueColorCount,
@@ -959,6 +994,8 @@ impl TraverseProgramsAndModels {
             PropertyInput::InputWidthOfPrimaryObjectAfterSingleIntersectionColor,
             PropertyInput::InputHeightOfPrimaryObjectAfterSingleIntersectionColor,
             PropertyInput::InputMassOfPrimaryObjectAfterSingleIntersectionColor,
+            PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor,
+            PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
@@ -988,6 +1025,10 @@ impl TraverseProgramsAndModels {
                     let output_value: u8 = match output_property {
                         PropertyOutput::OutputWidth => width_output,
                         PropertyOutput::OutputHeight => height_output,
+                    };
+                    let input_image_size: u8 = match output_property {
+                        PropertyOutput::OutputWidth => pair.input.image.width(),
+                        PropertyOutput::OutputHeight => pair.input.image.height(),
                     };
                     // TODO: skip, if output_property is not yet computed
                     // TODO: skip, if output_property is cannot be computed
@@ -1019,6 +1060,14 @@ impl TraverseProgramsAndModels {
                             let label1 = Label::OutputPropertyIsInputPropertyDividedBySomeScale { output: *output_property, input: *input_property };
                             pair.label_set.insert(label1);
                             break;
+                        }
+                    }
+
+                    {
+                        let input_value_scaled: u32 = (input_value as u32) * (input_image_size as u32);
+                        if input_value_scaled == (output_value as u32) {
+                            let label0 = Label::OutputPropertyIsInputPropertyMultipliedByInputSize { output: *output_property, input: *input_property };
+                            pair.label_set.insert(label0);
                         }
                     }
                 }
