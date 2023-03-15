@@ -527,6 +527,152 @@ impl BufferTask {
         }
     }
 
+    fn assign_labels(&mut self) -> anyhow::Result<()> {
+        for pair in &mut self.pairs {
+            if pair.pair_type == BufferPairType::Test {
+                continue;
+            }
+            pair.input.update_input_properties();
+        }
+        self.update_input_properties_intersection();
+        self.assign_labels_input_size_output_size();
+        self.assign_labels_related_to_removal_histogram();
+        self.assign_labels_related_to_input_histogram_intersection();
+
+
+        let input_properties: [PropertyInput; 24] = [
+            PropertyInput::InputWidth, 
+            PropertyInput::InputWidthPlus1, 
+            PropertyInput::InputWidthPlus2, 
+            PropertyInput::InputWidthMinus1, 
+            PropertyInput::InputWidthMinus2, 
+            PropertyInput::InputHeight,
+            PropertyInput::InputHeightPlus1,
+            PropertyInput::InputHeightPlus2,
+            PropertyInput::InputHeightMinus1,
+            PropertyInput::InputHeightMinus2,
+            PropertyInput::InputUniqueColorCount,
+            PropertyInput::InputUniqueColorCountMinus1,
+            PropertyInput::InputNumberOfPixelsWithMostPopularColor,
+            PropertyInput::InputNumberOfPixelsWith2ndMostPopularColor,
+            PropertyInput::InputWidthOfPrimaryObjectAfterSingleColorRemoval,
+            PropertyInput::InputHeightOfPrimaryObjectAfterSingleColorRemoval,
+            PropertyInput::InputMassOfPrimaryObjectAfterSingleColorRemoval,
+            PropertyInput::InputWidthOfPrimaryObjectAfterSingleIntersectionColor,
+            PropertyInput::InputHeightOfPrimaryObjectAfterSingleIntersectionColor,
+            PropertyInput::InputMassOfPrimaryObjectAfterSingleIntersectionColor,
+            PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor,
+            PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
+            PropertyInput::InputWidthOfRemovedRectangleAfterSingleColorRemoval,
+            PropertyInput::InputHeightOfRemovedRectangleAfterSingleColorRemoval,
+        ];
+        let output_properties: [PropertyOutput; 2] = [
+            PropertyOutput::OutputWidth, 
+            PropertyOutput::OutputHeight
+        ];
+        for pair in &mut self.pairs {
+            if pair.pair_type == BufferPairType::Test {
+                continue;
+            }
+
+            let width_output: u8 = pair.output.image.width();
+            let height_output: u8 = pair.output.image.height();
+
+            for input_property in &input_properties {
+                let input_value_option: Option<&u8> = pair.input.input_properties.get(input_property);
+                let input_value: u8 = match input_value_option {
+                    Some(value) => *value,
+                    None => {
+                        continue;
+                    }
+                };
+                // TODO: skip, if input_property is not yet computed
+                // TODO: skip, if input_property is cannot be computed
+                // TODO: save the computed input_property in HashSet
+
+                for output_property in &output_properties {
+                    let output_value: u8 = match output_property {
+                        PropertyOutput::OutputWidth => width_output,
+                        PropertyOutput::OutputHeight => height_output,
+                    };
+                    let input_image_size: u8 = match output_property {
+                        PropertyOutput::OutputWidth => pair.input.image.width(),
+                        PropertyOutput::OutputHeight => pair.input.image.height(),
+                    };
+                    // TODO: skip, if output_property is not yet computed
+                    // TODO: skip, if output_property is cannot be computed
+                    // TODO: save the computed output_property in HashSet
+    
+                    let is_same = input_value == output_value;
+                    if is_same {
+                        let label = Label::OutputPropertyIsEqualToInputProperty { output: *output_property, input: *input_property };
+                        pair.label_set.insert(label);
+                    }
+
+                    for scale in 2..8u8 {
+                        let input_value_scaled: u32 = (input_value as u32) * (scale as u32);
+                        if input_value_scaled == (output_value as u32) {
+                            let label0 = Label::OutputPropertyIsInputPropertyMultipliedBy { output: *output_property, input: *input_property, scale };
+                            pair.label_set.insert(label0);
+                            let label1 = Label::OutputPropertyIsInputPropertyMultipliedBySomeScale { output: *output_property, input: *input_property };
+                            pair.label_set.insert(label1);
+                            break;
+                        }
+                    }
+
+                    for scale in 2..8u8 {
+                        let value: u32 = (input_value as u32) / (scale as u32);
+                        let value_remain: u32 = (input_value as u32) % (scale as u32);
+                        if value_remain == 0 && value == (output_value as u32) {
+                            let label0 = Label::OutputPropertyIsInputPropertyDividedBy { output: *output_property, input: *input_property, scale };
+                            pair.label_set.insert(label0);
+                            let label1 = Label::OutputPropertyIsInputPropertyDividedBySomeScale { output: *output_property, input: *input_property };
+                            pair.label_set.insert(label1);
+                            break;
+                        }
+                    }
+
+                    {
+                        let input_value_scaled: u32 = (input_value as u32) * (input_image_size as u32);
+                        if input_value_scaled == (output_value as u32) {
+                            let label0 = Label::OutputPropertyIsInputPropertyMultipliedByInputSize { output: *output_property, input: *input_property };
+                            pair.label_set.insert(label0);
+                        }
+                    }
+                }
+            }
+
+        }
+
+        self.update_input_label_set();
+        self.update_output_label_set();
+        self.update_meta_label_set();
+
+        for label in &self.output_label_set {
+            match label {
+                Label::OutputSizeWidth { width } => {
+                    let label = Label::OutputPropertyIsConstant { 
+                        output: PropertyOutput::OutputWidth, 
+                        value: *width,
+                        reason: "All the training outputs have this width".to_string()
+                    };
+                    self.meta_label_set.insert(label);
+                },
+                Label::OutputSizeHeight { height } => {
+                    let label = Label::OutputPropertyIsConstant { 
+                        output: PropertyOutput::OutputHeight, 
+                        value: *height,
+                        reason: "All the training outputs have this height".to_string()
+                    };
+                    self.meta_label_set.insert(label);
+                },
+                _ => {}
+            }
+        }
+
+        Ok(())
+    }
+
     fn output_size_rules_for(&self, property_output: &PropertyOutput) -> Vec<String> {
         let mut rules: Vec<String> = vec!();
 
@@ -959,7 +1105,7 @@ impl TraverseProgramsAndModels {
         for model_item in &instance.model_item_vec {
             let model: Model = model_item.borrow().model.clone();
             let mut buffer_task: BufferTask = BufferTask::try_from(&model)?;
-            Self::assign_labels_to_model(&mut buffer_task)?;
+            buffer_task.assign_labels()?;
             buffer_task_vec.push(buffer_task);
         }
 
@@ -1074,152 +1220,6 @@ impl TraverseProgramsAndModels {
                 break;
             }
         }
-        Ok(())
-    }
-
-    fn assign_labels_to_model(buffer_task: &mut BufferTask) -> anyhow::Result<()> {
-        for pair in &mut buffer_task.pairs {
-            if pair.pair_type == BufferPairType::Test {
-                continue;
-            }
-            pair.input.update_input_properties();
-        }
-        buffer_task.update_input_properties_intersection();
-        buffer_task.assign_labels_input_size_output_size();
-        buffer_task.assign_labels_related_to_removal_histogram();
-        buffer_task.assign_labels_related_to_input_histogram_intersection();
-
-
-        let input_properties: [PropertyInput; 24] = [
-            PropertyInput::InputWidth, 
-            PropertyInput::InputWidthPlus1, 
-            PropertyInput::InputWidthPlus2, 
-            PropertyInput::InputWidthMinus1, 
-            PropertyInput::InputWidthMinus2, 
-            PropertyInput::InputHeight,
-            PropertyInput::InputHeightPlus1,
-            PropertyInput::InputHeightPlus2,
-            PropertyInput::InputHeightMinus1,
-            PropertyInput::InputHeightMinus2,
-            PropertyInput::InputUniqueColorCount,
-            PropertyInput::InputUniqueColorCountMinus1,
-            PropertyInput::InputNumberOfPixelsWithMostPopularColor,
-            PropertyInput::InputNumberOfPixelsWith2ndMostPopularColor,
-            PropertyInput::InputWidthOfPrimaryObjectAfterSingleColorRemoval,
-            PropertyInput::InputHeightOfPrimaryObjectAfterSingleColorRemoval,
-            PropertyInput::InputMassOfPrimaryObjectAfterSingleColorRemoval,
-            PropertyInput::InputWidthOfPrimaryObjectAfterSingleIntersectionColor,
-            PropertyInput::InputHeightOfPrimaryObjectAfterSingleIntersectionColor,
-            PropertyInput::InputMassOfPrimaryObjectAfterSingleIntersectionColor,
-            PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor,
-            PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
-            PropertyInput::InputWidthOfRemovedRectangleAfterSingleColorRemoval,
-            PropertyInput::InputHeightOfRemovedRectangleAfterSingleColorRemoval,
-        ];
-        let output_properties: [PropertyOutput; 2] = [
-            PropertyOutput::OutputWidth, 
-            PropertyOutput::OutputHeight
-        ];
-        for pair in &mut buffer_task.pairs {
-            if pair.pair_type == BufferPairType::Test {
-                continue;
-            }
-
-            let width_output: u8 = pair.output.image.width();
-            let height_output: u8 = pair.output.image.height();
-
-            for input_property in &input_properties {
-                let input_value_option: Option<&u8> = pair.input.input_properties.get(input_property);
-                let input_value: u8 = match input_value_option {
-                    Some(value) => *value,
-                    None => {
-                        continue;
-                    }
-                };
-                // TODO: skip, if input_property is not yet computed
-                // TODO: skip, if input_property is cannot be computed
-                // TODO: save the computed input_property in HashSet
-
-                for output_property in &output_properties {
-                    let output_value: u8 = match output_property {
-                        PropertyOutput::OutputWidth => width_output,
-                        PropertyOutput::OutputHeight => height_output,
-                    };
-                    let input_image_size: u8 = match output_property {
-                        PropertyOutput::OutputWidth => pair.input.image.width(),
-                        PropertyOutput::OutputHeight => pair.input.image.height(),
-                    };
-                    // TODO: skip, if output_property is not yet computed
-                    // TODO: skip, if output_property is cannot be computed
-                    // TODO: save the computed output_property in HashSet
-    
-                    let is_same = input_value == output_value;
-                    if is_same {
-                        let label = Label::OutputPropertyIsEqualToInputProperty { output: *output_property, input: *input_property };
-                        pair.label_set.insert(label);
-                    }
-
-                    for scale in 2..8u8 {
-                        let input_value_scaled: u32 = (input_value as u32) * (scale as u32);
-                        if input_value_scaled == (output_value as u32) {
-                            let label0 = Label::OutputPropertyIsInputPropertyMultipliedBy { output: *output_property, input: *input_property, scale };
-                            pair.label_set.insert(label0);
-                            let label1 = Label::OutputPropertyIsInputPropertyMultipliedBySomeScale { output: *output_property, input: *input_property };
-                            pair.label_set.insert(label1);
-                            break;
-                        }
-                    }
-
-                    for scale in 2..8u8 {
-                        let value: u32 = (input_value as u32) / (scale as u32);
-                        let value_remain: u32 = (input_value as u32) % (scale as u32);
-                        if value_remain == 0 && value == (output_value as u32) {
-                            let label0 = Label::OutputPropertyIsInputPropertyDividedBy { output: *output_property, input: *input_property, scale };
-                            pair.label_set.insert(label0);
-                            let label1 = Label::OutputPropertyIsInputPropertyDividedBySomeScale { output: *output_property, input: *input_property };
-                            pair.label_set.insert(label1);
-                            break;
-                        }
-                    }
-
-                    {
-                        let input_value_scaled: u32 = (input_value as u32) * (input_image_size as u32);
-                        if input_value_scaled == (output_value as u32) {
-                            let label0 = Label::OutputPropertyIsInputPropertyMultipliedByInputSize { output: *output_property, input: *input_property };
-                            pair.label_set.insert(label0);
-                        }
-                    }
-                }
-            }
-
-        }
-
-        buffer_task.update_input_label_set();
-        buffer_task.update_output_label_set();
-        buffer_task.update_meta_label_set();
-
-        for label in &buffer_task.output_label_set {
-            match label {
-                Label::OutputSizeWidth { width } => {
-                    let label = Label::OutputPropertyIsConstant { 
-                        output: PropertyOutput::OutputWidth, 
-                        value: *width,
-                        reason: "All the training outputs have this width".to_string()
-                    };
-                    buffer_task.meta_label_set.insert(label);
-                },
-                Label::OutputSizeHeight { height } => {
-                    let label = Label::OutputPropertyIsConstant { 
-                        output: PropertyOutput::OutputHeight, 
-                        value: *height,
-                        reason: "All the training outputs have this height".to_string()
-                    };
-                    buffer_task.meta_label_set.insert(label);
-                },
-                _ => {}
-            }
-        }
-
         Ok(())
     }
 
