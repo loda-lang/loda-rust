@@ -253,16 +253,11 @@ impl BufferTask {
             if pair.pair_type == BufferPairType::Test {
                 continue;
             }
-            let width_input: u8 = pair.input.image.width();
-            let height_input: u8 = pair.input.image.height();
             let width_output: u8 = pair.output.image.width();
             let height_output: u8 = pair.output.image.height();
 
             pair.output.label_set.insert(Label::OutputSizeWidth { width: width_output });
             pair.output.label_set.insert(Label::OutputSizeHeight { height: height_output });
-
-            pair.input.label_set.insert(Label::InputSizeWidth { width: width_input });
-            pair.input.label_set.insert(Label::InputSizeHeight { height: height_input });
         }
     }
 
