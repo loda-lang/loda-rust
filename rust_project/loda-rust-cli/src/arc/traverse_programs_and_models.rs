@@ -87,14 +87,6 @@ impl BufferInput {
             }
         }
 
-        let mut width_input_plus2: Option<u8> = None;
-        {
-            let value: u16 = (width_input as u16) + 2;
-            if value <= (u8::MAX as u16) {
-                width_input_plus2 = Some(value as u8);
-            }
-        }
-
         let mut height_input_plus1: Option<u8> = None;
         {
             let value: u16 = (height_input as u16) + 1;
@@ -103,11 +95,47 @@ impl BufferInput {
             }
         }
 
+        let mut width_input_plus2: Option<u8> = None;
+        {
+            let value: u16 = (width_input as u16) + 2;
+            if value <= (u8::MAX as u16) {
+                width_input_plus2 = Some(value as u8);
+            }
+        }
+
         let mut height_input_plus2: Option<u8> = None;
         {
             let value: u16 = (height_input as u16) + 2;
             if value <= (u8::MAX as u16) {
                 height_input_plus2 = Some(value as u8);
+            }
+        }
+
+        let mut width_input_minus1: Option<u8> = None;
+        {
+            if width_input >= 1 {
+                width_input_minus1 = Some(width_input - 1);
+            }
+        }
+
+        let mut height_input_minus1: Option<u8> = None;
+        {
+            if height_input >= 1 {
+                height_input_minus1 = Some(height_input - 1);
+            }
+        }
+        
+        let mut width_input_minus2: Option<u8> = None;
+        {
+            if width_input >= 2 {
+                width_input_minus2 = Some(width_input - 2);
+            }
+        }
+
+        let mut height_input_minus2: Option<u8> = None;
+        {
+            if height_input >= 2 {
+                height_input_minus1 = Some(height_input - 2);
             }
         }
 
@@ -151,11 +179,23 @@ impl BufferInput {
         if let Some(value) = width_input_plus2 {
             dict.insert(PropertyInput::InputWidthPlus2, value);
         }
+        if let Some(value) = width_input_minus1 {
+            dict.insert(PropertyInput::InputWidthMinus1, value);
+        }
+        if let Some(value) = width_input_minus2 {
+            dict.insert(PropertyInput::InputWidthMinus2, value);
+        }
         if let Some(value) = height_input_plus1 {
             dict.insert(PropertyInput::InputHeightPlus1, value);
         }
         if let Some(value) = height_input_plus2 {
             dict.insert(PropertyInput::InputHeightPlus2, value);
+        }
+        if let Some(value) = height_input_minus1 {
+            dict.insert(PropertyInput::InputHeightMinus1, value);
+        }
+        if let Some(value) = height_input_minus2 {
+            dict.insert(PropertyInput::InputHeightMinus2, value);
         }
         if let Some(value) = input_unique_color_count {
             dict.insert(PropertyInput::InputUniqueColorCount, value);
@@ -1025,13 +1065,17 @@ impl TraverseProgramsAndModels {
         buffer_task.assign_labels_related_to_input_histogram_intersection();
 
 
-        let input_properties: [PropertyInput; 18] = [
+        let input_properties: [PropertyInput; 22] = [
             PropertyInput::InputWidth, 
             PropertyInput::InputWidthPlus1, 
             PropertyInput::InputWidthPlus2, 
+            PropertyInput::InputWidthMinus1, 
+            PropertyInput::InputWidthMinus2, 
             PropertyInput::InputHeight,
             PropertyInput::InputHeightPlus1,
             PropertyInput::InputHeightPlus2,
+            PropertyInput::InputHeightMinus1,
+            PropertyInput::InputHeightMinus2,
             PropertyInput::InputUniqueColorCount,
             PropertyInput::InputUniqueColorCountMinus1,
             PropertyInput::InputNumberOfPixelsWithMostPopularColor,
