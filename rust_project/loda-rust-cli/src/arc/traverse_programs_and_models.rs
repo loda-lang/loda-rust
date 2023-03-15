@@ -945,6 +945,203 @@ impl BufferTask {
             }
         }
     }
+
+    fn labelset_to_html(label_set: &LabelSet) -> String {
+        let mut label_vec: Vec<String> = label_set.iter().map(|label| format!("{:?}", label)).collect();
+        if label_vec.is_empty() {
+            return "empty".to_string();
+        }
+        label_vec.sort();
+        label_vec = label_vec.iter().map(|label| format!("<li>{}</li>", label)).collect();
+        format!("<ul>{}</ul>", label_vec.join(""))
+    }
+
+    fn input_properties_to_html(input_properties: &HashMap<PropertyInput, u8>) -> String {
+        let mut items: Vec<String> = input_properties.iter().map(|(key,value)| format!("{:?} {}", key, value)).collect();
+        if items.is_empty() {
+            return "empty".to_string();
+        }
+        items.sort();
+        let list_vec: Vec<String> = items.iter().map(|label| format!("<li>{}</li>", label)).collect();
+        format!("<ul>{}</ul>", list_vec.join(""))
+    }
+
+    fn inspect(&self) -> anyhow::Result<()> {
+        let mut row_title: String = "<tr><td></td>".to_string();
+        let mut row_input_image: String = "<tr><td>Input image</td>".to_string();
+        let mut row_input_labels: String = "<tr><td>Input labels</td>".to_string();
+        let mut row_input_properties: String = "<tr><td>Input properties</td>".to_string();
+        let mut row_output_image: String = "<tr><td>Output image</td>".to_string();
+        let mut row_output_labels: String = "<tr><td>Output labels</td>".to_string();
+        let mut row_action: String = "<tr><td>Action</td>".to_string();
+        let mut row_meta_labels: String = "<tr><td>Meta labels</td>".to_string();
+        for pair in &self.pairs {
+            {
+                row_title += "<td>";
+                let title: &str = match pair.pair_type {
+                    BufferPairType::Train => "Train",
+                    BufferPairType::Test => "Test",
+                };
+                row_title += title;
+                row_title += "</td>";
+            }
+            {
+                row_input_image += "<td>";
+                row_input_image += &pair.input.image.to_html();
+                row_input_image += "</td>";
+            }
+            {
+                row_input_labels += "<td>";
+                row_input_labels += &Self::labelset_to_html(&pair.input.label_set);
+                row_input_labels += "</td>";
+            }
+            {
+                row_input_properties += "<td>";
+                row_input_properties += &Self::input_properties_to_html(&pair.input.input_properties);
+                row_input_properties += "</td>";
+            }
+            {
+                row_output_image += "<td>";
+                row_output_image += &pair.output.image.to_html();
+                row_output_image += "</td>";
+            }
+            {
+                row_output_labels += "<td>";
+                row_output_labels += &Self::labelset_to_html(&pair.output.label_set);
+                row_output_labels += "</td>";
+            }
+            {
+                row_action += "<td>Removal<br>";
+                match pair.removal_histogram.color_image() {
+                    Ok(image) => {
+                        row_action += &image.to_html();
+                    },
+                    Err(_) => {
+                        row_action += "N/A";
+                    }
+                }
+                row_action += "<br>Insert<br>";
+                match pair.insert_histogram.color_image() {
+                    Ok(image) => {
+                        row_action += &image.to_html();
+                    },
+                    Err(_) => {
+                        row_action += "N/A";
+                    }
+                }
+                row_action += "</td>";
+            }
+            {
+                row_meta_labels += "<td>";
+                row_meta_labels += &Self::labelset_to_html(&pair.label_set);
+                row_meta_labels += "</td>";
+            }
+        }
+
+        row_title += "<td>Analysis</td>";
+
+        row_input_image += "<td>Union<br>";
+        match self.input_histogram_union.color_image() {
+            Ok(image) => {
+                row_input_image += &image.to_html();
+            },
+            Err(_) => {
+                row_input_image += "N/A";
+            }
+        }
+        row_input_image += "<br><br>Intersection<br>";
+        match self.input_histogram_intersection.color_image() {
+            Ok(image) => {
+                row_input_image += &image.to_html();
+            },
+            Err(_) => {
+                row_input_image += "N/A";
+            }
+        }
+        row_input_image += "</td>";
+
+        row_input_labels += "<td>";
+        row_input_labels += &Self::labelset_to_html(&self.input_label_set);
+        row_input_labels += "</td>";
+
+        row_input_properties += "<td>";
+        row_input_properties += &Self::input_properties_to_html(&self.input_properties_intersection);
+        row_input_properties += "</td>";
+
+        row_output_image += "<td>Union<br>";
+        match self.output_histogram_union.color_image() {
+            Ok(image) => {
+                row_output_image += &image.to_html();
+            },
+            Err(_) => {
+                row_output_image += "N/A";
+            }
+        }
+        row_output_image += "<br><br>Intersection<br>";
+        match self.output_histogram_intersection.color_image() {
+            Ok(image) => {
+                row_output_image += &image.to_html();
+            },
+            Err(_) => {
+                row_output_image += "N/A";
+            }
+        }
+        row_output_image += "</td>";
+
+        row_output_labels += "<td>";
+        row_output_labels += &Self::labelset_to_html(&self.output_label_set);
+        row_output_labels += "</td>";
+
+        row_action += "<td>Removal<br>";
+        match self.removal_histogram_intersection.color_image() {
+            Ok(image) => {
+                row_action += &image.to_html();
+            },
+            Err(_) => {
+                row_action += "N/A";
+            }
+        }
+        row_action += "<br>Insert<br>";
+        match self.insert_histogram_intersection.color_image() {
+            Ok(image) => {
+                row_action += &image.to_html();
+            },
+            Err(_) => {
+                row_action += "N/A";
+            }
+        }
+        row_action += "</td>";
+
+        row_meta_labels += "<td>";
+        row_meta_labels += &Self::labelset_to_html(&self.meta_label_set);
+        row_meta_labels += "</td>";
+
+        row_title += "</tr>";
+        row_input_image += "</tr>";
+        row_input_labels += "</tr>";
+        row_input_properties += "</tr>";
+        row_output_image += "</tr>";
+        row_output_labels += "</tr>";
+        row_action += "</tr>";
+        row_meta_labels += "</tr>";
+
+        let html = format!(
+            "<h2>{}</h2><p>Estimate: {}</p><table>{}{}{}{}{}{}{}{}</table>",
+            self.displayName, 
+            self.estimated_output_size(),
+            row_title,
+            row_input_image, 
+            row_input_labels, 
+            row_input_properties, 
+            row_output_image, 
+            row_output_labels, 
+            row_action,
+            row_meta_labels
+        );
+        HtmlLog::html(html);
+        Ok(())
+    }
+
 }
 
 impl TryFrom<&Model> for BufferTask {
@@ -1184,7 +1381,7 @@ impl TraverseProgramsAndModels {
                 continue;
             }
             if count > 0 {
-                Self::inspect_task(buffer_task)?;
+                buffer_task.inspect()?;
             }
             count += 1;
             if count > 50 {
@@ -1202,7 +1399,7 @@ impl TraverseProgramsAndModels {
                 continue;
             }
             if count > 0 {
-                Self::inspect_task(buffer_task)?;
+                buffer_task.inspect()?;
             }
             count += 1;
             if count > 50 {
@@ -1216,209 +1413,12 @@ impl TraverseProgramsAndModels {
         let mut count = 0;
         for buffer_task in buffer_task_vec {
             if buffer_task.id == task_id {
-                Self::inspect_task(buffer_task)?;
+                buffer_task.inspect()?;
                 break;
             }
         }
         Ok(())
     }
-
-    fn labelset_to_html(label_set: &LabelSet) -> String {
-        let mut label_vec: Vec<String> = label_set.iter().map(|label| format!("{:?}", label)).collect();
-        if label_vec.is_empty() {
-            return "empty".to_string();
-        }
-        label_vec.sort();
-        label_vec = label_vec.iter().map(|label| format!("<li>{}</li>", label)).collect();
-        format!("<ul>{}</ul>", label_vec.join(""))
-    }
-
-    fn input_properties_to_html(input_properties: &HashMap<PropertyInput, u8>) -> String {
-        let mut items: Vec<String> = input_properties.iter().map(|(key,value)| format!("{:?} {}", key, value)).collect();
-        if items.is_empty() {
-            return "empty".to_string();
-        }
-        items.sort();
-        let list_vec: Vec<String> = items.iter().map(|label| format!("<li>{}</li>", label)).collect();
-        format!("<ul>{}</ul>", list_vec.join(""))
-    }
-
-    fn inspect_task(buffer_task: &BufferTask) -> anyhow::Result<()> {
-        let mut row_title: String = "<tr><td></td>".to_string();
-        let mut row_input_image: String = "<tr><td>Input image</td>".to_string();
-        let mut row_input_labels: String = "<tr><td>Input labels</td>".to_string();
-        let mut row_input_properties: String = "<tr><td>Input properties</td>".to_string();
-        let mut row_output_image: String = "<tr><td>Output image</td>".to_string();
-        let mut row_output_labels: String = "<tr><td>Output labels</td>".to_string();
-        let mut row_action: String = "<tr><td>Action</td>".to_string();
-        let mut row_meta_labels: String = "<tr><td>Meta labels</td>".to_string();
-        for pair in &buffer_task.pairs {
-            {
-                row_title += "<td>";
-                let title: &str = match pair.pair_type {
-                    BufferPairType::Train => "Train",
-                    BufferPairType::Test => "Test",
-                };
-                row_title += title;
-                row_title += "</td>";
-            }
-            {
-                row_input_image += "<td>";
-                row_input_image += &pair.input.image.to_html();
-                row_input_image += "</td>";
-            }
-            {
-                row_input_labels += "<td>";
-                row_input_labels += &Self::labelset_to_html(&pair.input.label_set);
-                row_input_labels += "</td>";
-            }
-            {
-                row_input_properties += "<td>";
-                row_input_properties += &Self::input_properties_to_html(&pair.input.input_properties);
-                row_input_properties += "</td>";
-            }
-            {
-                row_output_image += "<td>";
-                row_output_image += &pair.output.image.to_html();
-                row_output_image += "</td>";
-            }
-            {
-                row_output_labels += "<td>";
-                row_output_labels += &Self::labelset_to_html(&pair.output.label_set);
-                row_output_labels += "</td>";
-            }
-            {
-                row_action += "<td>Removal<br>";
-                match pair.removal_histogram.color_image() {
-                    Ok(image) => {
-                        row_action += &image.to_html();
-                    },
-                    Err(_) => {
-                        row_action += "N/A";
-                    }
-                }
-                row_action += "<br>Insert<br>";
-                match pair.insert_histogram.color_image() {
-                    Ok(image) => {
-                        row_action += &image.to_html();
-                    },
-                    Err(_) => {
-                        row_action += "N/A";
-                    }
-                }
-                row_action += "</td>";
-            }
-            {
-                row_meta_labels += "<td>";
-                row_meta_labels += &Self::labelset_to_html(&pair.label_set);
-                row_meta_labels += "</td>";
-            }
-        }
-
-        row_title += "<td>Analysis</td>";
-
-        row_input_image += "<td>Union<br>";
-        match buffer_task.input_histogram_union.color_image() {
-            Ok(image) => {
-                row_input_image += &image.to_html();
-            },
-            Err(_) => {
-                row_input_image += "N/A";
-            }
-        }
-        row_input_image += "<br><br>Intersection<br>";
-        match buffer_task.input_histogram_intersection.color_image() {
-            Ok(image) => {
-                row_input_image += &image.to_html();
-            },
-            Err(_) => {
-                row_input_image += "N/A";
-            }
-        }
-        row_input_image += "</td>";
-
-        row_input_labels += "<td>";
-        row_input_labels += &Self::labelset_to_html(&buffer_task.input_label_set);
-        row_input_labels += "</td>";
-
-        row_input_properties += "<td>";
-        row_input_properties += &Self::input_properties_to_html(&buffer_task.input_properties_intersection);
-        row_input_properties += "</td>";
-
-        row_output_image += "<td>Union<br>";
-        match buffer_task.output_histogram_union.color_image() {
-            Ok(image) => {
-                row_output_image += &image.to_html();
-            },
-            Err(_) => {
-                row_output_image += "N/A";
-            }
-        }
-        row_output_image += "<br><br>Intersection<br>";
-        match buffer_task.output_histogram_intersection.color_image() {
-            Ok(image) => {
-                row_output_image += &image.to_html();
-            },
-            Err(_) => {
-                row_output_image += "N/A";
-            }
-        }
-        row_output_image += "</td>";
-
-        row_output_labels += "<td>";
-        row_output_labels += &Self::labelset_to_html(&buffer_task.output_label_set);
-        row_output_labels += "</td>";
-
-        row_action += "<td>Removal<br>";
-        match buffer_task.removal_histogram_intersection.color_image() {
-            Ok(image) => {
-                row_action += &image.to_html();
-            },
-            Err(_) => {
-                row_action += "N/A";
-            }
-        }
-        row_action += "<br>Insert<br>";
-        match buffer_task.insert_histogram_intersection.color_image() {
-            Ok(image) => {
-                row_action += &image.to_html();
-            },
-            Err(_) => {
-                row_action += "N/A";
-            }
-        }
-        row_action += "</td>";
-
-        row_meta_labels += "<td>";
-        row_meta_labels += &Self::labelset_to_html(&buffer_task.meta_label_set);
-        row_meta_labels += "</td>";
-
-        row_title += "</tr>";
-        row_input_image += "</tr>";
-        row_input_labels += "</tr>";
-        row_input_properties += "</tr>";
-        row_output_image += "</tr>";
-        row_output_labels += "</tr>";
-        row_action += "</tr>";
-        row_meta_labels += "</tr>";
-
-        let html = format!(
-            "<h2>{}</h2><p>Estimate: {}</p><table>{}{}{}{}{}{}{}{}</table>",
-            buffer_task.displayName, 
-            buffer_task.estimated_output_size(),
-            row_title,
-            row_input_image, 
-            row_input_labels, 
-            row_input_properties, 
-            row_output_image, 
-            row_output_labels, 
-            row_action,
-            row_meta_labels
-        );
-        HtmlLog::html(html);
-        Ok(())
-    }
-
 
     fn new() -> anyhow::Result<Self> {
         let config = Config::load();
