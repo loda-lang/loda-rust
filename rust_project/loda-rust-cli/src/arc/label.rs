@@ -3,7 +3,11 @@ use std::collections::HashSet;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PropertyInput {
     InputWidth,
+    InputWidthPlus1,
+    InputWidthPlus2,
     InputHeight,
+    InputHeightPlus1,
+    InputHeightPlus2,
     InputUniqueColorCount,
     InputUniqueColorCountMinus1,
     InputNumberOfPixelsWithMostPopularColor,

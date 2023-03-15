@@ -79,6 +79,38 @@ impl BufferInput {
         let width_input: u8 = self.image.width();
         let height_input: u8 = self.image.height();
 
+        let mut width_input_plus1: Option<u8> = None;
+        {
+            let value: u16 = (width_input as u16) + 1;
+            if value <= (u8::MAX as u16) {
+                width_input_plus1 = Some(value as u8);
+            }
+        }
+
+        let mut width_input_plus2: Option<u8> = None;
+        {
+            let value: u16 = (width_input as u16) + 2;
+            if value <= (u8::MAX as u16) {
+                width_input_plus2 = Some(value as u8);
+            }
+        }
+
+        let mut height_input_plus1: Option<u8> = None;
+        {
+            let value: u16 = (height_input as u16) + 1;
+            if value <= (u8::MAX as u16) {
+                height_input_plus1 = Some(value as u8);
+            }
+        }
+
+        let mut height_input_plus2: Option<u8> = None;
+        {
+            let value: u16 = (height_input as u16) + 2;
+            if value <= (u8::MAX as u16) {
+                height_input_plus2 = Some(value as u8);
+            }
+        }
+
         let input_unique_color_count_raw: u32 = self.histogram.number_of_counters_greater_than_zero();
         let mut input_unique_color_count: Option<u8> = None;
         if input_unique_color_count_raw <= (u8::MAX as u32) {
@@ -113,6 +145,18 @@ impl BufferInput {
         let mut dict = HashMap::<PropertyInput, u8>::new();
         dict.insert(PropertyInput::InputWidth, width_input);
         dict.insert(PropertyInput::InputHeight, height_input);
+        if let Some(value) = width_input_plus1 {
+            dict.insert(PropertyInput::InputWidthPlus1, value);
+        }
+        if let Some(value) = width_input_plus2 {
+            dict.insert(PropertyInput::InputWidthPlus2, value);
+        }
+        if let Some(value) = height_input_plus1 {
+            dict.insert(PropertyInput::InputHeightPlus1, value);
+        }
+        if let Some(value) = height_input_plus2 {
+            dict.insert(PropertyInput::InputHeightPlus2, value);
+        }
         if let Some(value) = input_unique_color_count {
             dict.insert(PropertyInput::InputUniqueColorCount, value);
         }
@@ -981,9 +1025,13 @@ impl TraverseProgramsAndModels {
         buffer_task.assign_labels_related_to_input_histogram_intersection();
 
 
-        let input_properties: [PropertyInput; 14] = [
+        let input_properties: [PropertyInput; 18] = [
             PropertyInput::InputWidth, 
+            PropertyInput::InputWidthPlus1, 
+            PropertyInput::InputWidthPlus2, 
             PropertyInput::InputHeight,
+            PropertyInput::InputHeightPlus1,
+            PropertyInput::InputHeightPlus2,
             PropertyInput::InputUniqueColorCount,
             PropertyInput::InputUniqueColorCountMinus1,
             PropertyInput::InputNumberOfPixelsWithMostPopularColor,
