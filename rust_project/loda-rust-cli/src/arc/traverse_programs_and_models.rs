@@ -363,9 +363,27 @@ impl BufferTask {
             }
 
             let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
-            // if buffer_task.id == "8a371977,task" {
+            // if self.id == "0934a4d8,task" {
             //     HtmlLog::image(&image_mask);
             // }
+
+            // Determine if the removed color is a rectangle
+            {
+                match image_mask.trim_color(1) {
+                    Ok(image) => {
+                        // HtmlLog::image(&image);
+                        let mass: u32 = image.mask_count_one();
+                        if mass == 0 {
+                            // println!("this is a rectangle");
+                            pair.input.input_properties.insert(PropertyInput::InputWidthOfRemovedRectangleAfterSingleColorRemoval, image.width());
+                            pair.input.input_properties.insert(PropertyInput::InputHeightOfRemovedRectangleAfterSingleColorRemoval, image.height());
+                        } else {
+                            // println!("this is not a rectangle");
+                        }
+                    },
+                    Err(_) => {}
+                }
+            }
 
             let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
 
@@ -378,7 +396,7 @@ impl BufferTask {
                 }
             };
             // println!("number of objects: {} task: {}", object_images.len(), self.displayName);
-            // if buffer_task.id == "8a371977,task" {
+            // if self.id == "8a371977,task" {
             //     for image in &object_images {
             //         HtmlLog::image(image);
             //     }
@@ -973,6 +991,13 @@ impl TraverseProgramsAndModels {
                 if pair.pair_type != BufferPairType::Test {
                     continue;
                 }
+
+                // TODO: update input properties for this test, otherwise the input properties aren't available for computing the predicted size.
+                // buffer_task.update_input_properties_intersection();
+                // buffer_task.assign_labels_input_size_output_size();
+                // buffer_task.assign_labels_related_to_removal_histogram();
+                // buffer_task.assign_labels_related_to_input_histogram_intersection();
+        
                 let predicted: String = buffer_task.predict_output_size_for_input(&pair.input);
                 let expected: String = format!("{}x{}", pair.output.image.width(), pair.output.image.height());
                 if predicted == expected {
@@ -1065,7 +1090,7 @@ impl TraverseProgramsAndModels {
         buffer_task.assign_labels_related_to_input_histogram_intersection();
 
 
-        let input_properties: [PropertyInput; 22] = [
+        let input_properties: [PropertyInput; 24] = [
             PropertyInput::InputWidth, 
             PropertyInput::InputWidthPlus1, 
             PropertyInput::InputWidthPlus2, 
@@ -1088,6 +1113,8 @@ impl TraverseProgramsAndModels {
             PropertyInput::InputMassOfPrimaryObjectAfterSingleIntersectionColor,
             PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor,
             PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
+            PropertyInput::InputWidthOfRemovedRectangleAfterSingleColorRemoval,
+            PropertyInput::InputHeightOfRemovedRectangleAfterSingleColorRemoval,
         ];
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
