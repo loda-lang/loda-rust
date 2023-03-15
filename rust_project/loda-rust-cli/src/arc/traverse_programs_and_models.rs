@@ -362,6 +362,20 @@ impl BufferTask {
             // if self.id == "28bf18c6,task" {
             //     HtmlLog::image(&image_mask);
             // }
+            {
+                let mass: u32 = image_mask.mask_count_zero();
+                if mass > 0 && mass <= (u8::MAX as u32) {
+                    let mass_value: u8 = mass as u8;
+                    pair.input.input_properties.insert(PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor, mass_value);
+                }
+            }
+            {
+                let mass: u32 = image_mask.mask_count_one();
+                if mass > 0 && mass <= (u8::MAX as u32) {
+                    let mass_value: u8 = mass as u8;
+                    pair.input.input_properties.insert(PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor, mass_value);
+                }
+            }
 
             let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
 

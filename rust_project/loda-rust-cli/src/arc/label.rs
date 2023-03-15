@@ -14,6 +14,8 @@ pub enum PropertyInput {
     InputWidthOfPrimaryObjectAfterSingleIntersectionColor,
     InputHeightOfPrimaryObjectAfterSingleIntersectionColor,
     InputMassOfPrimaryObjectAfterSingleIntersectionColor,
+    InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor,
+    InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
