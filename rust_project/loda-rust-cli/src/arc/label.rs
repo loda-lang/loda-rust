@@ -36,8 +36,6 @@ pub enum PropertyOutput {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Label {
-    OutputSizeWidth { width: u8 },
-    OutputSizeHeight { height: u8 },
     OutputPropertyIsEqualToInputProperty { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsInputPropertyMultipliedBy { output: PropertyOutput, input: PropertyInput, scale: u8 },
     OutputPropertyIsInputPropertyMultipliedBySomeScale { output: PropertyOutput, input: PropertyInput },

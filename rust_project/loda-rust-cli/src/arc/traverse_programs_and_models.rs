@@ -338,11 +338,27 @@ impl BufferTask {
             if pair.pair_type == BufferPairType::Test {
                 continue;
             }
-            let width_output: u8 = pair.output.image.width();
-            let height_output: u8 = pair.output.image.height();
 
-            pair.output.label_set.insert(Label::OutputSizeWidth { width: width_output });
-            pair.output.label_set.insert(Label::OutputSizeHeight { height: height_output });
+            {
+                let width_output: u8 = pair.output.image.width();
+                let label = Label::OutputPropertyIsConstant { 
+                    output: PropertyOutput::OutputWidth, 
+                    value: width_output,
+                    reason: "training output.width".to_string()
+                };
+                pair.label_set.insert(label);
+            }
+
+            {
+                let height_output: u8 = pair.output.image.height();
+                let label = Label::OutputPropertyIsConstant { 
+                    output: PropertyOutput::OutputHeight, 
+                    value: height_output,
+                    reason: "training output.height".to_string()
+                };
+                pair.label_set.insert(label);
+            }
+
         }
     }
 
@@ -359,9 +375,6 @@ impl BufferTask {
         };
                         
         for pair in &mut self.pairs {
-            if pair.pair_type == BufferPairType::Test {
-                continue;
-            }
 
             let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
             // if self.id == "0934a4d8,task" {
@@ -452,9 +465,6 @@ impl BufferTask {
         };
                         
         for pair in &mut self.pairs {
-            if pair.pair_type == BufferPairType::Test {
-                continue;
-            }
 
             let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
             // if self.id == "28bf18c6,task" {
@@ -531,14 +541,15 @@ impl BufferTask {
     fn assign_labels(&mut self) -> anyhow::Result<()> {
         for pair in &mut self.pairs {
             if pair.pair_type == BufferPairType::Test {
-                continue;
+                // continue;
             }
             pair.input.update_input_properties();
         }
         self.update_input_properties_intersection();
-        self.assign_labels_input_size_output_size();
         self.assign_labels_related_to_removal_histogram();
         self.assign_labels_related_to_input_histogram_intersection();
+
+        self.assign_labels_input_size_output_size();
 
 
         let input_properties: [PropertyInput; 24] = [
@@ -649,26 +660,16 @@ impl BufferTask {
         self.update_output_label_set();
         self.update_meta_label_set();
 
-        for label in &self.output_label_set {
-            match label {
-                Label::OutputSizeWidth { width } => {
-                    let label = Label::OutputPropertyIsConstant { 
-                        output: PropertyOutput::OutputWidth, 
-                        value: *width,
-                        reason: "All the training outputs have this width".to_string()
-                    };
-                    self.meta_label_set.insert(label);
-                },
-                Label::OutputSizeHeight { height } => {
-                    let label = Label::OutputPropertyIsConstant { 
-                        output: PropertyOutput::OutputHeight, 
-                        value: *height,
-                        reason: "All the training outputs have this height".to_string()
-                    };
-                    self.meta_label_set.insert(label);
-                },
-                _ => {}
+        for pair in &mut self.pairs {
+            if pair.pair_type != BufferPairType::Test {
+                continue;
             }
+
+            // TODO: transfer learned constraints to the `test` pair
+            pair.label_set = pair.label_set.intersection(&self.meta_label_set).map(|l| l.clone()).collect();
+            // pair.label_set = self.input_label_set.clone();
+            pair.removal_histogram = self.removal_histogram_intersection.clone();
+            pair.insert_histogram = self.insert_histogram_intersection.clone();
         }
 
         Ok(())
@@ -677,43 +678,21 @@ impl BufferTask {
     fn output_size_rules_for(&self, property_output: &PropertyOutput) -> Vec<String> {
         let mut rules: Vec<String> = vec!();
 
-        let mut found_width: Option<u8> = None;
-        let mut found_height: Option<u8> = None;
-        for label in &self.output_label_set {
-            match label {
-                Label::OutputSizeWidth { width } => {
-                    found_width = Some(*width);
-                },
-                Label::OutputSizeHeight { height } => {
-                    found_height = Some(*height);
-                },
-                _ => {}
-            }
-        }
-
-        match property_output {
-            PropertyOutput::OutputWidth => {
-                if let Some(width) = found_width {
-                    // TODO: instead of using `a` as prefix to rank the confidence, then use a priority enum.
-                    let s = format!("a width is always {:?}", width);
-                    rules.push(s);
-                }
-            },
-            PropertyOutput::OutputHeight => {
-                if let Some(height) = found_height {
-                    let s = format!("a height is always {:?}", height);
-                    rules.push(s);
-                }
-            }
-        };
-
-
         for label in &self.meta_label_set {
             match label {
+                Label::OutputPropertyIsConstant { output, value, reason } => {
+                    if output != property_output {
+                        continue;
+                    }
+                    // TODO: instead of using `a` as prefix to rank the confidence, then use a priority enum.
+                    let s = format!("a {:?} is always {:?}", output, value);
+                    rules.push(s);
+                },
                 Label::OutputPropertyIsEqualToInputProperty { output, input } => {
                     if output != property_output {
                         continue;
                     }
+                    // TODO: use the same ranking code that is used for computing the predicted output size.
                     // TODO: instead of using `b` as prefix to rank the confidence, then use a priority enum.
                     let s = format!("b {:?} = {:?}", output, input);
                     rules.push(s);
@@ -783,36 +762,16 @@ impl BufferTask {
     fn predict_output_size_for_output_property_and_input(&self, property_output: &PropertyOutput, buffer_input: &BufferInput) -> Vec<(RulePriority, u8)> {
         let mut rules: Vec<(RulePriority, u8)> = vec!();
 
-        let mut found_width: Option<u8> = None;
-        let mut found_height: Option<u8> = None;
-        for label in &self.output_label_set {
-            match label {
-                Label::OutputSizeWidth { width } => {
-                    found_width = Some(*width);
-                },
-                Label::OutputSizeHeight { height } => {
-                    found_height = Some(*height);
-                },
-                _ => {}
-            }
-        }
-
-        match property_output {
-            PropertyOutput::OutputWidth => {
-                if let Some(width) = found_width {
-                    rules.push((RulePriority::Medium, width));
-                }
-            },
-            PropertyOutput::OutputHeight => {
-                if let Some(height) = found_height {
-                    rules.push((RulePriority::Medium, height));
-                }
-            }
-        };
 
         let dict: HashMap<PropertyInput, u8> = buffer_input.resolve_input_properties();
         for label in &self.meta_label_set {
             match label {
+                Label::OutputPropertyIsConstant { output, value, reason } => {
+                    if output != property_output {
+                        continue;
+                    }
+                    rules.push((RulePriority::Medium, *value));
+                },
                 Label::OutputPropertyIsEqualToInputProperty { output, input } => {
                     if output != property_output {
                         continue;
