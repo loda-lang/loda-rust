@@ -135,7 +135,7 @@ impl BufferInput {
         let mut height_input_minus2: Option<u8> = None;
         {
             if height_input >= 2 {
-                height_input_minus1 = Some(height_input - 2);
+                height_input_minus2 = Some(height_input - 2);
             }
         }
 
