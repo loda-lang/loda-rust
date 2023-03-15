@@ -846,7 +846,7 @@ impl TraverseProgramsAndModels {
         let mut count = 0;
         for buffer_task in buffer_task_vec {
             let estimate: String = buffer_task.estimated_output_size();
-            if estimate == "Undecided" {
+            if estimate != "Undecided" {
                 continue;
             }
             if count > 0 {
@@ -864,7 +864,7 @@ impl TraverseProgramsAndModels {
         let mut count = 0;
         for buffer_task in buffer_task_vec {
             let estimate: String = buffer_task.estimated_output_size();
-            if estimate != "Undecided" {
+            if estimate == "Undecided" {
                 continue;
             }
             if count > 0 {
