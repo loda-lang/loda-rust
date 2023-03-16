@@ -1221,7 +1221,7 @@ impl TraverseProgramsAndModels {
             let mut all_correct = true;
             for pair in &buffer_task.pairs {
                 if pair.pair_type != BufferPairType::Test {
-                    continue;
+                    // continue;
                 }
 
                 // TODO: update input properties for this test, otherwise the input properties aren't available for computing the predicted size.
