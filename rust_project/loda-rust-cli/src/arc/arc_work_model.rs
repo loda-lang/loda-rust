@@ -41,3 +41,17 @@ pub struct Pair {
     pub label_set: LabelSet,
 }
 
+#[derive(Clone, Debug)]
+pub struct Task {
+    pub id: String,
+    pub display_name: String,
+    pub pairs: Vec<Pair>,
+    pub input_histogram_union: Histogram,
+    pub input_histogram_intersection: Histogram,
+    pub output_histogram_union: Histogram,
+    pub output_histogram_intersection: Histogram,
+    pub removal_histogram_intersection: Histogram,
+    pub insert_histogram_intersection: Histogram,
+    pub input_properties_intersection: HashMap<PropertyInput, u8>,
+    pub label_set_intersection: LabelSet,
+}
