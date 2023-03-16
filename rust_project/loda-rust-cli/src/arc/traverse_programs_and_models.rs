@@ -49,7 +49,7 @@ enum RulePriority {
 
 
 #[derive(Clone, Debug)]
-struct BufferOutput {
+struct Output {
     id: String,
     image: Image,
     test_image: Image,
@@ -57,7 +57,7 @@ struct BufferOutput {
 }
 
 #[derive(Clone, Debug)]
-struct BufferInput {
+struct Input {
     id: String,
     image: Image,
     histogram: Histogram,
@@ -70,7 +70,7 @@ struct BufferInput {
     // TODO: rerun analyze until all pending properties have been computed
 }
 
-impl BufferInput {
+impl Input {
     fn update_input_properties(&mut self) {
         self.input_properties = self.resolve_input_properties();
     }
@@ -220,21 +220,21 @@ enum BufferPairType {
 }
 
 #[derive(Clone, Debug)]
-struct BufferInputOutputPair {
+struct Pair {
     id: String,
     pair_type: BufferPairType,
-    input: BufferInput,
-    output: BufferOutput,
+    input: Input,
+    output: Output,
     removal_histogram: Histogram,
     insert_histogram: Histogram,
     label_set: LabelSet,
 }
 
 #[derive(Clone, Debug)]
-struct BufferTask {
+struct Task {
     id: String,
     display_name: String,
-    pairs: Vec<BufferInputOutputPair>,
+    pairs: Vec<Pair>,
     input_histogram_union: Histogram,
     input_histogram_intersection: Histogram,
     output_histogram_union: Histogram,
@@ -245,7 +245,7 @@ struct BufferTask {
     label_set_intersection: LabelSet,
 }
 
-impl BufferTask {
+impl Task {
     fn update_label_set_intersection(&mut self) {
         let mut label_set = LabelSet::new();
         let mut is_first = true;
@@ -706,7 +706,7 @@ impl BufferTask {
 
 
     /// Returns an array of tuples. Each tuple is a priority and a value.
-    fn predict_output_size_for_output_property_and_input(&self, property_output: &PropertyOutput, buffer_input: &BufferInput) -> Vec<(RulePriority, u8)> {
+    fn predict_output_size_for_output_property_and_input(&self, property_output: &PropertyOutput, buffer_input: &Input) -> Vec<(RulePriority, u8)> {
         let mut rules: Vec<(RulePriority, u8)> = vec!();
 
         let dict: &HashMap<PropertyInput, u8> = &buffer_input.input_properties;
@@ -812,7 +812,7 @@ impl BufferTask {
         rules
     }
 
-    fn predict_output_size_for_input(&self, input: &BufferInput) -> String {
+    fn predict_output_size_for_input(&self, input: &Input) -> String {
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
             PropertyOutput::OutputHeight
@@ -1026,12 +1026,12 @@ impl BufferTask {
 
 }
 
-impl TryFrom<&arc_json_model::Model> for BufferTask {
+impl TryFrom<&arc_json_model::Model> for Task {
     type Error = anyhow::Error;
 
     fn try_from(model: &arc_json_model::Model) -> Result<Self, Self::Error> {
         let model_identifier: String = model.id().identifier();
-        let mut result_pairs: Vec<BufferInputOutputPair> = vec!();
+        let mut result_pairs: Vec<Pair> = vec!();
 
         let mut input_histogram_union: Histogram = Histogram::new();
         let mut input_histogram_intersection: Histogram = Histogram::new();
@@ -1064,19 +1064,19 @@ impl TryFrom<&arc_json_model::Model> for BufferTask {
                     removal_histogram_intersection.intersection_histogram(&histogram_removal);
                     insert_histogram_intersection.intersection_histogram(&histogram_insert);
                 }
-                let buffer_input = BufferInput {
+                let buffer_input = Input {
                     id: format!("{},input{},train", model_identifier, index),
                     image: pair.input.clone(),
                     histogram: histogram_input,
                     input_properties: HashMap::new(),
                 };
-                let buffer_output = BufferOutput {
+                let buffer_output = Output {
                     id: format!("{},output{},train", model_identifier, index),
                     image: pair.output.clone(),
                     test_image: Image::empty(),
                     histogram: histogram_output,
                 };
-                let result_pair = BufferInputOutputPair {
+                let result_pair = Pair {
                     id: format!("{},pair{},train", model_identifier, index),
                     pair_type: BufferPairType::Train,
                     input: buffer_input,
@@ -1093,19 +1093,19 @@ impl TryFrom<&arc_json_model::Model> for BufferTask {
             for (index, pair) in pairs.iter().enumerate() {
                 let histogram_input: Histogram = pair.input.histogram_all();
                 let histogram_output: Histogram = pair.output.histogram_all();
-                let buffer_input = BufferInput {
+                let buffer_input = Input {
                     id: format!("{},input{},test", model_identifier, index),
                     image: pair.input.clone(),
                     histogram: histogram_input,
                     input_properties: HashMap::new(),
                 };
-                let buffer_output = BufferOutput {
+                let buffer_output = Output {
                     id: format!("{},output{},test", model_identifier, index),
                     image: Image::empty(),
                     test_image: pair.output.clone(),
                     histogram: histogram_output,
                 };
-                let result_pair = BufferInputOutputPair {
+                let result_pair = Pair {
                     id: format!("{},pair{},test", model_identifier, index),
                     pair_type: BufferPairType::Test,
                     input: buffer_input,
@@ -1118,7 +1118,7 @@ impl TryFrom<&arc_json_model::Model> for BufferTask {
             }
         }
     
-        let task = BufferTask {
+        let task = Task {
             id: format!("{},task", model_identifier),
             display_name: model_identifier,
             pairs: result_pairs,
@@ -1176,10 +1176,10 @@ impl TraverseProgramsAndModels {
     pub fn label_all_puzzles() -> anyhow::Result<()> {
         let instance = TraverseProgramsAndModels::new()?;
 
-        let mut buffer_task_vec: Vec<BufferTask> = vec!();
+        let mut buffer_task_vec: Vec<Task> = vec!();
         for model_item in &instance.model_item_vec {
             let model: arc_json_model::Model = model_item.borrow().model.clone();
-            let mut buffer_task: BufferTask = BufferTask::try_from(&model)?;
+            let mut buffer_task: Task = Task::try_from(&model)?;
             buffer_task.assign_labels()?;
             buffer_task_vec.push(buffer_task);
         }
@@ -1247,7 +1247,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn inspect_undecided(buffer_task_vec: &Vec<BufferTask>) -> anyhow::Result<()> {
+    fn inspect_undecided(buffer_task_vec: &Vec<Task>) -> anyhow::Result<()> {
         let mut count = 0;
         for buffer_task in buffer_task_vec {
             let estimate: String = buffer_task.estimated_output_size();
@@ -1265,7 +1265,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn inspect_decided(buffer_task_vec: &Vec<BufferTask>) -> anyhow::Result<()> {
+    fn inspect_decided(buffer_task_vec: &Vec<Task>) -> anyhow::Result<()> {
         let mut count = 0;
         for buffer_task in buffer_task_vec {
             let estimate: String = buffer_task.estimated_output_size();
@@ -1283,7 +1283,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn inspect_task_id(buffer_task_vec: &Vec<BufferTask>, task_id: &str) -> anyhow::Result<()> {
+    fn inspect_task_id(buffer_task_vec: &Vec<Task>, task_id: &str) -> anyhow::Result<()> {
         for buffer_task in buffer_task_vec {
             if buffer_task.id == task_id {
                 buffer_task.inspect()?;
