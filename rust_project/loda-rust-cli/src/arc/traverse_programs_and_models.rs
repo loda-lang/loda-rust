@@ -720,8 +720,7 @@ impl BufferTask {
     fn predict_output_size_for_output_property_and_input(&self, property_output: &PropertyOutput, buffer_input: &BufferInput) -> Vec<(RulePriority, u8)> {
         let mut rules: Vec<(RulePriority, u8)> = vec!();
 
-
-        let dict: HashMap<PropertyInput, u8> = buffer_input.resolve_input_properties();
+        let dict: &HashMap<PropertyInput, u8> = &buffer_input.input_properties;
         for label in &self.label_set_intersection {
             match label {
                 Label::OutputPropertyIsConstant { output, value } => {
