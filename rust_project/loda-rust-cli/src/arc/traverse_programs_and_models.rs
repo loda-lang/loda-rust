@@ -233,7 +233,7 @@ struct BufferInputOutputPair {
 #[derive(Clone, Debug)]
 struct BufferTask {
     id: String,
-    displayName: String,
+    display_name: String,
     pairs: Vec<BufferInputOutputPair>,
     input_histogram_union: Histogram,
     input_histogram_intersection: Histogram,
@@ -1011,7 +1011,7 @@ impl BufferTask {
 
         let html = format!(
             "<h2>{}</h2><p>Output size: {}</p><table>{}{}{}{}{}{}</table>",
-            self.displayName, 
+            self.display_name, 
             self.estimated_output_size(),
             row_title,
             row_input_image, 
@@ -1120,7 +1120,7 @@ impl TryFrom<&Model> for BufferTask {
     
         let task = BufferTask {
             id: format!("{},task", model_identifier),
-            displayName: model_identifier,
+            display_name: model_identifier,
             pairs: result_pairs,
             input_histogram_union,
             input_histogram_intersection,
@@ -1219,7 +1219,7 @@ impl TraverseProgramsAndModels {
                 if predicted == expected {
                     count_predict_correct += 1;
                 } else {
-                    println!("Wrong output size. Expected {}, but got {}. Task: {} pair: {:?}", expected, predicted, buffer_task.displayName, pair.pair_type);
+                    println!("Wrong output size. Expected {}, but got {}. Task: {} pair: {:?}", expected, predicted, buffer_task.display_name, pair.pair_type);
                     count_predict_incorrect += 1;
                     all_correct = false;
                 }
@@ -1240,10 +1240,10 @@ impl TraverseProgramsAndModels {
             println!("Predicted task: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct_task, count_predict_incorrect_task, percent);
         }
 
-        // Self::inspect_undecided(&buffer_task_vec)?;
+        Self::inspect_undecided(&buffer_task_vec)?;
         // Self::inspect_decided(&buffer_task_vec)?;
         // Self::inspect_task_id(&buffer_task_vec, "28bf18c6,task")?;
-        Self::inspect_task_id(&buffer_task_vec, "5c2c9af4,task")?;
+        // Self::inspect_task_id(&buffer_task_vec, "5c2c9af4,task")?;
         Ok(())
     }
 
@@ -1284,7 +1284,6 @@ impl TraverseProgramsAndModels {
     }
 
     fn inspect_task_id(buffer_task_vec: &Vec<BufferTask>, task_id: &str) -> anyhow::Result<()> {
-        let mut count = 0;
         for buffer_task in buffer_task_vec {
             if buffer_task.id == task_id {
                 buffer_task.inspect()?;
