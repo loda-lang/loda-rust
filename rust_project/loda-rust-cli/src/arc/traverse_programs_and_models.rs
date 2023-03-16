@@ -1302,7 +1302,12 @@ impl TraverseProgramsAndModels {
                 // buffer_task.assign_labels_related_to_input_histogram_intersection();
         
                 let predicted: String = buffer_task.predict_output_size_for_input(&pair.input);
-                let expected: String = format!("{}x{}", pair.output.test_image.width(), pair.output.test_image.height());
+
+                let expected: String = match pair.pair_type {
+                    BufferPairType::Train => format!("{}x{}", pair.output.image.width(), pair.output.image.height()),
+                    BufferPairType::Test => format!("{}x{}", pair.output.test_image.width(), pair.output.test_image.height()),
+                };
+
                 if predicted == expected {
                     count_predict_correct += 1;
                 } else {
