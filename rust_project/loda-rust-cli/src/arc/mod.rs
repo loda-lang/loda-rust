@@ -4,6 +4,7 @@ mod arc_json_model;
 mod arc_json_model_to_html;
 mod arc_puzzles;
 mod arc_work_model;
+mod arc_work_model_from_json_model;
 mod arc_work_model_impl_input;
 mod arc_work_model_impl_task;
 mod arcathon_solution_json;
