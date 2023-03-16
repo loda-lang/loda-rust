@@ -244,8 +244,7 @@ struct BufferTask {
     insert_histogram_intersection: Histogram,
     input_label_set: LabelSet,
     input_properties_intersection: HashMap<PropertyInput, u8>,
-    output_label_set: LabelSet,
-    meta_label_set: LabelSet,
+    label_set_intersection: LabelSet,
 }
 
 impl BufferTask {
@@ -266,24 +265,7 @@ impl BufferTask {
         self.input_label_set = label_set;
     }
 
-    fn update_output_label_set(&mut self) {
-        let mut label_set = LabelSet::new();
-        let mut is_first = true;
-        for pair in &mut self.pairs {
-            if pair.pair_type == BufferPairType::Test {
-                continue;
-            }
-            if is_first {
-                label_set = pair.output.label_set.clone();
-                is_first = false;
-                continue;
-            }
-            label_set = label_set.intersection(&pair.output.label_set).map(|l| l.clone()).collect();
-        }
-        self.output_label_set = label_set;
-    }
-
-    fn update_meta_label_set(&mut self) {
+    fn update_label_set_intersection(&mut self) {
         let mut label_set = LabelSet::new();
         let mut is_first = true;
         for pair in &mut self.pairs {
@@ -297,7 +279,7 @@ impl BufferTask {
             }
             label_set = label_set.intersection(&pair.label_set).map(|l| l.clone()).collect();
         }
-        self.meta_label_set = label_set;
+        self.label_set_intersection = label_set;
     }
 
     fn update_input_properties_intersection(&mut self) {
@@ -655,8 +637,7 @@ impl BufferTask {
         }
 
         self.update_input_label_set();
-        self.update_output_label_set();
-        self.update_meta_label_set();
+        self.update_label_set_intersection();
 
         for pair in &mut self.pairs {
             if pair.pair_type != BufferPairType::Test {
@@ -664,7 +645,7 @@ impl BufferTask {
             }
 
             // TODO: transfer learned constraints to the `test` pair
-            pair.label_set = pair.label_set.intersection(&self.meta_label_set).map(|l| l.clone()).collect();
+            pair.label_set = pair.label_set.intersection(&self.label_set_intersection).map(|l| l.clone()).collect();
             // pair.label_set = self.input_label_set.clone();
             pair.removal_histogram = self.removal_histogram_intersection.clone();
             pair.insert_histogram = self.insert_histogram_intersection.clone();
@@ -676,7 +657,7 @@ impl BufferTask {
     fn output_size_rules_for(&self, property_output: &PropertyOutput) -> Vec<String> {
         let mut rules: Vec<String> = vec!();
 
-        for label in &self.meta_label_set {
+        for label in &self.label_set_intersection {
             match label {
                 Label::OutputPropertyIsConstant { output, value } => {
                     if output != property_output {
@@ -762,7 +743,7 @@ impl BufferTask {
 
 
         let dict: HashMap<PropertyInput, u8> = buffer_input.resolve_input_properties();
-        for label in &self.meta_label_set {
+        for label in &self.label_set_intersection {
             match label {
                 Label::OutputPropertyIsConstant { output, value } => {
                     if output != property_output {
@@ -930,9 +911,8 @@ impl BufferTask {
         let mut row_input_labels: String = "<tr><td>Input labels</td>".to_string();
         let mut row_input_properties: String = "<tr><td>Input properties</td>".to_string();
         let mut row_output_image: String = "<tr><td>Output image</td>".to_string();
-        let mut row_output_labels: String = "<tr><td>Output labels</td>".to_string();
         let mut row_action: String = "<tr><td>Action</td>".to_string();
-        let mut row_meta_labels: String = "<tr><td>Meta labels</td>".to_string();
+        let mut row_labels: String = "<tr><td>Labels</td>".to_string();
         for pair in &self.pairs {
             {
                 row_title += "<td>";
@@ -964,11 +944,6 @@ impl BufferTask {
                 row_output_image += "</td>";
             }
             {
-                row_output_labels += "<td>";
-                row_output_labels += &Self::labelset_to_html(&pair.output.label_set);
-                row_output_labels += "</td>";
-            }
-            {
                 row_action += "<td>Removal<br>";
                 match pair.removal_histogram.color_image() {
                     Ok(image) => {
@@ -990,9 +965,9 @@ impl BufferTask {
                 row_action += "</td>";
             }
             {
-                row_meta_labels += "<td>";
-                row_meta_labels += &Self::labelset_to_html(&pair.label_set);
-                row_meta_labels += "</td>";
+                row_labels += "<td>";
+                row_labels += &Self::labelset_to_html(&pair.label_set);
+                row_labels += "</td>";
             }
         }
 
@@ -1046,10 +1021,6 @@ impl BufferTask {
         }
         row_output_image += "</td>";
 
-        row_output_labels += "<td>";
-        row_output_labels += &Self::labelset_to_html(&self.output_label_set);
-        row_output_labels += "</td>";
-
         row_action += "<td>Removal<br>";
         match self.removal_histogram_intersection.color_image() {
             Ok(image) => {
@@ -1070,21 +1041,20 @@ impl BufferTask {
         }
         row_action += "</td>";
 
-        row_meta_labels += "<td>";
-        row_meta_labels += &Self::labelset_to_html(&self.meta_label_set);
-        row_meta_labels += "</td>";
+        row_labels += "<td>";
+        row_labels += &Self::labelset_to_html(&self.label_set_intersection);
+        row_labels += "</td>";
 
         row_title += "</tr>";
         row_input_image += "</tr>";
         row_input_labels += "</tr>";
         row_input_properties += "</tr>";
         row_output_image += "</tr>";
-        row_output_labels += "</tr>";
         row_action += "</tr>";
-        row_meta_labels += "</tr>";
+        row_labels += "</tr>";
 
         let html = format!(
-            "<h2>{}</h2><p>Estimate: {}</p><table>{}{}{}{}{}{}{}{}</table>",
+            "<h2>{}</h2><p>Estimate: {}</p><table>{}{}{}{}{}{}{}</table>",
             self.displayName, 
             self.estimated_output_size(),
             row_title,
@@ -1092,9 +1062,8 @@ impl BufferTask {
             row_input_labels, 
             row_input_properties, 
             row_output_image, 
-            row_output_labels, 
             row_action,
-            row_meta_labels
+            row_labels
         );
         HtmlLog::html(html);
         Ok(())
@@ -1210,8 +1179,7 @@ impl TryFrom<&Model> for BufferTask {
             insert_histogram_intersection,
             input_label_set: LabelSet::new(),
             input_properties_intersection: HashMap::new(),
-            output_label_set: LabelSet::new(),
-            meta_label_set: LabelSet::new(),
+            label_set_intersection: LabelSet::new(),
         };
         return Ok(task);
     }
