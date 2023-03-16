@@ -81,10 +81,8 @@ impl TraverseProgramsAndModels {
 
         let mut buffer_task_vec: Vec<Task> = vec!();
         for model_item in &instance.model_item_vec {
-            let model: arc_json_model::Model = model_item.borrow().model.clone();
-            let mut buffer_task: Task = Task::try_from(&model)?;
-            buffer_task.assign_labels()?;
-            buffer_task_vec.push(buffer_task);
+            let task: Task = model_item.borrow().task.clone();
+            buffer_task_vec.push(task);
         }
 
         let mut count_good = 0;
@@ -247,9 +245,19 @@ impl TraverseProgramsAndModels {
                     continue;
                 }
             };
+            let task: Task = match Task::try_from(&model) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Ignoring file. Cannot construct arc_work_model::Task from json model. path: {:?} error: {:?}", path, error);
+                    continue;
+                }
+            };
+            // TODO: move ModelItem.id into Task.id
+            // TODO: move ModelItem.model into Task.json_task
             let instance = ModelItem {
                 id: ModelItemId::Path { path: path.clone() },
                 model,
+                task,
             };
             let item = Rc::new(RefCell::new(instance));
             model_item_vec.push(item);
@@ -1577,6 +1585,7 @@ struct ModelItem {
     model: arc_json_model::Model,
     // It's costly to convert the json representation to image over and over. Do it once.
     // TODO: convert model to images, LabelSet several places in the model
+    task: Task,
 }
 
 impl ModelItem {

@@ -95,7 +95,7 @@ impl TryFrom<&arc_json_model::Model> for arc_work_model::Task {
             }
         }
     
-        let task = arc_work_model::Task {
+        let mut task = arc_work_model::Task {
             id: format!("{},task", model_identifier),
             display_name: model_identifier,
             pairs: result_pairs,
@@ -108,6 +108,7 @@ impl TryFrom<&arc_json_model::Model> for arc_work_model::Task {
             input_properties_intersection: HashMap::new(),
             label_set_intersection: LabelSet::new(),
         };
+        task.assign_labels()?;
         return Ok(task);
     }
 }
