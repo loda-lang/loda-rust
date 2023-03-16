@@ -6,11 +6,13 @@ use std::cell::RefCell;
 #[allow(unused_imports)]
 use crate::arc::{HtmlLog, ImageToHTML};
 
+#[allow(dead_code)]
 struct State {
     bloom: Bloom::<String>,
 }
 
 impl State {
+    #[allow(dead_code)]
     fn new() -> Self {
         let bloom_items_count = 1000;
         let false_positive_rate = 0.01;
@@ -23,6 +25,7 @@ impl State {
 }
 
 
+#[allow(dead_code)]
 struct AnalyzePuzzle {
     bloom_normal: Bloom::<String>,
     bloom_flipped: Bloom::<String>,
@@ -31,6 +34,7 @@ struct AnalyzePuzzle {
 
 impl AnalyzePuzzle {
     /// Populate bloomfilter
+    #[allow(dead_code)]
     fn analyze(image: &Image) -> anyhow::Result<Self> {
         HtmlLog::html(image.to_html());
 
@@ -93,6 +97,7 @@ impl AnalyzePuzzle {
         Ok(instance)
     }
 
+    #[allow(dead_code)]
     fn compute_score(&self, bloom_key: &String) -> u8 {
         let mut score: u8 = 0;
         if self.bloom_normal.check(bloom_key) {
@@ -107,6 +112,7 @@ impl AnalyzePuzzle {
         score
     }
 
+    #[allow(dead_code)]
     fn compare(&self, image: &Image) -> anyhow::Result<()> {
         HtmlLog::html(image.to_html());
 
