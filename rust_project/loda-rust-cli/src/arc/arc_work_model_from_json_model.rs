@@ -55,7 +55,7 @@ impl TryFrom<&arc_json_model::Model> for arc_work_model::Task {
                 };
                 let result_pair = arc_work_model::Pair {
                     id: format!("{},pair{},train", model_identifier, index),
-                    pair_type: arc_work_model::BufferPairType::Train,
+                    pair_type: arc_work_model::PairType::Train,
                     input: buffer_input,
                     output: buffer_output,
                     removal_histogram: histogram_removal,
@@ -84,7 +84,7 @@ impl TryFrom<&arc_json_model::Model> for arc_work_model::Task {
                 };
                 let result_pair = arc_work_model::Pair {
                     id: format!("{},pair{},test", model_identifier, index),
-                    pair_type: arc_work_model::BufferPairType::Test,
+                    pair_type: arc_work_model::PairType::Test,
                     input: buffer_input,
                     output: buffer_output,
                     removal_histogram: Histogram::new(),

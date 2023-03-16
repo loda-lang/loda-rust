@@ -1,5 +1,5 @@
 use super::arc_work_model;
-use super::arc_work_model::{Input, BufferPairType};
+use super::arc_work_model::{Input, PairType};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageTrim};
 use super::{Label, LabelSet, PropertyInput, PropertyOutput};
 use std::collections::{HashMap, HashSet};
@@ -19,7 +19,7 @@ impl arc_work_model::Task {
         let mut label_set = LabelSet::new();
         let mut is_first = true;
         for pair in &mut self.pairs {
-            if pair.pair_type == BufferPairType::Test {
+            if pair.pair_type == PairType::Test {
                 continue;
             }
             if is_first {
@@ -36,7 +36,7 @@ impl arc_work_model::Task {
         let mut input_properties_intersection: HashMap<PropertyInput, u8> = HashMap::new();
         let mut is_first = true;
         for pair in &mut self.pairs {
-            if pair.pair_type == BufferPairType::Test {
+            if pair.pair_type == PairType::Test {
                 continue;
             }
             if is_first {
@@ -67,7 +67,7 @@ impl arc_work_model::Task {
 
     fn assign_labels_input_size_output_size(&mut self) {
         for pair in &mut self.pairs {
-            if pair.pair_type == BufferPairType::Test {
+            if pair.pair_type == PairType::Test {
                 continue;
             }
 
@@ -270,7 +270,7 @@ impl arc_work_model::Task {
 
     pub fn assign_labels(&mut self) -> anyhow::Result<()> {
         for pair in &mut self.pairs {
-            if pair.pair_type == BufferPairType::Test {
+            if pair.pair_type == PairType::Test {
                 // continue;
             }
             pair.input.update_input_properties();
@@ -313,7 +313,7 @@ impl arc_work_model::Task {
             PropertyOutput::OutputHeight
         ];
         for pair in &mut self.pairs {
-            if pair.pair_type == BufferPairType::Test {
+            if pair.pair_type == PairType::Test {
                 continue;
             }
 
@@ -651,8 +651,8 @@ impl arc_work_model::Task {
             {
                 row_title += "<td>";
                 let title: &str = match pair.pair_type {
-                    BufferPairType::Train => "Train",
-                    BufferPairType::Test => "Test",
+                    PairType::Train => "Train",
+                    PairType::Test => "Test",
                 };
                 row_title += title;
                 row_title += "</td>";

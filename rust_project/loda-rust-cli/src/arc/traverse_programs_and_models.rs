@@ -1,5 +1,5 @@
 use super::arc_json_model;
-use super::arc_work_model::{BufferPairType, Task};
+use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
 use crate::analytics::{AnalyticsDirectory, Analytics};
@@ -115,8 +115,8 @@ impl TraverseProgramsAndModels {
                 let predicted: String = buffer_task.predict_output_size_for_input(&pair.input);
 
                 let expected: String = match pair.pair_type {
-                    BufferPairType::Train => format!("{}x{}", pair.output.image.width(), pair.output.image.height()),
-                    BufferPairType::Test => format!("{}x{}", pair.output.test_image.width(), pair.output.test_image.height()),
+                    PairType::Train => format!("{}x{}", pair.output.image.width(), pair.output.image.height()),
+                    PairType::Test => format!("{}x{}", pair.output.test_image.width(), pair.output.test_image.height()),
                 };
 
                 if predicted == expected {

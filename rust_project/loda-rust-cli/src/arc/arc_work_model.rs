@@ -1,5 +1,4 @@
-use super::{Image, Histogram};
-use super::{Label, LabelSet, PropertyInput, PropertyOutput};
+use super::{Image, Histogram, LabelSet, PropertyInput};
 use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
@@ -25,7 +24,7 @@ pub struct Input {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum BufferPairType {
+pub enum PairType {
     Train,
     Test,
 }
@@ -33,7 +32,7 @@ pub enum BufferPairType {
 #[derive(Clone, Debug)]
 pub struct Pair {
     pub id: String,
-    pub pair_type: BufferPairType,
+    pub pair_type: PairType,
     pub input: Input,
     pub output: Output,
     pub removal_histogram: Histogram,
