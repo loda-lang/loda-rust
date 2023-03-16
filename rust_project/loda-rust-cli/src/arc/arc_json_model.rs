@@ -130,6 +130,7 @@ struct DeserializeModel {
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct Model {
+    // TODO: rename from `Model` to `Task`, so it's consistent
     id: ModelItemId,
     train: Vec<TaskPair>,
     test: Vec<TaskPair>,
