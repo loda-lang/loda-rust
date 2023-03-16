@@ -54,7 +54,6 @@ struct BufferOutput {
     image: Image,
     test_image: Image,
     histogram: Histogram,
-    label_set: LabelSet,
 }
 
 #[derive(Clone, Debug)]
@@ -62,7 +61,6 @@ struct BufferInput {
     id: String,
     image: Image,
     histogram: Histogram,
-    label_set: LabelSet,
     input_properties: HashMap<PropertyInput, u8>,
 
     // TODO: caching of computed properties such as: number of unique colors, background color.
@@ -242,29 +240,11 @@ struct BufferTask {
     output_histogram_intersection: Histogram,
     removal_histogram_intersection: Histogram,
     insert_histogram_intersection: Histogram,
-    input_label_set: LabelSet,
     input_properties_intersection: HashMap<PropertyInput, u8>,
     label_set_intersection: LabelSet,
 }
 
 impl BufferTask {
-    fn update_input_label_set(&mut self) {
-        let mut label_set = LabelSet::new();
-        let mut is_first = true;
-        for pair in &mut self.pairs {
-            if pair.pair_type == BufferPairType::Test {
-                continue;
-            }
-            if is_first {
-                label_set = pair.input.label_set.clone();
-                is_first = false;
-                continue;
-            }
-            label_set = label_set.intersection(&pair.input.label_set).map(|l| l.clone()).collect();
-        }
-        self.input_label_set = label_set;
-    }
-
     fn update_label_set_intersection(&mut self) {
         let mut label_set = LabelSet::new();
         let mut is_first = true;
@@ -636,7 +616,6 @@ impl BufferTask {
 
         }
 
-        self.update_input_label_set();
         self.update_label_set_intersection();
 
         for pair in &mut self.pairs {
@@ -908,7 +887,6 @@ impl BufferTask {
     fn inspect(&self) -> anyhow::Result<()> {
         let mut row_title: String = "<tr><td></td>".to_string();
         let mut row_input_image: String = "<tr><td>Input image</td>".to_string();
-        let mut row_input_labels: String = "<tr><td>Input labels</td>".to_string();
         let mut row_input_properties: String = "<tr><td>Input properties</td>".to_string();
         let mut row_output_image: String = "<tr><td>Output image</td>".to_string();
         let mut row_action: String = "<tr><td>Action</td>".to_string();
@@ -927,11 +905,6 @@ impl BufferTask {
                 row_input_image += "<td>";
                 row_input_image += &pair.input.image.to_html();
                 row_input_image += "</td>";
-            }
-            {
-                row_input_labels += "<td>";
-                row_input_labels += &Self::labelset_to_html(&pair.input.label_set);
-                row_input_labels += "</td>";
             }
             {
                 row_input_properties += "<td>";
@@ -993,10 +966,6 @@ impl BufferTask {
         }
         row_input_image += "</td>";
 
-        row_input_labels += "<td>";
-        row_input_labels += &Self::labelset_to_html(&self.input_label_set);
-        row_input_labels += "</td>";
-
         row_input_properties += "<td>";
         row_input_properties += &Self::input_properties_to_html(&self.input_properties_intersection);
         row_input_properties += "</td>";
@@ -1047,19 +1016,17 @@ impl BufferTask {
 
         row_title += "</tr>";
         row_input_image += "</tr>";
-        row_input_labels += "</tr>";
         row_input_properties += "</tr>";
         row_output_image += "</tr>";
         row_action += "</tr>";
         row_labels += "</tr>";
 
         let html = format!(
-            "<h2>{}</h2><p>Estimate: {}</p><table>{}{}{}{}{}{}{}</table>",
+            "<h2>{}</h2><p>Output size: {}</p><table>{}{}{}{}{}{}</table>",
             self.displayName, 
             self.estimated_output_size(),
             row_title,
             row_input_image, 
-            row_input_labels, 
             row_input_properties, 
             row_output_image, 
             row_action,
@@ -1113,7 +1080,6 @@ impl TryFrom<&Model> for BufferTask {
                     id: format!("{},input{},train", model_identifier, index),
                     image: pair.input.clone(),
                     histogram: histogram_input,
-                    label_set: LabelSet::new(),
                     input_properties: HashMap::new(),
                 };
                 let buffer_output = BufferOutput {
@@ -1121,7 +1087,6 @@ impl TryFrom<&Model> for BufferTask {
                     image: pair.output.clone(),
                     test_image: Image::empty(),
                     histogram: histogram_output,
-                    label_set: LabelSet::new(),
                 };
                 let result_pair = BufferInputOutputPair {
                     id: format!("{},pair{},train", model_identifier, index),
@@ -1144,7 +1109,6 @@ impl TryFrom<&Model> for BufferTask {
                     id: format!("{},input{},test", model_identifier, index),
                     image: pair.input.clone(),
                     histogram: histogram_input,
-                    label_set: LabelSet::new(),
                     input_properties: HashMap::new(),
                 };
                 let buffer_output = BufferOutput {
@@ -1152,7 +1116,6 @@ impl TryFrom<&Model> for BufferTask {
                     image: Image::empty(),
                     test_image: pair.output.clone(),
                     histogram: histogram_output,
-                    label_set: LabelSet::new(),
                 };
                 let result_pair = BufferInputOutputPair {
                     id: format!("{},pair{},test", model_identifier, index),
@@ -1177,7 +1140,6 @@ impl TryFrom<&Model> for BufferTask {
             output_histogram_intersection,
             removal_histogram_intersection,
             insert_histogram_intersection,
-            input_label_set: LabelSet::new(),
             input_properties_intersection: HashMap::new(),
             label_set_intersection: LabelSet::new(),
         };
