@@ -137,7 +137,8 @@ impl AnalyzePuzzle {
 mod tests {
     use super::*;
     use crate::arc::ImageTryCreate;
-    use crate::arc::{Model, GridToImage};
+    use crate::arc::arc_json_model;
+    use crate::arc::arc_json_model::GridToImage;
 
     #[test]
     fn test_10000_analyze() {
@@ -169,7 +170,7 @@ mod tests {
         // let model: Model = Model::load_testdata("80af3007").expect("model");
         // let model: Model = Model::load_testdata("1f85a75f").expect("model");
         // let model: Model = Model::load_testdata("d687bc17").expect("model");
-        let model: Model = Model::load_testdata("6b9890af").expect("model");
+        let model: arc_json_model::Model = arc_json_model::Model::load_testdata("6b9890af").expect("model");
         let input: Image = model.train()[0].input().to_image().expect("image");
         let output: Image = model.train()[0].output().to_image().expect("image");
 

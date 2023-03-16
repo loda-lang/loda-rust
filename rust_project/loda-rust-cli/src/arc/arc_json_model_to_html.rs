@@ -1,12 +1,14 @@
-use super::{Model, Grid, GridToImage, ImageToHTML};
+use super::arc_json_model;
+use super::arc_json_model::GridToImage;
+use super::ImageToHTML;
 
 pub trait ModelToHTML {
     fn to_html(&self) -> String;
 }
 
-impl ModelToHTML for Model {
+impl ModelToHTML for arc_json_model::Model {
     fn to_html(&self) -> String {
-        fn format_grid(grid: &Grid) -> String {
+        fn format_grid(grid: &arc_json_model::Grid) -> String {
             match grid.to_image() {
                 Ok(image) => image.to_html(),
                 Err(_error) => "to_image error".to_string()

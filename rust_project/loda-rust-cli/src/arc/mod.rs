@@ -60,8 +60,7 @@ mod stack_strings;
 mod test_convert;
 mod traverse_programs_and_models;
 
-pub use arc_json_model::{Grid, GridToImage, ImagePair, Model, ModelItemId, TaskPair};
-pub use arc_json_model_to_html::{ModelToHTML};
+pub use arc_json_model_to_html::ModelToHTML;
 pub use arcathon_solution_json::{Prediction, TestItem, TaskItem, Tasks};
 pub use convolution2x2::convolution2x2;
 pub use convolution3x3::convolution3x3;

@@ -1,4 +1,5 @@
-use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions, StackStrings, Prediction, Grid, HtmlLog, ImageToHTML};
+use super::arc_json_model;
+use super::{Image, ImageToNumber, ImageUnicodeFormatting, NumberToImage, register_arc_functions, StackStrings, Prediction, HtmlLog, ImageToHTML};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -52,7 +53,7 @@ impl fmt::Debug for RunWithProgramResult {
 }
 
 pub trait SolutionAdvanced {
-    fn run(&self, train_pairs: Vec<ImagePair>, test_pairs: Vec<ImagePair>) -> anyhow::Result<Vec<Image>>;
+    fn run(&self, train_pairs: Vec<arc_json_model::ImagePair>, test_pairs: Vec<arc_json_model::ImagePair>) -> anyhow::Result<Vec<Image>>;
 }
 
 pub struct SolutionSimpleData {
@@ -64,15 +65,15 @@ pub type SolutionSimple = fn(SolutionSimpleData) -> anyhow::Result<Image>;
 
 pub struct RunWithProgram {
     verify_test_output: bool,
-    model: Model,
-    train_pairs: Vec<ImagePair>,
-    test_pairs: Vec<ImagePair>,
+    model: arc_json_model::Model,
+    train_pairs: Vec<arc_json_model::ImagePair>,
+    test_pairs: Vec<arc_json_model::ImagePair>,
 }
 
 impl RunWithProgram {
-    pub fn new(model: Model, verify_test_output: bool) -> anyhow::Result<Self> {
-        let train_pairs: Vec<ImagePair> = model.images_train()?;
-        let test_pairs: Vec<ImagePair> = model.images_test()?;
+    pub fn new(model: arc_json_model::Model, verify_test_output: bool) -> anyhow::Result<Self> {
+        let train_pairs: Vec<arc_json_model::ImagePair> = model.images_train()?;
+        let test_pairs: Vec<arc_json_model::ImagePair> = model.images_test()?;
         Ok(Self {
             verify_test_output,
             model,
@@ -145,7 +146,7 @@ impl RunWithProgram {
 
     #[allow(dead_code)]
     pub fn run_solution(&self, callback: SolutionSimple) -> anyhow::Result<RunWithProgramResult> {
-        let mut pairs: Vec<ImagePair> = self.train_pairs.clone();
+        let mut pairs: Vec<arc_json_model::ImagePair> = self.train_pairs.clone();
         pairs.extend(self.test_pairs.clone());
         let mut computed_images = Vec::<Image>::new();
         for (index, pair) in pairs.iter().enumerate() {
@@ -342,7 +343,7 @@ impl RunWithProgram {
                 }
             }
 
-            let grid: Grid = Self::image_to_grid(&computed_image);
+            let grid: arc_json_model::Grid = Self::image_to_grid(&computed_image);
             let prediction = Prediction {
                 prediction_id: index as u8,
                 output: grid,
@@ -368,8 +369,8 @@ impl RunWithProgram {
         Ok(result)
     }
 
-    fn image_to_grid(image: &Image) -> Grid {
-        let mut grid = Grid::new();
+    fn image_to_grid(image: &Image) -> arc_json_model::Grid {
+        let mut grid = arc_json_model::Grid::new();
         for y in 0..image.height() {
             let mut row = Vec::<u8>::new();
             for x in 0..image.width() {
@@ -382,7 +383,7 @@ impl RunWithProgram {
     }
 
     fn inspect_computed_images(&self, computed_images: &Vec<Image>, status_texts: &Vec<&str>) {
-        let mut pairs: Vec<ImagePair> = self.train_pairs.clone();
+        let mut pairs: Vec<arc_json_model::ImagePair> = self.train_pairs.clone();
         pairs.extend(self.test_pairs.clone());
 
         // Table row with input and row with expected output

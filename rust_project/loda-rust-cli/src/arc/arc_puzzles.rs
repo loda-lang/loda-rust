@@ -1,8 +1,9 @@
 #[cfg(test)]
 mod tests {
+    use crate::arc::arc_json_model::{Model, GridToImage, ImagePair};
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, ImageResize};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
-    use crate::arc::{Model, GridToImage, ImagePair, ImageFind, ImageOutline, ImageRotate, ImageBorder};
+    use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};

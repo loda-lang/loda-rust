@@ -1,4 +1,4 @@
-use super::{Model, ImagePair};
+use super::arc_json_model;
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
 use super::{Label, LabelSet, PropertyInput, PropertyOutput};
@@ -1026,10 +1026,10 @@ impl BufferTask {
 
 }
 
-impl TryFrom<&Model> for BufferTask {
+impl TryFrom<&arc_json_model::Model> for BufferTask {
     type Error = anyhow::Error;
 
-    fn try_from(model: &Model) -> Result<Self, Self::Error> {
+    fn try_from(model: &arc_json_model::Model) -> Result<Self, Self::Error> {
         let model_identifier: String = model.id().identifier();
         let mut result_pairs: Vec<BufferInputOutputPair> = vec!();
 
@@ -1040,7 +1040,7 @@ impl TryFrom<&Model> for BufferTask {
         let mut removal_histogram_intersection: Histogram = Histogram::new();
         let mut insert_histogram_intersection: Histogram = Histogram::new();
         {
-            let pairs: Vec<ImagePair> = model.images_train()?;
+            let pairs: Vec<arc_json_model::ImagePair> = model.images_train()?;
             for (index, pair) in pairs.iter().enumerate() {
                 let histogram_input: Histogram = pair.input.histogram_all();
                 let histogram_output: Histogram = pair.output.histogram_all();
@@ -1089,7 +1089,7 @@ impl TryFrom<&Model> for BufferTask {
             }
         }
         {
-            let pairs: Vec<ImagePair> = model.images_test()?;
+            let pairs: Vec<arc_json_model::ImagePair> = model.images_test()?;
             for (index, pair) in pairs.iter().enumerate() {
                 let histogram_input: Histogram = pair.input.histogram_all();
                 let histogram_output: Histogram = pair.output.histogram_all();
@@ -1178,7 +1178,7 @@ impl TraverseProgramsAndModels {
 
         let mut buffer_task_vec: Vec<BufferTask> = vec!();
         for model_item in &instance.model_item_vec {
-            let model: Model = model_item.borrow().model.clone();
+            let model: arc_json_model::Model = model_item.borrow().model.clone();
             let mut buffer_task: BufferTask = BufferTask::try_from(&model)?;
             buffer_task.assign_labels()?;
             buffer_task_vec.push(buffer_task);
@@ -1337,7 +1337,7 @@ impl TraverseProgramsAndModels {
 
         let mut model_item_vec: Vec<Rc<RefCell<ModelItem>>> = vec!();
         for path in &paths {
-            let model = match Model::load_with_json_file(path) {
+            let model = match arc_json_model::Model::load_with_json_file(path) {
                 Ok(value) => value,
                 Err(error) => {
                     error!("Ignoring file. Cannot parse arc_json_model file. path: {:?} error: {:?}", path, error);
@@ -1646,8 +1646,8 @@ impl TraverseProgramsAndModels {
             }
         };
 
-        let pairs_train: Vec<ImagePair> = model_item.model.images_train().expect("pairs");
-        let pairs_test: Vec<ImagePair> = model_item.model.images_test().expect("pairs");
+        let pairs_train: Vec<arc_json_model::ImagePair> = model_item.model.images_train().expect("pairs");
+        let pairs_test: Vec<arc_json_model::ImagePair> = model_item.model.images_test().expect("pairs");
         println!("Evaluating the puzzle: {:?} train-pairs: {} test-pairs: {}", model_item.id, pairs_train.len(), pairs_test.len());
 
         let mut count_ok: usize = 0;
@@ -1824,8 +1824,8 @@ impl TraverseProgramsAndModels {
             };
     
             let instance = RunWithProgram::new(model_item.model.clone(), verify_test_output).expect("RunWithProgram");
-            let pairs_train: Vec<ImagePair> = model_item.model.images_train().expect("pairs");
-            let pairs_test: Vec<ImagePair> = model_item.model.images_test().expect("pairs");
+            let pairs_train: Vec<arc_json_model::ImagePair> = model_item.model.images_train().expect("pairs");
+            let pairs_test: Vec<arc_json_model::ImagePair> = model_item.model.images_test().expect("pairs");
 
             let result: RunWithProgramResult;
             match program_item.borrow().program_type {
@@ -1918,9 +1918,9 @@ impl TraverseProgramsAndModels {
 
             let print_prefix_puzzle_id: String = format!("Puzzle#{} {:?}", model_index, model_item.borrow().id.file_name());
 
-            let model: Model = model_item.borrow().model.clone();
-            let pairs_train: Vec<ImagePair> = model.images_train().expect("pairs");
-            let pairs_test: Vec<ImagePair> = model.images_test().expect("pairs");
+            let model: arc_json_model::Model = model_item.borrow().model.clone();
+            let pairs_train: Vec<arc_json_model::ImagePair> = model.images_train().expect("pairs");
+            let pairs_test: Vec<arc_json_model::ImagePair> = model.images_test().expect("pairs");
 
             let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
     
@@ -2364,7 +2364,7 @@ impl BatchPlan {
                 pb.inc(1);
             }
     
-            let model: Model = model_item.borrow().model.clone();
+            let model: arc_json_model::Model = model_item.borrow().model.clone();
             if verbose {
                 let number_of_train_pairs: usize = model.train().len();
                 let number_of_test_pairs: usize = model.test().len();
@@ -2671,7 +2671,7 @@ impl ModelItemId {
 #[derive(Clone, Debug)]
 struct ModelItem {
     id: ModelItemId,
-    model: Model,
+    model: arc_json_model::Model,
     // It's costly to convert the json representation to image over and over. Do it once.
     // TODO: convert model to images, LabelSet several places in the model
 }
