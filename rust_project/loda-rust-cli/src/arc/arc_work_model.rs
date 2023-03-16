@@ -23,3 +23,21 @@ pub struct Input {
     // TODO: label_set that cannot be computed
     // TODO: rerun analyze until all pending properties have been computed
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BufferPairType {
+    Train,
+    Test,
+}
+
+#[derive(Clone, Debug)]
+pub struct Pair {
+    pub id: String,
+    pub pair_type: BufferPairType,
+    pub input: Input,
+    pub output: Output,
+    pub removal_histogram: Histogram,
+    pub insert_histogram: Histogram,
+    pub label_set: LabelSet,
+}
+

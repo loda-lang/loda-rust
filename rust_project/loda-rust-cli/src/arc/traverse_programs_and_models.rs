@@ -1,5 +1,5 @@
 use super::arc_json_model;
-use super::arc_work_model::{Output, Input};
+use super::arc_work_model::{Output, Input, BufferPairType, Pair};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
 use super::{Label, LabelSet, PropertyInput, PropertyOutput};
@@ -46,23 +46,6 @@ enum RulePriority {
     Simple,
     Medium,
     Advanced,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum BufferPairType {
-    Train,
-    Test,
-}
-
-#[derive(Clone, Debug)]
-struct Pair {
-    id: String,
-    pair_type: BufferPairType,
-    input: Input,
-    output: Output,
-    removal_histogram: Histogram,
-    insert_histogram: Histogram,
-    label_set: LabelSet,
 }
 
 #[derive(Clone, Debug)]
