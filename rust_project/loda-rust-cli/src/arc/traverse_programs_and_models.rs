@@ -61,9 +61,10 @@ struct BufferInput {
     id: String,
     image: Image,
     histogram: Histogram,
+    
+    /// Computed values such as: number of unique colors, width of biggest object.
     input_properties: HashMap<PropertyInput, u8>,
 
-    // TODO: caching of computed properties such as: number of unique colors, background color.
     // TODO: label_set pending to be computed
     // TODO: label_set that cannot be computed
     // TODO: rerun analyze until all pending properties have been computed
@@ -617,18 +618,6 @@ impl BufferTask {
         }
 
         self.update_label_set_intersection();
-
-        for pair in &mut self.pairs {
-            if pair.pair_type != BufferPairType::Test {
-                continue;
-            }
-
-            // TODO: transfer learned constraints to the `test` pair
-            pair.label_set = pair.label_set.intersection(&self.label_set_intersection).map(|l| l.clone()).collect();
-            // pair.label_set = self.input_label_set.clone();
-            pair.removal_histogram = self.removal_histogram_intersection.clone();
-            pair.insert_histogram = self.insert_histogram_intersection.clone();
-        }
 
         Ok(())
     }
@@ -1220,16 +1209,6 @@ impl TraverseProgramsAndModels {
 
             let mut all_correct = true;
             for pair in &buffer_task.pairs {
-                if pair.pair_type != BufferPairType::Test {
-                    // continue;
-                }
-
-                // TODO: update input properties for this test, otherwise the input properties aren't available for computing the predicted size.
-                // buffer_task.update_input_properties_intersection();
-                // buffer_task.assign_labels_input_size_output_size();
-                // buffer_task.assign_labels_related_to_removal_histogram();
-                // buffer_task.assign_labels_related_to_input_histogram_intersection();
-        
                 let predicted: String = buffer_task.predict_output_size_for_input(&pair.input);
 
                 let expected: String = match pair.pair_type {
@@ -1240,7 +1219,7 @@ impl TraverseProgramsAndModels {
                 if predicted == expected {
                     count_predict_correct += 1;
                 } else {
-                    println!("Wrong output size. Expected {}, but got {}. Task id: {}", expected, predicted, buffer_task.id);
+                    println!("Wrong output size. Expected {}, but got {}. Task: {} pair: {:?}", expected, predicted, buffer_task.displayName, pair.pair_type);
                     count_predict_incorrect += 1;
                     all_correct = false;
                 }

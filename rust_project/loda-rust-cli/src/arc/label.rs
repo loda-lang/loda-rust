@@ -26,6 +26,11 @@ pub enum PropertyInput {
     InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor,
     InputWidthOfRemovedRectangleAfterSingleColorRemoval,
     InputHeightOfRemovedRectangleAfterSingleColorRemoval,
+
+    // Ideas for more
+    // InputUniqueColorCountAfterRemoval
+    // Number of 1px lines horizontal
+    // Number of 1px lines vertical
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
