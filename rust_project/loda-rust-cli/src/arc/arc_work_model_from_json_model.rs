@@ -7,7 +7,7 @@ impl TryFrom<&arc_json_model::Model> for arc_work_model::Task {
     type Error = anyhow::Error;
 
     fn try_from(model: &arc_json_model::Model) -> Result<Self, Self::Error> {
-        let model_identifier: String = model.id().identifier();
+        let task_id: String = model.id().identifier();
         let mut result_pairs: Vec<arc_work_model::Pair> = vec!();
 
         let mut input_histogram_union: Histogram = Histogram::new();
@@ -42,19 +42,19 @@ impl TryFrom<&arc_json_model::Model> for arc_work_model::Task {
                     insert_histogram_intersection.intersection_histogram(&histogram_insert);
                 }
                 let buffer_input = arc_work_model::Input {
-                    id: format!("{},input{},train", model_identifier, index),
+                    id: format!("{},input{},train", task_id, index),
                     image: pair.input.clone(),
                     histogram: histogram_input,
                     input_properties: HashMap::new(),
                 };
                 let buffer_output = arc_work_model::Output {
-                    id: format!("{},output{},train", model_identifier, index),
+                    id: format!("{},output{},train", task_id, index),
                     image: pair.output.clone(),
                     test_image: Image::empty(),
                     histogram: histogram_output,
                 };
                 let result_pair = arc_work_model::Pair {
-                    id: format!("{},pair{},train", model_identifier, index),
+                    id: format!("{},pair{},train", task_id, index),
                     pair_type: arc_work_model::PairType::Train,
                     input: buffer_input,
                     output: buffer_output,
@@ -71,19 +71,19 @@ impl TryFrom<&arc_json_model::Model> for arc_work_model::Task {
                 let histogram_input: Histogram = pair.input.histogram_all();
                 let histogram_output: Histogram = pair.output.histogram_all();
                 let buffer_input = arc_work_model::Input {
-                    id: format!("{},input{},test", model_identifier, index),
+                    id: format!("{},input{},test", task_id, index),
                     image: pair.input.clone(),
                     histogram: histogram_input,
                     input_properties: HashMap::new(),
                 };
                 let buffer_output = arc_work_model::Output {
-                    id: format!("{},output{},test", model_identifier, index),
+                    id: format!("{},output{},test", task_id, index),
                     image: Image::empty(),
                     test_image: pair.output.clone(),
                     histogram: histogram_output,
                 };
                 let result_pair = arc_work_model::Pair {
-                    id: format!("{},pair{},test", model_identifier, index),
+                    id: format!("{},pair{},test", task_id, index),
                     pair_type: arc_work_model::PairType::Test,
                     input: buffer_input,
                     output: buffer_output,
@@ -96,8 +96,7 @@ impl TryFrom<&arc_json_model::Model> for arc_work_model::Task {
         }
     
         let mut task = arc_work_model::Task {
-            id: format!("{},task", model_identifier),
-            display_name: model_identifier,
+            id: task_id,
             pairs: result_pairs,
             input_histogram_union,
             input_histogram_intersection,

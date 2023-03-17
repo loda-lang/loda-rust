@@ -120,7 +120,7 @@ impl TraverseProgramsAndModels {
                 if predicted == expected {
                     count_predict_correct += 1;
                 } else {
-                    println!("Wrong output size. Expected {}, but got {}. Task: {} pair: {:?}", expected, predicted, buffer_task.display_name, pair.pair_type);
+                    println!("Wrong output size. Expected {}, but got {}. Task: {} pair: {:?}", expected, predicted, buffer_task.id, pair.pair_type);
                     count_predict_incorrect += 1;
                     all_correct = false;
                 }

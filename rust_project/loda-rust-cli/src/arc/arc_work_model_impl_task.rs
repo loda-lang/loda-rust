@@ -779,7 +779,7 @@ impl arc_work_model::Task {
 
         let html = format!(
             "<h2>{}</h2><p>Output size: {}</p><table>{}{}{}{}{}{}</table>",
-            self.display_name, 
+            self.id, 
             self.estimated_output_size(),
             row_title,
             row_input_image, 

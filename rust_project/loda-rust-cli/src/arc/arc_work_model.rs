@@ -43,7 +43,6 @@ pub struct Pair {
 #[derive(Clone, Debug)]
 pub struct Task {
     pub id: String,
-    pub display_name: String,
     pub pairs: Vec<Pair>,
     pub input_histogram_union: Histogram,
     pub input_histogram_intersection: Histogram,
