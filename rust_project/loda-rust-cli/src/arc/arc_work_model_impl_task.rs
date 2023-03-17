@@ -792,4 +792,23 @@ impl arc_work_model::Task {
         Ok(())
     }
 
+    pub fn count_train(&self) -> usize {
+        let mut count: usize = 0;
+        for pair in &self.pairs {
+            if pair.pair_type == PairType::Train {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn count_test(&self) -> usize {
+        let mut count: usize = 0;
+        for pair in &self.pairs {
+            if pair.pair_type == PairType::Test {
+                count += 1;
+            }
+        }
+        count
+    }
 }
