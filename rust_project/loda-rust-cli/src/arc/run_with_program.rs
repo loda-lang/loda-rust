@@ -74,6 +74,13 @@ impl RunWithProgram {
         })
     }
 
+    pub fn new_work_task(task: arc_work_model::Task, verify_test_output: bool) -> Self {
+        Self {
+            verify_test_output,
+            task,
+        }
+    }
+
     pub fn create_dependency_manager() -> DependencyManager {
         let registry = UnofficialFunctionRegistry::new();
         register_common_functions(&registry);

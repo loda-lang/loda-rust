@@ -557,9 +557,9 @@ impl TraverseProgramsAndModels {
             }
         };
 
-        let pairs_train: Vec<arc_json_model::ImagePair> = model_item.model.images_train().expect("pairs");
-        let pairs_test: Vec<arc_json_model::ImagePair> = model_item.model.images_test().expect("pairs");
-        println!("Evaluating the puzzle: {:?} train-pairs: {} test-pairs: {}", model_item.id, pairs_train.len(), pairs_test.len());
+        let count_train: usize = model_item.task.count_train();
+        let count_test: usize = model_item.task.count_test();
+        println!("Evaluating the puzzle: {:?} train-pairs: {} test-pairs: {}", model_item.id, count_train, count_test);
 
         let mut count_ok: usize = 0;
         let mut count_error_compute: usize = 0;
@@ -574,7 +574,7 @@ impl TraverseProgramsAndModels {
                 pb.inc(1);
             }
 
-            let instance = RunWithProgram::new(model_item.model.clone(), verify_test_output).expect("RunWithProgram");
+            let instance = RunWithProgram::new_work_task(model_item.task.clone(), verify_test_output);
 
             let result: RunWithProgramResult;
             match program_item.borrow().program_type {
@@ -609,10 +609,10 @@ impl TraverseProgramsAndModels {
                 pb.println(s);
             }
 
-            let expected = format!("({},{})", pairs_train.len(), pairs_test.len());
+            let expected = format!("({},{})", count_train, count_test);
             let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
             if actual != expected {
-                if result.count_train_correct() == pairs_train.len() && result.count_test_correct() != pairs_test.len() {
+                if result.count_train_correct() == count_train && result.count_test_correct() != count_test {
                     pb.println(format!("Dangerous false positive. Expected {} but got {}. {:?}", expected, actual, program_item.borrow().id.file_name()));
                     count_dangerous_false_positive += 1;
                 } else {
