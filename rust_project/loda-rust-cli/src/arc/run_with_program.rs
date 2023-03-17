@@ -395,21 +395,41 @@ impl RunWithProgram {
     }
 
     fn inspect_computed_images(&self, computed_images: &Vec<Image>, status_texts: &Vec<&str>) {
-        let mut pairs: Vec<arc_json_model::ImagePair> = self.train_pairs.clone();
-        pairs.extend(self.test_pairs.clone());
 
         // Table row with input and row with expected output
         let mut row_input: String = "<tr>".to_string();
         let mut row_output: String = "<tr>".to_string();
-        for pair in &pairs {
+
+        // Traverse the `Train` pairs
+        for pair in &self.task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Train {
+                continue;
+            }
             {
                 row_input += "<td>";
-                row_input += &pair.input.to_html();
+                row_input += &pair.input.image.to_html();
                 row_input += "</td>";
             }
             {
                 row_output += "<td>";
-                row_output += &pair.output.to_html();
+                row_output += &pair.output.image.to_html();
+                row_output += "</td>";
+            }
+        }
+
+        // Traverse the `Test` pairs
+        for pair in &self.task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Test {
+                continue;
+            }
+            {
+                row_input += "<td>";
+                row_input += &pair.input.image.to_html();
+                row_input += "</td>";
+            }
+            {
+                row_output += "<td>";
+                row_output += &pair.output.test_image.to_html();
                 row_output += "</td>";
             }
         }
