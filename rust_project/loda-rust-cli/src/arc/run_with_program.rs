@@ -206,8 +206,58 @@ impl RunWithProgram {
     /// $143..149 is reserved for test[0] extra data
     /// ```
     fn initial_memory_layout(&self, state: &mut ProgramState) -> anyhow::Result<()> {
-        let count_train: usize = self.train_pairs.len();
-        let count_test: usize = self.test_pairs.len();
+
+        // Traverse the `Train` pairs
+        let mut count_train: usize = 0;
+        for pair in &self.task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Train {
+                continue;
+            }
+
+            let index: usize = count_train;
+            // memory[x*10+100] = train[x].input
+            {
+                let image_number_uint: BigUint = pair.input.image.to_number().expect("pair.input image to number");
+                let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
+                state.set_u64((index * 10 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
+            }
+
+            // memory[x*10+101] = train[x].output
+            {
+                let image_number_uint: BigUint = pair.output.image.to_number().expect("pair.output image to number");
+                let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.output BigUint to BigInt");
+                state.set_u64((index * 10 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
+            }
+
+            count_train += 1;
+        }
+
+        // Traverse the `Test` pairs
+        let mut count_test: usize = 0;
+        for pair in &self.task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Test {
+                continue;
+            }
+
+            let index: usize = count_train + count_test;
+            // memory[(count_train + x)*10+100] = test[x].input
+            {
+                let image_number_uint: BigUint = pair.input.image.to_number().expect("pair.input image to number");
+                let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
+                state.set_u64((index * 10 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
+            }
+
+            // The program is never supposed to read from the the test[x].output register.
+            // memory[(count_train + x)*10+101] is where the program is supposed to write its predicted output.
+            // Use `-1` as placeholder so it's easy to spot when the image is missing.
+            {
+                let value: BigInt = -BigInt::one();
+                state.set_u64((index * 10 + 101) as u64, value).context("pair.output, set_u64")?;
+            }
+
+            count_test += 1;
+        }
+
         let count_all: usize = count_train + count_test;
 
         // memory[97] = length of "train" vector
@@ -222,35 +272,6 @@ impl RunWithProgram {
         let count_all_bigint: BigInt = count_all.to_bigint().expect("count_all.to_bigint");
         state.set_u64(99, count_all_bigint).context("set_u64 count_all_bigint")?;
 
-        // memory[x*10+100] = train[x].input
-        for (index, pair) in self.train_pairs.iter().enumerate() {
-            let image_number_uint: BigUint = pair.input.to_number().expect("pair.input image to number");
-            let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
-            state.set_u64((index * 10 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
-        }
-
-        // memory[x*10+101] = train[x].output
-        for (index, pair) in self.train_pairs.iter().enumerate() {
-            let image_number_uint: BigUint = pair.output.to_number().expect("pair.output image to number");
-            let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.output BigUint to BigInt");
-            state.set_u64((index * 10 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
-        }
-
-        // memory[(count_train + x)*10+100] = test[x].input
-        for (index, pair) in self.test_pairs.iter().enumerate() {
-            let image_number_uint: BigUint = pair.input.to_number().expect("pair.input image to number");
-            let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
-            let set_index: usize = (count_train + index) * 10 + 100;
-            state.set_u64(set_index as u64, image_number_int).context("pair.input, set_u64")?;
-        }
-        // The program is never supposed to read from the the test[x].output register.
-        // memory[(count_train + x)*10+101] is where the program is supposed to write its predicted output.
-        // Use `-1` as placeholder so it's easy to spot when the image is missing.
-        for (index, _pair) in self.test_pairs.iter().enumerate() {
-            let set_index: usize = (count_train + index) * 10 + 101;
-            let value: BigInt = -BigInt::one();
-            state.set_u64(set_index as u64, value).context("pair.output, set_u64")?;
-        }
         Ok(())
     }
 
