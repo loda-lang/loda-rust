@@ -734,9 +734,9 @@ impl TraverseProgramsAndModels {
                 }
             };
     
-            let instance = RunWithProgram::new(model_item.model.clone(), verify_test_output).expect("RunWithProgram");
-            let pairs_train: Vec<arc_json_model::ImagePair> = model_item.model.images_train().expect("pairs");
-            let pairs_test: Vec<arc_json_model::ImagePair> = model_item.model.images_test().expect("pairs");
+            let instance: RunWithProgram = RunWithProgram::new_work_task(model_item.task.clone(), verify_test_output);
+            let count_train: usize = model_item.task.count_train();
+            let count_test: usize = model_item.task.count_test();
 
             let result: RunWithProgramResult;
             match program_item.borrow().program_type {
@@ -767,7 +767,7 @@ impl TraverseProgramsAndModels {
                 pb.println(s);
             }
 
-            let expected = format!("({},{})", pairs_train.len(), pairs_test.len());
+            let expected = format!("({},{})", count_train, count_test);
             let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
             if actual != expected {
                 pb.println(format!("ERROR: in row {}. record: {:?}. Expected {}, but got {}", record_index, record, expected, actual));
