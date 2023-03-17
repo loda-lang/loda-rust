@@ -64,21 +64,15 @@ pub struct RunWithProgram {
     verify_test_output: bool,
     task: arc_work_model::Task,
     model: arc_json_model::Model,
-    train_pairs: Vec<arc_json_model::ImagePair>,
-    test_pairs: Vec<arc_json_model::ImagePair>,
 }
 
 impl RunWithProgram {
     pub fn new(model: arc_json_model::Model, verify_test_output: bool) -> anyhow::Result<Self> {
-        let train_pairs: Vec<arc_json_model::ImagePair> = model.images_train()?;
-        let test_pairs: Vec<arc_json_model::ImagePair> = model.images_test()?;
         let task = arc_work_model::Task::try_from(&model)?;
         Ok(Self {
             verify_test_output,
             task,
             model,
-            train_pairs,
-            test_pairs,
         })
     }
 
