@@ -78,10 +78,8 @@ enum ModelImagePairMode {
     Test,
 }
 
-#[allow(dead_code)]
 #[derive(Clone)]
 pub enum TaskId {
-    None,
     Custom { identifier: String },
     Path { path: PathBuf },
 }
@@ -89,9 +87,6 @@ pub enum TaskId {
 impl TaskId {
     pub fn identifier(&self) -> String {
         match self {
-            TaskId::None => {
-                return "None".to_string();
-            },
             TaskId::Custom { identifier } => {
                 return identifier.to_string();
             }
