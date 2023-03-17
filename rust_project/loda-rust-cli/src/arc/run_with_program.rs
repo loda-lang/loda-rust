@@ -63,7 +63,6 @@ pub type SolutionSimple = fn(SolutionSimpleData) -> anyhow::Result<Image>;
 pub struct RunWithProgram {
     verify_test_output: bool,
     task: arc_work_model::Task,
-    model: arc_json_model::Model,
 }
 
 impl RunWithProgram {
@@ -72,7 +71,6 @@ impl RunWithProgram {
         Ok(Self {
             verify_test_output,
             task,
-            model,
         })
     }
 
@@ -446,7 +444,7 @@ impl RunWithProgram {
         }
         row_status += "</tr>";
 
-        let html = format!("<h2>{}</h2><table>{}{}{}{}</table>", self.model.id().identifier(), row_input, row_output, row_predicted, row_status);
+        let html = format!("<h2>{}</h2><table>{}{}{}{}</table>", self.task.id, row_input, row_output, row_predicted, row_status);
         HtmlLog::html(html);
     }
 }
