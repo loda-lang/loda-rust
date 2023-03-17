@@ -1,11 +1,13 @@
 use unicode_width::UnicodeWidthStr;
 
+#[allow(dead_code)]
 struct TextColumn {
     rows: Vec<String>,
     max_len: usize,
 }
 
 impl TextColumn {
+    #[allow(dead_code)]
     fn find_max_len(rows: &Vec<String>) -> usize {
         let mut found: usize = 0;
         for row in rows {
@@ -15,12 +17,14 @@ impl TextColumn {
         found
     }
 
+    #[allow(dead_code)]
     fn pad_to_row_count(&mut self, row_count: usize) {
         while self.rows.len() < row_count {
             self.rows.push("".to_string());
         }
     }
 
+    #[allow(dead_code)]
     fn pad_to_width(rows: &Vec<String>, column_count: usize) -> Vec<String> {
         let mut padded_rows = Vec::<String>::new();
         for row in rows {
@@ -34,9 +38,11 @@ impl TextColumn {
     }
 }
 
+#[allow(dead_code)]
 pub struct StackStrings;
 
 impl StackStrings {
+    #[allow(dead_code)]
     pub fn hstack(strings: Vec<String>, separator: &str) -> String {
         let mut columns = Vec::<TextColumn>::new();
         for s in &strings {
