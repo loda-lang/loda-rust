@@ -14,12 +14,12 @@ mod tests {
     use crate::arc::{HtmlLog, ImageToHTML};
 
     trait RunWithTestdata {
-        fn run(self, name: &str) -> anyhow::Result<String>;
+        fn run(self, task_name: &str) -> anyhow::Result<String>;
     }
 
     impl RunWithTestdata for SolutionSimple {
-        fn run(self, name: &str) -> anyhow::Result<String> {
-            let model: Model = Model::load_testdata(name)?;
+        fn run(self, task_name: &str) -> anyhow::Result<String> {
+            let model: Model = Model::load_testdata(task_name)?;
             let instance: RunWithProgram = RunWithProgram::new(model, true)?;
             let result: RunWithProgramResult = instance.run_solution(self)?;
             let mut string: String = format!("{} {}", result.count_train_correct(), result.count_test_correct());
@@ -29,6 +29,30 @@ mod tests {
             }
             Ok(string)
         }
+    }
+
+    fn run_simple(task_name: &str, program: &str) -> anyhow::Result<String> {
+        let model: Model = Model::load_testdata(task_name)?;
+        let instance: RunWithProgram = RunWithProgram::new(model, true)?;
+        let result: RunWithProgramResult = instance.run_simple(program)?;
+        let mut string: String = format!("{} {}", result.count_train_correct(), result.count_test_correct());
+        let messages: String = result.messages();
+        if !messages.is_empty() {
+            string = format!("{} - {}", string, messages);
+        }
+        Ok(string)
+    }
+
+    fn run_advanced(task_name: &str, program: &str) -> anyhow::Result<String> {
+        let model: Model = Model::load_testdata(task_name)?;
+        let instance: RunWithProgram = RunWithProgram::new(model, true)?;
+        let result: RunWithProgramResult = instance.run_advanced(program)?;
+        let mut string: String = format!("{} {}", result.count_train_correct(), result.count_test_correct());
+        let messages: String = result.messages();
+        if !messages.is_empty() {
+            string = format!("{} - {}", string, messages);
+        }
+        Ok(string)
     }
 
     #[test]
@@ -87,13 +111,8 @@ mod tests {
 
     #[test]
     fn test_10001_puzzle_4258a5f9_loda() {
-        let model: Model = Model::load_testdata("4258a5f9").expect("model");
-        let program = ADVANCED_PROGRAM_4258A5F9;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_advanced(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 2);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_advanced("4258a5f9", ADVANCED_PROGRAM_4258A5F9).expect("String");
+        assert_eq!(result, "2 1");
     }
 
     #[test]
@@ -115,13 +134,8 @@ mod tests {
 
     #[test]
     fn test_20001_puzzle_5614dbcf_loda() {
-        let model: Model = Model::load_testdata("5614dbcf").expect("model");
-        let program = PROGRAM_5614DBCF;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 2);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("5614dbcf", PROGRAM_5614DBCF).expect("String");
+        assert_eq!(result, "2 1");
     }
 
     #[test]
@@ -159,13 +173,8 @@ mod tests {
 
     #[test]
     fn test_30001_puzzle_2013d3e2_loda() {
-        let model: Model = Model::load_testdata("2013d3e2").expect("model");
-        let program = PROGRAM_2013D3E2;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 2);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("2013d3e2", PROGRAM_2013D3E2).expect("String");
+        assert_eq!(result, "2 1");
     }
 
     #[test]
@@ -187,13 +196,8 @@ mod tests {
 
     #[test]
     fn test_40001_puzzle_90c28cc7_loda() {
-        let model: Model = Model::load_testdata("90c28cc7").expect("model");
-        let program = PROGRAM_90C28CC7;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("90c28cc7", PROGRAM_90C28CC7).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
@@ -215,13 +219,8 @@ mod tests {
 
     #[test]
     fn test_50001_puzzle_7468f01a_loda() {
-        let model: Model = Model::load_testdata("7468f01a").expect("model");
-        let program = PROGRAM_7468F01A;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("7468f01a", PROGRAM_7468F01A).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
@@ -421,13 +420,8 @@ mod tests {
 
     #[test]
     fn test_80001_puzzle_007bbfb7_loda() {
-        let model: Model = Model::load_testdata("007bbfb7").expect("model");
-        let program = PROGRAM_007BBFB7;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 5);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("007bbfb7", PROGRAM_007BBFB7).expect("String");
+        assert_eq!(result, "5 1");
     }
 
     #[test]
@@ -467,13 +461,8 @@ mod tests {
 
     #[test]
     fn test_90001_puzzle_b9b7f026_loda() {
-        let model: Model = Model::load_testdata("b9b7f026").expect("model");
-        let program = PROGRAM_B9B7F026;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("b9b7f026", PROGRAM_B9B7F026).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
@@ -498,14 +487,8 @@ mod tests {
 
     #[test]
     fn test_100001_puzzle_a79310a0_loda() {
-        let model: Model = Model::load_testdata("a79310a0").expect("model");
-        let program = PROGRAM_A79310A0;
-
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("a79310a0", PROGRAM_A79310A0).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
@@ -626,13 +609,8 @@ mod tests {
 
     #[test]
     fn test_100004_puzzle_a79310a0_loop_over_images_in_loda() {
-        let model: Model = Model::load_testdata("a79310a0").expect("model");
-        let program = ADVANCED_PROGRAM_A79310A0;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_advanced(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_advanced("a79310a0", ADVANCED_PROGRAM_A79310A0).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
@@ -657,13 +635,8 @@ mod tests {
 
     #[test]
     fn test_110001_puzzle_0dfd9992_loda() {
-        let model: Model = Model::load_testdata("0dfd9992").expect("model");
-        let program = PROGRAM_0DFD9992;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("0dfd9992", PROGRAM_0DFD9992).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
@@ -744,13 +717,8 @@ mod tests {
 
     #[test]
     fn test_130001_puzzle_7fe24cdd_loda() {
-        let model: Model = Model::load_testdata("7fe24cdd").expect("model");
-        let program = PROGRAM_7FE24CDD;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("7fe24cdd", PROGRAM_7FE24CDD).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
@@ -774,13 +742,8 @@ mod tests {
 
     #[test]
     fn test_140001_puzzle_9565186b_loda() {
-        let model: Model = Model::load_testdata("9565186b").expect("model");
-        let program = PROGRAM_9565186B;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 4);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("9565186b", PROGRAM_9565186B).expect("String");
+        assert_eq!(result, "4 1");
     }
 
     #[test]
@@ -807,13 +770,8 @@ mod tests {
 
     #[test]
     fn test_150001_puzzle_3af2c5a8_loda() {
-        let model: Model = Model::load_testdata("3af2c5a8").expect("model");
-        let program = PROGRAM_3AF2C5A8;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("3af2c5a8", PROGRAM_3AF2C5A8).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     const PROGRAM_44F52BB0: &'static str = "
@@ -832,13 +790,8 @@ mod tests {
 
     #[test]
     fn test_160000_puzzle_44f52bb0_loda() {
-        let model: Model = Model::load_testdata("44f52bb0").expect("model");
-        let program = PROGRAM_44F52BB0;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 6);
-        assert_eq!(result.count_test_correct(), 2);
+        let result: String = run_simple("44f52bb0", PROGRAM_44F52BB0).expect("String");
+        assert_eq!(result, "6 2");
     }
 
     #[test]
@@ -867,13 +820,8 @@ mod tests {
 
     #[test]
     fn test_170001_puzzle_496994bd_loda() {
-        let model: Model = Model::load_testdata("496994bd").expect("model");
-        let program = PROGRAM_496994BD;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 2);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("496994bd", PROGRAM_496994BD).expect("String");
+        assert_eq!(result, "2 1");
     }
 
     #[test]
@@ -903,13 +851,8 @@ mod tests {
 
     #[test]
     fn test_180001_puzzle_31aa019c_loda() {
-        let model: Model = Model::load_testdata("31aa019c").expect("model");
-        let program = PROGRAM_31AA019C;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("31aa019c", PROGRAM_31AA019C).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
@@ -971,13 +914,8 @@ mod tests {
 
     #[test]
     fn test_190001_puzzle_5ad4f10b_loda() {
-        let model: Model = Model::load_testdata("5ad4f10b").expect("model");
-        let program = PROGRAM_5AD4F10B;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("5ad4f10b", PROGRAM_5AD4F10B).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
@@ -998,13 +936,8 @@ mod tests {
 
     #[test]
     fn test_200001_puzzle_1190e5a7_loda() {
-        let model: Model = Model::load_testdata("1190e5a7").expect("model");
-        let program = PROGRAM_1190E5A7;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("1190e5a7", PROGRAM_1190E5A7).expect("String");
+        assert_eq!(result, "3 1");
     }
     
     #[test]
@@ -1023,13 +956,8 @@ mod tests {
 
     #[test]
     fn test_210001_puzzle_39a8645d_loda() {
-        let model: Model = Model::load_testdata("39a8645d").expect("model");
-        let program = PROGRAM_39A8645D;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("39a8645d", PROGRAM_39A8645D).expect("String");
+        assert_eq!(result, "3 1");
     }
     
     #[test]
@@ -1048,13 +976,8 @@ mod tests {
 
     #[test]
     fn test_220001_puzzle_88a62173_loda() {
-        let model: Model = Model::load_testdata("88a62173").expect("model");
-        let program = PROGRAM_88A62173;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("88a62173", PROGRAM_88A62173).expect("String");
+        assert_eq!(result, "3 1");
     }
     
     #[test]
@@ -1100,13 +1023,8 @@ mod tests {
 
     #[test]
     fn test_230001_puzzle_bbc9ae5d_loda() {
-        let model: Model = Model::load_testdata("bbc9ae5d").expect("model");
-        let program = PROGRAM_BBC9AE5D;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 5);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("bbc9ae5d", PROGRAM_BBC9AE5D).expect("String");
+        assert_eq!(result, "5 1");
     }
 
     #[test]
@@ -1267,13 +1185,8 @@ mod tests {
 
     #[test]
     fn test_270001_puzzle_7f4411dc_loda() {
-        let model: Model = Model::load_testdata("7f4411dc").expect("model");
-        let program = PROGRAM_7F4411DC;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("7f4411dc", PROGRAM_7F4411DC).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
@@ -1527,13 +1440,8 @@ mod tests {
 
     #[test]
     fn test_310001_puzzle_1f876c06_loda() {
-        let model: Model = Model::load_testdata("1f876c06").expect("model");
-        let program = PROGRAM_1F876C06;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("1f876c06", PROGRAM_1F876C06).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
@@ -1627,13 +1535,8 @@ mod tests {
 
     #[test]
     fn test_320001_puzzle_623ea044_loda() {
-        let model: Model = Model::load_testdata("623ea044").expect("model");
-        let program = PROGRAM_623EA044;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("623ea044", PROGRAM_623EA044).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
@@ -1766,13 +1669,8 @@ mod tests {
 
     #[test]
     fn test_350001_puzzle_a68b268e_loda() {
-        let model: Model = Model::load_testdata("a68b268e").expect("model");
-        let program = PROGRAM_A68B268E;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 6);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("a68b268e", PROGRAM_A68B268E).expect("String");
+        assert_eq!(result, "6 1");
     }
 
     #[test]
@@ -1984,13 +1882,8 @@ mod tests {
 
     #[test]
     fn test_390001_puzzle_5b6cbef5_loda() {
-        let model: Model = Model::load_testdata("5b6cbef5").expect("model");
-        let program = PROGRAM_5B6CBEF5;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 5);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("5b6cbef5", PROGRAM_5B6CBEF5).expect("String");
+        assert_eq!(result, "5 1");
     }
 
     const PROGRAM_CCD554AC: &'static str = "
@@ -2007,13 +1900,8 @@ mod tests {
 
     #[test]
     fn test_400001_puzzle_ccd554ac_loda() {
-        let model: Model = Model::load_testdata("ccd554ac").expect("model");
-        let program = PROGRAM_CCD554AC;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 6);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("ccd554ac", PROGRAM_CCD554AC).expect("String");
+        assert_eq!(result, "6 1");
     }
 
     const PROGRAM_27F8CE4F: &'static str = "
@@ -2048,13 +1936,8 @@ mod tests {
 
     #[test]
     fn test_410000_puzzle_27f8ce4f_loda() {
-        let model: Model = Model::load_testdata("27f8ce4f").expect("model");
-        let program = PROGRAM_27F8CE4F;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 4);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("27f8ce4f", PROGRAM_27F8CE4F).expect("String");
+        assert_eq!(result, "4 1");
     }
 
     const PROGRAM_1F85A75F: &'static str = "
@@ -2087,13 +1970,8 @@ mod tests {
 
     #[test]
     fn test_420000_puzzle_1f85a75f_loda() {
-        let model: Model = Model::load_testdata("1f85a75f").expect("model");
-        let program = PROGRAM_1F85A75F;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 2);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("1f85a75f", PROGRAM_1F85A75F).expect("String");
+        assert_eq!(result, "2 1");
     }
 
     const PROGRAM_80AF3007: &'static str = "
@@ -2132,13 +2010,8 @@ mod tests {
 
     #[test]
     fn test_430000_puzzle_80af3007_loda() {
-        let model: Model = Model::load_testdata("80af3007").expect("model");
-        let program = PROGRAM_80AF3007;
-        let instance = RunWithProgram::new(model, true).expect("RunWithProgram");
-        let result: RunWithProgramResult = instance.run_simple(program).expect("result");
-        assert_eq!(result.messages(), "");
-        assert_eq!(result.count_train_correct(), 3);
-        assert_eq!(result.count_test_correct(), 1);
+        let result: String = run_simple("80af3007", PROGRAM_80AF3007).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
