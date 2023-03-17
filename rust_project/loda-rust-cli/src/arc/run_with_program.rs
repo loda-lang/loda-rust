@@ -1,6 +1,6 @@
 use super::arc_json_model;
 use super::arc_work_model;
-use super::{Image, ImageToNumber, ImageUnicodeFormatting, NumberToImage, register_arc_functions, StackStrings, Prediction, HtmlLog, ImageToHTML};
+use super::{Image, ImageToNumber, NumberToImage, register_arc_functions, Prediction, HtmlLog, ImageToHTML};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -51,10 +51,6 @@ impl fmt::Debug for RunWithProgramResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "RunWithProgramResult count_train_correct: {} count_train_incorrect: {} count_test_correct: {}\n message {}", self.count_train_correct, self.count_train_incorrect, self.count_test_correct, self.messages())
     }
-}
-
-pub trait SolutionAdvanced {
-    fn run(&self, train_pairs: Vec<arc_json_model::ImagePair>, test_pairs: Vec<arc_json_model::ImagePair>) -> anyhow::Result<Vec<Image>>;
 }
 
 pub struct SolutionSimpleData {
@@ -138,17 +134,6 @@ impl RunWithProgram {
     }
 
     #[allow(dead_code)]
-    pub fn run_solution_advanced(&self, solution: &dyn SolutionAdvanced) -> anyhow::Result<RunWithProgramResult> {
-        let train_pairs = self.train_pairs.clone();
-        let mut test_pairs = self.test_pairs.clone();
-        for pair in test_pairs.iter_mut() {
-            pair.output = Image::empty();
-        }
-        let computed_images: Vec<Image> = solution.run(train_pairs, test_pairs)?;
-        self.process_computed_images(computed_images)
-    }
-
-    #[allow(dead_code)]
     pub fn run_solution(&self, callback: SolutionSimple) -> anyhow::Result<RunWithProgramResult> {
         let mut computed_images = Vec::<Image>::new();
         for (index, pair) in self.task.pairs.iter().enumerate() {
@@ -163,8 +148,6 @@ impl RunWithProgram {
     }
 
     pub fn run_program_runner(&self, program_runner: &ProgramRunner) -> anyhow::Result<RunWithProgramResult> {
-        // self.print_full_state();
-
         let mut cache = ProgramCache::new();
 
         // Blank state
@@ -184,17 +167,6 @@ impl RunWithProgram {
         let number_of_images: usize = self.task.pairs.len();
         let computed_images: Vec<Image> = state.computed_images(number_of_images)?;
         self.process_computed_images(computed_images)
-    }
-
-    #[allow(dead_code)]
-    fn print_full_state(&self) {
-        println!("model: {:?}", self.model.id());
-        for (index, pair) in self.train_pairs.iter().enumerate() {
-            let input = format!("input\n{}", pair.input.to_unicode_string());
-            let output = format!("output\n{}", pair.output.to_unicode_string());
-            let s: String = StackStrings::hstack(vec![input, output], " | ");
-            println!("model: {:?} train#{}\n{}", self.model.id(), index, s);
-        }
     }
         
     /// Prepare the starting state of the program
