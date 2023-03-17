@@ -1,4 +1,5 @@
 use super::arc_json_model;
+use super::arc_work_model;
 use super::{Image, ImageToNumber, ImageUnicodeFormatting, NumberToImage, register_arc_functions, StackStrings, Prediction, HtmlLog, ImageToHTML};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
@@ -65,6 +66,7 @@ pub type SolutionSimple = fn(SolutionSimpleData) -> anyhow::Result<Image>;
 
 pub struct RunWithProgram {
     verify_test_output: bool,
+    task: arc_work_model::Task,
     model: arc_json_model::Model,
     train_pairs: Vec<arc_json_model::ImagePair>,
     test_pairs: Vec<arc_json_model::ImagePair>,
@@ -74,8 +76,10 @@ impl RunWithProgram {
     pub fn new(model: arc_json_model::Model, verify_test_output: bool) -> anyhow::Result<Self> {
         let train_pairs: Vec<arc_json_model::ImagePair> = model.images_train()?;
         let test_pairs: Vec<arc_json_model::ImagePair> = model.images_test()?;
+        let task = arc_work_model::Task::try_from(&model)?;
         Ok(Self {
             verify_test_output,
+            task,
             model,
             train_pairs,
             test_pairs,
@@ -146,13 +150,11 @@ impl RunWithProgram {
 
     #[allow(dead_code)]
     pub fn run_solution(&self, callback: SolutionSimple) -> anyhow::Result<RunWithProgramResult> {
-        let mut pairs: Vec<arc_json_model::ImagePair> = self.train_pairs.clone();
-        pairs.extend(self.test_pairs.clone());
         let mut computed_images = Vec::<Image>::new();
-        for (index, pair) in pairs.iter().enumerate() {
+        for (index, pair) in self.task.pairs.iter().enumerate() {
             let data = SolutionSimpleData {
                 index,
-                image: pair.input.clone(),
+                image: pair.input.image.clone(),
             };
             let computed_image: Image = callback(data)?;
             computed_images.push(computed_image);
@@ -179,7 +181,7 @@ impl RunWithProgram {
         // Invoke the actual run() function
         program_runner.program().run(&mut state, &mut cache).context("run_result error in program.run")?;
 
-        let number_of_images: usize = self.train_pairs.len() + self.test_pairs.len();
+        let number_of_images: usize = self.task.pairs.len();
         let computed_images: Vec<Image> = state.computed_images(number_of_images)?;
         self.process_computed_images(computed_images)
     }
