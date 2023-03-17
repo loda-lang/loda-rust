@@ -80,22 +80,22 @@ enum ModelImagePairMode {
 
 #[allow(dead_code)]
 #[derive(Clone)]
-pub enum ModelItemId {
+pub enum TaskId {
     None,
     Custom { identifier: String },
     Path { path: PathBuf },
 }
 
-impl ModelItemId {
+impl TaskId {
     pub fn identifier(&self) -> String {
         match self {
-            ModelItemId::None => {
+            TaskId::None => {
                 return "None".to_string();
             },
-            ModelItemId::Custom { identifier } => {
+            TaskId::Custom { identifier } => {
                 return identifier.to_string();
             }
-            ModelItemId::Path { path } => {
+            TaskId::Path { path } => {
                 match path.file_stem() {
                     Some(value) => {
                         return value.to_string_lossy().to_string();
@@ -109,13 +109,13 @@ impl ModelItemId {
     }
 }
 
-impl fmt::Debug for ModelItemId {
+impl fmt::Debug for TaskId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self.identifier())
     }
 }
 
-impl fmt::Display for ModelItemId {
+impl fmt::Display for TaskId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.identifier())
     }
@@ -131,14 +131,14 @@ struct DeserializeModel {
 #[derive(Clone, Debug)]
 pub struct Model {
     // TODO: rename from `Model` to `Task`, so it's consistent
-    id: ModelItemId,
+    id: TaskId,
     train: Vec<TaskPair>,
     test: Vec<TaskPair>,
 }
 
 impl Model {
     #[allow(dead_code)]
-    pub fn id(&self) -> &ModelItemId {
+    pub fn id(&self) -> &TaskId {
         &self.id
     }
 
@@ -192,7 +192,7 @@ impl Model {
         let json: String = read_testdata(name)?;
         let deserialize_model: DeserializeModel = serde_json::from_str(&json)?;
         let model = Model {
-            id: ModelItemId::Custom { identifier: custom_identifier },
+            id: TaskId::Custom { identifier: custom_identifier },
             train: deserialize_model.train,
             test: deserialize_model.test,
         };
@@ -215,7 +215,7 @@ impl Model {
         };
         let deserialize_model: DeserializeModel = serde_json::from_str(&json)?;
         let model = Model {
-            id: ModelItemId::Path { path: PathBuf::from(json_file) },
+            id: TaskId::Path { path: PathBuf::from(json_file) },
             train: deserialize_model.train,
             test: deserialize_model.test,
         };
