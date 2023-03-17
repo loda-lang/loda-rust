@@ -829,11 +829,10 @@ impl TraverseProgramsAndModels {
 
             let print_prefix_puzzle_id: String = format!("Puzzle#{} {:?}", model_index, model_item.borrow().id.file_name());
 
-            let model: arc_json_model::Model = model_item.borrow().model.clone();
-            let pairs_train: Vec<arc_json_model::ImagePair> = model.images_train().expect("pairs");
-            let pairs_test: Vec<arc_json_model::ImagePair> = model.images_test().expect("pairs");
-
-            let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
+            let task: Task = model_item.borrow().task.clone();
+            let count_train: usize = task.count_train();
+            let count_test: usize = task.count_test();
+            let instance: RunWithProgram = RunWithProgram::new_work_task(task.clone(), verify_test_output);
     
             let pb2 = multi_progress.insert_after(&pb, ProgressBar::new( self.program_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
@@ -852,7 +851,7 @@ impl TraverseProgramsAndModels {
                             Err(error) => {
                                 count_compute_error += 1;
                                 if verbose {
-                                    error!("model: {:?} simple-program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
+                                    error!("model: {:?} simple-program: {:?} error: {:?}", task.id, program_item.borrow().id, error);
                                 }
                                 continue;
                             }
@@ -864,7 +863,7 @@ impl TraverseProgramsAndModels {
                             Err(error) => {
                                 count_compute_error += 1;
                                 if verbose {
-                                    error!("model: {:?} advanced-program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
+                                    error!("model: {:?} advanced-program: {:?} error: {:?}", task.id, program_item.borrow().id, error);
                                 }
                                 continue;
                             }
@@ -875,14 +874,14 @@ impl TraverseProgramsAndModels {
                 let program_id: ProgramItemId = program_item.borrow().id.clone();
 
                 if verbose {
-                    let s = format!("model: {:?} program: {:?} result: {:?}", model_item.borrow().id, program_id, result);
+                    let s = format!("model: {:?} program: {:?} result: {:?}", task.id, program_id, result);
                     pb.println(s);
                 }
 
-                let expected = format!("({},{})", pairs_train.len(), pairs_test.len());
+                let expected = format!("({},{})", count_train, count_test);
                 let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
                 if actual != expected {
-                    if result.count_train_correct() == pairs_train.len() && result.count_test_correct() != pairs_test.len() {
+                    if result.count_train_correct() == count_train && result.count_test_correct() != count_test {
                         pb.println(format!("{} - Dangerous false positive. Expected {} but got {}. {:?}", print_prefix_puzzle_id, expected, actual, program_id.file_name()));
                         count_dangerous_false_positive += 1;
                         continue;
