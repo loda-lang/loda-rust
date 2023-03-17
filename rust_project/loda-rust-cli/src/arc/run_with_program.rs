@@ -282,13 +282,22 @@ impl RunWithProgram {
 
         let mut message_items = Vec::<String>::new();
 
+        // Traverse the `Train` pairs
         // Compare computed images with train[x].output
         let mut count_train_correct: usize = 0;
         let mut count_train_incorrect: usize = 0;
-        for (index, pair) in self.train_pairs.iter().enumerate() {
+        let mut count_train: usize = 0;
+        for pair in &self.task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Train {
+                continue;
+            }
+
+            let index: usize = count_train;
+            count_train += 1;
+
             let computed_image: &Image = &computed_images[index];
             
-            let expected_image: Image = pair.output.clone();
+            let expected_image: Image = pair.output.image.clone();
             if *computed_image == expected_image {
                 count_train_correct += 1;
                 if pretty_print {
@@ -303,14 +312,22 @@ impl RunWithProgram {
                 status_texts.push("Incorrect");
             }
         }
-        let count_train: usize = self.train_pairs.len();
 
         let mut predictions = Vec::<Prediction>::new();
 
+        // Traverse the `Test` pairs
         // Compare computed images with test[x].output
         let mut count_test_correct: usize = 0;
         let mut count_test_empty: usize = 0;
-        for (index, pair) in self.test_pairs.iter().enumerate() {
+        let mut count_test: usize = 0;
+        for pair in &self.task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Test {
+                continue;
+            }
+
+            let index: usize = count_test;
+            count_test += 1;
+
             let computed_image: &Image = &computed_images[count_train + index];
             if computed_image.is_empty() {
                 count_test_empty += 1;
@@ -320,7 +337,7 @@ impl RunWithProgram {
                 continue;
             }
             if self.verify_test_output {
-                let expected_image: Image = pair.output.clone();
+                let expected_image: Image = pair.output.test_image.clone();
                 if *computed_image != expected_image {
                     let s = format!("test. The computed output, doesn't match test[{}].output.\nExpected {:?}\nActual {:?}", index, expected_image, computed_image);
                     message_items.push(s);
