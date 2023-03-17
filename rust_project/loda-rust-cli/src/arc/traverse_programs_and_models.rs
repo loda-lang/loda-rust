@@ -1274,14 +1274,14 @@ impl BatchPlan {
                 pb.inc(1);
             }
     
-            let model: arc_json_model::Model = model_item.borrow().model.clone();
+            let task: Task = model_item.borrow().task.clone();
             if verbose {
-                let number_of_train_pairs: usize = model.train().len();
-                let number_of_test_pairs: usize = model.test().len();
-                pb.println(format!("puzzle: {} train: {} test: {}", model.id().identifier(), number_of_train_pairs, number_of_test_pairs));
+                let count_train: usize = task.count_train();
+                let count_test: usize = task.count_test();
+                pb.println(format!("puzzle: {} train: {} test: {}", task.id, count_train, count_test));
             }
 
-            let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
+            let instance: RunWithProgram = RunWithProgram::new_work_task(task, verify_test_output);
 
             let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(self.scheduled_program_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
