@@ -194,13 +194,6 @@ impl Model {
         Ok(model)
     }
     
-    #[allow(dead_code)]
-    pub fn load(name: &str, arc_repository_data: &Path) -> anyhow::Result<Model> {
-        let filename_json = format!("{}.json", name);
-        let path = arc_repository_data.join(filename_json);
-        Self::load_with_json_file(&path)
-    }
-
     pub fn load_with_json_file(json_file: &Path) -> anyhow::Result<Model> {
         let json: String = match fs::read_to_string(json_file) {
             Ok(value) => value,
@@ -264,7 +257,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30001_model_load() -> anyhow::Result<()> {
+    fn test_30001_model_load_with_json_file() -> anyhow::Result<()> {
         // Arrange
         let json: String = read_testdata("4258a5f9")?;
         let tempdir = tempfile::tempdir().unwrap();
@@ -274,7 +267,7 @@ mod tests {
         fs::write(&path, &json)?;
 
         // Act
-        let model: Model = Model::load("hello", &basedir)?;
+        let model: Model = Model::load_with_json_file(&path)?;
 
         // Assert
         assert_eq!(model.train.len(), 2);
