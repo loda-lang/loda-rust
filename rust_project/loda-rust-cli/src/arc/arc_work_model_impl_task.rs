@@ -15,6 +15,12 @@ enum RulePriority {
 }
 
 impl arc_work_model::Task {
+    fn update_input_properties_for_all_pairs(&mut self) {
+        for pair in &mut self.pairs {
+            pair.input.update_input_properties();
+        }
+    }
+
     fn update_label_set_intersection(&mut self) {
         let mut label_set = LabelSet::new();
         let mut is_first = true;
@@ -269,12 +275,7 @@ impl arc_work_model::Task {
     }
 
     pub fn assign_labels(&mut self) -> anyhow::Result<()> {
-        for pair in &mut self.pairs {
-            if pair.pair_type == PairType::Test {
-                // continue;
-            }
-            pair.input.update_input_properties();
-        }
+        self.update_input_properties_for_all_pairs();
         self.update_input_properties_intersection();
         self.assign_labels_related_to_removal_histogram();
         self.assign_labels_related_to_input_histogram_intersection();
