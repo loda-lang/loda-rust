@@ -1,15 +1,21 @@
 use super::Image;
 
 pub trait ImageRotate {
+    /// Rotate clockwise (CW)
     fn rotate_cw(&self) -> anyhow::Result<Image>;
+
+    /// Rotate counter clockwise (CCW)
     fn rotate_ccw(&self) -> anyhow::Result<Image>;
+
+    /// Rotate by 90 degrees in any direction
     fn rotate(&self, direction: i8) -> anyhow::Result<Image>;
 }
 
 impl ImageRotate for Image {
     fn rotate_cw(&self) -> anyhow::Result<Image> {
-        if self.is_empty() {
-            return Ok(Image::empty());
+        if self.width() <= 1 && self.height() <= 1 {
+            // No point in rotating an empty image or a 1x1 image.
+            return Ok(self.clone());
         }
         let x_max: i32 = (self.width() as i32) - 1;
         let y_max: i32 = (self.height() as i32) - 1;
@@ -142,6 +148,32 @@ mod tests {
 
         // Assert
         let expected: Image = input.clone();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10004_rotate_cw_single_pixel() {
+        // Arrange
+        let input: Image = Image::try_create(1, 1, vec![42]).expect("image");
+
+        // Act
+        let actual: Image = input.rotate_cw().expect("image");
+
+        // Assert
+        let expected: Image = Image::try_create(1, 1, vec![42]).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10005_rotate_cw_empty() {
+        // Arrange
+        let input: Image = Image::empty();
+
+        // Act
+        let actual: Image = input.rotate_cw().expect("image");
+
+        // Assert
+        let expected: Image = Image::empty();
         assert_eq!(actual, expected);
     }
 
