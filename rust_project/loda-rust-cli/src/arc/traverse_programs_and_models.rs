@@ -37,7 +37,7 @@ static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 /// Thus the limit is several minutes shorter so we are sure that the executable has stopped.
 static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = ((23 * 60) + 30) * 60;
 
-static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 1;
+static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 2;
 
 pub struct TraverseProgramsAndModels {
     config: Config,
