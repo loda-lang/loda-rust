@@ -252,11 +252,8 @@ impl TraverseProgramsAndModels {
                     continue;
                 }
             };
-            // TODO: move ModelItem.id into Task.id
-            // TODO: move ModelItem.model into Task.json_task
             let instance = ModelItem {
                 id: ModelItemId::Path { path: path.clone() },
-                model,
                 task,
             };
             let item = Rc::new(RefCell::new(instance));
@@ -1581,9 +1578,6 @@ impl ModelItemId {
 #[derive(Clone, Debug)]
 struct ModelItem {
     id: ModelItemId,
-    model: arc_json_model::Model,
-    // It's costly to convert the json representation to image over and over. Do it once.
-    // TODO: convert model to images, LabelSet several places in the model
     task: Task,
 }
 
