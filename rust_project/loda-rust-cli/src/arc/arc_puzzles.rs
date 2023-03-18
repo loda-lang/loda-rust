@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::arc_json_model::{Task, GridToImage, ImagePair};
+    use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model;
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, ImageResize};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
@@ -228,149 +228,130 @@ mod tests {
     }
 
     #[test]
-    fn test_60000_puzzle_63613498() -> anyhow::Result<()> {
-        let model: Task = Task::load_testdata("63613498").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        // Extract needle
-        let mut needle: Image = Image::zero(3, 3);
-        let center_pixel_color: u8 = input.get(1, 1).unwrap_or(255);
-        for y in 0..3i32 {
-            for x in 0..3i32 {
-                let pixel_value: u8 = input.get(x, y).unwrap_or(255);
-                let mut mask_value: u8 = 0;
-                if pixel_value == center_pixel_color {
-                    mask_value = 1;
-                }
-                match needle.set(x, y, mask_value) {
-                    Some(()) => {},
-                    None => {
-                        return Err(anyhow::anyhow!("Unable to set pixel ({}, {}) inside the needle bitmap", x, y));
+    fn test_60000_puzzle_63613498() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            // Extract needle
+            let mut needle: Image = Image::zero(3, 3);
+            let center_pixel_color: u8 = input.get(1, 1).unwrap_or(255);
+            for y in 0..3i32 {
+                for x in 0..3i32 {
+                    let pixel_value: u8 = input.get(x, y).unwrap_or(255);
+                    let mut mask_value: u8 = 0;
+                    if pixel_value == center_pixel_color {
+                        mask_value = 1;
+                    }
+                    match needle.set(x, y, mask_value) {
+                        Some(()) => {},
+                        None => {
+                            return Err(anyhow::anyhow!("Unable to set pixel ({}, {}) inside the needle bitmap", x, y));
+                        }
                     }
                 }
             }
-        }
 
-        // Clear the needle area from the search area
-        let mut search_area: Image = input.clone();
-        for y in 0..4i32 {
-            for x in 0..4i32 {
-                match search_area.set(x, y, 0) {
-                    Some(()) => {},
-                    None => {
-                        return Err(anyhow::anyhow!("Unable to set pixel ({}, {}) inside the search area", x, y));
+            // Clear the needle area from the search area
+            let mut search_area: Image = input.clone();
+            for y in 0..4i32 {
+                for x in 0..4i32 {
+                    match search_area.set(x, y, 0) {
+                        Some(()) => {},
+                        None => {
+                            return Err(anyhow::anyhow!("Unable to set pixel ({}, {}) inside the search area", x, y));
+                        }
                     }
                 }
             }
-        }
-        // println!("needle: {:?}", needle);
-        // println!("search area: {:?}", search_area);
+            // println!("needle: {:?}", needle);
+            // println!("search area: {:?}", search_area);
 
-        // Find the pattern
-        let mut optional_position: Option<(u8, u8)> = None;
-        for color in 1..=255u8 {
-            let needle_with_color: Image = needle.replace_color(1, color)?;
-            optional_position = search_area.find_exact(&needle_with_color).expect("some position");
-            if optional_position == None {
-                continue;
-            }
-            break;
-        }
-        let position: (u8, u8) = match optional_position {
-            Some(value) => value,
-            None => {
-                return Err(anyhow::anyhow!("Didn't find needle inside the search area"));
-            }
-        };
-        // println!("position: {:?}", position);
-
-        // Clear color of the found pattern
-        let mut result_bitmap: Image = input.clone();
-        for y in 0..3i32 {
-            for x in 0..3i32 {
-                let xx = x + (position.0 as i32);
-                let yy = y + (position.1 as i32);
-                let pixel_value: u8 = needle.get(x, y).unwrap_or(255);
-                if pixel_value == 0 {
+            // Find the pattern
+            let mut optional_position: Option<(u8, u8)> = None;
+            for color in 1..=255u8 {
+                let needle_with_color: Image = needle.replace_color(1, color)?;
+                optional_position = search_area.find_exact(&needle_with_color).expect("some position");
+                if optional_position == None {
                     continue;
                 }
-                match result_bitmap.set(xx, yy, 5) {
+                break;
+            }
+            let position: (u8, u8) = match optional_position {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Didn't find needle inside the search area"));
+                }
+            };
+            // println!("position: {:?}", position);
+
+            // Clear color of the found pattern
+            let mut result_bitmap: Image = input.clone();
+            for y in 0..3i32 {
+                for x in 0..3i32 {
+                    let xx = x + (position.0 as i32);
+                    let yy = y + (position.1 as i32);
+                    let pixel_value: u8 = needle.get(x, y).unwrap_or(255);
+                    if pixel_value == 0 {
+                        continue;
+                    }
+                    match result_bitmap.set(xx, yy, 5) {
+                        Some(()) => {},
+                        None => {
+                            return Err(anyhow::anyhow!("Unable to set pixel ({}, {}) in the result_bitmap", x, y));
+                        }
+                    }
+                }
+            }
+            Ok(result_bitmap)
+        };
+        let result: String = solution.run("63613498").expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_70000_puzzle_cdecee7f() {
+        let solution: SolutionSimple = |data| {
+            let input = data.image;
+            let background_pixel_color: u8 = input.most_popular_color().expect("pixel");
+
+            // Traverse columns
+            let mut stack: Vec<u8> = vec!();
+            for x in 0..input.width() {
+                // Take foreground pixels that is different than the background color, and append the foreground pixel to the stack
+                for y in 0..input.height() {
+                    let pixel_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
+                    if pixel_value != background_pixel_color {
+                        stack.push(pixel_value);
+                    }
+                }
+            }
+            // Padding to 9 items
+            while stack.len() < 9 {
+                stack.push(0);
+            }
+    
+            // Transfer values from the 9 element stack to the 3x3 bitmap
+            let mut result_bitmap: Image = Image::zero(3, 3);
+            for (index, pixel_value) in stack.iter().enumerate() {
+                let y: usize = index / 3;
+                let mut x: usize = index % 3;
+                if y == 1 {
+                    // The middle row is reversed
+                    x = 2 - x;
+                }
+                let set_x: i32 = x as i32;
+                let set_y: i32 = y as i32;
+                match result_bitmap.set(set_x, set_y, *pixel_value) {
                     Some(()) => {},
                     None => {
                         return Err(anyhow::anyhow!("Unable to set pixel ({}, {}) in the result_bitmap", x, y));
                     }
                 }
             }
-        }
 
-        assert_eq!(result_bitmap, output);
-        Ok(())
-    }
-
-    #[test]
-    fn test_70000_puzzle_cdecee7f() -> anyhow::Result<()> {
-        let model: Task = Task::load_testdata("cdecee7f").expect("model");
-        assert_eq!(model.train().len(), 3);
-        assert_eq!(model.test().len(), 1);
-
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
-        // let input: Image = model.train()[1].input().to_image().expect("image");
-        // let output: Image = model.train()[1].output().to_image().expect("image");
-        // let input: Image = model.train()[2].input().to_image().expect("image");
-        // let output: Image = model.train()[2].output().to_image().expect("image");
-        // let input: Image = model.test()[0].input().to_image().expect("image");
-        // let output: Image = model.test()[0].output().to_image().expect("image");
-
-        let background_pixel_color: u8 = input.most_popular_color().expect("pixel");
-
-        // Traverse columns
-        let mut stack: Vec<u8> = vec!();
-        for x in 0..input.width() {
-            // Take foreground pixels that is different than the background color, and append the foreground pixel to the stack
-            for y in 0..input.height() {
-                let pixel_value: u8 = input.get(x as i32, y as i32).unwrap_or(255);
-                if pixel_value != background_pixel_color {
-                    stack.push(pixel_value);
-                }
-            }
-        }
-        // Padding to 9 items
-        while stack.len() < 9 {
-            stack.push(0);
-        }
-
-        // Transfer values from the 9 element stack to the 3x3 bitmap
-        let mut result_bitmap: Image = Image::zero(3, 3);
-        for (index, pixel_value) in stack.iter().enumerate() {
-            let y: usize = index / 3;
-            let mut x: usize = index % 3;
-            if y == 1 {
-                // The middle row is reversed
-                x = 2 - x;
-            }
-            let set_x: i32 = x as i32;
-            let set_y: i32 = y as i32;
-            match result_bitmap.set(set_x, set_y, *pixel_value) {
-                Some(()) => {},
-                None => {
-                    return Err(anyhow::anyhow!("Unable to set pixel ({}, {}) in the result_bitmap", x, y));
-                }
-            }
-        }
-
-        assert_eq!(result_bitmap, output);
-        Ok(())
+            Ok(result_bitmap)
+        };
+        let result: String = solution.run("cdecee7f").expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
