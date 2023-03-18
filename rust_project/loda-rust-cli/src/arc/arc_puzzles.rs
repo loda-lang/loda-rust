@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::arc::arc_json_model::{Model, GridToImage, ImagePair};
+    use crate::arc::arc_work_model;
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, ImageResize};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder};
@@ -20,7 +21,8 @@ mod tests {
     impl RunWithTestdata for SolutionSimple {
         fn run(self, task_name: &str) -> anyhow::Result<String> {
             let model: Model = Model::load_testdata(task_name)?;
-            let instance: RunWithProgram = RunWithProgram::new(model, true)?;
+            let task = arc_work_model::Task::try_from(&model)?;
+            let instance: RunWithProgram = RunWithProgram::new_work_task(task, true);
             let result: RunWithProgramResult = instance.run_solution(self)?;
             let mut string: String = format!("{} {}", result.count_train_correct(), result.count_test_correct());
             let messages: String = result.messages();
@@ -33,7 +35,8 @@ mod tests {
 
     fn run_simple(task_name: &str, program: &str) -> anyhow::Result<String> {
         let model: Model = Model::load_testdata(task_name)?;
-        let instance: RunWithProgram = RunWithProgram::new(model, true)?;
+        let task = arc_work_model::Task::try_from(&model)?;
+        let instance: RunWithProgram = RunWithProgram::new_work_task(task, true);
         let result: RunWithProgramResult = instance.run_simple(program)?;
         let mut string: String = format!("{} {}", result.count_train_correct(), result.count_test_correct());
         let messages: String = result.messages();
@@ -45,7 +48,8 @@ mod tests {
 
     fn run_advanced(task_name: &str, program: &str) -> anyhow::Result<String> {
         let model: Model = Model::load_testdata(task_name)?;
-        let instance: RunWithProgram = RunWithProgram::new(model, true)?;
+        let task = arc_work_model::Task::try_from(&model)?;
+        let instance: RunWithProgram = RunWithProgram::new_work_task(task, true);
         let result: RunWithProgramResult = instance.run_advanced(program)?;
         let mut string: String = format!("{} {}", result.count_train_correct(), result.count_test_correct());
         let messages: String = result.messages();

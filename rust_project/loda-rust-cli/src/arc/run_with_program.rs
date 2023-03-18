@@ -66,14 +66,6 @@ pub struct RunWithProgram {
 }
 
 impl RunWithProgram {
-    pub fn new(model: arc_json_model::Model, verify_test_output: bool) -> anyhow::Result<Self> {
-        let task = arc_work_model::Task::try_from(&model)?;
-        Ok(Self {
-            verify_test_output,
-            task,
-        })
-    }
-
     pub fn new_work_task(task: arc_work_model::Task, verify_test_output: bool) -> Self {
         Self {
             verify_test_output,
