@@ -392,6 +392,12 @@ impl arc_work_model::Task {
         Ok(())
     }
 
+    /// Returns an array of tuples. Each tuple is a priority and a value.
+    /// 
+    /// These functions are nearly identical, and I think they can be merged.
+    /// `output_size_rules_for()` 
+    /// `predict_output_size_for_output_property_and_input()`
+    /// so it's the same computation that is taking place.
     fn output_size_rules_for(&self, property_output: &PropertyOutput) -> Vec<(RulePriority, String)> {
         let mut rules: Vec<(RulePriority, String)> = vec!();
 
@@ -481,6 +487,11 @@ impl arc_work_model::Task {
     }
 
     /// Returns an array of tuples. Each tuple is a priority and a value.
+    /// 
+    /// These functions are nearly identical, and I think they can be merged.
+    /// `output_size_rules_for()` 
+    /// `predict_output_size_for_output_property_and_input()`
+    /// so it's the same computation that is taking place.
     fn predict_output_size_for_output_property_and_input(&self, property_output: &PropertyOutput, buffer_input: &Input) -> Vec<(RulePriority, u8)> {
         let mut rules: Vec<(RulePriority, u8)> = vec!();
 
@@ -602,11 +613,13 @@ impl arc_work_model::Task {
                 }
             };
 
-            // TODO: compute confidence score, if there are many advanced items that agree on a value, then it may be more likely
+            // Future experiments to do. 
+            // Instead of picking the first item, then compute confidence score all the items.
+            // if there are many advanced items that agree on a value, then it may be more likely
             // if there is one simple rule, and no advanced rules, then it may be the most likely
             // if all the rules agree on a single value, then it may be the most likely.
-            // If there is a `IsSquare` label, then prefer the square above other choices
-            // let strings: Vec<String> = rules.iter().map(|(_prio,value)| format!("{}", value)).collect();
+            // If there is an `IsSquare` label, then prefer the square above other choices
+            // If there is an `Aspect ratio` label, then prefer that aspect ratio above other choices
 
             match output_property {
                 PropertyOutput::OutputWidth => { found_width = Some(value) },

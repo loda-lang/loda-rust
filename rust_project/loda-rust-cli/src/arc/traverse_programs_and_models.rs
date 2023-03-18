@@ -131,6 +131,11 @@ impl TraverseProgramsAndModels {
                 // Self::inspect_task(buffer_task)?;
                 count_predict_incorrect_task += 1;
             }
+
+            // If all the pairs had their output size predicted correctly,
+            // then save the predicted output sizes on the pair instances.
+            // If one or more pairs were incorrectly predicted, 
+            // then don't save the predicted output size on the pair instances.
         }
         {
             let percent: usize = (100 * count_predict_correct) / (count_predict_correct + count_predict_incorrect).max(1);
