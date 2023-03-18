@@ -71,30 +71,12 @@ impl arc_work_model::Task {
         self.input_properties_intersection = input_properties_intersection;
     }
 
-    fn assign_labels_input_size_output_size(&mut self) {
+    fn assign_labels_for_output_for_train(&mut self) {
         for pair in &mut self.pairs {
-            if pair.pair_type == PairType::Test {
+            if pair.pair_type != PairType::Train {
                 continue;
             }
-
-            {
-                let width_output: u8 = pair.output.image.width();
-                let label = Label::OutputPropertyIsConstant { 
-                    output: PropertyOutput::OutputWidth, 
-                    value: width_output
-                };
-                pair.label_set.insert(label);
-            }
-
-            {
-                let height_output: u8 = pair.output.image.height();
-                let label = Label::OutputPropertyIsConstant { 
-                    output: PropertyOutput::OutputHeight, 
-                    value: height_output
-                };
-                pair.label_set.insert(label);
-            }
-
+            pair.assign_labels_for_output();
         }
     }
 
@@ -280,7 +262,7 @@ impl arc_work_model::Task {
         self.assign_labels_related_to_removal_histogram();
         self.assign_labels_related_to_input_histogram_intersection();
 
-        self.assign_labels_input_size_output_size();
+        self.assign_labels_for_output_for_train();
 
 
         let input_properties: [PropertyInput; 24] = [

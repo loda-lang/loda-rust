@@ -49,9 +49,12 @@ pub enum Label {
     OutputPropertyIsInputPropertyDividedBySomeScale { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsConstant { output: PropertyOutput, value: u8 },
 
+    OutputImageIsSymmetricX,
+    OutputImageIsSymmetricY,
+
     // Ideas for more
-    // OutputImageIsPresentInsideInputImage
-    // InputImageIsPresentInsideOutputImage
+    // OutputImageIsPresentExactlyOnceInsideInputImage
+    // InputImageIsPresentExactlyOnceInsideOutputImage
     // OutputPropertySamePixelValuesAsInput { count_same: u16, count_different: u16 },
     // OutputSizeIsInputSizeAddConstant
     // OutputSizeIsInputSizeMultipliedByWithPadding
