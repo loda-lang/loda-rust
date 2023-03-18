@@ -574,7 +574,7 @@ impl TraverseProgramsAndModels {
                 pb.inc(1);
             }
 
-            let instance = RunWithProgram::new_work_task(model_item.task.clone(), verify_test_output);
+            let instance = RunWithProgram::new(model_item.task.clone(), verify_test_output);
 
             let result: RunWithProgramResult;
             match program_item.borrow().program_type {
@@ -734,7 +734,7 @@ impl TraverseProgramsAndModels {
                 }
             };
     
-            let instance: RunWithProgram = RunWithProgram::new_work_task(model_item.task.clone(), verify_test_output);
+            let instance: RunWithProgram = RunWithProgram::new(model_item.task.clone(), verify_test_output);
             let count_train: usize = model_item.task.count_train();
             let count_test: usize = model_item.task.count_test();
 
@@ -832,7 +832,7 @@ impl TraverseProgramsAndModels {
             let task: Task = model_item.borrow().task.clone();
             let count_train: usize = task.count_train();
             let count_test: usize = task.count_test();
-            let instance: RunWithProgram = RunWithProgram::new_work_task(task.clone(), verify_test_output);
+            let instance: RunWithProgram = RunWithProgram::new(task.clone(), verify_test_output);
     
             let pb2 = multi_progress.insert_after(&pb, ProgressBar::new( self.program_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
@@ -1281,7 +1281,7 @@ impl BatchPlan {
                 pb.println(format!("puzzle: {} train: {} test: {}", task.id, count_train, count_test));
             }
 
-            let instance: RunWithProgram = RunWithProgram::new_work_task(task, verify_test_output);
+            let instance: RunWithProgram = RunWithProgram::new(task, verify_test_output);
 
             let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(self.scheduled_program_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());

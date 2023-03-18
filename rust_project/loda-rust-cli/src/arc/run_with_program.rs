@@ -66,7 +66,7 @@ pub struct RunWithProgram {
 }
 
 impl RunWithProgram {
-    pub fn new_work_task(task: arc_work_model::Task, verify_test_output: bool) -> Self {
+    pub fn new(task: arc_work_model::Task, verify_test_output: bool) -> Self {
         Self {
             verify_test_output,
             task,
