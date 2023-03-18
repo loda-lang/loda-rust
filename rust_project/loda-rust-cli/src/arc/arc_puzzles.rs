@@ -2168,17 +2168,7 @@ mod tests {
     #[test]
     fn test_520000_puzzle_49d1d64f() {
         let solution: SolutionSimple = |data| {
-            let input = data.image;
-            let left: Image = input.left_columns(1)?;
-            let top: Image = input.top_rows(1)?;
-            let bottom: Image = input.bottom_rows(1)?;
-            let right: Image = input.right_columns(1)?;
-            let corner: Image = Image::color(1, 1, 0);
-            let a: Image = corner.vjoin(left)?.vjoin(corner.clone())?;
-            let b: Image = top.vjoin(input)?.vjoin(bottom)?;
-            let c: Image = corner.vjoin(right)?.vjoin(corner.clone())?;
-            let result_image: Image = a.hjoin(b)?.hjoin(c)?;
-            Ok(result_image)
+            data.image.border_grow(1, 0)
         };
         let result: String = solution.run("49d1d64f").expect("String");
         assert_eq!(result, "3 1");
