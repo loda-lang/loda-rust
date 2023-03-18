@@ -184,13 +184,13 @@ impl Task {
     pub fn load_testdata(name: &str) -> anyhow::Result<Task> {
         let custom_identifier = format!("{}", name);
         let json: String = read_testdata(name)?;
-        let deserialize_model: DeserializeTask = serde_json::from_str(&json)?;
-        let model = Task {
+        let deserialize_task: DeserializeTask = serde_json::from_str(&json)?;
+        let task = Task {
             id: TaskId::Custom { identifier: custom_identifier },
-            train: deserialize_model.train,
-            test: deserialize_model.test,
+            train: deserialize_task.train,
+            test: deserialize_task.test,
         };
-        Ok(model)
+        Ok(task)
     }
     
     pub fn load_with_json_file(json_file: &Path) -> anyhow::Result<Task> {
@@ -200,11 +200,11 @@ impl Task {
                 return Err(anyhow::anyhow!("cannot load file, error: {:?} path: {:?}", error, json_file));
             }
         };
-        let deserialize_model: DeserializeTask = serde_json::from_str(&json)?;
+        let deserialize_task: DeserializeTask = serde_json::from_str(&json)?;
         let task = Task {
             id: TaskId::Path { path: PathBuf::from(json_file) },
-            train: deserialize_model.train,
-            test: deserialize_model.test,
+            train: deserialize_task.train,
+            test: deserialize_task.test,
         };
         Ok(task)
     }

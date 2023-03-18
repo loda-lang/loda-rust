@@ -170,15 +170,15 @@ mod tests {
         ];
         let _xoutput: Image = Image::try_create(8, 7, output_pixels).expect("image");
 
-        // let model: Model = Model::load_testdata("ea959feb").expect("model");
-        // let model: Model = Model::load_testdata("dbc1a6ce").expect("model");
-        // let model: Model = Model::load_testdata("72ca375d").expect("model");
-        // let model: Model = Model::load_testdata("80af3007").expect("model");
-        // let model: Model = Model::load_testdata("1f85a75f").expect("model");
-        // let model: Model = Model::load_testdata("d687bc17").expect("model");
-        let model: arc_json_model::Task = arc_json_model::Task::load_testdata("6b9890af").expect("model");
-        let input: Image = model.train()[0].input().to_image().expect("image");
-        let output: Image = model.train()[0].output().to_image().expect("image");
+        // let task: arc_json_model::Task = arc_json_model::Task::load_testdata("ea959feb").expect("task");
+        // let task: arc_json_model::Task = arc_json_model::Task::load_testdata("dbc1a6ce").expect("task");
+        // let task: arc_json_model::Task = arc_json_model::Task::load_testdata("72ca375d").expect("task");
+        // let task: arc_json_model::Task = arc_json_model::Task::load_testdata("80af3007").expect("task");
+        // let task: arc_json_model::Task = arc_json_model::Task::load_testdata("1f85a75f").expect("task");
+        // let task: arc_json_model::Task = arc_json_model::Task::load_testdata("d687bc17").expect("task");
+        let task: arc_json_model::Task = arc_json_model::Task::load_testdata("6b9890af").expect("task");
+        let input: Image = task.train()[0].input().to_image().expect("image");
+        let output: Image = task.train()[0].output().to_image().expect("image");
 
 
         // populate bloomfilter for input

@@ -20,8 +20,8 @@ mod tests {
 
     impl RunWithTestdata for SolutionSimple {
         fn run(self, task_name: &str) -> anyhow::Result<String> {
-            let model: Task = Task::load_testdata(task_name)?;
-            let task = arc_work_model::Task::try_from(&model)?;
+            let json_task: Task = Task::load_testdata(task_name)?;
+            let task = arc_work_model::Task::try_from(&json_task)?;
             let instance: RunWithProgram = RunWithProgram::new(task, true);
             let result: RunWithProgramResult = instance.run_solution(self)?;
             let mut string: String = format!("{} {}", result.count_train_correct(), result.count_test_correct());
@@ -34,8 +34,8 @@ mod tests {
     }
 
     fn run_simple(task_name: &str, program: &str) -> anyhow::Result<String> {
-        let model: Task = Task::load_testdata(task_name)?;
-        let task = arc_work_model::Task::try_from(&model)?;
+        let json_task: Task = Task::load_testdata(task_name)?;
+        let task = arc_work_model::Task::try_from(&json_task)?;
         let instance: RunWithProgram = RunWithProgram::new(task, true);
         let result: RunWithProgramResult = instance.run_simple(program)?;
         let mut string: String = format!("{} {}", result.count_train_correct(), result.count_test_correct());
@@ -47,8 +47,8 @@ mod tests {
     }
 
     fn run_advanced(task_name: &str, program: &str) -> anyhow::Result<String> {
-        let model: Task = Task::load_testdata(task_name)?;
-        let task = arc_work_model::Task::try_from(&model)?;
+        let json_task: Task = Task::load_testdata(task_name)?;
+        let task = arc_work_model::Task::try_from(&json_task)?;
         let instance: RunWithProgram = RunWithProgram::new(task, true);
         let result: RunWithProgramResult = instance.run_advanced(program)?;
         let mut string: String = format!("{} {}", result.count_train_correct(), result.count_test_correct());

@@ -6,8 +6,8 @@ use std::collections::HashMap;
 impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
     type Error = anyhow::Error;
 
-    fn try_from(model: &arc_json_model::Task) -> Result<Self, Self::Error> {
-        let task_id: String = model.id().identifier();
+    fn try_from(json_task: &arc_json_model::Task) -> Result<Self, Self::Error> {
+        let task_id: String = json_task.id().identifier();
         let mut result_pairs: Vec<arc_work_model::Pair> = vec!();
 
         let mut input_histogram_union: Histogram = Histogram::new();
@@ -17,7 +17,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
         let mut removal_histogram_intersection: Histogram = Histogram::new();
         let mut insert_histogram_intersection: Histogram = Histogram::new();
         {
-            let pairs: Vec<arc_json_model::ImagePair> = model.images_train()?;
+            let pairs: Vec<arc_json_model::ImagePair> = json_task.images_train()?;
             for (index, pair) in pairs.iter().enumerate() {
                 let histogram_input: Histogram = pair.input.histogram_all();
                 let histogram_output: Histogram = pair.output.histogram_all();
@@ -66,7 +66,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
             }
         }
         {
-            let pairs: Vec<arc_json_model::ImagePair> = model.images_test()?;
+            let pairs: Vec<arc_json_model::ImagePair> = json_task.images_test()?;
             for (index, pair) in pairs.iter().enumerate() {
                 let histogram_input: Histogram = pair.input.histogram_all();
                 let histogram_output: Histogram = pair.output.histogram_all();
