@@ -148,6 +148,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn inspect_undecided(buffer_task_vec: &Vec<Task>) -> anyhow::Result<()> {
         let mut count = 0;
         for buffer_task in buffer_task_vec {
@@ -166,6 +167,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn inspect_decided(buffer_task_vec: &Vec<Task>) -> anyhow::Result<()> {
         let mut count = 0;
         for buffer_task in buffer_task_vec {
@@ -184,6 +186,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn inspect_task_id(buffer_task_vec: &Vec<Task>, task_id: &str) -> anyhow::Result<()> {
         for buffer_task in buffer_task_vec {
             if buffer_task.id == task_id {
