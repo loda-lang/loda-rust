@@ -18,9 +18,10 @@ pub struct Input {
     /// Computed values such as: number of unique colors, width of biggest object.
     pub input_properties: HashMap<PropertyInput, u8>,
 
-    // TODO: label_set pending to be computed
-    // TODO: label_set that cannot be computed
-    // TODO: rerun analyze until all pending properties have been computed
+    // Future experiments to do.
+    // State keeping of the input_properties. 
+    // Computed, NotYetComputed, CannotBeComputed, DependingOnAnotherProperty.
+    // Rerun analytics until all pending properties have been computed
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -329,9 +329,14 @@ impl arc_work_model::Task {
                         continue;
                     }
                 };
-                // TODO: skip, if input_property is not yet computed
-                // TODO: skip, if input_property is cannot be computed
-                // TODO: save the computed input_property in HashSet
+
+                // Future experiments to do.
+                // Currently the input_properties are populated once.
+                // There may be input properties that depend on other input properties being fully computed beforehand.
+                // There may be input properties that depends on the intersection of whats in common between all the train pairs.
+                // skip, if input_property is not yet computed
+                // skip, if input_property is cannot be computed
+                // save the computed input_property in HashSet
 
                 for output_property in &output_properties {
                     let output_value: u8 = match output_property {
@@ -342,9 +347,12 @@ impl arc_work_model::Task {
                         PropertyOutput::OutputWidth => pair.input.image.width(),
                         PropertyOutput::OutputHeight => pair.input.image.height(),
                     };
-                    // TODO: skip, if output_property is not yet computed
-                    // TODO: skip, if output_property is cannot be computed
-                    // TODO: save the computed output_property in HashSet
+
+                    // Future experiments to do.
+                    // Currently the output_properties are populated once.
+                    // skip, if output_property is not yet computed
+                    // skip, if output_property is cannot be computed
+                    // save the computed output_property in HashSet
     
                     let is_same = input_value == output_value;
                     if is_same {

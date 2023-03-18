@@ -229,7 +229,6 @@ mod tests {
 
     #[test]
     fn test_60000_puzzle_63613498() -> anyhow::Result<()> {
-        // TODO: port to LODA
         let model: Task = Task::load_testdata("63613498").expect("model");
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
@@ -320,7 +319,6 @@ mod tests {
 
     #[test]
     fn test_70000_puzzle_cdecee7f() -> anyhow::Result<()> {
-        // TODO: port to LODA
         let model: Task = Task::load_testdata("cdecee7f").expect("model");
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
