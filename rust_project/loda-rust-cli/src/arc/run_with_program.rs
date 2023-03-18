@@ -208,15 +208,15 @@ impl RunWithProgram {
             let index: usize = count_train;
             // memory[x*10+100] = train[x].input
             {
-                let image_number_uint: BigUint = pair.input.image.to_number().expect("pair.input image to number");
-                let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
+                let image_number_uint: BigUint = pair.input.image.to_number().context("pair.input image to number")?;
+                let image_number_int: BigInt = image_number_uint.to_bigint().context("pair.input BigUint to BigInt")?;
                 state.set_u64((index * 10 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
             }
 
             // memory[x*10+101] = train[x].output
             {
-                let image_number_uint: BigUint = pair.output.image.to_number().expect("pair.output image to number");
-                let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.output BigUint to BigInt");
+                let image_number_uint: BigUint = pair.output.image.to_number().context("pair.output image to number")?;
+                let image_number_int: BigInt = image_number_uint.to_bigint().context("pair.output BigUint to BigInt")?;
                 state.set_u64((index * 10 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
             }
 
@@ -233,8 +233,8 @@ impl RunWithProgram {
             let index: usize = count_train + count_test;
             // memory[(count_train + x)*10+100] = test[x].input
             {
-                let image_number_uint: BigUint = pair.input.image.to_number().expect("pair.input image to number");
-                let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
+                let image_number_uint: BigUint = pair.input.image.to_number().context("pair.input image to number")?;
+                let image_number_int: BigInt = image_number_uint.to_bigint().context("pair.input BigUint to BigInt")?;
                 state.set_u64((index * 10 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
             }
 
@@ -252,15 +252,15 @@ impl RunWithProgram {
         let count_all: usize = count_train + count_test;
 
         // memory[97] = length of "train" vector
-        let count_train_bigint: BigInt = count_train.to_bigint().expect("count_train.to_bigint");
+        let count_train_bigint: BigInt = count_train.to_bigint().context("count_train.to_bigint")?;
         state.set_u64(97, count_train_bigint).context("set_u64 count_train_bigint")?;
 
         // memory[98] = length of "test" vector
-        let count_test_bigint: BigInt = count_test.to_bigint().expect("count_test.to_bigint");
+        let count_test_bigint: BigInt = count_test.to_bigint().context("count_test.to_bigint")?;
         state.set_u64(98, count_test_bigint).context("set_u64 count_test_bigint")?;
 
         // memory[99] = length of "train"+"test" vectors
-        let count_all_bigint: BigInt = count_all.to_bigint().expect("count_all.to_bigint");
+        let count_all_bigint: BigInt = count_all.to_bigint().context("count_all.to_bigint")?;
         state.set_u64(99, count_all_bigint).context("set_u64 count_all_bigint")?;
 
         Ok(())
