@@ -50,7 +50,8 @@ pub enum Label {
     OutputPropertyIsConstant { output: PropertyOutput, value: u8 },
 
     // Ideas for more
-    // OutputImageIsPresentInInputImage
+    // OutputImageIsPresentInsideInputImage
+    // InputImageIsPresentInsideOutputImage
     // OutputPropertySamePixelValuesAsInput { count_same: u16, count_different: u16 },
     // OutputSizeIsInputSizeAddConstant
     // OutputSizeIsInputSizeMultipliedByWithPadding
