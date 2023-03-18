@@ -19,8 +19,9 @@ pub trait ImageSymmetry {
 
 impl ImageSymmetry for Image {
     fn flip_x(&self) -> anyhow::Result<Image> {
-        if self.is_empty() {
-            return Ok(Image::empty());
+        if self.width() <= 1 {
+            // No point in flipping an empty image or a 1xN image.
+            return Ok(self.clone());
         }
         
         let x_max: i32 = (self.width() as i32) - 1;
@@ -90,6 +91,35 @@ mod tests {
         ];
         let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10001_flip_x_oneline() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1,
+            2,
+            3,
+        ];
+        let input: Image = Image::try_create(1, 3, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.flip_x().expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1,
+            2,
+            3,
+        ];
+        let expected: Image = Image::try_create(1, 3, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10002_flip_x_empty() {
+        let actual: Image = Image::empty().flip_x().expect("image");
+        assert_eq!(actual, Image::empty());
     }
 
     #[test]
