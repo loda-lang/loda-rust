@@ -117,21 +117,20 @@ impl fmt::Display for TaskId {
 }
 
 #[derive(Clone, Deserialize, Debug)]
-struct DeserializeModel {
+struct DeserializeTask {
     train: Vec<TaskPair>,
     test: Vec<TaskPair>,
 }
 
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
-pub struct Model {
-    // TODO: rename from `Model` to `Task`, so it's consistent
+pub struct Task {
     id: TaskId,
     train: Vec<TaskPair>,
     test: Vec<TaskPair>,
 }
 
-impl Model {
+impl Task {
     #[allow(dead_code)]
     pub fn id(&self) -> &TaskId {
         &self.id
@@ -182,11 +181,11 @@ impl Model {
     }
 
     #[allow(dead_code)]
-    pub fn load_testdata(name: &str) -> anyhow::Result<Model> {
+    pub fn load_testdata(name: &str) -> anyhow::Result<Task> {
         let custom_identifier = format!("{}", name);
         let json: String = read_testdata(name)?;
-        let deserialize_model: DeserializeModel = serde_json::from_str(&json)?;
-        let model = Model {
+        let deserialize_model: DeserializeTask = serde_json::from_str(&json)?;
+        let model = Task {
             id: TaskId::Custom { identifier: custom_identifier },
             train: deserialize_model.train,
             test: deserialize_model.test,
@@ -194,20 +193,20 @@ impl Model {
         Ok(model)
     }
     
-    pub fn load_with_json_file(json_file: &Path) -> anyhow::Result<Model> {
+    pub fn load_with_json_file(json_file: &Path) -> anyhow::Result<Task> {
         let json: String = match fs::read_to_string(json_file) {
             Ok(value) => value,
             Err(error) => {
                 return Err(anyhow::anyhow!("cannot load file, error: {:?} path: {:?}", error, json_file));
             }
         };
-        let deserialize_model: DeserializeModel = serde_json::from_str(&json)?;
-        let model = Model {
+        let deserialize_model: DeserializeTask = serde_json::from_str(&json)?;
+        let task = Task {
             id: TaskId::Path { path: PathBuf::from(json_file) },
             train: deserialize_model.train,
             test: deserialize_model.test,
         };
-        Ok(model)
+        Ok(task)
     }
 }
 
@@ -248,16 +247,16 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_model_loda_testdata() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("6150a2bd")?;
-        assert_eq!(model.train.len(), 2);
-        assert_eq!(model.test.len(), 1);
-        assert_eq!(model.id.identifier(), "6150a2bd");
+    fn test_30000_task_loda_testdata() -> anyhow::Result<()> {
+        let task: Task = Task::load_testdata("6150a2bd")?;
+        assert_eq!(task.train.len(), 2);
+        assert_eq!(task.test.len(), 1);
+        assert_eq!(task.id.identifier(), "6150a2bd");
         Ok(())
     }
 
     #[test]
-    fn test_30001_model_load_with_json_file() -> anyhow::Result<()> {
+    fn test_30001_task_load_with_json_file() -> anyhow::Result<()> {
         // Arrange
         let json: String = read_testdata("4258a5f9")?;
         let tempdir = tempfile::tempdir().unwrap();
@@ -267,12 +266,12 @@ mod tests {
         fs::write(&path, &json)?;
 
         // Act
-        let model: Model = Model::load_with_json_file(&path)?;
+        let task: Task = Task::load_with_json_file(&path)?;
 
         // Assert
-        assert_eq!(model.train.len(), 2);
-        assert_eq!(model.test.len(), 1);
-        assert_eq!(model.id.identifier(), "hello");
+        assert_eq!(task.train.len(), 2);
+        assert_eq!(task.test.len(), 1);
+        assert_eq!(task.id.identifier(), "hello");
         Ok(())
     }
 }

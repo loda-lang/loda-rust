@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::arc::arc_json_model::{Model, GridToImage, ImagePair};
+    use crate::arc::arc_json_model::{Task, GridToImage, ImagePair};
     use crate::arc::arc_work_model;
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, ImageResize};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
@@ -20,7 +20,7 @@ mod tests {
 
     impl RunWithTestdata for SolutionSimple {
         fn run(self, task_name: &str) -> anyhow::Result<String> {
-            let model: Model = Model::load_testdata(task_name)?;
+            let model: Task = Task::load_testdata(task_name)?;
             let task = arc_work_model::Task::try_from(&model)?;
             let instance: RunWithProgram = RunWithProgram::new(task, true);
             let result: RunWithProgramResult = instance.run_solution(self)?;
@@ -34,7 +34,7 @@ mod tests {
     }
 
     fn run_simple(task_name: &str, program: &str) -> anyhow::Result<String> {
-        let model: Model = Model::load_testdata(task_name)?;
+        let model: Task = Task::load_testdata(task_name)?;
         let task = arc_work_model::Task::try_from(&model)?;
         let instance: RunWithProgram = RunWithProgram::new(task, true);
         let result: RunWithProgramResult = instance.run_simple(program)?;
@@ -47,7 +47,7 @@ mod tests {
     }
 
     fn run_advanced(task_name: &str, program: &str) -> anyhow::Result<String> {
-        let model: Model = Model::load_testdata(task_name)?;
+        let model: Task = Task::load_testdata(task_name)?;
         let task = arc_work_model::Task::try_from(&model)?;
         let instance: RunWithProgram = RunWithProgram::new(task, true);
         let result: RunWithProgramResult = instance.run_advanced(program)?;
@@ -230,7 +230,7 @@ mod tests {
     #[test]
     fn test_60000_puzzle_63613498() -> anyhow::Result<()> {
         // TODO: port to LODA
-        let model: Model = Model::load_testdata("63613498").expect("model");
+        let model: Task = Task::load_testdata("63613498").expect("model");
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
@@ -321,7 +321,7 @@ mod tests {
     #[test]
     fn test_70000_puzzle_cdecee7f() -> anyhow::Result<()> {
         // TODO: port to LODA
-        let model: Model = Model::load_testdata("cdecee7f").expect("model");
+        let model: Task = Task::load_testdata("cdecee7f").expect("model");
         assert_eq!(model.train().len(), 3);
         assert_eq!(model.test().len(), 1);
 
@@ -504,7 +504,7 @@ mod tests {
         // Remove duplicates from palette images.
         // Use color palette images for replacement.
 
-        let model: Model = Model::load_testdata("a79310a0").expect("model");
+        let model: Task = Task::load_testdata("a79310a0").expect("model");
 
         // These images contain 2 colors. Build a mapping from source color to target color
         let train_pairs: Vec<ImagePair> = model.images_train().expect("pairs");
@@ -543,7 +543,7 @@ mod tests {
 
     #[test]
     fn test_100003_puzzle_a79310a0_manual_without_hashmap() {
-        let model: Model = Model::load_testdata("a79310a0").expect("model");
+        let model: Task = Task::load_testdata("a79310a0").expect("model");
 
         // These images contain 2 colors. Build a mapping from source color to target color
         let train_pairs: Vec<ImagePair> = model.images_train().expect("pairs");

@@ -3,10 +3,10 @@ use super::arc_work_model;
 use super::{Image, Histogram, ImageHistogram, LabelSet};
 use std::collections::HashMap;
 
-impl TryFrom<&arc_json_model::Model> for arc_work_model::Task {
+impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
     type Error = anyhow::Error;
 
-    fn try_from(model: &arc_json_model::Model) -> Result<Self, Self::Error> {
+    fn try_from(model: &arc_json_model::Task) -> Result<Self, Self::Error> {
         let task_id: String = model.id().identifier();
         let mut result_pairs: Vec<arc_work_model::Pair> = vec!();
 

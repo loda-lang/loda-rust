@@ -6,7 +6,7 @@ pub trait ModelToHTML {
     fn to_html(&self) -> String;
 }
 
-impl ModelToHTML for arc_json_model::Model {
+impl ModelToHTML for arc_json_model::Task {
     fn to_html(&self) -> String {
         fn format_grid(grid: &arc_json_model::Grid) -> String {
             match grid.to_image() {
