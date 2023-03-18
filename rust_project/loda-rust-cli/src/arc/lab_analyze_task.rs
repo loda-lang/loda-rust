@@ -23,7 +23,7 @@ const DUMP_TO_CONSOLE: bool = false;
 /// Then the pixels may be moved around.
 /// 
 /// If it's mixed, some pixels being flipped, others pixels being rotated, 
-/// Then there may be harder to solve the task.
+/// Then it may be harder to solve the task.
 /// 
 /// It's unclear to me how to use this knowledge to guide the mutations.
 /// Maybe store it in a HashMap, and make it available to `genome.rs` so it can pick wiser mutations. 
