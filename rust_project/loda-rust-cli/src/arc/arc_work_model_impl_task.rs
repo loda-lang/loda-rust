@@ -392,8 +392,8 @@ impl arc_work_model::Task {
         Ok(())
     }
 
-    fn output_size_rules_for(&self, property_output: &PropertyOutput) -> Vec<String> {
-        let mut rules: Vec<String> = vec!();
+    fn output_size_rules_for(&self, property_output: &PropertyOutput) -> Vec<(RulePriority, String)> {
+        let mut rules: Vec<(RulePriority, String)> = vec!();
 
         for label in &self.label_set_intersection {
             match label {
@@ -401,25 +401,29 @@ impl arc_work_model::Task {
                     if output != property_output {
                         continue;
                     }
-                    // TODO: instead of using `a` as prefix to rank the confidence, then use a priority enum.
-                    let s = format!("a {:?} is always {:?}", output, value);
-                    rules.push(s);
+                    let s = format!("{:?} is always {:?}", output, value);
+                    rules.push((RulePriority::Simple, s));
                 },
                 Label::OutputPropertyIsEqualToInputProperty { output, input } => {
                     if output != property_output {
                         continue;
                     }
-                    // TODO: use the same ranking code that is used for computing the predicted output size.
-                    // TODO: instead of using `b` as prefix to rank the confidence, then use a priority enum.
-                    let s = format!("b {:?} = {:?}", output, input);
-                    rules.push(s);
+                    let s = format!("{:?} = {:?}", output, input);
+                    let mut priority = RulePriority::Medium;
+                    if *output == PropertyOutput::OutputWidth && *input == PropertyInput::InputWidth {
+                        priority = RulePriority::Simple;
+                    }
+                    if *output == PropertyOutput::OutputHeight && *input == PropertyInput::InputHeight {
+                        priority = RulePriority::Simple;
+                    }
+                    rules.push((priority, s));
                 },
                 Label::OutputPropertyIsInputPropertyMultipliedBy { output, input, scale } => {
                     if output != property_output {
                         continue;
                     }
-                    let s = format!("c {:?} = {:?} * {}", output, input, scale);
-                    rules.push(s);
+                    let s = format!("{:?} = {:?} * {}", output, input, scale);
+                    rules.push((RulePriority::Advanced, s));
                 },
                 Label::OutputPropertyIsInputPropertyMultipliedByInputSize { output, input } => {
                     if output != property_output {
@@ -429,41 +433,43 @@ impl arc_work_model::Task {
                         PropertyOutput::OutputWidth => "InputWidth",
                         PropertyOutput::OutputHeight => "InputHeight"
                     };
-                    let s = format!("c {:?} = {:?} * {}", output, input, input_name);
-                    rules.push(s);
+                    let s = format!("{:?} = {:?} * {}", output, input, input_name);
+                    rules.push((RulePriority::Advanced, s));
                 },
                 Label::OutputPropertyIsInputPropertyDividedBy { output, input, scale } => {
                     if output != property_output {
                         continue;
                     }
-                    let s = format!("c {:?} = {:?} / {}", output, input, scale);
-                    rules.push(s);
+                    let s = format!("{:?} = {:?} / {}", output, input, scale);
+                    rules.push((RulePriority::Advanced, s));
                 },
                 _ => {}
             }
         }
+
+        // Simplest rules first, Advanced rules last
         rules.sort();
+
         rules
     }
 
     pub fn estimated_output_size(&self) -> String {
-        // TODO: make a fitness function of what combo of labels leads to what output
-        // TODO: loop over all the puzzles and update the scoring of the most significant labels
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
             PropertyOutput::OutputHeight
         ];
         let mut rules_vec: Vec<String> = vec!();
         for output_property in &output_properties {
-            let rules: Vec<String> = self.output_size_rules_for(output_property);
+            let rules: Vec<(RulePriority, String)> = self.output_size_rules_for(output_property);
             if rules.is_empty() {
                 break;
             }
+            let explanations: Vec<String> = rules.iter().map(|(_priority, explanation)| explanation.to_string()).collect();
             let name: &str = match output_property {
                 PropertyOutput::OutputWidth => "width",
                 PropertyOutput::OutputHeight => "height"
             };
-            let combined_rule = format!("{}: {}", name, rules.join(", "));
+            let combined_rule = format!("{}: {}", name, explanations.join(", "));
             rules_vec.push(combined_rule);
         }
         if rules_vec.len() == output_properties.len() {
@@ -570,9 +576,6 @@ impl arc_work_model::Task {
                 },
                 _ => {}
             }
-        }
-        if rules.is_empty() {
-            return vec!();
         }
 
         // Simplest rules first, Advanced rules last
