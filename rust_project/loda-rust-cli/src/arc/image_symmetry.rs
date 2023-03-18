@@ -1,9 +1,20 @@
 use super::{Image, ImageRotate};
 
 pub trait ImageSymmetry {
+    /// Reverse the `x-axis`.
     fn flip_x(&self) -> anyhow::Result<Image>;
+
+    /// Reverse the `y-axis`.
     fn flip_y(&self) -> anyhow::Result<Image>;
+    
+    /// Reverse both the `x-axis` and the `y-axis`.
     fn flip_xy(&self) -> anyhow::Result<Image>;
+
+    /// Detect symmetry along the `x-axis`.
+    fn is_symmetric_x(&self) -> anyhow::Result<bool>;
+
+    /// Detect symmetry along the `y-axis`.
+    fn is_symmetric_y(&self) -> anyhow::Result<bool>;
 }
 
 impl ImageSymmetry for Image {
@@ -42,6 +53,16 @@ impl ImageSymmetry for Image {
         let bitmap0: Image = self.flip_x()?;
         let bitmap1: Image = bitmap0.flip_y()?;
         Ok(bitmap1)
+    }
+
+    fn is_symmetric_x(&self) -> anyhow::Result<bool> {
+        let image: Image = self.flip_x()?;
+        let is_symmetric: bool = image == *self;
+        Ok(is_symmetric)
+    }
+
+    fn is_symmetric_y(&self) -> anyhow::Result<bool> {
+        self.rotate(1)?.is_symmetric_x()
     }
 }
 
@@ -115,5 +136,95 @@ mod tests {
         ];
         let expected: Image = Image::try_create(3, 3, expected_pixels).expect("image");
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_40000_is_symmetric_x_no() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 3,
+            4, 5, 6,
+        ];
+        let input: Image = Image::try_create(3, 2, pixels).expect("image");
+
+        // Act
+        let is_symmetric: bool = input.is_symmetric_x().expect("bool");
+
+        // Assert
+        assert_eq!(is_symmetric, false);
+    }
+
+    #[test]
+    fn test_40001_is_symmetric_x_yes() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 1,
+            3, 4, 3,
+        ];
+        let input: Image = Image::try_create(3, 2, pixels).expect("image");
+
+        // Act
+        let is_symmetric: bool = input.is_symmetric_x().expect("bool");
+
+        // Assert
+        assert_eq!(is_symmetric, true);
+    }
+
+    #[test]
+    fn test_40002_is_symmetric_x_yes() {
+        let is_symmetric: bool = Image::empty().is_symmetric_x().expect("bool");
+        assert_eq!(is_symmetric, true);
+    }
+
+    #[test]
+    fn test_40003_is_symmetric_x_yes() {
+        let is_symmetric: bool = Image::color(4, 3, 1).is_symmetric_x().expect("bool");
+        assert_eq!(is_symmetric, true);
+    }
+
+    #[test]
+    fn test_50000_is_symmetric_y_no() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 
+            3, 4, 
+            5, 6,
+        ];
+        let input: Image = Image::try_create(2, 3, pixels).expect("image");
+
+        // Act
+        let is_symmetric: bool = input.is_symmetric_y().expect("bool");
+
+        // Assert
+        assert_eq!(is_symmetric, false);
+    }
+
+    #[test]
+    fn test_50001_is_symmetric_y_yes() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 3,
+            2, 4,
+            1, 3,
+        ];
+        let input: Image = Image::try_create(2, 3, pixels).expect("image");
+
+        // Act
+        let is_symmetric: bool = input.is_symmetric_y().expect("bool");
+
+        // Assert
+        assert_eq!(is_symmetric, true);
+    }
+
+    #[test]
+    fn test_50002_is_symmetric_y_yes() {
+        let is_symmetric: bool = Image::empty().is_symmetric_y().expect("bool");
+        assert_eq!(is_symmetric, true);
+    }
+
+    #[test]
+    fn test_50003_is_symmetric_y_yes() {
+        let is_symmetric: bool = Image::color(4, 3, 1).is_symmetric_y().expect("bool");
+        assert_eq!(is_symmetric, true);
     }
 }
