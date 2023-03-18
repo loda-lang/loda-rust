@@ -6,6 +6,28 @@ use std::cell::RefCell;
 #[allow(unused_imports)]
 use crate::arc::{HtmlLog, ImageToHTML};
 
+const DUMP_TO_CONSOLE: bool = false;
+
+/// This is unused code, and experimental.
+/// 
+/// This code identifies what is happening with the pixels in an ARC task.
+/// - Do they stay at the same place.
+/// - Do they move around.
+/// - Do they get rotated.
+/// - Do they get flipped.
+/// 
+/// If there is consensus between all the training tasks, that the pixels gets rotated,
+/// Then it's likely that the grid gets rotated.
+/// 
+/// If there is consensus between all the training tasks, that the pixels preserve the orientation and doesn't get flipped.
+/// Then the pixels may be moved around.
+/// 
+/// If it's mixed, some pixels being flipped, others pixels being rotated, 
+/// Then there may be harder to solve the task.
+/// 
+/// It's unclear to me how to use this knowledge to guide the mutations.
+/// Maybe store it in a HashMap, and make it available to `genome.rs` so it can pick wiser mutations. 
+
 #[allow(dead_code)]
 struct State {
     bloom: Bloom::<String>,
@@ -26,17 +48,19 @@ impl State {
 
 
 #[allow(dead_code)]
-struct AnalyzePuzzle {
+struct AnalyzeTask {
     bloom_normal: Bloom::<String>,
     bloom_flipped: Bloom::<String>,
     bloom_rotated: Bloom::<String>,
 }
 
-impl AnalyzePuzzle {
+impl AnalyzeTask {
     /// Populate bloomfilter
     #[allow(dead_code)]
     fn analyze(image: &Image) -> anyhow::Result<Self> {
-        HtmlLog::html(image.to_html());
+        if DUMP_TO_CONSOLE {
+            HtmlLog::html(image.to_html());
+        }
 
         let count = Cell::<u64>::new(0);
         let state_normal = RefCell::<State>::new(State::new());
@@ -83,7 +107,9 @@ impl AnalyzePuzzle {
             }
             Ok(0)
         })?;
-        println!("count: {}", count.get());
+        if DUMP_TO_CONSOLE {
+            println!("count: {}", count.get());
+        }
 
         // let bloom_key: String = "9,9,9\n9,9,9\n9,9,9".to_string();
         // let is_contained: bool = state.borrow().bloom.check(&bloom_key);
@@ -114,7 +140,9 @@ impl AnalyzePuzzle {
 
     #[allow(dead_code)]
     fn compare(&self, image: &Image) -> anyhow::Result<()> {
-        HtmlLog::html(image.to_html());
+        if DUMP_TO_CONSOLE {
+            HtmlLog::html(image.to_html());
+        }
 
         let count = Cell::<u64>::new(0);
         let buffer_image: Image = convolution2x2(&image, |bm| {
@@ -132,8 +160,10 @@ impl AnalyzePuzzle {
             let score = self.compute_score(&s);
             Ok(score)
         })?;
-        println!("count: {}", count.get());
-        HtmlLog::html(buffer_image.to_html());
+        if DUMP_TO_CONSOLE {
+            println!("count: {}", count.get());
+            HtmlLog::html(buffer_image.to_html());
+        }
 
         Ok(())
     }
@@ -182,33 +212,34 @@ mod tests {
 
 
         // populate bloomfilter for input
-        let ap0: AnalyzePuzzle = AnalyzePuzzle::analyze(&input).expect("ok");
+        let ap0: AnalyzeTask = AnalyzeTask::analyze(&input).expect("ok");
         // identify what parts of the output is contained in the input bloomfilter
         ap0.compare(&output).expect("ok");
 
         // populate bloomfilter for output
-        let ap1: AnalyzePuzzle = AnalyzePuzzle::analyze(&output).expect("ok");
+        let ap1: AnalyzeTask = AnalyzeTask::analyze(&output).expect("ok");
         // identify what parts of the input is contained in the input bloomfilter
         ap1.compare(&input).expect("ok");
 
-        // TODO: populate bloomfilter for input
-        // TODO: populate bloomfilter for output
-
-        // TODO: stats_buffer_input, for each 3x3 slice of the input, if identical to output, if so set bit0=1
-        // TODO: stats_buffer_input, for each 3x3 slice of the input, check if it exist in the bloomfilter for input, if so set bit1=1
-        // TODO: stats_buffer_input, for each 3x3 slice of the input, check if it exist in the bloomfilter for output, if so set bit2=1
-        // TODO: stats_buffer_input, for each 3x3 slice of the input, check if it exist in the bloomfilter for all board inputs, if so set bit3=1
-        // TODO: stats_buffer_input, for each 3x3 slice of the input, check if it exist in the bloomfilter for all board outputs, if so set bit4=1
-        // TODO: dump the stats_buffer_input to console
-
-        // TODO: stats_buffer_output, for each 3x3 slice of the output, if identical to input, if so set bit0=1
-        // TODO: stats_buffer_output, for each 3x3 slice of the output, check if it exist in the bloomfilter for input, if so set bit1=1
-        // TODO: stats_buffer_output, for each 3x3 slice of the output, check if it exist in the bloomfilter for output, if so set bit2=1
-        // TODO: stats_buffer_output, for each 3x3 slice of the input, check if it exist in the bloomfilter for all board inputs, if so set bit3=1
-        // TODO: stats_buffer_output, for each 3x3 slice of the input, check if it exist in the bloomfilter for all board outputs, if so set bit4=1
-        // TODO: dump the stats_buffer_output to console
-
-        // TODO: in the console take a look at stats_buffer_input,stats_buffer_output and look for patterns.
+        // Plan for what to do next with this experiment:
+        // populate bloomfilter for input
+        // populate bloomfilter for output
+        //
+        // stats_buffer_input, for each 3x3 slice of the input, if identical to output, if so set bit0=1
+        // stats_buffer_input, for each 3x3 slice of the input, check if it exist in the bloomfilter for input, if so set bit1=1
+        // stats_buffer_input, for each 3x3 slice of the input, check if it exist in the bloomfilter for output, if so set bit2=1
+        // stats_buffer_input, for each 3x3 slice of the input, check if it exist in the bloomfilter for all board inputs, if so set bit3=1
+        // stats_buffer_input, for each 3x3 slice of the input, check if it exist in the bloomfilter for all board outputs, if so set bit4=1
+        // dump the stats_buffer_input to console
+        //
+        // stats_buffer_output, for each 3x3 slice of the output, if identical to input, if so set bit0=1
+        // stats_buffer_output, for each 3x3 slice of the output, check if it exist in the bloomfilter for input, if so set bit1=1
+        // stats_buffer_output, for each 3x3 slice of the output, check if it exist in the bloomfilter for output, if so set bit2=1
+        // stats_buffer_output, for each 3x3 slice of the input, check if it exist in the bloomfilter for all board inputs, if so set bit3=1
+        // stats_buffer_output, for each 3x3 slice of the input, check if it exist in the bloomfilter for all board outputs, if so set bit4=1
+        // dump the stats_buffer_output to console
+        //
+        // in the console take a look at stats_buffer_input,stats_buffer_output and look for patterns.
 
     }
 }

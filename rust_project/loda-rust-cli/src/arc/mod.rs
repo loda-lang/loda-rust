@@ -1,5 +1,4 @@
 //! ARC challenge experiments
-mod analyze_puzzle;
 mod arc_json_model;
 mod arc_json_model_to_html;
 mod arc_puzzles;
@@ -53,6 +52,7 @@ mod image_trim;
 mod image_try_create;
 mod image_unicode_formatting;
 mod index_for_pixel;
+mod lab_analyze_task;
 mod label;
 mod ngram;
 mod number_to_image;
