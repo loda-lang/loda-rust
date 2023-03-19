@@ -1,13 +1,13 @@
 use super::{Image, ImageHistogram, ImageRemoveRowColumn, Histogram, ImageOverlay};
 use bit_set::BitSet;
 
-pub trait ImageRemoveGrid {
+pub trait ImageGrid {
     fn remove_grid(&self) -> anyhow::Result<Image>;
 
     fn mask_for_gridcells(&self, grid_color: Option<u8>) -> anyhow::Result<Image>;
 }
 
-impl ImageRemoveGrid for Image {
+impl ImageGrid for Image {
     fn remove_grid(&self) -> anyhow::Result<Image> {
         if self.is_empty() {
             return Ok(Image::empty());
@@ -47,10 +47,11 @@ impl ImageRemoveGrid for Image {
         }
         let histogram_rows: Vec<Histogram> = self.histogram_rows();
         let histogram_columns: Vec<Histogram> = self.histogram_columns();
+        let dontcare_about_grid_color: bool = grid_color.is_none();
 
         let mut result_image = Image::color(self.width(), self.height(), 1);
 
-        // Draw a horizontal lines where there is grid
+        // Draw horizontal lines where there is grid
         let row = Image::zero(self.width(), 1);
         for (index, histogram) in histogram_rows.iter().enumerate() {
             if index >= (u8::MAX as usize) {
@@ -60,20 +61,12 @@ impl ImageRemoveGrid for Image {
             if histogram.number_of_counters_greater_than_zero() != 1 {
                 continue;
             }
-            match grid_color {
-                Some(color) => {
-                    if histogram.most_popular_color() == Some(color) {
-                        continue;
-                    }
-                },
-                None => {
-                    // Don't care about the grid color. Any line that goes across the entire image.
-                }
+            if dontcare_about_grid_color || histogram.most_popular_color() == grid_color {
+                result_image = result_image.overlay_with_position(&row, 0, y as i32)?;
             }
-            result_image = result_image.overlay_with_position(&row, 0, y as i32)?;
         }
 
-        // Draw a vertical lines where there is grid
+        // Draw vertical lines where there is grid
         let column = Image::zero(1, self.height());
         for (index, histogram) in histogram_columns.iter().enumerate() {
             if index >= (u8::MAX as usize) {
@@ -83,17 +76,9 @@ impl ImageRemoveGrid for Image {
             if histogram.number_of_counters_greater_than_zero() != 1 {
                 continue;
             }
-            match grid_color {
-                Some(color) => {
-                    if histogram.most_popular_color() == Some(color) {
-                        continue;
-                    }
-                },
-                None => {
-                    // Don't care about the grid color. Any line that goes across the entire image.
-                }
+            if dontcare_about_grid_color || histogram.most_popular_color() == grid_color {
+                result_image = result_image.overlay_with_position(&column, x as i32, 0)?;
             }
-            result_image = result_image.overlay_with_position(&column, x as i32, 0)?;
         }
 
         return Ok(result_image);
