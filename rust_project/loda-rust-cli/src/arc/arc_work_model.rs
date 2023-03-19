@@ -1,4 +1,4 @@
-use super::{Image, Histogram, LabelSet, PropertyInput, InputLabelSet};
+use super::{Image, Histogram, ActionLabelSet, PropertyInput, InputLabelSet};
 use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
@@ -41,7 +41,7 @@ pub struct Pair {
     pub output: Output,
     pub removal_histogram: Histogram,
     pub insert_histogram: Histogram,
-    pub label_set: LabelSet,
+    pub action_label_set: ActionLabelSet,
 }
 
 #[derive(Clone, Debug)]
@@ -56,5 +56,5 @@ pub struct Task {
     pub insert_histogram_intersection: Histogram,
     pub input_properties_intersection: HashMap<PropertyInput, u8>,
     pub input_label_set_intersection: InputLabelSet,
-    pub label_set_intersection: LabelSet,
+    pub action_label_set_intersection: ActionLabelSet,
 }

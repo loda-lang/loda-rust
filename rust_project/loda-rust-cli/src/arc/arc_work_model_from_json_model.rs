@@ -1,6 +1,6 @@
 use super::arc_json_model;
 use super::arc_work_model;
-use super::{Image, Histogram, ImageHistogram, LabelSet};
+use super::{Image, Histogram, ImageHistogram, ActionLabelSet};
 use std::collections::{HashMap, HashSet};
 
 impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
@@ -61,7 +61,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     output: buffer_output,
                     removal_histogram: histogram_removal,
                     insert_histogram: histogram_insert,
-                    label_set: LabelSet::new(),
+                    action_label_set: ActionLabelSet::new(),
                 };
                 result_pairs.push(result_pair);
             }
@@ -91,7 +91,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     output: buffer_output,
                     removal_histogram: Histogram::new(),
                     insert_histogram: Histogram::new(),
-                    label_set: LabelSet::new(),
+                    action_label_set: ActionLabelSet::new(),
                 };
                 result_pairs.push(result_pair);
             }
@@ -107,7 +107,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
             removal_histogram_intersection,
             insert_histogram_intersection,
             input_properties_intersection: HashMap::new(),
-            label_set_intersection: LabelSet::new(),
+            action_label_set_intersection: ActionLabelSet::new(),
             input_label_set_intersection: HashSet::new(),
         };
         task.assign_labels()?;

@@ -110,7 +110,7 @@ pub use image_to_number::ImageToNumber;
 pub use image_trim::ImageTrim;
 pub use image_try_create::ImageTryCreate;
 pub use image_unicode_formatting::ImageUnicodeFormatting;
-pub use label::{InputLabel, InputLabelSet, Label, LabelSet, PropertyInput, PropertyOutput};
+pub use label::{InputLabel, InputLabelSet, ActionLabel, ActionLabelSet, PropertyInput, PropertyOutput};
 pub use ngram::{ImageNgram, RecordBigram, RecordTrigram};
 pub use number_to_image::NumberToImage;
 pub use popular_objects::PopularObjects;

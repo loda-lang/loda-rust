@@ -1,7 +1,7 @@
 use super::arc_work_model;
 use super::arc_work_model::{Input, PairType};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageTrim};
-use super::{InputLabelSet, Label, LabelSet, PropertyInput, PropertyOutput};
+use super::{InputLabelSet, ActionLabel, ActionLabelSet, PropertyInput, PropertyOutput};
 use std::collections::{HashMap, HashSet};
 
 #[allow(unused_imports)]
@@ -22,21 +22,21 @@ impl arc_work_model::Task {
         }
     }
 
-    fn update_label_set_intersection(&mut self) {
-        let mut label_set = LabelSet::new();
+    fn update_action_label_set_intersection(&mut self) {
+        let mut label_set = ActionLabelSet::new();
         let mut is_first = true;
         for pair in &mut self.pairs {
             if pair.pair_type == PairType::Test {
                 continue;
             }
             if is_first {
-                label_set = pair.label_set.clone();
+                label_set = pair.action_label_set.clone();
                 is_first = false;
                 continue;
             }
-            label_set = label_set.intersection(&pair.label_set).map(|l| l.clone()).collect();
+            label_set = label_set.intersection(&pair.action_label_set).map(|l| l.clone()).collect();
         }
-        self.label_set_intersection = label_set;
+        self.action_label_set_intersection = label_set;
     }
 
     fn update_input_properties_intersection(&mut self) {
@@ -89,16 +89,16 @@ impl arc_work_model::Task {
         self.input_label_set_intersection = input_label_set;
     }
 
-    fn assign_labels_for_output_for_train(&mut self) {
+    fn assign_action_labels_for_output_for_train(&mut self) {
         for pair in &mut self.pairs {
             if pair.pair_type != PairType::Train {
                 continue;
             }
-            pair.assign_labels_for_output();
+            pair.update_action_label_set();
         }
     }
 
-    fn assign_labels_related_to_removal_histogram(&mut self) {
+    fn assign_input_properties_related_to_removal_histogram(&mut self) {
         let removal_pairs: Vec<(u32,u8)> = self.removal_histogram_intersection.pairs_descending();
         if removal_pairs.len() != 1 {
             return;
@@ -188,7 +188,7 @@ impl arc_work_model::Task {
         }
     }
 
-    fn assign_labels_related_to_input_histogram_intersection(&mut self) {
+    fn assign_input_properties_related_to_input_histogram_intersection(&mut self) {
         let removal_pairs: Vec<(u32,u8)> = self.input_histogram_intersection.pairs_descending();
         if removal_pairs.len() != 1 {
             return;
@@ -278,9 +278,9 @@ impl arc_work_model::Task {
         self.update_input_properties_for_all_pairs();
         self.update_input_properties_intersection();
         self.update_input_label_set_intersection();
-        self.assign_labels_related_to_removal_histogram();
-        self.assign_labels_related_to_input_histogram_intersection();
-        self.assign_labels_for_output_for_train();
+        self.assign_input_properties_related_to_removal_histogram();
+        self.assign_input_properties_related_to_input_histogram_intersection();
+        self.assign_action_labels_for_output_for_train();
 
         let input_properties: [PropertyInput; 24] = [
             PropertyInput::InputWidth, 
@@ -355,17 +355,17 @@ impl arc_work_model::Task {
     
                     let is_same = input_value == output_value;
                     if is_same {
-                        let label = Label::OutputPropertyIsEqualToInputProperty { output: *output_property, input: *input_property };
-                        pair.label_set.insert(label);
+                        let label = ActionLabel::OutputPropertyIsEqualToInputProperty { output: *output_property, input: *input_property };
+                        pair.action_label_set.insert(label);
                     }
 
                     for scale in 2..8u8 {
                         let input_value_scaled: u32 = (input_value as u32) * (scale as u32);
                         if input_value_scaled == (output_value as u32) {
-                            let label0 = Label::OutputPropertyIsInputPropertyMultipliedBy { output: *output_property, input: *input_property, scale };
-                            pair.label_set.insert(label0);
-                            let label1 = Label::OutputPropertyIsInputPropertyMultipliedBySomeScale { output: *output_property, input: *input_property };
-                            pair.label_set.insert(label1);
+                            let label0 = ActionLabel::OutputPropertyIsInputPropertyMultipliedBy { output: *output_property, input: *input_property, scale };
+                            pair.action_label_set.insert(label0);
+                            let label1 = ActionLabel::OutputPropertyIsInputPropertyMultipliedBySomeScale { output: *output_property, input: *input_property };
+                            pair.action_label_set.insert(label1);
                             break;
                         }
                     }
@@ -374,10 +374,10 @@ impl arc_work_model::Task {
                         let value: u32 = (input_value as u32) / (scale as u32);
                         let value_remain: u32 = (input_value as u32) % (scale as u32);
                         if value_remain == 0 && value == (output_value as u32) {
-                            let label0 = Label::OutputPropertyIsInputPropertyDividedBy { output: *output_property, input: *input_property, scale };
-                            pair.label_set.insert(label0);
-                            let label1 = Label::OutputPropertyIsInputPropertyDividedBySomeScale { output: *output_property, input: *input_property };
-                            pair.label_set.insert(label1);
+                            let label0 = ActionLabel::OutputPropertyIsInputPropertyDividedBy { output: *output_property, input: *input_property, scale };
+                            pair.action_label_set.insert(label0);
+                            let label1 = ActionLabel::OutputPropertyIsInputPropertyDividedBySomeScale { output: *output_property, input: *input_property };
+                            pair.action_label_set.insert(label1);
                             break;
                         }
                     }
@@ -385,8 +385,8 @@ impl arc_work_model::Task {
                     {
                         let input_value_scaled: u32 = (input_value as u32) * (input_image_size as u32);
                         if input_value_scaled == (output_value as u32) {
-                            let label0 = Label::OutputPropertyIsInputPropertyMultipliedByInputSize { output: *output_property, input: *input_property };
-                            pair.label_set.insert(label0);
+                            let label0 = ActionLabel::OutputPropertyIsInputPropertyMultipliedByInputSize { output: *output_property, input: *input_property };
+                            pair.action_label_set.insert(label0);
                         }
                     }
                 }
@@ -394,7 +394,7 @@ impl arc_work_model::Task {
 
         }
 
-        self.update_label_set_intersection();
+        self.update_action_label_set_intersection();
 
         Ok(())
     }
@@ -408,16 +408,16 @@ impl arc_work_model::Task {
     fn output_size_rules_for(&self, property_output: &PropertyOutput) -> Vec<(RulePriority, String)> {
         let mut rules: Vec<(RulePriority, String)> = vec!();
 
-        for label in &self.label_set_intersection {
+        for label in &self.action_label_set_intersection {
             match label {
-                Label::OutputPropertyIsConstant { output, value } => {
+                ActionLabel::OutputPropertyIsConstant { output, value } => {
                     if output != property_output {
                         continue;
                     }
                     let s = format!("{:?} is always {:?}", output, value);
                     rules.push((RulePriority::Simple, s));
                 },
-                Label::OutputPropertyIsEqualToInputProperty { output, input } => {
+                ActionLabel::OutputPropertyIsEqualToInputProperty { output, input } => {
                     if output != property_output {
                         continue;
                     }
@@ -431,14 +431,14 @@ impl arc_work_model::Task {
                     }
                     rules.push((priority, s));
                 },
-                Label::OutputPropertyIsInputPropertyMultipliedBy { output, input, scale } => {
+                ActionLabel::OutputPropertyIsInputPropertyMultipliedBy { output, input, scale } => {
                     if output != property_output {
                         continue;
                     }
                     let s = format!("{:?} = {:?} * {}", output, input, scale);
                     rules.push((RulePriority::Advanced, s));
                 },
-                Label::OutputPropertyIsInputPropertyMultipliedByInputSize { output, input } => {
+                ActionLabel::OutputPropertyIsInputPropertyMultipliedByInputSize { output, input } => {
                     if output != property_output {
                         continue;
                     }
@@ -449,7 +449,7 @@ impl arc_work_model::Task {
                     let s = format!("{:?} = {:?} * {}", output, input, input_name);
                     rules.push((RulePriority::Advanced, s));
                 },
-                Label::OutputPropertyIsInputPropertyDividedBy { output, input, scale } => {
+                ActionLabel::OutputPropertyIsInputPropertyDividedBy { output, input, scale } => {
                     if output != property_output {
                         continue;
                     }
@@ -503,15 +503,15 @@ impl arc_work_model::Task {
         let mut rules: Vec<(RulePriority, u8)> = vec!();
 
         let dict: &HashMap<PropertyInput, u8> = &buffer_input.input_properties;
-        for label in &self.label_set_intersection {
+        for label in &self.action_label_set_intersection {
             match label {
-                Label::OutputPropertyIsConstant { output, value } => {
+                ActionLabel::OutputPropertyIsConstant { output, value } => {
                     if output != property_output {
                         continue;
                     }
                     rules.push((RulePriority::Medium, *value));
                 },
-                Label::OutputPropertyIsEqualToInputProperty { output, input } => {
+                ActionLabel::OutputPropertyIsEqualToInputProperty { output, input } => {
                     if output != property_output {
                         continue;
                     }
@@ -531,7 +531,7 @@ impl arc_work_model::Task {
                     }
                     rules.push((priority, input_value));
                 },
-                Label::OutputPropertyIsInputPropertyMultipliedBy { output, input, scale } => {
+                ActionLabel::OutputPropertyIsInputPropertyMultipliedBy { output, input, scale } => {
                     if output != property_output {
                         continue;
                     }
@@ -549,7 +549,7 @@ impl arc_work_model::Task {
                     let value: u8 = computed_value as u8;
                     rules.push((RulePriority::Advanced, value));
                 },
-                Label::OutputPropertyIsInputPropertyMultipliedByInputSize { output, input } => {
+                ActionLabel::OutputPropertyIsInputPropertyMultipliedByInputSize { output, input } => {
                     if output != property_output {
                         continue;
                     }
@@ -571,7 +571,7 @@ impl arc_work_model::Task {
                     let value: u8 = computed_value as u8;
                     rules.push((RulePriority::Advanced, value));
                 },
-                Label::OutputPropertyIsInputPropertyDividedBy { output, input, scale } => {
+                ActionLabel::OutputPropertyIsInputPropertyDividedBy { output, input, scale } => {
                     if output != property_output {
                         continue;
                     }
@@ -644,7 +644,7 @@ impl arc_work_model::Task {
         }
     }
 
-    fn labelset_to_html(label_set: &LabelSet) -> String {
+    fn labelset_to_html(label_set: &ActionLabelSet) -> String {
         let mut label_vec: Vec<String> = label_set.iter().map(|label| format!("{:?}", label)).collect();
         if label_vec.is_empty() {
             return "empty".to_string();
@@ -680,8 +680,8 @@ impl arc_work_model::Task {
         let mut row_input_properties: String = "<tr><td>Input properties</td>".to_string();
         let mut row_input_labels: String = "<tr><td>Input labels</td>".to_string();
         let mut row_output_image: String = "<tr><td>Output image</td>".to_string();
-        let mut row_action: String = "<tr><td>Action</td>".to_string();
-        let mut row_labels: String = "<tr><td>Labels</td>".to_string();
+        let mut row_action_colors: String = "<tr><td>Action colors</td>".to_string();
+        let mut row_action_labels: String = "<tr><td>Action labels</td>".to_string();
         for pair in &self.pairs {
             {
                 row_title += "<td>";
@@ -713,30 +713,30 @@ impl arc_work_model::Task {
                 row_output_image += "</td>";
             }
             {
-                row_action += "<td>Removal<br>";
+                row_action_colors += "<td>Removal<br>";
                 match pair.removal_histogram.color_image() {
                     Ok(image) => {
-                        row_action += &image.to_html();
+                        row_action_colors += &image.to_html();
                     },
                     Err(_) => {
-                        row_action += "N/A";
+                        row_action_colors += "N/A";
                     }
                 }
-                row_action += "<br>Insert<br>";
+                row_action_colors += "<br>Insert<br>";
                 match pair.insert_histogram.color_image() {
                     Ok(image) => {
-                        row_action += &image.to_html();
+                        row_action_colors += &image.to_html();
                     },
                     Err(_) => {
-                        row_action += "N/A";
+                        row_action_colors += "N/A";
                     }
                 }
-                row_action += "</td>";
+                row_action_colors += "</td>";
             }
             {
-                row_labels += "<td>";
-                row_labels += &Self::labelset_to_html(&pair.label_set);
-                row_labels += "</td>";
+                row_action_labels += "<td>";
+                row_action_labels += &Self::labelset_to_html(&pair.action_label_set);
+                row_action_labels += "</td>";
             }
         }
 
@@ -790,37 +790,37 @@ impl arc_work_model::Task {
         }
         row_output_image += "</td>";
 
-        row_action += "<td>Removal<br>";
+        row_action_colors += "<td>Removal<br>";
         match self.removal_histogram_intersection.color_image() {
             Ok(image) => {
-                row_action += &image.to_html();
+                row_action_colors += &image.to_html();
             },
             Err(_) => {
-                row_action += "N/A";
+                row_action_colors += "N/A";
             }
         }
-        row_action += "<br>Insert<br>";
+        row_action_colors += "<br>Insert<br>";
         match self.insert_histogram_intersection.color_image() {
             Ok(image) => {
-                row_action += &image.to_html();
+                row_action_colors += &image.to_html();
             },
             Err(_) => {
-                row_action += "N/A";
+                row_action_colors += "N/A";
             }
         }
-        row_action += "</td>";
+        row_action_colors += "</td>";
 
-        row_labels += "<td>";
-        row_labels += &Self::labelset_to_html(&self.label_set_intersection);
-        row_labels += "</td>";
+        row_action_labels += "<td>";
+        row_action_labels += &Self::labelset_to_html(&self.action_label_set_intersection);
+        row_action_labels += "</td>";
 
         row_title += "</tr>";
         row_input_image += "</tr>";
         row_input_properties += "</tr>";
         row_input_labels += "</tr>";
         row_output_image += "</tr>";
-        row_action += "</tr>";
-        row_labels += "</tr>";
+        row_action_colors += "</tr>";
+        row_action_labels += "</tr>";
 
         let html = format!(
             "<h2>{}</h2><p>Output size: {}</p><table>{}{}{}{}{}{}{}</table>",
@@ -831,8 +831,8 @@ impl arc_work_model::Task {
             row_input_properties, 
             row_input_labels, 
             row_output_image, 
-            row_action,
-            row_labels
+            row_action_colors,
+            row_action_labels
         );
         HtmlLog::html(html);
         Ok(())

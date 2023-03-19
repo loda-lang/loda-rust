@@ -52,7 +52,7 @@ pub enum PropertyOutput {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum Label {
+pub enum ActionLabel {
     OutputPropertyIsEqualToInputProperty { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsInputPropertyMultipliedBy { output: PropertyOutput, input: PropertyInput, scale: u8 },
     OutputPropertyIsInputPropertyMultipliedBySomeScale { output: PropertyOutput, input: PropertyInput },
@@ -74,7 +74,7 @@ pub enum Label {
     // OutputAspectRatioEqualToInputAspectRatio,
 }
 
-pub type LabelSet = HashSet<Label>;
+pub type ActionLabelSet = HashSet<ActionLabel>;
 
 #[cfg(test)]
 mod tests {
@@ -82,26 +82,26 @@ mod tests {
 
     #[test]
     fn test_10000_intersection() {
-        let mut set0: LabelSet = HashSet::new();
+        let mut set0: ActionLabelSet = HashSet::new();
         {
-            let label = Label::OutputPropertyIsEqualToInputProperty { 
+            let label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
                 output: PropertyOutput::OutputHeight,
                 input: PropertyInput::InputHeight
             };
             set0.insert(label);
         }
 
-        let mut set1: LabelSet = HashSet::new();
+        let mut set1: ActionLabelSet = HashSet::new();
         {
-            let label = Label::OutputPropertyIsEqualToInputProperty { 
+            let label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
                 output: PropertyOutput::OutputHeight,
                 input: PropertyInput::InputHeight
             };
             set1.insert(label);
         }
 
-        let set2: LabelSet = set0.intersection(&set1).map(|l| l.clone()).collect();
-        let expected_label = Label::OutputPropertyIsEqualToInputProperty { 
+        let set2: ActionLabelSet = set0.intersection(&set1).map(|l| l.clone()).collect();
+        let expected_label = ActionLabel::OutputPropertyIsEqualToInputProperty { 
             output: PropertyOutput::OutputHeight,
             input: PropertyInput::InputHeight
         };
