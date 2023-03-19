@@ -281,7 +281,10 @@ async fn main() -> anyhow::Result<()> {
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("arc-check") {
-        SubcommandARC::run(SubcommandARCMode::CheckAllExistingSolutions)?;
+        let blocking_task = tokio::task::spawn_blocking(|| {
+            SubcommandARC::run(SubcommandARCMode::CheckAllExistingSolutions).expect("ok");
+        });
+        blocking_task.await?;
         return Ok(());
     }
 
