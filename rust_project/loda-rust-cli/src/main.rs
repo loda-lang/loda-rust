@@ -160,7 +160,12 @@ async fn main() -> anyhow::Result<()> {
         )
         .subcommand(
             Command::new("arc-competition")
-                .about("ARC - The code being executed inside the docker image submitted for the `ARCathon 1` contest.")
+                .about("ARC - The code being executed inside the docker image submitted for the `ARCathon` contest.")
+                .hide(true)
+        )
+        .subcommand(
+            Command::new("arc-label")
+                .about("ARC - Traverse all puzzles and classify each puzzle.")
                 .hide(true)
         )
         .get_matches();
@@ -284,6 +289,22 @@ async fn main() -> anyhow::Result<()> {
 
     if let Some(_sub_m) = matches.subcommand_matches("arc-competition") {
         SubcommandARC::run(SubcommandARCMode::Competition)?;
+        return Ok(());
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("arc-label") {
+        // For logging LODA-RUST uses reqwest in blocking mode, performing a POST with the log message.
+        // When running in DEBUG mode, then reqwest doesn't work on the main thread, and panics with this message:
+        // thread 'main' panicked at 'Cannot drop a runtime in a context where blocking is not allowed. 
+        // This happens when a runtime is dropped from within an asynchronous context.
+        //
+        // When running in RELEASE mode then reqwest works.
+        //
+        // When running inside unittests then reqwest works.
+        let blocking_task = tokio::task::spawn_blocking(|| {
+            SubcommandARC::run(SubcommandARCMode::LabelAllPuzzles).expect("ok");
+        });
+        blocking_task.await?;
         return Ok(());
     }
 

@@ -12,8 +12,11 @@ pub enum SubcommandARCMode {
     /// Eval a single puzzle with all the existing solutions.
     EvalSinglePuzzle { pattern: String },
 
-    /// The code being executed inside the docker image submitted for the `ARCathon 1` contest.
+    /// The code being executed inside the docker image submitted for the `ARCathon` contest.
     Competition,
+
+    /// Traverse all puzzles and classify each puzzle.
+    LabelAllPuzzles,
 }
 
 pub struct SubcommandARC;
@@ -32,6 +35,9 @@ impl SubcommandARC {
             },
             SubcommandARCMode::Competition => {
                 return TraverseProgramsAndModels::arc_competition();
+            },
+            SubcommandARCMode::LabelAllPuzzles => {
+                return TraverseProgramsAndModels::label_all_puzzles();
             },
         }
     }

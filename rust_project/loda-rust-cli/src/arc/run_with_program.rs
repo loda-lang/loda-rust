@@ -1,4 +1,6 @@
-use super::{Image, ImagePair, ImageToNumber, ImageUnicodeFormatting, Model, NumberToImage, register_arc_functions, StackStrings, Prediction, Grid, HtmlLog, ImageToHTML};
+use super::arc_json_model;
+use super::arc_work_model;
+use super::{Image, ImageToNumber, NumberToImage, register_arc_functions, Prediction, HtmlLog, ImageToHTML};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -51,10 +53,6 @@ impl fmt::Debug for RunWithProgramResult {
     }
 }
 
-pub trait SolutionAdvanced {
-    fn run(&self, train_pairs: Vec<ImagePair>, test_pairs: Vec<ImagePair>) -> anyhow::Result<Vec<Image>>;
-}
-
 pub struct SolutionSimpleData {
     pub index: usize,
     pub image: Image,
@@ -64,21 +62,15 @@ pub type SolutionSimple = fn(SolutionSimpleData) -> anyhow::Result<Image>;
 
 pub struct RunWithProgram {
     verify_test_output: bool,
-    model: Model,
-    train_pairs: Vec<ImagePair>,
-    test_pairs: Vec<ImagePair>,
+    task: arc_work_model::Task,
 }
 
 impl RunWithProgram {
-    pub fn new(model: Model, verify_test_output: bool) -> anyhow::Result<Self> {
-        let train_pairs: Vec<ImagePair> = model.images_train()?;
-        let test_pairs: Vec<ImagePair> = model.images_test()?;
-        Ok(Self {
+    pub fn new(task: arc_work_model::Task, verify_test_output: bool) -> Self {
+        Self {
             verify_test_output,
-            model,
-            train_pairs,
-            test_pairs,
-        })
+            task,
+        }
     }
 
     pub fn create_dependency_manager() -> DependencyManager {
@@ -133,25 +125,12 @@ impl RunWithProgram {
     }
 
     #[allow(dead_code)]
-    pub fn run_solution_advanced(&self, solution: &dyn SolutionAdvanced) -> anyhow::Result<RunWithProgramResult> {
-        let train_pairs = self.train_pairs.clone();
-        let mut test_pairs = self.test_pairs.clone();
-        for pair in test_pairs.iter_mut() {
-            pair.output = Image::empty();
-        }
-        let computed_images: Vec<Image> = solution.run(train_pairs, test_pairs)?;
-        self.process_computed_images(computed_images)
-    }
-
-    #[allow(dead_code)]
     pub fn run_solution(&self, callback: SolutionSimple) -> anyhow::Result<RunWithProgramResult> {
-        let mut pairs: Vec<ImagePair> = self.train_pairs.clone();
-        pairs.extend(self.test_pairs.clone());
         let mut computed_images = Vec::<Image>::new();
-        for (index, pair) in pairs.iter().enumerate() {
+        for (index, pair) in self.task.pairs.iter().enumerate() {
             let data = SolutionSimpleData {
                 index,
-                image: pair.input.clone(),
+                image: pair.input.image.clone(),
             };
             let computed_image: Image = callback(data)?;
             computed_images.push(computed_image);
@@ -160,8 +139,6 @@ impl RunWithProgram {
     }
 
     pub fn run_program_runner(&self, program_runner: &ProgramRunner) -> anyhow::Result<RunWithProgramResult> {
-        // self.print_full_state();
-
         let mut cache = ProgramCache::new();
 
         // Blank state
@@ -178,20 +155,9 @@ impl RunWithProgram {
         // Invoke the actual run() function
         program_runner.program().run(&mut state, &mut cache).context("run_result error in program.run")?;
 
-        let number_of_images: usize = self.train_pairs.len() + self.test_pairs.len();
+        let number_of_images: usize = self.task.pairs.len();
         let computed_images: Vec<Image> = state.computed_images(number_of_images)?;
         self.process_computed_images(computed_images)
-    }
-
-    #[allow(dead_code)]
-    fn print_full_state(&self) {
-        println!("model: {:?}", self.model.id());
-        for (index, pair) in self.train_pairs.iter().enumerate() {
-            let input = format!("input\n{}", pair.input.to_unicode_string());
-            let output = format!("output\n{}", pair.output.to_unicode_string());
-            let s: String = StackStrings::hstack(vec![input, output], " | ");
-            println!("model: {:?} train#{}\n{}", self.model.id(), index, s);
-        }
     }
         
     /// Prepare the starting state of the program
@@ -231,8 +197,58 @@ impl RunWithProgram {
     /// $143..149 is reserved for test[0] extra data
     /// ```
     fn initial_memory_layout(&self, state: &mut ProgramState) -> anyhow::Result<()> {
-        let count_train: usize = self.train_pairs.len();
-        let count_test: usize = self.test_pairs.len();
+
+        // Traverse the `Train` pairs
+        let mut count_train: usize = 0;
+        for pair in &self.task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Train {
+                continue;
+            }
+
+            let index: usize = count_train;
+            // memory[x*10+100] = train[x].input
+            {
+                let image_number_uint: BigUint = pair.input.image.to_number().expect("pair.input image to number");
+                let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
+                state.set_u64((index * 10 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
+            }
+
+            // memory[x*10+101] = train[x].output
+            {
+                let image_number_uint: BigUint = pair.output.image.to_number().expect("pair.output image to number");
+                let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.output BigUint to BigInt");
+                state.set_u64((index * 10 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
+            }
+
+            count_train += 1;
+        }
+
+        // Traverse the `Test` pairs
+        let mut count_test: usize = 0;
+        for pair in &self.task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Test {
+                continue;
+            }
+
+            let index: usize = count_train + count_test;
+            // memory[(count_train + x)*10+100] = test[x].input
+            {
+                let image_number_uint: BigUint = pair.input.image.to_number().expect("pair.input image to number");
+                let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
+                state.set_u64((index * 10 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
+            }
+
+            // The program is never supposed to read from the the test[x].output register.
+            // memory[(count_train + x)*10+101] is where the program is supposed to write its predicted output.
+            // Use `-1` as placeholder so it's easy to spot when the image is missing.
+            {
+                let value: BigInt = -BigInt::one();
+                state.set_u64((index * 10 + 101) as u64, value).context("pair.output, set_u64")?;
+            }
+
+            count_test += 1;
+        }
+
         let count_all: usize = count_train + count_test;
 
         // memory[97] = length of "train" vector
@@ -247,35 +263,6 @@ impl RunWithProgram {
         let count_all_bigint: BigInt = count_all.to_bigint().expect("count_all.to_bigint");
         state.set_u64(99, count_all_bigint).context("set_u64 count_all_bigint")?;
 
-        // memory[x*10+100] = train[x].input
-        for (index, pair) in self.train_pairs.iter().enumerate() {
-            let image_number_uint: BigUint = pair.input.to_number().expect("pair.input image to number");
-            let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
-            state.set_u64((index * 10 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
-        }
-
-        // memory[x*10+101] = train[x].output
-        for (index, pair) in self.train_pairs.iter().enumerate() {
-            let image_number_uint: BigUint = pair.output.to_number().expect("pair.output image to number");
-            let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.output BigUint to BigInt");
-            state.set_u64((index * 10 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
-        }
-
-        // memory[(count_train + x)*10+100] = test[x].input
-        for (index, pair) in self.test_pairs.iter().enumerate() {
-            let image_number_uint: BigUint = pair.input.to_number().expect("pair.input image to number");
-            let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
-            let set_index: usize = (count_train + index) * 10 + 100;
-            state.set_u64(set_index as u64, image_number_int).context("pair.input, set_u64")?;
-        }
-        // The program is never supposed to read from the the test[x].output register.
-        // memory[(count_train + x)*10+101] is where the program is supposed to write its predicted output.
-        // Use `-1` as placeholder so it's easy to spot when the image is missing.
-        for (index, _pair) in self.test_pairs.iter().enumerate() {
-            let set_index: usize = (count_train + index) * 10 + 101;
-            let value: BigInt = -BigInt::one();
-            state.set_u64(set_index as u64, value).context("pair.output, set_u64")?;
-        }
         Ok(())
     }
 
@@ -286,13 +273,22 @@ impl RunWithProgram {
 
         let mut message_items = Vec::<String>::new();
 
+        // Traverse the `Train` pairs
         // Compare computed images with train[x].output
         let mut count_train_correct: usize = 0;
         let mut count_train_incorrect: usize = 0;
-        for (index, pair) in self.train_pairs.iter().enumerate() {
+        let mut count_train: usize = 0;
+        for pair in &self.task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Train {
+                continue;
+            }
+
+            let index: usize = count_train;
+            count_train += 1;
+
             let computed_image: &Image = &computed_images[index];
             
-            let expected_image: Image = pair.output.clone();
+            let expected_image: Image = pair.output.image.clone();
             if *computed_image == expected_image {
                 count_train_correct += 1;
                 if pretty_print {
@@ -307,14 +303,22 @@ impl RunWithProgram {
                 status_texts.push("Incorrect");
             }
         }
-        let count_train: usize = self.train_pairs.len();
 
         let mut predictions = Vec::<Prediction>::new();
 
+        // Traverse the `Test` pairs
         // Compare computed images with test[x].output
         let mut count_test_correct: usize = 0;
         let mut count_test_empty: usize = 0;
-        for (index, pair) in self.test_pairs.iter().enumerate() {
+        let mut count_test: usize = 0;
+        for pair in &self.task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Test {
+                continue;
+            }
+
+            let index: usize = count_test;
+            count_test += 1;
+
             let computed_image: &Image = &computed_images[count_train + index];
             if computed_image.is_empty() {
                 count_test_empty += 1;
@@ -324,7 +328,7 @@ impl RunWithProgram {
                 continue;
             }
             if self.verify_test_output {
-                let expected_image: Image = pair.output.clone();
+                let expected_image: Image = pair.output.test_image.clone();
                 if *computed_image != expected_image {
                     let s = format!("test. The computed output, doesn't match test[{}].output.\nExpected {:?}\nActual {:?}", index, expected_image, computed_image);
                     message_items.push(s);
@@ -342,7 +346,7 @@ impl RunWithProgram {
                 }
             }
 
-            let grid: Grid = Self::image_to_grid(&computed_image);
+            let grid: arc_json_model::Grid = Self::image_to_grid(&computed_image);
             let prediction = Prediction {
                 prediction_id: index as u8,
                 output: grid,
@@ -368,8 +372,8 @@ impl RunWithProgram {
         Ok(result)
     }
 
-    fn image_to_grid(image: &Image) -> Grid {
-        let mut grid = Grid::new();
+    fn image_to_grid(image: &Image) -> arc_json_model::Grid {
+        let mut grid = arc_json_model::Grid::new();
         for y in 0..image.height() {
             let mut row = Vec::<u8>::new();
             for x in 0..image.width() {
@@ -382,21 +386,41 @@ impl RunWithProgram {
     }
 
     fn inspect_computed_images(&self, computed_images: &Vec<Image>, status_texts: &Vec<&str>) {
-        let mut pairs: Vec<ImagePair> = self.train_pairs.clone();
-        pairs.extend(self.test_pairs.clone());
 
         // Table row with input and row with expected output
         let mut row_input: String = "<tr>".to_string();
         let mut row_output: String = "<tr>".to_string();
-        for pair in &pairs {
+
+        // Traverse the `Train` pairs
+        for pair in &self.task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Train {
+                continue;
+            }
             {
                 row_input += "<td>";
-                row_input += &pair.input.to_html();
+                row_input += &pair.input.image.to_html();
                 row_input += "</td>";
             }
             {
                 row_output += "<td>";
-                row_output += &pair.output.to_html();
+                row_output += &pair.output.image.to_html();
+                row_output += "</td>";
+            }
+        }
+
+        // Traverse the `Test` pairs
+        for pair in &self.task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Test {
+                continue;
+            }
+            {
+                row_input += "<td>";
+                row_input += &pair.input.image.to_html();
+                row_input += "</td>";
+            }
+            {
+                row_output += "<td>";
+                row_output += &pair.output.test_image.to_html();
                 row_output += "</td>";
             }
         }
@@ -419,7 +443,7 @@ impl RunWithProgram {
         }
         row_status += "</tr>";
 
-        let html = format!("<h2>{}</h2><table>{}{}{}{}</table>", self.model.id().identifier(), row_input, row_output, row_predicted, row_status);
+        let html = format!("<h2>{}</h2><table>{}{}{}{}</table>", self.task.id, row_input, row_output, row_predicted, row_status);
         HtmlLog::html(html);
     }
 }

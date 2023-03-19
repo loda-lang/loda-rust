@@ -78,24 +78,19 @@ enum ModelImagePairMode {
     Test,
 }
 
-#[allow(dead_code)]
 #[derive(Clone)]
-pub enum ModelItemId {
-    None,
+pub enum TaskId {
     Custom { identifier: String },
     Path { path: PathBuf },
 }
 
-impl ModelItemId {
+impl TaskId {
     pub fn identifier(&self) -> String {
         match self {
-            ModelItemId::None => {
-                return "None".to_string();
-            },
-            ModelItemId::Custom { identifier } => {
+            TaskId::Custom { identifier } => {
                 return identifier.to_string();
             }
-            ModelItemId::Path { path } => {
+            TaskId::Path { path } => {
                 match path.file_stem() {
                     Some(value) => {
                         return value.to_string_lossy().to_string();
@@ -109,35 +104,35 @@ impl ModelItemId {
     }
 }
 
-impl fmt::Debug for ModelItemId {
+impl fmt::Debug for TaskId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self.identifier())
     }
 }
 
-impl fmt::Display for ModelItemId {
+impl fmt::Display for TaskId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.identifier())
     }
 }
 
 #[derive(Clone, Deserialize, Debug)]
-struct DeserializeModel {
+struct DeserializeTask {
     train: Vec<TaskPair>,
     test: Vec<TaskPair>,
 }
 
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
-pub struct Model {
-    id: ModelItemId,
+pub struct Task {
+    id: TaskId,
     train: Vec<TaskPair>,
     test: Vec<TaskPair>,
 }
 
-impl Model {
+impl Task {
     #[allow(dead_code)]
-    pub fn id(&self) -> &ModelItemId {
+    pub fn id(&self) -> &TaskId {
         &self.id
     }
 
@@ -186,39 +181,32 @@ impl Model {
     }
 
     #[allow(dead_code)]
-    pub fn load_testdata(name: &str) -> anyhow::Result<Model> {
+    pub fn load_testdata(name: &str) -> anyhow::Result<Task> {
         let custom_identifier = format!("{}", name);
         let json: String = read_testdata(name)?;
-        let deserialize_model: DeserializeModel = serde_json::from_str(&json)?;
-        let model = Model {
-            id: ModelItemId::Custom { identifier: custom_identifier },
-            train: deserialize_model.train,
-            test: deserialize_model.test,
+        let deserialize_task: DeserializeTask = serde_json::from_str(&json)?;
+        let task = Task {
+            id: TaskId::Custom { identifier: custom_identifier },
+            train: deserialize_task.train,
+            test: deserialize_task.test,
         };
-        Ok(model)
+        Ok(task)
     }
     
-    #[allow(dead_code)]
-    pub fn load(name: &str, arc_repository_data: &Path) -> anyhow::Result<Model> {
-        let filename_json = format!("{}.json", name);
-        let path = arc_repository_data.join(filename_json);
-        Self::load_with_json_file(&path)
-    }
-
-    pub fn load_with_json_file(json_file: &Path) -> anyhow::Result<Model> {
+    pub fn load_with_json_file(json_file: &Path) -> anyhow::Result<Task> {
         let json: String = match fs::read_to_string(json_file) {
             Ok(value) => value,
             Err(error) => {
                 return Err(anyhow::anyhow!("cannot load file, error: {:?} path: {:?}", error, json_file));
             }
         };
-        let deserialize_model: DeserializeModel = serde_json::from_str(&json)?;
-        let model = Model {
-            id: ModelItemId::Path { path: PathBuf::from(json_file) },
-            train: deserialize_model.train,
-            test: deserialize_model.test,
+        let deserialize_task: DeserializeTask = serde_json::from_str(&json)?;
+        let task = Task {
+            id: TaskId::Path { path: PathBuf::from(json_file) },
+            train: deserialize_task.train,
+            test: deserialize_task.test,
         };
-        Ok(model)
+        Ok(task)
     }
 }
 
@@ -259,16 +247,16 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_model_loda_testdata() -> anyhow::Result<()> {
-        let model: Model = Model::load_testdata("6150a2bd")?;
-        assert_eq!(model.train.len(), 2);
-        assert_eq!(model.test.len(), 1);
-        assert_eq!(model.id.identifier(), "6150a2bd");
+    fn test_30000_task_loda_testdata() -> anyhow::Result<()> {
+        let task: Task = Task::load_testdata("6150a2bd")?;
+        assert_eq!(task.train.len(), 2);
+        assert_eq!(task.test.len(), 1);
+        assert_eq!(task.id.identifier(), "6150a2bd");
         Ok(())
     }
 
     #[test]
-    fn test_30001_model_load() -> anyhow::Result<()> {
+    fn test_30001_task_load_with_json_file() -> anyhow::Result<()> {
         // Arrange
         let json: String = read_testdata("4258a5f9")?;
         let tempdir = tempfile::tempdir().unwrap();
@@ -278,12 +266,12 @@ mod tests {
         fs::write(&path, &json)?;
 
         // Act
-        let model: Model = Model::load("hello", &basedir)?;
+        let task: Task = Task::load_with_json_file(&path)?;
 
         // Assert
-        assert_eq!(model.train.len(), 2);
-        assert_eq!(model.test.len(), 1);
-        assert_eq!(model.id.identifier(), "hello");
+        assert_eq!(task.train.len(), 2);
+        assert_eq!(task.test.len(), 1);
+        assert_eq!(task.id.identifier(), "hello");
         Ok(())
     }
 }

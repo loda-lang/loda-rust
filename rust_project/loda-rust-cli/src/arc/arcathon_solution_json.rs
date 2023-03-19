@@ -1,10 +1,10 @@
-use super::Grid;
+use super::arc_json_model;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Prediction {
     pub prediction_id: u8,
-    pub output: Grid,
+    pub output: arc_json_model::Grid,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

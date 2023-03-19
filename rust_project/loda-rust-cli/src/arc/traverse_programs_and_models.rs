@@ -1,4 +1,5 @@
-use super::{Model, ImagePair};
+use super::arc_json_model;
+use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
 use crate::analytics::{AnalyticsDirectory, Analytics};
@@ -26,6 +27,9 @@ use rand::SeedableRng;
 use rand::rngs::StdRng;
 use serde::{Serialize, Deserialize};
 
+#[allow(unused_imports)]
+use crate::arc::{HtmlLog, ImageToHTML};
+
 static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 
 /// There is a penalty if the ARCathon executable is running longer than 24 hours.
@@ -33,7 +37,7 @@ static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 /// Thus the limit is several minutes shorter so we are sure that the executable has stopped.
 static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = ((23 * 60) + 30) * 60;
 
-static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 1;
+static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 2;
 
 pub struct TraverseProgramsAndModels {
     config: Config,
@@ -68,6 +72,133 @@ impl TraverseProgramsAndModels {
     pub fn generate_solution_csv() -> anyhow::Result<()> {
         let mut instance = TraverseProgramsAndModels::new()?;
         instance.generate_solution_csv_inner()?;
+        Ok(())
+    }
+
+    /// Traverse all puzzles and classify each puzzle.
+    pub fn label_all_puzzles() -> anyhow::Result<()> {
+        let instance = TraverseProgramsAndModels::new()?;
+
+        let mut buffer_task_vec: Vec<Task> = vec!();
+        for model_item in &instance.model_item_vec {
+            let task: Task = model_item.borrow().task.clone();
+            buffer_task_vec.push(task);
+        }
+
+        let mut count_good = 0;
+        let mut count_undecided = 0;
+        for buffer_task in &buffer_task_vec {
+            let estimate: String = buffer_task.estimated_output_size();
+            if estimate == "Undecided" {
+                count_undecided += 1;
+                continue;
+            }
+            count_good += 1;
+        }
+        println!("Estimated output size. good: {}  missing: {}", count_good, count_undecided);
+        
+        // Compute the output size with the test data, and compare with the expected output
+        let mut count_predict_correct: usize = 0;
+        let mut count_predict_incorrect: usize = 0;
+        let mut count_predict_correct_task: usize = 0;
+        let mut count_predict_incorrect_task: usize = 0;
+        for buffer_task in &buffer_task_vec {
+            let estimate: String = buffer_task.estimated_output_size();
+            if estimate == "Undecided" {
+                continue;
+            }
+
+            let mut all_correct = true;
+            for pair in &buffer_task.pairs {
+                let predicted: String = buffer_task.predict_output_size_for_input(&pair.input);
+
+                let expected: String = match pair.pair_type {
+                    PairType::Train => format!("{}x{}", pair.output.image.width(), pair.output.image.height()),
+                    PairType::Test => format!("{}x{}", pair.output.test_image.width(), pair.output.test_image.height()),
+                };
+
+                if predicted == expected {
+                    count_predict_correct += 1;
+                } else {
+                    println!("Wrong output size. Expected {}, but got {}. Task: {} pair: {:?}", expected, predicted, buffer_task.id, pair.pair_type);
+                    count_predict_incorrect += 1;
+                    all_correct = false;
+                }
+            }
+            if all_correct {
+                count_predict_correct_task += 1;
+            } else {
+                // Self::inspect_task(buffer_task)?;
+                count_predict_incorrect_task += 1;
+            }
+
+            // If all the pairs had their output size predicted correctly,
+            // then save the predicted output sizes on the pair instances.
+            // If one or more pairs were incorrectly predicted, 
+            // then don't save the predicted output size on the pair instances.
+        }
+        {
+            let percent: usize = (100 * count_predict_correct) / (count_predict_correct + count_predict_incorrect).max(1);
+            println!("Predicted single-image: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct, count_predict_incorrect, percent);
+        }
+        {
+            let percent: usize = (100 * count_predict_correct_task) / (count_predict_correct_task + count_predict_incorrect_task).max(1);
+            println!("Predicted task: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct_task, count_predict_incorrect_task, percent);
+        }
+
+        Self::inspect_undecided(&buffer_task_vec)?;
+        // Self::inspect_decided(&buffer_task_vec)?;
+        // Self::inspect_task_id(&buffer_task_vec, "28bf18c6,task")?;
+        // Self::inspect_task_id(&buffer_task_vec, "5c2c9af4,task")?;
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    fn inspect_undecided(buffer_task_vec: &Vec<Task>) -> anyhow::Result<()> {
+        let mut count = 0;
+        for buffer_task in buffer_task_vec {
+            let estimate: String = buffer_task.estimated_output_size();
+            if estimate != "Undecided" {
+                continue;
+            }
+            if count > 0 {
+                buffer_task.inspect()?;
+            }
+            count += 1;
+            if count > 50 {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    fn inspect_decided(buffer_task_vec: &Vec<Task>) -> anyhow::Result<()> {
+        let mut count = 0;
+        for buffer_task in buffer_task_vec {
+            let estimate: String = buffer_task.estimated_output_size();
+            if estimate == "Undecided" {
+                continue;
+            }
+            if count > 0 {
+                buffer_task.inspect()?;
+            }
+            count += 1;
+            if count > 50 {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    fn inspect_task_id(buffer_task_vec: &Vec<Task>, task_id: &str) -> anyhow::Result<()> {
+        for buffer_task in buffer_task_vec {
+            if buffer_task.id == task_id {
+                buffer_task.inspect()?;
+                break;
+            }
+        }
         Ok(())
     }
 
@@ -115,16 +246,23 @@ impl TraverseProgramsAndModels {
 
         let mut model_item_vec: Vec<Rc<RefCell<ModelItem>>> = vec!();
         for path in &paths {
-            let model = match Model::load_with_json_file(path) {
+            let json_task: arc_json_model::Task = match arc_json_model::Task::load_with_json_file(path) {
                 Ok(value) => value,
                 Err(error) => {
                     error!("Ignoring file. Cannot parse arc_json_model file. path: {:?} error: {:?}", path, error);
                     continue;
                 }
             };
+            let task: Task = match Task::try_from(&json_task) {
+                Ok(value) => value,
+                Err(error) => {
+                    error!("Ignoring file. Cannot construct arc_work_model::Task from json model. path: {:?} error: {:?}", path, error);
+                    continue;
+                }
+            };
             let instance = ModelItem {
                 id: ModelItemId::Path { path: path.clone() },
-                model,
+                task,
             };
             let item = Rc::new(RefCell::new(instance));
             model_item_vec.push(item);
@@ -424,9 +562,9 @@ impl TraverseProgramsAndModels {
             }
         };
 
-        let pairs_train: Vec<ImagePair> = model_item.model.images_train().expect("pairs");
-        let pairs_test: Vec<ImagePair> = model_item.model.images_test().expect("pairs");
-        println!("Evaluating the puzzle: {:?} train-pairs: {} test-pairs: {}", model_item.id, pairs_train.len(), pairs_test.len());
+        let count_train: usize = model_item.task.count_train();
+        let count_test: usize = model_item.task.count_test();
+        println!("Evaluating the puzzle: {:?} train-pairs: {} test-pairs: {}", model_item.id, count_train, count_test);
 
         let mut count_ok: usize = 0;
         let mut count_error_compute: usize = 0;
@@ -441,7 +579,7 @@ impl TraverseProgramsAndModels {
                 pb.inc(1);
             }
 
-            let instance = RunWithProgram::new(model_item.model.clone(), verify_test_output).expect("RunWithProgram");
+            let instance = RunWithProgram::new(model_item.task.clone(), verify_test_output);
 
             let result: RunWithProgramResult;
             match program_item.borrow().program_type {
@@ -476,10 +614,10 @@ impl TraverseProgramsAndModels {
                 pb.println(s);
             }
 
-            let expected = format!("({},{})", pairs_train.len(), pairs_test.len());
+            let expected = format!("({},{})", count_train, count_test);
             let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
             if actual != expected {
-                if result.count_train_correct() == pairs_train.len() && result.count_test_correct() != pairs_test.len() {
+                if result.count_train_correct() == count_train && result.count_test_correct() != count_test {
                     pb.println(format!("Dangerous false positive. Expected {} but got {}. {:?}", expected, actual, program_item.borrow().id.file_name()));
                     count_dangerous_false_positive += 1;
                 } else {
@@ -601,9 +739,9 @@ impl TraverseProgramsAndModels {
                 }
             };
     
-            let instance = RunWithProgram::new(model_item.model.clone(), verify_test_output).expect("RunWithProgram");
-            let pairs_train: Vec<ImagePair> = model_item.model.images_train().expect("pairs");
-            let pairs_test: Vec<ImagePair> = model_item.model.images_test().expect("pairs");
+            let instance: RunWithProgram = RunWithProgram::new(model_item.task.clone(), verify_test_output);
+            let count_train: usize = model_item.task.count_train();
+            let count_test: usize = model_item.task.count_test();
 
             let result: RunWithProgramResult;
             match program_item.borrow().program_type {
@@ -634,7 +772,7 @@ impl TraverseProgramsAndModels {
                 pb.println(s);
             }
 
-            let expected = format!("({},{})", pairs_train.len(), pairs_test.len());
+            let expected = format!("({},{})", count_train, count_test);
             let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
             if actual != expected {
                 pb.println(format!("ERROR: in row {}. record: {:?}. Expected {}, but got {}", record_index, record, expected, actual));
@@ -696,11 +834,10 @@ impl TraverseProgramsAndModels {
 
             let print_prefix_puzzle_id: String = format!("Puzzle#{} {:?}", model_index, model_item.borrow().id.file_name());
 
-            let model: Model = model_item.borrow().model.clone();
-            let pairs_train: Vec<ImagePair> = model.images_train().expect("pairs");
-            let pairs_test: Vec<ImagePair> = model.images_test().expect("pairs");
-
-            let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
+            let task: Task = model_item.borrow().task.clone();
+            let count_train: usize = task.count_train();
+            let count_test: usize = task.count_test();
+            let instance: RunWithProgram = RunWithProgram::new(task.clone(), verify_test_output);
     
             let pb2 = multi_progress.insert_after(&pb, ProgressBar::new( self.program_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
@@ -719,7 +856,7 @@ impl TraverseProgramsAndModels {
                             Err(error) => {
                                 count_compute_error += 1;
                                 if verbose {
-                                    error!("model: {:?} simple-program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
+                                    error!("model: {:?} simple-program: {:?} error: {:?}", task.id, program_item.borrow().id, error);
                                 }
                                 continue;
                             }
@@ -731,7 +868,7 @@ impl TraverseProgramsAndModels {
                             Err(error) => {
                                 count_compute_error += 1;
                                 if verbose {
-                                    error!("model: {:?} advanced-program: {:?} error: {:?}", model_item.borrow().id, program_item.borrow().id, error);
+                                    error!("model: {:?} advanced-program: {:?} error: {:?}", task.id, program_item.borrow().id, error);
                                 }
                                 continue;
                             }
@@ -742,14 +879,14 @@ impl TraverseProgramsAndModels {
                 let program_id: ProgramItemId = program_item.borrow().id.clone();
 
                 if verbose {
-                    let s = format!("model: {:?} program: {:?} result: {:?}", model_item.borrow().id, program_id, result);
+                    let s = format!("model: {:?} program: {:?} result: {:?}", task.id, program_id, result);
                     pb.println(s);
                 }
 
-                let expected = format!("({},{})", pairs_train.len(), pairs_test.len());
+                let expected = format!("({},{})", count_train, count_test);
                 let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
                 if actual != expected {
-                    if result.count_train_correct() == pairs_train.len() && result.count_test_correct() != pairs_test.len() {
+                    if result.count_train_correct() == count_train && result.count_test_correct() != count_test {
                         pb.println(format!("{} - Dangerous false positive. Expected {} but got {}. {:?}", print_prefix_puzzle_id, expected, actual, program_id.file_name()));
                         count_dangerous_false_positive += 1;
                         continue;
@@ -1142,14 +1279,14 @@ impl BatchPlan {
                 pb.inc(1);
             }
     
-            let model: Model = model_item.borrow().model.clone();
+            let task: Task = model_item.borrow().task.clone();
             if verbose {
-                let number_of_train_pairs: usize = model.train().len();
-                let number_of_test_pairs: usize = model.test().len();
-                pb.println(format!("puzzle: {} train: {} test: {}", model.id().identifier(), number_of_train_pairs, number_of_test_pairs));
+                let count_train: usize = task.count_train();
+                let count_test: usize = task.count_test();
+                pb.println(format!("puzzle: {} train: {} test: {}", task.id, count_train, count_test));
             }
 
-            let instance = RunWithProgram::new(model, verify_test_output).expect("RunWithProgram");
+            let instance: RunWithProgram = RunWithProgram::new(task, verify_test_output);
 
             let pb2 = multi_progress.insert_after(&pb, ProgressBar::new(self.scheduled_program_item_vec.len() as u64));
             pb2.set_style(progress_style.clone());
@@ -1449,7 +1586,7 @@ impl ModelItemId {
 #[derive(Clone, Debug)]
 struct ModelItem {
     id: ModelItemId,
-    model: Model,
+    task: Task,
 }
 
 impl ModelItem {
