@@ -1,5 +1,6 @@
 use super::arc_work_model;
-use super::{PropertyInput};
+use super::{PropertyInput, InputLabel};
+use super::ImageSymmetry;
 use std::collections::HashMap;
 
 impl arc_work_model::Input {
@@ -142,5 +143,26 @@ impl arc_work_model::Input {
             dict.insert(PropertyInput::InputNumberOfPixelsWith2ndMostPopularColor, value);
         }
         dict
+    }
+
+    pub fn update_input_label_set(&mut self) {
+        let width: u8 = self.image.width();
+        let height: u8 = self.image.height();
+
+        if width >= 2 || height >= 2 {
+            if let Ok(is_symmetric) = self.image.is_symmetric_x() {
+                if is_symmetric {
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricX);
+                }
+            }
+        }
+
+        if width >= 2 || height >= 2 {
+            if let Ok(is_symmetric) = self.image.is_symmetric_y() {
+                if is_symmetric {
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricY);
+                }
+            }
+        }
     }
 }

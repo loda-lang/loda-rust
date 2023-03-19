@@ -1,4 +1,4 @@
-use super::{Image, Histogram, LabelSet, PropertyInput};
+use super::{Image, Histogram, LabelSet, PropertyInput, InputLabelSet};
 use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
@@ -17,6 +17,9 @@ pub struct Input {
     
     /// Computed values such as: number of unique colors, width of biggest object.
     pub input_properties: HashMap<PropertyInput, u8>,
+
+    /// Computed values such as: is symmetric x, is symmetric y.
+    pub input_label_set: InputLabelSet,
 
     // Future experiments to do.
     // State keeping of the input_properties. 
@@ -52,5 +55,6 @@ pub struct Task {
     pub removal_histogram_intersection: Histogram,
     pub insert_histogram_intersection: Histogram,
     pub input_properties_intersection: HashMap<PropertyInput, u8>,
+    pub input_label_set_intersection: InputLabelSet,
     pub label_set_intersection: LabelSet,
 }

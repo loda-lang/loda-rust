@@ -33,6 +33,18 @@ pub enum PropertyInput {
     // Number of 1px lines vertical
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum InputLabel {
+    InputImageIsSymmetricX,
+    InputImageIsSymmetricY,
+
+    // Ideas for more
+    // InputUniqueColors { color: Vec<u8> },
+    // InputAspectRatio { width: u8, height: u8 },
+}
+
+pub type InputLabelSet = HashSet<InputLabel>;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PropertyOutput {
     OutputWidth,
@@ -58,8 +70,6 @@ pub enum Label {
     // OutputPropertySamePixelValuesAsInput { count_same: u16, count_different: u16 },
     // OutputSizeIsInputSizeAddConstant
     // OutputSizeIsInputSizeMultipliedByWithPadding
-    // InputUniqueColors { color: Vec<u8> },
-    // InputAspectRatio { width: u8, height: u8 },
     // OutputAspectRatio { width: u8, height: u8 },
     // OutputAspectRatioEqualToInputAspectRatio,
 }

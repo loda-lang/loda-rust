@@ -1,7 +1,7 @@
 use super::arc_work_model;
 use super::arc_work_model::{Input, PairType};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageTrim};
-use super::{Label, LabelSet, PropertyInput, PropertyOutput};
+use super::{InputLabelSet, Label, LabelSet, PropertyInput, PropertyOutput};
 use std::collections::{HashMap, HashSet};
 
 #[allow(unused_imports)]
@@ -18,6 +18,7 @@ impl arc_work_model::Task {
     fn update_input_properties_for_all_pairs(&mut self) {
         for pair in &mut self.pairs {
             pair.input.update_input_properties();
+            pair.input.update_input_label_set();
         }
     }
 
@@ -69,6 +70,23 @@ impl arc_work_model::Task {
             }
         }
         self.input_properties_intersection = input_properties_intersection;
+    }
+
+    fn update_input_label_set_intersection(&mut self) {
+        let mut input_label_set = InputLabelSet::new();
+        let mut is_first = true;
+        for pair in &mut self.pairs {
+            if pair.pair_type != PairType::Train {
+                continue;
+            }
+            if is_first {
+                input_label_set = pair.input.input_label_set.clone();
+                is_first = false;
+                continue;
+            }
+            input_label_set = input_label_set.intersection(&pair.input.input_label_set).map(|l| l.clone()).collect();
+        }
+        self.input_label_set_intersection = input_label_set;
     }
 
     fn assign_labels_for_output_for_train(&mut self) {
@@ -259,11 +277,10 @@ impl arc_work_model::Task {
     pub fn assign_labels(&mut self) -> anyhow::Result<()> {
         self.update_input_properties_for_all_pairs();
         self.update_input_properties_intersection();
+        self.update_input_label_set_intersection();
         self.assign_labels_related_to_removal_histogram();
         self.assign_labels_related_to_input_histogram_intersection();
-
         self.assign_labels_for_output_for_train();
-
 
         let input_properties: [PropertyInput; 24] = [
             PropertyInput::InputWidth, 
@@ -637,6 +654,16 @@ impl arc_work_model::Task {
         format!("<ul>{}</ul>", label_vec.join(""))
     }
 
+    fn input_label_set_to_html(input_label_set: &InputLabelSet) -> String {
+        let mut label_vec: Vec<String> = input_label_set.iter().map(|label| format!("{:?}", label)).collect();
+        if label_vec.is_empty() {
+            return "empty".to_string();
+        }
+        label_vec.sort();
+        label_vec = label_vec.iter().map(|label| format!("<li>{}</li>", label)).collect();
+        format!("<ul>{}</ul>", label_vec.join(""))
+    }
+
     fn input_properties_to_html(input_properties: &HashMap<PropertyInput, u8>) -> String {
         let mut items: Vec<String> = input_properties.iter().map(|(key,value)| format!("{:?} {}", key, value)).collect();
         if items.is_empty() {
@@ -651,6 +678,7 @@ impl arc_work_model::Task {
         let mut row_title: String = "<tr><td></td>".to_string();
         let mut row_input_image: String = "<tr><td>Input image</td>".to_string();
         let mut row_input_properties: String = "<tr><td>Input properties</td>".to_string();
+        let mut row_input_labels: String = "<tr><td>Input labels</td>".to_string();
         let mut row_output_image: String = "<tr><td>Output image</td>".to_string();
         let mut row_action: String = "<tr><td>Action</td>".to_string();
         let mut row_labels: String = "<tr><td>Labels</td>".to_string();
@@ -673,6 +701,11 @@ impl arc_work_model::Task {
                 row_input_properties += "<td>";
                 row_input_properties += &Self::input_properties_to_html(&pair.input.input_properties);
                 row_input_properties += "</td>";
+            }
+            {
+                row_input_labels += "<td>";
+                row_input_labels += &Self::input_label_set_to_html(&pair.input.input_label_set);
+                row_input_labels += "</td>";
             }
             {
                 row_output_image += "<td>";
@@ -733,6 +766,10 @@ impl arc_work_model::Task {
         row_input_properties += &Self::input_properties_to_html(&self.input_properties_intersection);
         row_input_properties += "</td>";
 
+        row_input_labels += "<td>";
+        row_input_labels += &Self::input_label_set_to_html(&self.input_label_set_intersection);
+        row_input_labels += "</td>";
+
         row_output_image += "<td>Union<br>";
         match self.output_histogram_union.color_image() {
             Ok(image) => {
@@ -780,17 +817,19 @@ impl arc_work_model::Task {
         row_title += "</tr>";
         row_input_image += "</tr>";
         row_input_properties += "</tr>";
+        row_input_labels += "</tr>";
         row_output_image += "</tr>";
         row_action += "</tr>";
         row_labels += "</tr>";
 
         let html = format!(
-            "<h2>{}</h2><p>Output size: {}</p><table>{}{}{}{}{}{}</table>",
+            "<h2>{}</h2><p>Output size: {}</p><table>{}{}{}{}{}{}{}</table>",
             self.id, 
             self.estimated_output_size(),
             row_title,
             row_input_image, 
             row_input_properties, 
+            row_input_labels, 
             row_output_image, 
             row_action,
             row_labels
