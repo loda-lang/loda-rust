@@ -199,6 +199,49 @@ impl UnofficialFunction for ImageTrimFunction {
     }
 }
 
+struct ImageTrimColorFunction {
+    id: u32,
+}
+
+impl ImageTrimColorFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageTrimColorFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Image: Trim border with color to be trimmed".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is color
+        let color: u8 = input[1].to_u8().context("u8 from_color")?;
+
+        let output_image: Image = input_image.trim_color(color)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 enum ImageRemoveDuplicatesFunctionMode {
     RowsAndColumns,
     Rows,
@@ -2432,6 +2475,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Trim
     register_function!(ImageTrimFunction::new(101160));
+    register_function!(ImageTrimColorFunction::new(101161));
 
     // Rotate
     register_function!(ImageRotateFunction::new(101170));
