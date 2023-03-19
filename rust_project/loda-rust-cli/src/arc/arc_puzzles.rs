@@ -2009,8 +2009,7 @@ mod tests {
             let mut asymmetric_objects: Vec<Image> = vec!();
             for object in &objects {
                 let trimmed: Image = object.trim_color(background_color)?;
-                let mirror: Image = trimmed.flip_x()?;
-                if !trimmed.eq(&mirror) {
+                if !trimmed.is_symmetric_x()? {
                     asymmetric_objects.push(object.clone());
                 }
             }
@@ -2043,8 +2042,7 @@ mod tests {
             let mut symmetric_objects: Vec<Image> = vec!();
             for object in &objects {
                 let trimmed: Image = object.trim_color(background_color)?;
-                let mirror: Image = trimmed.flip_x()?;
-                if trimmed.eq(&mirror) {
+                if trimmed.is_symmetric_x()? {
                     symmetric_objects.push(object.clone());
                 }
             }
