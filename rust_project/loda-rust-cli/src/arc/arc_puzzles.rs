@@ -1096,7 +1096,7 @@ mod tests {
             let (mask_image, _pixel_count) = object_count_vec.first().expect("first object");
     
             // Extract pixels from input image, just for the object
-            let image: Image = mask_image.select_from_image(&input, background_color).expect("image");
+            let image: Image = mask_image.select_from_color_and_image(background_color, &input).expect("image");
     
             let result_image = image.trim().expect("image");
             Ok(result_image)
@@ -1234,7 +1234,7 @@ mod tests {
             // Traverse the interior objects. Replace color for the interior object.
             let mut result_image: Image = input.clone();
             for mask_image in &object_mask_vec {
-                let mask_image_border_overlap: Image = border_mask_image.select_from_image(mask_image, 0).expect("image");
+                let mask_image_border_overlap: Image = border_mask_image.select_from_color_and_image(0, mask_image).expect("image");
                 let border_histogram: Histogram = input.histogram_with_mask(&mask_image_border_overlap).expect("histogram");
                 if let Some(border_color) = border_histogram.most_popular_color() {
                     if border_color == background_color {
@@ -1264,7 +1264,7 @@ mod tests {
     
                 // Replace color only for the interior objects
                 let mask_inverted: Image = mask_image.invert_mask();
-                result_image = mask_inverted.select_from_image(&result_image, replacement_color).expect("image");
+                result_image = mask_inverted.select_from_color_and_image(replacement_color, &result_image).expect("image");
             }
             Ok(result_image)
         };
@@ -1691,11 +1691,11 @@ mod tests {
             };
 
             // Extract the biggest object
-            let biggest_image_full: Image = biggest_object.select_from_image(&input, background_color).expect("image");
+            let biggest_image_full: Image = biggest_object.select_from_color_and_image(background_color, &input).expect("image");
             let biggest_image: Image = biggest_image_full.trim().expect("image");
 
             // Extract the smallest object
-            let smallest_image_full: Image = smallest_object.select_from_image(&input, background_color).expect("image");
+            let smallest_image_full: Image = smallest_object.select_from_color_and_image(background_color, &input).expect("image");
             let smallest_image: Image = smallest_image_full.trim().expect("image");
 
             let width: u8 = biggest_image.width();
@@ -2018,7 +2018,7 @@ mod tests {
             let mut output: Image = Image::empty();
             for object in &asymmetric_objects {
                 // Obtain original colors from the input image
-                let extracted_object: Image = object.select_from_image(&input, background_color)?;
+                let extracted_object: Image = object.select_from_color_and_image(background_color, &input)?;
 
                 // Trim borders
                 let image: Image = extracted_object.trim_color(background_color)?;
@@ -2052,7 +2052,7 @@ mod tests {
             let mut output: Image = Image::empty();
             for object in &symmetric_objects {
                 // Obtain original colors from the input image
-                let extracted_object: Image = object.select_from_image(&input, background_color)?;
+                let extracted_object: Image = object.select_from_color_and_image(background_color, &input)?;
 
                 // Trim borders
                 let image: Image = extracted_object.trim_color(background_color)?;
@@ -2185,7 +2185,7 @@ mod tests {
                 let histogram: Histogram = input.histogram_with_mask(object)?;
                 let color: u8 = histogram.most_popular_color().expect("color");
                 let inverted_mask: Image = object.invert_mask();
-                result_image = inverted_mask.select_from_image(&result_image, color)?;
+                result_image = inverted_mask.select_from_color_and_image(color, &result_image)?;
             }
             result_image = result_image.remove_grid()?;
             result_image = result_image.remove_duplicates()?;

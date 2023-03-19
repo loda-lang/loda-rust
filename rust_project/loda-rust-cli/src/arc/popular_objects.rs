@@ -40,7 +40,7 @@ impl PopularObjects {
         for mask in &object_mask_vec {
             // If the mask is on, then preserve the pixel as it is.
             // If the mask is off, then clear the pixel.
-            let image: Image = mask.select_from_image(&input, background_color)
+            let image: Image = mask.select_from_color_and_image(background_color, &input)
                 .with_context(|| "find_objects select_from_image")?;
             let object: Image = image.trim()
                 .with_context(|| "find_objects trim")?;

@@ -2192,7 +2192,7 @@ impl UnofficialFunction for ImageMaskSelectFromImageFunction {
         // input2 is the color
         let color: u8 = input[2].to_u8().context("Input[2] u8 pixel_color")?;
 
-        let output_image: Image = image0.select_from_image(&image1, color)?;
+        let output_image: Image = image0.select_from_color_and_image(color, &image1)?;
 
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
