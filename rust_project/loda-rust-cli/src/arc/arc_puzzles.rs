@@ -2174,4 +2174,25 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
+    #[test]
+    fn test_530000_puzzle_780d0b14() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let mask: Image = input.mask_for_gridcells(Some(0))?;
+            let objects: Vec<Image> = mask.find_objects(ImageSegmentAlgorithm::Neighbors)?;
+            let mut result_image = Image::zero(input.width(), input.height());
+            for object in &objects {
+                let histogram: Histogram = input.histogram_with_mask(object)?;
+                let color: u8 = histogram.most_popular_color().expect("color");
+                let inverted_mask: Image = object.invert_mask();
+                result_image = inverted_mask.select_from_image(&result_image, color)?;
+            }
+            result_image = result_image.remove_grid()?;
+            result_image = result_image.remove_duplicates()?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("780d0b14").expect("String");
+        assert_eq!(result, "3 1");
+    }
+
 }
