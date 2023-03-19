@@ -64,9 +64,14 @@ pub enum ActionLabel {
     OutputImageIsSymmetricX,
     OutputImageIsSymmetricY,
 
+    OutputImageOccurInsideInputImage { count: u16 },
+    InputImageOccurInsideOutputImage { count: u16 },
+    OutputImageOccurInsideInputImageOneOrMoreTimes,
+    InputImageOccurInsideOutputImageOneOrMoreTimes,
+    OutputImageIsPresentExactlyOnceInsideInputImage,
+    InputImageIsPresentExactlyOnceInsideOutputImage,
+
     // Ideas for more
-    // OutputImageIsPresentExactlyOnceInsideInputImage
-    // InputImageIsPresentExactlyOnceInsideOutputImage
     // OutputPropertySamePixelValuesAsInput { count_same: u16, count_different: u16 },
     // OutputSizeIsInputSizeAddConstant
     // OutputSizeIsInputSizeMultipliedByWithPadding
