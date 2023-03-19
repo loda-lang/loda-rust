@@ -2184,8 +2184,7 @@ mod tests {
             for object in &objects {
                 let histogram: Histogram = input.histogram_with_mask(object)?;
                 let color: u8 = histogram.most_popular_color().expect("color");
-                let inverted_mask: Image = object.invert_mask();
-                result_image = inverted_mask.select_from_color_and_image(color, &result_image)?;
+                result_image = object.select_from_image_and_color(&result_image, color)?;
             }
             result_image = result_image.remove_grid()?;
             result_image = result_image.remove_duplicates()?;
