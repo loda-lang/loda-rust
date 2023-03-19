@@ -4,7 +4,7 @@ use bit_set::BitSet;
 pub trait ImageRemoveGrid {
     fn remove_grid(&self) -> anyhow::Result<Image>;
 
-    fn mask_for_gridcells(&self, grid_color: u8) -> anyhow::Result<Image>;
+    fn mask_for_gridcells(&self, grid_color: Option<u8>) -> anyhow::Result<Image>;
 }
 
 impl ImageRemoveGrid for Image {
@@ -37,7 +37,7 @@ impl ImageRemoveGrid for Image {
         return Ok(result_image);
     }
 
-    fn mask_for_gridcells(&self, grid_color: u8) -> anyhow::Result<Image> {
+    fn mask_for_gridcells(&self, grid_color: Option<u8>) -> anyhow::Result<Image> {
         if self.is_empty() {
             return Ok(Image::empty());
         }
@@ -57,11 +57,20 @@ impl ImageRemoveGrid for Image {
                 break;
             }
             let y: u8 = index as u8;
-            if histogram.number_of_counters_greater_than_zero() == 1 {
-                if histogram.most_popular_color() == Some(grid_color) {
-                    result_image = result_image.overlay_with_position(&row, 0, y as i32)?;
+            if histogram.number_of_counters_greater_than_zero() != 1 {
+                continue;
+            }
+            match grid_color {
+                Some(color) => {
+                    if histogram.most_popular_color() == Some(color) {
+                        continue;
+                    }
+                },
+                None => {
+                    // Don't care about the grid color. Any line that goes across the entire image.
                 }
             }
+            result_image = result_image.overlay_with_position(&row, 0, y as i32)?;
         }
 
         // Draw a vertical lines where there is grid
@@ -71,11 +80,20 @@ impl ImageRemoveGrid for Image {
                 break;
             }
             let x: u8 = index as u8;
-            if histogram.number_of_counters_greater_than_zero() == 1 {
-                if histogram.most_popular_color() == Some(grid_color) {
-                    result_image = result_image.overlay_with_position(&column, x as i32, 0)?;
+            if histogram.number_of_counters_greater_than_zero() != 1 {
+                continue;
+            }
+            match grid_color {
+                Some(color) => {
+                    if histogram.most_popular_color() == Some(color) {
+                        continue;
+                    }
+                },
+                None => {
+                    // Don't care about the grid color. Any line that goes across the entire image.
                 }
             }
+            result_image = result_image.overlay_with_position(&column, x as i32, 0)?;
         }
 
         return Ok(result_image);
@@ -233,7 +251,7 @@ mod tests {
         let input: Image = Image::try_create(5, 3, pixels).expect("image");
 
         // Act
-        let actual: Image = input.mask_for_gridcells(1).expect("image");
+        let actual: Image = input.mask_for_gridcells(Some(1)).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -256,7 +274,7 @@ mod tests {
         let input: Image = Image::try_create(5, 3, pixels).expect("image");
 
         // Act
-        let actual: Image = input.mask_for_gridcells(2).expect("image");
+        let actual: Image = input.mask_for_gridcells(Some(2)).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -265,6 +283,35 @@ mod tests {
             0, 1, 0, 1, 0,
         ];
         let expected: Image = Image::try_create(5, 3, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30002_mask_for_gridcells() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 5,
+            3, 2, 3,
+            5, 5, 5,
+            1, 1, 1,
+            3, 2, 3,
+            5, 5, 5,
+        ];
+        let input: Image = Image::try_create(3, 6, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.mask_for_gridcells(None).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0,
+            1, 1, 1,
+            0, 0, 0,
+            0, 0, 0,
+            1, 1, 1,
+            0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(3, 6, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 }
