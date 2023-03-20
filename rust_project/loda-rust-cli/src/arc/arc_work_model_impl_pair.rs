@@ -64,5 +64,9 @@ impl arc_work_model::Pair {
                 }
             }
         }
+
+        if self.input.histogram == self.output.histogram {
+            self.action_label_set.insert(ActionLabel::OutputImageHistogramEqualToInputImageHistogram);
+        }
     }
 }

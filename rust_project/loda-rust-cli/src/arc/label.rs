@@ -71,6 +71,8 @@ pub enum ActionLabel {
     OutputImageIsPresentExactlyOnceInsideInputImage,
     InputImageIsPresentExactlyOnceInsideOutputImage,
 
+    OutputImageHistogramEqualToInputImageHistogram,
+
     // Ideas for more
     // OutputPropertySamePixelValuesAsInput { count_same: u16, count_different: u16 },
     // OutputSizeIsInputSizeAddConstant
