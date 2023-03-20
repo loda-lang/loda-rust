@@ -122,6 +122,6 @@ pub use number_to_image::NumberToImage;
 pub use popular_objects::PopularObjects;
 pub use read_testdata::read_testdata;
 pub use register_arc_functions::register_arc_functions;
-pub use run_with_program::{AnalyzeTask, RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData};
+pub use run_with_program::{AnalyzeTask, AnalyzeTask2, RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData};
 pub use stack_strings::StackStrings;
 pub use traverse_programs_and_models::TraverseProgramsAndModels;

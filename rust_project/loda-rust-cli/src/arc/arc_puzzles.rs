@@ -2,13 +2,14 @@
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model::{self, PairType};
-    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, AnalyzeTask, ImageResize};
+    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, AnalyzeTask, AnalyzeTask2, ImageResize};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile};
+    use std::cell::RefCell;
     use std::collections::HashMap;
 
     #[allow(unused_imports)]
@@ -38,6 +39,26 @@ mod tests {
         let task = arc_work_model::Task::try_from(&json_task)?;
         let instance: RunWithProgram = RunWithProgram::new(task, true);
         let result: RunWithProgramResult = instance.run_analyze_and_solve(analyze_callback, solve_callback)?;
+        let mut string: String = format!("{} {}", result.count_train_correct(), result.count_test_correct());
+        let messages: String = result.messages();
+        if !messages.is_empty() {
+            string = format!("{} - {}", string, messages);
+        }
+        Ok(string)
+    }
+
+    pub fn run_analyze_and_solve2<F>(
+        task_name: &str,
+        analyze_callback: F, 
+        solve_callback: SolutionSimple,
+    ) -> anyhow::Result<String>
+        // where F: FnMut(&StrippedRow, usize)
+        where F: Fn(&arc_work_model::Task) -> anyhow::Result<()>
+    {
+        let json_task: Task = Task::load_testdata(task_name)?;
+        let task = arc_work_model::Task::try_from(&json_task)?;
+        let instance: RunWithProgram = RunWithProgram::new(task, true);
+        let result: RunWithProgramResult = instance.run_analyze_and_solve2(analyze_callback, solve_callback)?;
         let mut string: String = format!("{} {}", result.count_train_correct(), result.count_test_correct());
         let messages: String = result.messages();
         if !messages.is_empty() {
@@ -2207,9 +2228,13 @@ mod tests {
 
     // #[test]
     fn test_540000_puzzle_a699fb00() {
-        // TODO: move dictionary to here, so it can be shared with the SimpleSolution function
-        let analyze: AnalyzeTask = |task| {
-            for pair in task.pairs {
+        // TODO: shared dictionary with the SimpleSolution function
+        type Dict = HashMap<Image, Image>;
+        let dict_outer: RefCell<Dict> = RefCell::<Dict>::new(Dict::new());
+
+        let analyze = |task: &arc_work_model::Task| {
+            let mut dict_inner = Dict::new();
+            for pair in &task.pairs {
                 if pair.pair_type != PairType::Train {
                     continue;
                 }
@@ -2219,8 +2244,6 @@ mod tests {
                 let width: u8 = pair.input.image.width();
                 let height: u8 = pair.input.image.height();
         
-                // TODO: move dictionary to outside this lambda function, so it can be shared with the SimpleSolution function
-                let mut dict = HashMap::<Image, Image>::new();
                 for y in 0..height {
                     for x in 0..width {
                         let get_x: i32 = x as i32;
@@ -2235,30 +2258,34 @@ mod tests {
                         let replace_source: Image = pair.input.image.crop(x, y, 3, 1)?;
                         let replace_target: Image = pair.output.image.crop(x, y, 3, 1)?;
 
-                        if let Some(value) = dict.get(&replace_source) {
+                        if let Some(value) = dict_inner.get(&replace_source) {
                             if *value != replace_target {
                                 return Err(anyhow::anyhow!("No consensus on what replacements are to be done"));
                             }
                         }
-                        dict.insert(replace_source, replace_target);
+                        dict_inner.insert(replace_source, replace_target);
 
                         let pixel_value0: u8 = pair.input.image.get(get_x, get_y).unwrap_or(255);
                         let pixel_value1: u8 = pair.output.image.get(get_x, get_y).unwrap_or(255);
                         println!("replace from {} to {}", pixel_value0, pixel_value1);
                     }
                 }
-                println!("number of items in dict: {}", dict.len());
-        
             }
+            println!("number of items in dict: {}", dict_inner.len());
+            *dict_outer.borrow_mut() = dict_inner;
             Ok(())
         };
         let solution: SolutionSimple = |data| {
             let input: Image = data.image;
             // TODO: do substitutions from the dictionary
 
+            // TODO: clone the dict_outer. How do I do this?
+            // let dict_inner: Dict = *dict_outer.borrow().clone();
+
             Ok(input.clone())
         };
-        let result: String = run_analyze_and_solve("a699fb00", analyze, solution).expect("String");
+        // let result: String = run_analyze_and_solve("a699fb00", analyze, solution).expect("String");
+        let result: String = run_analyze_and_solve2("a699fb00", analyze, solution).expect("String");
         assert_eq!(result, "3 1");
     }
 
