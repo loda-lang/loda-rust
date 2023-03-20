@@ -59,6 +59,7 @@ pub struct SolutionSimpleData {
 }
 
 pub type SolutionSimple = fn(SolutionSimpleData) -> anyhow::Result<Image>;
+pub type AnalyzeTask = fn(arc_work_model::Task) -> anyhow::Result<()>;
 
 pub struct RunWithProgram {
     verify_test_output: bool,
@@ -133,6 +134,21 @@ impl RunWithProgram {
                 image: pair.input.image.clone(),
             };
             let computed_image: Image = callback(data)?;
+            computed_images.push(computed_image);
+        }
+        self.process_computed_images(computed_images)
+    }
+
+    #[allow(dead_code)]
+    pub fn run_analyze_and_solve(&self, analyze_callback: AnalyzeTask, solve_callback: SolutionSimple) -> anyhow::Result<RunWithProgramResult> {
+        analyze_callback(self.task.clone())?;
+        let mut computed_images = Vec::<Image>::new();
+        for (index, pair) in self.task.pairs.iter().enumerate() {
+            let data = SolutionSimpleData {
+                index,
+                image: pair.input.image.clone(),
+            };
+            let computed_image: Image = solve_callback(data)?;
             computed_images.push(computed_image);
         }
         self.process_computed_images(computed_images)
