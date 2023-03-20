@@ -290,7 +290,7 @@ impl RunWithProgram {
     }
 
     fn process_computed_images(&self, computed_images: Vec<Image>) -> anyhow::Result<RunWithProgramResult> {
-        let pretty_print = true;
+        let pretty_print = false;
 
         let mut status_texts = Vec::<&str>::new();
 
