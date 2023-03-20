@@ -59,8 +59,11 @@ pub struct SolutionSimpleData {
 }
 
 pub type SolutionSimple = fn(SolutionSimpleData) -> anyhow::Result<Image>;
-pub type AnalyzeTask = fn(arc_work_model::Task) -> anyhow::Result<()>;
-pub type AnalyzeTask2 = fn(&arc_work_model::Task) -> anyhow::Result<()>;
+
+pub trait AnalyzeAndSolve {
+    fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()>;
+    fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image>;
+}
 
 pub struct RunWithProgram {
     verify_test_output: bool,
@@ -141,36 +144,18 @@ impl RunWithProgram {
     }
 
     #[allow(dead_code)]
-    pub fn run_analyze_and_solve(&self, analyze_callback: AnalyzeTask, solve_callback: SolutionSimple) -> anyhow::Result<RunWithProgramResult> {
-        analyze_callback(self.task.clone())?;
-        let mut computed_images = Vec::<Image>::new();
-        for (index, pair) in self.task.pairs.iter().enumerate() {
-            let data = SolutionSimpleData {
-                index,
-                image: pair.input.image.clone(),
-            };
-            let computed_image: Image = solve_callback(data)?;
-            computed_images.push(computed_image);
-        }
-        self.process_computed_images(computed_images)
-    }
-
-    #[allow(dead_code)]
-    pub fn run_analyze_and_solve2<F>(
+    pub fn run_analyze_and_solve(
         &self,
-        analyze_callback: F, 
-        solve_callback: SolutionSimple,
-    ) -> anyhow::Result<RunWithProgramResult>
-        where F: Fn(&arc_work_model::Task) -> anyhow::Result<()>
-    {
-        analyze_callback(&self.task)?;
+        analyze_and_solve: &mut dyn AnalyzeAndSolve,
+    ) -> anyhow::Result<RunWithProgramResult> {
+        analyze_and_solve.analyze(&self.task)?;
         let mut computed_images = Vec::<Image>::new();
         for (index, pair) in self.task.pairs.iter().enumerate() {
             let data = SolutionSimpleData {
                 index,
                 image: pair.input.image.clone(),
             };
-            let computed_image: Image = solve_callback(data)?;
+            let computed_image: Image = analyze_and_solve.solve(&data)?;
             computed_images.push(computed_image);
         }
         self.process_computed_images(computed_images)
@@ -305,7 +290,7 @@ impl RunWithProgram {
     }
 
     fn process_computed_images(&self, computed_images: Vec<Image>) -> anyhow::Result<RunWithProgramResult> {
-        let pretty_print = false;
+        let pretty_print = true;
 
         let mut status_texts = Vec::<&str>::new();
 

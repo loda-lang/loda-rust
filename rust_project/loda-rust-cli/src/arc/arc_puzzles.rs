@@ -2,14 +2,13 @@
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model::{self, PairType};
-    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, AnalyzeTask, AnalyzeTask2, ImageResize};
+    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
-    use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop};
+    use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile};
-    use std::cell::RefCell;
     use std::collections::HashMap;
 
     #[allow(unused_imports)]
@@ -34,31 +33,15 @@ mod tests {
         }
     }
 
-    fn run_analyze_and_solve(task_name: &str, analyze_callback: AnalyzeTask, solve_callback: SolutionSimple) -> anyhow::Result<String> {
-        let json_task: Task = Task::load_testdata(task_name)?;
-        let task = arc_work_model::Task::try_from(&json_task)?;
-        let instance: RunWithProgram = RunWithProgram::new(task, true);
-        let result: RunWithProgramResult = instance.run_analyze_and_solve(analyze_callback, solve_callback)?;
-        let mut string: String = format!("{} {}", result.count_train_correct(), result.count_test_correct());
-        let messages: String = result.messages();
-        if !messages.is_empty() {
-            string = format!("{} - {}", string, messages);
-        }
-        Ok(string)
-    }
-
-    pub fn run_analyze_and_solve2<F>(
+    #[allow(dead_code)]
+    pub fn run_analyze_and_solve(
         task_name: &str,
-        analyze_callback: F, 
-        solve_callback: SolutionSimple,
-    ) -> anyhow::Result<String>
-        // where F: FnMut(&StrippedRow, usize)
-        where F: Fn(&arc_work_model::Task) -> anyhow::Result<()>
-    {
+        analyze_and_solve: &mut dyn AnalyzeAndSolve,
+    ) -> anyhow::Result<String> {
         let json_task: Task = Task::load_testdata(task_name)?;
         let task = arc_work_model::Task::try_from(&json_task)?;
         let instance: RunWithProgram = RunWithProgram::new(task, true);
-        let result: RunWithProgramResult = instance.run_analyze_and_solve2(analyze_callback, solve_callback)?;
+        let result: RunWithProgramResult = instance.run_analyze_and_solve(analyze_and_solve)?;
         let mut string: String = format!("{} {}", result.count_train_correct(), result.count_test_correct());
         let messages: String = result.messages();
         if !messages.is_empty() {
@@ -2226,24 +2209,37 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
-    // #[test]
+    #[test]
     fn test_540000_puzzle_a699fb00() {
-        // TODO: shared dictionary with the SimpleSolution function
-        type Dict = HashMap<Image, Image>;
-        let dict_outer: RefCell<Dict> = RefCell::<Dict>::new(Dict::new());
+        let mut instance = MySolution::new();
+        let result: String = run_analyze_and_solve("a699fb00", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
 
-        let analyze = |task: &arc_work_model::Task| {
+    type Dict = HashMap<Image, Image>;
+
+    struct MySolution {
+        dict_outer: Dict,
+    }
+
+    impl MySolution {
+        fn new() -> Self {
+            Self {
+                dict_outer: Dict::new(),
+            }
+        }
+    }
+    
+    impl AnalyzeAndSolve for MySolution {
+        fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
             let mut dict_inner = Dict::new();
             for pair in &task.pairs {
                 if pair.pair_type != PairType::Train {
                     continue;
                 }
                 let diff_mask: Image = pair.input.image.diff(&pair.output.image)?;
-                HtmlLog::image(&diff_mask);
-
                 let width: u8 = pair.input.image.width();
                 let height: u8 = pair.input.image.height();
-        
                 for y in 0..height {
                     for x in 0..width {
                         let get_x: i32 = x as i32;
@@ -2265,28 +2261,36 @@ mod tests {
                         }
                         dict_inner.insert(replace_source, replace_target);
 
-                        let pixel_value0: u8 = pair.input.image.get(get_x, get_y).unwrap_or(255);
-                        let pixel_value1: u8 = pair.output.image.get(get_x, get_y).unwrap_or(255);
-                        println!("replace from {} to {}", pixel_value0, pixel_value1);
+                        // let pixel_value0: u8 = pair.input.image.get(get_x, get_y).unwrap_or(255);
+                        // let pixel_value1: u8 = pair.output.image.get(get_x, get_y).unwrap_or(255);
+                        // println!("replace from {} to {}", pixel_value0, pixel_value1);
                     }
                 }
             }
-            println!("number of items in dict: {}", dict_inner.len());
-            *dict_outer.borrow_mut() = dict_inner;
-            Ok(())
-        };
-        let solution: SolutionSimple = |data| {
-            let input: Image = data.image;
-            // TODO: do substitutions from the dictionary
+            // println!("number of items in dict: {}", dict_inner.len());
+            self.dict_outer = dict_inner;
+            Ok(())   
+        }
 
-            // TODO: clone the dict_outer. How do I do this?
-            // let dict_inner: Dict = *dict_outer.borrow().clone();
-
-            Ok(input.clone())
-        };
-        // let result: String = run_analyze_and_solve("a699fb00", analyze, solution).expect("String");
-        let result: String = run_analyze_and_solve2("a699fb00", analyze, solution).expect("String");
-        assert_eq!(result, "3 1");
+        fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+            let input: &Image = &data.image;
+            let mut result_image: Image = input.clone();
+            // Do substitutions from the dictionary
+            for _ in 0..100 {
+                let mut stop = true;
+                for (key, value) in &self.dict_outer {
+                    let position = result_image.find_exact(key)?;
+                    if let Some((x, y)) = position {
+                        result_image = result_image.overlay_with_position(value, x as i32, y as i32)?;
+                        stop = false;
+                    }
+                }
+                if stop {
+                    break;
+                }
+            }
+            Ok(result_image)
+        }
     }
 
 }
