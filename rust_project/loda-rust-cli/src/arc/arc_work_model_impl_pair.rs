@@ -87,7 +87,14 @@ impl arc_work_model::Pair {
             return Ok(());
         }
 
-        let background_ignore_mask: Image = self.input.image.to_mask_where_color_is(0);
+        let background_color: u8 = match self.input.histogram.most_popular_color() {
+            Some(value) => value,
+            None => {
+                // println!("unclear what the background color is");
+                return Ok(());
+            }
+        };
+        let background_ignore_mask: Image = self.input.image.to_mask_where_color_is(background_color);
 
         // let objects: Vec<Image> = self.input.image.find_objects(ImageSegmentAlgorithm::All)?;
         let objects: Vec<Image> = self.input.image.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, background_ignore_mask)?;
