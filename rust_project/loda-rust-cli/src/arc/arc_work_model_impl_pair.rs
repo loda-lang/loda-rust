@@ -1,5 +1,5 @@
 use super::arc_work_model;
-use super::arc_work_model::{Object, ObjectType};
+use super::arc_work_model::{Object, ObjectType, ObjectLabel};
 use super::{ActionLabel, PropertyOutput};
 use super::{ImageFind, ImageSymmetry};
 
@@ -105,51 +105,40 @@ impl arc_work_model::Pair {
         // HtmlLog::html(self.output.image.to_html());
         // HtmlLog::text("separator");
 
-        // Save the objects on the input.
-        self.input.input_objects.insert(ObjectType::RemovalOfMostPopularColorInThisImageAfterwardSegmentByNeighborAll, object_vec.clone());
-
-        if object_vec.len() == 1 {
-            // println!("OutputImage is only object in the input image");
-            self.action_label_set.insert(ActionLabel::OutputImageIsTheOnlyObjectInInputImage);
-        }
-
         // Reset the sorting
         object_vec.sort_unstable_by_key(|obj| obj.index);
 
         // Smallest objects first, biggest last
         object_vec.sort_unstable_by_key(|obj| obj.area());
         for _ in 0..1 {
-            let object0: &Object = match object_vec.get(0) {
+            let object1_area: u16 = match object_vec.get(1) {
+                Some(obj) => obj.area(),
+                None => break
+            };
+            let object0: &mut Object = match object_vec.get_mut(0) {
                 Some(obj) => obj,
                 None => break
             };
-            let object1: &Object = match object_vec.get(1) {
-                Some(obj) => obj,
-                None => break
-            };
-            if object0.area() < object1.area() {
-                // TODO: set a boolean on the object, that this is the smallest area.
-                // TODO: loop over the objects. If the object has the smallest area, then insert it into the action_label_set.
-
+            if object0.area() < object1_area {
                 // println!("OutputImage is object with the smallest area");
-                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectWithTheSmallestArea);
+                object0.object_label_set.insert(ObjectLabel::TheOnlyOneWithSmallestArea);
             }            
         }
 
         // Biggest objects first, smallest last
         object_vec.reverse();
         for _ in 0..1 {
-            let object0: &Object = match object_vec.get(0) {
+            let object1_area: u16 = match object_vec.get(1) {
+                Some(obj) => obj.area(),
+                None => break
+            };
+            let object0: &mut Object = match object_vec.get_mut(0) {
                 Some(obj) => obj,
                 None => break
             };
-            let object1: &Object = match object_vec.get(1) {
-                Some(obj) => obj,
-                None => break
-            };
-            if object0.area() > object1.area() {
+            if object0.area() > object1_area {
                 // println!("OutputImage is object with the biggest area");
-                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectWithTheBiggestArea);
+                object0.object_label_set.insert(ObjectLabel::TheOnlyOneWithBiggestArea);
             }            
         }
 
@@ -226,6 +215,27 @@ impl arc_work_model::Pair {
                 self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectThatIsSymmetricY);
             }            
         }
+
+        // Reset the sorting
+        object_vec.sort_unstable_by_key(|obj| obj.index);
+
+        if object_vec.len() == 1 {
+            // println!("OutputImage is only object in the input image");
+            self.action_label_set.insert(ActionLabel::OutputImageIsTheOnlyObjectInInputImage);
+        }
+
+        // TODO: populate the action_label_set with data from the objects. If the object has the smallest area, then insert it into the action_label_set.
+        for object in &object_vec {
+            if object.object_label_set.contains(&ObjectLabel::TheOnlyOneWithSmallestArea) {
+                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectWithTheSmallestArea);
+            }
+            if object.object_label_set.contains(&ObjectLabel::TheOnlyOneWithBiggestArea) {
+                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectWithTheBiggestArea);
+            }
+        }
+
+        // Save the objects on the input.
+        self.input.input_objects.insert(ObjectType::RemovalOfMostPopularColorInThisImageAfterwardSegmentByNeighborAll, object_vec);
 
         Ok(())
     }

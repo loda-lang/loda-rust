@@ -1,5 +1,5 @@
 use super::{Image, Histogram, ActionLabelSet, PropertyInput, InputLabelSet};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
 pub struct Output {
@@ -18,10 +18,22 @@ pub enum ObjectType {
     // SegmentByGrid,
 }
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub enum ObjectLabel {
+    TheOnlyOneWithSmallestArea,
+    TheOnlyOneWithBiggestArea,
+
+    // TheOnlyOneWithSymmetryX,
+    // TheOnlyOneWithAsymmetryX,
+    // TheOnlyOneWithSymmetryY,
+    // TheOnlyOneWithAsymmetryY,
+}
+
 #[derive(Clone, Debug)]
 pub struct Object {
     pub index: usize,
     pub cropped_object_image: Image,
+    pub object_label_set: HashSet<ObjectLabel>,
 }
 
 #[derive(Clone, Debug)]

@@ -3,7 +3,7 @@ use super::arc_work_model::Object;
 use super::{PropertyInput, InputLabel};
 use super::{Image, ImageSymmetry};
 use super::{ImageSegment, ImageSegmentAlgorithm, ImageMask, ImageCrop};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 impl arc_work_model::Input {
     pub fn update_input_properties(&mut self) {
@@ -189,6 +189,7 @@ impl arc_work_model::Input {
             let object = Object {
                 index: index,
                 cropped_object_image: cropped_object_image.clone(),
+                object_label_set: HashSet::new(),
             };
             object_vec.push(object);
         }

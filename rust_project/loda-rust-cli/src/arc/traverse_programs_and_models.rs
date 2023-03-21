@@ -146,10 +146,10 @@ impl TraverseProgramsAndModels {
             println!("Predicted task: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct_task, count_predict_incorrect_task, percent);
         }
 
-        Self::inspect_undecided(&buffer_task_vec)?;
+        // Self::inspect_undecided(&buffer_task_vec)?;
         // Self::inspect_decided(&buffer_task_vec)?;
-        // Self::inspect_task_id(&buffer_task_vec, "28bf18c6,task")?;
-        // Self::inspect_task_id(&buffer_task_vec, "5c2c9af4,task")?;
+        Self::inspect_task_id(&buffer_task_vec, "72ca375d")?;
+        Self::inspect_task_id(&buffer_task_vec, "d56f2372")?;
         Ok(())
     }
 
@@ -161,11 +161,11 @@ impl TraverseProgramsAndModels {
             if estimate != "Undecided" {
                 continue;
             }
-            if count > 0 {
+            if count > 50 {
                 buffer_task.inspect()?;
             }
             count += 1;
-            if count > 50 {
+            if count > 100 {
                 break;
             }
         }
