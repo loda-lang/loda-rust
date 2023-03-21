@@ -1,4 +1,4 @@
-use super::{arc_work_model, ImageSegment, ImageSegmentAlgorithm, Image, ImageMask, ImageCrop};
+use super::arc_work_model;
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, PropertyOutput};
 use super::{ImageFind, ImageSymmetry};
@@ -88,38 +88,14 @@ impl arc_work_model::Pair {
             return Ok(());
         }
 
-        let background_color: u8 = match self.input.histogram.most_popular_color() {
-            Some(value) => value,
-            None => {
-                // println!("unclear what the background color is");
-                return Ok(());
-            }
-        };
-        let background_ignore_mask: Image = self.input.image.to_mask_where_color_is(background_color);
-
-        // let objects: Vec<Image> = self.input.image.find_objects(ImageSegmentAlgorithm::All)?;
-        let object_mask_vec: Vec<Image> = self.input.image.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, background_ignore_mask)?;
+        let mut object_vec: Vec<Object> = self.input.find_objects_using_histogram_most_popular_color()?;
         let mut found_count: usize = 0;
-        let mut object_vec: Vec<Object> = vec!();
-        for (index, object_mask) in object_mask_vec.iter().enumerate() {
-            // HtmlLog::image(object_mask);
-            // HtmlLog::html(self.input.image.to_html());
-            let (x, y, width, height) = match object_mask.bounding_box() {
-                Some(value) => value,
-                None => continue
-            };
-            let cropped_object_image: Image = self.input.image.crop(x, y, width, height)?;
-            // HtmlLog::image(&cropped_object_image);
-
-            let object = Object {
-                index: index,
-                cropped_object_image: cropped_object_image.clone(),
-            };
-            object_vec.push(object);
-            if cropped_object_image == self.output.image {
+        for object in &object_vec {
+            if object.cropped_object_image == self.output.image {
                 found_count += 1;
             }
         }
+
         if found_count != 1 {
             // println!("b");
             return Ok(());
@@ -129,7 +105,8 @@ impl arc_work_model::Pair {
         // HtmlLog::html(self.output.image.to_html());
         // HtmlLog::text("separator");
 
-        // TODO: save the objects on the input. self.input.input_objects = object_vec;
+        // Save the objects on the input.
+        self.input.input_objects.insert(ObjectType::RemovalOfMostPopularColorInThisImageAfterwardSegmentByNeighborAll, object_vec.clone());
 
         if object_vec.len() == 1 {
             // println!("OutputImage is only object in the input image");
@@ -151,6 +128,9 @@ impl arc_work_model::Pair {
                 None => break
             };
             if object0.area() < object1.area() {
+                // TODO: set a boolean on the object, that this is the smallest area.
+                // TODO: loop over the objects. If the object has the smallest area, then insert it into the action_label_set.
+
                 // println!("OutputImage is object with the smallest area");
                 self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectWithTheSmallestArea);
             }            

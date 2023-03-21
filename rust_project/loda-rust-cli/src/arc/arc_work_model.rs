@@ -9,9 +9,13 @@ pub struct Output {
     pub histogram: Histogram,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum ObjectType {
-    NeighborAllAfterRemovalOfMostPopularIntersectionColor,
+    RemovalOfMostPopularColorInThisImageAfterwardSegmentByNeighborAll,
+
+    // Ideas for more object types
+    // RemovalOfMostPopularColorAcrossAllImagesAfterwardSegmentByNeighborAll,
+    // SegmentByGrid,
 }
 
 #[derive(Clone, Debug)]

@@ -468,9 +468,11 @@ impl arc_work_model::Task {
 
     pub fn estimated_output_size(&self) -> String {
         for label in &self.action_label_set_intersection {
+            // TODO: deal with multiple labels being satisfied, apply a score to the results, and pick the winner.
             match label {
                 ActionLabel::OutputImageIsTheObjectThatIsSymmetricX => {
-                    // TODO: store the objects inside the input instance
+                    // TODO: extract pair.input.input_objects.get(ObjectType::RemovalOfMostPopularColorInThisImageAfterwardSegmentByNeighborAll);
+                    // TODO: find the object that is symmetric x.
                     return "OutputImageIsTheObjectThatIsSymmetricX".to_string();
                 },
                 // TODO: OutputImageIsTheOnlyObjectInInputImage
