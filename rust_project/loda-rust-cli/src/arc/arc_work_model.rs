@@ -23,7 +23,6 @@ pub enum ObjectType {
 pub enum ObjectLabel {
     TheOnlyOneWithSmallestArea,
     TheOnlyOneWithBiggestArea,
-
     TheOnlyOneWithSymmetryX,
     TheOnlyOneWithAsymmetryX,
     TheOnlyOneWithSymmetryY,
