@@ -77,6 +77,9 @@ impl arc_work_model::Pair {
     }
 
     fn analyze_object_why_is_the_output_present_once_in_input(&mut self) -> anyhow::Result<()> {
+        // if self.id != "72ca375d,pair1,train" {
+        //     return Ok(());
+        // }
         // if self.id != "d56f2372,pair0,train" {
         //     return Ok(());
         // }
@@ -119,8 +122,9 @@ impl arc_work_model::Pair {
                 Some(obj) => obj,
                 None => break
             };
-            if object0.area() < object1_area {
-                // println!("OutputImage is object with the smallest area");
+            let object0_area: u16 = object0.area();
+            if object0_area < object1_area {
+                // println!("OutputImage is object with the smallest area, area: {} id: {:?}", object0_area, self.id);
                 object0.object_label_set.insert(ObjectLabel::TheOnlyOneWithSmallestArea);
             }            
         }
@@ -136,8 +140,9 @@ impl arc_work_model::Pair {
                 Some(obj) => obj,
                 None => break
             };
-            if object0.area() > object1_area {
-                // println!("OutputImage is object with the biggest area");
+            let object0_area: u16 = object0.area();
+            if object0_area > object1_area {
+                // println!("OutputImage is object with the biggest area, area: {} id: {:?}", object0_area, self.id);
                 object0.object_label_set.insert(ObjectLabel::TheOnlyOneWithBiggestArea);
             }            
         }
@@ -148,34 +153,34 @@ impl arc_work_model::Pair {
         // Asymmetric objects first, symmetric last
         object_vec.sort_unstable_by_key(|obj| obj.is_symmetric_x());
         for _ in 0..1 {
-            let object0: &Object = match object_vec.get(0) {
+            let object1_is_symmetric_x: bool = match object_vec.get(1) {
+                Some(obj) => obj.is_symmetric_x(),
+                None => break
+            };
+            let object0: &mut Object = match object_vec.get_mut(0) {
                 Some(obj) => obj,
                 None => break
             };
-            let object1: &Object = match object_vec.get(1) {
-                Some(obj) => obj,
-                None => break
-            };
-            if object0.is_symmetric_x() != object1.is_symmetric_x() {
+            if object0.is_symmetric_x() != object1_is_symmetric_x {
                 // println!("OutputImage is only object that is asymmetric x, {:?}", self.id);
-                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectThatIsAsymmetricX);
+                object0.object_label_set.insert(ObjectLabel::TheOnlyOneWithAsymmetryX);
             }            
         }
 
         // Symmetric objects first, asymmetric last
         object_vec.reverse();
         for _ in 0..1 {
-            let object0: &Object = match object_vec.get(0) {
+            let object1_is_symmetric_x: bool = match object_vec.get(1) {
+                Some(obj) => obj.is_symmetric_x(),
+                None => break
+            };
+            let object0: &mut Object = match object_vec.get_mut(0) {
                 Some(obj) => obj,
                 None => break
             };
-            let object1: &Object = match object_vec.get(1) {
-                Some(obj) => obj,
-                None => break
-            };
-            if object0.is_symmetric_x() != object1.is_symmetric_x() {
+            if object0.is_symmetric_x() != object1_is_symmetric_x {
                 // println!("OutputImage is only object that is symmetric x, {:?}", self.id);
-                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectThatIsSymmetricX);
+                object0.object_label_set.insert(ObjectLabel::TheOnlyOneWithSymmetryX);
             }            
         }
 
@@ -185,52 +190,72 @@ impl arc_work_model::Pair {
         // Asymmetric objects first, symmetric last
         object_vec.sort_unstable_by_key(|obj| obj.is_symmetric_y());
         for _ in 0..1 {
-            let object0: &Object = match object_vec.get(0) {
+            let object1_is_symmetric_y: bool = match object_vec.get(1) {
+                Some(obj) => obj.is_symmetric_y(),
+                None => break
+            };
+            let object0: &mut Object = match object_vec.get_mut(0) {
                 Some(obj) => obj,
                 None => break
             };
-            let object1: &Object = match object_vec.get(1) {
-                Some(obj) => obj,
-                None => break
-            };
-            if object0.is_symmetric_y() != object1.is_symmetric_y() {
+            if object0.is_symmetric_y() != object1_is_symmetric_y {
                 // println!("OutputImage is only object that is asymmetric y, {:?}", self.id);
-                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectThatIsAsymmetricY);
+                object0.object_label_set.insert(ObjectLabel::TheOnlyOneWithAsymmetryY);
             }            
         }
 
         // Symmetric objects first, asymmetric last
         object_vec.reverse();
         for _ in 0..1 {
-            let object0: &Object = match object_vec.get(0) {
+            let object1_is_symmetric_y: bool = match object_vec.get(1) {
+                Some(obj) => obj.is_symmetric_y(),
+                None => break
+            };
+            let object0: &mut Object = match object_vec.get_mut(0) {
                 Some(obj) => obj,
                 None => break
             };
-            let object1: &Object = match object_vec.get(1) {
-                Some(obj) => obj,
-                None => break
-            };
-            if object0.is_symmetric_y() != object1.is_symmetric_y() {
+            if object0.is_symmetric_y() != object1_is_symmetric_y {
                 // println!("OutputImage is only object that is symmetric y, {:?}", self.id);
-                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectThatIsSymmetricY);
+                object0.object_label_set.insert(ObjectLabel::TheOnlyOneWithSymmetryY);
             }            
         }
 
         // Reset the sorting
         object_vec.sort_unstable_by_key(|obj| obj.index);
 
+        // OutputImage is only object in the input image
         if object_vec.len() == 1 {
-            // println!("OutputImage is only object in the input image");
-            self.action_label_set.insert(ActionLabel::OutputImageIsTheOnlyObjectInInputImage);
+            if let Some(object) = object_vec.first() {
+                if object.cropped_object_image == self.output.image {
+                    self.action_label_set.insert(ActionLabel::OutputImageIsTheOnlyObjectInInputImage);
+                }
+            }
         }
 
-        // TODO: populate the action_label_set with data from the objects. If the object has the smallest area, then insert it into the action_label_set.
+        // Populate the action_label_set with data from the objects. If the object has the smallest area, then insert it into the action_label_set.
         for object in &object_vec {
+            if object.cropped_object_image != self.output.image {
+                continue;
+            }
+
             if object.object_label_set.contains(&ObjectLabel::TheOnlyOneWithSmallestArea) {
                 self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectWithTheSmallestArea);
             }
             if object.object_label_set.contains(&ObjectLabel::TheOnlyOneWithBiggestArea) {
                 self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectWithTheBiggestArea);
+            }
+            if object.object_label_set.contains(&ObjectLabel::TheOnlyOneWithAsymmetryX) {
+                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectThatIsAsymmetricX);
+            }
+            if object.object_label_set.contains(&ObjectLabel::TheOnlyOneWithSymmetryX) {
+                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectThatIsSymmetricX);
+            }
+            if object.object_label_set.contains(&ObjectLabel::TheOnlyOneWithAsymmetryY) {
+                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectThatIsAsymmetricY);
+            }
+            if object.object_label_set.contains(&ObjectLabel::TheOnlyOneWithSymmetryY) {
+                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectThatIsSymmetricY);
             }
         }
 

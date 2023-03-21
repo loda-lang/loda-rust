@@ -16,6 +16,7 @@ pub enum ObjectType {
     // Ideas for more object types
     // RemovalOfMostPopularColorAcrossAllImagesAfterwardSegmentByNeighborAll,
     // SegmentByGrid,
+    // SegmentByColor,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -23,10 +24,10 @@ pub enum ObjectLabel {
     TheOnlyOneWithSmallestArea,
     TheOnlyOneWithBiggestArea,
 
-    // TheOnlyOneWithSymmetryX,
-    // TheOnlyOneWithAsymmetryX,
-    // TheOnlyOneWithSymmetryY,
-    // TheOnlyOneWithAsymmetryY,
+    TheOnlyOneWithSymmetryX,
+    TheOnlyOneWithAsymmetryX,
+    TheOnlyOneWithSymmetryY,
+    TheOnlyOneWithAsymmetryY,
 }
 
 #[derive(Clone, Debug)]
