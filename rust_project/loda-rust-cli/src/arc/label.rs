@@ -45,6 +45,16 @@ pub enum InputLabel {
 
 pub type InputLabelSet = HashSet<InputLabel>;
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub enum ObjectLabel {
+    TheOnlyOneWithSmallestArea,
+    TheOnlyOneWithBiggestArea,
+    TheOnlyOneWithSymmetryX,
+    TheOnlyOneWithAsymmetryX,
+    TheOnlyOneWithSymmetryY,
+    TheOnlyOneWithAsymmetryY,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PropertyOutput {
     OutputWidth,

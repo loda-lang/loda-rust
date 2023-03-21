@@ -1,4 +1,4 @@
-use super::{Image, Histogram, ActionLabelSet, PropertyInput, InputLabelSet};
+use super::{Image, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -17,16 +17,6 @@ pub enum ObjectType {
     // RemovalOfMostPopularColorAcrossAllImagesAfterwardSegmentByNeighborAll,
     // SegmentByGrid,
     // SegmentByColor,
-}
-
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub enum ObjectLabel {
-    TheOnlyOneWithSmallestArea,
-    TheOnlyOneWithBiggestArea,
-    TheOnlyOneWithSymmetryX,
-    TheOnlyOneWithAsymmetryX,
-    TheOnlyOneWithSymmetryY,
-    TheOnlyOneWithAsymmetryY,
 }
 
 #[derive(Clone, Debug)]

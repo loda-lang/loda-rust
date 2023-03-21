@@ -1,7 +1,7 @@
 use super::arc_work_model;
 use super::arc_work_model::{Input, PairType};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageTrim};
-use super::{InputLabelSet, ActionLabel, ActionLabelSet, PropertyInput, PropertyOutput};
+use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput};
 use std::collections::{HashMap, HashSet};
 
 #[allow(unused_imports)]
@@ -627,7 +627,7 @@ impl arc_work_model::Task {
         rules
     }
 
-    fn size_of_object(&self, input: &Input, object_label: arc_work_model::ObjectLabel) -> anyhow::Result<String> {
+    fn size_of_object(&self, input: &Input, object_label: ObjectLabel) -> anyhow::Result<String> {
         let mut object_vec: Vec<arc_work_model::Object> = input.find_objects_using_histogram_most_popular_color()?;
         arc_work_model::Object::assign_labels_to_objects(&mut object_vec);
         for object in &object_vec {
@@ -646,7 +646,7 @@ impl arc_work_model::Task {
             // TODO: deal with multiple labels being satisfied, apply a score to the results, and pick the winner.
             match label {
                 ActionLabel::OutputImageIsTheObjectWithTheSmallestArea => {
-                    match self.size_of_object(input, arc_work_model::ObjectLabel::TheOnlyOneWithSmallestArea) {
+                    match self.size_of_object(input, ObjectLabel::TheOnlyOneWithSmallestArea) {
                         Ok(value) => {
                             return value;
                         },
@@ -656,7 +656,7 @@ impl arc_work_model::Task {
                     }
                 },
                 ActionLabel::OutputImageIsTheObjectWithTheBiggestArea => {
-                    match self.size_of_object(input, arc_work_model::ObjectLabel::TheOnlyOneWithBiggestArea) {
+                    match self.size_of_object(input, ObjectLabel::TheOnlyOneWithBiggestArea) {
                         Ok(value) => {
                             return value;
                         },
@@ -666,7 +666,7 @@ impl arc_work_model::Task {
                     }
                 },
                 ActionLabel::OutputImageIsTheObjectThatIsSymmetricX => {
-                    match self.size_of_object(input, arc_work_model::ObjectLabel::TheOnlyOneWithSymmetryX) {
+                    match self.size_of_object(input, ObjectLabel::TheOnlyOneWithSymmetryX) {
                         Ok(value) => {
                             return value;
                         },
@@ -676,7 +676,7 @@ impl arc_work_model::Task {
                     }
                 },
                 ActionLabel::OutputImageIsTheObjectThatIsSymmetricY => {
-                    match self.size_of_object(input, arc_work_model::ObjectLabel::TheOnlyOneWithSymmetryY) {
+                    match self.size_of_object(input, ObjectLabel::TheOnlyOneWithSymmetryY) {
                         Ok(value) => {
                             println!("symmetry_y: {}", self.id);
                             return value;

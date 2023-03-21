@@ -1,6 +1,6 @@
 use super::arc_work_model;
-use super::arc_work_model::{Object, ObjectType, ObjectLabel};
-use super::{ActionLabel, PropertyOutput};
+use super::arc_work_model::{Object, ObjectType};
+use super::{ActionLabel, ObjectLabel, PropertyOutput};
 use super::{ImageFind, ImageSymmetry};
 
 #[allow(unused_imports)]

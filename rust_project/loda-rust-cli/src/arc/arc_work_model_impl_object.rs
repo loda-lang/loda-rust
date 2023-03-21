@@ -1,5 +1,6 @@
 use super::arc_work_model;
-use super::arc_work_model::{Object, ObjectLabel};
+use super::arc_work_model::Object;
+use super::ObjectLabel;
 use super::ImageSymmetry;
 
 impl arc_work_model::Object {
