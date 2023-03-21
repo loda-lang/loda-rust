@@ -97,24 +97,24 @@ impl arc_work_model::Pair {
         let background_ignore_mask: Image = self.input.image.to_mask_where_color_is(background_color);
 
         // let objects: Vec<Image> = self.input.image.find_objects(ImageSegmentAlgorithm::All)?;
-        let objects: Vec<Image> = self.input.image.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, background_ignore_mask)?;
+        let object_mask_vec: Vec<Image> = self.input.image.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, background_ignore_mask)?;
         let mut found_count: usize = 0;
-        let mut object_and_meta_vec: Vec<ObjectAndMeta> = vec!();
-        for (index, object) in objects.iter().enumerate() {
-            // HtmlLog::image(object);
+        let mut object_vec: Vec<Object> = vec!();
+        for (index, object_mask) in object_mask_vec.iter().enumerate() {
+            // HtmlLog::image(object_mask);
             // HtmlLog::html(self.input.image.to_html());
-            let (x, y, width, height) = match object.bounding_box() {
+            let (x, y, width, height) = match object_mask.bounding_box() {
                 Some(value) => value,
                 None => continue
             };
             let cropped_object_image: Image = self.input.image.crop(x, y, width, height)?;
             // HtmlLog::image(&cropped_object_image);
 
-            let object_and_meta = ObjectAndMeta {
+            let object = Object {
                 index: index,
                 cropped_object_image: cropped_object_image.clone(),
             };
-            object_and_meta_vec.push(object_and_meta);
+            object_vec.push(object);
             if cropped_object_image == self.output.image {
                 found_count += 1;
             }
@@ -128,22 +128,22 @@ impl arc_work_model::Pair {
         // HtmlLog::html(self.output.image.to_html());
         // HtmlLog::text("separator");
 
-        if object_and_meta_vec.len() == 1 {
+        if object_vec.len() == 1 {
             // println!("OutputImage is only object in the input image");
             self.action_label_set.insert(ActionLabel::OutputImageIsTheOnlyObjectInInputImage);
         }
 
         // Reset the sorting
-        object_and_meta_vec.sort_unstable_by_key(|obj| obj.index);
+        object_vec.sort_unstable_by_key(|obj| obj.index);
 
         // Smallest objects first, biggest last
-        object_and_meta_vec.sort_unstable_by_key(|obj| obj.area());
+        object_vec.sort_unstable_by_key(|obj| obj.area());
         for _ in 0..1 {
-            let object0: &ObjectAndMeta = match object_and_meta_vec.get(0) {
+            let object0: &Object = match object_vec.get(0) {
                 Some(obj) => obj,
                 None => break
             };
-            let object1: &ObjectAndMeta = match object_and_meta_vec.get(1) {
+            let object1: &Object = match object_vec.get(1) {
                 Some(obj) => obj,
                 None => break
             };
@@ -154,13 +154,13 @@ impl arc_work_model::Pair {
         }
 
         // Biggest objects first, smallest last
-        object_and_meta_vec.reverse();
+        object_vec.reverse();
         for _ in 0..1 {
-            let object0: &ObjectAndMeta = match object_and_meta_vec.get(0) {
+            let object0: &Object = match object_vec.get(0) {
                 Some(obj) => obj,
                 None => break
             };
-            let object1: &ObjectAndMeta = match object_and_meta_vec.get(1) {
+            let object1: &Object = match object_vec.get(1) {
                 Some(obj) => obj,
                 None => break
             };
@@ -171,16 +171,16 @@ impl arc_work_model::Pair {
         }
 
         // Reset the sorting
-        object_and_meta_vec.sort_unstable_by_key(|obj| obj.index);
+        object_vec.sort_unstable_by_key(|obj| obj.index);
 
         // Asymmetric objects first, symmetric last
-        object_and_meta_vec.sort_unstable_by_key(|obj| obj.is_symmetric_x());
+        object_vec.sort_unstable_by_key(|obj| obj.is_symmetric_x());
         for _ in 0..1 {
-            let object0: &ObjectAndMeta = match object_and_meta_vec.get(0) {
+            let object0: &Object = match object_vec.get(0) {
                 Some(obj) => obj,
                 None => break
             };
-            let object1: &ObjectAndMeta = match object_and_meta_vec.get(1) {
+            let object1: &Object = match object_vec.get(1) {
                 Some(obj) => obj,
                 None => break
             };
@@ -191,13 +191,13 @@ impl arc_work_model::Pair {
         }
 
         // Symmetric objects first, asymmetric last
-        object_and_meta_vec.reverse();
+        object_vec.reverse();
         for _ in 0..1 {
-            let object0: &ObjectAndMeta = match object_and_meta_vec.get(0) {
+            let object0: &Object = match object_vec.get(0) {
                 Some(obj) => obj,
                 None => break
             };
-            let object1: &ObjectAndMeta = match object_and_meta_vec.get(1) {
+            let object1: &Object = match object_vec.get(1) {
                 Some(obj) => obj,
                 None => break
             };
@@ -208,16 +208,16 @@ impl arc_work_model::Pair {
         }
 
         // Reset the sorting
-        object_and_meta_vec.sort_unstable_by_key(|obj| obj.index);
+        object_vec.sort_unstable_by_key(|obj| obj.index);
 
         // Asymmetric objects first, symmetric last
-        object_and_meta_vec.sort_unstable_by_key(|obj| obj.is_symmetric_y());
+        object_vec.sort_unstable_by_key(|obj| obj.is_symmetric_y());
         for _ in 0..1 {
-            let object0: &ObjectAndMeta = match object_and_meta_vec.get(0) {
+            let object0: &Object = match object_vec.get(0) {
                 Some(obj) => obj,
                 None => break
             };
-            let object1: &ObjectAndMeta = match object_and_meta_vec.get(1) {
+            let object1: &Object = match object_vec.get(1) {
                 Some(obj) => obj,
                 None => break
             };
@@ -228,13 +228,13 @@ impl arc_work_model::Pair {
         }
 
         // Symmetric objects first, asymmetric last
-        object_and_meta_vec.reverse();
+        object_vec.reverse();
         for _ in 0..1 {
-            let object0: &ObjectAndMeta = match object_and_meta_vec.get(0) {
+            let object0: &Object = match object_vec.get(0) {
                 Some(obj) => obj,
                 None => break
             };
-            let object1: &ObjectAndMeta = match object_and_meta_vec.get(1) {
+            let object1: &Object = match object_vec.get(1) {
                 Some(obj) => obj,
                 None => break
             };
@@ -248,12 +248,12 @@ impl arc_work_model::Pair {
     }
 }
 
-struct ObjectAndMeta {
+struct Object {
     index: usize,
     cropped_object_image: Image,
 }
 
-impl ObjectAndMeta {
+impl Object {
     fn area(&self) -> u16 {
         let image = &self.cropped_object_image;
         (image.width() as u16) * (image.height() as u16)
