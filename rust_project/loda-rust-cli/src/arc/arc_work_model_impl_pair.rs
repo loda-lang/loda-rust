@@ -91,11 +91,12 @@ impl arc_work_model::Pair {
             return Ok(());
         }
 
-        // TODO: don't recompute if it's already cached
+        // Future optimization idea. don't recompute if it's already cached
         // if self.input.input_objects.contains(&ObjectType::RemovalOfMostPopularColorInThisImageAfterwardSegmentByNeighborAll) {
         //    return Ok(());
         // }
 
+        // Future experiment. Also find_objects using the most popular color from the histogram_intersection
         let mut object_vec: Vec<Object> = self.input.find_objects_using_histogram_most_popular_color()?;
         let mut found_count: usize = 0;
         for object in &object_vec {
