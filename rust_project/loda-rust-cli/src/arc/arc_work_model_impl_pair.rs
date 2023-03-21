@@ -1,4 +1,5 @@
 use super::{arc_work_model, ImageSegment, ImageSegmentAlgorithm, Image, ImageMask, ImageCrop};
+use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, PropertyOutput};
 use super::{ImageFind, ImageSymmetry};
 
@@ -128,6 +129,8 @@ impl arc_work_model::Pair {
         // HtmlLog::html(self.output.image.to_html());
         // HtmlLog::text("separator");
 
+        // TODO: save the objects on the input. self.input.input_objects = object_vec;
+
         if object_vec.len() == 1 {
             // println!("OutputImage is only object in the input image");
             self.action_label_set.insert(ActionLabel::OutputImageIsTheOnlyObjectInInputImage);
@@ -248,12 +251,7 @@ impl arc_work_model::Pair {
     }
 }
 
-struct Object {
-    index: usize,
-    cropped_object_image: Image,
-}
-
-impl Object {
+impl arc_work_model::Object {
     fn area(&self) -> u16 {
         let image = &self.cropped_object_image;
         (image.width() as u16) * (image.height() as u16)

@@ -9,6 +9,17 @@ pub struct Output {
     pub histogram: Histogram,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ObjectType {
+    NeighborAllAfterRemovalOfMostPopularIntersectionColor,
+}
+
+#[derive(Clone, Debug)]
+pub struct Object {
+    pub index: usize,
+    pub cropped_object_image: Image,
+}
+
 #[derive(Clone, Debug)]
 pub struct Input {
     pub id: String,
@@ -20,6 +31,9 @@ pub struct Input {
 
     /// Computed values such as: is symmetric x, is symmetric y.
     pub input_label_set: InputLabelSet,
+
+    /// The identified objects
+    pub input_objects: HashMap<ObjectType, Vec<Object>>,
 
     // Future experiments to do.
     // State keeping of the input_properties. 

@@ -47,6 +47,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     histogram: histogram_input,
                     input_properties: HashMap::new(),
                     input_label_set: HashSet::new(),
+                    input_objects: HashMap::new(),
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},train", task_id, index),
@@ -77,6 +78,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     histogram: histogram_input,
                     input_properties: HashMap::new(),
                     input_label_set: HashSet::new(),
+                    input_objects: HashMap::new(),
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},test", task_id, index),
