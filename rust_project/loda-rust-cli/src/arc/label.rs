@@ -84,12 +84,7 @@ pub enum ActionLabel {
     OutputImageHistogramEqualToInputImageHistogram,
 
     OutputImageIsTheOnlyObjectInInputImage,
-    OutputImageIsTheObjectWithTheSmallestArea,
-    OutputImageIsTheObjectWithTheBiggestArea,
-    OutputImageIsTheObjectThatIsAsymmetricX,
-    OutputImageIsTheObjectThatIsSymmetricX,
-    OutputImageIsTheObjectThatIsAsymmetricY,
-    OutputImageIsTheObjectThatIsSymmetricY,
+    OutputImageIsTheObjectWithObjectLabel { object_label: ObjectLabel },
 
     // Ideas for more
     // OutputPropertySamePixelValuesAsInput { count_same: u16, count_different: u16 },

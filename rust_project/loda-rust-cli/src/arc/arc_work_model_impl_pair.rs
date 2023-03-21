@@ -128,28 +128,26 @@ impl arc_work_model::Pair {
         }
 
         // Populate the action_label_set with data from the objects. If the object has the smallest area, then insert it into the action_label_set.
+        let object_labels: [ObjectLabel; 6] = [
+            ObjectLabel::TheOnlyOneWithSmallestArea,
+            ObjectLabel::TheOnlyOneWithBiggestArea,
+            ObjectLabel::TheOnlyOneWithAsymmetryX,
+            ObjectLabel::TheOnlyOneWithSymmetryX,
+            ObjectLabel::TheOnlyOneWithAsymmetryY,
+            ObjectLabel::TheOnlyOneWithSymmetryY,
+        ];
         for object in &object_vec {
             if object.cropped_object_image != self.output.image {
                 continue;
             }
 
-            if object.object_label_set.contains(&ObjectLabel::TheOnlyOneWithSmallestArea) {
-                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectWithTheSmallestArea);
-            }
-            if object.object_label_set.contains(&ObjectLabel::TheOnlyOneWithBiggestArea) {
-                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectWithTheBiggestArea);
-            }
-            if object.object_label_set.contains(&ObjectLabel::TheOnlyOneWithAsymmetryX) {
-                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectThatIsAsymmetricX);
-            }
-            if object.object_label_set.contains(&ObjectLabel::TheOnlyOneWithSymmetryX) {
-                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectThatIsSymmetricX);
-            }
-            if object.object_label_set.contains(&ObjectLabel::TheOnlyOneWithAsymmetryY) {
-                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectThatIsAsymmetricY);
-            }
-            if object.object_label_set.contains(&ObjectLabel::TheOnlyOneWithSymmetryY) {
-                self.action_label_set.insert(ActionLabel::OutputImageIsTheObjectThatIsSymmetricY);
+            for object_label in &object_labels {
+                if object.object_label_set.contains(object_label) {
+                    let label = ActionLabel::OutputImageIsTheObjectWithObjectLabel {
+                        object_label: object_label.clone()
+                    };
+                    self.action_label_set.insert(label);
+                }
             }
         }
 

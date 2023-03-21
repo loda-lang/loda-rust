@@ -470,25 +470,10 @@ impl arc_work_model::Task {
         for label in &self.action_label_set_intersection {
             // TODO: deal with multiple labels being satisfied, apply a score to the results, and pick the winner.
             match label {
-                ActionLabel::OutputImageIsTheObjectWithTheSmallestArea => {
-                    return "OutputImageIsTheObjectWithTheSmallestArea".to_string();
-                },
-                ActionLabel::OutputImageIsTheObjectWithTheBiggestArea => {
-                    return "OutputImageIsTheObjectWithTheBiggestArea".to_string();
-                },
-                ActionLabel::OutputImageIsTheObjectThatIsSymmetricX => {
-                    return "OutputImageIsTheObjectThatIsSymmetricX".to_string();
-                },
-                ActionLabel::OutputImageIsTheObjectThatIsSymmetricY => {
-                    return "OutputImageIsTheObjectThatIsSymmetricY".to_string();
+                ActionLabel::OutputImageIsTheObjectWithObjectLabel { object_label } => {
+                    return format!("{:?}", object_label);
                 },
                 // TODO: OutputImageIsTheOnlyObjectInInputImage
-                // TODO: OutputImageIsTheObjectWithTheSmallestArea
-                // TODO: OutputImageIsTheObjectWithTheBiggestArea
-                // TODO: OutputImageIsTheObjectThatIsAsymmetricX
-                // TODO: OutputImageIsTheObjectThatIsSymmetricX
-                // TODO: OutputImageIsTheObjectThatIsAsymmetricY
-                // TODO: OutputImageIsTheObjectThatIsSymmetricY
                 _ => {}
             }
         }
@@ -627,11 +612,11 @@ impl arc_work_model::Task {
         rules
     }
 
-    fn size_of_object(&self, input: &Input, object_label: ObjectLabel) -> anyhow::Result<String> {
+    fn size_of_object(&self, input: &Input, object_label: &ObjectLabel) -> anyhow::Result<String> {
         let mut object_vec: Vec<arc_work_model::Object> = input.find_objects_using_histogram_most_popular_color()?;
         arc_work_model::Object::assign_labels_to_objects(&mut object_vec);
         for object in &object_vec {
-            if object.object_label_set.contains(&object_label) {
+            if object.object_label_set.contains(object_label) {
                 let width: u8 = object.cropped_object_image.width();
                 let height: u8 = object.cropped_object_image.height();
                 let size: String = format!("{}x{}", width, height);
@@ -645,40 +630,9 @@ impl arc_work_model::Task {
         for label in &self.action_label_set_intersection {
             // TODO: deal with multiple labels being satisfied, apply a score to the results, and pick the winner.
             match label {
-                ActionLabel::OutputImageIsTheObjectWithTheSmallestArea => {
-                    match self.size_of_object(input, ObjectLabel::TheOnlyOneWithSmallestArea) {
+                ActionLabel::OutputImageIsTheObjectWithObjectLabel { object_label } => {
+                    match self.size_of_object(input, object_label) {
                         Ok(value) => {
-                            return value;
-                        },
-                        Err(_) => {
-                            // Didn't find an object with this property
-                        }
-                    }
-                },
-                ActionLabel::OutputImageIsTheObjectWithTheBiggestArea => {
-                    match self.size_of_object(input, ObjectLabel::TheOnlyOneWithBiggestArea) {
-                        Ok(value) => {
-                            return value;
-                        },
-                        Err(_) => {
-                            // Didn't find an object with this property
-                        }
-                    }
-                },
-                ActionLabel::OutputImageIsTheObjectThatIsSymmetricX => {
-                    match self.size_of_object(input, ObjectLabel::TheOnlyOneWithSymmetryX) {
-                        Ok(value) => {
-                            return value;
-                        },
-                        Err(_) => {
-                            // Didn't find an object with this property
-                        }
-                    }
-                },
-                ActionLabel::OutputImageIsTheObjectThatIsSymmetricY => {
-                    match self.size_of_object(input, ObjectLabel::TheOnlyOneWithSymmetryY) {
-                        Ok(value) => {
-                            println!("symmetry_y: {}", self.id);
                             return value;
                         },
                         Err(_) => {
@@ -687,12 +641,6 @@ impl arc_work_model::Task {
                     }
                 },
                 // TODO: OutputImageIsTheOnlyObjectInInputImage
-                // TODO: OutputImageIsTheObjectWithTheSmallestArea
-                // TODO: OutputImageIsTheObjectWithTheBiggestArea
-                // TODO: OutputImageIsTheObjectThatIsAsymmetricX
-                // TODO: OutputImageIsTheObjectThatIsSymmetricX
-                // TODO: OutputImageIsTheObjectThatIsAsymmetricY
-                // TODO: OutputImageIsTheObjectThatIsSymmetricY
                 _ => {}
             }
         }
