@@ -185,7 +185,24 @@ mod tests {
     }
 
     #[test]
-    fn test_40001_is_symmetric_x_yes() {
+    fn test_40001_is_symmetric_x_no() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 0,
+            1, 1, 1,
+            0, 1, 1,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let is_symmetric: bool = input.is_symmetric_x().expect("bool");
+
+        // Assert
+        assert_eq!(is_symmetric, false);
+    }
+
+    #[test]
+    fn test_40002_is_symmetric_x_yes() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 2, 1,
@@ -201,13 +218,13 @@ mod tests {
     }
 
     #[test]
-    fn test_40002_is_symmetric_x_yes() {
+    fn test_40003_is_symmetric_x_yes() {
         let is_symmetric: bool = Image::empty().is_symmetric_x().expect("bool");
         assert_eq!(is_symmetric, true);
     }
 
     #[test]
-    fn test_40003_is_symmetric_x_yes() {
+    fn test_40004_is_symmetric_x_yes() {
         let is_symmetric: bool = Image::color(4, 3, 1).is_symmetric_x().expect("bool");
         assert_eq!(is_symmetric, true);
     }
