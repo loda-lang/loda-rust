@@ -2211,85 +2211,89 @@ mod tests {
 
     #[test]
     fn test_540000_puzzle_a699fb00() {
-        let mut instance = MySolution::new();
+        let mut instance = a699fb00::MySolution::new();
         let result: String = run_analyze_and_solve("a699fb00", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 
-    type Dict = HashMap<Image, Image>;
+    mod a699fb00 {
+        use super::*;
 
-    struct MySolution {
-        dict_outer: Dict,
-    }
-
-    impl MySolution {
-        fn new() -> Self {
-            Self {
-                dict_outer: Dict::new(),
-            }
-        }
-    }
+        type Dict = HashMap<Image, Image>;
     
-    impl AnalyzeAndSolve for MySolution {
-        fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
-            let mut dict_inner = Dict::new();
-            for pair in &task.pairs {
-                if pair.pair_type != PairType::Train {
-                    continue;
-                }
-                let diff_mask: Image = pair.input.image.diff(&pair.output.image)?;
-                let width: u8 = pair.input.image.width();
-                let height: u8 = pair.input.image.height();
-                for y in 0..height {
-                    for x in 0..width {
-                        let get_x: i32 = x as i32;
-                        let get_y: i32 = y as i32;
-                        let is_different0: u8 = diff_mask.get(get_x, get_y).unwrap_or(255);
-                        let is_different1: u8 = diff_mask.get(get_x+1, get_y).unwrap_or(255);
-                        let is_different2: u8 = diff_mask.get(get_x+2, get_y).unwrap_or(255);
-                        let should_replace_horizontal = is_different0 == 0 && is_different1 == 1 && is_different2 == 0;
-                        if !should_replace_horizontal {
-                            continue;
-                        }
-                        let replace_source: Image = pair.input.image.crop(x, y, 3, 1)?;
-                        let replace_target: Image = pair.output.image.crop(x, y, 3, 1)?;
-
-                        if let Some(value) = dict_inner.get(&replace_source) {
-                            if *value != replace_target {
-                                return Err(anyhow::anyhow!("No consensus on what replacements are to be done"));
-                            }
-                        }
-                        dict_inner.insert(replace_source, replace_target);
-
-                        // let pixel_value0: u8 = pair.input.image.get(get_x, get_y).unwrap_or(255);
-                        // let pixel_value1: u8 = pair.output.image.get(get_x, get_y).unwrap_or(255);
-                        // println!("replace from {} to {}", pixel_value0, pixel_value1);
-                    }
-                }
-            }
-            // println!("number of items in dict: {}", dict_inner.len());
-            self.dict_outer = dict_inner;
-            Ok(())   
+        pub struct MySolution {
+            dict_outer: Dict,
         }
-
-        fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
-            let input: &Image = &data.image;
-            let mut result_image: Image = input.clone();
-            // Do substitutions from the dictionary
-            for _ in 0..100 {
-                let mut stop = true;
-                for (key, value) in &self.dict_outer {
-                    let position = result_image.find_exact(key)?;
-                    if let Some((x, y)) = position {
-                        result_image = result_image.overlay_with_position(value, x as i32, y as i32)?;
-                        stop = false;
-                    }
-                }
-                if stop {
-                    break;
+    
+        impl MySolution {
+            pub fn new() -> Self {
+                Self {
+                    dict_outer: Dict::new(),
                 }
             }
-            Ok(result_image)
+        }
+        
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
+                let mut dict_inner = Dict::new();
+                for pair in &task.pairs {
+                    if pair.pair_type != PairType::Train {
+                        continue;
+                    }
+                    let diff_mask: Image = pair.input.image.diff(&pair.output.image)?;
+                    let width: u8 = pair.input.image.width();
+                    let height: u8 = pair.input.image.height();
+                    for y in 0..height {
+                        for x in 0..width {
+                            let get_x: i32 = x as i32;
+                            let get_y: i32 = y as i32;
+                            let is_different0: u8 = diff_mask.get(get_x, get_y).unwrap_or(255);
+                            let is_different1: u8 = diff_mask.get(get_x+1, get_y).unwrap_or(255);
+                            let is_different2: u8 = diff_mask.get(get_x+2, get_y).unwrap_or(255);
+                            let should_replace_horizontal = is_different0 == 0 && is_different1 == 1 && is_different2 == 0;
+                            if !should_replace_horizontal {
+                                continue;
+                            }
+                            let replace_source: Image = pair.input.image.crop(x, y, 3, 1)?;
+                            let replace_target: Image = pair.output.image.crop(x, y, 3, 1)?;
+    
+                            if let Some(value) = dict_inner.get(&replace_source) {
+                                if *value != replace_target {
+                                    return Err(anyhow::anyhow!("No consensus on what replacements are to be done"));
+                                }
+                            }
+                            dict_inner.insert(replace_source, replace_target);
+    
+                            // let pixel_value0: u8 = pair.input.image.get(get_x, get_y).unwrap_or(255);
+                            // let pixel_value1: u8 = pair.output.image.get(get_x, get_y).unwrap_or(255);
+                            // println!("replace from {} to {}", pixel_value0, pixel_value1);
+                        }
+                    }
+                }
+                // println!("number of items in dict: {}", dict_inner.len());
+                self.dict_outer = dict_inner;
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+                let input: &Image = &data.image;
+                let mut result_image: Image = input.clone();
+                // Do substitutions from the dictionary
+                for _ in 0..100 {
+                    let mut stop = true;
+                    for (key, value) in &self.dict_outer {
+                        let position = result_image.find_exact(key)?;
+                        if let Some((x, y)) = position {
+                            result_image = result_image.overlay_with_position(value, x as i32, y as i32)?;
+                            stop = false;
+                        }
+                    }
+                    if stop {
+                        break;
+                    }
+                }
+                Ok(result_image)
+            }
         }
     }
 
