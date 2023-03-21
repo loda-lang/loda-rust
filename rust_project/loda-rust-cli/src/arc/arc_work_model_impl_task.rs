@@ -620,7 +620,49 @@ impl arc_work_model::Task {
         rules
     }
 
+    fn size_of_symmetic_x_object(&self, input: &Input) -> anyhow::Result<String> {
+        let mut object_vec: Vec<arc_work_model::Object> = input.find_objects_using_histogram_most_popular_color()?;
+        arc_work_model::Object::assign_labels_to_objects(&mut object_vec);
+        for object in &object_vec {
+            if object.object_label_set.contains(&arc_work_model::ObjectLabel::TheOnlyOneWithSymmetryX) {
+                let width: u8 = object.cropped_object_image.width();
+                let height: u8 = object.cropped_object_image.height();
+                let size: String = format!("{}x{}", width, height);
+                return Ok(size);
+            }
+        }
+        Err(anyhow::anyhow!("didn't find any object that has symmetry x"))
+    }
+
     pub fn predict_output_size_for_input(&self, input: &Input) -> String {
+        for label in &self.action_label_set_intersection {
+            // TODO: deal with multiple labels being satisfied, apply a score to the results, and pick the winner.
+            match label {
+                ActionLabel::OutputImageIsTheObjectThatIsSymmetricX => {
+                    match self.size_of_symmetic_x_object(input) {
+                        Ok(value) => {
+                            return value;
+                        },
+                        Err(_) => {
+                            // Didn't find any symmetric_x object
+                        }
+                    }
+            
+
+                    // TODO: extract pair.input.input_objects.get(ObjectType::RemovalOfMostPopularColorInThisImageAfterwardSegmentByNeighborAll);
+                    // TODO: find the object that is symmetric x.
+                    // return "OutputImageIsTheObjectThatIsSymmetricX".to_string();
+                },
+                // TODO: OutputImageIsTheOnlyObjectInInputImage
+                // TODO: OutputImageIsTheObjectWithTheSmallestArea
+                // TODO: OutputImageIsTheObjectWithTheBiggestArea
+                // TODO: OutputImageIsTheObjectThatIsAsymmetricX
+                // TODO: OutputImageIsTheObjectThatIsSymmetricX
+                // TODO: OutputImageIsTheObjectThatIsAsymmetricY
+                // TODO: OutputImageIsTheObjectThatIsSymmetricY
+                _ => {}
+            }
+        }
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
             PropertyOutput::OutputHeight
