@@ -467,6 +467,22 @@ impl arc_work_model::Task {
     }
 
     pub fn estimated_output_size(&self) -> String {
+        for label in &self.action_label_set_intersection {
+            match label {
+                ActionLabel::OutputImageIsTheObjectThatIsSymmetricX => {
+                    // TODO: store the objects inside the input instance
+                    return "OutputImageIsTheObjectThatIsSymmetricX".to_string();
+                },
+                // TODO: OutputImageIsTheOnlyObjectInInputImage
+                // TODO: OutputImageIsTheObjectWithTheSmallestArea
+                // TODO: OutputImageIsTheObjectWithTheBiggestArea
+                // TODO: OutputImageIsTheObjectThatIsAsymmetricX
+                // TODO: OutputImageIsTheObjectThatIsSymmetricX
+                // TODO: OutputImageIsTheObjectThatIsAsymmetricY
+                // TODO: OutputImageIsTheObjectThatIsSymmetricY
+                _ => {}
+            }
+        }
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
             PropertyOutput::OutputHeight
