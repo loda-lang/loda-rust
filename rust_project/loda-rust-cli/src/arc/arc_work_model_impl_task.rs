@@ -1,6 +1,6 @@
 use super::arc_work_model;
 use super::arc_work_model::{Input, PairType};
-use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageTrim};
+use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim};
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput};
 use std::collections::{HashMap, HashSet};
 
@@ -611,28 +611,31 @@ impl arc_work_model::Task {
         rules
     }
 
-    fn size_of_object(&self, input: &Input, object_label: &ObjectLabel) -> anyhow::Result<String> {
+    fn size_of_object(&self, input: &Input, object_label: &ObjectLabel) -> anyhow::Result<ImageSize> {
         let mut object_vec: Vec<arc_work_model::Object> = input.find_objects_using_histogram_most_popular_color()?;
         arc_work_model::Object::assign_labels_to_objects(&mut object_vec);
         for object in &object_vec {
             if object.object_label_set.contains(object_label) {
                 let width: u8 = object.cropped_object_image.width();
                 let height: u8 = object.cropped_object_image.height();
-                let size: String = format!("{}x{}", width, height);
-                return Ok(size);
+                let instance = ImageSize {
+                    width, 
+                    height
+                };
+                return Ok(instance);
             }
         }
         Err(anyhow::anyhow!("found no object with object_label: {:?}", object_label))
     }
 
-    pub fn predict_output_size_for_input(&self, input: &Input) -> String {
+    pub fn predict_output_size_for_input(&self, input: &Input) -> anyhow::Result<ImageSize> {
         for label in &self.action_label_set_intersection {
             // Future experiments: deal with multiple labels being satisfied, apply a score to the results, and pick the winner.
             match label {
                 ActionLabel::OutputImageIsTheObjectWithObjectLabel { object_label } => {
                     match self.size_of_object(input, object_label) {
                         Ok(value) => {
-                            return value;
+                            return Ok(value);
                         },
                         Err(_) => {
                             // Didn't find an object with this property
@@ -675,10 +678,14 @@ impl arc_work_model::Task {
 
         match (found_width, found_height) {
             (Some(width), Some(height)) => {
-                return format!("{}x{}", width, height);
+                let instance = ImageSize {
+                    width,
+                    height
+                };
+                return Ok(instance);
             },
             _ => {
-                return "Undecided".to_string()
+                return Err(anyhow::anyhow!("Undecided"));
             }
         }
     }

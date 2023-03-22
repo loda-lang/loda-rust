@@ -2,7 +2,7 @@ use super::arc_json_model;
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
-use super::{ImageHistogram, Histogram};
+use super::{ImageHistogram, ImageSize, Histogram};
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
@@ -106,18 +106,28 @@ impl TraverseProgramsAndModels {
 
             let mut all_correct = true;
             for pair in &task.pairs {
-                let predicted: String = task.predict_output_size_for_input(&pair.input);
+                let predicted: ImageSize = match task.predict_output_size_for_input(&pair.input) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        if verbose {
+                            println!("Cannot predict output size. error: {:?}. Task: {} pair: {:?}", error, task.id, pair.pair_type);
+                        }
+                        count_predict_incorrect += 1;
+                        all_correct = false;
+                        continue;
+                    }
+                };
 
-                let expected: String = match pair.pair_type {
-                    PairType::Train => format!("{}x{}", pair.output.image.width(), pair.output.image.height()),
-                    PairType::Test => format!("{}x{}", pair.output.test_image.width(), pair.output.test_image.height()),
+                let expected: ImageSize = match pair.pair_type {
+                    PairType::Train => pair.output.image.size(),
+                    PairType::Test => pair.output.test_image.size(),
                 };
 
                 if predicted == expected {
                     count_predict_correct += 1;
                 } else {
                     if verbose {
-                        println!("Wrong output size. Expected {}, but got {}. Task: {} pair: {:?}", expected, predicted, task.id, pair.pair_type);
+                        println!("Wrong output size. Expected {:?}, but got {:?}. Task: {} pair: {:?}", expected, predicted, task.id, pair.pair_type);
                     }
                     count_predict_incorrect += 1;
                     all_correct = false;
