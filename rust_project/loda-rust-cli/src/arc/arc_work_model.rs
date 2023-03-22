@@ -57,6 +57,13 @@ pub enum PairType {
 pub enum Prediction {
     OutputSize { size: ImageSize },
     OutputPalette { histogram: Histogram },
+
+    // Ideas for more
+    // weak prediction: the color is a subset of this palette.
+    // weak prediction: background_color
+    // weak prediction: the width is a in a range.
+    // weak prediction: the height is a in a range.
+    // weak prediction: the size must be a square.
 }
 
 pub type PredictionSet = HashSet<Prediction>;
@@ -71,20 +78,6 @@ pub struct Pair {
     pub insert_histogram: Histogram,
     pub action_label_set: ActionLabelSet,
     pub prediction_set: PredictionSet,
-
-    // TODO: store the predicted output_size, output_colors
-    // TODO: Do I want to store it on the Pair, Input, or should there be a separate struct for this?
-    // Make an Prediction enum, 
-    //   with Prediction::OutputColorHistogramMask { histogram: Histogram }
-    //   with Prediction::OutputSize { width: u8, height: u8 }
-    //   are there other enum cases? background_color
-    //   weak prediction: the color is a subset of this palette.
-    //   weak prediction: the width is a in this range.
-    //   weak prediction: the height is a in this range.
-    // Idea A: HashSet<PredictionEnum>
-    // Idea B: Vec<PredictionEnum>
-    // Idea C: pub predicted_output_size: Option<(u8, u8)>
-    // Idea C: pub predicted_output_histogram: Option<Histogram>
 }
 
 #[derive(Clone, Debug)]
