@@ -1,4 +1,4 @@
-use super::{Image, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet};
+use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -55,7 +55,7 @@ pub enum PairType {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Prediction {
-    OutputSize { width: u8, height: u8 },
+    OutputSize { size: ImageSize },
     OutputPalette { histogram: Histogram },
 }
 

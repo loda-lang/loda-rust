@@ -690,6 +690,35 @@ impl arc_work_model::Task {
         }
     }
 
+    pub fn assign_predicted_output_size(&mut self) {
+        let estimate: String = self.estimated_output_size();
+        if estimate == "Undecided" {
+            // Idea: Flag the task as being undecided.
+            return;
+        }
+
+        let mut predicted_size_dict = HashMap::<usize, ImageSize>::new();
+        for (index, pair) in self.pairs.iter().enumerate() {
+            let predicted_size: ImageSize = match self.predict_output_size_for_input(&pair.input) {
+                Ok(value) => value,
+                Err(_error) => {
+                    // Idea: Flag the pair as being undecided.
+                    continue;
+                }
+            };
+            predicted_size_dict.insert(index, predicted_size);
+        }
+
+        // Idea: if one or more pairs are undecided, then don't set a predicted size on the pair.
+        // Garbage data may confuse more than help.
+
+        for (index, pair) in self.pairs.iter_mut().enumerate() {
+            if let Some(predicted_size) = predicted_size_dict.get(&index) {
+                pair.prediction_set.insert(arc_work_model::Prediction::OutputSize { size: *predicted_size });
+            }
+        }
+    }
+
     fn labelset_to_html(label_set: &ActionLabelSet) -> String {
         let mut label_vec: Vec<String> = label_set.iter().map(|label| format!("{:?}", label)).collect();
         if label_vec.is_empty() {
