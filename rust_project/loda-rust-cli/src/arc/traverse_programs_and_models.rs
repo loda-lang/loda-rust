@@ -107,7 +107,7 @@ impl TraverseProgramsAndModels {
             let mut all_correct = true;
             for pair in &task.pairs {
                 let predicted: ImageSize = match pair.predicted_output_size() {
-                    Some(size) => size,
+                    Some(value) => value,
                     None => {
                         if verbose {
                             println!("No predicted output size. Task: {} pair: {:?}", task.id, pair.pair_type);
@@ -164,7 +164,7 @@ impl TraverseProgramsAndModels {
         }
     }
 
-    fn predict_output_colors_for_tasks(task_vec: &Vec<Task>) {
+    fn check_predicted_output_palette_for_tasks(task_vec: &Vec<Task>) {
         let verbose = false;
 
         let mut count_correct_task: usize = 0;
@@ -173,16 +173,24 @@ impl TraverseProgramsAndModels {
 
             let mut all_correct = true;
             for pair in &task.pairs {
+                let predicted: Histogram = match pair.predicted_output_palette() {
+                    Some(value) => value,
+                    None => {
+                        if verbose {
+                            println!("No predicted output palette. Task: {} pair: {:?}", task.id, pair.pair_type);
+                        }
+                        all_correct = false;
+                        continue;
+                    }
+                };
+
                 let expected_histogram: Histogram = match pair.pair_type {
                     PairType::Train => pair.output.image.histogram_all(),
                     PairType::Test => pair.output.test_image.histogram_all(),
                 };
                 let expected_count: u32 = expected_histogram.number_of_counters_greater_than_zero();
 
-                let mut histogram: Histogram = pair.input.image.histogram_all();
-                histogram.add_histogram(&task.insert_histogram_intersection);
-                histogram.subtract_histogram(&task.removal_histogram_intersection);
-
+                let mut histogram: Histogram = predicted.clone();
                 histogram.intersection_histogram(&expected_histogram);
                 let predicted_count: u32 = histogram.number_of_counters_greater_than_zero();
                 if expected_count == predicted_count {
@@ -205,7 +213,7 @@ impl TraverseProgramsAndModels {
         {
             let number_of_tasks: usize = task_vec.len();
             let percent: usize = (100 * count_correct_task) / number_of_tasks.max(1);
-            println!("Summary: Output color prediction. There are {} correct tasks of {} all tasks. Percent: {}%", count_correct_task, number_of_tasks, percent);
+            println!("Summary: Output palette prediction. There are {} correct tasks of {} all tasks. Percent: {}%", count_correct_task, number_of_tasks, percent);
         }
 
     }
@@ -218,13 +226,14 @@ impl TraverseProgramsAndModels {
         for model_item in &instance.model_item_vec {
             let mut task: Task = model_item.borrow().task.clone();
             task.assign_predicted_output_size();
+            task.assign_predicted_output_palette();
             buffer_task_vec.push(task);
         }
 
         Self::check_predicted_output_size_for_tasks(&buffer_task_vec);
         // TODO: store the predicted sizes in model_item_vec
 
-        Self::predict_output_colors_for_tasks(&buffer_task_vec);
+        Self::check_predicted_output_palette_for_tasks(&buffer_task_vec);
         // TODO: store the predicted colors in model_item_vec
 
         // TODO: print out the number of tasks that have both predicted size and predicted colors

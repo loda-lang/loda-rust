@@ -1,7 +1,7 @@
 use super::arc_work_model;
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
-use super::{ImageFind, ImageSize, ImageSymmetry};
+use super::{ImageFind, ImageSize, ImageSymmetry, Histogram};
 
 #[allow(unused_imports)]
 use crate::arc::{HtmlLog, ImageToHTML};
@@ -154,6 +154,18 @@ impl arc_work_model::Pair {
             match prediction {
                 arc_work_model::Prediction::OutputSize { size } => {
                     return Some(*size);
+                },
+                _ => {}
+            }
+        }
+        None
+    }
+
+    pub fn predicted_output_palette(&self) -> Option<Histogram> {
+        for prediction in &self.prediction_set {
+            match prediction {
+                arc_work_model::Prediction::OutputPalette { histogram } => {
+                    return Some(histogram.clone());
                 },
                 _ => {}
             }

@@ -1,6 +1,6 @@
 use super::arc_work_model;
 use super::arc_work_model::{Input, PairType};
-use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim};
+use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram};
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput};
 use std::collections::{HashMap, HashSet};
 
@@ -709,12 +709,48 @@ impl arc_work_model::Task {
             predicted_size_dict.insert(index, predicted_size);
         }
 
-        // Idea: if one or more pairs are undecided, then don't set a predicted size on the pair.
+        // Idea: if one or more pairs are undecided, then don't assign predictions to any of the pairs.
         // Garbage data may confuse more than help.
 
         for (index, pair) in self.pairs.iter_mut().enumerate() {
             if let Some(predicted_size) = predicted_size_dict.get(&index) {
                 pair.prediction_set.insert(arc_work_model::Prediction::OutputSize { size: *predicted_size });
+            }
+        }
+    }
+
+    fn predict_output_palette_for_input(&self, input: &Input) -> anyhow::Result<Histogram> {
+        let mut histogram: Histogram = input.image.histogram_all();
+        histogram.add_histogram(&self.insert_histogram_intersection);
+        histogram.subtract_histogram(&self.removal_histogram_intersection);
+
+        // Future experiments:
+        // What are the scenarios where this histogram is a bad prediction.
+        // Are there scenarios where the histogram is "Undecided"
+
+        Ok(histogram)
+    }
+
+    pub fn assign_predicted_output_palette(&mut self) {
+        let mut predicted_histogram_dict = HashMap::<usize, Histogram>::new();
+        for (index, pair) in self.pairs.iter().enumerate() {
+            let predicted_histogram: Histogram = match self.predict_output_palette_for_input(&pair.input) {
+                Ok(value) => value,
+                Err(_error) => {
+                    // Idea: Flag the pair as being undecided.
+                    continue;
+                }
+            };
+            predicted_histogram_dict.insert(index, predicted_histogram);
+        }
+
+        // Idea: if one or more pairs are undecided, then don't assign predictions to any of the pairs.
+        // Garbage data may confuse more than help.
+
+        for (index, pair) in self.pairs.iter_mut().enumerate() {
+            if let Some(predicted_histogram) = predicted_histogram_dict.get(&index) {
+                let histogram: Histogram = predicted_histogram.clone();
+                pair.prediction_set.insert(arc_work_model::Prediction::OutputPalette { histogram });
             }
         }
     }
