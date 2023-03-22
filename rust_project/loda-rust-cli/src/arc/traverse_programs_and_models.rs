@@ -222,41 +222,41 @@ impl TraverseProgramsAndModels {
     pub fn label_all_puzzles() -> anyhow::Result<()> {
         let instance = TraverseProgramsAndModels::new()?;
 
-        let mut buffer_task_vec: Vec<Task> = vec!();
+        let mut task_vec: Vec<Task> = vec!();
         for model_item in &instance.model_item_vec {
             let mut task: Task = model_item.borrow().task.clone();
             task.assign_predicted_output_size();
             task.assign_predicted_output_palette();
-            buffer_task_vec.push(task);
+            task_vec.push(task);
         }
 
-        Self::check_predicted_output_size_for_tasks(&buffer_task_vec);
+        Self::check_predicted_output_size_for_tasks(&task_vec);
         // TODO: store the predicted sizes in model_item_vec
 
-        Self::check_predicted_output_palette_for_tasks(&buffer_task_vec);
+        Self::check_predicted_output_palette_for_tasks(&task_vec);
         // TODO: store the predicted colors in model_item_vec
 
         // TODO: print out the number of tasks that have both predicted size and predicted colors
 
-        // Self::inspect_undecided(&buffer_task_vec)?;
-        // Self::inspect_decided(&buffer_task_vec)?;
-        // Self::inspect_task_id(&buffer_task_vec, "72ca375d")?;
-        // Self::inspect_task_id(&buffer_task_vec, "d56f2372")?;
-        // Self::inspect_task_id(&buffer_task_vec, "a85d4709")?;
-        Self::inspect_task_id(&buffer_task_vec, "44f52bb0")?;
+        // Self::inspect_undecided(&task_vec)?;
+        // Self::inspect_decided(&task_vec)?;
+        // Self::inspect_task_id(&task_vec, "72ca375d")?;
+        // Self::inspect_task_id(&task_vec, "d56f2372")?;
+        // Self::inspect_task_id(&task_vec, "a85d4709")?;
+        Self::inspect_task_id(&task_vec, "44f52bb0")?;
         Ok(())
     }
 
     #[allow(dead_code)]
-    fn inspect_undecided(buffer_task_vec: &Vec<Task>) -> anyhow::Result<()> {
+    fn inspect_undecided(task_vec: &Vec<Task>) -> anyhow::Result<()> {
         let mut count = 0;
-        for buffer_task in buffer_task_vec {
-            let estimate: String = buffer_task.estimated_output_size();
+        for task in task_vec {
+            let estimate: String = task.estimated_output_size();
             if estimate != "Undecided" {
                 continue;
             }
             if count > 0 {
-                buffer_task.inspect()?;
+                task.inspect()?;
             }
             count += 1;
             if count > 50 {
@@ -267,15 +267,15 @@ impl TraverseProgramsAndModels {
     }
 
     #[allow(dead_code)]
-    fn inspect_decided(buffer_task_vec: &Vec<Task>) -> anyhow::Result<()> {
+    fn inspect_decided(task_vec: &Vec<Task>) -> anyhow::Result<()> {
         let mut count = 0;
-        for buffer_task in buffer_task_vec {
-            let estimate: String = buffer_task.estimated_output_size();
+        for task in task_vec {
+            let estimate: String = task.estimated_output_size();
             if estimate == "Undecided" {
                 continue;
             }
             if count > 0 {
-                buffer_task.inspect()?;
+                task.inspect()?;
             }
             count += 1;
             if count > 50 {
@@ -286,10 +286,10 @@ impl TraverseProgramsAndModels {
     }
 
     #[allow(dead_code)]
-    fn inspect_task_id(buffer_task_vec: &Vec<Task>, task_id: &str) -> anyhow::Result<()> {
-        for buffer_task in buffer_task_vec {
-            if buffer_task.id == task_id {
-                buffer_task.inspect()?;
+    fn inspect_task_id(task_vec: &Vec<Task>, task_id: &str) -> anyhow::Result<()> {
+        for task in task_vec {
+            if task.id == task_id {
+                task.inspect()?;
                 break;
             }
         }
