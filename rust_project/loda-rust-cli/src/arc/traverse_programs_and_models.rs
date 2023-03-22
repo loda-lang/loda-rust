@@ -161,27 +161,36 @@ impl TraverseProgramsAndModels {
         let mut count_x: usize = 0;
         let mut count_y: usize = 0;
         for task in task_vec {
-            let mut h: Histogram = task.output_histogram_intersection.clone();
-            let count0: u32 = h.number_of_counters_greater_than_zero();
-            h.intersection_histogram(&task.output_histogram_union);
-            let count1: u32 = h.number_of_counters_greater_than_zero();
-            if count0 != count1 {
-                // Output has different colors
-                continue;
-            }
-            // Output has same colors
-            count_x += 1;
+            // let mut h: Histogram = task.output_histogram_intersection.clone();
+            // let count0: u32 = h.number_of_counters_greater_than_zero();
+            // h.intersection_histogram(&task.output_histogram_union);
+            // let count1: u32 = h.number_of_counters_greater_than_zero();
+            // if count0 != count1 {
+            //     // Output has different colors
+            //     continue;
+            // }
+            // // Output has same colors
+            // count_x += 1;
 
             let mut all_correct = true;
             for pair in &task.pairs {
-                let mut histogram: Histogram = match pair.pair_type {
+                let expected_histogram: Histogram = match pair.pair_type {
                     PairType::Train => pair.output.image.histogram_all(),
                     PairType::Test => pair.output.test_image.histogram_all(),
                 };
-                let count2: u32 = histogram.number_of_counters_greater_than_zero();
-                histogram.intersection_histogram(&h);
+                let count2: u32 = expected_histogram.number_of_counters_greater_than_zero();
+                // histogram.intersection_histogram(&h);
+                // let count3: u32 = histogram.number_of_counters_greater_than_zero();
+
+                let mut histogram: Histogram = pair.input.image.histogram_all();
+                histogram.add_histogram(&task.insert_histogram_intersection);
+                histogram.subtract_histogram(&task.removal_histogram_intersection);
+
+                histogram.intersection_histogram(&expected_histogram);
                 let count3: u32 = histogram.number_of_counters_greater_than_zero();
-                if count2 != count3 {
+                if count2 == count3 {
+                    count_x += 1;
+                } else  {
                     // Output has different colors
                     // println!("different colors");
                     all_correct = false;
@@ -191,6 +200,8 @@ impl TraverseProgramsAndModels {
                 count_y += 1;
             }
         }
+        println!("count_x: {}", count_x);
+        println!("count_y: {}", count_y);
         {
             let number_of_tasks: usize = task_vec.len();
             let percent: usize = (100 * count_y) / number_of_tasks.max(1);
