@@ -175,6 +175,9 @@ impl RunWithProgram {
 
         self.initial_memory_layout(&mut state)?;
 
+        // Currently the ProgramState is recreated over and over.
+        // Optimization. The ProgramState can be computed once.
+
         // Invoke the actual run() function
         program_runner.program().run(&mut state, &mut cache).context("run_result error in program.run")?;
 
