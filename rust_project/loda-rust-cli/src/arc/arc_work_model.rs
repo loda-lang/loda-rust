@@ -45,6 +45,17 @@ pub struct Input {
     // State keeping of the input_properties. 
     // Computed, NotYetComputed, CannotBeComputed, DependingOnAnotherProperty.
     // Rerun analytics until all pending properties have been computed
+
+    // TODO: store the predicted output_size, output_colors
+    // TODO: Do I want to store it on the Input, or should there be a separate struct for this?
+    // Make an Prediction enum, 
+    //   with Prediction::OutputColorHistogramMask { histogram: Histogram }
+    //   with Prediction::OutputSize { width: u8, height: u8 }
+    //   are there other enum cases? background_color
+    // Idea A: HashSet<PredictionEnum>
+    // Idea B: Vec<PredictionEnum>
+    // Idea C: pub predicted_output_size: Option<(u8, u8)>
+    // Idea C: pub predicted_output_histogram: Option<Histogram>
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
