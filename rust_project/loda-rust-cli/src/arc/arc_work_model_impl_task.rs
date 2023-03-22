@@ -468,7 +468,7 @@ impl arc_work_model::Task {
 
     pub fn estimated_output_size(&self) -> String {
         for label in &self.action_label_set_intersection {
-            // TODO: deal with multiple labels being satisfied, apply a score to the results, and pick the winner.
+            // Future experiments: deal with multiple labels being satisfied, apply a score to the results, and pick the winner.
             match label {
                 ActionLabel::OutputImageIsTheObjectWithObjectLabel { object_label } => {
                     return format!("{:?}", object_label);
@@ -627,7 +627,7 @@ impl arc_work_model::Task {
 
     pub fn predict_output_size_for_input(&self, input: &Input) -> String {
         for label in &self.action_label_set_intersection {
-            // TODO: deal with multiple labels being satisfied, apply a score to the results, and pick the winner.
+            // Future experiments: deal with multiple labels being satisfied, apply a score to the results, and pick the winner.
             match label {
                 ActionLabel::OutputImageIsTheObjectWithObjectLabel { object_label } => {
                     match self.size_of_object(input, object_label) {
