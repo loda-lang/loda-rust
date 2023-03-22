@@ -473,7 +473,6 @@ impl arc_work_model::Task {
                 ActionLabel::OutputImageIsTheObjectWithObjectLabel { object_label } => {
                     return format!("{:?}", object_label);
                 },
-                // TODO: OutputImageIsTheOnlyObjectInInputImage
                 _ => {}
             }
         }
@@ -640,7 +639,6 @@ impl arc_work_model::Task {
                         }
                     }
                 },
-                // TODO: OutputImageIsTheOnlyObjectInInputImage
                 _ => {}
             }
         }

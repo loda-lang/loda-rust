@@ -119,15 +119,6 @@ impl arc_work_model::Pair {
         // Reset the sorting
         object_vec.sort_unstable_by_key(|obj| obj.index);
 
-        // OutputImage is only object in the input image
-        if object_vec.len() == 1 {
-            if let Some(object) = object_vec.first() {
-                if object.cropped_object_image == self.output.image {
-                    self.action_label_set.insert(ActionLabel::OutputImageIsTheOnlyObjectInInputImage);
-                }
-            }
-        }
-
         // Populate the action_label_set with data from the objects. If the object has the smallest area, then insert it into the action_label_set.
         let object_labels: [ObjectLabel; 6] = [
             ObjectLabel::TheOnlyOneWithSmallestArea,

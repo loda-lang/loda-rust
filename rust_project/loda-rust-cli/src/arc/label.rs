@@ -83,7 +83,6 @@ pub enum ActionLabel {
 
     OutputImageHistogramEqualToInputImageHistogram,
 
-    OutputImageIsTheOnlyObjectInInputImage,
     OutputImageIsTheObjectWithObjectLabel { object_label: ObjectLabel },
 
     // Ideas for more
