@@ -728,6 +728,12 @@ impl arc_work_model::Task {
         let mut row_output_image: String = "<tr><td>Output image</td>".to_string();
         let mut row_action_colors: String = "<tr><td>Action colors</td>".to_string();
         let mut row_action_labels: String = "<tr><td>Action labels</td>".to_string();
+
+        // The current ordering of columns is terrible. train pairs, test pairs, analysis.
+        // It's counter intuitive that the analysis comes last.
+        // The way the computation takes place is train pairs, analysis, test pairs.
+        // TODO: Reorder the columns like this: train pairs, analysis, test pairs.
+
         for pair in &self.pairs {
             {
                 row_title += "<td>";
