@@ -2,7 +2,7 @@ use super::arc_json_model;
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
-use super::{Image, ImageHistogram, Histogram};
+use super::{ImageHistogram, Histogram};
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
