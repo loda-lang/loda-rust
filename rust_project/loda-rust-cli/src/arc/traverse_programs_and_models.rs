@@ -77,6 +77,7 @@ impl TraverseProgramsAndModels {
 
     /// Traverse all puzzles and classify each puzzle.
     pub fn label_all_puzzles() -> anyhow::Result<()> {
+        let verbose = true;
         let instance = TraverseProgramsAndModels::new()?;
 
         let mut buffer_task_vec: Vec<Task> = vec!();
@@ -95,7 +96,9 @@ impl TraverseProgramsAndModels {
             }
             count_good += 1;
         }
-        println!("Estimated output size. good: {}  missing: {}", count_good, count_undecided);
+        if verbose {
+            println!("Estimated output size. good: {}  missing: {}", count_good, count_undecided);
+        }
         
         // Compute the output size with the test data, and compare with the expected output
         let mut count_predict_correct: usize = 0;
@@ -120,7 +123,9 @@ impl TraverseProgramsAndModels {
                 if predicted == expected {
                     count_predict_correct += 1;
                 } else {
-                    println!("Wrong output size. Expected {}, but got {}. Task: {} pair: {:?}", expected, predicted, buffer_task.id, pair.pair_type);
+                    if verbose {
+                        println!("Wrong output size. Expected {}, but got {}. Task: {} pair: {:?}", expected, predicted, buffer_task.id, pair.pair_type);
+                    }
                     count_predict_incorrect += 1;
                     all_correct = false;
                 }
@@ -139,11 +144,20 @@ impl TraverseProgramsAndModels {
         }
         {
             let percent: usize = (100 * count_predict_correct) / (count_predict_correct + count_predict_incorrect).max(1);
-            println!("Predicted single-image: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct, count_predict_incorrect, percent);
+            if verbose {
+                println!("Predicted single-image: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct, count_predict_incorrect, percent);
+            }
         }
         {
             let percent: usize = (100 * count_predict_correct_task) / (count_predict_correct_task + count_predict_incorrect_task).max(1);
-            println!("Predicted task: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct_task, count_predict_incorrect_task, percent);
+            if verbose {
+                println!("Predicted task: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct_task, count_predict_incorrect_task, percent);
+            }
+        }
+        {
+            let number_of_tasks: usize = buffer_task_vec.len();
+            let percent: usize = (100 * count_predict_correct_task) / number_of_tasks.max(1);
+            println!("Summary: Output size prediction. There are {} correct tasks of {} all tasks. Percent: {}%", count_predict_correct_task, number_of_tasks, percent);
         }
 
         // Self::inspect_undecided(&buffer_task_vec)?;
