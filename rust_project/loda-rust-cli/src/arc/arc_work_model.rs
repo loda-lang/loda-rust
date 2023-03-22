@@ -52,6 +52,9 @@ pub struct Input {
     //   with Prediction::OutputColorHistogramMask { histogram: Histogram }
     //   with Prediction::OutputSize { width: u8, height: u8 }
     //   are there other enum cases? background_color
+    //   weak prediction: the color is a subset of this palette.
+    //   weak prediction: the width is a in this range.
+    //   weak prediction: the height is a in this range.
     // Idea A: HashSet<PredictionEnum>
     // Idea B: Vec<PredictionEnum>
     // Idea C: pub predicted_output_size: Option<(u8, u8)>
