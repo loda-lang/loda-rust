@@ -2,6 +2,7 @@ use super::arc_json_model;
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
+use super::{Image, ImageHistogram, Histogram};
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
@@ -75,21 +76,13 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    /// Traverse all puzzles and classify each puzzle.
-    pub fn label_all_puzzles() -> anyhow::Result<()> {
-        let verbose = true;
-        let instance = TraverseProgramsAndModels::new()?;
-
-        let mut buffer_task_vec: Vec<Task> = vec!();
-        for model_item in &instance.model_item_vec {
-            let task: Task = model_item.borrow().task.clone();
-            buffer_task_vec.push(task);
-        }
+    fn predict_output_size_for_tasks(task_vec: &Vec<Task>) {
+        let verbose = false;
 
         let mut count_good = 0;
         let mut count_undecided = 0;
-        for buffer_task in &buffer_task_vec {
-            let estimate: String = buffer_task.estimated_output_size();
+        for task in task_vec {
+            let estimate: String = task.estimated_output_size();
             if estimate == "Undecided" {
                 count_undecided += 1;
                 continue;
@@ -105,15 +98,15 @@ impl TraverseProgramsAndModels {
         let mut count_predict_incorrect: usize = 0;
         let mut count_predict_correct_task: usize = 0;
         let mut count_predict_incorrect_task: usize = 0;
-        for buffer_task in &buffer_task_vec {
-            let estimate: String = buffer_task.estimated_output_size();
+        for task in task_vec {
+            let estimate: String = task.estimated_output_size();
             if estimate == "Undecided" {
                 continue;
             }
 
             let mut all_correct = true;
-            for pair in &buffer_task.pairs {
-                let predicted: String = buffer_task.predict_output_size_for_input(&pair.input);
+            for pair in &task.pairs {
+                let predicted: String = task.predict_output_size_for_input(&pair.input);
 
                 let expected: String = match pair.pair_type {
                     PairType::Train => format!("{}x{}", pair.output.image.width(), pair.output.image.height()),
@@ -124,7 +117,7 @@ impl TraverseProgramsAndModels {
                     count_predict_correct += 1;
                 } else {
                     if verbose {
-                        println!("Wrong output size. Expected {}, but got {}. Task: {} pair: {:?}", expected, predicted, buffer_task.id, pair.pair_type);
+                        println!("Wrong output size. Expected {}, but got {}. Task: {} pair: {:?}", expected, predicted, task.id, pair.pair_type);
                     }
                     count_predict_incorrect += 1;
                     all_correct = false;
@@ -155,15 +148,74 @@ impl TraverseProgramsAndModels {
             }
         }
         {
-            let number_of_tasks: usize = buffer_task_vec.len();
+            let number_of_tasks: usize = task_vec.len();
             let percent: usize = (100 * count_predict_correct_task) / number_of_tasks.max(1);
             println!("Summary: Output size prediction. There are {} correct tasks of {} all tasks. Percent: {}%", count_predict_correct_task, number_of_tasks, percent);
         }
+    }
+
+    fn predict_output_colors_for_tasks(task_vec: &Vec<Task>) {
+        let verbose = false;
+
+        // TODO: predict colors that are likely to appear in the output
+        let mut count_x: usize = 0;
+        let mut count_y: usize = 0;
+        for task in task_vec {
+            let mut h: Histogram = task.output_histogram_intersection.clone();
+            let count0: u32 = h.number_of_counters_greater_than_zero();
+            h.intersection_histogram(&task.output_histogram_union);
+            let count1: u32 = h.number_of_counters_greater_than_zero();
+            if count0 != count1 {
+                // Output has different colors
+                continue;
+            }
+            // Output has same colors
+            count_x += 1;
+
+            let mut all_correct = true;
+            for pair in &task.pairs {
+                let mut histogram: Histogram = match pair.pair_type {
+                    PairType::Train => pair.output.image.histogram_all(),
+                    PairType::Test => pair.output.test_image.histogram_all(),
+                };
+                let count2: u32 = histogram.number_of_counters_greater_than_zero();
+                histogram.intersection_histogram(&h);
+                let count3: u32 = histogram.number_of_counters_greater_than_zero();
+                if count2 != count3 {
+                    // Output has different colors
+                    // println!("different colors");
+                    all_correct = false;
+                }
+            }
+            if all_correct {
+                count_y += 1;
+            }
+        }
+        {
+            let number_of_tasks: usize = task_vec.len();
+            let percent: usize = (100 * count_y) / number_of_tasks.max(1);
+            println!("Summary: Output color prediction. There are {} correct tasks of {} all tasks. Percent: {}%", count_y, number_of_tasks, percent);
+        }
+
+    }
+
+    /// Traverse all puzzles and classify each puzzle.
+    pub fn label_all_puzzles() -> anyhow::Result<()> {
+        let instance = TraverseProgramsAndModels::new()?;
+
+        let mut buffer_task_vec: Vec<Task> = vec!();
+        for model_item in &instance.model_item_vec {
+            let task: Task = model_item.borrow().task.clone();
+            buffer_task_vec.push(task);
+        }
+
+        Self::predict_output_size_for_tasks(&buffer_task_vec);
+        Self::predict_output_colors_for_tasks(&buffer_task_vec);
 
         // Self::inspect_undecided(&buffer_task_vec)?;
-        // Self::inspect_decided(&buffer_task_vec)?;
-        Self::inspect_task_id(&buffer_task_vec, "72ca375d")?;
-        Self::inspect_task_id(&buffer_task_vec, "d56f2372")?;
+        Self::inspect_decided(&buffer_task_vec)?;
+        // Self::inspect_task_id(&buffer_task_vec, "72ca375d")?;
+        // Self::inspect_task_id(&buffer_task_vec, "d56f2372")?;
         Ok(())
     }
 
@@ -175,11 +227,11 @@ impl TraverseProgramsAndModels {
             if estimate != "Undecided" {
                 continue;
             }
-            if count > 50 {
+            if count > 0 {
                 buffer_task.inspect()?;
             }
             count += 1;
-            if count > 100 {
+            if count > 50 {
                 break;
             }
         }
