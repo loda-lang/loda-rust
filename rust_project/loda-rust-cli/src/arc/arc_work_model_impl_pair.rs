@@ -1,7 +1,7 @@
 use super::arc_work_model;
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
-use super::{ImageFind, ImageSymmetry};
+use super::{ImageFind, ImageSize, ImageSymmetry};
 
 #[allow(unused_imports)]
 use crate::arc::{HtmlLog, ImageToHTML};
@@ -147,5 +147,17 @@ impl arc_work_model::Pair {
         self.input.input_objects.insert(ObjectType::RemovalOfMostPopularColorInThisImageAfterwardSegmentByNeighborAll, object_vec);
 
         Ok(())
+    }
+
+    pub fn predicted_output_size(&self) -> Option<ImageSize> {
+        for prediction in &self.prediction_set {
+            match prediction {
+                arc_work_model::Prediction::OutputSize { size } => {
+                    return Some(*size);
+                },
+                _ => {}
+            }
+        }
+        None
     }
 }

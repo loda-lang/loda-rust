@@ -1,4 +1,4 @@
-use super::{arc_json_model, arc_work_model};
+use super::arc_json_model;
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
@@ -106,25 +106,11 @@ impl TraverseProgramsAndModels {
 
             let mut all_correct = true;
             for pair in &task.pairs {
-
-                // Find `OutputSize` in the prediction_set
-                let mut found_size: Option<ImageSize> = None;
-                for pred in &pair.prediction_set {
-                    match pred {
-                        arc_work_model::Prediction::OutputSize { size } => {
-                            found_size = Some(*size);
-                            break;
-                        },
-                        _ => {}
-                    }
-                }
-
-                // Deal with the case when there is no `OutputSize` found
-                let predicted: ImageSize = match found_size {
+                let predicted: ImageSize = match pair.predicted_output_size() {
                     Some(size) => size,
                     None => {
                         if verbose {
-                            println!("Cannot predict output size. Task: {} pair: {:?}", task.id, pair.pair_type);
+                            println!("No predicted output size. Task: {} pair: {:?}", task.id, pair.pair_type);
                         }
                         count_predict_incorrect += 1;
                         all_correct = false;
