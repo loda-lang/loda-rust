@@ -157,20 +157,9 @@ impl TraverseProgramsAndModels {
     fn predict_output_colors_for_tasks(task_vec: &Vec<Task>) {
         let verbose = false;
 
-        // TODO: predict colors that are likely to appear in the output
-        let mut count_x: usize = 0;
-        let mut count_y: usize = 0;
+        let mut count_correct_task: usize = 0;
+        let mut count_correct_pair: usize = 0;
         for task in task_vec {
-            // let mut h: Histogram = task.output_histogram_intersection.clone();
-            // let count0: u32 = h.number_of_counters_greater_than_zero();
-            // h.intersection_histogram(&task.output_histogram_union);
-            // let count1: u32 = h.number_of_counters_greater_than_zero();
-            // if count0 != count1 {
-            //     // Output has different colors
-            //     continue;
-            // }
-            // // Output has same colors
-            // count_x += 1;
 
             let mut all_correct = true;
             for pair in &task.pairs {
@@ -178,34 +167,35 @@ impl TraverseProgramsAndModels {
                     PairType::Train => pair.output.image.histogram_all(),
                     PairType::Test => pair.output.test_image.histogram_all(),
                 };
-                let count2: u32 = expected_histogram.number_of_counters_greater_than_zero();
-                // histogram.intersection_histogram(&h);
-                // let count3: u32 = histogram.number_of_counters_greater_than_zero();
+                let expected_count: u32 = expected_histogram.number_of_counters_greater_than_zero();
 
                 let mut histogram: Histogram = pair.input.image.histogram_all();
                 histogram.add_histogram(&task.insert_histogram_intersection);
                 histogram.subtract_histogram(&task.removal_histogram_intersection);
 
                 histogram.intersection_histogram(&expected_histogram);
-                let count3: u32 = histogram.number_of_counters_greater_than_zero();
-                if count2 == count3 {
-                    count_x += 1;
+                let predicted_count: u32 = histogram.number_of_counters_greater_than_zero();
+                if expected_count == predicted_count {
+                    count_correct_pair += 1;
                 } else  {
-                    // Output has different colors
-                    // println!("different colors");
                     all_correct = false;
                 }
             }
             if all_correct {
-                count_y += 1;
+                count_correct_task += 1;
+            } else {
+                if verbose {
+                    println!("incorrect prediction. {:?}", task.id);
+                }
             }
         }
-        println!("count_x: {}", count_x);
-        println!("count_y: {}", count_y);
+        if verbose {
+            println!("count_correct_pair: {}", count_correct_pair);
+        }
         {
             let number_of_tasks: usize = task_vec.len();
-            let percent: usize = (100 * count_y) / number_of_tasks.max(1);
-            println!("Summary: Output color prediction. There are {} correct tasks of {} all tasks. Percent: {}%", count_y, number_of_tasks, percent);
+            let percent: usize = (100 * count_correct_task) / number_of_tasks.max(1);
+            println!("Summary: Output color prediction. There are {} correct tasks of {} all tasks. Percent: {}%", count_correct_task, number_of_tasks, percent);
         }
 
     }
@@ -221,12 +211,19 @@ impl TraverseProgramsAndModels {
         }
 
         Self::predict_output_size_for_tasks(&buffer_task_vec);
+        // TODO: store the predicted sizes
+
         Self::predict_output_colors_for_tasks(&buffer_task_vec);
+        // TODO: store the predicted colors
+
+        // TODO: print out the number of tasks that have both predicted size and predicted colors
 
         // Self::inspect_undecided(&buffer_task_vec)?;
-        Self::inspect_decided(&buffer_task_vec)?;
+        // Self::inspect_decided(&buffer_task_vec)?;
         // Self::inspect_task_id(&buffer_task_vec, "72ca375d")?;
         // Self::inspect_task_id(&buffer_task_vec, "d56f2372")?;
+        // Self::inspect_task_id(&buffer_task_vec, "a85d4709")?;
+        Self::inspect_task_id(&buffer_task_vec, "44f52bb0")?;
         Ok(())
     }
 
