@@ -1,4 +1,5 @@
 use super::index_for_pixel::index_for_pixel;
+use super::ImageSize;
 use std::fmt;
 
 /// Tiny 2D grid with 8 bits per pixel.
@@ -53,6 +54,14 @@ impl Image {
 
     pub fn height(&self) -> u8 {
         self.height
+    }
+
+    /// The size of the image
+    pub fn size(&self) -> ImageSize {
+        ImageSize {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     pub fn pixels(&self) -> &Vec<u8> {
