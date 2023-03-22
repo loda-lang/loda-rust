@@ -76,7 +76,7 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    fn predict_output_size_for_tasks(task_vec: &Vec<Task>) {
+    fn check_predicted_output_size_for_tasks(task_vec: &Vec<Task>) {
         let verbose = false;
 
         let mut count_good = 0;
@@ -221,11 +221,11 @@ impl TraverseProgramsAndModels {
             buffer_task_vec.push(task);
         }
 
-        Self::predict_output_size_for_tasks(&buffer_task_vec);
-        // TODO: store the predicted sizes
+        Self::check_predicted_output_size_for_tasks(&buffer_task_vec);
+        // TODO: store the predicted sizes in model_item_vec
 
         Self::predict_output_colors_for_tasks(&buffer_task_vec);
-        // TODO: store the predicted colors
+        // TODO: store the predicted colors in model_item_vec
 
         // TODO: print out the number of tasks that have both predicted size and predicted colors
 
