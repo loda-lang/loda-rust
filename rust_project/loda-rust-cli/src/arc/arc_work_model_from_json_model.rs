@@ -63,6 +63,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     removal_histogram: histogram_removal,
                     insert_histogram: histogram_insert,
                     action_label_set: ActionLabelSet::new(),
+                    prediction_set: arc_work_model::PredictionSet::new(),
                 };
                 result_pairs.push(result_pair);
             }
@@ -94,6 +95,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     removal_histogram: Histogram::new(),
                     insert_histogram: Histogram::new(),
                     action_label_set: ActionLabelSet::new(),
+                    prediction_set: arc_work_model::PredictionSet::new(),
                 };
                 result_pairs.push(result_pair);
             }

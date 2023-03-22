@@ -45,9 +45,35 @@ pub struct Input {
     // State keeping of the input_properties. 
     // Computed, NotYetComputed, CannotBeComputed, DependingOnAnotherProperty.
     // Rerun analytics until all pending properties have been computed
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PairType {
+    Train,
+    Test,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum Prediction {
+    OutputSize { width: u8, height: u8 },
+    OutputPalette { histogram: Histogram },
+}
+
+pub type PredictionSet = HashSet<Prediction>;
+
+#[derive(Clone, Debug)]
+pub struct Pair {
+    pub id: String,
+    pub pair_type: PairType,
+    pub input: Input,
+    pub output: Output,
+    pub removal_histogram: Histogram,
+    pub insert_histogram: Histogram,
+    pub action_label_set: ActionLabelSet,
+    pub prediction_set: PredictionSet,
 
     // TODO: store the predicted output_size, output_colors
-    // TODO: Do I want to store it on the Input, or should there be a separate struct for this?
+    // TODO: Do I want to store it on the Pair, Input, or should there be a separate struct for this?
     // Make an Prediction enum, 
     //   with Prediction::OutputColorHistogramMask { histogram: Histogram }
     //   with Prediction::OutputSize { width: u8, height: u8 }
@@ -59,23 +85,6 @@ pub struct Input {
     // Idea B: Vec<PredictionEnum>
     // Idea C: pub predicted_output_size: Option<(u8, u8)>
     // Idea C: pub predicted_output_histogram: Option<Histogram>
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum PairType {
-    Train,
-    Test,
-}
-
-#[derive(Clone, Debug)]
-pub struct Pair {
-    pub id: String,
-    pub pair_type: PairType,
-    pub input: Input,
-    pub output: Output,
-    pub removal_histogram: Histogram,
-    pub insert_histogram: Histogram,
-    pub action_label_set: ActionLabelSet,
 }
 
 #[derive(Clone, Debug)]
