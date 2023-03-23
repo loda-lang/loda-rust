@@ -113,6 +113,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
             input_properties_intersection: HashMap::new(),
             action_label_set_intersection: ActionLabelSet::new(),
             input_label_set_intersection: HashSet::new(),
+            occur_in_solutions_csv: false,
         };
         task.assign_labels()?;
         return Ok(task);

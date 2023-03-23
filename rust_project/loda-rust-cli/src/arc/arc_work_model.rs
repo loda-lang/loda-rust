@@ -95,4 +95,5 @@ pub struct Task {
     pub input_properties_intersection: HashMap<PropertyInput, u8>,
     pub input_label_set_intersection: InputLabelSet,
     pub action_label_set_intersection: ActionLabelSet,
+    pub occur_in_solutions_csv: bool,
 }

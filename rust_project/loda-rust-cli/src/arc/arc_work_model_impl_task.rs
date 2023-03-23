@@ -939,9 +939,18 @@ impl arc_work_model::Task {
         row_action_colors += "</tr>";
         row_action_labels += "</tr>";
 
+        let solution_status: &str;
+        if self.occur_in_solutions_csv {
+            solution_status = "solved";
+        } else {
+            solution_status = "UNSOLVED";
+        }
+
+        let title: String = format!("{} - {}", self.id, solution_status);
+
         let html = format!(
             "<h2>{}</h2><p>Output size: {}</p><table>{}{}{}{}{}{}{}</table>",
-            self.id, 
+            title, 
             self.estimated_output_size(),
             row_title,
             row_input_image, 
