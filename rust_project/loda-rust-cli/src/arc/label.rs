@@ -82,10 +82,13 @@ pub enum ActionLabel {
     InputImageIsPresentExactlyOnceInsideOutputImage,
 
     OutputImageHistogramEqualToInputImageHistogram,
+    RemovalColorIsThePrimaryColorOfInputImage,
 
     OutputImageIsTheObjectWithObjectLabel { object_label: ObjectLabel },
 
     // Ideas for more
+    // OutputImageRowsAllPresentInTheInputImage,
+    // OutputImageColumnsAllPresentInTheInputImage,
     // OutputPropertySamePixelValuesAsInput { count_same: u16, count_different: u16 },
     // OutputSizeIsInputSizeAddConstant
     // OutputSizeIsInputSizeMultipliedByWithPadding

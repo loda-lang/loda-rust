@@ -73,19 +73,28 @@ impl arc_work_model::Pair {
             self.action_label_set.insert(ActionLabel::OutputImageHistogramEqualToInputImageHistogram);
         }
 
+        for _ in 0..1 {
+            let count: u32 = self.removal_histogram.number_of_counters_greater_than_zero();
+            if count != 1 {
+                break;
+            }
+            let removal_color: u8 = match self.removal_histogram.most_popular_color() {
+                Some(value) => value,
+                None => break
+            };
+            let most_popular_color: u8 = match self.input.histogram.most_popular_color() {
+                Some(value) => value,
+                None => break
+            };
+            if removal_color == most_popular_color {
+                self.action_label_set.insert(ActionLabel::RemovalColorIsThePrimaryColorOfInputImage);
+            }
+        }
+
         _ = self.analyze_object_why_is_the_output_present_once_in_input();
     }
 
     fn analyze_object_why_is_the_output_present_once_in_input(&mut self) -> anyhow::Result<()> {
-        // if self.id != "72ca375d,pair1,train" {
-        //     return Ok(());
-        // }
-        // if self.id != "d56f2372,pair0,train" {
-        //     return Ok(());
-        // }
-        // if self.id != "d56f2372,pair1,train" {
-        //     return Ok(());
-        // }
         if !self.action_label_set.contains(&ActionLabel::OutputImageIsPresentExactlyOnceInsideInputImage) {
             // println!("a");
             return Ok(());
@@ -109,10 +118,6 @@ impl arc_work_model::Pair {
             // println!("b");
             return Ok(());
         }
-        // println!("OutputImage is one of the objects in the input image");
-        // HtmlLog::html(self.input.image.to_html());
-        // HtmlLog::html(self.output.image.to_html());
-        // HtmlLog::text("separator");
 
         Object::assign_labels_to_objects(&mut object_vec);
 
