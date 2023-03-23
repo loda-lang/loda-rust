@@ -96,10 +96,10 @@ impl TraverseProgramsAndModels {
         }
         
         // Compute the output size with the test data, and compare with the expected output
-        let mut count_predict_correct: usize = 0;
-        let mut count_predict_incorrect: usize = 0;
-        let mut count_predict_correct_task: usize = 0;
-        let mut count_predict_incorrect_task: usize = 0;
+        let mut count_predict_pair_correct: usize = 0;
+        let mut count_predict_pair_incorrect: usize = 0;
+        let mut count_predict_task_correct: usize = 0;
+        let mut count_predict_task_incorrect: usize = 0;
         for task in task_vec {
             let estimate: String = task.estimated_output_size();
             if estimate == "Undecided" {
@@ -114,7 +114,7 @@ impl TraverseProgramsAndModels {
                         if verbose {
                             println!("No predicted output size. Task: {} pair: {:?}", task.id, pair.pair_type);
                         }
-                        count_predict_incorrect += 1;
+                        count_predict_pair_incorrect += 1;
                         all_correct = false;
                         continue;
                     }
@@ -126,21 +126,21 @@ impl TraverseProgramsAndModels {
                 };
 
                 if predicted == expected {
-                    count_predict_correct += 1;
+                    count_predict_pair_correct += 1;
                 } else {
                     if verbose {
                         println!("Wrong output size. Expected {:?}, but got {:?}. Task: {} pair: {:?}", expected, predicted, task.id, pair.pair_type);
                     }
-                    count_predict_incorrect += 1;
+                    count_predict_pair_incorrect += 1;
                     all_correct = false;
                 }
             }
             if all_correct {
-                count_predict_correct_task += 1;
+                count_predict_task_correct += 1;
                 task_ids_with_correct_prediction.insert(task.id.clone());
             } else {
                 // Self::inspect_task(buffer_task)?;
-                count_predict_incorrect_task += 1;
+                count_predict_task_incorrect += 1;
             }
 
             // If all the pairs had their output size predicted correctly,
@@ -148,22 +148,28 @@ impl TraverseProgramsAndModels {
             // If one or more pairs were incorrectly predicted, 
             // then don't save the predicted output size on the pair instances.
         }
+        if verbose {
+            println!("count_predict_pair_correct: {}", count_predict_pair_correct);
+            println!("count_predict_pair_incorrect: {}", count_predict_pair_incorrect);
+            println!("count_predict_task_correct: {}", count_predict_task_correct);
+            println!("count_predict_task_incorrect: {}", count_predict_task_incorrect);
+        }
         {
-            let percent: usize = (100 * count_predict_correct) / (count_predict_correct + count_predict_incorrect).max(1);
+            let percent: usize = (100 * count_predict_pair_correct) / (count_predict_pair_correct + count_predict_pair_incorrect).max(1);
             if verbose {
-                println!("Predicted single-image: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct, count_predict_incorrect, percent);
+                println!("Predicted single-image: correct: {} incorrect: {} correct-percent: {}%", count_predict_pair_correct, count_predict_pair_incorrect, percent);
             }
         }
         {
-            let percent: usize = (100 * count_predict_correct_task) / (count_predict_correct_task + count_predict_incorrect_task).max(1);
+            let percent: usize = (100 * count_predict_task_correct) / (count_predict_task_correct + count_predict_task_incorrect).max(1);
             if verbose {
-                println!("Predicted task: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct_task, count_predict_incorrect_task, percent);
+                println!("Predicted task: correct: {} incorrect: {} correct-percent: {}%", count_predict_task_correct, count_predict_task_incorrect, percent);
             }
         }
         {
             let number_of_tasks: usize = task_vec.len();
-            let percent: usize = (100 * count_predict_correct_task) / number_of_tasks.max(1);
-            println!("Summary: Output size prediction. There are {} correct tasks of {} all tasks. Percent: {}%", count_predict_correct_task, number_of_tasks, percent);
+            let percent: usize = (100 * count_predict_task_correct) / number_of_tasks.max(1);
+            println!("Summary: Output size prediction. There are {} correct tasks of {} all tasks. Percent: {}%", count_predict_task_correct, number_of_tasks, percent);
         }
 
         task_ids_with_correct_prediction
@@ -174,8 +180,10 @@ impl TraverseProgramsAndModels {
 
         let mut task_ids_with_correct_prediction = HashSet::<String>::new();
 
-        let mut count_correct_task: usize = 0;
-        let mut count_correct_pair: usize = 0;
+        let mut count_predict_pair_correct: usize = 0;
+        let mut count_predict_pair_incorrect: usize = 0;
+        let mut count_predict_task_correct: usize = 0;
+        let mut count_predict_task_incorrect: usize = 0;
         for task in task_vec {
 
             let mut all_correct = true;
@@ -187,6 +195,7 @@ impl TraverseProgramsAndModels {
                             println!("No predicted output palette. Task: {} pair: {:?}", task.id, pair.pair_type);
                         }
                         all_correct = false;
+                        count_predict_pair_incorrect += 1;
                         continue;
                     }
                 };
@@ -201,27 +210,32 @@ impl TraverseProgramsAndModels {
                 histogram.intersection_histogram(&expected_histogram);
                 let predicted_count: u32 = histogram.number_of_counters_greater_than_zero();
                 if expected_count == predicted_count {
-                    count_correct_pair += 1;
+                    count_predict_pair_correct += 1;
                     task_ids_with_correct_prediction.insert(task.id.clone());
                 } else  {
+                    count_predict_pair_incorrect += 1;
                     all_correct = false;
                 }
             }
             if all_correct {
-                count_correct_task += 1;
+                count_predict_task_correct += 1;
             } else {
+                count_predict_task_incorrect += 1;
                 if verbose {
                     println!("incorrect prediction. {:?}", task.id);
                 }
             }
         }
         if verbose {
-            println!("count_correct_pair: {}", count_correct_pair);
+            println!("count_predict_pair_correct: {}", count_predict_pair_correct);
+            println!("count_predict_pair_incorrect: {}", count_predict_pair_incorrect);
+            println!("count_predict_task_correct: {}", count_predict_task_correct);
+            println!("count_predict_task_incorrect: {}", count_predict_task_incorrect);
         }
         {
             let number_of_tasks: usize = task_vec.len();
-            let percent: usize = (100 * count_correct_task) / number_of_tasks.max(1);
-            println!("Summary: Output palette prediction. There are {} correct tasks of {} all tasks. Percent: {}%", count_correct_task, number_of_tasks, percent);
+            let percent: usize = (100 * count_predict_task_correct) / number_of_tasks.max(1);
+            println!("Summary: Output palette prediction. There are {} correct tasks of {} all tasks. Percent: {}%", count_predict_task_correct, number_of_tasks, percent);
         }
         task_ids_with_correct_prediction
     }
