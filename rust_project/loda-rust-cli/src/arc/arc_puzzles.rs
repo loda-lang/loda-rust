@@ -2297,4 +2297,23 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_550000_puzzle_94f9d214() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let height: u8 = input.height() / 2;
+            let input_top: Image = input.top_rows(height)?;
+            let input_bottom: Image = input.bottom_rows(height)?;
+            let mask_top: Image = input_top.to_mask_where_color_is_different(0);
+            let mask_bottom: Image = input_bottom.to_mask_where_color_is_different(0);
+            let mut result_image: Image = mask_top.clone();
+            result_image = result_image.overlay_with_mask_color(&mask_bottom, 0)?;
+            result_image = result_image.replace_color(0, 2)?;
+            result_image = result_image.replace_color(1, 0)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("94f9d214").expect("String");
+        assert_eq!(result, "4 1");
+    }
+
 }
