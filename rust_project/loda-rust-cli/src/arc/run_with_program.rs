@@ -246,6 +246,14 @@ impl RunWithProgram {
                 state.set_u64((index * 100 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
             }
 
+            // Ideas for data to make available to the program.
+            // output_size
+            // output_palette
+            // substitutions, replace this color with that color
+            // substitutions, replace this image with that image
+            // remove trim color
+            // remove grid color
+
             count_train += 1;
         }
 
