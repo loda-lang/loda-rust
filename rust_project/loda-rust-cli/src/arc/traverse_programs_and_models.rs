@@ -351,6 +351,12 @@ impl TraverseProgramsAndModels {
         instance.load_solution_files()?;
         instance.init_locked_instruction_hashset()?;
         instance.make_predictions_about_each_tasks();
+        match instance.update_has_solution() {
+            Ok(()) => {},
+            Err(error) => {
+                println!("Couldn't update models with solution status. error: {:?}", error);
+            }
+        }
         Ok(instance)
     }
 
@@ -395,6 +401,7 @@ impl TraverseProgramsAndModels {
             let instance = ModelItem {
                 id: ModelItemId::Path { path: path.clone() },
                 task,
+                has_solution: false,
             };
             let item = Rc::new(RefCell::new(instance));
             model_item_vec.push(item);
@@ -794,6 +801,40 @@ impl TraverseProgramsAndModels {
             let green_bold = Style::new().red().bold();        
             println!("{}", green_bold.apply_to("Status: Found no solutions among the existing programs"));
         }
+        Ok(())
+    }
+
+    fn update_has_solution(&self) -> anyhow::Result<()> {
+        let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
+        if !path_solutions_csv.is_file() {
+            return Err(anyhow::anyhow!("update_has_solution: there is no existing solutions.csv file, so the solutions cannot be checked. path_solutions_csv: {:?}", path_solutions_csv));
+        }
+
+        let record_vec: Vec<Record> = Record::load_record_vec(&path_solutions_csv)?;
+        debug!("update_has_solution: solutions.csv: number of rows: {}", record_vec.len());
+
+        let mut task_id_set = HashSet::<String>::new();
+        for record in &record_vec {
+            let filename_with_json_suffix: String = record.model_filename.clone();
+            let task_id = filename_with_json_suffix.replace(".json", "");
+            task_id_set.insert(task_id);
+        }
+
+        for model_item in &self.model_item_vec {
+            let mut mi = model_item.borrow_mut();
+            let task_id: String = mi.task.id.clone();
+            let has_solution: bool = task_id_set.contains(&task_id);
+            mi.has_solution = has_solution;
+        }
+
+        let mut count_has_solution_true: usize = 0;
+        for model_item in &self.model_item_vec {
+            let has_solution: bool = model_item.borrow().has_solution;
+            if has_solution {
+                count_has_solution_true += 1;
+            }
+        }
+        debug!("update_has_solution: tasks with one or more solutions: {}", count_has_solution_true);
         Ok(())
     }
 
@@ -1726,6 +1767,7 @@ impl ModelItemId {
 struct ModelItem {
     id: ModelItemId,
     task: Task,
+    has_solution: bool,
 }
 
 impl ModelItem {
