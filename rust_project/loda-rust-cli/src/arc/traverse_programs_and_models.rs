@@ -232,19 +232,15 @@ impl TraverseProgramsAndModels {
 
         let mut task_vec: Vec<Task> = vec!();
         for model_item in &instance.model_item_vec {
-            let mut task: Task = model_item.borrow().task.clone();
-            task.assign_predicted_output_size();
-            task.assign_predicted_output_palette();
+            let task: Task = model_item.borrow().task.clone();
             task_vec.push(task);
         }
 
         let task_ids_with_correct_output_size: HashSet<String> = 
             Self::check_predicted_output_size_for_tasks(&task_vec);
-        // TODO: store the predicted sizes in model_item_vec
 
         let task_ids_with_correct_output_palette: HashSet<String> = 
             Self::check_predicted_output_palette_for_tasks(&task_vec);
-        // TODO: store the predicted colors in model_item_vec
 
         let mut task_ids_intersection = HashSet::<String>::new();
         for task_id in task_ids_with_correct_output_size.intersection(&task_ids_with_correct_output_palette) {
@@ -354,6 +350,7 @@ impl TraverseProgramsAndModels {
         instance.load_puzzle_files()?;
         instance.load_solution_files()?;
         instance.init_locked_instruction_hashset()?;
+        instance.make_predictions_about_each_tasks();
         Ok(instance)
     }
 
@@ -407,6 +404,13 @@ impl TraverseProgramsAndModels {
         }
         self.model_item_vec = model_item_vec;
         Ok(())
+    }
+
+    fn make_predictions_about_each_tasks(&self) {
+        for model_item in &self.model_item_vec {
+            model_item.borrow_mut().task.assign_predicted_output_size();
+            model_item.borrow_mut().task.assign_predicted_output_palette();
+        }
     }
 
     /// Load all `.asm` programs into memory
