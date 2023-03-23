@@ -211,7 +211,6 @@ impl TraverseProgramsAndModels {
                 let predicted_count: u32 = histogram.number_of_counters_greater_than_zero();
                 if expected_count == predicted_count {
                     count_predict_pair_correct += 1;
-                    task_ids_with_correct_prediction.insert(task.id.clone());
                 } else  {
                     count_predict_pair_incorrect += 1;
                     all_correct = false;
@@ -219,6 +218,7 @@ impl TraverseProgramsAndModels {
             }
             if all_correct {
                 count_predict_task_correct += 1;
+                task_ids_with_correct_prediction.insert(task.id.clone());
             } else {
                 count_predict_task_incorrect += 1;
                 if verbose {
@@ -260,33 +260,35 @@ impl TraverseProgramsAndModels {
         for task_id in task_ids_with_correct_output_size.intersection(&task_ids_with_correct_output_palette) {
             task_ids_intersection.insert(task_id.clone());
         }
-        println!("number of tasks with size=Some and palette=Some. {}", task_ids_intersection.len());
+        {
+            let number_of_tasks: usize = task_vec.len();
+            let percent: usize = (100 * task_ids_intersection.len()) / number_of_tasks.max(1);
+            println!("tasks with size=ok  and palette=ok.   {}  Percent: {}%", task_ids_intersection.len(), percent);
+        }
 
         let mut task_ids_only_size = HashSet::<String>::new();
         for task_id in task_ids_with_correct_output_size.difference(&task_ids_intersection) {
             task_ids_only_size.insert(task_id.clone());
         }
-        println!("number of tasks with size=Some and palette=None. {}", task_ids_only_size.len());
+        println!("tasks with size=ok  and palette=bad.  {}", task_ids_only_size.len());
 
         let mut task_ids_only_palette = HashSet::<String>::new();
         for task_id in task_ids_with_correct_output_palette.difference(&task_ids_intersection) {
             task_ids_only_palette.insert(task_id.clone());
         }
-        println!("number of tasks with size=None and palette=Some. {}", task_ids_only_palette.len());
+        println!("tasks with size=bad and palette=ok.   {}", task_ids_only_palette.len());
 
         let mut count_tasks_without_predictions: usize = 0;
         for task in &task_vec {
-            let mut found = true;
-            for pair in &task.pairs {
-                if pair.prediction_set.len() != 0 {
-                    found = false;
-                }
+            if task_ids_with_correct_output_size.contains(&task.id) {
+                continue;
             }
-            if found {
-                count_tasks_without_predictions += 1;
+            if task_ids_with_correct_output_palette.contains(&task.id) {
+                continue;
             }
+            count_tasks_without_predictions += 1;
         }
-        println!("number of tasks with size=None and palette=None. {}", count_tasks_without_predictions);
+        println!("tasks with size=bad and palette=bad.  {}", count_tasks_without_predictions);
 
 
         // Self::inspect_undecided(&task_vec)?;
