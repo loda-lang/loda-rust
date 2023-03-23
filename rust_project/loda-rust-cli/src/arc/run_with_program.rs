@@ -105,8 +105,8 @@ impl RunWithProgram {
         mov $$82,$0 ; save vector[x].computed_output image
 
         ; next iteration
-        add $81,10 ; jump to address of next input image
-        add $82,10 ; jump to address of next computed_output image
+        add $81,100 ; jump to address of next input image
+        add $82,100 ; jump to address of next computed_output image
     lpe
     "#;
 
@@ -200,27 +200,27 @@ impl RunWithProgram {
     /// $100 = train[0] input
     /// $101 = train[0] expected_output
     /// $102 = train[0] computed_output
-    /// $103..109 is reserved for train[0] extra data
+    /// $103..199 is reserved for train[0] extra data
     /// ---
-    /// $110 = train[1] input
-    /// $111 = train[1] expected_output
-    /// $112 = train[1] computed_output
-    /// $113..119 is reserved for train[1] extra data
+    /// $200 = train[1] input
+    /// $201 = train[1] expected_output
+    /// $202 = train[1] computed_output
+    /// $203..299 is reserved for train[1] extra data
     /// ---
-    /// $120 = train[2] input
-    /// $121 = train[2] expected_output
-    /// $122 = train[2] computed_output
-    /// $123..129 is reserved for train[2] extra data
+    /// $300 = train[2] input
+    /// $301 = train[2] expected_output
+    /// $302 = train[2] computed_output
+    /// $303..399 is reserved for train[2] extra data
     /// ---
-    /// $130 = train[3] input
-    /// $131 = train[3] expected_output
-    /// $132 = train[3] computed_output
-    /// $133..139 is reserved for train[3] extra data
+    /// $400 = train[3] input
+    /// $401 = train[3] expected_output
+    /// $402 = train[3] computed_output
+    /// $403..499 is reserved for train[3] extra data
     /// ---
-    /// $140 = test[0] input
-    /// $141 = test[0] expected_output <---- this is not provided, it's up to the program to compute it.
-    /// $142 = test[0] computed_output
-    /// $143..149 is reserved for test[0] extra data
+    /// $500 = test[0] input
+    /// $501 = test[0] expected_output <---- this is not provided, it's up to the program to compute it.
+    /// $502 = test[0] computed_output
+    /// $503..599 is reserved for test[0] extra data
     /// ```
     fn initial_memory_layout(&self, state: &mut ProgramState) -> anyhow::Result<()> {
 
@@ -232,18 +232,18 @@ impl RunWithProgram {
             }
 
             let index: usize = count_train;
-            // memory[x*10+100] = train[x].input
+            // memory[x*100+100] = train[x].input
             {
                 let image_number_uint: BigUint = pair.input.image.to_number().context("pair.input image to number")?;
                 let image_number_int: BigInt = image_number_uint.to_bigint().context("pair.input BigUint to BigInt")?;
-                state.set_u64((index * 10 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
+                state.set_u64((index * 100 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
             }
 
-            // memory[x*10+101] = train[x].output
+            // memory[x*100+101] = train[x].output
             {
                 let image_number_uint: BigUint = pair.output.image.to_number().context("pair.output image to number")?;
                 let image_number_int: BigInt = image_number_uint.to_bigint().context("pair.output BigUint to BigInt")?;
-                state.set_u64((index * 10 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
+                state.set_u64((index * 100 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
             }
 
             count_train += 1;
@@ -257,19 +257,19 @@ impl RunWithProgram {
             }
 
             let index: usize = count_train + count_test;
-            // memory[(count_train + x)*10+100] = test[x].input
+            // memory[(count_train + x)*100+100] = test[x].input
             {
                 let image_number_uint: BigUint = pair.input.image.to_number().context("pair.input image to number")?;
                 let image_number_int: BigInt = image_number_uint.to_bigint().context("pair.input BigUint to BigInt")?;
-                state.set_u64((index * 10 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
+                state.set_u64((index * 100 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
             }
 
             // The program is never supposed to read from the the test[x].output register.
-            // memory[(count_train + x)*10+101] is where the program is supposed to write its predicted output.
+            // memory[(count_train + x)*100+101] is where the program is supposed to write its predicted output.
             // Use `-1` as placeholder so it's easy to spot when the image is missing.
             {
                 let value: BigInt = -BigInt::one();
-                state.set_u64((index * 10 + 101) as u64, value).context("pair.output, set_u64")?;
+                state.set_u64((index * 100 + 101) as u64, value).context("pair.output, set_u64")?;
             }
 
             count_test += 1;
@@ -483,21 +483,21 @@ impl ComputedImages for ProgramState {
     /// 
     /// Variable number of items in the `train` vector and `test` vector.
     /// 
-    /// The first image is at the address `102`. Add `10` to get to the following images.
+    /// The first image is at the address `102`. Add `100` to get to the following images.
     /// 
     /// Memory layout:
     /// 
     /// ```
     /// $102 = train[0] computed_output image
-    /// $112 = train[1] computed_output image
-    /// $122 = train[2] computed_output image
-    /// $132 = test[0] computed_output image
-    /// $142 = test[1] computed_output image
+    /// $202 = train[1] computed_output image
+    /// $302 = train[2] computed_output image
+    /// $402 = test[0] computed_output image
+    /// $502 = test[1] computed_output image
     /// ```
     fn computed_images(&self, number_of_images: usize) -> anyhow::Result<Vec<Image>> {
         let mut images = Vec::<Image>::with_capacity(number_of_images);
         for index in 0..number_of_images {
-            let address: u64 = (index as u64) * 10 + 102;
+            let address: u64 = (index as u64) * 100 + 102;
             let computed_int: BigInt = self.get_u64(address).clone();
             if computed_int.is_negative() {
                 return Err(anyhow::anyhow!("computed_images. output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
