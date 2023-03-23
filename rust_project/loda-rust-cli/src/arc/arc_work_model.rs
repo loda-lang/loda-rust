@@ -59,6 +59,8 @@ pub enum Prediction {
     OutputPalette { histogram: Histogram },
 
     // Ideas for more
+    // substitution, replace this image with that image
+    // replace this color with that color
     // weak prediction: the color is a subset of this palette.
     // weak prediction: background_color
     // weak prediction: the width is a in a range.
