@@ -2189,6 +2189,18 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
+    const PROGRAM_49D1D64F: &'static str = "
+    mov $1,1
+    mov $2,0
+    f31 $0,102160 ; Get width of image
+    ";
+
+    #[test]
+    fn test_520001_puzzle_49d1d64f_loda() {
+        let result: String = run_simple("49d1d64f", PROGRAM_49D1D64F).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
     #[test]
     fn test_530000_puzzle_780d0b14() {
         let solution: SolutionSimple = |data| {

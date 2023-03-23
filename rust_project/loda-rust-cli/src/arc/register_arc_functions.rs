@@ -1,4 +1,4 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects, ImageBorder};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
 use super::{ImageRepairPattern, ImageRepairTrigram};
@@ -2394,6 +2394,52 @@ impl UnofficialFunction for ImageRepairPatternFunction {
     }
 }
 
+struct ImageBorderGrowFunction {
+    id: u32,
+}
+
+impl ImageBorderGrowFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageBorderGrowFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Expand by repeating the outer-most pixel border".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is border size
+        let border_size: u8 = input[1].to_u8().context("u8 border_size")?;
+
+        // input2 is corner color
+        let corner_color: u8 = input[2].to_u8().context("u8 corner_color")?;
+
+        let output_image: Image = input_image.border_grow(border_size, corner_color)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -2555,4 +2601,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     // Repair damaged pixels
     register_function!(ImageRepairTrigramFunction::new(102150));
     register_function!(ImageRepairPatternFunction::new(102151));
+
+    // Draw border around image
+    register_function!(ImageBorderGrowFunction::new(102160));
 }
