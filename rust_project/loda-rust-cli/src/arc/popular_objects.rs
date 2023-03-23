@@ -67,7 +67,7 @@ impl PopularObjects {
             records.push(record);
         }
 
-        // Move the most frequently occuring items to the end
+        // Move the most frequently occurring items to the end
         // Move the lesser used items to the front
         records.sort_unstable_by_key(|item| item.count);
         Ok(records)
