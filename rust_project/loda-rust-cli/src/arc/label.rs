@@ -87,6 +87,7 @@ pub enum ActionLabel {
     OutputImageIsTheObjectWithObjectLabel { object_label: ObjectLabel },
 
     // Ideas for more
+    // AllObjectsHaveTheSameSizeAsTheOutputImage
     // OutputImageRowsAllPresentInTheInputImage,
     // OutputImageColumnsAllPresentInTheInputImage,
     // OutputPropertySamePixelValuesAsInput { count_same: u16, count_different: u16 },

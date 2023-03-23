@@ -709,6 +709,14 @@ impl arc_work_model::Task {
         histogram.add_histogram(&self.insert_histogram_intersection);
         histogram.subtract_histogram(&self.removal_histogram_intersection);
 
+        if self.removal_histogram_intersection.number_of_counters_greater_than_zero() == 0 {
+            if self.action_label_set_intersection.contains(&ActionLabel::RemovalColorIsThePrimaryColorOfInputImage) {
+                if let Some(color) = histogram.most_popular_color() {
+                    histogram.set_counter_to_zero(color);
+                }
+            }
+        }
+
         // Future experiments:
         // What are the scenarios where this histogram is a bad prediction.
         // Are there scenarios where the histogram is "Undecided"
