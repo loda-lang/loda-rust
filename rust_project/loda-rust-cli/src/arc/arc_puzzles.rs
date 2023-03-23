@@ -2192,7 +2192,7 @@ mod tests {
     const PROGRAM_49D1D64F: &'static str = "
     mov $1,1
     mov $2,0
-    f31 $0,102160 ; Get width of image
+    f31 $0,102160 ; Expand by repeating the outer-most pixel border
     ";
 
     #[test]
