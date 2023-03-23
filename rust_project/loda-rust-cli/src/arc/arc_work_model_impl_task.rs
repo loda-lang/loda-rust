@@ -113,22 +113,15 @@ impl arc_work_model::Task {
         for pair in &mut self.pairs {
 
             let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
-            // if self.id == "0934a4d8,task" {
-            //     HtmlLog::image(&image_mask);
-            // }
 
             // Determine if the removed color is a rectangle
             {
                 match image_mask.trim_color(1) {
                     Ok(image) => {
-                        // HtmlLog::image(&image);
                         let mass: u32 = image.mask_count_one();
                         if mass == 0 {
-                            // println!("this is a rectangle");
                             pair.input.input_properties.insert(PropertyInput::InputWidthOfRemovedRectangleAfterSingleColorRemoval, image.width());
                             pair.input.input_properties.insert(PropertyInput::InputHeightOfRemovedRectangleAfterSingleColorRemoval, image.height());
-                        } else {
-                            // println!("this is not a rectangle");
                         }
                     },
                     Err(_) => {}
@@ -137,7 +130,6 @@ impl arc_work_model::Task {
 
             let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
 
-            // let result = image_mask.find_objects(ImageSegmentAlgorithm::All);
             let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask);
             let object_images: Vec<Image> = match result {
                 Ok(images) => images,
@@ -145,12 +137,7 @@ impl arc_work_model::Task {
                     continue;
                 }
             };
-            // println!("number of objects: {} task: {}", object_images.len(), self.displayName);
-            // if self.id == "8a371977,task" {
-            //     for image in &object_images {
-            //         HtmlLog::image(image);
-            //     }
-            // }
+
             let mut mass_max: u32 = 0;
             let mut found_index_mass_max: Option<usize> = None;
             for (index, image) in object_images.iter().enumerate() {
@@ -179,8 +166,6 @@ impl arc_work_model::Task {
                     
                     let width: u8 = trimmed_image.width();
                     let height: u8 = trimmed_image.height();
-                    // println!("biggest object: {}x{}", width, height);
-
                     pair.input.input_properties.insert(PropertyInput::InputWidthOfPrimaryObjectAfterSingleColorRemoval, width);
                     pair.input.input_properties.insert(PropertyInput::InputHeightOfPrimaryObjectAfterSingleColorRemoval, height);
                 }
