@@ -1,7 +1,7 @@
 use super::arc_json_model;
 use super::arc_work_model;
 use super::{Image, ImageSize, ImageToNumber, NumberToImage, register_arc_functions, Prediction, HtmlLog, ImageToHTML};
-use super::{ImageRotate};
+use super::{ImageRotate, ImageSymmetry};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -428,25 +428,74 @@ impl RunWithProgram {
         Ok(())
     }
 
-    fn process_computed_images(&self, mut computed_images: Vec<Image>) -> anyhow::Result<RunWithProgramResult> {
-        // match self.postprocess_fix_orientation(&mut computed_images) {
-        //     Ok(()) => {
-        //         println!("successfully applied fix orientation postprocessing");
-        //     },
-        //     Err(_) => {}
-        // }
-        match self.postprocess_recolor(&mut computed_images) {
+    fn postprocess_flip_and_recolor(&self, computed_images: &mut Vec<Image>) -> anyhow::Result<()> {
+        match self.postprocess_recolor(computed_images) {
             Ok(()) => {
-                println!("successfully applied recolor postprocessing");
+                // println!("successfully applied recolor postprocessing for flip mode: normal");
+                return Ok(());
             },
             Err(_) => {}
         }
 
-        // Future experiment:
-        // Reject solution, if the Test pairs, has a computed_image.size() different than the predicted size.
-        // Reject solution, if the Test pairs, has a computed_image.histogram() different than the predicted palette.
+        // Go through the variations: flip x, flip y, flip xy.
+        for i in 1..4u8 {
+            let mut computed_images_clone: Vec<Image> = computed_images.clone();
+            for computed_image in computed_images_clone.iter_mut() {
+                let mut image: Image = computed_image.clone();
+                if (i & 1) != 0 {
+                    image = image.flip_x()?;
+                }
+                if (i & 2) != 0 {
+                    image = image.flip_y()?;
+                }
+                computed_image.set_image(image);
+            }
+            match self.postprocess_recolor(&mut computed_images_clone) {
+                Ok(()) => {
+                    // println!("successfully applied recolor postprocessing for flip mode: {}", i);
+                    computed_images.truncate(0);
+                    computed_images.extend(computed_images_clone);
+                    return Ok(());
+                },
+                Err(_) => {}
+            }
+        }
 
+        Err(anyhow::anyhow!("did not find a flip recolor combination that works"))
+    }
+
+    fn postprocess(&self, computed_images: &mut Vec<Image>) -> anyhow::Result<()> {
+        let mut one_or_more_postprocessing_applied = false;
+        match self.postprocess_fix_orientation(computed_images) {
+            Ok(()) => {
+                // println!("successfully applied fix orientation postprocessing");
+                one_or_more_postprocessing_applied = true;
+            },
+            Err(_) => {}
+        }
+        match self.postprocess_flip_and_recolor(computed_images) {
+            Ok(()) => {
+                // println!("successfully applied flip and recolor postprocessing");
+                one_or_more_postprocessing_applied = true;
+            },
+            Err(_) => {}
+        }
+        if !one_or_more_postprocessing_applied {
+            return Err(anyhow::anyhow!("Didn't apply any postprocessing"));
+        }
+        Ok(())
+    }
+
+    fn process_computed_images(&self, mut computed_images: Vec<Image>) -> anyhow::Result<RunWithProgramResult> {
         let pretty_print = false;
+
+        match self.postprocess(&mut computed_images) {
+            Ok(()) => {
+                // println!("successfully applied postprocessing");
+                // pretty_print = true;
+            },
+            Err(_) => {}
+        }
 
         let mut status_texts = Vec::<&str>::new();
 
@@ -494,7 +543,15 @@ impl RunWithProgram {
             }
         }
 
+        // if count_train_correct >= 2 {
+        //     pretty_print = true;
+        // }
+
         let mut predictions = Vec::<Prediction>::new();
+
+        // Future experiment:
+        // Reject solution, if the Test pairs, has a computed_image.size() different than the predicted size.
+        // Reject solution, if the Test pairs, has a computed_image.histogram() different than the predicted palette.
 
         // Traverse the `Test` pairs
         // Compare computed images with test[x].output
