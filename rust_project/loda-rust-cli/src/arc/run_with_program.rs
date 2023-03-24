@@ -1,6 +1,7 @@
 use super::arc_json_model;
 use super::arc_work_model;
 use super::{Image, ImageSize, ImageToNumber, NumberToImage, register_arc_functions, Prediction, HtmlLog, ImageToHTML};
+use super::{ImageRotate};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -300,6 +301,44 @@ impl RunWithProgram {
         Ok(())
     }
 
+    fn postprocess_fix_orientation(&self, computed_images: &mut Vec<Image>) -> anyhow::Result<()> {
+        // Determine if fixing the orientation makes sense with the training pairs
+        {
+            let mut count_train: usize = 0;
+            for pair in &self.task.pairs {
+                if pair.pair_type != arc_work_model::PairType::Train {
+                    continue;
+                }
+    
+                let index: usize = count_train;
+                count_train += 1;
+    
+                let computed_size: ImageSize = computed_images[index].size();
+                if computed_size.width == computed_size.height {
+                    return Err(anyhow::anyhow!("postprocess_fix_orientation requires all images to be rotated. However one or more images square."));
+                }
+                
+                let expected_size: ImageSize = pair.output.image.size();
+                let is_rotated: bool = 
+                    computed_size.width == expected_size.height && 
+                    computed_size.height == expected_size.width;
+                
+                if !is_rotated {
+                    return Err(anyhow::anyhow!("postprocess_fix_orientation requires all images to be rotated. However one or more images is not rotated."));
+                }
+                
+                // fixing the orientation may be possible with this training pair
+            }
+        }
+
+        // Rotate all the images
+        for computed_image in computed_images.iter_mut() {
+            let rotated_image: Image = computed_image.rotate_cw()?;
+            computed_image.set_image(rotated_image);
+        }
+        Ok(())
+    }
+
     fn postprocess_recolor(&self, computed_images: &mut Vec<Image>) -> anyhow::Result<()> {
         // Determine if recoloring may be applied to training pairs
         {
@@ -390,6 +429,12 @@ impl RunWithProgram {
     }
 
     fn process_computed_images(&self, mut computed_images: Vec<Image>) -> anyhow::Result<RunWithProgramResult> {
+        // match self.postprocess_fix_orientation(&mut computed_images) {
+        //     Ok(()) => {
+        //         println!("successfully applied fix orientation postprocessing");
+        //     },
+        //     Err(_) => {}
+        // }
         match self.postprocess_recolor(&mut computed_images) {
             Ok(()) => {
                 println!("successfully applied recolor postprocessing");
