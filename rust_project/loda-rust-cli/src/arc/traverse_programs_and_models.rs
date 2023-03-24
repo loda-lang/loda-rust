@@ -503,6 +503,7 @@ impl TraverseProgramsAndModels {
                 program_type,
                 parsed_program,
                 program_runner,
+                ignore_due_to_slowness: false,
             };
             let item = Rc::new(RefCell::new(instance));
             program_item_vec.push(item);
@@ -646,6 +647,7 @@ impl TraverseProgramsAndModels {
                 program_type: ProgramType::Advance,
                 parsed_program,
                 program_runner,
+                ignore_due_to_slowness: false,
             };
             result_program_item_vec.push(Rc::new(RefCell::new(mutated_program_item)));
             if result_program_item_vec.len() >= number_of_programs_to_generate {
@@ -1869,6 +1871,7 @@ struct ProgramItem {
     program_type: ProgramType,
     parsed_program: ParsedProgram,
     program_runner: ProgramRunner,
+    ignore_due_to_slowness: bool,
 }
 
 impl ProgramItem {
