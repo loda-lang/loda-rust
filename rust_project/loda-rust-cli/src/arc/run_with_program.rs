@@ -464,6 +464,12 @@ impl RunWithProgram {
         Err(anyhow::anyhow!("did not find a flip recolor combination that works"))
     }
 
+    /// Solutions that are very close to the expected output.
+    /// 
+    /// Can such a program be tweaked in minor ways so that it gets even closer to the expected output.
+    /// - Is it a rotate that is missing?
+    /// - Is it a recoloring that is missing?
+    /// - Is it a flip that is missing?
     fn postprocess(&self, computed_images: &mut Vec<Image>) -> anyhow::Result<()> {
         let mut one_or_more_postprocessing_applied = false;
         match self.postprocess_fix_orientation(computed_images) {
@@ -483,6 +489,8 @@ impl RunWithProgram {
         if !one_or_more_postprocessing_applied {
             return Err(anyhow::anyhow!("Didn't apply any postprocessing"));
         }
+        
+        // Did apply one or more postprocessing steps.
         Ok(())
     }
 
