@@ -1,6 +1,6 @@
 use super::arc_json_model;
 use super::arc_work_model;
-use super::{Image, ImageToNumber, NumberToImage, register_arc_functions, Prediction, HtmlLog, ImageToHTML};
+use super::{Image, ImageSize, ImageToNumber, NumberToImage, register_arc_functions, Prediction, HtmlLog, ImageToHTML};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -312,6 +312,7 @@ impl RunWithProgram {
         let mut count_train_correct: usize = 0;
         let mut count_train_incorrect: usize = 0;
         let mut count_train: usize = 0;
+        let mut recolor_may_be_possible = true;
         for pair in &self.task.pairs {
             if pair.pair_type != arc_work_model::PairType::Train {
                 continue;
@@ -323,19 +324,85 @@ impl RunWithProgram {
             let computed_image: &Image = &computed_images[index];
             
             let expected_image: Image = pair.output.image.clone();
-            if *computed_image == expected_image {
-                count_train_correct += 1;
+            if computed_image.size() != expected_image.size() {
+                count_train_incorrect += 1;
+                let s = format!("train. Size of the computed output, doesn't match train[{}].output.size.\nExpected {:?}\nActual {:?}", index, expected_image.size(), computed_image.size());
+                message_items.push(s);
                 if pretty_print {
-                    status_texts.push("OK");
+                    status_texts.push("Incorrect size");
+                }
+                recolor_may_be_possible = false;
+                continue;
+            }
+
+            if *computed_image != expected_image {
+                count_train_incorrect += 1;
+                let s = format!("train. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", index, expected_image, computed_image);
+                message_items.push(s);
+                if pretty_print {
+                    status_texts.push("Incorrect");
                 }
                 continue;
             }
-            count_train_incorrect += 1;
-            let s = format!("train. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", index, expected_image, computed_image);
-            message_items.push(s);
+
+            count_train_correct += 1;
             if pretty_print {
-                status_texts.push("Incorrect");
+                status_texts.push("OK");
             }
+            recolor_may_be_possible = false;
+        }
+
+        if recolor_may_be_possible {
+            // println!("recolor may be possible");
+
+            let mut color_mapping: [i16; 256] = [-1; 256];
+
+            let mut is_possible = true;
+            let mut inner_count_train: usize = 0;
+            for pair in &self.task.pairs {
+                if pair.pair_type != arc_work_model::PairType::Train {
+                    continue;
+                }
+                let index: usize = inner_count_train;
+                inner_count_train += 1;
+
+                let computed_image: &Image = &computed_images[index];
+                let size: ImageSize = computed_image.size();
+            
+                let expected_image: Image = pair.output.image.clone();
+                if computed_image.size() != expected_image.size() {
+                    is_possible = false;
+                    break;
+                }
+
+                for y in 0..size.height as i32 {
+                    for x in 0..size.width as i32 {
+                        let computed_pixel: u8 = computed_image.get(x, y).unwrap_or(255);
+                        let expected_pixel: u8 = expected_image.get(x, y).unwrap_or(255);
+                        let current_color: i16 = color_mapping[computed_pixel as usize];
+                        if current_color == -1 {
+                            color_mapping[computed_pixel as usize] = expected_pixel as i16;
+                            continue;
+                        }
+                        if current_color == expected_pixel as i16 {
+                            // the color mapping already exist for this
+                            continue;
+                        } else {
+                            // there already exist another color mappings. 
+                            // It not possible to recolor.
+                            is_possible = false;
+                        }
+                    }
+                }
+
+            }
+            if is_possible {
+                println!("!!! recolor seems possible");
+            } else {
+                // println!("recolor is not possible");
+            }
+    
+
         }
 
         let mut predictions = Vec::<Prediction>::new();
