@@ -1522,21 +1522,44 @@ impl BatchPlan {
                 }
     
                 let program_item: &Rc<RefCell<ProgramItem>> = &self.scheduled_program_item_vec[program_index];
-                
-                let run_with_program_result: RunWithProgramResult;
+                // let program_item_rc: &Rc<RefCell<ProgramItem>> = &self.scheduled_program_item_vec[program_index];
+                // let mut program_item_mut: RefMut<ProgramItem> = program_item_rc.borrow_mut();
                 {
-                    let before_run_program = Instant::now();
-
+                    if program_item.borrow().ignore_due_to_slowness {
+                        let s = format!("ignoring slow program.");
+                        pb.println(s);
+                        continue;
+                    }
+                }
+                
+                let before_run_program = Instant::now();
+                let run_program_runner_result = {
                     let program_runner: &ProgramRunner = &program_item.borrow().program_runner;
-                    let result = instance.run_program_runner(program_runner);
-
+                    // let program_runner: &ProgramRunner = &program_item.borrow_mut().program_runner;
+                    // let program_runner: &ProgramRunner = &program_item_mut.program_runner;
+                    // let result = 
+                    instance.run_program_runner(program_runner)
+                };
+                
+                {
                     let program_run_elapsed: Duration = before_run_program.elapsed();
                     if program_run_elapsed > slowest_program_elapsed {
                         slowest_program_elapsed = program_run_elapsed;
                         slowest_program_name = program_item.borrow().id.file_name();
                     }
+
+                    if program_run_elapsed > Duration::from_millis(100) {
+                        let s = format!("detected slow program. ignoring");
+                        pb.println(s);
+                        // program_item_mut.ignore_due_to_slowness = true;
+                        program_item.borrow_mut().ignore_due_to_slowness = true;
+                        continue;
+                    }
+                }
     
-                    run_with_program_result = match result {
+                let run_with_program_result: RunWithProgramResult;
+                {
+                    run_with_program_result = match run_program_runner_result {
                         Ok(value) => value,
                         Err(error) => {
                             if verbose {
