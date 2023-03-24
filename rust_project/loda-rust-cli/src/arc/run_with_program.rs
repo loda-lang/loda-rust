@@ -300,7 +300,103 @@ impl RunWithProgram {
         Ok(())
     }
 
-    fn process_computed_images(&self, computed_images: Vec<Image>) -> anyhow::Result<RunWithProgramResult> {
+    fn postprocess_recolor(&self, computed_images: &mut Vec<Image>) -> anyhow::Result<()> {
+        // computed_images[0] = Image::empty();
+
+        let mut count_train: usize = 0;
+        for pair in &self.task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Train {
+                continue;
+            }
+
+            let index: usize = count_train;
+            count_train += 1;
+
+            let computed_image: &Image = &computed_images[index];
+            
+            let expected_image: Image = pair.output.image.clone();
+            if computed_image.size() != expected_image.size() {
+                return Err(anyhow::anyhow!("recoloring not possible. Can only recolor if all the computed images have the expected size, but one or more images has the wrong size"));
+            }
+            
+            if *computed_image == expected_image {
+                return Err(anyhow::anyhow!("recoloring not possible. Can only recolor if all the computed images have different colors than the expected image, but one or more images has the correct colors"));
+            }
+
+            // recoloring may be possible
+        }
+
+        // println!("recolor may be possible");
+
+        // obtain all the color mappings
+        let mut color_mapping: [i16; 256] = [-1; 256];
+        let mut inner_count_train: usize = 0;
+        for pair in &self.task.pairs {
+            if pair.pair_type != arc_work_model::PairType::Train {
+                continue;
+            }
+            let index: usize = inner_count_train;
+            inner_count_train += 1;
+
+            let computed_image: &Image = &computed_images[index];
+            let size: ImageSize = computed_image.size();
+        
+            let expected_image: Image = pair.output.image.clone();
+            if computed_image.size() != expected_image.size() {
+                return Err(anyhow::anyhow!("recoloring not possible. should not happen. the size should be the same"));
+            }
+
+            for y in 0..size.height as i32 {
+                for x in 0..size.width as i32 {
+                    let computed_pixel: u8 = computed_image.get(x, y).unwrap_or(255);
+                    let expected_pixel: u8 = expected_image.get(x, y).unwrap_or(255);
+                    let current_color: i16 = color_mapping[computed_pixel as usize];
+                    if current_color == -1 {
+                        color_mapping[computed_pixel as usize] = expected_pixel as i16;
+                        continue;
+                    }
+                    if current_color != expected_pixel as i16 {
+                        // there already exist another color mappings. 
+                        // It not possible to recolor.
+                        return Err(anyhow::anyhow!("recoloring not possible. there already exist another color mapping for this color"));
+                    }
+                    // the color mapping already exist for this
+                }
+            }
+
+        }
+
+        println!("!!! recolor seems possible");
+
+        for computed_image in computed_images.iter_mut() {
+            let size: ImageSize = computed_image.size();
+
+            for y in 0..size.height as i32 {
+                for x in 0..size.width as i32 {
+                    let computed_pixel: u8 = computed_image.get(x, y).unwrap_or(255);
+                    let target_color_i16: i16 = color_mapping[computed_pixel as usize];
+                    if target_color_i16 < 0 || target_color_i16 > (u8::MAX as i16) {
+                        // return Err(anyhow::anyhow!("recoloring not possible. encountered a color without target color"));
+                        continue;
+                    }
+                    let target_color: u8 = target_color_i16 as u8;
+
+                    let _ = computed_image.set(x, y, target_color);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn process_computed_images(&self, mut computed_images: Vec<Image>) -> anyhow::Result<RunWithProgramResult> {
+        match self.postprocess_recolor(&mut computed_images) {
+            Ok(()) => {
+                println!("successfully applied recolor postprocessing");
+            },
+            Err(_) => {}
+        }
+
         let pretty_print = false;
 
         let mut status_texts = Vec::<&str>::new();
