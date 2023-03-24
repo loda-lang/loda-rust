@@ -40,6 +40,8 @@ static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = ((23 * 60) + 30) * 60;
 
 static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 2;
 
+static ARC_COMPETITION_IGNORE_PROGRAMS_TAKING_LONGER_THAN_MILLIS: u64 = 200;
+
 pub struct TraverseProgramsAndModels {
     config: Config,
     arc_config: RunArcCompetitionConfig,
@@ -1231,6 +1233,7 @@ impl TraverseProgramsAndModels {
         Self::print_system_info();
 
         println!("initial random seed: {}", ARC_COMPETITION_INITIAL_RANDOM_SEED);
+        println!("ignore programs taking longer than millis: {}", ARC_COMPETITION_IGNORE_PROGRAMS_TAKING_LONGER_THAN_MILLIS);
 
         println!("initial number of solutions: {}", self.program_item_vec.len());
         println!("initial number of tasks: {}", self.model_item_vec.len());
@@ -1522,12 +1525,11 @@ impl BatchPlan {
                 }
     
                 let program_item: &Rc<RefCell<ProgramItem>> = &self.scheduled_program_item_vec[program_index];
-                // let program_item_rc: &Rc<RefCell<ProgramItem>> = &self.scheduled_program_item_vec[program_index];
-                // let mut program_item_mut: RefMut<ProgramItem> = program_item_rc.borrow_mut();
                 {
                     if program_item.borrow().ignore_due_to_slowness {
-                        let s = format!("ignoring slow program.");
-                        pb.println(s);
+                        if verbose {
+                            pb.println("skip slow program");
+                        }
                         continue;
                     }
                 }
@@ -1535,9 +1537,6 @@ impl BatchPlan {
                 let before_run_program = Instant::now();
                 let run_program_runner_result = {
                     let program_runner: &ProgramRunner = &program_item.borrow().program_runner;
-                    // let program_runner: &ProgramRunner = &program_item.borrow_mut().program_runner;
-                    // let program_runner: &ProgramRunner = &program_item_mut.program_runner;
-                    // let result = 
                     instance.run_program_runner(program_runner)
                 };
                 
@@ -1548,10 +1547,9 @@ impl BatchPlan {
                         slowest_program_name = program_item.borrow().id.file_name();
                     }
 
-                    if program_run_elapsed > Duration::from_millis(100) {
-                        let s = format!("detected slow program. ignoring");
+                    if program_run_elapsed > Duration::from_millis(ARC_COMPETITION_IGNORE_PROGRAMS_TAKING_LONGER_THAN_MILLIS) {
+                        let s = format!("Ignoring slow program. Elapsed: {}", HumanDuration(program_run_elapsed));
                         pb.println(s);
-                        // program_item_mut.ignore_due_to_slowness = true;
                         program_item.borrow_mut().ignore_due_to_slowness = true;
                         continue;
                     }
