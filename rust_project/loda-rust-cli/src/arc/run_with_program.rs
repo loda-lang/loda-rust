@@ -442,6 +442,10 @@ impl RunWithProgram {
             Err(_) => {}
         }
 
+        // Future experiment:
+        // Reject solution, if the Test pairs, has a computed_image.size() different than the predicted size.
+        // Reject solution, if the Test pairs, has a computed_image.histogram() different than the predicted palette.
+
         let pretty_print = false;
 
         let mut status_texts = Vec::<&str>::new();
