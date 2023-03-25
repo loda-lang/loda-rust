@@ -239,7 +239,7 @@ impl HtmlFromTask {
         );
 
         let table: String = format!(
-            "<table>{}{}{}</table>",
+            "<table class='arc_work_model_task'>{}{}{}</table>",
             self.row_colgroup,
             thead,
             tbody
