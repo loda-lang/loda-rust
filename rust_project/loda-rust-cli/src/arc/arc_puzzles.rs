@@ -2335,8 +2335,15 @@ mod tests {
         assert_eq!(result, "4 1");
     }
 
+    #[test]
+    fn test_560001_puzzle_54d9e175() {
+        let mut instance = solve_5c0a986e::MySolution::new();
+        let result: String = run_analyze_and_solve("54d9e175", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
     // #[test]
-    fn test_560001_puzzle_5c0a986e() {
+    fn test_560002_puzzle_5c0a986e() {
         let mut instance = solve_5c0a986e::MySolution::new();
         let result: String = run_analyze_and_solve("5c0a986e", &mut instance).expect("String");
         assert_eq!(result, "3 1");
