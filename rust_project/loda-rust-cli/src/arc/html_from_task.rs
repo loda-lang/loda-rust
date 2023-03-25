@@ -128,11 +128,15 @@ impl HtmlFromTask {
     }
 
     fn push_column_analysis(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
-        self.row_colgroup += "<col class='arc_column_analysis'>";
+        let classname: &str = "class='arc_column_analysis'";
+        let td_begin: String = format!("<td {}>", classname);
+        self.row_colgroup += &format!("<col {}>", classname);
 
-        self.row_title += "<td>Analysis</td>";
+        self.row_title += &td_begin;
+        self.row_title += "Analysis</td>";
 
-        self.row_input_image += "<td>Union<br>";
+        self.row_input_image += &td_begin;
+        self.row_input_image += "Union<br>";
         match task.input_histogram_union.color_image() {
             Ok(image) => {
                 self.row_input_image += &image.to_html();
@@ -152,15 +156,16 @@ impl HtmlFromTask {
         }
         self.row_input_image += "</td>";
 
-        self.row_input_properties += "<td>";
+        self.row_input_properties += &td_begin;
         self.row_input_properties += &Self::input_properties_to_html(&task.input_properties_intersection);
         self.row_input_properties += "</td>";
 
-        self.row_input_labels += "<td>";
+        self.row_input_labels += &td_begin;
         self.row_input_labels += &Self::input_label_set_to_html(&task.input_label_set_intersection);
         self.row_input_labels += "</td>";
 
-        self.row_output_image += "<td>Union<br>";
+        self.row_output_image += &td_begin;
+        self.row_output_image += "Union<br>";
         match task.output_histogram_union.color_image() {
             Ok(image) => {
                 self.row_output_image += &image.to_html();
@@ -180,7 +185,8 @@ impl HtmlFromTask {
         }
         self.row_output_image += "</td>";
 
-        self.row_action_colors += "<td>Removal<br>";
+        self.row_action_colors += &td_begin;
+        self.row_action_colors += "Removal<br>";
         match task.removal_histogram_intersection.color_image() {
             Ok(image) => {
                 self.row_action_colors += &image.to_html();
@@ -200,7 +206,7 @@ impl HtmlFromTask {
         }
         self.row_action_colors += "</td>";
 
-        self.row_action_labels += "<td>";
+        self.row_action_labels += &td_begin;
         self.row_action_labels += &Self::labelset_to_html(&task.action_label_set_intersection);
         self.row_action_labels += "</td>";
         Ok(())
