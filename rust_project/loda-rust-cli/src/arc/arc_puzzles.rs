@@ -2223,12 +2223,12 @@ mod tests {
 
     #[test]
     fn test_540000_puzzle_a699fb00() {
-        let mut instance = a699fb00::MySolution::new();
+        let mut instance = solve_a699fb00::MySolution::new();
         let result: String = run_analyze_and_solve("a699fb00", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 
-    mod a699fb00 {
+    mod solve_a699fb00 {
         use super::*;
 
         type Dict = HashMap<Image, Image>;
