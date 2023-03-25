@@ -8,7 +8,7 @@ mod tests {
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, convolution3x3_with_mask};
     use std::collections::HashMap;
 
     #[allow(unused_imports)]
@@ -2326,6 +2326,140 @@ mod tests {
         };
         let result: String = solution.run("94f9d214").expect("String");
         assert_eq!(result, "4 1");
+    }
+
+    #[test]
+    fn test_560000_puzzle_5c0a986e() {
+        let mut instance = solve_5c0a986e::MySolution::new();
+        let result: String = run_analyze_and_solve("5c0a986e", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_5c0a986e {
+        use anyhow::Context;
+
+        use super::*;
+
+        fn conv3x3_direction_of_same_pixel(bm: &Image) -> anyhow::Result<u8> {
+            let mut found: Option<u8> = None;
+            for y in 0..3u8 {
+                for x in 0..3u8 {
+                    if y == 1 && x == 1 {
+                        // skip the center pixel
+                        continue;
+                    }
+
+                    let current_pixel: u8 = bm.get(x as i32, y as i32).context("current pixel")?;
+                    if current_pixel == 0 {
+                        continue;
+                    }
+                    if found.is_some() {
+                        // There are two or more neighbour pixels with the same value as the center pixel
+                        return Ok(254);
+                    }
+                    found = Some(y * 3 + x);
+                }
+            }
+            match found {
+                Some(value) => Ok(value),
+                None => Ok(255)
+            }
+        }
+
+        type Dict = HashMap<Image, Image>;
+    
+        pub struct MySolution {
+            dict_outer: Dict,
+        }
+    
+        impl MySolution {
+            pub fn new() -> Self {
+                Self {
+                    dict_outer: Dict::new(),
+                }
+            }
+        }
+        
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
+                let mut dict_inner = Dict::new();
+                for pair in &task.pairs {
+                    if pair.pair_type != PairType::Train {
+                        continue;
+                    }
+                    let diff_mask: Image = pair.input.image.diff(&pair.output.image)?;
+                    HtmlLog::image(&diff_mask);
+
+                    // TODO: make a special conv3x3 that takes a mask. And only processes where the center mask pixel is 1.
+
+                    let image0: Image = pair.input.image.padding_with_color(1, 255)?;
+
+                    let image1: Image = convolution3x3_with_mask(&image0, &diff_mask, 254, conv3x3_direction_of_same_pixel)?;
+                    HtmlLog::image(&image1);
+
+                    HtmlLog::text("separator");
+
+                    // TODO: for each pixel in the diff_mask
+                    // TODO: Measure distance to nearest object of same color, 3x3 conv, 0=no direction, 1..9=direction
+                    // TODO: Pick the pixel that is closest to the nearest object, and make a substitution rule
+                    // TODO: Apply the subsitution rule.
+                    // TODO: Rerun the entire procedure until all pixels in the diff_mask have been processed.
+
+                    continue;
+                    let width: u8 = pair.input.image.width();
+                    let height: u8 = pair.input.image.height();
+                    for y in 0..height {
+                        for x in 0..width {
+                            let get_x: i32 = x as i32;
+                            let get_y: i32 = y as i32;
+                            let is_different0: u8 = diff_mask.get(get_x, get_y).unwrap_or(255);
+                            let is_different1: u8 = diff_mask.get(get_x+1, get_y).unwrap_or(255);
+                            let is_different2: u8 = diff_mask.get(get_x+2, get_y).unwrap_or(255);
+                            let should_replace_horizontal = is_different0 == 0 && is_different1 == 1 && is_different2 == 0;
+                            if !should_replace_horizontal {
+                                continue;
+                            }
+                            let replace_source: Image = pair.input.image.crop(x, y, 3, 1)?;
+                            let replace_target: Image = pair.output.image.crop(x, y, 3, 1)?;
+    
+                            if let Some(value) = dict_inner.get(&replace_source) {
+                                if *value != replace_target {
+                                    return Err(anyhow::anyhow!("No consensus on what replacements are to be done"));
+                                }
+                            }
+                            dict_inner.insert(replace_source, replace_target);
+    
+                            // let pixel_value0: u8 = pair.input.image.get(get_x, get_y).unwrap_or(255);
+                            // let pixel_value1: u8 = pair.output.image.get(get_x, get_y).unwrap_or(255);
+                            // println!("replace from {} to {}", pixel_value0, pixel_value1);
+                        }
+                    }
+                }
+                // println!("number of items in dict: {}", dict_inner.len());
+                self.dict_outer = dict_inner;
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+                let input: &Image = &data.image;
+                let mut result_image: Image = input.clone();
+                // Do substitutions from the dictionary
+                for _ in 0..100 {
+                    let mut stop = true;
+                    for (key, value) in &self.dict_outer {
+                        let position = result_image.find_exact(key)?;
+                        if let Some((x, y)) = position {
+                            result_image = result_image.overlay_with_position(value, x as i32, y as i32)?;
+                            stop = false;
+                        }
+                    }
+                    if stop {
+                        break;
+                    }
+                }
+                Ok(result_image)
+            }
+        }
     }
 
 }
