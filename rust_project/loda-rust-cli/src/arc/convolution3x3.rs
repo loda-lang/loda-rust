@@ -1,6 +1,5 @@
-use anyhow::Context;
-
 use super::Image;
+use anyhow::Context;
 
 pub fn convolution3x3<F>(image: &Image, callback: F) -> anyhow::Result<Image>
     where F: Fn(&Image) -> anyhow::Result<u8>
@@ -19,7 +18,7 @@ pub fn convolution3x3<F>(image: &Image, callback: F) -> anyhow::Result<Image>
                     let get_x: i32 = (self_x as i32) + (conv_x as i32);
                     let get_y: i32 = (self_y as i32) + (conv_y as i32);
                     let pixel_value: u8 = image.get(get_x, get_y)
-                        .ok_or_else(|| anyhow::anyhow!("self.get({},{}) returned None", get_x, get_y))?;
+                        .ok_or_else(|| anyhow::anyhow!("image.get({},{}) returned None", get_x, get_y))?;
                     conv_bitmap.set(conv_x as i32, conv_y as i32, pixel_value)
                         .ok_or_else(|| anyhow::anyhow!("conv_bitmap.set({},{}) returned None", conv_x, conv_y))?;
                 }
