@@ -2,15 +2,15 @@ use anyhow::Context;
 
 use super::Image;
 
-pub fn convolution3x3<F>(bitmap: &Image, callback: F) -> anyhow::Result<Image>
+pub fn convolution3x3<F>(image: &Image, callback: F) -> anyhow::Result<Image>
     where F: Fn(&Image) -> anyhow::Result<u8>
 {
-    let width: u8 = bitmap.width();
-    let height: u8 = bitmap.height();
+    let width: u8 = image.width();
+    let height: u8 = image.height();
     if width < 3 || height < 3 {
-        return Err(anyhow::anyhow!("too small bitmap, must be 3x3 or bigger"));
+        return Err(anyhow::anyhow!("too small image, must be 3x3 or bigger"));
     }
-    let mut computed_bitmap = Image::zero(width - 2, height - 2);
+    let mut result_image = Image::zero(width - 2, height - 2);
     let mut conv_bitmap = Image::zero(3, 3);
     for self_y in 0..height-2 {
         for self_x in 0..width-2 {
@@ -18,7 +18,7 @@ pub fn convolution3x3<F>(bitmap: &Image, callback: F) -> anyhow::Result<Image>
                 for conv_x in 0..3u8 {
                     let get_x: i32 = (self_x as i32) + (conv_x as i32);
                     let get_y: i32 = (self_y as i32) + (conv_y as i32);
-                    let pixel_value: u8 = bitmap.get(get_x, get_y)
+                    let pixel_value: u8 = image.get(get_x, get_y)
                         .ok_or_else(|| anyhow::anyhow!("self.get({},{}) returned None", get_x, get_y))?;
                     conv_bitmap.set(conv_x as i32, conv_y as i32, pixel_value)
                         .ok_or_else(|| anyhow::anyhow!("conv_bitmap.set({},{}) returned None", conv_x, conv_y))?;
@@ -26,11 +26,11 @@ pub fn convolution3x3<F>(bitmap: &Image, callback: F) -> anyhow::Result<Image>
             }
             let computed_value: u8 = callback(&conv_bitmap)
                 .with_context(|| format!("error in callback when computing ({},{})", self_x, self_y))?;
-            computed_bitmap.set(self_x as i32, self_y as i32, computed_value)
-                .ok_or_else(|| anyhow::anyhow!("computed_bitmap.set({},{}) returned None", self_x, self_y))?;
+            result_image.set(self_x as i32, self_y as i32, computed_value)
+                .ok_or_else(|| anyhow::anyhow!("result_image.set({},{}) returned None", self_x, self_y))?;
         }
     }
-    Ok(computed_bitmap)
+    Ok(result_image)
 }
 
 #[allow(dead_code)]
