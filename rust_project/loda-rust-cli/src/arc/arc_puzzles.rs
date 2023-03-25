@@ -2451,25 +2451,32 @@ mod tests {
                     if pair.pair_type != PairType::Train {
                         continue;
                     }
-                    let diff_mask: Image = pair.input.image.diff(&pair.output.image)?;
-                    HtmlLog::image(&diff_mask);
+                    let mut input_image: Image = pair.input.image.clone();
+                    for iteration in 0..4 {
+                        HtmlLog::text(format!("iteration: {}", iteration));
 
-                    // TODO: make a special conv3x3 that takes a mask. And only processes where the center mask pixel is 1.
+                        let diff_mask: Image = input_image.diff(&pair.output.image)?;
+                        HtmlLog::image(&diff_mask);
+    
+                        let image0: Image = input_image.padding_with_color(1, 255)?;
+    
+                        // Direction to nearest adjacent object
+                        let directions: Image = convolution3x3_with_mask(&image0, &diff_mask, 254, conv3x3_direction_of_same_pixel)?;
+                        HtmlLog::image(&directions);
+    
+                        let dict: Dict = Self::extract_substitutions(&input_image, &pair.output.image, &directions)?;
+    
+                        HtmlLog::text(format!("dict.len: {}", dict.len()));
+                        if dict.is_empty() {
+                            break;
+                        }
+    
+                        let mut image1: Image = input_image.clone();
+                        image1.replace_pattern(&dict, 1).expect("ok");
+                        HtmlLog::image(&image1);
 
-                    let image0: Image = pair.input.image.padding_with_color(1, 255)?;
-
-                    // Direction to nearest object
-                    let directions: Image = convolution3x3_with_mask(&image0, &diff_mask, 254, conv3x3_direction_of_same_pixel)?;
-                    HtmlLog::image(&directions);
-
-                    let dict: Dict = Self::extract_substitutions(&pair.input.image, &pair.output.image, &directions)?;
-
-                    HtmlLog::text(format!("dict.len: {}", dict.len()));
-
-                    let mut image1: Image = pair.input.image.clone();
-                    image1.replace_pattern(&dict, 5).expect("ok");
-                    HtmlLog::image(&image1);
-
+                        input_image = image1;
+                    }
                     HtmlLog::text("separator");
 
                     // TODO: for each pixel in the diff_mask
@@ -2477,39 +2484,8 @@ mod tests {
                     // TODO: Pick the pixel that is closest to the nearest object, and make a substitution rule
                     // TODO: Apply the subsitution rule.
                     // TODO: Rerun the entire procedure until all pixels in the diff_mask have been processed.
-
-                    continue;
-                    let width: u8 = pair.input.image.width();
-                    let height: u8 = pair.input.image.height();
-                    for y in 0..height {
-                        for x in 0..width {
-                            let get_x: i32 = x as i32;
-                            let get_y: i32 = y as i32;
-                            let is_different0: u8 = diff_mask.get(get_x, get_y).unwrap_or(255);
-                            let is_different1: u8 = diff_mask.get(get_x+1, get_y).unwrap_or(255);
-                            let is_different2: u8 = diff_mask.get(get_x+2, get_y).unwrap_or(255);
-                            let should_replace_horizontal = is_different0 == 0 && is_different1 == 1 && is_different2 == 0;
-                            if !should_replace_horizontal {
-                                continue;
-                            }
-                            let replace_source: Image = pair.input.image.crop(x, y, 3, 1)?;
-                            let replace_target: Image = pair.output.image.crop(x, y, 3, 1)?;
-    
-                            if let Some(value) = dict_inner.get(&replace_source) {
-                                if *value != replace_target {
-                                    return Err(anyhow::anyhow!("No consensus on what replacements are to be done"));
-                                }
-                            }
-                            dict_inner.insert(replace_source, replace_target);
-    
-                            // let pixel_value0: u8 = pair.input.image.get(get_x, get_y).unwrap_or(255);
-                            // let pixel_value1: u8 = pair.output.image.get(get_x, get_y).unwrap_or(255);
-                            // println!("replace from {} to {}", pixel_value0, pixel_value1);
-                        }
-                    }
                 }
-                // println!("number of items in dict: {}", dict_inner.len());
-                self.dict_outer = dict_inner;
+                // TODO: update self.dict_outer with the identified substitutions
                 Ok(())   
             }
     
