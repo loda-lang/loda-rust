@@ -33,3 +33,5 @@ impl ImageReplacePattern for Image {
         Ok(())
     }
 }
+
+// TODO: test replace_pattern
