@@ -263,11 +263,6 @@ impl HtmlFromTask {
     pub fn inspect(task: &arc_work_model::Task) -> anyhow::Result<()> {
         let mut instance = Self::new();
 
-        // The current ordering of columns is terrible. train pairs, test pairs, analysis.
-        // It's counter intuitive that the analysis comes last.
-        // The way the computation takes place is train pairs, analysis, test pairs.
-        // TODO: Reorder the columns like this: train pairs, analysis, test pairs.
-
         for pair in &task.pairs {
             if pair.pair_type != arc_work_model::PairType::Train {
                 continue;
