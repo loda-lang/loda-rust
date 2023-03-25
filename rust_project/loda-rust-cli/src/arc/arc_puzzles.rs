@@ -2381,12 +2381,12 @@ mod tests {
         }
 
         impl MySolution {
-            fn extract_substitutions(input: &Image, output: &Image, directions: &Image) -> anyhow::Result<Dict> {
+            fn extract_substitutions(input: &Image, output: &Image, directions: &Image, replacements: &mut Dict) -> anyhow::Result<usize> {
                 let size = input.size();
                 if size != output.size() || size != directions.size() {
                     return Err(anyhow::anyhow!("the images must have same size"));
                 }
-                let mut dict = Dict::new();
+                let mut number_of_replacements_found: usize = 0;
                 for y in 0..size.height {
                     for x in 0..size.width {
                         let direction: u8 = directions.get(x as i32, y as i32).unwrap_or(255);
@@ -2432,15 +2432,16 @@ mod tests {
 
                         let replace_source = cropped_input;
                         let replace_target = cropped_output;
-                        if let Some(value) = dict.get(&replace_source) {
+                        if let Some(value) = replacements.get(&replace_source) {
                             if *value != replace_target {
                                 return Err(anyhow::anyhow!("No consensus on what replacements are to be done"));
                             }
                         }
-                        dict.insert(replace_source, replace_target);
+                        replacements.insert(replace_source, replace_target);
+                        number_of_replacements_found += 1;
                     }
                 }
-                Ok(dict)
+                Ok(number_of_replacements_found)
             }
         }
         
@@ -2464,16 +2465,20 @@ mod tests {
                         let directions: Image = convolution3x3_with_mask(&image0, &diff_mask, 254, conv3x3_direction_of_same_pixel)?;
                         HtmlLog::image(&directions);
     
-                        let dict: Dict = Self::extract_substitutions(&input_image, &pair.output.image, &directions)?;
-    
-                        HtmlLog::text(format!("dict.len: {}", dict.len()));
-                        if dict.is_empty() {
+                        let count: usize = Self::extract_substitutions(&input_image, &pair.output.image, &directions, &mut dict_inner)?;
+                        if count == 0 {
+                            HtmlLog::text(format!("replacements added: none, stop iterating"));
                             break;
                         }
+                        HtmlLog::text(format!("replacements added: {}", count));
     
                         let mut image1: Image = input_image.clone();
-                        image1.replace_pattern(&dict, 1).expect("ok");
+                        image1.replace_pattern(&dict_inner, 1).expect("ok");
                         HtmlLog::image(&image1);
+
+                        if image1 == input_image {
+                            break;
+                        }
 
                         input_image = image1;
                     }
@@ -2486,6 +2491,7 @@ mod tests {
                     // TODO: Rerun the entire procedure until all pixels in the diff_mask have been processed.
                 }
                 // TODO: update self.dict_outer with the identified substitutions
+                self.dict_outer = dict_inner;
                 Ok(())   
             }
     
