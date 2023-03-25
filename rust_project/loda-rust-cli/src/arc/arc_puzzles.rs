@@ -4,7 +4,7 @@ mod tests {
     use crate::arc::arc_work_model::{self, PairType};
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
-    use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
+    use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize, ImageReplacePattern};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
@@ -2381,11 +2381,12 @@ mod tests {
         }
 
         impl MySolution {
-            fn extract(input: &Image, output: &Image, directions: &Image) -> anyhow::Result<()> {
+            fn extract_substitutions(input: &Image, output: &Image, directions: &Image) -> anyhow::Result<Dict> {
                 let size = input.size();
                 if size != output.size() || size != directions.size() {
                     return Err(anyhow::anyhow!("the images must have same size"));
                 }
+                let mut dict = Dict::new();
                 for y in 0..size.height {
                     for x in 0..size.width {
                         let direction: u8 = directions.get(x as i32, y as i32).unwrap_or(255);
@@ -2428,9 +2429,18 @@ mod tests {
                             }
                         };
                         HtmlLog::image(&cropped_output);
+
+                        let replace_source = cropped_input;
+                        let replace_target = cropped_output;
+                        if let Some(value) = dict.get(&replace_source) {
+                            if *value != replace_target {
+                                return Err(anyhow::anyhow!("No consensus on what replacements are to be done"));
+                            }
+                        }
+                        dict.insert(replace_source, replace_target);
                     }
                 }
-                Ok(())
+                Ok(dict)
             }
         }
         
@@ -2452,7 +2462,13 @@ mod tests {
                     let directions: Image = convolution3x3_with_mask(&image0, &diff_mask, 254, conv3x3_direction_of_same_pixel)?;
                     HtmlLog::image(&directions);
 
-                    Self::extract(&pair.input.image, &pair.output.image, &directions)?;
+                    let dict: Dict = Self::extract_substitutions(&pair.input.image, &pair.output.image, &directions)?;
+
+                    HtmlLog::text(format!("dict.len: {}", dict.len()));
+
+                    let mut image1: Image = pair.input.image.clone();
+                    image1.replace_pattern(&dict, 5).expect("ok");
+                    HtmlLog::image(&image1);
 
                     HtmlLog::text("separator");
 
