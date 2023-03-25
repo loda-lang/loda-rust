@@ -4,6 +4,7 @@ use super::{HtmlLog, ImageToHTML};
 use std::collections::HashMap;
 
 pub struct HtmlFromTask {
+    row_colgroup: String,
     row_title: String,
     row_input_image: String,
     row_input_properties: String,
@@ -16,6 +17,7 @@ pub struct HtmlFromTask {
 impl HtmlFromTask {
     fn new() -> Self {
         Self {
+            row_colgroup: "<colgroup><col>".to_string(),
             row_title: "<tr><td></td>".to_string(),
             row_input_image: "<tr><td>Input image</td>".to_string(),
             row_input_properties: "<tr><td>Input properties</td>".to_string(),
@@ -57,6 +59,16 @@ impl HtmlFromTask {
     }
 
     fn push_pair(&mut self, pair: &arc_work_model::Pair) -> anyhow::Result<()> {
+        {
+            match pair.pair_type {
+                arc_work_model::PairType::Train => {
+                    self.row_colgroup += "<col class='arc_column_pair_train'>";
+                },
+                arc_work_model::PairType::Test => {
+                    self.row_colgroup += "<col class='arc_column_pair_test'>";
+                },
+            };
+        }
         {
             self.row_title += "<td>";
             let title: &str = match pair.pair_type {
@@ -116,6 +128,8 @@ impl HtmlFromTask {
     }
 
     fn push_column_analysis(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
+        self.row_colgroup += "<col class='arc_column_analysis'>";
+
         self.row_title += "<td>Analysis</td>";
 
         self.row_input_image += "<td>Union<br>";
@@ -193,6 +207,7 @@ impl HtmlFromTask {
     }
 
     fn end_of_row(&mut self) {
+        self.row_colgroup += "</colgroup>";
         self.row_title += "</tr>";
         self.row_input_image += "</tr>";
         self.row_input_properties += "</tr>";
@@ -212,17 +227,29 @@ impl HtmlFromTask {
 
         let title: String = format!("{} - {}", task.id, solution_status);
 
-        let html = format!(
-            "<h2>{}</h2><p>Output size: {}</p><table>{}{}{}{}{}{}{}</table>",
-            title, 
-            task.estimated_output_size(),
-            self.row_title,
+        let thead: String = format!("<thead>{}</thead>", self.row_title);
+        let tbody: String = format!(
+            "<tbody>{}{}{}{}{}{}</tbody>",
             self.row_input_image, 
             self.row_input_properties, 
             self.row_input_labels, 
             self.row_output_image, 
             self.row_action_colors,
             self.row_action_labels
+        );
+
+        let table: String = format!(
+            "<table>{}{}{}</table>",
+            self.row_colgroup,
+            thead,
+            tbody
+        );
+
+        let html = format!(
+            "<h2>{}</h2><p>Output size: {}</p>{}",
+            title, 
+            task.estimated_output_size(),
+            table,
         );
         html
     }
