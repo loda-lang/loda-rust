@@ -2458,7 +2458,7 @@ mod tests {
                         let diff_mask: Image = input_image.diff(&pair.output.image)?;
                         HtmlLog::image(&diff_mask);
     
-                        let image0: Image = input_image.padding_with_color(1, 255)?;
+                        let image0: Image = input_image.padding_with_color(1, 0)?;
     
                         // Direction to nearest adjacent object
                         let directions: Image = convolution3x3_with_mask(&image0, &diff_mask, 254, conv3x3_direction_of_same_pixel)?;
