@@ -2379,6 +2379,60 @@ mod tests {
                 }
             }
         }
+
+        impl MySolution {
+            fn extract(input: &Image, output: &Image, directions: &Image) -> anyhow::Result<()> {
+                let size = input.size();
+                if size != output.size() || size != directions.size() {
+                    return Err(anyhow::anyhow!("the images must have same size"));
+                }
+                for y in 0..size.height {
+                    for x in 0..size.width {
+                        let direction: u8 = directions.get(x as i32, y as i32).unwrap_or(255);
+                        if direction > 8 {
+                            continue;
+                        }
+
+                        let dx: i32 = (direction % 3) as i32 - 1;
+                        let dy: i32 = (direction / 3) as i32 - 1;
+                        let message0 = format!("position {},{} direction: {},{}", x, y, dx, dy);
+                        HtmlLog::text(message0);
+
+                        let crop_x_i32: i32 = (x as i32) + dx - 1;
+                        let crop_y_i32: i32 = (y as i32) + dy - 1;
+                        let message1 = format!("crop position: {},{}", crop_x_i32, crop_y_i32);
+                        HtmlLog::text(message1);
+
+                        if crop_x_i32 < 0 || crop_y_i32 < 0 {
+                            continue;                            
+                        }
+                        let crop_x: u8 = crop_x_i32 as u8;
+                        let crop_y: u8 = crop_y_i32 as u8;
+
+                        let cropped_input: Image = match input.crop(crop_x, crop_y, 3, 3) {
+                            Ok(image) => image,
+                            Err(error) => {
+                                let message = format!("Unable to crop input at {},{} error: {:?}", crop_x, crop_y, error);
+                                HtmlLog::text(message);
+                                continue;
+                            }
+                        };
+                        HtmlLog::image(&cropped_input);
+
+                        let cropped_output: Image = match output.crop(crop_x, crop_y, 3, 3) {
+                            Ok(image) => image,
+                            Err(error) => {
+                                let message = format!("Unable to crop output at {},{} error: {:?}", crop_x, crop_y, error);
+                                HtmlLog::text(message);
+                                continue;
+                            }
+                        };
+                        HtmlLog::image(&cropped_output);
+                    }
+                }
+                Ok(())
+            }
+        }
         
         impl AnalyzeAndSolve for MySolution {
             fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
@@ -2394,8 +2448,11 @@ mod tests {
 
                     let image0: Image = pair.input.image.padding_with_color(1, 255)?;
 
-                    let image1: Image = convolution3x3_with_mask(&image0, &diff_mask, 254, conv3x3_direction_of_same_pixel)?;
-                    HtmlLog::image(&image1);
+                    // Direction to nearest object
+                    let directions: Image = convolution3x3_with_mask(&image0, &diff_mask, 254, conv3x3_direction_of_same_pixel)?;
+                    HtmlLog::image(&directions);
+
+                    Self::extract(&pair.input.image, &pair.output.image, &directions)?;
 
                     HtmlLog::text("separator");
 
