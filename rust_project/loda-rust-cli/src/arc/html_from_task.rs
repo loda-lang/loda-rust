@@ -35,7 +35,7 @@ impl HtmlFromTask {
         }
         label_vec.sort();
         label_vec = label_vec.iter().map(|label| format!("<li>{}</li>", label)).collect();
-        format!("<ul>{}</ul>", label_vec.join(""))
+        format!("<ul class='without_bullets'>{}</ul>", label_vec.join(""))
     }
 
     fn input_label_set_to_html(input_label_set: &InputLabelSet) -> String {
@@ -45,7 +45,7 @@ impl HtmlFromTask {
         }
         label_vec.sort();
         label_vec = label_vec.iter().map(|label| format!("<li>{}</li>", label)).collect();
-        format!("<ul>{}</ul>", label_vec.join(""))
+        format!("<ul class='without_bullets'>{}</ul>", label_vec.join(""))
     }
 
     fn input_properties_to_html(input_properties: &HashMap<PropertyInput, u8>) -> String {
@@ -55,7 +55,7 @@ impl HtmlFromTask {
         }
         items.sort();
         let list_vec: Vec<String> = items.iter().map(|label| format!("<li>{}</li>", label)).collect();
-        format!("<ul>{}</ul>", list_vec.join(""))
+        format!("<ul class='without_bullets'>{}</ul>", list_vec.join(""))
     }
 
     fn push_pair(&mut self, pair: &arc_work_model::Pair) -> anyhow::Result<()> {
