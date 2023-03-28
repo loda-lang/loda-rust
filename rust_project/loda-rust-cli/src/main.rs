@@ -273,12 +273,18 @@ async fn main() -> anyhow::Result<()> {
         let capture0: &str = captures.get(0).map_or("", |m| m.as_str());
         let pattern_string: String = capture0.to_string();
         let mode = SubcommandARCMode::EvalSinglePuzzle { pattern: pattern_string };
-        SubcommandARC::run(mode)?;
+        let blocking_task = tokio::task::spawn_blocking(|| {
+            SubcommandARC::run(mode).expect("ok");
+        });
+        blocking_task.await?;
         return Ok(());
     }
 
     if let Some(_sub_m) = matches.subcommand_matches("arc-check") {
-        SubcommandARC::run(SubcommandARCMode::CheckAllExistingSolutions)?;
+        let blocking_task = tokio::task::spawn_blocking(|| {
+            SubcommandARC::run(SubcommandARCMode::CheckAllExistingSolutions).expect("ok");
+        });
+        blocking_task.await?;
         return Ok(());
     }
 

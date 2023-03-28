@@ -1,7 +1,7 @@
 use super::{Image, ImageExtractRowColumn};
 
 /// Histogram with 256 counters
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Histogram {
     counters: [u32; 256],
 }
@@ -233,6 +233,7 @@ impl Histogram {
 mod tests {
     use super::*;
     use crate::arc::ImageTryCreate;
+    use std::collections::HashSet;
 
     #[test]
     fn test_10000_increment() {
@@ -682,5 +683,81 @@ mod tests {
         let pairs: Vec<(u32, u8)> = h.pairs_descending();
         let expected: Vec<(u32, u8)> = vec![(1, 13), (1, 9)];
         assert_eq!(pairs, expected);
+    }
+
+    #[test]
+    fn test_130000_is_equal_yes() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment(42);
+        h0.increment(42);
+        h0.increment(3);
+
+        let mut h1 = Histogram::new();
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(3);
+
+        // Act Assert
+        assert_eq!(h0, h1);
+    }
+
+    #[test]
+    fn test_130001_is_equal_yes() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment(42);
+        h0.increment(42);
+        h0.increment(3);
+        h0.increment(3);
+
+        let mut h1 = Histogram::new();
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(3);
+
+        // Act Assert
+        assert_ne!(h0, h1);
+    }
+
+    #[test]
+    fn test_140000_hash() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment(42);
+        h0.increment(42);
+        h0.increment(3);
+        h0.increment(3);
+
+        let mut h1 = Histogram::new();
+        h1.increment(42);
+        h1.increment(42);
+        h1.increment(3);
+
+        // Act
+        let mut set = HashSet::<Histogram>::new();
+        set.insert(h0);
+        set.insert(h1);
+
+        // Assert
+        assert_eq!(set.len(), 2);
+    }
+
+    #[test]
+    fn test_140001_hash() {
+        // Arrange
+        let mut h0 = Histogram::new();
+        h0.increment(42);
+
+        let mut h1 = Histogram::new();
+        h1.increment(42);
+
+        // Act
+        let mut set = HashSet::<Histogram>::new();
+        set.insert(h0);
+        set.insert(h1);
+
+        // Assert
+        assert_eq!(set.len(), 1);
     }
 }

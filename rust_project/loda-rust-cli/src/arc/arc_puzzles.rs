@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
-    use crate::arc::arc_work_model;
-    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, ImageResize};
-    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageRemoveGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
-    use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder};
+    use crate::arc::arc_work_model::{self, PairType};
+    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve};
+    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
+    use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
@@ -31,6 +31,23 @@ mod tests {
             }
             Ok(string)
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn run_analyze_and_solve(
+        task_name: &str,
+        analyze_and_solve: &mut dyn AnalyzeAndSolve,
+    ) -> anyhow::Result<String> {
+        let json_task: Task = Task::load_testdata(task_name)?;
+        let task = arc_work_model::Task::try_from(&json_task)?;
+        let instance: RunWithProgram = RunWithProgram::new(task, true);
+        let result: RunWithProgramResult = instance.run_analyze_and_solve(analyze_and_solve)?;
+        let mut string: String = format!("{} {}", result.count_train_correct(), result.count_test_correct());
+        let messages: String = result.messages();
+        if !messages.is_empty() {
+            string = format!("{} - {}", string, messages);
+        }
+        Ok(string)
     }
 
     fn run_simple(task_name: &str, program: &str) -> anyhow::Result<String> {
@@ -87,8 +104,8 @@ mod tests {
         mov $40,$2 ; get the outline color
 
         ; next iteration
-        add $81,10 ; jump to address of next training input image
-        add $82,10 ; jump to address of next training output image
+        add $81,100 ; jump to address of next training input image
+        add $82,100 ; jump to address of next training output image
     lpe
     
     ; process "train"+"test" vectors
@@ -108,8 +125,8 @@ mod tests {
         mov $$82,$0 ; save vector[x].computed_output image
 
         ; next iteration
-        add $81,10 ; jump to address of next input image
-        add $82,10 ; jump to address of next computed_output image
+        add $81,100 ; jump to address of next input image
+        add $82,100 ; jump to address of next computed_output image
     lpe
     "#;
 
@@ -562,8 +579,8 @@ mod tests {
         f21 $40,101030 ; hstack of the palette images
 
         ; next iteration
-        add $81,10 ; jump to address of next training input image
-        add $82,10 ; jump to address of next training output image
+        add $81,100 ; jump to address of next training input image
+        add $82,100 ; jump to address of next training output image
     lpe
     
     ; process "train"+"test" vectors
@@ -585,8 +602,8 @@ mod tests {
         mov $$82,$0 ; save vector[x].computed_output image
 
         ; next iteration
-        add $81,10 ; jump to address of next input image
-        add $82,10 ; jump to address of next computed_output image
+        add $81,100 ; jump to address of next input image
+        add $82,100 ; jump to address of next computed_output image
     lpe
     "#;
 
@@ -1096,7 +1113,7 @@ mod tests {
             let (mask_image, _pixel_count) = object_count_vec.first().expect("first object");
     
             // Extract pixels from input image, just for the object
-            let image: Image = mask_image.select_from_image(&input, background_color).expect("image");
+            let image: Image = mask_image.select_from_color_and_image(background_color, &input).expect("image");
     
             let result_image = image.trim().expect("image");
             Ok(result_image)
@@ -1234,7 +1251,7 @@ mod tests {
             // Traverse the interior objects. Replace color for the interior object.
             let mut result_image: Image = input.clone();
             for mask_image in &object_mask_vec {
-                let mask_image_border_overlap: Image = border_mask_image.select_from_image(mask_image, 0).expect("image");
+                let mask_image_border_overlap: Image = border_mask_image.select_from_color_and_image(0, mask_image).expect("image");
                 let border_histogram: Histogram = input.histogram_with_mask(&mask_image_border_overlap).expect("histogram");
                 if let Some(border_color) = border_histogram.most_popular_color() {
                     if border_color == background_color {
@@ -1264,7 +1281,7 @@ mod tests {
     
                 // Replace color only for the interior objects
                 let mask_inverted: Image = mask_image.invert_mask();
-                result_image = mask_inverted.select_from_image(&result_image, replacement_color).expect("image");
+                result_image = mask_inverted.select_from_color_and_image(replacement_color, &result_image).expect("image");
             }
             Ok(result_image)
         };
@@ -1691,11 +1708,11 @@ mod tests {
             };
 
             // Extract the biggest object
-            let biggest_image_full: Image = biggest_object.select_from_image(&input, background_color).expect("image");
+            let biggest_image_full: Image = biggest_object.select_from_color_and_image(background_color, &input).expect("image");
             let biggest_image: Image = biggest_image_full.trim().expect("image");
 
             // Extract the smallest object
-            let smallest_image_full: Image = smallest_object.select_from_image(&input, background_color).expect("image");
+            let smallest_image_full: Image = smallest_object.select_from_color_and_image(background_color, &input).expect("image");
             let smallest_image: Image = smallest_image_full.trim().expect("image");
 
             let width: u8 = biggest_image.width();
@@ -2009,8 +2026,7 @@ mod tests {
             let mut asymmetric_objects: Vec<Image> = vec!();
             for object in &objects {
                 let trimmed: Image = object.trim_color(background_color)?;
-                let mirror: Image = trimmed.flip_x()?;
-                if !trimmed.eq(&mirror) {
+                if !trimmed.is_symmetric_x()? {
                     asymmetric_objects.push(object.clone());
                 }
             }
@@ -2018,7 +2034,7 @@ mod tests {
             let mut output: Image = Image::empty();
             for object in &asymmetric_objects {
                 // Obtain original colors from the input image
-                let extracted_object: Image = object.select_from_image(&input, background_color)?;
+                let extracted_object: Image = object.select_from_color_and_image(background_color, &input)?;
 
                 // Trim borders
                 let image: Image = extracted_object.trim_color(background_color)?;
@@ -2043,8 +2059,7 @@ mod tests {
             let mut symmetric_objects: Vec<Image> = vec!();
             for object in &objects {
                 let trimmed: Image = object.trim_color(background_color)?;
-                let mirror: Image = trimmed.flip_x()?;
-                if trimmed.eq(&mirror) {
+                if trimmed.is_symmetric_x()? {
                     symmetric_objects.push(object.clone());
                 }
             }
@@ -2052,7 +2067,7 @@ mod tests {
             let mut output: Image = Image::empty();
             for object in &symmetric_objects {
                 // Obtain original colors from the input image
-                let extracted_object: Image = object.select_from_image(&input, background_color)?;
+                let extracted_object: Image = object.select_from_color_and_image(background_color, &input)?;
 
                 // Trim borders
                 let image: Image = extracted_object.trim_color(background_color)?;
@@ -2163,6 +2178,154 @@ mod tests {
         };
         let result: String = solution.run("ea959feb").expect("String");
         assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_520000_puzzle_49d1d64f() {
+        let solution: SolutionSimple = |data| {
+            data.image.border_grow(1, 0)
+        };
+        let result: String = solution.run("49d1d64f").expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_49D1D64F: &'static str = "
+    mov $1,1
+    mov $2,0
+    f31 $0,102160 ; Expand by repeating the outer-most pixel border
+    ";
+
+    #[test]
+    fn test_520001_puzzle_49d1d64f_loda() {
+        let result: String = run_simple("49d1d64f", PROGRAM_49D1D64F).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_530000_puzzle_780d0b14() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let mask: Image = input.mask_for_gridcells(Some(0))?;
+            let objects: Vec<Image> = mask.find_objects(ImageSegmentAlgorithm::Neighbors)?;
+            let mut result_image = Image::zero(input.width(), input.height());
+            for object in &objects {
+                let histogram: Histogram = input.histogram_with_mask(object)?;
+                let color: u8 = histogram.most_popular_color().expect("color");
+                result_image = object.select_from_image_and_color(&result_image, color)?;
+            }
+            result_image = result_image.remove_grid()?;
+            result_image = result_image.remove_duplicates()?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("780d0b14").expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_540000_puzzle_a699fb00() {
+        let mut instance = a699fb00::MySolution::new();
+        let result: String = run_analyze_and_solve("a699fb00", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod a699fb00 {
+        use super::*;
+
+        type Dict = HashMap<Image, Image>;
+    
+        pub struct MySolution {
+            dict_outer: Dict,
+        }
+    
+        impl MySolution {
+            pub fn new() -> Self {
+                Self {
+                    dict_outer: Dict::new(),
+                }
+            }
+        }
+        
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
+                let mut dict_inner = Dict::new();
+                for pair in &task.pairs {
+                    if pair.pair_type != PairType::Train {
+                        continue;
+                    }
+                    let diff_mask: Image = pair.input.image.diff(&pair.output.image)?;
+                    let width: u8 = pair.input.image.width();
+                    let height: u8 = pair.input.image.height();
+                    for y in 0..height {
+                        for x in 0..width {
+                            let get_x: i32 = x as i32;
+                            let get_y: i32 = y as i32;
+                            let is_different0: u8 = diff_mask.get(get_x, get_y).unwrap_or(255);
+                            let is_different1: u8 = diff_mask.get(get_x+1, get_y).unwrap_or(255);
+                            let is_different2: u8 = diff_mask.get(get_x+2, get_y).unwrap_or(255);
+                            let should_replace_horizontal = is_different0 == 0 && is_different1 == 1 && is_different2 == 0;
+                            if !should_replace_horizontal {
+                                continue;
+                            }
+                            let replace_source: Image = pair.input.image.crop(x, y, 3, 1)?;
+                            let replace_target: Image = pair.output.image.crop(x, y, 3, 1)?;
+    
+                            if let Some(value) = dict_inner.get(&replace_source) {
+                                if *value != replace_target {
+                                    return Err(anyhow::anyhow!("No consensus on what replacements are to be done"));
+                                }
+                            }
+                            dict_inner.insert(replace_source, replace_target);
+    
+                            // let pixel_value0: u8 = pair.input.image.get(get_x, get_y).unwrap_or(255);
+                            // let pixel_value1: u8 = pair.output.image.get(get_x, get_y).unwrap_or(255);
+                            // println!("replace from {} to {}", pixel_value0, pixel_value1);
+                        }
+                    }
+                }
+                // println!("number of items in dict: {}", dict_inner.len());
+                self.dict_outer = dict_inner;
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+                let input: &Image = &data.image;
+                let mut result_image: Image = input.clone();
+                // Do substitutions from the dictionary
+                for _ in 0..100 {
+                    let mut stop = true;
+                    for (key, value) in &self.dict_outer {
+                        let position = result_image.find_exact(key)?;
+                        if let Some((x, y)) = position {
+                            result_image = result_image.overlay_with_position(value, x as i32, y as i32)?;
+                            stop = false;
+                        }
+                    }
+                    if stop {
+                        break;
+                    }
+                }
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_550000_puzzle_94f9d214() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let height: u8 = input.height() / 2;
+            let input_top: Image = input.top_rows(height)?;
+            let input_bottom: Image = input.bottom_rows(height)?;
+            let mask_top: Image = input_top.to_mask_where_color_is_different(0);
+            let mask_bottom: Image = input_bottom.to_mask_where_color_is_different(0);
+            let mut result_image: Image = mask_top.clone();
+            result_image = result_image.overlay_with_mask_color(&mask_bottom, 0)?;
+            result_image = result_image.replace_color(0, 2)?;
+            result_image = result_image.replace_color(1, 0)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("94f9d214").expect("String");
+        assert_eq!(result, "4 1");
     }
 
 }

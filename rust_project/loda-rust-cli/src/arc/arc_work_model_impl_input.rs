@@ -1,6 +1,9 @@
 use super::arc_work_model;
-use super::{PropertyInput};
-use std::collections::HashMap;
+use super::arc_work_model::Object;
+use super::{PropertyInput, InputLabel};
+use super::{Image, ImageSymmetry};
+use super::{ImageSegment, ImageSegmentAlgorithm, ImageMask, ImageCrop};
+use std::collections::{HashMap, HashSet};
 
 impl arc_work_model::Input {
     pub fn update_input_properties(&mut self) {
@@ -142,5 +145,55 @@ impl arc_work_model::Input {
             dict.insert(PropertyInput::InputNumberOfPixelsWith2ndMostPopularColor, value);
         }
         dict
+    }
+
+    pub fn update_input_label_set(&mut self) {
+        let width: u8 = self.image.width();
+        let height: u8 = self.image.height();
+
+        if width >= 2 || height >= 2 {
+            if let Ok(is_symmetric) = self.image.is_symmetric_x() {
+                if is_symmetric {
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricX);
+                }
+            }
+        }
+
+        if width >= 2 || height >= 2 {
+            if let Ok(is_symmetric) = self.image.is_symmetric_y() {
+                if is_symmetric {
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricY);
+                }
+            }
+        }
+    }
+
+    pub fn find_objects_using_histogram_most_popular_color(&self) -> anyhow::Result<Vec<Object>> {
+        let background_color: u8 = match self.histogram.most_popular_color() {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("unclear what the background color is"));
+            }
+        };
+        let background_ignore_mask: Image = self.image.to_mask_where_color_is(background_color);
+        
+        let object_mask_vec: Vec<Image> = self.image.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, background_ignore_mask)?;
+        let mut object_vec: Vec<Object> = vec!();
+        for (index, object_mask) in object_mask_vec.iter().enumerate() {
+            let (x, y, width, height) = match object_mask.bounding_box() {
+                Some(value) => value,
+                None => continue
+            };
+            let cropped_object_image: Image = self.image.crop(x, y, width, height)?;
+
+            let object = Object {
+                index: index,
+                cropped_object_image: cropped_object_image.clone(),
+                object_label_set: HashSet::new(),
+            };
+            object_vec.push(object);
+        }
+
+        Ok(object_vec)
     }
 }

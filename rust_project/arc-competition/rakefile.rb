@@ -47,7 +47,7 @@ task "save-tar" do
     image = DOCKER_IMAGE
     timestamp = Time.now.utc.iso8601
     filename = "docker_lodarust_arc_#{timestamp}.tar" 
-    system("docker pull #{image}")
+    system("docker pull --platform linux/amd64 #{image}")
     system("docker save #{image} > '#{filename}'")
 end
 

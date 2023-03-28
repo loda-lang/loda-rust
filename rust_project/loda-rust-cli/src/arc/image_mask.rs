@@ -13,8 +13,11 @@ pub trait ImageMask {
     /// Inverts a mask image by converting 0 to 1 and converting [1..255] to 0.
     fn invert_mask(&self) -> Image;
 
-    /// Pick pixels from one image. When the mask is 0 then pick the `default_color`. When the mask is [1..255] then pick from the image.
-    fn select_from_image(&self, image: &Image, default_color: u8) -> anyhow::Result<Image>;
+    /// Pick pixels. When the mask is 0 then pick the `color`. When the mask is [1..255] then pick from the image.
+    fn select_from_color_and_image(&self, color: u8, image: &Image) -> anyhow::Result<Image>;
+    
+    /// Pick pixels. When the mask is 0 then pick from the image. When the mask is [1..255] then pick the `color`.
+    fn select_from_image_and_color(&self, image: &Image, color: u8) -> anyhow::Result<Image>;
     
     /// Pick pixels from two images. When the mask is 0 then pick `image_a`. When the mask is [1..255] then pick from `image_b`.
     fn select_from_images(&self, image_a: &Image, image_b: &Image) -> anyhow::Result<Image>;
@@ -104,27 +107,54 @@ impl ImageMask for Image {
         return image;
     }
 
-    fn select_from_image(&self, image: &Image, default_color: u8) -> anyhow::Result<Image> {
-        if self.width() != image.width() || self.height() != image.height() {
-            return Err(anyhow::anyhow!("Both images must have same size. mask: {}x{} image: {}x{}", self.width(), self.height(), image.width(), image.height()));
+    fn select_from_color_and_image(&self, color: u8, image: &Image) -> anyhow::Result<Image> {
+        let self_width: u8 = self.width();
+        let self_height: u8 = self.height();
+        if self_width != image.width() || self_height != image.height() {
+            return Err(anyhow::anyhow!("Both images must have same size. mask: {}x{} image: {}x{}", self_width, self_height, image.width(), image.height()));
         }
         if self.is_empty() {
             return Ok(Image::empty());
         }
-        let mut result_image = Image::zero(self.width(), self.height());
-        for y in 0..(self.height() as i32) {
-            for x in 0..(self.width() as i32) {
+        let mut result_image = Image::zero(self_width, self_height);
+        for y in 0..(self_height as i32) {
+            for x in 0..(self_width as i32) {
                 let mask_value: u8 = self.get(x, y).unwrap_or(255);
-                let color: u8;
+                let set_color: u8;
                 if mask_value > 0 {
-                    color = image.get(x, y).unwrap_or(255)
+                    set_color = image.get(x, y).unwrap_or(255)
                 } else {
-                    color = default_color;
+                    set_color = color;
                 }
-                let _ = result_image.set(x, y, color);
+                let _ = result_image.set(x, y, set_color);
             }
         }
-        return Ok(result_image);
+        Ok(result_image)
+    }
+
+    fn select_from_image_and_color(&self, image: &Image, color: u8) -> anyhow::Result<Image> {
+        let self_width: u8 = self.width();
+        let self_height: u8 = self.height();
+        if self_width != image.width() || self_height != image.height() {
+            return Err(anyhow::anyhow!("Both images must have same size. mask: {}x{} image: {}x{}", self_width, self_height, image.width(), image.height()));
+        }
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+        let mut result_image = Image::zero(self_width, self_height);
+        for y in 0..(self_height as i32) {
+            for x in 0..(self_width as i32) {
+                let mask_value: u8 = self.get(x, y).unwrap_or(255);
+                let set_color: u8;
+                if mask_value > 0 {
+                    set_color = color;
+                } else {
+                    set_color = image.get(x, y).unwrap_or(255)
+                }
+                let _ = result_image.set(x, y, set_color);
+            }
+        }
+        Ok(result_image)
     }
 
     fn select_from_images(&self, image_a: &Image, image_b: &Image) -> anyhow::Result<Image> {
@@ -327,7 +357,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_select_from_image() {
+    fn test_50000_select_from_color_and_image() {
         // Arrange
         let mask_pixels: Vec<u8> = vec![
             1, 1, 0, 0,
@@ -345,7 +375,39 @@ mod tests {
         let image: Image = Image::try_create(4, 4, image_pixels).expect("image");
 
         // Act
-        let actual: Image = mask.select_from_image(&image, 9).expect("image");
+        let actual: Image = mask.select_from_color_and_image(9, &image).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 1, 9, 9,
+            2, 3, 9, 9,
+            9, 9, 4, 5,
+            9, 9, 6, 7,
+        ];
+        let expected: Image = Image::try_create(4, 4, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_50001_select_from_image_and_color() {
+        // Arrange
+        let mask_pixels: Vec<u8> = vec![
+            0, 0, 1, 1,
+            0, 0, 1, 1,
+            1, 1, 0, 0,
+            1, 1, 0, 0,
+        ];
+        let mask: Image = Image::try_create(4, 4, mask_pixels).expect("image");
+        let image_pixels: Vec<u8> = vec![
+            0, 1, 255, 255,
+            2, 3, 255, 255,
+            255, 255, 4, 5,
+            255, 255, 6, 7,
+        ];
+        let image: Image = Image::try_create(4, 4, image_pixels).expect("image");
+
+        // Act
+        let actual: Image = mask.select_from_image_and_color(&image, 9).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![

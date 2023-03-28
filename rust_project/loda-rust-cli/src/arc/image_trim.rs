@@ -6,6 +6,10 @@ pub trait ImageTrim {
 
     /// Remove border with the specified color.
     fn trim_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Image>;
+
+    // Idea for future experiment
+    // Trim as much as possible around the mask, and remove the same area from the the image
+    // fn trim_mask_and_image(mask: &Image, image: &Image) -> anyhow::Result<(Image, Image)>;
 }
 
 impl ImageTrim for Image {

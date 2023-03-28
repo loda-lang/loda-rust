@@ -1,6 +1,7 @@
 use super::arc_json_model;
 use super::arc_work_model;
-use super::{Image, ImageToNumber, NumberToImage, register_arc_functions, Prediction, HtmlLog, ImageToHTML};
+use super::{Image, ImageSize, ImageToNumber, NumberToImage, register_arc_functions, Prediction, HtmlLog, ImageToHTML};
+use super::{ImageRotate, ImageSymmetry};
 use loda_rust_core::execute::{ProgramId, ProgramState};
 use loda_rust_core::execute::{NodeLoopLimit, ProgramCache, ProgramRunner, RunMode};
 use loda_rust_core::execute::NodeRegisterLimit;
@@ -60,6 +61,11 @@ pub struct SolutionSimpleData {
 
 pub type SolutionSimple = fn(SolutionSimpleData) -> anyhow::Result<Image>;
 
+pub trait AnalyzeAndSolve {
+    fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()>;
+    fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image>;
+}
+
 pub struct RunWithProgram {
     verify_test_output: bool,
     task: arc_work_model::Task,
@@ -100,8 +106,8 @@ impl RunWithProgram {
         mov $$82,$0 ; save vector[x].computed_output image
 
         ; next iteration
-        add $81,10 ; jump to address of next input image
-        add $82,10 ; jump to address of next computed_output image
+        add $81,100 ; jump to address of next input image
+        add $82,100 ; jump to address of next computed_output image
     lpe
     "#;
 
@@ -138,6 +144,24 @@ impl RunWithProgram {
         self.process_computed_images(computed_images)
     }
 
+    #[allow(dead_code)]
+    pub fn run_analyze_and_solve(
+        &self,
+        analyze_and_solve: &mut dyn AnalyzeAndSolve,
+    ) -> anyhow::Result<RunWithProgramResult> {
+        analyze_and_solve.analyze(&self.task)?;
+        let mut computed_images = Vec::<Image>::new();
+        for (index, pair) in self.task.pairs.iter().enumerate() {
+            let data = SolutionSimpleData {
+                index,
+                image: pair.input.image.clone(),
+            };
+            let computed_image: Image = analyze_and_solve.solve(&data)?;
+            computed_images.push(computed_image);
+        }
+        self.process_computed_images(computed_images)
+    }
+
     pub fn run_program_runner(&self, program_runner: &ProgramRunner) -> anyhow::Result<RunWithProgramResult> {
         let mut cache = ProgramCache::new();
 
@@ -151,6 +175,9 @@ impl RunWithProgram {
         );
 
         self.initial_memory_layout(&mut state)?;
+
+        // Currently the ProgramState is recreated over and over.
+        // Optimization. The ProgramState can be computed once.
 
         // Invoke the actual run() function
         program_runner.program().run(&mut state, &mut cache).context("run_result error in program.run")?;
@@ -174,27 +201,27 @@ impl RunWithProgram {
     /// $100 = train[0] input
     /// $101 = train[0] expected_output
     /// $102 = train[0] computed_output
-    /// $103..109 is reserved for train[0] extra data
+    /// $103..199 is reserved for train[0] extra data
     /// ---
-    /// $110 = train[1] input
-    /// $111 = train[1] expected_output
-    /// $112 = train[1] computed_output
-    /// $113..119 is reserved for train[1] extra data
+    /// $200 = train[1] input
+    /// $201 = train[1] expected_output
+    /// $202 = train[1] computed_output
+    /// $203..299 is reserved for train[1] extra data
     /// ---
-    /// $120 = train[2] input
-    /// $121 = train[2] expected_output
-    /// $122 = train[2] computed_output
-    /// $123..129 is reserved for train[2] extra data
+    /// $300 = train[2] input
+    /// $301 = train[2] expected_output
+    /// $302 = train[2] computed_output
+    /// $303..399 is reserved for train[2] extra data
     /// ---
-    /// $130 = train[3] input
-    /// $131 = train[3] expected_output
-    /// $132 = train[3] computed_output
-    /// $133..139 is reserved for train[3] extra data
+    /// $400 = train[3] input
+    /// $401 = train[3] expected_output
+    /// $402 = train[3] computed_output
+    /// $403..499 is reserved for train[3] extra data
     /// ---
-    /// $140 = test[0] input
-    /// $141 = test[0] expected_output <---- this is not provided, it's up to the program to compute it.
-    /// $142 = test[0] computed_output
-    /// $143..149 is reserved for test[0] extra data
+    /// $500 = test[0] input
+    /// $501 = test[0] expected_output <---- this is not provided, it's up to the program to compute it.
+    /// $502 = test[0] computed_output
+    /// $503..599 is reserved for test[0] extra data
     /// ```
     fn initial_memory_layout(&self, state: &mut ProgramState) -> anyhow::Result<()> {
 
@@ -206,19 +233,27 @@ impl RunWithProgram {
             }
 
             let index: usize = count_train;
-            // memory[x*10+100] = train[x].input
+            // memory[x*100+100] = train[x].input
             {
-                let image_number_uint: BigUint = pair.input.image.to_number().expect("pair.input image to number");
-                let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
-                state.set_u64((index * 10 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
+                let image_number_uint: BigUint = pair.input.image.to_number().context("pair.input image to number")?;
+                let image_number_int: BigInt = image_number_uint.to_bigint().context("pair.input BigUint to BigInt")?;
+                state.set_u64((index * 100 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
             }
 
-            // memory[x*10+101] = train[x].output
+            // memory[x*100+101] = train[x].output
             {
-                let image_number_uint: BigUint = pair.output.image.to_number().expect("pair.output image to number");
-                let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.output BigUint to BigInt");
-                state.set_u64((index * 10 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
+                let image_number_uint: BigUint = pair.output.image.to_number().context("pair.output image to number")?;
+                let image_number_int: BigInt = image_number_uint.to_bigint().context("pair.output BigUint to BigInt")?;
+                state.set_u64((index * 100 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
             }
+
+            // Ideas for data to make available to the program.
+            // output_size
+            // output_palette
+            // substitutions, replace this color with that color
+            // substitutions, replace this image with that image
+            // remove trim color
+            // remove grid color
 
             count_train += 1;
         }
@@ -231,19 +266,19 @@ impl RunWithProgram {
             }
 
             let index: usize = count_train + count_test;
-            // memory[(count_train + x)*10+100] = test[x].input
+            // memory[(count_train + x)*100+100] = test[x].input
             {
-                let image_number_uint: BigUint = pair.input.image.to_number().expect("pair.input image to number");
-                let image_number_int: BigInt = image_number_uint.to_bigint().expect("pair.input BigUint to BigInt");
-                state.set_u64((index * 10 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
+                let image_number_uint: BigUint = pair.input.image.to_number().context("pair.input image to number")?;
+                let image_number_int: BigInt = image_number_uint.to_bigint().context("pair.input BigUint to BigInt")?;
+                state.set_u64((index * 100 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
             }
 
             // The program is never supposed to read from the the test[x].output register.
-            // memory[(count_train + x)*10+101] is where the program is supposed to write its predicted output.
+            // memory[(count_train + x)*100+101] is where the program is supposed to write its predicted output.
             // Use `-1` as placeholder so it's easy to spot when the image is missing.
             {
                 let value: BigInt = -BigInt::one();
-                state.set_u64((index * 10 + 101) as u64, value).context("pair.output, set_u64")?;
+                state.set_u64((index * 100 + 101) as u64, value).context("pair.output, set_u64")?;
             }
 
             count_test += 1;
@@ -252,22 +287,223 @@ impl RunWithProgram {
         let count_all: usize = count_train + count_test;
 
         // memory[97] = length of "train" vector
-        let count_train_bigint: BigInt = count_train.to_bigint().expect("count_train.to_bigint");
+        let count_train_bigint: BigInt = count_train.to_bigint().context("count_train.to_bigint")?;
         state.set_u64(97, count_train_bigint).context("set_u64 count_train_bigint")?;
 
         // memory[98] = length of "test" vector
-        let count_test_bigint: BigInt = count_test.to_bigint().expect("count_test.to_bigint");
+        let count_test_bigint: BigInt = count_test.to_bigint().context("count_test.to_bigint")?;
         state.set_u64(98, count_test_bigint).context("set_u64 count_test_bigint")?;
 
         // memory[99] = length of "train"+"test" vectors
-        let count_all_bigint: BigInt = count_all.to_bigint().expect("count_all.to_bigint");
+        let count_all_bigint: BigInt = count_all.to_bigint().context("count_all.to_bigint")?;
         state.set_u64(99, count_all_bigint).context("set_u64 count_all_bigint")?;
 
         Ok(())
     }
 
-    fn process_computed_images(&self, computed_images: Vec<Image>) -> anyhow::Result<RunWithProgramResult> {
+    fn postprocess_fix_orientation(&self, computed_images: &mut Vec<Image>) -> anyhow::Result<()> {
+        // Determine if fixing the orientation makes sense with the training pairs
+        {
+            let mut count_train: usize = 0;
+            for pair in &self.task.pairs {
+                if pair.pair_type != arc_work_model::PairType::Train {
+                    continue;
+                }
+    
+                let index: usize = count_train;
+                count_train += 1;
+    
+                let computed_size: ImageSize = computed_images[index].size();
+                if computed_size.width == computed_size.height {
+                    return Err(anyhow::anyhow!("postprocess_fix_orientation requires all images to be rotated. However one or more images square."));
+                }
+                
+                let expected_size: ImageSize = pair.output.image.size();
+                let is_rotated: bool = 
+                    computed_size.width == expected_size.height && 
+                    computed_size.height == expected_size.width;
+                
+                if !is_rotated {
+                    return Err(anyhow::anyhow!("postprocess_fix_orientation requires all images to be rotated. However one or more images is not rotated."));
+                }
+                
+                // fixing the orientation may be possible with this training pair
+            }
+        }
+
+        // Rotate all the images
+        for computed_image in computed_images.iter_mut() {
+            let rotated_image: Image = computed_image.rotate_cw()?;
+            computed_image.set_image(rotated_image);
+        }
+        Ok(())
+    }
+
+    fn postprocess_recolor(&self, computed_images: &mut Vec<Image>) -> anyhow::Result<()> {
+        // Determine if recoloring may be applied to training pairs
+        {
+            let mut count_train: usize = 0;
+            for pair in &self.task.pairs {
+                if pair.pair_type != arc_work_model::PairType::Train {
+                    continue;
+                }
+    
+                let index: usize = count_train;
+                count_train += 1;
+    
+                let computed_image: &Image = &computed_images[index];
+                
+                let expected_image: Image = pair.output.image.clone();
+                if computed_image.size() != expected_image.size() {
+                    return Err(anyhow::anyhow!("recoloring not possible. Can only recolor if all the computed images have the expected size, but one or more images has the wrong size"));
+                }
+                
+                if *computed_image == expected_image {
+                    return Err(anyhow::anyhow!("recoloring not possible. Can only recolor if all the computed images have different colors than the expected image, but one or more images has the correct colors"));
+                }
+    
+                // recoloring may be possible with this training pair
+            }
+        }
+        // println!("recoloring may be possible");
+
+        // Obtain all the color mappings from training pairs
+        // Detects ambiguous color mappings detected and aborts
+        let mut color_mapping: [i16; 256] = [-1; 256];
+        {
+            let mut count_train: usize = 0;
+            for pair in &self.task.pairs {
+                if pair.pair_type != arc_work_model::PairType::Train {
+                    continue;
+                }
+                let index: usize = count_train;
+                count_train += 1;
+    
+                let computed_image: &Image = &computed_images[index];
+                let size: ImageSize = computed_image.size();
+            
+                let expected_image: Image = pair.output.image.clone();
+                if computed_image.size() != expected_image.size() {
+                    return Err(anyhow::anyhow!("recoloring not possible. should not happen. the size should be the same"));
+                }
+    
+                for y in 0..size.height as i32 {
+                    for x in 0..size.width as i32 {
+                        let computed_pixel: u8 = computed_image.get(x, y).unwrap_or(255);
+                        let expected_pixel: u8 = expected_image.get(x, y).unwrap_or(255);
+                        let current_color: i16 = color_mapping[computed_pixel as usize];
+                        if current_color == -1 {
+                            color_mapping[computed_pixel as usize] = expected_pixel as i16;
+                            continue;
+                        }
+                        if current_color != expected_pixel as i16 {
+                            // there already exist another color mappings. 
+                            // It not possible to recolor.
+                            return Err(anyhow::anyhow!("recoloring not possible. there already exist another color mapping for this color"));
+                        }
+                        // the color mapping already exist for this
+                    }
+                }
+            }
+        }
+
+        // Recolor all the computed images
+        for computed_image in computed_images.iter_mut() {
+            let size: ImageSize = computed_image.size();
+
+            for y in 0..size.height as i32 {
+                for x in 0..size.width as i32 {
+                    let computed_pixel: u8 = computed_image.get(x, y).unwrap_or(255);
+                    let target_color_i16: i16 = color_mapping[computed_pixel as usize];
+                    if target_color_i16 < 0 || target_color_i16 > (u8::MAX as i16) {
+                        // recoloring of this pixel is not possible. Leave the original pixel as it is.
+                        continue;
+                    }
+                    let target_color: u8 = target_color_i16 as u8;
+                    let _ = computed_image.set(x, y, target_color);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn postprocess_flip_and_recolor(&self, computed_images: &mut Vec<Image>) -> anyhow::Result<()> {
+        match self.postprocess_recolor(computed_images) {
+            Ok(()) => {
+                // println!("successfully applied recolor postprocessing for flip mode: normal");
+                return Ok(());
+            },
+            Err(_) => {}
+        }
+
+        // Go through the variations: flip x, flip y, flip xy.
+        for i in 1..4u8 {
+            let mut computed_images_clone: Vec<Image> = computed_images.clone();
+            for computed_image in computed_images_clone.iter_mut() {
+                let mut image: Image = computed_image.clone();
+                if (i & 1) != 0 {
+                    image = image.flip_x()?;
+                }
+                if (i & 2) != 0 {
+                    image = image.flip_y()?;
+                }
+                computed_image.set_image(image);
+            }
+            match self.postprocess_recolor(&mut computed_images_clone) {
+                Ok(()) => {
+                    // println!("successfully applied recolor postprocessing for flip mode: {}", i);
+                    computed_images.truncate(0);
+                    computed_images.extend(computed_images_clone);
+                    return Ok(());
+                },
+                Err(_) => {}
+            }
+        }
+
+        Err(anyhow::anyhow!("did not find a flip recolor combination that works"))
+    }
+
+    /// Solutions that are very close to the expected output.
+    /// 
+    /// Can such a program be tweaked in minor ways so that it gets even closer to the expected output.
+    /// - Is it a rotate that is missing?
+    /// - Is it a recoloring that is missing?
+    /// - Is it a flip that is missing?
+    fn postprocess(&self, computed_images: &mut Vec<Image>) -> anyhow::Result<()> {
+        let mut one_or_more_postprocessing_applied = false;
+        match self.postprocess_fix_orientation(computed_images) {
+            Ok(()) => {
+                // println!("successfully applied fix orientation postprocessing");
+                one_or_more_postprocessing_applied = true;
+            },
+            Err(_) => {}
+        }
+        match self.postprocess_flip_and_recolor(computed_images) {
+            Ok(()) => {
+                // println!("successfully applied flip and recolor postprocessing");
+                one_or_more_postprocessing_applied = true;
+            },
+            Err(_) => {}
+        }
+        if !one_or_more_postprocessing_applied {
+            return Err(anyhow::anyhow!("Didn't apply any postprocessing"));
+        }
+        
+        // Did apply one or more postprocessing steps.
+        Ok(())
+    }
+
+    fn process_computed_images(&self, mut computed_images: Vec<Image>) -> anyhow::Result<RunWithProgramResult> {
         let pretty_print = false;
+
+        match self.postprocess(&mut computed_images) {
+            Ok(()) => {
+                // println!("successfully applied postprocessing");
+                // pretty_print = true;
+            },
+            Err(_) => {}
+        }
 
         let mut status_texts = Vec::<&str>::new();
 
@@ -289,22 +525,41 @@ impl RunWithProgram {
             let computed_image: &Image = &computed_images[index];
             
             let expected_image: Image = pair.output.image.clone();
-            if *computed_image == expected_image {
-                count_train_correct += 1;
+            if computed_image.size() != expected_image.size() {
+                count_train_incorrect += 1;
+                let s = format!("train. Size of the computed output, doesn't match train[{}].output.size.\nExpected {:?}\nActual {:?}", index, expected_image.size(), computed_image.size());
+                message_items.push(s);
                 if pretty_print {
-                    status_texts.push("OK");
+                    status_texts.push("Incorrect size");
                 }
                 continue;
             }
-            count_train_incorrect += 1;
-            let s = format!("train. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", index, expected_image, computed_image);
-            message_items.push(s);
+
+            if *computed_image != expected_image {
+                count_train_incorrect += 1;
+                let s = format!("train. The computed output, doesn't match train[{}].output.\nExpected {:?}\nActual {:?}", index, expected_image, computed_image);
+                message_items.push(s);
+                if pretty_print {
+                    status_texts.push("Incorrect");
+                }
+                continue;
+            }
+
+            count_train_correct += 1;
             if pretty_print {
-                status_texts.push("Incorrect");
+                status_texts.push("OK");
             }
         }
 
+        // if count_train_correct >= 2 {
+        //     pretty_print = true;
+        // }
+
         let mut predictions = Vec::<Prediction>::new();
+
+        // Future experiment:
+        // Reject solution, if the Test pairs, has a computed_image.size() different than the predicted size.
+        // Reject solution, if the Test pairs, has a computed_image.histogram() different than the predicted palette.
 
         // Traverse the `Test` pairs
         // Compare computed images with test[x].output
@@ -457,21 +712,21 @@ impl ComputedImages for ProgramState {
     /// 
     /// Variable number of items in the `train` vector and `test` vector.
     /// 
-    /// The first image is at the address `102`. Add `10` to get to the following images.
+    /// The first image is at the address `102`. Add `100` to get to the following images.
     /// 
     /// Memory layout:
     /// 
     /// ```
     /// $102 = train[0] computed_output image
-    /// $112 = train[1] computed_output image
-    /// $122 = train[2] computed_output image
-    /// $132 = test[0] computed_output image
-    /// $142 = test[1] computed_output image
+    /// $202 = train[1] computed_output image
+    /// $302 = train[2] computed_output image
+    /// $402 = test[0] computed_output image
+    /// $502 = test[1] computed_output image
     /// ```
     fn computed_images(&self, number_of_images: usize) -> anyhow::Result<Vec<Image>> {
         let mut images = Vec::<Image>::with_capacity(number_of_images);
         for index in 0..number_of_images {
-            let address: u64 = (index as u64) * 10 + 102;
+            let address: u64 = (index as u64) * 100 + 102;
             let computed_int: BigInt = self.get_u64(address).clone();
             if computed_int.is_negative() {
                 return Err(anyhow::anyhow!("computed_images. output[{}]. Expected non-negative number, but got {:?}", address, computed_int));

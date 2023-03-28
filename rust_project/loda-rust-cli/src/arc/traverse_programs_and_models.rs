@@ -2,6 +2,7 @@ use super::arc_json_model;
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
+use super::{ImageHistogram, ImageSize, Histogram};
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
@@ -37,7 +38,9 @@ static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 /// Thus the limit is several minutes shorter so we are sure that the executable has stopped.
 static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = ((23 * 60) + 30) * 60;
 
-static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 2;
+static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 3;
+
+static ARC_COMPETITION_IGNORE_PROGRAMS_TAKING_LONGER_THAN_MILLIS: u64 = 200;
 
 pub struct TraverseProgramsAndModels {
     config: Config,
@@ -75,61 +78,71 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    /// Traverse all puzzles and classify each puzzle.
-    pub fn label_all_puzzles() -> anyhow::Result<()> {
-        let instance = TraverseProgramsAndModels::new()?;
+    fn check_predicted_output_size_for_tasks(task_vec: &Vec<Task>) -> HashSet<String> {
+        let verbose = false;
 
-        let mut buffer_task_vec: Vec<Task> = vec!();
-        for model_item in &instance.model_item_vec {
-            let task: Task = model_item.borrow().task.clone();
-            buffer_task_vec.push(task);
-        }
+        let mut task_ids_with_correct_prediction = HashSet::<String>::new();
 
         let mut count_good = 0;
         let mut count_undecided = 0;
-        for buffer_task in &buffer_task_vec {
-            let estimate: String = buffer_task.estimated_output_size();
+        for task in task_vec {
+            let estimate: String = task.estimated_output_size();
             if estimate == "Undecided" {
                 count_undecided += 1;
                 continue;
             }
             count_good += 1;
         }
-        println!("Estimated output size. good: {}  missing: {}", count_good, count_undecided);
+        if verbose {
+            println!("Estimated output size. good: {}  missing: {}", count_good, count_undecided);
+        }
         
         // Compute the output size with the test data, and compare with the expected output
-        let mut count_predict_correct: usize = 0;
-        let mut count_predict_incorrect: usize = 0;
-        let mut count_predict_correct_task: usize = 0;
-        let mut count_predict_incorrect_task: usize = 0;
-        for buffer_task in &buffer_task_vec {
-            let estimate: String = buffer_task.estimated_output_size();
+        let mut count_predict_pair_correct: usize = 0;
+        let mut count_predict_pair_incorrect: usize = 0;
+        let mut count_predict_task_correct: usize = 0;
+        let mut count_predict_task_incorrect: usize = 0;
+        for task in task_vec {
+            let estimate: String = task.estimated_output_size();
             if estimate == "Undecided" {
                 continue;
             }
 
             let mut all_correct = true;
-            for pair in &buffer_task.pairs {
-                let predicted: String = buffer_task.predict_output_size_for_input(&pair.input);
+            for pair in &task.pairs {
+                let predicted: ImageSize = match pair.predicted_output_size() {
+                    Some(value) => value,
+                    None => {
+                        if verbose {
+                            println!("No predicted output size. Task: {} pair: {:?}", task.id, pair.pair_type);
+                        }
+                        count_predict_pair_incorrect += 1;
+                        all_correct = false;
+                        continue;
+                    }
+                };
 
-                let expected: String = match pair.pair_type {
-                    PairType::Train => format!("{}x{}", pair.output.image.width(), pair.output.image.height()),
-                    PairType::Test => format!("{}x{}", pair.output.test_image.width(), pair.output.test_image.height()),
+                let expected: ImageSize = match pair.pair_type {
+                    PairType::Train => pair.output.image.size(),
+                    PairType::Test => pair.output.test_image.size(),
                 };
 
                 if predicted == expected {
-                    count_predict_correct += 1;
+                    count_predict_pair_correct += 1;
                 } else {
-                    println!("Wrong output size. Expected {}, but got {}. Task: {} pair: {:?}", expected, predicted, buffer_task.id, pair.pair_type);
-                    count_predict_incorrect += 1;
+                    if verbose {
+                        println!("Wrong output size. Expected {:?}, but got {:?}. Task: {} pair: {:?}", expected, predicted, task.id, pair.pair_type);
+                    }
+                    count_predict_pair_incorrect += 1;
                     all_correct = false;
                 }
             }
             if all_correct {
-                count_predict_correct_task += 1;
+                count_predict_task_correct += 1;
+                task_ids_with_correct_prediction.insert(task.id.clone());
             } else {
                 // Self::inspect_task(buffer_task)?;
-                count_predict_incorrect_task += 1;
+                count_predict_task_incorrect += 1;
             }
 
             // If all the pairs had their output size predicted correctly,
@@ -137,32 +150,168 @@ impl TraverseProgramsAndModels {
             // If one or more pairs were incorrectly predicted, 
             // then don't save the predicted output size on the pair instances.
         }
-        {
-            let percent: usize = (100 * count_predict_correct) / (count_predict_correct + count_predict_incorrect).max(1);
-            println!("Predicted single-image: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct, count_predict_incorrect, percent);
+        if verbose {
+            println!("count_predict_pair_correct: {}", count_predict_pair_correct);
+            println!("count_predict_pair_incorrect: {}", count_predict_pair_incorrect);
+            println!("count_predict_task_correct: {}", count_predict_task_correct);
+            println!("count_predict_task_incorrect: {}", count_predict_task_incorrect);
         }
         {
-            let percent: usize = (100 * count_predict_correct_task) / (count_predict_correct_task + count_predict_incorrect_task).max(1);
-            println!("Predicted task: correct: {} incorrect: {} correct-percent: {}%", count_predict_correct_task, count_predict_incorrect_task, percent);
+            let percent: usize = (100 * count_predict_pair_correct) / (count_predict_pair_correct + count_predict_pair_incorrect).max(1);
+            if verbose {
+                println!("Predicted single-image: correct: {} incorrect: {} correct-percent: {}%", count_predict_pair_correct, count_predict_pair_incorrect, percent);
+            }
+        }
+        {
+            let percent: usize = (100 * count_predict_task_correct) / (count_predict_task_correct + count_predict_task_incorrect).max(1);
+            if verbose {
+                println!("Predicted task: correct: {} incorrect: {} correct-percent: {}%", count_predict_task_correct, count_predict_task_incorrect, percent);
+            }
+        }
+        {
+            let number_of_tasks: usize = task_vec.len();
+            let percent: usize = (100 * count_predict_task_correct) / number_of_tasks.max(1);
+            println!("Summary: Output size prediction. There are {} correct tasks of {} all tasks. Percent: {}%", count_predict_task_correct, number_of_tasks, percent);
         }
 
-        Self::inspect_undecided(&buffer_task_vec)?;
-        // Self::inspect_decided(&buffer_task_vec)?;
-        // Self::inspect_task_id(&buffer_task_vec, "28bf18c6,task")?;
-        // Self::inspect_task_id(&buffer_task_vec, "5c2c9af4,task")?;
+        task_ids_with_correct_prediction
+    }
+
+    fn check_predicted_output_palette_for_tasks(task_vec: &Vec<Task>) -> HashSet<String> {
+        let verbose = false;
+
+        let mut task_ids_with_correct_prediction = HashSet::<String>::new();
+
+        let mut count_predict_pair_correct: usize = 0;
+        let mut count_predict_pair_incorrect: usize = 0;
+        let mut count_predict_task_correct: usize = 0;
+        let mut count_predict_task_incorrect: usize = 0;
+        for task in task_vec {
+
+            let mut all_correct = true;
+            for pair in &task.pairs {
+                let predicted: Histogram = match pair.predicted_output_palette() {
+                    Some(value) => value,
+                    None => {
+                        if verbose {
+                            println!("No predicted output palette. Task: {} pair: {:?}", task.id, pair.pair_type);
+                        }
+                        all_correct = false;
+                        count_predict_pair_incorrect += 1;
+                        continue;
+                    }
+                };
+
+                let expected_histogram: Histogram = match pair.pair_type {
+                    PairType::Train => pair.output.image.histogram_all(),
+                    PairType::Test => pair.output.test_image.histogram_all(),
+                };
+                let expected_count: u32 = expected_histogram.number_of_counters_greater_than_zero();
+
+                let mut histogram: Histogram = predicted.clone();
+                histogram.intersection_histogram(&expected_histogram);
+                let predicted_count: u32 = histogram.number_of_counters_greater_than_zero();
+                if expected_count == predicted_count {
+                    count_predict_pair_correct += 1;
+                } else  {
+                    count_predict_pair_incorrect += 1;
+                    all_correct = false;
+                }
+            }
+            if all_correct {
+                count_predict_task_correct += 1;
+                task_ids_with_correct_prediction.insert(task.id.clone());
+            } else {
+                count_predict_task_incorrect += 1;
+                if verbose {
+                    println!("incorrect prediction. {:?}", task.id);
+                }
+            }
+        }
+        if verbose {
+            println!("count_predict_pair_correct: {}", count_predict_pair_correct);
+            println!("count_predict_pair_incorrect: {}", count_predict_pair_incorrect);
+            println!("count_predict_task_correct: {}", count_predict_task_correct);
+            println!("count_predict_task_incorrect: {}", count_predict_task_incorrect);
+        }
+        {
+            let number_of_tasks: usize = task_vec.len();
+            let percent: usize = (100 * count_predict_task_correct) / number_of_tasks.max(1);
+            println!("Summary: Output palette prediction. There are {} correct tasks of {} all tasks. Percent: {}%", count_predict_task_correct, number_of_tasks, percent);
+        }
+        task_ids_with_correct_prediction
+    }
+
+    /// Traverse all puzzles and classify each puzzle.
+    pub fn label_all_puzzles() -> anyhow::Result<()> {
+        let instance = TraverseProgramsAndModels::new()?;
+
+        let mut task_vec: Vec<Task> = vec!();
+        for model_item in &instance.model_item_vec {
+            let task: Task = model_item.borrow().task.clone();
+            task_vec.push(task);
+        }
+
+        let task_ids_with_correct_output_size: HashSet<String> = 
+            Self::check_predicted_output_size_for_tasks(&task_vec);
+
+        let task_ids_with_correct_output_palette: HashSet<String> = 
+            Self::check_predicted_output_palette_for_tasks(&task_vec);
+
+        let mut task_ids_intersection = HashSet::<String>::new();
+        for task_id in task_ids_with_correct_output_size.intersection(&task_ids_with_correct_output_palette) {
+            task_ids_intersection.insert(task_id.clone());
+        }
+        {
+            let number_of_tasks: usize = task_vec.len();
+            let percent: usize = (100 * task_ids_intersection.len()) / number_of_tasks.max(1);
+            println!("tasks with size=ok  and palette=ok.   {}  Percent: {}%", task_ids_intersection.len(), percent);
+        }
+
+        let mut task_ids_only_size = HashSet::<String>::new();
+        for task_id in task_ids_with_correct_output_size.difference(&task_ids_intersection) {
+            task_ids_only_size.insert(task_id.clone());
+        }
+        println!("tasks with size=ok  and palette=bad.  {}", task_ids_only_size.len());
+
+        let mut task_ids_only_palette = HashSet::<String>::new();
+        for task_id in task_ids_with_correct_output_palette.difference(&task_ids_intersection) {
+            task_ids_only_palette.insert(task_id.clone());
+        }
+        println!("tasks with size=bad and palette=ok.   {}", task_ids_only_palette.len());
+
+        let mut count_tasks_without_predictions: usize = 0;
+        for task in &task_vec {
+            if task_ids_with_correct_output_size.contains(&task.id) {
+                continue;
+            }
+            if task_ids_with_correct_output_palette.contains(&task.id) {
+                continue;
+            }
+            count_tasks_without_predictions += 1;
+        }
+        println!("tasks with size=bad and palette=bad.  {}", count_tasks_without_predictions);
+
+
+        // Self::inspect_undecided(&task_vec)?;
+        // Self::inspect_decided(&task_vec)?;
+        // Self::inspect_task_id(&task_vec, "72ca375d")?;
+        // Self::inspect_task_id(&task_vec, "d56f2372")?;
+        // Self::inspect_task_id(&task_vec, "a85d4709")?;
+        Self::inspect_task_id(&task_vec, "44f52bb0")?;
         Ok(())
     }
 
     #[allow(dead_code)]
-    fn inspect_undecided(buffer_task_vec: &Vec<Task>) -> anyhow::Result<()> {
+    fn inspect_undecided(task_vec: &Vec<Task>) -> anyhow::Result<()> {
         let mut count = 0;
-        for buffer_task in buffer_task_vec {
-            let estimate: String = buffer_task.estimated_output_size();
+        for task in task_vec {
+            let estimate: String = task.estimated_output_size();
             if estimate != "Undecided" {
                 continue;
             }
             if count > 0 {
-                buffer_task.inspect()?;
+                task.inspect()?;
             }
             count += 1;
             if count > 50 {
@@ -173,15 +322,15 @@ impl TraverseProgramsAndModels {
     }
 
     #[allow(dead_code)]
-    fn inspect_decided(buffer_task_vec: &Vec<Task>) -> anyhow::Result<()> {
+    fn inspect_decided(task_vec: &Vec<Task>) -> anyhow::Result<()> {
         let mut count = 0;
-        for buffer_task in buffer_task_vec {
-            let estimate: String = buffer_task.estimated_output_size();
+        for task in task_vec {
+            let estimate: String = task.estimated_output_size();
             if estimate == "Undecided" {
                 continue;
             }
             if count > 0 {
-                buffer_task.inspect()?;
+                task.inspect()?;
             }
             count += 1;
             if count > 50 {
@@ -192,10 +341,10 @@ impl TraverseProgramsAndModels {
     }
 
     #[allow(dead_code)]
-    fn inspect_task_id(buffer_task_vec: &Vec<Task>, task_id: &str) -> anyhow::Result<()> {
-        for buffer_task in buffer_task_vec {
-            if buffer_task.id == task_id {
-                buffer_task.inspect()?;
+    fn inspect_task_id(task_vec: &Vec<Task>, task_id: &str) -> anyhow::Result<()> {
+        for task in task_vec {
+            if task.id == task_id {
+                task.inspect()?;
                 break;
             }
         }
@@ -219,6 +368,13 @@ impl TraverseProgramsAndModels {
         instance.load_puzzle_files()?;
         instance.load_solution_files()?;
         instance.init_locked_instruction_hashset()?;
+        instance.make_predictions_about_each_tasks();
+        match instance.update_task_occur_in_solutions_csv() {
+            Ok(()) => {},
+            Err(error) => {
+                println!("Couldn't update models with solution status. error: {:?}", error);
+            }
+        }
         Ok(instance)
     }
 
@@ -272,6 +428,13 @@ impl TraverseProgramsAndModels {
         }
         self.model_item_vec = model_item_vec;
         Ok(())
+    }
+
+    fn make_predictions_about_each_tasks(&self) {
+        for model_item in &self.model_item_vec {
+            model_item.borrow_mut().task.assign_predicted_output_size();
+            model_item.borrow_mut().task.assign_predicted_output_palette();
+        }
     }
 
     /// Load all `.asm` programs into memory
@@ -342,6 +505,7 @@ impl TraverseProgramsAndModels {
                 program_type,
                 parsed_program,
                 program_runner,
+                ignore_due_to_slowness: false,
             };
             let item = Rc::new(RefCell::new(instance));
             program_item_vec.push(item);
@@ -485,6 +649,7 @@ impl TraverseProgramsAndModels {
                 program_type: ProgramType::Advance,
                 parsed_program,
                 program_runner,
+                ignore_due_to_slowness: false,
             };
             result_program_item_vec.push(Rc::new(RefCell::new(mutated_program_item)));
             if result_program_item_vec.len() >= number_of_programs_to_generate {
@@ -655,6 +820,39 @@ impl TraverseProgramsAndModels {
             let green_bold = Style::new().red().bold();        
             println!("{}", green_bold.apply_to("Status: Found no solutions among the existing programs"));
         }
+        Ok(())
+    }
+
+    fn update_task_occur_in_solutions_csv(&self) -> anyhow::Result<()> {
+        let path_solutions_csv = self.config.loda_arc_challenge_repository().join(Path::new("solutions.csv"));
+        if !path_solutions_csv.is_file() {
+            return Err(anyhow::anyhow!("update_task_occur_in_solutions_csv: there is no existing solutions.csv file, so the solutions cannot be checked. path_solutions_csv: {:?}", path_solutions_csv));
+        }
+
+        let record_vec: Vec<Record> = Record::load_record_vec(&path_solutions_csv)?;
+        debug!("update_task_occur_in_solutions_csv: solutions.csv: number of rows: {}", record_vec.len());
+
+        let mut task_id_set = HashSet::<String>::new();
+        for record in &record_vec {
+            let filename_with_json_suffix: String = record.model_filename.clone();
+            let task_id = filename_with_json_suffix.replace(".json", "");
+            task_id_set.insert(task_id);
+        }
+
+        for model_item in &self.model_item_vec {
+            let mut model_item_mut = model_item.borrow_mut();
+            let has_solution: bool = task_id_set.contains(&model_item_mut.task.id);
+            model_item_mut.task.occur_in_solutions_csv = has_solution;
+        }
+
+        let mut count_has_solution_true: usize = 0;
+        for model_item in &self.model_item_vec {
+            let has_solution: bool = model_item.borrow().task.occur_in_solutions_csv;
+            if has_solution {
+                count_has_solution_true += 1;
+            }
+        }
+        debug!("update_task_occur_in_solutions_csv: tasks with one or more solutions: {}", count_has_solution_true);
         Ok(())
     }
 
@@ -1035,6 +1233,7 @@ impl TraverseProgramsAndModels {
         Self::print_system_info();
 
         println!("initial random seed: {}", ARC_COMPETITION_INITIAL_RANDOM_SEED);
+        println!("ignore programs taking longer than millis: {}", ARC_COMPETITION_IGNORE_PROGRAMS_TAKING_LONGER_THAN_MILLIS);
 
         println!("initial number of solutions: {}", self.program_item_vec.len());
         println!("initial number of tasks: {}", self.model_item_vec.len());
@@ -1326,21 +1525,39 @@ impl BatchPlan {
                 }
     
                 let program_item: &Rc<RefCell<ProgramItem>> = &self.scheduled_program_item_vec[program_index];
-                
-                let run_with_program_result: RunWithProgramResult;
                 {
-                    let before_run_program = Instant::now();
-
+                    if program_item.borrow().ignore_due_to_slowness {
+                        if verbose {
+                            pb.println("skip slow program");
+                        }
+                        continue;
+                    }
+                }
+                
+                let before_run_program = Instant::now();
+                let run_program_runner_result = {
                     let program_runner: &ProgramRunner = &program_item.borrow().program_runner;
-                    let result = instance.run_program_runner(program_runner);
-
+                    instance.run_program_runner(program_runner)
+                };
+                
+                {
                     let program_run_elapsed: Duration = before_run_program.elapsed();
                     if program_run_elapsed > slowest_program_elapsed {
                         slowest_program_elapsed = program_run_elapsed;
                         slowest_program_name = program_item.borrow().id.file_name();
                     }
+
+                    if program_run_elapsed > Duration::from_millis(ARC_COMPETITION_IGNORE_PROGRAMS_TAKING_LONGER_THAN_MILLIS) {
+                        let s = format!("Ignoring slow program. Elapsed: {}", HumanDuration(program_run_elapsed));
+                        pb.println(s);
+                        program_item.borrow_mut().ignore_due_to_slowness = true;
+                        continue;
+                    }
+                }
     
-                    run_with_program_result = match result {
+                let run_with_program_result: RunWithProgramResult;
+                {
+                    run_with_program_result = match run_program_runner_result {
                         Ok(value) => value,
                         Err(error) => {
                             if verbose {
@@ -1675,6 +1892,7 @@ struct ProgramItem {
     program_type: ProgramType,
     parsed_program: ParsedProgram,
     program_runner: ProgramRunner,
+    ignore_due_to_slowness: bool,
 }
 
 impl ProgramItem {
