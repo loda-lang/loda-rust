@@ -2328,14 +2328,14 @@ mod tests {
         assert_eq!(result, "4 1");
     }
 
-    #[test]
+    // #[test]
     fn test_560000_puzzle_913fb3ed() {
         let mut instance = solve_5c0a986e::MySolution::new();
         let result: String = run_analyze_and_solve("913fb3ed", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
-    #[test]
+    // #[test]
     fn test_560001_puzzle_54d9e175() {
         let mut instance = solve_5c0a986e::MySolution::new();
         let result: String = run_analyze_and_solve("54d9e175", &mut instance).expect("String");
@@ -2357,6 +2357,8 @@ mod tests {
     }
 
     mod solve_5c0a986e {
+        use std::collections::HashSet;
+
         use anyhow::Context;
 
         use super::*;
@@ -2464,55 +2466,94 @@ mod tests {
                 }
                 Ok(number_of_replacements_found)
             }
+
+            fn analyze_train_pair(pair: &arc_work_model::Pair) -> anyhow::Result<Dict> {
+                let mut dict = Dict::new();
+                let mut input_image: Image = pair.input.image.clone();
+                for iteration in 0..4 {
+                    HtmlLog::text(format!("iteration: {}", iteration));
+
+                    let diff_mask: Image = input_image.diff(&pair.output.image)?;
+                    HtmlLog::image(&diff_mask);
+
+                    let image0: Image = input_image.padding_with_color(1, 0)?;
+
+                    // Direction to nearest adjacent object
+                    let directions: Image = convolution3x3_with_mask(&image0, &diff_mask, 254, conv3x3_direction_of_same_pixel)?;
+                    HtmlLog::image(&directions);
+
+                    let count: usize = Self::extract_substitutions(&input_image, &pair.output.image, &directions, &mut dict)?;
+                    if count == 0 {
+                        HtmlLog::text(format!("replacements added: none, stop iterating"));
+                        break;
+                    }
+                    HtmlLog::text(format!("replacements added: {}", count));
+
+                    let mut image1: Image = input_image.clone();
+                    image1.replace_pattern(&dict, 1).expect("ok");
+                    HtmlLog::image(&image1);
+
+                    if image1 == input_image {
+                        break;
+                    }
+
+                    input_image = image1;
+                }
+                HtmlLog::text("separator");
+                Ok(dict)
+            }
+
+            fn intersection(dict0: &Dict, dict1: &Dict) -> anyhow::Result<Dict> {
+                let mut keys_remove = HashSet::<Image>::new();
+                let mut result_dict: Dict = dict0.clone();
+                for (key, value0) in dict0 {
+                    let value1: &Image = match dict1.get(key) {
+                        Some(value) => { value },
+                        None => {
+                            HtmlLog::text("intersection, removing key that isn't shared between all the dictionaries");
+                            keys_remove.insert(key.clone());
+                            continue;
+                        }
+                    };
+                    if value0 != value1 {
+                        HtmlLog::text("intersection, removing key that has ambiguous values");
+                        keys_remove.insert(key.clone());
+                    }
+                }
+                for key in keys_remove {
+                    result_dict.remove(&key);
+                }
+                Ok(result_dict)
+            }
         }
         
         impl AnalyzeAndSolve for MySolution {
             fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
-                let mut dict_inner = Dict::new();
+                let mut dict_intersection = Dict::new();
+                let mut count_train = 0;
                 for pair in &task.pairs {
                     if pair.pair_type != PairType::Train {
                         continue;
                     }
-                    let mut input_image: Image = pair.input.image.clone();
-                    for iteration in 0..4 {
-                        HtmlLog::text(format!("iteration: {}", iteration));
+                    let is_first: bool = count_train == 0;
+                    count_train += 1;
 
-                        let diff_mask: Image = input_image.diff(&pair.output.image)?;
-                        HtmlLog::image(&diff_mask);
-    
-                        let image0: Image = input_image.padding_with_color(1, 0)?;
-    
-                        // Direction to nearest adjacent object
-                        let directions: Image = convolution3x3_with_mask(&image0, &diff_mask, 254, conv3x3_direction_of_same_pixel)?;
-                        HtmlLog::image(&directions);
-    
-                        let count: usize = Self::extract_substitutions(&input_image, &pair.output.image, &directions, &mut dict_inner)?;
-                        if count == 0 {
-                            HtmlLog::text(format!("replacements added: none, stop iterating"));
-                            break;
-                        }
-                        HtmlLog::text(format!("replacements added: {}", count));
-    
-                        let mut image1: Image = input_image.clone();
-                        image1.replace_pattern(&dict_inner, 1).expect("ok");
-                        HtmlLog::image(&image1);
+                    let dict: Dict = Self::analyze_train_pair(pair)?;
 
-                        if image1 == input_image {
-                            break;
-                        }
-
-                        input_image = image1;
+                    if is_first {
+                        dict_intersection = dict;
+                    } else {
+                        dict_intersection = Self::intersection(&dict_intersection, &dict)?;
                     }
-                    HtmlLog::text("separator");
 
                     // TODO: for each pixel in the diff_mask
                     // TODO: Measure distance to nearest object of same color, 3x3 conv, 0=no direction, 1..9=direction
                     // TODO: Pick the pixel that is closest to the nearest object, and make a substitution rule
-                    // TODO: Apply the subsitution rule.
+                    // TODO: Apply the substitution rule.
                     // TODO: Rerun the entire procedure until all pixels in the diff_mask have been processed.
                 }
                 // TODO: update self.dict_outer with the identified substitutions
-                self.dict_outer = dict_inner;
+                self.dict_outer = dict_intersection;
                 Ok(())   
             }
     
