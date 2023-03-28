@@ -13,6 +13,12 @@ use num_traits::{Signed, One};
 use std::path::PathBuf;
 use std::fmt;
 
+enum MemoryLayoutItem {
+    InputImage = 0,
+    ExpectedOutputImage = 1,
+    ComputedOutputImage = 2,
+}
+
 pub struct RunWithProgramResult {
     message_items: Vec::<String>,
     count_train_correct: usize,
@@ -233,18 +239,19 @@ impl RunWithProgram {
             }
 
             let index: usize = count_train;
+            let address: u64 = (index * 100 + 100) as u64;
             // memory[x*100+100] = train[x].input
             {
                 let image_number_uint: BigUint = pair.input.image.to_number().context("pair.input image to number")?;
                 let image_number_int: BigInt = image_number_uint.to_bigint().context("pair.input BigUint to BigInt")?;
-                state.set_u64((index * 100 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
+                state.set_u64(address + MemoryLayoutItem::InputImage as u64, image_number_int).context("pair.input, set_u64")?;
             }
 
             // memory[x*100+101] = train[x].output
             {
                 let image_number_uint: BigUint = pair.output.image.to_number().context("pair.output image to number")?;
                 let image_number_int: BigInt = image_number_uint.to_bigint().context("pair.output BigUint to BigInt")?;
-                state.set_u64((index * 100 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
+                state.set_u64(address + MemoryLayoutItem::ExpectedOutputImage as u64, image_number_int).context("pair.output, set_u64")?;
             }
 
             // Ideas for data to make available to the program.
@@ -266,11 +273,12 @@ impl RunWithProgram {
             }
 
             let index: usize = count_train + count_test;
+            let address: u64 = (index * 100 + 100) as u64;
             // memory[(count_train + x)*100+100] = test[x].input
             {
                 let image_number_uint: BigUint = pair.input.image.to_number().context("pair.input image to number")?;
                 let image_number_int: BigInt = image_number_uint.to_bigint().context("pair.input BigUint to BigInt")?;
-                state.set_u64((index * 100 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
+                state.set_u64(address + MemoryLayoutItem::InputImage as u64, image_number_int).context("pair.input, set_u64")?;
             }
 
             // The program is never supposed to read from the the test[x].output register.
@@ -278,7 +286,7 @@ impl RunWithProgram {
             // Use `-1` as placeholder so it's easy to spot when the image is missing.
             {
                 let value: BigInt = -BigInt::one();
-                state.set_u64((index * 100 + 101) as u64, value).context("pair.output, set_u64")?;
+                state.set_u64(address + MemoryLayoutItem::ExpectedOutputImage as u64, value).context("pair.output, set_u64")?;
             }
 
             count_test += 1;
@@ -726,7 +734,7 @@ impl ComputedImages for ProgramState {
     fn computed_images(&self, number_of_images: usize) -> anyhow::Result<Vec<Image>> {
         let mut images = Vec::<Image>::with_capacity(number_of_images);
         for index in 0..number_of_images {
-            let address: u64 = (index as u64) * 100 + 102;
+            let address: u64 = (index as u64) * 100 + 100 + (MemoryLayoutItem::ComputedOutputImage as u64);
             let computed_int: BigInt = self.get_u64(address).clone();
             if computed_int.is_negative() {
                 return Err(anyhow::anyhow!("computed_images. output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
