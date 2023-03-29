@@ -9,7 +9,10 @@ mod tests {
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, convolution3x3_with_mask};
-    use std::collections::HashMap;
+    use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor};
+    use std::collections::{HashMap, HashSet};
+    use anyhow::Context;
+    use regex::Regex;
 
     #[allow(unused_imports)]
     use crate::arc::{HtmlLog, ImageToHTML};
@@ -2357,10 +2360,6 @@ mod tests {
     }
 
     mod solve_5c0a986e {
-        use std::collections::HashSet;
-
-        use anyhow::Context;
-
         use super::*;
 
         fn conv3x3_direction_of_same_pixel(bm: &Image) -> anyhow::Result<u8> {
@@ -2579,4 +2578,85 @@ mod tests {
         }
     }
 
+    mod solve_5c0a986e_regex {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl MySolution {
+            pub fn new() -> Self {
+                Self {}
+            }
+        }
+
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+                let input: &Image = &data.image;
+
+                let pattern1a: &str = 
+                "^\\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,0,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,1,1,\
+                \\d+,\\d+,\\d+,1,1$";
+
+                let pattern1b: &str = 
+                "^\\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,0,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,1,0,\
+                \\d+,\\d+,\\d+,0,1$";
+
+                let pattern2a: &str = 
+                "^2,2,\\d+,\\d+,\\d+,\
+                2,2,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,0,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+$";
+        
+                let pattern2b: &str = 
+                "^2,0,\\d+,\\d+,\\d+,\
+                0,2,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,0,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+$";
+        
+                let replacements: Vec<ImageReplaceRegexToColor> = vec![
+                    ImageReplaceRegexToColor {
+                        regex: Regex::new(pattern1a).expect("regex"),
+                        color: 1,
+                    },
+                    ImageReplaceRegexToColor {
+                        regex: Regex::new(pattern1b).expect("regex"),
+                        color: 1,
+                    },
+                    ImageReplaceRegexToColor {
+                        regex: Regex::new(pattern2a).expect("regex"),
+                        color: 2,
+                    },
+                    ImageReplaceRegexToColor {
+                        regex: Regex::new(pattern2b).expect("regex"),
+                        color: 2,
+                    }
+                ];
+
+                let mut result_image: Image = input.padding_with_color(2, 0)?;
+                let _count: usize = result_image.replace_5x5_regex(&replacements, 14, 14)?;
+                // println!("replace_5x5_regex. count: {}", count);
+                let result_image_cropped: Image = result_image.crop(2, 2, input.width(), input.height())?;
+                Ok(result_image_cropped)
+            }
+        }
+    }
+
+    #[test]
+    fn test_560003_puzzle_5c0a986e_using_regex() {
+        let mut instance = solve_5c0a986e_regex::MySolution::new();
+        let result: String = run_analyze_and_solve("5c0a986e", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
 }
