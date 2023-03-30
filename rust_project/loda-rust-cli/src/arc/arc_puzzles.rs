@@ -2678,15 +2678,21 @@ mod tests {
                 let output_image: Image = pair.output.image.padding_with_color(2, background_color)?;
 
                 HtmlLog::text("analyze train pair");
-                let diff_mask: Image = pair.input.image.diff(&pair.output.image)?;
-                HtmlLog::image(&diff_mask);
+                let mut replacements = Vec::<ImageReplaceRegexToColor>::new();
 
-                let positions: Vec<(u8, u8)> = diff_mask.positions_where_color_is(1);
-                println!("positions: {:?}", positions);
-
-                for iteration in 0..1 {
+                for iteration in 0..20 {
                     HtmlLog::text(format!("iteration: {}", iteration));
 
+                    let current_input: Image = input_image.crop(2, 2, pair.input.image.width(), pair.input.image.height())?;
+                    let diff_mask: Image = current_input.diff(&pair.output.image)?;
+                    HtmlLog::image(&diff_mask);
+    
+                    let positions: Vec<(u8, u8)> = diff_mask.positions_where_color_is(1);
+                    println!("positions: {:?}", positions);
+                    if positions.is_empty() {
+                        break;
+                    }
+   
                     let mut found_x: u8 = 0;
                     let mut found_y: u8 = 0;
                     let mut found_score: u8 = 0;
@@ -2706,33 +2712,31 @@ mod tests {
                             found_score = count_same;
                         }
                     }
-                    if found_score > 0 {
-                        println!("found position: {},{}", found_x, found_y);
-
-                        let x: u8 = found_x;
-                        let y: u8 = found_y;
-                        let input_crop: Image = input_image.crop(x, y, 5, 5)?;
-                        let output_crop: Image = output_image.crop(x, y, 5, 5)?;
-
-                        let pattern: String = Self::pattern_of_two5x5(&input_crop, &output_crop, background_color)?;
-                        println!("pattern: {}", pattern);
-                        
-                        let target_color: u8 = output_crop.get(2, 2).unwrap_or(255);
-                        println!("target_color: {}", target_color);
-
-                        let item = ImageReplaceRegexToColor {
-                            regex: Regex::new(&pattern)?,
-                            color: target_color,
-                        };
-    
-                        let replacements: Vec<ImageReplaceRegexToColor> = vec![
-                            item
-                        ];
-                        let replace_count: usize = input_image.replace_5x5_regex(&replacements, 14, 14)?;
-                        println!("replace_count: {}", replace_count);
-                        HtmlLog::image(&input_image);
+                    if found_score == 0 {
+                        break;
                     }
+                    println!("found position: {},{}", found_x, found_y);
 
+                    let x: u8 = found_x;
+                    let y: u8 = found_y;
+                    let input_crop: Image = input_image.crop(x, y, 5, 5)?;
+                    let output_crop: Image = output_image.crop(x, y, 5, 5)?;
+
+                    let pattern: String = Self::pattern_of_two5x5(&input_crop, &output_crop, background_color)?;
+                    println!("pattern: {}", pattern);
+                    
+                    let target_color: u8 = output_crop.get(2, 2).unwrap_or(255);
+                    println!("target_color: {}", target_color);
+
+                    let item = ImageReplaceRegexToColor {
+                        regex: Regex::new(&pattern)?,
+                        color: target_color,
+                    };
+                    replacements.push(item);
+
+                    let replace_count: usize = input_image.replace_5x5_regex(&replacements, 14, 14)?;
+                    println!("replace_count: {}", replace_count);
+                    HtmlLog::image(&input_image);
                 }
                 HtmlLog::text("separator");
                 Ok(())
