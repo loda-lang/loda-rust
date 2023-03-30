@@ -9,7 +9,7 @@ mod tests {
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, convolution3x3_with_mask};
-    use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor};
+    use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition};
     use std::collections::{HashMap, HashSet};
     use anyhow::Context;
     use regex::Regex;
@@ -2587,10 +2587,166 @@ mod tests {
             pub fn new() -> Self {
                 Self {}
             }
+
+            fn is_equal_5x5_except_the_center_pixel(image0: &Image, image1: &Image) -> anyhow::Result<bool> {
+                if image0.width() != 5 || image0.height() != 5 || image1.width() != 5 || image1.height() != 5 {
+                    return Err(anyhow::anyhow!("both images must have the exact size 5x5"));
+                }
+                for y in 0..5 {
+                    for x in 0..5 {
+                        if y == 2 && x == 2 {
+                            // Ignore the center pixel of the 5x5
+                            continue;
+                        }
+                        let pixel_value0: u8 = image0.get(x as i32, y as i32).unwrap_or(255);
+                        let pixel_value1: u8 = image1.get(x as i32, y as i32).unwrap_or(255);
+                        if pixel_value0 != pixel_value1 {
+                            // One or more pixels are different
+                            return Ok(false);
+                        }
+                    }
+                }
+                // All pixels are the same
+                Ok(true)
+            }
+
+            fn similarity_of_two5x5(source_image: &Image, target_image: &Image, ignore_color: u8) -> anyhow::Result<(u8, u8)> {
+                if source_image.width() != 5 || source_image.height() != 5 || target_image.width() != 5 || target_image.height() != 5 {
+                    return Err(anyhow::anyhow!("both images must have the exact size 5x5"));
+                }
+                let target_pixel_value: u8 = target_image.get(2, 2).unwrap_or(255);
+
+                let mut count_same_as_target: u8 = 0;
+                let mut count_same: u8 = 0;
+                let mut count_different: u8 = 0;
+                for y in 0..5 {
+                    for x in 0..5 {
+                        if y == 2 && x == 2 {
+                            // Ignore the center pixel of the 5x5
+                            continue;
+                        }
+                        let pixel_value0: u8 = source_image.get(x as i32, y as i32).unwrap_or(255);
+                        let pixel_value1: u8 = target_image.get(x as i32, y as i32).unwrap_or(255);
+                        if pixel_value0 == ignore_color && pixel_value1 == ignore_color {
+                            continue;
+                        }
+                        if pixel_value0 != pixel_value1 {
+                            count_different += 1;
+                            continue;
+                        }
+                        // Idea, use distance from the center pixel to assign more weight to pixels near center
+                        if pixel_value0 == target_pixel_value {
+                            count_same_as_target += 1;
+                        } else {
+                            count_same += 1;
+                        }
+                    }
+                }
+                count_same += count_same_as_target * 10;
+                Ok((count_same, count_different))
+            }
+
+            fn pattern_of_two5x5(source_image: &Image, target_image: &Image, ignore_color: u8) -> anyhow::Result<String> {
+                if source_image.width() != 5 || source_image.height() != 5 || target_image.width() != 5 || target_image.height() != 5 {
+                    return Err(anyhow::anyhow!("both images must have the exact size 5x5"));
+                }
+                let mut pattern_parts = Vec::<String>::new();
+                for y in 0..5 {
+                    for x in 0..5 {
+                        let pixel_value0: u8 = source_image.get(x as i32, y as i32).unwrap_or(255);
+                        if y == 2 && x == 2 {
+                            // Special treatment for the center pixel of the 5x5
+                            pattern_parts.push(format!("{}", pixel_value0));
+                            continue;
+                        }
+                        let pixel_value1: u8 = target_image.get(x as i32, y as i32).unwrap_or(255);
+                        if pixel_value0 == ignore_color && pixel_value1 == ignore_color {
+                            pattern_parts.push("\\d+".into());
+                            continue;
+                        }
+                        pattern_parts.push(format!("{}", pixel_value0));
+                    }
+                }
+
+                let pattern: String = format!("^{}$", pattern_parts.join(","));
+                Ok(pattern)
+            }
+
+            fn analyze_train_pair(pair: &arc_work_model::Pair) -> anyhow::Result<()> {
+                let background_color: u8 = 0;
+                let mut input_image: Image = pair.input.image.padding_with_color(2, background_color)?;
+                let output_image: Image = pair.output.image.padding_with_color(2, background_color)?;
+
+                HtmlLog::text("analyze train pair");
+                let diff_mask: Image = pair.input.image.diff(&pair.output.image)?;
+                HtmlLog::image(&diff_mask);
+
+                let positions: Vec<(u8, u8)> = diff_mask.positions_where_color_is(1);
+                println!("positions: {:?}", positions);
+
+                for iteration in 0..1 {
+                    HtmlLog::text(format!("iteration: {}", iteration));
+
+                    let mut found_x: u8 = 0;
+                    let mut found_y: u8 = 0;
+                    let mut found_score: u8 = 0;
+                    for (x, y) in &positions {
+
+                        let input_crop: Image = input_image.crop(*x, *y, 5, 5)?;
+                        let output_crop: Image = output_image.crop(*x, *y, 5, 5)?;
+
+                        // Compare input_crop with output_crop, ignoring the center pixel
+                        // If they are nearly identical, then we know that it's only the center pixel that has changed.
+                        // And that we can establish a pattern at this position.
+                        let (count_same, count_diff) = Self::similarity_of_two5x5(&input_crop, &output_crop, background_color)?;
+                        println!("position: {},{}  same: {}  diff: {}", x, y, count_same, count_diff);
+                        if count_same > found_score {
+                            found_x = *x;
+                            found_y = *y;
+                            found_score = count_same;
+                        }
+                    }
+                    if found_score > 0 {
+                        println!("found position: {},{}", found_x, found_y);
+
+                        let x: u8 = found_x;
+                        let y: u8 = found_y;
+                        let input_crop: Image = input_image.crop(x, y, 5, 5)?;
+                        let output_crop: Image = output_image.crop(x, y, 5, 5)?;
+
+                        let pattern: String = Self::pattern_of_two5x5(&input_crop, &output_crop, background_color)?;
+                        println!("pattern: {}", pattern);
+                        
+                        let target_color: u8 = output_crop.get(2, 2).unwrap_or(255);
+                        println!("target_color: {}", target_color);
+
+                        let item = ImageReplaceRegexToColor {
+                            regex: Regex::new(&pattern)?,
+                            color: target_color,
+                        };
+    
+                        let replacements: Vec<ImageReplaceRegexToColor> = vec![
+                            item
+                        ];
+                        let replace_count: usize = input_image.replace_5x5_regex(&replacements, 14, 14)?;
+                        println!("replace_count: {}", replace_count);
+                        HtmlLog::image(&input_image);
+                    }
+
+                }
+                HtmlLog::text("separator");
+                Ok(())
+            }
         }
 
         impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+            fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
+                for pair in &task.pairs {
+                    if pair.pair_type != PairType::Train {
+                        continue;
+                    }
+                    Self::analyze_train_pair(pair)?;
+                }
                 Ok(())   
             }
     
