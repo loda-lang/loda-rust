@@ -2673,28 +2673,6 @@ mod tests {
                 }
             }
 
-            fn is_equal_5x5_except_the_center_pixel(image0: &Image, image1: &Image) -> anyhow::Result<bool> {
-                if image0.width() != 5 || image0.height() != 5 || image1.width() != 5 || image1.height() != 5 {
-                    return Err(anyhow::anyhow!("both images must have the exact size 5x5"));
-                }
-                for y in 0..5 {
-                    for x in 0..5 {
-                        if y == 2 && x == 2 {
-                            // Ignore the center pixel of the 5x5
-                            continue;
-                        }
-                        let pixel_value0: u8 = image0.get(x as i32, y as i32).unwrap_or(255);
-                        let pixel_value1: u8 = image1.get(x as i32, y as i32).unwrap_or(255);
-                        if pixel_value0 != pixel_value1 {
-                            // One or more pixels are different
-                            return Ok(false);
-                        }
-                    }
-                }
-                // All pixels are the same
-                Ok(true)
-            }
-
             fn similarity_of_two5x5(source_image: &Image, target_image: &Image, ignore_color: u8) -> anyhow::Result<(u8, u8)> {
                 if source_image.width() != 5 || source_image.height() != 5 || target_image.width() != 5 || target_image.height() != 5 {
                     return Err(anyhow::anyhow!("both images must have the exact size 5x5"));
@@ -2767,18 +2745,18 @@ mod tests {
                 let mut input_image: Image = pair.input.image.padding_with_color(2, background_color)?;
                 let output_image: Image = pair.output.image.padding_with_color(2, background_color)?;
 
-                HtmlLog::text("analyze train pair");
+                // HtmlLog::text("analyze train pair");
                 let mut replacements = Vec::<ImageReplaceRegexToColor>::new();
 
-                for iteration in 0..20 {
-                    HtmlLog::text(format!("iteration: {}", iteration));
+                for _iteration in 0..20 {
+                    // HtmlLog::text(format!("iteration: {}", iteration));
 
                     let current_input: Image = input_image.crop(2, 2, pair.input.image.width(), pair.input.image.height())?;
                     let diff_mask: Image = current_input.diff(&pair.output.image)?;
                     HtmlLog::image(&diff_mask);
     
                     let positions: Vec<(u8, u8)> = diff_mask.positions_where_color_is(1);
-                    println!("positions: {:?}", positions);
+                    // println!("positions: {:?}", positions);
                     if positions.is_empty() {
                         break;
                     }
@@ -2794,8 +2772,8 @@ mod tests {
                         // Compare input_crop with output_crop, ignoring the center pixel
                         // If they are nearly identical, then we know that it's only the center pixel that has changed.
                         // And that we can establish a pattern at this position.
-                        let (count_same, count_diff) = Self::similarity_of_two5x5(&input_crop, &output_crop, background_color)?;
-                        println!("position: {},{}  same: {}  diff: {}", x, y, count_same, count_diff);
+                        let (count_same, _count_diff) = Self::similarity_of_two5x5(&input_crop, &output_crop, background_color)?;
+                        // println!("position: {},{}  same: {}  diff: {}", x, y, count_same, count_diff);
                         if count_same > found_score {
                             found_x = *x;
                             found_y = *y;
@@ -2805,7 +2783,7 @@ mod tests {
                     if found_score == 0 {
                         break;
                     }
-                    println!("found position: {},{}", found_x, found_y);
+                    // println!("found position: {},{}", found_x, found_y);
 
                     let x: u8 = found_x;
                     let y: u8 = found_y;
@@ -2813,10 +2791,10 @@ mod tests {
                     let output_crop: Image = output_image.crop(x, y, 5, 5)?;
 
                     let pattern: String = Self::pattern_of_two5x5(&input_crop, &output_crop, background_color)?;
-                    println!("pattern: {}", pattern);
+                    // println!("pattern: {}", pattern);
                     
                     let target_color: u8 = output_crop.get(2, 2).unwrap_or(255);
-                    println!("target_color: {}", target_color);
+                    // println!("target_color: {}", target_color);
 
                     let item = ImageReplaceRegexToColor {
                         regex: Regex::new(&pattern)?,
@@ -2824,11 +2802,11 @@ mod tests {
                     };
                     replacements.push(item);
 
-                    let replace_count: usize = input_image.replace_5x5_regex(&replacements, 14, 14)?;
-                    println!("replace_count: {}", replace_count);
+                    let _replace_count: usize = input_image.replace_5x5_regex(&replacements, 14, 14)?;
+                    // println!("replace_count: {}", replace_count);
                     HtmlLog::image(&input_image);
                 }
-                HtmlLog::text("separator");
+                // HtmlLog::text("separator");
                 Ok(replacements)
             }
 
@@ -2868,8 +2846,8 @@ mod tests {
                         break;
                     }
                 }
-                println!("rules.len: {}", replacements_intersection.len());
-                println!("rules: {:?}", replacements_intersection);
+                // println!("rules.len: {}", replacements_intersection.len());
+                // println!("rules: {:?}", replacements_intersection);
                 self.replacements = replacements_intersection;
                 Ok(())   
             }
