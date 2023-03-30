@@ -1,6 +1,7 @@
 use super::Image;
 use regex::Regex;
 
+#[derive(Clone, Debug)]
 pub struct ImageReplaceRegexToColor {
     pub regex: Regex,
     pub color: u8,
