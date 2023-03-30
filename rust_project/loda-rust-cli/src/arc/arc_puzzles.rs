@@ -2864,6 +2864,9 @@ mod tests {
                     } else {
                         replacements_intersection = Self::intersection(&replacements_intersection, &replacements);
                     }
+                    if replacements_intersection.is_empty() {
+                        break;
+                    }
                 }
                 println!("rules.len: {}", replacements_intersection.len());
                 println!("rules: {:?}", replacements_intersection);
@@ -2883,7 +2886,7 @@ mod tests {
     }
 
     #[test]
-    fn test_560003_puzzle_5c0a986e_using_regex() {
+    fn test_560004_puzzle_5c0a986e_using_regex_advanced() {
         let mut instance = solve_5c0a986e_regex_advanced::MySolution::new();
         let result: String = run_analyze_and_solve("5c0a986e", &mut instance).expect("String");
         assert_eq!(result, "3 1");
