@@ -2578,7 +2578,7 @@ mod tests {
         }
     }
 
-    mod solve_5c0a986e_regex {
+    mod solve_5c0a986e_regex_manual {
         use super::*;
 
         pub struct MySolution;
@@ -2586,6 +2586,91 @@ mod tests {
         impl MySolution {
             pub fn new() -> Self {
                 Self {}
+            }
+        }
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+                let input: &Image = &data.image;
+
+                let pattern1a: &str = 
+                "^\\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,0,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,1,1,\
+                \\d+,\\d+,\\d+,1,1$";
+
+                let pattern1b: &str = 
+                "^\\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,0,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,1,0,\
+                \\d+,\\d+,\\d+,0,1$";
+
+                let pattern2a: &str = 
+                "^2,2,\\d+,\\d+,\\d+,\
+                2,2,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,0,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+$";
+        
+                let pattern2b: &str = 
+                "^2,0,\\d+,\\d+,\\d+,\
+                0,2,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,0,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+$";
+        
+                let replacements: Vec<ImageReplaceRegexToColor> = vec![
+                    ImageReplaceRegexToColor {
+                        regex: Regex::new(pattern1a).expect("regex"),
+                        color: 1,
+                    },
+                    ImageReplaceRegexToColor {
+                        regex: Regex::new(pattern1b).expect("regex"),
+                        color: 1,
+                    },
+                    ImageReplaceRegexToColor {
+                        regex: Regex::new(pattern2a).expect("regex"),
+                        color: 2,
+                    },
+                    ImageReplaceRegexToColor {
+                        regex: Regex::new(pattern2b).expect("regex"),
+                        color: 2,
+                    }
+                ];
+
+                let mut result_image: Image = input.padding_with_color(2, 0)?;
+                let _count: usize = result_image.replace_5x5_regex(&replacements, 14, 14)?;
+                // println!("replace_5x5_regex. count: {}", count);
+                let result_image_cropped: Image = result_image.crop(2, 2, input.width(), input.height())?;
+                Ok(result_image_cropped)
+            }
+        }
+    }
+
+    #[test]
+    fn test_560003_puzzle_5c0a986e_using_regex_manual() {
+        let mut instance = solve_5c0a986e_regex_manual::MySolution::new();
+        let result: String = run_analyze_and_solve("5c0a986e", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_5c0a986e_regex_advanced {
+        use super::*;
+
+        pub struct MySolution {
+            replacements: Vec<ImageReplaceRegexToColor>,
+        }
+    
+        impl MySolution {
+            pub fn new() -> Self {
+                Self {
+                    replacements: vec!()
+                }
             }
 
             fn is_equal_5x5_except_the_center_pixel(image0: &Image, image1: &Image) -> anyhow::Result<bool> {
@@ -2650,6 +2735,7 @@ mod tests {
                 if source_image.width() != 5 || source_image.height() != 5 || target_image.width() != 5 || target_image.height() != 5 {
                     return Err(anyhow::anyhow!("both images must have the exact size 5x5"));
                 }
+                let target_center_pixel_value: u8 = target_image.get(2, 2).unwrap_or(255);
                 let mut pattern_parts = Vec::<String>::new();
                 for y in 0..5 {
                     for x in 0..5 {
@@ -2664,7 +2750,11 @@ mod tests {
                             pattern_parts.push("\\d+".into());
                             continue;
                         }
-                        pattern_parts.push(format!("{}", pixel_value0));
+                        if pixel_value0 == target_center_pixel_value {
+                            pattern_parts.push(format!("{}", pixel_value0));
+                            continue;
+                        }
+                        pattern_parts.push("\\d+".into());
                     }
                 }
 
@@ -2672,7 +2762,7 @@ mod tests {
                 Ok(pattern)
             }
 
-            fn analyze_train_pair(pair: &arc_work_model::Pair) -> anyhow::Result<()> {
+            fn analyze_train_pair(pair: &arc_work_model::Pair) -> anyhow::Result<Vec<ImageReplaceRegexToColor>> {
                 let background_color: u8 = 0;
                 let mut input_image: Image = pair.input.image.padding_with_color(2, background_color)?;
                 let output_image: Image = pair.output.image.padding_with_color(2, background_color)?;
@@ -2739,73 +2829,52 @@ mod tests {
                     HtmlLog::image(&input_image);
                 }
                 HtmlLog::text("separator");
-                Ok(())
+                Ok(replacements)
+            }
+
+            fn intersection(items0: &Vec<ImageReplaceRegexToColor>, items1: &Vec<ImageReplaceRegexToColor>) -> Vec<ImageReplaceRegexToColor> {
+                let mut result_items = Vec::<ImageReplaceRegexToColor>::new();
+                for item0 in items0 {
+                    for item1 in items1 {
+                        if *item0.regex.as_str() != *item1.regex.as_str() {
+                            continue;
+                        }
+                        if item0.color != item1.color {
+                            continue;
+                        }
+                        result_items.push(item0.clone());
+                    }
+                }
+                result_items
             }
         }
 
         impl AnalyzeAndSolve for MySolution {
             fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
+                let mut is_first = true;
+                let mut replacements_intersection = Vec::<ImageReplaceRegexToColor>::new();
                 for pair in &task.pairs {
                     if pair.pair_type != PairType::Train {
                         continue;
                     }
-                    Self::analyze_train_pair(pair)?;
+                    let replacements: Vec<ImageReplaceRegexToColor> = Self::analyze_train_pair(pair)?;
+                    if is_first {
+                        is_first = false;
+                        replacements_intersection = replacements;
+                    } else {
+                        replacements_intersection = Self::intersection(&replacements_intersection, &replacements);
+                    }
                 }
+                println!("rules.len: {}", replacements_intersection.len());
+                println!("rules: {:?}", replacements_intersection);
+                self.replacements = replacements_intersection;
                 Ok(())   
             }
     
             fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
                 let input: &Image = &data.image;
-
-                let pattern1a: &str = 
-                "^\\d+,\\d+,\\d+,\\d+,\\d+,\
-                \\d+,\\d+,\\d+,\\d+,\\d+,\
-                \\d+,\\d+,0,\\d+,\\d+,\
-                \\d+,\\d+,\\d+,1,1,\
-                \\d+,\\d+,\\d+,1,1$";
-
-                let pattern1b: &str = 
-                "^\\d+,\\d+,\\d+,\\d+,\\d+,\
-                \\d+,\\d+,\\d+,\\d+,\\d+,\
-                \\d+,\\d+,0,\\d+,\\d+,\
-                \\d+,\\d+,\\d+,1,0,\
-                \\d+,\\d+,\\d+,0,1$";
-
-                let pattern2a: &str = 
-                "^2,2,\\d+,\\d+,\\d+,\
-                2,2,\\d+,\\d+,\\d+,\
-                \\d+,\\d+,0,\\d+,\\d+,\
-                \\d+,\\d+,\\d+,\\d+,\\d+,\
-                \\d+,\\d+,\\d+,\\d+,\\d+$";
-        
-                let pattern2b: &str = 
-                "^2,0,\\d+,\\d+,\\d+,\
-                0,2,\\d+,\\d+,\\d+,\
-                \\d+,\\d+,0,\\d+,\\d+,\
-                \\d+,\\d+,\\d+,\\d+,\\d+,\
-                \\d+,\\d+,\\d+,\\d+,\\d+$";
-        
-                let replacements: Vec<ImageReplaceRegexToColor> = vec![
-                    ImageReplaceRegexToColor {
-                        regex: Regex::new(pattern1a).expect("regex"),
-                        color: 1,
-                    },
-                    ImageReplaceRegexToColor {
-                        regex: Regex::new(pattern1b).expect("regex"),
-                        color: 1,
-                    },
-                    ImageReplaceRegexToColor {
-                        regex: Regex::new(pattern2a).expect("regex"),
-                        color: 2,
-                    },
-                    ImageReplaceRegexToColor {
-                        regex: Regex::new(pattern2b).expect("regex"),
-                        color: 2,
-                    }
-                ];
-
                 let mut result_image: Image = input.padding_with_color(2, 0)?;
-                let _count: usize = result_image.replace_5x5_regex(&replacements, 14, 14)?;
+                let _count: usize = result_image.replace_5x5_regex(&self.replacements, 14, 14)?;
                 // println!("replace_5x5_regex. count: {}", count);
                 let result_image_cropped: Image = result_image.crop(2, 2, input.width(), input.height())?;
                 Ok(result_image_cropped)
@@ -2815,7 +2884,7 @@ mod tests {
 
     #[test]
     fn test_560003_puzzle_5c0a986e_using_regex() {
-        let mut instance = solve_5c0a986e_regex::MySolution::new();
+        let mut instance = solve_5c0a986e_regex_advanced::MySolution::new();
         let result: String = run_analyze_and_solve("5c0a986e", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
