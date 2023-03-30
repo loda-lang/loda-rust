@@ -4,14 +4,13 @@ mod tests {
     use crate::arc::arc_work_model::{self, PairType};
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
-    use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize, ImageReplacePattern};
+    use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, convolution3x3_with_mask};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition};
-    use std::collections::{HashMap, HashSet};
-    use anyhow::Context;
+    use std::collections::HashMap;
     use regex::Regex;
 
     #[allow(unused_imports)]
@@ -2331,253 +2330,6 @@ mod tests {
         assert_eq!(result, "4 1");
     }
 
-    // #[test]
-    fn test_560000_puzzle_913fb3ed() {
-        let mut instance = solve_5c0a986e::MySolution::new();
-        let result: String = run_analyze_and_solve("913fb3ed", &mut instance).expect("String");
-        assert_eq!(result, "4 1");
-    }
-
-    // #[test]
-    fn test_560001_puzzle_54d9e175() {
-        let mut instance = solve_5c0a986e::MySolution::new();
-        let result: String = run_analyze_and_solve("54d9e175", &mut instance).expect("String");
-        assert_eq!(result, "4 1");
-    }
-
-    #[test]
-    fn test_560002_puzzle_b60334d2() {
-        let mut instance = solve_5c0a986e::MySolution::new();
-        let result: String = run_analyze_and_solve("b60334d2", &mut instance).expect("String");
-        assert_eq!(result, "2 1");
-    }
-
-    // #[test]
-    fn test_560003_puzzle_5c0a986e() {
-        let mut instance = solve_5c0a986e::MySolution::new();
-        let result: String = run_analyze_and_solve("5c0a986e", &mut instance).expect("String");
-        assert_eq!(result, "3 1");
-    }
-
-    mod solve_5c0a986e {
-        use super::*;
-
-        fn conv3x3_direction_of_same_pixel(bm: &Image) -> anyhow::Result<u8> {
-            let mut found: Option<u8> = None;
-            for y in 0..3u8 {
-                for x in 0..3u8 {
-                    if y == 1 && x == 1 {
-                        // skip the center pixel
-                        continue;
-                    }
-
-                    let current_pixel: u8 = bm.get(x as i32, y as i32).context("current pixel")?;
-                    if current_pixel == 0 {
-                        continue;
-                    }
-                    if found.is_some() {
-                        // There are two or more neighbour pixels with the same value as the center pixel
-                        return Ok(254);
-                    }
-                    found = Some(y * 3 + x);
-                }
-            }
-            match found {
-                Some(value) => Ok(value),
-                None => Ok(255)
-            }
-        }
-
-        type Dict = HashMap<Image, Image>;
-    
-        pub struct MySolution {
-            dict_outer: Dict,
-        }
-    
-        impl MySolution {
-            pub fn new() -> Self {
-                Self {
-                    dict_outer: Dict::new(),
-                }
-            }
-        }
-
-        impl MySolution {
-            fn extract_substitutions(input: &Image, output: &Image, directions: &Image, replacements: &mut Dict) -> anyhow::Result<usize> {
-                let size = input.size();
-                if size != output.size() || size != directions.size() {
-                    return Err(anyhow::anyhow!("the images must have same size"));
-                }
-                let mut number_of_replacements_found: usize = 0;
-                for y in 0..size.height {
-                    for x in 0..size.width {
-                        let direction: u8 = directions.get(x as i32, y as i32).unwrap_or(255);
-                        if direction > 8 {
-                            continue;
-                        }
-
-                        let dx: i32 = (direction % 3) as i32 - 1;
-                        let dy: i32 = (direction / 3) as i32 - 1;
-                        let message0 = format!("position {},{} direction: {},{}", x, y, dx, dy);
-                        HtmlLog::text(message0);
-
-                        let crop_x_i32: i32 = (x as i32) + dx - 1;
-                        let crop_y_i32: i32 = (y as i32) + dy - 1;
-                        let message1 = format!("crop position: {},{}", crop_x_i32, crop_y_i32);
-                        HtmlLog::text(message1);
-
-                        if crop_x_i32 < 0 || crop_y_i32 < 0 {
-                            continue;                            
-                        }
-                        let crop_x: u8 = crop_x_i32 as u8;
-                        let crop_y: u8 = crop_y_i32 as u8;
-
-                        let cropped_input: Image = match input.crop(crop_x, crop_y, 3, 3) {
-                            Ok(image) => image,
-                            Err(error) => {
-                                let message = format!("Unable to crop input at {},{} error: {:?}", crop_x, crop_y, error);
-                                HtmlLog::text(message);
-                                continue;
-                            }
-                        };
-                        HtmlLog::image(&cropped_input);
-
-                        let cropped_output: Image = match output.crop(crop_x, crop_y, 3, 3) {
-                            Ok(image) => image,
-                            Err(error) => {
-                                let message = format!("Unable to crop output at {},{} error: {:?}", crop_x, crop_y, error);
-                                HtmlLog::text(message);
-                                continue;
-                            }
-                        };
-                        HtmlLog::image(&cropped_output);
-
-                        let replace_source = cropped_input;
-                        let replace_target = cropped_output;
-                        if let Some(value) = replacements.get(&replace_source) {
-                            if *value != replace_target {
-                                return Err(anyhow::anyhow!("No consensus on what replacements are to be done"));
-                            }
-                        }
-                        replacements.insert(replace_source, replace_target);
-                        number_of_replacements_found += 1;
-                    }
-                }
-                Ok(number_of_replacements_found)
-            }
-
-            fn analyze_train_pair(pair: &arc_work_model::Pair) -> anyhow::Result<Dict> {
-                let mut dict = Dict::new();
-                let mut input_image: Image = pair.input.image.clone();
-                for iteration in 0..4 {
-                    HtmlLog::text(format!("iteration: {}", iteration));
-
-                    let diff_mask: Image = input_image.diff(&pair.output.image)?;
-                    HtmlLog::image(&diff_mask);
-
-                    let image0: Image = input_image.padding_with_color(1, 0)?;
-
-                    // Direction to nearest adjacent object
-                    let directions: Image = convolution3x3_with_mask(&image0, &diff_mask, 254, conv3x3_direction_of_same_pixel)?;
-                    HtmlLog::image(&directions);
-
-                    let count: usize = Self::extract_substitutions(&input_image, &pair.output.image, &directions, &mut dict)?;
-                    if count == 0 {
-                        HtmlLog::text(format!("replacements added: none, stop iterating"));
-                        break;
-                    }
-                    HtmlLog::text(format!("replacements added: {}", count));
-
-                    let mut image1: Image = input_image.clone();
-                    image1.replace_pattern(&dict, 1).expect("ok");
-                    HtmlLog::image(&image1);
-
-                    if image1 == input_image {
-                        break;
-                    }
-
-                    input_image = image1;
-                }
-                HtmlLog::text("separator");
-                Ok(dict)
-            }
-
-            fn intersection(dict0: &Dict, dict1: &Dict) -> anyhow::Result<Dict> {
-                let mut keys_remove = HashSet::<Image>::new();
-                let mut result_dict: Dict = dict0.clone();
-                for (key, value0) in dict0 {
-                    let value1: &Image = match dict1.get(key) {
-                        Some(value) => { value },
-                        None => {
-                            HtmlLog::text("intersection, removing key that isn't shared between all the dictionaries");
-                            keys_remove.insert(key.clone());
-                            continue;
-                        }
-                    };
-                    if value0 != value1 {
-                        HtmlLog::text("intersection, removing key that has ambiguous values");
-                        keys_remove.insert(key.clone());
-                    }
-                }
-                for key in keys_remove {
-                    result_dict.remove(&key);
-                }
-                Ok(result_dict)
-            }
-        }
-        
-        impl AnalyzeAndSolve for MySolution {
-            fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
-                let mut dict_intersection = Dict::new();
-                let mut count_train = 0;
-                for pair in &task.pairs {
-                    if pair.pair_type != PairType::Train {
-                        continue;
-                    }
-                    let is_first: bool = count_train == 0;
-                    count_train += 1;
-
-                    let dict: Dict = Self::analyze_train_pair(pair)?;
-
-                    if is_first {
-                        dict_intersection = dict;
-                    } else {
-                        dict_intersection = Self::intersection(&dict_intersection, &dict)?;
-                    }
-
-                    // TODO: for each pixel in the diff_mask
-                    // TODO: Measure distance to nearest object of same color, 3x3 conv, 0=no direction, 1..9=direction
-                    // TODO: Pick the pixel that is closest to the nearest object, and make a substitution rule
-                    // TODO: Apply the substitution rule.
-                    // TODO: Rerun the entire procedure until all pixels in the diff_mask have been processed.
-                }
-                // TODO: update self.dict_outer with the identified substitutions
-                self.dict_outer = dict_intersection;
-                Ok(())   
-            }
-    
-            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
-                let input: &Image = &data.image;
-                let mut result_image: Image = input.clone();
-                // Do substitutions from the dictionary
-                for _ in 0..100 {
-                    let mut stop = true;
-                    for (key, value) in &self.dict_outer {
-                        let position = result_image.find_exact(key)?;
-                        if let Some((x, y)) = position {
-                            result_image = result_image.overlay_with_position(value, x as i32, y as i32)?;
-                            stop = false;
-                        }
-                    }
-                    if stop {
-                        break;
-                    }
-                }
-                Ok(result_image)
-            }
-        }
-    }
-
     mod solve_5c0a986e_regex_manual {
         use super::*;
 
@@ -2753,7 +2505,7 @@ mod tests {
 
                     let current_input: Image = input_image.crop(2, 2, pair.input.image.width(), pair.input.image.height())?;
                     let diff_mask: Image = current_input.diff(&pair.output.image)?;
-                    HtmlLog::image(&diff_mask);
+                    // HtmlLog::image(&diff_mask);
     
                     let positions: Vec<(u8, u8)> = diff_mask.positions_where_color_is(1);
                     // println!("positions: {:?}", positions);
@@ -2804,7 +2556,7 @@ mod tests {
 
                     let _replace_count: usize = input_image.replace_5x5_regex(&replacements, 14, 14)?;
                     // println!("replace_count: {}", replace_count);
-                    HtmlLog::image(&input_image);
+                    // HtmlLog::image(&input_image);
                 }
                 // HtmlLog::text("separator");
                 Ok(replacements)
