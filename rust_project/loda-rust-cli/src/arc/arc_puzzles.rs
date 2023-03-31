@@ -2810,4 +2810,16 @@ mod tests {
         let result: String = solution.run("017c7c7b").expect("String");
         assert_eq!(result, "3 1");
     }
+
+    #[test]
+    fn test_660000_puzzle_6f8cd79b() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let cropped: Image = input.crop(1, 1, input.width() - 2, input.height() - 2)?;
+            let result_image: Image = cropped.padding_with_color(1, 42)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("6f8cd79b").expect("String");
+        assert_eq!(result, "4 1");
+    }
 }
