@@ -2,7 +2,7 @@
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model::{self, PairType};
-    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat};
+    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
@@ -2789,5 +2789,25 @@ mod tests {
         };
         let result: String = solution.run("c444b776").expect("String");
         assert_eq!(result, "2 1");
+    }
+
+    #[test]
+    fn test_650000_puzzle_017c7c7b() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let ignore_mask = Image::zero(input.width(), input.height());
+            let periodicity_optional: Option<u8> = input.vertical_periodicity(&ignore_mask)?;
+            let periodicity: u8 = periodicity_optional.expect("u8");
+            if periodicity < 1 {
+                return Err(anyhow::anyhow!("expected periodicity to be 1 or more"));
+            }
+            let repeat_count: u8 = (9 / periodicity) + 1;
+            let pattern: Image = input.top_rows(periodicity)?;
+            let mut result_image: Image = pattern.repeat_by_count(1, repeat_count)?;
+            result_image = result_image.crop(0, 0, input.width(), 9)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("017c7c7b").expect("String");
+        assert_eq!(result, "3 1");
     }
 }
