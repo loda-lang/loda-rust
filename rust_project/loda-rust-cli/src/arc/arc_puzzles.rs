@@ -2,7 +2,7 @@
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model::{self, PairType};
-    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve};
+    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
@@ -2634,5 +2634,23 @@ mod tests {
         };
         let result: String = solution.run("3428a4f5").expect("String");
         assert_eq!(result, "4 2");
+    }
+
+    #[test]
+    fn test_580000_puzzle_25d8a9c8() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let histograms: Vec<Histogram> = input.histogram_rows();
+            let mut result_image = Image::zero(1, input.height());
+            for (index, histogram) in histograms.iter().enumerate() {
+                if histogram.number_of_counters_greater_than_zero() == 1 {
+                    _ = result_image.set(0, index as i32, 1);
+                }
+            }
+            result_image = result_image.repeat_by_count(input.width(), 1)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("25d8a9c8").expect("String");
+        assert_eq!(result, "4 1");
     }
 }
