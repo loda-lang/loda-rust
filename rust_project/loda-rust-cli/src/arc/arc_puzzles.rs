@@ -2663,4 +2663,16 @@ mod tests {
         let result: String = solution.run("50cb2852").expect("String");
         assert_eq!(result, "3 1");
     }
+
+    #[test]
+    fn test_600000_puzzle_c1d99e64() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let mask: Image = input.mask_for_gridcells(None)?;
+            let result_image: Image = mask.select_from_color_and_image(42, &input)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("c1d99e64").expect("String");
+        assert_eq!(result, "3 1");
+    }
 }
