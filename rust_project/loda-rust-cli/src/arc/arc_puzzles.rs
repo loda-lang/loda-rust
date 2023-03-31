@@ -2689,4 +2689,30 @@ mod tests {
         let result: String = solution.run("f2829549").expect("String");
         assert_eq!(result, "5 1");
     }
+
+    #[test]
+    fn test_620000_puzzle_662c240a() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let height: u8 = input.height() / 3;
+            let mut images = Vec::<Image>::new();
+            for i in 0..3 {
+                let y: i32 = (height as i32) * i;
+                if y > (u8::MAX as i32) {
+                    return Err(anyhow::anyhow!("cannot split image"));
+                }
+                let image: Image = input.crop(0, y as u8, input.width(), height)?;
+                images.push(image);
+            }
+            for image in &images {
+                if image.is_symmetric_any_diagonal()? {
+                    continue;
+                }
+                return Ok(image.clone()); 
+            }
+            Err(anyhow::anyhow!("no non-symmetric image found"))
+        };
+        let result: String = solution.run("662c240a").expect("String");
+        assert_eq!(result, "4 1");
+    }
 }
