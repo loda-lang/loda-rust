@@ -17,6 +17,22 @@ enum MemoryLayoutItem {
     InputImage = 0,
     ExpectedOutputImage = 1,
     ComputedOutputImage = 2,
+    // PredictedWidth = 3,
+    // PredictedHeight = 4,
+
+    // Ideas for more
+    // Background color in input
+    // Predicted background color in output
+    // Primary color
+    // Secondary color
+    // Grid color
+    // Primary object mask
+    // Child object mask
+    // Cell mask
+    // Grid mask
+    // Objects enumerated
+    // Cell width
+    // Cell height
 }
 
 pub struct RunWithProgramResult {

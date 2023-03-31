@@ -87,6 +87,9 @@ pub enum ActionLabel {
     OutputImageIsTheObjectWithObjectLabel { object_label: ObjectLabel },
 
     // Ideas for more
+    // OutputMaskIsTheSameAsInputMask,
+    // OutputMaskIsASubsetOfInputMask,
+    // InputMaskIsASubsetOfOutputMask,
     // AllObjectsHaveTheSameSizeAsTheOutputImage
     // OutputImageRowsAllPresentInTheInputImage,
     // OutputImageColumnsAllPresentInTheInputImage,
