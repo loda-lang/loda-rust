@@ -2675,4 +2675,18 @@ mod tests {
         let result: String = solution.run("c1d99e64").expect("String");
         assert_eq!(result, "3 1");
     }
+
+    #[test]
+    fn test_610000_puzzle_f2829549() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let half_width: u8 = input.width() / 2;
+            let a: Image = input.left_columns(half_width)?;
+            let b: Image = input.right_columns(half_width)?;
+            let result_image: Image = a.mask_or(&b)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("f2829549").expect("String");
+        assert_eq!(result, "5 1");
+    }
 }
