@@ -9,7 +9,7 @@ mod tests {
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding};
-    use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean};
+    use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use std::collections::HashMap;
     use regex::Regex;
 
@@ -2640,13 +2640,8 @@ mod tests {
     fn test_580000_puzzle_25d8a9c8() {
         let solution: SolutionSimple = |data| {
             let input: Image = data.image;
-            let histograms: Vec<Histogram> = input.histogram_rows();
-            let mut result_image = Image::zero(1, input.height());
-            for (index, histogram) in histograms.iter().enumerate() {
-                if histogram.number_of_counters_greater_than_zero() == 1 {
-                    _ = result_image.set(0, index as i32, 1);
-                }
-            }
+            let mut result_image: Image = input.count_unique_colors_per_row()?;
+            result_image = result_image.to_mask_where_color_is_different(1);
             result_image = result_image.repeat_by_count(input.width(), 1)?;
             Ok(result_image)
         };
