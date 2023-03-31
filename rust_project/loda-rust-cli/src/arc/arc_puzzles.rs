@@ -2728,4 +2728,66 @@ mod tests {
         let result: String = solution.run("b6afb2da").expect("String");
         assert_eq!(result, "2 1");
     }
+
+    #[test]
+    fn test_640000_puzzle_c444b776() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+
+            // Objects from the grid
+            let cell_mask: Image = input.mask_for_gridcells(Some(4))?;
+            let ignore_mask: Image = cell_mask.invert_mask();
+            let objects: Vec<Image> = cell_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, ignore_mask)?;
+
+            // Identify the single template image
+            let mut image_to_insert: Option<Image> = None;
+            let mut number_of_images_found: usize = 0;
+            for object in &objects {
+                let tuple = match object.bounding_box() {
+                    Some(tuple) => tuple,
+                    None => {
+                        return Err(anyhow::anyhow!("expected all objects to have a bounding box"));
+                    }
+                };
+                let (x, y, width, height) = tuple;
+                let image: Image = input.crop(x, y, width, height)?;
+                let count: u32 = image.histogram_all().number_of_counters_greater_than_zero();
+                if count == 1 {
+                    continue;
+                }
+                image_to_insert = Some(image);
+                number_of_images_found += 1;
+            }
+            if number_of_images_found >= 2 {
+                return Err(anyhow::anyhow!("Found 2 or more patterns to insert"));
+            }
+            let template_image: Image = match image_to_insert {
+                Some(image) => image,
+                None => {
+                    return Err(anyhow::anyhow!("Didn't find any pattern for insertion"));
+                }
+            };
+
+            // Insert the template image into all the empty cells
+            let mut result_image: Image = input.clone();
+            for object in &objects {
+                let tuple = match object.bounding_box() {
+                    Some(tuple) => tuple,
+                    None => {
+                        return Err(anyhow::anyhow!("expected all objects to have a bounding box"));
+                    }
+                };
+                let (x, y, width, height) = tuple;
+                let image: Image = input.crop(x, y, width, height)?;
+                let count: u32 = image.histogram_all().number_of_counters_greater_than_zero();
+                if count != 1 {
+                    continue;
+                }
+                result_image = result_image.overlay_with_position(&template_image, x as i32, y as i32)?;
+            }
+            Ok(result_image)
+        };
+        let result: String = solution.run("c444b776").expect("String");
+        assert_eq!(result, "2 1");
+    }
 }
