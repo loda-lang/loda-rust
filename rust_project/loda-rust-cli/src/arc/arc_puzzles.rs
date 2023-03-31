@@ -2648,4 +2648,19 @@ mod tests {
         let result: String = solution.run("25d8a9c8").expect("String");
         assert_eq!(result, "4 1");
     }
+
+    #[test]
+    fn test_590000_puzzle_50cb2852() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let color_count: Image = input.count_duplicate_pixels_in_3x3()?;
+            let count_mask: Image = color_count.to_mask_where_color_is_equal_or_greater_than(8);
+            let object_mask: Image = input.to_mask_where_color_is_different(0);
+            let mask: Image = count_mask.mask_and(&object_mask)?;
+            let result_image: Image = mask.select_from_image_and_color(&input, 42)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("50cb2852").expect("String");
+        assert_eq!(result, "3 1");
+    }
 }
