@@ -9,7 +9,7 @@ mod tests {
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding};
-    use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition};
+    use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean};
     use std::collections::HashMap;
     use regex::Regex;
 
@@ -2620,5 +2620,19 @@ mod tests {
         let mut instance = solve_5c0a986e_regex_advanced::MySolution::new();
         let result: String = run_analyze_and_solve("5c0a986e", &mut instance).expect("String");
         assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_570000_puzzle_3428a4f5() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let half_height: u8 = input.height() / 2;
+            let a: Image = input.top_rows(half_height)?;
+            let b: Image = input.bottom_rows(half_height)?;
+            let result_image: Image = a.mask_xor(&b)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("3428a4f5").expect("String");
+        assert_eq!(result, "4 2");
     }
 }
