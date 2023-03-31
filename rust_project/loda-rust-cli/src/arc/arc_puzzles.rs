@@ -2822,4 +2822,34 @@ mod tests {
         let result: String = solution.run("6f8cd79b").expect("String");
         assert_eq!(result, "4 1");
     }
+
+    #[test]
+    fn test_670000_puzzle_cf98881b() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let width: u8 = (input.width() - 2) / 3;
+            let mut images = Vec::<Image>::new();
+            for i in 0..3 {
+                let x: i32 = (width as i32 + 1) * i;
+                if x > (u8::MAX as i32) {
+                    return Err(anyhow::anyhow!("cannot split image"));
+                }
+                let image: Image = input.crop(x as u8, 0, width, input.height())?;
+                images.push(image);
+            }
+            images.reverse();
+            let mut result_image = Image::empty();
+            for (index, image) in images.iter().enumerate() {
+                if index == 0 {
+                    result_image = image.clone();
+                    continue;
+                }
+                let mask: Image = image.to_mask_where_color_is_different(0);
+                result_image = mask.select_from_images(&result_image, &image)?;
+            }
+            Ok(result_image)
+        };
+        let result: String = solution.run("cf98881b").expect("String");
+        assert_eq!(result, "5 1");
+    }
 }
