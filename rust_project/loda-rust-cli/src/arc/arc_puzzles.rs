@@ -2715,4 +2715,17 @@ mod tests {
         let result: String = solution.run("662c240a").expect("String");
         assert_eq!(result, "4 1");
     }
+
+    #[test]
+    fn test_630000_puzzle_b6afb2da() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let color_count: Image = input.count_duplicate_pixels_in_3x3()?;
+            let object_mask: Image = input.to_mask_where_color_is_different(0);
+            let result_image: Image = object_mask.select_from_color_and_image(42, &color_count)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("b6afb2da").expect("String");
+        assert_eq!(result, "2 1");
+    }
 }
