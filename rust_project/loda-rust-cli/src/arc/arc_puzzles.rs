@@ -2,6 +2,7 @@
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model::{self, PairType};
+    use crate::arc::ActionLabel;
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
@@ -2107,78 +2108,85 @@ mod tests {
         assert_eq!(result, "4 1");
     }
 
+    mod solve_ea959feb {
+        use super::*;
+
+        pub struct MySolution {
+            repair_color: u8,
+        }
+    
+        impl MySolution {
+            pub fn new() -> Self {
+                Self {
+                    repair_color: 255
+                }
+            }
+        }
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
+                // Obtain the color is used for damaged pixels
+                let mut found_color: Option<u8> = None;
+                for label in &task.action_label_set_intersection {
+                    match label {
+                        ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color } => {
+                            found_color = Some(*color);
+                            break;
+                        },
+                        _ => {}
+                    };
+                }
+
+                let color: u8 = match found_color {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Expected a repair color"));
+                    }
+                };
+    
+                self.repair_color = color;
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+                let input: &Image = &data.image;
+                let result_image: Image = input.repair_pattern(self.repair_color)?;
+                Ok(result_image)
+            }
+        }
+    }
+
     #[test]
     fn test_470000_puzzle_e95e3d8e() {
-        let solution: SolutionSimple = |data| {
-            let input = data.image;
-
-            // determine what color is used for damaged pixels
-            let repair_color: u8 = 0;
-
-            let result_image: Image = input.repair_pattern(repair_color)?;
-            Ok(result_image)
-        };
-        let result: String = solution.run("e95e3d8e").expect("String");
+        let mut instance = solve_ea959feb::MySolution::new();
+        let result: String = run_analyze_and_solve("e95e3d8e", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 
     #[test]
     fn test_480000_puzzle_1d0a4b61() {
-        let solution: SolutionSimple = |data| {
-            let input = data.image;
-
-            // determine what color is used for damaged pixels
-            let repair_color: u8 = 0;
-
-            let result_image: Image = input.repair_pattern(repair_color)?;
-            Ok(result_image)
-        };
-        let result: String = solution.run("1d0a4b61").expect("String");
+        let mut instance = solve_ea959feb::MySolution::new();
+        let result: String = run_analyze_and_solve("1d0a4b61", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 
     #[test]
     fn test_490000_puzzle_ca8f78db() {
-        let solution: SolutionSimple = |data| {
-            let input = data.image;
-
-            // determine what color is used for damaged pixels
-            let repair_color: u8 = 0;
-
-            let result_image: Image = input.repair_pattern(repair_color)?;
-            Ok(result_image)
-        };
-        let result: String = solution.run("ca8f78db").expect("String");
+        let mut instance = solve_ea959feb::MySolution::new();
+        let result: String = run_analyze_and_solve("ca8f78db", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 
     #[test]
     fn test_500000_puzzle_29ec7d0e() {
-        let solution: SolutionSimple = |data| {
-            let input = data.image;
-
-            // determine what color is used for damaged pixels
-            let repair_color: u8 = 0;
-
-            let result_image: Image = input.repair_pattern(repair_color)?;
-            Ok(result_image)
-        };
-        let result: String = solution.run("29ec7d0e").expect("String");
+        let mut instance = solve_ea959feb::MySolution::new();
+        let result: String = run_analyze_and_solve("29ec7d0e", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
     #[test]
     fn test_510000_puzzle_ea959feb() {
-        let solution: SolutionSimple = |data| {
-            let input = data.image;
-
-            // determine what color is used for damaged pixels
-            let repair_color: u8 = 1;
-
-            let result_image: Image = input.repair_pattern(repair_color)?;
-            Ok(result_image)
-        };
-        let result: String = solution.run("ea959feb").expect("String");
+        let mut instance = solve_ea959feb::MySolution::new();
+        let result: String = run_analyze_and_solve("ea959feb", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 
