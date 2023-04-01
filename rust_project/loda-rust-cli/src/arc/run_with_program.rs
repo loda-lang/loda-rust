@@ -28,6 +28,15 @@ enum MemoryLayoutItem {
     /// When it's not available then the value is `-1`.
     PredictedOutputHeight = 4,
     
+    /// The output image seems to a copy of the input image.
+    /// 
+    /// The changes are isolated to pixels with a particular color.
+    /// It's unclear how many of the pixels that changes state.
+    /// It may be just a few pixels that changes state, or it may be all of the pixels.
+    /// 
+    /// When the `OutputImageIsInputImageWithChangesLimitedToPixelsWithColor` is available it's a color value in the range `[0..255]`.
+    /// 
+    /// When it's not available then the value is `-1`.
     OutputImageIsInputImageWithChangesLimitedToPixelsWithColor = 5,
 
     // Ideas for more
