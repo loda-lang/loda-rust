@@ -87,7 +87,9 @@ pub enum ActionLabel {
     OutputImageIsTheObjectWithObjectLabel { object_label: ObjectLabel },
 
     OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color: u8 },
-
+    OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage,
+    OutputImageIsInputImageWithChangesLimitedToPixelsWithLeastPopularColorOfTheInputImage,
+    
     // Ideas for more
     // OutputMaskIsTheSameAsInputMask,
     // OutputMaskIsASubsetOfInputMask,

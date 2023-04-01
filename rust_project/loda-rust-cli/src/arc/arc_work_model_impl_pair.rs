@@ -174,8 +174,19 @@ impl arc_work_model::Pair {
             }
         };
 
-        let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color };
-        self.action_label_set.insert(label);
+        {
+            let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color };
+            self.action_label_set.insert(label);
+        }
+        if self.input.histogram.most_popular_color() == Some(color) {
+            let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage;
+            self.action_label_set.insert(label);
+        }
+        if self.input.histogram.least_popular_color() == Some(color) {
+            let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithLeastPopularColorOfTheInputImage;
+            self.action_label_set.insert(label);
+        }
+
         Ok(())
     }
 
