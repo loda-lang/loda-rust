@@ -17,9 +17,17 @@ enum MemoryLayoutItem {
     InputImage = 0,
     ExpectedOutputImage = 1,
     ComputedOutputImage = 2,
-    // PredictedWidth = 3,
-    // PredictedHeight = 4,
 
+    /// When the `PredictedOutputWidth` is available it's a value in the range `[0..255]`.
+    /// 
+    /// When it's not available then the value is `-1`.
+    PredictedOutputWidth = 3,
+
+    /// When the `PredictedOutputHeight` is available it's a value in the range `[0..255]`.
+    /// 
+    /// When it's not available then the value is `-1`.
+    PredictedOutputHeight = 4,
+    
     // Ideas for more
     // Repair mask
     // Repair color
@@ -225,27 +233,37 @@ impl RunWithProgram {
     /// $100 = train[0] input
     /// $101 = train[0] expected_output
     /// $102 = train[0] computed_output
-    /// $103..199 is reserved for train[0] extra data
+    /// $103 = train[0] PredictedOutputWidth
+    /// $104 = train[0] PredictedOutputHeight
+    /// $105..199 is reserved for train[0] extra data
     /// ---
     /// $200 = train[1] input
     /// $201 = train[1] expected_output
     /// $202 = train[1] computed_output
-    /// $203..299 is reserved for train[1] extra data
+    /// $203 = train[1] PredictedOutputWidth
+    /// $204 = train[1] PredictedOutputHeight
+    /// $205..299 is reserved for train[1] extra data
     /// ---
     /// $300 = train[2] input
     /// $301 = train[2] expected_output
     /// $302 = train[2] computed_output
-    /// $303..399 is reserved for train[2] extra data
+    /// $303 = train[2] PredictedOutputWidth
+    /// $304 = train[2] PredictedOutputHeight
+    /// $305..399 is reserved for train[2] extra data
     /// ---
     /// $400 = train[3] input
     /// $401 = train[3] expected_output
     /// $402 = train[3] computed_output
-    /// $403..499 is reserved for train[3] extra data
+    /// $403 = train[3] PredictedOutputWidth
+    /// $404 = train[3] PredictedOutputHeight
+    /// $405..499 is reserved for train[3] extra data
     /// ---
     /// $500 = test[0] input
     /// $501 = test[0] expected_output <---- this is not provided, it's up to the program to compute it.
     /// $502 = test[0] computed_output
-    /// $503..599 is reserved for test[0] extra data
+    /// $503 = test[0] PredictedOutputWidth
+    /// $504 = test[0] PredictedOutputHeight
+    /// $505..599 is reserved for test[0] extra data
     /// ```
     fn initial_memory_layout(&self, state: &mut ProgramState) -> anyhow::Result<()> {
 
@@ -278,8 +296,27 @@ impl RunWithProgram {
                 state.set_u64(address + MemoryLayoutItem::ComputedOutputImage as u64, value).context("pair.ComputedOutputImage, set_u64")?;
             }
 
+            // memory[x*100+103] = train[x].predicted output width
+            // memory[x*100+104] = train[x].predicted output height
+            {
+                let width: i16;
+                let height: i16;
+                if let Some(size) = pair.predicted_output_size() {
+                    width = size.width as i16;
+                    height = size.height as i16;
+                } else {
+                    width = -1;
+                    height = -1;
+                }
+                if let Some(value) = width.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::PredictedOutputWidth as u64, value).context("pair.PredictedOutputWidth, set_u64")?;
+                }
+                if let Some(value) = height.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::PredictedOutputHeight as u64, value).context("pair.PredictedOutputHeight, set_u64")?;
+                }
+            }
+
             // Ideas for data to make available to the program.
-            // output_size
             // output_palette
             // substitutions, replace this color with that color
             // substitutions, replace this image with that image
@@ -317,6 +354,26 @@ impl RunWithProgram {
             {
                 let value: BigInt = -BigInt::one();
                 state.set_u64(address + MemoryLayoutItem::ComputedOutputImage as u64, value).context("pair.ComputedOutputImage, set_u64")?;
+            }
+
+            // memory[x*100+103] = test[x].predicted output width
+            // memory[x*100+104] = test[x].predicted output height
+            {
+                let width: i16;
+                let height: i16;
+                if let Some(size) = pair.predicted_output_size() {
+                    width = size.width as i16;
+                    height = size.height as i16;
+                } else {
+                    width = -1;
+                    height = -1;
+                }
+                if let Some(value) = width.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::PredictedOutputWidth as u64, value).context("pair.PredictedOutputWidth, set_u64")?;
+                }
+                if let Some(value) = height.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::PredictedOutputHeight as u64, value).context("pair.PredictedOutputHeight, set_u64")?;
+                }
             }
 
             count_test += 1;
