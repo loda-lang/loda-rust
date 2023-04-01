@@ -2156,35 +2156,35 @@ mod tests {
     }
 
     #[test]
-    fn test_470000_puzzle_e95e3d8e() {
-        let mut instance = solve_ea959feb::MySolution::new();
-        let result: String = run_analyze_and_solve("e95e3d8e", &mut instance).expect("String");
-        assert_eq!(result, "3 1");
-    }
-
-    #[test]
-    fn test_480000_puzzle_1d0a4b61() {
+    fn test_470000_puzzle_1d0a4b61() {
         let mut instance = solve_ea959feb::MySolution::new();
         let result: String = run_analyze_and_solve("1d0a4b61", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 
     #[test]
-    fn test_490000_puzzle_ca8f78db() {
-        let mut instance = solve_ea959feb::MySolution::new();
-        let result: String = run_analyze_and_solve("ca8f78db", &mut instance).expect("String");
-        assert_eq!(result, "3 1");
-    }
-
-    #[test]
-    fn test_500000_puzzle_29ec7d0e() {
+    fn test_470001_puzzle_29ec7d0e() {
         let mut instance = solve_ea959feb::MySolution::new();
         let result: String = run_analyze_and_solve("29ec7d0e", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
     #[test]
-    fn test_510000_puzzle_ea959feb() {
+    fn test_470002_puzzle_ca8f78db() {
+        let mut instance = solve_ea959feb::MySolution::new();
+        let result: String = run_analyze_and_solve("ca8f78db", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }    
+
+    #[test]
+    fn test_470003_puzzle_e95e3d8e() {
+        let mut instance = solve_ea959feb::MySolution::new();
+        let result: String = run_analyze_and_solve("e95e3d8e", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }            
+
+    #[test]
+    fn test_470004_puzzle_ea959feb() {
         let mut instance = solve_ea959feb::MySolution::new();
         let result: String = run_analyze_and_solve("ea959feb", &mut instance).expect("String");
         assert_eq!(result, "3 1");
