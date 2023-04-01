@@ -91,6 +91,9 @@ pub enum ActionLabel {
     OutputImageIsInputImageWithChangesLimitedToPixelsWithLeastPopularColorOfTheInputImage,
     
     // Ideas for more
+    // OutputImageColorsComesFromInputImage,
+    // OutputImageUniqueColorCount { count: u8 },
+    // OutputImageIsSingleColor,
     // OutputMaskIsTheSameAsInputMask,
     // OutputMaskIsASubsetOfInputMask,
     // InputMaskIsASubsetOfOutputMask,

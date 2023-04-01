@@ -692,6 +692,7 @@ impl RunWithProgram {
         // Future experiment:
         // Reject solution, if the Test pairs, has a computed_image.size() different than the predicted size.
         // Reject solution, if the Test pairs, has a computed_image.histogram() different than the predicted palette.
+        // Reject solution, if the Test pairs, has a computed_image.only_one_color() and all the training data also has only_one_color.
 
         // Traverse the `Test` pairs
         // Compare computed images with test[x].output
