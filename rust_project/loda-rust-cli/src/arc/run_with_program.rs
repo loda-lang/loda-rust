@@ -272,6 +272,12 @@ impl RunWithProgram {
                 state.set_u64(address + MemoryLayoutItem::ExpectedOutputImage as u64, image_number_int).context("pair.output, set_u64")?;
             }
 
+            // memory[x*100+102] = train[x].computed output
+            {
+                let value: BigInt = -BigInt::one();
+                state.set_u64(address + MemoryLayoutItem::ComputedOutputImage as u64, value).context("pair.ComputedOutputImage, set_u64")?;
+            }
+
             // Ideas for data to make available to the program.
             // output_size
             // output_palette
@@ -305,6 +311,12 @@ impl RunWithProgram {
             {
                 let value: BigInt = -BigInt::one();
                 state.set_u64(address + MemoryLayoutItem::ExpectedOutputImage as u64, value).context("pair.output, set_u64")?;
+            }
+
+            // memory[x*100+102] = test[x].computed output
+            {
+                let value: BigInt = -BigInt::one();
+                state.set_u64(address + MemoryLayoutItem::ComputedOutputImage as u64, value).context("pair.ComputedOutputImage, set_u64")?;
             }
 
             count_test += 1;
