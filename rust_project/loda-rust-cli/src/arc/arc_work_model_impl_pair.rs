@@ -213,4 +213,16 @@ impl arc_work_model::Pair {
         }
         None
     }
+
+    pub fn predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color(&self) -> Option<u8> {
+        for prediction in &self.prediction_set {
+            match prediction {
+                arc_work_model::Prediction::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color } => {
+                    return Some(*color);
+                },
+                _ => {}
+            }
+        }
+        None
+    }
 }

@@ -28,6 +28,8 @@ enum MemoryLayoutItem {
     /// When it's not available then the value is `-1`.
     PredictedOutputHeight = 4,
     
+    OutputImageIsInputImageWithChangesLimitedToPixelsWithColor = 5,
+
     // Ideas for more
     // Repair mask
     // Repair color
@@ -316,6 +318,19 @@ impl RunWithProgram {
                 }
             }
 
+            // memory[x*100+105] = train[x].predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color() {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor as u64, value).context("pair.OutputImageIsInputImageWithChangesLimitedToPixelsWithColor, set_u64")?;
+                }
+            }
+
             // Ideas for data to make available to the program.
             // output_palette
             // substitutions, replace this color with that color
@@ -373,6 +388,19 @@ impl RunWithProgram {
                 }
                 if let Some(value) = height.to_bigint() {
                     state.set_u64(address + MemoryLayoutItem::PredictedOutputHeight as u64, value).context("pair.PredictedOutputHeight, set_u64")?;
+                }
+            }
+
+            // memory[x*100+105] = test[x].predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color() {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor as u64, value).context("pair.OutputImageIsInputImageWithChangesLimitedToPixelsWithColor, set_u64")?;
                 }
             }
 
