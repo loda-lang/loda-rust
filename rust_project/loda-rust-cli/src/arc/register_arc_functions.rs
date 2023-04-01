@@ -2269,11 +2269,11 @@ impl UnofficialFunction for ImageRepeatFunction {
     }
 }
 
-struct ImageMaskSelectFromImageFunction {
+struct ImageMaskSelectFromColorAndImageFunction {
     id: u32,
 }
 
-impl ImageMaskSelectFromImageFunction {
+impl ImageMaskSelectFromColorAndImageFunction {
     fn new(id: u32) -> Self {
         Self {
             id,
@@ -2281,7 +2281,7 @@ impl ImageMaskSelectFromImageFunction {
     }
 }
 
-impl UnofficialFunction for ImageMaskSelectFromImageFunction {
+impl UnofficialFunction for ImageMaskSelectFromColorAndImageFunction {
     fn id(&self) -> UnofficialFunctionId {
         UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
     }
@@ -2672,7 +2672,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageRepeatFunction::new(102120));
 
     // Mask - select from image
-    register_function!(ImageMaskSelectFromImageFunction::new(102130));
+    register_function!(ImageMaskSelectFromColorAndImageFunction::new(102130));
     
     // Count duplicate pixels in 3x3 convolution
     register_function!(ImageCountDuplicatePixelsFunction::new(102140, ImageCountDuplicatePixelsFunctionMode::All));
