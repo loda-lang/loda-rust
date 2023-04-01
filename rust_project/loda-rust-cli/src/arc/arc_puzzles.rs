@@ -2766,6 +2766,27 @@ mod tests {
         assert_eq!(result, "5 1");
     }
 
+    const PROGRAM_F2829549: &'static str = "
+    mov $5,$0
+    f11 $5,101000 ; get width
+    div $5,2
+
+    mov $4,$0
+    f21 $4,101222 ; get N left columns
+    
+    mov $1,$5
+    f21 $0,101223 ; get N right columns
+
+    mov $1,$4
+    f21 $0,101256 ; or
+    ";
+
+    #[test]
+    fn test_610001_puzzle_f2829549_loda() {
+        let result: String = run_simple("f2829549", PROGRAM_F2829549).expect("String");
+        assert_eq!(result, "5 1");
+    }
+
     #[test]
     fn test_620000_puzzle_662c240a() {
         let solution: SolutionSimple = |data| {
