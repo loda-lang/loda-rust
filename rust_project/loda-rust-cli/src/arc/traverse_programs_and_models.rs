@@ -311,7 +311,7 @@ impl TraverseProgramsAndModels {
             let mut found = false;
             for label in &task.action_label_set_intersection {
                 match label {
-                    ActionLabel::SingleRepairColor { .. } => {
+                    ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { .. } => {
                         found = true;
                         break;
                     },

@@ -92,7 +92,7 @@ impl arc_work_model::Pair {
         }
         
         _ = self.analyze_object_why_is_the_output_present_once_in_input();
-        _ = self.identify_single_repair_color();
+        _ = self.analyze_output_image_is_input_image_with_changes_to_pixels_with_color();
     }
 
     fn analyze_object_why_is_the_output_present_once_in_input(&mut self) -> anyhow::Result<()> {
@@ -155,7 +155,7 @@ impl arc_work_model::Pair {
         Ok(())
     }
 
-    fn identify_single_repair_color(&mut self) -> anyhow::Result<()> {
+    fn analyze_output_image_is_input_image_with_changes_to_pixels_with_color(&mut self) -> anyhow::Result<()> {
         if self.input.image.size() != self.output.image.size() {
             return Ok(());
         }
@@ -174,7 +174,7 @@ impl arc_work_model::Pair {
             }
         };
 
-        let label = ActionLabel::SingleRepairColor { color };
+        let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color };
         self.action_label_set.insert(label);
         Ok(())
     }
