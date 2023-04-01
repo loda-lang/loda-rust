@@ -406,7 +406,6 @@ impl TraverseProgramsAndModels {
         instance.load_puzzle_files()?;
         instance.load_solution_files()?;
         instance.init_locked_instruction_hashset()?;
-        instance.make_predictions_about_each_tasks();
         match instance.update_task_occur_in_solutions_csv() {
             Ok(()) => {},
             Err(error) => {
@@ -466,13 +465,6 @@ impl TraverseProgramsAndModels {
         }
         self.model_item_vec = model_item_vec;
         Ok(())
-    }
-
-    fn make_predictions_about_each_tasks(&self) {
-        for model_item in &self.model_item_vec {
-            model_item.borrow_mut().task.assign_predicted_output_size();
-            model_item.borrow_mut().task.assign_predicted_output_palette();
-        }
     }
 
     /// Load all `.asm` programs into memory
