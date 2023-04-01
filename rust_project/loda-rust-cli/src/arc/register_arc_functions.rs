@@ -2287,7 +2287,7 @@ impl UnofficialFunction for ImageMaskSelectFromColorAndImageFunction {
     }
 
     fn name(&self) -> String {
-        "Pick pixels from one image. When the mask is 0 then pick the `default_color`. When the mask is [1..255] then pick from the image.".to_string()
+        "Pick pixels from color and image. When the mask is 0 then pick the `default_color`. When the mask is [1..255] then pick from the image.".to_string()
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
@@ -2313,6 +2313,57 @@ impl UnofficialFunction for ImageMaskSelectFromColorAndImageFunction {
         let color: u8 = input[2].to_u8().context("Input[2] u8 pixel_color")?;
 
         let output_image: Image = image0.select_from_color_and_image(color, &image1)?;
+
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct ImageMaskSelectFromImageAndColorFunction {
+    id: u32,
+}
+
+impl ImageMaskSelectFromImageAndColorFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageMaskSelectFromImageAndColorFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Pick pixels from image and color. When the mask is 0 then pick from the image. When the mask is [1..255] then use the `default_color`.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image0: Image = input0_uint.to_image()?;
+
+        // input1 is the color
+        let color: u8 = input[2].to_u8().context("Input[2] u8 pixel_color")?;
+
+        // input2 is image
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let image1: Image = input1_uint.to_image()?;
+
+        let output_image: Image = image0.select_from_image_and_color(&image1, color)?;
 
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
@@ -2673,6 +2724,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Mask - select from image
     register_function!(ImageMaskSelectFromColorAndImageFunction::new(102130));
+    register_function!(ImageMaskSelectFromImageAndColorFunction::new(102131));
     
     // Count duplicate pixels in 3x3 convolution
     register_function!(ImageCountDuplicatePixelsFunction::new(102140, ImageCountDuplicatePixelsFunctionMode::All));
