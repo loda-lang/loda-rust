@@ -2666,6 +2666,27 @@ mod tests {
         assert_eq!(result, "4 2");
     }
 
+    const PROGRAM_3428A4F5: &'static str = "
+    mov $5,$0
+    f11 $5,101001 ; get height
+    div $5,2
+
+    mov $4,$0
+    f21 $4,101221 ; get N bottom rows
+    
+    mov $1,$5
+    f21 $0,101220 ; get N top rows
+
+    mov $1,$4
+    f21 $0,101254 ; xor
+    ";
+
+    #[test]
+    fn test_570001_puzzle_3428a4f5_loda() {
+        let result: String = run_simple("3428a4f5", PROGRAM_3428A4F5).expect("String");
+        assert_eq!(result, "4 2");
+    }
+
     #[test]
     fn test_580000_puzzle_25d8a9c8() {
         let solution: SolutionSimple = |data| {
