@@ -1,4 +1,4 @@
-use super::arc_json_model;
+use super::{arc_json_model, ActionLabel};
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
@@ -298,7 +298,45 @@ impl TraverseProgramsAndModels {
         // Self::inspect_task_id(&task_vec, "72ca375d")?;
         // Self::inspect_task_id(&task_vec, "d56f2372")?;
         // Self::inspect_task_id(&task_vec, "a85d4709")?;
-        Self::inspect_task_id(&task_vec, "44f52bb0")?;
+        // Self::inspect_task_id(&task_vec, "29ec7d0e")?;
+        // Self::inspect_task_id(&task_vec, "ea959feb")?;
+        Self::inspect_tasks_with_single_repair_color(&task_vec)?;
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    fn inspect_tasks_with_single_repair_color(task_vec: &Vec<Task>) -> anyhow::Result<()> {
+        let mut indexes = HashSet::<usize>::new();
+        for (index, task) in task_vec.iter().enumerate() {
+            let mut found = false;
+            for label in &task.action_label_set_intersection {
+                match label {
+                    ActionLabel::SingleRepairColor { .. } => {
+                        found = true;
+                        break;
+                    },
+                    _ => {}
+                };
+            }
+            if !found {
+                continue;
+            }
+            indexes.insert(index);
+        }
+        let mut count = 0;
+        for (index, task) in task_vec.iter().enumerate() {
+            if !indexes.contains(&index) {
+                continue;
+            }
+            if count > 0 {
+                task.inspect()?;
+            }
+            count += 1;
+            if count > 50 {
+                break;
+            }
+        }
+        HtmlLog::text(format!("tasks count: {}", indexes.len()));
         Ok(())
     }
 

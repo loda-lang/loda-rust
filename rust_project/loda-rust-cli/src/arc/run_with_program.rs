@@ -21,6 +21,8 @@ enum MemoryLayoutItem {
     // PredictedHeight = 4,
 
     // Ideas for more
+    // Repair mask
+    // Repair color
     // Background color in input
     // Predicted background color in output
     // Primary color

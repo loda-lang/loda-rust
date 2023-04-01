@@ -1,4 +1,4 @@
-use super::arc_work_model;
+use super::{arc_work_model, ImageCompare, Image, ImageHistogram};
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
 use super::{ImageFind, ImageSize, ImageSymmetry, Histogram};
@@ -90,8 +90,9 @@ impl arc_work_model::Pair {
                 self.action_label_set.insert(ActionLabel::RemovalColorIsThePrimaryColorOfInputImage);
             }
         }
-
+        
         _ = self.analyze_object_why_is_the_output_present_once_in_input();
+        _ = self.identify_single_repair_color();
     }
 
     fn analyze_object_why_is_the_output_present_once_in_input(&mut self) -> anyhow::Result<()> {
@@ -151,6 +152,30 @@ impl arc_work_model::Pair {
         // caching - Save the objects on the input.
         self.input.input_objects.insert(ObjectType::RemovalOfMostPopularColorInThisImageAfterwardSegmentByNeighborAll, object_vec);
 
+        Ok(())
+    }
+
+    fn identify_single_repair_color(&mut self) -> anyhow::Result<()> {
+        if self.input.image.size() != self.output.image.size() {
+            return Ok(());
+        }
+
+        let mask_where_there_is_differences: Image = self.input.image.diff(&self.output.image)?;
+        let histogram: Histogram = self.input.image.histogram_with_mask(&mask_where_there_is_differences)?;
+
+        if histogram.number_of_counters_greater_than_zero() > 1 {
+            return Ok(());
+        }
+
+        let color: u8 = match histogram.most_popular_color() {
+            Some(value) => value,
+            None => {
+                return Ok(());
+            }
+        };
+
+        let label = ActionLabel::SingleRepairColor { color };
+        self.action_label_set.insert(label);
         Ok(())
     }
 
