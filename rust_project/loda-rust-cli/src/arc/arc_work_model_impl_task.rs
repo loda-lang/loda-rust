@@ -745,6 +745,63 @@ impl arc_work_model::Task {
         }
     }
 
+    pub fn assign_predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color(&mut self) {
+        let mut use_specific_color: Option<u8> = None;
+        let mut use_most_popular_color = false;
+        let mut use_least_popular_color = false;
+        for label in &self.action_label_set_intersection {
+            match label {
+                ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color } => {
+                    use_specific_color = Some(*color);
+                },
+                ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage => {
+                    use_most_popular_color = true;
+                },
+                ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithLeastPopularColorOfTheInputImage => {
+                    use_least_popular_color = true;
+                },
+                _ => {}
+            };
+        }
+
+        let mut predicted_color_dict = HashMap::<usize, u8>::new();
+        for (index, pair) in self.pairs.iter().enumerate() {
+            // If one or more pairs are undecided, then return out immediately, 
+            // so that none of the pairs gets assigned a prediction.
+            let predicted_color: u8;
+            match (use_specific_color, use_most_popular_color, use_least_popular_color) {
+                (Some(color), _, _) => {
+                    predicted_color = color;
+                },
+                (None, true, false) => {
+                    if let Some(color) = pair.input.histogram.most_popular_color() {
+                        predicted_color = color;
+                        // println!("predicted_color most popular: {}", color);
+                    } else {
+                        return;
+                    }
+                },
+                (None, false, true) => {
+                    if let Some(color) = pair.input.histogram.least_popular_color() {
+                        predicted_color = color;
+                        // println!("predicted_color least popular: {}", color);
+                    } else {
+                        return;
+                    }
+                }
+                _ => return
+            }
+            predicted_color_dict.insert(index, predicted_color);
+        }
+
+        for (index, pair) in self.pairs.iter_mut().enumerate() {
+            if let Some(predicted_color) = predicted_color_dict.get(&index) {
+                // println!("predicted_color: {}", *predicted_color);
+                pair.prediction_set.insert(arc_work_model::Prediction::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color: *predicted_color });
+            }
+        }
+    }
+
     pub fn inspect(&self) -> anyhow::Result<()> {
         HtmlFromTask::inspect(self)
     }

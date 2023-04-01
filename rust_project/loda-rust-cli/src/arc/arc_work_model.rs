@@ -57,6 +57,7 @@ pub enum PairType {
 pub enum Prediction {
     OutputSize { size: ImageSize },
     OutputPalette { histogram: Histogram },
+    OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color: u8 },
 
     // Ideas for more
     // substitution, replace this image with that image
