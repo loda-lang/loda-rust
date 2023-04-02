@@ -7,7 +7,7 @@ use std::fmt;
 /// The max size is 255x255 pixels.
 /// 
 /// The smallest image size is 0x0 pixels.
-#[derive(Clone, Hash, Eq, PartialEq)]
+#[derive(Clone, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Image {
     width: u8,
     height: u8,
@@ -306,12 +306,51 @@ mod tests {
 
     #[test]
     fn test_60000_set_image() {
+        // Arrange
         let mut image = Image::empty();
         let new_image = Image::color(3, 2, 9);
+
+        // Act
         image.set_image(new_image);
+
+        // Assert
         assert_eq!(image.width(), 3);
         assert_eq!(image.height(), 2);
         let expected_pixels: Vec<u8> = vec![9, 9, 9, 9, 9, 9];
         assert_eq!(*image.pixels(), expected_pixels);
+    }
+
+    #[test]
+    fn test_70000_sort_same_sizes_different_colors() {
+        // Arrange
+        let image0 = Image::color(1, 1, 0);
+        let image1 = Image::color(1, 1, 1);
+        let image2 = Image::color(1, 1, 2);
+        let image3 = Image::color(1, 1, 3);
+        let mut shuffled_images: Vec<Image> = vec![image3.clone(), image1.clone(), image0.clone(), image2.clone()];
+
+        // Act
+        shuffled_images.sort();
+
+        // Assert
+        let expected_images: Vec<Image> = vec![image0, image1, image2, image3];
+        assert_eq!(expected_images, shuffled_images);
+    }
+
+    #[test]
+    fn test_70001_sort_different_sizes_same_color() {
+        // Arrange
+        let image0 = Image::color(1, 1, 0);
+        let image1 = Image::color(1, 2, 0);
+        let image2 = Image::color(2, 1, 0);
+        let image3 = Image::color(2, 2, 0);
+        let mut shuffled_images: Vec<Image> = vec![image3.clone(), image1.clone(), image0.clone(), image2.clone()];
+
+        // Act
+        shuffled_images.sort();
+
+        // Assert
+        let expected_images: Vec<Image> = vec![image0, image1, image2, image3];
+        assert_eq!(expected_images, shuffled_images);
     }
 }
