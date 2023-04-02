@@ -292,7 +292,7 @@ impl TraverseProgramsAndModels {
         }
         println!("tasks with size=bad and palette=bad.  {}", count_tasks_without_predictions);
 
-
+        Self::inspect_tasks_without_solution(&task_vec)?;
         // Self::inspect_undecided(&task_vec)?;
         // Self::inspect_decided(&task_vec)?;
         // Self::inspect_task_id(&task_vec, "72ca375d")?;
@@ -300,7 +300,34 @@ impl TraverseProgramsAndModels {
         // Self::inspect_task_id(&task_vec, "a85d4709")?;
         // Self::inspect_task_id(&task_vec, "29ec7d0e")?;
         // Self::inspect_task_id(&task_vec, "ea959feb")?;
-        Self::inspect_tasks_with_single_repair_color(&task_vec)?;
+        // Self::inspect_tasks_with_single_repair_color(&task_vec)?;
+        // Self::inspect_tasks_with_output_image_color(&task_vec)?;
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    fn inspect_tasks_without_solution(task_vec: &Vec<Task>) -> anyhow::Result<()> {
+        let mut indexes = HashSet::<usize>::new();
+        for (index, task) in task_vec.iter().enumerate() {
+            if task.occur_in_solutions_csv {
+                continue;
+            }
+            indexes.insert(index);
+        }
+        let mut count = 0;
+        for (index, task) in task_vec.iter().enumerate() {
+            if !indexes.contains(&index) {
+                continue;
+            }
+            if count > 0 {
+                task.inspect()?;
+            }
+            count += 1;
+            if count > 50 {
+                break;
+            }
+        }
+        HtmlLog::text(format!("tasks count: {}", indexes.len()));
         Ok(())
     }
 
@@ -312,6 +339,46 @@ impl TraverseProgramsAndModels {
             for label in &task.action_label_set_intersection {
                 match label {
                     ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { .. } => {
+                        found = true;
+                        break;
+                    },
+                    _ => {}
+                };
+            }
+            if found {
+                continue;
+            }
+            indexes.insert(index);
+        }
+        let mut count = 0;
+        for (index, task) in task_vec.iter().enumerate() {
+            if !indexes.contains(&index) {
+                continue;
+            }
+            if count > 0 {
+                task.inspect()?;
+            }
+            count += 1;
+            if count > 50 {
+                break;
+            }
+        }
+        HtmlLog::text(format!("tasks count: {}", indexes.len()));
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    fn inspect_tasks_with_output_image_color(task_vec: &Vec<Task>) -> anyhow::Result<()> {
+        let mut indexes = HashSet::<usize>::new();
+        for (index, task) in task_vec.iter().enumerate() {
+            let mut found = false;
+            for label in &task.action_label_set_intersection {
+                match label {
+                    ActionLabel::OutputImageUniqueColorCount { .. } => {
+                        found = true;
+                        break;
+                    },
+                    ActionLabel::OutputImageColorsComesFromInputImage => {
                         found = true;
                         break;
                     },
