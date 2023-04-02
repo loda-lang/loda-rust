@@ -1053,7 +1053,7 @@ impl TraverseProgramsAndModels {
 
         let pb = multi_progress.add(ProgressBar::new(self.model_item_vec.len() as u64));
         pb.set_style(progress_style.clone());
-        pb.set_prefix("Puzzle  ");
+        pb.set_prefix("Task    ");
         pb.tick();
 
         for (model_index, model_item) in self.model_item_vec.iter_mut().enumerate() {
@@ -1061,7 +1061,7 @@ impl TraverseProgramsAndModels {
                 pb.inc(1);
             }
 
-            let print_prefix_puzzle_id: String = format!("Puzzle#{} {:?}", model_index, model_item.borrow().id.file_name());
+            let print_prefix_task_id: String = format!("Task {:?}", model_item.borrow().id.file_stem());
 
             let task: Task = model_item.borrow().task.clone();
             let count_train: usize = task.count_train();
@@ -1112,36 +1112,35 @@ impl TraverseProgramsAndModels {
                     pb.println(s);
                 }
 
-                let expected = format!("({},{})", count_train, count_test);
-                let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
-                if actual != expected {
-                    if result.count_train_correct() == count_train && result.count_test_correct() != count_test {
-                        pb.println(format!("{} - Dangerous false positive. Expected {} but got {}. {:?}", print_prefix_puzzle_id, expected, actual, program_id.file_name()));
+                if !result.all_train_pairs_and_test_pairs_are_correct() {
+                    let expected = format!("({},{})", count_train, count_test);
+                    let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
+                    if result.all_train_pairs_are_correct() && !result.all_test_pairs_are_correct() {
+                        pb.println(format!("{} - {} - Dangerous false positive. Expected {} but got {}. Solution {:?}", Self::human_readable_utc_timestamp(), print_prefix_task_id, expected, actual, program_id.file_name()));
                         count_dangerous_false_positive += 1;
                         continue;
                     }
                     let count_correct = result.count_train_correct() + result.count_test_correct();
                     if count_correct > 0 {
                         count_partial_match += 1;
-                        pb.println(format!("{} - Partial solution. Expected {} but got {}. {:?}", print_prefix_puzzle_id, expected, actual, program_id.file_name()));
+                        pb.println(format!("{} - {} - Partial solution. Expected {} but got {}. Solution {:?}", Self::human_readable_utc_timestamp(), print_prefix_task_id, expected, actual, program_id.file_name()));
                         continue;
                     }
                     if verbose {
-                        pb.println(format!("ERROR: in row {}. program: {:?}. Expected {}, but got {}", program_index, program_item, expected, actual));
+                        pb.println(format!("{} - ERROR: in row {}. program: {:?}. Expected {}, but got {}", Self::human_readable_utc_timestamp(), program_index, program_item, expected, actual));
                     }
                     count_incorrect += 1;
                     continue;
                 }
-
     
-                pb.println(format!("{} - Solution: {:?}", print_prefix_puzzle_id, program_id.file_name()));
+                pb.println(format!("{} - {} - Solution: {:?}", Self::human_readable_utc_timestamp(), print_prefix_task_id, program_id.file_name()));
                 count_ok += 1;
                 match program_id {
                     ProgramItemId::Path { path } => {
                         visited_program_paths.insert(path.clone());
                     },
                     ProgramItemId::None => {
-                        pb.println(format!("{} - Encountered a solution without a path.", print_prefix_puzzle_id));
+                        pb.println(format!("{} - Encountered a solution without a path.", print_prefix_task_id));
                     }
                 }
 
@@ -1160,7 +1159,7 @@ impl TraverseProgramsAndModels {
         pb.finish_and_clear();
         let green_bold = Style::new().green().bold();        
         println!(
-            "{:>12} processing all puzzles with all solutions in {}",
+            "{:>12} compared all tasks with all solutions in {}",
             green_bold.apply_to("Finished"),
             HumanDuration(start.elapsed())
         );
@@ -1192,11 +1191,7 @@ impl TraverseProgramsAndModels {
         println!("count_incorrect: {}", count_incorrect);
         println!("count_compute_error: {}", count_compute_error);
         println!("count_partial_match: {}", count_partial_match);
-        if count_dangerous_false_positive > 0 {
-            error!("count_dangerous_false_positive: {}", count_dangerous_false_positive);
-        } else {
-            println!("count_dangerous_false_positive: {}", count_dangerous_false_positive);
-        }
+        println!("count_dangerous_false_positive: {}", count_dangerous_false_positive);
         Ok(())
     }
 
