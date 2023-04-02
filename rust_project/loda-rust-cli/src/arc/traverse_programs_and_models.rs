@@ -809,10 +809,11 @@ impl TraverseProgramsAndModels {
                 pb.println(s);
             }
 
-            let expected = format!("({},{})", count_train, count_test);
-            let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
-            if actual != expected {
-                if result.count_train_correct() == count_train && result.count_test_correct() != count_test {
+            if !result.all_train_pairs_and_test_pairs_are_correct() {
+                let expected = format!("({},{})", count_train, count_test);
+                let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
+
+                if result.all_train_pairs_are_correct() && !result.all_test_pairs_are_correct() {
                     pb.println(format!("Dangerous false positive. Expected {} but got {}. {:?}", expected, actual, program_item.borrow().id.file_name()));
                     count_dangerous_false_positive += 1;
                 } else {

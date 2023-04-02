@@ -64,6 +64,7 @@ pub struct RunWithProgramResult {
     count_test_empty: usize,
     predictions: Vec<Prediction>,
     all_train_pairs_are_correct: bool,
+    all_test_pairs_are_correct: bool,
 }
 
 impl RunWithProgramResult {
@@ -75,6 +76,7 @@ impl RunWithProgramResult {
         self.count_train_correct
     }
 
+    #[allow(dead_code)]
     pub fn count_train_incorrect(&self) -> usize {
         self.count_train_incorrect
     }
@@ -93,6 +95,14 @@ impl RunWithProgramResult {
 
     pub fn all_train_pairs_are_correct(&self) -> bool {
         self.all_train_pairs_are_correct
+    }
+
+    pub fn all_test_pairs_are_correct(&self) -> bool {
+        self.all_test_pairs_are_correct
+    }
+
+    pub fn all_train_pairs_and_test_pairs_are_correct(&self) -> bool {
+        self.all_train_pairs_are_correct && self.all_test_pairs_are_correct
     }
 }
 
@@ -752,6 +762,7 @@ impl RunWithProgram {
 
             count_test_correct += 1;
         }
+        let all_test_pairs_are_correct: bool = count_test_correct == count_test;
 
         if pretty_print {
             self.inspect_computed_images(&computed_images, &status_texts);
@@ -765,6 +776,7 @@ impl RunWithProgram {
             count_test_empty,
             predictions,
             all_train_pairs_are_correct,
+            all_test_pairs_are_correct,
         };
 
         Ok(result)
