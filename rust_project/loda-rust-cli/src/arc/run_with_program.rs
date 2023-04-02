@@ -63,6 +63,7 @@ pub struct RunWithProgramResult {
     count_test_correct: usize,
     count_test_empty: usize,
     predictions: Vec<Prediction>,
+    all_train_pairs_are_correct: bool,
 }
 
 impl RunWithProgramResult {
@@ -88,6 +89,10 @@ impl RunWithProgramResult {
 
     pub fn predictions(&self) -> &Vec<Prediction> {
         &self.predictions
+    }
+
+    pub fn all_train_pairs_are_correct(&self) -> bool {
+        self.all_train_pairs_are_correct
     }
 }
 
@@ -682,6 +687,7 @@ impl RunWithProgram {
                 status_texts.push("OK");
             }
         }
+        let all_train_pairs_are_correct: bool = (count_train_correct == count_train) && (count_train_incorrect == 0);
 
         // if count_train_correct >= 2 {
         //     pretty_print = true;
@@ -689,10 +695,6 @@ impl RunWithProgram {
 
         let mut predictions = Vec::<Prediction>::new();
 
-        // Future experiment:
-        // Reject solution, if the Test pairs, has a computed_image.size() different than the predicted size.
-        // Reject solution, if the Test pairs, has a computed_image.histogram() different than the predicted palette.
-        // Reject solution, if the Test pairs, has a computed_image.only_one_color() and all the training data also has only_one_color.
 
         // Traverse the `Test` pairs
         // Compare computed images with test[x].output
@@ -715,6 +717,13 @@ impl RunWithProgram {
                 }
                 continue;
             }
+
+            // Ideas for preventing false positives:
+            // Reject if, computed output image is identical to input image.
+            // Reject solution, if the Test pairs, has a computed_image.size() different than the predicted size.
+            // Reject solution, if the Test pairs, has a computed_image.histogram() different than the predicted palette.
+            // Reject solution, if the Test pairs, has a computed_image.only_one_color() and all the training data also has only_one_color.
+
             if self.verify_test_output {
                 let expected_image: Image = pair.output.test_image.clone();
                 if *computed_image != expected_image {
@@ -755,6 +764,7 @@ impl RunWithProgram {
             count_test_correct,
             count_test_empty,
             predictions,
+            all_train_pairs_are_correct,
         };
 
         Ok(result)

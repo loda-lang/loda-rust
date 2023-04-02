@@ -1602,36 +1602,27 @@ impl BatchPlan {
                     }
                 }
 
-                if run_with_program_result.count_train_correct() == 0 {
-                    // None of the training pairs match.
+                if !run_with_program_result.all_train_pairs_are_correct() {
+                    // Something is not satisfied about the training pairs.
+                    // Usually it's one or more of of the training pairs that doesn't match the expected output.
                     // This is not a solution. Proceed to the next candidate solution.
-                    // pb.println(format!("Puzzle {:?}, count_train_correct is zero. Ignoring.", model_item.borrow().id));
+                    // pb.println(format!("Task {:?}, the training pairs is not correct. Ignoring.", model_item.borrow().id));
                     continue;
                 }
 
                 let count_test_empty: usize = run_with_program_result.count_test_empty();
                 if count_test_empty > 0 {
-                    // All the "test" outputs must be non-empty, to ensure that it's not a raw copy/paste of the input.
+                    // No task in ARC outputs an empty image.
+                    // Thus all the "test" output images must be non-empty. 
                     // This is not a solution. Proceed to the next candidate solution.
-                    pb.println(format!("{} - Puzzle {:?}, ignoring dangerous false-positive, that copies the expected output to the actual output.", TraverseProgramsAndModels::human_readable_utc_timestamp(), model_item.borrow().id));
-                    continue;
-                }
-
-                let count_train_correct: usize = run_with_program_result.count_train_correct();
-                let count_train_incorrect: usize = run_with_program_result.count_train_incorrect();
-                if count_train_incorrect > 0 {
-                    // Partial solution. One or more incorrect training pairs. We want all the training pairs to be satisfied.
-                    // This is not a full solution. Proceed to the next candidate solution.
-                    if verbose {
-                        pb.println(format!("{} - Puzzle {:?}, partial solution. correct: {} incorrect: {}", TraverseProgramsAndModels::human_readable_utc_timestamp(), model_item.borrow().id, count_train_correct, count_train_incorrect));
-                    }
+                    pb.println(format!("{} - Task {:?}, ignoring test images that are empty.", TraverseProgramsAndModels::human_readable_utc_timestamp(), model_item.borrow().id));
                     continue;
                 }
 
                 // All the train pairs are correct.
                 // The test pairs are unverified, and have a size of 1x1 or bigger.
                 // This may be a solution.
-                pb.println(format!("{} - Puzzle {:?}, possible solution. correct: {} incorrect: {}", TraverseProgramsAndModels::human_readable_utc_timestamp(), model_item.borrow().id, count_train_correct, count_train_incorrect));
+                pb.println(format!("{} - Task {:?}, possible solution", TraverseProgramsAndModels::human_readable_utc_timestamp(), model_item.borrow().id));
 
                 let save_result = state.save_solution(
                     config, 
