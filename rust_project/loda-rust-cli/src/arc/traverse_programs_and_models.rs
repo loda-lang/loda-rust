@@ -1001,10 +1001,10 @@ impl TraverseProgramsAndModels {
                 pb.println(s);
             }
 
-            let expected = format!("({},{})", count_train, count_test);
-            let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
-            if actual != expected {
-                pb.println(format!("ERROR: in row {}. record: {:?}. Expected {}, but got {}", record_index, record, expected, actual));
+            if !result.all_train_pairs_and_test_pairs_are_correct() {
+                let expected = format!("({},{})", count_train, count_test);
+                let actual = format!("({},{})", result.count_train_correct(), result.count_test_correct());
+                    pb.println(format!("ERROR: in row {}. record: {:?}. Expected {}, but got {}", record_index, record, expected, actual));
                 count_error_incorrect += 1;
                 continue;
             }
