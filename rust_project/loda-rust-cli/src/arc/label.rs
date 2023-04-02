@@ -107,6 +107,7 @@ pub enum ActionLabel {
     OutputImageColorsComesFromInputImage,
     
     // Ideas for more
+    // OutputImageIsPresentInInputImageWithTwoColorWildcards, for solving "8731374e"
     // OutputImageWithSlightlyDifferentColorsIsPresentInTheInputImage,
     // OutputImageIsSingleColor,
     // OutputMaskIsTheSameAsInputMask,
