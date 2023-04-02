@@ -139,12 +139,12 @@ async fn main() -> anyhow::Result<()> {
                 .hide(true)
         )
         .subcommand(
-            Command::new("arc-puzzle")
-                .about("ARC - Eval a single puzzle with all the existing solutions.")
+            Command::new("arc-eval-task")
+                .about("ARC - Eval a single task with all the existing solutions.")
                 .hide(true)
                 .arg(
                     Arg::new("pattern")
-                        .help("File name of the puzzle, it doesn't have to be the full name / path.")
+                        .help("File name of the task, it doesn't have to be the full name / path.")
                         .required(true)
                 )
         )
@@ -261,7 +261,7 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if let Some(sub_m) = matches.subcommand_matches("arc-puzzle") {
+    if let Some(sub_m) = matches.subcommand_matches("arc-eval-task") {
         let pattern_raw: &str = sub_m.value_of("pattern").expect("pattern");
         let re = Regex::new("^[a-fA-F0-9]+$").unwrap();
         let captures = match re.captures(pattern_raw) {
@@ -272,7 +272,7 @@ async fn main() -> anyhow::Result<()> {
         };
         let capture0: &str = captures.get(0).map_or("", |m| m.as_str());
         let pattern_string: String = capture0.to_string();
-        let mode = SubcommandARCMode::EvalSinglePuzzle { pattern: pattern_string };
+        let mode = SubcommandARCMode::EvalSingleTask { pattern: pattern_string };
         let blocking_task = tokio::task::spawn_blocking(|| {
             SubcommandARC::run(mode).expect("ok");
         });

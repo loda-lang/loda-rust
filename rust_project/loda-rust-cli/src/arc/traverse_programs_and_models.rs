@@ -59,9 +59,9 @@ impl TraverseProgramsAndModels {
         Ok(())
     }
 
-    pub fn eval_single_puzzle_with_all_existing_solutions(pattern: String) -> anyhow::Result<()> {
+    pub fn eval_single_task_with_all_existing_solutions(pattern: String) -> anyhow::Result<()> {
         let instance = TraverseProgramsAndModels::new()?;
-        instance.eval_single_puzzle_with_all_existing_solutions_inner(&pattern)?;
+        instance.eval_single_task_with_all_existing_solutions_inner(&pattern)?;
         Ok(())
     }
 
@@ -734,7 +734,7 @@ impl TraverseProgramsAndModels {
         Ok(tasks)
     }
 
-    fn eval_single_puzzle_with_all_existing_solutions_inner(&self, pattern: &String) -> anyhow::Result<()> {
+    fn eval_single_task_with_all_existing_solutions_inner(&self, pattern: &String) -> anyhow::Result<()> {
         let verbose = false;
         let verify_test_output = true;
 
