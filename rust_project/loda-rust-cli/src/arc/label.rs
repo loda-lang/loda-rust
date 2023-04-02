@@ -1,5 +1,15 @@
 use std::collections::HashSet;
 
+/// Properties about the input image. These properties all have value `u8`.
+/// 
+/// These properties are used for reasoning about what the size of the output image may be.
+/// Usually it's the width and height of the input image that it's being used.
+/// The values being used are in the range `[0..30]`.
+/// 
+/// Extreme values in the range `[31..255]`, occur frequently. These are not filtered out.
+/// It's rare that extreme values are being used for computing the output size.
+/// 
+/// All the `PropertyInput` values can be computed for `test pair` without accessing the output image.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PropertyInput {
     InputWidth,
@@ -33,6 +43,7 @@ pub enum PropertyInput {
     // Number of 1px lines vertical
 }
 
+/// Properties about the input image.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum InputLabel {
     InputImageIsSymmetricX,
@@ -41,6 +52,8 @@ pub enum InputLabel {
     // Ideas for more
     // InputUniqueColors { color: Vec<u8> },
     // InputAspectRatio { width: u8, height: u8 },
+    // Number of palindromic rows { count: u8 },
+    // Number of palindromic columns { count: u8 },
 }
 
 pub type InputLabelSet = HashSet<InputLabel>;
@@ -94,6 +107,7 @@ pub enum ActionLabel {
     OutputImageColorsComesFromInputImage,
     
     // Ideas for more
+    // OutputImageWithSlightlyDifferentColorsIsPresentInTheInputImage,
     // OutputImageIsSingleColor,
     // OutputMaskIsTheSameAsInputMask,
     // OutputMaskIsASubsetOfInputMask,
