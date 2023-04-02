@@ -3,13 +3,13 @@ use std::collections::HashSet;
 /// Properties about the input image. These properties all have value `u8`.
 /// 
 /// These properties are used for reasoning about what the size of the output image may be.
-/// Usually it's the width and height of the input image that it's being used.
+/// Usually it's the width and height of the input image that is being used.
 /// The values being used are in the range `[0..30]`.
 /// 
 /// Extreme values in the range `[31..255]`, occur frequently. These are not filtered out.
 /// It's rare that extreme values are being used for computing the output size.
 /// 
-/// All the `PropertyInput` values can be computed for `test pair` without accessing the output image.
+/// All the `PropertyInput` values can be computed for a `test pair` without accessing the output image.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PropertyInput {
     InputWidth,
