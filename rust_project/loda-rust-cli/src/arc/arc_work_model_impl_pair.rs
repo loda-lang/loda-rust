@@ -93,6 +93,7 @@ impl arc_work_model::Pair {
         
         _ = self.analyze_object_why_is_the_output_present_once_in_input();
         _ = self.analyze_output_image_is_input_image_with_changes_to_pixels_with_color();
+        _ = self.analyze_output_colors();
     }
 
     fn analyze_object_why_is_the_output_present_once_in_input(&mut self) -> anyhow::Result<()> {
@@ -184,6 +185,26 @@ impl arc_work_model::Pair {
         }
         if self.input.histogram.least_popular_color() == Some(color) {
             let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithLeastPopularColorOfTheInputImage;
+            self.action_label_set.insert(label);
+        }
+
+        Ok(())
+    }
+
+    fn analyze_output_colors(&mut self) -> anyhow::Result<()> {
+        let mut histogram: Histogram = self.output.histogram.clone();
+        let output_histogram_unique_count: u32 = histogram.number_of_counters_greater_than_zero();
+        histogram.intersection_histogram(&self.input.histogram);
+        let intersection_count: u32 = histogram.number_of_counters_greater_than_zero();
+
+        if output_histogram_unique_count <= (u8::MAX as u32) {
+            let count: u8 = output_histogram_unique_count as u8;
+            let label = ActionLabel::OutputImageUniqueColorCount { count };
+            self.action_label_set.insert(label);
+        }
+
+        if output_histogram_unique_count == intersection_count {
+            let label = ActionLabel::OutputImageColorsComesFromInputImage;
             self.action_label_set.insert(label);
         }
 
