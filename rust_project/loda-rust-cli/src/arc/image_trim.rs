@@ -7,6 +7,9 @@ pub trait ImageTrim {
     /// Remove border with the specified color.
     fn trim_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Image>;
 
+    /// Remove border with the specified color. Shrink further until the majority of border pixels is not the trim color.
+    fn trim_shrink_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Image>;
+
     // Idea for future experiment
     // Trim as much as possible around the mask, and remove the same area from the the image
     // fn trim_mask_and_image(mask: &Image, image: &Image) -> anyhow::Result<(Image, Image)>;
@@ -74,6 +77,137 @@ impl ImageTrim for Image {
             return Err(anyhow::anyhow!("Integrity error. Bounding box coordinates are messed up. new_height_i32: {}", new_height_i32));
         }
         let new_height: u8 = new_height_i32 as u8;
+
+        // TODO: return the bounding box, and in a separate function do the crop
+
+        // Copy pixels of the object
+        let mut bitmap: Image = Image::zero(new_width, new_height);
+        for y in found_y0..=found_y1 {
+            for x in found_x0..=found_x1 {
+                let pixel_value: u8 = self.get(x, y).unwrap_or(255);
+                let set_x: i32 = x - found_x0;
+                let set_y: i32 = y - found_y0;
+                match bitmap.set(set_x, set_y, pixel_value) {
+                    Some(()) => {},
+                    None => {
+                        return Err(anyhow::anyhow!("Integrity error. Unable to set pixel ({}, {}) inside the result bitmap", set_x, set_y));
+                    }
+                }
+            }
+        }
+        Ok(bitmap)
+    }
+
+    fn trim_shrink_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Image> {
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+
+        // Find bounding box
+        let x_max: i32 = (self.width() as i32) - 1;
+        let y_max: i32 = (self.height() as i32) - 1;
+        let mut found_x0: i32 = x_max;
+        let mut found_x1: i32 = 0;
+        let mut found_y0: i32 = y_max;
+        let mut found_y1: i32 = 0;
+        for y in 0..=y_max {
+            for x in 0..=x_max {
+                let pixel_value: u8 = self.get(x, y).unwrap_or(255);
+                if pixel_value == color_to_be_trimmed {
+                    continue;
+                }
+
+                // grow the bounding box
+                found_x0 = i32::min(found_x0, x);
+                found_x1 = i32::max(found_x1, x);
+                found_y0 = i32::min(found_y0, y);
+                found_y1 = i32::max(found_y1, y);
+            }
+        }
+
+        if found_x0 > found_x1 || found_y0 > found_y1 {
+            return Ok(Image::empty());
+        }
+
+        // TODO: shrink bounding box, to get rid of junk
+        let limit: usize = 3;
+        for _ in 0..2 {
+            if true {
+                // Shrink left
+                let mut count: usize = 0;
+                for y in found_y0..=found_y1 {
+                    let pixel_value: u8 = self.get(found_x0, y).unwrap_or(255);
+                    if pixel_value == color_to_be_trimmed {
+                        count += 1;
+                    }
+                }
+                // if the majority of pixels are the color to be trimmed, then trim it.
+                // if the majority of pixels are the object, then don't trim it.
+                // TODO: ignore if count < height*0.5
+                if count > limit {
+                    found_x0 += 1;
+                }
+            }
+            if true {
+                // Shrink right
+                let mut count: usize = 0;
+                for y in found_y0..=found_y1 {
+                    let pixel_value: u8 = self.get(found_x1, y).unwrap_or(255);
+                    if pixel_value == color_to_be_trimmed {
+                        count += 1;
+                    }
+                }
+                // TODO: ignore if count < height*0.5
+                if count > limit {
+                    found_x1 -= 1;
+                }
+            }
+            if true {
+                // Shrink top
+                let mut count: usize = 0;
+                for x in found_x0..=found_x1 {
+                    let pixel_value: u8 = self.get(x, found_y0).unwrap_or(255);
+                    if pixel_value == color_to_be_trimmed {
+                        count += 1;
+                    }
+                }
+                // TODO: ignore if count < width*0.5
+                if count > limit {
+                    found_y0 += 1;
+                }
+            }
+            if true {
+                // Shrink bottom
+                let mut count: usize = 0;
+                for x in found_x0..=found_x1 {
+                    let pixel_value: u8 = self.get(x, found_y1).unwrap_or(255);
+                    if pixel_value == color_to_be_trimmed {
+                        count += 1;
+                    }
+                }
+                // TODO: ignore if count < width*0.5
+                if count > limit {
+                    found_y1 -= 1;
+                }
+            }
+        }
+
+
+        // Width of the object
+        let new_width_i32: i32 = found_x1 - found_x0 + 1;
+        if new_width_i32 < 1 || new_width_i32 > (u8::MAX as i32) {
+            return Err(anyhow::anyhow!("Integrity error. Bounding box coordinates are messed up. new_width_i32: {}", new_width_i32));
+        }
+        let new_width: u8 = new_width_i32 as u8;
+
+        // Height of the object
+        let new_height_i32: i32 = found_y1 - found_y0 + 1;
+        if new_height_i32 < 1 || new_height_i32 > (u8::MAX as i32) {
+            return Err(anyhow::anyhow!("Integrity error. Bounding box coordinates are messed up. new_height_i32: {}", new_height_i32));
+        }
+        let new_height: u8 = new_height_i32 as u8;
+
+        // TODO: return the bounding box, and in a separate function do the crop
 
         // Copy pixels of the object
         let mut bitmap: Image = Image::zero(new_width, new_height);
