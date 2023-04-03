@@ -9,7 +9,7 @@ mod tests {
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, ImageObjectEnumerate};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use std::collections::HashMap;
     use regex::Regex;
@@ -3027,9 +3027,11 @@ mod tests {
                     return Err(anyhow::anyhow!("biggest object"));
                 }
             };
+            let trimmed: Image = biggest_object.trim_shrink_color(0)?;
             // let result_image: Image = color_count;
             // let result_image: Image = ignore_mask;
-            let result_image: Image = biggest_object;
+            // let result_image: Image = biggest_object;
+            let result_image: Image = trimmed;
             Ok(result_image)
         };
         let result: String = solution.run("8731374e").expect("String");
