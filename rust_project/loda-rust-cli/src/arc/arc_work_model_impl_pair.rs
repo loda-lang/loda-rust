@@ -1,4 +1,4 @@
-use super::arc_work_model;
+use super::{arc_work_model, ImageCompare, Image, ImageHistogram};
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
 use super::{ImageFind, ImageSize, ImageSymmetry, Histogram};
@@ -90,8 +90,9 @@ impl arc_work_model::Pair {
                 self.action_label_set.insert(ActionLabel::RemovalColorIsThePrimaryColorOfInputImage);
             }
         }
-
+        
         _ = self.analyze_object_why_is_the_output_present_once_in_input();
+        _ = self.analyze_output_image_is_input_image_with_changes_to_pixels_with_color();
     }
 
     fn analyze_object_why_is_the_output_present_once_in_input(&mut self) -> anyhow::Result<()> {
@@ -154,6 +155,41 @@ impl arc_work_model::Pair {
         Ok(())
     }
 
+    fn analyze_output_image_is_input_image_with_changes_to_pixels_with_color(&mut self) -> anyhow::Result<()> {
+        if self.input.image.size() != self.output.image.size() {
+            return Ok(());
+        }
+
+        let mask_where_there_is_differences: Image = self.input.image.diff(&self.output.image)?;
+        let histogram: Histogram = self.input.image.histogram_with_mask(&mask_where_there_is_differences)?;
+
+        if histogram.number_of_counters_greater_than_zero() > 1 {
+            return Ok(());
+        }
+
+        let color: u8 = match histogram.most_popular_color() {
+            Some(value) => value,
+            None => {
+                return Ok(());
+            }
+        };
+
+        {
+            let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color };
+            self.action_label_set.insert(label);
+        }
+        if self.input.histogram.most_popular_color() == Some(color) {
+            let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage;
+            self.action_label_set.insert(label);
+        }
+        if self.input.histogram.least_popular_color() == Some(color) {
+            let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithLeastPopularColorOfTheInputImage;
+            self.action_label_set.insert(label);
+        }
+
+        Ok(())
+    }
+
     pub fn predicted_output_size(&self) -> Option<ImageSize> {
         for prediction in &self.prediction_set {
             match prediction {
@@ -171,6 +207,18 @@ impl arc_work_model::Pair {
             match prediction {
                 arc_work_model::Prediction::OutputPalette { histogram } => {
                     return Some(histogram.clone());
+                },
+                _ => {}
+            }
+        }
+        None
+    }
+
+    pub fn predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color(&self) -> Option<u8> {
+        for prediction in &self.prediction_set {
+            match prediction {
+                arc_work_model::Prediction::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color } => {
+                    return Some(*color);
                 },
                 _ => {}
             }

@@ -116,6 +116,9 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
             occur_in_solutions_csv: false,
         };
         task.assign_labels()?;
+        task.assign_predicted_output_size();
+        task.assign_predicted_output_palette();
+        task.assign_predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color();
         return Ok(task);
     }
 }

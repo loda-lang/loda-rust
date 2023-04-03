@@ -2,14 +2,17 @@
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model::{self, PairType};
-    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve};
+    use crate::arc::ActionLabel;
+    use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding};
+    use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use std::collections::HashMap;
+    use regex::Regex;
 
     #[allow(unused_imports)]
     use crate::arc::{HtmlLog, ImageToHTML};
@@ -2105,78 +2108,107 @@ mod tests {
         assert_eq!(result, "4 1");
     }
 
+    mod solve_ea959feb {
+        use super::*;
+
+        pub struct MySolution {
+            repair_color: u8,
+        }
+    
+        impl MySolution {
+            pub fn new() -> Self {
+                Self {
+                    repair_color: 255
+                }
+            }
+        }
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
+                // Obtain the color is used for damaged pixels
+                let mut found_color: Option<u8> = None;
+                for label in &task.action_label_set_intersection {
+                    match label {
+                        ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color } => {
+                            found_color = Some(*color);
+                            break;
+                        },
+                        _ => {}
+                    };
+                }
+
+                let color: u8 = match found_color {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Expected a repair color"));
+                    }
+                };
+    
+                self.repair_color = color;
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+                let input: &Image = &data.image;
+                let result_image: Image = input.repair_pattern(self.repair_color)?;
+                Ok(result_image)
+            }
+        }
+    }
+
     #[test]
-    fn test_470000_puzzle_e95e3d8e() {
-        let solution: SolutionSimple = |data| {
-            let input = data.image;
-
-            // determine what color is used for damaged pixels
-            let repair_color: u8 = 0;
-
-            let result_image: Image = input.repair_pattern(repair_color)?;
-            Ok(result_image)
-        };
-        let result: String = solution.run("e95e3d8e").expect("String");
+    fn test_470000_puzzle_1d0a4b61() {
+        let mut instance = solve_ea959feb::MySolution::new();
+        let result: String = run_analyze_and_solve("1d0a4b61", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 
     #[test]
-    fn test_480000_puzzle_1d0a4b61() {
-        let solution: SolutionSimple = |data| {
-            let input = data.image;
-
-            // determine what color is used for damaged pixels
-            let repair_color: u8 = 0;
-
-            let result_image: Image = input.repair_pattern(repair_color)?;
-            Ok(result_image)
-        };
-        let result: String = solution.run("1d0a4b61").expect("String");
-        assert_eq!(result, "3 1");
-    }
-
-    #[test]
-    fn test_490000_puzzle_ca8f78db() {
-        let solution: SolutionSimple = |data| {
-            let input = data.image;
-
-            // determine what color is used for damaged pixels
-            let repair_color: u8 = 0;
-
-            let result_image: Image = input.repair_pattern(repair_color)?;
-            Ok(result_image)
-        };
-        let result: String = solution.run("ca8f78db").expect("String");
-        assert_eq!(result, "3 1");
-    }
-
-    #[test]
-    fn test_500000_puzzle_29ec7d0e() {
-        let solution: SolutionSimple = |data| {
-            let input = data.image;
-
-            // determine what color is used for damaged pixels
-            let repair_color: u8 = 0;
-
-            let result_image: Image = input.repair_pattern(repair_color)?;
-            Ok(result_image)
-        };
-        let result: String = solution.run("29ec7d0e").expect("String");
+    fn test_470001_puzzle_29ec7d0e() {
+        let mut instance = solve_ea959feb::MySolution::new();
+        let result: String = run_analyze_and_solve("29ec7d0e", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
     #[test]
-    fn test_510000_puzzle_ea959feb() {
-        let solution: SolutionSimple = |data| {
-            let input = data.image;
+    fn test_470002_puzzle_ca8f78db() {
+        let mut instance = solve_ea959feb::MySolution::new();
+        let result: String = run_analyze_and_solve("ca8f78db", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }    
 
-            // determine what color is used for damaged pixels
-            let repair_color: u8 = 1;
+    #[test]
+    fn test_470003_puzzle_e95e3d8e() {
+        let mut instance = solve_ea959feb::MySolution::new();
+        let result: String = run_analyze_and_solve("e95e3d8e", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }            
 
-            let result_image: Image = input.repair_pattern(repair_color)?;
-            Ok(result_image)
-        };
-        let result: String = solution.run("ea959feb").expect("String");
+    #[test]
+    fn test_470004_puzzle_ea959feb() {
+        let mut instance = solve_ea959feb::MySolution::new();
+        let result: String = run_analyze_and_solve("ea959feb", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const ADVANCED_PROGRAM_EA959FEB: &'static str = r#"
+    mov $80,$99
+    mov $81,100
+    mov $82,102
+    mov $83,105 ; address of vector[0].OutputImageIsInputImageWithChangesLimitedToPixelsWithColor
+    lps $80
+      mov $0,$$81
+      mov $1,$$83
+      f21 $0,102151 ; Repair damaged pixels and recreate big repeating patterns such as mosaics.
+      mov $$82,$0
+      add $81,100
+      add $82,100
+      add $83,100
+    lpe
+    "#;
+
+    #[test]
+    fn test_470005_puzzle_ea959feb_loda() {
+        let result: String = run_advanced("ea959feb", ADVANCED_PROGRAM_EA959FEB).expect("String");
         assert_eq!(result, "3 1");
     }
 
@@ -2223,12 +2255,12 @@ mod tests {
 
     #[test]
     fn test_540000_puzzle_a699fb00() {
-        let mut instance = a699fb00::MySolution::new();
+        let mut instance = solve_a699fb00::MySolution::new();
         let result: String = run_analyze_and_solve("a699fb00", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 
-    mod a699fb00 {
+    mod solve_a699fb00 {
         use super::*;
 
         type Dict = HashMap<Image, Image>;
@@ -2328,4 +2360,626 @@ mod tests {
         assert_eq!(result, "4 1");
     }
 
+    mod solve_5c0a986e_regex_manual {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl MySolution {
+            pub fn new() -> Self {
+                Self {}
+            }
+        }
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+                let input: &Image = &data.image;
+
+                let pattern1a: &str = 
+                "^\\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,0,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,1,1,\
+                \\d+,\\d+,\\d+,1,1$";
+
+                let pattern1b: &str = 
+                "^\\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,0,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,1,0,\
+                \\d+,\\d+,\\d+,0,1$";
+
+                let pattern2a: &str = 
+                "^2,2,\\d+,\\d+,\\d+,\
+                2,2,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,0,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+$";
+        
+                let pattern2b: &str = 
+                "^2,0,\\d+,\\d+,\\d+,\
+                0,2,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,0,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+,\
+                \\d+,\\d+,\\d+,\\d+,\\d+$";
+        
+                let replacements: Vec<ImageReplaceRegexToColor> = vec![
+                    ImageReplaceRegexToColor {
+                        regex: Regex::new(pattern1a).expect("regex"),
+                        color: 1,
+                    },
+                    ImageReplaceRegexToColor {
+                        regex: Regex::new(pattern1b).expect("regex"),
+                        color: 1,
+                    },
+                    ImageReplaceRegexToColor {
+                        regex: Regex::new(pattern2a).expect("regex"),
+                        color: 2,
+                    },
+                    ImageReplaceRegexToColor {
+                        regex: Regex::new(pattern2b).expect("regex"),
+                        color: 2,
+                    }
+                ];
+
+                let mut result_image: Image = input.padding_with_color(2, 0)?;
+                let _count: usize = result_image.replace_5x5_regex(&replacements, 14, 14)?;
+                // println!("replace_5x5_regex. count: {}", count);
+                let result_image_cropped: Image = result_image.crop(2, 2, input.width(), input.height())?;
+                Ok(result_image_cropped)
+            }
+        }
+    }
+
+    #[test]
+    fn test_560003_puzzle_5c0a986e_using_regex_manual() {
+        let mut instance = solve_5c0a986e_regex_manual::MySolution::new();
+        let result: String = run_analyze_and_solve("5c0a986e", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_5c0a986e_regex_advanced {
+        use super::*;
+
+        pub struct MySolution {
+            replacements: Vec<ImageReplaceRegexToColor>,
+        }
+    
+        impl MySolution {
+            pub fn new() -> Self {
+                Self {
+                    replacements: vec!()
+                }
+            }
+
+            fn similarity_of_two5x5(source_image: &Image, target_image: &Image, ignore_color: u8) -> anyhow::Result<(u8, u8)> {
+                if source_image.width() != 5 || source_image.height() != 5 || target_image.width() != 5 || target_image.height() != 5 {
+                    return Err(anyhow::anyhow!("both images must have the exact size 5x5"));
+                }
+                let target_pixel_value: u8 = target_image.get(2, 2).unwrap_or(255);
+
+                let mut count_same_as_target: u8 = 0;
+                let mut count_same: u8 = 0;
+                let mut count_different: u8 = 0;
+                for y in 0..5 {
+                    for x in 0..5 {
+                        if y == 2 && x == 2 {
+                            // Ignore the center pixel of the 5x5
+                            continue;
+                        }
+                        let pixel_value0: u8 = source_image.get(x as i32, y as i32).unwrap_or(255);
+                        let pixel_value1: u8 = target_image.get(x as i32, y as i32).unwrap_or(255);
+                        if pixel_value0 == ignore_color && pixel_value1 == ignore_color {
+                            continue;
+                        }
+                        if pixel_value0 != pixel_value1 {
+                            count_different += 1;
+                            continue;
+                        }
+                        // Idea, use distance from the center pixel to assign more weight to pixels near center
+                        if pixel_value0 == target_pixel_value {
+                            count_same_as_target += 1;
+                        } else {
+                            count_same += 1;
+                        }
+                    }
+                }
+                count_same += count_same_as_target * 10;
+                Ok((count_same, count_different))
+            }
+
+            fn pattern_of_two5x5(source_image: &Image, target_image: &Image, ignore_color: u8) -> anyhow::Result<String> {
+                if source_image.width() != 5 || source_image.height() != 5 || target_image.width() != 5 || target_image.height() != 5 {
+                    return Err(anyhow::anyhow!("both images must have the exact size 5x5"));
+                }
+                let target_center_pixel_value: u8 = target_image.get(2, 2).unwrap_or(255);
+                let mut pattern_parts = Vec::<String>::new();
+                for y in 0..5 {
+                    for x in 0..5 {
+                        let pixel_value0: u8 = source_image.get(x as i32, y as i32).unwrap_or(255);
+                        if y == 2 && x == 2 {
+                            // Special treatment for the center pixel of the 5x5
+                            pattern_parts.push(format!("{}", pixel_value0));
+                            continue;
+                        }
+                        let pixel_value1: u8 = target_image.get(x as i32, y as i32).unwrap_or(255);
+                        if pixel_value0 == ignore_color && pixel_value1 == ignore_color {
+                            pattern_parts.push("\\d+".into());
+                            continue;
+                        }
+                        if pixel_value0 == target_center_pixel_value {
+                            pattern_parts.push(format!("{}", pixel_value0));
+                            continue;
+                        }
+                        pattern_parts.push("\\d+".into());
+                    }
+                }
+
+                let pattern: String = format!("^{}$", pattern_parts.join(","));
+                Ok(pattern)
+            }
+
+            fn analyze_train_pair(pair: &arc_work_model::Pair) -> anyhow::Result<Vec<ImageReplaceRegexToColor>> {
+                let background_color: u8 = 0;
+                let mut input_image: Image = pair.input.image.padding_with_color(2, background_color)?;
+                let output_image: Image = pair.output.image.padding_with_color(2, background_color)?;
+
+                // HtmlLog::text("analyze train pair");
+                let mut replacements = Vec::<ImageReplaceRegexToColor>::new();
+
+                for _iteration in 0..20 {
+                    // HtmlLog::text(format!("iteration: {}", iteration));
+
+                    let current_input: Image = input_image.crop(2, 2, pair.input.image.width(), pair.input.image.height())?;
+                    let diff_mask: Image = current_input.diff(&pair.output.image)?;
+                    // HtmlLog::image(&diff_mask);
+    
+                    let positions: Vec<(u8, u8)> = diff_mask.positions_where_color_is(1);
+                    // println!("positions: {:?}", positions);
+                    if positions.is_empty() {
+                        break;
+                    }
+   
+                    let mut found_x: u8 = 0;
+                    let mut found_y: u8 = 0;
+                    let mut found_score: u8 = 0;
+                    for (x, y) in &positions {
+
+                        let input_crop: Image = input_image.crop(*x, *y, 5, 5)?;
+                        let output_crop: Image = output_image.crop(*x, *y, 5, 5)?;
+
+                        // Compare input_crop with output_crop, ignoring the center pixel
+                        // If they are nearly identical, then we know that it's only the center pixel that has changed.
+                        // And that we can establish a pattern at this position.
+                        let (count_same, _count_diff) = Self::similarity_of_two5x5(&input_crop, &output_crop, background_color)?;
+                        // println!("position: {},{}  same: {}  diff: {}", x, y, count_same, count_diff);
+                        if count_same > found_score {
+                            found_x = *x;
+                            found_y = *y;
+                            found_score = count_same;
+                        }
+                    }
+                    if found_score == 0 {
+                        break;
+                    }
+                    // println!("found position: {},{}", found_x, found_y);
+
+                    let x: u8 = found_x;
+                    let y: u8 = found_y;
+                    let input_crop: Image = input_image.crop(x, y, 5, 5)?;
+                    let output_crop: Image = output_image.crop(x, y, 5, 5)?;
+
+                    let pattern: String = Self::pattern_of_two5x5(&input_crop, &output_crop, background_color)?;
+                    // println!("pattern: {}", pattern);
+                    
+                    let target_color: u8 = output_crop.get(2, 2).unwrap_or(255);
+                    // println!("target_color: {}", target_color);
+
+                    let item = ImageReplaceRegexToColor {
+                        regex: Regex::new(&pattern)?,
+                        color: target_color,
+                    };
+                    replacements.push(item);
+
+                    let _replace_count: usize = input_image.replace_5x5_regex(&replacements, 14, 14)?;
+                    // println!("replace_count: {}", replace_count);
+                    // HtmlLog::image(&input_image);
+                }
+                // HtmlLog::text("separator");
+                Ok(replacements)
+            }
+
+            fn intersection(items0: &Vec<ImageReplaceRegexToColor>, items1: &Vec<ImageReplaceRegexToColor>) -> Vec<ImageReplaceRegexToColor> {
+                let mut result_items = Vec::<ImageReplaceRegexToColor>::new();
+                for item0 in items0 {
+                    for item1 in items1 {
+                        if *item0.regex.as_str() != *item1.regex.as_str() {
+                            continue;
+                        }
+                        if item0.color != item1.color {
+                            continue;
+                        }
+                        result_items.push(item0.clone());
+                    }
+                }
+                result_items
+            }
+        }
+
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
+                let mut is_first = true;
+                let mut replacements_intersection = Vec::<ImageReplaceRegexToColor>::new();
+                for pair in &task.pairs {
+                    if pair.pair_type != PairType::Train {
+                        continue;
+                    }
+                    let replacements: Vec<ImageReplaceRegexToColor> = Self::analyze_train_pair(pair)?;
+                    if is_first {
+                        is_first = false;
+                        replacements_intersection = replacements;
+                    } else {
+                        replacements_intersection = Self::intersection(&replacements_intersection, &replacements);
+                    }
+                    if replacements_intersection.is_empty() {
+                        break;
+                    }
+                }
+                // println!("rules.len: {}", replacements_intersection.len());
+                // println!("rules: {:?}", replacements_intersection);
+                self.replacements = replacements_intersection;
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+                let input: &Image = &data.image;
+                let mut result_image: Image = input.padding_with_color(2, 0)?;
+                let _count: usize = result_image.replace_5x5_regex(&self.replacements, 14, 14)?;
+                // println!("replace_5x5_regex. count: {}", count);
+                let result_image_cropped: Image = result_image.crop(2, 2, input.width(), input.height())?;
+                Ok(result_image_cropped)
+            }
+        }
+    }
+
+    #[test]
+    fn test_560004_puzzle_5c0a986e_using_regex_advanced() {
+        let mut instance = solve_5c0a986e_regex_advanced::MySolution::new();
+        let result: String = run_analyze_and_solve("5c0a986e", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_570000_puzzle_3428a4f5() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let half_height: u8 = input.height() / 2;
+            let a: Image = input.top_rows(half_height)?;
+            let b: Image = input.bottom_rows(half_height)?;
+            let result_image: Image = a.mask_xor(&b)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("3428a4f5").expect("String");
+        assert_eq!(result, "4 2");
+    }
+
+    const PROGRAM_3428A4F5: &'static str = "
+    mov $5,$0
+    f11 $5,101001 ; get height
+    div $5,2
+
+    mov $4,$0
+    f21 $4,101221 ; get N bottom rows
+    
+    mov $1,$5
+    f21 $0,101220 ; get N top rows
+
+    mov $1,$4
+    f21 $0,101254 ; xor
+    ";
+
+    #[test]
+    fn test_570001_puzzle_3428a4f5_loda() {
+        let result: String = run_simple("3428a4f5", PROGRAM_3428A4F5).expect("String");
+        assert_eq!(result, "4 2");
+    }
+
+    #[test]
+    fn test_580000_puzzle_25d8a9c8() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let mut result_image: Image = input.count_unique_colors_per_row()?;
+            result_image = result_image.to_mask_where_color_is_different(1);
+            result_image = result_image.repeat_by_count(input.width(), 1)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("25d8a9c8").expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    #[test]
+    fn test_590000_puzzle_50cb2852() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let color_count: Image = input.count_duplicate_pixels_in_3x3()?;
+            let count_mask: Image = color_count.to_mask_where_color_is_equal_or_greater_than(8);
+            let object_mask: Image = input.to_mask_where_color_is_different(0);
+            let mask: Image = count_mask.mask_and(&object_mask)?;
+            let result_image: Image = mask.select_from_image_and_color(&input, 42)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("50cb2852").expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_50CB2852: &'static str = "
+    mov $1,$0
+    f11 $1,102140 ; Traverse all pixels in the 3x3 convolution and count how many have the same color as the center.
+    mov $2,8
+    f21 $1,101253 ; Convert to a mask image by converting `pixel_color >= threshold_color` to 1 and converting anything else to to 0.
+
+    mov $2,$0
+    mov $3,0
+    f21 $2,101251 ; Convert to a mask image by converting `color` to 0 and converting anything else to to 1.
+
+    f21 $1,101255 ; AND between two masks
+
+    mov $3,42
+    mov $2,$0
+    f31 $1,102131 ; Pick pixels from image and color. When the mask is 0 then pick from the image. When the mask is [1..255] then use the `default_color`.
+
+    mov $0,$1
+    ";
+
+    #[test]
+    fn test_590001_puzzle_50cb2852_loda() {
+        let result: String = run_simple("50cb2852", PROGRAM_50CB2852).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_600000_puzzle_c1d99e64() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let mask: Image = input.mask_for_gridcells(None)?;
+            let result_image: Image = mask.select_from_color_and_image(42, &input)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("c1d99e64").expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_610000_puzzle_f2829549() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let half_width: u8 = input.width() / 2;
+            let a: Image = input.left_columns(half_width)?;
+            let b: Image = input.right_columns(half_width)?;
+            let result_image: Image = a.mask_or(&b)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("f2829549").expect("String");
+        assert_eq!(result, "5 1");
+    }
+
+    const PROGRAM_F2829549: &'static str = "
+    mov $5,$0
+    f11 $5,101000 ; get width
+    div $5,2
+
+    mov $4,$0
+    f21 $4,101222 ; get N left columns
+    
+    mov $1,$5
+    f21 $0,101223 ; get N right columns
+
+    mov $1,$4
+    f21 $0,101256 ; or
+    ";
+
+    #[test]
+    fn test_610001_puzzle_f2829549_loda() {
+        let result: String = run_simple("f2829549", PROGRAM_F2829549).expect("String");
+        assert_eq!(result, "5 1");
+    }
+
+    #[test]
+    fn test_620000_puzzle_662c240a() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let height: u8 = input.height() / 3;
+            let mut images = Vec::<Image>::new();
+            for i in 0..3 {
+                let y: i32 = (height as i32) * i;
+                if y > (u8::MAX as i32) {
+                    return Err(anyhow::anyhow!("cannot split image"));
+                }
+                let image: Image = input.crop(0, y as u8, input.width(), height)?;
+                images.push(image);
+            }
+            for image in &images {
+                if image.is_symmetric_any_diagonal()? {
+                    continue;
+                }
+                return Ok(image.clone()); 
+            }
+            Err(anyhow::anyhow!("no non-symmetric image found"))
+        };
+        let result: String = solution.run("662c240a").expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    #[test]
+    fn test_630000_puzzle_b6afb2da() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let color_count: Image = input.count_duplicate_pixels_in_3x3()?;
+            let object_mask: Image = input.to_mask_where_color_is_different(0);
+            let result_image: Image = object_mask.select_from_color_and_image(42, &color_count)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("b6afb2da").expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    const PROGRAM_B6AFB2DA: &'static str = "
+    mov $80,$99
+    mov $81,100
+    mov $82,102
+    mov $83,105 ; address of vector[0].OutputImageIsInputImageWithChangesLimitedToPixelsWithColor
+    lps $80
+        mov $0,$$81
+
+        mov $4,$0
+        f11 $4,102140 ; Traverse all pixels in the 3x3 convolution and count how many have the same color as the center.
+
+        mov $5,$0
+        mov $6,$$83
+        f21 $5,101251 ; Convert to a mask image by converting `color` to 0 and converting anything else to to 1.
+
+        mov $8,42
+        mov $7,$4
+        mov $6,$5
+        f31 $6,102131 ; Pick pixels from color and image. When the mask is 0 then pick the `default_color`. When the mask is [1..255] then pick from the image.
+
+        mov $$82,$6
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_630001_puzzle_b6afb2da_loda() {
+        let result: String = run_advanced("b6afb2da", PROGRAM_B6AFB2DA).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    #[test]
+    fn test_640000_puzzle_c444b776() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+
+            // Objects from the grid
+            let cell_mask: Image = input.mask_for_gridcells(Some(4))?;
+            let ignore_mask: Image = cell_mask.invert_mask();
+            let objects: Vec<Image> = cell_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, ignore_mask)?;
+
+            // Identify the single template image
+            let mut image_to_insert: Option<Image> = None;
+            let mut number_of_images_found: usize = 0;
+            for object in &objects {
+                let tuple = match object.bounding_box() {
+                    Some(tuple) => tuple,
+                    None => {
+                        return Err(anyhow::anyhow!("expected all objects to have a bounding box"));
+                    }
+                };
+                let (x, y, width, height) = tuple;
+                let image: Image = input.crop(x, y, width, height)?;
+                let count: u32 = image.histogram_all().number_of_counters_greater_than_zero();
+                if count == 1 {
+                    continue;
+                }
+                image_to_insert = Some(image);
+                number_of_images_found += 1;
+            }
+            if number_of_images_found >= 2 {
+                return Err(anyhow::anyhow!("Found 2 or more patterns to insert"));
+            }
+            let template_image: Image = match image_to_insert {
+                Some(image) => image,
+                None => {
+                    return Err(anyhow::anyhow!("Didn't find any pattern for insertion"));
+                }
+            };
+
+            // Insert the template image into all the empty cells
+            let mut result_image: Image = input.clone();
+            for object in &objects {
+                let tuple = match object.bounding_box() {
+                    Some(tuple) => tuple,
+                    None => {
+                        return Err(anyhow::anyhow!("expected all objects to have a bounding box"));
+                    }
+                };
+                let (x, y, width, height) = tuple;
+                let image: Image = input.crop(x, y, width, height)?;
+                let count: u32 = image.histogram_all().number_of_counters_greater_than_zero();
+                if count != 1 {
+                    continue;
+                }
+                result_image = result_image.overlay_with_position(&template_image, x as i32, y as i32)?;
+            }
+            Ok(result_image)
+        };
+        let result: String = solution.run("c444b776").expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    #[test]
+    fn test_650000_puzzle_017c7c7b() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let ignore_mask = Image::zero(input.width(), input.height());
+            let periodicity_optional: Option<u8> = input.vertical_periodicity(&ignore_mask)?;
+            let periodicity: u8 = periodicity_optional.expect("u8");
+            if periodicity < 1 {
+                return Err(anyhow::anyhow!("expected periodicity to be 1 or more"));
+            }
+            let repeat_count: u8 = (9 / periodicity) + 1;
+            let pattern: Image = input.top_rows(periodicity)?;
+            let mut result_image: Image = pattern.repeat_by_count(1, repeat_count)?;
+            result_image = result_image.crop(0, 0, input.width(), 9)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("017c7c7b").expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_660000_puzzle_6f8cd79b() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let cropped: Image = input.crop(1, 1, input.width() - 2, input.height() - 2)?;
+            let result_image: Image = cropped.padding_with_color(1, 42)?;
+            Ok(result_image)
+        };
+        let result: String = solution.run("6f8cd79b").expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    #[test]
+    fn test_670000_puzzle_cf98881b() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let width: u8 = (input.width() - 2) / 3;
+            let mut images = Vec::<Image>::new();
+            for i in 0..3 {
+                let x: i32 = (width as i32 + 1) * i;
+                if x > (u8::MAX as i32) {
+                    return Err(anyhow::anyhow!("cannot split image"));
+                }
+                let image: Image = input.crop(x as u8, 0, width, input.height())?;
+                images.push(image);
+            }
+            images.reverse();
+            let mut result_image = Image::empty();
+            for (index, image) in images.iter().enumerate() {
+                if index == 0 {
+                    result_image = image.clone();
+                    continue;
+                }
+                let mask: Image = image.to_mask_where_color_is_different(0);
+                result_image = mask.select_from_images(&result_image, &image)?;
+            }
+            Ok(result_image)
+        };
+        let result: String = solution.run("cf98881b").expect("String");
+        assert_eq!(result, "5 1");
+    }
 }

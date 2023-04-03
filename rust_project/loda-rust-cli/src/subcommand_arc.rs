@@ -9,8 +9,8 @@ pub enum SubcommandARCMode {
     /// Populate the `solutions.csv` file by trying out all puzzles with all solutions.
     GenerateSolutionCSV,
 
-    /// Eval a single puzzle with all the existing solutions.
-    EvalSinglePuzzle { pattern: String },
+    /// Eval a single task with all the existing solutions.
+    EvalSingleTask { pattern: String },
 
     /// The code being executed inside the docker image submitted for the `ARCathon` contest.
     Competition,
@@ -30,8 +30,8 @@ impl SubcommandARC {
             SubcommandARCMode::GenerateSolutionCSV => {
                 return TraverseProgramsAndModels::generate_solution_csv();
             },
-            SubcommandARCMode::EvalSinglePuzzle { pattern } => {
-                return TraverseProgramsAndModels::eval_single_puzzle_with_all_existing_solutions(pattern);
+            SubcommandARCMode::EvalSingleTask { pattern } => {
+                return TraverseProgramsAndModels::eval_single_task_with_all_existing_solutions(pattern);
             },
             SubcommandARCMode::Competition => {
                 return TraverseProgramsAndModels::arc_competition();

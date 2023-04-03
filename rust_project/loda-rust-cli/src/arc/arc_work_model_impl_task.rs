@@ -1,11 +1,8 @@
-use super::arc_work_model;
+use super::{arc_work_model, HtmlFromTask};
 use super::arc_work_model::{Input, PairType};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram};
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput};
 use std::collections::{HashMap, HashSet};
-
-#[allow(unused_imports)]
-use crate::arc::{HtmlLog, ImageToHTML};
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 enum RulePriority {
@@ -748,213 +745,65 @@ impl arc_work_model::Task {
         }
     }
 
-    fn labelset_to_html(label_set: &ActionLabelSet) -> String {
-        let mut label_vec: Vec<String> = label_set.iter().map(|label| format!("{:?}", label)).collect();
-        if label_vec.is_empty() {
-            return "empty".to_string();
+    pub fn assign_predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color(&mut self) {
+        let mut use_specific_color: Option<u8> = None;
+        let mut use_most_popular_color = false;
+        let mut use_least_popular_color = false;
+        for label in &self.action_label_set_intersection {
+            match label {
+                ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color } => {
+                    use_specific_color = Some(*color);
+                },
+                ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage => {
+                    use_most_popular_color = true;
+                },
+                ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithLeastPopularColorOfTheInputImage => {
+                    use_least_popular_color = true;
+                },
+                _ => {}
+            };
         }
-        label_vec.sort();
-        label_vec = label_vec.iter().map(|label| format!("<li>{}</li>", label)).collect();
-        format!("<ul>{}</ul>", label_vec.join(""))
-    }
 
-    fn input_label_set_to_html(input_label_set: &InputLabelSet) -> String {
-        let mut label_vec: Vec<String> = input_label_set.iter().map(|label| format!("{:?}", label)).collect();
-        if label_vec.is_empty() {
-            return "empty".to_string();
+        let mut predicted_color_dict = HashMap::<usize, u8>::new();
+        for (index, pair) in self.pairs.iter().enumerate() {
+            // If one or more pairs are undecided, then return out immediately, 
+            // so that none of the pairs gets assigned a prediction.
+            let predicted_color: u8;
+            match (use_specific_color, use_most_popular_color, use_least_popular_color) {
+                (Some(color), _, _) => {
+                    predicted_color = color;
+                },
+                (None, true, false) => {
+                    if let Some(color) = pair.input.histogram.most_popular_color() {
+                        predicted_color = color;
+                        // println!("predicted_color most popular: {}", color);
+                    } else {
+                        return;
+                    }
+                },
+                (None, false, true) => {
+                    if let Some(color) = pair.input.histogram.least_popular_color() {
+                        predicted_color = color;
+                        // println!("predicted_color least popular: {}", color);
+                    } else {
+                        return;
+                    }
+                }
+                _ => return
+            }
+            predicted_color_dict.insert(index, predicted_color);
         }
-        label_vec.sort();
-        label_vec = label_vec.iter().map(|label| format!("<li>{}</li>", label)).collect();
-        format!("<ul>{}</ul>", label_vec.join(""))
-    }
 
-    fn input_properties_to_html(input_properties: &HashMap<PropertyInput, u8>) -> String {
-        let mut items: Vec<String> = input_properties.iter().map(|(key,value)| format!("{:?} {}", key, value)).collect();
-        if items.is_empty() {
-            return "empty".to_string();
+        for (index, pair) in self.pairs.iter_mut().enumerate() {
+            if let Some(predicted_color) = predicted_color_dict.get(&index) {
+                // println!("predicted_color: {}", *predicted_color);
+                pair.prediction_set.insert(arc_work_model::Prediction::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color: *predicted_color });
+            }
         }
-        items.sort();
-        let list_vec: Vec<String> = items.iter().map(|label| format!("<li>{}</li>", label)).collect();
-        format!("<ul>{}</ul>", list_vec.join(""))
     }
 
     pub fn inspect(&self) -> anyhow::Result<()> {
-        let mut row_title: String = "<tr><td></td>".to_string();
-        let mut row_input_image: String = "<tr><td>Input image</td>".to_string();
-        let mut row_input_properties: String = "<tr><td>Input properties</td>".to_string();
-        let mut row_input_labels: String = "<tr><td>Input labels</td>".to_string();
-        let mut row_output_image: String = "<tr><td>Output image</td>".to_string();
-        let mut row_action_colors: String = "<tr><td>Action colors</td>".to_string();
-        let mut row_action_labels: String = "<tr><td>Action labels</td>".to_string();
-
-        // The current ordering of columns is terrible. train pairs, test pairs, analysis.
-        // It's counter intuitive that the analysis comes last.
-        // The way the computation takes place is train pairs, analysis, test pairs.
-        // TODO: Reorder the columns like this: train pairs, analysis, test pairs.
-
-        for pair in &self.pairs {
-            {
-                row_title += "<td>";
-                let title: &str = match pair.pair_type {
-                    PairType::Train => "Train",
-                    PairType::Test => "Test",
-                };
-                row_title += title;
-                row_title += "</td>";
-            }
-            {
-                row_input_image += "<td>";
-                row_input_image += &pair.input.image.to_html();
-                row_input_image += "</td>";
-            }
-            {
-                row_input_properties += "<td>";
-                row_input_properties += &Self::input_properties_to_html(&pair.input.input_properties);
-                row_input_properties += "</td>";
-            }
-            {
-                row_input_labels += "<td>";
-                row_input_labels += &Self::input_label_set_to_html(&pair.input.input_label_set);
-                row_input_labels += "</td>";
-            }
-            {
-                row_output_image += "<td>";
-                row_output_image += &pair.output.image.to_html();
-                row_output_image += "</td>";
-            }
-            {
-                row_action_colors += "<td>Removal<br>";
-                match pair.removal_histogram.color_image() {
-                    Ok(image) => {
-                        row_action_colors += &image.to_html();
-                    },
-                    Err(_) => {
-                        row_action_colors += "N/A";
-                    }
-                }
-                row_action_colors += "<br>Insert<br>";
-                match pair.insert_histogram.color_image() {
-                    Ok(image) => {
-                        row_action_colors += &image.to_html();
-                    },
-                    Err(_) => {
-                        row_action_colors += "N/A";
-                    }
-                }
-                row_action_colors += "</td>";
-            }
-            {
-                row_action_labels += "<td>";
-                row_action_labels += &Self::labelset_to_html(&pair.action_label_set);
-                row_action_labels += "</td>";
-            }
-        }
-
-        row_title += "<td>Analysis</td>";
-
-        row_input_image += "<td>Union<br>";
-        match self.input_histogram_union.color_image() {
-            Ok(image) => {
-                row_input_image += &image.to_html();
-            },
-            Err(_) => {
-                row_input_image += "N/A";
-            }
-        }
-        row_input_image += "<br><br>Intersection<br>";
-        match self.input_histogram_intersection.color_image() {
-            Ok(image) => {
-                row_input_image += &image.to_html();
-            },
-            Err(_) => {
-                row_input_image += "N/A";
-            }
-        }
-        row_input_image += "</td>";
-
-        row_input_properties += "<td>";
-        row_input_properties += &Self::input_properties_to_html(&self.input_properties_intersection);
-        row_input_properties += "</td>";
-
-        row_input_labels += "<td>";
-        row_input_labels += &Self::input_label_set_to_html(&self.input_label_set_intersection);
-        row_input_labels += "</td>";
-
-        row_output_image += "<td>Union<br>";
-        match self.output_histogram_union.color_image() {
-            Ok(image) => {
-                row_output_image += &image.to_html();
-            },
-            Err(_) => {
-                row_output_image += "N/A";
-            }
-        }
-        row_output_image += "<br><br>Intersection<br>";
-        match self.output_histogram_intersection.color_image() {
-            Ok(image) => {
-                row_output_image += &image.to_html();
-            },
-            Err(_) => {
-                row_output_image += "N/A";
-            }
-        }
-        row_output_image += "</td>";
-
-        row_action_colors += "<td>Removal<br>";
-        match self.removal_histogram_intersection.color_image() {
-            Ok(image) => {
-                row_action_colors += &image.to_html();
-            },
-            Err(_) => {
-                row_action_colors += "N/A";
-            }
-        }
-        row_action_colors += "<br>Insert<br>";
-        match self.insert_histogram_intersection.color_image() {
-            Ok(image) => {
-                row_action_colors += &image.to_html();
-            },
-            Err(_) => {
-                row_action_colors += "N/A";
-            }
-        }
-        row_action_colors += "</td>";
-
-        row_action_labels += "<td>";
-        row_action_labels += &Self::labelset_to_html(&self.action_label_set_intersection);
-        row_action_labels += "</td>";
-
-        row_title += "</tr>";
-        row_input_image += "</tr>";
-        row_input_properties += "</tr>";
-        row_input_labels += "</tr>";
-        row_output_image += "</tr>";
-        row_action_colors += "</tr>";
-        row_action_labels += "</tr>";
-
-        let solution_status: &str;
-        if self.occur_in_solutions_csv {
-            solution_status = "solved";
-        } else {
-            solution_status = "UNSOLVED";
-        }
-
-        let title: String = format!("{} - {}", self.id, solution_status);
-
-        let html = format!(
-            "<h2>{}</h2><p>Output size: {}</p><table>{}{}{}{}{}{}{}</table>",
-            title, 
-            self.estimated_output_size(),
-            row_title,
-            row_input_image, 
-            row_input_properties, 
-            row_input_labels, 
-            row_output_image, 
-            row_action_colors,
-            row_action_labels
-        );
-        HtmlLog::html(html);
-        Ok(())
+        HtmlFromTask::inspect(self)
     }
 
     pub fn count_train(&self) -> usize {

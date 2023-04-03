@@ -1,7 +1,7 @@
 use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects, ImageBorder};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
-use super::{ImageRepairPattern, ImageRepairTrigram};
+use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean};
 use super::{ImageGrid, ImageCreatePalette, ImageMask, ImageUnicodeFormatting, ImageNeighbour, ImageNeighbourDirection};
 use loda_rust_core::unofficial_function::{UnofficialFunction, UnofficialFunctionId, UnofficialFunctionRegistry};
 use num_bigint::{BigInt, BigUint, ToBigInt};
@@ -1706,7 +1706,7 @@ impl UnofficialFunction for ImageNumberOfUniqueColorsFunction {
 }
 
 #[derive(Debug)]
-enum ImageToMaskFunctionFunctionMode {
+enum ImageToMaskFunctionMode {
     WhereColorIs,
     WhereColorIsDifferent,
     WhereColorIsEqualOrGreater,
@@ -1714,11 +1714,11 @@ enum ImageToMaskFunctionFunctionMode {
 
 struct ImageToMaskFunction {
     id: u32,
-    mode: ImageToMaskFunctionFunctionMode,
+    mode: ImageToMaskFunctionMode,
 }
 
 impl ImageToMaskFunction {
-    fn new(id: u32, mode: ImageToMaskFunctionFunctionMode) -> Self {
+    fn new(id: u32, mode: ImageToMaskFunctionMode) -> Self {
         Self {
             id,
             mode,
@@ -1733,13 +1733,13 @@ impl UnofficialFunction for ImageToMaskFunction {
 
     fn name(&self) -> String {
         match self.mode {
-            ImageToMaskFunctionFunctionMode::WhereColorIs => {
+            ImageToMaskFunctionMode::WhereColorIs => {
                 return "Convert to a mask image by converting `color` to 1 and converting anything else to to 0.".to_string();
             },
-            ImageToMaskFunctionFunctionMode::WhereColorIsDifferent => {
+            ImageToMaskFunctionMode::WhereColorIsDifferent => {
                 return "Convert to a mask image by converting `color` to 0 and converting anything else to to 1.".to_string();
             },
-            ImageToMaskFunctionFunctionMode::WhereColorIsEqualOrGreater => {
+            ImageToMaskFunctionMode::WhereColorIsEqualOrGreater => {
                 return "Convert to a mask image by converting `pixel_color >= threshold_color` to 1 and converting anything else to to 0.".to_string();
             },
         }
@@ -1762,14 +1762,91 @@ impl UnofficialFunction for ImageToMaskFunction {
 
         let output_image: Image;
         match self.mode {
-            ImageToMaskFunctionFunctionMode::WhereColorIs => {
+            ImageToMaskFunctionMode::WhereColorIs => {
                 output_image = image.to_mask_where_color_is(color);
             },
-            ImageToMaskFunctionFunctionMode::WhereColorIsDifferent => {
+            ImageToMaskFunctionMode::WhereColorIsDifferent => {
                 output_image = image.to_mask_where_color_is_different(color);
             },
-            ImageToMaskFunctionFunctionMode::WhereColorIsEqualOrGreater => {
+            ImageToMaskFunctionMode::WhereColorIsEqualOrGreater => {
                 output_image = image.to_mask_where_color_is_equal_or_greater_than(color);
+            },
+        }
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+#[derive(Debug)]
+enum ImageToMaskBooleanOperationFunctionMode {
+    OperationAnd,
+    OperationOr,
+    OperationXor,
+}
+
+struct ImageToMaskBooleanOperation {
+    id: u32,
+    mode: ImageToMaskBooleanOperationFunctionMode,
+}
+
+impl ImageToMaskBooleanOperation {
+    fn new(id: u32, mode: ImageToMaskBooleanOperationFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageToMaskBooleanOperation {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            ImageToMaskBooleanOperationFunctionMode::OperationXor => {
+                return "XOR between two masks".to_string();
+            },
+            ImageToMaskBooleanOperationFunctionMode::OperationAnd => {
+                return "AND between two masks".to_string();
+            },
+            ImageToMaskBooleanOperationFunctionMode::OperationOr => {
+                return "OR between two masks".to_string();
+            },
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image0: Image = input0_uint.to_image()?;
+
+        // input1 is image
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let image1: Image = input1_uint.to_image()?;
+
+        let output_image: Image;
+        match self.mode {
+            ImageToMaskBooleanOperationFunctionMode::OperationXor => {
+                output_image = image0.mask_xor(&image1)?;
+            },
+            ImageToMaskBooleanOperationFunctionMode::OperationAnd => {
+                output_image = image0.mask_and(&image1)?;
+            },
+            ImageToMaskBooleanOperationFunctionMode::OperationOr => {
+                output_image = image0.mask_or(&image1)?;
             },
         }
         let output_uint: BigUint = output_image.to_number()?;
@@ -2192,11 +2269,11 @@ impl UnofficialFunction for ImageRepeatFunction {
     }
 }
 
-struct ImageMaskSelectFromImageFunction {
+struct ImageMaskSelectFromColorAndImageFunction {
     id: u32,
 }
 
-impl ImageMaskSelectFromImageFunction {
+impl ImageMaskSelectFromColorAndImageFunction {
     fn new(id: u32) -> Self {
         Self {
             id,
@@ -2204,13 +2281,13 @@ impl ImageMaskSelectFromImageFunction {
     }
 }
 
-impl UnofficialFunction for ImageMaskSelectFromImageFunction {
+impl UnofficialFunction for ImageMaskSelectFromColorAndImageFunction {
     fn id(&self) -> UnofficialFunctionId {
         UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
     }
 
     fn name(&self) -> String {
-        "Pick pixels from one image. When the mask is 0 then pick the `default_color`. When the mask is [1..255] then pick from the image.".to_string()
+        "Pick pixels from color and image. When the mask is 0 then pick the `default_color`. When the mask is [1..255] then pick from the image.".to_string()
     }
 
     fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
@@ -2236,6 +2313,57 @@ impl UnofficialFunction for ImageMaskSelectFromImageFunction {
         let color: u8 = input[2].to_u8().context("Input[2] u8 pixel_color")?;
 
         let output_image: Image = image0.select_from_color_and_image(color, &image1)?;
+
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct ImageMaskSelectFromImageAndColorFunction {
+    id: u32,
+}
+
+impl ImageMaskSelectFromImageAndColorFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ImageMaskSelectFromImageAndColorFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 3, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Pick pixels from image and color. When the mask is 0 then pick from the image. When the mask is [1..255] then use the `default_color`.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 3 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let image0: Image = input0_uint.to_image()?;
+
+        // input1 is the color
+        let color: u8 = input[2].to_u8().context("Input[2] u8 pixel_color")?;
+
+        // input2 is image
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let image1: Image = input1_uint.to_image()?;
+
+        let output_image: Image = image0.select_from_image_and_color(&image1, color)?;
 
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
@@ -2562,10 +2690,13 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageNumberOfUniqueColorsFunction::new(101240));
 
     // Mask
-    register_function!(ImageToMaskFunction::new(101250, ImageToMaskFunctionFunctionMode::WhereColorIs));
-    register_function!(ImageToMaskFunction::new(101251, ImageToMaskFunctionFunctionMode::WhereColorIsDifferent));
+    register_function!(ImageToMaskFunction::new(101250, ImageToMaskFunctionMode::WhereColorIs));
+    register_function!(ImageToMaskFunction::new(101251, ImageToMaskFunctionMode::WhereColorIsDifferent));
     register_function!(ImageInvertMaskFunction::new(101252));
-    register_function!(ImageToMaskFunction::new(101253, ImageToMaskFunctionFunctionMode::WhereColorIsEqualOrGreater));
+    register_function!(ImageToMaskFunction::new(101253, ImageToMaskFunctionMode::WhereColorIsEqualOrGreater));
+    register_function!(ImageToMaskBooleanOperation::new(101254, ImageToMaskBooleanOperationFunctionMode::OperationXor));
+    register_function!(ImageToMaskBooleanOperation::new(101255, ImageToMaskBooleanOperationFunctionMode::OperationAnd));
+    register_function!(ImageToMaskBooleanOperation::new(101256, ImageToMaskBooleanOperationFunctionMode::OperationOr));
 
     // Objects
     register_function!(ImagePopularObjectFunction::new(102000, ImagePopularObjectFunctionMode::MostPopular));
@@ -2592,7 +2723,8 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ImageRepeatFunction::new(102120));
 
     // Mask - select from image
-    register_function!(ImageMaskSelectFromImageFunction::new(102130));
+    register_function!(ImageMaskSelectFromColorAndImageFunction::new(102130));
+    register_function!(ImageMaskSelectFromImageAndColorFunction::new(102131));
     
     // Count duplicate pixels in 3x3 convolution
     register_function!(ImageCountDuplicatePixelsFunction::new(102140, ImageCountDuplicatePixelsFunctionMode::All));

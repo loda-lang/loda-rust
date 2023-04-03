@@ -13,6 +13,49 @@ use num_traits::{Signed, One};
 use std::path::PathBuf;
 use std::fmt;
 
+enum MemoryLayoutItem {
+    InputImage = 0,
+    ExpectedOutputImage = 1,
+    ComputedOutputImage = 2,
+
+    /// When the `PredictedOutputWidth` is available it's a value in the range `[0..255]`.
+    /// 
+    /// When it's not available then the value is `-1`.
+    PredictedOutputWidth = 3,
+
+    /// When the `PredictedOutputHeight` is available it's a value in the range `[0..255]`.
+    /// 
+    /// When it's not available then the value is `-1`.
+    PredictedOutputHeight = 4,
+    
+    /// The output image seems to a copy of the input image.
+    /// 
+    /// The changes are isolated to pixels with a particular color.
+    /// It's unclear how many of the pixels that changes state.
+    /// It may be just a few pixels that changes state, or it may be all of the pixels.
+    /// 
+    /// When the `OutputImageIsInputImageWithChangesLimitedToPixelsWithColor` is available it's a color value in the range `[0..255]`.
+    /// 
+    /// When it's not available then the value is `-1`.
+    OutputImageIsInputImageWithChangesLimitedToPixelsWithColor = 5,
+
+    // Ideas for more
+    // Repair mask
+    // horizontal_periodicity, vertical_periodicity
+    // Background color in input
+    // Predicted background color in output
+    // Primary color
+    // Secondary color
+    // Grid color
+    // Primary object mask
+    // Child object mask
+    // Cell mask
+    // Grid mask
+    // Objects enumerated
+    // Cell width
+    // Cell height
+}
+
 pub struct RunWithProgramResult {
     message_items: Vec::<String>,
     count_train_correct: usize,
@@ -20,6 +63,8 @@ pub struct RunWithProgramResult {
     count_test_correct: usize,
     count_test_empty: usize,
     predictions: Vec<Prediction>,
+    all_train_pairs_are_correct: bool,
+    all_test_pairs_are_correct: bool,
 }
 
 impl RunWithProgramResult {
@@ -31,6 +76,7 @@ impl RunWithProgramResult {
         self.count_train_correct
     }
 
+    #[allow(dead_code)]
     pub fn count_train_incorrect(&self) -> usize {
         self.count_train_incorrect
     }
@@ -45,6 +91,18 @@ impl RunWithProgramResult {
 
     pub fn predictions(&self) -> &Vec<Prediction> {
         &self.predictions
+    }
+
+    pub fn all_train_pairs_are_correct(&self) -> bool {
+        self.all_train_pairs_are_correct
+    }
+
+    pub fn all_test_pairs_are_correct(&self) -> bool {
+        self.all_test_pairs_are_correct
+    }
+
+    pub fn all_train_pairs_and_test_pairs_are_correct(&self) -> bool {
+        self.all_train_pairs_are_correct && self.all_test_pairs_are_correct
     }
 }
 
@@ -201,27 +259,37 @@ impl RunWithProgram {
     /// $100 = train[0] input
     /// $101 = train[0] expected_output
     /// $102 = train[0] computed_output
-    /// $103..199 is reserved for train[0] extra data
+    /// $103 = train[0] PredictedOutputWidth
+    /// $104 = train[0] PredictedOutputHeight
+    /// $105..199 is reserved for train[0] extra data
     /// ---
     /// $200 = train[1] input
     /// $201 = train[1] expected_output
     /// $202 = train[1] computed_output
-    /// $203..299 is reserved for train[1] extra data
+    /// $203 = train[1] PredictedOutputWidth
+    /// $204 = train[1] PredictedOutputHeight
+    /// $205..299 is reserved for train[1] extra data
     /// ---
     /// $300 = train[2] input
     /// $301 = train[2] expected_output
     /// $302 = train[2] computed_output
-    /// $303..399 is reserved for train[2] extra data
+    /// $303 = train[2] PredictedOutputWidth
+    /// $304 = train[2] PredictedOutputHeight
+    /// $305..399 is reserved for train[2] extra data
     /// ---
     /// $400 = train[3] input
     /// $401 = train[3] expected_output
     /// $402 = train[3] computed_output
-    /// $403..499 is reserved for train[3] extra data
+    /// $403 = train[3] PredictedOutputWidth
+    /// $404 = train[3] PredictedOutputHeight
+    /// $405..499 is reserved for train[3] extra data
     /// ---
     /// $500 = test[0] input
     /// $501 = test[0] expected_output <---- this is not provided, it's up to the program to compute it.
     /// $502 = test[0] computed_output
-    /// $503..599 is reserved for test[0] extra data
+    /// $503 = test[0] PredictedOutputWidth
+    /// $504 = test[0] PredictedOutputHeight
+    /// $505..599 is reserved for test[0] extra data
     /// ```
     fn initial_memory_layout(&self, state: &mut ProgramState) -> anyhow::Result<()> {
 
@@ -233,22 +301,61 @@ impl RunWithProgram {
             }
 
             let index: usize = count_train;
+            let address: u64 = (index * 100 + 100) as u64;
             // memory[x*100+100] = train[x].input
             {
                 let image_number_uint: BigUint = pair.input.image.to_number().context("pair.input image to number")?;
                 let image_number_int: BigInt = image_number_uint.to_bigint().context("pair.input BigUint to BigInt")?;
-                state.set_u64((index * 100 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
+                state.set_u64(address + MemoryLayoutItem::InputImage as u64, image_number_int).context("pair.input, set_u64")?;
             }
 
             // memory[x*100+101] = train[x].output
             {
                 let image_number_uint: BigUint = pair.output.image.to_number().context("pair.output image to number")?;
                 let image_number_int: BigInt = image_number_uint.to_bigint().context("pair.output BigUint to BigInt")?;
-                state.set_u64((index * 100 + 101) as u64, image_number_int).context("pair.output, set_u64")?;
+                state.set_u64(address + MemoryLayoutItem::ExpectedOutputImage as u64, image_number_int).context("pair.output, set_u64")?;
+            }
+
+            // memory[x*100+102] = train[x].computed output
+            {
+                let value: BigInt = -BigInt::one();
+                state.set_u64(address + MemoryLayoutItem::ComputedOutputImage as u64, value).context("pair.ComputedOutputImage, set_u64")?;
+            }
+
+            // memory[x*100+103] = train[x].predicted output width
+            // memory[x*100+104] = train[x].predicted output height
+            {
+                let width: i16;
+                let height: i16;
+                if let Some(size) = pair.predicted_output_size() {
+                    width = size.width as i16;
+                    height = size.height as i16;
+                } else {
+                    width = -1;
+                    height = -1;
+                }
+                if let Some(value) = width.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::PredictedOutputWidth as u64, value).context("pair.PredictedOutputWidth, set_u64")?;
+                }
+                if let Some(value) = height.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::PredictedOutputHeight as u64, value).context("pair.PredictedOutputHeight, set_u64")?;
+                }
+            }
+
+            // memory[x*100+105] = train[x].predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color() {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor as u64, value).context("pair.OutputImageIsInputImageWithChangesLimitedToPixelsWithColor, set_u64")?;
+                }
             }
 
             // Ideas for data to make available to the program.
-            // output_size
             // output_palette
             // substitutions, replace this color with that color
             // substitutions, replace this image with that image
@@ -266,11 +373,12 @@ impl RunWithProgram {
             }
 
             let index: usize = count_train + count_test;
+            let address: u64 = (index * 100 + 100) as u64;
             // memory[(count_train + x)*100+100] = test[x].input
             {
                 let image_number_uint: BigUint = pair.input.image.to_number().context("pair.input image to number")?;
                 let image_number_int: BigInt = image_number_uint.to_bigint().context("pair.input BigUint to BigInt")?;
-                state.set_u64((index * 100 + 100) as u64, image_number_int).context("pair.input, set_u64")?;
+                state.set_u64(address + MemoryLayoutItem::InputImage as u64, image_number_int).context("pair.input, set_u64")?;
             }
 
             // The program is never supposed to read from the the test[x].output register.
@@ -278,7 +386,46 @@ impl RunWithProgram {
             // Use `-1` as placeholder so it's easy to spot when the image is missing.
             {
                 let value: BigInt = -BigInt::one();
-                state.set_u64((index * 100 + 101) as u64, value).context("pair.output, set_u64")?;
+                state.set_u64(address + MemoryLayoutItem::ExpectedOutputImage as u64, value).context("pair.output, set_u64")?;
+            }
+
+            // memory[x*100+102] = test[x].computed output
+            {
+                let value: BigInt = -BigInt::one();
+                state.set_u64(address + MemoryLayoutItem::ComputedOutputImage as u64, value).context("pair.ComputedOutputImage, set_u64")?;
+            }
+
+            // memory[x*100+103] = test[x].predicted output width
+            // memory[x*100+104] = test[x].predicted output height
+            {
+                let width: i16;
+                let height: i16;
+                if let Some(size) = pair.predicted_output_size() {
+                    width = size.width as i16;
+                    height = size.height as i16;
+                } else {
+                    width = -1;
+                    height = -1;
+                }
+                if let Some(value) = width.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::PredictedOutputWidth as u64, value).context("pair.PredictedOutputWidth, set_u64")?;
+                }
+                if let Some(value) = height.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::PredictedOutputHeight as u64, value).context("pair.PredictedOutputHeight, set_u64")?;
+                }
+            }
+
+            // memory[x*100+105] = test[x].predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color
+            {
+                let the_color: i16;
+                if let Some(color) = pair.predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color() {
+                    the_color = color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor as u64, value).context("pair.OutputImageIsInputImageWithChangesLimitedToPixelsWithColor, set_u64")?;
+                }
             }
 
             count_test += 1;
@@ -550,6 +697,7 @@ impl RunWithProgram {
                 status_texts.push("OK");
             }
         }
+        let all_train_pairs_are_correct: bool = (count_train_correct == count_train) && (count_train_incorrect == 0);
 
         // if count_train_correct >= 2 {
         //     pretty_print = true;
@@ -557,9 +705,6 @@ impl RunWithProgram {
 
         let mut predictions = Vec::<Prediction>::new();
 
-        // Future experiment:
-        // Reject solution, if the Test pairs, has a computed_image.size() different than the predicted size.
-        // Reject solution, if the Test pairs, has a computed_image.histogram() different than the predicted palette.
 
         // Traverse the `Test` pairs
         // Compare computed images with test[x].output
@@ -582,6 +727,13 @@ impl RunWithProgram {
                 }
                 continue;
             }
+
+            // Ideas for preventing false positives:
+            // Reject if, computed output image is identical to input image.
+            // Reject solution, if the Test pairs, has a computed_image.size() different than the predicted size.
+            // Reject solution, if the Test pairs, has a computed_image.histogram() different than the predicted palette.
+            // Reject solution, if the Test pairs, has a computed_image.only_one_color() and all the training data also has only_one_color.
+
             if self.verify_test_output {
                 let expected_image: Image = pair.output.test_image.clone();
                 if *computed_image != expected_image {
@@ -610,6 +762,7 @@ impl RunWithProgram {
 
             count_test_correct += 1;
         }
+        let all_test_pairs_are_correct: bool = count_test_correct == count_test;
 
         if pretty_print {
             self.inspect_computed_images(&computed_images, &status_texts);
@@ -622,6 +775,8 @@ impl RunWithProgram {
             count_test_correct,
             count_test_empty,
             predictions,
+            all_train_pairs_are_correct,
+            all_test_pairs_are_correct,
         };
 
         Ok(result)
@@ -726,7 +881,7 @@ impl ComputedImages for ProgramState {
     fn computed_images(&self, number_of_images: usize) -> anyhow::Result<Vec<Image>> {
         let mut images = Vec::<Image>::with_capacity(number_of_images);
         for index in 0..number_of_images {
-            let address: u64 = (index as u64) * 100 + 102;
+            let address: u64 = (index as u64) * 100 + 100 + (MemoryLayoutItem::ComputedOutputImage as u64);
             let computed_int: BigInt = self.get_u64(address).clone();
             if computed_int.is_negative() {
                 return Err(anyhow::anyhow!("computed_images. output[{}]. Expected non-negative number, but got {:?}", address, computed_int));
