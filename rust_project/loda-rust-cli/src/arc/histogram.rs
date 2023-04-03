@@ -49,7 +49,7 @@ impl Histogram {
 
     pub fn add_histogram(&mut self, other: &Histogram) {
         for i in 0..256 {
-            self.counters[i] += other.counters()[i];
+            self.counters[i] += other.counters[i];
         }
     }
 
@@ -61,7 +61,7 @@ impl Histogram {
     pub fn intersection_histogram(&mut self, other: &Histogram) {
         for i in 0..256 {
             let a: u32 = self.counters[i];
-            let b: u32 = other.counters()[i];
+            let b: u32 = other.counters[i];
             let v: u32 = a.min(b).min(1);
             self.counters[i] = v;
         }
@@ -72,7 +72,7 @@ impl Histogram {
     /// Performs an operation similar to: `self` AND NOT `other`.
     pub fn subtract_histogram(&mut self, other: &Histogram) {
         for i in 0..256 {
-            if other.counters()[i] > 0 {
+            if other.counters[i] > 0 {
                 self.counters[i] = 0;
             }
         }
