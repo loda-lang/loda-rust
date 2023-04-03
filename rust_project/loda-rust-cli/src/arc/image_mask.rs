@@ -10,6 +10,9 @@ pub trait ImageMask {
     /// Convert to a mask image by converting `pixel_color >= threshold_color` to 1 and converting anything else to to 0.
     fn to_mask_where_color_is_equal_or_greater_than(&self, threshold_color: u8) -> Image;
 
+    /// Convert to a mask image by converting `pixel_color <= threshold_color` to 1 and converting anything else to to 0.
+    fn to_mask_where_color_is_equal_or_less_than(&self, threshold_color: u8) -> Image;
+
     /// Inverts a mask image by converting 0 to 1 and converting [1..255] to 0.
     fn invert_mask(&self) -> Image;
 
@@ -77,6 +80,26 @@ impl ImageMask for Image {
                 let get_color: u8 = self.get(x, y).unwrap_or(255);
                 let set_color: u8;
                 if get_color >= threshold_color {
+                    set_color = 1;
+                } else {
+                    set_color = 0;
+                }
+                let _ = image.set(x, y, set_color);
+            }
+        }
+        return image;
+    }
+
+    fn to_mask_where_color_is_equal_or_less_than(&self, threshold_color: u8) -> Image {
+        if self.is_empty() {
+            return Image::empty();
+        }
+        let mut image = Image::zero(self.width(), self.height());
+        for y in 0..(self.height() as i32) {
+            for x in 0..(self.width() as i32) {
+                let get_color: u8 = self.get(x, y).unwrap_or(255);
+                let set_color: u8;
+                if get_color <= threshold_color {
                     set_color = 1;
                 } else {
                     set_color = 0;
@@ -324,6 +347,33 @@ mod tests {
             0, 1, 1, 1, 0,
             0, 1, 1, 1, 0,
             0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30001_to_mask_where_color_is_equal_or_less_than() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            2, 1, 0,  1, 2,
+            1, 3, 6,  9, 1,
+            0, 4, 7, 10, 0,
+            1, 5, 8, 11, 1,
+            2, 1, 0,  1, 2,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.to_mask_where_color_is_equal_or_less_than(3);
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 1,
+            1, 1, 0, 0, 1,
+            1, 0, 0, 0, 1,
+            1, 0, 0, 0, 1,
+            1, 1, 1, 1, 1,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
         assert_eq!(actual, expected);
