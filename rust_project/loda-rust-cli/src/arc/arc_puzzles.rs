@@ -3012,10 +3012,6 @@ mod tests {
         let solution: SolutionSimple = |data| {
             let input: Image = data.image;
 
-            // TODO: identify rectangles of two colors.
-            // TODO: for each row identify the ranges of two pixels.
-            // TODO: find intersection of all rows of the widest range.
-
             let color_count: Image = input.count_duplicate_pixels_in_3x3()?;
             let ignore_mask: Image = color_count.to_mask_where_color_is_equal_or_less_than(3);
             let mut objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, &ignore_mask)?;
@@ -3027,7 +3023,13 @@ mod tests {
                     return Err(anyhow::anyhow!("biggest object"));
                 }
             };
+            // TODO: return bounding box
             let trimmed: Image = biggest_object.trim_shrink_color(0)?;
+            // TODO: with the actionlabel, check the size of the masked area correspond to the output size
+            // TODO: save the bounding box as a mask and provide it to the .asm program
+            // TODO: crop out masked area from input image
+            // TODO: from the single pixels, shoot out lines to the edge
+
             // let result_image: Image = color_count;
             // let result_image: Image = ignore_mask;
             // let result_image: Image = biggest_object;
