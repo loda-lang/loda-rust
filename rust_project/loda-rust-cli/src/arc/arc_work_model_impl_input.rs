@@ -177,7 +177,7 @@ impl arc_work_model::Input {
         };
         let background_ignore_mask: Image = self.image.to_mask_where_color_is(background_color);
         
-        let object_mask_vec: Vec<Image> = self.image.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, background_ignore_mask)?;
+        let object_mask_vec: Vec<Image> = self.image.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &background_ignore_mask)?;
         let mut object_vec: Vec<Object> = vec!();
         for (index, object_mask) in object_mask_vec.iter().enumerate() {
             let (x, y, width, height) = match object_mask.bounding_box() {

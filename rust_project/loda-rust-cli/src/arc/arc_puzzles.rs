@@ -9,7 +9,7 @@ mod tests {
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, ImageObjectEnumerate};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use std::collections::HashMap;
     use regex::Regex;
@@ -1039,7 +1039,7 @@ mod tests {
             // println!("background_ignore_mask: {:?}", background_ignore_mask);
     
             // Objects that is not the background
-            let object_mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, background_ignore_mask)
+            let object_mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &background_ignore_mask)
                 .expect("find_objects_with_ignore_mask");
     
             // Count the number of pixels in each object
@@ -1088,7 +1088,7 @@ mod tests {
             let object_mask: Image = input.to_mask_where_color_is(background_color);
     
             // Objects that is not the background
-            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, object_mask.clone())
+            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &object_mask)
                 .expect("find_objects_with_ignore_mask");
     
             // Traverse each object, and count holes in each object
@@ -1133,7 +1133,7 @@ mod tests {
             let object_mask: Image = input.to_mask_where_color_is(background_color);
     
             // Objects that is not the background
-            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, object_mask.clone())
+            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &object_mask)
                 .expect("find_objects_with_ignore_mask");
     
             // Adjust offsets for all objects
@@ -1200,7 +1200,7 @@ mod tests {
             let object_mask: Image = input.to_mask_where_color_is(background_color);
     
             // Objects that is not the background
-            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, object_mask.clone())
+            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &object_mask)
                 .expect("find_objects_with_ignore_mask");
     
             // Traverse each object, and measure object size
@@ -1684,7 +1684,7 @@ mod tests {
             let background_color: u8 = histogram.most_popular_color().expect("color");
 
             let ignore_mask: Image = input.to_mask_where_color_is(background_color);
-            let mut objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("images");
+            let mut objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask).expect("images");
 
             if objects.len() != 2 {
                 return Err(anyhow::anyhow!("Expected exactly 2 objects, but got a different count"));
@@ -2023,7 +2023,7 @@ mod tests {
             let input = data.image;
             let background_color: u8 = input.most_popular_color().expect("pixel");
             let ignore_mask: Image = input.to_mask_where_color_is(background_color);
-            let objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("images");
+            let objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask).expect("images");
 
             // Identify the asymmetric objects
             let mut asymmetric_objects: Vec<Image> = vec!();
@@ -2056,7 +2056,7 @@ mod tests {
             let input = data.image;
             let background_color: u8 = input.most_popular_color().expect("pixel");
             let ignore_mask: Image = input.to_mask_where_color_is(background_color);
-            let objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("images");
+            let objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask).expect("images");
 
             // Identify the symmetric objects
             let mut symmetric_objects: Vec<Image> = vec!();
@@ -2867,7 +2867,7 @@ mod tests {
             // Objects from the grid
             let cell_mask: Image = input.mask_for_gridcells(Some(4))?;
             let ignore_mask: Image = cell_mask.invert_mask();
-            let objects: Vec<Image> = cell_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, ignore_mask)?;
+            let objects: Vec<Image> = cell_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, &ignore_mask)?;
 
             // Identify the single template image
             let mut image_to_insert: Option<Image> = None;

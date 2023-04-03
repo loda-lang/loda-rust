@@ -127,7 +127,7 @@ impl arc_work_model::Task {
 
             let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
 
-            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask);
+            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask);
             let object_images: Vec<Image> = match result {
                 Ok(images) => images,
                 Err(_) => {
@@ -206,7 +206,7 @@ impl arc_work_model::Task {
             let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
 
             // let result = image_mask.find_objects(ImageSegmentAlgorithm::All);
-            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask);
+            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask);
             let object_images: Vec<Image> = match result {
                 Ok(images) => images,
                 Err(_) => {
