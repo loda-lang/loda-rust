@@ -84,7 +84,7 @@ pub use convolution2x2::convolution2x2;
 pub use convolution3x3::convolution3x3;
 pub use convolution3x3_with_mask::convolution3x3_with_mask;
 pub use convolution5x5_special::convolution5x5_special;
-pub use histogram::Histogram;
+pub use histogram::{Histogram, HistogramPair};
 pub use html_log::HtmlLog;
 pub use image::Image;
 pub use image_border::ImageBorder;

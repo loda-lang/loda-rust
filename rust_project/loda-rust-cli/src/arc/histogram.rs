@@ -1,5 +1,11 @@
 use super::{Image, ImageExtractRowColumn};
 
+pub struct HistogramPair {
+    pub count: u32,
+    pub color: u8,
+    pub ambiguous_score: u8,
+}
+
 /// Histogram with 256 counters
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Histogram {
@@ -78,46 +84,56 @@ impl Histogram {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn most_popular_pair_disallow_ambiguous(&self) -> Option<(u8, u32)> {
+    pub fn most_popular(&self) -> Option<HistogramPair> {
         let mut found_count: u32 = 0;
         let mut found_index: usize = 0;
-        let mut is_ambiguous: bool = false;
+        let mut ambiguous_count: usize = 0;
         for (index, number_of_occurences) in self.counters.iter().enumerate() {
             if *number_of_occurences == found_count {
-                is_ambiguous = true;
+                ambiguous_count += 1;
             }
             if *number_of_occurences > found_count {
                 found_count = *number_of_occurences;
                 found_index = index;
-                is_ambiguous = false;
+                ambiguous_count = 0;
             }
         }
         if found_count == 0 {
             return None;
         }
-        if is_ambiguous {
+        let ambiguous_score: u8 = (ambiguous_count & 255) as u8;
+        let color_value: u8 = (found_index & 255) as u8;
+        Some(HistogramPair {
+            count: found_count,
+            color: color_value,
+            ambiguous_score
+        })
+    }
+
+    #[allow(dead_code)]
+    pub fn most_popular_pair_disallow_ambiguous(&self) -> Option<(u8, u32)> {
+        let pair: HistogramPair = match self.most_popular() {
+            Some(value) => value,
+            None => {
+                return None;
+            }
+        };
+        if pair.ambiguous_score > 0 {
             return None;
         }
-        let color_value: u8 = (found_index & 255) as u8;
-        Some((color_value, found_count))
+        Some((pair.color, pair.count))
     }
 
     #[allow(dead_code)]
     pub fn most_popular_pair(&self) -> Option<(u8, u32)> {
-        let mut found_count: u32 = 0;
-        let mut found_index: usize = 0;
-        for (index, number_of_occurences) in self.counters.iter().enumerate() {
-            if *number_of_occurences > found_count {
-                found_count = *number_of_occurences;
-                found_index = index;
+        let pair: HistogramPair = match self.most_popular() {
+            Some(value) => value,
+            None => {
+                return None;
             }
-        }
-        if found_count == 0 {
-            return None;
-        }
-        let color_value: u8 = (found_index & 255) as u8;
-        Some((color_value, found_count))
+        };
+        // Ignores ambiguous colors
+        Some((pair.color, pair.count))
     }
 
     #[allow(dead_code)]
@@ -136,24 +152,59 @@ impl Histogram {
         None
     }
 
-    #[allow(dead_code)]
-    pub fn least_popular_pair(&self) -> Option<(u8, u32)> {
+    pub fn least_popular(&self) -> Option<HistogramPair> {
         let mut found_count: u32 = u32::MAX;
         let mut found_index: usize = 0;
+        let mut ambiguous_count: usize = 0;
         for (index, number_of_occurences) in self.counters.iter().enumerate() {
             if *number_of_occurences == 0 {
                 continue;
             }
+            if *number_of_occurences == found_count {
+                ambiguous_count += 1;
+            }
             if *number_of_occurences < found_count {
                 found_count = *number_of_occurences;
                 found_index = index;
+                ambiguous_count = 0;
             }
         }
         if found_count == u32::MAX {
             return None;
         }
+        let ambiguous_score: u8 = (ambiguous_count & 255) as u8;
         let color_value: u8 = (found_index & 255) as u8;
-        Some((color_value, found_count))
+        Some(HistogramPair {
+            count: found_count,
+            color: color_value,
+            ambiguous_score
+        })
+    }
+
+    #[allow(dead_code)]
+    pub fn least_popular_pair_disallow_ambiguous(&self) -> Option<(u8, u32)> {
+        let pair: HistogramPair = match self.least_popular() {
+            Some(value) => value,
+            None => {
+                return None;
+            }
+        };
+        if pair.ambiguous_score > 0 {
+            return None;
+        }
+        Some((pair.color, pair.count))
+    }
+
+    #[allow(dead_code)]
+    pub fn least_popular_pair(&self) -> Option<(u8, u32)> {
+        let pair: HistogramPair = match self.least_popular() {
+            Some(value) => value,
+            None => {
+                return None;
+            }
+        };
+        // Ignores ambiguous colors
+        Some((pair.color, pair.count))
     }
 
     #[allow(dead_code)]
@@ -440,7 +491,53 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_least_popular_pair_some() {
+    fn test_50000_least_popular_pair_disallow_ambiguous_some() {
+        // Arrange
+        let mut h = Histogram::new();
+        h.increment(42);
+        h.increment(3);
+        h.increment(2);
+        h.increment(3);
+        h.increment(42);
+        h.increment(3);
+
+        // Act
+        let color_count: Option<(u8, u32)> = h.least_popular_pair_disallow_ambiguous();
+
+        // Assert
+        assert_eq!(color_count, Some((2,1)));
+    }
+
+    #[test]
+    fn test_50001_least_popular_pair_disallow_ambiguous_none_due_to_ambiguous() {
+        // Arrange
+        let mut h = Histogram::new();
+        h.increment(42);
+        h.increment(3);
+        h.increment(3);
+        h.increment(42);
+
+        // Act
+        let color_count: Option<(u8, u32)> = h.least_popular_pair_disallow_ambiguous();
+
+        // Assert
+        assert_eq!(color_count, None);
+    }
+
+    #[test]
+    fn test_50002_least_popular_pair_disallow_ambiguous_none() {
+        // Arrange
+        let h = Histogram::new();
+
+        // Act
+        let color_count: Option<(u8, u32)> = h.least_popular_pair_disallow_ambiguous();
+
+        // Assert
+        assert_eq!(color_count, None);
+    }
+
+    #[test]
+    fn test_50003_least_popular_pair_some() {
         // Arrange
         let mut h = Histogram::new();
         h.increment(42);
@@ -458,7 +555,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50001_least_popular_pair_none() {
+    fn test_50004_least_popular_pair_none() {
         // Arrange
         let h = Histogram::new();
 
@@ -470,7 +567,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50002_least_popular_color_some() {
+    fn test_50005_least_popular_color_some() {
         // Arrange
         let mut h = Histogram::new();
         h.increment(42);
@@ -488,7 +585,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50003_least_popular_color_none() {
+    fn test_50006_least_popular_color_none() {
         // Arrange
         let h = Histogram::new();
 
@@ -500,7 +597,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50004_least_popular_count_some() {
+    fn test_50007_least_popular_count_some() {
         // Arrange
         let mut h = Histogram::new();
         h.increment(42);
@@ -518,7 +615,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50005_least_popular_count_none() {
+    fn test_50008_least_popular_count_none() {
         // Arrange
         let h = Histogram::new();
 
