@@ -3006,4 +3006,36 @@ mod tests {
         // let result: String = solution.run("a64e4611").expect("String");
         assert_eq!(result, "4 1");
     }
+
+    #[test]
+    fn test_680001_puzzle_8731374e() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+
+            // TODO: identify rectangles of two colors.
+            // TODO: for each row identify the ranges of two pixels.
+            // TODO: find intersection of all rows of the widest range.
+
+            let color_count: Image = input.count_duplicate_pixels_in_3x3()?;
+            let ignore_mask: Image = color_count.to_mask_where_color_is_equal_or_less_than(3);
+            let mut objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, &ignore_mask)?;
+            objects.sort_unstable_by_key(|k| k.mask_count_one());
+            objects.reverse();
+            let biggest_object: Image = match objects.first() {
+                Some(value) => value.clone(),
+                None => {
+                    return Err(anyhow::anyhow!("biggest object"));
+                }
+            };
+            // let result_image: Image = color_count;
+            // let result_image: Image = ignore_mask;
+            let result_image: Image = biggest_object;
+            Ok(result_image)
+        };
+        let result: String = solution.run("8731374e").expect("String");
+        // let result: String = solution.run("3194b014").expect("String");
+        // let result: String = solution.run("7e0986d6").expect("String");
+        // let result: String = solution.run("a64e4611").expect("String");
+        assert_eq!(result, "4 1");
+    }
 }
