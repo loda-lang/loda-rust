@@ -38,6 +38,15 @@ impl Histogram {
         self.counters[index as usize] = 0;
     }
 
+    #[allow(dead_code)]
+    pub fn set_counter_to_zero_where_count_is_below(&mut self, limit: u32) {
+        for i in 0..256 {
+            if self.counters[i] < limit {
+                self.counters[i] = 0;
+            }
+        }
+    }
+
     pub fn add_histogram(&mut self, other: &Histogram) {
         for i in 0..256 {
             self.counters[i] += other.counters()[i];
