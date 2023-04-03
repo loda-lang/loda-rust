@@ -7,6 +7,7 @@ pub enum HistogramPair {
 }
 
 impl HistogramPair {
+    /// When there are +2 colors with same count. It's ambiguous which one to pick.
     pub fn color_count_disallow_ambiguous(&self) -> Option<(u8, u32)> {
         match self {
             HistogramPair::Item { count, color, ambiguous_score } => {
@@ -37,10 +38,26 @@ impl HistogramPair {
         }
     }
 
+    /// When there are +2 colors with same count. It's ambiguous which one to pick.
+    pub fn color_disallow_ambiguous(&self) -> Option<u8> {
+        match self {
+            HistogramPair::Item { count: _, color, ambiguous_score } => {
+                if *ambiguous_score > 0 {
+                    return None;
+                } else {
+                    return Some(*color);
+                }
+            },
+            HistogramPair::None => {
+                return None;
+            }
+        }
+    }
+
     /// This is a weak function and should be avoided, since it ignores the number of ambiguous colors.
     /// When multiple colors have the same count, then the color with the lowest color value is picked.
     /// 
-    /// Instead the `color_count_disallow_ambiguous()` should be preferred, since it's more strict.
+    /// Instead the `color_disallow_ambiguous()` should be preferred, since it's more strict.
     pub fn color_allow_ambiguous(&self) -> Option<u8> {
         match self {
             HistogramPair::Item { count: _, color, ambiguous_score: _ } => {
