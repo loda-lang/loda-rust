@@ -1,9 +1,71 @@
 use super::{Image, ImageExtractRowColumn};
 
-pub struct HistogramPair {
-    pub count: u32,
-    pub color: u8,
-    pub ambiguous_score: u8,
+#[derive(Clone, Copy, Debug)]
+pub enum HistogramPair {
+    None,
+    Item { count: u32, color: u8, ambiguous_score: u8 }
+}
+
+impl HistogramPair {
+    pub fn color_count_disallow_ambiguous(&self) -> Option<(u8, u32)> {
+        match self {
+            HistogramPair::Item { count, color, ambiguous_score } => {
+                if *ambiguous_score > 0 {
+                    return None;
+                } else {
+                    return Some((*color, *count));
+                }
+            },
+            HistogramPair::None => {
+                return None;
+            }
+        }
+    }
+
+    /// This is a weak function and should be avoided, since it ignores the number of ambiguous colors.
+    /// When multiple colors have the same count, then the color with the lowest color value is picked.
+    /// 
+    /// Instead the `color_count_disallow_ambiguous()` should be preferred, since it's more strict.
+    pub fn color_count_allow_ambiguous(&self) -> Option<(u8, u32)> {
+        match self {
+            HistogramPair::Item { count, color, ambiguous_score: _ } => {
+                return Some((*color, *count));
+            },
+            HistogramPair::None => {
+                return None;
+            }
+        }
+    }
+
+    /// This is a weak function and should be avoided, since it ignores the number of ambiguous colors.
+    /// When multiple colors have the same count, then the color with the lowest color value is picked.
+    /// 
+    /// Instead the `color_count_disallow_ambiguous()` should be preferred, since it's more strict.
+    pub fn color_allow_ambiguous(&self) -> Option<u8> {
+        match self {
+            HistogramPair::Item { count: _, color, ambiguous_score: _ } => {
+                return Some(*color);
+            },
+            HistogramPair::None => {
+                return None;
+            }
+        }
+    }
+
+    /// This is a weak function and should be avoided, since it ignores the number of ambiguous colors.
+    /// When multiple colors have the same count, then the color with the lowest color value is picked.
+    /// 
+    /// Instead the `color_count_disallow_ambiguous()` should be preferred, since it's more strict.
+    pub fn count_allow_ambiguous(&self) -> Option<u32> {
+        match self {
+            HistogramPair::Item { count, color: _, ambiguous_score: _ } => {
+                return Some(*count);
+            },
+            HistogramPair::None => {
+                return None;
+            }
+        }
+    }
 }
 
 /// Histogram with 256 counters
@@ -84,143 +146,99 @@ impl Histogram {
         }
     }
 
-    pub fn most_popular(&self) -> Option<HistogramPair> {
+    pub fn most_popular(&self) -> HistogramPair {
         let mut found_count: u32 = 0;
         let mut found_index: usize = 0;
         let mut ambiguous_count: usize = 0;
-        for (index, number_of_occurences) in self.counters.iter().enumerate() {
-            if *number_of_occurences == found_count {
+        for (index, number_of_occurrences) in self.counters.iter().enumerate() {
+            if *number_of_occurrences == found_count {
                 ambiguous_count += 1;
             }
-            if *number_of_occurences > found_count {
-                found_count = *number_of_occurences;
+            if *number_of_occurrences > found_count {
+                found_count = *number_of_occurrences;
                 found_index = index;
                 ambiguous_count = 0;
             }
         }
         if found_count == 0 {
-            return None;
+            return HistogramPair::None;
         }
         let ambiguous_score: u8 = (ambiguous_count & 255) as u8;
         let color_value: u8 = (found_index & 255) as u8;
-        Some(HistogramPair {
+        HistogramPair::Item {
             count: found_count,
             color: color_value,
             ambiguous_score
-        })
+        }
     }
 
     #[allow(dead_code)]
     pub fn most_popular_pair_disallow_ambiguous(&self) -> Option<(u8, u32)> {
-        let pair: HistogramPair = match self.most_popular() {
-            Some(value) => value,
-            None => {
-                return None;
-            }
-        };
-        if pair.ambiguous_score > 0 {
-            return None;
-        }
-        Some((pair.color, pair.count))
+        self.most_popular().color_count_disallow_ambiguous()
     }
 
     #[allow(dead_code)]
     pub fn most_popular_pair(&self) -> Option<(u8, u32)> {
-        let pair: HistogramPair = match self.most_popular() {
-            Some(value) => value,
-            None => {
-                return None;
-            }
-        };
-        // Ignores ambiguous colors
-        Some((pair.color, pair.count))
+        self.most_popular().color_count_allow_ambiguous()
     }
-
+    
     #[allow(dead_code)]
     pub fn most_popular_color(&self) -> Option<u8> {
-        if let Some((color, _count)) = self.most_popular_pair() {
-            return Some(color);
-        }
-        None
+        self.most_popular().color_allow_ambiguous()
     }
-
+    
     #[allow(dead_code)]
     pub fn most_popular_count(&self) -> Option<u32> {
-        if let Some((_color, count)) = self.most_popular_pair() {
-            return Some(count);
-        }
-        None
+        self.most_popular().count_allow_ambiguous()
     }
 
-    pub fn least_popular(&self) -> Option<HistogramPair> {
+    pub fn least_popular(&self) -> HistogramPair {
         let mut found_count: u32 = u32::MAX;
         let mut found_index: usize = 0;
         let mut ambiguous_count: usize = 0;
-        for (index, number_of_occurences) in self.counters.iter().enumerate() {
-            if *number_of_occurences == 0 {
+        for (index, number_of_occurrences) in self.counters.iter().enumerate() {
+            if *number_of_occurrences == 0 {
                 continue;
             }
-            if *number_of_occurences == found_count {
+            if *number_of_occurrences == found_count {
                 ambiguous_count += 1;
             }
-            if *number_of_occurences < found_count {
-                found_count = *number_of_occurences;
+            if *number_of_occurrences < found_count {
+                found_count = *number_of_occurrences;
                 found_index = index;
                 ambiguous_count = 0;
             }
         }
         if found_count == u32::MAX {
-            return None;
+            return HistogramPair::None;
         }
         let ambiguous_score: u8 = (ambiguous_count & 255) as u8;
         let color_value: u8 = (found_index & 255) as u8;
-        Some(HistogramPair {
+        HistogramPair::Item {
             count: found_count,
             color: color_value,
             ambiguous_score
-        })
+        }
     }
 
     #[allow(dead_code)]
     pub fn least_popular_pair_disallow_ambiguous(&self) -> Option<(u8, u32)> {
-        let pair: HistogramPair = match self.least_popular() {
-            Some(value) => value,
-            None => {
-                return None;
-            }
-        };
-        if pair.ambiguous_score > 0 {
-            return None;
-        }
-        Some((pair.color, pair.count))
+        self.least_popular().color_count_disallow_ambiguous()
     }
 
     #[allow(dead_code)]
     pub fn least_popular_pair(&self) -> Option<(u8, u32)> {
-        let pair: HistogramPair = match self.least_popular() {
-            Some(value) => value,
-            None => {
-                return None;
-            }
-        };
-        // Ignores ambiguous colors
-        Some((pair.color, pair.count))
+        self.least_popular().color_count_allow_ambiguous()
     }
 
     #[allow(dead_code)]
     pub fn least_popular_color(&self) -> Option<u8> {
-        if let Some((color, _count)) = self.least_popular_pair() {
-            return Some(color);
-        }
-        None
+        self.least_popular().color_allow_ambiguous()
     }
 
     #[allow(dead_code)]
     pub fn least_popular_count(&self) -> Option<u32> {
-        if let Some((_color, count)) = self.least_popular_pair() {
-            return Some(count);
-        }
-        None
+        self.least_popular().count_allow_ambiguous()
     }
 
     /// The least frequent occurring comes first.
