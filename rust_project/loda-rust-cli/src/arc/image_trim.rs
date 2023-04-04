@@ -1,4 +1,4 @@
-use super::{Histogram, Image, ImageHistogram};
+use super::{Histogram, Image, ImageCrop, ImageHistogram, Rectangle};
 
 pub trait ImageTrim {
     /// Determines the most popular border color and removes the area.
@@ -7,7 +7,10 @@ pub trait ImageTrim {
     /// Remove border with the specified color.
     fn trim_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Image>;
 
-    /// Remove border with the specified color. Shrink further until the majority of border pixels is not the trim color.
+    /// Bounding box of what remains after trimming with a specific color.
+    fn bounding_box_trim_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Rectangle>;
+
+    /// Remove border with the specified color. Shrink further until the majority of border pixels are not the trim color.
     fn trim_shrink_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Image>;
 
     // Idea for future experiment
@@ -34,8 +37,17 @@ impl ImageTrim for Image {
     }
 
     fn trim_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Image> {
-        if self.is_empty() {
+        let rect: Rectangle = self.bounding_box_trim_color(color_to_be_trimmed)?;
+        if rect.is_empty() {
             return Ok(Image::empty());
+        }
+        let image: Image = self.crop(rect)?;
+        Ok(image)
+    }
+
+    fn bounding_box_trim_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Rectangle> {
+        if self.is_empty() {
+            return Ok(Rectangle::empty());
         }
 
         // Find bounding box
@@ -61,41 +73,36 @@ impl ImageTrim for Image {
         }
 
         if found_x0 > found_x1 || found_y0 > found_y1 {
-            return Ok(Image::empty());
+            return Ok(Rectangle::empty());
         }
 
-        // Width of the object
+        // Left position
+        if found_x0 < 0 || found_x0 > (u8::MAX as i32) {
+            return Err(anyhow::anyhow!("Integrity error. Bounding box coordinates are messed up. found_x0: {}", found_x0));
+        }
+        let x: u8 = found_x0 as u8;
+
+        // Top position
+        if found_y0 < 0 || found_y0 > (u8::MAX as i32) {
+            return Err(anyhow::anyhow!("Integrity error. Bounding box coordinates are messed up. found_y0: {}", found_y0));
+        }
+        let y: u8 = found_y0 as u8;
+
+        // Width
         let new_width_i32: i32 = found_x1 - found_x0 + 1;
         if new_width_i32 < 1 || new_width_i32 > (u8::MAX as i32) {
             return Err(anyhow::anyhow!("Integrity error. Bounding box coordinates are messed up. new_width_i32: {}", new_width_i32));
         }
-        let new_width: u8 = new_width_i32 as u8;
+        let width: u8 = new_width_i32 as u8;
 
-        // Height of the object
+        // Height
         let new_height_i32: i32 = found_y1 - found_y0 + 1;
         if new_height_i32 < 1 || new_height_i32 > (u8::MAX as i32) {
             return Err(anyhow::anyhow!("Integrity error. Bounding box coordinates are messed up. new_height_i32: {}", new_height_i32));
         }
-        let new_height: u8 = new_height_i32 as u8;
+        let height: u8 = new_height_i32 as u8;
 
-        // TODO: return the bounding box, and in a separate function do the crop
-
-        // Copy pixels of the object
-        let mut bitmap: Image = Image::zero(new_width, new_height);
-        for y in found_y0..=found_y1 {
-            for x in found_x0..=found_x1 {
-                let pixel_value: u8 = self.get(x, y).unwrap_or(255);
-                let set_x: i32 = x - found_x0;
-                let set_y: i32 = y - found_y0;
-                match bitmap.set(set_x, set_y, pixel_value) {
-                    Some(()) => {},
-                    None => {
-                        return Err(anyhow::anyhow!("Integrity error. Unable to set pixel ({}, {}) inside the result bitmap", set_x, set_y));
-                    }
-                }
-            }
-        }
-        Ok(bitmap)
+        Ok(Rectangle::new(x, y, width, height))
     }
 
     fn trim_shrink_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Image> {
@@ -234,7 +241,77 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_trim_color_left() {
+    fn test_10000_bounding_box_trim_color_sunshine_scenario() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0,
+            0, 1, 0,
+            0, 0, 0,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let actual: Rectangle = input.bounding_box_trim_color(0).expect("rectangle");
+
+        // Assert
+        assert_eq!(actual, Rectangle::new(1, 1, 1, 1));
+    }
+
+    #[test]
+    fn test_10001_bounding_box_trim_color_empty() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0,
+            0, 0, 0,
+            0, 0, 0,
+        ];
+        let input: Image = Image::try_create(3, 3, pixels).expect("image");
+
+        // Act
+        let actual: Rectangle = input.bounding_box_trim_color(0).expect("rectangle");
+
+        // Assert
+        assert_eq!(actual, Rectangle::empty());
+    }
+
+    #[test]
+    fn test_10002_bounding_box_trim_color_left() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 0, 0, 0,
+            5, 1, 2, 0, 0,
+            5, 3, 4, 0, 0,
+            5, 5, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let actual: Rectangle = input.bounding_box_trim_color(5).expect("rectangle");
+
+        // Assert
+        assert_eq!(actual, Rectangle::new(1, 0, 4, 4));
+    }
+
+    #[test]
+    fn test_10003_bounding_box_trim_color_right() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 0, 0, 0,
+            5, 1, 2, 0, 0,
+            5, 3, 4, 0, 0,
+            5, 5, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 4, pixels).expect("image");
+
+        // Act
+        let actual: Rectangle = input.bounding_box_trim_color(0).expect("rectangle");
+
+        // Assert
+        assert_eq!(actual, Rectangle::new(0, 0, 3, 4));
+    }
+
+    #[test]
+    fn test_20000_trim_color_left() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 0, 0,
@@ -259,7 +336,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_trim_color_right() {
+    fn test_20001_trim_color_right() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 0, 0,
@@ -284,7 +361,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_trim_border_with_zeroes() {
+    fn test_30000_trim_border_with_zeroes() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
@@ -303,7 +380,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_trim_all_10s() {
+    fn test_30001_trim_all_10s() {
         // Arrange
         let pixels: Vec<u8> = vec![
             10, 10, 10, 10, 10,
@@ -322,7 +399,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20002_trim_top_right() {
+    fn test_30002_trim_top_right() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1,
@@ -341,7 +418,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20003_trim_left_right_bottom() {
+    fn test_30003_trim_left_right_bottom() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 0,
@@ -360,7 +437,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20003_trim_no_object() {
+    fn test_30003_trim_no_object() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
@@ -379,7 +456,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20004_trim_1pixel() {
+    fn test_30004_trim_1pixel() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0,
@@ -398,7 +475,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20005_trim_2pixels() {
+    fn test_30005_trim_2pixels() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 0, 0, 0,
