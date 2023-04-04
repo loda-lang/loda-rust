@@ -55,7 +55,7 @@ pub enum InputLabel {
     // Number of palindromic rows { count: u8 },
     // Number of palindromic columns { count: u8 },
     // InputIsPalindrome,
-    // InputIsPalindromeWithOffset,
+    // InputIsPalindromeWithOffset, // this palindrome appear in task "3631a71a"
 }
 
 pub type InputLabelSet = HashSet<InputLabel>;
@@ -123,6 +123,8 @@ pub enum ActionLabel {
     // OutputPropertySamePixelValuesAsInput { count_same: u16, count_different: u16 },
     // OutputSizeIsInputSizeAddConstant
     // OutputSizeIsInputSizeMultipliedByWithPadding
+    // OutputSizeIsBiggerThanInputSize
+    // OutputSizeIsSmallerThanInputSize
     // OutputAspectRatio { width: u8, height: u8 },
     // OutputAspectRatioEqualToInputAspectRatio,
 }
