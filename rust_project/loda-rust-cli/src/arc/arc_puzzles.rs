@@ -3032,27 +3032,26 @@ mod tests {
                 }
             };
             let color_to_be_trimmed: u8 = 0;
-            let trimmed: Image = biggest_object.trim_shrink_color(color_to_be_trimmed)?;
             
-            // bounding box of trimmed object
+            // TODO: with the actionlabel, check the size of the masked area correspond to the output size
             let rect: Rectangle = biggest_object.inner_bounding_box_after_trim_with_color(color_to_be_trimmed)?;
             if rect.is_empty() {
                 return Err(anyhow::anyhow!("bounding box is empty"));
             }
-
+            
+            // TODO: save the bounding box as a mask and provide it to the .asm program
             let mut the_mask = Image::zero(input.width(), input.height());
             the_mask = the_mask.fill_inside_rect(rect, 1)?;
-    
-            // TODO: with the actionlabel, check the size of the masked area correspond to the output size
-            // TODO: save the bounding box as a mask and provide it to the .asm program
+
+            let cropped_input: Image = input.crop(rect)?;
             // TODO: crop out masked area from input image
             // TODO: from the single pixels, shoot out lines to the edge
 
             // let result_image: Image = color_count;
             // let result_image: Image = ignore_mask;
             // let result_image: Image = biggest_object;
-            let result_image: Image = the_mask;
-            // let result_image: Image = trimmed;
+            // let result_image: Image = the_mask;
+            let result_image: Image = cropped_input;
             Ok(result_image)
         };
         let result: String = solution.run("8731374e").expect("String");
