@@ -8,7 +8,14 @@ pub struct Rectangle {
 }
 
 impl Rectangle {
+    pub fn empty() -> Self {
+        Self { x: 0, y: 0, width: 0, height: 0 }
+    }
+
     pub fn new(x: u8, y: u8, width: u8, height: u8) -> Self {
+        if width == 0 || height == 0 {
+            return Self::empty();
+        }
         Self { x, y, width, height }
     }
 
@@ -49,5 +56,21 @@ mod tests {
         // Assert
         assert_eq!(rect0, Rectangle::new(1, 2, 3, 4));
         assert_eq!(rect1, Rectangle::new(1, 2, 3, 4));
+    }
+
+    #[test]
+    fn test_20000_new_returning_empty() {
+        {
+            let rect = Rectangle::new(1, 2, 3, 0);
+            assert_eq!(rect, Rectangle::empty());
+        }
+        {
+            let rect = Rectangle::new(1, 2, 0, 4);
+            assert_eq!(rect, Rectangle::empty());
+        }
+        {
+            let rect = Rectangle::new(1, 2, 0, 0);
+            assert_eq!(rect, Rectangle::empty());
+        }
     }
 }
