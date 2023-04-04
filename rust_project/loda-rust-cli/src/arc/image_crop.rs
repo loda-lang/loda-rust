@@ -17,9 +17,7 @@ impl ImageCrop for Image {
         // Check that the crop area is inside the image area
         let x_max: i32 = (self.width() as i32) - 1;
         let y_max: i32 = (self.height() as i32) - 1;
-        let x1: i32 = (rect.x() as i32) + (rect.width() as i32) - 1;
-        let y1: i32 = (rect.y() as i32) + (rect.height() as i32) - 1;
-        if x1 > x_max || y1 > y_max {
+        if rect.max_x() > x_max || rect.max_y() > y_max {
             return Err(anyhow::anyhow!("crop: crop area must be inside the image area, but it goes outside"));
         }
 
