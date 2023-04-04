@@ -38,6 +38,34 @@ impl Rectangle {
     pub fn is_empty(&self) -> bool {
         self.width == 0 || self.height == 0
     }
+
+    /// x-coordinate for the left column
+    /// 
+    /// Warning: When the rectangle is empty, then `0` is returned which is outside the rectangle.
+    pub fn min_x(&self) -> i32 {
+        self.x as i32
+    }
+
+    /// y-coordinate for the top row
+    /// 
+    /// Warning: When the rectangle is empty, then `0` is returned which is outside the rectangle.
+    pub fn min_y(&self) -> i32 {
+        self.y as i32
+    }
+
+    /// y-coordinate for the right column
+    /// 
+    /// Warning: When the rectangle is empty, then `-1` is returned which is outside the rectangle.
+    pub fn max_x(&self) -> i32 {
+        (self.x as i32) + (self.width as i32) - 1
+    }
+
+    /// y-coordinate for the bottom row
+    /// 
+    /// Warning: When the rectangle is empty, then `-1` is returned which is outside the rectangle.
+    pub fn max_y(&self) -> i32 {
+        (self.y as i32) + (self.height as i32) - 1
+    }
 }
 
 #[cfg(test)]
@@ -71,6 +99,58 @@ mod tests {
         {
             let rect = Rectangle::new(1, 2, 0, 0);
             assert_eq!(rect, Rectangle::empty());
+        }
+    }
+
+    #[test]
+    fn test_30000_min_max_0x0_outside_the_rectangle() {
+        let rect = Rectangle::empty();
+        assert_eq!(rect.min_x(), 0);
+        assert_eq!(rect.min_y(), 0);
+        assert_eq!(rect.max_x(), -1);
+        assert_eq!(rect.max_y(), -1);
+    }
+
+    #[test]
+    fn test_30001_min_max_1x1() {
+        {
+            let rect = Rectangle::new(0, 0, 1, 1);
+            assert_eq!(rect.min_x(), 0);
+            assert_eq!(rect.min_y(), 0);
+            assert_eq!(rect.max_x(), 0);
+            assert_eq!(rect.max_y(), 0);
+        }
+        {
+            let rect = Rectangle::new(10, 10, 1, 1);
+            assert_eq!(rect.min_x(), 10);
+            assert_eq!(rect.min_y(), 10);
+            assert_eq!(rect.max_x(), 10);
+            assert_eq!(rect.max_y(), 10);
+        }
+    }
+
+    #[test]
+    fn test_30002_min_max_2x2() {
+        {
+            let rect = Rectangle::new(0, 0, 2, 2);
+            assert_eq!(rect.min_x(), 0);
+            assert_eq!(rect.min_y(), 0);
+            assert_eq!(rect.max_x(), 1);
+            assert_eq!(rect.max_y(), 1);
+        }
+        {
+            let rect = Rectangle::new(10, 0, 2, 2);
+            assert_eq!(rect.min_x(), 10);
+            assert_eq!(rect.min_y(), 0);
+            assert_eq!(rect.max_x(), 11);
+            assert_eq!(rect.max_y(), 1);
+        }
+        {
+            let rect = Rectangle::new(0, 10, 2, 2);
+            assert_eq!(rect.min_x(), 0);
+            assert_eq!(rect.min_y(), 10);
+            assert_eq!(rect.max_x(), 1);
+            assert_eq!(rect.max_y(), 11);
         }
     }
 }
