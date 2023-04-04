@@ -1,5 +1,4 @@
-use super::{Image, ImageHistogram, Histogram, HistogramPair, ImagePadding, convolution3x3};
-use std::cell::Cell;
+use super::{Image, ImageHistogram, Histogram, ImagePadding, convolution3x3};
 
 pub trait ImageNoiseColor {
     fn noise_color_vec(&self, denoised_image: &Image) -> anyhow::Result<Vec<u8>>;
@@ -17,13 +16,6 @@ pub trait ImageNoiseColor {
     fn count_duplicate_pixels_in_neighbours(&self) -> anyhow::Result<Image>;
 
     fn one_pixel_noise_color_vec(&self) -> anyhow::Result<Vec<u8>>;
-
-    /// Disregard counters that are lower than `min_count`.
-    /// 
-    /// When there are multiple ambiguous colors then pick the `color_ambiguous`.
-    /// 
-    /// When there are zero counters then pick the `color_none`.
-    fn most_popular_color_in_3x3(&self, min_count: u8, color_none: u8, color_ambiguous: u8) -> anyhow::Result<Image>;
 }
 
 impl ImageNoiseColor for Image {
@@ -130,51 +122,6 @@ impl ImageNoiseColor for Image {
         let pairs: Vec<(u32, u8)> = histogram.pairs_descending();
         let noise_colors: Vec<u8> = pairs.iter().map(|(_count,color)| *color).collect();
         Ok(noise_colors)
-    }
-
-    fn most_popular_color_in_3x3(&self, min_count: u8, color_none: u8, color_ambiguous: u8) -> anyhow::Result<Image> {
-        // find an unused color for use as padding_color
-        let histogram: Histogram = self.histogram_all();
-        let padding_color: u8 = match histogram.unused_color() {
-            Some(value) => value,
-            None => {
-                return Err(anyhow::anyhow!("All colors are used in the histogram. Cannot pick a padding color"));
-            }
-        };
-        let image_padded: Image = self.padding_with_color(1, padding_color)?;
-
-        let padding_color_cell: Cell<u8> = Cell::new(padding_color);
-        let image: Image = convolution3x3(&image_padded, |bm| {
-            let center_color: u8 = bm.get(1, 1).unwrap_or(255);
-
-            let mut histogram: Histogram = bm.histogram_all();
-
-            // Ignore the padding color
-            histogram.set_counter_to_zero(padding_color_cell.get());
-
-            // Give a tiny boost to the color of the center pixel of the 3x3
-            histogram.increment(center_color);
-
-            // Ignore colors that occur fewer time than the limit
-            histogram.set_counter_to_zero_where_count_is_below(min_count as u32);
-
-            let the_color: u8;
-            match histogram.most_popular() {
-                HistogramPair::Item { count: _, color, ambiguous_score } => {
-                    if ambiguous_score > 0 {
-                        the_color = color_ambiguous;
-                    } else {
-                        the_color = color;
-                    }
-                },
-                HistogramPair::None => {
-                    the_color = color_none;
-                }
-            }
-
-            Ok(the_color)
-        })?;
-        Ok(image)
     }
 }
 
