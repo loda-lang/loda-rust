@@ -10,11 +10,17 @@ pub trait ImageTrim {
     /// Find the outer bounding box.
     /// 
     /// Bounding box of what remains after trimming with a specific color.
-    fn bounding_box_trim_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Rectangle>;
+    fn outer_bounding_box_after_trim_with_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Rectangle>;
 
     /// Find the inner bounding box.
     /// 
-    /// Shrink the bounding box further until the majority of border pixels are no longer the trim color.
+    /// Bounding box of what remains after trimming with a specific color, and 
+    /// shrinking the bounding box further until the majority of border pixels are no longer the trim color.
+    fn inner_bounding_box_after_trim_with_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Rectangle>;
+
+    /// Find the inner bounding box.
+    /// 
+    /// Shrink the outer bounding box further until the majority of border pixels are no longer the trim color.
     fn shrink_bounding_box(&self, color_to_be_trimmed: u8, rect: Rectangle) -> anyhow::Result<Rectangle>;
 
     /// Remove border with the specified color. Shrink further until the majority of border pixels are not the trim color.
@@ -44,7 +50,7 @@ impl ImageTrim for Image {
     }
 
     fn trim_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Image> {
-        let rect: Rectangle = self.bounding_box_trim_color(color_to_be_trimmed)?;
+        let rect: Rectangle = self.outer_bounding_box_after_trim_with_color(color_to_be_trimmed)?;
         if rect.is_empty() {
             return Ok(Image::empty());
         }
@@ -52,7 +58,7 @@ impl ImageTrim for Image {
         Ok(image)
     }
 
-    fn bounding_box_trim_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Rectangle> {
+    fn outer_bounding_box_after_trim_with_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Rectangle> {
         if self.is_empty() {
             return Ok(Rectangle::empty());
         }
@@ -218,13 +224,18 @@ impl ImageTrim for Image {
         Ok(Rectangle::new(x, y, width, height))
     }
 
+    fn inner_bounding_box_after_trim_with_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Rectangle> {
+        let rect0: Rectangle = self.outer_bounding_box_after_trim_with_color(color_to_be_trimmed)?;
+        let rect1: Rectangle = self.shrink_bounding_box(color_to_be_trimmed, rect0)?;
+        Ok(rect1)
+    }
+
     fn trim_shrink_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Image> {
-        let rect: Rectangle = self.bounding_box_trim_color(color_to_be_trimmed)?;
-        let rect2: Rectangle = self.shrink_bounding_box(color_to_be_trimmed, rect)?;
-        if rect2.is_empty() {
+        let rect: Rectangle = self.inner_bounding_box_after_trim_with_color(color_to_be_trimmed)?;
+        if rect.is_empty() {
             return Ok(Image::empty());
         }
-        let image: Image = self.crop(rect2)?;
+        let image: Image = self.crop(rect)?;
         Ok(image)
     }
 }
@@ -235,7 +246,7 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_bounding_box_trim_color_sunshine_scenario() {
+    fn test_10000_outer_bounding_box_after_trim_with_color_sunshine_scenario() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0,
@@ -245,14 +256,14 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let actual: Rectangle = input.bounding_box_trim_color(0).expect("rectangle");
+        let actual: Rectangle = input.outer_bounding_box_after_trim_with_color(0).expect("rectangle");
 
         // Assert
         assert_eq!(actual, Rectangle::new(1, 1, 1, 1));
     }
 
     #[test]
-    fn test_10001_bounding_box_trim_color_empty() {
+    fn test_10001_outer_bounding_box_after_trim_with_color_empty() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0,
@@ -262,14 +273,14 @@ mod tests {
         let input: Image = Image::try_create(3, 3, pixels).expect("image");
 
         // Act
-        let actual: Rectangle = input.bounding_box_trim_color(0).expect("rectangle");
+        let actual: Rectangle = input.outer_bounding_box_after_trim_with_color(0).expect("rectangle");
 
         // Assert
         assert_eq!(actual, Rectangle::empty());
     }
 
     #[test]
-    fn test_10002_bounding_box_trim_color_left() {
+    fn test_10002_outer_bounding_box_after_trim_with_color_left() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 0, 0, 0,
@@ -280,14 +291,14 @@ mod tests {
         let input: Image = Image::try_create(5, 4, pixels).expect("image");
 
         // Act
-        let actual: Rectangle = input.bounding_box_trim_color(5).expect("rectangle");
+        let actual: Rectangle = input.outer_bounding_box_after_trim_with_color(5).expect("rectangle");
 
         // Assert
         assert_eq!(actual, Rectangle::new(1, 0, 4, 4));
     }
 
     #[test]
-    fn test_10003_bounding_box_trim_color_right() {
+    fn test_10003_outer_bounding_box_after_trim_with_color_right() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 0, 0, 0,
@@ -298,7 +309,7 @@ mod tests {
         let input: Image = Image::try_create(5, 4, pixels).expect("image");
 
         // Act
-        let actual: Rectangle = input.bounding_box_trim_color(0).expect("rectangle");
+        let actual: Rectangle = input.outer_bounding_box_after_trim_with_color(0).expect("rectangle");
 
         // Assert
         assert_eq!(actual, Rectangle::new(0, 0, 3, 4));
