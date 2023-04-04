@@ -9,7 +9,7 @@ mod tests {
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageDrawRect};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use std::collections::HashMap;
     use regex::Regex;
@@ -3037,9 +3037,8 @@ mod tests {
             let line_color: u8 = least_popular_color;
             let mut result_image: Image = cropped_input.clone();
 
-            // From the single pixels, shoot out lines to the edge
-            _ = result_image.draw_line_where_row_contains_color(&cropped_input, least_popular_color, line_color)?;
-            _ = result_image.draw_line_where_column_contains_color(&cropped_input, least_popular_color, line_color)?;
+            // Shoot out lines in all directions
+            _ = result_image.draw_line_where_row_or_column_contains_color(&cropped_input, least_popular_color, line_color)?;
 
             Ok(result_image)
         };
