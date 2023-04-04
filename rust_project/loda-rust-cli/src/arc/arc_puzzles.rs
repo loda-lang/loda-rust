@@ -9,7 +9,7 @@ mod tests {
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageDrawRect};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use std::collections::HashMap;
     use regex::Regex;
@@ -3031,8 +3031,19 @@ mod tests {
                     return Err(anyhow::anyhow!("biggest object"));
                 }
             };
-            // TODO: return bounding box
-            let trimmed: Image = biggest_object.trim_shrink_color(0)?;
+            let color_to_be_trimmed: u8 = 0;
+            let trimmed: Image = biggest_object.trim_shrink_color(color_to_be_trimmed)?;
+            
+            // bounding box of trimmed object
+            let rect: Rectangle = biggest_object.bounding_box_trim_color(color_to_be_trimmed)?;
+            let rect2: Rectangle = biggest_object.shrink_bounding_box(color_to_be_trimmed, rect)?;
+            if rect2.is_empty() {
+                return Err(anyhow::anyhow!("bounding box is empty"));
+            }
+
+            let mut the_mask = Image::zero(input.width(), input.height());
+            the_mask = the_mask.fill_inside_rect(rect2, 1)?;
+    
             // TODO: with the actionlabel, check the size of the masked area correspond to the output size
             // TODO: save the bounding box as a mask and provide it to the .asm program
             // TODO: crop out masked area from input image
@@ -3041,7 +3052,8 @@ mod tests {
             // let result_image: Image = color_count;
             // let result_image: Image = ignore_mask;
             // let result_image: Image = biggest_object;
-            let result_image: Image = trimmed;
+            let result_image: Image = the_mask;
+            // let result_image: Image = trimmed;
             Ok(result_image)
         };
         let result: String = solution.run("8731374e").expect("String");
