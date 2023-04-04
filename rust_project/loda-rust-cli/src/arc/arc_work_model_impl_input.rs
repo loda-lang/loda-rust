@@ -1,7 +1,7 @@
 use super::arc_work_model;
 use super::arc_work_model::Object;
 use super::{PropertyInput, InputLabel};
-use super::{Image, ImageSymmetry};
+use super::{Image, ImageSymmetry, Rectangle};
 use super::{ImageSegment, ImageSegmentAlgorithm, ImageMask, ImageCrop};
 use std::collections::{HashMap, HashSet};
 
@@ -184,7 +184,8 @@ impl arc_work_model::Input {
                 Some(value) => value,
                 None => continue
             };
-            let cropped_object_image: Image = self.image.crop(x, y, width, height)?;
+            let rect = Rectangle::new(x, y, width, height);
+            let cropped_object_image: Image = self.image.crop(rect)?;
 
             let object = Object {
                 index: index,

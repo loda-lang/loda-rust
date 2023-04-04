@@ -1,34 +1,34 @@
-use super::Image;
+use super::{Image, Rectangle};
 
 pub trait ImageCrop {
     /// Extract an area from the image
-    fn crop(&self, x: u8, y: u8, width: u8, height: u8) -> anyhow::Result<Image>;
+    fn crop(&self, rect: Rectangle) -> anyhow::Result<Image>;
 }
 
 impl ImageCrop for Image {
-    fn crop(&self, x: u8, y: u8, width: u8, height: u8) -> anyhow::Result<Image> {
+    fn crop(&self, rect: Rectangle) -> anyhow::Result<Image> {
         if self.is_empty() {
             return Err(anyhow::anyhow!("crop: image must be 1x1 or bigger"));
         }
-        if width == 0 || height == 0 {
+        if rect.is_empty() {
             return Err(anyhow::anyhow!("crop: crop area must be 1x1 or bigger"));
         }
 
         // Check that the crop area is inside the image area
         let x_max: i32 = (self.width() as i32) - 1;
         let y_max: i32 = (self.height() as i32) - 1;
-        let x1: i32 = (x as i32) + (width as i32) - 1;
-        let y1: i32 = (y as i32) + (height as i32) - 1;
+        let x1: i32 = (rect.x() as i32) + (rect.width() as i32) - 1;
+        let y1: i32 = (rect.y() as i32) + (rect.height() as i32) - 1;
         if x1 > x_max || y1 > y_max {
             return Err(anyhow::anyhow!("crop: crop area must be inside the image area, but it goes outside"));
         }
 
         // Copy pixels
-        let mut result_image = Image::zero(width, height);
-        for yy in 0..height  {
-            for xx in 0..width {
-                let get_x: i32 = (xx as i32) + (x as i32);
-                let get_y: i32 = (yy as i32) + (y as i32);
+        let mut result_image = Image::zero(rect.width(), rect.height());
+        for yy in 0..rect.height()  {
+            for xx in 0..rect.width() {
+                let get_x: i32 = (xx as i32) + (rect.x() as i32);
+                let get_y: i32 = (yy as i32) + (rect.y() as i32);
                 let pixel_value: u8 = self.get(get_x, get_y).unwrap_or(255);
                 _ = result_image.set(xx as i32, yy as i32, pixel_value);
             }
@@ -52,9 +52,10 @@ mod tests {
             5, 5, 0, 0,
         ];
         let input: Image = Image::try_create(4, 4, pixels).expect("image");
+        let rect = Rectangle::new(1, 1, 2, 2);
 
         // Act
-        let actual: Image = input.crop(1, 1, 2, 2).expect("image");
+        let actual: Image = input.crop(rect).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -70,9 +71,10 @@ mod tests {
         // Arrange
         let pixels: Vec<u8> = vec![42];
         let input: Image = Image::try_create(1, 1, pixels).expect("image");
+        let rect = Rectangle::new(0, 0, 1, 1);
 
         // Act
-        let actual: Image = input.crop(0, 0, 1, 1).expect("image");
+        let actual: Image = input.crop(rect).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![42];
@@ -88,9 +90,10 @@ mod tests {
             0, 0, 5, 5,
         ];
         let input: Image = Image::try_create(4, 2, pixels).expect("image");
+        let rect = Rectangle::new(2, 1, 2, 1);
 
         // Act
-        let actual: Image = input.crop(2, 1, 2, 1).expect("image");
+        let actual: Image = input.crop(rect).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -109,9 +112,10 @@ mod tests {
             5, 0,
         ];
         let input: Image = Image::try_create(2, 3, pixels).expect("image");
+        let rect = Rectangle::new(0, 1, 1, 2);
 
         // Act
-        let actual: Image = input.crop(0, 1, 1, 2).expect("image");
+        let actual: Image = input.crop(rect).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -124,8 +128,11 @@ mod tests {
 
     #[test]
     fn test_10004_crop_error_empty_self() {
+        // Arrange
+        let rect = Rectangle::new(0, 0, 5, 5);
+
         // Act
-        let error = Image::empty().crop(0, 0, 5, 5).expect_err("is supposed to fail");
+        let error = Image::empty().crop(rect).expect_err("is supposed to fail");
 
         // Assert
         let s = format!("{:?}", error);
@@ -136,9 +143,10 @@ mod tests {
     fn test_10005_crop_error_empty_croparea() {
         // Arrange
         let input: Image = Image::zero(5, 5);
+        let rect = Rectangle::new(0, 0, 0, 0);
 
         // Act
-        let error = input.crop(0, 0, 0, 0).expect_err("is supposed to fail");
+        let error = input.crop(rect).expect_err("is supposed to fail");
 
         // Assert
         let s = format!("{:?}", error);
@@ -149,9 +157,10 @@ mod tests {
     fn test_10006_crop_error_croparea_outside_imagearea_x() {
         // Arrange
         let input: Image = Image::zero(1, 1);
+        let rect = Rectangle::new(0, 0, 2, 1);
 
         // Act
-        let error = input.crop(0, 0, 2, 1).expect_err("is supposed to fail");
+        let error = input.crop(rect).expect_err("is supposed to fail");
 
         // Assert
         let s = format!("{:?}", error);
@@ -162,9 +171,10 @@ mod tests {
     fn test_10007_crop_error_croparea_outside_imagearea_y() {
         // Arrange
         let input: Image = Image::zero(1, 1);
+        let rect = Rectangle::new(0, 0, 1, 2);
 
         // Act
-        let error = input.crop(0, 0, 1, 2).expect_err("is supposed to fail");
+        let error = input.crop(rect).expect_err("is supposed to fail");
 
         // Assert
         let s = format!("{:?}", error);

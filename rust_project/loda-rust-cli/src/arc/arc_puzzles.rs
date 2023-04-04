@@ -9,7 +9,7 @@ mod tests {
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use std::collections::HashMap;
     use regex::Regex;
@@ -2298,8 +2298,9 @@ mod tests {
                             if !should_replace_horizontal {
                                 continue;
                             }
-                            let replace_source: Image = pair.input.image.crop(x, y, 3, 1)?;
-                            let replace_target: Image = pair.output.image.crop(x, y, 3, 1)?;
+                            let rect = Rectangle::new(x, y, 3, 1);
+                            let replace_source: Image = pair.input.image.crop(rect)?;
+                            let replace_target: Image = pair.output.image.crop(rect)?;
     
                             if let Some(value) = dict_inner.get(&replace_source) {
                                 if *value != replace_target {
@@ -2428,7 +2429,8 @@ mod tests {
                 let mut result_image: Image = input.padding_with_color(2, 0)?;
                 let _count: usize = result_image.replace_5x5_regex(&replacements, 14, 14)?;
                 // println!("replace_5x5_regex. count: {}", count);
-                let result_image_cropped: Image = result_image.crop(2, 2, input.width(), input.height())?;
+                let rect = Rectangle::new(2, 2, input.width(), input.height());
+                let result_image_cropped: Image = result_image.crop(rect)?;
                 Ok(result_image_cropped)
             }
         }
@@ -2533,7 +2535,8 @@ mod tests {
                 for _iteration in 0..20 {
                     // HtmlLog::text(format!("iteration: {}", iteration));
 
-                    let current_input: Image = input_image.crop(2, 2, pair.input.image.width(), pair.input.image.height())?;
+                    let rect = Rectangle::new(2, 2, pair.input.image.width(), pair.input.image.height());
+                    let current_input: Image = input_image.crop(rect)?;
                     let diff_mask: Image = current_input.diff(&pair.output.image)?;
                     // HtmlLog::image(&diff_mask);
     
@@ -2548,8 +2551,9 @@ mod tests {
                     let mut found_score: u8 = 0;
                     for (x, y) in &positions {
 
-                        let input_crop: Image = input_image.crop(*x, *y, 5, 5)?;
-                        let output_crop: Image = output_image.crop(*x, *y, 5, 5)?;
+                        let rect = Rectangle::new(*x, *y, 5, 5);
+                        let input_crop: Image = input_image.crop(rect)?;
+                        let output_crop: Image = output_image.crop(rect)?;
 
                         // Compare input_crop with output_crop, ignoring the center pixel
                         // If they are nearly identical, then we know that it's only the center pixel that has changed.
@@ -2569,8 +2573,9 @@ mod tests {
 
                     let x: u8 = found_x;
                     let y: u8 = found_y;
-                    let input_crop: Image = input_image.crop(x, y, 5, 5)?;
-                    let output_crop: Image = output_image.crop(x, y, 5, 5)?;
+                    let rect = Rectangle::new(x, y, 5, 5);
+                    let input_crop: Image = input_image.crop(rect)?;
+                    let output_crop: Image = output_image.crop(rect)?;
 
                     let pattern: String = Self::pattern_of_two5x5(&input_crop, &output_crop, background_color)?;
                     // println!("pattern: {}", pattern);
@@ -2639,7 +2644,8 @@ mod tests {
                 let mut result_image: Image = input.padding_with_color(2, 0)?;
                 let _count: usize = result_image.replace_5x5_regex(&self.replacements, 14, 14)?;
                 // println!("replace_5x5_regex. count: {}", count);
-                let result_image_cropped: Image = result_image.crop(2, 2, input.width(), input.height())?;
+                let rect = Rectangle::new(2, 2, input.width(), input.height());
+                let result_image_cropped: Image = result_image.crop(rect)?;
                 Ok(result_image_cropped)
             }
         }
@@ -2798,7 +2804,8 @@ mod tests {
                 if y > (u8::MAX as i32) {
                     return Err(anyhow::anyhow!("cannot split image"));
                 }
-                let image: Image = input.crop(0, y as u8, input.width(), height)?;
+                let rect = Rectangle::new(0, y as u8, input.width(), height);
+                let image: Image = input.crop(rect)?;
                 images.push(image);
             }
             for image in &images {
@@ -2880,7 +2887,8 @@ mod tests {
                     }
                 };
                 let (x, y, width, height) = tuple;
-                let image: Image = input.crop(x, y, width, height)?;
+                let rect = Rectangle::new(x, y, width, height);
+                let image: Image = input.crop(rect)?;
                 let count: u32 = image.histogram_all().number_of_counters_greater_than_zero();
                 if count == 1 {
                     continue;
@@ -2908,7 +2916,8 @@ mod tests {
                     }
                 };
                 let (x, y, width, height) = tuple;
-                let image: Image = input.crop(x, y, width, height)?;
+                let rect = Rectangle::new(x, y, width, height);
+                let image: Image = input.crop(rect)?;
                 let count: u32 = image.histogram_all().number_of_counters_greater_than_zero();
                 if count != 1 {
                     continue;
@@ -2934,7 +2943,8 @@ mod tests {
             let repeat_count: u8 = (9 / periodicity) + 1;
             let pattern: Image = input.top_rows(periodicity)?;
             let mut result_image: Image = pattern.repeat_by_count(1, repeat_count)?;
-            result_image = result_image.crop(0, 0, input.width(), 9)?;
+            let rect = Rectangle::new(0, 0, input.width(), 9);
+            result_image = result_image.crop(rect)?;
             Ok(result_image)
         };
         let result: String = solution.run("017c7c7b").expect("String");
@@ -2945,7 +2955,8 @@ mod tests {
     fn test_660000_puzzle_6f8cd79b() {
         let solution: SolutionSimple = |data| {
             let input: Image = data.image;
-            let cropped: Image = input.crop(1, 1, input.width() - 2, input.height() - 2)?;
+            let rect = Rectangle::new(1, 1, input.width() - 2, input.height() - 2);
+            let cropped: Image = input.crop(rect)?;
             let result_image: Image = cropped.padding_with_color(1, 42)?;
             Ok(result_image)
         };
@@ -2964,7 +2975,8 @@ mod tests {
                 if x > (u8::MAX as i32) {
                     return Err(anyhow::anyhow!("cannot split image"));
                 }
-                let image: Image = input.crop(x as u8, 0, width, input.height())?;
+                let rect = Rectangle::new(x as u8, 0, width, input.height());
+                let image: Image = input.crop(rect)?;
                 images.push(image);
             }
             images.reverse();
