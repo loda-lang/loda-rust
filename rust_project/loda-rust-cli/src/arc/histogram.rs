@@ -205,6 +205,11 @@ impl Histogram {
     }
     
     #[allow(dead_code)]
+    pub fn most_popular_color_disallow_ambiguous(&self) -> Option<u8> {
+        self.most_popular().color_disallow_ambiguous()
+    }
+    
+    #[allow(dead_code)]
     pub fn most_popular_count(&self) -> Option<u32> {
         self.most_popular().count_allow_ambiguous()
     }
@@ -248,6 +253,11 @@ impl Histogram {
         self.least_popular().color_count_allow_ambiguous()
     }
 
+    #[allow(dead_code)]
+    pub fn least_popular_color_disallow_ambiguous(&self) -> Option<u8> {
+        self.least_popular().color_disallow_ambiguous()
+    }
+    
     #[allow(dead_code)]
     pub fn least_popular_color(&self) -> Option<u8> {
         self.least_popular().color_allow_ambiguous()
