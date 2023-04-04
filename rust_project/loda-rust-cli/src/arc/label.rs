@@ -54,6 +54,8 @@ pub enum InputLabel {
     // InputAspectRatio { width: u8, height: u8 },
     // Number of palindromic rows { count: u8 },
     // Number of palindromic columns { count: u8 },
+    // InputIsPalindrome,
+    // InputIsPalindromeWithOffset,
 }
 
 pub type InputLabelSet = HashSet<InputLabel>;
@@ -107,6 +109,8 @@ pub enum ActionLabel {
     OutputImageColorsComesFromInputImage,
     
     // Ideas for more
+    // OutputImageIsPalindrome,
+    // OutputIsPalindromeWithOffset,
     // OutputImageIsPresentInInputImageWithTwoColorWildcards, for solving "8731374e"
     // OutputImageWithSlightlyDifferentColorsIsPresentInTheInputImage,
     // OutputImageIsSingleColor,
