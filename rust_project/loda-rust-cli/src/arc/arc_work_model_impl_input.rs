@@ -180,11 +180,10 @@ impl arc_work_model::Input {
         let object_mask_vec: Vec<Image> = self.image.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &background_ignore_mask)?;
         let mut object_vec: Vec<Object> = vec!();
         for (index, object_mask) in object_mask_vec.iter().enumerate() {
-            let (x, y, width, height) = match object_mask.bounding_box() {
+            let rect: Rectangle = match object_mask.bounding_box() {
                 Some(value) => value,
                 None => continue
             };
-            let rect = Rectangle::new(x, y, width, height);
             let cropped_object_image: Image = self.image.crop(rect)?;
 
             let object = Object {

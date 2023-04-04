@@ -1,4 +1,4 @@
-use super::Image;
+use super::{Image, Rectangle};
 
 pub trait ImageMask {
     /// Convert to a mask image by converting `color` to 1 and converting anything else to to 0.
@@ -26,7 +26,7 @@ pub trait ImageMask {
     fn select_from_images(&self, image_a: &Image, image_b: &Image) -> anyhow::Result<Image>;
 
     /// The smallest box that can contain the mask.
-    fn bounding_box(&self) -> Option<(u8,u8,u8,u8)>;
+    fn bounding_box(&self) -> Option<Rectangle>;
 }
 
 impl ImageMask for Image {
@@ -206,7 +206,7 @@ impl ImageMask for Image {
         return Ok(result_image);
     }
 
-    fn bounding_box(&self) -> Option<(u8,u8,u8,u8)> {
+    fn bounding_box(&self) -> Option<Rectangle> {
         if self.is_empty() {
             return None;
         }
@@ -262,7 +262,8 @@ impl ImageMask for Image {
         }
         let new_height: u8 = new_height_i32 as u8;
 
-        return Some((new_x, new_y, new_width, new_height));
+        let rect = Rectangle::new(new_x, new_y, new_width, new_height);
+        Some(rect)
     }
 }
 
@@ -522,10 +523,10 @@ mod tests {
         let input: Image = Image::try_create(3, 5, pixels).expect("image");
 
         // Act
-        let actual: (u8,u8,u8,u8) = input.bounding_box().expect("bounding box");
+        let actual: Rectangle = input.bounding_box().expect("bounding box");
 
         // Assert
-        assert_eq!(actual, (0, 0, 3, 5));
+        assert_eq!(actual, Rectangle::new(0, 0, 3, 5));
     }
 
     #[test]
@@ -541,10 +542,10 @@ mod tests {
         let input: Image = Image::try_create(3, 5, pixels).expect("image");
 
         // Act
-        let actual: (u8,u8,u8,u8) = input.bounding_box().expect("bounding box");
+        let actual: Rectangle = input.bounding_box().expect("bounding box");
 
         // Assert
-        assert_eq!(actual, (1, 1, 2, 3));
+        assert_eq!(actual, Rectangle::new(1, 1, 2, 3));
     }
 
     #[test]
@@ -557,10 +558,10 @@ mod tests {
         let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: (u8,u8,u8,u8) = input.bounding_box().expect("bounding box");
+        let actual: Rectangle = input.bounding_box().expect("bounding box");
 
         // Assert
-        assert_eq!(actual, (2, 1, 1, 1));
+        assert_eq!(actual, Rectangle::new(2, 1, 1, 1));
     }
 
     #[test]
@@ -573,7 +574,7 @@ mod tests {
         let input: Image = Image::try_create(2, 2, pixels).expect("image");
 
         // Act
-        let actual: Option<(u8,u8,u8,u8)> = input.bounding_box();
+        let actual: Option<Rectangle> = input.bounding_box();
 
         // Assert
         assert_eq!(actual, None);

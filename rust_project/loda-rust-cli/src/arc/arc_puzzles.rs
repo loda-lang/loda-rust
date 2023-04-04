@@ -1141,7 +1141,7 @@ mod tests {
             for mask_image in &object_mask_vec {
     
                 // Bounding box of object
-                let (_x0, y0, _x1, _y1) = match mask_image.bounding_box() {
+                let rect: Rectangle = match mask_image.bounding_box() {
                     Some(value) => value,
                     None => {
                         continue;
@@ -1149,7 +1149,7 @@ mod tests {
                 };
     
                 // Determine how much to adjust offset
-                let distance_from_bottom: i32 = (input.height() as i32) - (y0 as i32);
+                let distance_from_bottom: i32 = (input.height() as i32) - (rect.y() as i32);
                 let offset_y: i32 = -distance_from_bottom;
     
                 // Adjust offset
@@ -2880,14 +2880,12 @@ mod tests {
             let mut image_to_insert: Option<Image> = None;
             let mut number_of_images_found: usize = 0;
             for object in &objects {
-                let tuple = match object.bounding_box() {
-                    Some(tuple) => tuple,
+                let rect: Rectangle = match object.bounding_box() {
+                    Some(value) => value,
                     None => {
                         return Err(anyhow::anyhow!("expected all objects to have a bounding box"));
                     }
                 };
-                let (x, y, width, height) = tuple;
-                let rect = Rectangle::new(x, y, width, height);
                 let image: Image = input.crop(rect)?;
                 let count: u32 = image.histogram_all().number_of_counters_greater_than_zero();
                 if count == 1 {
@@ -2909,20 +2907,18 @@ mod tests {
             // Insert the template image into all the empty cells
             let mut result_image: Image = input.clone();
             for object in &objects {
-                let tuple = match object.bounding_box() {
-                    Some(tuple) => tuple,
+                let rect: Rectangle = match object.bounding_box() {
+                    Some(value) => value,
                     None => {
                         return Err(anyhow::anyhow!("expected all objects to have a bounding box"));
                     }
                 };
-                let (x, y, width, height) = tuple;
-                let rect = Rectangle::new(x, y, width, height);
                 let image: Image = input.crop(rect)?;
                 let count: u32 = image.histogram_all().number_of_counters_greater_than_zero();
                 if count != 1 {
                     continue;
                 }
-                result_image = result_image.overlay_with_position(&template_image, x as i32, y as i32)?;
+                result_image = result_image.overlay_with_position(&template_image, rect.x() as i32, rect.y() as i32)?;
             }
             Ok(result_image)
         };
