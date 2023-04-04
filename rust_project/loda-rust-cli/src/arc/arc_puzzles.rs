@@ -8,7 +8,7 @@ mod tests {
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
-    use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
+    use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageDrawRect};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use std::collections::HashMap;
@@ -3038,31 +3038,9 @@ mod tests {
             let mut result_image: Image = cropped_input.clone();
 
             // From the single pixels, shoot out lines to the edge
-            let histogram_rows: Vec<Histogram> = cropped_input.histogram_rows();
-            for (y, histogram) in histogram_rows.iter().enumerate() {
-                if histogram.number_of_counters_greater_than_zero() < 2 {
-                    continue;
-                }
-                if y > (u8::MAX as usize) {
-                    return Err(anyhow::anyhow!("encountered index beyond u8 capacity"));
-                }
-                let y_u8: u8 = y as u8;
-                let rect = Rectangle::new(0, y_u8, cropped_input.width(), 1);
-                result_image = result_image.fill_inside_rect(rect, line_color)?;
-            }
+            _ = result_image.draw_line_where_row_contains_color(&cropped_input, least_popular_color, line_color)?;
+            _ = result_image.draw_line_where_column_contains_color(&cropped_input, least_popular_color, line_color)?;
 
-            let histogram_columns: Vec<Histogram> = cropped_input.histogram_columns();
-            for (x, histogram) in histogram_columns.iter().enumerate() {
-                if histogram.number_of_counters_greater_than_zero() < 2 {
-                    continue;
-                }
-                if x > (u8::MAX as usize) {
-                    return Err(anyhow::anyhow!("encountered index beyond u8 capacity"));
-                }
-                let x_u8: u8 = x as u8;
-                let rect = Rectangle::new(x_u8, 0, 1, cropped_input.height());
-                result_image = result_image.fill_inside_rect(rect, line_color)?;
-            }
             Ok(result_image)
         };
         let result: String = solution.run("8731374e").expect("String");
