@@ -764,4 +764,52 @@ mod tests {
         // Assert
         assert_eq!(actual, Rectangle::new(0, 0, 4, 1));
     }
+
+    #[test]
+    fn test_40012_shrink_bounding_box_not_optimal() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 1, 1, 1, 1, 0, 0, 0,
+            1, 0, 1, 1, 1, 1, 1, 1, 0, 1,
+            0, 0, 0, 1, 1, 1, 1, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(10, 3, pixels).expect("image");
+        let rect = Rectangle::new(0, 0, 10, 3);
+
+        // Act
+        let actual: Rectangle = input.shrink_bounding_box(0, rect).expect("image");
+
+        // Assert
+        // Shrinks too much, the optimal would be a 4x3 rectangle = 12 pixels.
+        // However the algorithm returns a 6x1 rectangle = 6 pixels.
+        assert_eq!(actual, Rectangle::new(2, 1, 6, 1));
+    }
+
+    #[test]
+    fn test_40013_shrink_bounding_box_not_optimal() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 0,
+            0, 0, 0,
+            0, 1, 0,
+            1, 1, 1,
+            1, 1, 1,
+            1, 1, 1,
+            1, 1, 1,
+            0, 1, 0,
+            0, 0, 0,
+            0, 1, 0,
+        ];
+        let input: Image = Image::try_create(3, 10, pixels).expect("image");
+        let rect = Rectangle::new(0, 0, 3, 10);
+
+        // Act
+        let actual: Rectangle = input.shrink_bounding_box(0, rect).expect("image");
+
+        // Assert
+        // Shrinks too much, the optimal would be a 3x4 rectangle = 12 pixels.
+        // However the algorithm returns a 1x6 rectangle = 6 pixels.
+        assert_eq!(actual, Rectangle::new(1, 2, 1, 6));
+    }
+
 }
