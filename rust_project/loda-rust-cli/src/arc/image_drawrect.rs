@@ -21,7 +21,7 @@ impl ImageDrawRect for Image {
             return Err(anyhow::anyhow!("fill_inside_rect: fill area must be inside the image area, but it goes outside"));
         }
 
-        // Copy pixels
+        // Draw pixels
         let mut result_image = self.clone();
         for yy in 0..rect.height()  {
             for xx in 0..rect.width() {
