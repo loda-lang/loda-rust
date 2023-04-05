@@ -132,16 +132,27 @@ impl ImageTrim for Image {
         // TODO: get rid of limit, instead use the ratio of pixels with the right color and pixels with the wrong color.
         for _ in 0..20 {
             let mut did_shrink = false;
-            let height_i32: i32 = found_y1 - found_y0 + 1;
+            let orig_x0: i32 = found_x0;
+            let orig_y0: i32 = found_y0;
+            let orig_x1: i32 = found_x1;
+            let orig_y1: i32 = found_y1;
+            let height_i32: i32 = orig_y1 - orig_y0 + 1;
             if height_i32 < 1 {
                 return Ok(Rectangle::empty());
             }
             let limit_height: u32 = (height_i32 as u32) / 2;
+
+            let width_i32: i32 = orig_x1 - orig_x0 + 1;
+            if width_i32 < 1 {
+                return Ok(Rectangle::empty());
+            }
+            let limit_width: u32 = (width_i32 as u32) / 2;
+
             {
                 // Shrink left
                 let mut count: u32 = 0;
-                for y in found_y0..=found_y1 {
-                    let pixel_value: u8 = self.get(found_x0, y).unwrap_or(255);
+                for y in orig_y0..=orig_y1 {
+                    let pixel_value: u8 = self.get(orig_x0, y).unwrap_or(255);
                     if pixel_value == color_to_be_trimmed {
                         count += 1;
                     }
@@ -157,8 +168,8 @@ impl ImageTrim for Image {
             {
                 // Shrink right
                 let mut count: u32 = 0;
-                for y in found_y0..=found_y1 {
-                    let pixel_value: u8 = self.get(found_x1, y).unwrap_or(255);
+                for y in orig_y0..=orig_y1 {
+                    let pixel_value: u8 = self.get(orig_x1, y).unwrap_or(255);
                     if pixel_value == color_to_be_trimmed {
                         count += 1;
                     }
@@ -169,18 +180,11 @@ impl ImageTrim for Image {
                     did_shrink = true;
                 }
             }
-
-            let width_i32: i32 = found_x1 - found_x0 + 1;
-            if width_i32 < 1 {
-                return Ok(Rectangle::empty());
-            }
-            let limit_width: u32 = (width_i32 as u32) / 2;
-
             {
                 // Shrink top
                 let mut count: u32 = 0;
-                for x in found_x0..=found_x1 {
-                    let pixel_value: u8 = self.get(x, found_y0).unwrap_or(255);
+                for x in orig_x0..=orig_x1 {
+                    let pixel_value: u8 = self.get(x, orig_y0).unwrap_or(255);
                     if pixel_value == color_to_be_trimmed {
                         count += 1;
                     }
@@ -194,8 +198,8 @@ impl ImageTrim for Image {
             {
                 // Shrink bottom
                 let mut count: u32 = 0;
-                for x in found_x0..=found_x1 {
-                    let pixel_value: u8 = self.get(x, found_y1).unwrap_or(255);
+                for x in orig_x0..=orig_x1 {
+                    let pixel_value: u8 = self.get(x, orig_y1).unwrap_or(255);
                     if pixel_value == color_to_be_trimmed {
                         count += 1;
                     }
@@ -546,13 +550,13 @@ mod tests {
     fn test_40000a_shrink_bounding_box_all_sides() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            0, 1, 0, 0, 0, 1, 0,
+            0, 1, 1, 0, 0, 1, 0,
             0, 1, 1, 1, 1, 1, 1,
             1, 1, 1, 1, 1, 1, 0,
             0, 1, 1, 0, 1, 1, 1,
             1, 1, 1, 1, 1, 1, 1,
-            0, 1, 1, 1, 1, 1, 0,
-            0, 1, 0, 1, 0, 0, 0,
+            1, 1, 1, 1, 1, 1, 0,
+            0, 1, 1, 1, 0, 0, 0,
         ];
         let input: Image = Image::try_create(7, 7, pixels).expect("image");
         let rect = Rectangle::new(0, 0, 7, 7);
