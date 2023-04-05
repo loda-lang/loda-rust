@@ -3009,13 +3009,13 @@ mod tests {
             };
             let color_to_be_trimmed: u8 = 0;
             
-            // TODO: with the actionlabel, check the size of the masked area correspond to the output size
+            // Idea, with the actionlabel, check the size of the masked area correspond to the output size
             let rect: Rectangle = biggest_object.inner_bounding_box_after_trim_with_color(color_to_be_trimmed)?;
             if rect.is_empty() {
                 return Err(anyhow::anyhow!("bounding box is empty"));
             }
             
-            // TODO: save the bounding box as a mask and provide it to the .asm program
+            // Idea, save the bounding box as a mask and provide it to the .asm program
             // let mut the_mask = Image::zero(input.width(), input.height());
             // the_mask = the_mask.fill_inside_rect(rect, 1)?;
 
