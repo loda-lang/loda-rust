@@ -132,9 +132,14 @@ impl ImageTrim for Image {
         // TODO: get rid of limit, instead use the ratio of pixels with the right color and pixels with the wrong color.
         let limit: usize = 3;
         for _ in 0..2 {
+            let height_i32: i32 = found_y1 - found_y0 + 1;
+            if height_i32 < 1 {
+                return Ok(Rectangle::empty());
+            }
+            let limit_height: u32 = (height_i32 as u32) / 2;
             if true {
                 // Shrink left
-                let mut count: usize = 0;
+                let mut count: u32 = 0;
                 for y in found_y0..=found_y1 {
                     let pixel_value: u8 = self.get(found_x0, y).unwrap_or(255);
                     if pixel_value == color_to_be_trimmed {
@@ -144,13 +149,13 @@ impl ImageTrim for Image {
                 // if the majority of pixels are the color to be trimmed, then trim it.
                 // if the majority of pixels are the object, then don't trim it.
                 // TODO: ignore if count < height*0.5
-                if count > limit {
+                if count > limit_height {
                     found_x0 += 1;
                 }
             }
             if true {
                 // Shrink right
-                let mut count: usize = 0;
+                let mut count: u32 = 0;
                 for y in found_y0..=found_y1 {
                     let pixel_value: u8 = self.get(found_x1, y).unwrap_or(255);
                     if pixel_value == color_to_be_trimmed {
@@ -158,7 +163,7 @@ impl ImageTrim for Image {
                     }
                 }
                 // TODO: ignore if count < height*0.5
-                if count > limit {
+                if count > limit_height {
                     found_x1 -= 1;
                 }
             }
@@ -603,5 +608,74 @@ mod tests {
 
         // Assert
         assert_eq!(actual, Rectangle::new(1, 1, 4, 5));
+    }
+
+    #[test]
+    fn test_40005_shrink_bounding_box_right() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 0, 0,
+            1, 1, 1, 1, 0, 0,
+            1, 1, 1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(6, 3, pixels).expect("image");
+        let rect = Rectangle::new(0, 0, 6, 3);
+
+        // Act
+        let actual: Rectangle = input.shrink_bounding_box(0, rect).expect("image");
+
+        // Assert
+        assert_eq!(actual, Rectangle::new(0, 0, 4, 3));
+    }
+
+    #[test]
+    fn test_40006_shrink_bounding_box_right() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 0, 0,
+            1, 1, 1, 1, 1, 0,
+            1, 1, 1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(6, 3, pixels).expect("image");
+        let rect = Rectangle::new(0, 0, 6, 3);
+
+        // Act
+        let actual: Rectangle = input.shrink_bounding_box(0, rect).expect("image");
+
+        // Assert
+        assert_eq!(actual, Rectangle::new(0, 0, 5, 3));
+    }
+
+    #[test]
+    fn test_40007_shrink_bounding_box_right() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 0, 0,
+            1, 1, 1, 1, 1, 0,
+        ];
+        let input: Image = Image::try_create(6, 2, pixels).expect("image");
+        let rect = Rectangle::new(0, 0, 6, 2);
+
+        // Act
+        let actual: Rectangle = input.shrink_bounding_box(0, rect).expect("image");
+
+        // Assert
+        assert_eq!(actual, Rectangle::new(0, 0, 5, 2));
+    }
+
+    #[test]
+    fn test_40008_shrink_bounding_box_right() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 1, pixels).expect("image");
+        let rect = Rectangle::new(0, 0, 6, 1);
+
+        // Act
+        let actual: Rectangle = input.shrink_bounding_box(0, rect).expect("image");
+
+        // Assert
+        assert_eq!(actual, Rectangle::new(0, 0, 4, 1));
     }
 }
