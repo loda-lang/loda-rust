@@ -549,7 +549,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40000a_shrink_bounding_box_all_sides() {
+    fn test_40001_shrink_bounding_box_all_sides() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0, 0, 1, 0,
@@ -571,7 +571,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40000b_shrink_bounding_box_all_sides_no_shrinking() {
+    fn test_40002_shrink_bounding_box_all_sides_no_shrinking() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 1, 0, 1, 1, 0,
@@ -593,7 +593,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40001_shrink_bounding_box_top() {
+    fn test_40003_shrink_bounding_box_top() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 1, 0, 0,
@@ -613,7 +613,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40002_shrink_bounding_box_bottom() {
+    fn test_40004_shrink_bounding_box_bottom() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0, 0,
@@ -633,7 +633,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40002a_shrink_bounding_box_bottom() {
+    fn test_40005_shrink_bounding_box_bottom() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1, 1, 1,
@@ -653,7 +653,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40003_shrink_bounding_box_left() {
+    fn test_40006_shrink_bounding_box_left() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0, 0,
@@ -675,7 +675,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40004_shrink_bounding_box_right() {
+    fn test_40007_shrink_bounding_box_right() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0, 0,
@@ -697,7 +697,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40005_shrink_bounding_box_right() {
+    fn test_40008_shrink_bounding_box_right() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1, 0, 0,
@@ -715,7 +715,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40006_shrink_bounding_box_right() {
+    fn test_40009_shrink_bounding_box_right() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1, 0, 0,
@@ -733,7 +733,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40007_shrink_bounding_box_right() {
+    fn test_40010_shrink_bounding_box_right() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1, 0, 0,
@@ -750,7 +750,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40008_shrink_bounding_box_right() {
+    fn test_40011_shrink_bounding_box_right() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1, 1, 0, 0,
