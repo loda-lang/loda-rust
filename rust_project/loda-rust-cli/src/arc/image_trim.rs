@@ -24,6 +24,10 @@ pub trait ImageTrim {
     fn shrink_bounding_box(&self, color_to_be_trimmed: u8, rect: Rectangle) -> anyhow::Result<Rectangle>;
 
     /// Remove border with the specified color. Shrink further until the majority of border pixels are not the trim color.
+    /// 
+    /// if the majority of pixels are the color to be trimmed, then trim it.
+    /// 
+    /// if the majority of pixels are the object, then don't trim it.
     fn trim_shrink_color(&self, color_to_be_trimmed: u8) -> anyhow::Result<Image>;
 
     // Idea for future experiment
@@ -119,7 +123,7 @@ impl ImageTrim for Image {
     }
 
     fn shrink_bounding_box(&self, color_to_be_trimmed: u8, rect: Rectangle) -> anyhow::Result<Rectangle> {
-        if rect.is_empty() {
+        if self.is_empty() || rect.is_empty() {
             return Ok(Rectangle::empty());
         }
 
@@ -128,26 +132,30 @@ impl ImageTrim for Image {
         let mut found_y0: i32 = rect.min_y();
         let mut found_y1: i32 = rect.max_y();
 
-        // TODO: shrink bounding box, to get rid of junk
-        // TODO: get rid of limit, instead use the ratio of pixels with the right color and pixels with the wrong color.
-        for _ in 0..20 {
-            let mut did_shrink = false;
+        // The biggest image in the ARC dataset is 30x30. Shrinking from both sides, then 15 is the max number of iterations.
+        let max_number_of_iterations = 15;
+
+        // shrink bounding box repeatedly until the majority of junk has been eliminated
+        for _ in 0..max_number_of_iterations {
+
+            // Snapshot of the current bounding box, so that the algorithm doesn't favor trimming one side over another side
             let orig_x0: i32 = found_x0;
             let orig_y0: i32 = found_y0;
             let orig_x1: i32 = found_x1;
             let orig_y1: i32 = found_y1;
-            let height_i32: i32 = orig_y1 - orig_y0 + 1;
-            if height_i32 < 1 {
-                return Ok(Rectangle::empty());
-            }
-            let limit_height: u32 = (height_i32 as u32) / 2;
 
+            // Size of the bounding box
             let width_i32: i32 = orig_x1 - orig_x0 + 1;
-            if width_i32 < 1 {
+            let height_i32: i32 = orig_y1 - orig_y0 + 1;
+            if height_i32 < 1 || width_i32 < 1 {
                 return Ok(Rectangle::empty());
             }
-            let limit_width: u32 = (width_i32 as u32) / 2;
 
+            // The limit is when the majority of pixels have the trim color
+            let limit_width: u32 = (width_i32 as u32) / 2;
+            let limit_height: u32 = (height_i32 as u32) / 2;
+            
+            let mut did_shrink = false;
             {
                 // Shrink left
                 let mut count: u32 = 0;
@@ -157,9 +165,6 @@ impl ImageTrim for Image {
                         count += 1;
                     }
                 }
-                // if the majority of pixels are the color to be trimmed, then trim it.
-                // if the majority of pixels are the object, then don't trim it.
-                // TODO: ignore if count < height*0.5
                 if count > limit_height {
                     found_x0 += 1;
                     did_shrink = true;
@@ -174,7 +179,6 @@ impl ImageTrim for Image {
                         count += 1;
                     }
                 }
-                // TODO: ignore if count < height*0.5
                 if count > limit_height {
                     found_x1 -= 1;
                     did_shrink = true;
@@ -189,7 +193,6 @@ impl ImageTrim for Image {
                         count += 1;
                     }
                 }
-                // TODO: ignore if count < width*0.5
                 if count > limit_width {
                     found_y0 += 1;
                     did_shrink = true;
@@ -204,7 +207,6 @@ impl ImageTrim for Image {
                         count += 1;
                     }
                 }
-                // TODO: ignore if count < width*0.5
                 if count > limit_width {
                     found_y1 -= 1;
                     did_shrink = true;
@@ -566,6 +568,28 @@ mod tests {
 
         // Assert
         assert_eq!(actual, Rectangle::new(1, 1, 5, 5));
+    }
+
+    #[test]
+    fn test_40000b_shrink_bounding_box_all_sides_no_shrinking() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 1, 0, 1, 1, 0,
+            0, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 0,
+            1, 1, 1, 0, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1,
+            0, 1, 1, 1, 0, 1, 0,
+        ];
+        let input: Image = Image::try_create(7, 7, pixels).expect("image");
+        let rect = Rectangle::new(0, 0, 7, 7);
+
+        // Act
+        let actual: Rectangle = input.shrink_bounding_box(0, rect).expect("image");
+
+        // Assert
+        assert_eq!(actual, Rectangle::new(0, 0, 7, 7));
     }
 
     #[test]
