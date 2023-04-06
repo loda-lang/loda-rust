@@ -90,6 +90,10 @@ impl arc_work_model::Pair {
                 self.action_label_set.insert(ActionLabel::RemovalColorIsThePrimaryColorOfInputImage);
             }
         }
+
+        // if width_input > 5 && height_input > 5 {
+        //     _ = self.input.assign_biggest_object_mask();
+        // }
         
         _ = self.analyze_object_why_is_the_output_present_once_in_input();
         _ = self.analyze_output_image_is_input_image_with_changes_to_pixels_with_color();

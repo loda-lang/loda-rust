@@ -45,6 +45,8 @@ pub struct Input {
     // State keeping of the input_properties. 
     // Computed, NotYetComputed, CannotBeComputed, DependingOnAnotherProperty.
     // Rerun analytics until all pending properties have been computed
+
+    pub biggest_object_mask: Option<Image>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

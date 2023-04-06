@@ -36,6 +36,59 @@ impl arc_work_model::Task {
         self.action_label_set_intersection = label_set;
     }
 
+    fn xassign_biggest_object_mask(&mut self) {
+        let mut found_color: Option<u8> = None;
+        for label in &self.action_label_set_intersection {
+            match label {
+                ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color } => {
+                    found_color = Some(*color);
+                    break;
+                },
+                _ => {}
+            }
+        }
+        let color: u8 = match found_color {
+            Some(value) => value,
+            None => {
+                // TODO: pick the approach
+                // most popular color for this pair
+                // assign_biggest_object_mask_with_ignore_color
+                return;
+            }
+        };
+        for pair in &mut self.pairs {
+            _ = pair.input.assign_biggest_object_mask_with_ignore_color(color);
+        }
+    }
+
+    // fn assign_biggest_object_mask(&mut self) {
+    //     let color: u8 = match self.input_histogram_intersection.most_popular_color_disallow_ambiguous() {
+    //         Some(color) => color,
+    //         None => {
+    //             return;
+    //         }
+    //     };
+    //     for pair in &mut self.pairs {
+    //         _ = pair.input.assign_biggest_object_mask_with_ignore_color(color);
+    //     }
+    // }
+
+    fn assign_biggest_object_mask(&mut self) {
+        let mut histogram1: Histogram = self.input_histogram_union.clone();
+        histogram1.subtract_histogram(&self.input_histogram_intersection);
+        let mut histogram2: Histogram = self.input_histogram_union.clone();
+        histogram2.subtract_histogram(&histogram1);
+        let color: u8 = match histogram2.most_popular_color_disallow_ambiguous() {
+            Some(color) => color,
+            None => {
+                return;
+            }
+        };
+        for pair in &mut self.pairs {
+            _ = pair.input.assign_biggest_object_mask_with_ignore_color(color);
+        }
+    }
+
     fn update_input_properties_intersection(&mut self) {
         let mut input_properties_intersection: HashMap<PropertyInput, u8> = HashMap::new();
         let mut is_first = true;
@@ -377,6 +430,8 @@ impl arc_work_model::Task {
         }
 
         self.update_action_label_set_intersection();
+
+        self.assign_biggest_object_mask();
 
         Ok(())
     }

@@ -48,6 +48,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     input_properties: HashMap::new(),
                     input_label_set: HashSet::new(),
                     input_objects: HashMap::new(),
+                    biggest_object_mask: None,
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},train", task_id, index),
@@ -80,6 +81,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     input_properties: HashMap::new(),
                     input_label_set: HashSet::new(),
                     input_objects: HashMap::new(),
+                    biggest_object_mask: None,
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},test", task_id, index),
