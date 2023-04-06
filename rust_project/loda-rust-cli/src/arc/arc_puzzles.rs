@@ -4,7 +4,7 @@ mod tests {
     use crate::arc::arc_work_model::{self, PairType};
     use crate::arc::ActionLabel;
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
-    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
+    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
@@ -2998,10 +2998,10 @@ mod tests {
 
             let color_count: Image = input.count_duplicate_pixels_in_3x3()?;
             let ignore_mask: Image = color_count.to_mask_where_color_is_equal_or_less_than(3);
-            let mut objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, &ignore_mask)?;
-            objects.sort_unstable_by_key(|k| k.mask_count_one());
+            let mut objects: Vec<ImageSegmentItem> = input.find_objects_with_ignore_mask_inner(ImageSegmentAlgorithm::Neighbors, &ignore_mask)?;
+            objects.sort_unstable_by_key(|item| (item.mass(), item.x(), item.y()));
             objects.reverse();
-            let biggest_object: Image = match objects.first() {
+            let biggest_object: ImageSegmentItem = match objects.first() {
                 Some(value) => value.clone(),
                 None => {
                     return Err(anyhow::anyhow!("biggest object"));
@@ -3010,7 +3010,7 @@ mod tests {
             let color_to_be_trimmed: u8 = 0;
             
             // Idea, with the actionlabel, check the size of the masked area correspond to the output size
-            let rect: Rectangle = biggest_object.inner_bounding_box_after_trim_with_color(color_to_be_trimmed)?;
+            let rect: Rectangle = biggest_object.mask().inner_bounding_box_after_trim_with_color(color_to_be_trimmed)?;
             if rect.is_empty() {
                 return Err(anyhow::anyhow!("bounding box is empty"));
             }
