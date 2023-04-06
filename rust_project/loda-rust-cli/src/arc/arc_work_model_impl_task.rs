@@ -264,7 +264,7 @@ impl arc_work_model::Task {
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
 
-        let input_properties: [PropertyInput; 24] = [
+        let input_properties: [PropertyInput; 26] = [
             PropertyInput::InputWidth, 
             PropertyInput::InputWidthPlus1, 
             PropertyInput::InputWidthPlus2, 
@@ -275,6 +275,8 @@ impl arc_work_model::Task {
             PropertyInput::InputHeightPlus2,
             PropertyInput::InputHeightMinus1,
             PropertyInput::InputHeightMinus2,
+            PropertyInput::InputBiggestValueThatDividesWidthAndHeight,
+            PropertyInput::InputBiggestValueThatDividesWidthAndHeightSquared,
             PropertyInput::InputUniqueColorCount,
             PropertyInput::InputUniqueColorCountMinus1,
             PropertyInput::InputNumberOfPixelsWithMostPopularColor,

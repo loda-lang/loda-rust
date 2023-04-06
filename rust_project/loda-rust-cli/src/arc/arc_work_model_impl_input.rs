@@ -74,6 +74,28 @@ impl arc_work_model::Input {
             }
         }
 
+        let mut biggest_value_that_divides_width_and_height: Option<u8> = None;
+        if width_input == height_input {
+            biggest_value_that_divides_width_and_height = Some(width_input);
+        } else {
+            let smallest: u8 = width_input.min(height_input);
+            let biggest: u8 = width_input.max(height_input);
+            if smallest >= 2 {
+                let rem: u8 = biggest % smallest;
+                if rem == 0 {
+                    biggest_value_that_divides_width_and_height = Some(smallest);
+                }
+            }
+        }
+
+        let mut biggest_value_that_divides_width_and_height_squared: Option<u8> = None;
+        if let Some(v) = biggest_value_that_divides_width_and_height {
+            let value: u16 = (v as u16) * (v as u16);
+            if value < (u8::MAX as u16) {
+                biggest_value_that_divides_width_and_height_squared = Some(value as u8);
+            }
+        }
+
         let input_unique_color_count_raw: u32 = self.histogram.number_of_counters_greater_than_zero();
         let mut input_unique_color_count: Option<u8> = None;
         if input_unique_color_count_raw <= (u8::MAX as u32) {
@@ -131,6 +153,12 @@ impl arc_work_model::Input {
         }
         if let Some(value) = height_input_minus2 {
             dict.insert(PropertyInput::InputHeightMinus2, value);
+        }
+        if let Some(value) = biggest_value_that_divides_width_and_height {
+            dict.insert(PropertyInput::InputBiggestValueThatDividesWidthAndHeight, value);
+        }
+        if let Some(value) = biggest_value_that_divides_width_and_height_squared {
+            dict.insert(PropertyInput::InputBiggestValueThatDividesWidthAndHeightSquared, value);
         }
         if let Some(value) = input_unique_color_count {
             dict.insert(PropertyInput::InputUniqueColorCount, value);
