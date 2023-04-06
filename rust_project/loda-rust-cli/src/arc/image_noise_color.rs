@@ -274,6 +274,33 @@ mod tests {
     }
 
     #[test]
+    fn test_20001_count_duplicate_pixels_in_3x3() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            5, 5, 5, 5, 5,
+            0, 0, 0, 0, 0,
+            3, 0, 0, 0, 7,
+            7, 0, 0, 0, 3,
+        ];
+        let input: Image = Image::try_create(5, 5, input_pixels).expect("image");
+
+        // Act
+        let actual: Image = input.count_duplicate_pixels_in_3x3().expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            2, 3, 3, 3, 2,
+            2, 3, 3, 3, 2,
+            3, 5, 6, 5, 3,
+            1, 7, 9, 7, 1,
+            1, 4, 6, 4, 1,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
     fn test_30000_count_duplicate_pixels_in_neighbours() {
         // Arrange
         let input_pixels: Vec<u8> = vec![
