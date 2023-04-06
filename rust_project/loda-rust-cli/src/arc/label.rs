@@ -107,6 +107,8 @@ pub enum ActionLabel {
     
     OutputImageUniqueColorCount { count: u8 },
     OutputImageColorsComesFromInputImage,
+
+    OutputImageHasSameStructureAsInputImage,
     
     // Ideas for more
     // OutputImageIsPalindrome,
