@@ -1,4 +1,4 @@
-use super::{arc_work_model, ImageCompare, Image, ImageHistogram};
+use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor};
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
 use super::{ImageFind, ImageSize, ImageSymmetry, Histogram};
@@ -95,9 +95,36 @@ impl arc_work_model::Pair {
         //     _ = self.input.assign_biggest_object_mask();
         // }
         
+        if width_input == width_output && height_input == height_output {
+            _ = self.analyze_3x3_structure();
+        }
+
         _ = self.analyze_object_why_is_the_output_present_once_in_input();
         _ = self.analyze_output_image_is_input_image_with_changes_to_pixels_with_color();
         _ = self.analyze_output_colors();
+    }
+
+    fn analyze_3x3_structure(&mut self) -> anyhow::Result<()> {
+        let same_neighbours: bool;
+        {
+            let input_colors: Image = self.input.image.count_duplicate_pixels_in_neighbours()?;
+            let output_colors: Image = self.output.image.count_duplicate_pixels_in_neighbours()?;
+            same_neighbours = input_colors == output_colors;
+        }
+
+        let same_all_of_3x3: bool;
+        if !same_neighbours {
+            let input_colors: Image = self.input.image.count_duplicate_pixels_in_3x3()?;
+            let output_colors: Image = self.output.image.count_duplicate_pixels_in_3x3()?;
+            same_all_of_3x3 = input_colors == output_colors;
+        } else {
+            same_all_of_3x3 = false;
+        }
+        
+        if same_neighbours || same_all_of_3x3 {
+            self.action_label_set.insert(ActionLabel::OutputImageHasSameStructureAsInputImage);
+        }
+        Ok(())
     }
 
     fn analyze_object_why_is_the_output_present_once_in_input(&mut self) -> anyhow::Result<()> {
