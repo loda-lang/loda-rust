@@ -264,7 +264,7 @@ impl arc_work_model::Task {
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
 
-        let input_properties: [PropertyInput; 26] = [
+        let input_properties: [PropertyInput; 25] = [
             PropertyInput::InputWidth, 
             PropertyInput::InputWidthPlus1, 
             PropertyInput::InputWidthPlus2, 
@@ -276,7 +276,6 @@ impl arc_work_model::Task {
             PropertyInput::InputHeightMinus1,
             PropertyInput::InputHeightMinus2,
             PropertyInput::InputBiggestValueThatDividesWidthAndHeight,
-            PropertyInput::InputBiggestValueThatDividesWidthAndHeightSquared,
             PropertyInput::InputUniqueColorCount,
             PropertyInput::InputUniqueColorCountMinus1,
             PropertyInput::InputNumberOfPixelsWithMostPopularColor,
@@ -367,10 +366,18 @@ impl arc_work_model::Task {
                     }
 
                     {
+                        let input_value_scaled: u32 = (input_value as u32) * (input_value as u32);
+                        if input_value_scaled == (output_value as u32) {
+                            let label = ActionLabel::OutputPropertyIsInputPropertySquared { output: *output_property, input: *input_property };
+                            pair.action_label_set.insert(label);
+                        }
+                    }
+
+                    {
                         let input_value_scaled: u32 = (input_value as u32) * (input_image_size as u32);
                         if input_value_scaled == (output_value as u32) {
-                            let label0 = ActionLabel::OutputPropertyIsInputPropertyMultipliedByInputSize { output: *output_property, input: *input_property };
-                            pair.action_label_set.insert(label0);
+                            let label = ActionLabel::OutputPropertyIsInputPropertyMultipliedByInputSize { output: *output_property, input: *input_property };
+                            pair.action_label_set.insert(label);
                         }
                     }
                 }
@@ -438,6 +445,13 @@ impl arc_work_model::Task {
                         continue;
                     }
                     let s = format!("{:?} = {:?} / {}", output, input, scale);
+                    rules.push((RulePriority::Advanced, s));
+                },
+                ActionLabel::OutputPropertyIsInputPropertySquared { output, input } => {
+                    if output != property_output {
+                        continue;
+                    }
+                    let s = format!("{:?} = {:?}^2", output, input);
                     rules.push((RulePriority::Advanced, s));
                 },
                 _ => {}
@@ -584,6 +598,24 @@ impl arc_work_model::Task {
                         continue;
                     }
                     rules.push((RulePriority::Advanced, computed_value));
+                },
+                ActionLabel::OutputPropertyIsInputPropertySquared { output, input } => {
+                    if output != property_output {
+                        continue;
+                    }
+                    let input_value_option: Option<&u8> = dict.get(input);
+                    let input_value: u8 = match input_value_option {
+                        Some(value) => *value,
+                        None => {
+                            continue;
+                        }
+                    };
+                    let computed_value: u32 = (input_value as u32) * (input_value as u32);
+                    if computed_value > (u8::MAX as u32) {
+                        continue;
+                    }
+                    let value: u8 = computed_value as u8;
+                    rules.push((RulePriority::Advanced, value));
                 },
                 _ => {}
             }
