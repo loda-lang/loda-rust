@@ -88,14 +88,6 @@ impl arc_work_model::Input {
             }
         }
 
-        let mut biggest_value_that_divides_width_and_height_squared: Option<u8> = None;
-        if let Some(v) = biggest_value_that_divides_width_and_height {
-            let value: u16 = (v as u16) * (v as u16);
-            if value < (u8::MAX as u16) {
-                biggest_value_that_divides_width_and_height_squared = Some(value as u8);
-            }
-        }
-
         let input_unique_color_count_raw: u32 = self.histogram.number_of_counters_greater_than_zero();
         let mut input_unique_color_count: Option<u8> = None;
         if input_unique_color_count_raw <= (u8::MAX as u32) {
@@ -156,9 +148,6 @@ impl arc_work_model::Input {
         }
         if let Some(value) = biggest_value_that_divides_width_and_height {
             dict.insert(PropertyInput::InputBiggestValueThatDividesWidthAndHeight, value);
-        }
-        if let Some(value) = biggest_value_that_divides_width_and_height_squared {
-            dict.insert(PropertyInput::InputBiggestValueThatDividesWidthAndHeightSquared, value);
         }
         if let Some(value) = input_unique_color_count {
             dict.insert(PropertyInput::InputUniqueColorCount, value);

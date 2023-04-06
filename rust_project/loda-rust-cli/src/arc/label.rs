@@ -23,7 +23,6 @@ pub enum PropertyInput {
     InputHeightMinus1,
     InputHeightMinus2,
     InputBiggestValueThatDividesWidthAndHeight,
-    InputBiggestValueThatDividesWidthAndHeightSquared,
     InputUniqueColorCount,
     InputUniqueColorCountMinus1,
     InputNumberOfPixelsWithMostPopularColor,
@@ -86,6 +85,7 @@ pub enum ActionLabel {
     OutputPropertyIsInputPropertyMultipliedByInputSize { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsInputPropertyDividedBy { output: PropertyOutput, input: PropertyInput, scale: u8 },
     OutputPropertyIsInputPropertyDividedBySomeScale { output: PropertyOutput, input: PropertyInput },
+    OutputPropertyIsInputPropertySquared { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsConstant { output: PropertyOutput, value: u8 },
 
     OutputImageIsSymmetricX,
