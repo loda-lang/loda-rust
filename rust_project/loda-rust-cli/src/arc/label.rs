@@ -22,6 +22,8 @@ pub enum PropertyInput {
     InputHeightPlus2,
     InputHeightMinus1,
     InputHeightMinus2,
+    InputBiggestValueThatDividesWidthAndHeight,
+    InputBiggestValueThatDividesWidthAndHeightSquared,
     InputUniqueColorCount,
     InputUniqueColorCountMinus1,
     InputNumberOfPixelsWithMostPopularColor,
