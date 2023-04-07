@@ -47,20 +47,24 @@ impl DetectSymmetry {
 
     #[allow(dead_code)]
     fn horizontal_to_string(&self) -> String {
-        if self.found_horizontal_symmetry {
-            return format!("horizontal symmetry, left: {} right: {}", self.left, self.right);
-        } else {
+        if !self.found_horizontal_symmetry {
             return "no horizontal symmetry".to_string();
         }
+        if self.horizontal_mismatches == 0 {
+            return format!("horizontal symmetry, left: {} right: {}", self.left, self.right);
+        }
+        format!("partial horizontal symmetry, left: {} right: {} mismatches: {}", self.left, self.right, self.horizontal_mismatches)
     }
 
     #[allow(dead_code)]
     fn vertical_to_string(&self) -> String {
-        if self.found_vertical_symmetry {
-            return format!("vertical symmetry, top: {} bottom: {}", self.top, self.bottom);
-        } else {
+        if !self.found_vertical_symmetry {
             return "no vertical symmetry".to_string();
         }
+        if self.vertical_mismatches == 0 {
+            return format!("vertical symmetry, top: {} bottom: {}", self.top, self.bottom);
+        }
+        format!("partial vertical symmetry, top: {} bottom: {} mismatches: {}", self.top, self.bottom, self.vertical_mismatches)
     }
 
     fn perform_analyze(&mut self, image: &Image) -> anyhow::Result<()> {
@@ -243,7 +247,7 @@ mod tests {
         instance.analyze_horizontal_symmetry(&input).expect("ok");
 
         // Assert
-        assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
+        assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 2");
     }
 
     #[test]
@@ -361,7 +365,7 @@ mod tests {
         instance.analyze_vertical_symmetry(&input).expect("ok");
 
         // Assert
-        assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
+        assert_eq!(instance.vertical_to_string(), "partial vertical symmetry, top: 0 bottom: 0 mismatches: 2");
     }
 
     #[test]
@@ -423,10 +427,8 @@ mod tests {
         let instance = DetectSymmetry::analyze(&input).expect("ok");
 
         // Assert
-        assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
-        assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
-        assert_eq!(instance.horizontal_mismatches, 2);
-        assert_eq!(instance.vertical_mismatches, 2);
+        assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 2");
+        assert_eq!(instance.vertical_to_string(), "partial vertical symmetry, top: 0 bottom: 0 mismatches: 2");
     }
 
     #[test]
@@ -466,10 +468,7 @@ mod tests {
         let instance = DetectSymmetry::analyze(&input).expect("ok");
 
         // Assert
-        assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
+        assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 2");
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
-        assert_eq!(instance.horizontal_mismatches, 2);
-        assert_eq!(instance.vertical_mismatches, 0);
     }
-
 }
