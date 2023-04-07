@@ -187,7 +187,7 @@ impl arc_work_model::Task {
             {
                 match image_mask.trim_color(1) {
                     Ok(image) => {
-                        let mass: u32 = image.mask_count_one();
+                        let mass: u16 = image.mask_count_one();
                         if mass == 0 {
                             pair.input.input_properties.insert(PropertyInput::InputWidthOfRemovedRectangleAfterSingleColorRemoval, image.width());
                             pair.input.input_properties.insert(PropertyInput::InputHeightOfRemovedRectangleAfterSingleColorRemoval, image.height());
@@ -207,18 +207,18 @@ impl arc_work_model::Task {
                 }
             };
 
-            let mut mass_max: u32 = 0;
+            let mut mass_max: u16 = 0;
             let mut found_index_mass_max: Option<usize> = None;
             for (index, image) in object_images.iter().enumerate() {
 
-                let mass: u32 = image.mask_count_one();
+                let mass: u16 = image.mask_count_one();
                 if mass > mass_max {
                     mass_max = mass;
                     found_index_mass_max = Some(index);
                 }
             }
 
-            if mass_max > 0 && mass_max <= (u8::MAX as u32) {
+            if mass_max > 0 && mass_max <= (u8::MAX as u16) {
                 let mass_value: u8 = mass_max as u8;
                 pair.input.input_properties.insert(PropertyInput::InputMassOfPrimaryObjectAfterSingleColorRemoval, mass_value);
             }
@@ -268,8 +268,8 @@ impl arc_work_model::Task {
                 }
             }
             {
-                let mass: u32 = image_mask.mask_count_one();
-                if mass > 0 && mass <= (u8::MAX as u32) {
+                let mass: u16 = image_mask.mask_count_one();
+                if mass > 0 && mass <= (u8::MAX as u16) {
                     let mass_value: u8 = mass as u8;
                     pair.input.input_properties.insert(PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor, mass_value);
                 }
@@ -291,18 +291,18 @@ impl arc_work_model::Task {
             //         HtmlLog::image(image);
             //     }
             // }
-            let mut mass_max: u32 = 0;
+            let mut mass_max: u16 = 0;
             let mut found_index_mass_max: Option<usize> = None;
             for (index, image) in object_images.iter().enumerate() {
 
-                let mass: u32 = image.mask_count_one();
+                let mass: u16 = image.mask_count_one();
                 if mass > mass_max {
                     mass_max = mass;
                     found_index_mass_max = Some(index);
                 }
             }
 
-            if mass_max > 0 && mass_max <= (u8::MAX as u32) {
+            if mass_max > 0 && mass_max <= (u8::MAX as u16) {
                 let mass_value: u8 = mass_max as u8;
                 pair.input.input_properties.insert(PropertyInput::InputMassOfPrimaryObjectAfterSingleIntersectionColor, mass_value);
             }

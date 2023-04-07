@@ -111,7 +111,7 @@ impl DetectSymmetry {
                 let area: u16 = (image_cropped.width() as u16) * (image_cropped.height() as u16);
                 let image: Image = image_cropped.flip_x()?;
                 let diff: Image = image.diff(&image_cropped)?;
-                let agree_count: u32 = diff.mask_count_one();
+                let agree_count: u32 = diff.mask_count_one() as u32;
                 if (agree_count * 2) > (area as u32) {
                     continue;
                 }

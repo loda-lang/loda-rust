@@ -3,7 +3,7 @@ use super::Image;
 pub trait ImageMaskCount {
     fn mask_count(&self) -> (u16, u16, u16);
     fn mask_count_zero(&self) -> u16;
-    fn mask_count_one(&self) -> u32;
+    fn mask_count_one(&self) -> u16;
     fn mask_count_other(&self) -> u32;
 }
 
@@ -36,9 +36,9 @@ impl ImageMaskCount for Image {
         count0
     }
 
-    fn mask_count_one(&self) -> u32 {
+    fn mask_count_one(&self) -> u16 {
         let (_count0, count1, _count_other) = self.mask_count();
-        count1 as u32
+        count1
     }
 
     fn mask_count_other(&self) -> u32 {

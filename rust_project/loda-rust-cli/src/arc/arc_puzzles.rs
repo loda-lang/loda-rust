@@ -1044,7 +1044,7 @@ mod tests {
     
             // Count the number of pixels in each object
             let f = |image: &Image| -> (Image, u32) {
-                let count: u32 = image.mask_count_one();
+                let count: u32 = image.mask_count_one() as u32;
                 (image.clone(), count)
             };
             let mut object_count_vec: Vec<(Image, u32)> = object_mask_vec.iter().map(f).collect();
@@ -3161,7 +3161,7 @@ mod tests {
                         let area: u16 = (image_cropped.width() as u16) * (image_cropped.height() as u16);
                         let image: Image = image_cropped.flip_x()?;
                         let diff: Image = image.diff(&image_cropped)?;
-                        let agree_count: u32 = diff.mask_count_one();
+                        let agree_count: u32 = diff.mask_count_one() as u32;
                         println!("pair: {} left: {} right: {} agree: {}", data.index, left, right, agree_count);
                         if (agree_count * 2) > (area as u32) {
                             continue;
