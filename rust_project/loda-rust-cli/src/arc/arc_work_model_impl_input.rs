@@ -214,9 +214,9 @@ impl arc_work_model::Input {
         Ok(object_vec)
     }
 
-    pub fn assign_repair_mask_with_color(&mut self, ignore_color: u8) -> anyhow::Result<()> {
-        let ignore_mask: Image = self.image.to_mask_where_color_is(ignore_color);
-        self.biggest_object_mask = Some(ignore_mask);
+    pub fn assign_attention_mask_with_color(&mut self, color: u8) -> anyhow::Result<()> {
+        let mask: Image = self.image.to_mask_where_color_is(color);
+        self.attention_mask = Some(mask);
         Ok(())
     }
 

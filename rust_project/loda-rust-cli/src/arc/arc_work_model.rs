@@ -46,6 +46,7 @@ pub struct Input {
     // Computed, NotYetComputed, CannotBeComputed, DependingOnAnotherProperty.
     // Rerun analytics until all pending properties have been computed
 
+    pub attention_mask: Option<Image>,
     pub biggest_object_mask: Option<Image>,
 }
 

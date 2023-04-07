@@ -73,7 +73,7 @@ impl arc_work_model::Task {
     //     }
     // }
 
-    fn assign_biggest_object_mask(&mut self) {
+    fn assign_attention_mask(&mut self) {
         if !self.is_output_size_same_as_removed_rectangle_after_single_color_removal() {
             return;
         }
@@ -88,11 +88,11 @@ impl arc_work_model::Task {
         };
 
         for pair in &mut self.pairs {
-            _ = pair.input.assign_repair_mask_with_color(color);
+            _ = pair.input.assign_attention_mask_with_color(color);
         }
     }
 
-    fn yassign_biggest_object_mask(&mut self) {
+    fn assign_biggest_object_mask(&mut self) {
         let mut histogram1: Histogram = self.input_histogram_union.clone();
         histogram1.subtract_histogram(&self.input_histogram_intersection);
         let mut histogram2: Histogram = self.input_histogram_union.clone();
@@ -459,6 +459,7 @@ impl arc_work_model::Task {
 
         self.update_action_label_set_intersection();
 
+        self.assign_attention_mask();
         self.assign_biggest_object_mask();
 
         Ok(())

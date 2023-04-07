@@ -1,4 +1,4 @@
-use super::{arc_json_model, ActionLabel};
+use super::{arc_json_model, ActionLabel, PropertyInput};
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
@@ -292,6 +292,19 @@ impl TraverseProgramsAndModels {
         }
         println!("tasks with size=bad and palette=bad.  {}", count_tasks_without_predictions);
 
+        // Self::inspect_task_id(&task_vec, "d2abd087")?;
+        // Self::inspect_task_id(&task_vec, "b190f7f5")?;
+        // Self::inspect_task_id(&task_vec, "ae4f1146")?;
+        // Self::inspect_task_id(&task_vec, "6e82a1ae")?;
+        // Self::inspect_task_id(&task_vec, "be94b721")?;
+        // Self::inspect_task_id(&task_vec, "6e82a1ae")?;
+        // Self::inspect_task_id(&task_vec, "776ffc46")?;
+        // Self::inspect_task_id(&task_vec, "ddf7fa4f")?;
+        // Self::inspect_task_id(&task_vec, "c3f564a4")?;
+        // Self::inspect_task_id(&task_vec, "36d67576")?;
+        // Self::inspect_task_id(&task_vec, "aedd82e4")?;
+        // Self::inspect_task_id(&task_vec, "4c5c2cf0")?;
+        // Self::inspect_task_id(&task_vec, "5c0a986e")?;
         Self::inspect_tasks_without_solution(&task_vec)?;
         // Self::inspect_undecided(&task_vec)?;
         // Self::inspect_decided(&task_vec)?;
@@ -310,9 +323,33 @@ impl TraverseProgramsAndModels {
         let mut indexes = HashSet::<usize>::new();
         for (index, task) in task_vec.iter().enumerate() {
             if task.occur_in_solutions_csv {
-                continue;
+                // continue;
             }
-            indexes.insert(index);
+            // if task.input_histogram_union.number_of_counters_greater_than_zero() > 3 {
+            //     continue;
+            // }
+            // if task.input_histogram_intersection.most_popular_color_disallow_ambiguous() == None {
+            //     continue;
+            // }
+            let mut found: bool = false;
+            // if let Some(count) = task.input_properties_intersection.get(&PropertyInput::InputUniqueColorCount) {
+            //     if *count == 2 {
+            //         found = true;
+            //     }
+            // }
+            // found = true;
+            // if task.is_output_size_same_as_input_size() {
+            //     found = true;
+            // }
+            if task.is_output_size_same_as_removed_rectangle_after_single_color_removal() {
+                found = true;
+            }
+            // if task.action_label_set_intersection.contains(&ActionLabel::OutputImageHasSameStructureAsInputImage) {
+            //     found = true;
+            // }
+            if found {
+                indexes.insert(index);
+            }
         }
         let mut count = 0;
         for (index, task) in task_vec.iter().enumerate() {
