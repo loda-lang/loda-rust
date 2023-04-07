@@ -261,8 +261,8 @@ impl arc_work_model::Task {
             //     HtmlLog::image(&image_mask);
             // }
             {
-                let mass: u32 = image_mask.mask_count_zero();
-                if mass > 0 && mass <= (u8::MAX as u32) {
+                let mass: u16 = image_mask.mask_count_zero();
+                if mass > 0 && mass <= (u8::MAX as u16) {
                     let mass_value: u8 = mass as u8;
                     pair.input.input_properties.insert(PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor, mass_value);
                 }
