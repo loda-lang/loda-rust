@@ -9,7 +9,7 @@ mod tests {
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, DetectSymmetry};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use std::collections::HashMap;
     use regex::Regex;
@@ -3124,6 +3124,9 @@ mod tests {
                     }
                 };
                 let attention_mass: u16 = (rect.width() as u16) * (rect.height() as u16);
+
+                let detect: DetectSymmetry = DetectSymmetry::analyze(&input)?;
+                HtmlLog::text(format!("pair {}, detect: {:?}", data.index, detect));
 
                 let r = Rectangle::new(0, 0, input.width(), input.height());
                 let mut found: bool = false;
