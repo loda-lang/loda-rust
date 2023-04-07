@@ -5,21 +5,18 @@ const MAX_INSET_VALUE: u8 = 5;
 
 #[allow(dead_code)]
 pub struct DetectSymmetry {
-    left: u8,
-    right: u8,
-    horizontal_mismatches: u16,
-    found_horizontal_symmetry: bool,
+    pub left: u8,
+    pub right: u8,
+    pub horizontal_mismatches: u16,
+    pub found_horizontal_symmetry: bool,
 
-    top: u8,
-    bottom: u8,
-    vertical_mismatches: u16,
-    found_vertical_symmetry: bool,
+    pub top: u8,
+    pub bottom: u8,
+    pub vertical_mismatches: u16,
+    pub found_vertical_symmetry: bool,
 
     // Idea for more
-    // number of pixels that isn't symmetric
     // repair the damaged pixels
-    // partial symmetry
-    // full symmetry
     // if square area, identify if there is a diagonal symmetry
 }
 
