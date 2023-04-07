@@ -623,7 +623,7 @@ mod tests {
 
             let repair_color: u8 = 0;
 
-            let result_image: Image = input.repair_pattern(repair_color).expect("image");
+            let result_image: Image = input.repair_pattern_with_color(repair_color).expect("image");
             Ok(result_image)
         };
         let result: String = solution.run("0dfd9992").expect("String");
@@ -2149,7 +2149,7 @@ mod tests {
     
             fn solve(&self, data: &SolutionSimpleData, _task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let input: &Image = &data.image;
-                let result_image: Image = input.repair_pattern(self.repair_color)?;
+                let result_image: Image = input.repair_pattern_with_color(self.repair_color)?;
                 Ok(result_image)
             }
         }
