@@ -919,4 +919,9 @@ impl arc_work_model::Task {
     pub fn is_output_size_same_as_input_size(&self) -> bool {
         ActionLabelUtil::is_output_size_same_as_input_size(&self.action_label_set_intersection)
     }
+
+    #[allow(dead_code)]
+    pub fn is_output_size_same_as_removed_rectangle_after_single_color_removal(&self) -> bool {
+        ActionLabelUtil::is_output_size_same_as_removed_rectangle_after_single_color_removal(&self.action_label_set_intersection)
+    }
 }
