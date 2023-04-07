@@ -3045,4 +3045,50 @@ mod tests {
         let result: String = solution.run("8731374e").expect("String");
         assert_eq!(result, "3 1");
     }
+
+    mod solve_f9012d9b {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl MySolution {
+            pub fn new() -> Self {
+                Self {}
+            }
+        }
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let input: &Image = &data.image;
+
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let attention_mask: Image = match &pair.input.attention_mask {
+                    Some(value) => value.clone(),
+                    None => {
+                        return Err(anyhow::anyhow!("Expected an attention mask"));
+                    }
+                };
+                let rect: Rectangle = match attention_mask.bounding_box() {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Unable to determine bounding box of attention mask"));
+                    }
+                };
+
+                let mut result_image: Image = input.repair_pattern_with_mask(&attention_mask)?;
+                result_image = result_image.crop(rect)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_690000_puzzle_f9012d9b() {
+        let mut instance = solve_f9012d9b::MySolution::new();
+        let result: String = run_analyze_and_solve("f9012d9b", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
 }

@@ -5,6 +5,8 @@ pub trait ImageRepairPattern {
     /// 
     /// Good for big mosaic patterns.
     fn repair_pattern(&self, repair_color: u8) -> anyhow::Result<Image>;
+
+    fn repair_pattern_with_mask(&self, repair_mask: &Image) -> anyhow::Result<Image>;
 }
 
 impl ImageRepairPattern for Image {
@@ -28,6 +30,37 @@ impl ImageRepairPattern for Image {
         if let Some(offset) = tile_height {
             if offset < result_image.width() {
                 result_image.repair_offset_x(&repair_mask_y, offset)?;
+            }
+        }
+
+        result_image = result_image.rotate_ccw()?;
+        Ok(result_image)
+    }
+
+    fn repair_pattern_with_mask(&self, repair_mask: &Image) -> anyhow::Result<Image> {
+        if self.size() != repair_mask.size() {
+            return Err(anyhow::anyhow!("both images must have same size"));
+        }
+        let mut result_image: Image = self.clone();
+
+        let mut repair_mask: Image = repair_mask.clone();
+
+        // Horizontal repair
+        let tile_width: Option<u8> = result_image.horizontal_periodicity(&repair_mask)?;
+        if let Some(offset) = tile_width {
+            if offset < result_image.width() {
+                result_image.repair_offset_x(&repair_mask, offset)?;
+            }
+        }
+
+        result_image = result_image.rotate_cw()?;
+        repair_mask = repair_mask.rotate_cw()?;
+
+        // Vertical repair
+        let tile_height: Option<u8> = result_image.horizontal_periodicity(&repair_mask)?;
+        if let Some(offset) = tile_height {
+            if offset < result_image.width() {
+                result_image.repair_offset_x(&repair_mask, offset)?;
             }
         }
 
