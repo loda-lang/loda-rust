@@ -49,6 +49,12 @@ pub enum PropertyInput {
 pub enum InputLabel {
     InputImageIsSymmetricX,
     InputImageIsSymmetricY,
+    InputImageIsSymmetricXWithMismatches,
+    InputImageIsSymmetricYWithMismatches,
+    InputImageIsSymmetricXWithInset,
+    InputImageIsSymmetricYWithInset,
+    InputImageIsSymmetricXWithInsetAndMismatches,
+    InputImageIsSymmetricYWithInsetAndMismatches,
 
     // Ideas for more
     // InputUniqueColors { color: Vec<u8> },

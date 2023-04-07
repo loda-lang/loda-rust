@@ -1,7 +1,7 @@
 use super::{arc_work_model, ImageNoiseColor};
 use super::arc_work_model::Object;
 use super::{PropertyInput, InputLabel};
-use super::{Image, ImageSymmetry, Rectangle};
+use super::{DetectSymmetry, Image, ImageSymmetry, Rectangle};
 use super::{ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, ImageCrop, ImageObjectEnumerate};
 use std::collections::{HashMap, HashSet};
 
@@ -167,22 +167,70 @@ impl arc_work_model::Input {
     pub fn update_input_label_set(&mut self) {
         let width: u8 = self.image.width();
         let height: u8 = self.image.height();
+        if width == 0 || height == 0 {
+            return;
+        }
+        if width == 1 && height == 1 {
+            return;
+        }
 
-        if width >= 2 || height >= 2 {
-            if let Ok(is_symmetric) = self.image.is_symmetric_x() {
-                if is_symmetric {
+        let detect: DetectSymmetry = match DetectSymmetry::analyze(&self.image) {
+            Ok(value) => value,
+            Err(_) => {
+                println!("DetectSymmetry Unable to check symmetry. {}", self.id);
+                return;
+            }
+        };
+
+        if detect.found_horizontal_symmetry {
+            if detect.horizontal_mismatches == 0 {
+                if detect.left == 0 && detect.right == 0 {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricX);
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInset);
+                } else {
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInset);
+                }
+            } else {
+                if detect.left == 0 && detect.right == 0 {
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithMismatches);
+                } else {
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInsetAndMismatches);
                 }
             }
         }
 
-        if width >= 2 || height >= 2 {
-            if let Ok(is_symmetric) = self.image.is_symmetric_y() {
-                if is_symmetric {
+        if detect.found_vertical_symmetry {
+            if detect.vertical_mismatches == 0 {
+                if detect.top == 0 && detect.bottom == 0 {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricY);
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInset);
+                } else {
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInset);
+                }
+            } else {
+                if detect.top == 0 && detect.bottom == 0 {
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithMismatches);
+                } else {
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInsetAndMismatches);
                 }
             }
         }
+
+        // if width >= 2 || height >= 2 {
+        //     if let Ok(is_symmetric) = self.image.is_symmetric_x() {
+        //         if is_symmetric {
+        //             self.input_label_set.insert(InputLabel::InputImageIsSymmetricX);
+        //         }
+        //     }
+        // }
+
+        // if width >= 2 || height >= 2 {
+        //     if let Ok(is_symmetric) = self.image.is_symmetric_y() {
+        //         if is_symmetric {
+        //             self.input_label_set.insert(InputLabel::InputImageIsSymmetricY);
+        //         }
+        //     }
+        // }
     }
 
     pub fn find_objects_using_histogram_most_popular_color(&self) -> anyhow::Result<Vec<Object>> {

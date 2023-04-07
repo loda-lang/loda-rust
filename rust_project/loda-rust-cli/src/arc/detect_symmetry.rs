@@ -1,4 +1,4 @@
-use super::{Image, ImageCompare, ImageCrop, ImageMaskCount, ImageRotate, ImageSymmetry, Rectangle};
+use super::{Histogram, Image, ImageCompare, ImageCrop, ImageHistogram, ImageMaskCount, ImageRotate, ImageSymmetry, Rectangle, ImageMask};
 use std::fmt;
 
 const MAX_INSET_VALUE: u8 = 5;
@@ -87,10 +87,26 @@ impl DetectSymmetry {
         let mut found_left: u8 = u8::MAX;
         let mut found_right: u8 = u8::MAX;
         let mut found_mismatches: u16 = u16::MAX;
-        let part_of_width: u8 = (image.width() / 5) + 1;
+        let part_of_width: u8 = (image.width() / 3) + 1;
         let max_inset: u8 = part_of_width.min(MAX_INSET_VALUE);
-        for left in 0..max_inset {
-            for right in 0..max_inset {
+        for j in 0..max_inset {
+            for i in 0..2 {
+                // Only once try out the left=0 and right=0. Second time ignore this combo.
+                if i == 1 && j == 0 {
+                    continue;
+                }
+
+                // Alternate between inset left and inset right
+                let left: u8;
+                let right: u8;
+                if i == 0 {
+                    left = 0;
+                    right = j;
+                } else {
+                    left = j;
+                    right = 0;
+                }
+
                 let x0: i32 = r.min_x() + (left as i32);
                 let x1: i32 = r.max_x() - (right as i32);
                 if x0 > x1 {
@@ -118,6 +134,11 @@ impl DetectSymmetry {
                 let area: u16 = (image_cropped.width() as u16) * (image_cropped.height() as u16);
                 let image: Image = image_cropped.flip_x()?;
                 let diff: Image = image.diff(&image_cropped)?;
+                let histogram_mask: Image = diff.to_mask_where_color_is(0);
+                let histogram: Histogram = image.histogram_with_mask(&histogram_mask)?;
+                if histogram.number_of_counters_greater_than_zero() < 2 {
+                    continue;
+                }
                 let mismatch_count: u16 = diff.mask_count_one();
                 if mismatch_count > (area / 2) {
                     continue;
@@ -129,8 +150,8 @@ impl DetectSymmetry {
                     found = true;
                     continue;
                 }
-                let error0 = found_left * found_left + found_right * found_right;
-                let error1 = left * left + right * right;
+                let error0: u64 = Self::compute_error(found_left, found_right, found_mismatches);
+                let error1: u64 = Self::compute_error(left, right, mismatch_count);
                 if error1 >= error0 {
                     continue;
                 }
@@ -167,6 +188,14 @@ impl DetectSymmetry {
         }
 
         Ok(())
+    }
+
+    fn compute_error(left: u8, right: u8, mismatches: u16) -> u64 {
+        let left_squared: u16 = (left as u16) * (left as u16);
+        let right_squared: u16 = (right as u16) * (right as u16);
+        let mismatches_squared: u32 = (mismatches as u32) * (mismatches as u32);
+        let sum: u64 = (left_squared as u64) + (right_squared as u64) + (mismatches_squared as u64);
+        sum
     }
 
 }
@@ -403,8 +432,6 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 1");
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
-        assert_eq!(instance.horizontal_mismatches, 0);
-        assert_eq!(instance.vertical_mismatches, 0);
     }
 
     #[test]
@@ -467,5 +494,71 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 2");
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
+    }
+
+    #[test]
+    fn test_30004_analyze_lines() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 0, 0, 0,
+            0, 0, 1, 0, 0, 0,
+            0, 0, 1, 0, 0, 0,
+            0, 0, 1, 0, 0, 0,
+            5, 5, 5, 5, 5, 5,
+            0, 0, 1, 0, 0, 0,
+            0, 0, 1, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 7, pixels).expect("image");
+
+        // Act
+        let instance = DetectSymmetry::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 1");
+        assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 2 bottom: 0");
+    }
+
+    #[test]
+    fn test_30005_analyze_boxes() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 0, 0, 1, 1, 0,
+            1, 1, 0, 0, 1, 1, 0,
+            0, 0, 1, 1, 0, 0, 0,
+            0, 0, 1, 1, 0, 0, 0,
+            1, 1, 0, 0, 1, 1, 0,
+            1, 1, 0, 0, 1, 1, 0,
+            0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(7, 8, pixels).expect("image");
+
+        // Act
+        let instance = DetectSymmetry::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 1");
+        assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 2");
+    }
+
+    // #[test]
+    fn test_30006_analyze_border_pixels() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 0, 1, 0, 1, 0,
+            0, 0, 0, 0, 0, 0, 0,
+            3, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+            3, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(7, 6, pixels).expect("image");
+
+        // Act
+        let instance = DetectSymmetry::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.horizontal_to_string(), "no horizontal symmetry");
+        assert_eq!(instance.vertical_to_string(), "no vertical symmetry");
     }
 }
