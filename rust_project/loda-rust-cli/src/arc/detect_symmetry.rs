@@ -1,5 +1,8 @@
-use super::{Image, ImageCompare, ImageCrop, ImageMaskCount, ImageSymmetry, Rectangle};
+use super::{Image, ImageCompare, ImageCrop, ImageMaskCount, ImageRotate, ImageSymmetry, Rectangle};
 
+const MAX_INSET_VALUE: u8 = 5;
+
+#[allow(dead_code)]
 pub struct DetectSymmetry {
     left: u8,
     right: u8,
@@ -7,9 +10,15 @@ pub struct DetectSymmetry {
     top: u8,
     bottom: u8,
     found_vertical_symmetry: bool,
+
+    // Idea for more
+    // partial symmetry
+    // full symmetry
+    // if square area, identify if there is a diagonal symmetry
 }
 
 impl DetectSymmetry {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             left: u8::MAX,
@@ -21,6 +30,7 @@ impl DetectSymmetry {
         }
     }
 
+    #[allow(dead_code)]
     fn horizontal_to_string(&self) -> String {
         if self.found_horizontal_symmetry {
             return format!("horizontal symmetry, left: {} right: {}", self.left, self.right);
@@ -29,6 +39,7 @@ impl DetectSymmetry {
         }
     }
 
+    #[allow(dead_code)]
     fn vertical_to_string(&self) -> String {
         if self.found_vertical_symmetry {
             return format!("vertical symmetry, top: {} bottom: {}", self.top, self.bottom);
@@ -37,13 +48,24 @@ impl DetectSymmetry {
         }
     }
 
+    #[allow(dead_code)]
     fn analyze_horizontal_symmetry(&mut self, image: &Image) -> anyhow::Result<()> {
+        self.analyze_horizontal_symmetry_inner(image, false)
+    }
+
+    #[allow(dead_code)]
+    fn analyze_vertical_symmetry(&mut self, image: &Image) -> anyhow::Result<()> {
+        let image_rotated: Image = image.rotate_ccw()?;
+        self.analyze_horizontal_symmetry_inner(&image_rotated, true)
+    }
+
+    fn analyze_horizontal_symmetry_inner(&mut self, image: &Image, should_update_vertical_data: bool) -> anyhow::Result<()> {
         let r = Rectangle::new(0, 0, image.width(), image.height());
         let mut found: bool = false;
         let mut found_left: u8 = u8::MAX;
         let mut found_right: u8 = u8::MAX;
-        for left in 0..5u8 {
-            for right in 0..5u8 {
+        for left in 0..MAX_INSET_VALUE {
+            for right in 0..MAX_INSET_VALUE {
                 let x0: i32 = r.min_x() + (left as i32);
                 let x1: i32 = r.max_x() - (right as i32);
                 if x0 > x1 {
@@ -72,16 +94,9 @@ impl DetectSymmetry {
                 let image: Image = image_cropped.flip_x()?;
                 let diff: Image = image.diff(&image_cropped)?;
                 let agree_count: u32 = diff.mask_count_one();
-                // println!("pair: {} left: {} right: {} agree: {}", data.index, left, right, agree_count);
                 if (agree_count * 2) > (area as u32) {
                     continue;
                 }
-                // if agree_count > (attention_mass as u32) * 2 {
-                //     continue;
-                // }
-                // HtmlLog::text(format!("left: {} right: {} agree: {}", left, right, agree_count));
-                // HtmlLog::image(&diff);
-                // println!("left: {} right: {} agree: {}", left, right, agree_count);
                 if !found {
                     found_left = left;
                     found_right = right;
@@ -91,7 +106,6 @@ impl DetectSymmetry {
                 let error0 = found_left * found_left + found_right * found_right;
                 let error1 = left * left + right * right;
                 if error1 >= error0 {
-                    // println!("skip bigger errors");
                     continue;
                 }
                 found_left = left;
@@ -99,21 +113,26 @@ impl DetectSymmetry {
             }
         }
 
-        // if !found {
-        //     // return Err(anyhow::anyhow!("Unable to find symmetry"));
-        //     HtmlLog::text(format!("pair: {} no symmetry", data.index));
-        // } else {
-        //     HtmlLog::text(format!("pair: {} left: {} right: {}  symmetry", data.index, found_left, found_right));
-        // }
-
-        if found {
-            self.found_horizontal_symmetry = true;
-            self.left = found_left;
-            self.right = found_right;
+        if should_update_vertical_data {
+            if found {
+                self.found_vertical_symmetry = true;
+                self.top = found_left;
+                self.bottom = found_right;
+            } else {
+                self.found_vertical_symmetry = false;
+                self.top = u8::MAX;
+                self.bottom = u8::MIN;
+            }
         } else {
-            self.found_horizontal_symmetry = false;
-            self.left = u8::MAX;
-            self.right = u8::MIN;
+            if found {
+                self.found_horizontal_symmetry = true;
+                self.left = found_left;
+                self.right = found_right;
+            } else {
+                self.found_horizontal_symmetry = false;
+                self.left = u8::MAX;
+                self.right = u8::MIN;
+            }
         }
 
         Ok(())
@@ -189,4 +208,91 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
     }
+
+    #[test]
+    fn test_20000_vertical_symmetry_perfect() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0,
+            1,
+            2,
+            3,
+            2,
+            1,
+            0,
+        ];
+        let input: Image = Image::try_create(1, 7, pixels).expect("image");
+
+        // Act
+        let mut instance = DetectSymmetry::new();
+        instance.analyze_vertical_symmetry(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
+    }
+
+    #[test]
+    fn test_20001_vertical_symmetry_top1() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0,
+            1,
+            2,
+            3,
+            2,
+            1,
+        ];
+        let input: Image = Image::try_create(1, 6, pixels).expect("image");
+
+        // Act
+        let mut instance = DetectSymmetry::new();
+        instance.analyze_vertical_symmetry(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 1 bottom: 0");
+    }
+
+    #[test]
+    fn test_20002_vertical_symmetry_bottom1() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1,
+            2,
+            3,
+            2,
+            1,
+            0,
+        ];
+        let input: Image = Image::try_create(1, 6, pixels).expect("image");
+
+        // Act
+        let mut instance = DetectSymmetry::new();
+        instance.analyze_vertical_symmetry(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 1");
+    }
+
+    #[test]
+    fn test_20003_vertical_symmetry_top1junk_bottom1junk() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            9,
+            1,
+            2,
+            3,
+            2,
+            1,
+            8,
+        ];
+        let input: Image = Image::try_create(1, 7, pixels).expect("image");
+
+        // Act
+        let mut instance = DetectSymmetry::new();
+        instance.analyze_vertical_symmetry(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
+    }
+
 }
