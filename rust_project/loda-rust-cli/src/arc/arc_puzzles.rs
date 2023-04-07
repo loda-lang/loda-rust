@@ -2147,7 +2147,7 @@ mod tests {
                 Ok(())   
             }
     
-            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+            fn solve(&self, data: &SolutionSimpleData, _task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let input: &Image = &data.image;
                 let result_image: Image = input.repair_pattern(self.repair_color)?;
                 Ok(result_image)
@@ -2320,7 +2320,7 @@ mod tests {
                 Ok(())   
             }
     
-            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+            fn solve(&self, data: &SolutionSimpleData, _task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let input: &Image = &data.image;
                 let mut result_image: Image = input.clone();
                 // Do substitutions from the dictionary
@@ -2376,7 +2376,7 @@ mod tests {
                 Ok(())   
             }
     
-            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+            fn solve(&self, data: &SolutionSimpleData, _task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let input: &Image = &data.image;
 
                 let pattern1a: &str = 
@@ -2639,7 +2639,7 @@ mod tests {
                 Ok(())   
             }
     
-            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+            fn solve(&self, data: &SolutionSimpleData, _task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let input: &Image = &data.image;
                 let mut result_image: Image = input.padding_with_color(2, 0)?;
                 let _count: usize = result_image.replace_5x5_regex(&self.replacements, 14, 14)?;
