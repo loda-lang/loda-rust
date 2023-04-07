@@ -9,6 +9,10 @@ const FIND_PERIODICITY_VERBOSE: bool = false;
 pub trait ImagePeriodicity {
     fn horizontal_periodicity(&self, ignore_mask: &Image) -> anyhow::Result<Option<u8>>;
     fn vertical_periodicity(&self, ignore_mask: &Image) -> anyhow::Result<Option<u8>>;
+
+    // Idea for future
+    // periodicity_diagonal_a()
+    // periodicity_diagonal_b()
 }
 
 impl ImagePeriodicity for Image {
