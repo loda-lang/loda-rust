@@ -40,6 +40,32 @@ impl ActionLabelUtil {
         }
         same_width && same_height
     }
+
+    pub fn is_output_size_same_as_primary_object_after_single_color_removal(action_label_set: &ActionLabelSet) -> bool {
+        if Self::is_output_size_same_as_input_size(action_label_set) {
+            return false;
+        }
+        // I have many false-positives, that have a grid inside them.
+        // if task.has_grid() {
+        //     return false;
+        // }
+        let mut same_width = false;
+        let mut same_height = false;
+        for label in action_label_set {
+            match label {
+                ActionLabel::OutputPropertyIsEqualToInputProperty { output, input } => {
+                    if *output == PropertyOutput::OutputWidth && *input == PropertyInput::InputWidthOfPrimaryObjectAfterSingleColorRemoval {
+                        same_width = true;
+                    }
+                    if *output == PropertyOutput::OutputHeight && *input == PropertyInput::InputHeightOfPrimaryObjectAfterSingleColorRemoval {
+                        same_height = true;
+                    }
+                },
+                _ => {}
+            }
+        }
+        same_width && same_height
+    }
 }
 
 #[cfg(test)]
