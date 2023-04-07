@@ -1,4 +1,5 @@
 //! ARC challenge experiments
+mod action_label_util;
 mod arc_json_model;
 mod arc_json_model_to_html;
 mod arc_puzzles;
@@ -81,6 +82,7 @@ mod stack_strings;
 mod test_convert;
 mod traverse_programs_and_models;
 
+pub use action_label_util::ActionLabelUtil;
 pub use arc_json_model_to_html::ModelToHTML;
 pub use arcathon_solution_json::{Prediction, TestItem, TaskItem, Tasks};
 pub use convolution2x2::convolution2x2;

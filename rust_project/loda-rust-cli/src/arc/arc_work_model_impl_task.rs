@@ -1,7 +1,7 @@
 use super::{arc_work_model, HtmlFromTask};
 use super::arc_work_model::{Input, PairType};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram};
-use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput};
+use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
@@ -913,5 +913,10 @@ impl arc_work_model::Task {
             }
         }
         count
+    }
+
+    #[allow(dead_code)]
+    pub fn is_output_size_same_as_input_size(&self) -> bool {
+        ActionLabelUtil::is_output_size_same_as_input_size(&self.action_label_set_intersection)
     }
 }
