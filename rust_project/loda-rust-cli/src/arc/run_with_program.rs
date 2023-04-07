@@ -121,7 +121,7 @@ pub type SolutionSimple = fn(SolutionSimpleData) -> anyhow::Result<Image>;
 
 pub trait AnalyzeAndSolve {
     fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()>;
-    fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image>;
+    fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image>;
 }
 
 pub struct RunWithProgram {
@@ -214,7 +214,7 @@ impl RunWithProgram {
                 index,
                 image: pair.input.image.clone(),
             };
-            let computed_image: Image = analyze_and_solve.solve(&data)?;
+            let computed_image: Image = analyze_and_solve.solve(&data, &self.task)?;
             computed_images.push(computed_image);
         }
         self.process_computed_images(computed_images)
