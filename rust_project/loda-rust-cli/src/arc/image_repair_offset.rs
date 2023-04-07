@@ -6,6 +6,10 @@ pub trait ImageRepairOffset {
 
     /// Fix damaged pixels in the vertical plane, by copying good pixels from the same column with `offset * n`.
     fn repair_offset_y(&mut self, repair_mask: &Image, offset: u8) -> anyhow::Result<()>;
+
+    // Idea for future
+    // repair_offset_diagonal_a()
+    // repair_offset_diagonal_b()
 }
 
 impl ImageRepairOffset for Image {
