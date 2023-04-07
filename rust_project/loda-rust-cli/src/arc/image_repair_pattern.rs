@@ -4,52 +4,37 @@ pub trait ImageRepairPattern {
     /// Repair damaged pixels and recreate big repeating patterns such as mosaics.
     /// 
     /// Good for big mosaic patterns.
-    fn repair_pattern(&self, repair_color: u8) -> anyhow::Result<Image>;
+    /// 
+    /// Attempts to repair all the pixels that has the specified `repair_color`.
+    fn repair_pattern_with_color(&self, repair_color: u8) -> anyhow::Result<Image>;
 
+    /// Repair damaged pixels and recreate big repeating patterns such as mosaics.
+    /// 
+    /// Good for big mosaic patterns.
+    /// 
+    /// Attempts to repair all the pixels in the specified `repair_mask`.
     fn repair_pattern_with_mask(&self, repair_mask: &Image) -> anyhow::Result<Image>;
 }
 
 impl ImageRepairPattern for Image {
-    fn repair_pattern(&self, repair_color: u8) -> anyhow::Result<Image> {
-        let mut result_image: Image = self.clone();
-
-        // Horizontal repair
-        let repair_mask_x: Image = result_image.to_mask_where_color_is(repair_color);
-        let tile_width: Option<u8> = result_image.horizontal_periodicity(&repair_mask_x)?;
-        if let Some(offset) = tile_width {
-            if offset < result_image.width() {
-                result_image.repair_offset_x(&repair_mask_x, offset)?;
-            }
-        }
-
-        result_image = result_image.rotate_cw()?;
-
-        // Vertical repair
-        let repair_mask_y: Image = result_image.to_mask_where_color_is(repair_color);
-        let tile_height: Option<u8> = result_image.horizontal_periodicity(&repair_mask_y)?;
-        if let Some(offset) = tile_height {
-            if offset < result_image.width() {
-                result_image.repair_offset_x(&repair_mask_y, offset)?;
-            }
-        }
-
-        result_image = result_image.rotate_ccw()?;
+    fn repair_pattern_with_color(&self, repair_color: u8) -> anyhow::Result<Image> {
+        let mut repair_mask: Image = self.to_mask_where_color_is(repair_color);
+        let result_image: Image = self.repair_pattern_with_mask(&mut repair_mask)?;
         Ok(result_image)
     }
 
     fn repair_pattern_with_mask(&self, repair_mask: &Image) -> anyhow::Result<Image> {
         if self.size() != repair_mask.size() {
-            return Err(anyhow::anyhow!("both images must have same size"));
+            return Err(anyhow::anyhow!("images must have same size"));
         }
         let mut result_image: Image = self.clone();
-
         let mut repair_mask: Image = repair_mask.clone();
 
         // Horizontal repair
         let tile_width: Option<u8> = result_image.horizontal_periodicity(&repair_mask)?;
         if let Some(offset) = tile_width {
             if offset < result_image.width() {
-                result_image.repair_offset_x(&repair_mask, offset)?;
+                result_image.repair_offset_x(&mut repair_mask, offset)?;
             }
         }
 
@@ -60,7 +45,7 @@ impl ImageRepairPattern for Image {
         let tile_height: Option<u8> = result_image.horizontal_periodicity(&repair_mask)?;
         if let Some(offset) = tile_height {
             if offset < result_image.width() {
-                result_image.repair_offset_x(&repair_mask, offset)?;
+                result_image.repair_offset_x(&mut repair_mask, offset)?;
             }
         }
 
@@ -87,7 +72,7 @@ mod tests {
         let input: Image = Image::try_create(7, 5, pixels).expect("image");
 
         // Act
-        let actual: Image = input.repair_pattern(9).expect("image");
+        let actual: Image = input.repair_pattern_with_color(9).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -115,7 +100,7 @@ mod tests {
         let input: Image = Image::try_create(7, 6, pixels).expect("image");
 
         // Act
-        let actual: Image = input.repair_pattern(9).expect("image");
+        let actual: Image = input.repair_pattern_with_color(9).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![

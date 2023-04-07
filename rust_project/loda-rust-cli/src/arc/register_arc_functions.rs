@@ -2514,7 +2514,7 @@ impl UnofficialFunction for ImageRepairPatternFunction {
         // input1 is the color to repair
         let repair_color: u8 = input[1].to_u8().context("Input[1] u8 pixel_color")?;
 
-        let output_image: Image = image.repair_pattern(repair_color)?;
+        let output_image: Image = image.repair_pattern_with_color(repair_color)?;
 
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
