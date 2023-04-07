@@ -74,6 +74,25 @@ impl arc_work_model::Task {
     // }
 
     fn assign_biggest_object_mask(&mut self) {
+        if !self.is_output_size_same_as_removed_rectangle_after_single_color_removal() {
+            return;
+        }
+        if self.removal_histogram_intersection.number_of_counters_greater_than_zero() != 1 {
+            return;
+        }
+        let color: u8 = match self.removal_histogram_intersection.most_popular_color_disallow_ambiguous() {
+            Some(value) => value,
+            None => {
+                return;
+            }
+        };
+
+        for pair in &mut self.pairs {
+            _ = pair.input.assign_repair_mask_with_color(color);
+        }
+    }
+
+    fn yassign_biggest_object_mask(&mut self) {
         let mut histogram1: Histogram = self.input_histogram_union.clone();
         histogram1.subtract_histogram(&self.input_histogram_intersection);
         let mut histogram2: Histogram = self.input_histogram_union.clone();

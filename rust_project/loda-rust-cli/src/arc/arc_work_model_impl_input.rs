@@ -214,6 +214,12 @@ impl arc_work_model::Input {
         Ok(object_vec)
     }
 
+    pub fn assign_repair_mask_with_color(&mut self, ignore_color: u8) -> anyhow::Result<()> {
+        let ignore_mask: Image = self.image.to_mask_where_color_is(ignore_color);
+        self.biggest_object_mask = Some(ignore_mask);
+        Ok(())
+    }
+
     pub fn assign_biggest_object_mask_with_ignore_color(&mut self, ignore_color: u8) -> anyhow::Result<()> {
         let ignore_mask: Image = self.image.to_mask_where_color_is(ignore_color);
         // let mut objects: Vec<ImageSegmentItem> = self.image.find_objects_with_ignore_mask_inner(ImageSegmentAlgorithm::Neighbors, &ignore_mask)?;
