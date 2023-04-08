@@ -66,6 +66,46 @@ impl Rectangle {
     pub fn max_y(&self) -> i32 {
         (self.y as i32) + (self.height as i32) - 1
     }
+    
+    fn range(min_x: i32, min_y: i32, max_x: i32, max_y: i32) -> Option<Rectangle> {
+        if min_x > max_x || min_y > max_y {
+            return None;
+        }
+
+        // Left position
+        if min_x < 0 || min_x > (u8::MAX as i32) {
+            return None;
+        }
+        let x: u8 = min_x as u8;
+
+        // Top position
+        if min_y < 0 || min_y > (u8::MAX as i32) {
+            return None;
+        }
+        let y: u8 = min_y as u8;
+
+        // Width
+        let new_width_i32: i32 = max_x - min_x + 1;
+        if new_width_i32 < 1 || new_width_i32 > (u8::MAX as i32) {
+            return None;
+        }
+        let width: u8 = new_width_i32 as u8;
+
+        // Height
+        let new_height_i32: i32 = max_y - min_y + 1;
+        if new_height_i32 < 1 || new_height_i32 > (u8::MAX as i32) {
+            return None;
+        }
+        let height: u8 = new_height_i32 as u8;
+
+        Some(Rectangle::new(x, y, width, height))
+    }
+
+    /// Create rectangle between two coordinates
+    #[allow(dead_code)]
+    pub fn span(x0: i32, y0: i32, x1: i32, y1: i32) -> Option<Rectangle> {
+        Self::range(x0.min(x1), y0.min(y1), x0.max(x1), y0.max(y1))
+    }
 }
 
 #[cfg(test)]
@@ -152,5 +192,43 @@ mod tests {
             assert_eq!(rect.max_x(), 1);
             assert_eq!(rect.max_y(), 11);
         }
+    }
+
+    #[test]
+    fn test_40000_range_inside_bounds() {
+        {
+            let rect = Rectangle::range(0, 0, 0, 0);
+            assert_eq!(rect, Some(Rectangle::new(0, 0, 1, 1)));
+        }
+        {
+            let rect = Rectangle::range(0, 0, 1, 1);
+            assert_eq!(rect, Some(Rectangle::new(0, 0, 2, 2)));
+        }
+        {
+            let rect = Rectangle::range(10, 10, 99, 19);
+            assert_eq!(rect, Some(Rectangle::new(10, 10, 90, 10)));
+        }
+    }
+
+    #[test]
+    fn test_40001_range_outside_bounds() {
+        {
+            let rect = Rectangle::range(-1, 0, 0, 0);
+            assert_eq!(rect, None);
+        }
+        {
+            let rect = Rectangle::range(10, 10, 9, 20);
+            assert_eq!(rect, None);
+        }
+        {
+            let rect = Rectangle::range(250, 0, 10, 1);
+            assert_eq!(rect, None);
+        }
+    }
+
+    #[test]
+    fn test_50000_span() {
+        let rect = Rectangle::span(0, 0, 0, 0);
+        assert_eq!(rect, Some(Rectangle::new(0, 0, 1, 1)));
     }
 }
