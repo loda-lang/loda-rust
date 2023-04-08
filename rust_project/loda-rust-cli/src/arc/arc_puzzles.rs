@@ -3123,78 +3123,18 @@ mod tests {
                         return Err(anyhow::anyhow!("Unable to determine bounding box of attention mask"));
                     }
                 };
-                let attention_mass: u16 = (rect.width() as u16) * (rect.height() as u16);
 
                 let detect: DetectSymmetry = DetectSymmetry::analyze(&input)?;
                 HtmlLog::text(format!("pair {}, detect: {:?}", data.index, detect));
 
-                let r = Rectangle::new(0, 0, input.width(), input.height());
-                let mut found: bool = false;
-                let mut found_left: u8 = u8::MAX;
-                let mut found_right: u8 = u8::MAX;
-                for left in 0..5u8 {
-                    for right in 0..5u8 {
-                        let x0: i32 = r.min_x() + (left as i32);
-                        let x1: i32 = r.max_x() - (right as i32);
-                        if x0 > x1 {
-                            continue;
-                        }
-                        if x0 < 0 || x0 > (u8::MAX as i32) {
-                            continue;
-                        }
-                        if x1 < 0 || x1 > (u8::MAX as i32) {
-                            continue;
-                        }
-                        let width: i32 = x1 - x0 + 1;
-                        if width <= 0 {
-                            continue;
-                        }
-                        let x0_u8: u8 = x0 as u8;
-                        let width_u8: u8 = width as u8;
-                        let rect = Rectangle::new(x0_u8, 0, width_u8, input.height());
-                        let image_cropped: Image = match input.crop(rect) {
-                            Ok(value) => value,
-                            Err(_) => {
-                                continue;
-                            }
-                        };
-                        let area: u16 = (image_cropped.width() as u16) * (image_cropped.height() as u16);
-                        let image: Image = image_cropped.flip_x()?;
-                        let diff: Image = image.diff(&image_cropped)?;
-                        let agree_count: u32 = diff.mask_count_one() as u32;
-                        println!("pair: {} left: {} right: {} agree: {}", data.index, left, right, agree_count);
-                        if (agree_count * 2) > (area as u32) {
-                            continue;
-                        }
-                        if agree_count > (attention_mass as u32) * 2 {
-                            continue;
-                        }
-                        // HtmlLog::text(format!("left: {} right: {} agree: {}", left, right, agree_count));
-                        // HtmlLog::image(&diff);
-                        // println!("left: {} right: {} agree: {}", left, right, agree_count);
-                        if !found {
-                            found_left = left;
-                            found_right = right;
-                            found = true;
-                            continue;
-                        }
-                        let error0 = found_left * found_left + found_right * found_right;
-                        let error1 = left * left + right * right;
-                        if error1 >= error0 {
-                            // println!("skip bigger errors");
-                            continue;
-                        }
-                        found_left = left;
-                        found_right = right;
+                let crop_area: Rectangle = match detect.crop_area {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Unable to determine crop area"));
                     }
-                }
-
-                if !found {
-                    // return Err(anyhow::anyhow!("Unable to find symmetry"));
-                    HtmlLog::text(format!("pair: {} no symmetry", data.index));
-                } else {
-                    HtmlLog::text(format!("pair: {} left: {} right: {}  symmetry", data.index, found_left, found_right));
-                }
+                };
+           
+                HtmlLog::text(format!("pair: {} crop_area: {:?}", data.index, crop_area));
 
                 let mut result_image: Image = input.repair_pattern_with_mask(&attention_mask)?;
                 result_image = result_image.crop(rect)?;
