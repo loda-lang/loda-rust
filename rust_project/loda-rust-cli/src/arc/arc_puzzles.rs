@@ -3136,9 +3136,48 @@ mod tests {
            
                 HtmlLog::text(format!("pair: {} crop_area: {:?}", data.index, crop_area));
 
-                let mut result_image: Image = input.repair_pattern_with_mask(&attention_mask)?;
-                result_image = result_image.crop(rect)?;
-                Ok(result_image)
+                // TODO: fill the area outside the crop_area with a wildcard value
+                // TODO: RunWithProgram when encountering the wildcard value, then use the output pixel of the training data.
+
+                let input_crop: Image = input.crop(crop_area)?;
+                let attention_crop: Image = attention_mask.crop(crop_area)?;
+
+                let input_flip_y: Image = input_crop.flip_y()?;
+                let attention_flip_y: Image = attention_crop.flip_y()?;
+
+                let input_flip_x: Image = input_crop.flip_x()?;
+                let attention_flip_x: Image = attention_crop.flip_x()?;
+
+                let mut result_image: Image = input_crop.clone();
+                for y in 0..input_crop.height() {
+                    for x in 0..input_crop.width() {
+                        let attention_value: u8 = attention_crop.get(x as i32, y as i32).unwrap_or(0);
+                        if attention_value == 0 {
+                            continue;
+                        }
+
+                        let attention_flip_y_value: u8 = attention_flip_y.get(x as i32, y as i32).unwrap_or(0);
+                        if attention_flip_y_value == 0 {
+                            let color: u8 = input_flip_y.get(x as i32, y as i32).unwrap_or(255);
+                            _ = result_image.set(x as i32, y as i32, color);
+                            continue;
+                        }
+
+                        let attention_flip_x_value: u8 = attention_flip_x.get(x as i32, y as i32).unwrap_or(0);
+                        if attention_flip_x_value == 0 {
+                            let color: u8 = input_flip_x.get(x as i32, y as i32).unwrap_or(255);
+                            _ = result_image.set(x as i32, y as i32, color);
+                            continue;
+                        }
+                    }
+                }
+
+                let mut the_result_image: Image = input.clone();
+                the_result_image = the_result_image.overlay_with_position(&result_image, crop_area.min_x(), crop_area.min_y())?;
+
+                let cropped_result_image: Image = the_result_image.crop(rect)?;
+                // let cropped_result_image: Image = the_result_image;
+                Ok(cropped_result_image)
             }
         }
     }
