@@ -10,6 +10,16 @@ pub trait ImageSymmetry {
     /// Reverse both the `x-axis` and the `y-axis`.
     fn flip_xy(&self) -> anyhow::Result<Image>;
 
+    /// Flip over the diagonal so that the `top-left` corner and the `bottom-right` corner changes place.
+    /// 
+    /// The image must be a square, otherwise an error is returned.
+    fn flip_diagonal_a(&self) -> anyhow::Result<Image>;
+
+    /// Flip over the diagonal so that the `top-right` corner and the `bottom-left` corner changes place.
+    /// 
+    /// The image must be a square, otherwise an error is returned.
+    fn flip_diagonal_b(&self) -> anyhow::Result<Image>;
+
     /// Detect symmetry along the `x-axis`.
     fn is_symmetric_x(&self) -> anyhow::Result<bool>;
 
@@ -62,6 +72,30 @@ impl ImageSymmetry for Image {
     fn flip_xy(&self) -> anyhow::Result<Image> {
         let bitmap0: Image = self.flip_x()?;
         let bitmap1: Image = bitmap0.flip_y()?;
+        Ok(bitmap1)
+    }
+
+    fn flip_diagonal_a(&self) -> anyhow::Result<Image> {
+        if self.width() != self.height() {
+            return Err(anyhow::anyhow!("must be a square"));
+        }
+        if self.width() < 2 && self.height() < 2 {
+            return Ok(self.clone());
+        }
+        let bitmap0: Image = self.flip_x()?;
+        let bitmap1: Image = bitmap0.rotate_cw()?;
+        Ok(bitmap1)
+    }
+
+    fn flip_diagonal_b(&self) -> anyhow::Result<Image> {
+        if self.width() != self.height() {
+            return Err(anyhow::anyhow!("must be a square"));
+        }
+        if self.width() < 2 && self.height() < 2 {
+            return Ok(self.clone());
+        }
+        let bitmap0: Image = self.rotate_cw()?;
+        let bitmap1: Image = bitmap0.flip_x()?;
         Ok(bitmap1)
     }
 
@@ -206,6 +240,60 @@ mod tests {
             7, 8, 9,
         ];
         let expected: Image = Image::try_create(3, 3, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30001_flip_diagonal_a() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 2, 2, 0,
+            0, 0, 0, 0, 0,
+            3, 0, 0, 0, 0,
+            3, 0, 0, 0, 0,
+            3, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.flip_diagonal_a().expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 2,
+            0, 0, 0, 0, 2,
+            0, 0, 0, 0, 2,
+            3, 3, 3, 0, 1,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30002_flip_diagonal_b() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 2, 2, 0,
+            0, 0, 0, 0, 0,
+            3, 0, 0, 0, 0,
+            3, 0, 0, 0, 0,
+            3, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.flip_diagonal_b().expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 0, 3, 3, 3,
+            2, 0, 0, 0, 0,
+            2, 0, 0, 0, 0,
+            2, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
         assert_eq!(actual, expected);
     }
 
