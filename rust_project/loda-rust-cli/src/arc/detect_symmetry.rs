@@ -67,6 +67,39 @@ impl DetectSymmetry {
     fn perform_analyze(&mut self, image: &Image) -> anyhow::Result<()> {
         self.analyze_horizontal_symmetry(image)?;
         self.analyze_vertical_symmetry(image)?;
+        self.suppress_false_positive(image)?;
+        Ok(())
+    }
+
+    fn suppress_false_positive(&mut self, image: &Image) -> anyhow::Result<()> {
+        // let horizontal_symmetry_without_errors: bool = self.found_horizontal_symmetry && self.horizontal_mismatches == 0;
+        // let vertical_symmetry_without_errors: bool = self.found_vertical_symmetry && self.vertical_mismatches == 0;
+        // let two_way_symmetric: bool = horizontal_symmetry_without_errors && vertical_symmetry_without_errors;
+        let two_way_symmetric: bool = self.found_horizontal_symmetry && self.found_vertical_symmetry;
+        if !two_way_symmetric {
+            return Ok(());
+        }
+        let r = Rectangle::new(0, 0, image.width(), image.height());
+        let x0: i32 = r.min_x() + self.left as i32;
+        let y0: i32 = r.min_y() + self.top as i32;
+        let x1: i32 = r.max_x() - self.right as i32;
+        let y1: i32 = r.max_y() - self.bottom as i32;
+        let crop_rect: Rectangle = match Rectangle::span(x0, y0, x1, y1) {
+            Some(value) => value,
+            None => {
+                return Ok(());
+            }
+        };
+        let cropped_image: Image = image.crop(crop_rect)?;
+        let histogram: Histogram = cropped_image.histogram_all();
+        if histogram.number_of_counters_greater_than_zero() >= 2 {
+            return Ok(());
+        }
+
+        // The cropped area is a single color, all the content has been trimmed off.
+        // This is symmetric in a terrible way, not useful. Let's ignore this kind of symmetry.
+        self.found_horizontal_symmetry = false;
+        self.found_vertical_symmetry = false;
         Ok(())
     }
 
@@ -541,7 +574,7 @@ mod tests {
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 2");
     }
 
-    // #[test]
+    #[test]
     fn test_30006_analyze_border_pixels() {
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -551,6 +584,27 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0,
             3, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(7, 6, pixels).expect("image");
+
+        // Act
+        let instance = DetectSymmetry::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.horizontal_to_string(), "no horizontal symmetry");
+        assert_eq!(instance.vertical_to_string(), "no vertical symmetry");
+    }
+
+    #[test]
+    fn test_30007_analyze_border_pixels() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0,
+            3, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+            3, 0, 0, 0, 0, 0, 0,
+            3, 0, 0, 0, 0, 0, 0,
+            0, 1, 1, 1, 0, 1, 0,
         ];
         let input: Image = Image::try_create(7, 6, pixels).expect("image");
 
