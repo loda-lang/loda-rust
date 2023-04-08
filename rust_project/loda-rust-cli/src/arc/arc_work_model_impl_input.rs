@@ -224,6 +224,24 @@ impl arc_work_model::Input {
             }
         }
 
+        if detect.diagonal_a_is_symmetric {
+            if detect.diagonal_a_mismatches == 0 {
+                self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalA);
+                self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalAWithMismatches);
+            } else {
+                self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalAWithMismatches);
+            }
+        }
+
+        if detect.diagonal_b_is_symmetric {
+            if detect.diagonal_b_mismatches == 0 {
+                self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalB);
+                self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalBWithMismatches);
+            } else {
+                self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalBWithMismatches);
+            }
+        }
+
         // if width >= 2 || height >= 2 {
         //     if let Ok(is_symmetric) = self.image.is_symmetric_x() {
         //         if is_symmetric {

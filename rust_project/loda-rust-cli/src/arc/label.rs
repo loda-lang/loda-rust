@@ -56,6 +56,11 @@ pub enum InputLabel {
     InputImageIsSymmetricXWithInsetAndMismatches,
     InputImageIsSymmetricYWithInsetAndMismatches,
 
+    InputImageIsSymmetricDiagonalA,
+    InputImageIsSymmetricDiagonalB,
+    InputImageIsSymmetricDiagonalAWithMismatches,
+    InputImageIsSymmetricDiagonalBWithMismatches,
+
     // Ideas for more
     // InputUniqueColors { color: Vec<u8> },
     // InputAspectRatio { width: u8, height: u8 },

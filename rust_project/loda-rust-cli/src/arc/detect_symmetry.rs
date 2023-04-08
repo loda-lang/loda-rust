@@ -22,6 +22,7 @@ pub struct DetectSymmetry {
     pub diagonal_b_is_symmetric: bool,
 
     // Idea for more
+    // Identify the repair color
     // repair plan for the damaged pixels
 }
 
@@ -307,7 +308,14 @@ impl DetectSymmetry {
 
 impl fmt::Debug for DetectSymmetry {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}, {}", self.horizontal_to_string(), self.vertical_to_string())
+        write!(
+            f, 
+            "{}, {}, {}, {}", 
+            self.horizontal_to_string(), 
+            self.vertical_to_string(),
+            self.diagonal_a_to_string(),
+            self.diagonal_b_to_string(),
+        )
     }
 }
 
