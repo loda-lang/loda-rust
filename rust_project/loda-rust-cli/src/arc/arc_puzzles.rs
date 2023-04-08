@@ -2,7 +2,7 @@
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model::{self, PairType};
-    use crate::arc::ActionLabel;
+    use crate::arc::{ActionLabel, Color, ImageDrawRect};
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
@@ -3136,10 +3136,16 @@ mod tests {
            
                 HtmlLog::text(format!("pair: {} crop_area: {:?}", data.index, crop_area));
 
-                // TODO: fill the area outside the crop_area with a wildcard value
-                // TODO: RunWithProgram when encountering the wildcard value, then use the output pixel of the training data.
+                // TODO: RunWithProgram when encountering the Color::CannotCompute, then use the output pixel of the training data.
+                
+                // Sometimes it's not possible to compute the entire output just by looking at the input pixels alone.
+                // Fill the attention area with an `CannotCompute`, so that it's clear there was a problem 
+                // computing pixel data for these pixels.
+                // This happens when the symmetric shape has an inset, and there is masked out an area
+                // bigger than what is possible to recover just by looking at the input pixels alone.
+                let input_masked_out: Image = input.fill_inside_rect(rect, Color::CannotCompute as u8)?;
 
-                let input_crop: Image = input.crop(crop_area)?;
+                let input_crop: Image = input_masked_out.crop(crop_area)?;
                 let attention_crop: Image = attention_mask.crop(crop_area)?;
 
                 let input_flip_y: Image = input_crop.flip_y()?;
@@ -3172,7 +3178,7 @@ mod tests {
                     }
                 }
 
-                let mut the_result_image: Image = input.clone();
+                let mut the_result_image: Image = input_masked_out.clone();
                 the_result_image = the_result_image.overlay_with_position(&result_image, crop_area.min_x(), crop_area.min_y())?;
 
                 let cropped_result_image: Image = the_result_image.crop(rect)?;
