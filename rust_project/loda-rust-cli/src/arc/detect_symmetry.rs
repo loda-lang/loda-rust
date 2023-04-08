@@ -15,9 +15,11 @@ pub struct DetectSymmetry {
     pub vertical_mismatches: u16,
     pub found_vertical_symmetry: bool,
 
+    pub diagonal_mismatches: u16,
+    pub found_diagonal_symmetry: bool,
+
     // Idea for more
-    // repair the damaged pixels
-    // if square area, identify if there is a diagonal symmetry
+    // repair plan for the damaged pixels
 }
 
 impl DetectSymmetry {
@@ -39,6 +41,8 @@ impl DetectSymmetry {
             bottom: u8::MAX,
             found_vertical_symmetry: false,
             vertical_mismatches: u16::MAX,
+            diagonal_mismatches: u16::MAX,
+            found_diagonal_symmetry: false,
         }
     }
 
@@ -64,17 +68,61 @@ impl DetectSymmetry {
         format!("partial vertical symmetry, top: {} bottom: {} mismatches: {}", self.top, self.bottom, self.vertical_mismatches)
     }
 
+    #[allow(dead_code)]
+    fn diagonal_to_string(&self) -> String {
+        if !self.found_diagonal_symmetry {
+            return "no diagonal symmetry".to_string();
+        }
+        if self.diagonal_mismatches == 0 {
+            return "diagonal symmetry".to_string();
+        }
+        format!("partial diagonal symmetry, mismatches: {}", self.diagonal_mismatches)
+    }
+
     fn perform_analyze(&mut self, image: &Image) -> anyhow::Result<()> {
         self.analyze_horizontal_symmetry(image)?;
         self.analyze_vertical_symmetry(image)?;
         self.suppress_false_positive(image)?;
+        self.analyze_diagonal_symmetry(image)?;
+        Ok(())
+    }
+
+    fn analyze_diagonal_symmetry(&mut self, image: &Image) -> anyhow::Result<()> {
+        let two_way_symmetric: bool = self.found_horizontal_symmetry && self.found_vertical_symmetry;
+        if !two_way_symmetric {
+            return Ok(());
+        }
+        let r = Rectangle::new(0, 0, image.width(), image.height());
+        let x0: i32 = r.min_x() + self.left as i32;
+        let y0: i32 = r.min_y() + self.top as i32;
+        let x1: i32 = r.max_x() - self.right as i32;
+        let y1: i32 = r.max_y() - self.bottom as i32;
+        let crop_rect: Rectangle = match Rectangle::span(x0, y0, x1, y1) {
+            Some(value) => value,
+            None => {
+                return Ok(());
+            }
+        };
+        if crop_rect.width() != crop_rect.height() {
+            return Ok(());
+        }
+        let image_cropped: Image = image.crop(crop_rect)?;
+        
+        let area: u16 = (image_cropped.width() as u16) * (image_cropped.height() as u16);
+        let flipped_image: Image = image_cropped.flip_diagonal_a()?;
+        let diff: Image = flipped_image.diff(&image_cropped)?;
+        let mismatch_count: u16 = diff.mask_count_one();
+        if mismatch_count > (area / 2) {
+            return Ok(());
+        }
+
+        self.found_diagonal_symmetry = true;
+        self.diagonal_mismatches = mismatch_count;
+
         Ok(())
     }
 
     fn suppress_false_positive(&mut self, image: &Image) -> anyhow::Result<()> {
-        // let horizontal_symmetry_without_errors: bool = self.found_horizontal_symmetry && self.horizontal_mismatches == 0;
-        // let vertical_symmetry_without_errors: bool = self.found_vertical_symmetry && self.vertical_mismatches == 0;
-        // let two_way_symmetric: bool = horizontal_symmetry_without_errors && vertical_symmetry_without_errors;
         let two_way_symmetric: bool = self.found_horizontal_symmetry && self.found_vertical_symmetry;
         if !two_way_symmetric {
             return Ok(());
@@ -507,6 +555,7 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "no horizontal symmetry");
         assert_eq!(instance.vertical_to_string(), "no vertical symmetry");
+        assert_eq!(instance.diagonal_to_string(), "no diagonal symmetry");
     }
 
     #[test]
@@ -527,6 +576,7 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 2");
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
+        assert_eq!(instance.diagonal_to_string(), "no diagonal symmetry");
     }
 
     #[test]
@@ -549,6 +599,7 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 1");
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 2 bottom: 0");
+        assert_eq!(instance.diagonal_to_string(), "partial diagonal symmetry, mismatches: 8");
     }
 
     #[test]
@@ -572,6 +623,7 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 1");
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 2");
+        assert_eq!(instance.diagonal_to_string(), "diagonal symmetry");
     }
 
     #[test]
@@ -593,6 +645,7 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "no horizontal symmetry");
         assert_eq!(instance.vertical_to_string(), "no vertical symmetry");
+        assert_eq!(instance.diagonal_to_string(), "no diagonal symmetry");
     }
 
     #[test]
@@ -614,5 +667,27 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "no horizontal symmetry");
         assert_eq!(instance.vertical_to_string(), "no vertical symmetry");
+        assert_eq!(instance.diagonal_to_string(), "no diagonal symmetry");
+    }
+
+    #[test]
+    fn test_30008_analyze_diagonal_symmetry() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 2, 1, 0,
+            1, 8, 8, 8, 1,
+            2, 8, 8, 8, 2,
+            1, 8, 8, 8, 1,
+            0, 1, 2, 1, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let instance = DetectSymmetry::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
+        assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
+        assert_eq!(instance.diagonal_to_string(), "diagonal symmetry");
     }
 }
