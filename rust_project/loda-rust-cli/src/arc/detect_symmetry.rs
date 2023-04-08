@@ -15,8 +15,11 @@ pub struct DetectSymmetry {
     pub vertical_mismatches: u16,
     pub found_vertical_symmetry: bool,
 
-    pub diagonal_mismatches: u16,
-    pub found_diagonal_symmetry: bool,
+    pub diagonal_a_mismatches: u16,
+    pub diagonal_a_is_symmetric: bool,
+
+    pub diagonal_b_mismatches: u16,
+    pub diagonal_b_is_symmetric: bool,
 
     // Idea for more
     // repair plan for the damaged pixels
@@ -41,8 +44,10 @@ impl DetectSymmetry {
             bottom: u8::MAX,
             found_vertical_symmetry: false,
             vertical_mismatches: u16::MAX,
-            diagonal_mismatches: u16::MAX,
-            found_diagonal_symmetry: false,
+            diagonal_a_mismatches: u16::MAX,
+            diagonal_a_is_symmetric: false,
+            diagonal_b_mismatches: u16::MAX,
+            diagonal_b_is_symmetric: false,
         }
     }
 
@@ -69,14 +74,25 @@ impl DetectSymmetry {
     }
 
     #[allow(dead_code)]
-    fn diagonal_to_string(&self) -> String {
-        if !self.found_diagonal_symmetry {
-            return "no diagonal symmetry".to_string();
+    fn diagonal_a_to_string(&self) -> String {
+        if !self.diagonal_a_is_symmetric {
+            return "no diagonal-a symmetry".to_string();
         }
-        if self.diagonal_mismatches == 0 {
-            return "diagonal symmetry".to_string();
+        if self.diagonal_a_mismatches == 0 {
+            return "diagonal-a symmetry".to_string();
         }
-        format!("partial diagonal symmetry, mismatches: {}", self.diagonal_mismatches)
+        format!("partial diagonal-a symmetry, mismatches: {}", self.diagonal_a_mismatches)
+    }
+
+    #[allow(dead_code)]
+    fn diagonal_b_to_string(&self) -> String {
+        if !self.diagonal_b_is_symmetric {
+            return "no diagonal-b symmetry".to_string();
+        }
+        if self.diagonal_b_mismatches == 0 {
+            return "diagonal-b symmetry".to_string();
+        }
+        format!("partial diagonal-b symmetry, mismatches: {}", self.diagonal_b_mismatches)
     }
 
     fn perform_analyze(&mut self, image: &Image) -> anyhow::Result<()> {
@@ -107,18 +123,26 @@ impl DetectSymmetry {
             return Ok(());
         }
         let image_cropped: Image = image.crop(crop_rect)?;
-        
         let area: u16 = (image_cropped.width() as u16) * (image_cropped.height() as u16);
-        let flipped_image: Image = image_cropped.flip_diagonal_a()?;
-        let diff: Image = flipped_image.diff(&image_cropped)?;
-        let mismatch_count: u16 = diff.mask_count_one();
-        if mismatch_count > (area / 2) {
-            return Ok(());
+
+        {
+            let flipped_image: Image = image_cropped.flip_diagonal_a()?;
+            let diff: Image = flipped_image.diff(&image_cropped)?;
+            let mismatch_count: u16 = diff.mask_count_one();
+            if mismatch_count <= (area / 2) {
+                self.diagonal_a_is_symmetric = true;
+                self.diagonal_a_mismatches = mismatch_count;
+            }
         }
-
-        self.found_diagonal_symmetry = true;
-        self.diagonal_mismatches = mismatch_count;
-
+        {
+            let flipped_image: Image = image_cropped.flip_diagonal_b()?;
+            let diff: Image = flipped_image.diff(&image_cropped)?;
+            let mismatch_count: u16 = diff.mask_count_one();
+            if mismatch_count <= (area / 2) {
+                self.diagonal_b_is_symmetric = true;
+                self.diagonal_b_mismatches = mismatch_count;
+            }
+        }
         Ok(())
     }
 
@@ -513,6 +537,8 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 1");
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
+        assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_to_string(), "no diagonal-b symmetry");
     }
 
     #[test]
@@ -534,6 +560,8 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 2");
         assert_eq!(instance.vertical_to_string(), "partial vertical symmetry, top: 0 bottom: 0 mismatches: 2");
+        assert_eq!(instance.diagonal_a_to_string(), "diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, mismatches: 2");
     }
 
     #[test]
@@ -555,7 +583,8 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "no horizontal symmetry");
         assert_eq!(instance.vertical_to_string(), "no vertical symmetry");
-        assert_eq!(instance.diagonal_to_string(), "no diagonal symmetry");
+        assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_to_string(), "no diagonal-b symmetry");
     }
 
     #[test]
@@ -576,7 +605,8 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 2");
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
-        assert_eq!(instance.diagonal_to_string(), "no diagonal symmetry");
+        assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_to_string(), "no diagonal-b symmetry");
     }
 
     #[test]
@@ -599,7 +629,8 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 1");
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 2 bottom: 0");
-        assert_eq!(instance.diagonal_to_string(), "partial diagonal symmetry, mismatches: 8");
+        assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, mismatches: 8");
+        assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, mismatches: 8");
     }
 
     #[test]
@@ -623,7 +654,8 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 1");
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 2");
-        assert_eq!(instance.diagonal_to_string(), "diagonal symmetry");
+        assert_eq!(instance.diagonal_a_to_string(), "diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_to_string(), "diagonal-b symmetry");
     }
 
     #[test]
@@ -645,7 +677,8 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "no horizontal symmetry");
         assert_eq!(instance.vertical_to_string(), "no vertical symmetry");
-        assert_eq!(instance.diagonal_to_string(), "no diagonal symmetry");
+        assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_to_string(), "no diagonal-b symmetry");
     }
 
     #[test]
@@ -667,7 +700,8 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "no horizontal symmetry");
         assert_eq!(instance.vertical_to_string(), "no vertical symmetry");
-        assert_eq!(instance.diagonal_to_string(), "no diagonal symmetry");
+        assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_to_string(), "no diagonal-b symmetry");
     }
 
     #[test]
@@ -688,6 +722,7 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
-        assert_eq!(instance.diagonal_to_string(), "diagonal symmetry");
+        assert_eq!(instance.diagonal_a_to_string(), "diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_to_string(), "diagonal-b symmetry");
     }
 }
