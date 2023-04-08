@@ -187,12 +187,16 @@ impl arc_work_model::Input {
                 if detect.left == 0 && detect.right == 0 {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricX);
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInset);
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithMismatches);
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInsetAndMismatches);
                 } else {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInset);
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInsetAndMismatches);
                 }
             } else {
                 if detect.left == 0 && detect.right == 0 {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithMismatches);
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInsetAndMismatches);
                 } else {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInsetAndMismatches);
                 }
@@ -204,12 +208,16 @@ impl arc_work_model::Input {
                 if detect.top == 0 && detect.bottom == 0 {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricY);
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInset);
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithMismatches);
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInsetAndMismatches);
                 } else {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInset);
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInsetAndMismatches);
                 }
             } else {
                 if detect.top == 0 && detect.bottom == 0 {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithMismatches);
+                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInsetAndMismatches);
                 } else {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInsetAndMismatches);
                 }
