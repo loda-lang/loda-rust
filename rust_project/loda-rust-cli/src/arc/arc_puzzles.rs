@@ -3188,10 +3188,10 @@ mod tests {
         }
     }
 
-    // #[test]
+    #[test]
     fn test_700000_puzzle_de493100() {
         let mut instance = solve_de493100::MySolution::new();
         let result: String = run_analyze_and_solve("de493100", &mut instance).expect("String");
-        assert_eq!(result, "3 1");
+        assert_eq!(result, "4 1");
     }
 }
