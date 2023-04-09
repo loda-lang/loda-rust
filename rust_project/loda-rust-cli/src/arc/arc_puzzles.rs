@@ -3136,14 +3136,14 @@ mod tests {
            
                 HtmlLog::text(format!("pair: {} crop_area: {:?}", data.index, crop_area));
 
-                // TODO: RunWithProgram when encountering the Color::CannotCompute, then use the output pixel of the training data.
-                
                 // Sometimes it's not possible to compute the entire output just by looking at the input pixels alone.
                 // Fill the attention area with an `CannotCompute`, so that it's clear there was a problem 
                 // computing pixel data for these pixels.
                 // This happens when the symmetric shape has an inset, and there is masked out an area
                 // bigger than what is possible to recover just by looking at the input pixels alone.
                 let input_masked_out: Image = input.fill_inside_rect(rect, Color::CannotCompute as u8)?;
+
+                // TODO: fill out as many pixels as possible outside the crop_area.
 
                 let input_crop: Image = input_masked_out.crop(crop_area)?;
                 let attention_crop: Image = attention_mask.crop(crop_area)?;
