@@ -9,11 +9,13 @@ pub struct DetectSymmetry {
     pub right: u8,
     pub horizontal_mismatches: u16,
     pub found_horizontal_symmetry: bool,
+    pub horizontal_rect: Option<Rectangle>,
 
     pub top: u8,
     pub bottom: u8,
     pub vertical_mismatches: u16,
     pub found_vertical_symmetry: bool,
+    pub vertical_rect: Option<Rectangle>,
 
     pub diagonal_a_mismatches: u16,
     pub diagonal_a_is_symmetric: bool,
@@ -42,10 +44,12 @@ impl DetectSymmetry {
             right: u8::MAX,
             found_horizontal_symmetry: false,
             horizontal_mismatches: u16::MAX,
+            horizontal_rect: None,
             top: u8::MAX,
             bottom: u8::MAX,
             found_vertical_symmetry: false,
             vertical_mismatches: u16::MAX,
+            vertical_rect: None,
             diagonal_a_mismatches: u16::MAX,
             diagonal_a_is_symmetric: false,
             diagonal_b_mismatches: u16::MAX,
@@ -104,6 +108,42 @@ impl DetectSymmetry {
         self.suppress_false_positive(image)?;
         self.analyze_diagonal_symmetry(image)?;
         self.update_crop_area(image)?;
+        self.update_horizontal_rect(image)?;
+        self.update_vertical_rect(image)?;
+        Ok(())
+    }
+
+    fn update_horizontal_rect(&mut self, image: &Image) -> anyhow::Result<()> {
+        if !self.found_horizontal_symmetry {
+            return Ok(());
+        }
+        let r = Rectangle::new(0, 0, image.width(), image.height());
+        let mut x0: i32 = r.min_x();
+        let mut y0: i32 = r.min_y();
+        let mut x1: i32 = r.max_x();
+        let mut y1: i32 = r.max_y();
+        if self.found_horizontal_symmetry {
+            x0 += self.left as i32;
+            x1 -= self.right as i32;
+        }
+        self.horizontal_rect = Rectangle::span(x0, y0, x1, y1);
+        Ok(())
+    }
+
+    fn update_vertical_rect(&mut self, image: &Image) -> anyhow::Result<()> {
+        if !self.found_vertical_symmetry {
+            return Ok(());
+        }
+        let r = Rectangle::new(0, 0, image.width(), image.height());
+        let mut x0: i32 = r.min_x();
+        let mut y0: i32 = r.min_y();
+        let mut x1: i32 = r.max_x();
+        let mut y1: i32 = r.max_y();
+        if self.found_vertical_symmetry {
+            y0 += self.top as i32;
+            y1 -= self.bottom as i32;
+        }
+        self.vertical_rect = Rectangle::span(x0, y0, x1, y1);
         Ok(())
     }
 
@@ -115,14 +155,14 @@ impl DetectSymmetry {
         let r = Rectangle::new(0, 0, image.width(), image.height());
         let mut x0: i32 = r.min_x();
         let mut y0: i32 = r.min_y();
-        if self.found_horizontal_symmetry {
-            x0 += self.left as i32;
-            y0 += self.top as i32;
-        }
         let mut x1: i32 = r.max_x();
         let mut y1: i32 = r.max_y();
-        if self.found_vertical_symmetry {
+        if self.found_horizontal_symmetry {
+            x0 += self.left as i32;
             x1 -= self.right as i32;
+        }
+        if self.found_vertical_symmetry {
+            y0 += self.top as i32;
             y1 -= self.bottom as i32;
         }
         self.crop_area = Rectangle::span(x0, y0, x1, y1);
