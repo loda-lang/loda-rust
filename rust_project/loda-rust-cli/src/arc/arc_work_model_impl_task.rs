@@ -92,7 +92,20 @@ impl arc_work_model::Task {
         }
     }
 
+    fn has_resolved_attention_mask(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.input.attention_mask.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
     fn assign_biggest_object_mask(&mut self) {
+        if self.has_resolved_attention_mask() {
+            return;
+        }
+
         let mut histogram1: Histogram = self.input_histogram_union.clone();
         histogram1.subtract_histogram(&self.input_histogram_intersection);
         let mut histogram2: Histogram = self.input_histogram_union.clone();

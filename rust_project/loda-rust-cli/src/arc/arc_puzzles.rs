@@ -3095,11 +3095,25 @@ mod tests {
     mod solve_de493100 {
         use super::*;
 
-        pub struct MySolution;
+        pub struct MySolution {
+            perform_crop_to_attention_mask: bool
+        }
     
         impl MySolution {
             pub fn new() -> Self {
-                Self {}
+                Self::new_with_crop()
+            }
+
+            pub fn new_without_crop() -> Self {
+                Self { 
+                    perform_crop_to_attention_mask: false,
+                }
+            }
+
+            pub fn new_with_crop() -> Self {
+                Self { 
+                    perform_crop_to_attention_mask: true,
+                }
             }
         }
         impl AnalyzeAndSolve for MySolution {
@@ -3174,79 +3188,85 @@ mod tests {
                 // If there is diagonal_a_rect, then repair the pixels.
                 // If there is diagonal_b_rect, then repair the pixels.
 
-                // let cropped_result_image: Image = the_result_image.crop(rect)?;
-                let cropped_result_image: Image = the_result_image;
+                let cropped_result_image: Image;
+                if self.perform_crop_to_attention_mask {
+                    cropped_result_image = the_result_image.crop(rect)?;
+                } else {
+                    cropped_result_image = the_result_image;
+                }
                 Ok(cropped_result_image)
             }
         }
     }
 
-    // #[test]
+    #[test]
     fn test_700000_puzzle_de493100() {
-        let mut instance = solve_de493100::MySolution::new();
+        let mut instance = solve_de493100::MySolution::new_with_crop();
         let result: String = run_analyze_and_solve("de493100", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
     #[test]
+    fn test_700001_puzzle_dc0a314f() {
+        let mut instance = solve_de493100::MySolution::new_with_crop();
+        let result: String = run_analyze_and_solve("dc0a314f", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_700002_puzzle_ff805c23() {
+        let mut instance = solve_de493100::MySolution::new_with_crop();
+        let result: String = run_analyze_and_solve("ff805c23", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_700003_puzzle_67b4a34d() {
+        let mut instance = solve_de493100::MySolution::new_with_crop();
+        let result: String = run_analyze_and_solve("67b4a34d", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    // #[test]
+    fn test_700004_puzzle_9ecd008a() {
+        // Predicts the correct size of the output, but for the wrong reasons.
+        // It doesn't detect that it's a strongly connected area of 3x3 pixels, and that it's colored black.
+        let mut instance = solve_de493100::MySolution::new_with_crop();
+        let result: String = run_analyze_and_solve("9ecd008a", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    #[test]
     fn test_710000_puzzle_af22c60d() {
-        let mut instance = solve_de493100::MySolution::new();
+        let mut instance = solve_de493100::MySolution::new_without_crop();
         let result: String = run_analyze_and_solve("af22c60d", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
     // #[test]
-    fn test_720000_puzzle_dc0a314f() {
-        let mut instance = solve_de493100::MySolution::new();
-        let result: String = run_analyze_and_solve("dc0a314f", &mut instance).expect("String");
-        assert_eq!(result, "4 1");
-    }
-
-    // #[test]
-    fn test_730000_puzzle_9ecd008a() {
-        let mut instance = solve_de493100::MySolution::new();
-        let result: String = run_analyze_and_solve("9ecd008a", &mut instance).expect("String");
-        assert_eq!(result, "4 1");
-    }
-
-    // #[test]
-    fn test_740000_puzzle_b8825c91() {
-        let mut instance = solve_de493100::MySolution::new();
+    fn test_710001_puzzle_b8825c91() {
+        let mut instance = solve_de493100::MySolution::new_without_crop();
         let result: String = run_analyze_and_solve("b8825c91", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
     // #[test]
-    fn test_750000_puzzle_ff805c23() {
-        let mut instance = solve_de493100::MySolution::new();
-        let result: String = run_analyze_and_solve("ff805c23", &mut instance).expect("String");
-        assert_eq!(result, "4 1");
-    }
-
-    // #[test]
-    fn test_760000_puzzle_3631a71a() {
-        let mut instance = solve_de493100::MySolution::new();
+    fn test_710002_puzzle_3631a71a() {
+        let mut instance = solve_de493100::MySolution::new_without_crop();
         let result: String = run_analyze_and_solve("3631a71a", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
     // #[test]
-    fn test_770000_puzzle_67b4a34d() {
-        let mut instance = solve_de493100::MySolution::new();
-        let result: String = run_analyze_and_solve("67b4a34d", &mut instance).expect("String");
-        assert_eq!(result, "4 1");
-    }
-
-    // #[test]
-    fn test_780000_puzzle_929ab4e9() {
-        let mut instance = solve_de493100::MySolution::new();
+    fn test_710003_puzzle_929ab4e9() {
+        let mut instance = solve_de493100::MySolution::new_without_crop();
         let result: String = run_analyze_and_solve("929ab4e9", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
     // #[test]
-    fn test_790000_puzzle_47996f11() {
-        let mut instance = solve_de493100::MySolution::new();
+    fn test_710004_puzzle_47996f11() {
+        let mut instance = solve_de493100::MySolution::new_without_crop();
         let result: String = run_analyze_and_solve("47996f11", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }

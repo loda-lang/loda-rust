@@ -781,14 +781,14 @@ impl RunWithProgram {
     fn process_computed_images(&self, mut computed_images: Vec<Image>) -> anyhow::Result<RunWithProgramResult> {
         let pretty_print = true;
 
-        // match self.preserve_output_for_traindata(&mut computed_images) {
-        //     Ok(()) => {
-        //         // println!("did preserve output");
-        //     },
-        //     Err(_error) => {
-        //         // println!("unable to preserve output: {:?}", error);
-        //     }
-        // }
+        match self.preserve_output_for_traindata(&mut computed_images) {
+            Ok(()) => {
+                // println!("did preserve output");
+            },
+            Err(_error) => {
+                // println!("unable to preserve output: {:?}", error);
+            }
+        }
 
         match self.postprocess(&mut computed_images) {
             Ok(()) => {
