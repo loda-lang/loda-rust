@@ -3132,7 +3132,9 @@ mod tests {
                 // computing pixel data for these pixels.
                 // This happens when the symmetric shape has an inset, and there is masked out an area
                 // bigger than what is possible to recover just by looking at the input pixels alone.
-                let input_masked_out: Image = input.fill_inside_rect(rect, Color::CannotCompute as u8)?;
+                // let input_masked_out: Image = input.fill_inside_rect(rect, Color::CannotCompute as u8)?;
+
+                let input_masked_out: Image = attention_mask.select_from_image_and_color(&input, Color::CannotCompute as u8)?;
 
                 let mut the_result_image: Image = input_masked_out.clone();
 
@@ -3172,17 +3174,24 @@ mod tests {
                 // If there is diagonal_a_rect, then repair the pixels.
                 // If there is diagonal_b_rect, then repair the pixels.
 
-                let cropped_result_image: Image = the_result_image.crop(rect)?;
-                // let cropped_result_image: Image = the_result_image;
+                // let cropped_result_image: Image = the_result_image.crop(rect)?;
+                let cropped_result_image: Image = the_result_image;
                 Ok(cropped_result_image)
             }
         }
     }
 
-    #[test]
+    // #[test]
     fn test_700000_puzzle_de493100() {
         let mut instance = solve_de493100::MySolution::new();
         let result: String = run_analyze_and_solve("de493100", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    #[test]
+    fn test_710000_puzzle_af22c60d() {
+        let mut instance = solve_de493100::MySolution::new();
+        let result: String = run_analyze_and_solve("af22c60d", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 }

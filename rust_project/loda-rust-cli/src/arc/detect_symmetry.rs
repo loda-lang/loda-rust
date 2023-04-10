@@ -24,6 +24,9 @@ pub struct DetectSymmetry {
     pub diagonal_b_is_symmetric: bool,
 
     // TODO: "diagonal_a_rect" and "diagonal_b_rect"
+    // pub diagonal_a_rect: Option<Rectangle>,
+    // pub diagonal_b_rect: Option<Rectangle>,
+    
     // Idea for more
     // Identify the repair color
     // repair plan for the damaged pixels

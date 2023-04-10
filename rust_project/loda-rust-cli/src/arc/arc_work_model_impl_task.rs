@@ -104,7 +104,8 @@ impl arc_work_model::Task {
             }
         };
         for pair in &mut self.pairs {
-            _ = pair.input.assign_biggest_object_mask_with_ignore_color(color);
+            _ = pair.input.assign_attention_mask_with_color(color);
+            // _ = pair.input.assign_biggest_object_mask_with_ignore_color(color);
         }
     }
 

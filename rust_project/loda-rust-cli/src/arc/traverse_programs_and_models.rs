@@ -1,4 +1,4 @@
-use super::{arc_json_model, ActionLabel, PropertyInput};
+use super::{arc_json_model, ActionLabel, PropertyInput, InputLabel};
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
@@ -292,6 +292,14 @@ impl TraverseProgramsAndModels {
         }
         println!("tasks with size=bad and palette=bad.  {}", count_tasks_without_predictions);
 
+        Self::inspect_task_id(&task_vec, "af22c60d")?;
+        // Self::inspect_task_id(&task_vec, "de493100")?;
+        // Self::inspect_task_id(&task_vec, "f15e1fac")?;
+        // Self::inspect_task_id(&task_vec, "f9012d9b")?;
+        // Self::inspect_task_id(&task_vec, "de493100")?;
+        // Self::inspect_task_id(&task_vec, "1b60fb0c")?;
+        // Self::inspect_task_id(&task_vec, "67a423a3")?;
+        // Self::inspect_task_id(&task_vec, "f9012d9b")?;
         // Self::inspect_task_id(&task_vec, "d2abd087")?;
         // Self::inspect_task_id(&task_vec, "b190f7f5")?;
         // Self::inspect_task_id(&task_vec, "ae4f1146")?;
@@ -305,7 +313,7 @@ impl TraverseProgramsAndModels {
         // Self::inspect_task_id(&task_vec, "aedd82e4")?;
         // Self::inspect_task_id(&task_vec, "4c5c2cf0")?;
         // Self::inspect_task_id(&task_vec, "5c0a986e")?;
-        Self::inspect_tasks_without_solution(&task_vec)?;
+        // Self::inspect_tasks_without_solution(&task_vec)?;
         // Self::inspect_undecided(&task_vec)?;
         // Self::inspect_decided(&task_vec)?;
         // Self::inspect_task_id(&task_vec, "72ca375d")?;
@@ -323,7 +331,7 @@ impl TraverseProgramsAndModels {
         let mut indexes = HashSet::<usize>::new();
         for (index, task) in task_vec.iter().enumerate() {
             if task.occur_in_solutions_csv {
-                // continue;
+                continue;
             }
             // if task.input_histogram_union.number_of_counters_greater_than_zero() > 3 {
             //     continue;
@@ -341,9 +349,27 @@ impl TraverseProgramsAndModels {
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
-            if task.is_output_size_same_as_removed_rectangle_after_single_color_removal() {
+            // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricXWithInset) {
+            //     found = true;
+            // }
+            // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricYWithInset) {
+            //     found = true;
+            // }
+            // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricXWithMismatches) && task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricYWithMismatches) {
+            //     found = true;
+            // }
+            if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricDiagonalAWithMismatches) && task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricDiagonalBWithMismatches) {
                 found = true;
             }
+            // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricXWithInset) || task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricYWithInset) {
+            //     found = true;
+            // }
+            // if task.is_output_size_same_as_removed_rectangle_after_single_color_removal() {
+            //     found = true;
+            // }
+            // if task.is_output_size_same_as_primary_object_after_single_color_removal() {
+            //     found = true;
+            // }
             // if task.action_label_set_intersection.contains(&ActionLabel::OutputImageHasSameStructureAsInputImage) {
             //     found = true;
             // }
