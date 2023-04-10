@@ -23,8 +23,7 @@ pub struct DetectSymmetry {
     pub diagonal_b_mismatches: u16,
     pub diagonal_b_is_symmetric: bool,
 
-    // TODO: replace "crop_area" with "diagonal_a_rect" and "diagonal_b_rect"
-    pub crop_area: Option<Rectangle>,
+    // TODO: "diagonal_a_rect" and "diagonal_b_rect"
     // Idea for more
     // Identify the repair color
     // repair plan for the damaged pixels
@@ -55,7 +54,6 @@ impl DetectSymmetry {
             diagonal_a_is_symmetric: false,
             diagonal_b_mismatches: u16::MAX,
             diagonal_b_is_symmetric: false,
-            crop_area: None,
         }
     }
 
@@ -108,7 +106,6 @@ impl DetectSymmetry {
         self.analyze_vertical_symmetry(image)?;
         self.suppress_false_positive(image)?;
         self.analyze_diagonal_symmetry(image)?;
-        self.update_crop_area(image)?;
         self.update_horizontal_rect(image)?;
         self.update_vertical_rect(image)?;
         Ok(())
@@ -145,28 +142,6 @@ impl DetectSymmetry {
             y1 -= self.bottom as i32;
         }
         self.vertical_rect = Rectangle::span(x0, y0, x1, y1);
-        Ok(())
-    }
-
-    fn update_crop_area(&mut self, image: &Image) -> anyhow::Result<()> {
-        let one_or_more_symmetries: bool = self.found_horizontal_symmetry || self.found_vertical_symmetry;
-        if !one_or_more_symmetries {
-            return Ok(());
-        }
-        let r = Rectangle::new(0, 0, image.width(), image.height());
-        let mut x0: i32 = r.min_x();
-        let mut y0: i32 = r.min_y();
-        let mut x1: i32 = r.max_x();
-        let mut y1: i32 = r.max_y();
-        if self.found_horizontal_symmetry {
-            x0 += self.left as i32;
-            x1 -= self.right as i32;
-        }
-        if self.found_vertical_symmetry {
-            y0 += self.top as i32;
-            y1 -= self.bottom as i32;
-        }
-        self.crop_area = Rectangle::span(x0, y0, x1, y1);
         Ok(())
     }
 

@@ -3127,15 +3127,6 @@ mod tests {
                 let detect: DetectSymmetry = DetectSymmetry::analyze(&input)?;
                 // HtmlLog::text(format!("pair {}, detect: {:?}", data.index, detect));
 
-                let crop_area: Rectangle = match detect.crop_area {
-                    Some(value) => value,
-                    None => {
-                        return Err(anyhow::anyhow!("Unable to determine crop area"));
-                    }
-                };
-           
-                // HtmlLog::text(format!("pair: {} crop_area: {:?}", data.index, crop_area));
-
                 // Sometimes it's not possible to compute the entire output just by looking at the input pixels alone.
                 // Fill the attention area with an `CannotCompute`, so that it's clear there was a problem 
                 // computing pixel data for these pixels.
