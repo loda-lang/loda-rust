@@ -23,6 +23,7 @@ pub struct DetectSymmetry {
     pub diagonal_b_mismatches: u16,
     pub diagonal_b_is_symmetric: bool,
 
+    // TODO: replace "crop_area" with "diagonal_a_rect" and "diagonal_b_rect"
     pub crop_area: Option<Rectangle>,
     // Idea for more
     // Identify the repair color
@@ -119,9 +120,9 @@ impl DetectSymmetry {
         }
         let r = Rectangle::new(0, 0, image.width(), image.height());
         let mut x0: i32 = r.min_x();
-        let mut y0: i32 = r.min_y();
+        let y0: i32 = r.min_y();
         let mut x1: i32 = r.max_x();
-        let mut y1: i32 = r.max_y();
+        let y1: i32 = r.max_y();
         if self.found_horizontal_symmetry {
             x0 += self.left as i32;
             x1 -= self.right as i32;
@@ -135,9 +136,9 @@ impl DetectSymmetry {
             return Ok(());
         }
         let r = Rectangle::new(0, 0, image.width(), image.height());
-        let mut x0: i32 = r.min_x();
+        let x0: i32 = r.min_x();
         let mut y0: i32 = r.min_y();
-        let mut x1: i32 = r.max_x();
+        let x1: i32 = r.max_x();
         let mut y1: i32 = r.max_y();
         if self.found_vertical_symmetry {
             y0 += self.top as i32;

@@ -3125,7 +3125,7 @@ mod tests {
                 };
 
                 let detect: DetectSymmetry = DetectSymmetry::analyze(&input)?;
-                HtmlLog::text(format!("pair {}, detect: {:?}", data.index, detect));
+                // HtmlLog::text(format!("pair {}, detect: {:?}", data.index, detect));
 
                 let crop_area: Rectangle = match detect.crop_area {
                     Some(value) => value,
@@ -3134,7 +3134,7 @@ mod tests {
                     }
                 };
            
-                HtmlLog::text(format!("pair: {} crop_area: {:?}", data.index, crop_area));
+                // HtmlLog::text(format!("pair: {} crop_area: {:?}", data.index, crop_area));
 
                 // Sometimes it's not possible to compute the entire output just by looking at the input pixels alone.
                 // Fill the attention area with an `CannotCompute`, so that it's clear there was a problem 
@@ -3143,43 +3143,43 @@ mod tests {
                 // bigger than what is possible to recover just by looking at the input pixels alone.
                 let input_masked_out: Image = input.fill_inside_rect(rect, Color::CannotCompute as u8)?;
 
-                // TODO: fill out as many pixels as possible outside the crop_area.
+                let mut the_result_image: Image = input_masked_out.clone();
 
-                let input_crop: Image = input_masked_out.crop(crop_area)?;
-                let attention_crop: Image = attention_mask.crop(crop_area)?;
-
-                let input_flip_y: Image = input_crop.flip_y()?;
-                let attention_flip_y: Image = attention_crop.flip_y()?;
-
-                let input_flip_x: Image = input_crop.flip_x()?;
-                let attention_flip_x: Image = attention_crop.flip_x()?;
-
-                let mut result_image: Image = input_crop.clone();
-                for y in 0..input_crop.height() {
-                    for x in 0..input_crop.width() {
-                        let attention_value: u8 = attention_crop.get(x as i32, y as i32).unwrap_or(0);
-                        if attention_value == 0 {
-                            continue;
-                        }
-
-                        let attention_flip_y_value: u8 = attention_flip_y.get(x as i32, y as i32).unwrap_or(0);
-                        if attention_flip_y_value == 0 {
-                            let color: u8 = input_flip_y.get(x as i32, y as i32).unwrap_or(255);
-                            _ = result_image.set(x as i32, y as i32, color);
-                            continue;
-                        }
-
-                        let attention_flip_x_value: u8 = attention_flip_x.get(x as i32, y as i32).unwrap_or(0);
-                        if attention_flip_x_value == 0 {
-                            let color: u8 = input_flip_x.get(x as i32, y as i32).unwrap_or(255);
-                            _ = result_image.set(x as i32, y as i32, color);
-                            continue;
+                // left right symmetry
+                if let Some(r) = detect.horizontal_rect {
+                    for y in 0..the_result_image.height() {
+                        for x in 0..r.width() {
+                            let pixel_value: u8 = the_result_image.get(r.min_x() + (x as i32), y as i32).unwrap_or(0);
+                            if pixel_value != Color::CannotCompute as u8 {
+                                continue;
+                            }
+                            let pixel_value: u8 = the_result_image.get(r.max_x() - (x as i32), y as i32).unwrap_or(0);
+                            if pixel_value != Color::CannotCompute as u8 {
+                                _ = the_result_image.set(r.min_x() + (x as i32), y as i32, pixel_value);
+                            }
                         }
                     }
                 }
 
-                let mut the_result_image: Image = input_masked_out.clone();
-                the_result_image = the_result_image.overlay_with_position(&result_image, crop_area.min_x(), crop_area.min_y())?;
+                // top bottom symmetry
+                if let Some(r) = detect.vertical_rect {
+                    for y in 0..r.height() {
+                        for x in 0..the_result_image.width() {
+                            let pixel_value: u8 = the_result_image.get(x as i32, r.min_y() + (y as i32)).unwrap_or(0);
+                            if pixel_value != Color::CannotCompute as u8 {
+                                continue;
+                            }
+                            let pixel_value: u8 = the_result_image.get(x as i32, r.max_y() - (y as i32)).unwrap_or(0);
+                            if pixel_value != Color::CannotCompute as u8 {
+                                _ = the_result_image.set(x as i32, r.min_y() + (y as i32), pixel_value);
+                            }
+                        }
+                    }
+                }
+
+                // idea
+                // If there is diagonal_a_rect, then repair the pixels.
+                // If there is diagonal_b_rect, then repair the pixels.
 
                 let cropped_result_image: Image = the_result_image.crop(rect)?;
                 // let cropped_result_image: Image = the_result_image;

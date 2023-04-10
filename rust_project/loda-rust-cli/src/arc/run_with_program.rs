@@ -551,7 +551,7 @@ impl RunWithProgram {
                 if count_replacements == area {
                     return Err(anyhow::anyhow!("Replacing everything is illegal."));
                 }
-                let max_replacements: u16 = area / 3;
+                let max_replacements: u16 = area / 5;
                 if count_replacements >= max_replacements {
                     return Err(anyhow::anyhow!("Performed too many replacements. The majority of pixels must be computed. count: {} limit: {}", count_replacements, max_replacements));
                 }
