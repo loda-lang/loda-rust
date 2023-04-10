@@ -73,6 +73,12 @@ impl Image {
     }
 
     /// Get pixel value at coordinate (x, y).
+    /// 
+    /// Idea for simplification. I rarely act on the `None` value.
+    /// 
+    /// from this: `image.get(x as i32, y as i32).unwrap_or(255);`
+    /// 
+    /// to this: `image.get(x, y)` and use `Color::Invalid` when getting outside the image.
     pub fn get(&self, x: i32, y: i32) -> Option<u8> {
         let index: usize = self.index_for_pixel(x, y)?;
         if index >= self.pixels.len() {
