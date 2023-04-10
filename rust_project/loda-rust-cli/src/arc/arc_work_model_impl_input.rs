@@ -241,22 +241,6 @@ impl arc_work_model::Input {
                 self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalBWithMismatches);
             }
         }
-
-        // if width >= 2 || height >= 2 {
-        //     if let Ok(is_symmetric) = self.image.is_symmetric_x() {
-        //         if is_symmetric {
-        //             self.input_label_set.insert(InputLabel::InputImageIsSymmetricX);
-        //         }
-        //     }
-        // }
-
-        // if width >= 2 || height >= 2 {
-        //     if let Ok(is_symmetric) = self.image.is_symmetric_y() {
-        //         if is_symmetric {
-        //             self.input_label_set.insert(InputLabel::InputImageIsSymmetricY);
-        //         }
-        //     }
-        // }
     }
 
     pub fn find_objects_using_histogram_most_popular_color(&self) -> anyhow::Result<Vec<Object>> {
