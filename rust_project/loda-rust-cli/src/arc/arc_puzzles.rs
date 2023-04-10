@@ -3194,4 +3194,60 @@ mod tests {
         let result: String = run_analyze_and_solve("af22c60d", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
+
+    // #[test]
+    fn test_720000_puzzle_dc0a314f() {
+        let mut instance = solve_de493100::MySolution::new();
+        let result: String = run_analyze_and_solve("dc0a314f", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    // #[test]
+    fn test_730000_puzzle_9ecd008a() {
+        let mut instance = solve_de493100::MySolution::new();
+        let result: String = run_analyze_and_solve("9ecd008a", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    // #[test]
+    fn test_740000_puzzle_b8825c91() {
+        let mut instance = solve_de493100::MySolution::new();
+        let result: String = run_analyze_and_solve("b8825c91", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    // #[test]
+    fn test_750000_puzzle_ff805c23() {
+        let mut instance = solve_de493100::MySolution::new();
+        let result: String = run_analyze_and_solve("ff805c23", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    // #[test]
+    fn test_760000_puzzle_3631a71a() {
+        let mut instance = solve_de493100::MySolution::new();
+        let result: String = run_analyze_and_solve("3631a71a", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    // #[test]
+    fn test_770000_puzzle_67b4a34d() {
+        let mut instance = solve_de493100::MySolution::new();
+        let result: String = run_analyze_and_solve("67b4a34d", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    // #[test]
+    fn test_780000_puzzle_929ab4e9() {
+        let mut instance = solve_de493100::MySolution::new();
+        let result: String = run_analyze_and_solve("929ab4e9", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    // #[test]
+    fn test_790000_puzzle_47996f11() {
+        let mut instance = solve_de493100::MySolution::new();
+        let result: String = run_analyze_and_solve("47996f11", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
 }
