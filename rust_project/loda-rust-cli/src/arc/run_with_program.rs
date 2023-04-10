@@ -798,8 +798,8 @@ impl RunWithProgram {
             Err(_) => {}
         }
 
-        // Self::check_all_outputs_use_valid_colors(&computed_images)
-        //     .context("process_computed_images")?;
+        Self::check_all_outputs_use_valid_colors(&computed_images)
+            .context("process_computed_images")?;
 
         let mut status_texts = Vec::<&str>::new();
 
