@@ -452,6 +452,66 @@ impl RunWithProgram {
     /// 
     /// It's illegal for the `test` pairs to contain `Color::CannotCompute`.
     fn preserve_output_for_traindata(&self, computed_images: &mut Vec<Image>) -> anyhow::Result<()> {
+        // TODO: together with the computed_images, also store a `rejection reason`,
+        // so it's possible to debug why an image was rejected.
+        // make a struct that contains both the pair index, if it's a train or test.
+
+        let count_train: usize = self.task.count_train();
+
+        // Reject the solution if `Color::CannotCompute` is detected in the `test` pairs.
+        {
+            let mut count_test: usize = 0;
+            for pair in &self.task.pairs {
+                if pair.pair_type != arc_work_model::PairType::Test {
+                    continue;
+                }
+                let index: usize = count_train + count_test;
+                count_test += 1;
+                let computed_image: &Image = &computed_images[index];
+                let size: ImageSize = computed_image.size();
+                let mut count_invalid_colors: u16 = 0;
+                for y in 0..size.height {
+                    for x in 0..size.width {
+                        let xx = x as i32;
+                        let yy = y as i32;
+                        let computed_pixel: u8 = computed_image.get(xx, yy).unwrap_or(255);
+                        if computed_pixel == Color::CannotCompute as u8 {
+                            count_invalid_colors += 1;
+                        }
+                    }
+                }
+                if count_invalid_colors > 0 {
+                    return Err(anyhow::anyhow!("computed output for test pair must not contain Color::CannotCompute"));
+                }
+            }
+        }
+
+        // Loop over the `train` pairs.
+        // Stop if the size of the computed_outputs doesn't match the size of the expected_output.
+        // We want to preserve pixel values from the expected output.
+        // In order to do so, both the computed_image and the expected_output must have the same size.
+        // Cannot copy pixels between images with different sizes.
+        // Bail out before starting to mutate things.
+        {
+            let mut count_train: usize = 0;
+            for pair in &self.task.pairs {
+                if pair.pair_type != arc_work_model::PairType::Train {
+                    continue;
+                }
+                let index: usize = count_train;
+                count_train += 1;
+    
+                let computed_image: &Image = &computed_images[index];
+                let expected_image: Image = pair.output.image.clone();
+                if computed_image.size() != expected_image.size() {
+                    return Ok(());
+                }
+            }
+
+        }
+
+        // Loop over the training pairs.
+        // Replace the `Color::CannotCompute` with the expected_output
         {
             let mut count_train: usize = 0;
             for pair in &self.task.pairs {
@@ -469,28 +529,59 @@ impl RunWithProgram {
                     return Err(anyhow::anyhow!("size does not match"));
                 }
     
-                for y in 0..size.height as i32 {
-                    for x in 0..size.width as i32 {
-                        let computed_pixel: u8 = computed_image.get(x, y).unwrap_or(255);
+                let mut count_replacements: u16 = 0;
+                for y in 0..size.height {
+                    for x in 0..size.width {
+                        let xx = x as i32;
+                        let yy = y as i32;
+                        let computed_pixel: u8 = computed_image.get(xx, yy).unwrap_or(255);
                         if computed_pixel != Color::CannotCompute as u8 {
                             continue;
                         }
-                        let expected_pixel: u8 = expected_image.get(x, y).unwrap_or(255);
-                        _ = computed_image.set(x, y, expected_pixel);
+                        let expected_pixel: u8 = expected_image.get(xx, yy).unwrap_or(255);
+                        _ = computed_image.set(xx, yy, expected_pixel);
+                        count_replacements += 1;
                     }
                 }
 
                 // Copying the expected output is dangerous and may yield false positives.
-                // Just output the Color::CannotCompute on all pixels and the task seems solved.
+                // It's not a solution just outputting `Color::CannotCompute` on all pixels and the task seems solved.
                 // To prevent that scenario, only allow for few pixels being copied.
-                // TODO: only allow a few pixels being copied.
-                // TODO: detect when it's the majority of pixels that attempts copied, and reject the solution.
+                let area: u16 = (size.width as u16) * (size.height as u16);
+                if count_replacements == area {
+                    return Err(anyhow::anyhow!("Replacing everything is illegal."));
+                }
+                let max_replacements: u16 = area / 3;
+                if count_replacements >= max_replacements {
+                    return Err(anyhow::anyhow!("Performed too many replacements. The majority of pixels must be computed. count: {} limit: {}", count_replacements, max_replacements));
+                }
+                // println!("count: {} limit: {}", count_replacements, max_replacements);
             }
         }
 
-        // TODO: verify that the test pairs does not contain Color::CannotCompute.
-        // if the color is encountered, then reject the solution.
+        Ok(())
+    }
 
+    fn check_all_outputs_use_valid_colors(computed_images: &Vec<Image>) -> anyhow::Result<()> {
+        // Loop over the train+test pairs.
+        for computed_image in computed_images {
+            let size: ImageSize = computed_image.size();
+            let mut count_invalid_colors: u16 = 0;
+            for y in 0..size.height {
+                for x in 0..size.width {
+                    let xx = x as i32;
+                    let yy = y as i32;
+                    let computed_pixel: u8 = computed_image.get(xx, yy).unwrap_or(255);
+                    if computed_pixel > 9 {
+                        count_invalid_colors += 1;
+                    }
+                }
+            }
+            if count_invalid_colors > 0 {
+                return Err(anyhow::anyhow!("colors must be in the range [0..9], but encountered an image with {} illegal colors", count_invalid_colors));
+            }
+        }
+        // All the images contain valid colors.
         Ok(())
     }
 
@@ -706,6 +797,9 @@ impl RunWithProgram {
             },
             Err(_) => {}
         }
+
+        Self::check_all_outputs_use_valid_colors(&computed_images)
+            .context("process_computed_images")?;
 
         let mut status_texts = Vec::<&str>::new();
 
