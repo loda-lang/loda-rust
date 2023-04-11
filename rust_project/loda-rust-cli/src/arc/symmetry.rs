@@ -18,8 +18,20 @@ pub struct Symmetry {
     pub found_vertical_symmetry: bool,
     pub vertical_rect: Option<Rectangle>,
 
+    pub diagonal_a_found: bool,
+    pub diagonal_a_x: u8,
+    pub diagonal_a_y: u8,
+    pub diagonal_a_size: u8,
+    pub diagonal_a_mismatches_new: u16,
+
     pub diagonal_a_mismatches: u16,
     pub diagonal_a_is_symmetric: bool,
+
+    pub diagonal_b_found: bool,
+    pub diagonal_b_x: u8,
+    pub diagonal_b_y: u8,
+    pub diagonal_b_size: u8,
+    pub diagonal_b_mismatches_new: u16,
 
     pub diagonal_b_mismatches: u16,
     pub diagonal_b_is_symmetric: bool,
@@ -54,8 +66,18 @@ impl Symmetry {
             found_vertical_symmetry: false,
             vertical_mismatches: u16::MAX,
             vertical_rect: None,
+            diagonal_a_found: false,
+            diagonal_a_x: u8::MAX,
+            diagonal_a_y: u8::MAX,
+            diagonal_a_size: u8::MAX,
+            diagonal_a_mismatches_new: u16::MAX,
             diagonal_a_mismatches: u16::MAX,
             diagonal_a_is_symmetric: false,
+            diagonal_b_found: false,
+            diagonal_b_x: u8::MAX,
+            diagonal_b_y: u8::MAX,
+            diagonal_b_size: u8::MAX,
+            diagonal_b_mismatches_new: u16::MAX,
             diagonal_b_mismatches: u16::MAX,
             diagonal_b_is_symmetric: false,
             repair_color: None,
@@ -106,11 +128,34 @@ impl Symmetry {
         format!("partial diagonal-b symmetry, mismatches: {}", self.diagonal_b_mismatches)
     }
 
+    #[allow(dead_code)]
+    fn diagonal_a_new_to_string(&self) -> String {
+        if !self.diagonal_a_found {
+            return "no diagonal-a symmetry".to_string();
+        }
+        if self.diagonal_a_mismatches_new == 0 {
+            return format!("diagonal-a symmetry, x: {} y: {} size: {}", self.diagonal_a_x, self.diagonal_a_y, self.diagonal_a_size);
+        }
+        format!("partial diagonal-a symmetry, x: {} y: {} size: {} mismatches: {}", self.diagonal_a_x, self.diagonal_a_y, self.diagonal_a_size, self.diagonal_a_mismatches_new)
+    }
+
+    #[allow(dead_code)]
+    fn diagonal_b_new_to_string(&self) -> String {
+        if !self.diagonal_b_found {
+            return "no diagonal-b symmetry".to_string();
+        }
+        if self.diagonal_b_mismatches_new == 0 {
+            return format!("diagonal-b symmetry, x: {} y: {} size: {}", self.diagonal_b_x, self.diagonal_b_y, self.diagonal_b_size);
+        }
+        format!("partial diagonal-b symmetry, x: {} y: {} size: {} mismatches: {}", self.diagonal_b_x, self.diagonal_b_y, self.diagonal_b_size, self.diagonal_b_mismatches_new)
+    }
+
     fn perform_analyze(&mut self, image: &Image) -> anyhow::Result<()> {
         self.analyze_horizontal_symmetry(image)?;
         self.analyze_vertical_symmetry(image)?;
         self.suppress_false_positive(image)?;
         self.analyze_diagonal_symmetry(image)?;
+        self.analyze_symmetry_diagonal_new(image)?;
         self.update_horizontal_rect(image)?;
         self.update_vertical_rect(image)?;
         self.find_repair_color(image)?;
@@ -284,6 +329,100 @@ impl Symmetry {
                 self.diagonal_b_mismatches = mismatch_count;
             }
         }
+        Ok(())
+    }
+
+    fn analyze_symmetry_diagonal_new(&mut self, image: &Image) -> anyhow::Result<()> {
+        self.analyze_symmetry_diagonal_inner(image, true)?;
+        self.analyze_symmetry_diagonal_inner(image, false)?;
+        Ok(())
+    }
+
+    fn analyze_symmetry_diagonal_inner(&mut self, image: &Image, is_diagonal_a: bool) -> anyhow::Result<()> {
+        let min_size: u8 = image.width().min(image.height());
+        let max_size: u8 = image.width().max(image.height());
+        let max_minus_min: u8 = max_size - min_size;
+
+        let mut x_iterations: u8 = 1;
+        let mut y_iterations: u8 = 1;
+        if image.width() > image.height() {
+            x_iterations = max_minus_min + 1;
+        }
+        if image.width() < image.height() {
+            y_iterations = max_minus_min + 1;
+        }
+        println!("x_iterations: {}", x_iterations);
+        println!("y_iterations: {}", y_iterations);
+
+        let area: u16 = (min_size as u16) * (min_size as u16);
+        let limit: u16 = area / 2;
+        println!("limit: {}", limit);
+
+        let mut found: bool = false;
+        let mut found_x: u8 = u8::MAX;
+        let mut found_y: u8 = u8::MAX;
+        let mut found_mismatches: u16 = u16::MAX;
+
+        for x in 0..x_iterations {
+            for y in 0..y_iterations {
+                let rect: Rectangle = Rectangle::new(x, y, min_size, min_size);
+                let image_cropped: Image = image.crop(rect)?;
+
+                let flipped_image: Image = match is_diagonal_a {
+                    true => {
+                        image_cropped.flip_diagonal_a()?
+                    },
+                    false => {
+                        image_cropped.flip_diagonal_b()?      
+                    }
+                };
+                let diff: Image = flipped_image.diff(&image_cropped)?;
+                let mismatch_count: u16 = diff.mask_count_one();
+                // println!("x: {} y: {} mismatches: {}", x, y, mismatch_count);
+                println!("x: {} y: {} diff: {:?}", x, y, diff);
+                if mismatch_count > limit {
+                    println!("x: {} y: {} mismatches: {}  ignoring", x, y, mismatch_count);
+                    continue;
+                }
+                println!("x: {} y: {} mismatches: {}", x, y, mismatch_count);
+
+                if !found {
+                    found = true;
+                    found_mismatches = mismatch_count;
+                    found_x = x;
+                    found_y = y;
+                    continue;
+                }
+        
+                if found_mismatches < mismatch_count {
+                    continue;
+                }
+                found_mismatches = mismatch_count;
+                found_x = x;
+                found_y = y;
+            }
+        }
+
+        if !found {
+            println!("did not find diagonal");
+            return Ok(());
+        }
+        if is_diagonal_a {
+            println!("found diagonal_a. x: {} y: {} mismatches: {}", found_x, found_y, found_mismatches);
+            self.diagonal_a_found = found;
+            self.diagonal_a_x = found_x;
+            self.diagonal_a_y = found_y;
+            self.diagonal_a_size = min_size;
+            self.diagonal_a_mismatches_new = found_mismatches;
+        } else {
+            println!("found diagonal_b. x: {} y: {} mismatches: {}", found_x, found_y, found_mismatches);
+            self.diagonal_b_found = found;
+            self.diagonal_b_x = found_x;
+            self.diagonal_b_y = found_y;
+            self.diagonal_b_size = min_size;
+            self.diagonal_b_mismatches_new = found_mismatches;
+        }
+
         Ok(())
     }
 
@@ -872,6 +1011,52 @@ mod tests {
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
         assert_eq!(instance.diagonal_a_to_string(), "diagonal-a symmetry");
         assert_eq!(instance.diagonal_b_to_string(), "diagonal-b symmetry");
+        assert_eq!(instance.repair_color, None);
+    }
+
+    #[test]
+    fn test_30009_diagonal_a() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 5, 5, 5, 0, 0,
+            1, 5, 0, 5, 0, 0,
+            1, 5, 5, 5, 0, 0,
+            1, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 5, pixels).expect("image");
+
+        // Act
+        let instance = Symmetry::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 1 mismatches: 10");
+        assert_eq!(instance.vertical_to_string(), "partial vertical symmetry, top: 0 bottom: 1 mismatches: 8");
+        assert_eq!(instance.diagonal_a_new_to_string(), "no diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_new_to_string(), "diagonal-b symmetry, x: 1 y: 0 size: 5");
+        assert_eq!(instance.repair_color, None);
+    }
+
+    #[test]
+    fn test_30010_diagonal_b() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 0, 0, 5, 5, 5,
+            1, 0, 0, 5, 0, 5,
+            1, 0, 0, 5, 5, 5,
+            1, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(6, 5, pixels).expect("image");
+
+        // Act
+        let instance = Symmetry::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 2 right: 0 mismatches: 8");
+        assert_eq!(instance.vertical_to_string(), "partial vertical symmetry, top: 0 bottom: 1 mismatches: 8");
+        assert_eq!(instance.diagonal_a_new_to_string(), "diagonal-a symmetry, x: 1 y: 0 size: 5");
+        assert_eq!(instance.diagonal_b_new_to_string(), "no diagonal-b symmetry");
         assert_eq!(instance.repair_color, None);
     }
 
