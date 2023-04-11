@@ -3243,14 +3243,14 @@ mod tests {
         assert_eq!(result, "4 1");
     }
 
-    // #[test]
+    #[test]
     fn test_710001_puzzle_b8825c91() {
         let mut instance = solve_de493100::MySolution::new_without_crop();
         let result: String = run_analyze_and_solve("b8825c91", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
-    // #[test]
+    #[test]
     fn test_710002_puzzle_3631a71a() {
         let mut instance = solve_de493100::MySolution::new_without_crop();
         let result: String = run_analyze_and_solve("3631a71a", &mut instance).expect("String");
