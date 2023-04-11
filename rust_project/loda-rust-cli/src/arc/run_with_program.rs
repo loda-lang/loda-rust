@@ -779,7 +779,7 @@ impl RunWithProgram {
     }
 
     fn process_computed_images(&self, mut computed_images: Vec<Image>) -> anyhow::Result<RunWithProgramResult> {
-        let pretty_print = true;
+        let pretty_print = false;
 
         match self.preserve_output_for_traindata(&mut computed_images) {
             Ok(()) => {
