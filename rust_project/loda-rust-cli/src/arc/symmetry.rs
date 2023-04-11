@@ -197,15 +197,10 @@ impl Symmetry {
         // println!("repair_mask: {:?}", repair_mask);
 
         let histogram2: Histogram = image.histogram_with_mask(&repair_mask)?;
-        if histogram2.number_of_counters_greater_than_zero() != 1 {
-            // println!("no consensus on what color is to be repaired");
-            return Ok(());
-        }
-
         let repair_color: u8 = match histogram2.most_popular_color_disallow_ambiguous() {
             Some(value) => value,
             None => {
-                // println!("histogram2: {:?}", histogram2.most_popular_color_disallow_ambiguous());
+                // println!("histogram2: {:?}", histogram2);
                 return Ok(());
             }
         };
@@ -922,6 +917,48 @@ mod tests {
         assert_eq!(instance.vertical_to_string(), "partial vertical symmetry, top: 0 bottom: 0 mismatches: 8");
         assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
         assert_eq!(instance.diagonal_b_to_string(), "no diagonal-b symmetry");
+        assert_eq!(instance.repair_color, Some(2));
+    }
+
+    #[test]
+    fn test_40002_find_repair_color() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            7, 9, 5, 5, 3, 5, 6, 9, 9, 9, 5, 6, 6, 5, 9, 9, 9, 6, 5, 3, 5, 5, 9, 7,
+            9, 7, 5, 1, 5, 3, 9, 3, 8, 6, 6, 2, 2, 2, 6, 8, 3, 9, 3, 5, 1, 5, 7, 9,
+            5, 5, 1, 3, 9, 3, 9, 8, 9, 5, 3, 2, 2, 2, 5, 9, 8, 9, 3, 9, 3, 1, 5, 5,
+            5, 1, 3, 7, 9, 9, 9, 6, 5, 9, 6, 2, 2, 2, 9, 5, 6, 9, 9, 9, 7, 3, 1, 5,
+            2, 2, 2, 2, 2, 9, 5, 6, 3, 6, 3, 2, 2, 2, 6, 3, 6, 5, 9, 3, 9, 9, 5, 3,
+            2, 2, 2, 2, 2, 3, 6, 6, 3, 9, 8, 2, 2, 2, 9, 3, 6, 6, 3, 9, 9, 3, 3, 5,
+            2, 2, 2, 2, 2, 6, 9, 7, 9, 9, 4, 2, 2, 2, 9, 9, 7, 9, 6, 5, 9, 9, 9, 6,
+            2, 2, 2, 2, 2, 6, 7, 9, 9, 1, 1, 4, 4, 1, 1, 9, 9, 7, 6, 6, 6, 8, 3, 9,
+            2, 2, 2, 2, 2, 3, 9, 9, 1, 7, 4, 3, 3, 4, 7, 1, 9, 9, 3, 3, 5, 9, 8, 9,
+            2, 2, 2, 2, 2, 9, 9, 1, 7, 1, 9, 7, 7, 9, 1, 7, 2, 2, 2, 2, 9, 5, 6, 9,
+            5, 6, 3, 6, 3, 8, 4, 1, 4, 9, 3, 9, 9, 3, 9, 4, 2, 2, 2, 2, 6, 3, 6, 5,
+            6, 6, 3, 9, 8, 9, 4, 4, 3, 7, 9, 7, 7, 9, 7, 3, 2, 2, 2, 2, 9, 3, 6, 6,
+            6, 6, 3, 9, 8, 9, 4, 4, 3, 7, 9, 7, 7, 9, 7, 3, 2, 2, 2, 2, 9, 3, 6, 6,
+            5, 6, 3, 6, 3, 8, 2, 2, 2, 2, 2, 2, 9, 3, 9, 4, 2, 2, 2, 2, 6, 3, 6, 5,
+            9, 6, 5, 9, 6, 9, 2, 2, 2, 2, 2, 2, 7, 9, 1, 7, 2, 2, 2, 2, 9, 5, 6, 9,
+            9, 8, 9, 5, 3, 3, 2, 2, 2, 2, 2, 2, 3, 4, 7, 1, 9, 9, 3, 3, 5, 9, 8, 9,
+            9, 3, 8, 6, 6, 6, 2, 2, 2, 2, 2, 2, 4, 1, 1, 9, 9, 7, 6, 6, 6, 8, 3, 9,
+            6, 9, 9, 9, 5, 6, 9, 7, 9, 9, 4, 4, 4, 4, 9, 9, 7, 9, 6, 5, 9, 9, 9, 6,
+            5, 3, 3, 9, 9, 3, 6, 6, 3, 9, 8, 9, 9, 8, 9, 3, 6, 6, 3, 9, 9, 3, 3, 5,
+            3, 5, 9, 9, 3, 9, 5, 6, 3, 6, 3, 8, 8, 3, 6, 3, 6, 5, 9, 3, 9, 9, 5, 3,
+            5, 1, 3, 7, 9, 9, 9, 6, 5, 9, 6, 9, 9, 6, 9, 5, 6, 9, 9, 9, 7, 3, 1, 5,
+            5, 5, 1, 3, 9, 3, 9, 8, 9, 5, 3, 3, 3, 3, 5, 9, 8, 9, 3, 9, 3, 1, 5, 5,
+            9, 7, 5, 1, 5, 3, 9, 3, 8, 6, 6, 6, 6, 6, 6, 8, 3, 9, 3, 5, 1, 5, 7, 9,
+            7, 9, 5, 5, 3, 5, 6, 9, 9, 9, 5, 6, 6, 5, 9, 9, 9, 6, 5, 3, 5, 5, 9, 7
+        ];
+        let input: Image = Image::try_create(24, 24, pixels).expect("image");
+
+        // Act
+        let instance = Symmetry::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 148");
+        assert_eq!(instance.vertical_to_string(), "partial vertical symmetry, top: 0 bottom: 0 mismatches: 144");
+        assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, mismatches: 124");
+        assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, mismatches: 174");
         assert_eq!(instance.repair_color, Some(2));
     }
 }

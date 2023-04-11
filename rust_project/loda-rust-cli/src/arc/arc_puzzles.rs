@@ -3141,6 +3141,7 @@ mod tests {
                     }
                 };
                 // HtmlLog::text(format!("pair {}, detect: {:?}", data.index, detect));
+                // println!("repair color: {:?}", symmetry.repair_color);
 
                 // Sometimes it's not possible to compute the entire output just by looking at the input pixels alone.
                 // Fill the repair mask with `Color::CannotCompute`, so that it's clear there was a problem 
