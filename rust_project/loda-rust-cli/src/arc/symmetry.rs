@@ -23,17 +23,15 @@ pub struct Symmetry {
     pub diagonal_a_y: u8,
     pub diagonal_a_size: u8,
     pub diagonal_a_mismatches: u16,
+    pub diagonal_a_rect: Option<Rectangle>,
 
     pub diagonal_b_found: bool,
     pub diagonal_b_x: u8,
     pub diagonal_b_y: u8,
     pub diagonal_b_size: u8,
     pub diagonal_b_mismatches: u16,
+    pub diagonal_b_rect: Option<Rectangle>,
 
-    // TODO: "diagonal_a_rect" and "diagonal_b_rect"
-    // pub diagonal_a_rect: Option<Rectangle>,
-    // pub diagonal_b_rect: Option<Rectangle>,
-    
     pub repair_color: Option<u8>,
     // Idea for more
     // repair plan for the damaged pixels
@@ -65,11 +63,13 @@ impl Symmetry {
             diagonal_a_y: u8::MAX,
             diagonal_a_size: u8::MAX,
             diagonal_a_mismatches: u16::MAX,
+            diagonal_a_rect: None,
             diagonal_b_found: false,
             diagonal_b_x: u8::MAX,
             diagonal_b_y: u8::MAX,
             diagonal_b_size: u8::MAX,
             diagonal_b_mismatches: u16::MAX,
+            diagonal_b_rect: None,
             repair_color: None,
         }
     }
@@ -125,6 +125,8 @@ impl Symmetry {
         self.analyze_diagonal_symmetry(image)?;
         self.update_horizontal_rect(image)?;
         self.update_vertical_rect(image)?;
+        self.update_diagonal_a_rect()?;
+        self.update_diagonal_b_rect()?;
         self.find_repair_color(image)?;
         Ok(())
     }
@@ -227,14 +229,10 @@ impl Symmetry {
             return Ok(());
         }
         let r = Rectangle::new(0, 0, image.width(), image.height());
-        let mut x0: i32 = r.min_x();
+        let x0: i32 = r.min_x() + (self.horizontal_left as i32);
         let y0: i32 = r.min_y();
-        let mut x1: i32 = r.max_x();
+        let x1: i32 = r.max_x() - (self.horizontal_right as i32);
         let y1: i32 = r.max_y();
-        if self.horizontal_found {
-            x0 += self.horizontal_left as i32;
-            x1 -= self.horizontal_right as i32;
-        }
         self.horizontal_rect = Rectangle::span(x0, y0, x1, y1);
         Ok(())
     }
@@ -245,14 +243,28 @@ impl Symmetry {
         }
         let r = Rectangle::new(0, 0, image.width(), image.height());
         let x0: i32 = r.min_x();
-        let mut y0: i32 = r.min_y();
+        let y0: i32 = r.min_y() + (self.vertical_top as i32);
         let x1: i32 = r.max_x();
-        let mut y1: i32 = r.max_y();
-        if self.vertical_found {
-            y0 += self.vertical_top as i32;
-            y1 -= self.vertical_bottom as i32;
-        }
+        let y1: i32 = r.max_y() - (self.vertical_bottom as i32);
         self.vertical_rect = Rectangle::span(x0, y0, x1, y1);
+        Ok(())
+    }
+
+    fn update_diagonal_a_rect(&mut self) -> anyhow::Result<()> {
+        if !self.diagonal_a_found {
+            return Ok(());
+        }
+        let r = Rectangle::new(self.diagonal_a_x, self.diagonal_a_y, self.diagonal_a_size, self.diagonal_a_size);
+        self.diagonal_a_rect = Some(r);
+        Ok(())
+    }
+
+    fn update_diagonal_b_rect(&mut self) -> anyhow::Result<()> {
+        if !self.diagonal_b_found {
+            return Ok(());
+        }
+        let r = Rectangle::new(self.diagonal_b_x, self.diagonal_b_y, self.diagonal_b_size, self.diagonal_b_size);
+        self.diagonal_b_rect = Some(r);
         Ok(())
     }
 

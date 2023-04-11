@@ -3096,19 +3096,29 @@ mod tests {
         use super::*;
 
         pub struct MySolution {
-            perform_crop_to_attention_mask: bool
+            perform_crop_to_attention_mask: bool,
+            repair_diagonals: bool,
         }
     
         impl MySolution {
             pub fn new_without_crop() -> Self {
                 Self { 
                     perform_crop_to_attention_mask: false,
+                    repair_diagonals: false,
                 }
             }
 
             pub fn new_with_crop() -> Self {
                 Self { 
                     perform_crop_to_attention_mask: true,
+                    repair_diagonals: false,
+                }
+            }
+
+            pub fn new_without_crop_and_repair_diagonals() -> Self {
+                Self { 
+                    perform_crop_to_attention_mask: false,
+                    repair_diagonals: true,
                 }
             }
         }
@@ -3179,6 +3189,42 @@ mod tests {
                             let pixel_value: u8 = the_result_image.get(x as i32, r.max_y() - (y as i32)).unwrap_or(0);
                             if pixel_value != Color::CannotCompute as u8 {
                                 _ = the_result_image.set(x as i32, r.min_y() + (y as i32), pixel_value);
+                            }
+                        }
+                    }
+                }
+
+                // diagonal a symmetry
+                if self.repair_diagonals {
+                    if let Some(r) = symmetry.diagonal_a_rect {
+                        for y in 0..r.height() {
+                            for x in 0..r.width() {
+                                let pixel_value: u8 = the_result_image.get(r.min_x() + (x as i32), r.min_y() + (y as i32)).unwrap_or(0);
+                                if pixel_value != Color::CannotCompute as u8 {
+                                    continue;
+                                }
+                                let pixel_value: u8 = the_result_image.get(r.min_x() + (y as i32), r.min_y() + (x as i32)).unwrap_or(0);
+                                if pixel_value != Color::CannotCompute as u8 {
+                                    // _ = the_result_image.set(r.min_x() + (x as i32), r.min_y() + (y as i32), pixel_value);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // diagonal b symmetry
+                if self.repair_diagonals {
+                    if let Some(r) = symmetry.diagonal_b_rect {
+                        for y in 0..r.height() {
+                            for x in 0..r.width() {
+                                let pixel_value: u8 = the_result_image.get(r.max_x() - (x as i32), r.min_y() + (y as i32)).unwrap_or(0);
+                                if pixel_value != Color::CannotCompute as u8 {
+                                    continue;
+                                }
+                                let pixel_value: u8 = the_result_image.get(r.max_x() - (y as i32), r.min_y() + (x as i32)).unwrap_or(0);
+                                if pixel_value != Color::CannotCompute as u8 {
+                                    _ = the_result_image.set(r.max_x() - (x as i32), r.min_y() + (y as i32), pixel_value);
+                                }
                             }
                         }
                     }
@@ -3257,9 +3303,9 @@ mod tests {
         assert_eq!(result, "4 1");
     }
 
-    // #[test]
+    #[test]
     fn test_710003_puzzle_929ab4e9() {
-        let mut instance = solve_de493100::MySolution::new_without_crop();
+        let mut instance = solve_de493100::MySolution::new_without_crop_and_repair_diagonals();
         let result: String = run_analyze_and_solve("929ab4e9", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
