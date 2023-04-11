@@ -99,6 +99,11 @@ impl Histogram {
     }
 
     #[allow(dead_code)]
+    pub fn reset(&mut self) {
+        self.counters = [0; 256];
+    } 
+
+    #[allow(dead_code)]
     pub fn counters(&self) -> &[u32; 256] {
         &self.counters
     }
