@@ -3227,13 +3227,13 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
-    // #[test]
+    #[test]
     fn test_700004_puzzle_9ecd008a() {
         // Predicts the correct size of the output, but for the wrong reasons.
         // It doesn't detect that it's a strongly connected area of 3x3 pixels, and that it's colored black.
         let mut instance = solve_de493100::MySolution::new_with_crop();
         let result: String = run_analyze_and_solve("9ecd008a", &mut instance).expect("String");
-        assert_eq!(result, "4 1");
+        assert_eq!(result, "3 1");
     }
 
     #[test]

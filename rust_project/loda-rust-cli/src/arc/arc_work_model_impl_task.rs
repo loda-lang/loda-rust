@@ -73,7 +73,59 @@ impl arc_work_model::Task {
     //     }
     // }
 
+    fn has_resolved_attention_mask(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.input.attention_mask.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
     fn assign_attention_mask(&mut self) {
+        self.assign_attention_mask_with_repair_color();
+        self.assign_attention_mask_single_color_removal();
+    }
+
+    fn assign_attention_mask_with_repair_color(&mut self) {
+        if self.has_resolved_attention_mask() {
+            return;
+        }
+
+        // proceed only if all the pairs have a repair color
+        for pair in &mut self.pairs {
+            if let Some(symmetry) = &pair.input.symmetry {
+                if symmetry.repair_color.is_none() {
+                    // One or more of the pairs is missing a repair color
+                    return;
+                }
+            }
+        }
+
+        // create attention mask with the repair color.
+        for pair in &mut self.pairs {
+            let color: u8;
+            if let Some(symmetry) = &pair.input.symmetry {
+                if let Some(repair_color) = symmetry.repair_color {
+                    color = repair_color;
+                } else {
+                    // One or more of the pairs is missing a repair color
+                    continue;
+                }
+            } else {
+                // Symmetry is not initialized
+                continue;
+            }
+            _ = pair.input.assign_attention_mask_with_color(color);
+        }
+
+    }
+
+    fn assign_attention_mask_single_color_removal(&mut self) {
+        if self.has_resolved_attention_mask() {
+            return;
+        }
+
         if !self.is_output_size_same_as_removed_rectangle_after_single_color_removal() {
             return;
         }
@@ -90,15 +142,6 @@ impl arc_work_model::Task {
         for pair in &mut self.pairs {
             _ = pair.input.assign_attention_mask_with_color(color);
         }
-    }
-
-    fn has_resolved_attention_mask(&self) -> bool {
-        for pair in &self.pairs {
-            if pair.input.attention_mask.is_none() {
-                return false;
-            }
-        }
-        true
     }
 
     fn assign_biggest_object_mask(&mut self) {
