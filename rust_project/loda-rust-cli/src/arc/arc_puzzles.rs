@@ -3100,10 +3100,6 @@ mod tests {
         }
     
         impl MySolution {
-            pub fn new() -> Self {
-                Self::new_with_crop()
-            }
-
             pub fn new_without_crop() -> Self {
                 Self { 
                     perform_crop_to_attention_mask: false,
@@ -3138,7 +3134,12 @@ mod tests {
                     }
                 };
 
-                let detect: Symmetry = Symmetry::analyze(&input)?;
+                let symmetry: Symmetry = match &pair.input.symmetry {
+                    Some(value) => value.clone(),
+                    None => {
+                        return Err(anyhow::anyhow!("Expected symmetry"));
+                    }
+                };
                 // HtmlLog::text(format!("pair {}, detect: {:?}", data.index, detect));
 
                 // Sometimes it's not possible to compute the entire output just by looking at the input pixels alone.
@@ -3146,14 +3147,12 @@ mod tests {
                 // computing pixel data for these pixels.
                 // This happens when the symmetric shape has an inset, and there is masked out an area
                 // bigger than what is possible to recover just by looking at the input pixels alone.
-                // let input_masked_out: Image = input.fill_inside_rect(rect, Color::CannotCompute as u8)?;
-
                 let input_masked_out: Image = attention_mask.select_from_image_and_color(&input, Color::CannotCompute as u8)?;
 
                 let mut the_result_image: Image = input_masked_out.clone();
 
                 // left right symmetry
-                if let Some(r) = detect.horizontal_rect {
+                if let Some(r) = symmetry.horizontal_rect {
                     for y in 0..the_result_image.height() {
                         for x in 0..r.width() {
                             let pixel_value: u8 = the_result_image.get(r.min_x() + (x as i32), y as i32).unwrap_or(0);
@@ -3169,7 +3168,7 @@ mod tests {
                 }
 
                 // top bottom symmetry
-                if let Some(r) = detect.vertical_rect {
+                if let Some(r) = symmetry.vertical_rect {
                     for y in 0..r.height() {
                         for x in 0..the_result_image.width() {
                             let pixel_value: u8 = the_result_image.get(x as i32, r.min_y() + (y as i32)).unwrap_or(0);
