@@ -27,8 +27,8 @@ pub struct DetectSymmetry {
     // pub diagonal_a_rect: Option<Rectangle>,
     // pub diagonal_b_rect: Option<Rectangle>,
     
+    pub repair_color: Option<u8>,
     // Idea for more
-    // TODO: Identify the repair color
     // repair plan for the damaged pixels
 }
 
@@ -57,6 +57,7 @@ impl DetectSymmetry {
             diagonal_a_is_symmetric: false,
             diagonal_b_mismatches: u16::MAX,
             diagonal_b_is_symmetric: false,
+            repair_color: None,
         }
     }
 
@@ -133,15 +134,11 @@ impl DetectSymmetry {
             return Ok(());
         }
 
-        println!("overlap: {:?}", overlap_rect);
-
         let half_width: u8 = overlap_rect.width();
         let half_height: u8 = overlap_rect.height();
 
         let mut histogram = Histogram::new();
-
-        let mut agree_mask = Image::zero(image.width(), image.height());
-
+        let mut repair_mask = Image::zero(image.width(), image.height());
         for y in 0..half_height {
             for x in 0..half_width {
                 let x0: i32 = overlap_rect.min_x() + (x as i32);
@@ -150,6 +147,7 @@ impl DetectSymmetry {
                 let y1: i32 = overlap_rect.max_y() - (y as i32);
 
                 if x0 == x1 || y0 == y1 {
+                    // Cannot agree on a single color in the center row/column.
                     continue;
                 }
 
@@ -165,40 +163,53 @@ impl DetectSymmetry {
                 histogram.increment(color11);
 
                 let unique_color_count: u32 = histogram.number_of_counters_greater_than_zero();
-                if unique_color_count == 0 || unique_color_count > 2 {
+                if unique_color_count != 2 {
+                    // Either all the 4 pixels agree on a single color, in which case there is nothing to be repaired.
+                    //
+                    // Or there are too much disagreement about what the color should be, in which case it's unclear 
+                    // which pixels should be repaired.
                     continue;
                 }
-                if unique_color_count == 1 {
-                    _ = agree_mask.set(x0, y0, 1);
-                    _ = agree_mask.set(x0, y1, 1);
-                    _ = agree_mask.set(x1, y0, 1);
-                    _ = agree_mask.set(x1, y1, 1);
-                    continue;
-                }
-
                 let most_popular_color: u8 = match histogram.most_popular_color_disallow_ambiguous() {
                     Some(value) => value,
                     None => {
+                        // Unclear what color there is agreement on. Cannot repair.
                         continue;
                     }
                 };
 
-                if color00 == most_popular_color {
-                    _ = agree_mask.set(x0, y0, 1);
+                if color00 != most_popular_color {
+                    _ = repair_mask.set(x0, y0, 1);
                 }
-                if color01 == most_popular_color {
-                    _ = agree_mask.set(x0, y1, 1);
+                if color01 != most_popular_color {
+                    _ = repair_mask.set(x0, y1, 1);
                 }
-                if color10 == most_popular_color {
-                    _ = agree_mask.set(x1, y0, 1);
+                if color10 != most_popular_color {
+                    _ = repair_mask.set(x1, y0, 1);
                 }
-                if color11 == most_popular_color {
-                    _ = agree_mask.set(x1, y1, 1);
+                if color11 != most_popular_color {
+                    _ = repair_mask.set(x1, y1, 1);
                 }
             }
         }
 
-        println!("agree mask: {:?}", agree_mask);
+        // println!("repair_mask: {:?}", repair_mask);
+
+        let histogram2: Histogram = image.histogram_with_mask(&repair_mask)?;
+        if histogram2.number_of_counters_greater_than_zero() != 1 {
+            // println!("no consensus on what color is to be repaired");
+            return Ok(());
+        }
+
+        let repair_color: u8 = match histogram2.most_popular_color_disallow_ambiguous() {
+            Some(value) => value,
+            None => {
+                // println!("histogram2: {:?}", histogram2.most_popular_color_disallow_ambiguous());
+                return Ok(());
+            }
+        };
+        // println!("repair_color: {:?}", repair_color);
+        self.repair_color = Some(repair_color);
 
         Ok(())
     }
@@ -865,10 +876,11 @@ mod tests {
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
         assert_eq!(instance.diagonal_a_to_string(), "diagonal-a symmetry");
         assert_eq!(instance.diagonal_b_to_string(), "diagonal-b symmetry");
+        assert_eq!(instance.repair_color, None);
     }
 
-    // #[test]
-    fn test_40000_identify_repair_color() {
+    #[test]
+    fn test_40000_find_repair_color() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 5, 0, 5, 0,
@@ -887,5 +899,28 @@ mod tests {
         assert_eq!(instance.vertical_to_string(), "partial vertical symmetry, top: 0 bottom: 0 mismatches: 2");
         assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
         assert_eq!(instance.diagonal_b_to_string(), "no diagonal-b symmetry");
+        assert_eq!(instance.repair_color, Some(7));
+    }
+
+    #[test]
+    fn test_40001_find_repair_color() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 5, 3, 3, 5, 0,
+            1, 0, 7, 7, 0, 1,
+            2, 2, 7, 7, 0, 1,
+            2, 2, 3, 3, 5, 0,
+        ];
+        let input: Image = Image::try_create(6, 4, pixels).expect("image");
+
+        // Act
+        let instance = DetectSymmetry::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 8");
+        assert_eq!(instance.vertical_to_string(), "partial vertical symmetry, top: 0 bottom: 0 mismatches: 8");
+        assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_to_string(), "no diagonal-b symmetry");
+        assert_eq!(instance.repair_color, Some(2));
     }
 }
