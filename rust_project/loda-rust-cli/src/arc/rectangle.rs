@@ -53,7 +53,7 @@ impl Rectangle {
         self.y as i32
     }
 
-    /// y-coordinate for the right column
+    /// x-coordinate for the right column
     /// 
     /// Warning: When the rectangle is empty, then `-1` is returned which is outside the rectangle.
     pub fn max_x(&self) -> i32 {
@@ -105,6 +105,19 @@ impl Rectangle {
     #[allow(dead_code)]
     pub fn span(x0: i32, y0: i32, x1: i32, y1: i32) -> Option<Rectangle> {
         Self::range(x0.min(x1), y0.min(y1), x0.max(x1), y0.max(y1))
+    }
+
+    /// Find the overlap between two rectangles
+    #[allow(dead_code)]
+    pub fn intersection(&self, other: Rectangle) -> Rectangle {
+        let x0 = self.min_x().max(other.min_x());
+        let y0 = self.min_y().max(other.min_y());
+        let x1 = self.max_x().min(other.max_x());
+        let y1 = self.max_y().min(other.max_y());
+        if x0 > x1 || y0 > y1 {
+            return Rectangle::empty();
+        }
+        Self::span(x0, y0, x1, y1).unwrap_or_else(|| Rectangle::empty())
     }
 }
 
@@ -230,5 +243,52 @@ mod tests {
     fn test_50000_span() {
         let rect = Rectangle::span(0, 0, 0, 0);
         assert_eq!(rect, Some(Rectangle::new(0, 0, 1, 1)));
+    }
+
+    #[test]
+    fn test_60000_intersection_empty() {
+        let rect0 = Rectangle::empty();
+        let rect1 = Rectangle::empty();
+        let actual: Rectangle = rect0.intersection(rect1);
+        assert_eq!(actual, Rectangle::empty());
+    }
+
+    #[test]
+    fn test_60001_intersection_none() {
+        let rect0 = Rectangle::new(0, 0, 1, 1);
+        let rect1 = Rectangle::new(1, 0, 1, 1);
+        let actual: Rectangle = rect0.intersection(rect1);
+        assert_eq!(actual, Rectangle::empty());
+    }
+
+    #[test]
+    fn test_60002_intersection_none() {
+        let rect0 = Rectangle::new(0, 1, 1, 1);
+        let rect1 = Rectangle::new(0, 0, 1, 1);
+        let actual: Rectangle = rect0.intersection(rect1);
+        assert_eq!(actual, Rectangle::empty());
+    }
+    #[test]
+    fn test_60003_intersection_1x1() {
+        let rect0 = Rectangle::new(0, 0, 1, 1);
+        let rect1 = Rectangle::new(0, 0, 1, 1);
+        let actual: Rectangle = rect0.intersection(rect1);
+        assert_eq!(actual, Rectangle::new(0, 0, 1, 1));
+    }
+
+    #[test]
+    fn test_60004_intersection() {
+        let rect0 = Rectangle::new(1, 1, 4, 3);
+        let rect1 = Rectangle::new(3, 2, 3, 3);
+        let actual: Rectangle = rect0.intersection(rect1);
+        assert_eq!(actual, Rectangle::new(3, 2, 2, 2));
+    }
+
+    #[test]
+    fn test_60005_intersection() {
+        let rect0 = Rectangle::new(3, 2, 3, 3);
+        let rect1 = Rectangle::new(1, 1, 6, 3);
+        let actual: Rectangle = rect0.intersection(rect1);
+        assert_eq!(actual, Rectangle::new(3, 2, 3, 2));
     }
 }
