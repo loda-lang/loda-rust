@@ -1,4 +1,4 @@
-use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet};
+use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet, Symmetry};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -40,6 +40,8 @@ pub struct Input {
 
     /// The identified objects
     pub input_objects: HashMap<ObjectType, Vec<Object>>,
+
+    pub symmetry: Option<Symmetry>,
 
     // Future experiments to do.
     // State keeping of the input_properties. 

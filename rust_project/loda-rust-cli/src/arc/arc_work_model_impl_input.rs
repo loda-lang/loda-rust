@@ -164,7 +164,11 @@ impl arc_work_model::Input {
         dict
     }
 
-    pub fn update_input_label_set(&mut self) {
+    pub fn resolve_symmetry(&mut self) {
+        if self.symmetry.is_some() {
+            return;
+        }
+        
         let width: u8 = self.image.width();
         let height: u8 = self.image.height();
         if width == 0 || height == 0 {
@@ -174,10 +178,21 @@ impl arc_work_model::Input {
             return;
         }
 
-        let detect: Symmetry = match Symmetry::analyze(&self.image) {
+        let symmetry: Symmetry = match Symmetry::analyze(&self.image) {
             Ok(value) => value,
             Err(_) => {
                 println!("DetectSymmetry Unable to check symmetry. {}", self.id);
+                return;
+            }
+        };
+        self.symmetry = Some(symmetry);
+    }
+
+    pub fn update_input_label_set(&mut self) {
+        self.resolve_symmetry();
+        let detect = match &self.symmetry {
+            Some(value) => value.clone(),
+            None => {
                 return;
             }
         };

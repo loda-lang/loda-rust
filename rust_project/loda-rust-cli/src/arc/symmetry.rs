@@ -4,6 +4,7 @@ use std::fmt;
 const MAX_INSET_VALUE: u8 = 5;
 
 #[allow(dead_code)]
+#[derive(Clone)]
 pub struct Symmetry {
     pub left: u8,
     pub right: u8,
