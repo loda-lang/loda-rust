@@ -28,7 +28,7 @@ pub struct DetectSymmetry {
     // pub diagonal_b_rect: Option<Rectangle>,
     
     // Idea for more
-    // Identify the repair color
+    // TODO: Identify the repair color
     // repair plan for the damaged pixels
 }
 
@@ -111,6 +111,95 @@ impl DetectSymmetry {
         self.analyze_diagonal_symmetry(image)?;
         self.update_horizontal_rect(image)?;
         self.update_vertical_rect(image)?;
+        self.find_repair_color(image)?;
+        Ok(())
+    }
+
+    fn find_repair_color(&mut self, image: &Image) -> anyhow::Result<()> {
+        let horizontal_rect: Rectangle;
+        let vertical_rect: Rectangle;
+        match (self.horizontal_rect, self.vertical_rect) {
+            (Some(value0), Some(value1)) => {
+                horizontal_rect = value0;
+                vertical_rect = value1;
+            },
+            _ => {
+                return Ok(());
+            }
+        };
+
+        let overlap_rect: Rectangle = horizontal_rect.intersection(vertical_rect);
+        if overlap_rect.is_empty() {
+            return Ok(());
+        }
+
+        println!("overlap: {:?}", overlap_rect);
+
+        let half_width: u8 = overlap_rect.width();
+        let half_height: u8 = overlap_rect.height();
+
+        let mut histogram = Histogram::new();
+
+        let mut agree_mask = Image::zero(image.width(), image.height());
+
+        for y in 0..half_height {
+            for x in 0..half_width {
+                let x0: i32 = overlap_rect.min_x() + (x as i32);
+                let x1: i32 = overlap_rect.max_x() - (x as i32);
+                let y0: i32 = overlap_rect.min_y() + (y as i32);
+                let y1: i32 = overlap_rect.max_y() - (y as i32);
+
+                if x0 == x1 || y0 == y1 {
+                    continue;
+                }
+
+                let color00: u8 = image.get(x0, y0).unwrap_or(255);
+                let color01: u8 = image.get(x0, y1).unwrap_or(255);
+                let color10: u8 = image.get(x1, y0).unwrap_or(255);
+                let color11: u8 = image.get(x1, y1).unwrap_or(255);
+
+                histogram.reset();
+                histogram.increment(color00);
+                histogram.increment(color01);
+                histogram.increment(color10);
+                histogram.increment(color11);
+
+                let unique_color_count: u32 = histogram.number_of_counters_greater_than_zero();
+                if unique_color_count == 0 || unique_color_count > 2 {
+                    continue;
+                }
+                if unique_color_count == 1 {
+                    _ = agree_mask.set(x0, y0, 1);
+                    _ = agree_mask.set(x0, y1, 1);
+                    _ = agree_mask.set(x1, y0, 1);
+                    _ = agree_mask.set(x1, y1, 1);
+                    continue;
+                }
+
+                let most_popular_color: u8 = match histogram.most_popular_color_disallow_ambiguous() {
+                    Some(value) => value,
+                    None => {
+                        continue;
+                    }
+                };
+
+                if color00 == most_popular_color {
+                    _ = agree_mask.set(x0, y0, 1);
+                }
+                if color01 == most_popular_color {
+                    _ = agree_mask.set(x0, y1, 1);
+                }
+                if color10 == most_popular_color {
+                    _ = agree_mask.set(x1, y0, 1);
+                }
+                if color11 == most_popular_color {
+                    _ = agree_mask.set(x1, y1, 1);
+                }
+            }
+        }
+
+        println!("agree mask: {:?}", agree_mask);
+
         Ok(())
     }
 
@@ -776,5 +865,27 @@ mod tests {
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
         assert_eq!(instance.diagonal_a_to_string(), "diagonal-a symmetry");
         assert_eq!(instance.diagonal_b_to_string(), "diagonal-b symmetry");
+    }
+
+    // #[test]
+    fn test_40000_identify_repair_color() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 5, 0, 5, 0,
+            1, 0, 1, 0, 1,
+            2, 5, 8, 5, 2,
+            1, 0, 1, 0, 1,
+            0, 5, 0, 5, 7,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let instance = DetectSymmetry::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 2");
+        assert_eq!(instance.vertical_to_string(), "partial vertical symmetry, top: 0 bottom: 0 mismatches: 2");
+        assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_to_string(), "no diagonal-b symmetry");
     }
 }
