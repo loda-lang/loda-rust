@@ -9,7 +9,7 @@ mod tests {
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, DetectSymmetry};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, Symmetry};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use std::collections::HashMap;
     use regex::Regex;
@@ -3138,7 +3138,7 @@ mod tests {
                     }
                 };
 
-                let detect: DetectSymmetry = DetectSymmetry::analyze(&input)?;
+                let detect: Symmetry = Symmetry::analyze(&input)?;
                 // HtmlLog::text(format!("pair {}, detect: {:?}", data.index, detect));
 
                 // Sometimes it's not possible to compute the entire output just by looking at the input pixels alone.

@@ -4,7 +4,7 @@ use std::fmt;
 const MAX_INSET_VALUE: u8 = 5;
 
 #[allow(dead_code)]
-pub struct DetectSymmetry {
+pub struct Symmetry {
     pub left: u8,
     pub right: u8,
     pub horizontal_mismatches: u16,
@@ -32,7 +32,7 @@ pub struct DetectSymmetry {
     // repair plan for the damaged pixels
 }
 
-impl DetectSymmetry {
+impl Symmetry {
     #[allow(dead_code)]
     pub fn analyze(image: &Image) -> anyhow::Result<Self> {
         let mut instance = Self::new();
@@ -450,7 +450,7 @@ impl DetectSymmetry {
 
 }
 
-impl fmt::Debug for DetectSymmetry {
+impl fmt::Debug for Symmetry {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f, 
@@ -478,7 +478,7 @@ mod tests {
         let input: Image = Image::try_create(7, 1, pixels).expect("image");
 
         // Act
-        let mut instance = DetectSymmetry::new();
+        let mut instance = Symmetry::new();
         instance.analyze_horizontal_symmetry(&input).expect("ok");
 
         // Assert
@@ -494,7 +494,7 @@ mod tests {
         let input: Image = Image::try_create(6, 1, pixels).expect("image");
 
         // Act
-        let mut instance = DetectSymmetry::new();
+        let mut instance = Symmetry::new();
         instance.analyze_horizontal_symmetry(&input).expect("ok");
 
         // Assert
@@ -510,7 +510,7 @@ mod tests {
         let input: Image = Image::try_create(6, 1, pixels).expect("image");
 
         // Act
-        let mut instance = DetectSymmetry::new();
+        let mut instance = Symmetry::new();
         instance.analyze_horizontal_symmetry(&input).expect("ok");
 
         // Assert
@@ -526,7 +526,7 @@ mod tests {
         let input: Image = Image::try_create(7, 1, pixels).expect("image");
 
         // Act
-        let mut instance = DetectSymmetry::new();
+        let mut instance = Symmetry::new();
         instance.analyze_horizontal_symmetry(&input).expect("ok");
 
         // Assert
@@ -542,7 +542,7 @@ mod tests {
         let input: Image = Image::try_create(7, 1, pixels).expect("image");
 
         // Act
-        let mut instance = DetectSymmetry::new();
+        let mut instance = Symmetry::new();
         instance.analyze_horizontal_symmetry(&input).expect("ok");
 
         // Assert
@@ -558,7 +558,7 @@ mod tests {
         let input: Image = Image::try_create(6, 1, pixels).expect("image");
 
         // Act
-        let mut instance = DetectSymmetry::new();
+        let mut instance = Symmetry::new();
         instance.analyze_horizontal_symmetry(&input).expect("ok");
 
         // Assert
@@ -580,7 +580,7 @@ mod tests {
         let input: Image = Image::try_create(1, 7, pixels).expect("image");
 
         // Act
-        let mut instance = DetectSymmetry::new();
+        let mut instance = Symmetry::new();
         instance.analyze_vertical_symmetry(&input).expect("ok");
 
         // Assert
@@ -601,7 +601,7 @@ mod tests {
         let input: Image = Image::try_create(1, 6, pixels).expect("image");
 
         // Act
-        let mut instance = DetectSymmetry::new();
+        let mut instance = Symmetry::new();
         instance.analyze_vertical_symmetry(&input).expect("ok");
 
         // Assert
@@ -622,7 +622,7 @@ mod tests {
         let input: Image = Image::try_create(1, 6, pixels).expect("image");
 
         // Act
-        let mut instance = DetectSymmetry::new();
+        let mut instance = Symmetry::new();
         instance.analyze_vertical_symmetry(&input).expect("ok");
 
         // Assert
@@ -644,7 +644,7 @@ mod tests {
         let input: Image = Image::try_create(1, 7, pixels).expect("image");
 
         // Act
-        let mut instance = DetectSymmetry::new();
+        let mut instance = Symmetry::new();
         instance.analyze_vertical_symmetry(&input).expect("ok");
 
         // Assert
@@ -666,7 +666,7 @@ mod tests {
         let input: Image = Image::try_create(1, 7, pixels).expect("image");
 
         // Act
-        let mut instance = DetectSymmetry::new();
+        let mut instance = Symmetry::new();
         instance.analyze_vertical_symmetry(&input).expect("ok");
 
         // Assert
@@ -684,7 +684,7 @@ mod tests {
         let input: Image = Image::try_create(6, 3, pixels).expect("image");
 
         // Act
-        let instance = DetectSymmetry::analyze(&input).expect("ok");
+        let instance = Symmetry::analyze(&input).expect("ok");
 
         // Assert
         assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 1");
@@ -707,7 +707,7 @@ mod tests {
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
 
         // Act
-        let instance = DetectSymmetry::analyze(&input).expect("ok");
+        let instance = Symmetry::analyze(&input).expect("ok");
 
         // Assert
         assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 2");
@@ -730,7 +730,7 @@ mod tests {
         let input: Image = Image::try_create(6, 6, pixels).expect("image");
 
         // Act
-        let instance = DetectSymmetry::analyze(&input).expect("ok");
+        let instance = Symmetry::analyze(&input).expect("ok");
 
         // Assert
         assert_eq!(instance.horizontal_to_string(), "no horizontal symmetry");
@@ -752,7 +752,7 @@ mod tests {
         let input: Image = Image::try_create(6, 5, pixels).expect("image");
 
         // Act
-        let instance = DetectSymmetry::analyze(&input).expect("ok");
+        let instance = Symmetry::analyze(&input).expect("ok");
 
         // Assert
         assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 2");
@@ -776,7 +776,7 @@ mod tests {
         let input: Image = Image::try_create(6, 7, pixels).expect("image");
 
         // Act
-        let instance = DetectSymmetry::analyze(&input).expect("ok");
+        let instance = Symmetry::analyze(&input).expect("ok");
 
         // Assert
         assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 1");
@@ -801,7 +801,7 @@ mod tests {
         let input: Image = Image::try_create(7, 8, pixels).expect("image");
 
         // Act
-        let instance = DetectSymmetry::analyze(&input).expect("ok");
+        let instance = Symmetry::analyze(&input).expect("ok");
 
         // Assert
         assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 1");
@@ -824,7 +824,7 @@ mod tests {
         let input: Image = Image::try_create(7, 6, pixels).expect("image");
 
         // Act
-        let instance = DetectSymmetry::analyze(&input).expect("ok");
+        let instance = Symmetry::analyze(&input).expect("ok");
 
         // Assert
         assert_eq!(instance.horizontal_to_string(), "no horizontal symmetry");
@@ -847,7 +847,7 @@ mod tests {
         let input: Image = Image::try_create(7, 6, pixels).expect("image");
 
         // Act
-        let instance = DetectSymmetry::analyze(&input).expect("ok");
+        let instance = Symmetry::analyze(&input).expect("ok");
 
         // Assert
         assert_eq!(instance.horizontal_to_string(), "no horizontal symmetry");
@@ -869,7 +869,7 @@ mod tests {
         let input: Image = Image::try_create(5, 5, pixels).expect("image");
 
         // Act
-        let instance = DetectSymmetry::analyze(&input).expect("ok");
+        let instance = Symmetry::analyze(&input).expect("ok");
 
         // Assert
         assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
@@ -892,7 +892,7 @@ mod tests {
         let input: Image = Image::try_create(5, 5, pixels).expect("image");
 
         // Act
-        let instance = DetectSymmetry::analyze(&input).expect("ok");
+        let instance = Symmetry::analyze(&input).expect("ok");
 
         // Assert
         assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 2");
@@ -914,7 +914,7 @@ mod tests {
         let input: Image = Image::try_create(6, 4, pixels).expect("image");
 
         // Act
-        let instance = DetectSymmetry::analyze(&input).expect("ok");
+        let instance = Symmetry::analyze(&input).expect("ok");
 
         // Assert
         assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 8");

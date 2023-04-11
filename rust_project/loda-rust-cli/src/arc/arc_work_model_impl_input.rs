@@ -1,7 +1,7 @@
 use super::{arc_work_model, ImageNoiseColor};
 use super::arc_work_model::Object;
 use super::{PropertyInput, InputLabel};
-use super::{DetectSymmetry, Image, ImageSymmetry, Rectangle};
+use super::{Symmetry, Image, ImageSymmetry, Rectangle};
 use super::{ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, ImageCrop, ImageObjectEnumerate};
 use std::collections::{HashMap, HashSet};
 
@@ -174,7 +174,7 @@ impl arc_work_model::Input {
             return;
         }
 
-        let detect: DetectSymmetry = match DetectSymmetry::analyze(&self.image) {
+        let detect: Symmetry = match Symmetry::analyze(&self.image) {
             Ok(value) => value,
             Err(_) => {
                 println!("DetectSymmetry Unable to check symmetry. {}", self.id);
