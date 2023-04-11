@@ -73,22 +73,22 @@ impl arc_work_model::Task {
     //     }
     // }
 
-    fn has_resolved_attention_mask(&self) -> bool {
+    fn has_resolved_repair_mask(&self) -> bool {
         for pair in &self.pairs {
-            if pair.input.attention_mask.is_none() {
+            if pair.input.repair_mask.is_none() {
                 return false;
             }
         }
         true
     }
 
-    fn assign_attention_mask(&mut self) {
-        self.assign_attention_mask_with_repair_color();
-        self.assign_attention_mask_single_color_removal();
+    fn assign_repair_mask(&mut self) {
+        self.assign_repair_mask_with_repair_color();
+        self.assign_repair_mask_single_color_removal();
     }
 
-    fn assign_attention_mask_with_repair_color(&mut self) {
-        if self.has_resolved_attention_mask() {
+    fn assign_repair_mask_with_repair_color(&mut self) {
+        if self.has_resolved_repair_mask() {
             return;
         }
 
@@ -116,13 +116,13 @@ impl arc_work_model::Task {
                 // Symmetry is not initialized
                 continue;
             }
-            _ = pair.input.assign_attention_mask_with_color(color);
+            _ = pair.input.assign_repair_mask_with_color(color);
         }
 
     }
 
-    fn assign_attention_mask_single_color_removal(&mut self) {
-        if self.has_resolved_attention_mask() {
+    fn assign_repair_mask_single_color_removal(&mut self) {
+        if self.has_resolved_repair_mask() {
             return;
         }
 
@@ -140,12 +140,12 @@ impl arc_work_model::Task {
         };
 
         for pair in &mut self.pairs {
-            _ = pair.input.assign_attention_mask_with_color(color);
+            _ = pair.input.assign_repair_mask_with_color(color);
         }
     }
 
     fn assign_biggest_object_mask(&mut self) {
-        if self.has_resolved_attention_mask() {
+        if self.has_resolved_repair_mask() {
             return;
         }
 
@@ -160,7 +160,7 @@ impl arc_work_model::Task {
             }
         };
         for pair in &mut self.pairs {
-            _ = pair.input.assign_attention_mask_with_color(color);
+            _ = pair.input.assign_repair_mask_with_color(color);
             // _ = pair.input.assign_biggest_object_mask_with_ignore_color(color);
         }
     }
@@ -516,7 +516,7 @@ impl arc_work_model::Task {
 
         self.update_action_label_set_intersection();
 
-        self.assign_attention_mask();
+        self.assign_repair_mask();
         self.assign_biggest_object_mask();
 
         Ok(())

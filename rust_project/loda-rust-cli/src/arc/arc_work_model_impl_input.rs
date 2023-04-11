@@ -168,7 +168,7 @@ impl arc_work_model::Input {
         if self.symmetry.is_some() {
             return;
         }
-        
+
         let width: u8 = self.image.width();
         let height: u8 = self.image.height();
         if width == 0 || height == 0 {
@@ -287,9 +287,9 @@ impl arc_work_model::Input {
         Ok(object_vec)
     }
 
-    pub fn assign_attention_mask_with_color(&mut self, color: u8) -> anyhow::Result<()> {
+    pub fn assign_repair_mask_with_color(&mut self, color: u8) -> anyhow::Result<()> {
         let mask: Image = self.image.to_mask_where_color_is(color);
-        self.attention_mask = Some(mask);
+        self.repair_mask = Some(mask);
         Ok(())
     }
 

@@ -3065,20 +3065,20 @@ mod tests {
                 let input: &Image = &data.image;
 
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
-                let attention_mask: Image = match &pair.input.attention_mask {
+                let repair_mask: Image = match &pair.input.repair_mask {
                     Some(value) => value.clone(),
                     None => {
-                        return Err(anyhow::anyhow!("Expected an attention mask"));
+                        return Err(anyhow::anyhow!("Expected a repair mask"));
                     }
                 };
-                let rect: Rectangle = match attention_mask.bounding_box() {
+                let rect: Rectangle = match repair_mask.bounding_box() {
                     Some(value) => value,
                     None => {
-                        return Err(anyhow::anyhow!("Unable to determine bounding box of attention mask"));
+                        return Err(anyhow::anyhow!("Unable to determine bounding box of repair mask"));
                     }
                 };
 
-                let mut result_image: Image = input.repair_pattern_with_mask(&attention_mask)?;
+                let mut result_image: Image = input.repair_pattern_with_mask(&repair_mask)?;
                 result_image = result_image.crop(rect)?;
                 Ok(result_image)
             }
@@ -3121,16 +3121,16 @@ mod tests {
                 let input: &Image = &data.image;
 
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
-                let attention_mask: Image = match &pair.input.attention_mask {
+                let repair_mask: Image = match &pair.input.repair_mask {
                     Some(value) => value.clone(),
                     None => {
-                        return Err(anyhow::anyhow!("Expected an attention mask"));
+                        return Err(anyhow::anyhow!("Expected a repair mask"));
                     }
                 };
-                let rect: Rectangle = match attention_mask.bounding_box() {
+                let rect: Rectangle = match repair_mask.bounding_box() {
                     Some(value) => value,
                     None => {
-                        return Err(anyhow::anyhow!("Unable to determine bounding box of attention mask"));
+                        return Err(anyhow::anyhow!("Unable to determine bounding box of repair mask"));
                     }
                 };
 
@@ -3143,11 +3143,11 @@ mod tests {
                 // HtmlLog::text(format!("pair {}, detect: {:?}", data.index, detect));
 
                 // Sometimes it's not possible to compute the entire output just by looking at the input pixels alone.
-                // Fill the attention area with an `CannotCompute`, so that it's clear there was a problem 
+                // Fill the repair mask with `Color::CannotCompute`, so that it's clear there was a problem 
                 // computing pixel data for these pixels.
                 // This happens when the symmetric shape has an inset, and there is masked out an area
                 // bigger than what is possible to recover just by looking at the input pixels alone.
-                let input_masked_out: Image = attention_mask.select_from_image_and_color(&input, Color::CannotCompute as u8)?;
+                let input_masked_out: Image = repair_mask.select_from_image_and_color(&input, Color::CannotCompute as u8)?;
 
                 let mut the_result_image: Image = input_masked_out.clone();
 
