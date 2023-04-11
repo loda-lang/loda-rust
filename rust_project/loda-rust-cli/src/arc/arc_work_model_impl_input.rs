@@ -239,8 +239,8 @@ impl arc_work_model::Input {
             }
         }
 
-        if detect.diagonal_a_is_symmetric {
-            if detect.diagonal_a_mismatches == 0 {
+        if detect.diagonal_a_found {
+            if detect.diagonal_a_mismatches_new == 0 {
                 self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalA);
                 self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalAWithMismatches);
             } else {
@@ -248,8 +248,8 @@ impl arc_work_model::Input {
             }
         }
 
-        if detect.diagonal_b_is_symmetric {
-            if detect.diagonal_b_mismatches == 0 {
+        if detect.diagonal_b_found {
+            if detect.diagonal_b_mismatches_new == 0 {
                 self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalB);
                 self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalBWithMismatches);
             } else {
