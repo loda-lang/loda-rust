@@ -6,29 +6,29 @@ const MAX_INSET_VALUE: u8 = 5;
 #[allow(dead_code)]
 #[derive(Clone)]
 pub struct Symmetry {
-    pub left: u8,
-    pub right: u8,
+    pub horizontal_found: bool,
+    pub horizontal_left: u8,
+    pub horizontal_right: u8,
     pub horizontal_mismatches: u16,
-    pub found_horizontal_symmetry: bool,
     pub horizontal_rect: Option<Rectangle>,
 
-    pub top: u8,
-    pub bottom: u8,
+    pub vertical_found: bool,
+    pub vertical_top: u8,
+    pub vertical_bottom: u8,
     pub vertical_mismatches: u16,
-    pub found_vertical_symmetry: bool,
     pub vertical_rect: Option<Rectangle>,
 
     pub diagonal_a_found: bool,
     pub diagonal_a_x: u8,
     pub diagonal_a_y: u8,
     pub diagonal_a_size: u8,
-    pub diagonal_a_mismatches_new: u16,
+    pub diagonal_a_mismatches: u16,
 
     pub diagonal_b_found: bool,
     pub diagonal_b_x: u8,
     pub diagonal_b_y: u8,
     pub diagonal_b_size: u8,
-    pub diagonal_b_mismatches_new: u16,
+    pub diagonal_b_mismatches: u16,
 
     // TODO: "diagonal_a_rect" and "diagonal_b_rect"
     // pub diagonal_a_rect: Option<Rectangle>,
@@ -50,50 +50,50 @@ impl Symmetry {
     #[allow(dead_code)]
     fn new() -> Self {
         Self {
-            left: u8::MAX,
-            right: u8::MAX,
-            found_horizontal_symmetry: false,
+            horizontal_found: false,
+            horizontal_left: u8::MAX,
+            horizontal_right: u8::MAX,
             horizontal_mismatches: u16::MAX,
             horizontal_rect: None,
-            top: u8::MAX,
-            bottom: u8::MAX,
-            found_vertical_symmetry: false,
+            vertical_found: false,
+            vertical_top: u8::MAX,
+            vertical_bottom: u8::MAX,
             vertical_mismatches: u16::MAX,
             vertical_rect: None,
             diagonal_a_found: false,
             diagonal_a_x: u8::MAX,
             diagonal_a_y: u8::MAX,
             diagonal_a_size: u8::MAX,
-            diagonal_a_mismatches_new: u16::MAX,
+            diagonal_a_mismatches: u16::MAX,
             diagonal_b_found: false,
             diagonal_b_x: u8::MAX,
             diagonal_b_y: u8::MAX,
             diagonal_b_size: u8::MAX,
-            diagonal_b_mismatches_new: u16::MAX,
+            diagonal_b_mismatches: u16::MAX,
             repair_color: None,
         }
     }
 
     #[allow(dead_code)]
     fn horizontal_to_string(&self) -> String {
-        if !self.found_horizontal_symmetry {
+        if !self.horizontal_found {
             return "no horizontal symmetry".to_string();
         }
         if self.horizontal_mismatches == 0 {
-            return format!("horizontal symmetry, left: {} right: {}", self.left, self.right);
+            return format!("horizontal symmetry, left: {} right: {}", self.horizontal_left, self.horizontal_right);
         }
-        format!("partial horizontal symmetry, left: {} right: {} mismatches: {}", self.left, self.right, self.horizontal_mismatches)
+        format!("partial horizontal symmetry, left: {} right: {} mismatches: {}", self.horizontal_left, self.horizontal_right, self.horizontal_mismatches)
     }
 
     #[allow(dead_code)]
     fn vertical_to_string(&self) -> String {
-        if !self.found_vertical_symmetry {
+        if !self.vertical_found {
             return "no vertical symmetry".to_string();
         }
         if self.vertical_mismatches == 0 {
-            return format!("vertical symmetry, top: {} bottom: {}", self.top, self.bottom);
+            return format!("vertical symmetry, top: {} bottom: {}", self.vertical_top, self.vertical_bottom);
         }
-        format!("partial vertical symmetry, top: {} bottom: {} mismatches: {}", self.top, self.bottom, self.vertical_mismatches)
+        format!("partial vertical symmetry, top: {} bottom: {} mismatches: {}", self.vertical_top, self.vertical_bottom, self.vertical_mismatches)
     }
 
     #[allow(dead_code)]
@@ -101,10 +101,10 @@ impl Symmetry {
         if !self.diagonal_a_found {
             return "no diagonal-a symmetry".to_string();
         }
-        if self.diagonal_a_mismatches_new == 0 {
+        if self.diagonal_a_mismatches == 0 {
             return format!("diagonal-a symmetry, x: {} y: {} size: {}", self.diagonal_a_x, self.diagonal_a_y, self.diagonal_a_size);
         }
-        format!("partial diagonal-a symmetry, x: {} y: {} size: {} mismatches: {}", self.diagonal_a_x, self.diagonal_a_y, self.diagonal_a_size, self.diagonal_a_mismatches_new)
+        format!("partial diagonal-a symmetry, x: {} y: {} size: {} mismatches: {}", self.diagonal_a_x, self.diagonal_a_y, self.diagonal_a_size, self.diagonal_a_mismatches)
     }
 
     #[allow(dead_code)]
@@ -112,10 +112,10 @@ impl Symmetry {
         if !self.diagonal_b_found {
             return "no diagonal-b symmetry".to_string();
         }
-        if self.diagonal_b_mismatches_new == 0 {
+        if self.diagonal_b_mismatches == 0 {
             return format!("diagonal-b symmetry, x: {} y: {} size: {}", self.diagonal_b_x, self.diagonal_b_y, self.diagonal_b_size);
         }
-        format!("partial diagonal-b symmetry, x: {} y: {} size: {} mismatches: {}", self.diagonal_b_x, self.diagonal_b_y, self.diagonal_b_size, self.diagonal_b_mismatches_new)
+        format!("partial diagonal-b symmetry, x: {} y: {} size: {} mismatches: {}", self.diagonal_b_x, self.diagonal_b_y, self.diagonal_b_size, self.diagonal_b_mismatches)
     }
 
     fn perform_analyze(&mut self, image: &Image) -> anyhow::Result<()> {
@@ -223,7 +223,7 @@ impl Symmetry {
     }
 
     fn update_horizontal_rect(&mut self, image: &Image) -> anyhow::Result<()> {
-        if !self.found_horizontal_symmetry {
+        if !self.horizontal_found {
             return Ok(());
         }
         let r = Rectangle::new(0, 0, image.width(), image.height());
@@ -231,16 +231,16 @@ impl Symmetry {
         let y0: i32 = r.min_y();
         let mut x1: i32 = r.max_x();
         let y1: i32 = r.max_y();
-        if self.found_horizontal_symmetry {
-            x0 += self.left as i32;
-            x1 -= self.right as i32;
+        if self.horizontal_found {
+            x0 += self.horizontal_left as i32;
+            x1 -= self.horizontal_right as i32;
         }
         self.horizontal_rect = Rectangle::span(x0, y0, x1, y1);
         Ok(())
     }
 
     fn update_vertical_rect(&mut self, image: &Image) -> anyhow::Result<()> {
-        if !self.found_vertical_symmetry {
+        if !self.vertical_found {
             return Ok(());
         }
         let r = Rectangle::new(0, 0, image.width(), image.height());
@@ -248,9 +248,9 @@ impl Symmetry {
         let mut y0: i32 = r.min_y();
         let x1: i32 = r.max_x();
         let mut y1: i32 = r.max_y();
-        if self.found_vertical_symmetry {
-            y0 += self.top as i32;
-            y1 -= self.bottom as i32;
+        if self.vertical_found {
+            y0 += self.vertical_top as i32;
+            y1 -= self.vertical_bottom as i32;
         }
         self.vertical_rect = Rectangle::span(x0, y0, x1, y1);
         Ok(())
@@ -337,29 +337,29 @@ impl Symmetry {
             self.diagonal_a_x = found_x;
             self.diagonal_a_y = found_y;
             self.diagonal_a_size = min_size;
-            self.diagonal_a_mismatches_new = found_mismatches;
+            self.diagonal_a_mismatches = found_mismatches;
         } else {
             // println!("found diagonal_b. x: {} y: {} mismatches: {}", found_x, found_y, found_mismatches);
             self.diagonal_b_found = found;
             self.diagonal_b_x = found_x;
             self.diagonal_b_y = found_y;
             self.diagonal_b_size = min_size;
-            self.diagonal_b_mismatches_new = found_mismatches;
+            self.diagonal_b_mismatches = found_mismatches;
         }
 
         Ok(())
     }
 
     fn suppress_false_positive(&mut self, image: &Image) -> anyhow::Result<()> {
-        let two_way_symmetric: bool = self.found_horizontal_symmetry && self.found_vertical_symmetry;
+        let two_way_symmetric: bool = self.horizontal_found && self.vertical_found;
         if !two_way_symmetric {
             return Ok(());
         }
         let r = Rectangle::new(0, 0, image.width(), image.height());
-        let x0: i32 = r.min_x() + self.left as i32;
-        let y0: i32 = r.min_y() + self.top as i32;
-        let x1: i32 = r.max_x() - self.right as i32;
-        let y1: i32 = r.max_y() - self.bottom as i32;
+        let x0: i32 = r.min_x() + self.horizontal_left as i32;
+        let y0: i32 = r.min_y() + self.vertical_top as i32;
+        let x1: i32 = r.max_x() - self.horizontal_right as i32;
+        let y1: i32 = r.max_y() - self.vertical_bottom as i32;
         let crop_rect: Rectangle = match Rectangle::span(x0, y0, x1, y1) {
             Some(value) => value,
             None => {
@@ -374,8 +374,8 @@ impl Symmetry {
 
         // The cropped area is a single color, all the content has been trimmed off.
         // This is symmetric in a terrible way, not useful. Let's ignore this kind of symmetry.
-        self.found_horizontal_symmetry = false;
-        self.found_vertical_symmetry = false;
+        self.horizontal_found = false;
+        self.vertical_found = false;
         Ok(())
     }
 
@@ -472,26 +472,26 @@ impl Symmetry {
 
         if should_update_vertical_data {
             if found {
-                self.found_vertical_symmetry = true;
-                self.top = found_left;
-                self.bottom = found_right;
+                self.vertical_found = true;
+                self.vertical_top = found_left;
+                self.vertical_bottom = found_right;
                 self.vertical_mismatches = found_mismatches;
             } else {
-                self.found_vertical_symmetry = false;
-                self.top = u8::MAX;
-                self.bottom = u8::MAX;
+                self.vertical_found = false;
+                self.vertical_top = u8::MAX;
+                self.vertical_bottom = u8::MAX;
                 self.vertical_mismatches = u16::MAX;
             }
         } else {
             if found {
-                self.found_horizontal_symmetry = true;
-                self.left = found_left;
-                self.right = found_right;
+                self.horizontal_found = true;
+                self.horizontal_left = found_left;
+                self.horizontal_right = found_right;
                 self.horizontal_mismatches = found_mismatches;
             } else {
-                self.found_horizontal_symmetry = false;
-                self.left = u8::MAX;
-                self.right = u8::MAX;
+                self.horizontal_found = false;
+                self.horizontal_left = u8::MAX;
+                self.horizontal_right = u8::MAX;
                 self.horizontal_mismatches = u16::MAX;
             }
         }

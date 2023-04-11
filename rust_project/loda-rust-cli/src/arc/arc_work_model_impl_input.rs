@@ -197,9 +197,9 @@ impl arc_work_model::Input {
             }
         };
 
-        if detect.found_horizontal_symmetry {
+        if detect.horizontal_found {
             if detect.horizontal_mismatches == 0 {
-                if detect.left == 0 && detect.right == 0 {
+                if detect.horizontal_left == 0 && detect.horizontal_right == 0 {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricX);
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInset);
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithMismatches);
@@ -209,7 +209,7 @@ impl arc_work_model::Input {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInsetAndMismatches);
                 }
             } else {
-                if detect.left == 0 && detect.right == 0 {
+                if detect.horizontal_left == 0 && detect.horizontal_right == 0 {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithMismatches);
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInsetAndMismatches);
                 } else {
@@ -218,9 +218,9 @@ impl arc_work_model::Input {
             }
         }
 
-        if detect.found_vertical_symmetry {
+        if detect.vertical_found {
             if detect.vertical_mismatches == 0 {
-                if detect.top == 0 && detect.bottom == 0 {
+                if detect.vertical_top == 0 && detect.vertical_bottom == 0 {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricY);
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInset);
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithMismatches);
@@ -230,7 +230,7 @@ impl arc_work_model::Input {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInsetAndMismatches);
                 }
             } else {
-                if detect.top == 0 && detect.bottom == 0 {
+                if detect.vertical_top == 0 && detect.vertical_bottom == 0 {
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithMismatches);
                     self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInsetAndMismatches);
                 } else {
@@ -240,7 +240,7 @@ impl arc_work_model::Input {
         }
 
         if detect.diagonal_a_found {
-            if detect.diagonal_a_mismatches_new == 0 {
+            if detect.diagonal_a_mismatches == 0 {
                 self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalA);
                 self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalAWithMismatches);
             } else {
@@ -249,7 +249,7 @@ impl arc_work_model::Input {
         }
 
         if detect.diagonal_b_found {
-            if detect.diagonal_b_mismatches_new == 0 {
+            if detect.diagonal_b_mismatches == 0 {
                 self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalB);
                 self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalBWithMismatches);
             } else {
