@@ -274,6 +274,15 @@ impl Symmetry {
         Ok(())
     }
 
+    /// When the aspect ratio is not a square. It picks the smallest square and finds the most symmetric coordinate.
+    /// 
+    /// This algorithm is flawed, it only considers squares with one size. It doesn't tries out smaller squares.
+    /// 
+    /// Idea for detecting symmetries using insets.
+    /// - detect symmetry that isn't perfectly centered
+    /// - repeatedly shrink the size of the square by 1
+    /// - search the area for the shrunken square
+    /// - prefer the biggest area
     fn analyze_symmetry_diagonal_inner(&mut self, image: &Image, is_diagonal_a: bool) -> anyhow::Result<()> {
         let min_size: u8 = image.width().min(image.height());
         let max_size: u8 = image.width().max(image.height());
