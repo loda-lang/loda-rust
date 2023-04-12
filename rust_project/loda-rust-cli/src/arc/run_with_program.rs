@@ -39,6 +39,10 @@ enum MemoryLayoutItem {
     /// When it's not available then the value is `-1`.
     OutputImageIsInputImageWithChangesLimitedToPixelsWithColor = 5,
 
+    RepairMask = 6,
+
+    RepairedImage = 7,
+
     // Ideas for more
     // Repair mask
     // horizontal_periodicity, vertical_periodicity
@@ -355,6 +359,32 @@ impl RunWithProgram {
                 }
             }
 
+            // memory[x*100+106] = train[x].repair_mask
+            {
+                if let Some(image) = &pair.input.repair_mask {
+                    let image_number_uint: BigUint = image.to_number().context("repair_mask image to number")?;
+                    let image_number_int: BigInt = image_number_uint.to_bigint().context("repair_mask BigUint to BigInt")?;
+                    state.set_u64(address + MemoryLayoutItem::RepairMask as u64, image_number_int).context("repair_mask, set_u64")?;
+                } else {
+                    if let Some(value) = (-1i16).to_bigint() {
+                        state.set_u64(address + MemoryLayoutItem::RepairMask as u64, value).context("repair_mask, set_u64 with -1")?;
+                    }
+                }
+            }
+
+            // memory[x*100+107] = train[x].repaired_image
+            {
+                if let Some(image) = &pair.input.repaired_image {
+                    let image_number_uint: BigUint = image.to_number().context("repaired_image image to number")?;
+                    let image_number_int: BigInt = image_number_uint.to_bigint().context("repaired_image BigUint to BigInt")?;
+                    state.set_u64(address + MemoryLayoutItem::RepairedImage as u64, image_number_int).context("repaired_image, set_u64")?;
+                } else {
+                    if let Some(value) = (-1i16).to_bigint() {
+                        state.set_u64(address + MemoryLayoutItem::RepairedImage as u64, value).context("repaired_image, set_u64 with -1")?;
+                    }
+                }
+            }
+
             // Ideas for data to make available to the program.
             // output_palette
             // substitutions, replace this color with that color
@@ -425,6 +455,32 @@ impl RunWithProgram {
                 }
                 if let Some(value) = the_color.to_bigint() {
                     state.set_u64(address + MemoryLayoutItem::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor as u64, value).context("pair.OutputImageIsInputImageWithChangesLimitedToPixelsWithColor, set_u64")?;
+                }
+            }
+
+            // memory[x*100+106] = test[x].repair_mask
+            {
+                if let Some(image) = &pair.input.repair_mask {
+                    let image_number_uint: BigUint = image.to_number().context("repair_mask image to number")?;
+                    let image_number_int: BigInt = image_number_uint.to_bigint().context("repair_mask BigUint to BigInt")?;
+                    state.set_u64(address + MemoryLayoutItem::RepairMask as u64, image_number_int).context("repair_mask, set_u64")?;
+                } else {
+                    if let Some(value) = (-1i16).to_bigint() {
+                        state.set_u64(address + MemoryLayoutItem::RepairMask as u64, value).context("repair_mask, set_u64 with -1")?;
+                    }
+                }
+            }
+
+            // memory[x*100+107] = test[x].repaired_image
+            {
+                if let Some(image) = &pair.input.repaired_image {
+                    let image_number_uint: BigUint = image.to_number().context("repaired_image image to number")?;
+                    let image_number_int: BigInt = image_number_uint.to_bigint().context("repaired_image BigUint to BigInt")?;
+                    state.set_u64(address + MemoryLayoutItem::RepairedImage as u64, image_number_int).context("repaired_image, set_u64")?;
+                } else {
+                    if let Some(value) = (-1i16).to_bigint() {
+                        state.set_u64(address + MemoryLayoutItem::RepairedImage as u64, value).context("repaired_image, set_u64 with -1")?;
+                    }
                 }
             }
 
