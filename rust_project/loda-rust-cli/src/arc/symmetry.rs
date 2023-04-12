@@ -132,6 +132,10 @@ impl Symmetry {
     }
 
     fn find_repair_color(&mut self, image: &Image) -> anyhow::Result<()> {
+        // future experiments
+        // populate a histogram with the area outside the intersection area
+        // if it's a single color, then it may be a candidate for a repair color.
+
         let horizontal_rect: Rectangle;
         let vertical_rect: Rectangle;
         match (self.horizontal_rect, self.vertical_rect) {
@@ -268,7 +272,38 @@ impl Symmetry {
         Ok(())
     }
 
+    /// Images that are almost a square may have a diagonal symmetry, we want to analyze these.
+    /// 
+    /// Ignore images that are non-square'ish.
+    fn should_check_for_diagonal_symmetry(width: u8, height: u8) -> bool {
+        if width == 0 && height == 0 {
+            // empty image, don't analyze it
+            return false;
+        }
+        if width == 1 || height == 1 {
+            // single row/column image, don't analyze it
+            return false;
+        }
+        if width == height {
+            // this is a square, check it for diagonal symmetry
+            return true;
+        }
+        let min: u16 = width.min(height) as u16;
+        let max: u16 = width.max(height) as u16;
+        if max >= (min * 2) {
+            // the aspect ratio is non-square'ish. ignore it.
+            return false;
+        }
+
+        // go ahead analyze this for diagonal symmetry
+        true
+    }
+
     fn analyze_diagonal_symmetry(&mut self, image: &Image) -> anyhow::Result<()> {
+        if !Symmetry::should_check_for_diagonal_symmetry(image.width(), image.height()) {
+            return Ok(());
+        }
+
         self.analyze_symmetry_diagonal_inner(image, true)?;
         self.analyze_symmetry_diagonal_inner(image, false)?;
         Ok(())
@@ -752,7 +787,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_analyze_checkerboard() {
+    fn test_30000_analyze_checkerboard_6x3() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 0, 1, 0, 1,
@@ -767,12 +802,32 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 1");
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
-        assert_eq!(instance.diagonal_a_to_string(), "diagonal-a symmetry, x: 3 y: 0 size: 3");
-        assert_eq!(instance.diagonal_b_to_string(), "diagonal-b symmetry, x: 3 y: 0 size: 3");
+        assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_to_string(), "no diagonal-b symmetry");
     }
 
     #[test]
-    fn test_30001_analyze_checkerboard_with_one_junk_pixel() {
+    fn test_30001_analyze_checkerboard_5x3() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 1, 0, 1, 0,
+            1, 0, 1, 0, 1,
+            0, 1, 0, 1, 0,
+        ];
+        let input: Image = Image::try_create(5, 3, pixels).expect("image");
+
+        // Act
+        let instance = Symmetry::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
+        assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
+        assert_eq!(instance.diagonal_a_to_string(), "diagonal-a symmetry, x: 2 y: 0 size: 3");
+        assert_eq!(instance.diagonal_b_to_string(), "diagonal-b symmetry, x: 2 y: 0 size: 3");
+    }
+
+    #[test]
+    fn test_30002_analyze_checkerboard_with_one_junk_pixel() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0, 1, 1,
@@ -795,7 +850,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30002_analyze_nosymmetry() {
+    fn test_30003_analyze_nosymmetry() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 2, 3, 4, 5, 6,
@@ -818,7 +873,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30003_analyze_one_junk_pixel() {
+    fn test_30004_analyze_one_junk_pixel() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0, 1, 1,
@@ -840,7 +895,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30004_analyze_lines() {
+    fn test_30005_analyze_lines() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 1, 0, 0, 0,
@@ -864,7 +919,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30005_analyze_boxes() {
+    fn test_30006_analyze_boxes() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0, 1, 1, 0,
@@ -889,7 +944,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30006_analyze_border_pixels() {
+    fn test_30007_analyze_border_pixels() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 0, 1, 0, 1, 0,
@@ -913,7 +968,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30007_analyze_border_pixels() {
+    fn test_30008_analyze_border_pixels() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0, 0,
@@ -937,7 +992,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30008_analyze_diagonal_symmetry() {
+    fn test_30009_analyze_diagonal_symmetry() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 1, 2, 1, 0,
@@ -960,7 +1015,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30009_diagonal_a() {
+    fn test_30010_diagonal_a() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 5, 5, 5, 0, 0,
@@ -983,7 +1038,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30010_diagonal_b() {
+    fn test_30011_diagonal_b() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 0, 0, 5, 5, 5,
@@ -1003,6 +1058,54 @@ mod tests {
         assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
         assert_eq!(instance.diagonal_b_to_string(), "diagonal-b symmetry, x: 1 y: 0 size: 5");
         assert_eq!(instance.repair_color, None);
+    }
+
+    #[test]
+    fn test_30012_only_check_diagonal_symmetry_when_aspect_ratio_is_almost_a_square() {
+        // SIMON
+        let items: [(u8, u8, bool); 20] = [
+            // don't check the empty image and the single pixel
+            (0, 0, false),
+            (1, 1, false),
+
+            // always check squares
+            (2, 2, true),
+            (3, 3, true),
+
+            // don't check small single-line images with an non-square aspect ratio 
+            (1, 2, false),
+            (1, 3, false),
+            (1, 100, false),
+            (2, 1, false),
+            (3, 1, false),
+            (100, 1, false),
+
+            // things that may contain a 2x2
+            (2, 3, true),
+            (3, 2, true),
+            (4, 2, false),
+            (2, 4, false),
+
+            // check things that may contain a 3x3
+            (3, 4, true),
+            (4, 3, true),
+            (3, 5, true),
+            (5, 3, true),
+            (6, 3, false),
+            (3, 6, false),
+        ];
+        let mut mismatches = Vec::<String>::new();
+        for (index, item) in items.iter().enumerate() {
+            let width: u8 = item.0;
+            let height: u8 = item.1;
+            let expected: bool = item.2;
+            let actual: bool = Symmetry::should_check_for_diagonal_symmetry(item.0, item.1);
+            if actual != expected {
+                let s = format!("item[{}] {},{},{} returned {}", index, width, height, expected, actual);
+                mismatches.push(s);
+            }
+        }
+        assert_eq!(mismatches, Vec::<String>::new());
     }
 
     #[test]
