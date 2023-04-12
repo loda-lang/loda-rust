@@ -3164,12 +3164,12 @@ mod tests {
                 
                 // diagonal a
                 if let Some(r) = symmetry.diagonal_a_rect {
-                    the_result_image.repair_symmetry_diagonal_b(r)?;
+                    the_result_image.repair_symmetry_diagonal_a(r)?;
                 }
 
                 // diagonal b
                 if let Some(r) = symmetry.diagonal_b_rect {
-                    the_result_image.repair_symmetry_diagonal_a(r)?;
+                    the_result_image.repair_symmetry_diagonal_b(r)?;
                 }
 
                 let cropped_result_image: Image;

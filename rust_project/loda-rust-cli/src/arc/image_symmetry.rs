@@ -82,8 +82,8 @@ impl ImageSymmetry for Image {
         if self.width() < 2 && self.height() < 2 {
             return Ok(self.clone());
         }
-        let bitmap0: Image = self.flip_x()?;
-        let bitmap1: Image = bitmap0.rotate_cw()?;
+        let bitmap0: Image = self.rotate_cw()?;
+        let bitmap1: Image = bitmap0.flip_x()?;
         Ok(bitmap1)
     }
 
@@ -94,8 +94,8 @@ impl ImageSymmetry for Image {
         if self.width() < 2 && self.height() < 2 {
             return Ok(self.clone());
         }
-        let bitmap0: Image = self.rotate_cw()?;
-        let bitmap1: Image = bitmap0.flip_x()?;
+        let bitmap0: Image = self.flip_x()?;
+        let bitmap1: Image = bitmap0.rotate_cw()?;
         Ok(bitmap1)
     }
 
@@ -260,11 +260,11 @@ mod tests {
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
+            1, 0, 3, 3, 3,
+            2, 0, 0, 0, 0,
+            2, 0, 0, 0, 0,
+            2, 0, 0, 0, 0,
             0, 0, 0, 0, 0,
-            0, 0, 0, 0, 2,
-            0, 0, 0, 0, 2,
-            0, 0, 0, 0, 2,
-            3, 3, 3, 0, 1,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
         assert_eq!(actual, expected);
@@ -287,11 +287,11 @@ mod tests {
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
-            1, 0, 3, 3, 3,
-            2, 0, 0, 0, 0,
-            2, 0, 0, 0, 0,
-            2, 0, 0, 0, 0,
             0, 0, 0, 0, 0,
+            0, 0, 0, 0, 2,
+            0, 0, 0, 0, 2,
+            0, 0, 0, 0, 2,
+            3, 3, 3, 0, 1,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
         assert_eq!(actual, expected);

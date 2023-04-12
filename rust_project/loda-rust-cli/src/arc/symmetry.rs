@@ -790,8 +790,8 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 2");
         assert_eq!(instance.vertical_to_string(), "partial vertical symmetry, top: 0 bottom: 0 mismatches: 2");
-        assert_eq!(instance.diagonal_a_to_string(), "diagonal-a symmetry, x: 0 y: 0 size: 6");
-        assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, x: 0 y: 0 size: 6 mismatches: 2");
+        assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, x: 0 y: 0 size: 6 mismatches: 2");
+        assert_eq!(instance.diagonal_b_to_string(), "diagonal-b symmetry, x: 0 y: 0 size: 6");
     }
 
     #[test]
@@ -859,8 +859,8 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 1");
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 2 bottom: 0");
-        assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, x: 0 y: 1 size: 6 mismatches: 10");
-        assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, x: 0 y: 1 size: 6 mismatches: 18");
+        assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, x: 0 y: 1 size: 6 mismatches: 18");
+        assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, x: 0 y: 1 size: 6 mismatches: 10");
     }
 
     #[test]
@@ -884,8 +884,8 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 1");
         assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 2");
-        assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, x: 0 y: 1 size: 7 mismatches: 16");
-        assert_eq!(instance.diagonal_b_to_string(), "diagonal-b symmetry, x: 0 y: 0 size: 7");
+        assert_eq!(instance.diagonal_a_to_string(), "diagonal-a symmetry, x: 0 y: 0 size: 7");
+        assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, x: 0 y: 1 size: 7 mismatches: 16");
     }
 
     #[test]
@@ -908,8 +908,8 @@ mod tests {
         assert_eq!(instance.horizontal_to_string(), "no horizontal symmetry");
         assert_eq!(instance.vertical_to_string(), "no vertical symmetry");
         // TODO: when detecting a false positive, then also check for the diagonal symmetries, so these can be cleared
-        assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, x: 1 y: 0 size: 6 mismatches: 6");
-        assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, x: 1 y: 0 size: 6 mismatches: 4");
+        assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, x: 1 y: 0 size: 6 mismatches: 4");
+        assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, x: 1 y: 0 size: 6 mismatches: 6");
     }
 
     #[test]
@@ -932,8 +932,8 @@ mod tests {
         assert_eq!(instance.horizontal_to_string(), "no horizontal symmetry");
         assert_eq!(instance.vertical_to_string(), "no vertical symmetry");
         // TODO: when detecting a false positive, then also check for the diagonal symmetries, so these can be cleared
-        assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, x: 1 y: 0 size: 6 mismatches: 6");
-        assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, x: 1 y: 0 size: 6 mismatches: 8");
+        assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, x: 1 y: 0 size: 6 mismatches: 8");
+        assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, x: 1 y: 0 size: 6 mismatches: 6");
     }
 
     #[test]
@@ -977,8 +977,8 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 1 mismatches: 10");
         assert_eq!(instance.vertical_to_string(), "partial vertical symmetry, top: 0 bottom: 1 mismatches: 8");
-        assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
-        assert_eq!(instance.diagonal_b_to_string(), "diagonal-b symmetry, x: 1 y: 0 size: 5");
+        assert_eq!(instance.diagonal_a_to_string(), "diagonal-a symmetry, x: 1 y: 0 size: 5");
+        assert_eq!(instance.diagonal_b_to_string(), "no diagonal-b symmetry");
         assert_eq!(instance.repair_color, None);
     }
 
@@ -1000,8 +1000,8 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 2 right: 0 mismatches: 8");
         assert_eq!(instance.vertical_to_string(), "partial vertical symmetry, top: 0 bottom: 1 mismatches: 8");
-        assert_eq!(instance.diagonal_a_to_string(), "diagonal-a symmetry, x: 1 y: 0 size: 5");
-        assert_eq!(instance.diagonal_b_to_string(), "no diagonal-b symmetry");
+        assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_to_string(), "diagonal-b symmetry, x: 1 y: 0 size: 5");
         assert_eq!(instance.repair_color, None);
     }
 
@@ -1045,8 +1045,8 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 8");
         assert_eq!(instance.vertical_to_string(), "partial vertical symmetry, top: 0 bottom: 0 mismatches: 8");
-        assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, x: 1 y: 0 size: 4 mismatches: 8");
-        assert_eq!(instance.diagonal_b_to_string(), "no diagonal-b symmetry");
+        assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, x: 1 y: 0 size: 4 mismatches: 8");
         assert_eq!(instance.repair_color, Some(2));
     }
 
@@ -1087,8 +1087,8 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "partial horizontal symmetry, left: 0 right: 0 mismatches: 148");
         assert_eq!(instance.vertical_to_string(), "partial vertical symmetry, top: 0 bottom: 0 mismatches: 144");
-        assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, x: 0 y: 0 size: 24 mismatches: 124");
-        assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, x: 0 y: 0 size: 24 mismatches: 174");
+        assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, x: 0 y: 0 size: 24 mismatches: 174");
+        assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, x: 0 y: 0 size: 24 mismatches: 124");
         assert_eq!(instance.repair_color, Some(2));
     }
 }
