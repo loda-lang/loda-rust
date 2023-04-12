@@ -119,6 +119,58 @@ impl Symmetry {
     }
 
     fn perform_analyze(&mut self, image: &Image) -> anyhow::Result<()> {
+        let histogram: Histogram = image.histogram_all();
+        let unique_colors: u32 = histogram.number_of_counters_greater_than_zero();
+        match unique_colors {
+            0 => {},
+            1 => {
+                self.perform_analyze_with_single_color(image)?;
+            },
+            _ => {
+                self.perform_analyze_with_multiple_colors(image)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn perform_analyze_with_single_color(&mut self, image: &Image) -> anyhow::Result<()> {
+        // horizontal
+        self.horizontal_found = true;
+        self.horizontal_left = 0;
+        self.horizontal_right = 0;
+        self.horizontal_mismatches = 0;
+
+        // vertical
+        self.vertical_found = true;
+        self.vertical_top = 0;
+        self.vertical_bottom = 0;
+        self.vertical_mismatches = 0;
+
+        if Symmetry::should_check_for_diagonal_symmetry(image.width(), image.height()) {
+            let size: u8 = image.width().min(image.height());
+
+            // diagonal a
+            self.diagonal_a_found = true;
+            self.diagonal_a_x = 0;
+            self.diagonal_a_y = 0;
+            self.diagonal_a_size = size;
+            self.diagonal_a_mismatches = 0;
+
+            // diagonal b
+            self.diagonal_b_found = true;
+            self.diagonal_b_x = 0;
+            self.diagonal_b_y = 0;
+            self.diagonal_b_size = size;
+            self.diagonal_b_mismatches = 0;
+        }
+        self.update_horizontal_rect(image)?;
+        self.update_vertical_rect(image)?;
+        self.update_diagonal_a_rect()?;
+        self.update_diagonal_b_rect()?;
+        Ok(())
+    }
+
+    fn perform_analyze_with_multiple_colors(&mut self, image: &Image) -> anyhow::Result<()> {
         self.analyze_horizontal_symmetry(image)?;
         self.analyze_vertical_symmetry(image)?;
         self.suppress_false_positive(image)?;
@@ -280,13 +332,13 @@ impl Symmetry {
             // empty image, don't analyze it
             return false;
         }
-        if width == 1 || height == 1 {
-            // single row/column image, don't analyze it
-            return false;
-        }
         if width == height {
             // this is a square, check it for diagonal symmetry
             return true;
+        }
+        if width == 1 || height == 1 {
+            // single row/column image, don't analyze it
+            return false;
         }
         let min: u16 = width.min(height) as u16;
         let max: u16 = width.max(height) as u16;
@@ -1062,13 +1114,12 @@ mod tests {
 
     #[test]
     fn test_30012_only_check_diagonal_symmetry_when_aspect_ratio_is_almost_a_square() {
-        // SIMON
         let items: [(u8, u8, bool); 20] = [
             // don't check the empty image and the single pixel
             (0, 0, false),
-            (1, 1, false),
-
+            
             // always check squares
+            (1, 1, true),
             (2, 2, true),
             (3, 3, true),
 
@@ -1193,5 +1244,82 @@ mod tests {
         assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, x: 0 y: 0 size: 24 mismatches: 174");
         assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, x: 0 y: 0 size: 24 mismatches: 124");
         assert_eq!(instance.repair_color, Some(2));
+    }
+
+    #[test]
+    fn test_50000_single_color_pixel() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0,
+        ];
+        let input: Image = Image::try_create(1, 1, pixels).expect("image");
+
+        // Act
+        let instance = Symmetry::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
+        assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
+        assert_eq!(instance.diagonal_a_to_string(), "diagonal-a symmetry, x: 0 y: 0 size: 1");
+        assert_eq!(instance.diagonal_b_to_string(), "diagonal-b symmetry, x: 0 y: 0 size: 1");
+        assert_eq!(instance.repair_color, None);
+    }
+
+    #[test]
+    fn test_50001_single_color_row() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0,
+        ];
+        let input: Image = Image::try_create(2, 1, pixels).expect("image");
+
+        // Act
+        let instance = Symmetry::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
+        assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
+        assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_to_string(), "no diagonal-b symmetry");
+        assert_eq!(instance.repair_color, None);
+    }
+
+    #[test]
+    fn test_50002_single_color_row() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0,
+        ];
+        let input: Image = Image::try_create(3, 1, pixels).expect("image");
+
+        // Act
+        let instance = Symmetry::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
+        assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
+        assert_eq!(instance.diagonal_a_to_string(), "no diagonal-a symmetry");
+        assert_eq!(instance.diagonal_b_to_string(), "no diagonal-b symmetry");
+        assert_eq!(instance.repair_color, None);
+    }
+
+    #[test]
+    fn test_50003_single_color_2x2() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0,
+            0, 0,
+        ];
+        let input: Image = Image::try_create(2, 2, pixels).expect("image");
+
+        // Act
+        let instance = Symmetry::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
+        assert_eq!(instance.vertical_to_string(), "vertical symmetry, top: 0 bottom: 0");
+        assert_eq!(instance.diagonal_a_to_string(), "diagonal-a symmetry, x: 0 y: 0 size: 2");
+        assert_eq!(instance.diagonal_b_to_string(), "diagonal-b symmetry, x: 0 y: 0 size: 2");
+        assert_eq!(instance.repair_color, None);
     }
 }
