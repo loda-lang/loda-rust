@@ -2,7 +2,7 @@
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model::{self, PairType};
-    use crate::arc::{ActionLabel, Color, ImageDrawRect};
+    use crate::arc::{ActionLabel, Color, ImageRepairSymmetry};
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
@@ -3164,34 +3164,12 @@ mod tests {
 
                 // left right symmetry
                 if let Some(r) = symmetry.horizontal_rect {
-                    for y in 0..the_result_image.height() {
-                        for x in 0..r.width() {
-                            let pixel_value: u8 = the_result_image.get(r.min_x() + (x as i32), y as i32).unwrap_or(0);
-                            if pixel_value != Color::CannotCompute as u8 {
-                                continue;
-                            }
-                            let pixel_value: u8 = the_result_image.get(r.max_x() - (x as i32), y as i32).unwrap_or(0);
-                            if pixel_value != Color::CannotCompute as u8 {
-                                _ = the_result_image.set(r.min_x() + (x as i32), y as i32, pixel_value);
-                            }
-                        }
-                    }
+                    the_result_image.repair_symmetry_horizontal(r)?;
                 }
 
                 // top bottom symmetry
                 if let Some(r) = symmetry.vertical_rect {
-                    for y in 0..r.height() {
-                        for x in 0..the_result_image.width() {
-                            let pixel_value: u8 = the_result_image.get(x as i32, r.min_y() + (y as i32)).unwrap_or(0);
-                            if pixel_value != Color::CannotCompute as u8 {
-                                continue;
-                            }
-                            let pixel_value: u8 = the_result_image.get(x as i32, r.max_y() - (y as i32)).unwrap_or(0);
-                            if pixel_value != Color::CannotCompute as u8 {
-                                _ = the_result_image.set(x as i32, r.min_y() + (y as i32), pixel_value);
-                            }
-                        }
-                    }
+                    the_result_image.repair_symmetry_vertical(r)?;
                 }
 
                 // diagonal a symmetry
@@ -3312,7 +3290,7 @@ mod tests {
 
     // #[test]
     fn test_710004_puzzle_47996f11() {
-        let mut instance = solve_de493100::MySolution::new_without_crop();
+        let mut instance = solve_de493100::MySolution::new_without_crop_and_repair_diagonals();
         let result: String = run_analyze_and_solve("47996f11", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
