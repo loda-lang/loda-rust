@@ -3171,46 +3171,20 @@ mod tests {
                 if let Some(r) = symmetry.vertical_rect {
                     the_result_image.repair_symmetry_vertical(r)?;
                 }
-
+                
                 // diagonal a symmetry
                 if self.repair_diagonals {
                     if let Some(r) = symmetry.diagonal_a_rect {
-                        for y in 0..r.height() {
-                            for x in 0..r.width() {
-                                let pixel_value: u8 = the_result_image.get(r.min_x() + (x as i32), r.min_y() + (y as i32)).unwrap_or(0);
-                                if pixel_value != Color::CannotCompute as u8 {
-                                    continue;
-                                }
-                                let pixel_value: u8 = the_result_image.get(r.min_x() + (y as i32), r.min_y() + (x as i32)).unwrap_or(0);
-                                if pixel_value != Color::CannotCompute as u8 {
-                                    // _ = the_result_image.set(r.min_x() + (x as i32), r.min_y() + (y as i32), pixel_value);
-                                }
-                            }
-                        }
+                        the_result_image.repair_symmetry_diagonal_a(r)?;
                     }
                 }
 
                 // diagonal b symmetry
                 if self.repair_diagonals {
                     if let Some(r) = symmetry.diagonal_b_rect {
-                        for y in 0..r.height() {
-                            for x in 0..r.width() {
-                                let pixel_value: u8 = the_result_image.get(r.max_x() - (x as i32), r.min_y() + (y as i32)).unwrap_or(0);
-                                if pixel_value != Color::CannotCompute as u8 {
-                                    continue;
-                                }
-                                let pixel_value: u8 = the_result_image.get(r.max_x() - (y as i32), r.min_y() + (x as i32)).unwrap_or(0);
-                                if pixel_value != Color::CannotCompute as u8 {
-                                    _ = the_result_image.set(r.max_x() - (x as i32), r.min_y() + (y as i32), pixel_value);
-                                }
-                            }
-                        }
+                        the_result_image.repair_symmetry_diagonal_b(r)?;
                     }
                 }
-
-                // idea
-                // If there is diagonal_a_rect, then repair the pixels.
-                // If there is diagonal_b_rect, then repair the pixels.
 
                 let cropped_result_image: Image;
                 if self.perform_crop_to_attention_mask {
