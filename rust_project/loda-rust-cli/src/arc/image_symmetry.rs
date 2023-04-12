@@ -519,7 +519,6 @@ mod tests {
         assert_eq!(is_symmetric, true);
     }
 
-
     #[test]
     fn test_80002_is_symmetric_any_diagonal_no() {
         // Arrange
@@ -535,5 +534,47 @@ mod tests {
 
         // Assert
         assert_eq!(is_symmetric, false);
+    }
+
+    #[test]
+    fn test_80003_is_symmetric_any_diagonal() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 0, 0,
+            1, 0, 1, 0, 0,
+            1, 1, 1, 0, 0,
+            0, 0, 0, 5, 5,
+            0, 0, 0, 5, 5,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let diagonal_a: bool = input.is_symmetric_diagonal_a().expect("bool");
+        let diagonal_b: bool = input.is_symmetric_diagonal_b().expect("bool");
+
+        // Assert
+        assert_eq!(diagonal_a, true);
+        assert_eq!(diagonal_b, false);
+    }
+
+    #[test]
+    fn test_80004_is_symmetric_any_diagonal() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 1, 1, 1,
+            0, 0, 1, 0, 1,
+            0, 0, 1, 1, 1,
+            5, 5, 0, 0, 0,
+            5, 5, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let diagonal_a: bool = input.is_symmetric_diagonal_a().expect("bool");
+        let diagonal_b: bool = input.is_symmetric_diagonal_b().expect("bool");
+
+        // Assert
+        assert_eq!(diagonal_a, false);
+        assert_eq!(diagonal_b, true);
     }
 }
