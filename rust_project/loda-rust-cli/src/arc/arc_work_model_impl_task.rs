@@ -1035,7 +1035,7 @@ impl arc_work_model::Task {
     }
 
     fn compute_repaired_image_execute(&mut self) -> anyhow::Result<()> {
-        println!("repair: {}", self.id);
+        // println!("repair: {}", self.id);
 
         for (_index, pair) in self.pairs.iter_mut().enumerate() {
             let symmetry: Symmetry = match &pair.input.symmetry {
@@ -1084,6 +1084,17 @@ impl arc_work_model::Task {
             let problem_count: u32 = histogram.counters()[Color::CannotCompute as usize];
             if problem_count > (input.width() as u32) * (input.height() as u32) / 4 {
                 return Err(anyhow::anyhow!("Too many pixels could not be computed. This may not be a symmetric image"));
+            }
+
+            // Most of the repaired images are junk that isn't symmetric.
+            let sym = Symmetry::analyze(&result_image)?;
+            let sym_horizontal: bool = sym.horizontal_found && sym.horizontal_mismatches == 0;
+            let sym_vertical: bool = sym.vertical_found && sym.vertical_mismatches == 0;
+            let sym_diagonal_a: bool = sym.diagonal_a_found && sym.diagonal_a_mismatches == 0;
+            let sym_diagonal_b: bool = sym.diagonal_b_found && sym.diagonal_b_mismatches == 0;
+            let is_symmetric: bool = sym_horizontal || sym_vertical || sym_diagonal_a || sym_diagonal_b;
+            if !is_symmetric {
+                return Err(anyhow::anyhow!("Unable to repair image. No symmetry after repair."));
             }
 
             pair.input.repaired_image = Some(result_image);
