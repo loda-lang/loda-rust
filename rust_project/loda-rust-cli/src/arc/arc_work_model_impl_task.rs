@@ -36,43 +36,6 @@ impl arc_work_model::Task {
         self.action_label_set_intersection = label_set;
     }
 
-    fn xassign_biggest_object_mask(&mut self) {
-        let mut found_color: Option<u8> = None;
-        for label in &self.action_label_set_intersection {
-            match label {
-                ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color } => {
-                    found_color = Some(*color);
-                    break;
-                },
-                _ => {}
-            }
-        }
-        let color: u8 = match found_color {
-            Some(value) => value,
-            None => {
-                // TODO: pick the approach
-                // most popular color for this pair
-                // assign_biggest_object_mask_with_ignore_color
-                return;
-            }
-        };
-        for pair in &mut self.pairs {
-            _ = pair.input.assign_biggest_object_mask_with_ignore_color(color);
-        }
-    }
-
-    // fn assign_biggest_object_mask(&mut self) {
-    //     let color: u8 = match self.input_histogram_intersection.most_popular_color_disallow_ambiguous() {
-    //         Some(color) => color,
-    //         None => {
-    //             return;
-    //         }
-    //     };
-    //     for pair in &mut self.pairs {
-    //         _ = pair.input.assign_biggest_object_mask_with_ignore_color(color);
-    //     }
-    // }
-
     fn has_resolved_repair_mask(&self) -> bool {
         for pair in &self.pairs {
             if pair.input.repair_mask.is_none() {

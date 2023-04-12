@@ -91,10 +91,6 @@ impl arc_work_model::Pair {
             }
         }
 
-        // if width_input > 5 && height_input > 5 {
-        //     _ = self.input.assign_biggest_object_mask();
-        // }
-        
         if width_input == width_output && height_input == height_output {
             _ = self.analyze_3x3_structure();
         }

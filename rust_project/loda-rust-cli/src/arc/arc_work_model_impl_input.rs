@@ -241,39 +241,4 @@ impl arc_work_model::Input {
         self.repair_mask = Some(mask);
         Ok(())
     }
-
-    pub fn assign_biggest_object_mask_with_ignore_color(&mut self, ignore_color: u8) -> anyhow::Result<()> {
-        let ignore_mask: Image = self.image.to_mask_where_color_is(ignore_color);
-        // let mut objects: Vec<ImageSegmentItem> = self.image.find_objects_with_ignore_mask_inner(ImageSegmentAlgorithm::Neighbors, &ignore_mask)?;
-        let mut objects: Vec<ImageSegmentItem> = self.image.find_objects_with_ignore_mask_inner(ImageSegmentAlgorithm::All, &ignore_mask)?;
-        objects.sort_unstable_by_key(|item| (item.mass(), item.x(), item.y()));
-        objects.reverse();
-        let images: Vec<Image> = objects.into_iter().map(|item| item.mask().clone() ).collect();
-        let objects_enum: Image = Image::object_enumerate(&images)?;
-        self.biggest_object_mask = Some(objects_enum);
-        // let biggest_object: ImageSegmentItem = match objects.first() {
-        //     Some(value) => value.clone(),
-        //     None => {
-        //         return Err(anyhow::anyhow!("biggest object"));
-        //     }
-        // };
-        // self.biggest_object_mask = Some(biggest_object.mask().clone());
-        Ok(())
-    }
-
-    pub fn xassign_biggest_object_mask(&mut self) -> anyhow::Result<()> {
-        let color_count: Image = self.image.count_duplicate_pixels_in_3x3()?;
-        let ignore_mask: Image = color_count.to_mask_where_color_is_equal_or_less_than(3);
-        let mut objects: Vec<ImageSegmentItem> = self.image.find_objects_with_ignore_mask_inner(ImageSegmentAlgorithm::Neighbors, &ignore_mask)?;
-        objects.sort_unstable_by_key(|item| (item.mass(), item.x(), item.y()));
-        objects.reverse();
-        let biggest_object: ImageSegmentItem = match objects.first() {
-            Some(value) => value.clone(),
-            None => {
-                return Err(anyhow::anyhow!("biggest object"));
-            }
-        };
-        self.biggest_object_mask = Some(biggest_object.mask().clone());
-        Ok(())
-    }
 }

@@ -49,7 +49,6 @@ pub struct Input {
     // Rerun analytics until all pending properties have been computed
 
     pub repair_mask: Option<Image>,
-    pub biggest_object_mask: Option<Image>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
