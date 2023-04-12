@@ -61,6 +61,7 @@ pub enum SymmetryLabel {
     DiagonalBWithMismatches,
 
     // Ideas for more
+    // RepairColor { color: u8 },
     // Number of palindromic rows { count: u8 },
     // Number of palindromic columns { count: u8 },
 }

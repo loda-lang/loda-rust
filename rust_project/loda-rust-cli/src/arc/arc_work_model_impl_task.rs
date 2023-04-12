@@ -47,10 +47,15 @@ impl arc_work_model::Task {
 
     fn assign_repair_mask(&mut self) {
         self.assign_repair_mask_based_on_single_color_removal_and_changes_limited_to_color();
-        self.assign_repair_mask_with_repair_color();
+        self.assign_repair_mask_with_symmetry_repair_color();
+        self.assign_repair_mask_based_on_most_popular_color();
     }
 
-    fn assign_repair_mask_with_repair_color(&mut self) {
+    /// Generate `repair_mask`
+    /// 
+    /// If there is a symmetric pattern with a possible repair color,
+    /// then use the repair color for the repair mask.
+    fn assign_repair_mask_with_symmetry_repair_color(&mut self) {
         if self.has_resolved_repair_mask() {
             return;
         }
@@ -136,7 +141,9 @@ impl arc_work_model::Task {
         }
     }
 
-    fn assign_biggest_object_mask(&mut self) {
+    /// Generate `repair_mask`
+    /// 
+    fn assign_repair_mask_based_on_most_popular_color(&mut self) {
         if self.has_resolved_repair_mask() {
             return;
         }
@@ -153,7 +160,6 @@ impl arc_work_model::Task {
         };
         for pair in &mut self.pairs {
             _ = pair.input.assign_repair_mask_with_color(color);
-            // _ = pair.input.assign_biggest_object_mask_with_ignore_color(color);
         }
     }
 
@@ -509,7 +515,6 @@ impl arc_work_model::Task {
         self.update_action_label_set_intersection();
 
         self.assign_repair_mask();
-        self.assign_biggest_object_mask();
 
         Ok(())
     }
