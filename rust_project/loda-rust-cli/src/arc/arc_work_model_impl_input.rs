@@ -1,7 +1,7 @@
 use super::{arc_work_model, ImageNoiseColor};
 use super::arc_work_model::Object;
 use super::{PropertyInput, InputLabel};
-use super::{Symmetry, Image, ImageSymmetry, Rectangle};
+use super::{Symmetry, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
 use super::{ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, ImageCrop, ImageObjectEnumerate};
 use std::collections::{HashMap, HashSet};
 
@@ -190,71 +190,20 @@ impl arc_work_model::Input {
 
     pub fn update_input_label_set(&mut self) {
         self.resolve_symmetry();
-        let detect = match &self.symmetry {
-            Some(value) => value.clone(),
+
+        let symmetry_labels: HashSet<SymmetryLabel>;
+        match &self.symmetry {
+            Some(symmetry) => {
+                symmetry_labels = symmetry.to_symmetry_labels();
+            },
             None => {
                 return;
             }
         };
 
-        if detect.horizontal_found {
-            if detect.horizontal_mismatches == 0 {
-                if detect.horizontal_left == 0 && detect.horizontal_right == 0 {
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricX);
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInset);
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithMismatches);
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInsetAndMismatches);
-                } else {
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInset);
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInsetAndMismatches);
-                }
-            } else {
-                if detect.horizontal_left == 0 && detect.horizontal_right == 0 {
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithMismatches);
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInsetAndMismatches);
-                } else {
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricXWithInsetAndMismatches);
-                }
-            }
-        }
-
-        if detect.vertical_found {
-            if detect.vertical_mismatches == 0 {
-                if detect.vertical_top == 0 && detect.vertical_bottom == 0 {
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricY);
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInset);
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithMismatches);
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInsetAndMismatches);
-                } else {
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInset);
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInsetAndMismatches);
-                }
-            } else {
-                if detect.vertical_top == 0 && detect.vertical_bottom == 0 {
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithMismatches);
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInsetAndMismatches);
-                } else {
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricYWithInsetAndMismatches);
-                }
-            }
-        }
-
-        if detect.diagonal_a_found {
-            if detect.diagonal_a_mismatches == 0 {
-                self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalA);
-                self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalAWithMismatches);
-            } else {
-                self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalAWithMismatches);
-            }
-        }
-
-        if detect.diagonal_b_found {
-            if detect.diagonal_b_mismatches == 0 {
-                self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalB);
-                self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalBWithMismatches);
-            } else {
-                self.input_label_set.insert(InputLabel::InputImageIsSymmetricDiagonalBWithMismatches);
-            }
+        for symmetry_label in symmetry_labels {
+            let label = InputLabel::InputSymmetry { label: symmetry_label.clone() };
+            self.input_label_set.insert(label);
         }
     }
 

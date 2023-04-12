@@ -292,11 +292,14 @@ impl TraverseProgramsAndModels {
         }
         println!("tasks with size=bad and palette=bad.  {}", count_tasks_without_predictions);
 
-        Self::inspect_task_id(&task_vec, "af22c60d")?;
+        // Self::inspect_task_id(&task_vec, "332efdb3")?;
+        // Self::inspect_task_id(&task_vec, "17cae0c1")?;
+        // Self::inspect_task_id(&task_vec, "929ab4e9")?;
+        // Self::inspect_task_id(&task_vec, "9ecd008a")?;
         // Self::inspect_task_id(&task_vec, "de493100")?;
+        // Self::inspect_task_id(&task_vec, "af22c60d")?;
         // Self::inspect_task_id(&task_vec, "f15e1fac")?;
         // Self::inspect_task_id(&task_vec, "f9012d9b")?;
-        // Self::inspect_task_id(&task_vec, "de493100")?;
         // Self::inspect_task_id(&task_vec, "1b60fb0c")?;
         // Self::inspect_task_id(&task_vec, "67a423a3")?;
         // Self::inspect_task_id(&task_vec, "f9012d9b")?;
@@ -313,7 +316,7 @@ impl TraverseProgramsAndModels {
         // Self::inspect_task_id(&task_vec, "aedd82e4")?;
         // Self::inspect_task_id(&task_vec, "4c5c2cf0")?;
         // Self::inspect_task_id(&task_vec, "5c0a986e")?;
-        // Self::inspect_tasks_without_solution(&task_vec)?;
+        Self::inspect_tasks_without_solution(&task_vec)?;
         // Self::inspect_undecided(&task_vec)?;
         // Self::inspect_decided(&task_vec)?;
         // Self::inspect_task_id(&task_vec, "72ca375d")?;
@@ -358,9 +361,6 @@ impl TraverseProgramsAndModels {
             // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricXWithMismatches) && task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricYWithMismatches) {
             //     found = true;
             // }
-            if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricDiagonalAWithMismatches) && task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricDiagonalBWithMismatches) {
-                found = true;
-            }
             // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricXWithInset) || task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricYWithInset) {
             //     found = true;
             // }

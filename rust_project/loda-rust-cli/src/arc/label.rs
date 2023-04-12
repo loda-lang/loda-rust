@@ -44,30 +44,35 @@ pub enum PropertyInput {
     // Number of 1px lines vertical
 }
 
+/// Properties about an input image or an output image.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum SymmetryLabel {
+    Horizontal,
+    HorizontalWithMismatches,
+    HorizontalWithInset,
+    HorizontalWithInsetAndMismatches,
+    Vertical,
+    VerticalWithMismatches,
+    VerticalWithInset,
+    VerticalWithInsetAndMismatches,
+    DiagonalA,
+    DiagonalAWithMismatches,
+    DiagonalB,
+    DiagonalBWithMismatches,
+
+    // Ideas for more
+    // Number of palindromic rows { count: u8 },
+    // Number of palindromic columns { count: u8 },
+}
+
 /// Properties about the input image.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum InputLabel {
-    InputImageIsSymmetricX,
-    InputImageIsSymmetricY,
-    InputImageIsSymmetricXWithMismatches,
-    InputImageIsSymmetricYWithMismatches,
-    InputImageIsSymmetricXWithInset,
-    InputImageIsSymmetricYWithInset,
-    InputImageIsSymmetricXWithInsetAndMismatches,
-    InputImageIsSymmetricYWithInsetAndMismatches,
-
-    InputImageIsSymmetricDiagonalA,
-    InputImageIsSymmetricDiagonalB,
-    InputImageIsSymmetricDiagonalAWithMismatches,
-    InputImageIsSymmetricDiagonalBWithMismatches,
+    InputSymmetry { label: SymmetryLabel },
 
     // Ideas for more
     // InputUniqueColors { color: Vec<u8> },
     // InputAspectRatio { width: u8, height: u8 },
-    // Number of palindromic rows { count: u8 },
-    // Number of palindromic columns { count: u8 },
-    // InputIsPalindrome,
-    // InputIsPalindromeWithOffset, // this palindrome appear in task "3631a71a"
 }
 
 pub type InputLabelSet = HashSet<InputLabel>;
@@ -124,8 +129,7 @@ pub enum ActionLabel {
     OutputImageHasSameStructureAsInputImage,
     
     // Ideas for more
-    // OutputImageIsPalindrome,
-    // OutputIsPalindromeWithOffset,
+    // OutputSymmetry { label: SymmetryLabel },
     // OutputImageIsPresentInInputImageWithTwoColorWildcards, for solving "8731374e"
     // OutputImageWithSlightlyDifferentColorsIsPresentInTheInputImage,
     // OutputImageIsSingleColor,
