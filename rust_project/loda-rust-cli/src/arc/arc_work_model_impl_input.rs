@@ -1,8 +1,8 @@
-use super::{arc_work_model, ImageNoiseColor};
+use super::arc_work_model;
 use super::arc_work_model::Object;
 use super::{PropertyInput, InputLabel};
 use super::{Symmetry, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
-use super::{ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, ImageCrop, ImageObjectEnumerate};
+use super::{ImageSegment, ImageSegmentAlgorithm, ImageMask, ImageCrop};
 use std::collections::{HashMap, HashSet};
 
 impl arc_work_model::Input {
