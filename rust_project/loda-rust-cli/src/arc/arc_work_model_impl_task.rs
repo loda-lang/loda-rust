@@ -83,8 +83,8 @@ impl arc_work_model::Task {
     }
 
     fn assign_repair_mask(&mut self) {
+        self.assign_repair_mask_based_on_single_color_removal_and_changes_limited_to_color();
         self.assign_repair_mask_with_repair_color();
-        self.assign_repair_mask_single_color_removal();
     }
 
     fn assign_repair_mask_with_repair_color(&mut self) {
@@ -121,23 +121,52 @@ impl arc_work_model::Task {
 
     }
 
-    fn assign_repair_mask_single_color_removal(&mut self) {
+    /// Generate `repair_mask`
+    /// 
+    /// Precondition
+    /// `OutputImageIsInputImageWithChangesLimitedToPixelsWithColor` is the pixel colors that are going to be changed.
+    /// 
+    /// Precondition
+    /// there is just 1 color for removal.
+    /// 
+    /// The removal color must be the same as the `OutputImageIsInputImageWithChangesLimitedToPixelsWithColor`.
+    fn assign_repair_mask_based_on_single_color_removal_and_changes_limited_to_color(&mut self) {
         if self.has_resolved_repair_mask() {
             return;
         }
 
-        if !self.is_output_size_same_as_removed_rectangle_after_single_color_removal() {
+        if self.removal_histogram_intersection.number_of_counters_greater_than_zero() >= 2 {
+            // too many colors to agree on a single color
             return;
         }
-        if self.removal_histogram_intersection.number_of_counters_greater_than_zero() != 1 {
-            return;
-        }
-        let color: u8 = match self.removal_histogram_intersection.most_popular_color_disallow_ambiguous() {
+        let single_color_removal: u8 = match self.removal_histogram_intersection.most_popular_color_disallow_ambiguous() {
             Some(value) => value,
             None => {
                 return;
             }
         };
+
+        let mut found_color: Option<u8> = None;
+        for label in &self.action_label_set_intersection {
+            match label {
+                ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color } => {
+                    found_color = Some(*color);
+                    break;
+                },
+                _ => {}
+            }
+        }
+        let color: u8 = match found_color {
+            Some(value) => value,
+            None => {
+                return;
+            }
+        };
+
+        if color != single_color_removal {
+            // disagreement about what color is to be repaired
+            return;
+        }
 
         for pair in &mut self.pairs {
             _ = pair.input.assign_repair_mask_with_color(color);
