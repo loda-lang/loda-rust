@@ -299,18 +299,16 @@ impl Symmetry {
         let mut found_y: u8 = u8::MAX;
         let mut found_mismatches: u16 = u16::MAX;
 
+        // Unfair behavior: Starting from the top left corner may cause bias, so a top left coordinate is preferred.
+        // Idea, fan out from the center and spiral to the edges, may prefer centered coordinates.
         for x in 0..x_iterations {
             for y in 0..y_iterations {
                 let rect: Rectangle = Rectangle::new(x, y, min_size, min_size);
                 let image_cropped: Image = image.crop(rect)?;
 
                 let flipped_image: Image = match is_diagonal_a {
-                    true => {
-                        image_cropped.flip_diagonal_a()?
-                    },
-                    false => {
-                        image_cropped.flip_diagonal_b()?      
-                    }
+                    true => image_cropped.flip_diagonal_a()?,
+                    false => image_cropped.flip_diagonal_b()?
                 };
                 let diff: Image = flipped_image.diff(&image_cropped)?;
                 let mismatch_count: u16 = diff.mask_count_one();
