@@ -3150,7 +3150,7 @@ mod tests {
                         return Err(anyhow::anyhow!("Expected symmetry"));
                     }
                 };
-                // HtmlLog::text(format!("pair {}, detect: {:?}", data.index, detect));
+                // HtmlLog::text(format!("pair {}, symmetry: {:?} repair color: {:?}", data.index, symmetry, symmetry.repair_color));
                 // println!("repair color: {:?}", symmetry.repair_color);
 
                 // Sometimes it's not possible to compute the entire output just by looking at the input pixels alone.
@@ -3162,27 +3162,27 @@ mod tests {
 
                 let mut the_result_image: Image = input_masked_out.clone();
 
-                // left right symmetry
+                // horizontal
                 if let Some(r) = symmetry.horizontal_rect {
                     the_result_image.repair_symmetry_horizontal(r)?;
                 }
 
-                // top bottom symmetry
+                // vertical
                 if let Some(r) = symmetry.vertical_rect {
                     the_result_image.repair_symmetry_vertical(r)?;
                 }
                 
-                // diagonal a symmetry
+                // diagonal a
                 if self.repair_diagonals {
                     if let Some(r) = symmetry.diagonal_a_rect {
-                        the_result_image.repair_symmetry_diagonal_a(r)?;
+                        the_result_image.repair_symmetry_diagonal_b(r)?;
                     }
                 }
 
-                // diagonal b symmetry
+                // diagonal b
                 if self.repair_diagonals {
                     if let Some(r) = symmetry.diagonal_b_rect {
-                        the_result_image.repair_symmetry_diagonal_b(r)?;
+                        the_result_image.repair_symmetry_diagonal_a(r)?;
                     }
                 }
 
@@ -3262,7 +3262,7 @@ mod tests {
         assert_eq!(result, "4 1");
     }
 
-    // #[test]
+    #[test]
     fn test_710004_puzzle_47996f11() {
         let mut instance = solve_de493100::MySolution::new_without_crop_and_repair_diagonals();
         let result: String = run_analyze_and_solve("47996f11", &mut instance).expect("String");
