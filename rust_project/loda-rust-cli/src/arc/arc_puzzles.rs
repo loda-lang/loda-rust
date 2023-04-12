@@ -3097,28 +3097,18 @@ mod tests {
 
         pub struct MySolution {
             perform_crop_to_attention_mask: bool,
-            repair_diagonals: bool,
         }
     
         impl MySolution {
             pub fn new_without_crop() -> Self {
                 Self { 
                     perform_crop_to_attention_mask: false,
-                    repair_diagonals: false,
                 }
             }
 
             pub fn new_with_crop() -> Self {
                 Self { 
                     perform_crop_to_attention_mask: true,
-                    repair_diagonals: false,
-                }
-            }
-
-            pub fn new_without_crop_and_repair_diagonals() -> Self {
-                Self { 
-                    perform_crop_to_attention_mask: false,
-                    repair_diagonals: true,
                 }
             }
         }
@@ -3173,17 +3163,13 @@ mod tests {
                 }
                 
                 // diagonal a
-                if self.repair_diagonals {
-                    if let Some(r) = symmetry.diagonal_a_rect {
-                        the_result_image.repair_symmetry_diagonal_b(r)?;
-                    }
+                if let Some(r) = symmetry.diagonal_a_rect {
+                    the_result_image.repair_symmetry_diagonal_b(r)?;
                 }
 
                 // diagonal b
-                if self.repair_diagonals {
-                    if let Some(r) = symmetry.diagonal_b_rect {
-                        the_result_image.repair_symmetry_diagonal_a(r)?;
-                    }
+                if let Some(r) = symmetry.diagonal_b_rect {
+                    the_result_image.repair_symmetry_diagonal_a(r)?;
                 }
 
                 let cropped_result_image: Image;
@@ -3257,14 +3243,14 @@ mod tests {
 
     #[test]
     fn test_710003_puzzle_929ab4e9() {
-        let mut instance = solve_de493100::MySolution::new_without_crop_and_repair_diagonals();
+        let mut instance = solve_de493100::MySolution::new_without_crop();
         let result: String = run_analyze_and_solve("929ab4e9", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
     #[test]
     fn test_710004_puzzle_47996f11() {
-        let mut instance = solve_de493100::MySolution::new_without_crop_and_repair_diagonals();
+        let mut instance = solve_de493100::MySolution::new_without_crop();
         let result: String = run_analyze_and_solve("47996f11", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
