@@ -42,13 +42,14 @@ pub struct Input {
     pub input_objects: HashMap<ObjectType, Vec<Object>>,
 
     pub symmetry: Option<Symmetry>,
+    
+    pub repair_mask: Option<Image>,
+    pub repaired_image: Option<Image>,
 
     // Future experiments to do.
     // State keeping of the input_properties. 
     // Computed, NotYetComputed, CannotBeComputed, DependingOnAnotherProperty.
     // Rerun analytics until all pending properties have been computed
-
-    pub repair_mask: Option<Image>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

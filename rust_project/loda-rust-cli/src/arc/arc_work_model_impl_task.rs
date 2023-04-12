@@ -1,7 +1,7 @@
-use super::{arc_work_model, HtmlFromTask};
+use super::{arc_work_model, HtmlFromTask, InputLabel, ImageRepairSymmetry, Symmetry, SymmetryLabel};
 use super::arc_work_model::{Input, PairType};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram};
-use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
+use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil, Color};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
@@ -36,9 +36,18 @@ impl arc_work_model::Task {
         self.action_label_set_intersection = label_set;
     }
 
-    fn has_resolved_repair_mask(&self) -> bool {
+    pub fn has_resolved_repair_mask(&self) -> bool {
         for pair in &self.pairs {
             if pair.input.repair_mask.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
+    pub fn has_resolved_repaired_image(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.input.repaired_image.is_none() {
                 return false;
             }
         }
@@ -516,6 +525,8 @@ impl arc_work_model::Task {
 
         self.assign_repair_mask();
 
+        self.compute_repaired_image()?;
+
         Ok(())
     }
 
@@ -963,6 +974,122 @@ impl arc_work_model::Task {
                 pair.prediction_set.insert(arc_work_model::Prediction::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color: *predicted_color });
             }
         }
+    }
+
+    pub fn compute_repaired_image(&mut self) -> anyhow::Result<()> {
+        if !self.has_resolved_repair_mask() {
+            return Ok(());
+        }
+
+        let mut repair_horizontal: bool = false;
+        let mut repair_vertical: bool = false;
+        let mut repair_diagonal_a: bool = false;
+        let mut repair_diagonal_b: bool = false;
+
+        for input_label in &self.input_label_set_intersection {
+            match input_label {
+                InputLabel::InputSymmetry { label } => {
+                    match label {
+                        SymmetryLabel::HorizontalWithMismatches => {
+                            repair_horizontal = true;
+                        },
+                        SymmetryLabel::HorizontalWithInsetAndMismatches => {
+                            repair_horizontal = true;
+                        },
+                        SymmetryLabel::VerticalWithMismatches => {
+                            repair_vertical = true;
+                        },
+                        SymmetryLabel::VerticalWithInsetAndMismatches => {
+                            repair_vertical = true;
+                        },
+                        SymmetryLabel::DiagonalAWithMismatches => {
+                            repair_diagonal_a = true;
+                        },
+                        SymmetryLabel::DiagonalBWithMismatches => {
+                            repair_diagonal_b = true;
+                        },
+                        _ => {}
+                    }
+                }
+            }
+        }
+        let both_horz_and_vert: bool = repair_horizontal && repair_vertical;
+        let attempt_repair: bool = both_horz_and_vert || repair_diagonal_a || repair_diagonal_b;
+        if !attempt_repair {
+            return Ok(());
+        }
+        match self.compute_repaired_image_execute() {
+            Ok(()) => {},
+            Err(_) => {
+                // could not repair, perhaps the image isn't symmetric.
+                self.reset_input_repaired_image();
+            }
+        }
+        Ok(())
+    }
+
+    fn reset_input_repaired_image(&mut self) {
+        for (_index, pair) in self.pairs.iter_mut().enumerate() {
+            pair.input.repaired_image = None;
+        }
+    }
+
+    fn compute_repaired_image_execute(&mut self) -> anyhow::Result<()> {
+        println!("repair: {}", self.id);
+
+        for (_index, pair) in self.pairs.iter_mut().enumerate() {
+            let symmetry: Symmetry = match &pair.input.symmetry {
+                Some(value) => value.clone(),
+                None => {
+                    continue;
+                }
+            };
+    
+            let repair_mask: Image = match &pair.input.repair_mask {
+                Some(value) => value.clone(),
+                None => {
+                    continue;
+                }
+            };
+            let input: Image = pair.input.image.clone();
+            let input_masked_out: Image = repair_mask.select_from_image_and_color(&input, Color::CannotCompute as u8)?;
+
+            let mut result_image: Image = input_masked_out.clone();
+
+            // horizontal
+            if let Some(r) = symmetry.horizontal_rect {
+                result_image.repair_symmetry_horizontal(r)?;
+            }
+
+            // vertical
+            if let Some(r) = symmetry.vertical_rect {
+                result_image.repair_symmetry_vertical(r)?;
+            }
+            
+            // diagonal a
+            if let Some(r) = symmetry.diagonal_a_rect {
+                result_image.repair_symmetry_diagonal_a(r)?;
+            }
+
+            // diagonal b
+            if let Some(r) = symmetry.diagonal_b_rect {
+                result_image.repair_symmetry_diagonal_b(r)?;
+            }
+
+            let histogram: Histogram = result_image.histogram_all();
+            if histogram.number_of_counters_greater_than_zero() < 2 {
+                return Err(anyhow::anyhow!("Expected the repaired symmetric pattern to contain 2 or more unique colors"));
+            }
+
+            let problem_count: u32 = histogram.counters()[Color::CannotCompute as usize];
+            if problem_count > (input.width() as u32) * (input.height() as u32) / 4 {
+                return Err(anyhow::anyhow!("Too many pixels could not be computed. This may not be a symmetric image"));
+            }
+
+            pair.input.repaired_image = Some(result_image);
+        }
+
+        Ok(())
     }
 
     pub fn inspect(&self) -> anyhow::Result<()> {

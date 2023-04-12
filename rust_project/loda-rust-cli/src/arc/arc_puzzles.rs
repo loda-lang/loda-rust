@@ -3134,6 +3134,13 @@ mod tests {
                     }
                 };
 
+                let the_result_image2: Image = match &pair.input.repaired_image {
+                    Some(value) => value.clone(),
+                    None => {
+                        return Err(anyhow::anyhow!("Expected symmetry"));
+                    }
+                };
+
                 let symmetry: Symmetry = match &pair.input.symmetry {
                     Some(value) => value.clone(),
                     None => {
@@ -3174,9 +3181,9 @@ mod tests {
 
                 let cropped_result_image: Image;
                 if self.perform_crop_to_attention_mask {
-                    cropped_result_image = the_result_image.crop(rect)?;
+                    cropped_result_image = the_result_image2.crop(rect)?;
                 } else {
-                    cropped_result_image = the_result_image;
+                    cropped_result_image = the_result_image2;
                 }
                 Ok(cropped_result_image)
             }
