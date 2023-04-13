@@ -2,14 +2,14 @@
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model::{self, PairType};
-    use crate::arc::{ActionLabel, Color, ImageRepairSymmetry};
+    use crate::arc::{ActionLabel};
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, Symmetry};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use std::collections::HashMap;
     use regex::Regex;
@@ -3118,8 +3118,6 @@ mod tests {
             }
     
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
-                let input: &Image = &data.image;
-
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let repair_mask: Image = match &pair.input.repair_mask {
                     Some(value) => value.clone(),
@@ -3127,65 +3125,25 @@ mod tests {
                         return Err(anyhow::anyhow!("Expected a repair mask"));
                     }
                 };
-                let rect: Rectangle = match repair_mask.bounding_box() {
+                let repair_mask_bounding_box: Rectangle = match repair_mask.bounding_box() {
                     Some(value) => value,
                     None => {
                         return Err(anyhow::anyhow!("Unable to determine bounding box of repair mask"));
                     }
                 };
-
-                let the_result_image2: Image = match &pair.input.repaired_image {
+                let repaired_image: Image = match &pair.input.repaired_image {
                     Some(value) => value.clone(),
                     None => {
-                        return Err(anyhow::anyhow!("Expected symmetry"));
+                        return Err(anyhow::anyhow!("Expected repaired_image"));
                     }
                 };
-
-                let symmetry: Symmetry = match &pair.input.symmetry {
-                    Some(value) => value.clone(),
-                    None => {
-                        return Err(anyhow::anyhow!("Expected symmetry"));
-                    }
-                };
-                // HtmlLog::text(format!("pair {}, symmetry: {:?} repair color: {:?}", data.index, symmetry, symmetry.repair_color));
-                // println!("repair color: {:?}", symmetry.repair_color);
-
-                // Sometimes it's not possible to compute the entire output just by looking at the input pixels alone.
-                // Fill the repair mask with `Color::CannotCompute`, so that it's clear there was a problem 
-                // computing pixel data for these pixels.
-                // This happens when the symmetric shape has an inset, and there is masked out an area
-                // bigger than what is possible to recover just by looking at the input pixels alone.
-                let input_masked_out: Image = repair_mask.select_from_image_and_color(&input, Color::CannotCompute as u8)?;
-
-                let mut the_result_image: Image = input_masked_out.clone();
-
-                // horizontal
-                if let Some(r) = symmetry.horizontal_rect {
-                    the_result_image.repair_symmetry_horizontal(r)?;
-                }
-
-                // vertical
-                if let Some(r) = symmetry.vertical_rect {
-                    the_result_image.repair_symmetry_vertical(r)?;
-                }
-                
-                // diagonal a
-                if let Some(r) = symmetry.diagonal_a_rect {
-                    the_result_image.repair_symmetry_diagonal_a(r)?;
-                }
-
-                // diagonal b
-                if let Some(r) = symmetry.diagonal_b_rect {
-                    the_result_image.repair_symmetry_diagonal_b(r)?;
-                }
-
-                let cropped_result_image: Image;
+                let result_image: Image;
                 if self.perform_crop_to_attention_mask {
-                    cropped_result_image = the_result_image2.crop(rect)?;
+                    result_image = repaired_image.crop(repair_mask_bounding_box)?;
                 } else {
-                    cropped_result_image = the_result_image2;
+                    result_image = repaired_image;
                 }
-                Ok(cropped_result_image)
+                Ok(result_image)
             }
         }
     }
