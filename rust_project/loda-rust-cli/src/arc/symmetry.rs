@@ -33,7 +33,9 @@ pub struct Symmetry {
     pub diagonal_b_rect: Option<Rectangle>,
 
     pub repair_color: Option<u8>,
+
     // Idea for more
+    // Rotational symmetry, 90, 180, 270
     // repair plan for the damaged pixels
 }
 
