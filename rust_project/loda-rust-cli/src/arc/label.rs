@@ -130,6 +130,7 @@ pub enum ActionLabel {
     OutputImageHasSameStructureAsInputImage,
     
     // Ideas for more
+    // OutputImageIsTheSameAsInputImageWithColor { color: u8 },
     // OutputSymmetry { label: SymmetryLabel },
     // OutputImageIsPresentInInputImageWithTwoColorWildcards, for solving "8731374e"
     // OutputImageWithSlightlyDifferentColorsIsPresentInTheInputImage,
