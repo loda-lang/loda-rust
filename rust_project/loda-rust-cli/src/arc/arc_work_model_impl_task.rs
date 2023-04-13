@@ -1,4 +1,4 @@
-use super::{arc_work_model, HtmlFromTask, InputLabel, Symmetry, SymmetryLabel, AutoRepairSymmetry};
+use super::{arc_work_model, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry};
 use super::arc_work_model::{Input, PairType};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram};
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
@@ -525,7 +525,7 @@ impl arc_work_model::Task {
 
         self.assign_repair_mask();
 
-        self.compute_repaired_image()?;
+        self.compute_input_repaired_image()?;
 
         Ok(())
     }
@@ -976,7 +976,7 @@ impl arc_work_model::Task {
         }
     }
 
-    pub fn compute_repaired_image(&mut self) -> anyhow::Result<()> {
+    pub fn compute_input_repaired_image(&mut self) -> anyhow::Result<()> {
         if !self.has_resolved_repair_mask() {
             return Ok(());
         }
@@ -1018,7 +1018,7 @@ impl arc_work_model::Task {
         if !attempt_repair {
             return Ok(());
         }
-        match self.compute_repaired_image_execute() {
+        match self.compute_input_repaired_image_execute() {
             Ok(()) => {},
             Err(_) => {
                 // could not repair, perhaps the image isn't symmetric.
@@ -1034,23 +1034,17 @@ impl arc_work_model::Task {
         }
     }
 
-    fn compute_repaired_image_execute(&mut self) -> anyhow::Result<()> {
+    fn compute_input_repaired_image_execute(&mut self) -> anyhow::Result<()> {
         for (_index, pair) in self.pairs.iter_mut().enumerate() {
-            let symmetry: Symmetry = match &pair.input.symmetry {
-                Some(value) => value.clone(),
-                None => {
-                    return Err(anyhow::anyhow!("One or more images are missing a symmetry"));
-                }
-            };
-            let repair_mask: Image = match &pair.input.repair_mask {
-                Some(value) => value.clone(),
-                None => {
-                    return Err(anyhow::anyhow!("One or more images are missing a repair_mask"));
+            let (symmetry, repair_mask) = match (&pair.input.symmetry, &pair.input.repair_mask) {
+                (Some(a), Some(b)) => (a, b),
+                _ => {
+                    return Err(anyhow::anyhow!("symmetry and repair_mask"));
                 }
             };
             let image_to_repair: &Image = &pair.input.image;
-            let result_image: Image = AutoRepairSymmetry::execute(&symmetry, &repair_mask, image_to_repair)?;
-            pair.input.repaired_image = Some(result_image);
+            let repaired_image: Image = AutoRepairSymmetry::execute(&symmetry, &repair_mask, image_to_repair)?;
+            pair.input.repaired_image = Some(repaired_image);
         }
         Ok(())
     }
