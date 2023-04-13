@@ -1,7 +1,7 @@
-use super::{arc_work_model, HtmlFromTask, InputLabel, ImageRepairSymmetry, Symmetry, SymmetryLabel};
+use super::{arc_work_model, HtmlFromTask, InputLabel, Symmetry, SymmetryLabel, AutoRepairSymmetry};
 use super::arc_work_model::{Input, PairType};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram};
-use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil, Color};
+use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
@@ -1035,71 +1035,23 @@ impl arc_work_model::Task {
     }
 
     fn compute_repaired_image_execute(&mut self) -> anyhow::Result<()> {
-        // println!("repair: {}", self.id);
-
         for (_index, pair) in self.pairs.iter_mut().enumerate() {
             let symmetry: Symmetry = match &pair.input.symmetry {
                 Some(value) => value.clone(),
                 None => {
-                    continue;
+                    return Err(anyhow::anyhow!("One or more images are missing a symmetry"));
                 }
             };
-    
             let repair_mask: Image = match &pair.input.repair_mask {
                 Some(value) => value.clone(),
                 None => {
-                    continue;
+                    return Err(anyhow::anyhow!("One or more images are missing a repair_mask"));
                 }
             };
-            let input: Image = pair.input.image.clone();
-            let input_masked_out: Image = repair_mask.select_from_image_and_color(&input, Color::CannotCompute as u8)?;
-
-            let mut result_image: Image = input_masked_out.clone();
-
-            // horizontal
-            if let Some(r) = symmetry.horizontal_rect {
-                result_image.repair_symmetry_horizontal(r)?;
-            }
-
-            // vertical
-            if let Some(r) = symmetry.vertical_rect {
-                result_image.repair_symmetry_vertical(r)?;
-            }
-            
-            // diagonal a
-            if let Some(r) = symmetry.diagonal_a_rect {
-                result_image.repair_symmetry_diagonal_a(r)?;
-            }
-
-            // diagonal b
-            if let Some(r) = symmetry.diagonal_b_rect {
-                result_image.repair_symmetry_diagonal_b(r)?;
-            }
-
-            let histogram: Histogram = result_image.histogram_all();
-            if histogram.number_of_counters_greater_than_zero() < 2 {
-                return Err(anyhow::anyhow!("Expected the repaired symmetric pattern to contain 2 or more unique colors"));
-            }
-
-            let problem_count: u32 = histogram.counters()[Color::CannotCompute as usize];
-            if problem_count > (input.width() as u32) * (input.height() as u32) / 4 {
-                return Err(anyhow::anyhow!("Too many pixels could not be computed. This may not be a symmetric image"));
-            }
-
-            // Most of the repaired images are junk that isn't symmetric.
-            let sym = Symmetry::analyze(&result_image)?;
-            let sym_horizontal: bool = sym.horizontal_found && sym.horizontal_mismatches == 0;
-            let sym_vertical: bool = sym.vertical_found && sym.vertical_mismatches == 0;
-            let sym_diagonal_a: bool = sym.diagonal_a_found && sym.diagonal_a_mismatches == 0;
-            let sym_diagonal_b: bool = sym.diagonal_b_found && sym.diagonal_b_mismatches == 0;
-            let is_symmetric: bool = sym_horizontal || sym_vertical || sym_diagonal_a || sym_diagonal_b;
-            if !is_symmetric {
-                return Err(anyhow::anyhow!("Unable to repair image. No symmetry after repair."));
-            }
-
+            let image_to_repair: &Image = &pair.input.image;
+            let result_image: Image = AutoRepairSymmetry::execute(&symmetry, &repair_mask, image_to_repair)?;
             pair.input.repaired_image = Some(result_image);
         }
-
         Ok(())
     }
 
