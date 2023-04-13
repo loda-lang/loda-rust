@@ -1014,7 +1014,9 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "no horizontal symmetry");
         assert_eq!(instance.vertical_to_string(), "no vertical symmetry");
-        // TODO: when detecting a false positive, then also check for the diagonal symmetries, so these can be cleared
+
+        // This is a false-positive. No diagonal symmetries should be detected.
+        // when detecting a false positive, then also check for the diagonal symmetries and false positive scenarios, so these can be cleared
         assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, x: 1 y: 0 size: 6 mismatches: 4");
         assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, x: 1 y: 0 size: 6 mismatches: 6");
     }
@@ -1038,7 +1040,9 @@ mod tests {
         // Assert
         assert_eq!(instance.horizontal_to_string(), "no horizontal symmetry");
         assert_eq!(instance.vertical_to_string(), "no vertical symmetry");
-        // TODO: when detecting a false positive, then also check for the diagonal symmetries, so these can be cleared
+
+        // This is a false-positive. No diagonal symmetries should be detected.
+        // when detecting a false positive, then also check for the diagonal symmetries and false positive scenarios, so these can be cleared
         assert_eq!(instance.diagonal_a_to_string(), "partial diagonal-a symmetry, x: 1 y: 0 size: 6 mismatches: 8");
         assert_eq!(instance.diagonal_b_to_string(), "partial diagonal-b symmetry, x: 1 y: 0 size: 6 mismatches: 6");
     }

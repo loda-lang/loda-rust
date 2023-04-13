@@ -508,9 +508,12 @@ impl RunWithProgram {
     /// 
     /// It's illegal for the `test` pairs to contain `Color::CannotCompute`.
     fn preserve_output_for_traindata(&self, computed_images: &mut Vec<Image>) -> anyhow::Result<()> {
-        // TODO: together with the computed_images, also store a `rejection reason`,
+        // Future idea
+        // together with the computed_images, also store a `rejection reason`,
         // so it's possible to debug why an image was rejected.
         // make a struct that contains both the pair index, if it's a train or test.
+        // in case there is a problem then nothing gets printed to the console,
+        // however here it's especially important to print useful info to the console.
 
         let count_train: usize = self.task.count_train();
 
