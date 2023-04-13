@@ -8,6 +8,11 @@ impl AutoRepairSymmetry {
             return Err(anyhow::anyhow!("size must be the same"));
         }
 
+        // Sometimes it's not possible to compute the entire output just by looking at the input pixels alone.
+        // Fill the repair mask with `Color::CannotCompute`, so that it's clear there was a problem 
+        // computing pixel data for these pixels.
+        // This happens when the symmetric shape has an inset, and there is masked out an area
+        // bigger than what is possible to recover just by looking at the input pixels alone.
         let mut result_image: Image = repair_mask.select_from_image_and_color(image_to_repair, Color::CannotCompute as u8)?;
 
         // horizontal
