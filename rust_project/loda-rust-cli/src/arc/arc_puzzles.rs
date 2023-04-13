@@ -1962,8 +1962,8 @@ mod tests {
 
     ; multiply input image by mask
     mov $8,$6
-    mov $9,$0
-    mov $10,$3
+    mov $9,$3
+    mov $10,$0
     f31 $8,102130 ; Pick pixels from one image.
     mov $0,$8
 
