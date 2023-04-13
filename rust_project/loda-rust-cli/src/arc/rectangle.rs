@@ -108,16 +108,15 @@ impl Rectangle {
     }
 
     /// Find the overlap between two rectangles
+    /// 
+    /// If there is no overlap then `Rectangle::empty()` is returned.
     #[allow(dead_code)]
     pub fn intersection(&self, other: Rectangle) -> Rectangle {
         let x0 = self.min_x().max(other.min_x());
         let y0 = self.min_y().max(other.min_y());
         let x1 = self.max_x().min(other.max_x());
         let y1 = self.max_y().min(other.max_y());
-        if x0 > x1 || y0 > y1 {
-            return Rectangle::empty();
-        }
-        Self::span(x0, y0, x1, y1).unwrap_or_else(|| Rectangle::empty())
+        Self::range(x0, y0, x1, y1).unwrap_or_else(|| Rectangle::empty())
     }
 }
 
