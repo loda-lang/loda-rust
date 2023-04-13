@@ -1,4 +1,4 @@
-use super::{arc_json_model, ActionLabel, PropertyInput, InputLabel};
+use super::{arc_json_model, ActionLabel};
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
@@ -349,6 +349,9 @@ impl TraverseProgramsAndModels {
             //     }
             // }
             // found = true;
+            if task.has_resolved_repaired_image() {
+                found = true;
+            }
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
