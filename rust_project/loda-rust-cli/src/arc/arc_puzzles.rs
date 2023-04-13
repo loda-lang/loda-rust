@@ -3092,26 +3092,11 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
-    mod solve_de493100 {
+    mod repair_symmetry_crop {
         use super::*;
 
-        pub struct MySolution {
-            perform_crop_to_attention_mask: bool,
-        }
+        pub struct MySolution;
     
-        impl MySolution {
-            pub fn new_without_crop() -> Self {
-                Self { 
-                    perform_crop_to_attention_mask: false,
-                }
-            }
-
-            pub fn new_with_crop() -> Self {
-                Self { 
-                    perform_crop_to_attention_mask: true,
-                }
-            }
-        }
         impl AnalyzeAndSolve for MySolution {
             fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
                 Ok(())   
@@ -3137,12 +3122,7 @@ mod tests {
                         return Err(anyhow::anyhow!("Expected repaired_image"));
                     }
                 };
-                let result_image: Image;
-                if self.perform_crop_to_attention_mask {
-                    result_image = repaired_image.crop(repair_mask_bounding_box)?;
-                } else {
-                    result_image = repaired_image;
-                }
+                let result_image: Image = repaired_image.crop(repair_mask_bounding_box)?;
                 Ok(result_image)
             }
         }
@@ -3150,21 +3130,21 @@ mod tests {
 
     #[test]
     fn test_700000_puzzle_de493100() {
-        let mut instance = solve_de493100::MySolution::new_with_crop();
+        let mut instance = repair_symmetry_crop::MySolution {};
         let result: String = run_analyze_and_solve("de493100", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
     #[test]
     fn test_700001_puzzle_dc0a314f() {
-        let mut instance = solve_de493100::MySolution::new_with_crop();
+        let mut instance = repair_symmetry_crop::MySolution {};
         let result: String = run_analyze_and_solve("dc0a314f", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 
     #[test]
     fn test_700002_puzzle_ff805c23() {
-        let mut instance = solve_de493100::MySolution::new_with_crop();
+        let mut instance = repair_symmetry_crop::MySolution {};
         let result: String = run_analyze_and_solve("ff805c23", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
@@ -3200,7 +3180,7 @@ mod tests {
 
     #[test]
     fn test_700003_puzzle_67b4a34d() {
-        let mut instance = solve_de493100::MySolution::new_with_crop();
+        let mut instance = repair_symmetry_crop::MySolution {};
         let result: String = run_analyze_and_solve("67b4a34d", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
@@ -3209,42 +3189,65 @@ mod tests {
     fn test_700004_puzzle_9ecd008a() {
         // Predicts the correct size of the output, but for the wrong reasons.
         // It doesn't detect that it's a strongly connected area of 3x3 pixels, and that it's colored black.
-        let mut instance = solve_de493100::MySolution::new_with_crop();
+        let mut instance = repair_symmetry_crop::MySolution {};
         let result: String = run_analyze_and_solve("9ecd008a", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 
+    mod repair_symmetry {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let repaired_image: Image = match &pair.input.repaired_image {
+                    Some(value) => value.clone(),
+                    None => {
+                        return Err(anyhow::anyhow!("Expected repaired_image"));
+                    }
+                };
+                Ok(repaired_image)
+            }
+        }
+    }
+
     #[test]
     fn test_710000_puzzle_af22c60d() {
-        let mut instance = solve_de493100::MySolution::new_without_crop();
+        let mut instance = repair_symmetry::MySolution {};
         let result: String = run_analyze_and_solve("af22c60d", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
     #[test]
     fn test_710001_puzzle_b8825c91() {
-        let mut instance = solve_de493100::MySolution::new_without_crop();
+        let mut instance = repair_symmetry::MySolution {};
         let result: String = run_analyze_and_solve("b8825c91", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
     #[test]
     fn test_710002_puzzle_3631a71a() {
-        let mut instance = solve_de493100::MySolution::new_without_crop();
+        let mut instance = repair_symmetry::MySolution {};
         let result: String = run_analyze_and_solve("3631a71a", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
     #[test]
     fn test_710003_puzzle_929ab4e9() {
-        let mut instance = solve_de493100::MySolution::new_without_crop();
+        let mut instance = repair_symmetry::MySolution {};
         let result: String = run_analyze_and_solve("929ab4e9", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
     #[test]
     fn test_710004_puzzle_47996f11() {
-        let mut instance = solve_de493100::MySolution::new_without_crop();
+        let mut instance = repair_symmetry::MySolution {};
         let result: String = run_analyze_and_solve("47996f11", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
