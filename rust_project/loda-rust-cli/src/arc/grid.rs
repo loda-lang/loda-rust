@@ -1,4 +1,5 @@
 use super::{Histogram, Image, ImageCompare, ImageCrop, ImageHistogram, ImageMaskCount, ImageRotate, ImageSymmetry, Rectangle, ImageMask};
+use std::collections::HashSet;
 
 #[allow(dead_code)]
 #[derive(Clone)]
@@ -73,32 +74,35 @@ impl Grid {
     }
 
     fn measure(color: u8, items: &Vec<Option<u8>>) {
-        let mut found_max_possible_line_width: u8 = 0;
-        let mut current_possible_line_width: u8 = 0;
+        let mut found_max_possible_line_size: u8 = 0;
+        let mut current_possible_line_size: u8 = 0;
         let mut positions = Vec::<u8>::new();
+        let mut position_set = HashSet::<i16>::new();
         for (index, item_color) in items.iter().enumerate() {
             if *item_color != Some(color) {
-                current_possible_line_width = 0;
+                current_possible_line_size = 0;
                 continue;
             }
-            positions.push((index & 255) as u8);
-            if current_possible_line_width < u8::MAX {
-                current_possible_line_width += 1;
+            let position: u8 = (index & 255) as u8;
+            positions.push(position);
+            position_set.insert(position as i16);
+            if current_possible_line_size < u8::MAX {
+                current_possible_line_size += 1;
             }
-            if current_possible_line_width > found_max_possible_line_width {
-                found_max_possible_line_width = current_possible_line_width;
+            if current_possible_line_size > found_max_possible_line_size {
+                found_max_possible_line_size = current_possible_line_size;
             }
         }
         if positions.is_empty() {
             return;
         }
-        if found_max_possible_line_width == 0 {
+        if found_max_possible_line_size == 0 {
             return;
         }
 
-        let max_possible_line_width: u8 = found_max_possible_line_width;
+        let max_possible_line_size: u8 = found_max_possible_line_size;
         println!("color: {} positions: {:?}", color, positions);
-        println!("max_possible_line_width: {}", max_possible_line_width);
+        println!("max_possible_line_size: {}", max_possible_line_size);
 
         let mut position0: u8 = u8::MAX;
         for (index, position) in positions.iter().enumerate() {
@@ -109,14 +113,56 @@ impl Grid {
         }
         println!("position0: {}", position0);
 
-        let mut max_possible_line_width: i32 = 1;
-        for line_width in (max_possible_line_width as i32)..0 {
+        let max_position: i16 = ((items.len() & 255) as i16) - 1;
+        for line_size in 1..=max_possible_line_size {
+            println!("line_size: {}", line_size);
 
+            for offset in 0..line_size {
+                println!("offset: {}", offset);
+
+                // TODO: determine max cell size and use it here
+                for cell_size in 1..5 {
+                    Self::score(-(offset as i16), max_position, line_size, cell_size, &position_set);
+                }
+            }
         }
 
-        let mut line_size: i32 = 1;
-        let mut cell_size: i32 = -1;
+        // TODO: pick combo with optimal score
 
+    }
+
+    fn score(initial_position: i16, max_position: i16, line_size: u8, cell_size: u8, position_set: &HashSet<i16>) {
+        let mut line_correct: u8 = 0;
+        let mut line_incorrect: u8 = 0;
+        let mut cell_correct: u8 = 0;
+        let mut cell_incorrect: u8 = 0;
+        let mut current_position: i16 = initial_position;
+        for _ in 0..30 {
+            for _ in 0..line_size {
+                if current_position >= 0 && current_position <= max_position {
+                    if position_set.contains(&current_position) {
+                        line_correct += 1;
+                    } else {
+                        line_incorrect += 1;
+                    }
+                }
+                current_position += 1;
+            }
+            for _ in 0..cell_size {
+                if current_position >= 0 && current_position <= max_position {
+                    if !position_set.contains(&current_position) {
+                        cell_correct += 1;
+                    } else {
+                        cell_incorrect += 1;
+                    }
+                }
+                current_position += 1;
+            }
+            if current_position > max_position {
+                break;
+            }
+        }
+        println!("score: {} {} {} {} -> {} {} {} {}", initial_position, max_position, line_size, cell_size, line_correct, line_incorrect, cell_correct, cell_incorrect);
     }
 }
 
