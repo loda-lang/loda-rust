@@ -130,27 +130,79 @@ impl Grid {
         }
         println!("position0: {}", position0);
 
+        let mut best = ComboStatus {
+            line_correct: 0,
+            line_incorrect: u8::MAX,
+            cell_correct: 0,
+            cell_incorrect: u8::MAX
+        };
+        let mut current_error: i32 = i32::MIN;
+        let mut found_combo: Option<Combo> = None;
         let max_position: i16 = ((items.len() & 255) as i16) - 1;
         for cell_size in 1..=max_cell_size {
             for line_size in 1..=max_line_size {
                 for offset in 0..line_size {
-                    Self::score(-(offset as i16), max_position, line_size, cell_size, &position_set);
+                    let combo = Combo {
+                        initial_position: -(offset as i16), 
+                        line_size,
+                        cell_size
+                    };
+                    let status: ComboStatus = combo.score(max_position, &position_set);
+                    let error: i32 = status.error();
+                    if error > current_error {
+                        current_error = error;
+                        best = status;
+                        found_combo = Some(combo);
+                    }
                 }
             }
         }
 
         // TODO: pick combo with optimal score
+        if let Some(combo) = &found_combo {
+            println!("found combo: {:?} status: {:?} error: {}", combo, best, current_error);
+        }
 
     }
 
-    fn score(initial_position: i16, max_position: i16, line_size: u8, cell_size: u8, position_set: &HashSet<i16>) {
+}
+
+#[derive(Debug)]
+struct Combo {
+    initial_position: i16, 
+    line_size: u8, 
+    cell_size: u8
+}
+
+#[derive(Debug)]
+struct ComboStatus {
+    line_correct: u8,
+    line_incorrect: u8,
+    cell_correct: u8,
+    cell_incorrect: u8,
+}
+
+impl ComboStatus {
+    fn error(&self) -> i32 {
+        let line_correct2: u16 = (self.line_correct as u16) * (self.line_correct as u16);
+        let cell_correct2: u16 = (self.cell_correct as u16) * (self.cell_correct as u16);
+        let line_incorrect2: u16 = (self.line_incorrect as u16) * (self.line_incorrect as u16);
+        let cell_incorrect2: u16 = (self.cell_incorrect as u16) * (self.cell_incorrect as u16);
+        let sum: i32 = (line_correct2 as i32) + (cell_correct2 as i32) - (line_incorrect2 as i32) - (cell_incorrect2 as i32);
+        sum
+    }
+}
+
+impl Combo {
+    fn score(&self, max_position: i16, position_set: &HashSet<i16>) -> ComboStatus {
         let mut line_correct: u8 = 0;
         let mut line_incorrect: u8 = 0;
         let mut cell_correct: u8 = 0;
         let mut cell_incorrect: u8 = 0;
-        let mut current_position: i16 = initial_position;
-        for _ in 0..30 {
-            for _ in 0..line_size {
+        let mut current_position: i16 = self.initial_position;
+        let biggest_arc_grid_size: u8 = 30;
+        for _ in 0..biggest_arc_grid_size {
+            for _ in 0..self.line_size {
                 if current_position >= 0 && current_position <= max_position {
                     if position_set.contains(&current_position) {
                         line_correct += 1;
@@ -160,7 +212,7 @@ impl Grid {
                 }
                 current_position += 1;
             }
-            for _ in 0..cell_size {
+            for _ in 0..self.cell_size {
                 if current_position >= 0 && current_position <= max_position {
                     if !position_set.contains(&current_position) {
                         cell_correct += 1;
@@ -174,7 +226,14 @@ impl Grid {
                 break;
             }
         }
-        println!("score: {} {} {} {} -> {} {} {} {}", initial_position, max_position, line_size, cell_size, line_correct, line_incorrect, cell_correct, cell_incorrect);
+        let status = ComboStatus {
+            line_correct,
+            line_incorrect,
+            cell_correct,
+            cell_incorrect,
+        };
+        println!("score: {} {} {} -> {} {} {} {}", self.initial_position, self.line_size, self.cell_size, line_correct, line_incorrect, cell_correct, cell_incorrect);
+        status
     }
 }
 
