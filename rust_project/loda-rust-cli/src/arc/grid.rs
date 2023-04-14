@@ -76,13 +76,25 @@ impl Grid {
     fn measure(color: u8, items: &Vec<Option<u8>>) {
         let mut found_max_possible_line_size: u8 = 0;
         let mut current_possible_line_size: u8 = 0;
+        let mut found_max_possible_cell_size: u8 = 0;
+        let mut current_possible_cell_size: u8 = 0;
         let mut positions = Vec::<u8>::new();
         let mut position_set = HashSet::<i16>::new();
         for (index, item_color) in items.iter().enumerate() {
             if *item_color != Some(color) {
                 current_possible_line_size = 0;
+
+                if current_possible_cell_size < u8::MAX {
+                    current_possible_cell_size += 1;
+                }
+                if current_possible_cell_size > found_max_possible_cell_size {
+                    found_max_possible_cell_size = current_possible_cell_size;
+                }
+    
                 continue;
             }
+            current_possible_cell_size = 0;
+
             let position: u8 = (index & 255) as u8;
             positions.push(position);
             position_set.insert(position as i16);
@@ -99,10 +111,15 @@ impl Grid {
         if found_max_possible_line_size == 0 {
             return;
         }
+        if found_max_possible_cell_size == 0 {
+            return;
+        }
 
-        let max_possible_line_size: u8 = found_max_possible_line_size;
+        let max_line_size: u8 = found_max_possible_line_size;
+        let max_cell_size: u8 = found_max_possible_cell_size;
         println!("color: {} positions: {:?}", color, positions);
-        println!("max_possible_line_size: {}", max_possible_line_size);
+        println!("max_line_size: {}", max_line_size);
+        println!("max_cell_size: {}", max_cell_size);
 
         let mut position0: u8 = u8::MAX;
         for (index, position) in positions.iter().enumerate() {
@@ -114,14 +131,9 @@ impl Grid {
         println!("position0: {}", position0);
 
         let max_position: i16 = ((items.len() & 255) as i16) - 1;
-        for line_size in 1..=max_possible_line_size {
-            println!("line_size: {}", line_size);
-
-            for offset in 0..line_size {
-                println!("offset: {}", offset);
-
-                // TODO: determine max cell size and use it here
-                for cell_size in 1..5 {
+        for cell_size in 1..=max_cell_size {
+            for line_size in 1..=max_line_size {
+                for offset in 0..line_size {
                     Self::score(-(offset as i16), max_position, line_size, cell_size, &position_set);
                 }
             }
