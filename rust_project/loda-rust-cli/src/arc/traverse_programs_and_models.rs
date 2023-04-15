@@ -1,4 +1,4 @@
-use super::{arc_json_model, ActionLabel};
+use super::{arc_json_model, ActionLabel, InputLabel};
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
@@ -334,7 +334,7 @@ impl TraverseProgramsAndModels {
         let mut indexes = HashSet::<usize>::new();
         for (index, task) in task_vec.iter().enumerate() {
             if task.occur_in_solutions_csv {
-                continue;
+                // continue;
             }
             // if task.input_histogram_union.number_of_counters_greater_than_zero() > 3 {
             //     continue;
@@ -349,15 +349,15 @@ impl TraverseProgramsAndModels {
             //     }
             // }
             // found = true;
-            if task.has_resolved_repaired_image() {
-                found = true;
-            }
+            // if task.has_resolved_repaired_image() {
+            //     found = true;
+            // }
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
-            // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricXWithInset) {
-            //     found = true;
-            // }
+            if task.input_label_set_intersection.contains(&InputLabel::InputHasGrid) {
+                found = true;
+            }
             // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricYWithInset) {
             //     found = true;
             // }

@@ -1,4 +1,4 @@
-use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet, Symmetry};
+use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet, Symmetry, Grid};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -42,6 +42,7 @@ pub struct Input {
     pub input_objects: HashMap<ObjectType, Vec<Object>>,
 
     pub symmetry: Option<Symmetry>,
+    pub grid: Option<Grid>,
     
     pub repair_mask: Option<Image>,
     pub repaired_image: Option<Image>,

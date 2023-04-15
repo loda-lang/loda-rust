@@ -1,7 +1,7 @@
 use super::arc_work_model;
 use super::arc_work_model::Object;
 use super::{PropertyInput, InputLabel};
-use super::{Symmetry, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
+use super::{Symmetry, Grid, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
 use super::{ImageSegment, ImageSegmentAlgorithm, ImageMask, ImageCrop};
 use std::collections::{HashMap, HashSet};
 
@@ -180,17 +180,48 @@ impl arc_work_model::Input {
 
         let symmetry: Symmetry = match Symmetry::analyze(&self.image) {
             Ok(value) => value,
-            Err(_) => {
-                println!("DetectSymmetry Unable to check symmetry. {}", self.id);
+            Err(error) => {
+                println!("Unable to find symmetry. {} error: {:?}", self.id, error);
                 return;
             }
         };
         self.symmetry = Some(symmetry);
     }
 
+    pub fn resolve_grid(&mut self) {
+        if self.grid.is_some() {
+            return;
+        }
+        let grid: Grid = match Grid::analyze(&self.image) {
+            Ok(value) => value,
+            Err(error) => {
+                println!("Unable to find grid. {} error: {:?}", self.id, error);
+                return;
+            }
+        };
+        self.grid = Some(grid);
+    }
+
     pub fn update_input_label_set(&mut self) {
         self.resolve_symmetry();
+        self.resolve_grid();
 
+        self.assign_symmetry_labels();
+
+        match &self.grid {
+            Some(grid) => {
+                if grid.grid_found() {
+                    let label = InputLabel::InputHasGrid;
+                    self.input_label_set.insert(label);
+                }
+            },
+            None => {
+                return;
+            }
+        }
+    }
+
+    pub fn assign_symmetry_labels(&mut self) {
         let symmetry_labels: HashSet<SymmetryLabel>;
         match &self.symmetry {
             Some(symmetry) => {
@@ -200,7 +231,6 @@ impl arc_work_model::Input {
                 return;
             }
         };
-
         for symmetry_label in symmetry_labels {
             let label = InputLabel::InputSymmetry { label: symmetry_label.clone() };
             self.input_label_set.insert(label);

@@ -1010,7 +1010,8 @@ impl arc_work_model::Task {
                         },
                         _ => {}
                     }
-                }
+                },
+                _ => {}
             }
         }
         let both_horz_and_vert: bool = repair_horizontal && repair_vertical;

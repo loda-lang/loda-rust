@@ -49,6 +49,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     input_label_set: HashSet::new(),
                     input_objects: HashMap::new(),
                     symmetry: None,
+                    grid: None,
                     repair_mask: None,
                     repaired_image: None,
                 };
@@ -84,6 +85,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     input_label_set: HashSet::new(),
                     input_objects: HashMap::new(),
                     symmetry: None,
+                    grid: None,
                     repair_mask: None,
                     repaired_image: None,
                 };

@@ -71,7 +71,10 @@ pub enum SymmetryLabel {
 pub enum InputLabel {
     InputSymmetry { label: SymmetryLabel },
 
+    InputHasGrid,
+    
     // Ideas for more
+    // InputGrid { label: GridLabel },
     // InputUniqueColors { color: Vec<u8> },
     // InputAspectRatio { width: u8, height: u8 },
 }
