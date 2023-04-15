@@ -54,8 +54,8 @@ impl Grid {
         let rotated_image: Image = image.rotate_cw()?;
         self.perform_analyze_with_multiple_colors(&rotated_image, false)?;
 
-        println!("horizontal_candidates: {:?}", self.horizontal_candidates);
-        println!("vertical_candidates: {:?}", self.vertical_candidates);
+        // println!("horizontal_candidates: {:?}", self.horizontal_candidates);
+        // println!("vertical_candidates: {:?}", self.vertical_candidates);
 
         let mut candidate_colors = Histogram::new();
         for candidate in &self.horizontal_candidates {
@@ -74,7 +74,7 @@ impl Grid {
             if let Some(candidate) = candidate0 {
                 Self::draw_vertical_lines(&mut mask, candidate)?;
             }
-            println!("color: {} mask: {:?}", color, mask);
+            // println!("color: {} mask: {:?}", color, mask);
             let pattern = GridPattern {
                 color,
                 mask,
@@ -87,7 +87,6 @@ impl Grid {
     }
 
     fn draw_horizontal_lines(result_image: &mut Image, candidate: &Candidate) -> anyhow::Result<()> {
-        println!("draw_horizontal_lines: {:?}", candidate);
         let mut x: i16 = candidate.combo.initial_position;
         let width: i16 = result_image.width() as i16;
         let mut mask: Image = result_image.clone();
@@ -96,7 +95,6 @@ impl Grid {
                 if x >= 0 && x < width {
                     let xx = (x & 255) as u8;
                     let r = Rectangle::new(xx, 0, 1, result_image.height());
-                    println!("draw {:?}", r);
                     mask = mask.fill_inside_rect(r, 1)?;
                 }
                 x += 1;
@@ -116,7 +114,6 @@ impl Grid {
     }
 
     fn draw_vertical_lines(result_image: &mut Image, candidate: &Candidate) -> anyhow::Result<()> {
-        println!("draw_vertical_lines: {:?}", candidate);
         let mut y: i16 = candidate.combo.initial_position;
         let height: i16 = result_image.height() as i16;
         let mut mask: Image = result_image.clone();
@@ -125,7 +122,6 @@ impl Grid {
                 if y >= 0 && y < height {
                     let yy = (y & 255) as u8;
                     let r = Rectangle::new(0, yy, result_image.width(), 1);
-                    println!("draw {:?}", r);
                     mask = mask.fill_inside_rect(r, 1)?;
                 }
                 y += 1;
