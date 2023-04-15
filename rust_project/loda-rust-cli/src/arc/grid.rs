@@ -1,5 +1,13 @@
+use crate::arc::ImageDrawRect;
+
 use super::{Histogram, Image, ImageCompare, ImageCrop, ImageHistogram, ImageMaskCount, ImageRotate, ImageSymmetry, Rectangle, ImageMask};
 use std::collections::HashSet;
+
+#[derive(Clone, Debug)]
+struct GridPattern {
+    color: u8,
+    mask: Image,
+}
 
 #[derive(Clone, Debug)]
 struct Candidate {
@@ -13,6 +21,7 @@ struct Candidate {
 pub struct Grid {
     horizontal_candidates: Vec<Candidate>,
     vertical_candidates: Vec<Candidate>,
+    patterns: Vec<GridPattern>,
 }
 
 impl Grid {
@@ -28,12 +37,13 @@ impl Grid {
         Self {
             horizontal_candidates: vec!(),
             vertical_candidates: vec!(),
+            patterns: vec!(),
         }
     }
 
     fn perform_analyze(&mut self, image: &Image) -> anyhow::Result<()> {
-        if image.is_empty() {
-            return Err(anyhow::anyhow!("empty grid. The image must be 1x1 or bigger"));
+        if image.width() < 2 || image.height() < 2 {
+            return Err(anyhow::anyhow!("Image is too small. Must be 2x2 or bigger"));
         }
         let histogram: Histogram = image.histogram_all();
         let unique_colors: u32 = histogram.number_of_counters_greater_than_zero();
@@ -47,6 +57,86 @@ impl Grid {
         println!("horizontal_candidates: {:?}", self.horizontal_candidates);
         println!("vertical_candidates: {:?}", self.vertical_candidates);
 
+        let mut candidate_colors = Histogram::new();
+        for candidate in &self.horizontal_candidates {
+            candidate_colors.increment(candidate.color);
+        }
+        for candidate in &self.vertical_candidates {
+            candidate_colors.increment(candidate.color);
+        }
+        for (_count, color) in candidate_colors.pairs_descending() {
+            let candidate0: Option<&Candidate> = self.horizontal_candidates.iter().find(|candidate| candidate.color == color);
+            let candidate1: Option<&Candidate> = self.vertical_candidates.iter().find(|candidate| candidate.color == color);
+            let mut mask = Image::zero(image.width(), image.height());
+            if let Some(candidate) = candidate1 {
+                Self::draw_horizontal_lines(&mut mask, candidate)?;
+            }
+            if let Some(candidate) = candidate0 {
+                Self::draw_vertical_lines(&mut mask, candidate)?;
+            }
+            println!("color: {} mask: {:?}", color, mask);
+            let pattern = GridPattern {
+                color,
+                mask,
+            };
+            self.patterns.push(pattern);
+        }
+        self.patterns.sort_unstable_by_key(|k| k.color);
+
+        Ok(())
+    }
+
+    fn draw_horizontal_lines(result_image: &mut Image, candidate: &Candidate) -> anyhow::Result<()> {
+        let mut x: i16 = -candidate.combo.initial_position;
+        let width: i16 = result_image.width() as i16;
+        let mut mask: Image = result_image.clone();
+        'outer: for _ in 0..30 {
+            for _ in 0..candidate.combo.line_size {
+                if x >= 0 && x < width {
+                    let xx = (x & 255) as u8;
+                    let r = Rectangle::new(xx, 0, 1, result_image.height());
+                    mask = mask.fill_inside_rect(r, 1)?;
+                }
+                x += 1;
+                if x >= width {
+                    break 'outer;
+                }
+            }
+            for _ in 0..candidate.combo.cell_size {
+                x += 1;
+                if x >= width {
+                    break 'outer;
+                }
+            }
+        }
+        result_image.set_image(mask);
+        Ok(())
+    }
+
+    fn draw_vertical_lines(result_image: &mut Image, candidate: &Candidate) -> anyhow::Result<()> {
+        let mut y: i16 = -candidate.combo.initial_position;
+        let height: i16 = result_image.height() as i16;
+        let mut mask: Image = result_image.clone();
+        'outer: for _ in 0..30 {
+            for _ in 0..candidate.combo.line_size {
+                if y >= 0 && y < height {
+                    let yy = (y & 255) as u8;
+                    let r = Rectangle::new(0, yy, result_image.width(), 1);
+                    mask = mask.fill_inside_rect(r, 1)?;
+                }
+                y += 1;
+                if y >= height {
+                    break 'outer;
+                }
+            }
+            for _ in 0..candidate.combo.cell_size {
+                y += 1;
+                if y >= height {
+                    break 'outer;
+                }
+            }
+        }
+        result_image.set_image(mask);
         Ok(())
     }
 
@@ -280,11 +370,11 @@ mod tests {
     fn test_10000_gridsize1_cellsize1() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            1, 1, 1, 1, 1,
-            1, 0, 1, 0, 1,
-            1, 1, 1, 1, 1,
-            1, 0, 1, 0, 1,
-            1, 1, 1, 1, 1,
+            9, 9, 9, 9, 9,
+            9, 7, 9, 7, 9,
+            9, 9, 9, 9, 9,
+            9, 7, 9, 7, 9,
+            9, 9, 9, 9, 9,
         ];
         let input: Image = Image::try_create(5, 5, pixels).expect("image");
 
@@ -292,7 +382,16 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        // assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
+        let pattern: &GridPattern = instance.patterns.first().unwrap();
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 1,
+            1, 0, 1, 0, 1,
+            1, 1, 1, 1, 1,
+            1, 0, 1, 0, 1,
+            1, 1, 1, 1, 1,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(pattern.mask, expected);
     }
 
     #[test]
