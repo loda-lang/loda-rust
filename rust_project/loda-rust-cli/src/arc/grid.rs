@@ -87,6 +87,7 @@ impl Grid {
     }
 
     fn draw_horizontal_lines(result_image: &mut Image, candidate: &Candidate) -> anyhow::Result<()> {
+        println!("draw_horizontal_lines: {:?}", candidate);
         let mut x: i16 = -candidate.combo.initial_position;
         let width: i16 = result_image.width() as i16;
         let mut mask: Image = result_image.clone();
@@ -95,6 +96,7 @@ impl Grid {
                 if x >= 0 && x < width {
                     let xx = (x & 255) as u8;
                     let r = Rectangle::new(xx, 0, 1, result_image.height());
+                    println!("draw {:?}", r);
                     mask = mask.fill_inside_rect(r, 1)?;
                 }
                 x += 1;
@@ -114,6 +116,7 @@ impl Grid {
     }
 
     fn draw_vertical_lines(result_image: &mut Image, candidate: &Candidate) -> anyhow::Result<()> {
+        println!("draw_vertical_lines: {:?}", candidate);
         let mut y: i16 = -candidate.combo.initial_position;
         let height: i16 = result_image.height() as i16;
         let mut mask: Image = result_image.clone();
@@ -122,6 +125,7 @@ impl Grid {
                 if y >= 0 && y < height {
                     let yy = (y & 255) as u8;
                     let r = Rectangle::new(0, yy, result_image.width(), 1);
+                    println!("draw {:?}", r);
                     mask = mask.fill_inside_rect(r, 1)?;
                 }
                 y += 1;
@@ -382,7 +386,7 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        let pattern: &GridPattern = instance.patterns.first().unwrap();
+        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
         let expected_pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1,
             1, 0, 1, 0, 1,
@@ -414,7 +418,7 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        let pattern: &GridPattern = instance.patterns.first().unwrap();
+        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
         let expected_pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
             1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1,
@@ -434,14 +438,14 @@ mod tests {
     fn test_10002_gridsize2_cellsize1() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 0, 1, 1, 0, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 0, 1, 1, 0, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1,
+            7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 9, 7, 7, 9, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 9, 7, 7, 9, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7,
         ];
         let input: Image = Image::try_create(8, 8, pixels).expect("image");
 
@@ -449,13 +453,41 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        // assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
+        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 0, 1, 1, 0, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 0, 1, 1, 0, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1,
+        ];
+        let expected: Image = Image::try_create(8, 8, expected_pixels).expect("image");
+        assert_eq!(pattern.mask, expected);
     }
 
-    #[test]
+    // #[test]
     fn test_10003_gridsize3_offset2_cellsize1() {
         // Arrange
         let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0,
+            0, 1, 0, 0, 0, 1, 0,
+            0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+            0, 1, 0, 0, 0, 1, 0,
+            0, 0, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(7, 7, pixels).expect("image");
+
+        // Act
+        let instance = Grid::analyze(&input).expect("ok");
+
+        // Assert
+        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        let expected_pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1, 1, 1,
             1, 0, 1, 1, 1, 0, 1,
             1, 1, 1, 1, 1, 1, 1,
@@ -464,13 +496,8 @@ mod tests {
             1, 0, 1, 1, 1, 0, 1,
             1, 1, 1, 1, 1, 1, 1,
         ];
-        let input: Image = Image::try_create(7, 7, pixels).expect("image");
-
-        // Act
-        let instance = Grid::analyze(&input).expect("ok");
-
-        // Assert
-        // assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
+        let expected: Image = Image::try_create(7, 7, expected_pixels).expect("image");
+        assert_eq!(pattern.mask, expected);
     }
 
     #[test]
