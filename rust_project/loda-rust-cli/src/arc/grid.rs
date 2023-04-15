@@ -288,13 +288,12 @@ impl Grid {
         // println!("max_line_size: {}", max_line_size);
         // println!("max_cell_size: {}", max_cell_size);
 
-        let mut position0: u8 = u8::MAX;
-        for (index, position) in positions.iter().enumerate() {
-            if index == 0 {
-                position0 = *position;
-                break;
+        let position0: u8 = match positions.first() {
+            Some(value) => *value,
+            None => {
+                return Err(anyhow::anyhow!("positions.first() returned None"));
             }
-        }
+        };
         // println!("position0: {}", position0);
 
         let mut best = ComboStatus {
