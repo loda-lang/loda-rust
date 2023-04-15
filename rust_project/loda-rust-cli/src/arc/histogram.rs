@@ -362,6 +362,11 @@ impl Histogram {
         }
         None
     }
+
+    /// Add all the counters together.
+    pub fn sum(&self) -> u32 {
+        self.counters.iter().sum()
+    }
 }
 
 #[cfg(test)]
@@ -1004,5 +1009,22 @@ mod tests {
 
         // Assert
         assert_eq!(set.len(), 1);
+    }
+
+    #[test]
+    fn test_160000_sum() {
+        // Arrange
+        let mut h = Histogram::new();
+        h.increment(42);
+        h.increment(42);
+        h.increment(3);
+        h.increment(3);
+        h.increment(3);
+
+        // Act
+        let actual: u32 = h.sum();
+
+        // Assert
+        assert_eq!(actual, 5);
     }
 }
