@@ -1,11 +1,13 @@
 use crate::arc::ImageDrawRect;
 
-use super::{Histogram, Image, ImageCompare, ImageCrop, ImageHistogram, ImageMaskCount, ImageRotate, ImageSymmetry, Rectangle, ImageMask};
+use super::{Histogram, Image, ImageHistogram, ImageRotate, Rectangle};
 use std::collections::HashSet;
 
 #[derive(Clone, Debug)]
 struct GridPattern {
     color: u8,
+
+    #[allow(dead_code)]
     mask: Image,
 }
 
@@ -13,6 +15,8 @@ struct GridPattern {
 struct Candidate {
     color: u8,
     combo: Combo,
+
+    #[allow(dead_code)]
     combo_status: ComboStatus,
 }
 
