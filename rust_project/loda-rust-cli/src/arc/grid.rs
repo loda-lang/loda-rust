@@ -9,6 +9,15 @@ struct GridPattern {
 
     #[allow(dead_code)]
     mask: Image,
+
+    #[allow(dead_code)]
+    intersection: u32,
+
+    #[allow(dead_code)]
+    union: u32,
+
+    #[allow(dead_code)]
+    jaccard_index: f32,
 }
 
 #[derive(Clone, Debug)]
@@ -95,10 +104,22 @@ impl Grid {
                     vertical_lines = true;
                 }
             }
+            let overlap_histogram: Histogram = image.histogram_with_mask(&mask)?;
+            let intersection: u32 = overlap_histogram.get(color);
+            let union: u32 = overlap_histogram.sum();
+            if intersection == 0 || union == 0 {
+                continue;
+            }
+
+            let jaccard_index: f32 = (intersection as f32) / (union as f32);
+
             // println!("color: {} mask: {:?}", color, mask);
             let pattern = GridPattern {
                 color,
                 mask,
+                intersection,
+                union,
+                jaccard_index,
             };
             self.patterns.push(pattern);
 
