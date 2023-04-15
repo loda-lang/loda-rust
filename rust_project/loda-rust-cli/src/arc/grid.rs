@@ -1,9 +1,18 @@
 use super::{Histogram, Image, ImageCompare, ImageCrop, ImageHistogram, ImageMaskCount, ImageRotate, ImageSymmetry, Rectangle, ImageMask};
 use std::collections::HashSet;
 
+#[derive(Clone, Debug)]
+struct Candidate {
+    color: u8,
+    combo: Combo,
+    combo_status: ComboStatus,
+}
+
 #[allow(dead_code)]
 #[derive(Clone)]
 pub struct Grid {
+    horizontal_candidates: Vec<Candidate>,
+    vertical_candidates: Vec<Candidate>,
 }
 
 impl Grid {
@@ -17,26 +26,31 @@ impl Grid {
     #[allow(dead_code)]
     fn new() -> Self {
         Self {
+            horizontal_candidates: vec!(),
+            vertical_candidates: vec!(),
         }
     }
 
     fn perform_analyze(&mut self, image: &Image) -> anyhow::Result<()> {
         if image.is_empty() {
-            return Ok(());
+            return Err(anyhow::anyhow!("empty grid. The image must be 1x1 or bigger"));
         }
         let histogram: Histogram = image.histogram_all();
         let unique_colors: u32 = histogram.number_of_counters_greater_than_zero();
-        match unique_colors {
-            0 => {},
-            1 => {},
-            _ => {
-                self.perform_analyze_with_multiple_colors(image)?;
-            }
+        if unique_colors < 2 {
+            return Err(anyhow::anyhow!("Too few colors to draw a grid"));
         }
+        self.perform_analyze_with_multiple_colors(image, true)?;
+        let rotated_image: Image = image.rotate_cw()?;
+        self.perform_analyze_with_multiple_colors(&rotated_image, false)?;
+
+        println!("horizontal_candidates: {:?}", self.horizontal_candidates);
+        println!("vertical_candidates: {:?}", self.vertical_candidates);
+
         Ok(())
     }
 
-    fn perform_analyze_with_multiple_colors(&mut self, image: &Image) -> anyhow::Result<()> {
+    fn perform_analyze_with_multiple_colors(&mut self, image: &Image, is_horizontal: bool) -> anyhow::Result<()> {
         let rows: Vec<Histogram> = image.histogram_rows();
         let mut row_colors = Vec::<Option<u8>>::new();
         let mut rows_histogram = Histogram::new();
@@ -58,12 +72,28 @@ impl Grid {
             rows_histogram.increment(color);
         }
 
-        println!("row_colors: {:?}", row_colors);
+        // println!("row_colors: {:?}", row_colors);
         // println!("rows_histogram: {:?}", rows_histogram);
 
         // measure spacing between the lines, thickness of lines
+        let mut candidates = Vec::<Candidate>::new();
         for (_count, color) in rows_histogram.pairs_descending() {
-            Self::measure(color, &row_colors);
+            let (combo, combo_status) = match Self::measure(color, &row_colors) {
+                Ok(value) => value,
+                _ => continue
+            };
+            let candidate = Candidate {
+                color,
+                combo,
+                combo_status,
+            };
+            candidates.push(candidate);
+        }
+
+        if is_horizontal {
+            self.horizontal_candidates = candidates;
+        } else {
+            self.vertical_candidates = candidates;
         }
 
         // draw grid
@@ -73,7 +103,7 @@ impl Grid {
         Ok(())
     }
 
-    fn measure(color: u8, items: &Vec<Option<u8>>) {
+    fn measure(color: u8, items: &Vec<Option<u8>>) -> anyhow::Result<(Combo, ComboStatus)> {
         let mut found_max_possible_line_size: u8 = 0;
         let mut current_possible_line_size: u8 = 0;
         let mut found_max_possible_cell_size: u8 = 0;
@@ -106,20 +136,20 @@ impl Grid {
             }
         }
         if positions.is_empty() {
-            return;
+            return Err(anyhow::anyhow!("positions. Found none"));
         }
         if found_max_possible_line_size == 0 {
-            return;
+            return Err(anyhow::anyhow!("found_max_possible_line_size"));
         }
         if found_max_possible_cell_size == 0 {
-            return;
+            return Err(anyhow::anyhow!("found_max_possible_cell_size"));
         }
 
         let max_line_size: u8 = found_max_possible_line_size;
         let max_cell_size: u8 = found_max_possible_cell_size;
-        println!("color: {} positions: {:?}", color, positions);
-        println!("max_line_size: {}", max_line_size);
-        println!("max_cell_size: {}", max_cell_size);
+        // println!("color: {} positions: {:?}", color, positions);
+        // println!("max_line_size: {}", max_line_size);
+        // println!("max_cell_size: {}", max_cell_size);
 
         let mut position0: u8 = u8::MAX;
         for (index, position) in positions.iter().enumerate() {
@@ -128,7 +158,7 @@ impl Grid {
                 break;
             }
         }
-        println!("position0: {}", position0);
+        // println!("position0: {}", position0);
 
         let mut best = ComboStatus {
             line_correct: 0,
@@ -158,23 +188,27 @@ impl Grid {
             }
         }
 
-        // TODO: pick combo with optimal score
-        if let Some(combo) = &found_combo {
-            println!("found combo: {:?} status: {:?} error: {}", combo, best, current_error);
-        }
-
+        // pick combo with optimal score
+        let combo: Combo = match found_combo {
+            Some(value) => value,
+            None => {
+                return Err(anyhow::anyhow!("unable to find a combo that fits the data"));
+            }
+        };
+        // println!("found combo: {:?} status: {:?} error: {}", combo, best, current_error);
+        Ok((combo, best))
     }
 
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Combo {
     initial_position: i16, 
     line_size: u8, 
     cell_size: u8
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct ComboStatus {
     line_correct: u8,
     line_incorrect: u8,
@@ -232,7 +266,7 @@ impl Combo {
             cell_correct,
             cell_incorrect,
         };
-        println!("score: {} {} {} -> {} {} {} {}", self.initial_position, self.line_size, self.cell_size, line_correct, line_incorrect, cell_correct, cell_incorrect);
+        // println!("score: {} {} {} -> {} {} {} {}", self.initial_position, self.line_size, self.cell_size, line_correct, line_incorrect, cell_correct, cell_incorrect);
         status
     }
 }
