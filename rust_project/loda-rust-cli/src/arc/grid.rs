@@ -398,23 +398,36 @@ mod tests {
     fn test_10001_gridsize1_cellsize3() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 0, 0, 0, 1, 0, 0, 0, 1,
-            1, 0, 0, 0, 1, 0, 0, 0, 1,
-            1, 0, 0, 0, 1, 0, 0, 0, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1,
-            1, 0, 0, 0, 1, 0, 0, 0, 1,
-            1, 0, 0, 0, 1, 0, 0, 0, 1,
-            1, 0, 0, 0, 1, 0, 0, 0, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1,
+            5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+            5, 9, 9, 9, 5, 9, 9, 9, 5, 9, 9, 9, 5,
+            5, 9, 9, 9, 5, 9, 9, 9, 5, 9, 9, 9, 5,
+            5, 9, 9, 9, 5, 9, 9, 9, 5, 9, 9, 9, 5,
+            5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+            5, 9, 9, 9, 5, 9, 9, 9, 5, 9, 9, 9, 5,
+            5, 9, 9, 9, 5, 9, 9, 9, 5, 9, 9, 9, 5,
+            5, 9, 9, 9, 5, 9, 9, 9, 5, 9, 9, 9, 5,
+            5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
         ];
-        let input: Image = Image::try_create(9, 9, pixels).expect("image");
+        let input: Image = Image::try_create(13, 9, pixels).expect("image");
 
         // Act
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        // assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
+        let pattern: &GridPattern = instance.patterns.first().unwrap();
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1,
+            1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1,
+            1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1,
+            1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1,
+            1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        ];
+        let expected: Image = Image::try_create(13, 9, expected_pixels).expect("image");
+        assert_eq!(pattern.mask, expected);
     }
 
     #[test]
