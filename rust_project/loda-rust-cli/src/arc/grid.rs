@@ -88,7 +88,7 @@ impl Grid {
 
     fn draw_horizontal_lines(result_image: &mut Image, candidate: &Candidate) -> anyhow::Result<()> {
         println!("draw_horizontal_lines: {:?}", candidate);
-        let mut x: i16 = -candidate.combo.initial_position;
+        let mut x: i16 = candidate.combo.initial_position;
         let width: i16 = result_image.width() as i16;
         let mut mask: Image = result_image.clone();
         'outer: for _ in 0..30 {
@@ -117,7 +117,7 @@ impl Grid {
 
     fn draw_vertical_lines(result_image: &mut Image, candidate: &Candidate) -> anyhow::Result<()> {
         println!("draw_vertical_lines: {:?}", candidate);
-        let mut y: i16 = -candidate.combo.initial_position;
+        let mut y: i16 = candidate.combo.initial_position;
         let height: i16 = result_image.height() as i16;
         let mut mask: Image = result_image.clone();
         'outer: for _ in 0..30 {
@@ -468,7 +468,7 @@ mod tests {
         assert_eq!(pattern.mask, expected);
     }
 
-    // #[test]
+    #[test]
     fn test_10003_gridsize3_offset2_cellsize1() {
         // Arrange
         let pixels: Vec<u8> = vec![
