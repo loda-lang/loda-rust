@@ -108,6 +108,13 @@ impl Histogram {
         &self.counters
     }
 
+    /// Get the counter value for a color.
+    /// 
+    /// Example: Get the number of times that `color 42` occur in an image.
+    pub fn get(&self, index: u8) -> u32 {
+        self.counters[index as usize]
+    }
+
     #[allow(dead_code)]
     pub fn to_vec(&self) -> Vec<u32> {
         self.counters.to_vec()
