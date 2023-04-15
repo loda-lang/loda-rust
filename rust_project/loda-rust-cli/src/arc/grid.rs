@@ -326,4 +326,32 @@ mod tests {
         // Assert
         // assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
     }
+
+    #[test]
+    fn test_10004_two_grids_with_different_size() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 1, 1,
+            2, 2, 2, 2,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            1, 1, 1, 1,
+            0, 0, 0, 0,
+            2, 2, 2, 2,
+            0, 0, 0, 0,
+            1, 1, 1, 1,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            2, 2, 2, 2,
+            1, 1, 1, 1,
+            0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(4, 14, pixels).expect("image");
+
+        // Act
+        let instance = Grid::analyze(&input).expect("ok");
+
+        // Assert
+        // assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
+    }
 }
