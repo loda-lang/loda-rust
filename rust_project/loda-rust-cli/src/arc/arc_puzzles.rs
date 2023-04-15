@@ -2,14 +2,14 @@
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model::{self, PairType};
-    use crate::arc::ActionLabel;
+    use crate::arc::{ActionLabel};
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
-    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageMask, Histogram};
+    use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
-    use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding};
+    use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use std::collections::HashMap;
     use regex::Regex;
@@ -623,7 +623,7 @@ mod tests {
 
             let repair_color: u8 = 0;
 
-            let result_image: Image = input.repair_pattern(repair_color).expect("image");
+            let result_image: Image = input.repair_pattern_with_color(repair_color).expect("image");
             Ok(result_image)
         };
         let result: String = solution.run("0dfd9992").expect("String");
@@ -1039,12 +1039,12 @@ mod tests {
             // println!("background_ignore_mask: {:?}", background_ignore_mask);
     
             // Objects that is not the background
-            let object_mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, background_ignore_mask)
+            let object_mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &background_ignore_mask)
                 .expect("find_objects_with_ignore_mask");
     
             // Count the number of pixels in each object
             let f = |image: &Image| -> (Image, u32) {
-                let count: u32 = image.mask_count_one();
+                let count: u32 = image.mask_count_one() as u32;
                 (image.clone(), count)
             };
             let mut object_count_vec: Vec<(Image, u32)> = object_mask_vec.iter().map(f).collect();
@@ -1088,7 +1088,7 @@ mod tests {
             let object_mask: Image = input.to_mask_where_color_is(background_color);
     
             // Objects that is not the background
-            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, object_mask.clone())
+            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &object_mask)
                 .expect("find_objects_with_ignore_mask");
     
             // Traverse each object, and count holes in each object
@@ -1133,7 +1133,7 @@ mod tests {
             let object_mask: Image = input.to_mask_where_color_is(background_color);
     
             // Objects that is not the background
-            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, object_mask.clone())
+            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &object_mask)
                 .expect("find_objects_with_ignore_mask");
     
             // Adjust offsets for all objects
@@ -1141,7 +1141,7 @@ mod tests {
             for mask_image in &object_mask_vec {
     
                 // Bounding box of object
-                let (_x0, y0, _x1, _y1) = match mask_image.bounding_box() {
+                let rect: Rectangle = match mask_image.bounding_box() {
                     Some(value) => value,
                     None => {
                         continue;
@@ -1149,7 +1149,7 @@ mod tests {
                 };
     
                 // Determine how much to adjust offset
-                let distance_from_bottom: i32 = (input.height() as i32) - (y0 as i32);
+                let distance_from_bottom: i32 = (input.height() as i32) - (rect.y() as i32);
                 let offset_y: i32 = -distance_from_bottom;
     
                 // Adjust offset
@@ -1200,7 +1200,7 @@ mod tests {
             let object_mask: Image = input.to_mask_where_color_is(background_color);
     
             // Objects that is not the background
-            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, object_mask.clone())
+            let object_mask_vec: Vec<Image> = object_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &object_mask)
                 .expect("find_objects_with_ignore_mask");
     
             // Traverse each object, and measure object size
@@ -1684,7 +1684,7 @@ mod tests {
             let background_color: u8 = histogram.most_popular_color().expect("color");
 
             let ignore_mask: Image = input.to_mask_where_color_is(background_color);
-            let mut objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("images");
+            let mut objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask).expect("images");
 
             if objects.len() != 2 {
                 return Err(anyhow::anyhow!("Expected exactly 2 objects, but got a different count"));
@@ -1962,8 +1962,8 @@ mod tests {
 
     ; multiply input image by mask
     mov $8,$6
-    mov $9,$0
-    mov $10,$3
+    mov $9,$3
+    mov $10,$0
     f31 $8,102130 ; Pick pixels from one image.
     mov $0,$8
 
@@ -2023,7 +2023,7 @@ mod tests {
             let input = data.image;
             let background_color: u8 = input.most_popular_color().expect("pixel");
             let ignore_mask: Image = input.to_mask_where_color_is(background_color);
-            let objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("images");
+            let objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask).expect("images");
 
             // Identify the asymmetric objects
             let mut asymmetric_objects: Vec<Image> = vec!();
@@ -2056,7 +2056,7 @@ mod tests {
             let input = data.image;
             let background_color: u8 = input.most_popular_color().expect("pixel");
             let ignore_mask: Image = input.to_mask_where_color_is(background_color);
-            let objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask).expect("images");
+            let objects: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask).expect("images");
 
             // Identify the symmetric objects
             let mut symmetric_objects: Vec<Image> = vec!();
@@ -2147,9 +2147,9 @@ mod tests {
                 Ok(())   
             }
     
-            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+            fn solve(&self, data: &SolutionSimpleData, _task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let input: &Image = &data.image;
-                let result_image: Image = input.repair_pattern(self.repair_color)?;
+                let result_image: Image = input.repair_pattern_with_color(self.repair_color)?;
                 Ok(result_image)
             }
         }
@@ -2298,8 +2298,9 @@ mod tests {
                             if !should_replace_horizontal {
                                 continue;
                             }
-                            let replace_source: Image = pair.input.image.crop(x, y, 3, 1)?;
-                            let replace_target: Image = pair.output.image.crop(x, y, 3, 1)?;
+                            let rect = Rectangle::new(x, y, 3, 1);
+                            let replace_source: Image = pair.input.image.crop(rect)?;
+                            let replace_target: Image = pair.output.image.crop(rect)?;
     
                             if let Some(value) = dict_inner.get(&replace_source) {
                                 if *value != replace_target {
@@ -2319,7 +2320,7 @@ mod tests {
                 Ok(())   
             }
     
-            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+            fn solve(&self, data: &SolutionSimpleData, _task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let input: &Image = &data.image;
                 let mut result_image: Image = input.clone();
                 // Do substitutions from the dictionary
@@ -2375,7 +2376,7 @@ mod tests {
                 Ok(())   
             }
     
-            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+            fn solve(&self, data: &SolutionSimpleData, _task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let input: &Image = &data.image;
 
                 let pattern1a: &str = 
@@ -2428,7 +2429,8 @@ mod tests {
                 let mut result_image: Image = input.padding_with_color(2, 0)?;
                 let _count: usize = result_image.replace_5x5_regex(&replacements, 14, 14)?;
                 // println!("replace_5x5_regex. count: {}", count);
-                let result_image_cropped: Image = result_image.crop(2, 2, input.width(), input.height())?;
+                let rect = Rectangle::new(2, 2, input.width(), input.height());
+                let result_image_cropped: Image = result_image.crop(rect)?;
                 Ok(result_image_cropped)
             }
         }
@@ -2533,7 +2535,8 @@ mod tests {
                 for _iteration in 0..20 {
                     // HtmlLog::text(format!("iteration: {}", iteration));
 
-                    let current_input: Image = input_image.crop(2, 2, pair.input.image.width(), pair.input.image.height())?;
+                    let rect = Rectangle::new(2, 2, pair.input.image.width(), pair.input.image.height());
+                    let current_input: Image = input_image.crop(rect)?;
                     let diff_mask: Image = current_input.diff(&pair.output.image)?;
                     // HtmlLog::image(&diff_mask);
     
@@ -2548,8 +2551,9 @@ mod tests {
                     let mut found_score: u8 = 0;
                     for (x, y) in &positions {
 
-                        let input_crop: Image = input_image.crop(*x, *y, 5, 5)?;
-                        let output_crop: Image = output_image.crop(*x, *y, 5, 5)?;
+                        let rect = Rectangle::new(*x, *y, 5, 5);
+                        let input_crop: Image = input_image.crop(rect)?;
+                        let output_crop: Image = output_image.crop(rect)?;
 
                         // Compare input_crop with output_crop, ignoring the center pixel
                         // If they are nearly identical, then we know that it's only the center pixel that has changed.
@@ -2569,8 +2573,9 @@ mod tests {
 
                     let x: u8 = found_x;
                     let y: u8 = found_y;
-                    let input_crop: Image = input_image.crop(x, y, 5, 5)?;
-                    let output_crop: Image = output_image.crop(x, y, 5, 5)?;
+                    let rect = Rectangle::new(x, y, 5, 5);
+                    let input_crop: Image = input_image.crop(rect)?;
+                    let output_crop: Image = output_image.crop(rect)?;
 
                     let pattern: String = Self::pattern_of_two5x5(&input_crop, &output_crop, background_color)?;
                     // println!("pattern: {}", pattern);
@@ -2634,12 +2639,13 @@ mod tests {
                 Ok(())   
             }
     
-            fn solve(&self, data: &SolutionSimpleData) -> anyhow::Result<Image> {
+            fn solve(&self, data: &SolutionSimpleData, _task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let input: &Image = &data.image;
                 let mut result_image: Image = input.padding_with_color(2, 0)?;
                 let _count: usize = result_image.replace_5x5_regex(&self.replacements, 14, 14)?;
                 // println!("replace_5x5_regex. count: {}", count);
-                let result_image_cropped: Image = result_image.crop(2, 2, input.width(), input.height())?;
+                let rect = Rectangle::new(2, 2, input.width(), input.height());
+                let result_image_cropped: Image = result_image.crop(rect)?;
                 Ok(result_image_cropped)
             }
         }
@@ -2798,7 +2804,8 @@ mod tests {
                 if y > (u8::MAX as i32) {
                     return Err(anyhow::anyhow!("cannot split image"));
                 }
-                let image: Image = input.crop(0, y as u8, input.width(), height)?;
+                let rect = Rectangle::new(0, y as u8, input.width(), height);
+                let image: Image = input.crop(rect)?;
                 images.push(image);
             }
             for image in &images {
@@ -2867,20 +2874,19 @@ mod tests {
             // Objects from the grid
             let cell_mask: Image = input.mask_for_gridcells(Some(4))?;
             let ignore_mask: Image = cell_mask.invert_mask();
-            let objects: Vec<Image> = cell_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, ignore_mask)?;
+            let objects: Vec<Image> = cell_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, &ignore_mask)?;
 
             // Identify the single template image
             let mut image_to_insert: Option<Image> = None;
             let mut number_of_images_found: usize = 0;
             for object in &objects {
-                let tuple = match object.bounding_box() {
-                    Some(tuple) => tuple,
+                let rect: Rectangle = match object.bounding_box() {
+                    Some(value) => value,
                     None => {
                         return Err(anyhow::anyhow!("expected all objects to have a bounding box"));
                     }
                 };
-                let (x, y, width, height) = tuple;
-                let image: Image = input.crop(x, y, width, height)?;
+                let image: Image = input.crop(rect)?;
                 let count: u32 = image.histogram_all().number_of_counters_greater_than_zero();
                 if count == 1 {
                     continue;
@@ -2901,19 +2907,18 @@ mod tests {
             // Insert the template image into all the empty cells
             let mut result_image: Image = input.clone();
             for object in &objects {
-                let tuple = match object.bounding_box() {
-                    Some(tuple) => tuple,
+                let rect: Rectangle = match object.bounding_box() {
+                    Some(value) => value,
                     None => {
                         return Err(anyhow::anyhow!("expected all objects to have a bounding box"));
                     }
                 };
-                let (x, y, width, height) = tuple;
-                let image: Image = input.crop(x, y, width, height)?;
+                let image: Image = input.crop(rect)?;
                 let count: u32 = image.histogram_all().number_of_counters_greater_than_zero();
                 if count != 1 {
                     continue;
                 }
-                result_image = result_image.overlay_with_position(&template_image, x as i32, y as i32)?;
+                result_image = result_image.overlay_with_position(&template_image, rect.x() as i32, rect.y() as i32)?;
             }
             Ok(result_image)
         };
@@ -2934,7 +2939,8 @@ mod tests {
             let repeat_count: u8 = (9 / periodicity) + 1;
             let pattern: Image = input.top_rows(periodicity)?;
             let mut result_image: Image = pattern.repeat_by_count(1, repeat_count)?;
-            result_image = result_image.crop(0, 0, input.width(), 9)?;
+            let rect = Rectangle::new(0, 0, input.width(), 9);
+            result_image = result_image.crop(rect)?;
             Ok(result_image)
         };
         let result: String = solution.run("017c7c7b").expect("String");
@@ -2945,7 +2951,8 @@ mod tests {
     fn test_660000_puzzle_6f8cd79b() {
         let solution: SolutionSimple = |data| {
             let input: Image = data.image;
-            let cropped: Image = input.crop(1, 1, input.width() - 2, input.height() - 2)?;
+            let rect = Rectangle::new(1, 1, input.width() - 2, input.height() - 2);
+            let cropped: Image = input.crop(rect)?;
             let result_image: Image = cropped.padding_with_color(1, 42)?;
             Ok(result_image)
         };
@@ -2964,7 +2971,8 @@ mod tests {
                 if x > (u8::MAX as i32) {
                     return Err(anyhow::anyhow!("cannot split image"));
                 }
-                let image: Image = input.crop(x as u8, 0, width, input.height())?;
+                let rect = Rectangle::new(x as u8, 0, width, input.height());
+                let image: Image = input.crop(rect)?;
                 images.push(image);
             }
             images.reverse();
@@ -2981,5 +2989,283 @@ mod tests {
         };
         let result: String = solution.run("cf98881b").expect("String");
         assert_eq!(result, "5 1");
+    }
+
+    #[test]
+    fn test_680000_puzzle_8731374e() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+
+            let color_count: Image = input.count_duplicate_pixels_in_3x3()?;
+            let ignore_mask: Image = color_count.to_mask_where_color_is_equal_or_less_than(3);
+            let mut objects: Vec<ImageSegmentItem> = input.find_objects_with_ignore_mask_inner(ImageSegmentAlgorithm::Neighbors, &ignore_mask)?;
+            objects.sort_unstable_by_key(|item| (item.mass(), item.x(), item.y()));
+            objects.reverse();
+            let biggest_object: ImageSegmentItem = match objects.first() {
+                Some(value) => value.clone(),
+                None => {
+                    return Err(anyhow::anyhow!("biggest object"));
+                }
+            };
+            let color_to_be_trimmed: u8 = 0;
+            
+            // Idea, with the actionlabel, check the size of the masked area correspond to the output size
+            let rect: Rectangle = biggest_object.mask().inner_bounding_box_after_trim_with_color(color_to_be_trimmed)?;
+            if rect.is_empty() {
+                return Err(anyhow::anyhow!("bounding box is empty"));
+            }
+            
+            // Idea, save the bounding box as a mask and provide it to the .asm program
+            // let mut the_mask = Image::zero(input.width(), input.height());
+            // the_mask = the_mask.fill_inside_rect(rect, 1)?;
+
+            // Crop out the strongly-connected-object from input image
+            let cropped_input: Image = input.crop(rect)?;
+
+            let histogram_all: Histogram = cropped_input.histogram_all();
+            if histogram_all.number_of_counters_greater_than_zero() != 2 {
+                return Err(anyhow::anyhow!("expected 2 colors in the cropped area"));
+            }
+
+            let least_popular_color: u8 = match histogram_all.least_popular_color_disallow_ambiguous() {
+                Some(color) => color,
+                None => {
+                    return Err(anyhow::anyhow!("expected a least popular colors in the cropped area"));
+                }
+            };
+            
+            let line_color: u8 = least_popular_color;
+            let mut result_image: Image = cropped_input.clone();
+
+            // Shoot out lines in all directions
+            _ = result_image.draw_line_where_row_or_column_contains_color(&cropped_input, least_popular_color, line_color)?;
+
+            Ok(result_image)
+        };
+        let result: String = solution.run("8731374e").expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_f9012d9b {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl MySolution {
+            pub fn new() -> Self {
+                Self {}
+            }
+        }
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let input: &Image = &data.image;
+
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let repair_mask: Image = match &pair.input.repair_mask {
+                    Some(value) => value.clone(),
+                    None => {
+                        return Err(anyhow::anyhow!("Expected a repair mask"));
+                    }
+                };
+                let rect: Rectangle = match repair_mask.bounding_box() {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Unable to determine bounding box of repair mask"));
+                    }
+                };
+
+                let mut result_image: Image = input.repair_pattern_with_mask(&repair_mask)?;
+                result_image = result_image.crop(rect)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_690000_puzzle_f9012d9b() {
+        let mut instance = solve_f9012d9b::MySolution::new();
+        let result: String = run_analyze_and_solve("f9012d9b", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod repair_symmetry_crop {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let repair_mask: Image = match &pair.input.repair_mask {
+                    Some(value) => value.clone(),
+                    None => {
+                        return Err(anyhow::anyhow!("Expected a repair mask"));
+                    }
+                };
+                let repair_mask_bounding_box: Rectangle = match repair_mask.bounding_box() {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Unable to determine bounding box of repair mask"));
+                    }
+                };
+                let repaired_image: Image = match &pair.input.repaired_image {
+                    Some(value) => value.clone(),
+                    None => {
+                        return Err(anyhow::anyhow!("Expected repaired_image"));
+                    }
+                };
+                let result_image: Image = repaired_image.crop(repair_mask_bounding_box)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_700000_puzzle_de493100() {
+        let mut instance = repair_symmetry_crop::MySolution {};
+        let result: String = run_analyze_and_solve("de493100", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    #[test]
+    fn test_700001_puzzle_dc0a314f() {
+        let mut instance = repair_symmetry_crop::MySolution {};
+        let result: String = run_analyze_and_solve("dc0a314f", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_700002_puzzle_ff805c23() {
+        let mut instance = repair_symmetry_crop::MySolution {};
+        let result: String = run_analyze_and_solve("ff805c23", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_FF805C23: &'static str = "
+    mov $80,$99
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,106 ; address of vector[0].RepairMask
+    mov $84,107 ; address of vector[0].RepairedImage
+    lps $80
+        ; replace what is outside the repair mask with the color 255
+        mov $0,$$83 ; repair mask
+        mov $1,255 ; color for what to be removed
+        mov $2,$$84 ; repaired image
+        f31 $0,102130 ; Pick pixels from color and image. When the mask is 0 then pick the `default_color`. When the mask is [1..255] then pick from the image.
+
+        ; crop out the repair mask
+        mov $1,255
+        f21 $0,101161 ; trim with color
+
+        mov $$82,$0
+        add $82,100
+        add $83,100
+        add $84,100
+    lpe
+    ";
+
+    #[test]
+    fn test_700002_puzzle_ff805c23_loda() {
+        let result: String = run_advanced("ff805c23", PROGRAM_FF805C23).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_700003_puzzle_67b4a34d() {
+        let mut instance = repair_symmetry_crop::MySolution {};
+        let result: String = run_analyze_and_solve("67b4a34d", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_700004_puzzle_9ecd008a() {
+        // Predicts the correct size of the output, but for the wrong reasons.
+        // It doesn't detect that it's a strongly connected area of 3x3 pixels, and that it's colored black.
+        let mut instance = repair_symmetry_crop::MySolution {};
+        let result: String = run_analyze_and_solve("9ecd008a", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod repair_symmetry {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let repaired_image: Image = match &pair.input.repaired_image {
+                    Some(value) => value.clone(),
+                    None => {
+                        return Err(anyhow::anyhow!("Expected repaired_image"));
+                    }
+                };
+                Ok(repaired_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_710000_puzzle_af22c60d() {
+        let mut instance = repair_symmetry::MySolution {};
+        let result: String = run_analyze_and_solve("af22c60d", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    #[test]
+    fn test_710001_puzzle_b8825c91() {
+        let mut instance = repair_symmetry::MySolution {};
+        let result: String = run_analyze_and_solve("b8825c91", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    #[test]
+    fn test_710002_puzzle_3631a71a() {
+        let mut instance = repair_symmetry::MySolution {};
+        let result: String = run_analyze_and_solve("3631a71a", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    #[test]
+    fn test_710003_puzzle_929ab4e9() {
+        let mut instance = repair_symmetry::MySolution {};
+        let result: String = run_analyze_and_solve("929ab4e9", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    #[test]
+    fn test_710004_puzzle_47996f11() {
+        let mut instance = repair_symmetry::MySolution {};
+        let result: String = run_analyze_and_solve("47996f11", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    const PROGRAM_47996F11: &'static str = "
+    mov $80,$99
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,107 ; address of vector[0].RepairedImage
+    lps $80
+        mov $$82,$$83
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_710004_puzzle_47996f11_loda() {
+        let result: String = run_advanced("47996f11", PROGRAM_47996F11).expect("String");
+        assert_eq!(result, "4 1");
     }
 }

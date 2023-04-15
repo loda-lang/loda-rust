@@ -1,20 +1,20 @@
 use super::Image;
 
 pub trait ImageMaskCount {
-    fn mask_count(&self) -> (u32, u32, u32);
-    fn mask_count_zero(&self) -> u32;
-    fn mask_count_one(&self) -> u32;
-    fn mask_count_other(&self) -> u32;
+    fn mask_count(&self) -> (u16, u16, u16);
+    fn mask_count_zero(&self) -> u16;
+    fn mask_count_one(&self) -> u16;
+    fn mask_count_other(&self) -> u16;
 }
 
 impl ImageMaskCount for Image {
-    fn mask_count(&self) -> (u32, u32, u32) {
-        let mut count0: u32 = 0;
-        let mut count1: u32 = 0;
-        let mut count_other: u32 = 0;
-        for y in 0..(self.height() as i32) {
-            for x in 0..(self.width() as i32) {
-                let color_value: u8 = self.get(x, y).unwrap_or(255);
+    fn mask_count(&self) -> (u16, u16, u16) {
+        let mut count0: u16 = 0;
+        let mut count1: u16 = 0;
+        let mut count_other: u16 = 0;
+        for y in 0..self.height() {
+            for x in 0..self.width() {
+                let color_value: u8 = self.get(x as i32, y as i32).unwrap_or(255);
                 match color_value {
                     0 => {
                         count0 += 1;
@@ -31,17 +31,17 @@ impl ImageMaskCount for Image {
         (count0, count1, count_other)
     }
 
-    fn mask_count_zero(&self) -> u32 {
+    fn mask_count_zero(&self) -> u16 {
         let (count0, _count1, _count_other) = self.mask_count();
         count0
     }
 
-    fn mask_count_one(&self) -> u32 {
+    fn mask_count_one(&self) -> u16 {
         let (_count0, count1, _count_other) = self.mask_count();
         count1
     }
 
-    fn mask_count_other(&self) -> u32 {
+    fn mask_count_other(&self) -> u16 {
         let (_count0, _count1, count_other) = self.mask_count();
         count_other
     }

@@ -15,40 +15,12 @@ pub trait ImageColorProfile {
 impl ImageColorProfile for Image {
     fn most_popular_color(&self) -> Option<u8> {
         let histogram: Histogram = self.histogram_all();
-        let pairs = histogram.pairs_descending();
-        if pairs.len() == 1 {
-            let pair: &(u32, u8) = pairs.get(0).unwrap();
-            return Some(pair.1);
-        }
-        if pairs.len() >= 2 {
-            let pair0: &(u32, u8) = pairs.get(0).unwrap();
-            let pair1: &(u32, u8) = pairs.get(1).unwrap();
-            if pair0.0 == pair1.0 {
-                // Two popular colors with same popularity. It's ambiguous which one to pick. Pick none.
-                return None;
-            }
-            return Some(pair0.1);
-        }
-        None
+        histogram.most_popular().color_disallow_ambiguous()
     }
 
     fn least_popular_color(&self) -> Option<u8> {
         let histogram: Histogram = self.histogram_all();
-        let pairs = histogram.pairs_ascending();
-        if pairs.len() == 1 {
-            let pair: &(u32, u8) = pairs.get(0).unwrap();
-            return Some(pair.1);
-        }
-        if pairs.len() >= 2 {
-            let pair0: &(u32, u8) = pairs.get(0).unwrap();
-            let pair1: &(u32, u8) = pairs.get(1).unwrap();
-            if pair0.0 == pair1.0 {
-                // Two popular colors with same popularity. It's ambiguous which one to pick. Pick none.
-                return None;
-            }
-            return Some(pair0.1);
-        }
-        None
+        histogram.least_popular().color_disallow_ambiguous()
     }
 }
 

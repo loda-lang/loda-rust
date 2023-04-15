@@ -1,7 +1,7 @@
 use super::arc_work_model;
 use super::arc_work_model::Object;
 use super::{PropertyInput, InputLabel};
-use super::{Image, ImageSymmetry};
+use super::{Symmetry, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
 use super::{ImageSegment, ImageSegmentAlgorithm, ImageMask, ImageCrop};
 use std::collections::{HashMap, HashSet};
 
@@ -74,6 +74,20 @@ impl arc_work_model::Input {
             }
         }
 
+        let mut biggest_value_that_divides_width_and_height: Option<u8> = None;
+        if width_input == height_input {
+            biggest_value_that_divides_width_and_height = Some(width_input);
+        } else {
+            let smallest: u8 = width_input.min(height_input);
+            let biggest: u8 = width_input.max(height_input);
+            if smallest >= 2 {
+                let rem: u8 = biggest % smallest;
+                if rem == 0 {
+                    biggest_value_that_divides_width_and_height = Some(smallest);
+                }
+            }
+        }
+
         let input_unique_color_count_raw: u32 = self.histogram.number_of_counters_greater_than_zero();
         let mut input_unique_color_count: Option<u8> = None;
         if input_unique_color_count_raw <= (u8::MAX as u32) {
@@ -132,6 +146,9 @@ impl arc_work_model::Input {
         if let Some(value) = height_input_minus2 {
             dict.insert(PropertyInput::InputHeightMinus2, value);
         }
+        if let Some(value) = biggest_value_that_divides_width_and_height {
+            dict.insert(PropertyInput::InputBiggestValueThatDividesWidthAndHeight, value);
+        }
         if let Some(value) = input_unique_color_count {
             dict.insert(PropertyInput::InputUniqueColorCount, value);
         }
@@ -147,24 +164,46 @@ impl arc_work_model::Input {
         dict
     }
 
-    pub fn update_input_label_set(&mut self) {
-        let width: u8 = self.image.width();
-        let height: u8 = self.image.height();
-
-        if width >= 2 || height >= 2 {
-            if let Ok(is_symmetric) = self.image.is_symmetric_x() {
-                if is_symmetric {
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricX);
-                }
-            }
+    pub fn resolve_symmetry(&mut self) {
+        if self.symmetry.is_some() {
+            return;
         }
 
-        if width >= 2 || height >= 2 {
-            if let Ok(is_symmetric) = self.image.is_symmetric_y() {
-                if is_symmetric {
-                    self.input_label_set.insert(InputLabel::InputImageIsSymmetricY);
-                }
+        let width: u8 = self.image.width();
+        let height: u8 = self.image.height();
+        if width == 0 || height == 0 {
+            return;
+        }
+        if width == 1 && height == 1 {
+            return;
+        }
+
+        let symmetry: Symmetry = match Symmetry::analyze(&self.image) {
+            Ok(value) => value,
+            Err(_) => {
+                println!("DetectSymmetry Unable to check symmetry. {}", self.id);
+                return;
             }
+        };
+        self.symmetry = Some(symmetry);
+    }
+
+    pub fn update_input_label_set(&mut self) {
+        self.resolve_symmetry();
+
+        let symmetry_labels: HashSet<SymmetryLabel>;
+        match &self.symmetry {
+            Some(symmetry) => {
+                symmetry_labels = symmetry.to_symmetry_labels();
+            },
+            None => {
+                return;
+            }
+        };
+
+        for symmetry_label in symmetry_labels {
+            let label = InputLabel::InputSymmetry { label: symmetry_label.clone() };
+            self.input_label_set.insert(label);
         }
     }
 
@@ -177,14 +216,14 @@ impl arc_work_model::Input {
         };
         let background_ignore_mask: Image = self.image.to_mask_where_color_is(background_color);
         
-        let object_mask_vec: Vec<Image> = self.image.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, background_ignore_mask)?;
+        let object_mask_vec: Vec<Image> = self.image.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &background_ignore_mask)?;
         let mut object_vec: Vec<Object> = vec!();
         for (index, object_mask) in object_mask_vec.iter().enumerate() {
-            let (x, y, width, height) = match object_mask.bounding_box() {
+            let rect: Rectangle = match object_mask.bounding_box() {
                 Some(value) => value,
                 None => continue
             };
-            let cropped_object_image: Image = self.image.crop(x, y, width, height)?;
+            let cropped_object_image: Image = self.image.crop(rect)?;
 
             let object = Object {
                 index: index,
@@ -195,5 +234,11 @@ impl arc_work_model::Input {
         }
 
         Ok(object_vec)
+    }
+
+    pub fn assign_repair_mask_with_color(&mut self, color: u8) -> anyhow::Result<()> {
+        let mask: Image = self.image.to_mask_where_color_is(color);
+        self.repair_mask = Some(mask);
+        Ok(())
     }
 }

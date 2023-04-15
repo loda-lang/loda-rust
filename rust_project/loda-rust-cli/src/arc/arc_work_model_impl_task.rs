@@ -1,7 +1,7 @@
-use super::{arc_work_model, HtmlFromTask};
+use super::{arc_work_model, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry};
 use super::arc_work_model::{Input, PairType};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram};
-use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput};
+use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
@@ -34,6 +34,142 @@ impl arc_work_model::Task {
             label_set = label_set.intersection(&pair.action_label_set).map(|l| l.clone()).collect();
         }
         self.action_label_set_intersection = label_set;
+    }
+
+    pub fn has_resolved_repair_mask(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.input.repair_mask.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
+    pub fn has_resolved_repaired_image(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.input.repaired_image.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn assign_repair_mask(&mut self) {
+        self.assign_repair_mask_based_on_single_color_removal_and_changes_limited_to_color();
+        self.assign_repair_mask_with_symmetry_repair_color();
+        self.assign_repair_mask_based_on_most_popular_color();
+    }
+
+    /// Generate `repair_mask`
+    /// 
+    /// If there is a symmetric pattern with a possible repair color,
+    /// then use the repair color for the repair mask.
+    fn assign_repair_mask_with_symmetry_repair_color(&mut self) {
+        if self.has_resolved_repair_mask() {
+            return;
+        }
+
+        // proceed only if all the pairs have a repair color
+        for pair in &mut self.pairs {
+            if let Some(symmetry) = &pair.input.symmetry {
+                if symmetry.repair_color.is_none() {
+                    // One or more of the pairs is missing a repair color
+                    return;
+                }
+            }
+        }
+
+        // create attention mask with the repair color.
+        for pair in &mut self.pairs {
+            let color: u8;
+            if let Some(symmetry) = &pair.input.symmetry {
+                if let Some(repair_color) = symmetry.repair_color {
+                    color = repair_color;
+                } else {
+                    // One or more of the pairs is missing a repair color
+                    continue;
+                }
+            } else {
+                // Symmetry is not initialized
+                continue;
+            }
+            _ = pair.input.assign_repair_mask_with_color(color);
+        }
+
+    }
+
+    /// Generate `repair_mask`
+    /// 
+    /// Precondition
+    /// `OutputImageIsInputImageWithChangesLimitedToPixelsWithColor` is the pixel colors that are going to be changed.
+    /// 
+    /// Precondition
+    /// there is just 1 color for removal.
+    /// 
+    /// The removal color must be the same as the `OutputImageIsInputImageWithChangesLimitedToPixelsWithColor`.
+    fn assign_repair_mask_based_on_single_color_removal_and_changes_limited_to_color(&mut self) {
+        if self.has_resolved_repair_mask() {
+            return;
+        }
+
+        if self.removal_histogram_intersection.number_of_counters_greater_than_zero() >= 2 {
+            // too many colors to agree on a single color
+            return;
+        }
+        let single_color_removal: u8 = match self.removal_histogram_intersection.most_popular_color_disallow_ambiguous() {
+            Some(value) => value,
+            None => {
+                return;
+            }
+        };
+
+        let mut found_color: Option<u8> = None;
+        for label in &self.action_label_set_intersection {
+            match label {
+                ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithColor { color } => {
+                    found_color = Some(*color);
+                    break;
+                },
+                _ => {}
+            }
+        }
+        let color: u8 = match found_color {
+            Some(value) => value,
+            None => {
+                return;
+            }
+        };
+
+        if color != single_color_removal {
+            // disagreement about what color is to be repaired
+            return;
+        }
+
+        for pair in &mut self.pairs {
+            _ = pair.input.assign_repair_mask_with_color(color);
+        }
+    }
+
+    /// Generate `repair_mask`
+    /// 
+    fn assign_repair_mask_based_on_most_popular_color(&mut self) {
+        if self.has_resolved_repair_mask() {
+            return;
+        }
+
+        let mut histogram1: Histogram = self.input_histogram_union.clone();
+        histogram1.subtract_histogram(&self.input_histogram_intersection);
+        let mut histogram2: Histogram = self.input_histogram_union.clone();
+        histogram2.subtract_histogram(&histogram1);
+        let color: u8 = match histogram2.most_popular_color_disallow_ambiguous() {
+            Some(color) => color,
+            None => {
+                return;
+            }
+        };
+        for pair in &mut self.pairs {
+            _ = pair.input.assign_repair_mask_with_color(color);
+        }
     }
 
     fn update_input_properties_intersection(&mut self) {
@@ -115,7 +251,7 @@ impl arc_work_model::Task {
             {
                 match image_mask.trim_color(1) {
                     Ok(image) => {
-                        let mass: u32 = image.mask_count_one();
+                        let mass: u16 = image.mask_count_one();
                         if mass == 0 {
                             pair.input.input_properties.insert(PropertyInput::InputWidthOfRemovedRectangleAfterSingleColorRemoval, image.width());
                             pair.input.input_properties.insert(PropertyInput::InputHeightOfRemovedRectangleAfterSingleColorRemoval, image.height());
@@ -127,7 +263,7 @@ impl arc_work_model::Task {
 
             let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
 
-            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask);
+            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask);
             let object_images: Vec<Image> = match result {
                 Ok(images) => images,
                 Err(_) => {
@@ -135,18 +271,18 @@ impl arc_work_model::Task {
                 }
             };
 
-            let mut mass_max: u32 = 0;
+            let mut mass_max: u16 = 0;
             let mut found_index_mass_max: Option<usize> = None;
             for (index, image) in object_images.iter().enumerate() {
 
-                let mass: u32 = image.mask_count_one();
+                let mass: u16 = image.mask_count_one();
                 if mass > mass_max {
                     mass_max = mass;
                     found_index_mass_max = Some(index);
                 }
             }
 
-            if mass_max > 0 && mass_max <= (u8::MAX as u32) {
+            if mass_max > 0 && mass_max <= (u8::MAX as u16) {
                 let mass_value: u8 = mass_max as u8;
                 pair.input.input_properties.insert(PropertyInput::InputMassOfPrimaryObjectAfterSingleColorRemoval, mass_value);
             }
@@ -189,15 +325,15 @@ impl arc_work_model::Task {
             //     HtmlLog::image(&image_mask);
             // }
             {
-                let mass: u32 = image_mask.mask_count_zero();
-                if mass > 0 && mass <= (u8::MAX as u32) {
+                let mass: u16 = image_mask.mask_count_zero();
+                if mass > 0 && mass <= (u8::MAX as u16) {
                     let mass_value: u8 = mass as u8;
                     pair.input.input_properties.insert(PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor, mass_value);
                 }
             }
             {
-                let mass: u32 = image_mask.mask_count_one();
-                if mass > 0 && mass <= (u8::MAX as u32) {
+                let mass: u16 = image_mask.mask_count_one();
+                if mass > 0 && mass <= (u8::MAX as u16) {
                     let mass_value: u8 = mass as u8;
                     pair.input.input_properties.insert(PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor, mass_value);
                 }
@@ -206,7 +342,7 @@ impl arc_work_model::Task {
             let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
 
             // let result = image_mask.find_objects(ImageSegmentAlgorithm::All);
-            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, ignore_mask);
+            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask);
             let object_images: Vec<Image> = match result {
                 Ok(images) => images,
                 Err(_) => {
@@ -219,18 +355,18 @@ impl arc_work_model::Task {
             //         HtmlLog::image(image);
             //     }
             // }
-            let mut mass_max: u32 = 0;
+            let mut mass_max: u16 = 0;
             let mut found_index_mass_max: Option<usize> = None;
             for (index, image) in object_images.iter().enumerate() {
 
-                let mass: u32 = image.mask_count_one();
+                let mass: u16 = image.mask_count_one();
                 if mass > mass_max {
                     mass_max = mass;
                     found_index_mass_max = Some(index);
                 }
             }
 
-            if mass_max > 0 && mass_max <= (u8::MAX as u32) {
+            if mass_max > 0 && mass_max <= (u8::MAX as u16) {
                 let mass_value: u8 = mass_max as u8;
                 pair.input.input_properties.insert(PropertyInput::InputMassOfPrimaryObjectAfterSingleIntersectionColor, mass_value);
             }
@@ -264,7 +400,7 @@ impl arc_work_model::Task {
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
 
-        let input_properties: [PropertyInput; 24] = [
+        let input_properties: [PropertyInput; 25] = [
             PropertyInput::InputWidth, 
             PropertyInput::InputWidthPlus1, 
             PropertyInput::InputWidthPlus2, 
@@ -275,6 +411,7 @@ impl arc_work_model::Task {
             PropertyInput::InputHeightPlus2,
             PropertyInput::InputHeightMinus1,
             PropertyInput::InputHeightMinus2,
+            PropertyInput::InputBiggestValueThatDividesWidthAndHeight,
             PropertyInput::InputUniqueColorCount,
             PropertyInput::InputUniqueColorCountMinus1,
             PropertyInput::InputNumberOfPixelsWithMostPopularColor,
@@ -365,10 +502,18 @@ impl arc_work_model::Task {
                     }
 
                     {
+                        let input_value_scaled: u32 = (input_value as u32) * (input_value as u32);
+                        if input_value_scaled == (output_value as u32) {
+                            let label = ActionLabel::OutputPropertyIsInputPropertySquared { output: *output_property, input: *input_property };
+                            pair.action_label_set.insert(label);
+                        }
+                    }
+
+                    {
                         let input_value_scaled: u32 = (input_value as u32) * (input_image_size as u32);
                         if input_value_scaled == (output_value as u32) {
-                            let label0 = ActionLabel::OutputPropertyIsInputPropertyMultipliedByInputSize { output: *output_property, input: *input_property };
-                            pair.action_label_set.insert(label0);
+                            let label = ActionLabel::OutputPropertyIsInputPropertyMultipliedByInputSize { output: *output_property, input: *input_property };
+                            pair.action_label_set.insert(label);
                         }
                     }
                 }
@@ -377,6 +522,10 @@ impl arc_work_model::Task {
         }
 
         self.update_action_label_set_intersection();
+
+        self.assign_repair_mask();
+
+        self.compute_input_repaired_image()?;
 
         Ok(())
     }
@@ -436,6 +585,13 @@ impl arc_work_model::Task {
                         continue;
                     }
                     let s = format!("{:?} = {:?} / {}", output, input, scale);
+                    rules.push((RulePriority::Advanced, s));
+                },
+                ActionLabel::OutputPropertyIsInputPropertySquared { output, input } => {
+                    if output != property_output {
+                        continue;
+                    }
+                    let s = format!("{:?} = {:?}^2", output, input);
                     rules.push((RulePriority::Advanced, s));
                 },
                 _ => {}
@@ -582,6 +738,24 @@ impl arc_work_model::Task {
                         continue;
                     }
                     rules.push((RulePriority::Advanced, computed_value));
+                },
+                ActionLabel::OutputPropertyIsInputPropertySquared { output, input } => {
+                    if output != property_output {
+                        continue;
+                    }
+                    let input_value_option: Option<&u8> = dict.get(input);
+                    let input_value: u8 = match input_value_option {
+                        Some(value) => *value,
+                        None => {
+                            continue;
+                        }
+                    };
+                    let computed_value: u32 = (input_value as u32) * (input_value as u32);
+                    if computed_value > (u8::MAX as u32) {
+                        continue;
+                    }
+                    let value: u8 = computed_value as u8;
+                    rules.push((RulePriority::Advanced, value));
                 },
                 _ => {}
             }
@@ -802,6 +976,79 @@ impl arc_work_model::Task {
         }
     }
 
+    pub fn compute_input_repaired_image(&mut self) -> anyhow::Result<()> {
+        if !self.has_resolved_repair_mask() {
+            return Ok(());
+        }
+
+        let mut repair_horizontal: bool = false;
+        let mut repair_vertical: bool = false;
+        let mut repair_diagonal_a: bool = false;
+        let mut repair_diagonal_b: bool = false;
+
+        for input_label in &self.input_label_set_intersection {
+            match input_label {
+                InputLabel::InputSymmetry { label } => {
+                    match label {
+                        SymmetryLabel::HorizontalWithMismatches => {
+                            repair_horizontal = true;
+                        },
+                        SymmetryLabel::HorizontalWithInsetAndMismatches => {
+                            repair_horizontal = true;
+                        },
+                        SymmetryLabel::VerticalWithMismatches => {
+                            repair_vertical = true;
+                        },
+                        SymmetryLabel::VerticalWithInsetAndMismatches => {
+                            repair_vertical = true;
+                        },
+                        SymmetryLabel::DiagonalAWithMismatches => {
+                            repair_diagonal_a = true;
+                        },
+                        SymmetryLabel::DiagonalBWithMismatches => {
+                            repair_diagonal_b = true;
+                        },
+                        _ => {}
+                    }
+                }
+            }
+        }
+        let both_horz_and_vert: bool = repair_horizontal && repair_vertical;
+        let attempt_repair: bool = both_horz_and_vert || repair_diagonal_a || repair_diagonal_b;
+        if !attempt_repair {
+            return Ok(());
+        }
+        match self.compute_input_repaired_image_execute() {
+            Ok(()) => {},
+            Err(_) => {
+                // could not repair, perhaps the image isn't symmetric.
+                self.reset_input_repaired_image();
+            }
+        }
+        Ok(())
+    }
+
+    fn reset_input_repaired_image(&mut self) {
+        for (_index, pair) in self.pairs.iter_mut().enumerate() {
+            pair.input.repaired_image = None;
+        }
+    }
+
+    fn compute_input_repaired_image_execute(&mut self) -> anyhow::Result<()> {
+        for (_index, pair) in self.pairs.iter_mut().enumerate() {
+            let (symmetry, repair_mask) = match (&pair.input.symmetry, &pair.input.repair_mask) {
+                (Some(a), Some(b)) => (a, b),
+                _ => {
+                    return Err(anyhow::anyhow!("symmetry and repair_mask"));
+                }
+            };
+            let image_to_repair: &Image = &pair.input.image;
+            let repaired_image: Image = AutoRepairSymmetry::execute(&symmetry, &repair_mask, image_to_repair)?;
+            pair.input.repaired_image = Some(repaired_image);
+        }
+        Ok(())
+    }
+
     pub fn inspect(&self) -> anyhow::Result<()> {
         HtmlFromTask::inspect(self)
     }
@@ -824,5 +1071,15 @@ impl arc_work_model::Task {
             }
         }
         count
+    }
+
+    #[allow(dead_code)]
+    pub fn is_output_size_same_as_input_size(&self) -> bool {
+        ActionLabelUtil::is_output_size_same_as_input_size(&self.action_label_set_intersection)
+    }
+
+    #[allow(dead_code)]
+    pub fn is_output_size_same_as_removed_rectangle_after_single_color_removal(&self) -> bool {
+        ActionLabelUtil::is_output_size_same_as_removed_rectangle_after_single_color_removal(&self.action_label_set_intersection)
     }
 }

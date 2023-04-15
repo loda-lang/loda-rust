@@ -2302,17 +2302,17 @@ impl UnofficialFunction for ImageMaskSelectFromColorAndImageFunction {
         let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
         let image0: Image = input0_uint.to_image()?;
 
-        // input1 is image
-        if input[1].is_negative() {
-            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        // input1 is the color
+        let color: u8 = input[1].to_u8().context("Input[1] u8 pixel_color")?;
+        
+        // input2 is image
+        if input[2].is_negative() {
+            return Err(anyhow::anyhow!("Input[2] must be non-negative"));
         }
-        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
-        let image1: Image = input1_uint.to_image()?;
+        let input2_uint: BigUint = input[2].to_biguint().context("BigInt to BigUint")?;
+        let image2: Image = input2_uint.to_image()?;
 
-        // input2 is the color
-        let color: u8 = input[2].to_u8().context("Input[2] u8 pixel_color")?;
-
-        let output_image: Image = image0.select_from_color_and_image(color, &image1)?;
+        let output_image: Image = image0.select_from_color_and_image(color, &image2)?;
 
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
@@ -2514,7 +2514,7 @@ impl UnofficialFunction for ImageRepairPatternFunction {
         // input1 is the color to repair
         let repair_color: u8 = input[1].to_u8().context("Input[1] u8 pixel_color")?;
 
-        let output_image: Image = image.repair_pattern(repair_color)?;
+        let output_image: Image = image.repair_pattern_with_color(repair_color)?;
 
         let output_uint: BigUint = output_image.to_number()?;
         let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;

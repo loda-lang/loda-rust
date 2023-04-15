@@ -1,4 +1,4 @@
-use super::Image;
+use super::{Image, Rectangle};
 
 pub trait ImageMask {
     /// Convert to a mask image by converting `color` to 1 and converting anything else to to 0.
@@ -9,6 +9,9 @@ pub trait ImageMask {
 
     /// Convert to a mask image by converting `pixel_color >= threshold_color` to 1 and converting anything else to to 0.
     fn to_mask_where_color_is_equal_or_greater_than(&self, threshold_color: u8) -> Image;
+
+    /// Convert to a mask image by converting `pixel_color <= threshold_color` to 1 and converting anything else to to 0.
+    fn to_mask_where_color_is_equal_or_less_than(&self, threshold_color: u8) -> Image;
 
     /// Inverts a mask image by converting 0 to 1 and converting [1..255] to 0.
     fn invert_mask(&self) -> Image;
@@ -23,7 +26,7 @@ pub trait ImageMask {
     fn select_from_images(&self, image_a: &Image, image_b: &Image) -> anyhow::Result<Image>;
 
     /// The smallest box that can contain the mask.
-    fn bounding_box(&self) -> Option<(u8,u8,u8,u8)>;
+    fn bounding_box(&self) -> Option<Rectangle>;
 }
 
 impl ImageMask for Image {
@@ -77,6 +80,26 @@ impl ImageMask for Image {
                 let get_color: u8 = self.get(x, y).unwrap_or(255);
                 let set_color: u8;
                 if get_color >= threshold_color {
+                    set_color = 1;
+                } else {
+                    set_color = 0;
+                }
+                let _ = image.set(x, y, set_color);
+            }
+        }
+        return image;
+    }
+
+    fn to_mask_where_color_is_equal_or_less_than(&self, threshold_color: u8) -> Image {
+        if self.is_empty() {
+            return Image::empty();
+        }
+        let mut image = Image::zero(self.width(), self.height());
+        for y in 0..(self.height() as i32) {
+            for x in 0..(self.width() as i32) {
+                let get_color: u8 = self.get(x, y).unwrap_or(255);
+                let set_color: u8;
+                if get_color <= threshold_color {
                     set_color = 1;
                 } else {
                     set_color = 0;
@@ -183,7 +206,7 @@ impl ImageMask for Image {
         return Ok(result_image);
     }
 
-    fn bounding_box(&self) -> Option<(u8,u8,u8,u8)> {
+    fn bounding_box(&self) -> Option<Rectangle> {
         if self.is_empty() {
             return None;
         }
@@ -239,7 +262,8 @@ impl ImageMask for Image {
         }
         let new_height: u8 = new_height_i32 as u8;
 
-        return Some((new_x, new_y, new_width, new_height));
+        let rect = Rectangle::new(new_x, new_y, new_width, new_height);
+        Some(rect)
     }
 }
 
@@ -324,6 +348,33 @@ mod tests {
             0, 1, 1, 1, 0,
             0, 1, 1, 1, 0,
             0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30001_to_mask_where_color_is_equal_or_less_than() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            2, 1, 0,  1, 2,
+            1, 3, 6,  9, 1,
+            0, 4, 7, 10, 0,
+            1, 5, 8, 11, 1,
+            2, 1, 0,  1, 2,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let actual: Image = input.to_mask_where_color_is_equal_or_less_than(3);
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 1,
+            1, 1, 0, 0, 1,
+            1, 0, 0, 0, 1,
+            1, 0, 0, 0, 1,
+            1, 1, 1, 1, 1,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
         assert_eq!(actual, expected);
@@ -472,10 +523,10 @@ mod tests {
         let input: Image = Image::try_create(3, 5, pixels).expect("image");
 
         // Act
-        let actual: (u8,u8,u8,u8) = input.bounding_box().expect("bounding box");
+        let actual: Rectangle = input.bounding_box().expect("bounding box");
 
         // Assert
-        assert_eq!(actual, (0, 0, 3, 5));
+        assert_eq!(actual, Rectangle::new(0, 0, 3, 5));
     }
 
     #[test]
@@ -491,10 +542,10 @@ mod tests {
         let input: Image = Image::try_create(3, 5, pixels).expect("image");
 
         // Act
-        let actual: (u8,u8,u8,u8) = input.bounding_box().expect("bounding box");
+        let actual: Rectangle = input.bounding_box().expect("bounding box");
 
         // Assert
-        assert_eq!(actual, (1, 1, 2, 3));
+        assert_eq!(actual, Rectangle::new(1, 1, 2, 3));
     }
 
     #[test]
@@ -507,10 +558,10 @@ mod tests {
         let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: (u8,u8,u8,u8) = input.bounding_box().expect("bounding box");
+        let actual: Rectangle = input.bounding_box().expect("bounding box");
 
         // Assert
-        assert_eq!(actual, (2, 1, 1, 1));
+        assert_eq!(actual, Rectangle::new(2, 1, 1, 1));
     }
 
     #[test]
@@ -523,7 +574,7 @@ mod tests {
         let input: Image = Image::try_create(2, 2, pixels).expect("image");
 
         // Act
-        let actual: Option<(u8,u8,u8,u8)> = input.bounding_box();
+        let actual: Option<Rectangle> = input.bounding_box();
 
         // Assert
         assert_eq!(actual, None);

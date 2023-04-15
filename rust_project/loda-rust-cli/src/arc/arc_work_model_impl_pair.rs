@@ -1,4 +1,4 @@
-use super::{arc_work_model, ImageCompare, Image, ImageHistogram};
+use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor};
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
 use super::{ImageFind, ImageSize, ImageSymmetry, Histogram};
@@ -90,9 +90,37 @@ impl arc_work_model::Pair {
                 self.action_label_set.insert(ActionLabel::RemovalColorIsThePrimaryColorOfInputImage);
             }
         }
-        
+
+        if width_input == width_output && height_input == height_output {
+            _ = self.analyze_3x3_structure();
+        }
+
         _ = self.analyze_object_why_is_the_output_present_once_in_input();
         _ = self.analyze_output_image_is_input_image_with_changes_to_pixels_with_color();
+        _ = self.analyze_output_colors();
+    }
+
+    fn analyze_3x3_structure(&mut self) -> anyhow::Result<()> {
+        let same_neighbours: bool;
+        {
+            let input_colors: Image = self.input.image.count_duplicate_pixels_in_neighbours()?;
+            let output_colors: Image = self.output.image.count_duplicate_pixels_in_neighbours()?;
+            same_neighbours = input_colors == output_colors;
+        }
+
+        let same_all_of_3x3: bool;
+        if !same_neighbours {
+            let input_colors: Image = self.input.image.count_duplicate_pixels_in_3x3()?;
+            let output_colors: Image = self.output.image.count_duplicate_pixels_in_3x3()?;
+            same_all_of_3x3 = input_colors == output_colors;
+        } else {
+            same_all_of_3x3 = false;
+        }
+        
+        if same_neighbours || same_all_of_3x3 {
+            self.action_label_set.insert(ActionLabel::OutputImageHasSameStructureAsInputImage);
+        }
+        Ok(())
     }
 
     fn analyze_object_why_is_the_output_present_once_in_input(&mut self) -> anyhow::Result<()> {
@@ -184,6 +212,26 @@ impl arc_work_model::Pair {
         }
         if self.input.histogram.least_popular_color() == Some(color) {
             let label = ActionLabel::OutputImageIsInputImageWithChangesLimitedToPixelsWithLeastPopularColorOfTheInputImage;
+            self.action_label_set.insert(label);
+        }
+
+        Ok(())
+    }
+
+    fn analyze_output_colors(&mut self) -> anyhow::Result<()> {
+        let mut histogram: Histogram = self.output.histogram.clone();
+        let output_histogram_unique_count: u32 = histogram.number_of_counters_greater_than_zero();
+        histogram.intersection_histogram(&self.input.histogram);
+        let intersection_count: u32 = histogram.number_of_counters_greater_than_zero();
+
+        if output_histogram_unique_count <= (u8::MAX as u32) {
+            let count: u8 = output_histogram_unique_count as u8;
+            let label = ActionLabel::OutputImageUniqueColorCount { count };
+            self.action_label_set.insert(label);
+        }
+
+        if output_histogram_unique_count == intersection_count {
+            let label = ActionLabel::OutputImageColorsComesFromInputImage;
             self.action_label_set.insert(label);
         }
 

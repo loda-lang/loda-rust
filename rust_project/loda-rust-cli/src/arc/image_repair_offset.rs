@@ -2,15 +2,23 @@ use super::{Image, ImageRotate};
 
 pub trait ImageRepairOffset {
     /// Fix damaged pixels in the horizontal plane, by copying good pixels from the same row with `offset * n`.
-    fn repair_offset_x(&mut self, repair_mask: &Image, offset: u8) -> anyhow::Result<()>;
+    /// 
+    /// Updates `repair_mask` the places that have been repaired.
+    fn repair_offset_x(&mut self, repair_mask: &mut Image, offset: u8) -> anyhow::Result<()>;
 
     /// Fix damaged pixels in the vertical plane, by copying good pixels from the same column with `offset * n`.
-    fn repair_offset_y(&mut self, repair_mask: &Image, offset: u8) -> anyhow::Result<()>;
+    /// 
+    /// Updates `repair_mask` the places that have been repaired.
+    fn repair_offset_y(&mut self, repair_mask: &mut Image, offset: u8) -> anyhow::Result<()>;
+
+    // Idea for future
+    // repair_offset_diagonal_a()
+    // repair_offset_diagonal_b()
 }
 
 impl ImageRepairOffset for Image {
-    fn repair_offset_x(&mut self, repair_mask: &Image, offset: u8) -> anyhow::Result<()> {
-        if self.width() != repair_mask.width() || self.height() != repair_mask.height() {
+    fn repair_offset_x(&mut self, repair_mask: &mut Image, offset: u8) -> anyhow::Result<()> {
+        if self.size() != repair_mask.size() {
             return Err(anyhow::anyhow!("Expected same size for 'image' and 'repair_mask'"));
         }
         if self.is_empty() {
@@ -23,6 +31,7 @@ impl ImageRepairOffset for Image {
             return Err(anyhow::anyhow!("The offset: {} must be smaller than the width: {}", offset, self.width()));
         }
         let original: Image = self.clone();
+        let mut updated_repair_mask: Image = repair_mask.clone();
         for y in 0..original.height() as i32 {
             for x in 0..original.width() as i32 {
                 let mask_color0: u8 = repair_mask.get(x, y).unwrap_or(255);
@@ -35,6 +44,7 @@ impl ImageRepairOffset for Image {
                 if mask_color_offset_plus1 == 0 {
                     let set_color: u8 = original.get(x_offset_plus1, y).unwrap_or(255);
                     self.set(x, y, set_color);
+                    updated_repair_mask.set(x, y, 0);
                     continue;
                 }
 
@@ -43,6 +53,7 @@ impl ImageRepairOffset for Image {
                 if mask_color_offset_minus1 == 0 {
                     let set_color: u8 = original.get(x_offset_minus1, y).unwrap_or(255);
                     self.set(x, y, set_color);
+                    updated_repair_mask.set(x, y, 0);
                     continue;
                 }
 
@@ -51,6 +62,7 @@ impl ImageRepairOffset for Image {
                 if mask_color_offset_plus2 == 0 {
                     let set_color: u8 = original.get(x_offset_plus2, y).unwrap_or(255);
                     self.set(x, y, set_color);
+                    updated_repair_mask.set(x, y, 0);
                     continue;
                 }
 
@@ -59,19 +71,23 @@ impl ImageRepairOffset for Image {
                 if mask_color_offset_minus2 == 0 {
                     let set_color: u8 = original.get(x_offset_minus2, y).unwrap_or(255);
                     self.set(x, y, set_color);
+                    updated_repair_mask.set(x, y, 0);
                     continue;
                 }
             }
         }
+        repair_mask.set_image(updated_repair_mask);
         Ok(())
     }
 
-    fn repair_offset_y(&mut self, repair_mask: &Image, offset: u8) -> anyhow::Result<()> {
+    fn repair_offset_y(&mut self, repair_mask: &mut Image, offset: u8) -> anyhow::Result<()> {
         let mut image: Image = self.rotate_cw()?;
-        let repair_mask: Image = repair_mask.rotate_cw()?;
-        image.repair_offset_x(&repair_mask, offset)?;
+        let mut the_repair_mask: Image = repair_mask.rotate_cw()?;
+        image.repair_offset_x(&mut the_repair_mask, offset)?;
         image = image.rotate_ccw()?;
+        the_repair_mask = the_repair_mask.rotate_ccw()?;
         self.set_image(image);
+        repair_mask.set_image(the_repair_mask);
         Ok(())
     }
 }
@@ -100,11 +116,11 @@ mod tests {
             0, 0, 0, 0, 1, 1, 1,
             0, 0, 0, 0, 1, 1, 1,
         ];
-        let repair_mask: Image = Image::try_create(7, 5, repair_pixels).expect("image");
+        let mut repair_mask: Image = Image::try_create(7, 5, repair_pixels).expect("image");
 
         // Act
         let mut actual: Image = input.clone();
-        actual.repair_offset_x(&repair_mask, 2).expect("ok");
+        actual.repair_offset_x(&mut repair_mask, 2).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -116,6 +132,7 @@ mod tests {
         ];
         let expected: Image = Image::try_create(7, 5, expected_pixels).expect("image");
         assert_eq!(actual, expected);
+        assert_eq!(repair_mask, Image::zero(7, 5));
     }
 
     #[test]
@@ -137,11 +154,11 @@ mod tests {
             0, 0, 0, 0, 1, 1, 1,
             0, 0, 0, 0, 1, 1, 1,
         ];
-        let repair_mask: Image = Image::try_create(7, 5, repair_pixels).expect("image");
+        let mut repair_mask: Image = Image::try_create(7, 5, repair_pixels).expect("image");
 
         // Act
         let mut actual: Image = input.clone();
-        actual.repair_offset_x(&repair_mask, 2).expect("ok");
+        actual.repair_offset_x(&mut repair_mask, 2).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -153,6 +170,7 @@ mod tests {
         ];
         let expected: Image = Image::try_create(7, 5, expected_pixels).expect("image");
         assert_eq!(actual, expected);
+        assert_eq!(repair_mask, Image::zero(7, 5));
     }
 
     #[test]
@@ -190,11 +208,11 @@ mod tests {
             0, 0,
             0, 0,
         ];
-        let repair_mask: Image = Image::try_create(2, 12, repair_pixels).expect("image");
+        let mut repair_mask: Image = Image::try_create(2, 12, repair_pixels).expect("image");
 
         // Act
         let mut actual: Image = input.clone();
-        actual.repair_offset_y(&repair_mask, 6).expect("ok");
+        actual.repair_offset_y(&mut repair_mask, 6).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -215,5 +233,6 @@ mod tests {
         ];
         let expected: Image = Image::try_create(2, 12, expected_pixels).expect("image");
         assert_eq!(actual, expected);
+        assert_eq!(repair_mask, Image::zero(2, 12));
     }
 }

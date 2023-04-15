@@ -1,5 +1,15 @@
 use std::collections::HashSet;
 
+/// Properties about the input image. These properties all have value `u8`.
+/// 
+/// These properties are used for reasoning about what the size of the output image may be.
+/// Usually it's the width and height of the input image that is being used.
+/// The values being used are in the range `[0..30]`.
+/// 
+/// Extreme values in the range `[31..255]`, occur frequently. These are not filtered out.
+/// It's rare that extreme values are being used for computing the output size.
+/// 
+/// All the `PropertyInput` values can be computed for a `test pair` without accessing the output image.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PropertyInput {
     InputWidth,
@@ -12,6 +22,7 @@ pub enum PropertyInput {
     InputHeightPlus2,
     InputHeightMinus1,
     InputHeightMinus2,
+    InputBiggestValueThatDividesWidthAndHeight,
     InputUniqueColorCount,
     InputUniqueColorCountMinus1,
     InputNumberOfPixelsWithMostPopularColor,
@@ -33,10 +44,32 @@ pub enum PropertyInput {
     // Number of 1px lines vertical
 }
 
+/// Properties about an input image or an output image.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum SymmetryLabel {
+    Horizontal,
+    HorizontalWithMismatches,
+    HorizontalWithInset,
+    HorizontalWithInsetAndMismatches,
+    Vertical,
+    VerticalWithMismatches,
+    VerticalWithInset,
+    VerticalWithInsetAndMismatches,
+    DiagonalA,
+    DiagonalAWithMismatches,
+    DiagonalB,
+    DiagonalBWithMismatches,
+
+    // Ideas for more
+    // RepairColor { color: u8 },
+    // Number of palindromic rows { count: u8 },
+    // Number of palindromic columns { count: u8 },
+}
+
+/// Properties about the input image.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum InputLabel {
-    InputImageIsSymmetricX,
-    InputImageIsSymmetricY,
+    InputSymmetry { label: SymmetryLabel },
 
     // Ideas for more
     // InputUniqueColors { color: Vec<u8> },
@@ -69,6 +102,7 @@ pub enum ActionLabel {
     OutputPropertyIsInputPropertyMultipliedByInputSize { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsInputPropertyDividedBy { output: PropertyOutput, input: PropertyInput, scale: u8 },
     OutputPropertyIsInputPropertyDividedBySomeScale { output: PropertyOutput, input: PropertyInput },
+    OutputPropertyIsInputPropertySquared { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsConstant { output: PropertyOutput, value: u8 },
 
     OutputImageIsSymmetricX,
@@ -90,9 +124,16 @@ pub enum ActionLabel {
     OutputImageIsInputImageWithChangesLimitedToPixelsWithMostPopularColorOfTheInputImage,
     OutputImageIsInputImageWithChangesLimitedToPixelsWithLeastPopularColorOfTheInputImage,
     
+    OutputImageUniqueColorCount { count: u8 },
+    OutputImageColorsComesFromInputImage,
+
+    OutputImageHasSameStructureAsInputImage,
+    
     // Ideas for more
-    // OutputImageColorsComesFromInputImage,
-    // OutputImageUniqueColorCount { count: u8 },
+    // OutputImageIsTheSameAsInputImageWithColor { color: u8 },
+    // OutputSymmetry { label: SymmetryLabel },
+    // OutputImageIsPresentInInputImageWithTwoColorWildcards, for solving "8731374e"
+    // OutputImageWithSlightlyDifferentColorsIsPresentInTheInputImage,
     // OutputImageIsSingleColor,
     // OutputMaskIsTheSameAsInputMask,
     // OutputMaskIsASubsetOfInputMask,
@@ -103,6 +144,8 @@ pub enum ActionLabel {
     // OutputPropertySamePixelValuesAsInput { count_same: u16, count_different: u16 },
     // OutputSizeIsInputSizeAddConstant
     // OutputSizeIsInputSizeMultipliedByWithPadding
+    // OutputSizeIsBiggerThanInputSize
+    // OutputSizeIsSmallerThanInputSize
     // OutputAspectRatio { width: u8, height: u8 },
     // OutputAspectRatioEqualToInputAspectRatio,
 }
