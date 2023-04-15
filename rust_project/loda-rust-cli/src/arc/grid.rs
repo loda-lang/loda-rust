@@ -21,11 +21,12 @@ struct Candidate {
 }
 
 #[allow(dead_code)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Grid {
     horizontal_candidates: Vec<Candidate>,
     vertical_candidates: Vec<Candidate>,
     patterns: Vec<GridPattern>,
+    grid_found: bool,
 }
 
 impl Grid {
@@ -36,23 +37,30 @@ impl Grid {
         Ok(instance)
     }
 
+    pub fn grid_found(&self) -> bool {
+        self.grid_found
+    }
+
     #[allow(dead_code)]
     fn new() -> Self {
         Self {
             horizontal_candidates: vec!(),
             vertical_candidates: vec!(),
             patterns: vec!(),
+            grid_found: false,
         }
     }
 
     fn perform_analyze(&mut self, image: &Image) -> anyhow::Result<()> {
         if image.width() < 2 || image.height() < 2 {
-            return Err(anyhow::anyhow!("Image is too small. Must be 2x2 or bigger"));
+            // Image is too small. Must be 2x2 or bigger
+            return Ok(());
         }
         let histogram: Histogram = image.histogram_all();
         let unique_colors: u32 = histogram.number_of_counters_greater_than_zero();
         if unique_colors < 2 {
-            return Err(anyhow::anyhow!("Too few colors to draw a grid"));
+            // Too few colors to draw a grid
+            return Ok(());
         }
         self.perform_analyze_with_multiple_colors(image, true)?;
         let rotated_image: Image = image.rotate_cw()?;
@@ -68,15 +76,24 @@ impl Grid {
         for candidate in &self.vertical_candidates {
             candidate_colors.increment(candidate.color);
         }
+        let mut both_horz_vert = false;
         for (_count, color) in candidate_colors.pairs_descending() {
             let candidate0: Option<&Candidate> = self.horizontal_candidates.iter().find(|candidate| candidate.color == color);
             let candidate1: Option<&Candidate> = self.vertical_candidates.iter().find(|candidate| candidate.color == color);
             let mut mask = Image::zero(image.width(), image.height());
+            let mut horizontal_lines = false;
+            let mut vertical_lines = false;
             if let Some(candidate) = candidate1 {
                 Self::draw_horizontal_lines(&mut mask, candidate)?;
+                if candidate.combo_status.line_incorrect == 0 && candidate.combo_status.cell_incorrect == 0 {
+                    horizontal_lines = true;
+                }
             }
             if let Some(candidate) = candidate0 {
                 Self::draw_vertical_lines(&mut mask, candidate)?;
+                if candidate.combo_status.line_incorrect == 0 && candidate.combo_status.cell_incorrect == 0 {
+                    vertical_lines = true;
+                }
             }
             // println!("color: {} mask: {:?}", color, mask);
             let pattern = GridPattern {
@@ -84,8 +101,13 @@ impl Grid {
                 mask,
             };
             self.patterns.push(pattern);
+
+            if horizontal_lines && vertical_lines {
+                both_horz_vert = true;
+            }
         }
         self.patterns.sort_unstable_by_key(|k| k.color);
+        self.grid_found = both_horz_vert;
 
         Ok(())
     }
