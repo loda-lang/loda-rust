@@ -19,8 +19,20 @@ struct GridPattern {
     #[allow(dead_code)]
     jaccard_index: f32,
 
+    #[allow(dead_code)]
+    horizontal_line_count: u8,
+
+    #[allow(dead_code)]
+    horizontal_cell_count: u8,
+
+    #[allow(dead_code)]
+    vertical_line_count: u8,
+
+    #[allow(dead_code)]
+    vertical_cell_count: u8,
+
     // Ideas for more:
-    // cells width x height
+    // horizontal/vertical periodicity
     // enumerated cell objects
 }
 
@@ -96,17 +108,25 @@ impl Grid {
             let mut mask = Image::zero(image.width(), image.height());
             let mut horizontal_lines = false;
             let mut vertical_lines = false;
+            let mut horizontal_line_count: u8 = 0;
+            let mut horizontal_cell_count: u8 = 1;
+            let mut vertical_line_count: u8 = 0;
+            let mut vertical_cell_count: u8 = 1;
             if let Some(candidate) = candidate1 {
-                Self::draw_horizontal_lines(&mut mask, candidate)?;
+                (horizontal_line_count, horizontal_cell_count) = Self::draw_columns(&mut mask, candidate)?;
                 if candidate.combo_status.line_incorrect == 0 && candidate.combo_status.cell_incorrect == 0 {
                     horizontal_lines = true;
                 }
             }
             if let Some(candidate) = candidate0 {
-                Self::draw_vertical_lines(&mut mask, candidate)?;
+                (vertical_line_count, vertical_cell_count) = Self::draw_rows(&mut mask, candidate)?;
                 if candidate.combo_status.line_incorrect == 0 && candidate.combo_status.cell_incorrect == 0 {
                     vertical_lines = true;
                 }
+            }
+            let cell_count: u16 = (horizontal_cell_count as u16) * (vertical_cell_count as u16);
+            if cell_count < 2 {
+                continue;
             }
             let overlap_histogram: Histogram = image.histogram_with_mask(&mask)?;
             let intersection: u32 = overlap_histogram.get(color);
@@ -124,6 +144,10 @@ impl Grid {
                 intersection,
                 union,
                 jaccard_index,
+                horizontal_line_count,
+                horizontal_cell_count,
+                vertical_line_count,
+                vertical_cell_count,
             };
             self.patterns.push(pattern);
 
@@ -137,13 +161,19 @@ impl Grid {
         Ok(())
     }
 
-    fn draw_horizontal_lines(result_image: &mut Image, candidate: &Candidate) -> anyhow::Result<()> {
+    fn draw_columns(result_image: &mut Image, candidate: &Candidate) -> anyhow::Result<(u8, u8)> {
         let mut x: i16 = candidate.combo.initial_position;
         let width: i16 = result_image.width() as i16;
         let mut mask: Image = result_image.clone();
+        let mut line_count: u8 = 0;
+        let mut cell_count: u8 = 0;
         'outer: for _ in 0..30 {
+            let mut line_count_increment: u8 = 1;
             for _ in 0..candidate.combo.line_size {
                 if x >= 0 && x < width {
+                    line_count += line_count_increment;
+                    line_count_increment = 0;
+
                     let xx = (x & 255) as u8;
                     let r = Rectangle::new(xx, 0, 1, result_image.height());
                     mask = mask.fill_inside_rect(r, 1)?;
@@ -153,7 +183,12 @@ impl Grid {
                     break 'outer;
                 }
             }
+            let mut cell_count_increment: u8 = 1;
             for _ in 0..candidate.combo.cell_size {
+                if x >= 0 && x < width {
+                    cell_count += cell_count_increment;
+                    cell_count_increment = 0;
+                }
                 x += 1;
                 if x >= width {
                     break 'outer;
@@ -161,16 +196,22 @@ impl Grid {
             }
         }
         result_image.set_image(mask);
-        Ok(())
+        Ok((line_count, cell_count))
     }
 
-    fn draw_vertical_lines(result_image: &mut Image, candidate: &Candidate) -> anyhow::Result<()> {
+    fn draw_rows(result_image: &mut Image, candidate: &Candidate) -> anyhow::Result<(u8, u8)> {
         let mut y: i16 = candidate.combo.initial_position;
         let height: i16 = result_image.height() as i16;
         let mut mask: Image = result_image.clone();
+        let mut line_count: u8 = 0;
+        let mut cell_count: u8 = 0;
         'outer: for _ in 0..30 {
+            let mut line_count_increment: u8 = 1;
             for _ in 0..candidate.combo.line_size {
                 if y >= 0 && y < height {
+                    line_count += line_count_increment;
+                    line_count_increment = 0;
+
                     let yy = (y & 255) as u8;
                     let r = Rectangle::new(0, yy, result_image.width(), 1);
                     mask = mask.fill_inside_rect(r, 1)?;
@@ -180,7 +221,12 @@ impl Grid {
                     break 'outer;
                 }
             }
+            let mut cell_count_increment: u8 = 1;
             for _ in 0..candidate.combo.cell_size {
+                if y >= 0 && y < height {
+                    cell_count += cell_count_increment;
+                    cell_count_increment = 0;
+                }
                 y += 1;
                 if y >= height {
                     break 'outer;
@@ -188,7 +234,7 @@ impl Grid {
             }
         }
         result_image.set_image(mask);
-        Ok(())
+        Ok((line_count, cell_count))
     }
 
     fn perform_analyze_with_multiple_colors(&mut self, image: &Image, is_horizontal: bool) -> anyhow::Result<()> {
