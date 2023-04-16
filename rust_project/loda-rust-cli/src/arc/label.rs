@@ -44,6 +44,8 @@ pub enum PropertyInput {
     // Number of 1px lines vertical
 }
 
+/// Does the image contain symmetric patterns
+/// 
 /// Properties about an input image or an output image.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SymmetryLabel {
@@ -66,15 +68,29 @@ pub enum SymmetryLabel {
     // Number of palindromic columns { count: u8 },
 }
 
+/// Does the image contain grid patterns
+/// 
+/// Properties about an input image or an output image.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum GridLabel {
+    GridWithSomeColor,
+    GridColor { color: u8 },
+
+    // Ideas for more
+    // Periodicity,
+    // Cell size,
+    // Line size,
+    // Number of cells,
+    // Number of lines,
+}
+
 /// Properties about the input image.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum InputLabel {
     InputSymmetry { label: SymmetryLabel },
+    InputGrid { label: GridLabel },
 
-    InputHasGrid,
-    
     // Ideas for more
-    // InputGrid { label: GridLabel },
     // InputUniqueColors { color: Vec<u8> },
     // InputAspectRatio { width: u8, height: u8 },
 }
@@ -135,6 +151,8 @@ pub enum ActionLabel {
     // Ideas for more
     // OutputImageIsTheSameAsInputImageWithColor { color: u8 },
     // OutputSymmetry { label: SymmetryLabel },
+    // OutputGrid { label: GridLabel },
+    // OutputGridIsTheSameAsInputGrid,
     // OutputImageIsPresentInInputImageWithTwoColorWildcards, for solving "8731374e"
     // OutputImageWithSlightlyDifferentColorsIsPresentInTheInputImage,
     // OutputImageIsSingleColor,

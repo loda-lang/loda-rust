@@ -1,4 +1,4 @@
-use super::{arc_json_model, ActionLabel, InputLabel};
+use super::{arc_json_model, ActionLabel, InputLabel, GridLabel};
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
@@ -355,8 +355,19 @@ impl TraverseProgramsAndModels {
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
-            if task.input_label_set_intersection.contains(&InputLabel::InputHasGrid) {
-                found = true;
+            for input_label in &task.input_label_set_intersection {
+                let grid_label: GridLabel = match input_label {
+                    InputLabel::InputGrid { label } => label.clone(),
+                    _ => continue
+                };
+                match grid_label {
+                    GridLabel::GridWithSomeColor => {
+                        found = true;
+                    },
+                    GridLabel::GridColor { color: _ } => {
+                        found = true;
+                    }
+                }
             }
             // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricYWithInset) {
             //     found = true;

@@ -52,6 +52,7 @@ pub struct Grid {
     vertical_candidates: Vec<Candidate>,
     patterns: Vec<GridPattern>,
     grid_found: bool,
+    grid_color: u8,
 }
 
 impl Grid {
@@ -66,6 +67,10 @@ impl Grid {
         self.grid_found
     }
 
+    pub fn grid_color(&self) -> u8 {
+        self.grid_color
+    }
+
     #[allow(dead_code)]
     fn new() -> Self {
         Self {
@@ -73,6 +78,7 @@ impl Grid {
             vertical_candidates: vec!(),
             patterns: vec!(),
             grid_found: false,
+            grid_color: u8::MAX,
         }
     }
 
@@ -101,7 +107,8 @@ impl Grid {
         for candidate in &self.vertical_candidates {
             candidate_colors.increment(candidate.color);
         }
-        let mut both_horz_vert = false;
+        let mut grid_found = false;
+        let mut grid_color = u8::MAX;
         for (_count, color) in candidate_colors.pairs_descending() {
             let candidate0: Option<&Candidate> = self.horizontal_candidates.iter().find(|candidate| candidate.color == color);
             let candidate1: Option<&Candidate> = self.vertical_candidates.iter().find(|candidate| candidate.color == color);
@@ -152,11 +159,13 @@ impl Grid {
             self.patterns.push(pattern);
 
             if horizontal_lines && vertical_lines {
-                both_horz_vert = true;
+                grid_found = true;
+                grid_color = color;
             }
         }
         self.patterns.sort_unstable_by_key(|k| k.color);
-        self.grid_found = both_horz_vert;
+        self.grid_found = grid_found;
+        self.grid_color = grid_color;
 
         Ok(())
     }

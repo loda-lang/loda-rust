@@ -1,6 +1,6 @@
 use super::arc_work_model;
 use super::arc_work_model::Object;
-use super::{PropertyInput, InputLabel};
+use super::{PropertyInput, InputLabel, GridLabel};
 use super::{Symmetry, Grid, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
 use super::{ImageSegment, ImageSegmentAlgorithm, ImageMask, ImageCrop};
 use std::collections::{HashMap, HashSet};
@@ -211,8 +211,16 @@ impl arc_work_model::Input {
         match &self.grid {
             Some(grid) => {
                 if grid.grid_found() {
-                    let label = InputLabel::InputHasGrid;
-                    self.input_label_set.insert(label);
+                    {
+                        let grid_label = GridLabel::GridWithSomeColor;
+                        let input_label = InputLabel::InputGrid { label: grid_label };
+                        self.input_label_set.insert(input_label);
+                    }
+                    {
+                        let grid_label = GridLabel::GridColor { color: grid.grid_color() };
+                        let input_label = InputLabel::InputGrid { label: grid_label };
+                        self.input_label_set.insert(input_label);
+                    }
                 }
             },
             None => {
