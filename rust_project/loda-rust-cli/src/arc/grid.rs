@@ -243,6 +243,10 @@ impl Grid {
         let mut rows_histogram = Histogram::new();
         for (_index, histogram) in rows.iter().enumerate() {
             let unique_colors: u32 = histogram.number_of_counters_greater_than_zero();
+
+            // Future experiments.
+            // Detect grid and allow for some mismatches. Currently the line has to go from edge to edge to be considered a line.
+
             if unique_colors != 1 {
                 row_colors.push(None);
                 continue;
