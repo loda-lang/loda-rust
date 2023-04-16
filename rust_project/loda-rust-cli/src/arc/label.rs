@@ -39,6 +39,8 @@ pub enum PropertyInput {
     InputHeightOfRemovedRectangleAfterSingleColorRemoval,
 
     // Ideas for more
+    // InputCellCountHorizontal,
+    // InputCellCountVertical,
     // InputUniqueColorCountAfterRemoval
     // Number of 1px lines horizontal
     // Number of 1px lines vertical
