@@ -12,6 +12,7 @@ impl ImageToHTML for Image {
 
         let mut s = "<div class=\"themearc image nonempty\">".to_string();
         s += &format!("<span class=\"size\">{}x{}</span>", self.width(), self.height());
+        s += "<div class=\"themearc image rows-container\">";
         s += "<span class=\"themearc image rows\">";
         for y in 0..self.height() {
             s += "<span class=\"themearc image row\">";
@@ -22,6 +23,7 @@ impl ImageToHTML for Image {
             s += "</span>";
         }
         s += "</span>";
+        s += "</div>";
         s += "</div>";
         s
     }
