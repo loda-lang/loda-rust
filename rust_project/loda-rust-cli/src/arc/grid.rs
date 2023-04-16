@@ -18,6 +18,10 @@ struct GridPattern {
 
     #[allow(dead_code)]
     jaccard_index: f32,
+
+    // Ideas for more:
+    // cells width x height
+    // enumerated cell objects
 }
 
 #[derive(Clone, Debug)]
@@ -608,4 +612,33 @@ mod tests {
             assert_eq!(pattern.mask, expected);
         }
     }
+
+    #[test]
+    fn test_10005_split_middle() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            9, 9, 9, 7, 7, 9, 9, 9,            
+            9, 9, 9, 7, 7, 9, 9, 9,            
+            7, 7, 7, 7, 7, 7, 7, 7,
+            9, 9, 9, 7, 7, 9, 9, 9,             
+            9, 9, 9, 7, 7, 9, 9, 9,             
+        ];
+        let input: Image = Image::try_create(8, 5, pixels).expect("image");
+
+        // Act
+        let instance = Grid::analyze(&input).expect("ok");
+
+        // Assert
+        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 1, 1, 0, 0, 0,
+            0, 0, 0, 1, 1, 0, 0, 0,
+            1, 1, 1, 1, 1, 1, 1, 1,
+            0, 0, 0, 1, 1, 0, 0, 0,
+            0, 0, 0, 1, 1, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(8, 5, expected_pixels).expect("image");
+        assert_eq!(pattern.mask, expected);
+    }
+
 }
