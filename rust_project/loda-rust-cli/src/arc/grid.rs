@@ -224,6 +224,7 @@ impl Grid {
                 combo,
                 combo_status,
             };
+            // println!("color: {} candidate: {:?}", color, candidate);
             candidates.push(candidate);
         }
 
@@ -288,14 +289,6 @@ impl Grid {
         // println!("max_line_size: {}", max_line_size);
         // println!("max_cell_size: {}", max_cell_size);
 
-        let position0: u8 = match positions.first() {
-            Some(value) => *value,
-            None => {
-                return Err(anyhow::anyhow!("positions.first() returned None"));
-            }
-        };
-        // println!("position0: {}", position0);
-
         let mut best = ComboStatus {
             line_correct: 0,
             line_incorrect: u8::MAX,
@@ -307,9 +300,13 @@ impl Grid {
         let max_position: i16 = ((items.len() & 255) as i16) - 1;
         for cell_size in 1..=max_cell_size {
             for line_size in 1..=max_line_size {
-                for offset in 0..line_size {
+                let periodicity_u16: u16 = (cell_size as u16) + (line_size as u16);
+                let periodicity: u8 = (periodicity_u16 & 255) as u8;
+
+                for offset in 0..periodicity {
+                    let initial_position: i16 = -(offset as i16);
                     let combo = Combo {
-                        initial_position: -(offset as i16), 
+                        initial_position,
                         line_size,
                         cell_size
                     };
@@ -370,7 +367,7 @@ impl Combo {
         let mut cell_correct: u8 = 0;
         let mut cell_incorrect: u8 = 0;
         let mut current_position: i16 = self.initial_position;
-        let biggest_arc_grid_size: u8 = 30;
+        let biggest_arc_grid_size: u8 = 30 * 2;
         for _ in 0..biggest_arc_grid_size {
             for _ in 0..self.line_size {
                 if current_position >= 0 && current_position <= max_position {
@@ -567,6 +564,48 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        // assert_eq!(instance.horizontal_to_string(), "horizontal symmetry, left: 0 right: 0");
+        assert_eq!(instance.patterns.len(), 3);
+        {
+            let pattern: &GridPattern = &instance.patterns[1];
+            let expected_pixels: Vec<u8> = vec![
+                1, 1, 1, 1,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                1, 1, 1, 1,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                1, 1, 1, 1,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                1, 1, 1, 1,
+                0, 0, 0, 0,
+            ];
+            let expected: Image = Image::try_create(4, 14, expected_pixels).expect("image");
+            assert_eq!(pattern.mask, expected);
+        }
+        {
+            let pattern: &GridPattern = &instance.patterns[2];
+            let expected_pixels: Vec<u8> = vec![
+                0, 0, 0, 0,
+                1, 1, 1, 1,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                1, 1, 1, 1,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                1, 1, 1, 1,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+            ];
+            let expected: Image = Image::try_create(4, 14, expected_pixels).expect("image");
+            assert_eq!(pattern.mask, expected);
+        }
     }
 }
