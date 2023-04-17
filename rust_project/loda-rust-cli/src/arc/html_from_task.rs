@@ -12,6 +12,7 @@ pub struct HtmlFromTask {
     row_output_image: String,
     row_action_colors: String,
     row_action_labels: String,
+    row_predictions: String,
 }
 
 impl HtmlFromTask {
@@ -25,6 +26,7 @@ impl HtmlFromTask {
             row_output_image: "<tr><td>Output image</td>".to_string(),
             row_action_colors: "<tr><td>Action colors</td>".to_string(),
             row_action_labels: "<tr><td>Action labels</td>".to_string(),
+            row_predictions: "<tr><td>Predictions</td>".to_string(),
         }
     }
 
@@ -81,14 +83,14 @@ impl HtmlFromTask {
         {
             self.row_input_image += "<td>";
             self.row_input_image += &pair.input.image.to_html();
-            if let Some(image) = &pair.input.repair_mask {
-                self.row_input_image += "<br>";
-                self.row_input_image += &image.to_html();
-            }
-            if let Some(image) = &pair.input.repaired_image {
-                self.row_input_image += "<br>";
-                self.row_input_image += &image.to_html();
-            }
+            // if let Some(image) = &pair.input.repair_mask {
+            //     self.row_input_image += "<br>";
+            //     self.row_input_image += &image.to_html();
+            // }
+            // if let Some(image) = &pair.input.repaired_image {
+            //     self.row_input_image += "<br>";
+            //     self.row_input_image += &image.to_html();
+            // }
             self.row_input_image += "</td>";
         }
         {
@@ -103,7 +105,14 @@ impl HtmlFromTask {
         }
         {
             self.row_output_image += "<td>";
-            self.row_output_image += &pair.output.image.to_html();
+            match pair.pair_type {
+                arc_work_model::PairType::Train => {
+                    self.row_output_image += &pair.output.image.to_html();
+                },
+                arc_work_model::PairType::Test => {
+                    self.row_output_image += &pair.output.test_image.to_html_with_prefix("Expected ");
+                },
+            };
             self.row_output_image += "</td>";
         }
         {
@@ -131,6 +140,26 @@ impl HtmlFromTask {
             self.row_action_labels += "<td>";
             self.row_action_labels += &Self::labelset_to_html(&pair.action_label_set);
             self.row_action_labels += "</td>";
+        }
+        {
+            self.row_predictions += "<td>";
+            let mut show_empty = true;
+            if let Some(size) = pair.predicted_output_size() {
+                self.row_predictions += &format!("Size {}x{}", size.width, size.height);
+                show_empty = false;
+            }
+            if let Some(histogram) = pair.predicted_output_palette() {
+                if let Ok(image) = histogram.color_image() {
+                    self.row_predictions += "<br>";
+                    self.row_predictions += "Palette ";
+                    self.row_predictions += &image.to_html();
+                    show_empty = false;
+                }
+            }
+            if show_empty {
+                self.row_predictions += "empty";
+            }
+            self.row_predictions += "</td>";
         }
         Ok(())
     }
@@ -217,6 +246,9 @@ impl HtmlFromTask {
         self.row_action_labels += &td_begin;
         self.row_action_labels += &Self::labelset_to_html(&task.action_label_set_intersection);
         self.row_action_labels += "</td>";
+
+        self.row_predictions += &td_begin;
+        self.row_predictions += "</td>";
         Ok(())
     }
 
@@ -229,6 +261,7 @@ impl HtmlFromTask {
         self.row_output_image += "</tr>";
         self.row_action_colors += "</tr>";
         self.row_action_labels += "</tr>";
+        self.row_predictions += "</tr>";
     }
 
     fn to_html(&self, task: &arc_work_model::Task) -> String {
@@ -243,13 +276,14 @@ impl HtmlFromTask {
 
         let thead: String = format!("<thead>{}</thead>", self.row_title);
         let tbody: String = format!(
-            "<tbody>{}{}{}{}{}{}</tbody>",
+            "<tbody>{}{}{}{}{}{}{}</tbody>",
             self.row_input_image, 
             self.row_input_properties, 
             self.row_input_labels, 
             self.row_output_image, 
             self.row_action_colors,
-            self.row_action_labels
+            self.row_action_labels,
+            self.row_predictions
         );
 
         let table: String = format!(
