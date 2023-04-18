@@ -53,6 +53,8 @@ pub struct Grid {
     patterns: Vec<GridPattern>,
     grid_found: bool,
     grid_color: u8,
+    grid_with_mismatches_found: bool,
+    grid_with_mismatches_color: u8,
 }
 
 impl Grid {
@@ -71,6 +73,14 @@ impl Grid {
         self.grid_color
     }
 
+    pub fn grid_with_mismatches_found(&self) -> bool {
+        self.grid_with_mismatches_found
+    }
+
+    pub fn grid_with_mismatches_color(&self) -> u8 {
+        self.grid_with_mismatches_color
+    }
+
     #[allow(dead_code)]
     fn new() -> Self {
         Self {
@@ -79,6 +89,8 @@ impl Grid {
             patterns: vec!(),
             grid_found: false,
             grid_color: u8::MAX,
+            grid_with_mismatches_found: false,
+            grid_with_mismatches_color: u8::MAX,
         }
     }
 
@@ -109,6 +121,8 @@ impl Grid {
         }
         let mut grid_found = false;
         let mut grid_color = u8::MAX;
+        let mut grid_with_mismatches_found = false;
+        let mut grid_with_mismatches_color = u8::MAX;
         for (_count, color) in candidate_colors.pairs_descending() {
             let candidate0: Option<&Candidate> = self.horizontal_candidates.iter().find(|candidate| candidate.color == color);
             let candidate1: Option<&Candidate> = self.vertical_candidates.iter().find(|candidate| candidate.color == color);
@@ -159,13 +173,20 @@ impl Grid {
             self.patterns.push(pattern);
 
             if horizontal_lines && vertical_lines {
-                grid_found = true;
-                grid_color = color;
+                if intersection == union {
+                    grid_found = true;
+                    grid_color = color;
+                } else {
+                    grid_with_mismatches_found = true;
+                    grid_with_mismatches_color = color;
+                }
             }
         }
         self.patterns.sort_unstable_by_key(|k| k.color);
         self.grid_found = grid_found;
         self.grid_color = grid_color;
+        self.grid_with_mismatches_found = grid_with_mismatches_found;
+        self.grid_with_mismatches_color = grid_with_mismatches_color;
 
         Ok(())
     }
@@ -256,17 +277,27 @@ impl Grid {
             // Future experiments.
             // Detect grid and allow for some mismatches. Currently the line has to go from edge to edge to be considered a line.
 
-            if unique_colors != 1 {
+            if unique_colors > 3 {
                 row_colors.push(None);
                 continue;
             }
-            let color: u8 = match histogram.most_popular_color_disallow_ambiguous() {
+            if unique_colors != 1 && image.width() < 5 {
+                row_colors.push(None);
+                continue;
+            }
+            let (color, count) = match histogram.most_popular_pair_disallow_ambiguous() {
                 Some(value) => value,
                 None => {
                     row_colors.push(None);
                     continue;
                 }
             };
+
+            if count < (image.width() as u32) * 7 / 8 {
+                row_colors.push(None);
+                continue;
+            }
+
             // println!("row: {} color: {}", index, color);
             row_colors.push(Some(color));
             rows_histogram.increment(color);

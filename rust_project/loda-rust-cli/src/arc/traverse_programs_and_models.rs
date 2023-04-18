@@ -292,6 +292,21 @@ impl TraverseProgramsAndModels {
         }
         println!("tasks with size=bad and palette=bad.  {}", count_tasks_without_predictions);
 
+        Self::inspect_task_id(&task_vec, "95a58926")?;
+
+        // repair and crop
+        // Self::inspect_task_id(&task_vec, "0934a4d8")?;
+
+        // advanced
+        // Self::inspect_task_id(&task_vec, "3631a71a")?;
+        // Self::inspect_task_id(&task_vec, "f9d67f8b")?;
+
+        // // simple
+        // Self::inspect_task_id(&task_vec, "dc0a314f")?;
+        // Self::inspect_task_id(&task_vec, "9ecd008a")?;
+        // Self::inspect_task_id(&task_vec, "b8825c91")?;
+        // Self::inspect_task_id(&task_vec, "ff805c23")?;
+
         // Self::inspect_task_id(&task_vec, "332efdb3")?;
         // Self::inspect_task_id(&task_vec, "17cae0c1")?;
         // Self::inspect_task_id(&task_vec, "929ab4e9")?;
@@ -366,7 +381,13 @@ impl TraverseProgramsAndModels {
                     },
                     GridLabel::GridColor { color: _ } => {
                         found = true;
-                    }
+                    },
+                    GridLabel::GridWithMismatchesAndSomeColor => {
+                        found = true;
+                    },
+                    GridLabel::GridWithMismatchesAndColor { color: _ } => {
+                        found = true;
+                    },
                 }
             }
             // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricYWithInset) {

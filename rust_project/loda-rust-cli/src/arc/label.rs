@@ -77,6 +77,8 @@ pub enum SymmetryLabel {
 pub enum GridLabel {
     GridWithSomeColor,
     GridColor { color: u8 },
+    GridWithMismatchesAndSomeColor,
+    GridWithMismatchesAndColor { color: u8 },
 
     // Ideas for more
     // Periodicity,

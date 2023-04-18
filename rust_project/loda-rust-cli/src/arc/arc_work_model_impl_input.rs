@@ -217,7 +217,29 @@ impl arc_work_model::Input {
                         self.input_label_set.insert(input_label);
                     }
                     {
+                        let grid_label = GridLabel::GridWithMismatchesAndSomeColor;
+                        let input_label = InputLabel::InputGrid { label: grid_label };
+                        self.input_label_set.insert(input_label);
+                    }
+                    {
                         let grid_label = GridLabel::GridColor { color: grid.grid_color() };
+                        let input_label = InputLabel::InputGrid { label: grid_label };
+                        self.input_label_set.insert(input_label);
+                    }
+                    {
+                        let grid_label = GridLabel::GridWithMismatchesAndColor { color: grid.grid_color() };
+                        let input_label = InputLabel::InputGrid { label: grid_label };
+                        self.input_label_set.insert(input_label);
+                    }
+                }
+                if grid.grid_with_mismatches_found() {
+                    {
+                        let grid_label = GridLabel::GridWithMismatchesAndSomeColor;
+                        let input_label = InputLabel::InputGrid { label: grid_label };
+                        self.input_label_set.insert(input_label);
+                    }
+                    {
+                        let grid_label = GridLabel::GridWithMismatchesAndColor { color: grid.grid_with_mismatches_color() };
                         let input_label = InputLabel::InputGrid { label: grid_label };
                         self.input_label_set.insert(input_label);
                     }
