@@ -81,6 +81,9 @@ pub enum GridLabel {
     GridWithMismatchesAndColor { color: u8 },
 
     // Ideas for more
+    // Horizontal Line color
+    // Vertical Line color
+    // AnyDirection Line color
     // Periodicity,
     // Cell size,
     // Line size,
