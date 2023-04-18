@@ -1,35 +1,33 @@
-use crate::arc::ImageDrawRect;
-
-use super::{Histogram, Image, ImageHistogram, ImageRotate, Rectangle};
+use super::{Histogram, Image, ImageDrawRect, ImageHistogram, ImageRotate, Rectangle};
 use std::collections::HashSet;
 
 #[derive(Clone, Debug)]
-struct GridPattern {
-    color: u8,
+pub struct GridPattern {
+    pub color: u8,
 
     #[allow(dead_code)]
-    mask: Image,
+    pub mask: Image,
 
     #[allow(dead_code)]
-    intersection: u32,
+    pub intersection: u32,
 
     #[allow(dead_code)]
-    union: u32,
+    pub union: u32,
 
     #[allow(dead_code)]
-    jaccard_index: f32,
+    pub jaccard_index: f32,
 
     #[allow(dead_code)]
-    horizontal_line_count: u8,
+    pub horizontal_line_count: u8,
 
     #[allow(dead_code)]
-    horizontal_cell_count: u8,
+    pub horizontal_cell_count: u8,
 
     #[allow(dead_code)]
-    vertical_line_count: u8,
+    pub vertical_line_count: u8,
 
     #[allow(dead_code)]
-    vertical_cell_count: u8,
+    pub vertical_cell_count: u8,
 
     // Ideas for more:
     // horizontal/vertical periodicity
@@ -54,34 +52,53 @@ pub struct Grid {
     grid_found: bool,
     grid_color: u8,
     grid_with_mismatches_found: bool,
-    grid_with_mismatches_color: u8,
 }
 
 impl Grid {
-    #[allow(dead_code)]
     pub fn analyze(image: &Image) -> anyhow::Result<Self> {
         let mut instance = Self::new();
         instance.perform_analyze(image)?;
         Ok(instance)
     }
 
+    /// Is there an uninterrupted grid.
+    /// 
+    /// When a single color is used for both horizontal lines and vertical lines.
+    /// And the lines spans from edge to edge.
+    /// 
+    /// Then there is a grid. And this function returns `true`.
+    /// 
+    /// If it's interrupted, then it's more uncertain if there is a grid.
+    /// Here the function returns `false`.
     pub fn grid_found(&self) -> bool {
         self.grid_found
     }
 
+    /// The color used for the uninterrupted grid.
+    /// Then there can only be a single color for the grid.
+    /// 
+    /// It's not possible to have an uninterrupted grid using multiple colors.
     pub fn grid_color(&self) -> u8 {
         self.grid_color
     }
 
+    pub fn patterns(&self) -> &Vec<GridPattern> {
+        &self.patterns
+    }
+
+    /// Is there a grid structure with a few mismatches.
+    /// 
+    /// This makes no sense for tiny images, smaller than 5 pixels.
+    /// 
+    /// The majority of pixels must agree on a single grid color.
+    /// 
+    /// The number of allowed mismatches depends on the size of the images.
+    /// - For bigger images, several mismatches are allowed.
+    /// - For medium sized images, fewer mismatches are allowed.
     pub fn grid_with_mismatches_found(&self) -> bool {
         self.grid_with_mismatches_found
     }
 
-    pub fn grid_with_mismatches_color(&self) -> u8 {
-        self.grid_with_mismatches_color
-    }
-
-    #[allow(dead_code)]
     fn new() -> Self {
         Self {
             horizontal_candidates: vec!(),
@@ -90,7 +107,6 @@ impl Grid {
             grid_found: false,
             grid_color: u8::MAX,
             grid_with_mismatches_found: false,
-            grid_with_mismatches_color: u8::MAX,
         }
     }
 
@@ -122,7 +138,6 @@ impl Grid {
         let mut grid_found = false;
         let mut grid_color = u8::MAX;
         let mut grid_with_mismatches_found = false;
-        let mut grid_with_mismatches_color = u8::MAX;
         for (_count, color) in candidate_colors.pairs_descending() {
             let candidate0: Option<&Candidate> = self.horizontal_candidates.iter().find(|candidate| candidate.color == color);
             let candidate1: Option<&Candidate> = self.vertical_candidates.iter().find(|candidate| candidate.color == color);
@@ -178,7 +193,6 @@ impl Grid {
                     grid_color = color;
                 } else {
                     grid_with_mismatches_found = true;
-                    grid_with_mismatches_color = color;
                 }
             }
         }
@@ -186,7 +200,6 @@ impl Grid {
         self.grid_found = grid_found;
         self.grid_color = grid_color;
         self.grid_with_mismatches_found = grid_with_mismatches_found;
-        self.grid_with_mismatches_color = grid_with_mismatches_color;
 
         Ok(())
     }
@@ -731,4 +744,34 @@ mod tests {
         assert_eq!(pattern.mask, expected);
     }
 
+    #[test]
+    fn test_20000_partial_grid() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 5, 2, 2,
+            1, 1, 5, 2, 2,
+            5, 5, 7, 5, 5,
+            3, 3, 5, 4, 4,
+            3, 3, 5, 4, 4,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let instance = Grid::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.grid_found(), false);
+        assert_eq!(instance.grid_with_mismatches_found(), true);
+        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 1, 0, 0,
+            0, 0, 1, 0, 0,
+            1, 1, 1, 1, 1,
+            0, 0, 1, 0, 0,
+            0, 0, 1, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.color, 5);
+    }
 }

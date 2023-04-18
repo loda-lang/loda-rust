@@ -1,7 +1,7 @@
 use super::arc_work_model;
 use super::arc_work_model::Object;
 use super::{PropertyInput, InputLabel, GridLabel};
-use super::{Symmetry, Grid, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
+use super::{Symmetry, Grid, GridToLabel, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
 use super::{ImageSegment, ImageSegmentAlgorithm, ImageMask, ImageCrop};
 use std::collections::{HashMap, HashSet};
 
@@ -205,50 +205,8 @@ impl arc_work_model::Input {
     pub fn update_input_label_set(&mut self) {
         self.resolve_symmetry();
         self.resolve_grid();
-
         self.assign_symmetry_labels();
-
-        match &self.grid {
-            Some(grid) => {
-                if grid.grid_found() {
-                    {
-                        let grid_label = GridLabel::GridWithSomeColor;
-                        let input_label = InputLabel::InputGrid { label: grid_label };
-                        self.input_label_set.insert(input_label);
-                    }
-                    {
-                        let grid_label = GridLabel::GridWithMismatchesAndSomeColor;
-                        let input_label = InputLabel::InputGrid { label: grid_label };
-                        self.input_label_set.insert(input_label);
-                    }
-                    {
-                        let grid_label = GridLabel::GridColor { color: grid.grid_color() };
-                        let input_label = InputLabel::InputGrid { label: grid_label };
-                        self.input_label_set.insert(input_label);
-                    }
-                    {
-                        let grid_label = GridLabel::GridWithMismatchesAndColor { color: grid.grid_color() };
-                        let input_label = InputLabel::InputGrid { label: grid_label };
-                        self.input_label_set.insert(input_label);
-                    }
-                }
-                if grid.grid_with_mismatches_found() {
-                    {
-                        let grid_label = GridLabel::GridWithMismatchesAndSomeColor;
-                        let input_label = InputLabel::InputGrid { label: grid_label };
-                        self.input_label_set.insert(input_label);
-                    }
-                    {
-                        let grid_label = GridLabel::GridWithMismatchesAndColor { color: grid.grid_with_mismatches_color() };
-                        let input_label = InputLabel::InputGrid { label: grid_label };
-                        self.input_label_set.insert(input_label);
-                    }
-                }
-            },
-            None => {
-                return;
-            }
-        }
+        self.assign_grid_labels();
     }
 
     pub fn assign_symmetry_labels(&mut self) {
@@ -263,6 +221,22 @@ impl arc_work_model::Input {
         };
         for symmetry_label in symmetry_labels {
             let label = InputLabel::InputSymmetry { label: symmetry_label.clone() };
+            self.input_label_set.insert(label);
+        }
+    }
+
+    pub fn assign_grid_labels(&mut self) {
+        let grid_labels: HashSet<GridLabel>;
+        match &self.grid {
+            Some(grid) => {
+                grid_labels = grid.to_grid_labels();
+            },
+            None => {
+                return;
+            }
+        };
+        for grid_label in grid_labels {
+            let label = InputLabel::InputGrid { label: grid_label.clone() };
             self.input_label_set.insert(label);
         }
     }
