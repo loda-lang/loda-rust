@@ -753,6 +753,39 @@ mod tests {
         assert_eq!(pattern.mask, expected);
     }
 
+    // #[test]
+    fn test_10006_gridsize1_cellsize1() {
+        // TODO: why is this grid not detected correctly?
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 5, 0, 0, 0,
+            0, 0, 0, 5, 0, 0, 0,
+            0, 5, 0, 5, 0, 0, 0,
+            0, 5, 0, 5, 0, 0, 0,
+            0, 5, 0, 5, 0, 5, 0,
+            0, 5, 0, 5, 0, 5, 0,
+        ];
+        let input: Image = Image::try_create(7, 7, pixels).expect("image");
+
+        // Act
+        let instance = Grid::analyze(&input).expect("ok");
+
+        // Assert
+        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 1, 1, 1,
+            1, 0, 1, 0, 1, 0, 1,
+            1, 0, 1, 0, 1, 0, 1,
+            1, 0, 1, 0, 1, 0, 1,
+            1, 0, 1, 0, 1, 0, 1,
+            1, 0, 1, 0, 1, 0, 1,
+            1, 0, 1, 0, 1, 0, 1,
+        ];
+        let expected: Image = Image::try_create(7, 7, expected_pixels).expect("image");
+        assert_eq!(pattern.mask, expected);
+    }
+
     #[test]
     fn test_20000_partial_grid() {
         // Arrange
