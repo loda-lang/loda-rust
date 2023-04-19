@@ -75,10 +75,10 @@ pub enum SymmetryLabel {
 /// Properties about an input image or an output image.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum GridLabel {
-    GridWithSomeColor,
     GridColor { color: u8 },
-    GridWithMismatchesAndSomeColor,
+    GridWithSomeColor,
     GridWithMismatchesAndColor { color: u8 },
+    GridWithMismatchesAndSomeColor,
 
     // Ideas for more
     // Horizontal Line color
