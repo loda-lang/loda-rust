@@ -291,7 +291,7 @@ impl Grid {
 
     fn perform_analyze_with_multiple_colors(&mut self, image: &Image, is_horizontal: bool) -> anyhow::Result<()> {
         let rows: Vec<Histogram> = image.histogram_rows();
-        let mut row_colors = Vec::<Option<u8>>::new();
+        let mut row_colors = Vec::<Item>::new();
         let mut rows_histogram = Histogram::new();
         for (_index, histogram) in rows.iter().enumerate() {
             let unique_colors: u32 = histogram.number_of_counters_greater_than_zero();
@@ -300,29 +300,34 @@ impl Grid {
             // Detect grid and allow for some mismatches. Currently the line has to go from edge to edge to be considered a line.
 
             if unique_colors > 3 {
-                row_colors.push(None);
+                row_colors.push(Item::None);
                 continue;
             }
             if unique_colors != 1 && image.width() < 5 {
-                row_colors.push(None);
+                row_colors.push(Item::None);
                 continue;
             }
             let (color, count) = match histogram.most_popular_pair_disallow_ambiguous() {
                 Some(value) => value,
                 None => {
-                    row_colors.push(None);
+                    row_colors.push(Item::None);
                     continue;
                 }
             };
 
             if count < (image.width() as u32) * 7 / 8 {
-                row_colors.push(None);
+                row_colors.push(Item::None);
                 continue;
             }
 
             // println!("row: {} color: {}", index, color);
-            row_colors.push(Some(color));
-            rows_histogram.increment(color);
+            if count == image.width() as u32 {
+                row_colors.push(Item::LineFull { color });
+                rows_histogram.increment(color);
+            } else {
+                row_colors.push(Item::LinePartial { color });
+                rows_histogram.increment(color);
+            }
         }
 
         // println!("row_colors: {:?}", row_colors);
@@ -357,24 +362,38 @@ impl Grid {
         Ok(())
     }
 
-    fn measure(color: u8, items: &Vec<Option<u8>>) -> anyhow::Result<(Combo, ComboStatus)> {
+    fn measure(measure_color: u8, items: &Vec<Item>) -> anyhow::Result<(Combo, ComboStatus)> {
         let mut found_max_possible_line_size: u8 = 0;
         let mut current_possible_line_size: u8 = 0;
         let mut found_max_possible_cell_size: u8 = 0;
         let mut current_possible_cell_size: u8 = 0;
         let mut positions = Vec::<u8>::new();
         let mut position_set = HashSet::<i16>::new();
-        for (index, item_color) in items.iter().enumerate() {
-            if *item_color != Some(color) {
+        for (index, item) in items.iter().enumerate() {
+            let mut found: bool = false;
+            match item {
+                Item::None => {
+                    found = false;
+                },
+                Item::LineFull { color } => {
+                    if *color == measure_color {
+                        found = true;
+                    }
+                },
+                Item::LinePartial { color } => {
+                    if *color == measure_color {
+                        found = true;
+                    }
+                }
+            }
+            if !found {
                 current_possible_line_size = 0;
-
                 if current_possible_cell_size < u8::MAX {
                     current_possible_cell_size += 1;
                 }
                 if current_possible_cell_size > found_max_possible_cell_size {
                     found_max_possible_cell_size = current_possible_cell_size;
                 }
-    
                 continue;
             }
             current_possible_cell_size = 0;
@@ -448,6 +467,13 @@ impl Grid {
         Ok((combo, best))
     }
 
+}
+
+#[derive(Debug)]
+enum Item {
+    None,
+    LineFull { color: u8 },
+    LinePartial { color: u8 },
 }
 
 #[derive(Clone, Debug)]
