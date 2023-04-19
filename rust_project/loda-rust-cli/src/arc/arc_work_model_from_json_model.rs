@@ -52,6 +52,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     grid: None,
                     repair_mask: None,
                     repaired_image: None,
+                    grid_mask: None,
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},train", task_id, index),
@@ -88,6 +89,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     grid: None,
                     repair_mask: None,
                     repaired_image: None,
+                    grid_mask: None,
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},test", task_id, index),

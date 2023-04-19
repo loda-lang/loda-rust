@@ -292,7 +292,9 @@ impl TraverseProgramsAndModels {
         }
         println!("tasks with size=bad and palette=bad.  {}", count_tasks_without_predictions);
 
-        Self::inspect_task_id(&task_vec, "95a58926")?;
+        Self::inspect_task_id(&task_vec, "92e50de0")?;
+        Self::inspect_task_id(&task_vec, "c3202e5a")?;
+        // Self::inspect_task_id(&task_vec, "95a58926")?;
 
         // repair and crop
         // Self::inspect_task_id(&task_vec, "0934a4d8")?;
@@ -349,7 +351,7 @@ impl TraverseProgramsAndModels {
         let mut indexes = HashSet::<usize>::new();
         for (index, task) in task_vec.iter().enumerate() {
             if task.occur_in_solutions_csv {
-                // continue;
+                continue;
             }
             // if task.input_histogram_union.number_of_counters_greater_than_zero() > 3 {
             //     continue;

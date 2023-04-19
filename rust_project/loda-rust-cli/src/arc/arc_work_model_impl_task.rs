@@ -1,4 +1,4 @@
-use super::{arc_work_model, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry};
+use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry};
 use super::arc_work_model::{Input, PairType};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram};
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
@@ -527,6 +527,8 @@ impl arc_work_model::Task {
 
         self.compute_input_repaired_image()?;
 
+        self.prepare_grid_mask()?;
+
         Ok(())
     }
 
@@ -1047,6 +1049,82 @@ impl arc_work_model::Task {
             let repaired_image: Image = AutoRepairSymmetry::execute(&symmetry, &repair_mask, image_to_repair)?;
             pair.input.repaired_image = Some(repaired_image);
         }
+        Ok(())
+    }
+
+    fn prepare_grid_mask(&mut self) -> anyhow::Result<()> {
+        let mut grid_with_specific_color = false;
+        let mut grid_color: u8 = u8::MAX;
+        let mut grid_with_some_color = false;
+
+        for input_label in &self.input_label_set_intersection {
+            match input_label {
+                InputLabel::InputGrid { label } => {
+                    match label {
+                        GridLabel::GridColor { color } => {
+                            grid_with_specific_color = true;
+                            grid_color = *color;
+                        },
+                        GridLabel::GridWithSomeColor => {
+                            grid_with_some_color = true;
+                        },
+                        _ => {}
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        if grid_with_specific_color {
+            for pair in self.pairs.iter_mut() {
+                let grid = match &pair.input.grid {
+                    Some(value) => value.clone(),
+                    None => {
+                        // One or more of the grids are not initialized, aborting.
+                        // TODO: perform reset for all pairs: input.grid_mask = None;
+                        break;
+                    }
+                };
+                let pattern: &GridPattern = match grid.find_pattern_with_color(grid_color) {
+                    Some(value) => value,
+                    None => {
+                        // Could not find a pattern with that particular color, aborting.
+                        // TODO: perform reset for all pairs: input.grid_mask = None;
+                        break;
+                    }
+                };
+                let mask: Image = pattern.mask.clone();
+                pair.input.grid_mask = Some(mask);
+            }
+            return Ok(());
+        }
+
+        if grid_with_some_color {
+            for pair in self.pairs.iter_mut() {
+                let grid = match &pair.input.grid {
+                    Some(value) => value.clone(),
+                    None => {
+                        // One or more of the grids are not initialized, aborting.
+                        // TODO: perform reset for all pairs: input.grid_mask = None;
+                        break;
+                    }
+                };
+                let grid_color: u8 = grid.grid_color();
+
+                let pattern: &GridPattern = match grid.find_pattern_with_color(grid_color) {
+                    Some(value) => value,
+                    None => {
+                        // Could not find a pattern with that particular color, aborting.
+                        // TODO: perform reset for all pairs: input.grid_mask = None;
+                        break;
+                    }
+                };
+                let mask: Image = pattern.mask.clone();
+                pair.input.grid_mask = Some(mask);
+            }
+            return Ok(());
+        }
+
         Ok(())
     }
 

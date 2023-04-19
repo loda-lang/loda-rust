@@ -86,6 +86,15 @@ impl Grid {
         &self.patterns
     }
 
+    pub fn find_pattern_with_color(&self, color: u8) -> Option<&GridPattern> {
+        for pattern in &self.patterns {
+            if pattern.color == color {
+                return Some(pattern);
+            }
+        }
+        None
+    }
+
     /// Is there a grid structure with a few mismatches.
     /// 
     /// This makes no sense for tiny images, smaller than 5 pixels.

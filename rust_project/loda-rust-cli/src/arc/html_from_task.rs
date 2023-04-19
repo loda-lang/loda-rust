@@ -83,6 +83,10 @@ impl HtmlFromTask {
         {
             self.row_input_image += "<td>";
             self.row_input_image += &pair.input.image.to_html();
+            if let Some(image) = &pair.input.grid_mask {
+                self.row_input_image += "<br>";
+                self.row_input_image += &image.to_html();
+            }
             // if let Some(image) = &pair.input.repair_mask {
             //     self.row_input_image += "<br>";
             //     self.row_input_image += &image.to_html();

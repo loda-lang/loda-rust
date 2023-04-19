@@ -47,6 +47,8 @@ pub struct Input {
     pub repair_mask: Option<Image>,
     pub repaired_image: Option<Image>,
 
+    pub grid_mask: Option<Image>,
+
     // Future experiments to do.
     // State keeping of the input_properties. 
     // Computed, NotYetComputed, CannotBeComputed, DependingOnAnotherProperty.
