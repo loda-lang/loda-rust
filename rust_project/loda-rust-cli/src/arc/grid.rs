@@ -754,7 +754,7 @@ mod tests {
     }
 
     // #[test]
-    fn test_10006_gridsize1_cellsize1() {
+    fn test_10006_detect_grid() {
         // TODO: why is this grid not detected correctly?
         // Arrange
         let pixels: Vec<u8> = vec![
@@ -783,6 +783,71 @@ mod tests {
             1, 0, 1, 0, 1, 0, 1,
         ];
         let expected: Image = Image::try_create(7, 7, expected_pixels).expect("image");
+        assert_eq!(pattern.mask, expected);
+    }
+
+    // #[test]
+    fn test_10007_detect_grid() {
+        // TODO: why is this grid not detected correctly?
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0,
+            0, 8, 0, 0, 0, 0, 0,
+            0, 8, 8, 0, 0, 0, 0,
+            0, 0, 0, 0, 8, 8, 0,
+            0, 0, 0, 0, 0, 8, 0,
+            0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(7, 7, pixels).expect("image");
+
+        // Act
+        let instance = Grid::analyze(&input).expect("ok");
+
+        // Assert
+        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 1, 1, 1,
+            1, 0, 0, 1, 0, 0, 1,
+            1, 0, 0, 1, 0, 0, 1,
+            1, 0, 0, 1, 0, 0, 1,
+            1, 0, 0, 1, 0, 0, 1,
+            1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1,
+        ];
+        let expected: Image = Image::try_create(7, 7, expected_pixels).expect("image");
+        assert_eq!(pattern.mask, expected);
+    }
+
+    // #[test]
+    fn test_10008_detect_grid() {
+        // TODO: why is this grid not detected correctly?
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 1, 0, 0, 1,
+            0, 0, 0, 0, 1,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 2, 2,
+            1, 1, 0, 2, 2,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let instance = Grid::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.grid_found, true);
+        assert_eq!(instance.grid_color, 0);
+        assert_eq!(instance.patterns.len(), 1);
+        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 1, 0, 0,
+            0, 0, 1, 0, 0,
+            1, 1, 1, 1, 1,
+            0, 0, 1, 0, 0,
+            0, 0, 1, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
         assert_eq!(pattern.mask, expected);
     }
 
