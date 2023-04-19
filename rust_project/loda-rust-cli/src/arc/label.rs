@@ -84,11 +84,15 @@ pub enum GridLabel {
     // Horizontal Line color
     // Vertical Line color
     // AnyDirection Line color
+    // Color only occur in the grid lines
     // Periodicity,
     // Cell size,
     // Line size,
-    // Number of cells,
-    // Number of lines,
+    // Number of cells horizontal,
+    // Number of cells vertical,
+    // Number of lines horizontal,
+    // Number of lines vertical,
+    // NoiseColor { color: u8 },
 }
 
 /// Properties about the input image.
@@ -98,6 +102,7 @@ pub enum InputLabel {
     InputGrid { label: GridLabel },
 
     // Ideas for more
+    // InputColorThatDoesNotOccurInTheIntersection { color: u8 },
     // InputUniqueColors { color: Vec<u8> },
     // InputAspectRatio { width: u8, height: u8 },
 }
