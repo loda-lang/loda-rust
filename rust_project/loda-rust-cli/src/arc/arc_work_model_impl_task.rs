@@ -1053,20 +1053,26 @@ impl arc_work_model::Task {
     }
 
     fn prepare_grid_mask(&mut self) -> anyhow::Result<()> {
-        let mut grid_with_specific_color = false;
-        let mut grid_color: u8 = u8::MAX;
-        let mut grid_with_some_color = false;
+        let mut prio1_grid_with_specific_color = false;
+        let mut prio1_grid_color: u8 = u8::MAX;
+        let mut prio2_grid_with_some_color = false;
+        let mut prio3_grid_with_mismatches_and_specific_color = false;
+        let mut prio3_grid_color: u8 = u8::MAX;
 
         for input_label in &self.input_label_set_intersection {
             match input_label {
                 InputLabel::InputGrid { label } => {
                     match label {
                         GridLabel::GridColor { color } => {
-                            grid_with_specific_color = true;
-                            grid_color = *color;
+                            prio1_grid_with_specific_color = true;
+                            prio1_grid_color = *color;
                         },
                         GridLabel::GridWithSomeColor => {
-                            grid_with_some_color = true;
+                            prio2_grid_with_some_color = true;
+                        },
+                        GridLabel::GridWithMismatchesAndColor { color } => {
+                            prio3_grid_with_mismatches_and_specific_color = true;
+                            prio3_grid_color = *color;
                         },
                         _ => {}
                     }
@@ -1075,7 +1081,7 @@ impl arc_work_model::Task {
             }
         }
 
-        if grid_with_specific_color {
+        if prio1_grid_with_specific_color {
             for pair in self.pairs.iter_mut() {
                 let grid = match &pair.input.grid {
                     Some(value) => value.clone(),
@@ -1085,6 +1091,32 @@ impl arc_work_model::Task {
                         break;
                     }
                 };
+                let pattern: &GridPattern = match grid.find_pattern_with_color(prio1_grid_color) {
+                    Some(value) => value,
+                    None => {
+                        // Could not find a pattern with that particular color, aborting.
+                        // TODO: perform reset for all pairs: input.grid_mask = None;
+                        break;
+                    }
+                };
+                let mask: Image = pattern.mask.clone();
+                pair.input.grid_mask = Some(mask);
+            }
+            return Ok(());
+        }
+
+        if prio2_grid_with_some_color {
+            for pair in self.pairs.iter_mut() {
+                let grid = match &pair.input.grid {
+                    Some(value) => value.clone(),
+                    None => {
+                        // One or more of the grids are not initialized, aborting.
+                        // TODO: perform reset for all pairs: input.grid_mask = None;
+                        break;
+                    }
+                };
+                let grid_color: u8 = grid.grid_color();
+
                 let pattern: &GridPattern = match grid.find_pattern_with_color(grid_color) {
                     Some(value) => value,
                     None => {
@@ -1099,7 +1131,7 @@ impl arc_work_model::Task {
             return Ok(());
         }
 
-        if grid_with_some_color {
+        if prio3_grid_with_mismatches_and_specific_color {
             for pair in self.pairs.iter_mut() {
                 let grid = match &pair.input.grid {
                     Some(value) => value.clone(),
@@ -1109,9 +1141,7 @@ impl arc_work_model::Task {
                         break;
                     }
                 };
-                let grid_color: u8 = grid.grid_color();
-
-                let pattern: &GridPattern = match grid.find_pattern_with_color(grid_color) {
+                let pattern: &GridPattern = match grid.find_pattern_with_color(prio3_grid_color) {
                     Some(value) => value,
                     None => {
                         // Could not find a pattern with that particular color, aborting.
