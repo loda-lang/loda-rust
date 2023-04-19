@@ -1,4 +1,4 @@
-use super::{Histogram, Image, ImageDrawRect, ImageHistogram, ImageRotate, Rectangle};
+use super::{Histogram, Image, ImageCorner, ImageDrawRect, ImageHistogram, ImageNoiseColor, ImageRotate, Rectangle};
 use std::collections::HashSet;
 
 #[derive(Clone, Debug)]
@@ -290,10 +290,12 @@ impl Grid {
     }
 
     fn perform_analyze_with_multiple_colors(&mut self, image: &Image, is_horizontal: bool) -> anyhow::Result<()> {
+        let corner_counts: Image = image.corners()?;
+
         let rows: Vec<Histogram> = image.histogram_rows();
         let mut row_colors = Vec::<Item>::new();
         let mut rows_histogram = Histogram::new();
-        for (_index, histogram) in rows.iter().enumerate() {
+        for (y, histogram) in rows.iter().enumerate() {
             let unique_colors: u32 = histogram.number_of_counters_greater_than_zero();
 
             // Future experiments.
@@ -320,7 +322,22 @@ impl Grid {
                 continue;
             }
 
-            // println!("row: {} color: {}", index, color);
+            let mut corners_with_same_color: u8 = 0;
+            let mut corners_with_different_color: u8 = 0;
+            for x in 0..image.width() {
+                let corner_count: u8 = corner_counts.get(x as i32, y as i32).unwrap_or(0);
+                if corner_count == 0 {
+                    continue;
+                }
+                let pixel_value: u8 = image.get(x as i32, y as i32).unwrap_or(255);
+                if pixel_value == color {
+                    corners_with_same_color += 1;
+                } else {
+                    corners_with_different_color += 1;
+                }
+            }
+
+            // println!("row y: {} color: {}", y, color);
             if count == image.width() as u32 {
                 row_colors.push(Item::LineFull { color });
                 rows_histogram.increment(color);
