@@ -62,6 +62,8 @@ impl Grid {
         instance.perform_analyze(image)?;
 
         // Future experiment:
+        // detect horizontal stacks of cells, 1 cell tall
+        // detect vertical stacks of cells, 1 cell wide
         // enumerate cells
 
         Ok(instance)
