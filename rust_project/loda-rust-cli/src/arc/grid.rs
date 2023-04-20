@@ -353,12 +353,6 @@ impl Grid {
         let mut rows_histogram = Histogram::new();
         for (_y, histogram) in rows.iter().enumerate() {
             let unique_colors: u32 = histogram.number_of_counters_greater_than_zero();
-
-            if unique_colors > 3 {
-                full_row_colors.push(None);
-                partial_row_colors.push(None);
-                continue;
-            }
             if unique_colors != 1 && image.width() < 5 {
                 full_row_colors.push(None);
                 partial_row_colors.push(None);
@@ -509,7 +503,6 @@ impl Grid {
                         line_size,
                         cell_size
                     };
-                    // SIMON
                     let status: ComboStatus = combo.score(max_position, &position_set);
                     let error: i32 = status.error();
                     if error > current_error {
