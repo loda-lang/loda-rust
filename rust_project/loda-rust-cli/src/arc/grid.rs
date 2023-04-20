@@ -50,7 +50,12 @@ pub struct Grid {
     vertical_candidates_full: Vec<Candidate>,
     horizontal_candidates_partial: Vec<Candidate>,
     vertical_candidates_partial: Vec<Candidate>,
+
+    /// Disallow patterns with the same color.
+    /// 
+    /// The patterns are supposed to have unique colors, otherwise sorting the patterns would be non-deterministic.
     patterns: Vec<GridPattern>,
+
     grid_found: bool,
     grid_color: u8,
     grid_with_mismatches_found: bool,
@@ -162,11 +167,8 @@ impl Grid {
             false,
         )?;
 
-        // TODO: Decide about allow/disallow ambiguous patterns
-        // Solution A: allow for the same color to occur multiple times.
-        // The sorting will have to put full match first, and partial matches last
-        // Solution B: allow the color to occur just once
-        // If I go with solution B, then I only have to sort by color.
+        // The patterns are supposed to have unique colors.
+        // Thus sorting by color should be deterministic.
         self.patterns.sort_unstable_by_key(|k| k.color);
 
         Ok(())
@@ -254,13 +256,13 @@ impl Grid {
             }
         }
 
-        // TODO: only update grid_found when processing "full grid". don't update grid_found when analyzing partial patterns
+        // Only update grid_found when processing "full grid". Don't update grid_found when analyzing partial patterns
         if is_full {
             self.grid_found = grid_found;
             self.grid_color = grid_color;
         }
 
-        // TODO: don't update when processing "full grid". only update when processing "partial grid patterns".
+        // Only update when processing "partial grid patterns". Don't update when processing "full grid". 
         if !is_full {
             self.grid_with_mismatches_found = grid_with_mismatches_found;
         }
