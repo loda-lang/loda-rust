@@ -347,6 +347,11 @@ impl Grid {
     }
 
     fn perform_analyze_with_multiple_colors(&mut self, image: &Image, is_horizontal: bool) -> anyhow::Result<()> {
+        // TODO: rank thinner grid lines higher than thick grid lines.
+        // TODO: histogram of the entire image
+        // determine what is the most popular color, probably that is the background color.
+        // ignore this background color and only consider the colors that remain.
+
         let rows: Vec<Histogram> = image.histogram_rows();
         let mut full_row_colors = Vec::<Option<u8>>::new();
         let mut partial_row_colors = Vec::<Option<u8>>::new();
@@ -370,7 +375,7 @@ impl Grid {
             // Detect grid and allow for some mismatches. 
             // It's a full line when it spans from edge to edge uninterrupted with just one color.
             // It's a partial line when it's interrupted and contains a few pixels with a different color.
-            if count < (image.width() as u32) * 7 / 8 {
+            if count < (image.width() as u32) * 7 / 10 {
                 full_row_colors.push(None);
                 partial_row_colors.push(None);
                 continue;

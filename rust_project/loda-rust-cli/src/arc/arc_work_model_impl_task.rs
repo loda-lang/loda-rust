@@ -1189,6 +1189,7 @@ impl arc_work_model::Task {
         }
 
         if prio4_grid_with_mismatches_and_some_color {
+            // TODO: get rid of this edge case
             // This case is hit for 3 task out of the 800 tasks. 
             // 3979b1a8, 539a4f51, 917bccba.
             // These tasks are not grids, so I will make no effort into generating a `grid_mask` for these tasks.
