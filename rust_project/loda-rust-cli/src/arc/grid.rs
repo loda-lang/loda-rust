@@ -1,4 +1,4 @@
-use super::{Histogram, Image, ImageCorner, ImageDrawRect, ImageHistogram, ImageNoiseColor, ImageRotate, Rectangle};
+use super::{Histogram, Image, ImageDrawRect, ImageHistogram, ImageRotate, Rectangle};
 use std::collections::HashSet;
 
 #[derive(Clone, Debug)]
@@ -345,27 +345,19 @@ impl Grid {
     }
 
     fn perform_analyze_with_multiple_colors(&mut self, image: &Image, is_horizontal: bool) -> anyhow::Result<()> {
-        let corner_counts: Image = image.corners()?;
-
         let rows: Vec<Histogram> = image.histogram_rows();
-        let mut row_colors = Vec::<Item>::new();
         let mut full_row_colors = Vec::<Option<u8>>::new();
         let mut partial_row_colors = Vec::<Option<u8>>::new();
         let mut rows_histogram = Histogram::new();
-        for (y, histogram) in rows.iter().enumerate() {
+        for (_y, histogram) in rows.iter().enumerate() {
             let unique_colors: u32 = histogram.number_of_counters_greater_than_zero();
 
-            // Future experiments.
-            // Detect grid and allow for some mismatches. Currently the line has to go from edge to edge to be considered a line.
-
             if unique_colors > 3 {
-                row_colors.push(Item::None);
                 full_row_colors.push(None);
                 partial_row_colors.push(None);
                 continue;
             }
             if unique_colors != 1 && image.width() < 5 {
-                row_colors.push(Item::None);
                 full_row_colors.push(None);
                 partial_row_colors.push(None);
                 continue;
@@ -373,52 +365,32 @@ impl Grid {
             let (color, count) = match histogram.most_popular_pair_disallow_ambiguous() {
                 Some(value) => value,
                 None => {
-                    row_colors.push(Item::None);
                     full_row_colors.push(None);
                     partial_row_colors.push(None);
                     continue;
                 }
             };
 
+            // Detect grid and allow for some mismatches. 
+            // It's a full line when it spans from edge to edge uninterrupted with just one color.
+            // It's a partial line when it's interrupted and contains a few pixels with a different color.
             if count < (image.width() as u32) * 7 / 8 {
-                row_colors.push(Item::None);
                 full_row_colors.push(None);
                 partial_row_colors.push(None);
                 continue;
             }
 
-            let mut corners_with_same_color: u8 = 0;
-            let mut corners_with_different_color: u8 = 0;
-            for x in 0..image.width() {
-                let corner_count: u8 = corner_counts.get(x as i32, y as i32).unwrap_or(0);
-                if corner_count == 0 {
-                    continue;
-                }
-                let pixel_value: u8 = image.get(x as i32, y as i32).unwrap_or(255);
-                if pixel_value == color {
-                    corners_with_same_color += 1;
-                } else {
-                    corners_with_different_color += 1;
-                }
-            }
-
             // println!("row y: {} color: {}", y, color);
-            // println!("row y: {} color: {}  corners: {} {}", y, color, corners_with_same_color, corners_with_different_color);
             if count == image.width() as u32 {
-                row_colors.push(Item::LineFull { color });
                 full_row_colors.push(Some(color));
                 partial_row_colors.push(Some(color));
                 rows_histogram.increment(color);
             } else {
-                row_colors.push(Item::LinePartial { color });
                 full_row_colors.push(None);
                 partial_row_colors.push(Some(color));
                 rows_histogram.increment(color);
             }
         }
-
-        // println!("row_colors: {:?}", row_colors);
-        // println!("rows_histogram: {:?}", rows_histogram);
 
         // Process full lines
         // measure spacing between the lines, thickness of lines
@@ -433,7 +405,6 @@ impl Grid {
                 combo,
                 combo_status,
             };
-            // println!("color: {} candidate: {:?}", color, candidate);
             full_candidates.push(candidate);
         }
 
@@ -454,7 +425,6 @@ impl Grid {
                 // println!("partial candidate is identical to already found full candidate. Ignoring the partial candidate");
                 continue;
             }
-            // println!("color: {} candidate: {:?}", color, candidate);
             partial_candidates.push(candidate);
         }
 
@@ -560,13 +530,6 @@ impl Grid {
         Ok((combo, best))
     }
 
-}
-
-#[derive(Debug)]
-enum Item {
-    None,
-    LineFull { color: u8 },
-    LinePartial { color: u8 },
 }
 
 #[derive(Clone, Debug, PartialEq)]
