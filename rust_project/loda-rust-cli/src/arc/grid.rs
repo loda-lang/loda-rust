@@ -60,6 +60,10 @@ impl Grid {
     pub fn analyze(image: &Image) -> anyhow::Result<Self> {
         let mut instance = Self::new();
         instance.perform_analyze(image)?;
+
+        // Future experiment:
+        // enumerate cells
+
         Ok(instance)
     }
 
@@ -142,24 +146,54 @@ impl Grid {
         // println!("horizontal_candidates: {:?}", self.horizontal_candidates);
         // println!("vertical_candidates: {:?}", self.vertical_candidates);
 
-        self.perform_analyze_inner(image, &self.horizontal_candidates_full.clone(), &self.vertical_candidates_full.clone())?;
-        self.perform_analyze_inner(image, &self.horizontal_candidates_partial.clone(), &self.vertical_candidates_partial.clone())?;
+        self.update_patterns(
+            image, 
+            self.horizontal_candidates_full.clone(), 
+            self.vertical_candidates_full.clone(),
+            true,
+        )?;
+
+        self.update_patterns(
+            image, 
+            self.horizontal_candidates_partial.clone(), 
+            self.vertical_candidates_partial.clone(),
+            false,
+        )?;
+
+        // TODO: Decide about allow/disallow ambiguous patterns
+        // Solution A: allow for the same color to occur multiple times.
+        // The sorting will have to put full match first, and partial matches last
+        // Solution B: allow the color to occur just once
+        // If I go with solution B, then I only have to sort by color.
+        self.patterns.sort_unstable_by_key(|k| k.color);
 
         Ok(())
     }
 
-    fn perform_analyze_inner(&mut self, image: &Image, horizontal_candidates: &Vec<Candidate>, vertical_candidates: &Vec<Candidate>) -> anyhow::Result<()> {
+    fn update_patterns(&mut self, image: &Image, horizontal_candidates: Vec<Candidate>, vertical_candidates: Vec<Candidate>, is_full: bool) -> anyhow::Result<()> {
         let mut candidate_colors = Histogram::new();
-        for candidate in horizontal_candidates {
+        for candidate in &horizontal_candidates {
             candidate_colors.increment(candidate.color);
         }
-        for candidate in vertical_candidates {
+        for candidate in &vertical_candidates {
             candidate_colors.increment(candidate.color);
         }
         let mut grid_found = false;
         let mut grid_color = u8::MAX;
         let mut grid_with_mismatches_found = false;
         for (_count, color) in candidate_colors.pairs_descending() {
+            if !is_full {
+                let mut already_contains_pattern = false;
+                for pattern in &self.patterns {
+                    if pattern.color == color {
+                        already_contains_pattern = true;
+                    }
+                }
+                if already_contains_pattern {
+                    continue;
+                }
+            }
+
             let candidate0: Option<&Candidate> = horizontal_candidates.iter().find(|candidate| candidate.color == color);
             let candidate1: Option<&Candidate> = vertical_candidates.iter().find(|candidate| candidate.color == color);
             let mut mask = Image::zero(image.width(), image.height());
@@ -218,15 +252,16 @@ impl Grid {
             }
         }
 
-        // TODO: put full match first, and partial matches last
-        self.patterns.sort_unstable_by_key(|k| k.color);
-
         // TODO: only update grid_found when processing "full grid". don't update grid_found when analyzing partial patterns
-        self.grid_found = grid_found;
-        self.grid_color = grid_color;
+        if is_full {
+            self.grid_found = grid_found;
+            self.grid_color = grid_color;
+        }
 
         // TODO: don't update when processing "full grid". only update when processing "partial grid patterns".
-        self.grid_with_mismatches_found = grid_with_mismatches_found;
+        if !is_full {
+            self.grid_with_mismatches_found = grid_with_mismatches_found;
+        }
 
         Ok(())
     }
@@ -366,7 +401,7 @@ impl Grid {
             }
 
             // println!("row y: {} color: {}", y, color);
-            println!("row y: {} color: {}  corners: {} {}", y, color, corners_with_same_color, corners_with_different_color);
+            // println!("row y: {} color: {}  corners: {} {}", y, color, corners_with_same_color, corners_with_different_color);
             if count == image.width() as u32 {
                 row_colors.push(Item::LineFull { color });
                 full_row_colors.push(Some(color));
@@ -383,10 +418,11 @@ impl Grid {
         // println!("row_colors: {:?}", row_colors);
         // println!("rows_histogram: {:?}", rows_histogram);
 
+        // Process full lines
         // measure spacing between the lines, thickness of lines
         let mut full_candidates = Vec::<Candidate>::new();
         for (_count, color) in rows_histogram.pairs_descending() {
-            let (combo, combo_status) = match Self::measure2(color, &full_row_colors) {
+            let (combo, combo_status) = match Self::measure(color, &full_row_colors) {
                 Ok(value) => value,
                 _ => continue
             };
@@ -399,11 +435,11 @@ impl Grid {
             full_candidates.push(candidate);
         }
 
-        // Do the same for partial candidates
+        // Process partial+full lines
         // When a partial candidate is identical to an already found full_candidate, then discard the partial candidate
         let mut partial_candidates = Vec::<Candidate>::new();
         for (_count, color) in rows_histogram.pairs_descending() {
-            let (combo, combo_status) = match Self::measure2(color, &partial_row_colors) {
+            let (combo, combo_status) = match Self::measure(color, &partial_row_colors) {
                 Ok(value) => value,
                 _ => continue
             };
@@ -428,130 +464,10 @@ impl Grid {
             self.vertical_candidates_partial = partial_candidates;
         }
 
-        // draw grid
-
-        // enumerate cells
-
         Ok(())
     }
 
-    fn measure(measure_color: u8, items: &Vec<Item>) -> anyhow::Result<(Combo, ComboStatus)> {
-        let mut found_max_possible_line_size: u8 = 0;
-        let mut current_possible_line_size: u8 = 0;
-        let mut found_max_possible_cell_size: u8 = 0;
-        let mut current_possible_cell_size: u8 = 0;
-        let mut positions = Vec::<u8>::new();
-        let mut full_position_set = HashSet::<i16>::new();
-        let mut partial_position_set = HashSet::<i16>::new();
-        for (index, item) in items.iter().enumerate() {
-            let mut found: bool = false;
-            let mut is_full: bool = false;
-            let mut is_partial: bool = false;
-            match item {
-                Item::None => {
-                    found = false;
-                },
-                Item::LineFull { color } => {
-                    if *color == measure_color {
-                        found = true;
-                        is_full = true;
-                        is_partial = true;
-                    }
-                },
-                Item::LinePartial { color } => {
-                    if *color == measure_color {
-                        found = true;
-                        is_partial = true;
-                    }
-                }
-            }
-            if !found {
-                current_possible_line_size = 0;
-                if current_possible_cell_size < u8::MAX {
-                    current_possible_cell_size += 1;
-                }
-                if current_possible_cell_size > found_max_possible_cell_size {
-                    found_max_possible_cell_size = current_possible_cell_size;
-                }
-                continue;
-            }
-            current_possible_cell_size = 0;
-
-            let position: u8 = (index & 255) as u8;
-            positions.push(position);
-            if is_full {
-                full_position_set.insert(position as i16);
-            }
-            if is_partial {
-                partial_position_set.insert(position as i16);
-            }
-            if current_possible_line_size < u8::MAX {
-                current_possible_line_size += 1;
-            }
-            if current_possible_line_size > found_max_possible_line_size {
-                found_max_possible_line_size = current_possible_line_size;
-            }
-        }
-        if positions.is_empty() {
-            return Err(anyhow::anyhow!("positions. Found none"));
-        }
-        if found_max_possible_line_size == 0 {
-            return Err(anyhow::anyhow!("found_max_possible_line_size"));
-        }
-        if found_max_possible_cell_size == 0 {
-            return Err(anyhow::anyhow!("found_max_possible_cell_size"));
-        }
-
-        let max_line_size: u8 = found_max_possible_line_size;
-        let max_cell_size: u8 = found_max_possible_cell_size;
-        // println!("color: {} positions: {:?}", color, positions);
-        // println!("max_line_size: {}", max_line_size);
-        // println!("max_cell_size: {}", max_cell_size);
-
-        let mut best = ComboStatus {
-            line_correct: 0,
-            line_incorrect: u8::MAX,
-            cell_correct: 0,
-            cell_incorrect: u8::MAX
-        };
-        let mut current_error: i32 = i32::MIN;
-        let mut found_combo: Option<Combo> = None;
-        let max_position: i16 = ((items.len() & 255) as i16) - 1;
-        for cell_size in 1..=max_cell_size {
-            for line_size in 1..=max_line_size {
-                let periodicity_u16: u16 = (cell_size as u16) + (line_size as u16);
-                let periodicity: u8 = (periodicity_u16 & 255) as u8;
-
-                for offset in 0..periodicity {
-                    let initial_position: i16 = -(offset as i16);
-                    let combo = Combo {
-                        initial_position,
-                        line_size,
-                        cell_size
-                    };
-                    let status: ComboStatus = combo.score(max_position, &partial_position_set);
-                    let error: i32 = status.error();
-                    if error > current_error {
-                        current_error = error;
-                        best = status;
-                        found_combo = Some(combo);
-                    }
-                }
-            }
-        }
-
-        // pick combo with optimal score
-        let combo: Combo = match found_combo {
-            Some(value) => value,
-            None => {
-                return Err(anyhow::anyhow!("unable to find a combo that fits the data"));
-            }
-        };
-        // println!("found combo: {:?} status: {:?} error: {}", combo, best, current_error);
-        Ok((combo, best))
-    }
-
-    fn measure2(measure_color: u8, row_colors: &Vec<Option<u8>>) -> anyhow::Result<(Combo, ComboStatus)> {
+    fn measure(measure_color: u8, row_colors: &Vec<Option<u8>>) -> anyhow::Result<(Combo, ComboStatus)> {
         let mut found_max_possible_line_size: u8 = 0;
         let mut current_possible_line_size: u8 = 0;
         let mut found_max_possible_cell_size: u8 = 0;
@@ -1018,9 +934,8 @@ mod tests {
         assert_eq!(pattern.mask, expected);
     }
 
-    // #[test]
+    #[test]
     fn test_10008_detect_grid() {
-        // TODO: why is this grid not detected correctly?
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 0, 0, 1,
@@ -1035,7 +950,6 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        println!("patterns: {:?}", instance.patterns);
         assert_eq!(instance.grid_found, true);
         assert_eq!(instance.grid_color, 0);
         assert_eq!(instance.patterns.len(), 1);
