@@ -1065,6 +1065,7 @@ impl arc_work_model::Task {
         let mut prio2_grid_with_some_color = false;
         let mut prio3_grid_with_mismatches_and_specific_color = false;
         let mut prio3_grid_color: u8 = u8::MAX;
+        let mut prio4_grid_with_mismatches_and_some_color = false;
 
         for input_label in &self.input_label_set_intersection {
             match input_label {
@@ -1081,7 +1082,9 @@ impl arc_work_model::Task {
                             prio3_grid_with_mismatches_and_specific_color = true;
                             prio3_grid_color = *color;
                         },
-                        _ => {}
+                        GridLabel::GridWithMismatchesAndSomeColor => {
+                            prio4_grid_with_mismatches_and_some_color = true;
+                        },
                     }
                 },
                 _ => {}
@@ -1111,6 +1114,12 @@ impl arc_work_model::Task {
                 pair.input.grid_mask = Some(mask);
             }
             if success {
+                // This case is hit for 51 task out of the 800 tasks.
+                // 09629e4f, 0b148d64, 11e1fe23, 1bfc4729, 1c0d0a4b, 29623171, 29c11459, 3906de3d, 3aa6fb7a, 3bdb4ada, 42918530, 
+                // 48d8fb45, 4e45f183, 4f537728, 60b61512, 6773b310, 68b67ca3, 692cd3b6, 694f12f3, 6d0160f0, 6e19193c, 759f3fd3, 
+                // 77fdfe62, 7c008303, 7d419a02, 88a62173, 8a371977, a096bf4d, a2fd1cf0, a68b268e, af24b4cc, b7249182, b7f8a4d8, 
+                // bc1d5164, be03b35f, cbded52d, ce9e57f2, d22278a0, d4a91cb9, d6ad076f, d90796e8, d94c3b52, dc2aa30b, dc433765, 
+                // e760a62e, e9614598, e99362f0, ed74f2f2, ef26cbf6, f8b3ba0a, fea12743.
                 return Ok(());
             }
             self.reset_input_grid_mask();
@@ -1141,6 +1150,9 @@ impl arc_work_model::Task {
                 pair.input.grid_mask = Some(mask);
             }
             if success {
+                // This case is hit for 14 task out of the 800 tasks.
+                // 06df4c85, 0bb8deee, 1e32b0e9, 2546ccf6, 2dc579da, 39e1d7f9, 47c1f68c, 
+                // 5a5a2103, 81c0276b, 92e50de0, 9f236235, 9f27f097, c3202e5a, e48d4e1a.
                 return Ok(());
             }
             self.reset_input_grid_mask();
@@ -1169,11 +1181,21 @@ impl arc_work_model::Task {
                 pair.input.grid_mask = Some(mask);
             }
             if success {
+                // This case is hit for 4 task out of the 800 tasks. 
+                // 469497ad, 94414823, 99306f82, ca8de6ea.
                 return Ok(());
             }
             self.reset_input_grid_mask();
         }
 
+        if prio4_grid_with_mismatches_and_some_color {
+            // This case is hit for 3 task out of the 800 tasks. 
+            // 3979b1a8, 539a4f51, 917bccba.
+            // These tasks are not grids, so I will make no effort into generating a `grid_mask` for these tasks.
+            return Ok(());
+        }
+
+        // This case is hit for 728 task out of the 800 tasks.
         Ok(())
     }
 
