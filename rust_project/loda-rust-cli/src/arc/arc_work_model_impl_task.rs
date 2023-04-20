@@ -527,7 +527,7 @@ impl arc_work_model::Task {
 
         self.compute_input_repaired_image()?;
 
-        self.prepare_grid_mask()?;
+        self.prepare_input_grid_mask()?;
 
         Ok(())
     }
@@ -1052,7 +1052,14 @@ impl arc_work_model::Task {
         Ok(())
     }
 
-    fn prepare_grid_mask(&mut self) -> anyhow::Result<()> {
+    /// Set `grid_mask=None` for all pairs.
+    fn reset_input_grid_mask(&mut self) {
+        for (_index, pair) in self.pairs.iter_mut().enumerate() {
+            pair.input.grid_mask = None;
+        }
+    }
+
+    fn prepare_input_grid_mask(&mut self) -> anyhow::Result<()> {
         let mut prio1_grid_with_specific_color = false;
         let mut prio1_grid_color: u8 = u8::MAX;
         let mut prio2_grid_with_some_color = false;
@@ -1082,12 +1089,13 @@ impl arc_work_model::Task {
         }
 
         if prio1_grid_with_specific_color {
+            let mut success = true;
             for pair in self.pairs.iter_mut() {
                 let grid = match &pair.input.grid {
                     Some(value) => value.clone(),
                     None => {
                         // One or more of the grids are not initialized, aborting.
-                        // TODO: perform reset for all pairs: input.grid_mask = None;
+                        success = false;
                         break;
                     }
                 };
@@ -1095,23 +1103,27 @@ impl arc_work_model::Task {
                     Some(value) => value,
                     None => {
                         // Could not find a pattern with that particular color, aborting.
-                        // TODO: perform reset for all pairs: input.grid_mask = None;
+                        success = false;
                         break;
                     }
                 };
                 let mask: Image = pattern.mask.clone();
                 pair.input.grid_mask = Some(mask);
             }
-            return Ok(());
+            if success {
+                return Ok(());
+            }
+            self.reset_input_grid_mask();
         }
 
         if prio2_grid_with_some_color {
+            let mut success = true;
             for pair in self.pairs.iter_mut() {
                 let grid = match &pair.input.grid {
                     Some(value) => value.clone(),
                     None => {
                         // One or more of the grids are not initialized, aborting.
-                        // TODO: perform reset for all pairs: input.grid_mask = None;
+                        success = false;
                         break;
                     }
                 };
@@ -1121,23 +1133,27 @@ impl arc_work_model::Task {
                     Some(value) => value,
                     None => {
                         // Could not find a pattern with that particular color, aborting.
-                        // TODO: perform reset for all pairs: input.grid_mask = None;
+                        success = false;
                         break;
                     }
                 };
                 let mask: Image = pattern.mask.clone();
                 pair.input.grid_mask = Some(mask);
             }
-            return Ok(());
+            if success {
+                return Ok(());
+            }
+            self.reset_input_grid_mask();
         }
 
         if prio3_grid_with_mismatches_and_specific_color {
+            let mut success = true;
             for pair in self.pairs.iter_mut() {
                 let grid = match &pair.input.grid {
                     Some(value) => value.clone(),
                     None => {
                         // One or more of the grids are not initialized, aborting.
-                        // TODO: perform reset for all pairs: input.grid_mask = None;
+                        success = false;
                         break;
                     }
                 };
@@ -1145,14 +1161,17 @@ impl arc_work_model::Task {
                     Some(value) => value,
                     None => {
                         // Could not find a pattern with that particular color, aborting.
-                        // TODO: perform reset for all pairs: input.grid_mask = None;
+                        success = false;
                         break;
                     }
                 };
                 let mask: Image = pattern.mask.clone();
                 pair.input.grid_mask = Some(mask);
             }
-            return Ok(());
+            if success {
+                return Ok(());
+            }
+            self.reset_input_grid_mask();
         }
 
         Ok(())
