@@ -7,7 +7,7 @@ pub struct GridPattern {
     pub color: u8,
 
     #[allow(dead_code)]
-    pub mask: Image,
+    pub line_mask: Image,
 
     #[allow(dead_code)]
     pub intersection: u32,
@@ -33,6 +33,7 @@ pub struct GridPattern {
     // Ideas for more:
     // horizontal/vertical periodicity
     // enumerated cell objects
+    // corner mask
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -69,8 +70,8 @@ impl Grid {
         instance.perform_analyze(image)?;
 
         // Future experiment:
-        // detect horizontal stacks of cells, 1 cell tall
-        // detect vertical stacks of cells, 1 cell wide
+        // detect horizontal stacks. N cells wide, 1 cell tall.
+        // detect vertical stacks. 1 cell wide, N cells tall.
         // enumerate cells
 
         Ok(instance)
@@ -251,7 +252,7 @@ impl Grid {
             // println!("color: {} mask: {:?}", color, mask);
             let pattern = GridPattern {
                 color,
-                mask,
+                line_mask: mask,
                 intersection,
                 union,
                 jaccard_index,
@@ -647,7 +648,7 @@ mod tests {
             1, 1, 1, 1, 1,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
-        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.line_mask, expected);
     }
 
     #[test]
@@ -683,7 +684,7 @@ mod tests {
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         ];
         let expected: Image = Image::try_create(13, 9, expected_pixels).expect("image");
-        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.line_mask, expected);
     }
 
     #[test]
@@ -717,7 +718,7 @@ mod tests {
             1, 1, 1, 1, 1, 1, 1, 1,
         ];
         let expected: Image = Image::try_create(8, 8, expected_pixels).expect("image");
-        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.line_mask, expected);
     }
 
     #[test]
@@ -749,7 +750,7 @@ mod tests {
             1, 1, 1, 1, 1, 1, 1,
         ];
         let expected: Image = Image::try_create(7, 7, expected_pixels).expect("image");
-        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.line_mask, expected);
     }
 
     #[test]
@@ -797,7 +798,7 @@ mod tests {
                 0, 0, 0, 0,
             ];
             let expected: Image = Image::try_create(4, 14, expected_pixels).expect("image");
-            assert_eq!(pattern.mask, expected);
+            assert_eq!(pattern.line_mask, expected);
         }
         {
             let pattern: &GridPattern = &instance.patterns_full[2];
@@ -818,7 +819,7 @@ mod tests {
                 0, 0, 0, 0,
             ];
             let expected: Image = Image::try_create(4, 14, expected_pixels).expect("image");
-            assert_eq!(pattern.mask, expected);
+            assert_eq!(pattern.line_mask, expected);
         }
     }
 
@@ -847,7 +848,7 @@ mod tests {
             0, 0, 0, 1, 1, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(8, 5, expected_pixels).expect("image");
-        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.line_mask, expected);
     }
 
     #[test]
@@ -879,7 +880,7 @@ mod tests {
             1, 0, 1, 0, 1, 0, 1,
         ];
         let expected: Image = Image::try_create(7, 7, expected_pixels).expect("image");
-        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.line_mask, expected);
     }
 
     #[test]
@@ -911,7 +912,7 @@ mod tests {
             1, 1, 1, 1, 1, 1, 1,
         ];
         let expected: Image = Image::try_create(7, 7, expected_pixels).expect("image");
-        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.line_mask, expected);
     }
 
     #[test]
@@ -942,7 +943,7 @@ mod tests {
             0, 0, 1, 0, 0,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
-        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.line_mask, expected);
     }
 
     #[test]
@@ -972,7 +973,7 @@ mod tests {
             0, 0, 1, 0, 0,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
-        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.line_mask, expected);
         assert_eq!(pattern.color, 5);
     }
 
@@ -1003,7 +1004,7 @@ mod tests {
             0, 0, 1, 0, 0,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
-        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.line_mask, expected);
         assert_eq!(pattern.color, 5);
     }
 
@@ -1040,7 +1041,7 @@ mod tests {
             0, 0, 1, 0, 0, 0, 1,
         ];
         let expected: Image = Image::try_create(7, 8, expected_pixels).expect("image");
-        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.line_mask, expected);
         assert_eq!(pattern.color, 5);
     }
 
@@ -1099,7 +1100,7 @@ mod tests {
             0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(13, 19, expected_pixels).expect("image");
-        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.line_mask, expected);
         assert_eq!(pattern.color, 5);
     }
 }

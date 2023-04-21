@@ -1130,7 +1130,7 @@ impl arc_work_model::Task {
                         break;
                     }
                 };
-                let mask: Image = pattern.mask.clone();
+                let mask: Image = pattern.line_mask.clone();
                 pair.input.grid_mask = Some(mask);
             }
             if success {
@@ -1166,7 +1166,7 @@ impl arc_work_model::Task {
                         break;
                     }
                 };
-                let mask: Image = pattern.mask.clone();
+                let mask: Image = pattern.line_mask.clone();
                 pair.input.grid_mask = Some(mask);
             }
             if success {
@@ -1197,7 +1197,7 @@ impl arc_work_model::Task {
                         break;
                     }
                 };
-                let mask: Image = pattern.mask.clone();
+                let mask: Image = pattern.line_mask.clone();
                 pair.input.grid_mask = Some(mask);
             }
             if success {
