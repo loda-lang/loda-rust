@@ -3268,4 +3268,32 @@ mod tests {
         let result: String = run_advanced("47996f11", PROGRAM_47996F11).expect("String");
         assert_eq!(result, "4 1");
     }
+
+    #[allow(dead_code)]
+    mod inspect_grid {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                println!("grid: {:?}", pair.input.grid);
+                let result_image: Image = pair.input.image.clone();
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[allow(dead_code)]
+    // #[test]
+    fn test_720000_puzzle_95a58926() {
+        let mut instance = inspect_grid::MySolution {};
+        let result: String = run_analyze_and_solve("95a58926", &mut instance).expect("String");
+        assert_eq!(result, "5 1");
+    }
 }
