@@ -418,6 +418,16 @@ impl TraverseProgramsAndModels {
                 indexes.insert(index);
             }
         }
+
+        let mut task_ids = Vec::<String>::new();
+        for (index, task) in task_vec.iter().enumerate() {
+            if !indexes.contains(&index) {
+                continue;
+            }
+            task_ids.push(task.id.clone());
+        }
+        task_ids.sort();
+
         let mut count = 0;
         for (index, task) in task_vec.iter().enumerate() {
             if !indexes.contains(&index) {
@@ -432,6 +442,7 @@ impl TraverseProgramsAndModels {
             }
         }
         HtmlLog::text(format!("tasks count: {}", indexes.len()));
+        HtmlLog::text(format!("task ids: {:?}", task_ids));
         Ok(())
     }
 
