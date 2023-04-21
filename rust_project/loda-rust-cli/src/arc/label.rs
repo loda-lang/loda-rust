@@ -105,6 +105,7 @@ pub enum InputLabel {
     // InputColorThatDoesNotOccurInTheIntersection { color: u8 },
     // InputUniqueColors { color: Vec<u8> },
     // InputAspectRatio { width: u8, height: u8 },
+    // InputContainsOneOrMoreBoxes,
 }
 
 pub type InputLabelSet = HashSet<InputLabel>;
