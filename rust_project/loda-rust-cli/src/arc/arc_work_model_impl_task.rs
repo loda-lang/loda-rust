@@ -1078,7 +1078,6 @@ impl arc_work_model::Task {
         let mut prio3_grid_with_mismatches_and_specific_color = false;
         let mut prio3_grid_count: usize = 0;
         let mut prio3_grid_color: u8 = u8::MAX;
-        let mut prio4_grid_with_mismatches_and_some_color = false;
 
         for input_label in &self.input_label_set_intersection {
             match input_label {
@@ -1105,9 +1104,6 @@ impl arc_work_model::Task {
                                 // println!("ambiguous what color to choose. task: {}", self.id);
                                 prio3_grid_count += 1;
                             }
-                        },
-                        GridLabel::GridWithMismatchesAndSomeColor => {
-                            prio4_grid_with_mismatches_and_some_color = true;
                         },
                     }
                 },
@@ -1205,19 +1201,11 @@ impl arc_work_model::Task {
                 pair.input.grid_mask = Some(mask);
             }
             if success {
-                // This case is hit for 4 task out of the 800 tasks. 
-                // 469497ad, 94414823, 99306f82, ca8de6ea.
+                // This case is hit for 3 task out of the 800 tasks. 
+                // 15113be4, 95a58926, 97239e3d.
                 return Ok(());
             }
             self.reset_input_grid_mask();
-        }
-
-        if prio4_grid_with_mismatches_and_some_color {
-            // TODO: get rid of this edge case
-            // This case is hit for 3 task out of the 800 tasks. 
-            // 3979b1a8, 539a4f51, 917bccba.
-            // These tasks are not grids, so I will make no effort into generating a `grid_mask` for these tasks.
-            return Ok(());
         }
 
         // This case is hit for 728 task out of the 800 tasks.

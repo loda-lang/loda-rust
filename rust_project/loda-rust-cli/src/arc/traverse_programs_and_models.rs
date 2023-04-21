@@ -394,10 +394,6 @@ impl TraverseProgramsAndModels {
             //         GridLabel::GridWithMismatchesAndColor { color: _ } => {
             //             found = true;
             //         },
-            //         GridLabel::GridWithMismatchesAndSomeColor => {
-            //             // println!("!!!!!! task {} GridWithMismatchesAndSomeColor", task.id);
-            //             found = true;
-            //         },
             //     }
             // }
             // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricYWithInset) {
