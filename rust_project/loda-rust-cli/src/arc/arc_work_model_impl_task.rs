@@ -1076,6 +1076,7 @@ impl arc_work_model::Task {
         let mut prio1_grid_color: u8 = u8::MAX;
         let mut prio2_grid_with_some_color = false;
         let mut prio3_grid_with_mismatches_and_specific_color = false;
+        let mut prio3_grid_count: usize = 0;
         let mut prio3_grid_color: u8 = u8::MAX;
         let mut prio4_grid_with_mismatches_and_some_color = false;
 
@@ -1091,8 +1092,19 @@ impl arc_work_model::Task {
                             prio2_grid_with_some_color = true;
                         },
                         GridLabel::GridWithMismatchesAndColor { color } => {
-                            prio3_grid_with_mismatches_and_specific_color = true;
-                            prio3_grid_color = *color;
+                            if prio3_grid_count == 0 {
+                                prio3_grid_with_mismatches_and_specific_color = true;
+                                prio3_grid_color = *color;
+                                prio3_grid_count += 1;
+                            } else {
+                                // There are multiple grid colors to choose from.
+                                // It's ambiguous what color to choose for this grid. 
+                                // It happens for 3 task out of 800 tasks: 97239e3d, d37a1ef5, e681b708.
+                                // Ignore this case entirely grid.
+                                prio3_grid_with_mismatches_and_specific_color = false;
+                                // println!("ambiguous what color to choose. task: {}", self.id);
+                                prio3_grid_count += 1;
+                            }
                         },
                         GridLabel::GridWithMismatchesAndSomeColor => {
                             prio4_grid_with_mismatches_and_some_color = true;
