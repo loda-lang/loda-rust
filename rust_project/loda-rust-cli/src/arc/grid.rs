@@ -1,3 +1,4 @@
+//! Detect grid patterns in images.
 use super::{Histogram, Image, ImageDrawRect, ImageHistogram, ImageRotate, Rectangle};
 use std::collections::HashSet;
 
@@ -265,8 +266,6 @@ impl Grid {
                     grid_found = true;
                     grid_color = color;
                 } else {
-
-                    // TODO: remove dead code
                     grid_with_mismatches_found = true;
                 }
             }
@@ -280,7 +279,6 @@ impl Grid {
 
         // Only update when processing "partial grid patterns". Don't update when processing "full grid". 
         if !is_full {
-            // TODO: remove dead code
             self.grid_with_mismatches_found = grid_with_mismatches_found;
         }
 
@@ -364,11 +362,6 @@ impl Grid {
     }
 
     fn perform_analyze_with_multiple_colors(&mut self, image: &Image, is_horizontal: bool) -> anyhow::Result<()> {
-        // TODO: rank thinner grid lines higher than thick grid lines.
-        // TODO: histogram of the entire image
-        // determine what is the most popular color, probably that is the background color.
-        // ignore this background color and only consider the colors that remain.
-
         let rows: Vec<Histogram> = image.histogram_rows();
         let mut full_row_colors = Vec::<Option<u8>>::new();
         let mut partial_row_colors = Vec::<Option<u8>>::new();
