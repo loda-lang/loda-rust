@@ -292,9 +292,13 @@ impl TraverseProgramsAndModels {
         }
         println!("tasks with size=bad and palette=bad.  {}", count_tasks_without_predictions);
 
+        Self::inspect_task_id(&task_vec, "83302e8f")?;
+        Self::inspect_task_id(&task_vec, "95a58926")?;
+        Self::inspect_task_id(&task_vec, "e906de3d")?;
+        Self::inspect_task_id(&task_vec, "7837ac64")?;
+        Self::inspect_task_id(&task_vec, "8ee02e8f")?;
         Self::inspect_task_id(&task_vec, "92e50de0")?;
         Self::inspect_task_id(&task_vec, "c3202e5a")?;
-        // Self::inspect_task_id(&task_vec, "95a58926")?;
 
         // repair and crop
         // Self::inspect_task_id(&task_vec, "0934a4d8")?;
@@ -351,7 +355,7 @@ impl TraverseProgramsAndModels {
         let mut indexes = HashSet::<usize>::new();
         for (index, task) in task_vec.iter().enumerate() {
             if task.occur_in_solutions_csv {
-                continue;
+                // continue;
             }
             // if task.input_histogram_union.number_of_counters_greater_than_zero() > 3 {
             //     continue;
@@ -366,32 +370,36 @@ impl TraverseProgramsAndModels {
             //     }
             // }
             // found = true;
-            // if task.has_resolved_repaired_image() {
+            // if task.has_repaired_image() {
             //     found = true;
             // }
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
-            for input_label in &task.input_label_set_intersection {
-                let grid_label: GridLabel = match input_label {
-                    InputLabel::InputGrid { label } => label.clone(),
-                    _ => continue
-                };
-                match grid_label {
-                    GridLabel::GridWithSomeColor => {
-                        found = true;
-                    },
-                    GridLabel::GridColor { color: _ } => {
-                        found = true;
-                    },
-                    GridLabel::GridWithMismatchesAndSomeColor => {
-                        found = true;
-                    },
-                    GridLabel::GridWithMismatchesAndColor { color: _ } => {
-                        found = true;
-                    },
-                }
+            if task.has_grid_mask() {
+                found = true;
             }
+            // for input_label in &task.input_label_set_intersection {
+            //     let grid_label: GridLabel = match input_label {
+            //         InputLabel::InputGrid { label } => label.clone(),
+            //         _ => continue
+            //     };
+            //     match grid_label {
+            //         GridLabel::GridColor { color: _ } => {
+            //             found = true;
+            //         },
+            //         GridLabel::GridWithSomeColor => {
+            //             found = true;
+            //         },
+            //         GridLabel::GridWithMismatchesAndColor { color: _ } => {
+            //             found = true;
+            //         },
+            //         GridLabel::GridWithMismatchesAndSomeColor => {
+            //             // println!("!!!!!! task {} GridWithMismatchesAndSomeColor", task.id);
+            //             found = true;
+            //         },
+            //     }
+            // }
             // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricYWithInset) {
             //     found = true;
             // }

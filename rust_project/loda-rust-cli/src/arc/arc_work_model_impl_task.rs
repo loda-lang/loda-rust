@@ -36,7 +36,8 @@ impl arc_work_model::Task {
         self.action_label_set_intersection = label_set;
     }
 
-    pub fn has_resolved_repair_mask(&self) -> bool {
+    #[allow(dead_code)]
+    pub fn has_repair_mask(&self) -> bool {
         for pair in &self.pairs {
             if pair.input.repair_mask.is_none() {
                 return false;
@@ -45,9 +46,20 @@ impl arc_work_model::Task {
         true
     }
 
-    pub fn has_resolved_repaired_image(&self) -> bool {
+    #[allow(dead_code)]
+    pub fn has_repaired_image(&self) -> bool {
         for pair in &self.pairs {
             if pair.input.repaired_image.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
+    #[allow(dead_code)]
+    pub fn has_grid_mask(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.input.grid_mask.is_none() {
                 return false;
             }
         }
@@ -65,7 +77,7 @@ impl arc_work_model::Task {
     /// If there is a symmetric pattern with a possible repair color,
     /// then use the repair color for the repair mask.
     fn assign_repair_mask_with_symmetry_repair_color(&mut self) {
-        if self.has_resolved_repair_mask() {
+        if self.has_repair_mask() {
             return;
         }
 
@@ -108,7 +120,7 @@ impl arc_work_model::Task {
     /// 
     /// The removal color must be the same as the `OutputImageIsInputImageWithChangesLimitedToPixelsWithColor`.
     fn assign_repair_mask_based_on_single_color_removal_and_changes_limited_to_color(&mut self) {
-        if self.has_resolved_repair_mask() {
+        if self.has_repair_mask() {
             return;
         }
 
@@ -153,7 +165,7 @@ impl arc_work_model::Task {
     /// Generate `repair_mask`
     /// 
     fn assign_repair_mask_based_on_most_popular_color(&mut self) {
-        if self.has_resolved_repair_mask() {
+        if self.has_repair_mask() {
             return;
         }
 
@@ -979,7 +991,7 @@ impl arc_work_model::Task {
     }
 
     pub fn compute_input_repaired_image(&mut self) -> anyhow::Result<()> {
-        if !self.has_resolved_repair_mask() {
+        if !self.has_repair_mask() {
             return Ok(());
         }
 
