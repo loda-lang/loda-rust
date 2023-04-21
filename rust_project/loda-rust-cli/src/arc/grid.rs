@@ -224,7 +224,6 @@ impl Grid {
         let mut grid_found = false;
         let mut grid_color = u8::MAX;
         let mut grid_with_mismatches_found = false;
-        let image_histogram: Histogram = image.histogram_all();
         for (_count, color) in candidate_colors.pairs_descending() {
             let candidate0: Option<&Candidate> = horizontal_candidates.iter().find(|candidate| candidate.color == color);
             let candidate1: Option<&Candidate> = vertical_candidates.iter().find(|candidate| candidate.color == color);
@@ -253,20 +252,20 @@ impl Grid {
             }
             let overlap_histogram: Histogram = image.histogram_with_mask(&mask)?;
             let intersection: u32 = overlap_histogram.get(color);
-
-            let union: u32 = image_histogram.get(color);
-            // println!("intersection: {} union: {}", intersection, union);
+            let union: u32 = overlap_histogram.sum();
+            // println!("is_full: {} intersection: {} union: {}", is_full, intersection, union);
             if intersection == 0 || union == 0 {
                 continue;
             }
 
-            println!("horizontal_lines: {}", horizontal_lines);
-            println!("vertical_lines: {}", vertical_lines);
+            // println!("horizontal_lines: {}", horizontal_lines);
+            // println!("vertical_lines: {}", vertical_lines);
 
             let jaccard_index: f32 = (intersection as f32) / (union as f32);
+            // println!("jaccard_index: {}", jaccard_index);
             if is_full == false && jaccard_index < 0.5 {
                 // The grid pattern has low similarity with the image, ignoring.
-                println!("ignoring grid that has low similarity with the image");
+                // println!("ignoring grid that has low similarity with the image");
                 continue;
             }
 
@@ -960,7 +959,6 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        println!("grid: {:?}", instance);
         assert_eq!(instance.grid_found, true);
         assert_eq!(instance.grid_color, 0);
         assert_eq!(instance.patterns_full.len(), 1);
@@ -1105,7 +1103,7 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        assert_eq!(instance.grid_found(), false);
+        assert_eq!(instance.grid_found(), true);
         assert_eq!(instance.patterns_partial.len(), 2);
         let pattern: &GridPattern = instance.find_partial_pattern_with_color(5).expect("GridPattern");
         let expected_pixels: Vec<u8> = vec![
