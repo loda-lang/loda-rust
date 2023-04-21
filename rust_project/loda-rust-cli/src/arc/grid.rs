@@ -54,7 +54,8 @@ pub struct Grid {
     /// Disallow patterns with the same color.
     /// 
     /// The patterns are supposed to have unique colors, otherwise sorting the patterns would be non-deterministic.
-    patterns: Vec<GridPattern>,
+    patterns_full: Vec<GridPattern>,
+    patterns_partial: Vec<GridPattern>,
 
     grid_found: bool,
     grid_color: u8,
@@ -96,11 +97,20 @@ impl Grid {
     }
 
     pub fn patterns(&self) -> &Vec<GridPattern> {
-        &self.patterns
+        &self.patterns_full
     }
 
-    pub fn find_pattern_with_color(&self, color: u8) -> Option<&GridPattern> {
-        for pattern in &self.patterns {
+    pub fn find_full_pattern_with_color(&self, color: u8) -> Option<&GridPattern> {
+        for pattern in &self.patterns_full {
+            if pattern.color == color {
+                return Some(pattern);
+            }
+        }
+        None
+    }
+
+    pub fn find_partial_pattern_with_color(&self, color: u8) -> Option<&GridPattern> {
+        for pattern in &self.patterns_partial {
             if pattern.color == color {
                 return Some(pattern);
             }
@@ -127,7 +137,8 @@ impl Grid {
             vertical_candidates_full: vec!(),
             horizontal_candidates_partial: vec!(),
             vertical_candidates_partial: vec!(),
-            patterns: vec!(),
+            patterns_full: vec!(),
+            patterns_partial: vec!(),
             grid_found: false,
             grid_color: u8::MAX,
             grid_with_mismatches_found: false,
@@ -169,9 +180,37 @@ impl Grid {
 
         // The patterns are supposed to have unique colors.
         // Thus sorting by color should be deterministic.
-        self.patterns.sort_unstable_by_key(|k| k.color);
+        self.patterns_full.sort_unstable_by_key(|k| k.color);
+        self.patterns_partial.sort_unstable_by_key(|k| k.color);
+
+        // self.purge_full_patterns();
 
         Ok(())
+    }
+
+    /// Remove items from `patterns_full` when there is a `patterns_partial` with a higher `jaccard_index`.
+    fn purge_full_patterns(&mut self) {
+        let mut i: usize = 0;
+        while i < self.patterns_full.len() {
+            let full_pattern_jaccard_index: f32 = self.patterns_full[i].jaccard_index;
+            let full_pattern_color: u8 = self.patterns_full[i].color;
+            let mut remove_me = false;
+            for partial_pattern in &self.patterns_partial {
+                if partial_pattern.color != full_pattern_color {
+                    continue;
+                }
+                if partial_pattern.jaccard_index > full_pattern_jaccard_index {
+                    remove_me = true;
+                    break;
+                }
+            }
+            if remove_me {
+                self.patterns_full.remove(i);
+                println!("removed full pattern with low jaccard_index");
+            } else {
+                i += 1;
+            }
+        }
     }
 
     fn update_patterns(&mut self, image: &Image, horizontal_candidates: Vec<Candidate>, vertical_candidates: Vec<Candidate>, is_full: bool) -> anyhow::Result<()> {
@@ -185,19 +224,8 @@ impl Grid {
         let mut grid_found = false;
         let mut grid_color = u8::MAX;
         let mut grid_with_mismatches_found = false;
+        let image_histogram: Histogram = image.histogram_all();
         for (_count, color) in candidate_colors.pairs_descending() {
-            if !is_full {
-                let mut already_contains_pattern = false;
-                for pattern in &self.patterns {
-                    if pattern.color == color {
-                        already_contains_pattern = true;
-                    }
-                }
-                if already_contains_pattern {
-                    continue;
-                }
-            }
-
             let candidate0: Option<&Candidate> = horizontal_candidates.iter().find(|candidate| candidate.color == color);
             let candidate1: Option<&Candidate> = vertical_candidates.iter().find(|candidate| candidate.color == color);
             let mut mask = Image::zero(image.width(), image.height());
@@ -225,15 +253,20 @@ impl Grid {
             }
             let overlap_histogram: Histogram = image.histogram_with_mask(&mask)?;
             let intersection: u32 = overlap_histogram.get(color);
-            let union: u32 = overlap_histogram.sum();
+
+            let union: u32 = image_histogram.get(color);
+            // println!("intersection: {} union: {}", intersection, union);
             if intersection == 0 || union == 0 {
                 continue;
             }
 
+            println!("horizontal_lines: {}", horizontal_lines);
+            println!("vertical_lines: {}", vertical_lines);
+
             let jaccard_index: f32 = (intersection as f32) / (union as f32);
-            if jaccard_index < 0.5 {
+            if is_full == false && jaccard_index < 0.5 {
                 // The grid pattern has low similarity with the image, ignoring.
-                // println!("ignoring grid that has low similarity with the image");
+                println!("ignoring grid that has low similarity with the image");
                 continue;
             }
 
@@ -249,13 +282,19 @@ impl Grid {
                 vertical_line_count,
                 vertical_cell_count,
             };
-            self.patterns.push(pattern);
+            if is_full {
+                self.patterns_full.push(pattern);
+            } else {
+                self.patterns_partial.push(pattern);
+            }
 
             if horizontal_lines && vertical_lines {
                 if intersection == union {
                     grid_found = true;
                     grid_color = color;
                 } else {
+
+                    // TODO: remove dead code
                     grid_with_mismatches_found = true;
                 }
             }
@@ -269,6 +308,7 @@ impl Grid {
 
         // Only update when processing "partial grid patterns". Don't update when processing "full grid". 
         if !is_full {
+            // TODO: remove dead code
             self.grid_with_mismatches_found = grid_with_mismatches_found;
         }
 
@@ -628,7 +668,7 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        let pattern: &GridPattern = instance.patterns_full.first().expect("GridPattern");
         let expected_pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1,
             1, 0, 1, 0, 1,
@@ -660,7 +700,7 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        let pattern: &GridPattern = instance.patterns_full.first().expect("GridPattern");
         let expected_pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
             1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1,
@@ -695,7 +735,7 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        let pattern: &GridPattern = instance.patterns_full.first().expect("GridPattern");
         let expected_pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1, 1, 1, 1,
             1, 1, 1, 1, 1, 1, 1, 1,
@@ -728,7 +768,7 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        let pattern: &GridPattern = instance.patterns_full.first().expect("GridPattern");
         let expected_pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1, 1, 1,
             1, 0, 1, 1, 1, 0, 1,
@@ -767,9 +807,9 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        assert_eq!(instance.patterns.len(), 3);
+        assert_eq!(instance.patterns_full.len(), 3);
         {
-            let pattern: &GridPattern = &instance.patterns[1];
+            let pattern: &GridPattern = &instance.patterns_full[1];
             let expected_pixels: Vec<u8> = vec![
                 1, 1, 1, 1,
                 0, 0, 0, 0,
@@ -790,7 +830,7 @@ mod tests {
             assert_eq!(pattern.mask, expected);
         }
         {
-            let pattern: &GridPattern = &instance.patterns[2];
+            let pattern: &GridPattern = &instance.patterns_full[2];
             let expected_pixels: Vec<u8> = vec![
                 0, 0, 0, 0,
                 1, 1, 1, 1,
@@ -828,7 +868,7 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        let pattern: &GridPattern = instance.patterns_full.first().expect("GridPattern");
         let expected_pixels: Vec<u8> = vec![
             0, 0, 0, 1, 1, 0, 0, 0,
             0, 0, 0, 1, 1, 0, 0, 0,
@@ -858,7 +898,7 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        let pattern: &GridPattern = instance.patterns_full.first().expect("GridPattern");
         let expected_pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1, 1, 1,
             1, 0, 1, 0, 1, 0, 1,
@@ -890,7 +930,7 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
-        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        let pattern: &GridPattern = instance.patterns_full.first().expect("GridPattern");
         let expected_pixels: Vec<u8> = vec![
             1, 1, 1, 1, 1, 1, 1,
             1, 0, 0, 1, 0, 0, 1,
@@ -920,10 +960,11 @@ mod tests {
         let instance = Grid::analyze(&input).expect("ok");
 
         // Assert
+        println!("grid: {:?}", instance);
         assert_eq!(instance.grid_found, true);
         assert_eq!(instance.grid_color, 0);
-        assert_eq!(instance.patterns.len(), 1);
-        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        assert_eq!(instance.patterns_full.len(), 1);
+        let pattern: &GridPattern = instance.patterns_full.first().expect("GridPattern");
         let expected_pixels: Vec<u8> = vec![
             0, 0, 1, 0, 0,
             0, 0, 1, 0, 0,
@@ -952,8 +993,8 @@ mod tests {
 
         // Assert
         assert_eq!(instance.grid_found(), false);
-        assert_eq!(instance.grid_with_mismatches_found(), true);
-        let pattern: &GridPattern = instance.patterns.first().expect("GridPattern");
+        assert_eq!(instance.patterns_partial.len(), 1);
+        let pattern: &GridPattern = instance.patterns_partial.first().expect("GridPattern");
         let expected_pixels: Vec<u8> = vec![
             0, 0, 1, 0, 0,
             0, 0, 1, 0, 0,

@@ -1126,7 +1126,7 @@ impl arc_work_model::Task {
                         break;
                     }
                 };
-                let pattern: &GridPattern = match grid.find_pattern_with_color(prio1_grid_color) {
+                let pattern: &GridPattern = match grid.find_full_pattern_with_color(prio1_grid_color) {
                     Some(value) => value,
                     None => {
                         // Could not find a pattern with that particular color, aborting.
@@ -1162,7 +1162,7 @@ impl arc_work_model::Task {
                 };
                 let grid_color: u8 = grid.grid_color();
 
-                let pattern: &GridPattern = match grid.find_pattern_with_color(grid_color) {
+                let pattern: &GridPattern = match grid.find_full_pattern_with_color(grid_color) {
                     Some(value) => value,
                     None => {
                         // Could not find a pattern with that particular color, aborting.
@@ -1193,7 +1193,7 @@ impl arc_work_model::Task {
                         break;
                     }
                 };
-                let pattern: &GridPattern = match grid.find_pattern_with_color(prio3_grid_color) {
+                let pattern: &GridPattern = match grid.find_partial_pattern_with_color(prio3_grid_color) {
                     Some(value) => value,
                     None => {
                         // Could not find a pattern with that particular color, aborting.
