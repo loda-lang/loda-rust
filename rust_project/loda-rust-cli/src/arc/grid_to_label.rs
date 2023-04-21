@@ -25,7 +25,7 @@ impl GridToLabel for Grid {
         }
 
         if self.grid_with_mismatches_found() {
-            for pattern in self.patterns() {
+            for pattern in self.patterns_full() {
                 let color: u8 = pattern.color;
                 {
                     let label = GridLabel::GridWithMismatchesAndColor { color };

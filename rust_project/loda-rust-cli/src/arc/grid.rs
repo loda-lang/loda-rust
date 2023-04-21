@@ -97,8 +97,13 @@ impl Grid {
         self.grid_color
     }
 
-    pub fn patterns(&self) -> &Vec<GridPattern> {
+    pub fn patterns_full(&self) -> &Vec<GridPattern> {
         &self.patterns_full
+    }
+
+    #[allow(dead_code)]
+    pub fn patterns_partial(&self) -> &Vec<GridPattern> {
+        &self.patterns_partial
     }
 
     pub fn find_full_pattern_with_color(&self, color: u8) -> Option<&GridPattern> {
