@@ -78,6 +78,7 @@ pub enum GridLabel {
     GridColor { color: u8 },
     GridWithSomeColor,
     GridWithMismatchesAndColor { color: u8 },
+    GridWithMismatchesAndSomeColor,
 
     // Ideas for more
     // Horizontal Line color
@@ -92,9 +93,6 @@ pub enum GridLabel {
     // Number of lines horizontal,
     // Number of lines vertical,
     // NoiseColor { color: u8 },
-
-    // Dropped ideas
-    // GridWithMismatchesAndSomeColor, it was only hit 3 times out of 800 tasks and it was not grid related tasks. It was noise.
 }
 
 /// Properties about the input image.

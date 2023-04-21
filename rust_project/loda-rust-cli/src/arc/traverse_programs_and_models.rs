@@ -376,26 +376,30 @@ impl TraverseProgramsAndModels {
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
+            for input_label in &task.input_label_set_intersection {
+                let grid_label: GridLabel = match input_label {
+                    InputLabel::InputGrid { label } => label.clone(),
+                    _ => continue
+                };
+                match grid_label {
+                    GridLabel::GridColor { color: _ } => {
+                        // found = true;
+                    },
+                    GridLabel::GridWithSomeColor => {
+                        // found = true;
+                    },
+                    GridLabel::GridWithMismatchesAndColor { color: _ } => {
+                        // found = true;
+                    },
+                    GridLabel::GridWithMismatchesAndSomeColor => {
+                        // found = true;
+                    },
+                }
+            }
             if task.has_grid_mask() {
                 found = true;
+                // found = false;
             }
-            // for input_label in &task.input_label_set_intersection {
-            //     let grid_label: GridLabel = match input_label {
-            //         InputLabel::InputGrid { label } => label.clone(),
-            //         _ => continue
-            //     };
-            //     match grid_label {
-            //         GridLabel::GridColor { color: _ } => {
-            //             found = true;
-            //         },
-            //         GridLabel::GridWithSomeColor => {
-            //             found = true;
-            //         },
-            //         GridLabel::GridWithMismatchesAndColor { color: _ } => {
-            //             found = true;
-            //         },
-            //     }
-            // }
             // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricYWithInset) {
             //     found = true;
             // }

@@ -22,9 +22,17 @@ impl GridToLabel for Grid {
                 let label = GridLabel::GridWithMismatchesAndColor { color: self.grid_color() };
                 result.insert(label);
             }
+            {
+                let label = GridLabel::GridWithMismatchesAndSomeColor;
+                result.insert(label);
+            }
         }
 
         if self.grid_with_mismatches_found() {
+            {
+                let label = GridLabel::GridWithMismatchesAndSomeColor;
+                result.insert(label);
+            }
             for pattern in self.patterns_full() {
                 let color: u8 = pattern.color;
                 {
@@ -60,6 +68,7 @@ mod tests {
         // Assert
         assert_eq!(actual.contains(&GridLabel::GridWithSomeColor), true);
         assert_eq!(actual.contains(&GridLabel::GridColor { color: 5 }), true);
+        assert_eq!(actual.contains(&GridLabel::GridWithMismatchesAndSomeColor), true);
     }
 
     #[test]
@@ -78,5 +87,6 @@ mod tests {
 
         // Assert
         assert_eq!(actual.contains(&GridLabel::GridWithSomeColor), false);
+        assert_eq!(actual.contains(&GridLabel::GridWithMismatchesAndSomeColor), false);
     }
 }

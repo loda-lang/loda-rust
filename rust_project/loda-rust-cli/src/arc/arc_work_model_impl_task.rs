@@ -1105,6 +1105,7 @@ impl arc_work_model::Task {
                                 prio3_grid_count += 1;
                             }
                         },
+                        _ => {},
                     }
                 },
                 _ => {}

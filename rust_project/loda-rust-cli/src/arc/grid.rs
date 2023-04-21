@@ -2,6 +2,10 @@
 use super::{Histogram, Image, ImageDrawRect, ImageHistogram, ImageRotate, Rectangle};
 use std::collections::HashSet;
 
+// ARC tasks where the grid cannot be detected
+// 83302e8f - missing grid_mask for train3.input.
+// 97239e3d - weird grid_mask for test1.input. It's good for the training pairs.
+
 #[derive(Clone, Debug)]
 pub struct GridPattern {
     pub color: u8,
