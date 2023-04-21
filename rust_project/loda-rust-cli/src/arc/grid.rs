@@ -183,34 +183,7 @@ impl Grid {
         self.patterns_full.sort_unstable_by_key(|k| k.color);
         self.patterns_partial.sort_unstable_by_key(|k| k.color);
 
-        // self.purge_full_patterns();
-
         Ok(())
-    }
-
-    /// Remove items from `patterns_full` when there is a `patterns_partial` with a higher `jaccard_index`.
-    fn purge_full_patterns(&mut self) {
-        let mut i: usize = 0;
-        while i < self.patterns_full.len() {
-            let full_pattern_jaccard_index: f32 = self.patterns_full[i].jaccard_index;
-            let full_pattern_color: u8 = self.patterns_full[i].color;
-            let mut remove_me = false;
-            for partial_pattern in &self.patterns_partial {
-                if partial_pattern.color != full_pattern_color {
-                    continue;
-                }
-                if partial_pattern.jaccard_index > full_pattern_jaccard_index {
-                    remove_me = true;
-                    break;
-                }
-            }
-            if remove_me {
-                self.patterns_full.remove(i);
-                println!("removed full pattern with low jaccard_index");
-            } else {
-                i += 1;
-            }
-        }
     }
 
     fn update_patterns(&mut self, image: &Image, horizontal_candidates: Vec<Candidate>, vertical_candidates: Vec<Candidate>, is_full: bool) -> anyhow::Result<()> {
