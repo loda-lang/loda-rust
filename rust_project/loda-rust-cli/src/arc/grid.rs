@@ -231,6 +231,11 @@ impl Grid {
             }
 
             let jaccard_index: f32 = (intersection as f32) / (union as f32);
+            if jaccard_index < 0.5 {
+                // The grid pattern has low similarity with the image, ignoring.
+                // println!("ignoring grid that has low similarity with the image");
+                continue;
+            }
 
             // println!("color: {} mask: {:?}", color, mask);
             let pattern = GridPattern {
