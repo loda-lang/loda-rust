@@ -1006,4 +1006,131 @@ mod tests {
         assert_eq!(pattern.mask, expected);
         assert_eq!(pattern.color, 5);
     }
+
+    #[test]
+    fn test_20001_partial_grid() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            2, 2, 5, 2, 2,
+            2, 2, 5, 2, 2,
+            5, 5, 2, 5, 5,
+            2, 2, 5, 2, 2,
+            2, 2, 5, 2, 2,
+        ];
+        let input: Image = Image::try_create(5, 5, pixels).expect("image");
+
+        // Act
+        let instance = Grid::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.grid_found(), false);
+        assert_eq!(instance.patterns_partial.len(), 1);
+        let pattern: &GridPattern = instance.patterns_partial.first().expect("GridPattern");
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 1, 0, 0,
+            0, 0, 1, 0, 0,
+            1, 1, 1, 1, 1,
+            0, 0, 1, 0, 0,
+            0, 0, 1, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.color, 5);
+    }
+
+    #[test]
+    fn test_20002_partial_grid() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            2, 2, 5, 2, 2, 2, 5,
+            2, 2, 5, 2, 2, 2, 5,
+            5, 5, 2, 5, 5, 5, 2,
+            2, 2, 5, 2, 2, 2, 5,
+            2, 2, 5, 2, 2, 2, 5,
+            2, 2, 5, 2, 2, 2, 5,
+            5, 5, 2, 5, 5, 5, 2,
+            2, 2, 5, 2, 2, 2, 5,
+        ];
+        let input: Image = Image::try_create(7, 8, pixels).expect("image");
+
+        // Act
+        let instance = Grid::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.grid_found(), false);
+        assert_eq!(instance.patterns_partial.len(), 2);
+        let pattern: &GridPattern = instance.find_partial_pattern_with_color(5).expect("GridPattern");
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 1, 0, 0, 0, 1,
+            0, 0, 1, 0, 0, 0, 1,
+            1, 1, 1, 1, 1, 1, 1,
+            0, 0, 1, 0, 0, 0, 1,
+            0, 0, 1, 0, 0, 0, 1,
+            0, 0, 1, 0, 0, 0, 1,
+            1, 1, 1, 1, 1, 1, 1,
+            0, 0, 1, 0, 0, 0, 1,
+        ];
+        let expected: Image = Image::try_create(7, 8, expected_pixels).expect("image");
+        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.color, 5);
+    }
+
+    #[test]
+    fn test_20003_partial_grid() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 2, 5, 0, 0, 2, 0, 5, 0, 0, 0,
+            2, 0, 0, 0, 5, 0, 2, 0, 0, 5, 0, 0, 0,
+            0, 0, 0, 0, 2, 0, 2, 0, 0, 5, 0, 0, 0,
+            0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0,
+            2, 5, 5, 5, 5, 5, 5, 5, 2, 5, 5, 5, 5,
+            0, 2, 0, 0, 5, 0, 2, 0, 0, 5, 0, 0, 0,
+            0, 0, 2, 0, 5, 0, 0, 2, 0, 5, 0, 2, 0,
+            0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0,
+            0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0,
+            5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 5, 5,
+            0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0,
+            0, 2, 0, 0, 5, 0, 2, 0, 0, 5, 0, 0, 0,
+            0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 2,
+            0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0,
+            5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+            0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0,
+            0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0,
+            0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 0, 0, 0,
+            0, 0, 0, 0, 5, 0, 0, 0, 0, 5, 2, 0, 0,
+        ];
+        let input: Image = Image::try_create(13, 19, pixels).expect("image");
+
+        // Act
+        let instance = Grid::analyze(&input).expect("ok");
+
+        // Assert
+        assert_eq!(instance.grid_found(), false);
+        assert_eq!(instance.patterns_partial.len(), 2);
+        let pattern: &GridPattern = instance.find_partial_pattern_with_color(5).expect("GridPattern");
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(13, 19, expected_pixels).expect("image");
+        assert_eq!(pattern.mask, expected);
+        assert_eq!(pattern.color, 5);
+    }
 }
