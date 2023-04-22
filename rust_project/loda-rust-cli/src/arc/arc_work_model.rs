@@ -48,6 +48,7 @@ pub struct Input {
     pub repaired_image: Option<Image>,
 
     pub grid_mask: Option<Image>,
+    pub grid_color: Option<u8>,
 
     // Future experiments to do.
     // State keeping of the input_properties. 

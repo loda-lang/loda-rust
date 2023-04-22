@@ -539,7 +539,7 @@ impl arc_work_model::Task {
 
         self.compute_input_repaired_image()?;
 
-        self.prepare_input_grid_mask()?;
+        self.compute_input_grid_mask()?;
 
         Ok(())
     }
@@ -1064,14 +1064,15 @@ impl arc_work_model::Task {
         Ok(())
     }
 
-    /// Set `grid_mask=None` for all pairs.
-    fn reset_input_grid_mask(&mut self) {
+    /// Set `grid_mask=None` and `grid_color=None` for all pairs.
+    fn reset_input_grid_mask_and_grid_color(&mut self) {
         for (_index, pair) in self.pairs.iter_mut().enumerate() {
             pair.input.grid_mask = None;
+            pair.input.grid_color = None;
         }
     }
 
-    fn prepare_input_grid_mask(&mut self) -> anyhow::Result<()> {
+    fn compute_input_grid_mask(&mut self) -> anyhow::Result<()> {
         let mut prio1_grid_with_specific_color = false;
         let mut prio1_grid_color: u8 = u8::MAX;
         let mut prio2_grid_with_some_color = false;
@@ -1113,6 +1114,7 @@ impl arc_work_model::Task {
         }
 
         if prio1_grid_with_specific_color {
+            let grid_color: u8 = prio1_grid_color;
             let mut success = true;
             for pair in self.pairs.iter_mut() {
                 let grid = match &pair.input.grid {
@@ -1123,7 +1125,7 @@ impl arc_work_model::Task {
                         break;
                     }
                 };
-                let pattern: &GridPattern = match grid.find_full_pattern_with_color(prio1_grid_color) {
+                let pattern: &GridPattern = match grid.find_full_pattern_with_color(grid_color) {
                     Some(value) => value,
                     None => {
                         // Could not find a pattern with that particular color, aborting.
@@ -1133,6 +1135,7 @@ impl arc_work_model::Task {
                 };
                 let mask: Image = pattern.line_mask.clone();
                 pair.input.grid_mask = Some(mask);
+                pair.input.grid_color = Some(grid_color);
             }
             if success {
                 // This case is hit for 51 task out of the 800 tasks.
@@ -1143,7 +1146,7 @@ impl arc_work_model::Task {
                 // e760a62e, e9614598, e99362f0, ed74f2f2, ef26cbf6, f8b3ba0a, fea12743.
                 return Ok(());
             }
-            self.reset_input_grid_mask();
+            self.reset_input_grid_mask_and_grid_color();
         }
 
         if prio2_grid_with_some_color {
@@ -1169,6 +1172,7 @@ impl arc_work_model::Task {
                 };
                 let mask: Image = pattern.line_mask.clone();
                 pair.input.grid_mask = Some(mask);
+                pair.input.grid_color = Some(grid_color);
             }
             if success {
                 // This case is hit for 14 task out of the 800 tasks.
@@ -1176,10 +1180,11 @@ impl arc_work_model::Task {
                 // 5a5a2103, 81c0276b, 92e50de0, 9f236235, 9f27f097, c3202e5a, e48d4e1a.
                 return Ok(());
             }
-            self.reset_input_grid_mask();
+            self.reset_input_grid_mask_and_grid_color();
         }
 
         if prio3_grid_with_mismatches_and_specific_color {
+            let grid_color: u8 = prio3_grid_color;
             let mut success = true;
             for pair in self.pairs.iter_mut() {
                 let grid = match &pair.input.grid {
@@ -1190,7 +1195,7 @@ impl arc_work_model::Task {
                         break;
                     }
                 };
-                let pattern: &GridPattern = match grid.find_partial_pattern_with_color(prio3_grid_color) {
+                let pattern: &GridPattern = match grid.find_partial_pattern_with_color(grid_color) {
                     Some(value) => value,
                     None => {
                         // Could not find a pattern with that particular color, aborting.
@@ -1200,13 +1205,14 @@ impl arc_work_model::Task {
                 };
                 let mask: Image = pattern.line_mask.clone();
                 pair.input.grid_mask = Some(mask);
+                pair.input.grid_color = Some(grid_color);
             }
             if success {
                 // This case is hit for 3 task out of the 800 tasks. 
                 // 15113be4, 95a58926, 97239e3d.
                 return Ok(());
             }
-            self.reset_input_grid_mask();
+            self.reset_input_grid_mask_and_grid_color();
         }
 
         // This case is hit for 728 task out of the 800 tasks.
