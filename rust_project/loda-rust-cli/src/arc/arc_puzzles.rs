@@ -9,7 +9,7 @@ mod tests {
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use std::collections::HashMap;
     use regex::Regex;
@@ -3295,5 +3295,115 @@ mod tests {
         let mut instance = inspect_grid::MySolution {};
         let result: String = run_analyze_and_solve("95a58926", &mut instance).expect("String");
         assert_eq!(result, "5 1");
+    }
+
+    #[allow(dead_code)]
+    mod solve_0b148d64 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                // println!("grid: {:?}", pair.input.grid);
+                let input: &Image = &pair.input.image;
+                let grid_mask: &Image = match &pair.input.grid_mask {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Missing grid_mask for input"));
+                    }
+                };
+                let grid_color: u8 = match pair.input.grid_color {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Missing grid_color for input"));
+                    }
+                };
+
+                // Segment the image into cells
+                let blank: Image = Image::zero(input.width(), input.height());
+                let cells: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, grid_mask)?;
+                if cells.is_empty() {
+                    return Err(anyhow::anyhow!("Expected 1 or more cells"));
+                }
+                let enumerated_cells: Image = Image::object_enumerate(&cells).expect("image");
+
+                // Determine the most popular color of each cell
+                let object_count: usize = cells.len();
+                let mut cell_colors = Vec::<u8>::new();
+                for object_index in 0..object_count {
+                    let object_color: u8 = ((object_index + 1) & 255) as u8;
+
+                    let mask: Image = enumerated_cells.to_mask_where_color_is(object_color);
+                    let mut histogram: Histogram = input.histogram_with_mask(&mask)?;
+
+                    // Ignore pixels that has the grid_color
+                    histogram.set_counter_to_zero(grid_color);
+
+                    let cell_color: u8 = match histogram.most_popular_color_disallow_ambiguous() {
+                        Some(value) => value,
+                        None => {
+                            return Err(anyhow::anyhow!("Ambiguous what is the most popular color"));
+                        }
+                    };
+                    cell_colors.push(cell_color);
+                }
+                // println!("cell_colors: {:?}", cell_colors);
+
+                // histogram of all cell colors
+                let mut cell_histogram = Histogram::new();
+                for cell_color in &cell_colors {
+                    cell_histogram.increment(*cell_color);
+                }
+
+                // pick the cell with the least popular color
+                let least_popular_cell_color: u8 = match cell_histogram.least_popular_color_disallow_ambiguous() {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Ambiguous what is the least popular color"));
+                    }
+                };
+                // println!("least_popular_cell_color: {}", least_popular_cell_color);
+                let mut found_cell_index: Option<usize> = None;
+                for (index, cell_color) in cell_colors.iter().enumerate() {
+                    if *cell_color == least_popular_cell_color {
+                        found_cell_index = Some(index);
+                        break;
+                    }
+                }
+                let cell_index: usize = match found_cell_index {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Unable to identify the cell of interest"));
+                    }
+                };
+
+                // mask for the cell
+                let object_color: u8 = ((cell_index + 1) & 255) as u8;
+                let mask: Image = enumerated_cells.to_mask_where_color_is(object_color);
+
+                // crop out the cell 
+                let crop_rect: Rectangle = match mask.bounding_box() {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("cannot determine bounding box"));
+                    }
+                };
+                let result_image: Image = input.crop(crop_rect)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_730000_puzzle_0b148d64() {
+        let mut instance = solve_0b148d64::MySolution {};
+        let result: String = run_analyze_and_solve("0b148d64", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
     }
 }
