@@ -3405,4 +3405,116 @@ mod tests {
         let result: String = run_analyze_and_solve("0b148d64", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
+
+    mod solve_c3202e5a {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let grid_mask: &Image = match &pair.input.grid_mask {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Missing grid_mask for input"));
+                    }
+                };
+
+                // Segment the image into cells
+                let blank: Image = Image::zero(input.width(), input.height());
+                let cells: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, grid_mask)?;
+                if cells.is_empty() {
+                    return Err(anyhow::anyhow!("Expected 1 or more cells"));
+                }
+                let enumerated_cells: Image = Image::object_enumerate(&cells).expect("image");
+
+                // Determine the most popular color of each cell
+                let object_count: usize = cells.len();
+                let mut cell_index_and_unique_color_counts = Vec::<(usize, u16)>::new();
+                for object_index in 0..object_count {
+                    let object_color: u8 = ((object_index + 1) & 255) as u8;
+
+                    let mask: Image = enumerated_cells.to_mask_where_color_is(object_color);
+                    let histogram: Histogram = input.histogram_with_mask(&mask)?;
+
+                    let unique_color_count: u16 = histogram.number_of_counters_greater_than_zero();
+                    cell_index_and_unique_color_counts.push((object_index, unique_color_count));
+                }
+                // println!("cell_unique_color_counts: {:?}", cell_unique_color_counts);
+                // println!("cells_with_single_color: {:?}", cell_indexes_with_single_color);
+
+                // determine the cell indexes with fewest unique colors.
+                cell_index_and_unique_color_counts.sort_unstable_by_key(|t| t.1 );
+                // println!("cell_index_and_unique_color_counts: {:?}", cell_index_and_unique_color_counts);
+
+                // pick the first cell index with fewest unique colors. Disallow ambiguous results.
+                let mut histogram = Histogram::new();
+                for (_cell_index, unique_color_count) in &cell_index_and_unique_color_counts {
+                    if *unique_color_count <= (u8::MAX as u16) {
+                        histogram.increment(*unique_color_count as u8);
+                    }
+                }
+                let mut found: Option<u8> = None;
+                for i in 0..=255u8 {
+                    let count: u32 = histogram.get(i);
+                    if count == 0 {
+                        continue;
+                    }
+                    if count == 1 {
+                        found = Some(i);
+                        break;
+                    }
+                    return Err(anyhow::anyhow!("Multiple cells with the same number of unique colors. Ambiguous which color to pick."));
+                }
+                let color_count: u8 = match found {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Did not found any color. Cannot decide on which color to pick."));
+                    }
+                };
+
+                let mut found_cell_index: Option<usize> = None;
+                for (cell_index, unique_color_count) in &cell_index_and_unique_color_counts {
+                    if *unique_color_count == (color_count as u16) {
+                        found_cell_index = Some(*cell_index);
+                        break;
+                    }
+                }
+
+                let cell_index: usize = match found_cell_index {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Unable to identify the cell of interest"));
+                    }
+                };
+
+                // mask for the cell
+                let object_color: u8 = ((cell_index + 1) & 255) as u8;
+                let mask: Image = enumerated_cells.to_mask_where_color_is(object_color);
+
+                // crop out the cell 
+                let crop_rect: Rectangle = match mask.bounding_box() {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("cannot determine bounding box"));
+                    }
+                };
+                let result_image: Image = input.crop(crop_rect)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_740000_puzzle_c3202e5a() {
+        let mut instance = solve_c3202e5a::MySolution {};
+        let result: String = run_analyze_and_solve("c3202e5a", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
 }
