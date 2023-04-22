@@ -88,9 +88,9 @@ impl arc_work_model::Input {
             }
         }
 
-        let input_unique_color_count_raw: u32 = self.histogram.number_of_counters_greater_than_zero();
+        let input_unique_color_count_raw: u16 = self.histogram.number_of_counters_greater_than_zero();
         let mut input_unique_color_count: Option<u8> = None;
-        if input_unique_color_count_raw <= (u8::MAX as u32) {
+        if input_unique_color_count_raw <= (u8::MAX as u16) {
             input_unique_color_count = Some(input_unique_color_count_raw as u8);
         }
 

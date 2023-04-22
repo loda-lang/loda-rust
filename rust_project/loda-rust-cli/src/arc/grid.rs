@@ -162,7 +162,7 @@ impl Grid {
             return Ok(());
         }
         let histogram: Histogram = image.histogram_all();
-        let unique_colors: u32 = histogram.number_of_counters_greater_than_zero();
+        let unique_colors: u16 = histogram.number_of_counters_greater_than_zero();
         if unique_colors < 2 {
             // Too few colors to draw a grid
             return Ok(());
@@ -377,7 +377,7 @@ impl Grid {
         let mut partial_row_colors = Vec::<Option<u8>>::new();
         let mut rows_histogram = Histogram::new();
         for (_y, histogram) in rows.iter().enumerate() {
-            let unique_colors: u32 = histogram.number_of_counters_greater_than_zero();
+            let unique_colors: u16 = histogram.number_of_counters_greater_than_zero();
             if unique_colors != 1 && image.width() < 5 {
                 full_row_colors.push(None);
                 partial_row_colors.push(None);

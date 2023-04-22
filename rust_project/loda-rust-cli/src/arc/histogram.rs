@@ -312,14 +312,14 @@ impl Histogram {
     /// The returned value is in the range `[0..256]`.
     /// - Returns `0` when all of the 256 counters are zero.
     /// - Returns `256` when all of the 256 counters are non-zero.
-    pub fn number_of_counters_greater_than_zero(&self) -> u32 {
+    pub fn number_of_counters_greater_than_zero(&self) -> u16 {
         let mut count: u32 = 0;
         for number_of_occurences in &self.counters {
             if *number_of_occurences > 0 {
                 count += 1;
             }
         }
-        count
+        count.min(256) as u16
     }
 
     /// Returns an `Image` where `width` is the number of counters greater than zero, and `height=2`.
@@ -750,7 +750,7 @@ mod tests {
     #[test]
     fn test_70000_number_of_counters_greater_than_zero_empty() {
         let h = Histogram::new();
-        let actual: u32 = h.number_of_counters_greater_than_zero();
+        let actual: u16 = h.number_of_counters_greater_than_zero();
         assert_eq!(actual, 0);
     }
 
@@ -764,7 +764,7 @@ mod tests {
         }
 
         // Act
-        let actual: u32 = h.number_of_counters_greater_than_zero();
+        let actual: u16 = h.number_of_counters_greater_than_zero();
 
         // Assert
         assert_eq!(actual, 5);
@@ -779,7 +779,7 @@ mod tests {
         }
 
         // Act
-        let actual: u32 = h.number_of_counters_greater_than_zero();
+        let actual: u16 = h.number_of_counters_greater_than_zero();
 
         // Assert
         assert_eq!(actual, 256);

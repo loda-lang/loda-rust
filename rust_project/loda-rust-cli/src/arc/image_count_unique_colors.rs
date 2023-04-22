@@ -17,8 +17,8 @@ impl ImageCountUniqueColors for Image {
         let histograms: Vec<Histogram> = self.histogram_rows();
         let mut result_image = Image::zero(1, self.height());
         for (index, histogram) in histograms.iter().enumerate() {
-            let count: u32 = histogram.number_of_counters_greater_than_zero();
-            let clamped_count: u8 = if count <= (u8::MAX as u32) {
+            let count: u16 = histogram.number_of_counters_greater_than_zero();
+            let clamped_count: u8 = if count <= (u8::MAX as u16) {
                 count as u8
             } else {
                 255

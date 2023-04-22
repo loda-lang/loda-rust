@@ -2887,7 +2887,7 @@ mod tests {
                     }
                 };
                 let image: Image = input.crop(rect)?;
-                let count: u32 = image.histogram_all().number_of_counters_greater_than_zero();
+                let count: u16 = image.histogram_all().number_of_counters_greater_than_zero();
                 if count == 1 {
                     continue;
                 }
@@ -2914,7 +2914,7 @@ mod tests {
                     }
                 };
                 let image: Image = input.crop(rect)?;
-                let count: u32 = image.histogram_all().number_of_counters_greater_than_zero();
+                let count: u16 = image.histogram_all().number_of_counters_greater_than_zero();
                 if count != 1 {
                     continue;
                 }
@@ -3297,7 +3297,6 @@ mod tests {
         assert_eq!(result, "5 1");
     }
 
-    #[allow(dead_code)]
     mod solve_0b148d64 {
         use super::*;
 

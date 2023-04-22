@@ -206,11 +206,11 @@ impl TraverseProgramsAndModels {
                     PairType::Train => pair.output.image.histogram_all(),
                     PairType::Test => pair.output.test_image.histogram_all(),
                 };
-                let expected_count: u32 = expected_histogram.number_of_counters_greater_than_zero();
+                let expected_count: u16 = expected_histogram.number_of_counters_greater_than_zero();
 
                 let mut histogram: Histogram = predicted.clone();
                 histogram.intersection_histogram(&expected_histogram);
-                let predicted_count: u32 = histogram.number_of_counters_greater_than_zero();
+                let predicted_count: u16 = histogram.number_of_counters_greater_than_zero();
                 if expected_count == predicted_count {
                     count_predict_pair_correct += 1;
                 } else  {

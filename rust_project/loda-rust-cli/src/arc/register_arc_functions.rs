@@ -1698,9 +1698,9 @@ impl UnofficialFunction for ImageNumberOfUniqueColorsFunction {
         let image: Image = input0_uint.to_image()?;
 
         let histogram: Histogram = image.histogram_all();
-        let color_count: u32 = histogram.number_of_counters_greater_than_zero();
+        let color_count: u16 = histogram.number_of_counters_greater_than_zero();
 
-        let output: BigInt = color_count.to_bigint().context("u32 to BigInt")?;
+        let output: BigInt = color_count.to_bigint().context("u16 to BigInt")?;
         Ok(vec![output])
     }
 }

@@ -27,8 +27,8 @@ impl ImageCreatePalette for Image {
     fn palette_using_histogram(&self, target_image: &Image, reverse: bool) -> anyhow::Result<Image> {
         let histogram0 = self.histogram_all();
         let histogram1 = target_image.histogram_all();
-        let count0: u32 = histogram0.number_of_counters_greater_than_zero();
-        let count1: u32 = histogram1.number_of_counters_greater_than_zero();
+        let count0: u16 = histogram0.number_of_counters_greater_than_zero();
+        let count1: u16 = histogram1.number_of_counters_greater_than_zero();
         if count0 != count1 {
             return Err(anyhow::anyhow!("both images must have the same number of colors, cannot construct mapping. self has {} colors. target_image has {} colors.", count0, count1));
         }
