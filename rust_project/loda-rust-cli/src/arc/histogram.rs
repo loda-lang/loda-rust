@@ -308,6 +308,10 @@ impl Histogram {
     }
 
     /// Number of counters that are greater than zero.
+    /// 
+    /// The returned value is in the range `[0..256]`.
+    /// - Returns `0` when all of the 256 counters are zero.
+    /// - Returns `256` when all of the 256 counters are non-zero.
     pub fn number_of_counters_greater_than_zero(&self) -> u32 {
         let mut count: u32 = 0;
         for number_of_occurences in &self.counters {
