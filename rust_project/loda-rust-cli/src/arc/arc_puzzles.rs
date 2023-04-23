@@ -3517,4 +3517,43 @@ mod tests {
         let result: String = run_analyze_and_solve("c3202e5a", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
+
+    mod solve_1c0d0a4b {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let grid_mask: &Image = match &pair.input.grid_mask {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Missing grid_mask for input"));
+                    }
+                };
+                let grid_color: u8 = match pair.input.grid_color {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Missing grid_color for input"));
+                    }
+                };
+                let cell_content: Image = input.to_mask_where_color_is_different(grid_color);
+                let result_image: Image = cell_content.mask_xor(&grid_mask)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_750000_puzzle_1c0d0a4b() {
+        let mut instance = solve_1c0d0a4b::MySolution {};
+        let result: String = run_analyze_and_solve("1c0d0a4b", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
 }
