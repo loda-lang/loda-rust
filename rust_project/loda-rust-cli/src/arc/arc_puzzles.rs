@@ -3311,18 +3311,14 @@ mod tests {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 // println!("grid: {:?}", pair.input.grid);
                 let input: &Image = &pair.input.image;
-                let grid_mask: &Image = match &pair.input.grid_mask {
+                let grid_pattern: &GridPattern = match &pair.input.grid_pattern {
                     Some(value) => value,
                     None => {
-                        return Err(anyhow::anyhow!("Missing grid_mask for input"));
+                        return Err(anyhow::anyhow!("Missing grid_pattern for input"));
                     }
                 };
-                let grid_color: u8 = match pair.input.grid_color {
-                    Some(value) => value,
-                    None => {
-                        return Err(anyhow::anyhow!("Missing grid_color for input"));
-                    }
-                };
+                let grid_mask: &Image = &grid_pattern.line_mask;
+                let grid_color: u8 = grid_pattern.color;
 
                 // Segment the image into cells
                 let blank: Image = Image::zero(input.width(), input.height());
@@ -3419,12 +3415,13 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let grid_mask: &Image = match &pair.input.grid_mask {
+                let grid_pattern: &GridPattern = match &pair.input.grid_pattern {
                     Some(value) => value,
                     None => {
-                        return Err(anyhow::anyhow!("Missing grid_mask for input"));
+                        return Err(anyhow::anyhow!("Missing grid_pattern for input"));
                     }
                 };
+                let grid_mask: &Image = &grid_pattern.line_mask;
 
                 // Segment the image into cells
                 let blank: Image = Image::zero(input.width(), input.height());
@@ -3531,18 +3528,14 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let grid_mask: &Image = match &pair.input.grid_mask {
+                let grid_pattern: &GridPattern = match &pair.input.grid_pattern {
                     Some(value) => value,
                     None => {
-                        return Err(anyhow::anyhow!("Missing grid_mask for input"));
+                        return Err(anyhow::anyhow!("Missing grid_pattern for input"));
                     }
                 };
-                let grid_color: u8 = match pair.input.grid_color {
-                    Some(value) => value,
-                    None => {
-                        return Err(anyhow::anyhow!("Missing grid_color for input"));
-                    }
-                };
+                let grid_mask: &Image = &grid_pattern.line_mask;
+                let grid_color: u8 = grid_pattern.color;
                 let cell_content: Image = input.to_mask_where_color_is_different(grid_color);
                 let result_image: Image = cell_content.mask_xor(&grid_mask)?;
                 Ok(result_image)

@@ -396,7 +396,7 @@ impl TraverseProgramsAndModels {
                     },
                 }
             }
-            if task.has_grid_mask() {
+            if task.has_grid_pattern() {
                 found = true;
                 // found = false;
             }

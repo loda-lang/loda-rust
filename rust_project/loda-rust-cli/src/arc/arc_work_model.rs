@@ -1,4 +1,4 @@
-use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet, Symmetry, Grid};
+use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet, Symmetry, Grid, GridPattern};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -47,8 +47,7 @@ pub struct Input {
     pub repair_mask: Option<Image>,
     pub repaired_image: Option<Image>,
 
-    pub grid_mask: Option<Image>,
-    pub grid_color: Option<u8>,
+    pub grid_pattern: Option<GridPattern>,
 
     // Future experiments to do.
     // State keeping of the input_properties. 
