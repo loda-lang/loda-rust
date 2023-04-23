@@ -7,7 +7,7 @@ mod tests {
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
-    use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
+    use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere, GridPattern};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
@@ -3548,5 +3548,85 @@ mod tests {
         let mut instance = solve_1c0d0a4b::MySolution {};
         let result: String = run_analyze_and_solve("1c0d0a4b", &mut instance).expect("String");
         assert_eq!(result, "3 1");
+    }
+
+    mod solve_6773b310 {
+        use crate::arc::GridPattern;
+
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let grid_pattern: &GridPattern = match &pair.input.grid_pattern {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Missing grid_pattern for input"));
+                    }
+                };
+                let grid_mask: &Image = &grid_pattern.line_mask;
+                let grid_color: u8 = grid_pattern.color;
+                let background_color: u8;
+                {
+                    let mut histogram: Histogram = pair.input.histogram.clone();
+                    histogram.set_counter_to_zero(grid_color);
+                    background_color = match histogram.most_popular_color_disallow_ambiguous() {
+                        Some(value) => value,
+                        None => {
+                            return Err(anyhow::anyhow!("ambiguous what the background color is"));
+                        }
+                    };
+                }
+
+                // Segment the image into cells
+                let blank: Image = Image::zero(input.width(), input.height());
+                let cells: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, grid_mask)?;
+                if cells.is_empty() {
+                    return Err(anyhow::anyhow!("Expected 1 or more cells"));
+                }
+                let enumerated_cells: Image = Image::object_enumerate(&cells).expect("image");
+
+                // Determine the most popular color of each cell
+                let object_count: usize = cells.len();
+                let grid_width: u8 = grid_pattern.horizontal_cell_count;
+                let grid_height: u8 = grid_pattern.vertical_cell_count;
+                if grid_width < 1 || grid_height < 1 {
+                    return Err(anyhow::anyhow!("Too small grid. Must be 1x1 or bigger"));
+                }
+                let mut result_image: Image = Image::zero(grid_width, grid_height);
+                for object_index in 0..object_count {
+                    let object_color: u8 = ((object_index + 1) & 255) as u8;
+
+                    let mask: Image = enumerated_cells.to_mask_where_color_is(object_color);
+                    let mut histogram: Histogram = input.histogram_with_mask(&mask)?;
+                    histogram.set_counter_to_zero(background_color);
+                    histogram.set_counter_to_zero(grid_color);
+
+                    let unique_color_count: u32 = histogram.sum();
+
+                    let y_usize: usize = object_index / (grid_width as usize);
+                    let x_usize: usize = object_index % (grid_width as usize);
+                    let x: u8 = (x_usize & 255) as u8;
+                    let y: u8 = (y_usize & 255) as u8;
+                    _ = result_image.set(x as i32, y as i32, unique_color_count.min(255) as u8);
+                }
+
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_760000_puzzle_6773b310() {
+        let mut instance = solve_6773b310::MySolution {};
+        let result: String = run_analyze_and_solve("6773b310", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
     }
 }
