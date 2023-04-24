@@ -3555,6 +3555,29 @@ mod tests {
 
         use super::*;
 
+        fn measure_mass_of_objects(image: &Image, enumerated_objects: &Image, ignore_colors: Option<&Histogram>) -> anyhow::Result<Image> {
+            let mut result_image = Image::zero(image.width(), image.height());
+            for color in 0..=255u8 {
+                let mask: Image = enumerated_objects.to_mask_where_color_is(color);
+                let mut histogram: Histogram = image.histogram_with_mask(&mask)?;
+                if let Some(other) = ignore_colors {
+                    histogram.subtract_histogram(other);
+                }
+                let mass_of_object: u32 = histogram.sum();
+                let set_color: u8 = mass_of_object.min(255) as u8;
+                for y in 0..image.height() {
+                    for x in 0..image.width() {
+                        let mask_value: u8 = mask.get(x as i32, y as i32).unwrap_or(0);
+                        if mask_value == 0 {
+                            continue;
+                        }
+                        _ = result_image.set(x as i32, y as i32, set_color);
+                    }
+                }
+            }
+            Ok(result_image)
+        }
+
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
@@ -3593,6 +3616,11 @@ mod tests {
                 }
                 let enumerated_cells: Image = Image::object_enumerate(&cells).expect("image");
 
+                let mut ignore_colors = Histogram::new();
+                ignore_colors.increment(background_color);
+                ignore_colors.increment(grid_color);
+                let mass_of_objects: Image = measure_mass_of_objects(input, &enumerated_cells, Some(&ignore_colors))?;
+
                 // Create output image with the size of the grid
                 let grid_width: u8 = grid_pattern.horizontal_cell_count;
                 let grid_height: u8 = grid_pattern.vertical_cell_count;
@@ -3600,24 +3628,26 @@ mod tests {
                     return Err(anyhow::anyhow!("Too small grid. Must be 1x1 or bigger"));
                 }
                 let mut result_image: Image = Image::zero(grid_width, grid_height);
-                
+
                 // Determine the number of unique colors for each cell
                 let object_count: usize = cells.len();
                 for object_index in 0..object_count {
                     let object_color: u8 = ((object_index + 1) & 255) as u8;
 
                     let mask: Image = enumerated_cells.to_mask_where_color_is(object_color);
-                    let mut histogram: Histogram = input.histogram_with_mask(&mask)?;
-                    histogram.set_counter_to_zero(background_color);
-                    histogram.set_counter_to_zero(grid_color);
-
-                    let unique_color_count: u32 = histogram.sum();
+                    let histogram: Histogram = mass_of_objects.histogram_with_mask(&mask)?;
+                    let set_color: u8 = match histogram.most_popular_color_disallow_ambiguous() {
+                        Some(value) => value,
+                        None => {
+                            return Err(anyhow::anyhow!("Cannot decide what color is the most popular. ambiguous"));
+                        }
+                    };
 
                     let y_usize: usize = object_index / (grid_width as usize);
                     let x_usize: usize = object_index % (grid_width as usize);
                     let x: u8 = (x_usize & 255) as u8;
                     let y: u8 = (y_usize & 255) as u8;
-                    _ = result_image.set(x as i32, y as i32, unique_color_count.min(255) as u8);
+                    _ = result_image.set(x as i32, y as i32, set_color);
                 }
 
                 Ok(result_image)
