@@ -3593,14 +3593,16 @@ mod tests {
                 }
                 let enumerated_cells: Image = Image::object_enumerate(&cells).expect("image");
 
-                // Determine the most popular color of each cell
-                let object_count: usize = cells.len();
+                // Create output image with the size of the grid
                 let grid_width: u8 = grid_pattern.horizontal_cell_count;
                 let grid_height: u8 = grid_pattern.vertical_cell_count;
                 if grid_width < 1 || grid_height < 1 {
                     return Err(anyhow::anyhow!("Too small grid. Must be 1x1 or bigger"));
                 }
                 let mut result_image: Image = Image::zero(grid_width, grid_height);
+                
+                // Determine the number of unique colors for each cell
+                let object_count: usize = cells.len();
                 for object_index in 0..object_count {
                     let object_color: u8 = ((object_index + 1) & 255) as u8;
 
