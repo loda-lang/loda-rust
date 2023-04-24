@@ -62,7 +62,7 @@ enum MemoryLayoutItem {
 
     /// Some ARC tasks contains a grid structure.
     /// 
-    /// This is a fuzzy guess about what the grid may be like.
+    /// This is a fuzzy guess about what the grid pattern may be like.
     /// 
     /// - Drawback: It cannot detect a grid uneven spacing.
     /// - Drawback: It cannot detect a grid without a grid line, the grid line must be 1px or wider.
@@ -72,8 +72,14 @@ enum MemoryLayoutItem {
     /// When it's not available then the value is `-1`.
     GridMask = 8,
 
+    /// Some ARC tasks contains a grid structure.
+    /// 
+    /// This is a fuzzy guess about what color is used for the grid lines.
+    ///
+    /// When it's not available then the value is `-1`.
+    GridColor = 9,
+
     // Ideas for more
-    // Grid color
     // Number of cells horizontal
     // Number of cells vertical
     // Objects enumerated
@@ -414,7 +420,7 @@ impl RunWithProgram {
                 }
             }
 
-            // memory[x*100+108] = train[x].grid_mask
+            // memory[x*100+108] = train[x].grid_pattern.line_mask
             {
                 if let Some(pattern) = &pair.input.grid_pattern {
                     let image: &Image = &pattern.line_mask;
@@ -425,6 +431,19 @@ impl RunWithProgram {
                     if let Some(value) = (-1i16).to_bigint() {
                         state.set_u64(address + MemoryLayoutItem::GridMask as u64, value).context("line_mask, set_u64 with -1")?;
                     }
+                }
+            }
+
+            // memory[x*100+109] = train[x].grid_pattern.color
+            {
+                let the_color: i16;
+                if let Some(pattern) = &pair.input.grid_pattern {
+                    the_color = pattern.color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::GridColor as u64, value).context("pair.GridColor, set_u64")?;
                 }
             }
 
@@ -527,7 +546,7 @@ impl RunWithProgram {
                 }
             }
 
-            // memory[x*100+108] = test[x].grid_mask
+            // memory[x*100+108] = test[x].grid_pattern.line_mask
             {
                 if let Some(pattern) = &pair.input.grid_pattern {
                     let image: &Image = &pattern.line_mask;
@@ -538,6 +557,19 @@ impl RunWithProgram {
                     if let Some(value) = (-1i16).to_bigint() {
                         state.set_u64(address + MemoryLayoutItem::GridMask as u64, value).context("line_mask, set_u64 with -1")?;
                     }
+                }
+            }
+
+            // memory[x*100+109] = test[x].grid_pattern.color
+            {
+                let the_color: i16;
+                if let Some(pattern) = &pair.input.grid_pattern {
+                    the_color = pattern.color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::GridColor as u64, value).context("pair.GridColor, set_u64")?;
                 }
             }
 
