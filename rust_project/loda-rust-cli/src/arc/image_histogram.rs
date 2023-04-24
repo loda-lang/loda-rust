@@ -7,7 +7,7 @@ pub trait ImageHistogram {
     /// Histogram by traversing the border of the image
     fn histogram_border(&self) -> Histogram;
 
-    /// Histogram by only traversing the pixels where the mask is on
+    /// Histogram by only traversing the pixels where `mask_pixel=1`
     fn histogram_with_mask(&self, mask: &Image) -> anyhow::Result<Histogram>;
     
     /// Histogram for every row
@@ -47,8 +47,8 @@ impl ImageHistogram for Image {
     }
 
     fn histogram_with_mask(&self, mask: &Image) -> anyhow::Result<Histogram> {
-        if self.width() != mask.width() || self.height() != mask.height() {
-            return Err(anyhow::anyhow!("Both images must have same size. self: {}x{} mask: {}x{}", self.width(), self.height(), mask.width(), mask.height()));
+        if self.size() != mask.size() {
+            return Err(anyhow::anyhow!("Images must have same size. self: {:?} mask: {:?}", self.size(), mask.size()));
         }
         let mut h = Histogram::new();
         if self.is_empty() {
