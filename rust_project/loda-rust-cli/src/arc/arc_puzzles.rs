@@ -6,7 +6,8 @@ mod tests {
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
-    use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern, ObjectsMeasureMass};
+    use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
+    use crate::arc::{ObjectsMeasureMass, ObjectsUniqueColorCount};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere, GridPattern};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
@@ -3405,6 +3406,77 @@ mod tests {
     mod solve_c3202e5a {
         use super::*;
 
+        fn object_with_lowest_value(image: &Image, enumerated_objects: &Image) -> anyhow::Result<Image> {
+            if image.size() != enumerated_objects.size() {
+                return Err(anyhow::anyhow!("images must have same size"));
+            }
+            if image.is_empty() {
+                return Err(anyhow::anyhow!("image must be 1x1 or bigger"));
+            }
+            let mut object_color_and_object_index = Vec::<(u8, u8)>::new();
+            // Traverse the objects and extract the most popular color of each object
+            // Skip object_index=0, because it's not considered an object.
+            for object_index in 1..=255u8 {
+                let mask: Image = enumerated_objects.to_mask_where_color_is(object_index);
+                let histogram: Histogram = image.histogram_with_mask(&mask)?;
+                if histogram.number_of_counters_greater_than_zero() == 0 {
+                    continue;
+                }
+                let unique_color_count: u8 = match histogram.most_popular_color_disallow_ambiguous() {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Cannot decide what color is the most popular. ambiguous"));
+                    }
+                };
+                object_color_and_object_index.push((unique_color_count, object_index));
+            }
+
+            object_color_and_object_index.sort();
+            // println!("object_color_and_object_index: {:?}", object_color_and_object_index);
+
+            // Find the object with lowest value. Disallow ambiguous results.
+            let mut histogram = Histogram::new();
+            for (unique_color_count, _object_index) in &object_color_and_object_index {
+                histogram.increment(*unique_color_count);
+            }
+            let mut found: Option<u8> = None;
+            for i in 0..=255u8 {
+                let count: u32 = histogram.get(i);
+                if count == 0 {
+                    continue;
+                }
+                if count == 1 {
+                    found = Some(i);
+                    break;
+                }
+                return Err(anyhow::anyhow!("Multiple objects with the same number of unique colors. Ambiguous which object to pick."));
+            }
+            let color_count: u8 = match found {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Did not found any color. Cannot decide on which color to pick."));
+                }
+            };
+            let mut found_object_index: Option<u8> = None;
+            for (unique_color_count, object_index) in &object_color_and_object_index {
+                if *unique_color_count == color_count {
+                    found_object_index = Some(*object_index);
+                    break;
+                }
+            }
+
+            let object_index: u8 = match found_object_index {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Unable to identify the object of interest"));
+                }
+            };
+
+            // mask for the object
+            let mask: Image = enumerated_objects.to_mask_where_color_is(object_index);
+            Ok(mask)
+        }
+
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
@@ -3430,6 +3502,9 @@ mod tests {
                     return Err(anyhow::anyhow!("Expected 1 or more cells"));
                 }
                 let enumerated_cells: Image = Image::object_enumerate(&cells).expect("image");
+
+                let unique_colors: Image = ObjectsUniqueColorCount::run(input, &enumerated_cells, None)?;
+                let objects: Image = object_with_lowest_value(&unique_colors, &enumerated_cells)?;
 
                 // Determine the most popular color of each cell
                 let object_count: usize = cells.len();
@@ -3496,13 +3571,15 @@ mod tests {
                 let mask: Image = enumerated_cells.to_mask_where_color_is(object_color);
 
                 // crop out the cell 
-                let crop_rect: Rectangle = match mask.bounding_box() {
+                let crop_rect: Rectangle = match objects.bounding_box() {
                     Some(value) => value,
                     None => {
                         return Err(anyhow::anyhow!("cannot determine bounding box"));
                     }
                 };
                 let result_image: Image = input.crop(crop_rect)?;
+                // let result_image: Image = unique_colors;
+                // let result_image: Image = objects;
                 Ok(result_image)
             }
         }
