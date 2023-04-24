@@ -6,7 +6,7 @@ mod tests {
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
-    use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
+    use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern, ObjectsMeasureMass};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere, GridPattern};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
@@ -3555,29 +3555,6 @@ mod tests {
 
         use super::*;
 
-        fn measure_mass_of_objects(image: &Image, enumerated_objects: &Image, ignore_colors: Option<&Histogram>) -> anyhow::Result<Image> {
-            let mut result_image = Image::zero(image.width(), image.height());
-            for color in 0..=255u8 {
-                let mask: Image = enumerated_objects.to_mask_where_color_is(color);
-                let mut histogram: Histogram = image.histogram_with_mask(&mask)?;
-                if let Some(other) = ignore_colors {
-                    histogram.subtract_histogram(other);
-                }
-                let mass_of_object: u32 = histogram.sum();
-                let set_color: u8 = mass_of_object.min(255) as u8;
-                for y in 0..image.height() {
-                    for x in 0..image.width() {
-                        let mask_value: u8 = mask.get(x as i32, y as i32).unwrap_or(0);
-                        if mask_value == 0 {
-                            continue;
-                        }
-                        _ = result_image.set(x as i32, y as i32, set_color);
-                    }
-                }
-            }
-            Ok(result_image)
-        }
-
         pub struct MySolution;
     
         impl AnalyzeAndSolve for MySolution {
@@ -3619,7 +3596,7 @@ mod tests {
                 let mut ignore_colors = Histogram::new();
                 ignore_colors.increment(background_color);
                 ignore_colors.increment(grid_color);
-                let mass_of_objects: Image = measure_mass_of_objects(input, &enumerated_cells, Some(&ignore_colors))?;
+                let mass_of_objects: Image = ObjectsMeasureMass::run(input, &enumerated_cells, Some(&ignore_colors))?;
 
                 // Create output image with the size of the grid
                 let grid_width: u8 = grid_pattern.horizontal_cell_count;
