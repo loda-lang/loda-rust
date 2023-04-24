@@ -8,6 +8,7 @@ mod tests {
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ObjectsMeasureMass, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
+    use crate::arc::{ObjectsToGrid, ObjectsToGridMode};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere, GridPattern};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
@@ -3445,8 +3446,6 @@ mod tests {
     }
 
     mod solve_6773b310 {
-        use crate::arc::GridPattern;
-
         use super::*;
 
         pub struct MySolution;
@@ -3492,34 +3491,19 @@ mod tests {
                 ignore_colors.increment(grid_color);
                 let mass_of_objects: Image = ObjectsMeasureMass::run(input, &enumerated_cells, Some(&ignore_colors))?;
 
-                // Create output image with the size of the grid
+                // Layout the objects in a grid
                 let grid_width: u8 = grid_pattern.horizontal_cell_count;
                 let grid_height: u8 = grid_pattern.vertical_cell_count;
                 if grid_width < 1 || grid_height < 1 {
                     return Err(anyhow::anyhow!("Too small grid. Must be 1x1 or bigger"));
                 }
-                let mut result_image: Image = Image::zero(grid_width, grid_height);
-
-                // Determine the number of unique colors for each cell
-                let object_count: usize = cells.len();
-                for object_index in 0..object_count {
-                    let object_color: u8 = ((object_index + 1) & 255) as u8;
-
-                    let mask: Image = enumerated_cells.to_mask_where_color_is(object_color);
-                    let histogram: Histogram = mass_of_objects.histogram_with_mask(&mask)?;
-                    let set_color: u8 = match histogram.most_popular_color_disallow_ambiguous() {
-                        Some(value) => value,
-                        None => {
-                            return Err(anyhow::anyhow!("Cannot decide what color is the most popular. ambiguous"));
-                        }
-                    };
-
-                    let y_usize: usize = object_index / (grid_width as usize);
-                    let x_usize: usize = object_index % (grid_width as usize);
-                    let x: u8 = (x_usize & 255) as u8;
-                    let y: u8 = (y_usize & 255) as u8;
-                    _ = result_image.set(x as i32, y as i32, set_color);
-                }
+                let result_image: Image = ObjectsToGrid::run(
+                    &mass_of_objects,
+                    &enumerated_cells,
+                    grid_width,
+                    grid_height,
+                    ObjectsToGridMode::MostPopularColor,
+                )?;
 
                 Ok(result_image)
             }
