@@ -80,6 +80,7 @@ mod label;
 mod ngram;
 mod number_to_image;
 mod objects_measure_mass;
+mod objects_unique_color_count;
 mod popular_objects;
 mod read_testdata;
 mod rectangle;
@@ -161,6 +162,7 @@ pub use label::{ActionLabel, ActionLabelSet, GridLabel, InputLabel, InputLabelSe
 pub use ngram::{ImageNgram, RecordBigram, RecordTrigram};
 pub use number_to_image::NumberToImage;
 pub use objects_measure_mass::ObjectsMeasureMass;
+pub use objects_unique_color_count::ObjectsUniqueColorCount;
 pub use popular_objects::PopularObjects;
 pub use read_testdata::read_testdata;
 pub use rectangle::Rectangle;

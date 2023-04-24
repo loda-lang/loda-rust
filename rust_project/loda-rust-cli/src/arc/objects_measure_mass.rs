@@ -10,10 +10,11 @@ impl ObjectsMeasureMass {
     /// 
     /// Returns an image with the same size as the input image.
     /// Where every pixel of the object is set the the mass count of that object.
+    /// The `mass` is clamped to 255.
     #[allow(dead_code)]
     pub fn run(image: &Image, enumerated_objects: &Image, ignore_colors: Option<&Histogram>) -> anyhow::Result<Image> {
         if image.size() != enumerated_objects.size() {
-            return Err(anyhow::anyhow!("ObjectsMeasureMass: image must have same size"));
+            return Err(anyhow::anyhow!("ObjectsMeasureMass: images must have same size"));
         }
         if image.is_empty() {
             return Err(anyhow::anyhow!("ObjectsMeasureMass: image must be 1x1 or bigger"));
