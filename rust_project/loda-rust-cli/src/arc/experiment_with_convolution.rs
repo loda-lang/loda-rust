@@ -51,6 +51,9 @@ impl ExperimentWithConvolution {
 
         // Extract samples
         for task in &self.tasks {
+
+            // the global weights stays locked while training for a single task
+            // local weights that gets updated while training with a single task
             for pair in &task.pairs {
                 if pair.pair_type == PairType::Test {
                     continue;
@@ -58,6 +61,8 @@ impl ExperimentWithConvolution {
                 let samples_input: Vec<Sample> = Self::extract_samples(&pair.input.image, InputOutputType::Input)?;
                 let samples_output: Vec<Sample> = Self::extract_samples(&pair.output.image, InputOutputType::Output)?;
                 println!("pair: {} samples_input: {} samples_output: {}", pair.id, samples_input.len(), samples_output.len());
+
+                // mutate the local weights
             }
         }
 
@@ -96,7 +101,11 @@ impl ExperimentWithConvolution {
         }
 
         // undo if the mutation was too poor
-        
+
+        // the global weights stays locked while training for a single task
+        // local weights that gets updated while training with a single task
+        // mutate the global weights.
+
         // repeat training
 
         Ok(())
