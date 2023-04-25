@@ -72,7 +72,7 @@ impl TraverseProgramsAndModels {
             let task: Task = model_item.borrow().task.clone();
             task_vec.push(task);
         }
-        let instance = ExperimentWithConvolution::new(task_vec);
+        let mut instance = ExperimentWithConvolution::new(task_vec);
         instance.run()?;
         Ok(())
     }
