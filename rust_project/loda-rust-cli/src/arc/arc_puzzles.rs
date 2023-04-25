@@ -3318,22 +3318,20 @@ mod tests {
                         return Err(anyhow::anyhow!("Missing grid_pattern for input"));
                     }
                 };
-                let grid_mask: &Image = &grid_pattern.line_mask;
                 let grid_color: u8 = grid_pattern.color;
 
-                // Segment the image into cells
-                let blank: Image = Image::zero(input.width(), input.height());
-                let cells: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, grid_mask)?;
-                if cells.is_empty() {
-                    return Err(anyhow::anyhow!("Expected 1 or more cells"));
-                }
-                let enumerated_cells: Image = Image::object_enumerate(&cells).expect("image");
+                let enumerated_objects: &Image = match &pair.input.enumerated_objects {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Missing enumerated_objects for input"));
+                    }
+                };
 
                 let mut ignore_colors = Histogram::new();
                 ignore_colors.increment(grid_color);
 
-                // Find the cell with unusual color
-                let mask: Image = ObjectWithDifferentColor::run(&input, &enumerated_cells, Some(&ignore_colors))?;
+                // Find the cell with the unusual color
+                let mask: Image = ObjectWithDifferentColor::run(&input, &enumerated_objects, Some(&ignore_colors))?;
 
                 // crop out the cell 
                 let crop_rect: Rectangle = match mask.bounding_box() {
