@@ -1,14 +1,25 @@
+use crate::arc::arc_work_model::PairType;
+
 use super::arc_work_model::Task;
 use super::{Image, ImagePadding};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rand::distributions::{Distribution, Uniform};
 
+#[derive(Clone, Copy, Debug)]
+enum InputOutputType {
+    Input,
+    Output,
+}
+
 #[derive(Clone, Debug)]
 struct Sample {
     convolution3x3: Image,
     position_x: u8,
     position_y: u8,
+    image_width: u8,
+    image_height: u8,
+    input_output_type: InputOutputType,
 }
 
 pub struct ExperimentWithConvolution {
@@ -41,9 +52,12 @@ impl ExperimentWithConvolution {
         // Extract samples
         for task in &self.tasks {
             for pair in &task.pairs {
-                let padded_image: Image = pair.input.image.padding_with_color(1, 255)?;
-                let samples: Vec<Sample> = Self::samples_from_input(&padded_image)?;
-                println!("pair: {} samples: {}", pair.id, samples.len());
+                if pair.pair_type == PairType::Test {
+                    continue;
+                }
+                let samples_input: Vec<Sample> = Self::extract_samples(&pair.input.image, InputOutputType::Input)?;
+                let samples_output: Vec<Sample> = Self::extract_samples(&pair.output.image, InputOutputType::Output)?;
+                println!("pair: {} samples_input: {} samples_output: {}", pair.id, samples_input.len(), samples_output.len());
             }
         }
 
@@ -58,21 +72,25 @@ impl ExperimentWithConvolution {
         Ok(())
     }
 
-    fn samples_from_input(input: &Image) -> anyhow::Result<Vec<Sample>> {
-        let width: u8 = input.width();
-        let height: u8 = input.height();
+    fn extract_samples(input: &Image, input_output_type: InputOutputType) -> anyhow::Result<Vec<Sample>> {
+        let padded_image: Image = input.padding_with_color(1, 255)?;
+
+        let width: u8 = padded_image.width();
+        let height: u8 = padded_image.height();
         if width < 3 || height < 3 {
             return Err(anyhow::anyhow!("too small image, must be 3x3 or bigger"));
         }
         let mut samples = Vec::<Sample>::new();
         let mut conv_bitmap = Image::zero(3, 3);
-        for self_y in 0..height-2 {
-            for self_x in 0..width-2 {
+        let image_width: u8 = input.width();
+        let image_height: u8 = input.height();
+        for self_y in 0..image_height {
+            for self_x in 0..image_width {
                 for conv_y in 0..3u8 {
                     for conv_x in 0..3u8 {
                         let get_x: i32 = (self_x as i32) + (conv_x as i32);
                         let get_y: i32 = (self_y as i32) + (conv_y as i32);
-                        let pixel_value: u8 = input.get(get_x, get_y)
+                        let pixel_value: u8 = padded_image.get(get_x, get_y)
                             .ok_or_else(|| anyhow::anyhow!("image.get({},{}) returned None", get_x, get_y))?;
                         conv_bitmap.set(conv_x as i32, conv_y as i32, pixel_value)
                             .ok_or_else(|| anyhow::anyhow!("conv_bitmap.set({},{}) returned None", conv_x, conv_y))?;
@@ -82,6 +100,9 @@ impl ExperimentWithConvolution {
                     convolution3x3: conv_bitmap.clone(),
                     position_x: self_x,
                     position_y: self_y,
+                    image_width,
+                    image_height,
+                    input_output_type,
                 };
                 samples.push(sample);
             }
