@@ -539,7 +539,7 @@ impl arc_work_model::Task {
 
         self.compute_input_repaired_image()?;
 
-        self.compute_input_grid_mask()?;
+        self.compute_input_grid_pattern()?;
 
         Ok(())
     }
@@ -1071,7 +1071,7 @@ impl arc_work_model::Task {
         }
     }
 
-    fn compute_input_grid_mask(&mut self) -> anyhow::Result<()> {
+    fn compute_input_grid_pattern(&mut self) -> anyhow::Result<()> {
         let mut prio1_grid_with_specific_color = false;
         let mut prio1_grid_color: u8 = u8::MAX;
         let mut prio2_grid_with_some_color = false;
