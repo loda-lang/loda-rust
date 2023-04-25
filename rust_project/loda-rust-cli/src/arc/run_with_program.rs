@@ -79,6 +79,18 @@ enum MemoryLayoutItem {
     /// When it's not available then the value is `-1`.
     GridColor = 9,
 
+    /// Clusters of pixels that makes up objects.
+    /// - The value `0` indicates that it's not an object.
+    /// - The values `[1..255]` are object id's.
+    /// 
+    /// This is a fuzzy guess about where the objects are located.
+    /// In a grid the objects are the cells. The top-left cell is assigned `object id=1`.
+    /// The next cell is assigned value `object id=2`. Until reaching the bottom-right cell.
+    /// The grid itself is assigned the value `0`, so that it's not considered an object.
+    ///
+    /// When it's not available then the value is `-1`.
+    EnumeratedObjects = 10,
+
     // Ideas for more
     // Number of cells horizontal
     // Number of cells vertical
@@ -447,6 +459,19 @@ impl RunWithProgram {
                 }
             }
 
+            // memory[x*100+110] = train[x].enumerated_objects
+            {
+                if let Some(image) = &pair.input.enumerated_objects {
+                    let image_number_uint: BigUint = image.to_number().context("enumerated_objects image to number")?;
+                    let image_number_int: BigInt = image_number_uint.to_bigint().context("enumerated_objects BigUint to BigInt")?;
+                    state.set_u64(address + MemoryLayoutItem::EnumeratedObjects as u64, image_number_int).context("enumerated_objects, set_u64")?;
+                } else {
+                    if let Some(value) = (-1i16).to_bigint() {
+                        state.set_u64(address + MemoryLayoutItem::EnumeratedObjects as u64, value).context("enumerated_objects, set_u64 with -1")?;
+                    }
+                }
+            }
+            
             // Ideas for data to make available to the program.
             // output_palette
             // substitutions, replace this color with that color
@@ -570,6 +595,19 @@ impl RunWithProgram {
                 }
                 if let Some(value) = the_color.to_bigint() {
                     state.set_u64(address + MemoryLayoutItem::GridColor as u64, value).context("pair.GridColor, set_u64")?;
+                }
+            }
+
+            // memory[x*100+110] = test[x].enumerated_objects
+            {
+                if let Some(image) = &pair.input.enumerated_objects {
+                    let image_number_uint: BigUint = image.to_number().context("enumerated_objects image to number")?;
+                    let image_number_int: BigInt = image_number_uint.to_bigint().context("enumerated_objects BigUint to BigInt")?;
+                    state.set_u64(address + MemoryLayoutItem::EnumeratedObjects as u64, image_number_int).context("enumerated_objects, set_u64")?;
+                } else {
+                    if let Some(value) = (-1i16).to_bigint() {
+                        state.set_u64(address + MemoryLayoutItem::EnumeratedObjects as u64, value).context("enumerated_objects, set_u64 with -1")?;
+                    }
                 }
             }
 
