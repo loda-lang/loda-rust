@@ -74,7 +74,11 @@ impl ExperimentWithConvolution {
 
         // query the model
         // for task in &self.tasks {
-            for pair in &task0.pairs {
+            let pair_count: usize = task0.pairs.len();
+            for (pair_index, pair) in task0.pairs.iter().enumerate() {
+                let pair_id: f32 = ((pair_index as f32) + 1.0) / ((pair_count as f32) + 1.0);
+                println!("pair_id: {}", pair_id);
+
                 let size: ImageSize;
                 let expected_image: &Image;
                 match pair.pair_type {
@@ -90,7 +94,7 @@ impl ExperimentWithConvolution {
                         size = ImageSize { width: image.width(), height: image.height() };
                     }
                 }
-                let computed_image: Image = self.query(size)?;
+                let computed_image: Image = self.query(pair_id, size)?;
 
                 // measure difference from expected image
                 let diff: Image = computed_image.diff(expected_image)?;
@@ -115,18 +119,21 @@ impl ExperimentWithConvolution {
         Ok(())
     }
 
-    fn query(&self, size: ImageSize) -> anyhow::Result<Image> {
+    fn query(&self, pair_id: f32, size: ImageSize) -> anyhow::Result<Image> {
         let mut result_image = Image::zero(size.width, size.height);
         for y in 0..size.height {
+            let yy: f32 = ((y as f32) + 1.0) / ((size.height as f32) + 1.0);
             for x in 0..size.width {
-                let color: u8 = self.query_xy(x, y)?;
+                let xx: f32 = ((x as f32) + 1.0) / ((size.width as f32) + 1.0);
+                let color: u8 = self.query_xy(pair_id, xx, yy)?;
                 _ = result_image.set(x as i32, y as i32, color);
             }
         }
         Ok(result_image)
     }
 
-    fn query_xy(&self, x: u8, y: u8) -> anyhow::Result<u8> {
+    fn query_xy(&self, pair_id: f32, x: f32, y: f32) -> anyhow::Result<u8> {
+        println!("pair_id: {} x: {} y: {}", pair_id, x, y);
         let color: u8 = 0;
         Ok(color)
     }
