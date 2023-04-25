@@ -3368,21 +3368,12 @@ mod tests {
             fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let pair: &arc_work_model::Pair = &task.pairs[data.index];
                 let input: &Image = &pair.input.image;
-                let grid_pattern: &GridPattern = match &pair.input.grid_pattern {
+                let enumerated_objects: &Image = match &pair.input.enumerated_objects {
                     Some(value) => value,
                     None => {
-                        return Err(anyhow::anyhow!("Missing grid_pattern for input"));
+                        return Err(anyhow::anyhow!("Missing enumerated_objects for input"));
                     }
                 };
-                let grid_mask: &Image = &grid_pattern.line_mask;
-
-                // Segment the image into cells
-                let blank: Image = Image::zero(input.width(), input.height());
-                let cells: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, grid_mask)?;
-                if cells.is_empty() {
-                    return Err(anyhow::anyhow!("Expected 1 or more cells"));
-                }
-                let enumerated_objects: Image = Image::object_enumerate(&cells).expect("image");
 
                 // Number of unique colors inside each object
                 let unique_colors: Image = ObjectsUniqueColorCount::run(input, &enumerated_objects, None)?;
