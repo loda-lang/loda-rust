@@ -2,7 +2,7 @@ use super::{arc_json_model, ActionLabel};
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
-use super::{ImageHistogram, ImageSize, Histogram};
+use super::{ImageHistogram, ImageSize, Histogram, ExperimentWithConvolution};
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
@@ -61,7 +61,19 @@ impl TraverseProgramsAndModels {
 
     pub fn eval_single_task_with_all_existing_solutions(pattern: String) -> anyhow::Result<()> {
         let instance = TraverseProgramsAndModels::new()?;
-        instance.eval_single_task_with_all_existing_solutions_inner(&pattern)?;
+        // instance.eval_single_task_with_all_existing_solutions_inner(&pattern)?;
+        instance.experiment_with_convolution()?;
+        Ok(())
+    }
+
+    fn experiment_with_convolution(&self) -> anyhow::Result<()> {
+        let mut task_vec: Vec<Task> = vec!();
+        for model_item in &self.model_item_vec {
+            let task: Task = model_item.borrow().task.clone();
+            task_vec.push(task);
+        }
+        let instance = ExperimentWithConvolution::new(task_vec);
+        instance.run()?;
         Ok(())
     }
 
