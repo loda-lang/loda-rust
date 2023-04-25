@@ -1,4 +1,4 @@
-use super::{arc_json_model, ActionLabel, InputLabel, GridLabel};
+use super::{arc_json_model, ActionLabel};
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
@@ -29,7 +29,7 @@ use rand::rngs::StdRng;
 use serde::{Serialize, Deserialize};
 
 #[allow(unused_imports)]
-use crate::arc::{HtmlLog, ImageToHTML};
+use super::{HtmlLog, ImageToHTML, InputLabel, GridLabel};
 
 static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 
