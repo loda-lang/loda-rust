@@ -49,6 +49,8 @@ pub struct Input {
 
     pub grid_pattern: Option<GridPattern>,
 
+    pub enumerated_objects: Option<Image>,
+
     // Future experiments to do.
     // Resolving these properties is similar to a package manager, a DAG (directed acyclic graph).
     // One property may depend on another property that depends on a third property.

@@ -87,6 +87,10 @@ impl HtmlFromTask {
                 self.row_input_image += "<br>";
                 self.row_input_image += &pattern.line_mask.to_html();
             }
+            if let Some(image) = &pair.input.enumerated_objects {
+                self.row_input_image += "<br>";
+                self.row_input_image += &image.to_html();
+            }
             // if let Some(image) = &pair.input.repair_mask {
             //     self.row_input_image += "<br>";
             //     self.row_input_image += &image.to_html();

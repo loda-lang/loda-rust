@@ -1,4 +1,4 @@
-use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry};
+use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate};
 use super::arc_work_model::{Input, PairType};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram};
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
@@ -60,6 +60,16 @@ impl arc_work_model::Task {
     pub fn has_grid_pattern(&self) -> bool {
         for pair in &self.pairs {
             if pair.input.grid_pattern.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
+    #[allow(dead_code)]
+    pub fn has_enumerated_objects(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.input.enumerated_objects.is_none() {
                 return false;
             }
         }
@@ -540,6 +550,8 @@ impl arc_work_model::Task {
         self.compute_input_repaired_image()?;
 
         self.compute_input_grid_pattern()?;
+
+        self.compute_input_enumerated_objects()?;
 
         Ok(())
     }
@@ -1209,6 +1221,51 @@ impl arc_work_model::Task {
         }
 
         // This case is hit for 728 task out of the 800 tasks.
+        Ok(())
+    }
+
+    fn compute_input_enumerated_objects(&mut self) -> anyhow::Result<()> {
+        if self.has_enumerated_objects() {
+            return Ok(());
+        }
+
+        // Don't care wether it succeeds or fails
+        _ = self.compute_input_enumerated_objects_using_grid();
+
+        // Reset all enumerated_objects if one or more is missing.
+        if !self.has_enumerated_objects() {
+            for pair in self.pairs.iter_mut() {
+                pair.input.enumerated_objects = None;
+            }
+        }
+        Ok(())
+    }
+
+    fn compute_input_enumerated_objects_using_grid(&mut self) -> anyhow::Result<()> {
+        if !self.has_grid_pattern() {
+            return Ok(());
+        }
+
+        for pair in self.pairs.iter_mut() {
+            let grid = match &pair.input.grid_pattern {
+                Some(value) => value.clone(),
+                None => {
+                    // One or more of the grid_patterns are not initialized, aborting.
+                    return Err(anyhow::anyhow!("One or more grid_patters are not initialized"));
+                }
+            };
+
+            let mask: &Image = &grid.line_mask;
+            let blank: Image = Image::zero(mask.width(), mask.height());
+            let cells: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, mask)?;
+            if cells.is_empty() {
+                return Err(anyhow::anyhow!("Expected grid to have 1 or more cells"));
+            }
+            let enumerated_objects: Image = Image::object_enumerate(&cells).expect("image");
+
+            pair.input.enumerated_objects = Some(enumerated_objects);
+        }
+
         Ok(())
     }
 

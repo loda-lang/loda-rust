@@ -292,13 +292,13 @@ impl TraverseProgramsAndModels {
         }
         println!("tasks with size=bad and palette=bad.  {}", count_tasks_without_predictions);
 
-        Self::inspect_task_id(&task_vec, "83302e8f")?;
-        Self::inspect_task_id(&task_vec, "95a58926")?;
-        Self::inspect_task_id(&task_vec, "e906de3d")?;
-        Self::inspect_task_id(&task_vec, "7837ac64")?;
-        Self::inspect_task_id(&task_vec, "8ee02e8f")?;
-        Self::inspect_task_id(&task_vec, "92e50de0")?;
-        Self::inspect_task_id(&task_vec, "c3202e5a")?;
+        // Self::inspect_task_id(&task_vec, "83302e8f")?;
+        // Self::inspect_task_id(&task_vec, "95a58926")?;
+        // Self::inspect_task_id(&task_vec, "e906de3d")?;
+        // Self::inspect_task_id(&task_vec, "7837ac64")?;
+        // Self::inspect_task_id(&task_vec, "8ee02e8f")?;
+        // Self::inspect_task_id(&task_vec, "92e50de0")?;
+        // Self::inspect_task_id(&task_vec, "c3202e5a")?;
 
         // repair and crop
         // Self::inspect_task_id(&task_vec, "0934a4d8")?;
@@ -376,30 +376,33 @@ impl TraverseProgramsAndModels {
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
-            for input_label in &task.input_label_set_intersection {
-                let grid_label: GridLabel = match input_label {
-                    InputLabel::InputGrid { label } => label.clone(),
-                    _ => continue
-                };
-                match grid_label {
-                    GridLabel::GridColor { color: _ } => {
-                        // found = true;
-                    },
-                    GridLabel::GridWithSomeColor => {
-                        // found = true;
-                    },
-                    GridLabel::GridWithMismatchesAndColor { color: _ } => {
-                        // found = true;
-                    },
-                    GridLabel::GridWithMismatchesAndSomeColor => {
-                        // found = true;
-                    },
-                }
-            }
-            if task.has_grid_pattern() {
+            // for input_label in &task.input_label_set_intersection {
+            //     let grid_label: GridLabel = match input_label {
+            //         InputLabel::InputGrid { label } => label.clone(),
+            //         _ => continue
+            //     };
+            //     match grid_label {
+            //         GridLabel::GridColor { color: _ } => {
+            //             // found = true;
+            //         },
+            //         GridLabel::GridWithSomeColor => {
+            //             // found = true;
+            //         },
+            //         GridLabel::GridWithMismatchesAndColor { color: _ } => {
+            //             // found = true;
+            //         },
+            //         GridLabel::GridWithMismatchesAndSomeColor => {
+            //             // found = true;
+            //         },
+            //     }
+            // }
+            if task.has_enumerated_objects() {
                 found = true;
-                // found = false;
             }
+            // if task.has_grid_pattern() {
+                // found = true;
+                // found = false;
+            // }
             // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricYWithInset) {
             //     found = true;
             // }
