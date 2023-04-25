@@ -1,7 +1,7 @@
-use crate::arc::arc_work_model::PairType;
+use crate::arc::ImageMaskCount;
 
-use super::arc_work_model::Task;
-use super::{Image, ImagePadding};
+use super::arc_work_model::{Task, PairType};
+use super::{Image, ImageCompare, ImagePadding, ImageSize};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rand::distributions::{Distribution, Uniform};
@@ -64,12 +64,58 @@ impl ExperimentWithConvolution {
         // train with the samples
 
         // query the model
+        for task in &self.tasks {
+            for pair in &task.pairs {
+                let size: ImageSize;
+                let expected_image: &Image;
+                match pair.pair_type {
+                    PairType::Test => {
+                        // let image: &Image = &pair.output.test_image;
+                        // expected_image = image;
+                        // size = ImageSize { width: image.width(), height: image.height() };
+                        continue;
+                    },
+                    PairType::Train => {
+                        let image: &Image = &pair.output.image;
+                        expected_image = image;
+                        size = ImageSize { width: image.width(), height: image.height() };
+                    }
+                }
+                let computed_image: Image = self.query(size)?;
+
+                // measure difference from expected image
+                let diff: Image = computed_image.diff(expected_image)?;
+                let intersection: u16 = diff.mask_count_zero();
+                let union: u16 = (size.width as u16) * (size.height as u16);
+                if union == 0 {
+                    return Err(anyhow::anyhow!("Encountered a task with an empty image. {}", pair.id));
+                }
+                let jaccard_index: f32 = (intersection as f32) / (union as f32);
+                println!("pair: {} jaccard_index: {}", pair.id, jaccard_index);
+            }
+        }
 
         // undo if the mutation was too poor
         
         // repeat training
 
         Ok(())
+    }
+
+    fn query(&self, size: ImageSize) -> anyhow::Result<Image> {
+        let mut result_image = Image::zero(size.width, size.height);
+        for y in 0..size.height {
+            for x in 0..size.width {
+                let color: u8 = self.query_xy(x, y)?;
+                _ = result_image.set(x as i32, y as i32, color);
+            }
+        }
+        Ok(result_image)
+    }
+
+    fn query_xy(&self, x: u8, y: u8) -> anyhow::Result<u8> {
+        let color: u8 = 0;
+        Ok(color)
     }
 
     fn extract_samples(input: &Image, input_output_type: InputOutputType) -> anyhow::Result<Vec<Sample>> {
