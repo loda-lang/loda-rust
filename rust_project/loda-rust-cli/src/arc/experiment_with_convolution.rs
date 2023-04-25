@@ -1,5 +1,8 @@
 use super::arc_work_model::Task;
 use super::{Image, ImagePadding};
+use rand::SeedableRng;
+use rand::rngs::StdRng;
+use rand::distributions::{Distribution, Uniform};
 
 #[derive(Clone, Debug)]
 struct Sample {
@@ -22,6 +25,20 @@ impl ExperimentWithConvolution {
     pub fn run(&self) -> anyhow::Result<()> {
         println!("will process {} tasks", self.tasks.len());
 
+        // Random weights
+        let random_seed: u64 = 1;
+        let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
+        let step = Uniform::<u16>::new(0, 1001);
+        let mut weights = Vec::<f32>::new();
+        for _ in 0..9 {
+            let random_value: u16 = step.sample(&mut rng);
+            let weight_between0and1: f32 = (random_value as f32) / 1000.0;
+            let weight: f32 = weight_between0and1 + 1.0;
+            weights.push(weight);
+        }
+        println!("weights: {:?}", weights);
+
+        // Extract samples
         for task in &self.tasks {
             for pair in &task.pairs {
                 let padded_image: Image = pair.input.image.padding_with_color(1, 255)?;
