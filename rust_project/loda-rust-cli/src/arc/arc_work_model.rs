@@ -50,6 +50,9 @@ pub struct Input {
     pub grid_pattern: Option<GridPattern>,
 
     // Future experiments to do.
+    // Resolving these properties is similar to a package manager, a DAG (directed acyclic graph).
+    // One property may depend on another property that depends on a third property.
+    // As of 2023-04-25 the code is not a DAG, and gets initialized in a kludgy way. I want to migrate to a DAG.
     // State keeping of the input_properties. 
     // Computed, NotYetComputed, CannotBeComputed, DependingOnAnotherProperty.
     // Rerun analytics until all pending properties have been computed
@@ -75,6 +78,8 @@ pub enum Prediction {
     // weak prediction: the width is a in a range.
     // weak prediction: the height is a in a range.
     // weak prediction: the size must be a square.
+    // is the input grid preserved in the output
+    // grid color
 }
 
 pub type PredictionSet = HashSet<Prediction>;
