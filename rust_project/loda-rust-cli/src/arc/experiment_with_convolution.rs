@@ -2,6 +2,7 @@ use crate::arc::ImageMaskCount;
 
 use super::arc_work_model::{Task, PairType};
 use super::{Image, ImageCompare, ImagePadding, ImageSize};
+use anyhow::Context;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rand::distributions::{Distribution, Uniform};
@@ -36,6 +37,9 @@ impl ExperimentWithConvolution {
     pub fn run(&self) -> anyhow::Result<()> {
         println!("will process {} tasks", self.tasks.len());
 
+        let task0: &Task = self.tasks.first().context("one or more")?;
+        println!("task: {}", task0.id);
+
         // Random weights
         let random_seed: u64 = 1;
         let mut rng: StdRng = StdRng::seed_from_u64(random_seed);
@@ -50,11 +54,11 @@ impl ExperimentWithConvolution {
         println!("weights: {:?}", weights);
 
         // Extract samples
-        for task in &self.tasks {
+        // for task in &self.tasks {
 
             // the global weights stays locked while training for a single task
             // local weights that gets updated while training with a single task
-            for pair in &task.pairs {
+            for pair in &task0.pairs {
                 if pair.pair_type == PairType::Test {
                     continue;
                 }
@@ -64,13 +68,13 @@ impl ExperimentWithConvolution {
 
                 // mutate the local weights
             }
-        }
+        // }
 
         // train with the samples
 
         // query the model
-        for task in &self.tasks {
-            for pair in &task.pairs {
+        // for task in &self.tasks {
+            for pair in &task0.pairs {
                 let size: ImageSize;
                 let expected_image: &Image;
                 match pair.pair_type {
@@ -98,7 +102,7 @@ impl ExperimentWithConvolution {
                 let jaccard_index: f32 = (intersection as f32) / (union as f32);
                 println!("pair: {} jaccard_index: {}", pair.id, jaccard_index);
             }
-        }
+        // }
 
         // undo if the mutation was too poor
 
