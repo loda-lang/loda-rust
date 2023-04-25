@@ -3401,6 +3401,40 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
+    const PROGRAM_C3202E5A: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,110 ; address of vector[0].EnumeratedObjects
+    lps $80
+        mov $0,$$81
+
+        mov $1,$$83 ; enumerated objects
+        f21 $0,104000 ; Count unique colors in each object
+
+        ; $1 is the enumerated objects
+        f21 $0,104100 ; Pick object with the smallest value
+
+        mov $1,255 ; color for the area to be trimmed
+        mov $2,$$81
+        f31 $0,102130 ; Pick pixels from color and image
+
+        ; $1 is the color to be trimmed
+        f21 $0,101161 ; trim with color
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_740001_puzzle_c3202e5a_loda() {
+        let result: String = run_advanced("c3202e5a", PROGRAM_C3202E5A).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
     mod solve_1c0d0a4b {
         use super::*;
 
