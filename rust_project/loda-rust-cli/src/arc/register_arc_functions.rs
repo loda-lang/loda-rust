@@ -1,4 +1,4 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects, ImageBorder, ObjectsUniqueColorCount, ObjectWithSmallestValue};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects, ImageBorder, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
 use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean};
@@ -2662,6 +2662,91 @@ impl UnofficialFunction for ObjectWithSmallestValueFunction {
     }
 }
 
+enum ObjectWithDifferentColorFunctionMode {
+    DontIgnore,
+    Ignore1Color,
+    Ignore2Colors,
+}
+
+struct ObjectWithDifferentColorFunction {
+    id: u32,
+    mode: ObjectWithDifferentColorFunctionMode,
+}
+
+impl ObjectWithDifferentColorFunction {
+    fn new(id: u32, mode: ObjectWithDifferentColorFunctionMode) -> Self {
+        Self {
+            id,
+            mode,
+        }
+    }
+}
+
+impl UnofficialFunction for ObjectWithDifferentColorFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        let input_count: u8 = match self.mode {
+            ObjectWithDifferentColorFunctionMode::DontIgnore => 2,
+            ObjectWithDifferentColorFunctionMode::Ignore1Color => 3,
+            ObjectWithDifferentColorFunctionMode::Ignore2Colors => 4,
+        };
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: input_count, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        match self.mode {
+            ObjectWithDifferentColorFunctionMode::DontIgnore => {
+                return "Find the single object that has different colors than the other objects".to_string();
+            },
+            ObjectWithDifferentColorFunctionMode::Ignore1Color => {
+                return "Find the single object that has different colors than the other objects. With 1 ignore color.".to_string();
+            },
+            ObjectWithDifferentColorFunctionMode::Ignore2Colors => {
+                return "Find the single object that has different colors than the other objects. With 2 ignore colors.".to_string();
+            }
+        }
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        let color_count: u8 = match self.mode {
+            ObjectWithDifferentColorFunctionMode::DontIgnore => 0,
+            ObjectWithDifferentColorFunctionMode::Ignore1Color => 1,
+            ObjectWithDifferentColorFunctionMode::Ignore2Colors => 2,
+        };
+        let expected_input_count: u8 = color_count + 2;
+        if input.len() != expected_input_count as usize {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is enumerated objects
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let enumerated_objects: Image = input1_uint.to_image()?;
+
+        // optional input2..3 are ignore colors
+        let mut ignore_colors = Histogram::new();
+        if color_count > 0 {
+            for i in 0..(color_count as usize) {
+                let color: u8 = input[2 + i].to_u8().context("u8 ignore_color")?;
+                ignore_colors.increment(color);
+            }
+        }
+
+        let output_image: Image = ObjectWithDifferentColor::run(&input_image, &enumerated_objects, Some(&ignore_colors))?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -2836,4 +2921,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Pick object with some property
     register_function!(ObjectWithSmallestValueFunction::new(104100));
+    register_function!(ObjectWithDifferentColorFunction::new(104110, ObjectWithDifferentColorFunctionMode::DontIgnore));
+    register_function!(ObjectWithDifferentColorFunction::new(104111, ObjectWithDifferentColorFunctionMode::Ignore1Color));
+    register_function!(ObjectWithDifferentColorFunction::new(104112, ObjectWithDifferentColorFunctionMode::Ignore2Colors));
 }
