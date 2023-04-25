@@ -1,11 +1,12 @@
-use crate::arc::ImageMaskCount;
-
 use super::arc_work_model::{Task, PairType};
-use super::{Image, ImageCompare, ImagePadding, ImageSize};
+use super::{Image, ImageCompare, ImagePadding, ImageSize, ImageMaskCount};
 use anyhow::Context;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rand::distributions::{Distribution, Uniform};
+
+#[allow(unused_imports)]
+use super::{HtmlLog, ImageToHTML};
 
 #[derive(Clone, Copy, Debug)]
 enum InputOutputType {
@@ -105,6 +106,11 @@ impl ExperimentWithConvolution {
                 }
                 let jaccard_index: f32 = (intersection as f32) / (union as f32);
                 println!("pair: {} jaccard_index: {}", pair.id, jaccard_index);
+
+                HtmlLog::text(format!("pair: {}", pair.id));
+                HtmlLog::image(&expected_image);
+                HtmlLog::image(&computed_image);
+                HtmlLog::image(&diff);
             }
         // }
 
