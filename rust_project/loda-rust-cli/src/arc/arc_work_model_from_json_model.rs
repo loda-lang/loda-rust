@@ -49,8 +49,11 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     input_label_set: HashSet::new(),
                     input_objects: HashMap::new(),
                     symmetry: None,
+                    grid: None,
                     repair_mask: None,
                     repaired_image: None,
+                    grid_pattern: None,
+                    enumerated_objects: None,
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},train", task_id, index),
@@ -84,8 +87,11 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     input_label_set: HashSet::new(),
                     input_objects: HashMap::new(),
                     symmetry: None,
+                    grid: None,
                     repair_mask: None,
                     repaired_image: None,
+                    grid_pattern: None,
+                    enumerated_objects: None,
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},test", task_id, index),

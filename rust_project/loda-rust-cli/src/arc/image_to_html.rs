@@ -2,16 +2,22 @@ use super::Image;
 
 pub trait ImageToHTML {
     fn to_html(&self) -> String;
+    fn to_html_with_prefix(&self, prefix: &str) -> String;
 }
 
 impl ImageToHTML for Image {
     fn to_html(&self) -> String {
+        self.to_html_with_prefix("")
+    }
+
+    fn to_html_with_prefix(&self, prefix: &str) -> String {
         if self.is_empty() {
-            return "<div class=\"themearc image empty\"><span class=\"themearc image size\">0x0</span></div>".to_string();
+            return format!("<div class=\"themearc image empty\"><span class=\"themearc image size\">{}0x0</span></div>", prefix);
         }
 
         let mut s = "<div class=\"themearc image nonempty\">".to_string();
-        s += &format!("<span class=\"size\">{}x{}</span>", self.width(), self.height());
+        s += &format!("<span class=\"size\">{}{}x{}</span>", prefix, self.width(), self.height());
+        s += "<div class=\"themearc image rows-container\">";
         s += "<span class=\"themearc image rows\">";
         for y in 0..self.height() {
             s += "<span class=\"themearc image row\">";
@@ -22,6 +28,7 @@ impl ImageToHTML for Image {
             s += "</span>";
         }
         s += "</span>";
+        s += "</div>";
         s += "</div>";
         s
     }
@@ -58,7 +65,7 @@ mod tests {
         let actual: String = input.to_html();
 
         // Assert
-        let expected = "<div class=\"themearc image nonempty\"><span class=\"size\">2x2</span><span class=\"themearc image rows\"><span class=\"themearc image row\"><span class=\"themearc symbol_0\">0</span><span class=\"themearc symbol_1\">1</span></span><span class=\"themearc image row\"><span class=\"themearc symbol_2\">2</span><span class=\"themearc symbol_3\">3</span></span></span></div>";
+        let expected = "<div class=\"themearc image nonempty\"><span class=\"size\">2x2</span><div class=\"themearc image rows-container\"><span class=\"themearc image rows\"><span class=\"themearc image row\"><span class=\"themearc symbol_0\">0</span><span class=\"themearc symbol_1\">1</span></span><span class=\"themearc image row\"><span class=\"themearc symbol_2\">2</span><span class=\"themearc symbol_3\">3</span></span></span></div></div>";
         assert_eq!(actual, expected);
     }
 }

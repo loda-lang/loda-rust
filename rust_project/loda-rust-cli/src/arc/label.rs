@@ -39,11 +39,15 @@ pub enum PropertyInput {
     InputHeightOfRemovedRectangleAfterSingleColorRemoval,
 
     // Ideas for more
+    // InputCellCountHorizontal,
+    // InputCellCountVertical,
     // InputUniqueColorCountAfterRemoval
     // Number of 1px lines horizontal
     // Number of 1px lines vertical
 }
 
+/// Does the image contain symmetric patterns
+/// 
 /// Properties about an input image or an output image.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SymmetryLabel {
@@ -66,14 +70,42 @@ pub enum SymmetryLabel {
     // Number of palindromic columns { count: u8 },
 }
 
+/// Does the image contain grid patterns
+/// 
+/// Properties about an input image or an output image.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum GridLabel {
+    GridColor { color: u8 },
+    GridWithSomeColor,
+    GridWithMismatchesAndColor { color: u8 },
+    GridWithMismatchesAndSomeColor,
+
+    // Ideas for more
+    // Horizontal Line color
+    // Vertical Line color
+    // AnyDirection Line color
+    // Color only occur in the grid lines
+    // Periodicity,
+    // Cell size,
+    // Line size,
+    // Number of cells horizontal,
+    // Number of cells vertical,
+    // Number of lines horizontal,
+    // Number of lines vertical,
+    // NoiseColor { color: u8 },
+}
+
 /// Properties about the input image.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum InputLabel {
     InputSymmetry { label: SymmetryLabel },
+    InputGrid { label: GridLabel },
 
     // Ideas for more
+    // InputColorThatDoesNotOccurInTheIntersection { color: u8 },
     // InputUniqueColors { color: Vec<u8> },
     // InputAspectRatio { width: u8, height: u8 },
+    // InputContainsOneOrMoreBoxes,
 }
 
 pub type InputLabelSet = HashSet<InputLabel>;
@@ -132,6 +164,8 @@ pub enum ActionLabel {
     // Ideas for more
     // OutputImageIsTheSameAsInputImageWithColor { color: u8 },
     // OutputSymmetry { label: SymmetryLabel },
+    // OutputGrid { label: GridLabel },
+    // OutputGridIsTheSameAsInputGrid,
     // OutputImageIsPresentInInputImageWithTwoColorWildcards, for solving "8731374e"
     // OutputImageWithSlightlyDifferentColorsIsPresentInTheInputImage,
     // OutputImageIsSingleColor,

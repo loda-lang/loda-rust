@@ -1,7 +1,7 @@
 use super::arc_work_model;
 use super::arc_work_model::Object;
-use super::{PropertyInput, InputLabel};
-use super::{Symmetry, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
+use super::{PropertyInput, InputLabel, GridLabel};
+use super::{Symmetry, Grid, GridToLabel, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
 use super::{ImageSegment, ImageSegmentAlgorithm, ImageMask, ImageCrop};
 use std::collections::{HashMap, HashSet};
 
@@ -88,9 +88,9 @@ impl arc_work_model::Input {
             }
         }
 
-        let input_unique_color_count_raw: u32 = self.histogram.number_of_counters_greater_than_zero();
+        let input_unique_color_count_raw: u16 = self.histogram.number_of_counters_greater_than_zero();
         let mut input_unique_color_count: Option<u8> = None;
-        if input_unique_color_count_raw <= (u8::MAX as u32) {
+        if input_unique_color_count_raw <= (u8::MAX as u16) {
             input_unique_color_count = Some(input_unique_color_count_raw as u8);
         }
 
@@ -180,17 +180,36 @@ impl arc_work_model::Input {
 
         let symmetry: Symmetry = match Symmetry::analyze(&self.image) {
             Ok(value) => value,
-            Err(_) => {
-                println!("DetectSymmetry Unable to check symmetry. {}", self.id);
+            Err(error) => {
+                println!("Unable to find symmetry. {} error: {:?}", self.id, error);
                 return;
             }
         };
         self.symmetry = Some(symmetry);
     }
 
+    pub fn resolve_grid(&mut self) {
+        if self.grid.is_some() {
+            return;
+        }
+        let grid: Grid = match Grid::analyze(&self.image) {
+            Ok(value) => value,
+            Err(error) => {
+                println!("Unable to find grid. {} error: {:?}", self.id, error);
+                return;
+            }
+        };
+        self.grid = Some(grid);
+    }
+
     pub fn update_input_label_set(&mut self) {
         self.resolve_symmetry();
+        self.resolve_grid();
+        self.assign_symmetry_labels();
+        self.assign_grid_labels();
+    }
 
+    pub fn assign_symmetry_labels(&mut self) {
         let symmetry_labels: HashSet<SymmetryLabel>;
         match &self.symmetry {
             Some(symmetry) => {
@@ -200,9 +219,24 @@ impl arc_work_model::Input {
                 return;
             }
         };
-
         for symmetry_label in symmetry_labels {
             let label = InputLabel::InputSymmetry { label: symmetry_label.clone() };
+            self.input_label_set.insert(label);
+        }
+    }
+
+    pub fn assign_grid_labels(&mut self) {
+        let grid_labels: HashSet<GridLabel>;
+        match &self.grid {
+            Some(grid) => {
+                grid_labels = grid.to_grid_labels();
+            },
+            None => {
+                return;
+            }
+        };
+        for grid_label in grid_labels {
+            let label = InputLabel::InputGrid { label: grid_label.clone() };
             self.input_label_set.insert(label);
         }
     }

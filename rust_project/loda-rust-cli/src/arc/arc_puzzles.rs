@@ -7,9 +7,11 @@ mod tests {
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
-    use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere};
+    use crate::arc::{ObjectsMeasureMass, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
+    use crate::arc::{ObjectsToGrid, ObjectsToGridMode};
+    use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere, GridPattern};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
-    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle};
+    use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
     use crate::arc::{ImageReplaceRegex, ImageReplaceRegexToColor, ImagePosition, ImageMaskBoolean, ImageCountUniqueColors};
     use std::collections::HashMap;
     use regex::Regex;
@@ -2887,7 +2889,7 @@ mod tests {
                     }
                 };
                 let image: Image = input.crop(rect)?;
-                let count: u32 = image.histogram_all().number_of_counters_greater_than_zero();
+                let count: u16 = image.histogram_all().number_of_counters_greater_than_zero();
                 if count == 1 {
                     continue;
                 }
@@ -2914,7 +2916,7 @@ mod tests {
                     }
                 };
                 let image: Image = input.crop(rect)?;
-                let count: u32 = image.histogram_all().number_of_counters_greater_than_zero();
+                let count: u16 = image.histogram_all().number_of_counters_greater_than_zero();
                 if count != 1 {
                     continue;
                 }
@@ -3266,6 +3268,339 @@ mod tests {
     #[test]
     fn test_710004_puzzle_47996f11_loda() {
         let result: String = run_advanced("47996f11", PROGRAM_47996F11).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    #[allow(dead_code)]
+    mod inspect_grid {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                println!("grid: {:?}", pair.input.grid);
+                let result_image: Image = pair.input.image.clone();
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[allow(dead_code)]
+    // #[test]
+    fn test_720000_puzzle_95a58926() {
+        let mut instance = inspect_grid::MySolution {};
+        let result: String = run_analyze_and_solve("95a58926", &mut instance).expect("String");
+        assert_eq!(result, "5 1");
+    }
+
+    mod solve_0b148d64 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let grid_pattern: &GridPattern = match &pair.input.grid_pattern {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Missing grid_pattern for input"));
+                    }
+                };
+                let grid_color: u8 = grid_pattern.color;
+
+                let enumerated_objects: &Image = match &pair.input.enumerated_objects {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Missing enumerated_objects for input"));
+                    }
+                };
+
+                let mut ignore_colors = Histogram::new();
+                ignore_colors.increment(grid_color);
+
+                // Find the cell with the unusual color
+                let mask: Image = ObjectWithDifferentColor::run(&input, &enumerated_objects, Some(&ignore_colors))?;
+
+                // crop out the cell 
+                let crop_rect: Rectangle = match mask.bounding_box() {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("cannot determine bounding box"));
+                    }
+                };
+                let result_image: Image = input.crop(crop_rect)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_730000_puzzle_0b148d64() {
+        let mut instance = solve_0b148d64::MySolution {};
+        let result: String = run_analyze_and_solve("0b148d64", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_0B148D64: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,109 ; address of vector[0].GridColor
+    mov $84,110 ; address of vector[0].EnumeratedObjects
+    lps $80
+        mov $0,$$81
+        mov $1,$$84 ; enumerated objects
+        mov $2,$$83 ; grid color
+
+        f31 $0,104111 ; Find the single object that has different colors than the other objects. With 1 ignore color.
+
+        mov $1,255 ; color for the area to be trimmed
+        mov $2,$$81
+        f31 $0,102130 ; Pick pixels from color and image
+
+        ; $1 is the color to be trimmed
+        f21 $0,101161 ; trim with color
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+        add $84,100
+    lpe
+    ";
+
+    #[test]
+    fn test_730001_puzzle_0b148d64_loda() {
+        let result: String = run_advanced("0b148d64", PROGRAM_0B148D64).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_c3202e5a {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let enumerated_objects: &Image = match &pair.input.enumerated_objects {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Missing enumerated_objects for input"));
+                    }
+                };
+
+                // Number of unique colors inside each object
+                let unique_colors: Image = ObjectsUniqueColorCount::run(input, &enumerated_objects, None)?;
+
+                // Pick the object with the lowest number of unique colors
+                let mask: Image = ObjectWithSmallestValue::run(&unique_colors, &enumerated_objects)?;
+
+                // crop out the cell 
+                let crop_rect: Rectangle = match mask.bounding_box() {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("cannot determine bounding box"));
+                    }
+                };
+                let result_image: Image = input.crop(crop_rect)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_740000_puzzle_c3202e5a() {
+        let mut instance = solve_c3202e5a::MySolution {};
+        let result: String = run_analyze_and_solve("c3202e5a", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_C3202E5A: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,110 ; address of vector[0].EnumeratedObjects
+    lps $80
+        mov $0,$$81
+
+        mov $1,$$83 ; enumerated objects
+        f21 $0,104000 ; Count unique colors in each object
+
+        ; $1 is the enumerated objects
+        f21 $0,104100 ; Pick object with the smallest value
+
+        mov $1,255 ; color for the area to be trimmed
+        mov $2,$$81
+        f31 $0,102130 ; Pick pixels from color and image
+
+        ; $1 is the color to be trimmed
+        f21 $0,101161 ; trim with color
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_740001_puzzle_c3202e5a_loda() {
+        let result: String = run_advanced("c3202e5a", PROGRAM_C3202E5A).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_1c0d0a4b {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let grid_pattern: &GridPattern = match &pair.input.grid_pattern {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Missing grid_pattern for input"));
+                    }
+                };
+                let grid_mask: &Image = &grid_pattern.line_mask;
+                let grid_color: u8 = grid_pattern.color;
+                let cell_content: Image = input.to_mask_where_color_is_different(grid_color);
+                let result_image: Image = cell_content.mask_xor(&grid_mask)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_750000_puzzle_1c0d0a4b() {
+        let mut instance = solve_1c0d0a4b::MySolution {};
+        let result: String = run_analyze_and_solve("1c0d0a4b", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_1C0D0A4B: &'static str = "
+    mov $80,$99
+    mov $81,100
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,108 ; address of vector[0].GridMask
+    mov $84,109 ; address of vector[0].GridColor
+    lps $80
+        mov $0,$$81
+
+        mov $1,$$84 ; grid color
+        f21 $0,101251 ; Convert to a mask image by converting `color` to 0 and converting anything else to to 1.
+
+        mov $1,$$83 ; grid mask
+        f21 $0,101254 ; xor
+
+        mov $$82,$0
+
+        add $81,100
+        add $82,100
+        add $83,100
+        add $84,100
+    lpe
+    ";
+
+    #[test]
+    fn test_750001_puzzle_1c0d0a4b_loda() {
+        let result: String = run_advanced("1c0d0a4b", PROGRAM_1C0D0A4B).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_6773b310 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let grid_pattern: &GridPattern = match &pair.input.grid_pattern {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Missing grid_pattern for input"));
+                    }
+                };
+                let grid_mask: &Image = &grid_pattern.line_mask;
+                let grid_color: u8 = grid_pattern.color;
+                let background_color: u8;
+                {
+                    let mut histogram: Histogram = pair.input.histogram.clone();
+                    histogram.set_counter_to_zero(grid_color);
+                    background_color = match histogram.most_popular_color_disallow_ambiguous() {
+                        Some(value) => value,
+                        None => {
+                            return Err(anyhow::anyhow!("ambiguous what the background color is"));
+                        }
+                    };
+                }
+
+                // Segment the image into cells
+                let blank: Image = Image::zero(input.width(), input.height());
+                let cells: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, grid_mask)?;
+                if cells.is_empty() {
+                    return Err(anyhow::anyhow!("Expected 1 or more cells"));
+                }
+                let enumerated_cells: Image = Image::object_enumerate(&cells).expect("image");
+
+                let mut ignore_colors = Histogram::new();
+                ignore_colors.increment(background_color);
+                ignore_colors.increment(grid_color);
+                let mass_of_objects: Image = ObjectsMeasureMass::run(input, &enumerated_cells, Some(&ignore_colors))?;
+
+                // Layout the objects in a grid
+                let grid_width: u8 = grid_pattern.horizontal_cell_count;
+                let grid_height: u8 = grid_pattern.vertical_cell_count;
+                if grid_width < 1 || grid_height < 1 {
+                    return Err(anyhow::anyhow!("Too small grid. Must be 1x1 or bigger"));
+                }
+                let result_image: Image = ObjectsToGrid::run(
+                    &mass_of_objects,
+                    &enumerated_cells,
+                    grid_width,
+                    grid_height,
+                    ObjectsToGridMode::MostPopularColor,
+                )?;
+
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_760000_puzzle_6773b310() {
+        let mut instance = solve_6773b310::MySolution {};
+        let result: String = run_analyze_and_solve("6773b310", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 }

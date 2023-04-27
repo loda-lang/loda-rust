@@ -108,6 +108,13 @@ impl Histogram {
         &self.counters
     }
 
+    /// Get the counter value for a color.
+    /// 
+    /// Example: Get the number of times that `color 42` occur in an image.
+    pub fn get(&self, index: u8) -> u32 {
+        self.counters[index as usize]
+    }
+
     #[allow(dead_code)]
     pub fn to_vec(&self) -> Vec<u32> {
         self.counters.to_vec()
@@ -301,14 +308,18 @@ impl Histogram {
     }
 
     /// Number of counters that are greater than zero.
-    pub fn number_of_counters_greater_than_zero(&self) -> u32 {
+    /// 
+    /// The returned value is in the range `[0..256]`.
+    /// - Returns `0` when all of the 256 counters are zero.
+    /// - Returns `256` when all of the 256 counters are non-zero.
+    pub fn number_of_counters_greater_than_zero(&self) -> u16 {
         let mut count: u32 = 0;
         for number_of_occurences in &self.counters {
             if *number_of_occurences > 0 {
                 count += 1;
             }
         }
-        count
+        count.min(256) as u16
     }
 
     /// Returns an `Image` where `width` is the number of counters greater than zero, and `height=2`.
@@ -361,6 +372,11 @@ impl Histogram {
             }
         }
         None
+    }
+
+    /// Add all the counters together.
+    pub fn sum(&self) -> u32 {
+        self.counters.iter().sum()
     }
 }
 
@@ -734,7 +750,7 @@ mod tests {
     #[test]
     fn test_70000_number_of_counters_greater_than_zero_empty() {
         let h = Histogram::new();
-        let actual: u32 = h.number_of_counters_greater_than_zero();
+        let actual: u16 = h.number_of_counters_greater_than_zero();
         assert_eq!(actual, 0);
     }
 
@@ -748,7 +764,7 @@ mod tests {
         }
 
         // Act
-        let actual: u32 = h.number_of_counters_greater_than_zero();
+        let actual: u16 = h.number_of_counters_greater_than_zero();
 
         // Assert
         assert_eq!(actual, 5);
@@ -763,7 +779,7 @@ mod tests {
         }
 
         // Act
-        let actual: u32 = h.number_of_counters_greater_than_zero();
+        let actual: u16 = h.number_of_counters_greater_than_zero();
 
         // Assert
         assert_eq!(actual, 256);
@@ -1004,5 +1020,22 @@ mod tests {
 
         // Assert
         assert_eq!(set.len(), 1);
+    }
+
+    #[test]
+    fn test_160000_sum() {
+        // Arrange
+        let mut h = Histogram::new();
+        h.increment(42);
+        h.increment(42);
+        h.increment(3);
+        h.increment(3);
+        h.increment(3);
+
+        // Act
+        let actual: u32 = h.sum();
+
+        // Assert
+        assert_eq!(actual, 5);
     }
 }

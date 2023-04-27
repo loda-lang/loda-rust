@@ -94,7 +94,7 @@ impl FindPeriodicity {
             println!("found i: {}", global_found_i);
         }
         let period: Option<u8> = global_found_i.to_u8();
-        let instance = FindPeriodicity {
+        let instance = Self {
             period,
         };
         Ok(instance)

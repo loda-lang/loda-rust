@@ -122,7 +122,7 @@ impl Symmetry {
 
     fn perform_analyze(&mut self, image: &Image) -> anyhow::Result<()> {
         let histogram: Histogram = image.histogram_all();
-        let unique_colors: u32 = histogram.number_of_counters_greater_than_zero();
+        let unique_colors: u16 = histogram.number_of_counters_greater_than_zero();
         match unique_colors {
             0 => {},
             1 => {
@@ -235,7 +235,7 @@ impl Symmetry {
                 histogram.increment(color10);
                 histogram.increment(color11);
 
-                let unique_color_count: u32 = histogram.number_of_counters_greater_than_zero();
+                let unique_color_count: u16 = histogram.number_of_counters_greater_than_zero();
                 if unique_color_count != 2 {
                     // Either all the 4 pixels agree on a single color, in which case there is nothing to be repaired.
                     //

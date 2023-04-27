@@ -1,4 +1,4 @@
-use super::{arc_work_model, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry};
+use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate};
 use super::arc_work_model::{Input, PairType};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram};
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
@@ -36,7 +36,8 @@ impl arc_work_model::Task {
         self.action_label_set_intersection = label_set;
     }
 
-    pub fn has_resolved_repair_mask(&self) -> bool {
+    #[allow(dead_code)]
+    pub fn has_repair_mask(&self) -> bool {
         for pair in &self.pairs {
             if pair.input.repair_mask.is_none() {
                 return false;
@@ -45,9 +46,30 @@ impl arc_work_model::Task {
         true
     }
 
-    pub fn has_resolved_repaired_image(&self) -> bool {
+    #[allow(dead_code)]
+    pub fn has_repaired_image(&self) -> bool {
         for pair in &self.pairs {
             if pair.input.repaired_image.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
+    #[allow(dead_code)]
+    pub fn has_grid_pattern(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.input.grid_pattern.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
+    #[allow(dead_code)]
+    pub fn has_enumerated_objects(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.input.enumerated_objects.is_none() {
                 return false;
             }
         }
@@ -65,7 +87,7 @@ impl arc_work_model::Task {
     /// If there is a symmetric pattern with a possible repair color,
     /// then use the repair color for the repair mask.
     fn assign_repair_mask_with_symmetry_repair_color(&mut self) {
-        if self.has_resolved_repair_mask() {
+        if self.has_repair_mask() {
             return;
         }
 
@@ -108,7 +130,7 @@ impl arc_work_model::Task {
     /// 
     /// The removal color must be the same as the `OutputImageIsInputImageWithChangesLimitedToPixelsWithColor`.
     fn assign_repair_mask_based_on_single_color_removal_and_changes_limited_to_color(&mut self) {
-        if self.has_resolved_repair_mask() {
+        if self.has_repair_mask() {
             return;
         }
 
@@ -153,7 +175,7 @@ impl arc_work_model::Task {
     /// Generate `repair_mask`
     /// 
     fn assign_repair_mask_based_on_most_popular_color(&mut self) {
-        if self.has_resolved_repair_mask() {
+        if self.has_repair_mask() {
             return;
         }
 
@@ -526,6 +548,10 @@ impl arc_work_model::Task {
         self.assign_repair_mask();
 
         self.compute_input_repaired_image()?;
+
+        self.compute_input_grid_pattern()?;
+
+        self.compute_input_enumerated_objects()?;
 
         Ok(())
     }
@@ -977,7 +1003,7 @@ impl arc_work_model::Task {
     }
 
     pub fn compute_input_repaired_image(&mut self) -> anyhow::Result<()> {
-        if !self.has_resolved_repair_mask() {
+        if !self.has_repair_mask() {
             return Ok(());
         }
 
@@ -1010,7 +1036,8 @@ impl arc_work_model::Task {
                         },
                         _ => {}
                     }
-                }
+                },
+                _ => {}
             }
         }
         let both_horz_and_vert: bool = repair_horizontal && repair_vertical;
@@ -1046,6 +1073,199 @@ impl arc_work_model::Task {
             let repaired_image: Image = AutoRepairSymmetry::execute(&symmetry, &repair_mask, image_to_repair)?;
             pair.input.repaired_image = Some(repaired_image);
         }
+        Ok(())
+    }
+
+    /// Set `grid_pattern=None` for all pairs.
+    fn reset_input_grid_pattern(&mut self) {
+        for (_index, pair) in self.pairs.iter_mut().enumerate() {
+            pair.input.grid_pattern = None;
+        }
+    }
+
+    fn compute_input_grid_pattern(&mut self) -> anyhow::Result<()> {
+        let mut prio1_grid_with_specific_color = false;
+        let mut prio1_grid_color: u8 = u8::MAX;
+        let mut prio2_grid_with_some_color = false;
+        let mut prio3_grid_with_mismatches_and_specific_color = false;
+        let mut prio3_grid_count: usize = 0;
+        let mut prio3_grid_color: u8 = u8::MAX;
+
+        for input_label in &self.input_label_set_intersection {
+            match input_label {
+                InputLabel::InputGrid { label } => {
+                    match label {
+                        GridLabel::GridColor { color } => {
+                            prio1_grid_with_specific_color = true;
+                            prio1_grid_color = *color;
+                        },
+                        GridLabel::GridWithSomeColor => {
+                            prio2_grid_with_some_color = true;
+                        },
+                        GridLabel::GridWithMismatchesAndColor { color } => {
+                            if prio3_grid_count == 0 {
+                                prio3_grid_with_mismatches_and_specific_color = true;
+                                prio3_grid_color = *color;
+                                prio3_grid_count += 1;
+                            } else {
+                                // There are multiple grid colors to choose from.
+                                // It's ambiguous what color to choose for this grid. 
+                                // It happens for 3 task out of 800 tasks: 97239e3d, d37a1ef5, e681b708.
+                                // Ignore this case entirely grid.
+                                prio3_grid_with_mismatches_and_specific_color = false;
+                                // println!("ambiguous what color to choose. task: {}", self.id);
+                                prio3_grid_count += 1;
+                            }
+                        },
+                        _ => {},
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        if prio1_grid_with_specific_color {
+            let grid_color: u8 = prio1_grid_color;
+            let mut success = true;
+            for pair in self.pairs.iter_mut() {
+                let grid = match &pair.input.grid {
+                    Some(value) => value.clone(),
+                    None => {
+                        // One or more of the grids are not initialized, aborting.
+                        success = false;
+                        break;
+                    }
+                };
+                let pattern: GridPattern = match grid.find_full_pattern_with_color(grid_color) {
+                    Some(value) => value.clone(),
+                    None => {
+                        // Could not find a pattern with that particular color, aborting.
+                        success = false;
+                        break;
+                    }
+                };
+                pair.input.grid_pattern = Some(pattern);
+            }
+            if success {
+                // This case is hit for 51 task out of the 800 tasks.
+                // 09629e4f, 0b148d64, 11e1fe23, 1bfc4729, 1c0d0a4b, 29623171, 29c11459, 3906de3d, 3aa6fb7a, 3bdb4ada, 42918530, 
+                // 48d8fb45, 4e45f183, 4f537728, 60b61512, 6773b310, 68b67ca3, 692cd3b6, 694f12f3, 6d0160f0, 6e19193c, 759f3fd3, 
+                // 77fdfe62, 7c008303, 7d419a02, 88a62173, 8a371977, a096bf4d, a2fd1cf0, a68b268e, af24b4cc, b7249182, b7f8a4d8, 
+                // bc1d5164, be03b35f, cbded52d, ce9e57f2, d22278a0, d4a91cb9, d6ad076f, d90796e8, d94c3b52, dc2aa30b, dc433765, 
+                // e760a62e, e9614598, e99362f0, ed74f2f2, ef26cbf6, f8b3ba0a, fea12743.
+                return Ok(());
+            }
+            self.reset_input_grid_pattern();
+        }
+
+        if prio2_grid_with_some_color {
+            let mut success = true;
+            for pair in self.pairs.iter_mut() {
+                let grid = match &pair.input.grid {
+                    Some(value) => value.clone(),
+                    None => {
+                        // One or more of the grids are not initialized, aborting.
+                        success = false;
+                        break;
+                    }
+                };
+                let grid_color: u8 = grid.grid_color();
+
+                let pattern: GridPattern = match grid.find_full_pattern_with_color(grid_color) {
+                    Some(value) => value.clone(),
+                    None => {
+                        // Could not find a pattern with that particular color, aborting.
+                        success = false;
+                        break;
+                    }
+                };
+                pair.input.grid_pattern = Some(pattern);
+            }
+            if success {
+                // This case is hit for 14 task out of the 800 tasks.
+                // 06df4c85, 0bb8deee, 1e32b0e9, 2546ccf6, 2dc579da, 39e1d7f9, 47c1f68c, 
+                // 5a5a2103, 81c0276b, 92e50de0, 9f236235, 9f27f097, c3202e5a, e48d4e1a.
+                return Ok(());
+            }
+            self.reset_input_grid_pattern();
+        }
+
+        if prio3_grid_with_mismatches_and_specific_color {
+            let grid_color: u8 = prio3_grid_color;
+            let mut success = true;
+            for pair in self.pairs.iter_mut() {
+                let grid = match &pair.input.grid {
+                    Some(value) => value.clone(),
+                    None => {
+                        // One or more of the grids are not initialized, aborting.
+                        success = false;
+                        break;
+                    }
+                };
+                let pattern: GridPattern = match grid.find_partial_pattern_with_color(grid_color) {
+                    Some(value) => value.clone(),
+                    None => {
+                        // Could not find a pattern with that particular color, aborting.
+                        success = false;
+                        break;
+                    }
+                };
+                pair.input.grid_pattern = Some(pattern);
+            }
+            if success {
+                // This case is hit for 3 task out of the 800 tasks. 
+                // 15113be4, 95a58926, 97239e3d.
+                return Ok(());
+            }
+            self.reset_input_grid_pattern();
+        }
+
+        // This case is hit for 728 task out of the 800 tasks.
+        Ok(())
+    }
+
+    fn compute_input_enumerated_objects(&mut self) -> anyhow::Result<()> {
+        if self.has_enumerated_objects() {
+            return Ok(());
+        }
+
+        // Don't care wether it succeeds or fails
+        _ = self.compute_input_enumerated_objects_using_grid();
+
+        // Reset all enumerated_objects if one or more is missing.
+        if !self.has_enumerated_objects() {
+            for pair in self.pairs.iter_mut() {
+                pair.input.enumerated_objects = None;
+            }
+        }
+        Ok(())
+    }
+
+    fn compute_input_enumerated_objects_using_grid(&mut self) -> anyhow::Result<()> {
+        if !self.has_grid_pattern() {
+            return Ok(());
+        }
+
+        for pair in self.pairs.iter_mut() {
+            let grid = match &pair.input.grid_pattern {
+                Some(value) => value.clone(),
+                None => {
+                    // One or more of the grid_patterns are not initialized, aborting.
+                    return Err(anyhow::anyhow!("One or more grid_patters are not initialized"));
+                }
+            };
+
+            let mask: &Image = &grid.line_mask;
+            let blank: Image = Image::zero(mask.width(), mask.height());
+            let cells: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, mask)?;
+            if cells.is_empty() {
+                return Err(anyhow::anyhow!("Expected grid to have 1 or more cells"));
+            }
+            let enumerated_objects: Image = Image::object_enumerate(&cells).expect("image");
+
+            pair.input.enumerated_objects = Some(enumerated_objects);
+        }
+
         Ok(())
     }
 

@@ -1,4 +1,4 @@
-use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet, Symmetry};
+use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet, Symmetry, Grid, GridPattern};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -42,11 +42,19 @@ pub struct Input {
     pub input_objects: HashMap<ObjectType, Vec<Object>>,
 
     pub symmetry: Option<Symmetry>,
+    pub grid: Option<Grid>,
     
     pub repair_mask: Option<Image>,
     pub repaired_image: Option<Image>,
 
+    pub grid_pattern: Option<GridPattern>,
+
+    pub enumerated_objects: Option<Image>,
+
     // Future experiments to do.
+    // Resolving these properties is similar to a package manager, a DAG (directed acyclic graph).
+    // One property may depend on another property that depends on a third property.
+    // As of 2023-04-25 the code is not a DAG, and gets initialized in a kludgy way. I want to migrate to a DAG.
     // State keeping of the input_properties. 
     // Computed, NotYetComputed, CannotBeComputed, DependingOnAnotherProperty.
     // Rerun analytics until all pending properties have been computed
@@ -72,6 +80,8 @@ pub enum Prediction {
     // weak prediction: the width is a in a range.
     // weak prediction: the height is a in a range.
     // weak prediction: the size must be a square.
+    // is the input grid preserved in the output
+    // grid color
 }
 
 pub type PredictionSet = HashSet<Prediction>;

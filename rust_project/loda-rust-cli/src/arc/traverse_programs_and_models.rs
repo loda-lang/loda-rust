@@ -29,7 +29,7 @@ use rand::rngs::StdRng;
 use serde::{Serialize, Deserialize};
 
 #[allow(unused_imports)]
-use crate::arc::{HtmlLog, ImageToHTML};
+use super::{HtmlLog, ImageToHTML, InputLabel, GridLabel};
 
 static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 
@@ -206,11 +206,11 @@ impl TraverseProgramsAndModels {
                     PairType::Train => pair.output.image.histogram_all(),
                     PairType::Test => pair.output.test_image.histogram_all(),
                 };
-                let expected_count: u32 = expected_histogram.number_of_counters_greater_than_zero();
+                let expected_count: u16 = expected_histogram.number_of_counters_greater_than_zero();
 
                 let mut histogram: Histogram = predicted.clone();
                 histogram.intersection_histogram(&expected_histogram);
-                let predicted_count: u32 = histogram.number_of_counters_greater_than_zero();
+                let predicted_count: u16 = histogram.number_of_counters_greater_than_zero();
                 if expected_count == predicted_count {
                     count_predict_pair_correct += 1;
                 } else  {
@@ -292,6 +292,27 @@ impl TraverseProgramsAndModels {
         }
         println!("tasks with size=bad and palette=bad.  {}", count_tasks_without_predictions);
 
+        // Self::inspect_task_id(&task_vec, "83302e8f")?;
+        // Self::inspect_task_id(&task_vec, "95a58926")?;
+        // Self::inspect_task_id(&task_vec, "e906de3d")?;
+        // Self::inspect_task_id(&task_vec, "7837ac64")?;
+        // Self::inspect_task_id(&task_vec, "8ee02e8f")?;
+        // Self::inspect_task_id(&task_vec, "92e50de0")?;
+        // Self::inspect_task_id(&task_vec, "c3202e5a")?;
+
+        // repair and crop
+        // Self::inspect_task_id(&task_vec, "0934a4d8")?;
+
+        // advanced
+        // Self::inspect_task_id(&task_vec, "3631a71a")?;
+        // Self::inspect_task_id(&task_vec, "f9d67f8b")?;
+
+        // // simple
+        // Self::inspect_task_id(&task_vec, "dc0a314f")?;
+        // Self::inspect_task_id(&task_vec, "9ecd008a")?;
+        // Self::inspect_task_id(&task_vec, "b8825c91")?;
+        // Self::inspect_task_id(&task_vec, "ff805c23")?;
+
         // Self::inspect_task_id(&task_vec, "332efdb3")?;
         // Self::inspect_task_id(&task_vec, "17cae0c1")?;
         // Self::inspect_task_id(&task_vec, "929ab4e9")?;
@@ -334,7 +355,7 @@ impl TraverseProgramsAndModels {
         let mut indexes = HashSet::<usize>::new();
         for (index, task) in task_vec.iter().enumerate() {
             if task.occur_in_solutions_csv {
-                continue;
+                // continue;
             }
             // if task.input_histogram_union.number_of_counters_greater_than_zero() > 3 {
             //     continue;
@@ -349,14 +370,38 @@ impl TraverseProgramsAndModels {
             //     }
             // }
             // found = true;
-            if task.has_resolved_repaired_image() {
-                found = true;
-            }
+            // if task.has_repaired_image() {
+            //     found = true;
+            // }
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
-            // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricXWithInset) {
-            //     found = true;
+            // for input_label in &task.input_label_set_intersection {
+            //     let grid_label: GridLabel = match input_label {
+            //         InputLabel::InputGrid { label } => label.clone(),
+            //         _ => continue
+            //     };
+            //     match grid_label {
+            //         GridLabel::GridColor { color: _ } => {
+            //             // found = true;
+            //         },
+            //         GridLabel::GridWithSomeColor => {
+            //             // found = true;
+            //         },
+            //         GridLabel::GridWithMismatchesAndColor { color: _ } => {
+            //             // found = true;
+            //         },
+            //         GridLabel::GridWithMismatchesAndSomeColor => {
+            //             // found = true;
+            //         },
+            //     }
+            // }
+            if task.has_enumerated_objects() {
+                found = true;
+            }
+            // if task.has_grid_pattern() {
+                // found = true;
+                // found = false;
             // }
             // if task.input_label_set_intersection.contains(&InputLabel::InputImageIsSymmetricYWithInset) {
             //     found = true;
@@ -380,6 +425,16 @@ impl TraverseProgramsAndModels {
                 indexes.insert(index);
             }
         }
+
+        let mut task_ids = Vec::<String>::new();
+        for (index, task) in task_vec.iter().enumerate() {
+            if !indexes.contains(&index) {
+                continue;
+            }
+            task_ids.push(task.id.clone());
+        }
+        task_ids.sort();
+
         let mut count = 0;
         for (index, task) in task_vec.iter().enumerate() {
             if !indexes.contains(&index) {
@@ -394,6 +449,7 @@ impl TraverseProgramsAndModels {
             }
         }
         HtmlLog::text(format!("tasks count: {}", indexes.len()));
+        HtmlLog::text(format!("task ids: {:?}", task_ids));
         Ok(())
     }
 

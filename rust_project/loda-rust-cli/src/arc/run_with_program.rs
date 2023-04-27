@@ -39,25 +39,72 @@ enum MemoryLayoutItem {
     /// When it's not available then the value is `-1`.
     OutputImageIsInputImageWithChangesLimitedToPixelsWithColor = 5,
 
+    /// Some ARC tasks is about repairing damaged pixels.
+    /// 
+    /// In a highly symmetric pattern, it's sometimes possible to determine what pixels are damaged.
+    /// If 3 out of 4 pixels agree on a color, that the damage color seems to be the same, then it's probably a damaged pixel.
+    /// This is a mask with the damaged pixels, where a pixel value of `1=damaged` and `0=good`.
+    /// 
+    /// Drawback: It cannot detect damages in rotational symmetries.
+    ///
+    /// When it's not available then the value is `-1`.
     RepairMask = 6,
 
+    /// Some ARC tasks is about repairing damaged pixels.
+    /// 
+    /// In a highly symmetric pattern, it's sometimes possible to determine what pixels are damaged.
+    /// If 3 out of 4 pixels agree on a color, that the damage pixel gets repaired.
+    /// 
+    /// Drawback: It cannot fix rotational symmetries.
+    ///
+    /// When it's not available then the value is `-1`.
     RepairedImage = 7,
 
+    /// Some ARC tasks contains a grid structure.
+    /// 
+    /// This is a fuzzy guess about what the grid pattern may be like.
+    /// 
+    /// - Drawback: It cannot detect a grid uneven spacing.
+    /// - Drawback: It cannot detect a grid without a grid line, the grid line must be 1px or wider.
+    /// - Drawback: It cannot detect a horizontal stack of cells.
+    /// - Drawback: It cannot detect a vertical stack of cells.
+    ///
+    /// When it's not available then the value is `-1`.
+    GridMask = 8,
+
+    /// Some ARC tasks contains a grid structure.
+    /// 
+    /// This is a fuzzy guess about what color is used for the grid lines.
+    ///
+    /// When it's not available then the value is `-1`.
+    GridColor = 9,
+
+    /// Clusters of pixels that makes up objects.
+    /// - The value `0` indicates that it's not an object.
+    /// - The values `[1..255]` are object id's.
+    /// 
+    /// This is a fuzzy guess about where the objects are located.
+    /// In a grid the objects are the cells. The top-left cell is assigned `object id=1`.
+    /// The next cell is assigned value `object id=2`. Until reaching the bottom-right cell.
+    /// The grid itself is assigned the value `0`, so that it's not considered an object.
+    ///
+    /// When it's not available then the value is `-1`.
+    EnumeratedObjects = 10,
+
     // Ideas for more
-    // Repair mask
+    // Number of cells horizontal
+    // Number of cells vertical
+    // Objects enumerated
+    // Cell width
+    // Cell height
     // horizontal_periodicity, vertical_periodicity
     // Background color in input
     // Predicted background color in output
     // Primary color
     // Secondary color
-    // Grid color
     // Primary object mask
     // Child object mask
     // Cell mask
-    // Grid mask
-    // Objects enumerated
-    // Cell width
-    // Cell height
 }
 
 pub struct RunWithProgramResult {
@@ -385,6 +432,46 @@ impl RunWithProgram {
                 }
             }
 
+            // memory[x*100+108] = train[x].grid_pattern.line_mask
+            {
+                if let Some(pattern) = &pair.input.grid_pattern {
+                    let image: &Image = &pattern.line_mask;
+                    let image_number_uint: BigUint = image.to_number().context("line_mask image to number")?;
+                    let image_number_int: BigInt = image_number_uint.to_bigint().context("line_mask BigUint to BigInt")?;
+                    state.set_u64(address + MemoryLayoutItem::GridMask as u64, image_number_int).context("line_mask, set_u64")?;
+                } else {
+                    if let Some(value) = (-1i16).to_bigint() {
+                        state.set_u64(address + MemoryLayoutItem::GridMask as u64, value).context("line_mask, set_u64 with -1")?;
+                    }
+                }
+            }
+
+            // memory[x*100+109] = train[x].grid_pattern.color
+            {
+                let the_color: i16;
+                if let Some(pattern) = &pair.input.grid_pattern {
+                    the_color = pattern.color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::GridColor as u64, value).context("pair.GridColor, set_u64")?;
+                }
+            }
+
+            // memory[x*100+110] = train[x].enumerated_objects
+            {
+                if let Some(image) = &pair.input.enumerated_objects {
+                    let image_number_uint: BigUint = image.to_number().context("enumerated_objects image to number")?;
+                    let image_number_int: BigInt = image_number_uint.to_bigint().context("enumerated_objects BigUint to BigInt")?;
+                    state.set_u64(address + MemoryLayoutItem::EnumeratedObjects as u64, image_number_int).context("enumerated_objects, set_u64")?;
+                } else {
+                    if let Some(value) = (-1i16).to_bigint() {
+                        state.set_u64(address + MemoryLayoutItem::EnumeratedObjects as u64, value).context("enumerated_objects, set_u64 with -1")?;
+                    }
+                }
+            }
+            
             // Ideas for data to make available to the program.
             // output_palette
             // substitutions, replace this color with that color
@@ -480,6 +567,46 @@ impl RunWithProgram {
                 } else {
                     if let Some(value) = (-1i16).to_bigint() {
                         state.set_u64(address + MemoryLayoutItem::RepairedImage as u64, value).context("repaired_image, set_u64 with -1")?;
+                    }
+                }
+            }
+
+            // memory[x*100+108] = test[x].grid_pattern.line_mask
+            {
+                if let Some(pattern) = &pair.input.grid_pattern {
+                    let image: &Image = &pattern.line_mask;
+                    let image_number_uint: BigUint = image.to_number().context("line_mask image to number")?;
+                    let image_number_int: BigInt = image_number_uint.to_bigint().context("line_mask BigUint to BigInt")?;
+                    state.set_u64(address + MemoryLayoutItem::GridMask as u64, image_number_int).context("line_mask, set_u64")?;
+                } else {
+                    if let Some(value) = (-1i16).to_bigint() {
+                        state.set_u64(address + MemoryLayoutItem::GridMask as u64, value).context("line_mask, set_u64 with -1")?;
+                    }
+                }
+            }
+
+            // memory[x*100+109] = test[x].grid_pattern.color
+            {
+                let the_color: i16;
+                if let Some(pattern) = &pair.input.grid_pattern {
+                    the_color = pattern.color as i16;
+                } else {
+                    the_color = -1;
+                }
+                if let Some(value) = the_color.to_bigint() {
+                    state.set_u64(address + MemoryLayoutItem::GridColor as u64, value).context("pair.GridColor, set_u64")?;
+                }
+            }
+
+            // memory[x*100+110] = test[x].enumerated_objects
+            {
+                if let Some(image) = &pair.input.enumerated_objects {
+                    let image_number_uint: BigUint = image.to_number().context("enumerated_objects image to number")?;
+                    let image_number_int: BigInt = image_number_uint.to_bigint().context("enumerated_objects BigUint to BigInt")?;
+                    state.set_u64(address + MemoryLayoutItem::EnumeratedObjects as u64, image_number_int).context("enumerated_objects, set_u64")?;
+                } else {
+                    if let Some(value) = (-1i16).to_bigint() {
+                        state.set_u64(address + MemoryLayoutItem::EnumeratedObjects as u64, value).context("enumerated_objects, set_u64 with -1")?;
                     }
                 }
             }

@@ -74,7 +74,7 @@ impl arc_work_model::Pair {
         }
 
         for _ in 0..1 {
-            let count: u32 = self.removal_histogram.number_of_counters_greater_than_zero();
+            let count: u16 = self.removal_histogram.number_of_counters_greater_than_zero();
             if count != 1 {
                 break;
             }
@@ -220,11 +220,11 @@ impl arc_work_model::Pair {
 
     fn analyze_output_colors(&mut self) -> anyhow::Result<()> {
         let mut histogram: Histogram = self.output.histogram.clone();
-        let output_histogram_unique_count: u32 = histogram.number_of_counters_greater_than_zero();
+        let output_histogram_unique_count: u16 = histogram.number_of_counters_greater_than_zero();
         histogram.intersection_histogram(&self.input.histogram);
-        let intersection_count: u32 = histogram.number_of_counters_greater_than_zero();
+        let intersection_count: u16 = histogram.number_of_counters_greater_than_zero();
 
-        if output_histogram_unique_count <= (u8::MAX as u32) {
+        if output_histogram_unique_count <= (u8::MAX as u16) {
             let count: u8 = output_histogram_unique_count as u8;
             let label = ActionLabel::OutputImageUniqueColorCount { count };
             self.action_label_set.insert(label);

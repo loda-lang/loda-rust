@@ -98,7 +98,43 @@ mod tests {
     }
 
     #[test]
-    fn test_10003_fill_inside_rect_error_empty_self() {
+    fn test_10003_fill_inside_rect_3x2_top() {
+        // Arrange
+        let input: Image = Image::zero(3, 2);
+        let rect = Rectangle::new(0, 0, 3, 1);
+
+        // Act
+        let actual: Image = input.fill_inside_rect(rect, 1).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 1,
+            0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10004_fill_inside_rect_3x2_left() {
+        // Arrange
+        let input: Image = Image::zero(3, 2);
+        let rect = Rectangle::new(0, 0, 1, 2);
+
+        // Act
+        let actual: Image = input.fill_inside_rect(rect, 1).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 0, 0,
+            1, 0, 0,
+        ];
+        let expected: Image = Image::try_create(3, 2, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10005_fill_inside_rect_error_empty_self() {
         // Arrange
         let input: Image = Image::empty();
         let rect = Rectangle::new(17, 10, 3, 1);
@@ -112,7 +148,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10004_fill_inside_rect_error_empty_rect() {
+    fn test_10006_fill_inside_rect_error_empty_rect() {
         // Arrange
         let input: Image = Image::zero(5, 5);
         let rect = Rectangle::empty();
@@ -126,7 +162,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10005_fill_inside_rect_error_outside_image() {
+    fn test_10007_fill_inside_rect_error_outside_image() {
         // Arrange
         let input: Image = Image::zero(2, 2);
         let rect = Rectangle::new(0, 0, 3, 3);
