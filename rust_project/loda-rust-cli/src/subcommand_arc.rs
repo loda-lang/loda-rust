@@ -20,6 +20,9 @@ pub enum SubcommandARCMode {
 
     /// Create a file with training data.
     ExportDataset,
+
+    /// Exploring what a model may be like.
+    ExperimentWithConvolution,
 }
 
 pub struct SubcommandARC;
@@ -44,6 +47,9 @@ impl SubcommandARC {
             },
             SubcommandARCMode::ExportDataset => {
                 return TraverseProgramsAndModels::export_dataset();
+            },
+            SubcommandARCMode::ExperimentWithConvolution => {
+                return TraverseProgramsAndModels::experiment_with_convolution();
             },
         }
     }

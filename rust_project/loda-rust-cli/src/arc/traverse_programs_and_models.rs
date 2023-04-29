@@ -61,13 +61,13 @@ impl TraverseProgramsAndModels {
 
     pub fn eval_single_task_with_all_existing_solutions(pattern: String) -> anyhow::Result<()> {
         let instance = TraverseProgramsAndModels::new()?;
-        // instance.eval_single_task_with_all_existing_solutions_inner(&pattern)?;
-        instance.experiment_with_convolution()?;
+        instance.eval_single_task_with_all_existing_solutions_inner(&pattern)?;
         Ok(())
     }
 
-    fn experiment_with_convolution(&self) -> anyhow::Result<()> {
-        let task_vec: Vec<Task> = self.to_task_vec();
+    pub fn experiment_with_convolution() -> anyhow::Result<()> {
+        let tpam = TraverseProgramsAndModels::new()?;
+        let task_vec: Vec<Task> = tpam.to_task_vec();
         let mut instance = ExperimentWithConvolution::new(task_vec);
         instance.run()?;
         Ok(())

@@ -173,6 +173,11 @@ async fn main() -> anyhow::Result<()> {
                 .about("ARC - Export dataset for use as AI training data.")
                 .hide(true)
         )
+        .subcommand(
+            Command::new("arc-experiment-with-convolution")
+                .about("ARC - AI experiments - Exploring what a model may be like.")
+                .hide(true)
+        )
         .get_matches();
 
     if let Some(sub_m) = matches.subcommand_matches("evaluate") {
@@ -321,6 +326,14 @@ async fn main() -> anyhow::Result<()> {
 
     if let Some(_sub_m) = matches.subcommand_matches("arc-export") {
         SubcommandARC::run(SubcommandARCMode::ExportDataset)?;
+        return Ok(());
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("arc-experiment-with-convolution") {
+        let blocking_task = tokio::task::spawn_blocking(|| {
+            SubcommandARC::run(SubcommandARCMode::ExperimentWithConvolution).expect("ok");
+        });
+        blocking_task.await?;
         return Ok(());
     }
 
