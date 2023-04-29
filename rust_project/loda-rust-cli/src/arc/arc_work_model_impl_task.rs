@@ -1,6 +1,6 @@
 use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate};
 use super::arc_work_model::{Input, PairType};
-use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram};
+use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
 use std::collections::{HashMap, HashSet};
 
@@ -1234,14 +1234,108 @@ impl arc_work_model::Task {
 
         // Reset all enumerated_objects if one or more is missing.
         if !self.has_enumerated_objects() {
-            for pair in self.pairs.iter_mut() {
-                pair.input.enumerated_objects = None;
-            }
+            self.reset_input_enumerated_objects();
+        }
+
+        // Don't care wether it succeeds or fails
+        _ = self.compute_input_enumerated_objects_based_on_size_of_primary_object_after_single_intersection_color();
+        
+        // Reset all enumerated_objects if one or more is missing.
+        if !self.has_enumerated_objects() {
+            self.reset_input_enumerated_objects();
         }
         Ok(())
     }
 
+    /// Set `enumerated_objects=None` for all pairs.
+    fn reset_input_enumerated_objects(&mut self) {
+        for pair in self.pairs.iter_mut() {
+            pair.input.enumerated_objects = None;
+        }
+    }
+
+    fn compute_input_enumerated_objects_based_on_size_of_primary_object_after_single_intersection_color(&mut self) -> anyhow::Result<()> {
+        if self.has_enumerated_objects() {
+            return Ok(());
+        }
+
+        let mut simple_explanation_for_width: bool = false;
+        let mut simple_explanation_for_height: bool = false;
+        let mut depends_on_object_width: bool = false;
+        let mut depends_on_object_height: bool = false;
+
+        for action in &self.action_label_set_intersection {
+            match *action {
+                ActionLabel::OutputPropertyIsEqualToInputProperty { output: _, input } => {
+                    match input {
+                        PropertyInput::InputWidth => {
+                            simple_explanation_for_width = true;
+                        },
+                        PropertyInput::InputHeight => {
+                            simple_explanation_for_height = true;
+                        },
+                        PropertyInput::InputWidthOfPrimaryObjectAfterSingleIntersectionColor => {
+                            depends_on_object_width = true;
+                        },
+                        PropertyInput::InputHeightOfPrimaryObjectAfterSingleIntersectionColor => {
+                            depends_on_object_height = true;
+                        },
+                        _ => {}
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        if simple_explanation_for_width && simple_explanation_for_height {
+            // println!("there exist a simple solution. No need to do advanced object stuff.");
+            return Ok(());
+        }
+
+        let depends_on_object_size: bool = depends_on_object_width || depends_on_object_height;
+        if !depends_on_object_size {
+            // println!("no dependency on the object size. No need to do advanced object stuff.");
+            return Ok(());
+        }
+
+        // println!("There exist a dependency on the biggest object.");
+
+        let removal_pairs: Vec<(u32,u8)> = self.input_histogram_intersection.pairs_descending();
+        if removal_pairs.len() != 1 {
+            return Ok(());
+        }
+        let background_color: u8 = match removal_pairs.first() {
+            Some((_count, color)) => *color,
+            None => {
+                return Ok(());
+            }
+        };
+
+        // println!("preconditions are satisfied. will sort objects by mass");
+
+        for pair in &mut self.pairs {
+            let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
+            let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
+
+            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask);
+            let object_images: Vec<Image> = match result {
+                Ok(images) => images,
+                Err(_) => {
+                    continue;
+                }
+            };
+            let object_images_sorted: Vec<Image> = ObjectsSortByProperty::sort_by_mass_descending(&object_images)?;
+            let enumerated_objects: Image = Image::object_enumerate(&object_images_sorted)?;
+            pair.input.enumerated_objects = Some(enumerated_objects);
+        }
+
+        Ok(())
+    }
+
     fn compute_input_enumerated_objects_using_grid(&mut self) -> anyhow::Result<()> {
+        if self.has_enumerated_objects() {
+            return Ok(());
+        }
         if !self.has_grid_pattern() {
             return Ok(());
         }

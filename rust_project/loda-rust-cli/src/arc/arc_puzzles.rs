@@ -3603,4 +3603,45 @@ mod tests {
         let result: String = run_analyze_and_solve("6773b310", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
+
+    mod solve_be94b721 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let enumerated_objects: &Image = match &pair.input.enumerated_objects {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Missing enumerated_objects for input"));
+                    }
+                };
+
+                let mask: Image = enumerated_objects.to_mask_where_color_is(1);
+                let crop_rect: Rectangle = match mask.bounding_box() {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Cannot determine crop_rect for mask"));
+                    }
+                };
+
+                let result_image = input.crop(crop_rect)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_770000_puzzle_be94b721() {
+        let mut instance = solve_be94b721::MySolution {};
+        let result: String = run_analyze_and_solve("be94b721", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
 }

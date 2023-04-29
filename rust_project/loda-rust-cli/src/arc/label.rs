@@ -102,6 +102,7 @@ pub enum InputLabel {
     InputGrid { label: GridLabel },
 
     // Ideas for more
+    // AllObjectsHaveTheSameSize,
     // InputColorThatDoesNotOccurInTheIntersection { color: u8 },
     // InputUniqueColors { color: Vec<u8> },
     // InputAspectRatio { width: u8, height: u8 },
