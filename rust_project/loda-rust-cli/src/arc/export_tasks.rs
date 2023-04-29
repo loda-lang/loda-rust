@@ -3,7 +3,7 @@ use super::Image;
 use crate::config::Config;
 use std::fs::File;
 use std::io::prelude::*;
-use std::path::PathBuf;
+use std::path::Path;
 
 /// Take this ARC image:
 /// ```
@@ -65,13 +65,20 @@ pub struct ExportTasks;
 impl ExportTasks {
     pub fn export(tasks: &Vec<Task>) -> anyhow::Result<()> {
         let config = Config::load();
-        let path: PathBuf = config.basedir().join("arc-dataset.txt");
+        Self::export_inner(&tasks, true, &config.basedir().join("arc-dataset-without-test.txt"))?;
+        Self::export_inner(&tasks, false, &config.basedir().join("arc-dataset-with-test.txt"))?;
+        Ok(())
+    }
         
+    pub fn export_inner(tasks: &Vec<Task>, ignore_test_pairs: bool, path: &Path) -> anyhow::Result<()> {
         println!("task count: {}", tasks.len());
         let mut s = String::new();
         for task in tasks {
             s += "\n-";
             for pair in &task.pairs {
+                if ignore_test_pairs && pair.pair_type == PairType::Test {
+                    continue;
+                }
                 s += "\nI,";
                 s += &Self::serialize_image(&pair.input.image)?;
                 s += "\nO,";
