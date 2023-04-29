@@ -64,6 +64,7 @@ pub struct ExportTasks;
 
 impl ExportTasks {
     pub fn export(tasks: &Vec<Task>) -> anyhow::Result<()> {
+        println!("task count: {}", tasks.len());
         let config = Config::load();
         Self::export_inner(&tasks, true, &config.basedir().join("arc-dataset-without-test.txt"))?;
         Self::export_inner(&tasks, false, &config.basedir().join("arc-dataset-with-test.txt"))?;
@@ -71,7 +72,6 @@ impl ExportTasks {
     }
         
     pub fn export_inner(tasks: &Vec<Task>, ignore_test_pairs: bool, path: &Path) -> anyhow::Result<()> {
-        println!("task count: {}", tasks.len());
         let mut s = String::new();
         for task in tasks {
             s += "\n-";
