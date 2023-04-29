@@ -3644,4 +3644,36 @@ mod tests {
         let result: String = run_analyze_and_solve("be94b721", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
+
+    const PROGRAM_BE94B721: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,110 ; address of vector[0].EnumeratedObjects
+    lps $80
+        mov $0,$$83 ; enumerated objects
+
+        mov $1,1 ; the 1st object is the biggest object
+        f21 $0,101250 ; where color is the mask of the 1st object
+
+        ; assumes that the color is 0, derive this from the non-object background
+        mov $1,0 ; color for the area to be trimmed
+        mov $2,$$81
+        f31 $0,102130 ; Pick pixels from color and image
+
+        ; $1 is the color to be trimmed
+        f21 $0,101161 ; trim with color
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_770001_puzzle_be94b721_loda() {
+        let result: String = run_advanced("be94b721", PROGRAM_BE94B721).expect("String");
+        assert_eq!(result, "4 1");
+    }
 }
