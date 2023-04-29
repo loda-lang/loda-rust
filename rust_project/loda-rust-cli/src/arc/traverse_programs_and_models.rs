@@ -67,15 +67,26 @@ impl TraverseProgramsAndModels {
     }
 
     fn experiment_with_convolution(&self) -> anyhow::Result<()> {
+        let task_vec: Vec<Task> = self.to_task_vec();
+        let mut instance = ExperimentWithConvolution::new(task_vec);
+        instance.run()?;
+        Ok(())
+    }
+
+    pub fn export_dataset() -> anyhow::Result<()> {
+        let instance = TraverseProgramsAndModels::new()?;
+        let task_vec: Vec<Task> = instance.to_task_vec();
+        ExportTasks::export(&task_vec)?;
+        Ok(())
+    }
+
+    fn to_task_vec(&self) -> Vec<Task> {
         let mut task_vec: Vec<Task> = vec!();
         for model_item in &self.model_item_vec {
             let task: Task = model_item.borrow().task.clone();
             task_vec.push(task);
         }
-        ExportTasks::export(&task_vec)?;
-        let mut instance = ExperimentWithConvolution::new(task_vec);
-        instance.run()?;
-        Ok(())
+        task_vec
     }
 
     pub fn check_all_existing_solutions() -> anyhow::Result<()> {

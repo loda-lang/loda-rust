@@ -1,12 +1,19 @@
 use super::arc_work_model::{Task, PairType};
 use super::Image;
+use crate::config::Config;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::PathBuf;
 
 pub struct ExportTasks;
 
 impl ExportTasks {
     pub fn export(tasks: &Vec<Task>) -> anyhow::Result<()> {
-        let mut s = String::new();
+        let config = Config::load();
+        let path: PathBuf = config.basedir().join("arc-dataset.txt");
         
+        println!("task count: {}", tasks.len());
+        let mut s = String::new();
         for task in tasks {
             s += "\n-";
             for pair in &task.pairs {
@@ -24,8 +31,9 @@ impl ExportTasks {
             }
         }
 
-        println!("exported data: {}", s);
-
+        println!("saving file: {:?}", path);
+        let mut file = File::create(&path)?;
+        file.write_all(s.as_bytes())?;
         Ok(())
     }
 

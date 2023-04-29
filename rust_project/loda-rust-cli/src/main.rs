@@ -168,6 +168,11 @@ async fn main() -> anyhow::Result<()> {
                 .about("ARC - Traverse all puzzles and classify each puzzle.")
                 .hide(true)
         )
+        .subcommand(
+            Command::new("arc-export")
+                .about("ARC - Export dataset for use as AI training data.")
+                .hide(true)
+        )
         .get_matches();
 
     if let Some(sub_m) = matches.subcommand_matches("evaluate") {
@@ -311,6 +316,11 @@ async fn main() -> anyhow::Result<()> {
             SubcommandARC::run(SubcommandARCMode::LabelAllPuzzles).expect("ok");
         });
         blocking_task.await?;
+        return Ok(());
+    }
+
+    if let Some(_sub_m) = matches.subcommand_matches("arc-export") {
+        SubcommandARC::run(SubcommandARCMode::ExportDataset)?;
         return Ok(());
     }
 
