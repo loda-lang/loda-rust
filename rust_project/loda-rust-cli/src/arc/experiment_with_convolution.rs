@@ -14,6 +14,7 @@ enum InputOutputType {
     Output,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 struct Sample {
     convolution3x3: Image,
@@ -31,6 +32,7 @@ pub struct ExperimentWithConvolution {
 }
 
 impl ExperimentWithConvolution {
+    #[allow(dead_code)]
     pub fn new(tasks: Vec<Task>) -> Self {
         Self {
             tasks,
@@ -160,7 +162,7 @@ impl ExperimentWithConvolution {
     fn mutate_local_weights_with_sample(&mut self, sample: &Sample, rng: &mut StdRng) {
         for y in 0..3 {
             for x in 0..3 {
-                let pixel: u8 = sample.convolution3x3.get(x as i32, y as i32).unwrap_or(255);
+                let _pixel: u8 = sample.convolution3x3.get(x as i32, y as i32).unwrap_or(255);
 
                 // propagate pixel value to all local weights, based on position, pair_id, input/output
                 // update local weights
