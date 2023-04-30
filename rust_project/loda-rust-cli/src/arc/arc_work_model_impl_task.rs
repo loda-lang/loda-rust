@@ -1345,6 +1345,8 @@ impl arc_work_model::Task {
             return Ok(());
         }
 
+        let mut find_smallest_area: bool = false;
+        let mut find_biggest_area: bool = false;
         let mut find_symmetry_x: bool = false;
         let mut find_symmetry_y: bool = false;
         let mut find_asymmetry_x: bool = false;
@@ -1354,6 +1356,12 @@ impl arc_work_model::Task {
             match action {
                 ActionLabel::OutputImageIsTheObjectWithObjectLabel { object_label } => {
                     match object_label {
+                        ObjectLabel::TheOnlyOneWithSmallestArea => {
+                            find_smallest_area = true;
+                        },
+                        ObjectLabel::TheOnlyOneWithBiggestArea => {
+                            find_biggest_area = true;
+                        },
                         ObjectLabel::TheOnlyOneWithSymmetryX => {
                             find_symmetry_x = true;
                         },
@@ -1366,7 +1374,6 @@ impl arc_work_model::Task {
                         ObjectLabel::TheOnlyOneWithAsymmetryY => {
                             find_asymmetry_y = true;
                         },
-                        _ => {}
                     }
                 },
                 _ => {}
@@ -1375,6 +1382,8 @@ impl arc_work_model::Task {
 
         // Check that only 1 find_xyz is true
         let values = [
+            find_smallest_area,
+            find_biggest_area,
             find_symmetry_x,
             find_symmetry_y,
             find_asymmetry_x,
@@ -1406,6 +1415,16 @@ impl arc_work_model::Task {
             for object in &object_vec {
                 for object_label in &object.object_label_set {
                     match object_label {
+                        ObjectLabel::TheOnlyOneWithSmallestArea => {
+                            if find_smallest_area {
+                                found_index = Some(object.index);
+                            }
+                        },
+                        ObjectLabel::TheOnlyOneWithBiggestArea => {
+                            if find_biggest_area {
+                                found_index = Some(object.index);
+                            }
+                        },
                         ObjectLabel::TheOnlyOneWithSymmetryX => {
                             if find_symmetry_x {
                                 found_index = Some(object.index);
