@@ -242,7 +242,7 @@ impl arc_work_model::Input {
     }
 
     pub fn find_objects_using_histogram_most_popular_color(&self) -> anyhow::Result<Vec<Object>> {
-        let background_color: u8 = match self.histogram.most_popular_color() {
+        let background_color: u8 = match self.histogram.most_popular_color_disallow_ambiguous() {
             Some(value) => value,
             None => {
                 return Err(anyhow::anyhow!("unclear what the background color is"));
