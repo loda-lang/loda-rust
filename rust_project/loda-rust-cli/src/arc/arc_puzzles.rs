@@ -3660,7 +3660,7 @@ mod tests {
         mov $0,$$81 ; input image
         f21 $0,101231 ; histogram with mask
 
-        ; get pixel at x=0, y=0, this is the most popular color
+        ; get pixel at x=0, y=1, this is the most popular color
         mov $1,0
         mov $2,1
         f31 $0,101002  ; get pixel of the most popular color
