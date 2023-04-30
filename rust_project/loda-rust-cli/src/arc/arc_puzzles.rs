@@ -2053,6 +2053,19 @@ mod tests {
     }
 
     #[test]
+    fn test_440001_puzzle_73ccf9c2() {
+        let mut instance = solve_crop_first_object::MySolution {};
+        let result: String = run_analyze_and_solve("73ccf9c2", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_440002_puzzle_73ccf9c2_loda() {
+        let result: String = run_advanced("73ccf9c2", PROGRAM_CROP_FIRST_OBJECT).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
     fn test_450000_puzzle_72ca375d() {
         let solution: SolutionSimple = |data| {
             let input = data.image;

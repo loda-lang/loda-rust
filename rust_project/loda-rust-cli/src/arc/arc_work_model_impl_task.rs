@@ -1347,6 +1347,8 @@ impl arc_work_model::Task {
 
         let mut find_symmetry_x: bool = false;
         let mut find_symmetry_y: bool = false;
+        let mut find_asymmetry_x: bool = false;
+        let mut find_asymmetry_y: bool = false;
 
         for action in &self.action_label_set_intersection {
             match action {
@@ -1357,6 +1359,12 @@ impl arc_work_model::Task {
                         },
                         ObjectLabel::TheOnlyOneWithSymmetryY => {
                             find_symmetry_y = true;
+                        },
+                        ObjectLabel::TheOnlyOneWithAsymmetryX => {
+                            find_asymmetry_x = true;
+                        },
+                        ObjectLabel::TheOnlyOneWithAsymmetryY => {
+                            find_asymmetry_y = true;
                         },
                         _ => {}
                     }
@@ -1369,6 +1377,8 @@ impl arc_work_model::Task {
         let values = [
             find_symmetry_x,
             find_symmetry_y,
+            find_asymmetry_x,
+            find_asymmetry_y,
         ];
         let mut find_count: usize = 0;
         for value in values {
@@ -1403,6 +1413,16 @@ impl arc_work_model::Task {
                         },
                         ObjectLabel::TheOnlyOneWithSymmetryY => {
                             if find_symmetry_y {
+                                found_index = Some(object.index);
+                            }
+                        },
+                        ObjectLabel::TheOnlyOneWithAsymmetryX => {
+                            if find_asymmetry_x {
+                                found_index = Some(object.index);
+                            }
+                        },
+                        ObjectLabel::TheOnlyOneWithAsymmetryY => {
+                            if find_asymmetry_y {
                                 found_index = Some(object.index);
                             }
                         },
