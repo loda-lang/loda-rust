@@ -2086,6 +2086,19 @@ mod tests {
     }
 
     #[test]
+    fn test_450001_puzzle_72ca375d() {
+        let mut instance = solve_crop_first_object::MySolution {};
+        let result: String = run_analyze_and_solve("72ca375d", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_450002_puzzle_72ca375d_loda() {
+        let result: String = run_advanced("72ca375d", PROGRAM_CROP_FIRST_OBJECT).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
     fn test_460000_puzzle_dbc1a6ce() {
         let solution: SolutionSimple = |data| {
             let input: Image = data.image;
@@ -3604,7 +3617,7 @@ mod tests {
         assert_eq!(result, "4 1");
     }
 
-    mod solve_be94b721 {
+    mod solve_crop_first_object {
         use super::*;
 
         pub struct MySolution;
@@ -3640,12 +3653,12 @@ mod tests {
 
     #[test]
     fn test_770000_puzzle_be94b721() {
-        let mut instance = solve_be94b721::MySolution {};
+        let mut instance = solve_crop_first_object::MySolution {};
         let result: String = run_analyze_and_solve("be94b721", &mut instance).expect("String");
         assert_eq!(result, "4 1");
     }
 
-    const PROGRAM_BE94B721: &'static str = "
+    const PROGRAM_CROP_FIRST_OBJECT: &'static str = "
     mov $80,$99
     mov $81,100 ; address of vector[0].InputImage
     mov $82,102 ; address of vector[0].ComputedOutputImage
@@ -3688,7 +3701,7 @@ mod tests {
 
     #[test]
     fn test_770001_puzzle_be94b721_loda() {
-        let result: String = run_advanced("be94b721", PROGRAM_BE94B721).expect("String");
+        let result: String = run_advanced("be94b721", PROGRAM_CROP_FIRST_OBJECT).expect("String");
         assert_eq!(result, "4 1");
     }
 }
