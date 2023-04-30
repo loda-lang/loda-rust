@@ -1,5 +1,5 @@
 use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate};
-use super::arc_work_model::{Input, PairType};
+use super::arc_work_model::{Input, PairType, Object};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
 use std::collections::{HashMap, HashSet};
@@ -1238,6 +1238,14 @@ impl arc_work_model::Task {
         }
 
         // Don't care wether it succeeds or fails
+        _ = self.compute_input_enumerated_objects_based_on_object_label();
+
+        // Reset all enumerated_objects if one or more is missing.
+        if !self.has_enumerated_objects() {
+            self.reset_input_enumerated_objects();
+        }
+
+        // Don't care wether it succeeds or fails
         _ = self.compute_input_enumerated_objects_based_on_size_of_primary_object_after_single_intersection_color();
         
         // Reset all enumerated_objects if one or more is missing.
@@ -1327,6 +1335,94 @@ impl arc_work_model::Task {
             let object_images_sorted: Vec<Image> = ObjectsSortByProperty::sort_by_mass_descending(&object_images)?;
             let enumerated_objects: Image = Image::object_enumerate(&object_images_sorted)?;
             pair.input.enumerated_objects = Some(enumerated_objects);
+        }
+
+        Ok(())
+    }
+
+    fn compute_input_enumerated_objects_based_on_object_label(&mut self) -> anyhow::Result<()> {
+        if self.has_enumerated_objects() {
+            return Ok(());
+        }
+
+        let mut find_symmetry_x: bool = false;
+        let mut find_symmetry_y: bool = false;
+
+        for action in &self.action_label_set_intersection {
+            match action {
+                ActionLabel::OutputImageIsTheObjectWithObjectLabel { object_label } => {
+                    match object_label {
+                        ObjectLabel::TheOnlyOneWithSymmetryX => {
+                            find_symmetry_x = true;
+                        },
+                        ObjectLabel::TheOnlyOneWithSymmetryY => {
+                            find_symmetry_y = true;
+                        },
+                        _ => {}
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        // Check that only 1 find_xyz is true
+        let values = [
+            find_symmetry_x,
+            find_symmetry_y,
+        ];
+        let mut find_count: usize = 0;
+        for value in values {
+            if value {
+                find_count += 1;
+            }
+        }
+        if find_count == 0 {
+            // output image does not depend on object in input image
+            return Ok(());
+        }
+        if find_count > 1 {
+            return Err(anyhow::anyhow!("output image depends on object. But multiple of the find_xyz are true. Ambiguous which one to pick"));
+        }
+
+        for pair in &mut self.pairs {
+            let object_mask_vec: Vec<Image> = pair.input.find_object_masks_using_histogram_most_popular_color()?;
+            let mut object_vec: Vec<Object> = pair.input.find_objects_using_histogram_most_popular_color()?;
+            Object::assign_labels_to_objects(&mut object_vec);
+            if object_mask_vec.len() != object_vec.len() {
+                return Err(anyhow::anyhow!("object_mask_vec.len() and object_vec.len() are supposed to have same length"));
+            }
+
+            let mut found_index: Option<usize> = None;
+            for object in &object_vec {
+                for object_label in &object.object_label_set {
+                    match object_label {
+                        ObjectLabel::TheOnlyOneWithSymmetryX => {
+                            if find_symmetry_x {
+                                found_index = Some(object.index);
+                            }
+                        },
+                        ObjectLabel::TheOnlyOneWithSymmetryY => {
+                            if find_symmetry_y {
+                                found_index = Some(object.index);
+                            }
+                        },
+                        _ => {}
+                    }
+                }
+            }
+            // println!("found object: {:?}", found_index);
+
+            let index: usize = match found_index {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Did not find any object with the objectlabel"));
+                }
+            };
+            if index >= object_mask_vec.len() {
+                return Err(anyhow::anyhow!("index is out of bounds"));
+            }
+            let mask: &Image = &object_mask_vec[index];
+            pair.input.enumerated_objects = Some(mask.clone());
         }
 
         Ok(())

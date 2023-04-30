@@ -119,6 +119,11 @@ pub enum ObjectLabel {
     TheOnlyOneWithAsymmetryX,
     TheOnlyOneWithSymmetryY,
     TheOnlyOneWithAsymmetryY,
+
+    // Ideas for more
+    // Number of holes
+    // Has holes
+    // Has no holes
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

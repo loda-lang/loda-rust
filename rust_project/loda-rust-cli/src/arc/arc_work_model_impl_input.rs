@@ -241,7 +241,7 @@ impl arc_work_model::Input {
         }
     }
 
-    pub fn find_objects_using_histogram_most_popular_color(&self) -> anyhow::Result<Vec<Object>> {
+    pub fn find_object_masks_using_histogram_most_popular_color(&self) -> anyhow::Result<Vec<Image>> {
         let background_color: u8 = match self.histogram.most_popular_color_disallow_ambiguous() {
             Some(value) => value,
             None => {
@@ -249,8 +249,12 @@ impl arc_work_model::Input {
             }
         };
         let background_ignore_mask: Image = self.image.to_mask_where_color_is(background_color);
-        
         let object_mask_vec: Vec<Image> = self.image.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &background_ignore_mask)?;
+        Ok(object_mask_vec)
+    }
+
+    pub fn find_objects_using_histogram_most_popular_color(&self) -> anyhow::Result<Vec<Object>> {
+        let object_mask_vec: Vec<Image> = self.find_object_masks_using_histogram_most_popular_color()?;
         let mut object_vec: Vec<Object> = vec!();
         for (index, object_mask) in object_mask_vec.iter().enumerate() {
             let rect: Rectangle = match object_mask.bounding_box() {
