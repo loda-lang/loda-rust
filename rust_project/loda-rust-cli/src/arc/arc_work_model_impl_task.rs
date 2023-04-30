@@ -1445,7 +1445,6 @@ impl arc_work_model::Task {
                                 found_index = Some(object.index);
                             }
                         },
-                        _ => {}
                     }
                 }
             }
