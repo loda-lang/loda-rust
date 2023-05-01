@@ -94,12 +94,12 @@ enum MemoryLayoutItem {
     // Ideas for more
     // Number of cells horizontal
     // Number of cells vertical
-    // Objects enumerated
     // Cell width
     // Cell height
     // horizontal_periodicity, vertical_periodicity
     // Background color in input
     // Predicted background color in output
+    // Background color in input and output
     // Primary color
     // Secondary color
     // Primary object mask

@@ -18,8 +18,8 @@ lps $80
   f21 $40,101030 ; hstack of the palette images
 
   ; next iteration
-  add $81,10 ; jump to address of next training input image
-  add $82,10 ; jump to address of next training output image
+  add $81,100 ; jump to address of next training input image
+  add $82,100 ; jump to address of next training output image
 lpe
 
 ; process "train"+"test" vectors
@@ -36,6 +36,6 @@ lps $80
   mov $$82,$0 ; save vector[x].computed_output image
 
   ; next iteration
-  add $81,10 ; jump to address of next input image
-  add $82,10 ; jump to address of next computed_output image
+  add $81,100 ; jump to address of next input image
+  add $82,100 ; jump to address of next computed_output image
 lpe

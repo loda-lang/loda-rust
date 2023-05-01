@@ -2,7 +2,7 @@ use super::{arc_json_model, ActionLabel};
 use super::arc_work_model::{PairType, Task};
 use super::{RunWithProgram, RunWithProgramResult};
 use super::{Prediction, TestItem, TaskItem, Tasks};
-use super::{ImageHistogram, ImageSize, Histogram};
+use super::{ImageHistogram, ImageSize, Histogram, ExperimentWithConvolution, ExportTasks};
 use crate::analytics::{AnalyticsDirectory, Analytics};
 use crate::config::Config;
 use crate::common::{find_json_files_recursively, parse_csv_file, create_csv_file};
@@ -63,6 +63,30 @@ impl TraverseProgramsAndModels {
         let instance = TraverseProgramsAndModels::new()?;
         instance.eval_single_task_with_all_existing_solutions_inner(&pattern)?;
         Ok(())
+    }
+
+    pub fn experiment_with_convolution() -> anyhow::Result<()> {
+        let tpam = TraverseProgramsAndModels::new()?;
+        let task_vec: Vec<Task> = tpam.to_task_vec();
+        let mut instance = ExperimentWithConvolution::new(task_vec);
+        instance.run()?;
+        Ok(())
+    }
+
+    pub fn export_dataset() -> anyhow::Result<()> {
+        let instance = TraverseProgramsAndModels::new()?;
+        let task_vec: Vec<Task> = instance.to_task_vec();
+        ExportTasks::export(&task_vec)?;
+        Ok(())
+    }
+
+    fn to_task_vec(&self) -> Vec<Task> {
+        let mut task_vec: Vec<Task> = vec!();
+        for model_item in &self.model_item_vec {
+            let task: Task = model_item.borrow().task.clone();
+            task_vec.push(task);
+        }
+        task_vec
     }
 
     pub fn check_all_existing_solutions() -> anyhow::Result<()> {

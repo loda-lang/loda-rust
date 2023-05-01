@@ -102,6 +102,7 @@ pub enum InputLabel {
     InputGrid { label: GridLabel },
 
     // Ideas for more
+    // AllObjectsHaveTheSameSize,
     // InputColorThatDoesNotOccurInTheIntersection { color: u8 },
     // InputUniqueColors { color: Vec<u8> },
     // InputAspectRatio { width: u8, height: u8 },
@@ -118,6 +119,11 @@ pub enum ObjectLabel {
     TheOnlyOneWithAsymmetryX,
     TheOnlyOneWithSymmetryY,
     TheOnlyOneWithAsymmetryY,
+
+    // Ideas for more
+    // Number of holes
+    // Has holes
+    // Has no holes
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

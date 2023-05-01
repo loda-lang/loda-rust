@@ -17,6 +17,12 @@ pub enum SubcommandARCMode {
 
     /// Traverse all puzzles and classify each puzzle.
     LabelAllPuzzles,
+
+    /// Create a file with training data.
+    ExportDataset,
+
+    /// Exploring what a model may be like.
+    ExperimentWithConvolution,
 }
 
 pub struct SubcommandARC;
@@ -38,6 +44,12 @@ impl SubcommandARC {
             },
             SubcommandARCMode::LabelAllPuzzles => {
                 return TraverseProgramsAndModels::label_all_puzzles();
+            },
+            SubcommandARCMode::ExportDataset => {
+                return TraverseProgramsAndModels::export_dataset();
+            },
+            SubcommandARCMode::ExperimentWithConvolution => {
+                return TraverseProgramsAndModels::experiment_with_convolution();
             },
         }
     }

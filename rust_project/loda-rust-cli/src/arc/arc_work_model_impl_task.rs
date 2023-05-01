@@ -1,6 +1,6 @@
 use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate};
-use super::arc_work_model::{Input, PairType};
-use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram};
+use super::arc_work_model::{Input, PairType, Object};
+use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
 use std::collections::{HashMap, HashSet};
 
@@ -1234,14 +1234,242 @@ impl arc_work_model::Task {
 
         // Reset all enumerated_objects if one or more is missing.
         if !self.has_enumerated_objects() {
-            for pair in self.pairs.iter_mut() {
-                pair.input.enumerated_objects = None;
-            }
+            self.reset_input_enumerated_objects();
+        }
+
+        // Don't care wether it succeeds or fails
+        _ = self.compute_input_enumerated_objects_based_on_object_label();
+
+        // Reset all enumerated_objects if one or more is missing.
+        if !self.has_enumerated_objects() {
+            self.reset_input_enumerated_objects();
+        }
+
+        // Don't care wether it succeeds or fails
+        _ = self.compute_input_enumerated_objects_based_on_size_of_primary_object_after_single_intersection_color();
+        
+        // Reset all enumerated_objects if one or more is missing.
+        if !self.has_enumerated_objects() {
+            self.reset_input_enumerated_objects();
         }
         Ok(())
     }
 
+    /// Set `enumerated_objects=None` for all pairs.
+    fn reset_input_enumerated_objects(&mut self) {
+        for pair in self.pairs.iter_mut() {
+            pair.input.enumerated_objects = None;
+        }
+    }
+
+    fn compute_input_enumerated_objects_based_on_size_of_primary_object_after_single_intersection_color(&mut self) -> anyhow::Result<()> {
+        if self.has_enumerated_objects() {
+            return Ok(());
+        }
+
+        let mut simple_explanation_for_width: bool = false;
+        let mut simple_explanation_for_height: bool = false;
+        let mut depends_on_object_width: bool = false;
+        let mut depends_on_object_height: bool = false;
+
+        for action in &self.action_label_set_intersection {
+            match *action {
+                ActionLabel::OutputPropertyIsEqualToInputProperty { output: _, input } => {
+                    match input {
+                        PropertyInput::InputWidth => {
+                            simple_explanation_for_width = true;
+                        },
+                        PropertyInput::InputHeight => {
+                            simple_explanation_for_height = true;
+                        },
+                        PropertyInput::InputWidthOfPrimaryObjectAfterSingleIntersectionColor => {
+                            depends_on_object_width = true;
+                        },
+                        PropertyInput::InputHeightOfPrimaryObjectAfterSingleIntersectionColor => {
+                            depends_on_object_height = true;
+                        },
+                        _ => {}
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        if simple_explanation_for_width && simple_explanation_for_height {
+            // println!("there exist a simple solution. No need to do advanced object stuff.");
+            return Ok(());
+        }
+
+        let depends_on_object_size: bool = depends_on_object_width || depends_on_object_height;
+        if !depends_on_object_size {
+            // println!("no dependency on the object size. No need to do advanced object stuff.");
+            return Ok(());
+        }
+
+        // println!("There exist a dependency on the biggest object.");
+
+        let removal_pairs: Vec<(u32,u8)> = self.input_histogram_intersection.pairs_descending();
+        if removal_pairs.len() != 1 {
+            return Ok(());
+        }
+        let background_color: u8 = match removal_pairs.first() {
+            Some((_count, color)) => *color,
+            None => {
+                return Ok(());
+            }
+        };
+
+        // println!("preconditions are satisfied. will sort objects by mass");
+
+        for pair in &mut self.pairs {
+            let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
+            let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
+
+            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask);
+            let object_images: Vec<Image> = match result {
+                Ok(images) => images,
+                Err(_) => {
+                    continue;
+                }
+            };
+            let object_images_sorted: Vec<Image> = ObjectsSortByProperty::sort_by_mass_descending(&object_images)?;
+            let enumerated_objects: Image = Image::object_enumerate(&object_images_sorted)?;
+            pair.input.enumerated_objects = Some(enumerated_objects);
+        }
+
+        Ok(())
+    }
+
+    fn compute_input_enumerated_objects_based_on_object_label(&mut self) -> anyhow::Result<()> {
+        if self.has_enumerated_objects() {
+            return Ok(());
+        }
+
+        let mut find_smallest_area: bool = false;
+        let mut find_biggest_area: bool = false;
+        let mut find_symmetry_x: bool = false;
+        let mut find_symmetry_y: bool = false;
+        let mut find_asymmetry_x: bool = false;
+        let mut find_asymmetry_y: bool = false;
+
+        for action in &self.action_label_set_intersection {
+            match action {
+                ActionLabel::OutputImageIsTheObjectWithObjectLabel { object_label } => {
+                    match object_label {
+                        ObjectLabel::TheOnlyOneWithSmallestArea => {
+                            find_smallest_area = true;
+                        },
+                        ObjectLabel::TheOnlyOneWithBiggestArea => {
+                            find_biggest_area = true;
+                        },
+                        ObjectLabel::TheOnlyOneWithSymmetryX => {
+                            find_symmetry_x = true;
+                        },
+                        ObjectLabel::TheOnlyOneWithSymmetryY => {
+                            find_symmetry_y = true;
+                        },
+                        ObjectLabel::TheOnlyOneWithAsymmetryX => {
+                            find_asymmetry_x = true;
+                        },
+                        ObjectLabel::TheOnlyOneWithAsymmetryY => {
+                            find_asymmetry_y = true;
+                        },
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        // Check that only 1 find_xyz is true
+        let values = [
+            find_smallest_area,
+            find_biggest_area,
+            find_symmetry_x,
+            find_symmetry_y,
+            find_asymmetry_x,
+            find_asymmetry_y,
+        ];
+        let mut find_count: usize = 0;
+        for value in values {
+            if value {
+                find_count += 1;
+            }
+        }
+        if find_count == 0 {
+            // output image does not depend on object in input image
+            return Ok(());
+        }
+        if find_count > 1 {
+            return Err(anyhow::anyhow!("output image depends on object. But multiple of the find_xyz are true. Ambiguous which one to pick"));
+        }
+
+        for pair in &mut self.pairs {
+            let object_mask_vec: Vec<Image> = pair.input.find_object_masks_using_histogram_most_popular_color()?;
+            let mut object_vec: Vec<Object> = pair.input.find_objects_using_histogram_most_popular_color()?;
+            Object::assign_labels_to_objects(&mut object_vec);
+            if object_mask_vec.len() != object_vec.len() {
+                return Err(anyhow::anyhow!("object_mask_vec.len() and object_vec.len() are supposed to have same length"));
+            }
+
+            let mut found_index: Option<usize> = None;
+            for object in &object_vec {
+                for object_label in &object.object_label_set {
+                    match object_label {
+                        ObjectLabel::TheOnlyOneWithSmallestArea => {
+                            if find_smallest_area {
+                                found_index = Some(object.index);
+                            }
+                        },
+                        ObjectLabel::TheOnlyOneWithBiggestArea => {
+                            if find_biggest_area {
+                                found_index = Some(object.index);
+                            }
+                        },
+                        ObjectLabel::TheOnlyOneWithSymmetryX => {
+                            if find_symmetry_x {
+                                found_index = Some(object.index);
+                            }
+                        },
+                        ObjectLabel::TheOnlyOneWithSymmetryY => {
+                            if find_symmetry_y {
+                                found_index = Some(object.index);
+                            }
+                        },
+                        ObjectLabel::TheOnlyOneWithAsymmetryX => {
+                            if find_asymmetry_x {
+                                found_index = Some(object.index);
+                            }
+                        },
+                        ObjectLabel::TheOnlyOneWithAsymmetryY => {
+                            if find_asymmetry_y {
+                                found_index = Some(object.index);
+                            }
+                        },
+                    }
+                }
+            }
+            // println!("found object: {:?}", found_index);
+
+            let index: usize = match found_index {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Did not find any object with the objectlabel"));
+                }
+            };
+            if index >= object_mask_vec.len() {
+                return Err(anyhow::anyhow!("index is out of bounds"));
+            }
+            let mask: &Image = &object_mask_vec[index];
+            pair.input.enumerated_objects = Some(mask.clone());
+        }
+
+        Ok(())
+    }
+
     fn compute_input_enumerated_objects_using_grid(&mut self) -> anyhow::Result<()> {
+        if self.has_enumerated_objects() {
+            return Ok(());
+        }
         if !self.has_grid_pattern() {
             return Ok(());
         }

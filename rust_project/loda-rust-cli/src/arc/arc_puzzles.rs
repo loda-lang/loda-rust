@@ -2053,6 +2053,19 @@ mod tests {
     }
 
     #[test]
+    fn test_440001_puzzle_73ccf9c2() {
+        let mut instance = solve_crop_first_object::MySolution {};
+        let result: String = run_analyze_and_solve("73ccf9c2", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_440002_puzzle_73ccf9c2_loda() {
+        let result: String = run_advanced("73ccf9c2", PROGRAM_CROP_FIRST_OBJECT).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
     fn test_450000_puzzle_72ca375d() {
         let solution: SolutionSimple = |data| {
             let input = data.image;
@@ -2082,6 +2095,19 @@ mod tests {
             Ok(output)
         };
         let result: String = solution.run("72ca375d").expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_450001_puzzle_72ca375d() {
+        let mut instance = solve_crop_first_object::MySolution {};
+        let result: String = run_analyze_and_solve("72ca375d", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_450002_puzzle_72ca375d_loda() {
+        let result: String = run_advanced("72ca375d", PROGRAM_CROP_FIRST_OBJECT).expect("String");
         assert_eq!(result, "3 1");
     }
 
@@ -3601,6 +3627,94 @@ mod tests {
     fn test_760000_puzzle_6773b310() {
         let mut instance = solve_6773b310::MySolution {};
         let result: String = run_analyze_and_solve("6773b310", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    mod solve_crop_first_object {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+                let enumerated_objects: &Image = match &pair.input.enumerated_objects {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Missing enumerated_objects for input"));
+                    }
+                };
+
+                let mask: Image = enumerated_objects.to_mask_where_color_is(1);
+                let crop_rect: Rectangle = match mask.bounding_box() {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Cannot determine crop_rect for mask"));
+                    }
+                };
+
+                let result_image = input.crop(crop_rect)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_770000_puzzle_be94b721() {
+        let mut instance = solve_crop_first_object::MySolution {};
+        let result: String = run_analyze_and_solve("be94b721", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    const PROGRAM_CROP_FIRST_OBJECT: &'static str = "
+    mov $80,$99
+    mov $81,100 ; address of vector[0].InputImage
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    mov $83,110 ; address of vector[0].EnumeratedObjects
+    lps $80
+        ; extract the background image
+        mov $1,$$83 ; enumerated objects
+        mov $2,0 ; the 0th object is the background object
+        f21 $1,101250 ; where color is the mask of the 0th object
+
+        ; histogram of the background image
+        mov $0,$$81 ; input image
+        f21 $0,101231 ; histogram with mask
+
+        ; get pixel at x=0, y=1, this is the most popular color
+        mov $1,0
+        mov $2,1
+        f31 $0,101002  ; get pixel of the most popular color
+        mov $10,$0
+
+        ; extract object 1, the biggest object
+        mov $0,$$83 ; enumerated objects
+        mov $1,1 ; the 1st object is the biggest object
+        f21 $0,101250 ; where color is the mask of the 1st object
+
+        ; surround the object with the background-color
+        mov $1,$10 ; color for the area to be trimmed
+        mov $2,$$81
+        f31 $0,102130 ; Pick pixels from color and image
+
+        ; $1 is the color to be trimmed
+        f21 $0,101161 ; trim with color
+
+        mov $$82,$0
+        add $81,100
+        add $82,100
+        add $83,100
+    lpe
+    ";
+
+    #[test]
+    fn test_770001_puzzle_be94b721_loda() {
+        let result: String = run_advanced("be94b721", PROGRAM_CROP_FIRST_OBJECT).expect("String");
         assert_eq!(result, "4 1");
     }
 }
