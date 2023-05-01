@@ -2,7 +2,7 @@
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model::{self, PairType};
-    use crate::arc::{ActionLabel};
+    use crate::arc::{ActionLabel, convolution3x3};
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
@@ -2281,13 +2281,6 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
-    #[test]
-    fn test_540000_puzzle_a699fb00() {
-        let mut instance = solve_a699fb00::MySolution::new();
-        let result: String = run_analyze_and_solve("a699fb00", &mut instance).expect("String");
-        assert_eq!(result, "3 1");
-    }
-
     mod solve_a699fb00 {
         use super::*;
 
@@ -2368,6 +2361,44 @@ mod tests {
                 Ok(result_image)
             }
         }
+    }
+
+    #[test]
+    fn test_540000_puzzle_a699fb00() {
+        let mut instance = solve_a699fb00::MySolution::new();
+        let result: String = run_analyze_and_solve("a699fb00", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_540001_puzzle_a699fb00() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let background_color: u8 = match input.most_popular_color() {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("unclear what is the most popular color"));
+                }
+            };
+            let image_padded: Image = input.padding_with_color(1, background_color)?;
+            let result_image: Image = convolution3x3(&image_padded, |bm| {
+                let left: u8 = bm.get(0, 1).unwrap_or(255);
+                let center: u8 = bm.get(1, 1).unwrap_or(255);
+                let right: u8 = bm.get(2, 1).unwrap_or(255);
+                let result_color: u8;
+                // flag the pixel when it have 2 neighbors with same color, but different center pixel.
+                if left != background_color && left != center && left == right {
+                    result_color = 255;
+                } else {
+                    result_color = center;
+                }
+                Ok(result_color)
+            })?;
+    
+            Ok(result_image)
+        };
+        let result: String = solution.run("a699fb00").expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
