@@ -2647,6 +2647,13 @@ mod tests {
     }
 
     #[test]
+    fn test_543000_puzzle_6c434453() {
+        let mut instance = solve_a699fb00_version2::MySolution::new();
+        let result: String = run_analyze_and_solve("6c434453", &mut instance).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    #[test]
     fn test_550000_puzzle_94f9d214() {
         let solution: SolutionSimple = |data| {
             let input: Image = data.image;
