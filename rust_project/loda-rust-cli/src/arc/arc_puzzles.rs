@@ -2420,25 +2420,31 @@ mod tests {
             /// Do substitutions from the dictionary
             pub fn apply(input: &Image, substitutions: &Dict) -> anyhow::Result<Image> {
                 let mut result_image: Image = input.clone();
-                for _ in 0..100 {
-                    let mut stop = true;
-                    for (key, value) in substitutions {
+                
+                for (key, value) in substitutions {
+                    let mut positions = Vec::<(u8, u8)>::new();
+                    for _ in 0..100 {
+                        // TODO: find_all_positions(key)
                         let position = result_image.find_exact(key)?;
                         if let Some((x, y)) = position {
-                            result_image = result_image.overlay_with_position(value, x as i32, y as i32)?;
-                            stop = false;
+                            _ = result_image.set(x as i32, y as i32, 255);
+                            positions.push((x, y));
+                        } else {
+                            break;
                         }
                     }
-                    if stop {
-                        break;
+
+                    for (x, y) in positions {
+                        result_image = result_image.overlay_with_position(value, x as i32, y as i32)?;
                     }
                 }
+
                 Ok(result_image)
             }
 
             fn find_substitutions(task: &arc_work_model::Task, crop_x: i8, crop_y: i8, crop_width: u8, crop_height: u8) -> anyhow::Result<Dict> {
                 println!("crop area: x {} y {} width {} height {}", crop_x, crop_y, crop_width, crop_height);
-                let mut dict_inner = Dict::new();
+                let mut replacements = Vec::<(Image, Image)>::new();
                 for pair in &task.pairs {
                     if pair.pair_type != PairType::Train {
                         continue;
@@ -2467,44 +2473,68 @@ mod tests {
                         let rect: Rectangle = match Rectangle::span(x0, y0, x1, y1) {
                             Some(value) => value,
                             None => {
-                                return Err(anyhow::anyhow!("Rectangle coordinate is out of canvas"));
+                                continue;
                             }
                         };
                         println!("x {} y {} rect {:?}", position_x, position_y, rect);
-                        let replace_source: Image = pair.input.image.crop(rect)?;
-                        let replace_target: Image = pair.output.image.crop(rect)?;
-
-                        if let Some(value) = dict_inner.get(&replace_source) {
-                            if *value != replace_target {
-                                return Err(anyhow::anyhow!("No consensus on what replacements are to be done"));
+                        let replace_source: Image = match pair.input.image.crop(rect) {
+                            Ok(value) => value,
+                            Err(error) => {
+                                println!("crop is outside the input image. error: {:?}", error);
+                                continue;
                             }
+                        };
+                        let replace_target: Image = match pair.output.image.crop(rect) {
+                            Ok(value) => value,
+                            Err(error) => {
+                                println!("crop is outside the output image. error: {:?}", error);
+                                continue;
+                            }
+                        };
+
+                        let replacement: (Image, Image) = (replace_source, replace_target);
+                        if !replacements.contains(&replacement) {
+                            replacements.push(replacement);
                         }
-                        dict_inner.insert(replace_source, replace_target);
-
-                        // let pixel_value0: u8 = pair.input.image.get(get_x, get_y).unwrap_or(255);
-                        // let pixel_value1: u8 = pair.output.image.get(get_x, get_y).unwrap_or(255);
-                        // println!("replace from {} to {}", pixel_value0, pixel_value1);
                     }
                 }
-                println!("number of items in dict: {}", dict_inner.len());
+                println!("number of replacements: {}", replacements.len());
 
-                if dict_inner.is_empty() {
-                    return Err(anyhow::anyhow!("didn't find any substitutions"));
+                if replacements.is_empty() {
+                    return Err(anyhow::anyhow!("didn't find any replacements"));
                 }
 
-                for pair in &task.pairs {
-                    if pair.pair_type != PairType::Train {
-                        continue;
+                // Find a single substitution rule that satisfy all the training pairs
+                for (key, value) in &replacements {
+                    println!("replace key: {:?}", key);
+                    println!("replace value: {:?}", value);
+
+                    let mut dict = Dict::new();
+                    dict.insert(key.clone(), value.clone());
+
+                    for pair in &task.pairs {
+                        if pair.pair_type != PairType::Train {
+                            continue;
+                        }
+                        let input: &Image = &pair.input.image;
+
+                        let result_image: Image = match Self::apply(&input, &dict) {
+                            Ok(value) => value,
+                            Err(error) => {
+                                println!("skip bad substitution rule. error: {:?}", error);
+                                continue;
+                            }
+                        };
+                        if result_image != pair.output.image {
+                            return Err(anyhow::anyhow!("the computed output does not match the expected output image. The substitution rules are incorrect. pair {}", pair.id));
+                        }
+                        println!("substitutions good for pair {}", pair.id);
                     }
-                    let input: &Image = &pair.input.image;
-                    let result_image: Image = Self::apply(&input, &dict_inner)?;
-                    if result_image != pair.output.image {
-                        return Err(anyhow::anyhow!("the computed output does not match the expected output image. The substitution rules are incorrect. pair {}", pair.id));
-                    }
-                    println!("substitutions good for pair {}", pair.id);
+
+                    return Ok(dict);
                 }
 
-                Ok(dict_inner)
+                Err(anyhow::anyhow!("Unable to find a single substitution rule that works for all pairs"))
             }
         }
         
@@ -2513,7 +2543,7 @@ mod tests {
                 // Ascending complexity
                 // We prefer the simplest rules, so the simplest substitution rules comes at the top.
                 // We try to avoid advanced rules, the more complex substitution rules comes at the bottom.
-                let areas: [(i8, i8, u8, u8); 16] = [
+                let areas: [(i8, i8, u8, u8); 17] = [
                     // 1x1
                     (0, 0, 1, 1),
 
@@ -2547,6 +2577,7 @@ mod tests {
 
                     // 3x3
                     (-1, -1, 3, 3),
+                    (0, 0, 3, 3),
                 ];
                 for (x, y, width, height) in areas {
                     match Self::find_substitutions(task, x, y, width, height) {
@@ -2564,7 +2595,7 @@ mod tests {
                     return Err(anyhow::anyhow!("analyze didn't find any substitutions"));
                 }
 
-                // TODO: save the substitutions on the input
+                // TODO: save the substituted image on the arc_work_model::Input struct
                 Ok(())   
             }
     
@@ -2581,6 +2612,13 @@ mod tests {
         let mut instance = solve_a699fb00_version2::MySolution::new();
         let result: String = run_analyze_and_solve("a699fb00", &mut instance).expect("String");
         assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_541000_puzzle_b60334d2() {
+        let mut instance = solve_a699fb00_version2::MySolution::new();
+        let result: String = run_analyze_and_solve("b60334d2", &mut instance).expect("String");
+        assert_eq!(result, "2 1");
     }
 
     #[test]
