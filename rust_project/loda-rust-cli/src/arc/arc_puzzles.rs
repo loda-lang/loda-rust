@@ -2402,6 +2402,8 @@ mod tests {
     }
 
     mod solve_a699fb00_version2 {
+        use std::collections::HashSet;
+
         use super::*;
 
         type Dict = HashMap<Image, Image>;
@@ -2442,44 +2444,76 @@ mod tests {
                     let width: u8 = pair.input.image.width();
                     let height: u8 = pair.input.image.height();
                     let mut positions = Vec::<(u8, u8)>::new();
+                    let mut position_set = HashSet::<(i32, i32)>::new();
                     for y in 0..height {
                         for x in 0..width {
                             let get_x: i32 = x as i32;
                             let get_y: i32 = y as i32;
                             if diff.get(get_x, get_y).unwrap_or(0) > 0 {
                                 positions.push((x, y));
+                                position_set.insert((x as i32, y as i32));
                             }
                         }
                     }
                     println!("positions: {:?}", positions);
 
-                    for (position_x, position_y) in &positions {
-                        let x0: i32 = (*position_x as i32) + (crop_x as i32);
-                        let x1: i32 = x0 + (crop_width as i32) - 1;
-                        let y0: i32 = (*position_y as i32) + (crop_y as i32);
-                        let y1: i32 = y0 + (crop_height as i32) - 1;
+                    let mut rects = Vec::<Rectangle>::new();
+                    for y in 0..height {
+                        for x in 0..width {
+                            let x0: i32 = x as i32;
+                            let y0: i32 = y as i32;
+                            let x1: i32 = x0 + (crop_width as i32) - 1;
+                            let y1: i32 = y0 + (crop_height as i32) - 1;
+                            if x1 >= (width as i32) {
+                                continue;
+                            }
+                            if y1 >= (height as i32) {
+                                continue;
+                            }
+                            let rect: Rectangle = match Rectangle::span(x0, y0, x1, y1) {
+                                Some(value) => value,
+                                None => {
+                                    continue;
+                                }
+                            };
+                            let mut rect_intersects_with_positions: bool = false;
+                            for yy in y0..y1 {
+                                for xx in x0..x1 {
+                                    let xy: (i32, i32) = (xx, yy);
+                                    if position_set.contains(&xy) {
+                                        rect_intersects_with_positions = true;
+                                        break;
+                                    }
+                                }
+                                if rect_intersects_with_positions {
+                                    break;
+                                }
+                            }
+                            if rect_intersects_with_positions {
+                                rects.push(rect);
+                            }
+                        }
+                    }
+                    println!("rects length: {} content: {:?}", rects.len(), rects);
 
-                        let rect: Rectangle = match Rectangle::span(x0, y0, x1, y1) {
-                            Some(value) => value,
-                            None => {
-                                continue;
-                            }
-                        };
-                        println!("x {} y {} rect {:?}", position_x, position_y, rect);
-                        let replace_source: Image = match pair.input.image.crop(rect) {
+                    for rect in &rects {
+                        // println!("rect {:?}", rect);
+                        let replace_source: Image = match pair.input.image.crop(*rect) {
                             Ok(value) => value,
                             Err(error) => {
-                                println!("crop is outside the input image. error: {:?}", error);
+                                // println!("crop is outside the input image. error: {:?}", error);
                                 continue;
                             }
                         };
-                        let replace_target: Image = match pair.output.image.crop(rect) {
+                        // println!("replace_source: {:?}", replace_source);
+                        let replace_target: Image = match pair.output.image.crop(*rect) {
                             Ok(value) => value,
                             Err(error) => {
-                                println!("crop is outside the output image. error: {:?}", error);
+                                // println!("crop is outside the output image. error: {:?}", error);
                                 continue;
                             }
                         };
+                        // println!("replace_target: {:?}", replace_target);
 
                         let replacement: (Image, Image) = (replace_source, replace_target);
                         if !replacements.contains(&replacement) {
@@ -2501,23 +2535,36 @@ mod tests {
                     let mut dict = Dict::new();
                     dict.insert(key.clone(), value.clone());
 
+                    let mut encountered_problem: bool = false;
                     for pair in &task.pairs {
                         if pair.pair_type != PairType::Train {
                             continue;
                         }
                         let input: &Image = &pair.input.image;
 
-                        let result_image: Image = match Self::apply(&input, &dict) {
+                        let background_color: u8 = input.most_popular_color().unwrap_or(255);
+
+                        let input2: Image = input.padding_with_color(1, background_color)?;
+                        let result_image: Image = match Self::apply(&input2, &dict) {
                             Ok(value) => value,
                             Err(error) => {
                                 println!("skip bad substitution rule. error: {:?}", error);
-                                continue;
+                                encountered_problem = true;
+                                break;
                             }
                         };
-                        if result_image != pair.output.image {
-                            return Err(anyhow::anyhow!("the computed output does not match the expected output image. The substitution rules are incorrect. pair {}", pair.id));
+                        let crop_rect = Rectangle::new(1, 1, input.width(), input.height());
+                        let result_image2: Image = result_image.crop(crop_rect)?;
+                        if result_image2 != pair.output.image {
+                            println!("the computed output does not match the expected output image. The substitution rules are incorrect. pair {}", pair.id);
+                            println!("computed_output: {:?}", result_image2);
+                            encountered_problem = true;
+                            break;
                         }
                         println!("substitutions good for pair {}", pair.id);
+                    }
+                    if encountered_problem {
+                        continue;
                     }
 
                     return Ok(dict);
@@ -2532,40 +2579,41 @@ mod tests {
                 // Ascending complexity
                 // We prefer the simplest rules, so the simplest substitution rules comes at the top.
                 // We try to avoid advanced rules, the more complex substitution rules comes at the bottom.
-                let areas: [(i8, i8, u8, u8); 17] = [
+                let areas: [(i8, i8, u8, u8); 1] = [
                     // 1x1
-                    (0, 0, 1, 1),
+                    // (0, 0, 1, 1),
 
-                    // 2x1
-                    (-1, 0, 2, 1),
-                    (0, 0, 2, 1),
+                    // // 2x1
+                    // (-1, 0, 2, 1),
+                    // (0, 0, 2, 1),
 
-                    // 1x2
-                    (-1, 0, 1, 2),
-                    (0, 0, 1, 2),
+                    // // 1x2
+                    // (-1, 0, 1, 2),
+                    // (0, 0, 1, 2),
 
-                    // 2x2
-                    (0, 0, 2, 2),
-                    (0, -1, 2, 2),
-                    (-1, 0, 2, 2),
-                    (-1, -1, 2, 2),
+                    // // 2x2
+                    // (0, 0, 2, 2),
+                    // (0, -1, 2, 2),
+                    // (-1, 0, 2, 2),
+                    // (-1, -1, 2, 2),
 
-                    // 3x1
-                    (-1, 0, 3, 1),
+                    // // 3x1
+                    // (-1, 0, 3, 1),
 
-                    // 1x3
-                    (0, -1, 1, 3),
+                    // // 1x3
+                    // (0, -1, 1, 3),
 
-                    // 3x2
-                    (-1, -1, 3, 2),
-                    (-1, 0, 3, 2),
+                    // // 3x2
+                    // (-1, -1, 3, 2),
+                    // (-1, 0, 3, 2),
 
-                    // 2x3
-                    (-1, -1, 2, 3),
-                    (0, -1, 2, 3),
+                    // // 2x3
+                    // (-1, -1, 2, 3),
+                    // (0, -1, 2, 3),
 
                     // 3x3
-                    (-1, -1, 3, 3),
+                    // (-1, -1, 3, 3),
+                    // (1, 1, 3, 3),
                     (0, 0, 3, 3),
                 ];
                 for (x, y, width, height) in areas {
@@ -2590,8 +2638,13 @@ mod tests {
     
             fn solve(&self, data: &SolutionSimpleData, _task: &arc_work_model::Task) -> anyhow::Result<Image> {
                 let input: &Image = &data.image;
-                let result_image: Image = Self::apply(&input, &self.dict_outer)?;
-                Ok(result_image)
+                let background_color: u8 = input.most_popular_color().unwrap_or(255);
+
+                let input2: Image = input.padding_with_color(1, background_color)?;
+                let result_image: Image = Self::apply(&input2, &self.dict_outer)?;
+                let crop_rect = Rectangle::new(1, 1, input.width(), input.height());
+                let result_image2: Image = result_image.crop(crop_rect)?;
+                Ok(result_image2)
             }
         }
     }
@@ -2607,6 +2660,13 @@ mod tests {
     fn test_541000_puzzle_b60334d2() {
         let mut instance = solve_a699fb00_version2::MySolution::new();
         let result: String = run_analyze_and_solve("b60334d2", &mut instance).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    #[test]
+    fn test_542000_puzzle_d364b489() {
+        let mut instance = solve_a699fb00_version2::MySolution::new();
+        let result: String = run_analyze_and_solve("d364b489", &mut instance).expect("String");
         assert_eq!(result, "2 1");
     }
 
