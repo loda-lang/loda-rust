@@ -1,26 +1,37 @@
 use super::Image;
 
 pub trait ImageFind {
-    fn find_first(&self, needle: &Image) -> anyhow::Result<Option<(u8, u8)>>;
-
     fn find_first_with_ignore_mask(&self, needle: &Image, ignore_mask: &Image) -> anyhow::Result<Option<(u8, u8)>>;
 
+    /// Search the image for the first occurrence of another image.
+    /// 
+    /// Returns the `(x, y)` coordinate of the `needle`.
+    /// 
+    /// Returns `None` when the `needle` cannot be found.
+    fn find_first(&self, needle: &Image) -> anyhow::Result<Option<(u8, u8)>>;
+
+    /// Search the image for multiple occurrences of another image.
+    /// 
+    /// Returns a vector with `(x, y)` coordinates of where the `needle` appears. 
+    /// 
+    /// The ordering of `(x, y)` coordinates is deterministic. Starting in the `top-left` corner.
+    /// Sweeping over the pixels in the top-most row until reaching the `top-right` corner.
+    /// Then proceeds to the following row, starting in the left and ending at the right.
+    /// Finally it reaches the `bottom-right` corner.
     fn find_all(&self, needle: &Image) -> anyhow::Result<Vec<(u8, u8)>>;
 
+    /// Count the number of times the `needle` is present inside the image.
+    /// 
+    /// Returns `0` when the `needle` cannot be found.
     fn count_occurrences(&self, needle: &Image) -> anyhow::Result<u16>;
 }
 
 impl ImageFind for Image {
-    fn find_first(&self, needle: &Image) -> anyhow::Result<Option<(u8, u8)>> {
-        let ignore_mask = Image::zero(self.width(), self.height());
-        self.find_first_with_ignore_mask(needle, &ignore_mask)
-    }
-
     fn find_first_with_ignore_mask(&self, needle: &Image, ignore_mask: &Image) -> anyhow::Result<Option<(u8, u8)>> {
         let self_width: u8 = self.width();
         let self_height: u8 = self.height();
         if self_width != ignore_mask.width() || self_height != ignore_mask.height() {
-            return Err(anyhow::anyhow!("find_exact_with_ignore_mask: Expected ignore_mask to have same size as self"));
+            return Err(anyhow::anyhow!("find_first_with_ignore_mask: Expected ignore_mask to have same size as self"));
         }
 
         if self.is_empty() {
@@ -37,7 +48,7 @@ impl ImageFind for Image {
         let x_max: i32 = (self_width as i32) - (needle.width() as i32);
         let y_max: i32 = (self_height as i32) - (needle.height() as i32);
         if x_max < 0 || y_max < 0 {
-            return Err(anyhow::anyhow!("find_exact_with_ignore_mask: Integrity error. x_max and y_max is not supposed to be negative. x_max: {} y_max: {}", x_max, y_max));
+            return Err(anyhow::anyhow!("find_first_with_ignore_mask: Integrity error. x_max and y_max is not supposed to be negative. x_max: {} y_max: {}", x_max, y_max));
         }
 
         // Compare with the pattern
@@ -73,15 +84,20 @@ impl ImageFind for Image {
         }
 
         // Traversed all pixels, but didn't find the pattern
-        return Ok(None);
+        Ok(None)
+    }
+
+    fn find_first(&self, needle: &Image) -> anyhow::Result<Option<(u8, u8)>> {
+        let ignore_mask = Image::zero(self.width(), self.height());
+        self.find_first_with_ignore_mask(needle, &ignore_mask)
     }
 
     fn find_all(&self, needle: &Image) -> anyhow::Result<Vec<(u8, u8)>> {
         if self.is_empty() {
-            return Err(anyhow::anyhow!("find_positions: input size must be 1x1 or greater"));
+            return Err(anyhow::anyhow!("find_all: input size must be 1x1 or greater"));
         }
         if needle.is_empty() {
-            return Err(anyhow::anyhow!("find_positions: needle size must be 1x1 or greater"));
+            return Err(anyhow::anyhow!("find_all: needle size must be 1x1 or greater"));
         }
         let mut ignore_mask = Image::zero(self.width(), self.height());
         let mut positions = Vec::<(u8, u8)>::new();
