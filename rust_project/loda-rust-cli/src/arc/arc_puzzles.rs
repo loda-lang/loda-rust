@@ -2401,6 +2401,188 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
+    mod solve_a699fb00_version2 {
+        use super::*;
+
+        type Dict = HashMap<Image, Image>;
+    
+        pub struct MySolution {
+            dict_outer: Dict,
+        }
+    
+        impl MySolution {
+            pub fn new() -> Self {
+                Self {
+                    dict_outer: Dict::new(),
+                }
+            }
+
+            /// Do substitutions from the dictionary
+            pub fn apply(input: &Image, substitutions: &Dict) -> anyhow::Result<Image> {
+                let mut result_image: Image = input.clone();
+                for _ in 0..100 {
+                    let mut stop = true;
+                    for (key, value) in substitutions {
+                        let position = result_image.find_exact(key)?;
+                        if let Some((x, y)) = position {
+                            result_image = result_image.overlay_with_position(value, x as i32, y as i32)?;
+                            stop = false;
+                        }
+                    }
+                    if stop {
+                        break;
+                    }
+                }
+                Ok(result_image)
+            }
+
+            fn find_substitutions(task: &arc_work_model::Task, crop_x: i8, crop_y: i8, crop_width: u8, crop_height: u8) -> anyhow::Result<Dict> {
+                println!("crop area: x {} y {} width {} height {}", crop_x, crop_y, crop_width, crop_height);
+                let mut dict_inner = Dict::new();
+                for pair in &task.pairs {
+                    if pair.pair_type != PairType::Train {
+                        continue;
+                    }
+                    let diff: Image = pair.input.image.diff(&pair.output.image)?;
+                    let width: u8 = pair.input.image.width();
+                    let height: u8 = pair.input.image.height();
+                    let mut positions = Vec::<(u8, u8)>::new();
+                    for y in 0..height {
+                        for x in 0..width {
+                            let get_x: i32 = x as i32;
+                            let get_y: i32 = y as i32;
+                            if diff.get(get_x, get_y).unwrap_or(0) > 0 {
+                                positions.push((x, y));
+                            }
+                        }
+                    }
+                    println!("positions: {:?}", positions);
+
+                    for (position_x, position_y) in &positions {
+                        let x0: i32 = (*position_x as i32) + (crop_x as i32);
+                        let x1: i32 = x0 + (crop_width as i32) - 1;
+                        let y0: i32 = (*position_y as i32) + (crop_y as i32);
+                        let y1: i32 = y0 + (crop_height as i32) - 1;
+
+                        let rect: Rectangle = match Rectangle::span(x0, y0, x1, y1) {
+                            Some(value) => value,
+                            None => {
+                                return Err(anyhow::anyhow!("Rectangle coordinate is out of canvas"));
+                            }
+                        };
+                        println!("x {} y {} rect {:?}", position_x, position_y, rect);
+                        let replace_source: Image = pair.input.image.crop(rect)?;
+                        let replace_target: Image = pair.output.image.crop(rect)?;
+
+                        if let Some(value) = dict_inner.get(&replace_source) {
+                            if *value != replace_target {
+                                return Err(anyhow::anyhow!("No consensus on what replacements are to be done"));
+                            }
+                        }
+                        dict_inner.insert(replace_source, replace_target);
+
+                        // let pixel_value0: u8 = pair.input.image.get(get_x, get_y).unwrap_or(255);
+                        // let pixel_value1: u8 = pair.output.image.get(get_x, get_y).unwrap_or(255);
+                        // println!("replace from {} to {}", pixel_value0, pixel_value1);
+                    }
+                }
+                println!("number of items in dict: {}", dict_inner.len());
+
+                if dict_inner.is_empty() {
+                    return Err(anyhow::anyhow!("didn't find any substitutions"));
+                }
+
+                for pair in &task.pairs {
+                    if pair.pair_type != PairType::Train {
+                        continue;
+                    }
+                    let input: &Image = &pair.input.image;
+                    let result_image: Image = Self::apply(&input, &dict_inner)?;
+                    if result_image != pair.output.image {
+                        return Err(anyhow::anyhow!("the computed output does not match the expected output image. The substitution rules are incorrect. pair {}", pair.id));
+                    }
+                    println!("substitutions good for pair {}", pair.id);
+                }
+
+                Ok(dict_inner)
+            }
+        }
+        
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
+                // Ascending complexity
+                // We prefer the simplest rules, so the simplest substitution rules comes at the top.
+                // We try to avoid advanced rules, the more complex substitution rules comes at the bottom.
+                let areas: [(i8, i8, u8, u8); 16] = [
+                    // 1x1
+                    (0, 0, 1, 1),
+
+                    // 2x1
+                    (-1, 0, 2, 1),
+                    (0, 0, 2, 1),
+
+                    // 1x2
+                    (-1, 0, 1, 2),
+                    (0, 0, 1, 2),
+
+                    // 2x2
+                    (0, 0, 2, 2),
+                    (0, -1, 2, 2),
+                    (-1, 0, 2, 2),
+                    (-1, -1, 2, 2),
+
+                    // 3x1
+                    (-1, 0, 3, 1),
+
+                    // 1x3
+                    (0, -1, 1, 3),
+
+                    // 3x2
+                    (-1, -1, 3, 2),
+                    (-1, 0, 3, 2),
+
+                    // 2x3
+                    (-1, -1, 2, 3),
+                    (0, -1, 2, 3),
+
+                    // 3x3
+                    (-1, -1, 3, 3),
+                ];
+                for (x, y, width, height) in areas {
+                    match Self::find_substitutions(task, x, y, width, height) {
+                        Ok(dict) => {
+                            self.dict_outer = dict;
+                            break;         
+                        },
+                        Err(error) => {
+                            println!("area: {} {} {} {} error: {:?}", x, y, width, height, error);
+                            continue;
+                        }
+                    }
+                }
+                if self.dict_outer.is_empty() {
+                    return Err(anyhow::anyhow!("analyze didn't find any substitutions"));
+                }
+
+                // TODO: save the substitutions on the input
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, _task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let input: &Image = &data.image;
+                let result_image: Image = Self::apply(&input, &self.dict_outer)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_540002_puzzle_a699fb00() {
+        let mut instance = solve_a699fb00_version2::MySolution::new();
+        let result: String = run_analyze_and_solve("a699fb00", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
     #[test]
     fn test_550000_puzzle_94f9d214() {
         let solution: SolutionSimple = |data| {
