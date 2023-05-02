@@ -27,7 +27,7 @@ impl ImageReplacePattern for Image {
         'outer: for _ in 0..max_iterations {
             let mut stop = true;
             for (key, value) in replacements {
-                let position = result_image.find_exact(key)?;
+                let position = result_image.find_first(key)?;
                 if let Some((x, y)) = position {
                     result_image = result_image.overlay_with_position(value, x as i32, y as i32)?;
                     stop = false;

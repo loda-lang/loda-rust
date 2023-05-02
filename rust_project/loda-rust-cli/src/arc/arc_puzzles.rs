@@ -291,7 +291,7 @@ mod tests {
             let mut optional_position: Option<(u8, u8)> = None;
             for color in 1..=255u8 {
                 let needle_with_color: Image = needle.replace_color(1, color)?;
-                optional_position = search_area.find_exact(&needle_with_color).expect("some position");
+                optional_position = search_area.find_first(&needle_with_color).expect("some position");
                 if optional_position == None {
                     continue;
                 }
@@ -2348,7 +2348,7 @@ mod tests {
                 for _ in 0..100 {
                     let mut stop = true;
                     for (key, value) in &self.dict_outer {
-                        let position = result_image.find_exact(key)?;
+                        let position = result_image.find_first(key)?;
                         if let Some((x, y)) = position {
                             result_image = result_image.overlay_with_position(value, x as i32, y as i32)?;
                             stop = false;
@@ -2425,7 +2425,7 @@ mod tests {
                     let mut positions = Vec::<(u8, u8)>::new();
                     for _ in 0..100 {
                         // TODO: find_all_positions(key)
-                        let position = result_image.find_exact(key)?;
+                        let position = result_image.find_first(key)?;
                         if let Some((x, y)) = position {
                             _ = result_image.set(x as i32, y as i32, 255);
                             positions.push((x, y));
