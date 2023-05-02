@@ -2433,8 +2433,8 @@ mod tests {
                 Ok(result_image)
             }
 
-            fn find_substitutions(task: &arc_work_model::Task, crop_x: i8, crop_y: i8, crop_width: u8, crop_height: u8) -> anyhow::Result<Dict> {
-                println!("crop area: x {} y {} width {} height {}", crop_x, crop_y, crop_width, crop_height);
+            fn find_substitutions(task: &arc_work_model::Task, crop_width: u8, crop_height: u8) -> anyhow::Result<Dict> {
+                println!("crop size: width {} height {}", crop_width, crop_height);
                 let mut replacements = Vec::<(Image, Image)>::new();
                 for pair in &task.pairs {
                     if pair.pair_type != PairType::Train {
@@ -2477,8 +2477,8 @@ mod tests {
                                 }
                             };
                             let mut rect_intersects_with_positions: bool = false;
-                            for yy in y0..y1 {
-                                for xx in x0..x1 {
+                            for yy in y0..=y1 {
+                                for xx in x0..=x1 {
                                     let xy: (i32, i32) = (xx, yy);
                                     if position_set.contains(&xy) {
                                         rect_intersects_with_positions = true;
@@ -2579,51 +2579,25 @@ mod tests {
                 // Ascending complexity
                 // We prefer the simplest rules, so the simplest substitution rules comes at the top.
                 // We try to avoid advanced rules, the more complex substitution rules comes at the bottom.
-                let areas: [(i8, i8, u8, u8); 1] = [
-                    // 1x1
-                    // (0, 0, 1, 1),
-
-                    // // 2x1
-                    // (-1, 0, 2, 1),
-                    // (0, 0, 2, 1),
-
-                    // // 1x2
-                    // (-1, 0, 1, 2),
-                    // (0, 0, 1, 2),
-
-                    // // 2x2
-                    // (0, 0, 2, 2),
-                    // (0, -1, 2, 2),
-                    // (-1, 0, 2, 2),
-                    // (-1, -1, 2, 2),
-
-                    // // 3x1
-                    // (-1, 0, 3, 1),
-
-                    // // 1x3
-                    // (0, -1, 1, 3),
-
-                    // // 3x2
-                    // (-1, -1, 3, 2),
-                    // (-1, 0, 3, 2),
-
-                    // // 2x3
-                    // (-1, -1, 2, 3),
-                    // (0, -1, 2, 3),
-
-                    // 3x3
-                    // (-1, -1, 3, 3),
-                    // (1, 1, 3, 3),
-                    (0, 0, 3, 3),
+                let areas: [(u8, u8); 9] = [
+                    (1, 1),
+                    (2, 1),
+                    (1, 2),
+                    (3, 1),
+                    (1, 3),
+                    (2, 2),
+                    (3, 2),
+                    (2, 3),
+                    (3, 3),
                 ];
-                for (x, y, width, height) in areas {
-                    match Self::find_substitutions(task, x, y, width, height) {
+                for (width, height) in areas {
+                    match Self::find_substitutions(task, width, height) {
                         Ok(dict) => {
                             self.dict_outer = dict;
                             break;         
                         },
                         Err(error) => {
-                            println!("area: {} {} {} {} error: {:?}", x, y, width, height, error);
+                            println!("area: {} {} error: {:?}", width, height, error);
                             continue;
                         }
                     }
@@ -2631,6 +2605,8 @@ mod tests {
                 if self.dict_outer.is_empty() {
                     return Err(anyhow::anyhow!("analyze didn't find any substitutions"));
                 }
+
+                println!("substitution: {:?}", self.dict_outer);
 
                 // TODO: save the substituted image on the arc_work_model::Input struct
                 Ok(())   
