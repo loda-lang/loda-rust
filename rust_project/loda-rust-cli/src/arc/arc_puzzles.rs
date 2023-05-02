@@ -2579,7 +2579,7 @@ mod tests {
                 // Ascending complexity
                 // We prefer the simplest rules, so the simplest substitution rules comes at the top.
                 // We try to avoid advanced rules, the more complex substitution rules comes at the bottom.
-                let areas: [(u8, u8); 9] = [
+                let areas: [(u8, u8); 12] = [
                     (1, 1),
                     (2, 1),
                     (1, 2),
@@ -2589,6 +2589,9 @@ mod tests {
                     (3, 2),
                     (2, 3),
                     (3, 3),
+                    (4, 3),
+                    (3, 4),
+                    (4, 4),
                 ];
                 for (width, height) in areas {
                     match Self::find_substitutions(task, width, height) {
@@ -2651,6 +2654,13 @@ mod tests {
         let mut instance = solve_a699fb00_version2::MySolution::new();
         let result: String = run_analyze_and_solve("6c434453", &mut instance).expect("String");
         assert_eq!(result, "2 1");
+    }
+
+    #[test]
+    fn test_544000_puzzle_95990924() {
+        let mut instance = solve_a699fb00_version2::MySolution::new();
+        let result: String = run_analyze_and_solve("95990924", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
