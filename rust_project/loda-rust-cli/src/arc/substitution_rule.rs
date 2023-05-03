@@ -1,9 +1,13 @@
 use super::{Image, ImageCompare, Rectangle, ImageCrop, ImageColorProfile, ImagePadding, ImageReplaceSimple};
 use std::collections::HashSet;
 
+const SUBSTITUTION_RULE_VERBOSE: bool = false;
+
+#[allow(dead_code)]
 pub struct SubstitutionRule;
 
 impl SubstitutionRule {
+    #[allow(dead_code)]
     pub fn find_rule(pairs: Vec<(Image, Image)>) -> anyhow::Result<(Image, Image)> {
         if pairs.is_empty() {
             return Err(anyhow::anyhow!("There must be 1 or more pairs. Cannot derive rule from zero pairs."));
@@ -55,7 +59,9 @@ impl SubstitutionRule {
                     return Ok((source, destination));
                 },
                 Err(error) => {
-                    println!("area: {} {} error: {:?}", width, height, error);
+                    if SUBSTITUTION_RULE_VERBOSE {
+                        println!("size: {} {} error: {:?}", width, height, error);
+                    }
                     continue;
                 }
             }
@@ -64,7 +70,9 @@ impl SubstitutionRule {
     }
 
     fn find_substitution_with_size(items: &Vec<Item>, crop_width: u8, crop_height: u8) -> anyhow::Result<(Image, Image)> {
-        println!("crop size: width {} height {}", crop_width, crop_height);
+        if SUBSTITUTION_RULE_VERBOSE {
+            println!("crop size: width {} height {}", crop_width, crop_height);
+        }
         let mut replacements = Vec::<(Image, Image)>::new();
         for item in items {
             let width: u8 = item.input.width();
@@ -107,14 +115,17 @@ impl SubstitutionRule {
                     }
                 }
             }
-            println!("rects length: {} content: {:?}", rects.len(), rects);
+            if SUBSTITUTION_RULE_VERBOSE {
+                println!("rects length: {} content: {:?}", rects.len(), rects);
+            }
 
             for rect in &rects {
-                // println!("rect {:?}", rect);
                 let replace_source: Image = match item.input.crop(*rect) {
                     Ok(value) => value,
                     Err(error) => {
-                        // println!("crop is outside the input image. error: {:?}", error);
+                        if SUBSTITUTION_RULE_VERBOSE {
+                            println!("crop is outside the input image. error: {:?}", error);
+                        }
                         continue;
                     }
                 };
@@ -122,7 +133,9 @@ impl SubstitutionRule {
                 let replace_target: Image = match item.output.crop(*rect) {
                     Ok(value) => value,
                     Err(error) => {
-                        // println!("crop is outside the output image. error: {:?}", error);
+                        if SUBSTITUTION_RULE_VERBOSE {
+                            println!("crop is outside the output image. error: {:?}", error);
+                        }
                         continue;
                     }
                 };
@@ -134,7 +147,9 @@ impl SubstitutionRule {
                 }
             }
         }
-        println!("number of replacements: {}", replacements.len());
+        if SUBSTITUTION_RULE_VERBOSE {
+            println!("number of replacements: {}", replacements.len());
+        }
 
         if replacements.is_empty() {
             return Err(anyhow::anyhow!("didn't find any replacements"));
@@ -142,8 +157,10 @@ impl SubstitutionRule {
 
         // Find a single substitution rule that satisfy all the training pairs
         for (key, value) in &replacements {
-            println!("replace key: {:?}", key);
-            println!("replace value: {:?}", value);
+            if SUBSTITUTION_RULE_VERBOSE {
+                println!("replace key: {:?}", key);
+                println!("replace value: {:?}", value);
+            }
 
             let mut encountered_problem: bool = false;
             for item in items {
@@ -152,19 +169,25 @@ impl SubstitutionRule {
                 let mut result_image: Image = item.input.padding_with_color(1, background_color)?;
                 let count: u16 = result_image.replace_simple(&key, &value)?;
                 if count == 0 {
-                    println!("no replacements were performed. reject this replacement");
+                    if SUBSTITUTION_RULE_VERBOSE {
+                        println!("no replacements were performed. reject this replacement");
+                    }
                     encountered_problem = true;
                     break;
                 }
                 let crop_rect = Rectangle::new(1, 1, item.input.width(), item.input.height());
-                let result_image2: Image = result_image.crop(crop_rect)?;
-                if result_image2 != item.output {
-                    println!("the computed output does not match the expected output image. The substitution rules are incorrect.");
-                    println!("computed_output: {:?}", result_image2);
+                let cropped_image: Image = result_image.crop(crop_rect)?;
+                if cropped_image != item.output {
+                    if SUBSTITUTION_RULE_VERBOSE {
+                        println!("the computed output does not match the expected output image. The substitution rules are incorrect.");
+                        println!("computed_output: {:?}", cropped_image);
+                    }
                     encountered_problem = true;
                     break;
                 }
-                println!("found good substitutions");
+                if SUBSTITUTION_RULE_VERBOSE {
+                    println!("found good substitutions");
+                }
             }
             if encountered_problem {
                 continue;
