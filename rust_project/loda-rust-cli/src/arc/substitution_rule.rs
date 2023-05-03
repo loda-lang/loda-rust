@@ -13,13 +13,15 @@ impl SubstitutionRule {
             return Err(anyhow::anyhow!("There must be 1 or more pairs. Cannot derive rule from zero pairs."));
         }
 
-        // Find the positions where the `input` and `output` differs
+        // Prepare as much data as possible upfront, so it doesn't have to be computed over and over.
         let mut items = Vec::<Item>::new();
         let mut count_positions: usize = 0;
         for (input, output) in pairs {
             if input.size() != output.size() || input.is_empty() {
                 return Err(anyhow::anyhow!("Both input and output must have same size. And be 1x1 or bigger."));
             }
+
+            // Find the positions where the `input` and `output` differs
             let diff: Image = input.diff(&output)?;
             let mut diff_positions = HashSet::<(i32, i32)>::new();
             for y in 0..input.height() as i32 {
@@ -30,8 +32,14 @@ impl SubstitutionRule {
                 }
             }
             count_positions += diff_positions.len();
+
+            // Add 1px border around the image with the most popular color
+            let background_color: u8 = input.most_popular_color().unwrap_or(255);
+            let input_with_1px_padding: Image = input.padding_with_color(1, background_color)?;
+
             let item = Item {
                 input,
+                input_with_1px_padding,
                 output,
                 diff_positions,
             };
@@ -89,6 +97,7 @@ impl SubstitutionRule {
             let height: u8 = item.input.height();
 
             let mut rects = Vec::<Rectangle>::new();
+            // Generate rectangles for the crop size near areas that have differences.
             for y in 0..height {
                 for x in 0..width {
                     let x0: i32 = x as i32;
@@ -107,6 +116,9 @@ impl SubstitutionRule {
                             continue;
                         }
                     };
+
+                    // We are only interested in rectangles where there are differences between input/output.
+                    // Reject areas that are identical between input/output.
                     let mut rect_intersects_with_positions: bool = false;
                     for yy in y0..=y1 {
                         for xx in x0..=x1 {
@@ -129,6 +141,9 @@ impl SubstitutionRule {
                 println!("rects length: {} content: {:?}", rects.len(), rects);
             }
 
+            // Accumulate candidates for a replacement
+            // A candidate may work some places, but may not work for all the substitutions
+            // We are interested in the simplest candidate that works across all the input/output pairs.
             for rect in &rects {
                 let replace_source: Image = match item.input.crop(*rect) {
                     Ok(value) => value,
@@ -165,20 +180,18 @@ impl SubstitutionRule {
             return Err(anyhow::anyhow!("didn't find any replacements"));
         }
 
-        // Find a single substitution rule that satisfy all the training pairs
-        for (key, value) in &replacements {
+        // Find a single substitution rule that satisfy all the input/output pairs
+        for (source, destination) in &replacements {
             if SUBSTITUTION_RULE_VERBOSE {
-                println!("replace key: {:?}", key);
-                println!("replace value: {:?}", value);
+                println!("replace source: {:?}", source);
+                println!("replace destination: {:?}", destination);
             }
 
             let mut encountered_problem: bool = false;
             let mut number_of_replacements_performed: usize = 0;
             for item in items {
-                let background_color: u8 = item.input.most_popular_color().unwrap_or(255);
-
-                let mut result_image: Image = item.input.padding_with_color(1, background_color)?;
-                let count: u16 = result_image.replace_simple(&key, &value)?;
+                let mut result_image: Image = item.input_with_1px_padding.clone();
+                let count: u16 = result_image.replace_simple(&source, &destination)?;
                 number_of_replacements_performed += count as usize;
                 let crop_rect = Rectangle::new(1, 1, item.input.width(), item.input.height());
                 let cropped_image: Image = result_image.crop(crop_rect)?;
@@ -204,7 +217,7 @@ impl SubstitutionRule {
                 continue;
             }
 
-            return Ok((key.clone(), value.clone()));
+            return Ok((source.clone(), destination.clone()));
         }
 
         Err(anyhow::anyhow!("Unable to find a single substitution rule that works for all pairs"))
@@ -213,6 +226,7 @@ impl SubstitutionRule {
 
 struct Item {
     input: Image,
+    input_with_1px_padding: Image,
     output: Image,
 
     /// Positions where `input` and `output` differs
