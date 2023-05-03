@@ -184,3 +184,233 @@ struct Item {
     /// Positions where `input` and `output` differs
     diff_positions: HashSet<(i32, i32)>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::arc::ImageTryCreate;
+
+    #[test]
+    fn test_10000_one_pair_replace1x1() {
+        // Arrange
+        let pair0_input_pixels: Vec<u8> = vec![
+            0, 6, 0, 0,
+            0, 0, 6, 0,
+            6, 0, 0, 0,
+            0, 0, 0, 6,
+        ];
+        let pair0_input: Image = Image::try_create(4, 4, pair0_input_pixels).expect("image");
+
+        let pair0_output_pixels: Vec<u8> = vec![
+            0, 3, 0, 0,
+            0, 0, 3, 0,
+            3, 0, 0, 0,
+            0, 0, 0, 3,
+        ];
+        let pair0_output: Image = Image::try_create(4, 4, pair0_output_pixels).expect("image");
+
+        let pairs: Vec<(Image, Image)> = vec![(pair0_input, pair0_output)];
+        
+        // Act
+        let (actual_source, actual_destination) = SubstitutionRule::find_rule(pairs).expect("rule");
+
+        // Assert
+        let expected_source_pixels: Vec<u8> = vec![
+            6,
+        ];
+        let expected_source: Image = Image::try_create(1, 1, expected_source_pixels).expect("image");
+        assert_eq!(actual_source, expected_source);
+        let expected_destination_pixels: Vec<u8> = vec![
+            3,
+        ];
+        let expected_destination: Image = Image::try_create(1, 1, expected_destination_pixels).expect("image");
+        assert_eq!(actual_destination, expected_destination);
+    }
+
+    #[test]
+    fn test_10001_one_pair_replace2x1() {
+        // Arrange
+        let pair0_input_pixels: Vec<u8> = vec![
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 5, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+        ];
+        let pair0_input: Image = Image::try_create(4, 5, pair0_input_pixels).expect("image");
+
+        let pair0_output_pixels: Vec<u8> = vec![
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 5, 5, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+        ];
+        let pair0_output: Image = Image::try_create(4, 5, pair0_output_pixels).expect("image");
+
+        let pairs: Vec<(Image, Image)> = vec![(pair0_input, pair0_output)];
+        
+        // Act
+        let (actual_source, actual_destination) = SubstitutionRule::find_rule(pairs).expect("rule");
+
+        // Assert
+        let expected_source_pixels: Vec<u8> = vec![
+            5, 0,
+        ];
+        let expected_source: Image = Image::try_create(2, 1, expected_source_pixels).expect("image");
+        assert_eq!(actual_source, expected_source);
+        let expected_destination_pixels: Vec<u8> = vec![
+            5, 5,
+        ];
+        let expected_destination: Image = Image::try_create(2, 1, expected_destination_pixels).expect("image");
+        assert_eq!(actual_destination, expected_destination);
+    }
+
+    #[test]
+    fn test_10002_one_pair_replace3x3() {
+        // Arrange
+        let pair0_input_pixels: Vec<u8> = vec![
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+        ];
+        let pair0_input: Image = Image::try_create(4, 5, pair0_input_pixels).expect("image");
+
+        let pair0_output_pixels: Vec<u8> = vec![
+            0, 0, 0, 0,
+            1, 2, 3, 0,
+            4, 5, 6, 0,
+            7, 8, 9, 0,
+            0, 0, 0, 0,
+        ];
+        let pair0_output: Image = Image::try_create(4, 5, pair0_output_pixels).expect("image");
+
+        let pairs: Vec<(Image, Image)> = vec![(pair0_input, pair0_output)];
+        
+        // Act
+        let (actual_source, actual_destination) = SubstitutionRule::find_rule(pairs).expect("rule");
+
+        // Assert
+        let expected_source_pixels: Vec<u8> = vec![
+            0, 0, 0,
+            0, 1, 0,
+            0, 0, 0,
+        ];
+        let expected_source: Image = Image::try_create(3, 3, expected_source_pixels).expect("image");
+        assert_eq!(actual_source, expected_source);
+        let expected_destination_pixels: Vec<u8> = vec![
+            1, 2, 3,
+            4, 5, 6,
+            7, 8, 9,
+        ];
+        let expected_destination: Image = Image::try_create(3, 3, expected_destination_pixels).expect("image");
+        assert_eq!(actual_destination, expected_destination);
+    }
+
+    #[test]
+    fn test_20000_two_pairs_replace1x1() {
+        // Arrange
+        let pair0_input_pixels: Vec<u8> = vec![
+            0, 6, 0, 0,
+            0, 0, 6, 6,
+            6, 0, 0, 0,
+        ];
+        let pair0_input: Image = Image::try_create(4, 3, pair0_input_pixels).expect("image");
+
+        let pair0_output_pixels: Vec<u8> = vec![
+            0, 3, 0, 0,
+            0, 0, 3, 3,
+            3, 0, 0, 0,
+        ];
+        let pair0_output: Image = Image::try_create(4, 3, pair0_output_pixels).expect("image");
+
+        let pair1_input_pixels: Vec<u8> = vec![
+            0, 0, 6,
+            6, 0, 0,
+            0, 6, 0,
+        ];
+        let pair1_input: Image = Image::try_create(3, 3, pair1_input_pixels).expect("image");
+
+        let pair1_output_pixels: Vec<u8> = vec![
+            0, 0, 3,
+            3, 0, 0,
+            0, 3, 0,
+        ];
+        let pair1_output: Image = Image::try_create(3, 3, pair1_output_pixels).expect("image");
+
+        let pairs: Vec<(Image, Image)> = vec![(pair0_input, pair0_output), (pair1_input, pair1_output)];
+        
+        // Act
+        let (actual_source, actual_destination) = SubstitutionRule::find_rule(pairs).expect("rule");
+
+        // Assert
+        let expected_source_pixels: Vec<u8> = vec![
+            6,
+        ];
+        let expected_source: Image = Image::try_create(1, 1, expected_source_pixels).expect("image");
+        assert_eq!(actual_source, expected_source);
+        let expected_destination_pixels: Vec<u8> = vec![
+            3,
+        ];
+        let expected_destination: Image = Image::try_create(1, 1, expected_destination_pixels).expect("image");
+        assert_eq!(actual_destination, expected_destination);
+    }
+
+
+    #[test]
+    fn test_20001_two_pairs_replace3x2() {
+        // Arrange
+        let pair0_input_pixels: Vec<u8> = vec![
+            1, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 1, 0, 0,
+            0, 1, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+        ];
+        let pair0_input: Image = Image::try_create(7, 4, pair0_input_pixels).expect("image");
+
+        let pair0_output_pixels: Vec<u8> = vec![
+            1, 2, 3, 0, 0, 0, 0,
+            4, 5, 6, 0, 1, 2, 3,
+            0, 1, 2, 3, 4, 5, 6,
+            0, 4, 5, 6, 0, 0, 0,
+        ];
+        let pair0_output: Image = Image::try_create(7, 4, pair0_output_pixels).expect("image");
+
+        let pair1_input_pixels: Vec<u8> = vec![
+            0, 0, 0,
+            1, 0, 0,
+            0, 0, 0,
+            0, 0, 0,
+        ];
+        let pair1_input: Image = Image::try_create(3, 4, pair1_input_pixels).expect("image");
+
+        let pair1_output_pixels: Vec<u8> = vec![
+            0, 0, 0,
+            1, 2, 3,
+            4, 5, 6,
+            0, 0, 0,
+        ];
+        let pair1_output: Image = Image::try_create(3, 4, pair1_output_pixels).expect("image");
+
+        let pairs: Vec<(Image, Image)> = vec![(pair0_input, pair0_output), (pair1_input, pair1_output)];
+        
+        // Act
+        let (actual_source, actual_destination) = SubstitutionRule::find_rule(pairs).expect("rule");
+
+        // Assert
+        let expected_source_pixels: Vec<u8> = vec![
+            1, 0, 0,
+            0, 0, 0,
+        ];
+        let expected_source: Image = Image::try_create(3, 2, expected_source_pixels).expect("image");
+        assert_eq!(actual_source, expected_source);
+        let expected_destination_pixels: Vec<u8> = vec![
+            1, 2, 3,
+            4, 5, 6,
+        ];
+        let expected_destination: Image = Image::try_create(3, 2, expected_destination_pixels).expect("image");
+        assert_eq!(actual_destination, expected_destination);
+    }
+}
