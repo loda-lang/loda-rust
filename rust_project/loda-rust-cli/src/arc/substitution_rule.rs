@@ -376,6 +376,49 @@ mod tests {
     }
 
     #[test]
+    fn test_10003_one_pair_replace1x3() {
+        // Arrange
+        let pair0_input_pixels: Vec<u8> = vec![
+            0, 0, 0, 1,
+            0, 1, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 1,
+        ];
+        let pair0_input: Image = Image::try_create(4, 5, pair0_input_pixels).expect("image");
+
+        let pair0_output_pixels: Vec<u8> = vec![
+            0, 2, 0, 3,
+            0, 3, 0, 4,
+            0, 4, 0, 0,
+            0, 0, 0, 2,
+            0, 0, 0, 3,
+        ];
+        let pair0_output: Image = Image::try_create(4, 5, pair0_output_pixels).expect("image");
+
+        let pairs: Vec<(Image, Image)> = vec![(pair0_input, pair0_output)];
+        
+        // Act
+        let rule: SubstitutionRule = SubstitutionRule::find_rule(pairs).expect("rule");
+
+        // Assert
+        let expected_source_pixels: Vec<u8> = vec![
+            0,
+            1,
+            0,
+        ];
+        let expected_source: Image = Image::try_create(1, 3, expected_source_pixels).expect("image");
+        assert_eq!(rule.source, expected_source);
+        let expected_destination_pixels: Vec<u8> = vec![
+            2,
+            3,
+            4,
+        ];
+        let expected_destination: Image = Image::try_create(1, 3, expected_destination_pixels).expect("image");
+        assert_eq!(rule.destination, expected_destination);
+    }
+
+    #[test]
     fn test_20000_two_pairs_replace1x1() {
         // Arrange
         let pair0_input_pixels: Vec<u8> = vec![
