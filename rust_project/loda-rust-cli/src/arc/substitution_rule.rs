@@ -240,6 +240,18 @@ impl SubstitutionRule {
 
         Err(anyhow::anyhow!("Unable to find a single substitution rule that works for all pairs"))
     }
+
+    /// Apply the substitution rule.
+    /// 
+    /// The places where the `source` image occurs, gets replaces with the `destination` image.
+    pub fn apply(&self, input: &Image) -> anyhow::Result<Image> {
+        let background_color: u8 = input.most_popular_color().unwrap_or(255);
+        let mut result_image: Image = input.padding_with_color(1, background_color)?;
+        _ = result_image.replace_simple(&self.source, &self.destination)?;
+        let crop_rect = Rectangle::new(1, 1, input.width(), input.height());
+        let result_image2: Image = result_image.crop(crop_rect)?;
+        Ok(result_image2)
+    }
 }
 
 struct Item {
@@ -586,5 +598,45 @@ mod tests {
         // Assert
         let message: String = format!("{:?}", error);
         assert_eq!(message.contains("Without any differences, a rule cannot be derived."), true);
+    }
+
+    #[test]
+    fn test_40000_apply() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            1, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 1, 0,
+            0, 0, 0, 0, 0, 0, 0,
+            0, 0, 1, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(7, 4, input_pixels).expect("image");
+
+        let source_pixels: Vec<u8> = vec![
+            0, 0, 0,
+            0, 1, 0,
+            0, 0, 0,
+        ];
+        let source: Image = Image::try_create(3, 3, source_pixels).expect("image");
+
+        let destination_pixels: Vec<u8> = vec![
+            2, 0, 2,
+            0, 1, 0,
+            2, 0, 2,
+        ];
+        let destination: Image = Image::try_create(3, 3, destination_pixels).expect("image");
+        let rule = SubstitutionRule { source, destination };
+       
+        // Act
+        let actual: Image = rule.apply(&input).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 0, 0, 0, 2, 0, 2,
+            0, 2, 0, 0, 0, 1, 0,
+            0, 2, 0, 2, 2, 0, 2,
+            0, 0, 1, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(7, 4, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
     }
 }

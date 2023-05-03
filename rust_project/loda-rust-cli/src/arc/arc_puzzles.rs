@@ -8,7 +8,7 @@ mod tests {
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ObjectsMeasureMass, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
-    use crate::arc::{ObjectsToGrid, ObjectsToGridMode, ImageReplaceSimple, SubstitutionRule};
+    use crate::arc::{ObjectsToGrid, ObjectsToGridMode, SubstitutionRule};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere, GridPattern};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
@@ -2430,9 +2430,8 @@ mod tests {
                 if rule.source.is_empty() || rule.destination.is_empty() {
                     return Err(anyhow::anyhow!("the replacement images are supposed to be 1x1 or bigger"));
                 }
-
-                println!("substitution_rule.source: {:?}", rule.source);
-                println!("substitution_rule.destination: {:?}", rule.destination);
+                // println!("substitution_rule.source: {:?}", rule.source);
+                // println!("substitution_rule.destination: {:?}", rule.destination);
 
                 self.substitution_rule = Some(rule);
 
@@ -2447,14 +2446,7 @@ mod tests {
                         return Err(anyhow::anyhow!("expected some substitution_rule"));
                     }
                 };
-                let input: &Image = &data.image;
-                let background_color: u8 = input.most_popular_color().unwrap_or(255);
-
-                let mut result_image: Image = input.padding_with_color(1, background_color)?;
-                _ = result_image.replace_simple(&rule.source, &rule.destination)?;
-                let crop_rect = Rectangle::new(1, 1, input.width(), input.height());
-                let result_image2: Image = result_image.crop(crop_rect)?;
-                Ok(result_image2)
+                rule.apply(&data.image)
             }
         }
     }
