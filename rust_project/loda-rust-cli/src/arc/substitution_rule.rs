@@ -35,13 +35,15 @@ impl SubstitutionRule {
                 return Err(anyhow::anyhow!("Both input and output must have same size. And be 1x1 or bigger."));
             }
 
-            // Find the positions where the `input` and `output` differs
+            // Find positions where `input` and `output` differ
             let diff: Image = input.diff(&output)?;
-            let mut diff_positions = HashSet::<(i32, i32)>::new();
-            for y in 0..input.height() as i32 {
-                for x in 0..input.width() as i32 {
-                    if diff.get(x, y).unwrap_or(0) > 0 {
+            let mut diff_positions = HashSet::<(u8, u8)>::new();
+            let mut diff_y_positions = HashSet::<u8>::new();
+            for y in 0..input.height() {
+                for x in 0..input.width() {
+                    if diff.get(x as i32, y as i32).unwrap_or(0) > 0 {
                         diff_positions.insert((x, y));
+                        diff_y_positions.insert(y);
                     }
                 }
             }
@@ -56,6 +58,7 @@ impl SubstitutionRule {
                 input_with_1px_padding,
                 output,
                 diff_positions,
+                diff_y_positions,
             };
             items.push(item);
         }
@@ -84,6 +87,8 @@ impl SubstitutionRule {
             (4, 3),
             (3, 4),
             (4, 4),
+            // 4x4 is the biggest replacement that occur in the ARC 1 dataset.
+            // For the ARC 2 dataset maybe add 5x5 or bigger sizes.
         ];
         for (width, height) in sizes {
             let (source, destination) = match Self::find_substitution_with_size(&items, width, height) {
@@ -137,12 +142,26 @@ impl SubstitutionRule {
                         }
                     };
 
+                    let min_x: u8 = x;
+                    let min_y: u8 = y;
+                    if x1 < 0 || x1 >= width as i32 {
+                        continue;
+                    }
+                    let max_x: u8 = x1 as u8;
+                    if y1 < 0 || y1 >= height as i32 {
+                        continue;
+                    }
+                    let max_y: u8 = y1 as u8;
+
                     // We are only interested in rectangles where there are differences between input/output.
                     // Reject areas that are identical between input/output.
                     let mut rect_intersects_with_positions: bool = false;
-                    for yy in y0..=y1 {
-                        for xx in x0..=x1 {
-                            let xy: (i32, i32) = (xx, yy);
+                    for yy in min_y..=max_y {
+                        if !item.diff_y_positions.contains(&yy) {
+                            continue;
+                        }
+                        for xx in min_x..=max_x {
+                            let xy: (u8, u8) = (xx, yy);
                             if item.diff_positions.contains(&xy) {
                                 rect_intersects_with_positions = true;
                                 break;
@@ -262,8 +281,11 @@ struct Item {
     input_with_1px_padding: Image,
     output: Image,
 
-    /// Positions where `input` and `output` differs
-    diff_positions: HashSet<(i32, i32)>,
+    /// Positions where `input` and `output` differ
+    diff_positions: HashSet<(u8, u8)>,
+
+    /// Rows where `input` and `output` differs one or more places
+    diff_y_positions: HashSet<u8>,
 }
 
 #[cfg(test)]
