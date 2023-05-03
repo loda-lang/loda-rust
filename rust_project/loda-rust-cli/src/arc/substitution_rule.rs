@@ -10,12 +10,12 @@ const SUBSTITUTION_RULE_MAX_DIFFS_PER_PAIR: usize = 40;
 
 /// Performance parameter.
 /// The biggest ARC task images are 30x30 pixels, so 900 rectangles are needed in worst case scenario.
-/// If it's too small a capacity then the more memory have to be allocated on the fly, which is slow.
+/// If it's too small a capacity then more memory has to be allocated on the fly, which is slow.
 const SUBSTITUTION_RULE_RECT_VEC_CAPACITY: usize = 30 * 30;
 
 /// Performance parameter.
 /// Only a few of the 900 rectangles leads to a replacement.
-/// If it's too small a capacity then the more memory have to be allocated on the fly, which is slow.
+/// If it's too small a capacity then more memory has to be allocated on the fly, which is slow.
 const SUBSTITUTION_RULE_REPLACEMENT_VECSET_CAPACITY: usize = 100; 
 
 #[allow(dead_code)]
