@@ -2428,7 +2428,7 @@ mod tests {
                     image_pairs.push((pair.input.image.clone(), pair.output.image.clone()));
                 }
 
-                let (source, destination) = SubstitutionRule::find_rule(&image_pairs)?;
+                let (source, destination) = SubstitutionRule::find_rule(image_pairs)?;
                 self.replace_source = source;
                 self.replace_destination = destination;
 
