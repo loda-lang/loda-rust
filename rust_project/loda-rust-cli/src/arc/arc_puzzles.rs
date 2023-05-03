@@ -2405,15 +2405,13 @@ mod tests {
         use super::*;
     
         pub struct MySolution {
-            replace_source: Image,
-            replace_destination: Image,
+            substitution_rule: Option<SubstitutionRule>,
         }
     
         impl MySolution {
             pub fn new() -> Self {
                 Self {
-                    replace_source: Image::empty(),
-                    replace_destination: Image::empty(),
+                    substitution_rule: None,
                 }
             }
         }
@@ -2428,27 +2426,32 @@ mod tests {
                     image_pairs.push((pair.input.image.clone(), pair.output.image.clone()));
                 }
 
-                let (source, destination) = SubstitutionRule::find_rule(image_pairs)?;
-                self.replace_source = source;
-                self.replace_destination = destination;
-
-                if self.replace_source.is_empty() || self.replace_destination.is_empty() {
+                let rule: SubstitutionRule = SubstitutionRule::find_rule(image_pairs)?;
+                if rule.source.is_empty() || rule.destination.is_empty() {
                     return Err(anyhow::anyhow!("the replacement images are supposed to be 1x1 or bigger"));
                 }
 
-                println!("replace_source: {:?}", self.replace_source);
-                println!("replace_destination: {:?}", self.replace_destination);
+                println!("substitution_rule.source: {:?}", rule.source);
+                println!("substitution_rule.destination: {:?}", rule.destination);
+
+                self.substitution_rule = Some(rule);
 
                 // TODO: save the substituted image on the arc_work_model::Input struct
                 Ok(())   
             }
     
             fn solve(&self, data: &SolutionSimpleData, _task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let rule: &SubstitutionRule = match &self.substitution_rule {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("expected some substitution_rule"));
+                    }
+                };
                 let input: &Image = &data.image;
                 let background_color: u8 = input.most_popular_color().unwrap_or(255);
 
                 let mut result_image: Image = input.padding_with_color(1, background_color)?;
-                _ = result_image.replace_simple(&self.replace_source, &self.replace_destination)?;
+                _ = result_image.replace_simple(&rule.source, &rule.destination)?;
                 let crop_rect = Rectangle::new(1, 1, input.width(), input.height());
                 let result_image2: Image = result_image.crop(crop_rect)?;
                 Ok(result_image2)

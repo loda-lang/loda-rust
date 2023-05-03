@@ -4,7 +4,11 @@ use std::collections::HashSet;
 const SUBSTITUTION_RULE_VERBOSE: bool = false;
 
 #[allow(dead_code)]
-pub struct SubstitutionRule;
+#[derive(Debug)]
+pub struct SubstitutionRule {
+    pub source: Image,
+    pub destination: Image,
+}
 
 impl SubstitutionRule {
     /// Determine the rule in the scenario when there is only one rule.
@@ -18,7 +22,7 @@ impl SubstitutionRule {
     /// 
     /// Returns an error when no rule can be found.
     #[allow(dead_code)]
-    pub fn find_rule(pairs: Vec<(Image, Image)>) -> anyhow::Result<(Image, Image)> {
+    pub fn find_rule(pairs: Vec<(Image, Image)>) -> anyhow::Result<Self> {
         if pairs.is_empty() {
             return Err(anyhow::anyhow!("There must be 1 or more pairs. Cannot derive rule from zero pairs."));
         }
@@ -84,7 +88,11 @@ impl SubstitutionRule {
         for (width, height) in sizes {
             match Self::find_substitution_with_size(&items, width, height) {
                 Ok((source, destination)) => {
-                    return Ok((source, destination));
+                    let instance = Self {
+                        source,
+                        destination,
+                    };
+                    return Ok(instance);
                 },
                 Err(error) => {
                     if SUBSTITUTION_RULE_VERBOSE {
@@ -270,19 +278,19 @@ mod tests {
         let pairs: Vec<(Image, Image)> = vec![(pair0_input, pair0_output)];
         
         // Act
-        let (actual_source, actual_destination) = SubstitutionRule::find_rule(pairs).expect("rule");
+        let rule: SubstitutionRule = SubstitutionRule::find_rule(pairs).expect("rule");
 
         // Assert
         let expected_source_pixels: Vec<u8> = vec![
             6,
         ];
         let expected_source: Image = Image::try_create(1, 1, expected_source_pixels).expect("image");
-        assert_eq!(actual_source, expected_source);
+        assert_eq!(rule.source, expected_source);
         let expected_destination_pixels: Vec<u8> = vec![
             3,
         ];
         let expected_destination: Image = Image::try_create(1, 1, expected_destination_pixels).expect("image");
-        assert_eq!(actual_destination, expected_destination);
+        assert_eq!(rule.destination, expected_destination);
     }
 
     #[test]
@@ -309,19 +317,19 @@ mod tests {
         let pairs: Vec<(Image, Image)> = vec![(pair0_input, pair0_output)];
         
         // Act
-        let (actual_source, actual_destination) = SubstitutionRule::find_rule(pairs).expect("rule");
+        let rule: SubstitutionRule = SubstitutionRule::find_rule(pairs).expect("rule");
 
         // Assert
         let expected_source_pixels: Vec<u8> = vec![
             5, 0,
         ];
         let expected_source: Image = Image::try_create(2, 1, expected_source_pixels).expect("image");
-        assert_eq!(actual_source, expected_source);
+        assert_eq!(rule.source, expected_source);
         let expected_destination_pixels: Vec<u8> = vec![
             5, 5,
         ];
         let expected_destination: Image = Image::try_create(2, 1, expected_destination_pixels).expect("image");
-        assert_eq!(actual_destination, expected_destination);
+        assert_eq!(rule.destination, expected_destination);
     }
 
     #[test]
@@ -348,7 +356,7 @@ mod tests {
         let pairs: Vec<(Image, Image)> = vec![(pair0_input, pair0_output)];
         
         // Act
-        let (actual_source, actual_destination) = SubstitutionRule::find_rule(pairs).expect("rule");
+        let rule: SubstitutionRule = SubstitutionRule::find_rule(pairs).expect("rule");
 
         // Assert
         let expected_source_pixels: Vec<u8> = vec![
@@ -357,14 +365,14 @@ mod tests {
             0, 0, 0,
         ];
         let expected_source: Image = Image::try_create(3, 3, expected_source_pixels).expect("image");
-        assert_eq!(actual_source, expected_source);
+        assert_eq!(rule.source, expected_source);
         let expected_destination_pixels: Vec<u8> = vec![
             1, 2, 3,
             4, 5, 6,
             7, 8, 9,
         ];
         let expected_destination: Image = Image::try_create(3, 3, expected_destination_pixels).expect("image");
-        assert_eq!(actual_destination, expected_destination);
+        assert_eq!(rule.destination, expected_destination);
     }
 
     #[test]
@@ -401,19 +409,19 @@ mod tests {
         let pairs: Vec<(Image, Image)> = vec![(pair0_input, pair0_output), (pair1_input, pair1_output)];
         
         // Act
-        let (actual_source, actual_destination) = SubstitutionRule::find_rule(pairs).expect("rule");
+        let rule: SubstitutionRule = SubstitutionRule::find_rule(pairs).expect("rule");
 
         // Assert
         let expected_source_pixels: Vec<u8> = vec![
             6,
         ];
         let expected_source: Image = Image::try_create(1, 1, expected_source_pixels).expect("image");
-        assert_eq!(actual_source, expected_source);
+        assert_eq!(rule.source, expected_source);
         let expected_destination_pixels: Vec<u8> = vec![
             3,
         ];
         let expected_destination: Image = Image::try_create(1, 1, expected_destination_pixels).expect("image");
-        assert_eq!(actual_destination, expected_destination);
+        assert_eq!(rule.destination, expected_destination);
     }
 
     #[test]
@@ -450,19 +458,19 @@ mod tests {
         let pairs: Vec<(Image, Image)> = vec![(pair0_input, pair0_output), (pair1_input, pair1_output)];
         
         // Act
-        let (actual_source, actual_destination) = SubstitutionRule::find_rule(pairs).expect("rule");
+        let rule: SubstitutionRule = SubstitutionRule::find_rule(pairs).expect("rule");
 
         // Assert
         let expected_source_pixels: Vec<u8> = vec![
             6,
         ];
         let expected_source: Image = Image::try_create(1, 1, expected_source_pixels).expect("image");
-        assert_eq!(actual_source, expected_source);
+        assert_eq!(rule.source, expected_source);
         let expected_destination_pixels: Vec<u8> = vec![
             3,
         ];
         let expected_destination: Image = Image::try_create(1, 1, expected_destination_pixels).expect("image");
-        assert_eq!(actual_destination, expected_destination);
+        assert_eq!(rule.destination, expected_destination);
     }
 
     #[test]
@@ -503,7 +511,7 @@ mod tests {
         let pairs: Vec<(Image, Image)> = vec![(pair0_input, pair0_output), (pair1_input, pair1_output)];
         
         // Act
-        let (actual_source, actual_destination) = SubstitutionRule::find_rule(pairs).expect("rule");
+        let rule: SubstitutionRule = SubstitutionRule::find_rule(pairs).expect("rule");
 
         // Assert
         let expected_source_pixels: Vec<u8> = vec![
@@ -511,13 +519,13 @@ mod tests {
             0, 0, 0,
         ];
         let expected_source: Image = Image::try_create(3, 2, expected_source_pixels).expect("image");
-        assert_eq!(actual_source, expected_source);
+        assert_eq!(rule.source, expected_source);
         let expected_destination_pixels: Vec<u8> = vec![
             1, 2, 3,
             4, 5, 6,
         ];
         let expected_destination: Image = Image::try_create(3, 2, expected_destination_pixels).expect("image");
-        assert_eq!(actual_destination, expected_destination);
+        assert_eq!(rule.destination, expected_destination);
     }
 
     #[test]
