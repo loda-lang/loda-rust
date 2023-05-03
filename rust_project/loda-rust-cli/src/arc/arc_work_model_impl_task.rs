@@ -1,6 +1,7 @@
 use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate};
 use super::arc_work_model::{Input, PairType, Object};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
+use super::SubstitutionRule;
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
 use std::collections::{HashMap, HashSet};
 
@@ -12,6 +13,31 @@ enum RulePriority {
 }
 
 impl arc_work_model::Task {
+    pub fn detect_substitution_rule(&mut self) -> anyhow::Result<()> {
+        if !self.is_output_size_same_as_input_size() {
+            return Ok(());
+        }
+        let mut image_pairs = Vec::<(Image, Image)>::new();
+        for pair in &self.pairs {
+            if pair.pair_type != PairType::Train {
+                continue;
+            }
+            image_pairs.push((pair.input.image.clone(), pair.output.image.clone()));
+        }
+
+        println!("task: {} searching for rule", self.id);
+        let rule: SubstitutionRule = match SubstitutionRule::find_rule(image_pairs) {
+            Ok(value) => value,
+            Err(_) => {
+                println!("task: {} no rule found", self.id);
+                return Ok(());
+            }
+        };
+
+        println!("task: {} rule: {:?}", self.id, rule);
+        Ok(())
+    }
+
     fn update_input_properties_for_all_pairs(&mut self) {
         for pair in &mut self.pairs {
             pair.input.update_input_properties();
@@ -544,6 +570,8 @@ impl arc_work_model::Task {
         }
 
         self.update_action_label_set_intersection();
+
+        // self.detect_substitution_rule()?;
 
         self.assign_repair_mask();
 
