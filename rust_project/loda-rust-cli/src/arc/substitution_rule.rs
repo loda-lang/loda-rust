@@ -45,15 +45,19 @@ impl SubstitutionRule {
         // Ascending complexity
         // We prefer the simplest rules, so the simplest substitution rules comes at the top.
         // We try to avoid advanced rules, the more complex substitution rules comes at the bottom.
-        let sizes: [(u8, u8); 12] = [
+        let sizes: [(u8, u8); 16] = [
             (1, 1),
             (2, 1),
             (1, 2),
             (3, 1),
             (1, 3),
+            (4, 1),
+            (1, 4),
             (2, 2),
             (3, 2),
             (2, 3),
+            (4, 2),
+            (2, 4),
             (3, 3),
             (4, 3),
             (3, 4),
