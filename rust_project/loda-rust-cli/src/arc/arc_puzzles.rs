@@ -8,7 +8,7 @@ mod tests {
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ObjectsMeasureMass, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
-    use crate::arc::{ObjectsToGrid, ObjectsToGridMode};
+    use crate::arc::{ObjectsToGrid, ObjectsToGridMode, ImageReplaceSimple};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere, GridPattern};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
@@ -2405,35 +2405,21 @@ mod tests {
         use std::collections::HashSet;
 
         use super::*;
-
-        type Dict = HashMap<Image, Image>;
     
         pub struct MySolution {
-            dict_outer: Dict,
+            replace_source: Image,
+            replace_destination: Image,
         }
     
         impl MySolution {
             pub fn new() -> Self {
                 Self {
-                    dict_outer: Dict::new(),
+                    replace_source: Image::empty(),
+                    replace_destination: Image::empty(),
                 }
             }
 
-            /// Do substitutions from the dictionary
-            pub fn apply(input: &Image, substitutions: &Dict) -> anyhow::Result<Image> {
-                let mut result_image: Image = input.clone();
-                
-                for (key, value) in substitutions {
-                    let positions: Vec<(u8, u8)> = result_image.find_all(key)?;
-                    for (x, y) in positions {
-                        result_image = result_image.overlay_with_position(value, x as i32, y as i32)?;
-                    }
-                }
-
-                Ok(result_image)
-            }
-
-            fn find_substitutions(task: &arc_work_model::Task, crop_width: u8, crop_height: u8) -> anyhow::Result<Dict> {
+            fn find_substitutions(task: &arc_work_model::Task, crop_width: u8, crop_height: u8) -> anyhow::Result<(Image, Image)> {
                 println!("crop size: width {} height {}", crop_width, crop_height);
                 let mut replacements = Vec::<(Image, Image)>::new();
                 for pair in &task.pairs {
@@ -2532,9 +2518,6 @@ mod tests {
                     println!("replace key: {:?}", key);
                     println!("replace value: {:?}", value);
 
-                    let mut dict = Dict::new();
-                    dict.insert(key.clone(), value.clone());
-
                     let mut encountered_problem: bool = false;
                     for pair in &task.pairs {
                         if pair.pair_type != PairType::Train {
@@ -2544,15 +2527,13 @@ mod tests {
 
                         let background_color: u8 = input.most_popular_color().unwrap_or(255);
 
-                        let input2: Image = input.padding_with_color(1, background_color)?;
-                        let result_image: Image = match Self::apply(&input2, &dict) {
-                            Ok(value) => value,
-                            Err(error) => {
-                                println!("skip bad substitution rule. error: {:?}", error);
-                                encountered_problem = true;
-                                break;
-                            }
-                        };
+                        let mut result_image: Image = input.padding_with_color(1, background_color)?;
+                        let count: u16 = result_image.replace_simple(&key, &value)?;
+                        if count == 0 {
+                            println!("no replacements were performed. reject this replacement");
+                            encountered_problem = true;
+                            break;
+                        }
                         let crop_rect = Rectangle::new(1, 1, input.width(), input.height());
                         let result_image2: Image = result_image.crop(crop_rect)?;
                         if result_image2 != pair.output.image {
@@ -2567,7 +2548,7 @@ mod tests {
                         continue;
                     }
 
-                    return Ok(dict);
+                    return Ok((key.clone(), value.clone()));
                 }
 
                 Err(anyhow::anyhow!("Unable to find a single substitution rule that works for all pairs"))
@@ -2593,10 +2574,13 @@ mod tests {
                     (3, 4),
                     (4, 4),
                 ];
+                let mut found_replacement = false;
                 for (width, height) in areas {
                     match Self::find_substitutions(task, width, height) {
-                        Ok(dict) => {
-                            self.dict_outer = dict;
+                        Ok((source, destination)) => {
+                            self.replace_source = source;
+                            self.replace_destination = destination;
+                            found_replacement = true;
                             break;         
                         },
                         Err(error) => {
@@ -2605,11 +2589,15 @@ mod tests {
                         }
                     }
                 }
-                if self.dict_outer.is_empty() {
-                    return Err(anyhow::anyhow!("analyze didn't find any substitutions"));
+                if !found_replacement {
+                    return Err(anyhow::anyhow!("analyze didn't find any replacement"));
+                }
+                if self.replace_source.is_empty() || self.replace_destination.is_empty() {
+                    return Err(anyhow::anyhow!("the replacement images are supposed to be 1x1 or bigger"));
                 }
 
-                println!("substitution: {:?}", self.dict_outer);
+                println!("replace_source: {:?}", self.replace_source);
+                println!("replace_destination: {:?}", self.replace_destination);
 
                 // TODO: save the substituted image on the arc_work_model::Input struct
                 Ok(())   
@@ -2619,8 +2607,8 @@ mod tests {
                 let input: &Image = &data.image;
                 let background_color: u8 = input.most_popular_color().unwrap_or(255);
 
-                let input2: Image = input.padding_with_color(1, background_color)?;
-                let result_image: Image = Self::apply(&input2, &self.dict_outer)?;
+                let mut result_image: Image = input.padding_with_color(1, background_color)?;
+                _ = result_image.replace_simple(&self.replace_source, &self.replace_destination)?;
                 let crop_rect = Rectangle::new(1, 1, input.width(), input.height());
                 let result_image2: Image = result_image.crop(crop_rect)?;
                 Ok(result_image2)
