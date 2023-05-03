@@ -2427,9 +2427,6 @@ mod tests {
                 }
 
                 let rule: SubstitutionRule = SubstitutionRule::find_rule(image_pairs)?;
-                if rule.source.is_empty() || rule.destination.is_empty() {
-                    return Err(anyhow::anyhow!("the replacement images are supposed to be 1x1 or bigger"));
-                }
                 // println!("substitution_rule.source: {:?}", rule.source);
                 // println!("substitution_rule.destination: {:?}", rule.destination);
 

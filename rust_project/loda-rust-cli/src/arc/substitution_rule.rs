@@ -86,21 +86,23 @@ impl SubstitutionRule {
             (4, 4),
         ];
         for (width, height) in sizes {
-            match Self::find_substitution_with_size(&items, width, height) {
-                Ok((source, destination)) => {
-                    let instance = Self {
-                        source,
-                        destination,
-                    };
-                    return Ok(instance);
-                },
+            let (source, destination) = match Self::find_substitution_with_size(&items, width, height) {
+                Ok(value) => value,
                 Err(error) => {
                     if SUBSTITUTION_RULE_VERBOSE {
                         println!("size: {} {} error: {:?}", width, height, error);
                     }
                     continue;
                 }
+            };
+            if source.size() != destination.size() || source.is_empty() {
+                return Err(anyhow::anyhow!("the replacement images are supposed to have same size and be 1x1 or bigger"));
             }
+            let instance = Self {
+                source,
+                destination,
+            };
+            return Ok(instance);
         }
         Err(anyhow::anyhow!("didn't find a replacement rule"))
     }
