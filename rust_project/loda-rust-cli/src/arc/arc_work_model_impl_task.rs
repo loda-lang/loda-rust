@@ -13,7 +13,8 @@ enum RulePriority {
 }
 
 impl arc_work_model::Task {
-    pub fn detect_substitution_rule(&mut self) -> anyhow::Result<()> {
+    pub fn compute_substitution_rule(&mut self) -> anyhow::Result<()> {
+        let verbose = false;
         if !self.is_output_size_same_as_input_size() {
             return Ok(());
         }
@@ -25,16 +26,39 @@ impl arc_work_model::Task {
             image_pairs.push((pair.input.image.clone(), pair.output.image.clone()));
         }
 
-        println!("task: {} searching for rule", self.id);
+        if verbose {
+            println!("task: {} searching for substitution rule", self.id);
+        }
         let rule: SubstitutionRule = match SubstitutionRule::find_rule(image_pairs) {
             Ok(value) => value,
             Err(_) => {
-                println!("task: {} no rule found", self.id);
+                if verbose {
+                    println!("task: {} no substitution rule found", self.id);
+                }
                 return Ok(());
             }
         };
 
-        println!("task: {} rule: {:?}", self.id, rule);
+        if verbose {
+            println!("task: {} substitution rule: {:?}", self.id, rule);
+        }
+
+        let mut reset = false;
+        for pair in &mut self.pairs {
+            let applied: Image = match rule.apply(&pair.input.image) {
+                Ok(value) => value,
+                Err(_) => {
+                    reset = true;
+                    break;
+                }
+            };
+            pair.input.substitution_rule_applied = Some(applied);
+        }
+        if reset {
+            for pair in &mut self.pairs {
+                pair.input.substitution_rule_applied = None;
+            }
+        }
         Ok(())
     }
 
@@ -571,7 +595,7 @@ impl arc_work_model::Task {
 
         self.update_action_label_set_intersection();
 
-        // self.detect_substitution_rule()?;
+        self.compute_substitution_rule()?;
 
         self.assign_repair_mask();
 
