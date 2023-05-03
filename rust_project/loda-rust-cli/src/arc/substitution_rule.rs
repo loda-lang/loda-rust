@@ -1,8 +1,22 @@
 use super::{Image, ImageCompare, Rectangle, ImageCrop, ImageColorProfile, ImagePadding, ImageReplaceSimple};
 use std::collections::HashSet;
 
+/// Print out debug info to console to troubleshoot what is going on.
 const SUBSTITUTION_RULE_VERBOSE: bool = false;
+
+/// Performance parameter.
+/// Don't attempt construct a substitution rule when there are way too many differences between input/output images
 const SUBSTITUTION_RULE_MAX_DIFFS_PER_PAIR: usize = 40;
+
+/// Performance parameter.
+/// The biggest ARC task images are 30x30 pixels, so 900 rectangles are needed in worst case scenario.
+/// If it's too small a capacity then the more memory have to be allocated on the fly, which is slow.
+const SUBSTITUTION_RULE_RECT_VEC_CAPACITY: usize = 30 * 30;
+
+/// Performance parameter.
+/// Only a few of the 900 rectangles leads to a replacement.
+/// If it's too small a capacity then the more memory have to be allocated on the fly, which is slow.
+const SUBSTITUTION_RULE_REPLACEMENT_VECSET_CAPACITY: usize = 100; 
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -132,14 +146,14 @@ impl SubstitutionRule {
         if SUBSTITUTION_RULE_VERBOSE {
             println!("crop size: width {} height {}", crop_width, crop_height);
         }
-        let mut replacement_set = HashSet::<(Image, Image)>::new();
-        let mut replacement_vec = Vec::<(Image, Image)>::new();
-        let mut rects = Vec::<Rectangle>::with_capacity(30 * 30);
+        let mut replacement_set = HashSet::<(Image, Image)>::with_capacity(SUBSTITUTION_RULE_REPLACEMENT_VECSET_CAPACITY);
+        let mut replacement_vec = Vec::<(Image, Image)>::with_capacity(SUBSTITUTION_RULE_REPLACEMENT_VECSET_CAPACITY);
+        let mut rects = Vec::<Rectangle>::with_capacity(SUBSTITUTION_RULE_RECT_VEC_CAPACITY);
         for item in items {
             let width: u8 = item.input.width();
             let height: u8 = item.input.height();
             rects.truncate(0);
-            
+
             // Generate rectangles for the crop size near areas that have differences.
             for y in 0..height {
                 let y0: i32 = y as i32;
