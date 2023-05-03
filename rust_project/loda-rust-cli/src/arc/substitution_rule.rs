@@ -15,6 +15,7 @@ impl SubstitutionRule {
 
         // Find the positions where the `input` and `output` differs
         let mut items = Vec::<Item>::new();
+        let mut count_positions: usize = 0;
         for (input, output) in pairs {
             if input.size() != output.size() || input.is_empty() {
                 return Err(anyhow::anyhow!("Both input and output must have same size. And be 1x1 or bigger."));
@@ -28,12 +29,17 @@ impl SubstitutionRule {
                     }
                 }
             }
+            count_positions += diff_positions.len();
             let item = Item {
                 input,
                 output,
                 diff_positions,
             };
             items.push(item);
+        }
+
+        if count_positions == 0 {
+            return Err(anyhow::anyhow!("Without any differences, a rule cannot be derived."));
         }
 
         // Ascending complexity
@@ -163,18 +169,13 @@ impl SubstitutionRule {
             }
 
             let mut encountered_problem: bool = false;
+            let mut number_of_replacements_performed: usize = 0;
             for item in items {
                 let background_color: u8 = item.input.most_popular_color().unwrap_or(255);
 
                 let mut result_image: Image = item.input.padding_with_color(1, background_color)?;
                 let count: u16 = result_image.replace_simple(&key, &value)?;
-                if count == 0 {
-                    if SUBSTITUTION_RULE_VERBOSE {
-                        println!("no replacements were performed. reject this replacement");
-                    }
-                    encountered_problem = true;
-                    break;
-                }
+                number_of_replacements_performed += count as usize;
                 let crop_rect = Rectangle::new(1, 1, item.input.width(), item.input.height());
                 let cropped_image: Image = result_image.crop(crop_rect)?;
                 if cropped_image != item.output {
@@ -188,6 +189,12 @@ impl SubstitutionRule {
                 if SUBSTITUTION_RULE_VERBOSE {
                     println!("found good substitutions");
                 }
+            }
+            if number_of_replacements_performed == 0 {
+                if SUBSTITUTION_RULE_VERBOSE {
+                    println!("no replacements were performed. reject this replacement");
+                }
+                continue;
             }
             if encountered_problem {
                 continue;
@@ -381,9 +388,57 @@ mod tests {
         assert_eq!(actual_destination, expected_destination);
     }
 
+    #[test]
+    fn test_20001_two_pairs_replace1x1() {
+        // Arrange
+        let pair0_input_pixels: Vec<u8> = vec![
+            0, 6, 0, 0,
+            0, 0, 6, 6,
+            6, 0, 0, 0,
+        ];
+        let pair0_input: Image = Image::try_create(4, 3, pair0_input_pixels).expect("image");
+
+        let pair0_output_pixels: Vec<u8> = vec![
+            0, 3, 0, 0,
+            0, 0, 3, 3,
+            3, 0, 0, 0,
+        ];
+        let pair0_output: Image = Image::try_create(4, 3, pair0_output_pixels).expect("image");
+
+        let pair1_input_pixels: Vec<u8> = vec![
+            0, 0, 3,
+            3, 0, 0,
+            0, 3, 0,
+        ];
+        let pair1_input: Image = Image::try_create(3, 3, pair1_input_pixels).expect("image");
+
+        let pair1_output_pixels: Vec<u8> = vec![
+            0, 0, 3,
+            3, 0, 0,
+            0, 3, 0,
+        ];
+        let pair1_output: Image = Image::try_create(3, 3, pair1_output_pixels).expect("image");
+
+        let pairs: Vec<(Image, Image)> = vec![(pair0_input, pair0_output), (pair1_input, pair1_output)];
+        
+        // Act
+        let (actual_source, actual_destination) = SubstitutionRule::find_rule(pairs).expect("rule");
+
+        // Assert
+        let expected_source_pixels: Vec<u8> = vec![
+            6,
+        ];
+        let expected_source: Image = Image::try_create(1, 1, expected_source_pixels).expect("image");
+        assert_eq!(actual_source, expected_source);
+        let expected_destination_pixels: Vec<u8> = vec![
+            3,
+        ];
+        let expected_destination: Image = Image::try_create(1, 1, expected_destination_pixels).expect("image");
+        assert_eq!(actual_destination, expected_destination);
+    }
 
     #[test]
-    fn test_20001_two_pairs_replace3x2() {
+    fn test_20002_two_pairs_replace3x2() {
         // Arrange
         let pair0_input_pixels: Vec<u8> = vec![
             1, 0, 0, 0, 0, 0, 0,
@@ -435,5 +490,22 @@ mod tests {
         ];
         let expected_destination: Image = Image::try_create(3, 2, expected_destination_pixels).expect("image");
         assert_eq!(actual_destination, expected_destination);
+    }
+
+    #[test]
+    fn test_30000_one_pair_no_differences() {
+        // Arrange
+        let pair0_input: Image = Image::try_create(1, 1, vec![5]).expect("image");
+
+        let pair0_output: Image = Image::try_create(1, 1, vec![5]).expect("image");
+
+        let pairs: Vec<(Image, Image)> = vec![(pair0_input, pair0_output)];
+        
+        // Act
+        let error = SubstitutionRule::find_rule(pairs).expect_err("should fail");
+
+        // Assert
+        let message: String = format!("{:?}", error);
+        assert_eq!(message.contains("Without any differences, a rule cannot be derived."), true);
     }
 }
