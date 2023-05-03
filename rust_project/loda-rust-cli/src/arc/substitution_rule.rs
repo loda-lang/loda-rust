@@ -84,8 +84,8 @@ impl SubstitutionRule {
         }
 
         // Ordered by area (width x height) or ascending complexity.
-        // We prefer the simplest rules, so the simplest substitution rules comes at the top.
-        // We try to avoid advanced rules, the more complex substitution rules comes at the bottom.
+        // Prefer the simplest rules, so the simplest substitution rules comes at the top.
+        // Avoid the advanced rules, the more complex substitution rules comes at the bottom.
         let sizes: [(u8, u8); 16] = [
             (1, 1),
             (2, 1),
@@ -132,12 +132,14 @@ impl SubstitutionRule {
         if SUBSTITUTION_RULE_VERBOSE {
             println!("crop size: width {} height {}", crop_width, crop_height);
         }
-        let mut replacements = Vec::<(Image, Image)>::new();
+        let mut replacement_set = HashSet::<(Image, Image)>::new();
+        let mut replacement_vec = Vec::<(Image, Image)>::new();
+        let mut rects = Vec::<Rectangle>::with_capacity(30 * 30);
         for item in items {
             let width: u8 = item.input.width();
             let height: u8 = item.input.height();
-
-            let mut rects = Vec::<Rectangle>::new();
+            rects.truncate(0);
+            
             // Generate rectangles for the crop size near areas that have differences.
             for y in 0..height {
                 let y0: i32 = y as i32;
@@ -238,21 +240,26 @@ impl SubstitutionRule {
                 // println!("replace_target: {:?}", replace_target);
 
                 let replacement: (Image, Image) = (replace_source, replace_target);
-                if !replacements.contains(&replacement) {
-                    replacements.push(replacement);
+                if replacement_set.contains(&replacement) {
+                    continue;
                 }
+                replacement_set.insert(replacement.clone());
+                replacement_vec.push(replacement);
             }
         }
         if SUBSTITUTION_RULE_VERBOSE {
-            println!("number of replacements: {}", replacements.len());
+            println!("number of replacements: {}", replacement_vec.len());
+            if replacement_vec.len() != replacement_set.len() {
+                println!("replacements: {}  replacement_set: {}", replacement_vec.len(), replacement_set.len());
+            }
         }
 
-        if replacements.is_empty() {
+        if replacement_vec.is_empty() {
             return Err(anyhow::anyhow!("didn't find any replacements"));
         }
 
         // Find a single substitution rule that satisfy all the input/output pairs
-        for (source, destination) in replacements {
+        for (source, destination) in replacement_vec {
             if SUBSTITUTION_RULE_VERBOSE {
                 println!("replace source: {:?}", source);
                 println!("replace destination: {:?}", destination);
