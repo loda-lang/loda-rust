@@ -35,6 +35,16 @@ impl SubstitutionRule {
                 return Err(anyhow::anyhow!("Both input and output must have same size. And be 1x1 or bigger."));
             }
 
+            // Future experiment:
+            // Currently assumes that `most_popular_color` can be used for obtaining the background color.
+            // Deal with tasks where the background color varies between pairs.
+            let background_color: u8 = match input.most_popular_color() {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Cannot determine background color of input"));
+                }
+            };
+
             // Find positions where `input` and `output` differ
             let diff: Image = input.diff(&output)?;
             let mut diff_positions = HashSet::<(u8, u8)>::new();
@@ -50,7 +60,6 @@ impl SubstitutionRule {
             count_positions += diff_positions.len();
 
             // Add 1px border around the image with the most popular color
-            let background_color: u8 = input.most_popular_color().unwrap_or(255);
             let input_with_1px_padding: Image = input.padding_with_color(1, background_color)?;
 
             let item = Item {
