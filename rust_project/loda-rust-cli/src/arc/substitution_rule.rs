@@ -244,6 +244,7 @@ impl SubstitutionRule {
     /// Apply the substitution rule.
     /// 
     /// The places where the `source` image occurs, gets replaces with the `destination` image.
+    #[allow(dead_code)]
     pub fn apply(&self, input: &Image) -> anyhow::Result<Image> {
         let background_color: u8 = input.most_popular_color().unwrap_or(255);
         let mut result_image: Image = input.padding_with_color(1, background_color)?;
