@@ -58,6 +58,7 @@ model filename;program filename
 31aa019c.json;31aa019c-1.asm
 31d5ba1a.json;3428a4f5-1.asm
 3428a4f5.json;3428a4f5-1.asm
+3618c87e.json;substitution-rule-applied.asm
 3631a71a.json;repair-symmetry.asm
 39a8645d.json;39a8645d-1.asm
 3af2c5a8.json;3af2c5a8-1.asm
@@ -67,6 +68,7 @@ model filename;program filename
 4258a5f9.json;31aa019c-1.asm
 4258a5f9.json;4258a5f9-1.asm
 4258a5f9.json;b6afb2da-1.asm
+4258a5f9.json;substitution-rule-applied.asm
 4347f46a.json;50cb2852-1.asm
 44f52bb0.json;44f52bb0-1.asm
 46442a0e.json;7fe24cdd-1.asm
@@ -108,6 +110,7 @@ model filename;program filename
 68b67ca3.json;1190e5a7-1.asm
 68b67ca3.json;19bb5feb-1.asm
 68b67ca3.json;68b67ca3-1.asm
+6c434453.json;substitution-rule-applied.asm
 6d0aefbc.json;6d0aefbc-1.asm
 6f8cd79b.json;b6afb2da-1.asm
 6fa7a44f.json;6fa7a44f-1.asm
@@ -139,6 +142,7 @@ model filename;program filename
 929ab4e9.json;repair-symmetry.asm
 94f9d214.json;94f9d214-1.asm
 9565186b.json;9565186b-1.asm
+95990924.json;substitution-rule-applied.asm
 981571dc.json;repair-symmetry.asm
 99b1bc43.json;3428a4f5-1.asm
 9dfd6313.json;74dd1130-1.asm
@@ -147,9 +151,11 @@ model filename;program filename
 a416b8f3.json;a416b8f3-1.asm
 a68b268e.json;2dc579da-1.asm
 a68b268e.json;a68b268e-1.asm
+a699fb00.json;substitution-rule-applied.asm
 a740d043.json;a740d043-1.asm
 a79310a0.json;a79310a0-1.asm
 a79310a0.json;a79310a0-2.asm
+a9f96cdd.json;substitution-rule-applied.asm
 ac0a08a4.json;60c09cac-1.asm
 ac0a08a4.json;b91ae062-1.asm
 af22c60d.json;repair-symmetry.asm
@@ -170,6 +176,7 @@ b1948b0a.json;b6afb2da-1.asm
 b1948b0a.json;c8f0f002-1.asm
 b1948b0a.json;ed36ccf7-1.asm
 b1948b0a.json;repair-symmetry-and-crop.asm
+b60334d2.json;substitution-rule-applied.asm
 b6afb2da.json;b6afb2da-1.asm
 b8825c91.json;repair-symmetry.asm
 b91ae062.json;60c09cac-1.asm
@@ -202,10 +209,12 @@ c8f0f002.json;c8f0f002-1.asm
 c8f0f002.json;ce8d95cc-1.asm
 c8f0f002.json;eb5a1d5d-1.asm
 c8f0f002.json;ed36ccf7-1.asm
+c8f0f002.json;substitution-rule-applied.asm
 c9e6f938.json;6d0aefbc-1.asm
 ca8f78db.json;repair-mosaic.asm
 ccd554ac.json;ccd554ac-1.asm
 ce22a75a.json;31aa019c-1.asm
+ce22a75a.json;substitution-rule-applied.asm
 ce4f8723.json;94f9d214-1.asm
 ce4f8723.json;d19f7514-1.asm
 ce4f8723.json;e98196ab-1.asm
@@ -216,6 +225,7 @@ d10ecb37.json;2dee498d-1.asm
 d10ecb37.json;d10ecb37-1.asm
 d19f7514.json;94f9d214-1.asm
 d19f7514.json;d19f7514-1.asm
+d364b489.json;substitution-rule-applied.asm
 d4b1c2b1.json;d4b1c2b1-1.asm
 d511f180.json;1190e5a7-1.asm
 d511f180.json;19bb5feb-1.asm
@@ -239,6 +249,7 @@ dae9d2b5.json;bc1d5164-1.asm
 dae9d2b5.json;f2829549-1.asm
 dae9d2b5.json;fafffa47-1.asm
 dc0a314f.json;repair-symmetry-and-crop.asm
+dc1df850.json;substitution-rule-applied.asm
 de1cd16c.json;b9b7f026-1.asm
 de493100.json;repair-symmetry-and-crop.asm
 e133d23d.json;bc1d5164-1.asm

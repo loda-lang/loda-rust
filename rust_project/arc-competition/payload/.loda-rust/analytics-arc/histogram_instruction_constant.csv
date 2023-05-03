@@ -1,7 +1,7 @@
 count;instruction;constant
-195;add;100
+197;add;100
 91;mov;100
-88;mov;102
+89;mov;102
 25;mov;0
 23;mov;1
 17;mov;5
@@ -23,6 +23,7 @@ count;instruction;constant
 2;mov;-1
 2;div;3
 1;mul;7
+1;mov;111
 1;mov;108
 1;mov;106
 1;cmp;0

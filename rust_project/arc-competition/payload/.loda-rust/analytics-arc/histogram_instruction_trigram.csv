@@ -1,12 +1,12 @@
 count;word0;word1;word2
-171;mov;mov;mov
-94;mov;mov;lps
-94;mov;lps;mov
-93;add;add;lpe
+172;mov;mov;mov
+95;mov;mov;lps
+95;mov;lps;mov
+94;add;add;lpe
 92;mov;f21;mov
-90;mov;add;add
-88;add;lpe;STOP
-88;START;mov;mov
+91;mov;add;add
+89;add;lpe;STOP
+89;START;mov;mov
 73;lps;mov;mov
 65;mov;mov;f31
 64;mov;f31;mov
@@ -64,6 +64,7 @@ count;word0;word1;word2
 2;mov;mov;f41
 2;mov;f41;mov
 2;mov;f11;mul
+2;lps;mov;add
 2;f41;mov;mov
 2;f21;f21;f21
 2;f11;mul;mul
@@ -79,7 +80,6 @@ count;word0;word1;word2
 1;mov;f20;f31
 1;mov;f12;mov
 1;mov;f11;cmp
-1;lps;mov;add
 1;lpe;f11;mov
 1;f31;mov;f11
 1;f31;f21;add
