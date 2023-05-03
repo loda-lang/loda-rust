@@ -2419,16 +2419,13 @@ mod tests {
                 }
             }
 
-            fn find_substitutions(task: &arc_work_model::Task, crop_width: u8, crop_height: u8) -> anyhow::Result<(Image, Image)> {
+            fn find_substitutions(pairs: &Vec<(Image, Image)>, crop_width: u8, crop_height: u8) -> anyhow::Result<(Image, Image)> {
                 println!("crop size: width {} height {}", crop_width, crop_height);
                 let mut replacements = Vec::<(Image, Image)>::new();
-                for pair in &task.pairs {
-                    if pair.pair_type != PairType::Train {
-                        continue;
-                    }
-                    let diff: Image = pair.input.image.diff(&pair.output.image)?;
-                    let width: u8 = pair.input.image.width();
-                    let height: u8 = pair.input.image.height();
+                for (input, output) in pairs {
+                    let diff: Image = input.diff(&output)?;
+                    let width: u8 = input.width();
+                    let height: u8 = input.height();
                     let mut positions = Vec::<(u8, u8)>::new();
                     let mut position_set = HashSet::<(i32, i32)>::new();
                     for y in 0..height {
@@ -2484,7 +2481,7 @@ mod tests {
 
                     for rect in &rects {
                         // println!("rect {:?}", rect);
-                        let replace_source: Image = match pair.input.image.crop(*rect) {
+                        let replace_source: Image = match input.crop(*rect) {
                             Ok(value) => value,
                             Err(error) => {
                                 // println!("crop is outside the input image. error: {:?}", error);
@@ -2492,7 +2489,7 @@ mod tests {
                             }
                         };
                         // println!("replace_source: {:?}", replace_source);
-                        let replace_target: Image = match pair.output.image.crop(*rect) {
+                        let replace_target: Image = match output.crop(*rect) {
                             Ok(value) => value,
                             Err(error) => {
                                 // println!("crop is outside the output image. error: {:?}", error);
@@ -2519,12 +2516,7 @@ mod tests {
                     println!("replace value: {:?}", value);
 
                     let mut encountered_problem: bool = false;
-                    for pair in &task.pairs {
-                        if pair.pair_type != PairType::Train {
-                            continue;
-                        }
-                        let input: &Image = &pair.input.image;
-
+                    for (input, output) in pairs {
                         let background_color: u8 = input.most_popular_color().unwrap_or(255);
 
                         let mut result_image: Image = input.padding_with_color(1, background_color)?;
@@ -2536,13 +2528,13 @@ mod tests {
                         }
                         let crop_rect = Rectangle::new(1, 1, input.width(), input.height());
                         let result_image2: Image = result_image.crop(crop_rect)?;
-                        if result_image2 != pair.output.image {
-                            println!("the computed output does not match the expected output image. The substitution rules are incorrect. pair {}", pair.id);
+                        if result_image2 != *output {
+                            println!("the computed output does not match the expected output image. The substitution rules are incorrect.");
                             println!("computed_output: {:?}", result_image2);
                             encountered_problem = true;
                             break;
                         }
-                        println!("substitutions good for pair {}", pair.id);
+                        println!("found good substitutions");
                     }
                     if encountered_problem {
                         continue;
@@ -2557,6 +2549,14 @@ mod tests {
         
         impl AnalyzeAndSolve for MySolution {
             fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
+                let mut image_pairs = Vec::<(Image, Image)>::new();
+                for pair in &task.pairs {
+                    if pair.pair_type != PairType::Train {
+                        continue;
+                    }
+                    image_pairs.push((pair.input.image.clone(), pair.output.image.clone()));
+                }
+
                 // Ascending complexity
                 // We prefer the simplest rules, so the simplest substitution rules comes at the top.
                 // We try to avoid advanced rules, the more complex substitution rules comes at the bottom.
@@ -2576,7 +2576,7 @@ mod tests {
                 ];
                 let mut found_replacement = false;
                 for (width, height) in areas {
-                    match Self::find_substitutions(task, width, height) {
+                    match Self::find_substitutions(&image_pairs, width, height) {
                         Ok((source, destination)) => {
                             self.replace_source = source;
                             self.replace_destination = destination;
