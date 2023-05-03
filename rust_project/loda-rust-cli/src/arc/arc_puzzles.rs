@@ -2448,10 +2448,27 @@ mod tests {
         }
     }
 
+    const PROGRAM_SUBSTITUTION_RULE_APPLIED: &'static str = "
+    mov $80,$99
+    mov $81,111 ; address of vector[0].SubstitutionRuleApplied
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $$82,$$81
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
     #[test]
     fn test_540002_puzzle_a699fb00() {
         let mut instance = solve_a699fb00_version2::MySolution::new();
         let result: String = run_analyze_and_solve("a699fb00", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_540003_puzzle_a699fb00_loda() {
+        let result: String = run_advanced("a699fb00", PROGRAM_SUBSTITUTION_RULE_APPLIED).expect("String");
         assert_eq!(result, "3 1");
     }
 
@@ -2463,9 +2480,21 @@ mod tests {
     }
 
     #[test]
+    fn test_541001_puzzle_b60334d2_loda() {
+        let result: String = run_advanced("b60334d2", PROGRAM_SUBSTITUTION_RULE_APPLIED).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    #[test]
     fn test_542000_puzzle_d364b489() {
         let mut instance = solve_a699fb00_version2::MySolution::new();
         let result: String = run_analyze_and_solve("d364b489", &mut instance).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    #[test]
+    fn test_542001_puzzle_d364b489_loda() {
+        let result: String = run_advanced("d364b489", PROGRAM_SUBSTITUTION_RULE_APPLIED).expect("String");
         assert_eq!(result, "2 1");
     }
 
@@ -2477,9 +2506,21 @@ mod tests {
     }
 
     #[test]
+    fn test_543001_puzzle_6c434453_loda() {
+        let result: String = run_advanced("6c434453", PROGRAM_SUBSTITUTION_RULE_APPLIED).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    #[test]
     fn test_544000_puzzle_95990924() {
         let mut instance = solve_a699fb00_version2::MySolution::new();
         let result: String = run_analyze_and_solve("95990924", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_544001_puzzle_95990924_loda() {
+        let result: String = run_advanced("95990924", PROGRAM_SUBSTITUTION_RULE_APPLIED).expect("String");
         assert_eq!(result, "3 1");
     }
 

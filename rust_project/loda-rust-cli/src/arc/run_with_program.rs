@@ -90,6 +90,14 @@ enum MemoryLayoutItem {
     ///
     /// When it's not available then the value is `-1`.
     EnumeratedObjects = 10,
+    
+    /// The image that appear when applying substitution rules.
+    /// 
+    /// This is only available when the output-size is the same as the input-size.
+    /// And when a pattern between 1x1 and 4x4 can be replaced in the input to get to the output.
+    ///
+    /// When it's not available then the value is `-1`.
+    SubstitutionRuleApplied = 11,
 
     // Ideas for more
     // Number of cells horizontal
@@ -472,6 +480,19 @@ impl RunWithProgram {
                 }
             }
             
+            // memory[x*100+111] = train[x].substitution_rule_applied
+            {
+                if let Some(image) = &pair.input.substitution_rule_applied {
+                    let image_number_uint: BigUint = image.to_number().context("substitution_rule_applied image to number")?;
+                    let image_number_int: BigInt = image_number_uint.to_bigint().context("substitution_rule_applied BigUint to BigInt")?;
+                    state.set_u64(address + MemoryLayoutItem::SubstitutionRuleApplied as u64, image_number_int).context("substitution_rule_applied, set_u64")?;
+                } else {
+                    if let Some(value) = (-1i16).to_bigint() {
+                        state.set_u64(address + MemoryLayoutItem::SubstitutionRuleApplied as u64, value).context("substitution_rule_applied, set_u64 with -1")?;
+                    }
+                }
+            }
+            
             // Ideas for data to make available to the program.
             // output_palette
             // substitutions, replace this color with that color
@@ -607,6 +628,19 @@ impl RunWithProgram {
                 } else {
                     if let Some(value) = (-1i16).to_bigint() {
                         state.set_u64(address + MemoryLayoutItem::EnumeratedObjects as u64, value).context("enumerated_objects, set_u64 with -1")?;
+                    }
+                }
+            }
+            
+            // memory[x*100+111] = test[x].substitution_rule_applied
+            {
+                if let Some(image) = &pair.input.substitution_rule_applied {
+                    let image_number_uint: BigUint = image.to_number().context("substitution_rule_applied image to number")?;
+                    let image_number_int: BigInt = image_number_uint.to_bigint().context("substitution_rule_applied BigUint to BigInt")?;
+                    state.set_u64(address + MemoryLayoutItem::SubstitutionRuleApplied as u64, image_number_int).context("substitution_rule_applied, set_u64")?;
+                } else {
+                    if let Some(value) = (-1i16).to_bigint() {
+                        state.set_u64(address + MemoryLayoutItem::SubstitutionRuleApplied as u64, value).context("substitution_rule_applied, set_u64 with -1")?;
                     }
                 }
             }
