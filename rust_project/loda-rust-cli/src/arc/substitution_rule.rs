@@ -50,7 +50,7 @@ impl SubstitutionRule {
             return Err(anyhow::anyhow!("Without any differences, a rule cannot be derived."));
         }
 
-        // Ascending complexity
+        // Ordered by area (width x height) or ascending complexity.
         // We prefer the simplest rules, so the simplest substitution rules comes at the top.
         // We try to avoid advanced rules, the more complex substitution rules comes at the bottom.
         let sizes: [(u8, u8); 16] = [
@@ -84,7 +84,7 @@ impl SubstitutionRule {
                 }
             }
         }
-        Err(anyhow::anyhow!("analyze didn't find any replacement"))
+        Err(anyhow::anyhow!("didn't find a replacement rule"))
     }
 
     fn find_substitution_with_size(items: &Vec<Item>, crop_width: u8, crop_height: u8) -> anyhow::Result<(Image, Image)> {
@@ -141,7 +141,7 @@ impl SubstitutionRule {
                 println!("rects length: {} content: {:?}", rects.len(), rects);
             }
 
-            // Accumulate candidates for a replacement
+            // Accumulate candidates for replacing source with destination.
             // A candidate may work some places, but may not work for all the substitutions
             // We are interested in the simplest candidate that works across all the input/output pairs.
             for rect in &rects {
@@ -181,7 +181,7 @@ impl SubstitutionRule {
         }
 
         // Find a single substitution rule that satisfy all the input/output pairs
-        for (source, destination) in &replacements {
+        for (source, destination) in replacements {
             if SUBSTITUTION_RULE_VERBOSE {
                 println!("replace source: {:?}", source);
                 println!("replace destination: {:?}", destination);
@@ -217,7 +217,7 @@ impl SubstitutionRule {
                 continue;
             }
 
-            return Ok((source.clone(), destination.clone()));
+            return Ok((source, destination));
         }
 
         Err(anyhow::anyhow!("Unable to find a single substitution rule that works for all pairs"))
