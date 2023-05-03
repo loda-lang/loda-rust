@@ -7,6 +7,16 @@ const SUBSTITUTION_RULE_VERBOSE: bool = false;
 pub struct SubstitutionRule;
 
 impl SubstitutionRule {
+    /// Determine the rule in the scenario when there is only one rule.
+    /// 
+    /// It cannot determine the rules when there are 2 or more substitution rules.
+    /// 
+    /// Parameter `pairs` is a vector of `input` and `output` images.
+    /// 
+    /// Returns `(source, destination)` when a replacement rule has been found.
+    /// The min size is `1x1`. The max size is `4x4`.
+    /// 
+    /// Returns an error when no rule can be found.
     #[allow(dead_code)]
     pub fn find_rule(pairs: Vec<(Image, Image)>) -> anyhow::Result<(Image, Image)> {
         if pairs.is_empty() {
