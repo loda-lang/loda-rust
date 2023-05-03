@@ -2,6 +2,7 @@ use super::{Image, ImageCompare, Rectangle, ImageCrop, ImageColorProfile, ImageP
 use std::collections::HashSet;
 
 const SUBSTITUTION_RULE_VERBOSE: bool = false;
+const SUBSTITUTION_RULE_MAX_DIFFS_PER_PAIR: usize = 40;
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -75,6 +76,12 @@ impl SubstitutionRule {
         if count_positions == 0 {
             return Err(anyhow::anyhow!("Without any differences, a rule cannot be derived."));
         }
+        if count_positions > (SUBSTITUTION_RULE_MAX_DIFFS_PER_PAIR * items.len()) {
+            if SUBSTITUTION_RULE_VERBOSE {
+                println!("Too many differences, a rule cannot be derived in reasonable time.");
+            }
+            return Err(anyhow::anyhow!("Too many differences, a rule cannot be derived in reasonable time."));
+        }
 
         // Ordered by area (width x height) or ascending complexity.
         // We prefer the simplest rules, so the simplest substitution rules comes at the top.
@@ -133,15 +140,35 @@ impl SubstitutionRule {
             let mut rects = Vec::<Rectangle>::new();
             // Generate rectangles for the crop size near areas that have differences.
             for y in 0..height {
+                let y0: i32 = y as i32;
+                let y1: i32 = y0 + (crop_height as i32) - 1;
+                if y1 >= (height as i32) {
+                    continue;
+                }
+                let min_y: u8 = y;
+                if y1 < 0 || y1 >= height as i32 {
+                    continue;
+                }
+                let max_y: u8 = y1 as u8;
+
+                // Skip if there are zero differences between min_y and max_y
+                let mut skip = true;
+                for yy in min_y..=max_y {
+                    if item.diff_y_positions.contains(&yy) {
+                        skip = false;
+                        break;
+                    }
+                }
+                if skip {
+                    continue;
+                }
+
+                // There are some differences between min_y and max_y
+                // Go ahead and create rectangles.
                 for x in 0..width {
                     let x0: i32 = x as i32;
-                    let y0: i32 = y as i32;
                     let x1: i32 = x0 + (crop_width as i32) - 1;
-                    let y1: i32 = y0 + (crop_height as i32) - 1;
                     if x1 >= (width as i32) {
-                        continue;
-                    }
-                    if y1 >= (height as i32) {
                         continue;
                     }
                     let rect: Rectangle = match Rectangle::span(x0, y0, x1, y1) {
@@ -152,21 +179,17 @@ impl SubstitutionRule {
                     };
 
                     let min_x: u8 = x;
-                    let min_y: u8 = y;
                     if x1 < 0 || x1 >= width as i32 {
                         continue;
                     }
                     let max_x: u8 = x1 as u8;
-                    if y1 < 0 || y1 >= height as i32 {
-                        continue;
-                    }
-                    let max_y: u8 = y1 as u8;
 
                     // We are only interested in rectangles where there are differences between input/output.
                     // Reject areas that are identical between input/output.
                     let mut rect_intersects_with_positions: bool = false;
                     for yy in min_y..=max_y {
                         if !item.diff_y_positions.contains(&yy) {
+                            // skip lines without any differences
                             continue;
                         }
                         for xx in min_x..=max_x {
