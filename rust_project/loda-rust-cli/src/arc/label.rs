@@ -159,7 +159,8 @@ pub enum ActionLabel {
     OutputPropertyIsInputPropertyDividedBySomeScale { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsInputPropertySquared { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsConstant { output: PropertyOutput, value: u8 },
-
+    OutputSizeIsTheSameAsSingleColorObject { label: SingleColorObjectLabel },
+    
     OutputImageIsSymmetricX,
     OutputImageIsSymmetricY,
 
@@ -185,7 +186,6 @@ pub enum ActionLabel {
     OutputImageHasSameStructureAsInputImage,
     
     // Ideas for more
-    // OutputSizeIsTheSameAsSingleColorObject { label: SingleColorObject },
     // OutputImageContainAllSingleColorObjectsAtTheirPosition,
     // OutputImageHasSameStructureAsInputImageWithColorPair { color0: u8, color1: u8 },
     // OutputImageIsTheSameAsInputImageWithColor { color: u8 },

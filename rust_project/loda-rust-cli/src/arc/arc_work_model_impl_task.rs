@@ -1,4 +1,4 @@
-use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate};
+use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectLabel};
 use super::arc_work_model::{Input, PairType, Object};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::SubstitutionRule;
@@ -482,6 +482,41 @@ impl arc_work_model::Task {
         self.assign_input_properties_related_to_removal_histogram();
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
+
+        /*
+        for input_label in &self.input_label_set_intersection {
+            let single_color_object_label: SingleColorObjectLabel = match input_label {
+                InputLabel::InputSingleColorObject { label } => label.clone(),
+                _ => continue
+            };
+            match single_color_object_label {
+                SingleColorObjectLabel::SquareWithColor { color } => {
+
+                    for pair in &self.pairs {
+                        if pair.pair_type != PairType::Train {
+                            continue;
+                        }
+                        for object in &pair.input.single_color_objects {
+                            if object.color != color {
+                                continue;
+                            }
+                            if object.is_square() {
+                                continue;
+                            }
+                            if object.size() != pair.output.image.size() {
+                                break;
+                            }
+                            let action_label = ActionLabel::OutputSizeIsTheSameAsSingleColorObject { label: single_color_object_label };
+                            pair.action_label_set.insert(action_label);
+                            break;
+                        }
+                    }
+                },
+                // do the same for the other SingleColorObjectLabel's
+                _ => continue
+            }
+        }
+        */
 
         let input_properties: [PropertyInput; 25] = [
             PropertyInput::InputWidth, 
