@@ -207,7 +207,7 @@ impl arc_work_model::Input {
         self.resolve_grid();
         self.assign_symmetry_labels();
         self.assign_grid_labels();
-        self.find_single_color_objects()?;
+        self.assign_single_color_objects()?;
         Ok(())
     }
 
@@ -243,7 +243,7 @@ impl arc_work_model::Input {
         }
     }
 
-    pub fn find_single_color_objects(&mut self) -> anyhow::Result<()> {
+    pub fn assign_single_color_objects(&mut self) -> anyhow::Result<()> {
         let single_color_objects: SingleColorObjects = match SingleColorObjects::find_objects(&self.image) {
             Ok(value) => value,
             Err(_) => {
@@ -285,6 +285,7 @@ impl arc_work_model::Input {
                 }
             }
         }
+        self.single_color_objects = Some(single_color_objects);
         Ok(())
     }
 

@@ -1,6 +1,7 @@
 use super::{Histogram, Image, ImageHistogram, ImageMask, Rectangle};
 
 /// A rectangle filled with a single solid color and no other colors are present inside the object.
+#[derive(Clone, Debug)]
 pub struct SingleColorObject {
     pub color: u8,
     pub mask: Image,
@@ -9,6 +10,7 @@ pub struct SingleColorObject {
     pub is_square: bool,
 }
 
+#[derive(Clone, Debug)]
 pub struct SingleColorObjects {
     pub single_color_object_vec: Vec<SingleColorObject>,
 }
