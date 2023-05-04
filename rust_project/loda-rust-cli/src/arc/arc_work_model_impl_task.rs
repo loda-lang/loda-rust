@@ -517,7 +517,8 @@ impl arc_work_model::Task {
                         }
                     }
                 },
-                // do the same for the other SingleColorObjectLabel's
+                // TODO: compute size of the output based on the ActionLabel::OutputSizeIsTheSameAsSingleColorObject
+                // TODO: assign action_labels for the other SingleColorObjectLabel's
                 _ => continue
             }
         }
@@ -738,6 +739,15 @@ impl arc_work_model::Task {
             match label {
                 ActionLabel::OutputImageIsTheObjectWithObjectLabel { object_label } => {
                     return format!("{:?}", object_label);
+                },
+                _ => {}
+            }
+        }
+        for action_label in &self.action_label_set_intersection {
+            match action_label {
+                ActionLabel::OutputSizeIsTheSameAsSingleColorObject { label } => {
+                    // TODO: deal with multiple SingleColorObjectLabel's and arrange them so the strongest comes first, and weakest last. 
+                    return format!("{:?}", label);
                 },
                 _ => {}
             }
