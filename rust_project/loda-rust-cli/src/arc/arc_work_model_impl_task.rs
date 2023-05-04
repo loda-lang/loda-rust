@@ -939,6 +939,33 @@ impl arc_work_model::Task {
                 _ => {}
             }
         }
+        for action_label in &self.action_label_set_intersection {
+            match action_label {
+                // TODO: deal with multiple ActionLabel::OutputSizeIsTheSameAsSingleColorObject
+                // TODO: deal with multiple SingleColorObjectLabel's and arrange them so the strongest comes first, and weakest last. 
+                ActionLabel::OutputSizeIsTheSameAsSingleColorObject { label } => {
+                    let color: u8 = match label {
+                        SingleColorObjectLabel::SquareWithColor { color } => *color,
+                        _ => {
+                            continue;
+                        }
+                    };
+
+                    if let Some(single_color_objects) = &input.single_color_objects {
+                        for sco in &single_color_objects.single_color_object_vec {
+                            if sco.color != color {
+                                continue;
+                            }
+                            if !sco.is_square {
+                                continue;
+                            }
+                            return Ok(sco.bounding_box.size());
+                        }
+                    }
+                },
+                _ => {}
+            }
+        }
         let output_properties: [PropertyOutput; 2] = [
             PropertyOutput::OutputWidth, 
             PropertyOutput::OutputHeight
