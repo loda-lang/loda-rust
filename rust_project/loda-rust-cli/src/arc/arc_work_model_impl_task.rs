@@ -13,6 +13,16 @@ enum RulePriority {
 }
 
 impl arc_work_model::Task {
+    #[allow(dead_code)]
+    pub fn has_substitution_rule_applied(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.input.substitution_rule_applied.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
     pub fn compute_substitution_rule(&mut self) -> anyhow::Result<()> {
         let verbose = false;
         if !self.is_output_size_same_as_input_size() {

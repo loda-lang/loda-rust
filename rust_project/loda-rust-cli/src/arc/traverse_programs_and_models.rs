@@ -379,7 +379,7 @@ impl TraverseProgramsAndModels {
         let mut indexes = HashSet::<usize>::new();
         for (index, task) in task_vec.iter().enumerate() {
             if task.occur_in_solutions_csv {
-                // continue;
+                continue;
             }
             // if task.input_histogram_union.number_of_counters_greater_than_zero() > 3 {
             //     continue;
@@ -388,12 +388,12 @@ impl TraverseProgramsAndModels {
             //     continue;
             // }
             let mut found: bool = false;
+            found = true;
             // if let Some(count) = task.input_properties_intersection.get(&PropertyInput::InputUniqueColorCount) {
             //     if *count == 2 {
             //         found = true;
             //     }
             // }
-            // found = true;
             // if task.has_repaired_image() {
             //     found = true;
             // }
@@ -420,9 +420,12 @@ impl TraverseProgramsAndModels {
             //         },
             //     }
             // }
-            if task.has_enumerated_objects() {
-                found = true;
-            }
+            // if task.has_enumerated_objects() {
+            //     found = true;
+            // }
+            // if task.has_substitution_rule_applied() {
+            //     found = true;
+            // }
             // if task.has_grid_pattern() {
                 // found = true;
                 // found = false;
