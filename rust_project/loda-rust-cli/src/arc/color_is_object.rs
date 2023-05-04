@@ -30,6 +30,17 @@ impl ColorIsObject {
             };
             let mass: u16 = (rect.width() as u16) * (rect.height() as u16);
             if count != (mass as u32) {
+                // Future experiments:
+                // If there is only a single color that isn't ObjectWithOneColor
+                // then it may be because it's the background color.
+                // compare the background color across all the single objects if it's the same.
+                // 
+                // Is the input image fully explained by the ObjectWithOneColor's and a background color.
+                //
+                // Segment the mask into objects.
+                // Identify each object.
+                //
+                // Detect objects with multiple colors
                 continue;
             }
 
@@ -70,5 +81,21 @@ mod tests {
 
         // Assert
         assert_eq!(actual.object_with_one_color_vec.len(), 6);
+    }
+
+    #[test]
+    fn test_10001_find_objects() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 5, 1,
+            1, 3, 3,
+        ];
+        let input: Image = Image::try_create(3, 2, pixels).expect("image");
+
+        // Act
+        let actual: ColorIsObject = ColorIsObject::find_objects(&input).expect("ColorIsObject");
+
+        // Assert
+        assert_eq!(actual.object_with_one_color_vec.len(), 2);
     }
 }

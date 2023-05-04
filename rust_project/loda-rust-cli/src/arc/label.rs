@@ -95,13 +95,27 @@ pub enum GridLabel {
     // NoiseColor { color: u8 },
 }
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub enum SingleColorObjectLabel {
+    RectangleWithColor { color: u8 },
+    RectangleWithSomeColor,
+    SquareWithColor { color: u8 },
+    SquareWithSomeColor,
+    NonSquareWithColor { color: u8 },
+    NonSquareWithSomeColor,
+}
+
 /// Properties about the input image.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum InputLabel {
     InputSymmetry { label: SymmetryLabel },
     InputGrid { label: GridLabel },
+    InputSingleColorObject { label: SingleColorObjectLabel },
 
     // Ideas for more
+    // InputImageIsSingleColorObjectsMaybeWithBackgroundColor,
+    // InputImageIsSingleColorObjectsWithBackgroundColor,
+    // InputImageIsSingleColorObjectsWithoutBackgroundColor,
     // AllObjectsHaveTheSameSize,
     // InputColorThatDoesNotOccurInTheIntersection { color: u8 },
     // InputUniqueColors { color: Vec<u8> },
@@ -121,6 +135,9 @@ pub enum ObjectLabel {
     TheOnlyOneWithAsymmetryY,
 
     // Ideas for more
+    // TheOnlyOneThatIsSingleColor,
+    // TheOnlyOneThatIsSingleColorAndSquare,
+    // TheOnlyOneThatIsSingleColorAndNonSquare,
     // Number of holes
     // Has holes
     // Has no holes
@@ -168,6 +185,8 @@ pub enum ActionLabel {
     OutputImageHasSameStructureAsInputImage,
     
     // Ideas for more
+    // OutputSizeIsTheSameAsSingleColorObject { label: SingleColorObject },
+    // OutputImageContainAllSingleColorObjectsAtTheirPosition,
     // OutputImageHasSameStructureAsInputImageWithColorPair { color0: u8, color1: u8 },
     // OutputImageIsTheSameAsInputImageWithColor { color: u8 },
     // OutputSymmetry { label: SymmetryLabel },

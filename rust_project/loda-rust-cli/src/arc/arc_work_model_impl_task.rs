@@ -72,11 +72,12 @@ impl arc_work_model::Task {
         Ok(())
     }
 
-    fn update_input_properties_for_all_pairs(&mut self) {
+    fn update_input_properties_for_all_pairs(&mut self) -> anyhow::Result<()> {
         for pair in &mut self.pairs {
             pair.input.update_input_properties();
-            pair.input.update_input_label_set();
+            pair.input.update_input_label_set()?;
         }
+        Ok(())
     }
 
     fn update_action_label_set_intersection(&mut self) {
@@ -475,7 +476,7 @@ impl arc_work_model::Task {
     }
 
     pub fn assign_labels(&mut self) -> anyhow::Result<()> {
-        self.update_input_properties_for_all_pairs();
+        self.update_input_properties_for_all_pairs()?;
         self.update_input_properties_intersection();
         self.update_input_label_set_intersection();
         self.assign_input_properties_related_to_removal_histogram();
