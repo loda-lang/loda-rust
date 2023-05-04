@@ -1,0 +1,74 @@
+use super::{Histogram, Image, ImageHistogram, ImageMask, Rectangle};
+
+/// A rectangle filled with a solid color
+pub struct ObjectWithOneColor {
+    pub color: u8,
+    pub mask: Image,
+    pub bounding_box: Rectangle,
+    pub mass: u16,
+    pub is_square: bool,
+}
+
+pub struct ColorIsObject {
+    pub object_with_one_color_vec: Vec<ObjectWithOneColor>,
+}
+
+impl ColorIsObject {
+    pub fn find_objects(image: &Image) -> anyhow::Result<Self> {
+        if image.is_empty() {
+            return Err(anyhow::anyhow!("The image must be 1x1 or bigger"));
+        }
+        let histogram: Histogram = image.histogram_all();
+        let mut items = Vec::<ObjectWithOneColor>::new();
+        for (count, color) in histogram.pairs_ordered_by_color() {
+            let mask: Image = image.to_mask_where_color_is(color);
+            let rect: Rectangle = match mask.bounding_box() {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
+            let mass: u16 = (rect.width() as u16) * (rect.height() as u16);
+            if count != (mass as u32) {
+                continue;
+            }
+
+            let is_square: bool = rect.width() == rect.height();
+            let item = ObjectWithOneColor {
+                color,
+                mask,
+                bounding_box: rect,
+                mass,
+                is_square,
+            };
+            items.push(item);
+        }
+        if items.is_empty() {
+            return Err(anyhow::anyhow!("Unable to find any objects of single color"));
+        }
+        let instance = Self { object_with_one_color_vec: items };
+        Ok(instance)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::arc::ImageTryCreate;
+
+    #[test]
+    fn test_10000_find_objects() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            1, 2, 3,
+            4, 5, 6,
+        ];
+        let input: Image = Image::try_create(3, 2, pixels).expect("image");
+
+        // Act
+        let actual: ColorIsObject = ColorIsObject::find_objects(&input).expect("ColorIsObject");
+
+        // Assert
+        assert_eq!(actual.object_with_one_color_vec.len(), 6);
+    }
+}
