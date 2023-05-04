@@ -1,7 +1,7 @@
 use super::{Histogram, Image, ImageHistogram, ImageMask, Rectangle};
 
-/// A rectangle filled with a solid color
-pub struct ObjectWithOneColor {
+/// A rectangle filled with a single solid color and no other colors are present inside the object.
+pub struct SingleColorObject {
     pub color: u8,
     pub mask: Image,
     pub bounding_box: Rectangle,
@@ -9,17 +9,17 @@ pub struct ObjectWithOneColor {
     pub is_square: bool,
 }
 
-pub struct ColorIsObject {
-    pub object_with_one_color_vec: Vec<ObjectWithOneColor>,
+pub struct SingleColorObjects {
+    pub single_color_object_vec: Vec<SingleColorObject>,
 }
 
-impl ColorIsObject {
+impl SingleColorObjects {
     pub fn find_objects(image: &Image) -> anyhow::Result<Self> {
         if image.is_empty() {
             return Err(anyhow::anyhow!("The image must be 1x1 or bigger"));
         }
         let histogram: Histogram = image.histogram_all();
-        let mut items = Vec::<ObjectWithOneColor>::new();
+        let mut items = Vec::<SingleColorObject>::new();
         for (count, color) in histogram.pairs_ordered_by_color() {
             let mask: Image = image.to_mask_where_color_is(color);
             let rect: Rectangle = match mask.bounding_box() {
@@ -45,7 +45,7 @@ impl ColorIsObject {
             }
 
             let is_square: bool = rect.width() == rect.height();
-            let item = ObjectWithOneColor {
+            let item = SingleColorObject {
                 color,
                 mask,
                 bounding_box: rect,
@@ -57,7 +57,7 @@ impl ColorIsObject {
         if items.is_empty() {
             return Err(anyhow::anyhow!("Unable to find any objects of single color"));
         }
-        let instance = Self { object_with_one_color_vec: items };
+        let instance = Self { single_color_object_vec: items };
         Ok(instance)
     }
 }
@@ -77,10 +77,10 @@ mod tests {
         let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: ColorIsObject = ColorIsObject::find_objects(&input).expect("ColorIsObject");
+        let actual: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
 
         // Assert
-        assert_eq!(actual.object_with_one_color_vec.len(), 6);
+        assert_eq!(actual.single_color_object_vec.len(), 6);
     }
 
     #[test]
@@ -93,9 +93,9 @@ mod tests {
         let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
         // Act
-        let actual: ColorIsObject = ColorIsObject::find_objects(&input).expect("ColorIsObject");
+        let actual: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
 
         // Assert
-        assert_eq!(actual.object_with_one_color_vec.len(), 2);
+        assert_eq!(actual.single_color_object_vec.len(), 2);
     }
 }

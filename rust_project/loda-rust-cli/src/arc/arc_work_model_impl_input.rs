@@ -2,7 +2,7 @@ use super::arc_work_model;
 use super::arc_work_model::Object;
 use super::{PropertyInput, InputLabel, GridLabel, SingleColorObjectLabel};
 use super::{Symmetry, Grid, GridToLabel, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
-use super::{ImageSegment, ImageSegmentAlgorithm, ImageMask, ImageCrop, ColorIsObject};
+use super::{ImageSegment, ImageSegmentAlgorithm, ImageMask, ImageCrop, SingleColorObjects};
 use std::collections::{HashMap, HashSet};
 
 impl arc_work_model::Input {
@@ -244,13 +244,13 @@ impl arc_work_model::Input {
     }
 
     pub fn find_single_color_objects(&mut self) -> anyhow::Result<()> {
-        let color_is_object: ColorIsObject = match ColorIsObject::find_objects(&self.image) {
+        let single_color_objects: SingleColorObjects = match SingleColorObjects::find_objects(&self.image) {
             Ok(value) => value,
             Err(_) => {
                 return Ok(());
             }
         };
-        for object in &color_is_object.object_with_one_color_vec {
+        for object in &single_color_objects.single_color_object_vec {
             {
                 let label = SingleColorObjectLabel::RectangleWithColor { color: object.color };
                 let input_label = InputLabel::InputSingleColorObject { label };
