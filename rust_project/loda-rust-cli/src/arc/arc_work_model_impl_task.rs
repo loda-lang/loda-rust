@@ -1,7 +1,7 @@
-use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectLabel, SingleColorObjects};
+use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectLabel, SingleColorObjects, SingleColorObject};
 use super::arc_work_model::{Input, PairType, Object};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
-use super::SubstitutionRule;
+use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
 use std::collections::{HashMap, HashSet};
 
@@ -562,27 +562,7 @@ impl arc_work_model::Task {
                 };
                 let mut count_object: usize = 0;
                 for object in &single_color_objects.single_color_object_vec {
-                    let satisfied: bool = match single_color_object_label {
-                        SingleColorObjectLabel::SquareWithColor { color } => {
-                            object.color == *color && object.is_square == true
-                        },
-                        SingleColorObjectLabel::NonSquareWithColor { color } => {
-                            object.color == *color && object.is_square == false
-                        },
-                        SingleColorObjectLabel::RectangleWithColor { color } => {
-                            object.color == *color
-                        },
-                        SingleColorObjectLabel::SquareWithSomeColor => {
-                            object.is_square == true
-                        },
-                        SingleColorObjectLabel::NonSquareWithSomeColor => {
-                            object.is_square == false
-                        },
-                        SingleColorObjectLabel::RectangleWithSomeColor => {
-                            true
-                        },
-                    };
-                    if !satisfied {
+                    if !object.satisfies_label(single_color_object_label) {
                         continue;
                     }
 
