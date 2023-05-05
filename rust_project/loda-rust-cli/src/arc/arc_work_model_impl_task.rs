@@ -475,6 +475,155 @@ impl arc_work_model::Task {
         }
     }
 
+    /// Extract `Vec<SingleColorObjectLabel>` from `input_label_set_intersection`.
+    fn single_color_object_labels_from_input(&self) -> Vec<SingleColorObjectLabel> {
+        let mut single_color_object_labels = Vec::<SingleColorObjectLabel>::new();
+        for input_label in &self.input_label_set_intersection {
+            let single_color_object_label: SingleColorObjectLabel = match input_label {
+                InputLabel::InputSingleColorObject { label } => label.clone(),
+                _ => continue
+            };
+            single_color_object_labels.push(single_color_object_label);
+        }
+        single_color_object_labels
+    }
+
+    pub fn assign_action_labels_related_to_single_color_objects_and_output_size(&mut self) -> anyhow::Result<()> {
+        let single_color_object_labels: Vec<SingleColorObjectLabel> = self.single_color_object_labels_from_input();
+        if single_color_object_labels.is_empty() {
+            return Ok(());
+        }
+
+        let count_train: usize = self.count_train();
+
+        for query_id in 0..6u8 {
+            let mut ambiguity_count: usize = 0;
+            let mut found_label: Option<&SingleColorObjectLabel> = None;
+            for single_color_object_label in &single_color_object_labels {
+                match single_color_object_label {
+                    SingleColorObjectLabel::SquareWithColor { color: _ } => {
+                        if query_id == 0 {
+                            ambiguity_count += 1;
+                            found_label = Some(single_color_object_label);
+                        }
+                    },
+                    SingleColorObjectLabel::NonSquareWithColor { color: _ } => {
+                        if query_id == 1 {
+                            ambiguity_count += 1;
+                            found_label = Some(single_color_object_label);
+                        }
+                    },
+                    SingleColorObjectLabel::RectangleWithColor { color: _ } => {
+                        if query_id == 2 {
+                            ambiguity_count += 1;
+                            found_label = Some(single_color_object_label);
+                        }
+                    },
+                    SingleColorObjectLabel::SquareWithSomeColor => {
+                        if query_id == 3 {
+                            ambiguity_count += 1;
+                            found_label = Some(single_color_object_label);
+                        }
+                    },
+                    SingleColorObjectLabel::NonSquareWithSomeColor => {
+                        if query_id == 4 {
+                            ambiguity_count += 1;
+                            found_label = Some(single_color_object_label);
+                        }
+                    },
+                    SingleColorObjectLabel::RectangleWithSomeColor => {
+                        if query_id == 5 {
+                            ambiguity_count += 1;
+                            found_label = Some(single_color_object_label);
+                        }
+                    }
+                }
+            }
+            if ambiguity_count > 1 {
+                // Reject ambiguous scenarios with 2 or more labels.
+                continue;
+            }
+            let single_color_object_label: &SingleColorObjectLabel = match found_label {
+                Some(value) => value,
+                None => continue
+            };
+            // The `single_color_object_label` is unambiguous.
+            // println!("task: {} query_id: {} single_color_object_label: {:?}", self.id, query_id, single_color_object_label);
+
+            let mut count_match: usize = 0;
+            let mut reject: bool = false;
+            for pair in &mut self.pairs {
+                if pair.pair_type != PairType::Train {
+                    continue;
+                }
+                let single_color_objects: &SingleColorObjects = match &pair.input.single_color_objects {
+                    Some(value) => value,
+                    None => continue
+                };
+                let mut count_object: usize = 0;
+                for object in &single_color_objects.single_color_object_vec {
+                    let satisfied: bool = match single_color_object_label {
+                        SingleColorObjectLabel::SquareWithColor { color } => {
+                            object.color == *color && object.is_square == true
+                        },
+                        SingleColorObjectLabel::NonSquareWithColor { color } => {
+                            object.color == *color && object.is_square == false
+                        },
+                        SingleColorObjectLabel::RectangleWithColor { color } => {
+                            object.color == *color
+                        },
+                        SingleColorObjectLabel::SquareWithSomeColor => {
+                            object.is_square == true
+                        },
+                        SingleColorObjectLabel::NonSquareWithSomeColor => {
+                            object.is_square == false
+                        },
+                        SingleColorObjectLabel::RectangleWithSomeColor => {
+                            true
+                        },
+                    };
+                    if !satisfied {
+                        continue;
+                    }
+
+                    // Future experiment:
+                    // test pairs: check that the conditions are satisfied for all the test inputs
+                    // but don't check that the size correspond with the output.
+
+                    if object.bounding_box.size() != pair.output.image.size() {
+                        continue;
+                    }
+                    count_match += 1;
+                    count_object += 1;
+                }
+
+                if count_object > 1 {
+                    reject = true;
+                }
+            }
+
+            if reject || count_match != count_train {
+                continue;
+            }
+
+            // TODO: compute size of the output based on the ActionLabel::OutputSizeIsTheSameAsSingleColorObject
+            // TODO: insert into the task.prediction set, instead of the individual pair
+            // TODO: insert the computed size into the pair.
+            for pair in &mut self.pairs {
+                let action_label = ActionLabel::OutputSizeIsTheSameAsSingleColorObject { label: single_color_object_label.clone() };
+                pair.action_label_set.insert(action_label);
+            }
+            // println!("OutputSizeIsTheSameAsSingleColorObject task: {} query_id: {} single_color_object_label: {:?}", self.id, query_id, single_color_object_label);
+
+            // Found a match, no point in continuing searching.
+            // the first query_id's have the strongest confidence.
+            // the last query_id's are weaker and less desired.
+            break;
+        }
+
+        Ok(())
+    }
+
     pub fn assign_labels(&mut self) -> anyhow::Result<()> {
         self.update_input_properties_for_all_pairs()?;
         self.update_input_properties_intersection();
@@ -482,46 +631,7 @@ impl arc_work_model::Task {
         self.assign_input_properties_related_to_removal_histogram();
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
-
-        for input_label in &self.input_label_set_intersection {
-            let single_color_object_label: SingleColorObjectLabel = match input_label {
-                InputLabel::InputSingleColorObject { label } => label.clone(),
-                _ => continue
-            };
-            match single_color_object_label {
-                SingleColorObjectLabel::SquareWithColor { color } => {
-
-                    for pair in &mut self.pairs {
-                        if pair.pair_type != PairType::Train {
-                            continue;
-                        }
-                        let single_color_objects: &SingleColorObjects = match &pair.input.single_color_objects {
-                            Some(value) => value,
-                            None => {
-                                continue;
-                            }
-                        };
-                        for object in &single_color_objects.single_color_object_vec {
-                            if object.color != color {
-                                continue;
-                            }
-                            if !object.is_square {
-                                continue;
-                            }
-                            if object.bounding_box.size() != pair.output.image.size() {
-                                break;
-                            }
-                            let action_label = ActionLabel::OutputSizeIsTheSameAsSingleColorObject { label: single_color_object_label.clone() };
-                            pair.action_label_set.insert(action_label);
-                            break;
-                        }
-                    }
-                },
-                // TODO: compute size of the output based on the ActionLabel::OutputSizeIsTheSameAsSingleColorObject
-                // TODO: assign action_labels for the other SingleColorObjectLabel's
-                _ => continue
-            }
-        }
+        _ = self.assign_action_labels_related_to_single_color_objects_and_output_size();
 
         let input_properties: [PropertyInput; 25] = [
             PropertyInput::InputWidth, 
