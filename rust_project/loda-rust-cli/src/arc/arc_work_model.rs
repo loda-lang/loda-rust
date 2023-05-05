@@ -51,6 +51,8 @@ pub struct Input {
 
     pub enumerated_objects: Option<Image>,
 
+    pub substitution_rule_applied: Option<Image>,
+
     // Future experiments to do.
     // Resolving these properties is similar to a package manager, a DAG (directed acyclic graph).
     // One property may depend on another property that depends on a third property.

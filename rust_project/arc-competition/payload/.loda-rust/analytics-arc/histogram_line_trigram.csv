@@ -1,10 +1,10 @@
 count;word0;word1;word2
-83;add $81,100;add $82,100;lpe
+84;add $81,100;add $82,100;lpe
 82;mov $80,$99;mov $81,100;mov $82,102
 81;mov $$82,$0;add $81,100;add $82,100
+79;add $82,100;lpe;STOP
 78;mov $82,102;lps $80;mov $0,$$81
 78;mov $81,100;mov $82,102;lps $80
-78;add $82,100;lpe;STOP
 77;START;mov $80,$99;mov $81,100
 29;lps $80;mov $0,$$81;mov $1,$0
 10;mov $0,$$81;mov $1,$0;f11 $1,101060
@@ -245,9 +245,12 @@ count;word0;word1;word2
 1;mov $82,102;mov $83,110;lps $80
 1;mov $82,102;mov $83,108;mov $84,109
 1;mov $82,102;mov $83,107;lps $80
+1;mov $82,102;lps $80;mov $$82,$$81
+1;mov $81,111;mov $82,102;lps $80
 1;mov $81,100;mov $82,102;mov $83,110
 1;mov $81,100;mov $82,102;mov $83,108
 1;mov $80,$99;mov $82,102;mov $83,107
+1;mov $80,$99;mov $81,111;mov $82,102
 1;mov $8,42;mov $7,$4;mov $6,$5
 1;mov $8,$6;mov $9,$3;mov $10,$0
 1;mov $8,$5;mov $9,3;mov $10,3
@@ -441,6 +444,7 @@ count;word0;word1;word2
 1;mov $0,$$81;f11 $0,101120;f11 $0,101140
 1;mov $$82,$6;add $81,100;add $82,100
 1;mov $$82,$$83;add $82,100;add $83,100
+1;mov $$82,$$81;add $81,100;add $82,100
 1;lps $80;mov $1,$$83;mov $2,0
 1;lps $80;mov $0,$$81;mov $33,$0
 1;lps $80;mov $0,$$81;mov $1,2
@@ -453,6 +457,7 @@ count;word0;word1;word2
 1;lps $80;mov $0,$$81;f11 $0,101191
 1;lps $80;mov $0,$$81;f11 $0,101190
 1;lps $80;mov $$82,$$83;add $82,100
+1;lps $80;mov $$82,$$81;add $81,100
 1;lps $10;mov $4,$7;mov $5,0
 1;lpe;mov $0,$2;mov $$82,$0
 1;lpe;f11 $40,101060;mov $80,$99
@@ -603,3 +608,4 @@ count;word0;word1;word2
 1;add $7,1;lpe;mov $0,$2
 1;add $2,$0;mov $0,1;mov $1,1
 1;START;mov $80,$99;mov $82,102
+1;START;mov $80,$99;mov $81,111

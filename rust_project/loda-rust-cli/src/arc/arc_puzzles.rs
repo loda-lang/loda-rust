@@ -2,13 +2,13 @@
 mod tests {
     use crate::arc::arc_json_model::{Task, ImagePair};
     use crate::arc::arc_work_model::{self, PairType};
-    use crate::arc::{ActionLabel};
+    use crate::arc::{ActionLabel, convolution3x3};
     use crate::arc::{RunWithProgram, RunWithProgramResult, SolutionSimple, SolutionSimpleData, AnalyzeAndSolve, ImageRepeat, ImagePeriodicity};
     use crate::arc::{ImageOverlay, ImageNoiseColor, ImageGrid, ImageExtractRowColumn, ImageSegment, ImageSegmentAlgorithm, ImageSegmentItem, ImageMask, Histogram};
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ObjectsMeasureMass, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
-    use crate::arc::{ObjectsToGrid, ObjectsToGridMode};
+    use crate::arc::{ObjectsToGrid, ObjectsToGridMode, SubstitutionRule};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere, GridPattern};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
@@ -291,7 +291,7 @@ mod tests {
             let mut optional_position: Option<(u8, u8)> = None;
             for color in 1..=255u8 {
                 let needle_with_color: Image = needle.replace_color(1, color)?;
-                optional_position = search_area.find_exact(&needle_with_color).expect("some position");
+                optional_position = search_area.find_first(&needle_with_color).expect("some position");
                 if optional_position == None {
                     continue;
                 }
@@ -2281,13 +2281,6 @@ mod tests {
         assert_eq!(result, "3 1");
     }
 
-    #[test]
-    fn test_540000_puzzle_a699fb00() {
-        let mut instance = solve_a699fb00::MySolution::new();
-        let result: String = run_analyze_and_solve("a699fb00", &mut instance).expect("String");
-        assert_eq!(result, "3 1");
-    }
-
     mod solve_a699fb00 {
         use super::*;
 
@@ -2355,7 +2348,7 @@ mod tests {
                 for _ in 0..100 {
                     let mut stop = true;
                     for (key, value) in &self.dict_outer {
-                        let position = result_image.find_exact(key)?;
+                        let position = result_image.find_first(key)?;
                         if let Some((x, y)) = position {
                             result_image = result_image.overlay_with_position(value, x as i32, y as i32)?;
                             stop = false;
@@ -2368,6 +2361,167 @@ mod tests {
                 Ok(result_image)
             }
         }
+    }
+
+    #[test]
+    fn test_540000_puzzle_a699fb00() {
+        let mut instance = solve_a699fb00::MySolution::new();
+        let result: String = run_analyze_and_solve("a699fb00", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_540001_puzzle_a699fb00() {
+        let solution: SolutionSimple = |data| {
+            let input: Image = data.image;
+            let background_color: u8 = match input.most_popular_color() {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("unclear what is the most popular color"));
+                }
+            };
+            let image_padded: Image = input.padding_with_color(1, background_color)?;
+            let result_image: Image = convolution3x3(&image_padded, |bm| {
+                let left: u8 = bm.get(0, 1).unwrap_or(255);
+                let center: u8 = bm.get(1, 1).unwrap_or(255);
+                let right: u8 = bm.get(2, 1).unwrap_or(255);
+                let result_color: u8;
+                // flag the pixel when it have 2 neighbors with same color, but different center pixel.
+                if left != background_color && left != center && left == right {
+                    result_color = 255;
+                } else {
+                    result_color = center;
+                }
+                Ok(result_color)
+            })?;
+    
+            Ok(result_image)
+        };
+        let result: String = solution.run("a699fb00").expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_a699fb00_version2 {
+        use super::*;
+    
+        pub struct MySolution {
+            substitution_rule: Option<SubstitutionRule>,
+        }
+    
+        impl MySolution {
+            pub fn new() -> Self {
+                Self {
+                    substitution_rule: None,
+                }
+            }
+        }
+        
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, task: &arc_work_model::Task) -> anyhow::Result<()> {
+                let mut image_pairs = Vec::<(Image, Image)>::new();
+                for pair in &task.pairs {
+                    if pair.pair_type != PairType::Train {
+                        continue;
+                    }
+                    image_pairs.push((pair.input.image.clone(), pair.output.image.clone()));
+                }
+
+                let rule: SubstitutionRule = SubstitutionRule::find_rule(image_pairs)?;
+                // println!("substitution_rule.source: {:?}", rule.source);
+                // println!("substitution_rule.destination: {:?}", rule.destination);
+
+                self.substitution_rule = Some(rule);
+
+                // TODO: save the substituted image on the arc_work_model::Input struct
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, _task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let rule: &SubstitutionRule = match &self.substitution_rule {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("expected some substitution_rule"));
+                    }
+                };
+                rule.apply(&data.image)
+            }
+        }
+    }
+
+    const PROGRAM_SUBSTITUTION_RULE_APPLIED: &'static str = "
+    mov $80,$99
+    mov $81,111 ; address of vector[0].SubstitutionRuleApplied
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $$82,$$81
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_540002_puzzle_a699fb00() {
+        let mut instance = solve_a699fb00_version2::MySolution::new();
+        let result: String = run_analyze_and_solve("a699fb00", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_540003_puzzle_a699fb00_loda() {
+        let result: String = run_advanced("a699fb00", PROGRAM_SUBSTITUTION_RULE_APPLIED).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_541000_puzzle_b60334d2() {
+        let mut instance = solve_a699fb00_version2::MySolution::new();
+        let result: String = run_analyze_and_solve("b60334d2", &mut instance).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    #[test]
+    fn test_541001_puzzle_b60334d2_loda() {
+        let result: String = run_advanced("b60334d2", PROGRAM_SUBSTITUTION_RULE_APPLIED).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    #[test]
+    fn test_542000_puzzle_d364b489() {
+        let mut instance = solve_a699fb00_version2::MySolution::new();
+        let result: String = run_analyze_and_solve("d364b489", &mut instance).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    #[test]
+    fn test_542001_puzzle_d364b489_loda() {
+        let result: String = run_advanced("d364b489", PROGRAM_SUBSTITUTION_RULE_APPLIED).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    #[test]
+    fn test_543000_puzzle_6c434453() {
+        let mut instance = solve_a699fb00_version2::MySolution::new();
+        let result: String = run_analyze_and_solve("6c434453", &mut instance).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    #[test]
+    fn test_543001_puzzle_6c434453_loda() {
+        let result: String = run_advanced("6c434453", PROGRAM_SUBSTITUTION_RULE_APPLIED).expect("String");
+        assert_eq!(result, "2 1");
+    }
+
+    #[test]
+    fn test_544000_puzzle_95990924() {
+        let mut instance = solve_a699fb00_version2::MySolution::new();
+        let result: String = run_analyze_and_solve("95990924", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    #[test]
+    fn test_544001_puzzle_95990924_loda() {
+        let result: String = run_advanced("95990924", PROGRAM_SUBSTITUTION_RULE_APPLIED).expect("String");
+        assert_eq!(result, "3 1");
     }
 
     #[test]
