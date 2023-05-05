@@ -389,6 +389,15 @@ impl TraverseProgramsAndModels {
             // }
             let mut found: bool = false;
             found = true;
+            // for action_label in &task.action_label_set_intersection {
+            //     match action_label {
+            //         ActionLabel::OutputSizeIsTheSameAsSingleColorObject { label } => {
+            //             println!("output_size: {:?}", label);
+            //             found = true;
+            //         },
+            //         _ => {}
+            //     }
+            // }
             // if let Some(count) = task.input_properties_intersection.get(&PropertyInput::InputUniqueColorCount) {
             //     if *count == 2 {
             //         found = true;

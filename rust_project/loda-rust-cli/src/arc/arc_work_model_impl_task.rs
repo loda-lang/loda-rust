@@ -568,12 +568,6 @@ impl arc_work_model::Task {
                     continue;
                 }
             }
-
-            // TODO: insert the action label into self.action_label_set_intersection.
-            for pair in &mut self.pairs {
-                let action_label = ActionLabel::OutputSizeIsTheSameAsSingleColorObject { label: single_color_object_label.clone() };
-                pair.action_label_set.insert(action_label);
-            }
             
             // println!("OutputSizeIsTheSameAsSingleColorObject task: {} query_id: {} single_color_object_label: {:?}", self.id, query_id, single_color_object_label);
 
@@ -587,7 +581,8 @@ impl arc_work_model::Task {
     }
 
     fn assign_output_size_for_single_color_objects_with_label(&mut self, single_color_object_label: &SingleColorObjectLabel, execute: bool) -> anyhow::Result<()> {
-        for pair in &mut self.pairs {
+        let mut predicted_sizes = HashMap::<usize, ImageSize>::new();
+        for (pair_index, pair) in self.pairs.iter().enumerate() {
             let single_color_objects: &SingleColorObjects = match &pair.input.single_color_objects {
                 Some(value) => value,
                 None => {
@@ -620,21 +615,52 @@ impl arc_work_model::Task {
                 }
             }
 
-            if !execute {
-                continue;
-            }
+            predicted_sizes.insert(pair_index, object.bounding_box.size());
+        }
 
-            {
-                // TODO: dont attempt predicting the output size when data is too poor
-                // TODO: Make a separate loop over the sizes and determine the "quality"
-                // If the object sizes varies a lot and it corresponds with the output size then it's a strong connection.
-                // If the object sizes are all 1x1 then it's useless for predicting the output size.
 
-                let label = Prediction::OutputSize {
-                    size: object.bounding_box.size(),
-                };
-                pair.prediction_set.insert(label);
+        if predicted_sizes.len() != self.pairs.len() {
+            return Err(anyhow::anyhow!("Unable to predict sizes for all pairs"));
+        }
+
+        // Don't attempt predicting the output size when data is too poor
+        let mut bigger_than_2px = false;
+        for (_pair_index, predicted_size) in &predicted_sizes {
+            if predicted_size.width >= 2 || predicted_size.height >= 2 {
+                bigger_than_2px = true;
+                break;
             }
+        }
+        if !bigger_than_2px {
+            // If the object sizes are all 1x1 then it's useless for predicting the output size.
+            return Err(anyhow::anyhow!("All the objects are too small for doing predictions about the output size"));
+        }
+
+        // Go ahead and assign predictions. In first stage, then do nothing. In second state, then assign labels.
+        if !execute {
+            return Ok(());
+        }
+
+        // Future experiment: 
+        // if the object sizes varies a lot and it corresponds with the output size then it's a strong connection.
+        // Assign a confidence score to the predicted size.
+
+        for (pair_index, pair) in self.pairs.iter_mut().enumerate() {
+            let predicted_size: ImageSize = match predicted_sizes.get(&pair_index) {
+                Some(value) => *value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing predicted size for all pairs"));
+                }
+            };
+            let label = Prediction::OutputSize {
+                size: predicted_size,
+            };
+            pair.prediction_set.insert(label);
+        }
+
+        for pair in &mut self.pairs {
+            let action_label = ActionLabel::OutputSizeIsTheSameAsSingleColorObject { label: single_color_object_label.clone() };
+            pair.action_label_set.insert(action_label);
         }
 
         Ok(())
@@ -872,7 +898,6 @@ impl arc_work_model::Task {
         for action_label in &self.action_label_set_intersection {
             match action_label {
                 ActionLabel::OutputSizeIsTheSameAsSingleColorObject { label } => {
-                    // TODO: deal with multiple SingleColorObjectLabel's and arrange them so the strongest comes first, and weakest last. 
                     return format!("{:?}", label);
                 },
                 _ => {}

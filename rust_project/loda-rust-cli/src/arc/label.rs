@@ -117,6 +117,7 @@ pub enum InputLabel {
     // InputImageIsSingleColorObjectsWithBackgroundColor,
     // InputImageIsSingleColorObjectsWithoutBackgroundColor,
     // AllObjectsHaveTheSameSize,
+    // AllSingleColorObjectsHaveTheSameSize { label: SingleColorObjectLabel },
     // InputColorThatDoesNotOccurInTheIntersection { color: u8 },
     // InputUniqueColors { color: Vec<u8> },
     // InputAspectRatio { width: u8, height: u8 },

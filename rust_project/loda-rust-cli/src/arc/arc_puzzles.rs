@@ -2431,8 +2431,6 @@ mod tests {
                 // println!("substitution_rule.destination: {:?}", rule.destination);
 
                 self.substitution_rule = Some(rule);
-
-                // TODO: save the substituted image on the arc_work_model::Input struct
                 Ok(())   
             }
     
