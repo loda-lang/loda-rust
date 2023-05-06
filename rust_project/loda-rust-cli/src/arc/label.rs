@@ -103,6 +103,10 @@ pub enum SingleColorObjectLabel {
     SquareWithSomeColor,
     NonSquareWithColor { color: u8 },
     NonSquareWithSomeColor,
+
+    // Ideas for more
+    // RectangleWithColorDifferentThan { color: u8 },
+    // RectangleWithMass { mass: u16 },
 }
 
 /// Properties about the input image.

@@ -3869,4 +3869,114 @@ mod tests {
         let result: String = run_advanced("be94b721", PROGRAM_CROP_FIRST_OBJECT).expect("String");
         assert_eq!(result, "4 1");
     }
+
+    mod solve_cd3c21df {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+
+                let background_color: u8;
+                {
+                    let histogram: Histogram = pair.input.histogram.clone();
+                    background_color = match histogram.most_popular_color_disallow_ambiguous() {
+                        Some(value) => value,
+                        None => {
+                            return Err(anyhow::anyhow!("ambiguous what the background color is"));
+                        }
+                    };
+                }
+
+                // Segment the image into objects
+                let non_background_mask: Image = input.to_mask_where_color_is(background_color);
+
+                let blank: Image = Image::zero(input.width(), input.height());
+                let objects: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::Neighbors, &non_background_mask)?;
+
+                if objects.is_empty() {
+                    return Err(anyhow::anyhow!("Expected 1 or more cells"));
+                }
+
+                let mut object_histogram = HashMap::<Image, Item>::new();
+                for (object_index, object) in objects.iter().enumerate() {
+                    let key_with_padding: Image = object.select_from_color_and_image(255, input)?;
+                    let key: Image = key_with_padding.trim_color(255)?;
+
+                    if let Some(item) = object_histogram.get_mut(&key) {
+                        item.count += 1;
+                        item.object_indexes.push(object_index);
+                    } else {
+                        let item = Item {
+                            count: 1,
+                            object_indexes: vec![object_index]
+                        };
+                        object_histogram.insert(key, item);
+                    }
+                }
+                // println!("object_histogram: {:?}", object_histogram);
+
+                let mut found_item: Option<&Item> = None;
+                let mut ambiguity_count: usize = 0;
+                for (_key, value) in &object_histogram {
+                    if value.count == 1 {
+                        found_item = Some(value);
+                        ambiguity_count += 1;
+                    }
+                }
+                if ambiguity_count > 1 {
+                    return Err(anyhow::anyhow!("Found multiple objects that occur once. Ambiguous which one to pick"));
+                }
+                let item: &Item = match found_item {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Didn't find any object that occur exactly once."));
+                    }
+                };
+                // println!("found: {:?}", item);
+
+                let object_index: usize = match item.object_indexes.first() {
+                    Some(value) => *value,
+                    None => {
+                        return Err(anyhow::anyhow!("There is supposed to be exactly 1 object_index, but got none."));
+                    }
+                };
+                let object_mask: Image = match objects.get(object_index) {
+                    Some(value) => value.clone(),
+                    None => {
+                        return Err(anyhow::anyhow!("Unable to lookup the object_index between the objects."));
+                    }
+                };
+
+                let crop_rect: Rectangle = match object_mask.bounding_box() {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("Cannot determine crop_rect for mask"));
+                    }
+                };
+                let result_image = input.crop(crop_rect)?;
+                Ok(result_image)
+            }
+        }
+
+        #[derive(Debug)]
+        struct Item {
+            count: usize,
+            object_indexes: Vec<usize>,
+        }
+    }
+
+    #[test]
+    fn test_780000_puzzle_cd3c21df() {
+        let mut instance = solve_cd3c21df::MySolution {};
+        let result: String = run_analyze_and_solve("cd3c21df", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
 }
