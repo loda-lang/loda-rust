@@ -1,6 +1,7 @@
 model filename;program filename
 007bbfb7.json;007bbfb7-1.asm
 007bbfb7.json;5b6cbef5-1.asm
+08ed6ac7.json;enumerated-objects.asm
 0934a4d8.json;repair-symmetry-and-crop.asm
 0b148d64.json;0b148d64-1.asm
 0c786b71.json;0c786b71-1.asm
@@ -28,6 +29,7 @@ model filename;program filename
 19bb5feb.json;19bb5feb-1.asm
 1b2d62fb.json;f2829549-1.asm
 1c0d0a4b.json;1c0d0a4b-1.asm
+1c0d0a4b.json;45737921-1.asm
 1cf80156.json;1cf80156-1.asm
 1cf80156.json;1f85a75f-1.asm
 1cf80156.json;39a8645d-1.asm
@@ -71,6 +73,7 @@ model filename;program filename
 4258a5f9.json;substitution-rule-applied.asm
 4347f46a.json;50cb2852-1.asm
 44f52bb0.json;44f52bb0-1.asm
+45737921.json;45737921-1.asm
 46442a0e.json;7fe24cdd-1.asm
 47996f11.json;repair-symmetry.asm
 484b58aa.json;repair-mosaic.asm
@@ -126,6 +129,7 @@ model filename;program filename
 746b3537.json;eb5a1d5d-1.asm
 746b3537.json;eb5a1d5d-2.asm
 74dd1130.json;74dd1130-1.asm
+7953d61e.json;ed98d772-1.asm
 7f4411dc.json;7f4411dc-1.asm
 7fe24cdd.json;7fe24cdd-1.asm
 80af3007.json;80af3007-1.asm
@@ -163,6 +167,7 @@ b1948b0a.json;1cf80156-1.asm
 b1948b0a.json;31aa019c-1.asm
 b1948b0a.json;3c9b0459-1.asm
 b1948b0a.json;4258a5f9-1.asm
+b1948b0a.json;45737921-1.asm
 b1948b0a.json;50cb2852-1.asm
 b1948b0a.json;6150a2bd-1.asm
 b1948b0a.json;67a3c6ac-1.asm
@@ -176,6 +181,7 @@ b1948b0a.json;b6afb2da-1.asm
 b1948b0a.json;c8f0f002-1.asm
 b1948b0a.json;ed36ccf7-1.asm
 b1948b0a.json;repair-symmetry-and-crop.asm
+b230c067.json;enumerated-objects.asm
 b60334d2.json;substitution-rule-applied.asm
 b6afb2da.json;b6afb2da-1.asm
 b8825c91.json;repair-symmetry.asm
@@ -264,6 +270,7 @@ e66aafb8.json;repair-symmetry-and-crop.asm
 e95e3d8e.json;repair-mosaic.asm
 e98196ab.json;d19f7514-1.asm
 e98196ab.json;e98196ab-1.asm
+ea32f347.json;enumerated-objects.asm
 ea786f4a.json;623ea044-1.asm
 ea959feb.json;repair-mosaic.asm
 eb281b96.json;eb281b96-1.asm
@@ -272,6 +279,7 @@ eb5a1d5d.json;e1baa8a4-1.asm
 eb5a1d5d.json;eb5a1d5d-1.asm
 eb5a1d5d.json;eb5a1d5d-2.asm
 ed36ccf7.json;ed36ccf7-1.asm
+ed98d772.json;ed98d772-1.asm
 f25fbde4.json;f25fbde4-1.asm
 f25ffba3.json;496994bd-1.asm
 f25ffba3.json;f25ffba3-1.asm
