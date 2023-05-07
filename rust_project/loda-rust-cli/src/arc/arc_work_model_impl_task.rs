@@ -1493,6 +1493,14 @@ impl arc_work_model::Task {
         }
 
         // Don't care wether it succeeds or fails
+        _ = self.compute_input_enumerated_objects_based_on_same_structure();
+
+        // Reset all enumerated_objects if one or more is missing.
+        if !self.has_enumerated_objects() {
+            self.reset_input_enumerated_objects();
+        }
+
+        // Don't care wether it succeeds or fails
         _ = self.compute_input_enumerated_objects_using_grid();
 
         // Reset all enumerated_objects if one or more is missing.
@@ -1523,6 +1531,60 @@ impl arc_work_model::Task {
         for pair in self.pairs.iter_mut() {
             pair.input.enumerated_objects = None;
         }
+    }
+
+    fn compute_input_enumerated_objects_based_on_same_structure(&mut self) -> anyhow::Result<()> {
+        if self.has_enumerated_objects() {
+            return Ok(());
+        }
+
+        if !self.action_label_set_intersection.contains(&ActionLabel::OutputImageHasSameStructureAsInputImage) {
+            return Ok(());
+        }
+
+        let mut ambiguity_count0: usize = 0;
+        let mut ambiguity_count1: usize = 0;
+        let mut found_color0 = u8::MAX;
+        let mut found_color1 = u8::MAX;
+        for action_label in &self.action_label_set_intersection {
+            match action_label {
+                ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
+                    ambiguity_count0 += 1;
+                    found_color0 = *color;
+                },
+                ActionLabel::InputImageIsOutputImageWithNoChangesToPixelsWithColor { color } => {
+                    ambiguity_count1 += 1;
+                    found_color1 = *color;
+                },
+                _ => {}
+            }
+        }
+        if ambiguity_count0 != 1 || ambiguity_count1 != 1 {
+            return Ok(());
+        }
+        if found_color0 != found_color1 {
+            return Ok(());
+        }
+        // Agreement on a single color
+        let background_color: u8 = found_color0;
+
+        for pair in &mut self.pairs {
+            let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
+            let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
+
+            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask);
+            let object_images: Vec<Image> = match result {
+                Ok(images) => images,
+                Err(_) => {
+                    continue;
+                }
+            };
+            let object_images_sorted: Vec<Image> = ObjectsSortByProperty::sort_by_mass_descending(&object_images)?;
+            let enumerated_objects: Image = Image::object_enumerate(&object_images_sorted)?;
+            pair.input.enumerated_objects = Some(enumerated_objects);
+        }
+
+        return Ok(());
     }
 
     fn compute_input_enumerated_objects_based_on_size_of_primary_object_after_single_intersection_color(&mut self) -> anyhow::Result<()> {

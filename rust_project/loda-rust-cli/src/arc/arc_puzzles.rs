@@ -1082,6 +1082,53 @@ mod tests {
         assert_eq!(result, "4 1");
     }
 
+    mod solve_ea32f347 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let enumerated_objects: &Image = match &pair.input.enumerated_objects {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("no enumerated_objects"));
+                    }
+                };
+                Ok(enumerated_objects.clone())
+            }
+        }
+    }
+
+    #[test]
+    fn test_240001_puzzle_ea32f347() {
+        let mut instance = solve_ea32f347::MySolution {};
+        let result: String = run_analyze_and_solve("ea32f347", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
+    const PROGRAM_ENUMERATED_OBJECTS: &'static str = "
+    mov $80,$99
+    mov $81,110 ; address of vector[0].EnumeratedObjects
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $$82,$$81
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_240002_puzzle_ea32f347_loda() {
+        let result: String = run_advanced("ea32f347", PROGRAM_ENUMERATED_OBJECTS).expect("String");
+        assert_eq!(result, "4 1");
+    }
+
     #[test]
     fn test_250000_puzzle_7bb29440() {
         let solution: SolutionSimple = |data| {

@@ -215,6 +215,7 @@ pub enum ActionLabel {
     // OutputSizeIsSmallerThanInputSize
     // OutputAspectRatio { width: u8, height: u8 },
     // OutputAspectRatioEqualToInputAspectRatio,
+    // AllOutputImagesAgreeOnTheSameColors.
 }
 
 pub type ActionLabelSet = HashSet<ActionLabel>;
