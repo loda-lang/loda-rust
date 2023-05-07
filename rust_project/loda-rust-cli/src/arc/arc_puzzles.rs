@@ -8,7 +8,7 @@ mod tests {
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ObjectsMeasureMass, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
-    use crate::arc::{ObjectsToGrid, ObjectsToGridMode, SubstitutionRule};
+    use crate::arc::{ObjectsToGrid, ObjectsToGridMode, SubstitutionRule, ObjectsReverseColorPopularity};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere, GridPattern};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
@@ -4024,6 +4024,40 @@ mod tests {
     fn test_780000_puzzle_cd3c21df() {
         let mut instance = solve_cd3c21df::MySolution {};
         let result: String = run_analyze_and_solve("cd3c21df", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_45737921 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let input: &Image = &pair.input.image;
+
+                let enumerated_objects: &Image = match &pair.input.enumerated_objects {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("missing enumerated_object"));
+                    }
+                };
+
+                let result_image: Image = ObjectsReverseColorPopularity::run(&input, enumerated_objects)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_790000_puzzle_45737921() {
+        let mut instance = solve_45737921::MySolution {};
+        let result: String = run_analyze_and_solve("45737921", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 }
