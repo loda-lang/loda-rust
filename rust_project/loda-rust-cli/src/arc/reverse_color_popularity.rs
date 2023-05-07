@@ -1,20 +1,17 @@
+use super::{Image, Histogram, ImageHistogram, ImageMask, ImageReplaceColor};
 use std::collections::HashMap;
 
-use crate::arc::{Image, Histogram, ImageHistogram, ImageMask};
-
-use super::ImageReplaceColor;
-
 #[allow(dead_code)]
-pub struct ObjectsReverseColorPopularity;
+pub struct ReverseColorPopularity;
 
-impl ObjectsReverseColorPopularity {
+impl ReverseColorPopularity {
     #[allow(dead_code)]
     pub fn run(image: &Image, enumerated_objects: &Image) -> anyhow::Result<Image> {
         if image.size() != enumerated_objects.size() {
-            return Err(anyhow::anyhow!("ObjectsReverseColorPopularity: images must have same size"));
+            return Err(anyhow::anyhow!("ReverseColorPopularity: images must have same size"));
         }
         if image.is_empty() {
-            return Err(anyhow::anyhow!("ObjectsReverseColorPopularity: image must be 1x1 or bigger"));
+            return Err(anyhow::anyhow!("ReverseColorPopularity: image must be 1x1 or bigger"));
         }
 
         let mut histogram_all: Histogram = enumerated_objects.histogram_all();
@@ -31,7 +28,7 @@ impl ObjectsReverseColorPopularity {
 
             let object_mask: Image = enumerated_objects.to_mask_where_color_is(object_index);
             let object_histogram: Histogram = image.histogram_with_mask(&object_mask)?;
-            let replacements: HashMap<u8, u8> = ObjectsReverseColorPopularity::reverse_popularity(&object_histogram)?;
+            let replacements: HashMap<u8, u8> = ReverseColorPopularity::reverse_popularity(&object_histogram)?;
 
             // Replace colors inside the object using the object_mask
             result_image = result_image.replace_colors_with_mask_and_hashmap(&object_mask, &replacements)?;
@@ -95,7 +92,7 @@ mod tests {
         h.increment(5);
 
         // Act
-        let actual: HashMap<u8, u8> = ObjectsReverseColorPopularity::reverse_popularity(&h).expect("dict");
+        let actual: HashMap<u8, u8> = ReverseColorPopularity::reverse_popularity(&h).expect("dict");
 
         // Assert
         let expected = HashMap::<u8, u8>::new();
@@ -111,7 +108,7 @@ mod tests {
         h.increment(7);
 
         // Act
-        let actual: HashMap<u8, u8> = ObjectsReverseColorPopularity::reverse_popularity(&h).expect("dict");
+        let actual: HashMap<u8, u8> = ReverseColorPopularity::reverse_popularity(&h).expect("dict");
 
         // Assert
         let mut expected = HashMap::<u8, u8>::new();
@@ -130,7 +127,7 @@ mod tests {
         h.increment(7);
 
         // Act
-        let actual: HashMap<u8, u8> = ObjectsReverseColorPopularity::reverse_popularity(&h).expect("dict");
+        let actual: HashMap<u8, u8> = ReverseColorPopularity::reverse_popularity(&h).expect("dict");
 
         // Assert
         let mut expected = HashMap::<u8, u8>::new();
@@ -151,7 +148,7 @@ mod tests {
         h.increment(7);
 
         // Act
-        let error = ObjectsReverseColorPopularity::reverse_popularity(&h).expect_err("should fail");
+        let error = ReverseColorPopularity::reverse_popularity(&h).expect_err("should fail");
 
         // Assert
         let s = format!("{:?}", error);
@@ -180,7 +177,7 @@ mod tests {
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_objects_pixels).expect("image");
 
         // Act
-        let actual: Image = ObjectsReverseColorPopularity::run(&input, &enumerated_objects).expect("image");
+        let actual: Image = ReverseColorPopularity::run(&input, &enumerated_objects).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![

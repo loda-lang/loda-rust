@@ -8,7 +8,7 @@ mod tests {
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ObjectsMeasureMass, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
-    use crate::arc::{ObjectsToGrid, ObjectsToGridMode, SubstitutionRule, ObjectsReverseColorPopularity};
+    use crate::arc::{ObjectsToGrid, ObjectsToGridMode, SubstitutionRule, ReverseColorPopularity};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere, GridPattern};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
@@ -4048,7 +4048,7 @@ mod tests {
                     }
                 };
 
-                let result_image: Image = ObjectsReverseColorPopularity::run(&input, enumerated_objects)?;
+                let result_image: Image = ReverseColorPopularity::run(&input, enumerated_objects)?;
                 Ok(result_image)
             }
         }
