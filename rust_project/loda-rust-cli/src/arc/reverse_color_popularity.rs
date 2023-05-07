@@ -6,12 +6,25 @@ pub struct ReverseColorPopularity;
 
 impl ReverseColorPopularity {
     #[allow(dead_code)]
+    pub fn apply_to_image(image: &Image) -> anyhow::Result<Image> {
+        if image.is_empty() {
+            return Err(anyhow::anyhow!("ReverseColorPopularity.apply_to_image: image must be 1x1 or bigger"));
+        }
+
+        let object_histogram: Histogram = image.histogram_all();
+        let replacements: HashMap<u8, u8> = ReverseColorPopularity::reverse_popularity(&object_histogram)?;
+        let mut result_image: Image = image.clone();
+        result_image = result_image.replace_colors_with_hashmap(&replacements)?;
+        Ok(result_image)
+    }
+
+    #[allow(dead_code)]
     pub fn apply_to_objects(image: &Image, enumerated_objects: &Image) -> anyhow::Result<Image> {
         if image.size() != enumerated_objects.size() {
-            return Err(anyhow::anyhow!("ReverseColorPopularity: images must have same size"));
+            return Err(anyhow::anyhow!("ReverseColorPopularity.apply_to_objects: images must have same size"));
         }
         if image.is_empty() {
-            return Err(anyhow::anyhow!("ReverseColorPopularity: image must be 1x1 or bigger"));
+            return Err(anyhow::anyhow!("ReverseColorPopularity.apply_to_objects: image must be 1x1 or bigger"));
         }
 
         let mut histogram_all: Histogram = enumerated_objects.histogram_all();
@@ -156,7 +169,34 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_apply_to_objects() {
+    fn test_20000_apply_to_image() {
+        // Arrange
+        let input_pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 1,
+            1, 2, 2, 2, 1,
+            1, 2, 3, 2, 1,
+            1, 2, 2, 2, 1,
+            1, 1, 1, 1, 1,
+        ];
+        let input: Image = Image::try_create(5, 5, input_pixels).expect("image");
+
+        // Act
+        let actual: Image = ReverseColorPopularity::apply_to_image(&input).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            3, 3, 3, 3, 3,
+            3, 2, 2, 2, 3,
+            3, 2, 1, 2, 3,
+            3, 2, 2, 2, 3,
+            3, 3, 3, 3, 3,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30000_apply_to_objects() {
         // Arrange
         let input_pixels: Vec<u8> = vec![
             1, 1, 1, 0, 9,
