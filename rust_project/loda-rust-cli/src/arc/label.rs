@@ -189,11 +189,13 @@ pub enum ActionLabel {
     OutputImageColorsComesFromInputImage,
 
     OutputImageHasSameStructureAsInputImage,
+
+    OutputImageIsInputImageWithNoChangesToPixelsWithColor { color: u8 },
+    InputImageIsOutputImageWithNoChangesToPixelsWithColor { color: u8 },
     
     // Ideas for more
     // OutputImageContainAllSingleColorObjectsAtTheirPosition,
     // OutputImageHasSameStructureAsInputImageWithColorPair { color0: u8, color1: u8 },
-    // OutputImageIsTheSameAsInputImageWithColor { color: u8 },
     // OutputSymmetry { label: SymmetryLabel },
     // OutputGrid { label: GridLabel },
     // OutputGridIsTheSameAsInputGrid,

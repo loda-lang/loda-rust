@@ -1,4 +1,4 @@
-use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor};
+use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount};
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
 use super::{ImageFind, ImageSize, ImageSymmetry, Histogram};
@@ -93,6 +93,7 @@ impl arc_work_model::Pair {
 
         if width_input == width_output && height_input == height_output {
             _ = self.analyze_3x3_structure();
+            _ = self.analyze_if_color_is_sticky();
         }
 
         _ = self.analyze_object_why_is_the_output_present_once_in_input();
@@ -119,6 +120,30 @@ impl arc_work_model::Pair {
         
         if same_neighbours || same_all_of_3x3 {
             self.action_label_set.insert(ActionLabel::OutputImageHasSameStructureAsInputImage);
+        }
+        Ok(())
+    }
+
+    fn analyze_if_color_is_sticky(&mut self) -> anyhow::Result<()> {
+        let h0: &Histogram = &self.input.histogram;
+        let h1: &Histogram = &self.output.histogram;
+        let mut h2: Histogram = h0.clone();
+        h2.intersection_histogram(h1);
+        for (_count, color) in h2.pairs_ordered_by_color() {
+            let mask: Image = self.input.image.diff_color(&self.output.image, color)?;
+            if mask.mask_count_one() > 0 {
+                continue;
+            }
+            let label = ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color };
+            self.action_label_set.insert(label);
+        }
+        for (_count, color) in h2.pairs_ordered_by_color() {
+            let mask: Image = self.output.image.diff_color(&self.input.image, color)?;
+            if mask.mask_count_one() > 0 {
+                continue;
+            }
+            let label = ActionLabel::InputImageIsOutputImageWithNoChangesToPixelsWithColor { color };
+            self.action_label_set.insert(label);
         }
         Ok(())
     }
