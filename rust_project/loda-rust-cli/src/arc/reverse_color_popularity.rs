@@ -6,7 +6,7 @@ pub struct ReverseColorPopularity;
 
 impl ReverseColorPopularity {
     #[allow(dead_code)]
-    pub fn run(image: &Image, enumerated_objects: &Image) -> anyhow::Result<Image> {
+    pub fn apply_to_objects(image: &Image, enumerated_objects: &Image) -> anyhow::Result<Image> {
         if image.size() != enumerated_objects.size() {
             return Err(anyhow::anyhow!("ReverseColorPopularity: images must have same size"));
         }
@@ -156,7 +156,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_process_objects() {
+    fn test_20000_apply_to_objects() {
         // Arrange
         let input_pixels: Vec<u8> = vec![
             1, 1, 1, 0, 9,
@@ -177,7 +177,7 @@ mod tests {
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_objects_pixels).expect("image");
 
         // Act
-        let actual: Image = ReverseColorPopularity::run(&input, &enumerated_objects).expect("image");
+        let actual: Image = ReverseColorPopularity::apply_to_objects(&input, &enumerated_objects).expect("image");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![

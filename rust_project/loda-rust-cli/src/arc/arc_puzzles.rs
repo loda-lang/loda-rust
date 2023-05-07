@@ -4048,7 +4048,7 @@ mod tests {
                     }
                 };
 
-                let result_image: Image = ReverseColorPopularity::run(&input, enumerated_objects)?;
+                let result_image: Image = ReverseColorPopularity::apply_to_objects(&input, enumerated_objects)?;
                 Ok(result_image)
             }
         }
