@@ -5,6 +5,9 @@ use std::collections::HashMap;
 pub struct ReverseColorPopularity;
 
 impl ReverseColorPopularity {
+    /// Reorder the color palette, so that the `most popular color` changes place with the `least popular color`.
+    /// 
+    /// This happens to all pixels in the image.
     #[allow(dead_code)]
     pub fn apply_to_image(image: &Image) -> anyhow::Result<Image> {
         if image.is_empty() {
@@ -18,6 +21,9 @@ impl ReverseColorPopularity {
         Ok(result_image)
     }
 
+    /// Reorder the color palette, so that the `most popular color` changes place with the `least popular color`.
+    /// 
+    /// This happens inside each object. Each object is isolated from other objects.
     #[allow(dead_code)]
     pub fn apply_to_objects(image: &Image, enumerated_objects: &Image) -> anyhow::Result<Image> {
         if image.size() != enumerated_objects.size() {

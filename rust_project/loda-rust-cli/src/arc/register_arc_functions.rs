@@ -1,4 +1,4 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects, ImageBorder, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects, ImageBorder, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor, ReverseColorPopularity};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
 use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean};
@@ -2568,6 +2568,93 @@ impl UnofficialFunction for ImageBorderGrowFunction {
     }
 }
 
+struct ReverseColorPopularityApplyToImageFunction {
+    id: u32,
+}
+
+impl ReverseColorPopularityApplyToImageFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ReverseColorPopularityApplyToImageFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 1, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Reorder the color palette, so that the `most popular color` changes place with the `least popular color`".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 1 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        let output_image: Image = ReverseColorPopularity::apply_to_image(&input_image)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
+struct ReverseColorPopularityApplyToObjectsFunction {
+    id: u32,
+}
+
+impl ReverseColorPopularityApplyToObjectsFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ReverseColorPopularityApplyToObjectsFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Takes 2 parameters: Image, EnumeratedObjects. Reorder the color palette, so that the `most popular color` changes place with the `least popular color`".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is image
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let input_image: Image = input0_uint.to_image()?;
+
+        // input1 is image
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let enumerated_objects: Image = input1_uint.to_image()?;
+
+        let output_image: Image = ReverseColorPopularity::apply_to_objects(&input_image, &enumerated_objects)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 struct ObjectsUniqueColorCountFunction {
     id: u32,
 }
@@ -2915,6 +3002,10 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
 
     // Draw border around image
     register_function!(ImageBorderGrowFunction::new(102160));
+
+    // Reverse color popularity
+    register_function!(ReverseColorPopularityApplyToImageFunction::new(102170));
+    register_function!(ReverseColorPopularityApplyToObjectsFunction::new(102171));
 
     // Count unique colors in each object
     register_function!(ObjectsUniqueColorCountFunction::new(104000));
