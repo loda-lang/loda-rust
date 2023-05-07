@@ -40,26 +40,45 @@ impl ObjectsReverseColorPopularity {
         Ok(result_image)
     }
 
+    /// Reorder the color palette, so that the `most popular color` changes place with the `least popular color`.
+    /// 
+    /// The reordering is possible when the colors popularity is descending in an unambiguous way.
+    /// 
+    /// The reordering is not possible when there are 3 or more colors with the same frequency.
+    /// 
+    /// Returns a `HashMap` with color replacements.
     fn reverse_popularity(histogram: &Histogram) -> anyhow::Result<HashMap<u8, u8>> {
         let pairs_ascending: Vec<(u32, u8)> = histogram.pairs_ascending();
         let pairs_descending: Vec<(u32, u8)> = histogram.pairs_descending();
         if pairs_ascending.len() != pairs_descending.len() {
             return Err(anyhow::anyhow!("Integrity error. Supposed to have same length"));
         }
+        let mut ambiguity_counters = HashMap::<u32, u8>::new();
         let mut dict = HashMap::<u8, u8>::new();
-        for ((_count0, color0), (_count1, color1)) in pairs_ascending.iter().zip(pairs_descending.iter()) {
-
-            // There is an ambiguous scenario, when there are 3 or more colors with the same count, 
-            // then it's unclear what should happen.
-            //
-            // Interestingly this ambiguous scenario is not a problem 2 colors.
-            // When there are 2 colors with the same popularity then, then swap the colors.
+        for ((count0, color0), (_count1, color1)) in pairs_ascending.iter().zip(pairs_descending.iter()) {
+            if let Some(counter) = ambiguity_counters.get_mut(count0) {
+                *counter += 1;
+            } else {
+                ambiguity_counters.insert(*count0, 1);
+            }
 
             if color0 == color1 {
                 continue;
             }
             dict.insert(*color0, *color1);
         }
+
+        // There is an ambiguous scenario, when there are 3 or more colors with the same count, 
+        // then it's unclear what should happen.
+        //
+        // Interestingly this ambiguous scenario is not a problem 2 colors.
+        // When there are 2 colors with the same popularity then, then swap the colors.
+        for (_key, count) in ambiguity_counters {
+            if count >= 3 {
+                return Err(anyhow::anyhow!("Detected 3 or more colors with the same frequency. Unclear how to reverse the colors by popularity."));
+            }
+        }
+
         Ok(dict)
     }
 }
@@ -118,6 +137,25 @@ mod tests {
         expected.insert(5, 7);
         expected.insert(7, 5);
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10003_reverse_popularity_ordering_is_ambiguous() {
+        // Arrange
+        let mut h = Histogram::new();
+        h.increment(5);
+        h.increment(5);
+        h.increment(3);
+        h.increment(3);
+        h.increment(7);
+        h.increment(7);
+
+        // Act
+        let error = ObjectsReverseColorPopularity::reverse_popularity(&h).expect_err("should fail");
+
+        // Assert
+        let s = format!("{:?}", error);
+        assert_eq!(s.contains("Detected 3 or more colors with the same frequency"), true);
     }
 
     #[test]
