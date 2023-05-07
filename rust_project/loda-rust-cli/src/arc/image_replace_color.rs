@@ -4,6 +4,7 @@ use std::collections::HashMap;
 pub trait ImageReplaceColor {
     fn replace_color(&self, source: u8, destination: u8) -> anyhow::Result<Image>;
     fn replace_colors_with_hashmap(&self, replacements: &HashMap::<u8, u8>) -> anyhow::Result<Image>;
+    fn replace_colors_with_mask_and_hashmap(&self, mask: &Image, replacements: &HashMap::<u8, u8>) -> anyhow::Result<Image>;
     fn replace_colors_with_palette_image(&self, palette_image: &Image) -> anyhow::Result<Image>;
     fn replace_colors_other_than(&self, source: u8, destination: u8) -> anyhow::Result<Image>;
 }
@@ -50,6 +51,32 @@ impl ImageReplaceColor for Image {
                     None => {
                         return Err(anyhow::anyhow!("Integrity error. Unable to set pixel ({}, {}) inside the result bitmap", x, y));
                     }
+                }
+            }
+        }
+        Ok(image)
+    }
+
+    fn replace_colors_with_mask_and_hashmap(&self, mask: &Image, replacements: &HashMap::<u8, u8>) -> anyhow::Result<Image> {
+        if self.size() != mask.size() {
+            return Err(anyhow::anyhow!("Both images must have same size. And be 1x1 or bigger."));
+        }
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+        if replacements.is_empty() {
+            return Ok(self.clone());
+        }
+        let mut image: Image = self.clone();
+        for y in 0..(self.height() as i32) {
+            for x in 0..(self.width() as i32) {
+                let mask_value: u8 = mask.get(x, y).unwrap_or(0);
+                if mask_value == 0 {
+                    continue;
+                }
+                let source_color: u8 = image.get(x, y).unwrap_or(255);
+                if let Some(target_color) = replacements.get(&source_color) {
+                    _ = image.set(x, y, *target_color);
                 }
             }
         }
@@ -154,7 +181,40 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_replace_colors_with_palette_image() {
+    fn test_30000_replace_colors_with_hashmap() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 7,
+            0, 3, 0, 3,
+            0, 0, 3, 2,
+        ];
+        let input: Image = Image::try_create(4, 3, pixels).expect("image");
+        let mask_pixels: Vec<u8> = vec![
+            0, 0, 1, 1,
+            0, 0, 1, 1,
+            0, 0, 1, 1,
+        ];
+        let mask: Image = Image::try_create(4, 3, mask_pixels).expect("image");
+        let mut replacements = HashMap::<u8, u8>::new();
+        replacements.insert(0, 1);
+        replacements.insert(2, 3);
+        replacements.insert(3, 4);
+
+        // Act
+        let actual: Image = input.replace_colors_with_mask_and_hashmap(&mask, &replacements).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 1, 7,
+            0, 3, 1, 4,
+            0, 0, 4, 3,
+        ];
+        let expected: Image = Image::try_create(4, 3, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_40000_replace_colors_with_palette_image() {
         // Arrange
         let input_pixels: Vec<u8> = vec![
             0, 0, 0, 7,
@@ -182,7 +242,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_replace_colors_other_than() {
+    fn test_50000_replace_colors_other_than() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 0, 0, 5,
