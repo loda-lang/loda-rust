@@ -36,7 +36,11 @@ static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 /// There is a penalty if the ARCathon executable is running longer than 24 hours.
 /// Some of the solutions takes minutes to evaluate, so the executable cannot stop instantly. 
 /// Thus the limit is several minutes shorter so we are sure that the executable has stopped.
-static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = ((23 * 60) + 30) * 60;
+/// Originally I ran for 23h30m. I had to wait an entire day for an answer.
+/// 
+/// I suspect that most of the discovered solutions happens within the first few minutes.
+/// Lets try run for 10 hours. Then I can submit a solution before I go to bed and check status next morning.
+static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = (10 * 60) * 60;
 
 static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 4;
 
