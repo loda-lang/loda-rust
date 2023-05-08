@@ -146,6 +146,7 @@ pub enum ObjectLabel {
     // Number of holes
     // Has holes
     // Has no holes
+    // BarChart
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -194,6 +195,8 @@ pub enum ActionLabel {
     InputImageIsOutputImageWithNoChangesToPixelsWithColor { color: u8 },
     
     // Ideas for more
+    // OutputImagePreserveInputImageEdge { edge: Top/Bottom/Left/Right }
+    // OutputImagePreserveInputImageCorner { edge: TopLeft/TopRight/BottomLeft/BottomRight }
     // OutputImageContainAllSingleColorObjectsAtTheirPosition,
     // OutputImageHasSameStructureAsInputImageWithColorPair { color0: u8, color1: u8 },
     // OutputSymmetry { label: SymmetryLabel },
