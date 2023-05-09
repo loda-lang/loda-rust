@@ -8,7 +8,7 @@ mod tests {
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ObjectsMeasureMass, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
-    use crate::arc::{ObjectsToGrid, ObjectsToGridMode, SubstitutionRule, ReverseColorPopularity};
+    use crate::arc::{ObjectsToGrid, ObjectsToGridMode, SubstitutionRule, ReverseColorPopularity, ObjectsInBins};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere, GridPattern};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
@@ -4080,6 +4080,38 @@ mod tests {
     #[test]
     fn test_790001_puzzle_45737921_loda() {
         let result: String = run_advanced("45737921", PROGRAM_45737921).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_6e82a1ae {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let enumerated_objects: &Image = match &pair.input.enumerated_objects {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("missing enumerated_object"));
+                    }
+                };
+                let oib: ObjectsInBins = ObjectsInBins::analyze(enumerated_objects)?;
+                let result_image: Image = oib.group3_small_medium_big(false)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_800000_puzzle_6e82a1ae() {
+        let mut instance = solve_6e82a1ae::MySolution {};
+        let result: String = run_analyze_and_solve("6e82a1ae", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
 }
