@@ -1,4 +1,5 @@
 use super::{Histogram, Image, ImageMask, ImageMaskCount, ImageSize};
+use std::collections::HashMap;
 
 #[allow(dead_code)]
 pub struct ObjectsInBins {
@@ -165,6 +166,40 @@ impl ObjectsInBins {
         }
         Ok(result_image)
     }
+
+    fn mass_histogram(&self) -> HashMap<u16,u8> {
+        let mut counters = HashMap::<u16,u8>::new();
+        for item in &self.items {
+            if let Some(counter) = counters.get_mut(&item.object_mass) {
+                *counter += 1;
+            } else {
+                counters.insert(item.object_mass, 1);
+            }
+        }
+        counters
+    }
+
+    /// Object ids for the objects with unique mass.
+    /// 
+    /// Sets `object_id=0` for all other objects.
+    /// The pixel value 0 is for non-objects.
+    /// 
+    /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
+    pub fn unique_objects(&self) -> anyhow::Result<Image> {
+        let histogram: HashMap::<u16,u8> = self.mass_histogram();
+        let mut result_image = Image::zero(self.image_size.width, self.image_size.height);
+        for item in &self.items {
+            let mut set_color: u8 = 0;
+            if let Some(count) = histogram.get(&item.object_mass) {
+                if *count == 1 {
+                    set_color = item.object_id;
+                }
+            }
+            result_image = item.mask.select_from_image_and_color(&result_image, set_color)?;
+        }
+        Ok(result_image)
+    }
 }
 
 struct Item {
@@ -297,6 +332,37 @@ mod tests {
             0, 0, 0, 0, 0,
             0, 0, 0, 0, 0,
             6, 6, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_50000_unique_objects() {
+        // Arrange
+        let enumerated_object_pixels: Vec<u8> = vec![
+            1, 0, 2, 0, 3,
+            0, 0, 2, 0, 3,
+            4, 4, 0, 5, 5,
+            4, 0, 0, 5, 5,
+            6, 6, 7, 7, 7, 
+        ];
+        let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
+        let mut ignore_colors = Histogram::new();
+        ignore_colors.increment(0);
+
+        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects, Some(&ignore_colors)).expect("ok");
+
+        // Act
+        let actual: Image = oib.unique_objects().expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 5, 5,
+            0, 0, 0, 5, 5,
+            0, 0, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
         assert_eq!(actual, expected);
