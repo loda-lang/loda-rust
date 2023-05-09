@@ -1,5 +1,6 @@
 use super::{Histogram, Image, ImageMask, ImageMaskCount, ImageSize};
 use std::collections::HashMap;
+use num_integer::Integer;
 
 #[allow(dead_code)]
 pub struct ObjectsInBins {
@@ -223,12 +224,69 @@ impl ObjectsInBins {
         Ok(result_image)
     }
 
+    /// Sort the objects by mass into 2 groups.
+    /// - The pixel value 0 is for non-objects.
+    /// - Assign half of the objects with smallest mass `id=1`.
+    /// - Assign half of the objects with biggest mass `id=2`.
+    /// 
+    /// This only works when there are an even number of objects.
+    /// 
+    /// If there is an odd number of objects then an error is returned.
+    /// since it's unclear what half to put the middle object inside.
+    /// 
+    /// If it's ambiguous how to sort the objects then an error is returned.
+    /// 
+    /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
+    pub fn sort2_small_big(&self, reverse: bool) -> anyhow::Result<Image> {
+        let mut items = self.items.clone();
+        if items.len() < 2 {
+            return Err(anyhow::anyhow!("ObjectsInBins.sort2_small_big: There must be 2 or more objects."));
+        }
+        if items.len().is_odd() {
+            return Err(anyhow::anyhow!("ObjectsInBins.sort2_small_big: The number of objects must be even. It's ambiguous how to split the objects into 2 parts."));
+        }
+        items.sort_unstable_by_key(|item| item.object_mass);
+
+        // Check if the objects near the middle are in increasing order
+        let half: usize = items.len() / 2;
+        if items.len() >= 2 && half > 0 {
+            let item0: &Item = &items[half - 1];
+            let item1: &Item = &items[half];
+            if item0.object_mass == item1.object_mass {
+                return Err(anyhow::anyhow!("ObjectsInBins.sort2_small_big: The objects near the middle must be in increasing order. It's ambiguous how to sort the objects."));
+            }
+        }
+
+        let color_small: u8;
+        let color_big: u8;
+        if reverse {
+            color_small = 2;
+            color_big = 1;
+        } else {
+            color_small = 1;
+            color_big = 2;
+        }
+
+        let mut result_image = Image::zero(self.image_size.width, self.image_size.height);
+        for (index, item) in items.iter().enumerate() {
+            let set_color: u8;
+            if index < half {
+                set_color = color_small;
+            } else {
+                set_color = color_big;
+            }
+            result_image = item.mask.select_from_image_and_color(&result_image, set_color)?;
+        }
+        Ok(result_image)
+    }
+
     // Future experiments
-    // Group 50/50 into 2 groups: Big objects, small objects
     // objects_mass_bigger_than(mass)
     // objects_mass_smaller_than(mass)
 }
 
+#[derive(Clone, Debug)]
 struct Item {
     object_id: u8,
     mask: Image,
@@ -424,5 +482,60 @@ mod tests {
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_70000_sort2_small_big() {
+        // Arrange
+        let enumerated_object_pixels: Vec<u8> = vec![
+            1, 0, 2, 0, 3,
+            0, 0, 2, 0, 3,
+            4, 4, 0, 5, 5,
+            4, 0, 0, 5, 5,
+            6, 6, 6, 0, 0,
+        ];
+        let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
+        let mut ignore_colors = Histogram::new();
+        ignore_colors.increment(0);
+
+        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects, Some(&ignore_colors)).expect("ok");
+
+        // Act
+        let actual: Image = oib.sort2_small_big(false).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 0, 1, 0, 1,
+            0, 0, 1, 0, 1,
+            2, 2, 0, 2, 2,
+            2, 0, 0, 2, 2,
+            2, 2, 2, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_70001_sort2_small_big_ambiguous_how_to_sort() {
+        // Arrange
+        let enumerated_object_pixels: Vec<u8> = vec![
+            1, 0, 2, 0, 3,
+            0, 0, 2, 0, 3,
+            4, 0, 0, 0, 5,
+            4, 0, 0, 0, 5,
+            6, 6, 6, 0, 0,
+        ];
+        let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
+        let mut ignore_colors = Histogram::new();
+        ignore_colors.increment(0);
+
+        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects, Some(&ignore_colors)).expect("ok");
+
+        // Act
+        let error = oib.sort2_small_big(false).expect_err("should fail");
+
+        // Assert
+        let s = format!("{:?}", error);
+        assert_eq!(s.contains("objects near the middle must be in increasing order"), true);
     }
 }
