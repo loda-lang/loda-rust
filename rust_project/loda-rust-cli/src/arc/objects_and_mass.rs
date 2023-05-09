@@ -278,6 +278,37 @@ impl ObjectsAndMass {
         Ok(result_image)
     }
 
+    /// Group the objects into 2 bins. If they match the specified mass they go into one bin, otherwise they go into the other bin.
+    /// - The pixel value 0 is for non-objects.
+    /// - The objects that have the specified mass gets assigned `id=1`.
+    /// - The objects that does not have the specified mass gets assigned `id=2`.
+    /// 
+    /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
+    pub fn group2_mass_different(&self, mass: u16, reverse: bool) -> anyhow::Result<Image> {
+        let color_match: u8;
+        let color_different: u8;
+        if reverse {
+            color_match = 2;
+            color_different = 1;
+        } else {
+            color_match = 1;
+            color_different = 2;
+        }
+
+        let mut result_image = Image::zero(self.image_size.width, self.image_size.height);
+        for item in &self.items {
+            let set_color: u8;
+            if item.object_mass == mass {
+                set_color = color_match;
+            } else {
+                set_color = color_different;
+            }
+            result_image = item.mask.select_from_image_and_color(&result_image, set_color)?;
+        }
+        Ok(result_image)
+    }
+
     // Future experiments
     // objects_mass_bigger_than(mass)
     // objects_mass_smaller_than(mass)
@@ -510,5 +541,33 @@ mod tests {
         // Assert
         let s = format!("{:?}", error);
         assert_eq!(s.contains("objects near the middle must be in increasing order"), true);
+    }
+
+    #[test]
+    fn test_80000_group2_mass_different() {
+        // Arrange
+        let enumerated_object_pixels: Vec<u8> = vec![
+            1, 0, 2, 0, 3,
+            0, 0, 2, 0, 3,
+            4, 4, 0, 5, 5,
+            4, 0, 0, 5, 5,
+            6, 6, 6, 0, 0,
+        ];
+        let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
+        let oam: ObjectsAndMass = ObjectsAndMass::new(&enumerated_objects).expect("ok");
+
+        // Act
+        let actual: Image = oam.group2_mass_different(3, false).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            2, 0, 2, 0, 2,
+            0, 0, 2, 0, 2,
+            1, 1, 0, 2, 2,
+            1, 0, 0, 2, 2,
+            1, 1, 1, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
     }
 }

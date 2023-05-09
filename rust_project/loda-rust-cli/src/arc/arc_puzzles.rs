@@ -4114,4 +4114,36 @@ mod tests {
         let result: String = run_analyze_and_solve("6e82a1ae", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
+
+    mod solve_d2abd087 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let enumerated_objects: &Image = match &pair.input.enumerated_objects {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("missing enumerated_object"));
+                    }
+                };
+                let oam: ObjectsAndMass = ObjectsAndMass::new(enumerated_objects)?;
+                let result_image: Image = oam.group2_mass_different(6, false)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_810000_puzzle_d2abd087() {
+        let mut instance = solve_d2abd087::MySolution {};
+        let result: String = run_analyze_and_solve("d2abd087", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
 }
