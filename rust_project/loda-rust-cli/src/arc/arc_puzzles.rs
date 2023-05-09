@@ -4166,4 +4166,25 @@ mod tests {
         let result: String = run_analyze_and_solve("d2abd087", &mut instance).expect("String");
         assert_eq!(result, "3 1");
     }
+
+    const PROGRAM_D2ABD087: &'static str = "
+    mov $80,$99
+    mov $81,110 ; address of vector[0].EnumeratedObjects
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $0,$$81 ; enumerated objects
+        mov $1,6 ; objects with 'mass = 6'
+        mov $2,0 ; reverse = false
+        f31 $0,104201 ; Group the objects into 2 bins based on mass: objects that has the matching mass=1, objects that have a different mass=2.
+        mov $$82,$0
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_810000_puzzle_d2abd087_loda() {
+        let result: String = run_advanced("d2abd087", PROGRAM_D2ABD087).expect("String");
+        assert_eq!(result, "3 1");
+    }
 }
