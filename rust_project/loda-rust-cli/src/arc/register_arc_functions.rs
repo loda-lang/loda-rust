@@ -1,4 +1,4 @@
-use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects, ImageBorder, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor, ReverseColorPopularity};
+use super::{Image, ImageToNumber, NumberToImage, ImageOffset, ImageTrim, ImageRemoveDuplicates, ImageRotate, ImageExtractRowColumn, PopularObjects, ImageBorder, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor, ReverseColorPopularity, ObjectsAndMass};
 use super::{ImageHistogram, ImageReplaceColor, ImageSymmetry, ImagePadding, ImageResize, ImageStack, ImageTile, ImageRepeat};
 use super::{Histogram, ImageOverlay, ImageOutline, ImageDenoise, ImageNoiseColor, ImageDetectHole, ImageSetPixelWhere};
 use super::{ImageRepairPattern, ImageRepairTrigram, ImageMaskBoolean};
@@ -2834,6 +2834,58 @@ impl UnofficialFunction for ObjectWithDifferentColorFunction {
     }
 }
 
+struct ObjectsAndMassGroup3SmallMediumBigFunction {
+    id: u32,
+}
+
+impl ObjectsAndMassGroup3SmallMediumBigFunction {
+    fn new(id: u32) -> Self {
+        Self {
+            id,
+        }
+    }
+}
+
+impl UnofficialFunction for ObjectsAndMassGroup3SmallMediumBigFunction {
+    fn id(&self) -> UnofficialFunctionId {
+        UnofficialFunctionId::InputOutput { id: self.id, inputs: 2, outputs: 1 }
+    }
+
+    fn name(&self) -> String {
+        "Group the objects into 3 bins based on mass: small=1, medium=2, big=3.".to_string()
+    }
+
+    fn run(&self, input: Vec<BigInt>) -> anyhow::Result<Vec<BigInt>> {
+        if input.len() != 2 {
+            return Err(anyhow::anyhow!("Wrong number of inputs"));
+        }
+
+        // input0 is enumerated objects
+        if input[0].is_negative() {
+            return Err(anyhow::anyhow!("Input[0] must be non-negative"));
+        }
+        let input0_uint: BigUint = input[0].to_biguint().context("BigInt to BigUint")?;
+        let enumerated_objects: Image = input0_uint.to_image()?;
+
+        // input1 is boolean for reverse
+        if input[1].is_negative() {
+            return Err(anyhow::anyhow!("Input[1] must be non-negative and in the range [0..1]"));
+        }
+        let input1_uint: BigUint = input[1].to_biguint().context("BigInt to BigUint")?;
+        let input1_u8: u8 = u8::try_from(input1_uint).context("BigUint to u8")?;
+        if input1_u8 > 1 {
+            return Err(anyhow::anyhow!("Input[1] must not be greater than 1 and in the range [0..1]"));
+        }
+        let reverse: bool = input1_u8 == 1;
+
+        let oam: ObjectsAndMass = ObjectsAndMass::new(&enumerated_objects)?;
+        let output_image: Image = oam.group3_small_medium_big(reverse)?;
+        let output_uint: BigUint = output_image.to_number()?;
+        let output: BigInt = output_uint.to_bigint().context("BigUint to BigInt")?;
+        Ok(vec![output])
+    }
+}
+
 #[allow(dead_code)]
 pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     macro_rules! register_function {
@@ -3015,4 +3067,7 @@ pub fn register_arc_functions(registry: &UnofficialFunctionRegistry) {
     register_function!(ObjectWithDifferentColorFunction::new(104110, ObjectWithDifferentColorFunctionMode::DontIgnore));
     register_function!(ObjectWithDifferentColorFunction::new(104111, ObjectWithDifferentColorFunctionMode::Ignore1Color));
     register_function!(ObjectWithDifferentColorFunction::new(104112, ObjectWithDifferentColorFunctionMode::Ignore2Colors));
+
+    // Objects and mass
+    register_function!(ObjectsAndMassGroup3SmallMediumBigFunction::new(104200));
 }
