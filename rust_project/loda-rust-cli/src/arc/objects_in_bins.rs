@@ -200,6 +200,33 @@ impl ObjectsInBins {
         }
         Ok(result_image)
     }
+
+    /// Object ids for the objects where the same mass occurs 2 or more times.
+    /// 
+    /// Sets `object_id=0` for all other objects.
+    /// The pixel value 0 is for non-objects.
+    /// 
+    /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
+    pub fn duplicate_objects(&self) -> anyhow::Result<Image> {
+        let histogram: HashMap::<u16,u8> = self.mass_histogram();
+        let mut result_image = Image::zero(self.image_size.width, self.image_size.height);
+        for item in &self.items {
+            let mut set_color: u8 = 0;
+            if let Some(count) = histogram.get(&item.object_mass) {
+                if *count >= 2 {
+                    set_color = item.object_id;
+                }
+            }
+            result_image = item.mask.select_from_image_and_color(&result_image, set_color)?;
+        }
+        Ok(result_image)
+    }
+
+    // Future experiments
+    // Group 50/50 into 2 groups: Big objects, small objects
+    // objects_mass_bigger_than(mass)
+    // objects_mass_smaller_than(mass)
 }
 
 struct Item {
@@ -363,6 +390,37 @@ mod tests {
             0, 0, 0, 5, 5,
             0, 0, 0, 5, 5,
             0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_60000_duplicate_objects() {
+        // Arrange
+        let enumerated_object_pixels: Vec<u8> = vec![
+            1, 0, 2, 0, 3,
+            0, 0, 2, 0, 3,
+            4, 4, 0, 5, 5,
+            4, 0, 0, 5, 5,
+            6, 6, 7, 7, 7, 
+        ];
+        let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
+        let mut ignore_colors = Histogram::new();
+        ignore_colors.increment(0);
+
+        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects, Some(&ignore_colors)).expect("ok");
+
+        // Act
+        let actual: Image = oib.duplicate_objects().expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 2, 0, 3,
+            0, 0, 2, 0, 3,
+            4, 4, 0, 0, 0,
+            4, 0, 0, 0, 0,
+            6, 6, 7, 7, 7, 
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
         assert_eq!(actual, expected);
