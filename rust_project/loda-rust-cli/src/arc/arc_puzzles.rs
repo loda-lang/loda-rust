@@ -8,7 +8,7 @@ mod tests {
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ObjectsMeasureMass, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
-    use crate::arc::{ObjectsToGrid, ObjectsToGridMode, SubstitutionRule, ReverseColorPopularity, ObjectsInBins};
+    use crate::arc::{ObjectsToGrid, ObjectsToGridMode, SubstitutionRule, ReverseColorPopularity, ObjectsAndMass};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere, GridPattern};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
@@ -4101,8 +4101,8 @@ mod tests {
                         return Err(anyhow::anyhow!("missing enumerated_object"));
                     }
                 };
-                let oib: ObjectsInBins = ObjectsInBins::analyze(enumerated_objects)?;
-                let result_image: Image = oib.group3_small_medium_big(false)?;
+                let oam: ObjectsAndMass = ObjectsAndMass::analyze(enumerated_objects)?;
+                let result_image: Image = oam.group3_small_medium_big(false)?;
                 Ok(result_image)
             }
         }

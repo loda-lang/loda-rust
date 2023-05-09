@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use num_integer::Integer;
 
 #[allow(dead_code)]
-pub struct ObjectsInBins {
+pub struct ObjectsAndMass {
     image_size: ImageSize,
     items: Vec<Item>,
 }
 
-impl ObjectsInBins {
+impl ObjectsAndMass {
     /// The `enumerated_objects` must be 1x1 or bigger.
     /// 
     /// Measures the mass of each object.
@@ -17,7 +17,7 @@ impl ObjectsInBins {
     #[allow(dead_code)]
     pub fn analyze(enumerated_objects: &Image) -> anyhow::Result<Self> {
         if enumerated_objects.is_empty() {
-            return Err(anyhow::anyhow!("ObjectsInBins.analyze: image must be 1x1 or bigger"));
+            return Err(anyhow::anyhow!("ObjectsAndMass.analyze: image must be 1x1 or bigger"));
         }
         let mut items = Vec::<Item>::new();
         // Skip over color 0. It's reserved for the background, and is not considered an object.
@@ -35,7 +35,7 @@ impl ObjectsInBins {
             items.push(item);
         }
         if items.is_empty() {
-            return Err(anyhow::anyhow!("ObjectsInBins.analyze: found zero objects. There must be 1 or more objects"));
+            return Err(anyhow::anyhow!("ObjectsAndMass.analyze: found zero objects. There must be 1 or more objects"));
         }
         let instance = Self {
             image_size: enumerated_objects.size(),
@@ -60,7 +60,7 @@ impl ObjectsInBins {
             biggest_mass = biggest_mass.max(item.object_mass);
         }
         if smallest_mass == biggest_mass {
-            return Err(anyhow::anyhow!("ObjectsInBins.group3_small_medium_big: it's ambiguous in what bin to place the objects. biggest and smallest is the same mass"));
+            return Err(anyhow::anyhow!("ObjectsAndMass.group3_small_medium_big: it's ambiguous in what bin to place the objects. biggest and smallest is the same mass"));
         }
 
         let color_biggest: u8;
@@ -100,7 +100,7 @@ impl ObjectsInBins {
             biggest_mass = biggest_mass.max(item.object_mass);
         }
         if biggest_mass == 0 {
-            return Err(anyhow::anyhow!("ObjectsInBins.big_objects: unable to find the biggest object"));
+            return Err(anyhow::anyhow!("ObjectsAndMass.big_objects: unable to find the biggest object"));
         }
         let mut result_image = Image::zero(self.image_size.width, self.image_size.height);
         for item in &self.items {
@@ -128,7 +128,7 @@ impl ObjectsInBins {
             smallest_mass = smallest_mass.min(item.object_mass);
         }
         if smallest_mass == u16::MAX {
-            return Err(anyhow::anyhow!("ObjectsInBins.small_objects: unable to find the smallest object"));
+            return Err(anyhow::anyhow!("ObjectsAndMass.small_objects: unable to find the smallest object"));
         }
         let mut result_image = Image::zero(self.image_size.width, self.image_size.height);
         for item in &self.items {
@@ -237,10 +237,10 @@ impl ObjectsInBins {
     pub fn sort2_small_big(&self, reverse: bool) -> anyhow::Result<Image> {
         let mut items = self.items.clone();
         if items.len() < 2 {
-            return Err(anyhow::anyhow!("ObjectsInBins.sort2_small_big: There must be 2 or more objects."));
+            return Err(anyhow::anyhow!("ObjectsAndMass.sort2_small_big: There must be 2 or more objects."));
         }
         if items.len().is_odd() {
-            return Err(anyhow::anyhow!("ObjectsInBins.sort2_small_big: The number of objects must be even. It's ambiguous how to split the objects into 2 parts."));
+            return Err(anyhow::anyhow!("ObjectsAndMass.sort2_small_big: The number of objects must be even. It's ambiguous how to split the objects into 2 parts."));
         }
         items.sort_unstable_by_key(|item| item.object_mass);
 
@@ -250,7 +250,7 @@ impl ObjectsInBins {
             let item0: &Item = &items[half - 1];
             let item1: &Item = &items[half];
             if item0.object_mass == item1.object_mass {
-                return Err(anyhow::anyhow!("ObjectsInBins.sort2_small_big: The objects near the middle must be in increasing order. It's ambiguous how to sort the objects."));
+                return Err(anyhow::anyhow!("ObjectsAndMass.sort2_small_big: The objects near the middle must be in increasing order. It's ambiguous how to sort the objects."));
             }
         }
 
@@ -305,7 +305,7 @@ mod tests {
             6, 6, 6, 6, 6, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
+        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let actual: Image = oib.group3_small_medium_big(false).expect("ok");
@@ -333,7 +333,7 @@ mod tests {
             6, 6, 7, 7, 7, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
+        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let actual: Image = oib.big_objects().expect("ok");
@@ -361,7 +361,7 @@ mod tests {
             6, 6, 7, 7, 7, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
+        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let actual: Image = oib.small_objects().expect("ok");
@@ -389,7 +389,7 @@ mod tests {
             6, 6, 7, 7, 7, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
+        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let actual: Image = oib.objects_with_mass(2).expect("ok");
@@ -417,7 +417,7 @@ mod tests {
             6, 6, 7, 7, 7, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
+        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let actual: Image = oib.unique_objects().expect("ok");
@@ -445,7 +445,7 @@ mod tests {
             6, 6, 7, 7, 7, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
+        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let actual: Image = oib.duplicate_objects().expect("ok");
@@ -473,7 +473,7 @@ mod tests {
             6, 6, 6, 0, 0,
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
+        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let actual: Image = oib.sort2_small_big(false).expect("ok");
@@ -501,7 +501,7 @@ mod tests {
             6, 6, 6, 0, 0,
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
+        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let error = oib.sort2_small_big(false).expect_err("should fail");
