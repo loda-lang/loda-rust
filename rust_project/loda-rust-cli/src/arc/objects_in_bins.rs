@@ -52,10 +52,6 @@ impl ObjectsInBins {
     /// - The in between objects gets assigned `id=2`.
     /// - The biggest objects with same mass gets assigned `id=3`.
     /// 
-    /// Usecase: Group the objects into 2 bins based on mass.
-    /// - The objects with exactly `mass=6` gets assigned `id=1`.
-    /// - All other objects gets assigned `id=2`.
-    /// 
     /// Returns an image with the same size as the input image.
     #[allow(dead_code)]
     pub fn group3_small_medium_big(&self, reverse: bool) -> anyhow::Result<Image> {
@@ -140,6 +136,27 @@ impl ObjectsInBins {
         for item in &self.items {
             let set_color: u8;
             if item.object_mass == smallest_mass {
+                set_color = item.object_id;
+            } else {
+                set_color = 0;
+            }
+            result_image = item.mask.select_from_image_and_color(&result_image, set_color)?;
+        }
+        Ok(result_image)
+    }
+
+    /// Object ids for the objects that has the specified mass.
+    /// 
+    /// Sets `object_id=0` for all other objects.
+    /// The pixel value 0 is for non-objects.
+    /// 
+    /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
+    pub fn objects_with_mass(&self, mass: u16) -> anyhow::Result<Image> {
+        let mut result_image = Image::zero(self.image_size.width, self.image_size.height);
+        for item in &self.items {
+            let set_color: u8;
+            if item.object_mass == mass {
                 set_color = item.object_id;
             } else {
                 set_color = 0;
@@ -249,6 +266,37 @@ mod tests {
             0, 0, 0, 0, 0,
             0, 0, 0, 0, 0,
             0, 0, 0, 0, 0,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_40000_objects_with_mass() {
+        // Arrange
+        let enumerated_object_pixels: Vec<u8> = vec![
+            1, 0, 2, 0, 3,
+            0, 0, 0, 0, 3,
+            4, 4, 0, 5, 5,
+            4, 0, 0, 0, 5,
+            6, 6, 7, 7, 7, 
+        ];
+        let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
+        let mut ignore_colors = Histogram::new();
+        ignore_colors.increment(0);
+
+        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects, Some(&ignore_colors)).expect("ok");
+
+        // Act
+        let actual: Image = oib.objects_with_mass(2).expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 3,
+            0, 0, 0, 0, 3,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            6, 6, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
         assert_eq!(actual, expected);
