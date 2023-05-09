@@ -402,6 +402,14 @@ impl TraverseProgramsAndModels {
             //         _ => {}
             //     }
             // }
+            // for action_label in &task.action_label_set_intersection {
+            //     match action_label {
+            //         ActionLabel::OutputImagePreserveInputImageEdge { edge: _ } => {
+            //             found = true;
+            //         },
+            //         _ => {}
+            //     }
+            // }
             // if let Some(count) = task.input_properties_intersection.get(&PropertyInput::InputUniqueColorCount) {
             //     if *count == 2 {
             //         found = true;

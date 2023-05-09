@@ -1,4 +1,4 @@
-use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount};
+use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount, ImageEdge, ImageExtractRowColumn};
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
 use super::{ImageFind, ImageSize, ImageSymmetry, Histogram};
@@ -91,6 +91,10 @@ impl arc_work_model::Pair {
             }
         }
 
+        if width_input == width_output || height_input == height_output {
+            _ = self.analyze_preservation_of_edges();
+        }
+
         if width_input == width_output && height_input == height_output {
             _ = self.analyze_3x3_structure();
             _ = self.analyze_if_color_is_sticky();
@@ -99,6 +103,43 @@ impl arc_work_model::Pair {
         _ = self.analyze_object_why_is_the_output_present_once_in_input();
         _ = self.analyze_output_image_is_input_image_with_changes_to_pixels_with_color();
         _ = self.analyze_output_colors();
+    }
+
+    fn analyze_preservation_of_edges(&mut self) -> anyhow::Result<()> {
+        let input: &Image = &self.input.image;
+        let output: &Image = &self.output.image;
+        let edges = [
+            ImageEdge::Top,
+            ImageEdge::Bottom,
+            ImageEdge::Left,
+            ImageEdge::Right,
+        ];
+        for edge in edges {
+            let image0: Image;
+            let image1: Image;
+            match edge {
+                ImageEdge::Top => {
+                    image0 = input.top_rows(1)?;
+                    image1 = output.top_rows(1)?;
+                },
+                ImageEdge::Bottom => {
+                    image0 = input.bottom_rows(1)?;
+                    image1 = output.bottom_rows(1)?;
+                },
+                ImageEdge::Left => {
+                    image0 = input.left_columns(1)?;
+                    image1 = output.left_columns(1)?;
+                },
+                ImageEdge::Right => {
+                    image0 = input.right_columns(1)?;
+                    image1 = output.right_columns(1)?;
+                }
+            }
+            if image0 == image1 {
+                self.action_label_set.insert(ActionLabel::OutputImagePreserveInputImageEdge { edge });
+            }
+        }
+        Ok(())
     }
 
     fn analyze_3x3_structure(&mut self) -> anyhow::Result<()> {

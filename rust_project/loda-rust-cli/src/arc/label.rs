@@ -117,6 +117,9 @@ pub enum InputLabel {
     InputSingleColorObject { label: SingleColorObjectLabel },
 
     // Ideas for more
+    // SplitColor { color: u8 },
+    // SplitRowColor { color: u8 },
+    // SplitColumnColor { color: u8 },
     // InputImageIsSingleColorObjectsMaybeWithBackgroundColor,
     // InputImageIsSingleColorObjectsWithBackgroundColor,
     // InputImageIsSingleColorObjectsWithoutBackgroundColor,
@@ -153,6 +156,14 @@ pub enum ObjectLabel {
 pub enum PropertyOutput {
     OutputWidth,
     OutputHeight,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ImageEdge {
+    Top,
+    Bottom,
+    Left,
+    Right,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -194,8 +205,9 @@ pub enum ActionLabel {
     OutputImageIsInputImageWithNoChangesToPixelsWithColor { color: u8 },
     InputImageIsOutputImageWithNoChangesToPixelsWithColor { color: u8 },
     
+    OutputImagePreserveInputImageEdge { edge: ImageEdge },
+
     // Ideas for more
-    // OutputImagePreserveInputImageEdge { edge: Top/Bottom/Left/Right }
     // OutputImagePreserveInputImageCorner { edge: TopLeft/TopRight/BottomLeft/BottomRight }
     // OutputImageContainAllSingleColorObjectsAtTheirPosition,
     // OutputImageHasSameStructureAsInputImageWithColorPair { color0: u8, color1: u8 },
