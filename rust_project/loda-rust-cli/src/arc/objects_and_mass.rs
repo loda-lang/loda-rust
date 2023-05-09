@@ -1,3 +1,4 @@
+//! Perform operations on objects that is related to mass
 use super::{Image, ImageMask, ImageMaskCount, ImageSize};
 use std::collections::HashMap;
 use num_integer::Integer;
@@ -9,13 +10,13 @@ pub struct ObjectsAndMass {
 }
 
 impl ObjectsAndMass {
-    /// The `enumerated_objects` must be 1x1 or bigger.
+    /// Measures the mass of each object, and returns and instance of `ObjectsAndMass`.
     /// 
-    /// Measures the mass of each object.
+    /// The `enumerated_objects` must be 1x1 or bigger.
     /// 
     /// An error is returned if there are zero objects.
     #[allow(dead_code)]
-    pub fn analyze(enumerated_objects: &Image) -> anyhow::Result<Self> {
+    pub fn new(enumerated_objects: &Image) -> anyhow::Result<Self> {
         if enumerated_objects.is_empty() {
             return Err(anyhow::anyhow!("ObjectsAndMass.analyze: image must be 1x1 or bigger"));
         }
@@ -305,10 +306,10 @@ mod tests {
             6, 6, 6, 6, 6, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
+        let oam: ObjectsAndMass = ObjectsAndMass::new(&enumerated_objects).expect("ok");
 
         // Act
-        let actual: Image = oib.group3_small_medium_big(false).expect("ok");
+        let actual: Image = oam.group3_small_medium_big(false).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -333,10 +334,10 @@ mod tests {
             6, 6, 7, 7, 7, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
+        let oam: ObjectsAndMass = ObjectsAndMass::new(&enumerated_objects).expect("ok");
 
         // Act
-        let actual: Image = oib.big_objects().expect("ok");
+        let actual: Image = oam.big_objects().expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -361,10 +362,10 @@ mod tests {
             6, 6, 7, 7, 7, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
+        let oam: ObjectsAndMass = ObjectsAndMass::new(&enumerated_objects).expect("ok");
 
         // Act
-        let actual: Image = oib.small_objects().expect("ok");
+        let actual: Image = oam.small_objects().expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -389,10 +390,10 @@ mod tests {
             6, 6, 7, 7, 7, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
+        let oam: ObjectsAndMass = ObjectsAndMass::new(&enumerated_objects).expect("ok");
 
         // Act
-        let actual: Image = oib.objects_with_mass(2).expect("ok");
+        let actual: Image = oam.objects_with_mass(2).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -417,10 +418,10 @@ mod tests {
             6, 6, 7, 7, 7, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
+        let oam: ObjectsAndMass = ObjectsAndMass::new(&enumerated_objects).expect("ok");
 
         // Act
-        let actual: Image = oib.unique_objects().expect("ok");
+        let actual: Image = oam.unique_objects().expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -445,10 +446,10 @@ mod tests {
             6, 6, 7, 7, 7, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
+        let oam: ObjectsAndMass = ObjectsAndMass::new(&enumerated_objects).expect("ok");
 
         // Act
-        let actual: Image = oib.duplicate_objects().expect("ok");
+        let actual: Image = oam.duplicate_objects().expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -473,10 +474,10 @@ mod tests {
             6, 6, 6, 0, 0,
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
+        let oam: ObjectsAndMass = ObjectsAndMass::new(&enumerated_objects).expect("ok");
 
         // Act
-        let actual: Image = oib.sort2_small_big(false).expect("ok");
+        let actual: Image = oam.sort2_small_big(false).expect("ok");
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -501,10 +502,10 @@ mod tests {
             6, 6, 6, 0, 0,
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let oib: ObjectsAndMass = ObjectsAndMass::analyze(&enumerated_objects).expect("ok");
+        let oam: ObjectsAndMass = ObjectsAndMass::new(&enumerated_objects).expect("ok");
 
         // Act
-        let error = oib.sort2_small_big(false).expect_err("should fail");
+        let error = oam.sort2_small_big(false).expect_err("should fail");
 
         // Assert
         let s = format!("{:?}", error);

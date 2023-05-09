@@ -4101,7 +4101,7 @@ mod tests {
                         return Err(anyhow::anyhow!("missing enumerated_object"));
                     }
                 };
-                let oam: ObjectsAndMass = ObjectsAndMass::analyze(enumerated_objects)?;
+                let oam: ObjectsAndMass = ObjectsAndMass::new(enumerated_objects)?;
                 let result_image: Image = oam.group3_small_medium_big(false)?;
                 Ok(result_image)
             }
