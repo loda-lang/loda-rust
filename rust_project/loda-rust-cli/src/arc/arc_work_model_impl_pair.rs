@@ -91,9 +91,7 @@ impl arc_work_model::Pair {
             }
         }
 
-        if width_input == width_output || height_input == height_output {
-            _ = self.analyze_preservation_of_edges();
-        }
+        _ = self.analyze_preservation_of_edges();
 
         if width_input == width_output && height_input == height_output {
             _ = self.analyze_3x3_structure();
@@ -108,6 +106,12 @@ impl arc_work_model::Pair {
     fn analyze_preservation_of_edges(&mut self) -> anyhow::Result<()> {
         let input: &Image = &self.input.image;
         let output: &Image = &self.output.image;
+        if input.width() != output.width() && input.height() != output.height() {
+            // Neither width nor height are the same.
+            // In order to compare the top/bottom row, both images must have the same width. In this case we don't care about the height.
+            // In order to compare the left/right column, both images must have the same height. In this case we don't care about the width.
+            return Ok(());
+        }
         let edges = [
             ImageEdge::Top,
             ImageEdge::Bottom,
