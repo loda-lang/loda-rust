@@ -1,4 +1,4 @@
-use super::{Histogram, Image, ImageMask, ImageMaskCount, ImageSize};
+use super::{Image, ImageMask, ImageMaskCount, ImageSize};
 use std::collections::HashMap;
 use num_integer::Integer;
 
@@ -15,17 +15,13 @@ impl ObjectsInBins {
     /// 
     /// An error is returned if there are zero objects.
     #[allow(dead_code)]
-    pub fn analyze(enumerated_objects: &Image, ignore_colors: Option<&Histogram>) -> anyhow::Result<Self> {
+    pub fn analyze(enumerated_objects: &Image) -> anyhow::Result<Self> {
         if enumerated_objects.is_empty() {
             return Err(anyhow::anyhow!("ObjectsInBins.analyze: image must be 1x1 or bigger"));
         }
         let mut items = Vec::<Item>::new();
-        for color in 0..=255u8 {
-            if let Some(other) = ignore_colors {
-                if other.get(color) > 0 {
-                    continue;
-                }
-            }
+        // Skip over color 0. It's reserved for the background, and is not considered an object.
+        for color in 1..=255u8 {
             let mask: Image = enumerated_objects.to_mask_where_color_is(color);
             let mass_of_object: u16 = mask.mask_count_one();
             if mass_of_object == 0 {
@@ -309,10 +305,7 @@ mod tests {
             6, 6, 6, 6, 6, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let mut ignore_colors = Histogram::new();
-        ignore_colors.increment(0);
-
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects, Some(&ignore_colors)).expect("ok");
+        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let actual: Image = oib.group3_small_medium_big(false).expect("ok");
@@ -340,10 +333,7 @@ mod tests {
             6, 6, 7, 7, 7, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let mut ignore_colors = Histogram::new();
-        ignore_colors.increment(0);
-
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects, Some(&ignore_colors)).expect("ok");
+        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let actual: Image = oib.big_objects().expect("ok");
@@ -371,10 +361,7 @@ mod tests {
             6, 6, 7, 7, 7, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let mut ignore_colors = Histogram::new();
-        ignore_colors.increment(0);
-
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects, Some(&ignore_colors)).expect("ok");
+        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let actual: Image = oib.small_objects().expect("ok");
@@ -402,10 +389,7 @@ mod tests {
             6, 6, 7, 7, 7, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let mut ignore_colors = Histogram::new();
-        ignore_colors.increment(0);
-
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects, Some(&ignore_colors)).expect("ok");
+        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let actual: Image = oib.objects_with_mass(2).expect("ok");
@@ -433,10 +417,7 @@ mod tests {
             6, 6, 7, 7, 7, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let mut ignore_colors = Histogram::new();
-        ignore_colors.increment(0);
-
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects, Some(&ignore_colors)).expect("ok");
+        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let actual: Image = oib.unique_objects().expect("ok");
@@ -464,10 +445,7 @@ mod tests {
             6, 6, 7, 7, 7, 
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let mut ignore_colors = Histogram::new();
-        ignore_colors.increment(0);
-
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects, Some(&ignore_colors)).expect("ok");
+        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let actual: Image = oib.duplicate_objects().expect("ok");
@@ -495,10 +473,7 @@ mod tests {
             6, 6, 6, 0, 0,
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let mut ignore_colors = Histogram::new();
-        ignore_colors.increment(0);
-
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects, Some(&ignore_colors)).expect("ok");
+        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let actual: Image = oib.sort2_small_big(false).expect("ok");
@@ -526,10 +501,7 @@ mod tests {
             6, 6, 6, 0, 0,
         ];
         let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
-        let mut ignore_colors = Histogram::new();
-        ignore_colors.increment(0);
-
-        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects, Some(&ignore_colors)).expect("ok");
+        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects).expect("ok");
 
         // Act
         let error = oib.sort2_small_big(false).expect_err("should fail");
