@@ -46,9 +46,8 @@ impl ObjectsInBins {
         Ok(instance)
     }
 
-    /// Assign new N object ids to the existing objects.
-    /// 
-    /// Usecase: Group the objects into 3 bins based on mass.
+    /// Group the objects into 3 bins based on mass.
+    /// - The pixel value 0 is for non-objects.
     /// - The smallest objects with same mass gets assigned `id=1`.
     /// - The in between objects gets assigned `id=2`.
     /// - The biggest objects with same mass gets assigned `id=3`.
@@ -58,7 +57,6 @@ impl ObjectsInBins {
     /// - All other objects gets assigned `id=2`.
     /// 
     /// Returns an image with the same size as the input image.
-    /// The pixel value is for non-objects.
     #[allow(dead_code)]
     pub fn group3_small_medium_big(&self, reverse: bool) -> anyhow::Result<Image> {
         let mut smallest_mass: u16 = u16::MAX;
@@ -89,6 +87,62 @@ impl ObjectsInBins {
             }
             if item.object_mass == smallest_mass {
                 set_color = color_smallest;
+            }
+            result_image = item.mask.select_from_image_and_color(&result_image, set_color)?;
+        }
+        Ok(result_image)
+    }
+
+    /// Object ids of the biggest objects.
+    /// 
+    /// Sets `object_id=0` for all other objects.
+    /// The pixel value 0 is for non-objects.
+    /// 
+    /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
+    pub fn big_objects(&self) -> anyhow::Result<Image> {
+        let mut biggest_mass: u16 = 0;
+        for item in &self.items {
+            biggest_mass = biggest_mass.max(item.object_mass);
+        }
+        if biggest_mass == 0 {
+            return Err(anyhow::anyhow!("ObjectsInBins.big_objects: unable to find the biggest object"));
+        }
+        let mut result_image = Image::zero(self.image_size.width, self.image_size.height);
+        for item in &self.items {
+            let set_color: u8;
+            if item.object_mass == biggest_mass {
+                set_color = item.object_id;
+            } else {
+                set_color = 0;
+            }
+            result_image = item.mask.select_from_image_and_color(&result_image, set_color)?;
+        }
+        Ok(result_image)
+    }
+
+    /// Object ids of the smallest objects.
+    /// 
+    /// Sets `object_id=0` for all other objects.
+    /// The pixel value 0 is for non-objects.
+    /// 
+    /// Returns an image with the same size as the input image.
+    #[allow(dead_code)]
+    pub fn small_objects(&self) -> anyhow::Result<Image> {
+        let mut smallest_mass: u16 = u16::MAX;
+        for item in &self.items {
+            smallest_mass = smallest_mass.min(item.object_mass);
+        }
+        if smallest_mass == u16::MAX {
+            return Err(anyhow::anyhow!("ObjectsInBins.small_objects: unable to find the smallest object"));
+        }
+        let mut result_image = Image::zero(self.image_size.width, self.image_size.height);
+        for item in &self.items {
+            let set_color: u8;
+            if item.object_mass == smallest_mass {
+                set_color = item.object_id;
+            } else {
+                set_color = 0;
             }
             result_image = item.mask.select_from_image_and_color(&result_image, set_color)?;
         }
@@ -133,6 +187,68 @@ mod tests {
             2, 2, 0, 2, 2,
             2, 0, 3, 0, 2,
             3, 3, 3, 3, 3, 
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_20000_big_objects() {
+        // Arrange
+        let enumerated_object_pixels: Vec<u8> = vec![
+            1, 0, 2, 0, 3,
+            0, 0, 0, 0, 0,
+            4, 4, 0, 5, 5,
+            4, 0, 0, 0, 5,
+            6, 6, 7, 7, 7, 
+        ];
+        let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
+        let mut ignore_colors = Histogram::new();
+        ignore_colors.increment(0);
+
+        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects, Some(&ignore_colors)).expect("ok");
+
+        // Act
+        let actual: Image = oib.big_objects().expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            4, 4, 0, 5, 5,
+            4, 0, 0, 0, 5,
+            0, 0, 7, 7, 7, 
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_30000_small_objects() {
+        // Arrange
+        let enumerated_object_pixels: Vec<u8> = vec![
+            1, 0, 2, 0, 3,
+            0, 0, 0, 0, 0,
+            4, 4, 0, 5, 5,
+            4, 0, 0, 0, 5,
+            6, 6, 7, 7, 7, 
+        ];
+        let enumerated_objects: Image = Image::try_create(5, 5, enumerated_object_pixels).expect("image");
+        let mut ignore_colors = Histogram::new();
+        ignore_colors.increment(0);
+
+        let oib: ObjectsInBins = ObjectsInBins::analyze(&enumerated_objects, Some(&ignore_colors)).expect("ok");
+
+        // Act
+        let actual: Image = oib.small_objects().expect("ok");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            1, 0, 2, 0, 3,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
         ];
         let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
         assert_eq!(actual, expected);
