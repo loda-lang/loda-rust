@@ -1,4 +1,4 @@
-use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount, ImageEdge, ImageExtractRowColumn};
+use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount, ImageEdge, ImageExtractRowColumn, ImageCorner, Rectangle};
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
 use super::{ImageFind, ImageSize, ImageSymmetry, Histogram};
@@ -91,6 +91,7 @@ impl arc_work_model::Pair {
             }
         }
 
+        _ = self.analyze_preservation_of_corners();
         _ = self.analyze_preservation_of_edges();
 
         if width_input == width_output && height_input == height_output {
@@ -101,6 +102,57 @@ impl arc_work_model::Pair {
         _ = self.analyze_object_why_is_the_output_present_once_in_input();
         _ = self.analyze_output_image_is_input_image_with_changes_to_pixels_with_color();
         _ = self.analyze_output_colors();
+    }
+
+    fn analyze_preservation_of_corners(&mut self) -> anyhow::Result<()> {
+        let input: &Image = &self.input.image;
+        let output: &Image = &self.output.image;
+        let corners = [
+            ImageCorner::TopLeft,
+            ImageCorner::TopRight,
+            ImageCorner::BottomLeft,
+            ImageCorner::BottomRight,
+        ];
+        let rect0 = Rectangle::new(0, 0, input.width(), input.height());
+        let rect1 = Rectangle::new(0, 0, output.width(), output.height());
+        for corner in corners {
+            let x0: i32;
+            let y0: i32;
+            let x1: i32;
+            let y1: i32;
+            match corner {
+                ImageCorner::TopLeft => {
+                    x0 = rect0.min_x();
+                    y0 = rect0.min_y();
+                    x1 = rect1.min_x();
+                    y1 = rect1.min_y();
+                },
+                ImageCorner::TopRight => {
+                    x0 = rect0.max_x();
+                    y0 = rect0.min_y();
+                    x1 = rect1.max_x();
+                    y1 = rect1.min_y();
+                },
+                ImageCorner::BottomLeft => {
+                    x0 = rect0.min_x();
+                    y0 = rect0.max_y();
+                    x1 = rect1.min_x();
+                    y1 = rect1.max_y();
+                },
+                ImageCorner::BottomRight => {
+                    x0 = rect0.max_x();
+                    y0 = rect0.max_y();
+                    x1 = rect1.max_x();
+                    y1 = rect1.max_y();
+                }
+            }
+            let color0 = input.get(x0, y0).unwrap_or(255);
+            let color1 = output.get(x1, y1).unwrap_or(255);
+            if color0 == color1 {
+                self.action_label_set.insert(ActionLabel::OutputImagePreserveInputImageCorner { corner });
+            }
+        }
+        Ok(())
     }
 
     fn analyze_preservation_of_edges(&mut self) -> anyhow::Result<()> {

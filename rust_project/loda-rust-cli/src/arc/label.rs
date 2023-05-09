@@ -120,6 +120,8 @@ pub enum InputLabel {
     // SplitColor { color: u8 },
     // SplitRowColor { color: u8 },
     // SplitColumnColor { color: u8 },
+    // Split2Color { color: u8 },
+    // Split3Color { color: u8 },
     // InputImageIsSingleColorObjectsMaybeWithBackgroundColor,
     // InputImageIsSingleColorObjectsWithBackgroundColor,
     // InputImageIsSingleColorObjectsWithoutBackgroundColor,
@@ -166,6 +168,14 @@ pub enum ImageEdge {
     Right,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ImageCorner {
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ActionLabel {
     OutputPropertyIsEqualToInputProperty { output: PropertyOutput, input: PropertyInput },
@@ -206,9 +216,9 @@ pub enum ActionLabel {
     InputImageIsOutputImageWithNoChangesToPixelsWithColor { color: u8 },
     
     OutputImagePreserveInputImageEdge { edge: ImageEdge },
+    OutputImagePreserveInputImageCorner { corner: ImageCorner },
 
     // Ideas for more
-    // OutputImagePreserveInputImageCorner { edge: TopLeft/TopRight/BottomLeft/BottomRight }
     // OutputImageContainAllSingleColorObjectsAtTheirPosition,
     // OutputImageHasSameStructureAsInputImageWithColorPair { color0: u8, color1: u8 },
     // OutputSymmetry { label: SymmetryLabel },
