@@ -55,6 +55,8 @@ pub struct Input {
     
     pub single_color_objects: Option<SingleColorObjects>,
 
+    pub predicted_single_color_image: Option<Image>,
+
     // Future experiments to do.
     // Resolving these properties is similar to a package manager, a DAG (directed acyclic graph).
     // One property may depend on another property that depends on a third property.

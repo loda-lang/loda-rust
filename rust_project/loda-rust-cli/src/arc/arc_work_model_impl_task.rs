@@ -118,6 +118,16 @@ impl arc_work_model::Task {
     }
 
     #[allow(dead_code)]
+    pub fn has_predicted_single_color_image(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.input.predicted_single_color_image.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
+    #[allow(dead_code)]
     pub fn has_grid_pattern(&self) -> bool {
         for pair in &self.pairs {
             if pair.input.grid_pattern.is_none() {
@@ -666,7 +676,16 @@ impl arc_work_model::Task {
         Ok(())
     }
 
-    pub fn assign_labels(&mut self) -> anyhow::Result<()> {
+    pub fn populate(&mut self) -> anyhow::Result<()> {
+        self.assign_labels()?;
+        self.assign_predicted_output_size();
+        self.assign_predicted_output_palette();
+        self.assign_predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color();
+        _ = self.assign_predicted_single_color_image();
+        Ok(())
+    }
+
+    fn assign_labels(&mut self) -> anyhow::Result<()> {
         self.update_input_properties_for_all_pairs()?;
         self.update_input_properties_intersection();
         self.update_input_label_set_intersection();
@@ -811,6 +830,18 @@ impl arc_work_model::Task {
         Ok(())
     }
 
+    fn input_properties_intersection_get_unique_color_count(&self) -> Option<u8> {
+        for (input_property, property_value) in &self.input_properties_intersection {
+            match *input_property {
+                PropertyInput::InputUniqueColorCount => {
+                    return Some(*property_value);
+                },
+                _ => {}
+            }
+        }
+        None
+    }
+
     /// Returns an array of tuples. Each tuple is a priority and a value.
     /// 
     /// These functions are nearly identical, and I think they can be merged.
@@ -840,6 +871,16 @@ impl arc_work_model::Task {
                     }
                     if *output == PropertyOutput::OutputHeight && *input == PropertyInput::InputHeight {
                         priority = RulePriority::Simple;
+                    }
+                    if *input == PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor {
+                        if self.input_properties_intersection_get_unique_color_count() == Some(2) {
+                            priority = RulePriority::Simple;
+                        }
+                    }
+                    if *input == PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor {
+                        if self.input_properties_intersection_get_unique_color_count() == Some(2) {
+                            priority = RulePriority::Simple;
+                        }
                     }
                     rules.push((priority, s));
                 },
@@ -965,6 +1006,17 @@ impl arc_work_model::Task {
                     if *output == PropertyOutput::OutputHeight && *input == PropertyInput::InputHeight {
                         priority = RulePriority::Simple;
                     }
+                    if *input == PropertyInput::InputNumberOfPixelsNotCorrespondingToTheSingleIntersectionColor {
+                        if self.input_properties_intersection_get_unique_color_count() == Some(2) {
+                            priority = RulePriority::Simple;
+                        }
+                    }
+                    if *input == PropertyInput::InputNumberOfPixelsCorrespondingToTheSingleIntersectionColor {
+                        if self.input_properties_intersection_get_unique_color_count() == Some(2) {
+                            priority = RulePriority::Simple;
+                        }
+                    }
+
                     rules.push((priority, input_value));
                 },
                 ActionLabel::OutputPropertyIsInputPropertyMultipliedBy { output, input, scale } => {
@@ -1135,7 +1187,7 @@ impl arc_work_model::Task {
         }
     }
 
-    pub fn assign_predicted_output_size(&mut self) {
+    fn assign_predicted_output_size(&mut self) {
         let estimate: String = self.estimated_output_size();
         if estimate == "Undecided" {
             // Idea: Flag the task as being undecided.
@@ -1184,7 +1236,49 @@ impl arc_work_model::Task {
         Ok(histogram)
     }
 
-    pub fn assign_predicted_output_palette(&mut self) {
+    fn assign_predicted_single_color_image(&mut self) -> anyhow::Result<()> {
+        let mut predicted_output_images = HashMap::<usize, Image>::new();
+        for (pair_index, pair) in self.pairs.iter().enumerate() {
+            let mut found_color: Option<u8> = None;
+            let mut found_size: Option<ImageSize> = None;
+            for prediction in &pair.prediction_set {
+                match prediction {
+                    arc_work_model::Prediction::OutputPalette { histogram } => {
+                        let unique_colors: u16 = histogram.number_of_counters_greater_than_zero();
+                        if unique_colors > 1 {
+                            return Err(anyhow::anyhow!("Multiple predicted colors. Ambiguous what color to pick."));
+                        }
+                        if unique_colors == 1 {
+                            found_color = histogram.most_popular_color();
+                        }
+                    },
+                    arc_work_model::Prediction::OutputSize { size } => {
+                        found_size = Some(*size);
+                    }
+                    _ => {}
+                }
+            }
+            let (size, color) = match (found_size, found_color) {
+                (Some(size), Some(color)) => { (size, color) },
+                _ => {
+                    return Err(anyhow::anyhow!("Didn't find both size and color."));
+                }
+            };
+
+            let image = Image::color(size.width, size.height, color);
+            predicted_output_images.insert(pair_index, image);
+        }
+
+        for (pair_index, pair) in self.pairs.iter_mut().enumerate() {
+            if let Some(image) = predicted_output_images.get(&pair_index) {
+                pair.input.predicted_single_color_image = Some(image.clone());
+            }
+        }
+
+        Ok(())
+    }
+
+    fn assign_predicted_output_palette(&mut self) {
         let mut predicted_histogram_dict = HashMap::<usize, Histogram>::new();
         for (index, pair) in self.pairs.iter().enumerate() {
             let predicted_histogram: Histogram = match self.predict_output_palette_for_input(&pair.input) {
@@ -1208,7 +1302,7 @@ impl arc_work_model::Task {
         }
     }
 
-    pub fn assign_predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color(&mut self) {
+    fn assign_predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color(&mut self) {
         let mut use_specific_color: Option<u8> = None;
         let mut use_most_popular_color = false;
         let mut use_least_popular_color = false;

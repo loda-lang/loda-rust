@@ -426,6 +426,9 @@ impl TraverseProgramsAndModels {
             // if task.has_repaired_image() {
             //     found = true;
             // }
+            if task.has_predicted_single_color_image() {
+                found = true;
+            }
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
@@ -449,9 +452,9 @@ impl TraverseProgramsAndModels {
             //         },
             //     }
             // }
-            if task.has_enumerated_objects() {
-                found = true;
-            }
+            // if task.has_enumerated_objects() {
+            //     found = true;
+            // }
             // if task.has_substitution_rule_applied() {
             //     found = true;
             // }
