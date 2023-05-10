@@ -1237,6 +1237,23 @@ impl arc_work_model::Task {
     }
 
     fn assign_predicted_single_color_image(&mut self) -> anyhow::Result<()> {
+        // OutputImageUniqueColorCount { 1 } must be preset
+        let mut agreement_that_output_has_a_single_color = false;
+        for action_label in &self.action_label_set_intersection {
+            match *action_label {
+                ActionLabel::OutputImageUniqueColorCount { count } => {
+                    if count == 1 {
+                        agreement_that_output_has_a_single_color = true;
+                    }
+                },
+                _ => {}
+            }
+        }
+        if !agreement_that_output_has_a_single_color {
+            return Err(anyhow::anyhow!("No agreement that the output contains a single color."));
+        }
+
+        // Loop over the output palette predictions and output size predictions
         let mut predicted_output_images = HashMap::<usize, Image>::new();
         for (pair_index, pair) in self.pairs.iter().enumerate() {
             let mut found_color: Option<u8> = None;
