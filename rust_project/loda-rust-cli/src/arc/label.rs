@@ -95,14 +95,33 @@ pub enum GridLabel {
     // NoiseColor { color: u8 },
 }
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub enum SingleColorObjectLabel {
+    RectangleWithColor { color: u8 },
+    RectangleWithSomeColor,
+    SquareWithColor { color: u8 },
+    SquareWithSomeColor,
+    NonSquareWithColor { color: u8 },
+    NonSquareWithSomeColor,
+
+    // Ideas for more
+    // RectangleWithColorDifferentThan { color: u8 },
+    // RectangleWithMass { mass: u16 },
+}
+
 /// Properties about the input image.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum InputLabel {
     InputSymmetry { label: SymmetryLabel },
     InputGrid { label: GridLabel },
+    InputSingleColorObject { label: SingleColorObjectLabel },
 
     // Ideas for more
+    // InputImageIsSingleColorObjectsMaybeWithBackgroundColor,
+    // InputImageIsSingleColorObjectsWithBackgroundColor,
+    // InputImageIsSingleColorObjectsWithoutBackgroundColor,
     // AllObjectsHaveTheSameSize,
+    // AllSingleColorObjectsHaveTheSameSize { label: SingleColorObjectLabel },
     // InputColorThatDoesNotOccurInTheIntersection { color: u8 },
     // InputUniqueColors { color: Vec<u8> },
     // InputAspectRatio { width: u8, height: u8 },
@@ -121,6 +140,9 @@ pub enum ObjectLabel {
     TheOnlyOneWithAsymmetryY,
 
     // Ideas for more
+    // TheOnlyOneThatIsSingleColor,
+    // TheOnlyOneThatIsSingleColorAndSquare,
+    // TheOnlyOneThatIsSingleColorAndNonSquare,
     // Number of holes
     // Has holes
     // Has no holes
@@ -142,7 +164,8 @@ pub enum ActionLabel {
     OutputPropertyIsInputPropertyDividedBySomeScale { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsInputPropertySquared { output: PropertyOutput, input: PropertyInput },
     OutputPropertyIsConstant { output: PropertyOutput, value: u8 },
-
+    OutputSizeIsTheSameAsSingleColorObject { label: SingleColorObjectLabel },
+    
     OutputImageIsSymmetricX,
     OutputImageIsSymmetricY,
 
@@ -166,10 +189,13 @@ pub enum ActionLabel {
     OutputImageColorsComesFromInputImage,
 
     OutputImageHasSameStructureAsInputImage,
+
+    OutputImageIsInputImageWithNoChangesToPixelsWithColor { color: u8 },
+    InputImageIsOutputImageWithNoChangesToPixelsWithColor { color: u8 },
     
     // Ideas for more
+    // OutputImageContainAllSingleColorObjectsAtTheirPosition,
     // OutputImageHasSameStructureAsInputImageWithColorPair { color0: u8, color1: u8 },
-    // OutputImageIsTheSameAsInputImageWithColor { color: u8 },
     // OutputSymmetry { label: SymmetryLabel },
     // OutputGrid { label: GridLabel },
     // OutputGridIsTheSameAsInputGrid,
@@ -189,6 +215,7 @@ pub enum ActionLabel {
     // OutputSizeIsSmallerThanInputSize
     // OutputAspectRatio { width: u8, height: u8 },
     // OutputAspectRatioEqualToInputAspectRatio,
+    // AllOutputImagesAgreeOnTheSameColors.
 }
 
 pub type ActionLabelSet = HashSet<ActionLabel>;

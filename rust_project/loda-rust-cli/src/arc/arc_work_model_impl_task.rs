@@ -1,7 +1,7 @@
-use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate};
-use super::arc_work_model::{Input, PairType, Object};
+use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectLabel, SingleColorObjects, SingleColorObject};
+use super::arc_work_model::{Input, PairType, Object, Prediction};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
-use super::SubstitutionRule;
+use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
 use super::{InputLabelSet, ActionLabel, ActionLabelSet, ObjectLabel, PropertyInput, PropertyOutput, ActionLabelUtil};
 use std::collections::{HashMap, HashSet};
 
@@ -13,6 +13,16 @@ enum RulePriority {
 }
 
 impl arc_work_model::Task {
+    #[allow(dead_code)]
+    pub fn has_substitution_rule_applied(&self) -> bool {
+        for pair in &self.pairs {
+            if pair.input.substitution_rule_applied.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
     pub fn compute_substitution_rule(&mut self) -> anyhow::Result<()> {
         let verbose = false;
         if !self.is_output_size_same_as_input_size() {
@@ -62,11 +72,12 @@ impl arc_work_model::Task {
         Ok(())
     }
 
-    fn update_input_properties_for_all_pairs(&mut self) {
+    fn update_input_properties_for_all_pairs(&mut self) -> anyhow::Result<()> {
         for pair in &mut self.pairs {
             pair.input.update_input_properties();
-            pair.input.update_input_label_set();
+            pair.input.update_input_label_set()?;
         }
+        Ok(())
     }
 
     fn update_action_label_set_intersection(&mut self) {
@@ -464,13 +475,205 @@ impl arc_work_model::Task {
         }
     }
 
+    /// Extract `Vec<SingleColorObjectLabel>` from `input_label_set_intersection`.
+    fn single_color_object_labels_from_input(&self) -> Vec<SingleColorObjectLabel> {
+        let mut single_color_object_labels = Vec::<SingleColorObjectLabel>::new();
+        for input_label in &self.input_label_set_intersection {
+            let single_color_object_label: SingleColorObjectLabel = match input_label {
+                InputLabel::InputSingleColorObject { label } => label.clone(),
+                _ => continue
+            };
+            single_color_object_labels.push(single_color_object_label);
+        }
+        single_color_object_labels
+    }
+
+    pub fn assign_action_labels_related_to_single_color_objects_and_output_size(&mut self) -> anyhow::Result<()> {
+        let single_color_object_labels: Vec<SingleColorObjectLabel> = self.single_color_object_labels_from_input();
+        if single_color_object_labels.is_empty() {
+            return Ok(());
+        }
+
+        for query_id in 0..6u8 {
+            let mut ambiguity_count: usize = 0;
+            let mut found_label: Option<&SingleColorObjectLabel> = None;
+            for single_color_object_label in &single_color_object_labels {
+                match single_color_object_label {
+                    SingleColorObjectLabel::SquareWithColor { color: _ } => {
+                        if query_id == 0 {
+                            ambiguity_count += 1;
+                            found_label = Some(single_color_object_label);
+                        }
+                    },
+                    SingleColorObjectLabel::NonSquareWithColor { color: _ } => {
+                        if query_id == 1 {
+                            ambiguity_count += 1;
+                            found_label = Some(single_color_object_label);
+                        }
+                    },
+                    SingleColorObjectLabel::RectangleWithColor { color: _ } => {
+                        if query_id == 2 {
+                            ambiguity_count += 1;
+                            found_label = Some(single_color_object_label);
+                        }
+                    },
+                    SingleColorObjectLabel::SquareWithSomeColor => {
+                        if query_id == 3 {
+                            ambiguity_count += 1;
+                            found_label = Some(single_color_object_label);
+                        }
+                    },
+                    SingleColorObjectLabel::NonSquareWithSomeColor => {
+                        if query_id == 4 {
+                            ambiguity_count += 1;
+                            found_label = Some(single_color_object_label);
+                        }
+                    },
+                    SingleColorObjectLabel::RectangleWithSomeColor => {
+                        if query_id == 5 {
+                            ambiguity_count += 1;
+                            found_label = Some(single_color_object_label);
+                        }
+                    }
+                }
+            }
+            if ambiguity_count > 1 {
+                // Reject ambiguous scenarios with 2 or more labels.
+                continue;
+            }
+            let single_color_object_label: &SingleColorObjectLabel = match found_label {
+                Some(value) => value,
+                None => continue
+            };
+            // The `single_color_object_label` is unambiguous.
+            // println!("task: {} query_id: {} single_color_object_label: {:?}", self.id, query_id, single_color_object_label);
+
+            match self.assign_output_size_for_single_color_objects_with_label(single_color_object_label, false) {
+                Ok(()) => {
+                    // yes, there is an unambiguous object/label combo that can be used
+                },
+                Err(_) => {
+                    // unable to find a unique object that satisfy the label
+                    continue;
+                }
+            }
+
+            // go ahead and assign predictions
+            match self.assign_output_size_for_single_color_objects_with_label(single_color_object_label, true) {
+                Ok(()) => {
+                    // successfully assigned a label
+                },
+                Err(_) => {
+                    // unable to find a unique object that satisfy the label
+                    continue;
+                }
+            }
+            
+            // println!("OutputSizeIsTheSameAsSingleColorObject task: {} query_id: {} single_color_object_label: {:?}", self.id, query_id, single_color_object_label);
+
+            // Found a match, no point in continuing searching.
+            // the first query_id's have the strongest confidence.
+            // the last query_id's are weaker and less desired.
+            break;
+        }
+
+        Ok(())
+    }
+
+    fn assign_output_size_for_single_color_objects_with_label(&mut self, single_color_object_label: &SingleColorObjectLabel, execute: bool) -> anyhow::Result<()> {
+        let mut predicted_sizes = HashMap::<usize, ImageSize>::new();
+        for (pair_index, pair) in self.pairs.iter().enumerate() {
+            let single_color_objects: &SingleColorObjects = match &pair.input.single_color_objects {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("All input pairs must have some single_color_objects"));
+                }
+            };
+            let mut ambiguity_count: usize = 0;
+            let mut found_object: Option<&SingleColorObject> = None;
+            for object in &single_color_objects.single_color_object_vec {
+                if !object.satisfies_label(single_color_object_label) {
+                    continue;
+                }
+                found_object = Some(object);
+                ambiguity_count += 1;
+            }
+            if ambiguity_count > 1 {
+                // Reject ambiguous scenarios with 2 or more objects that satisfy the label.
+                return Err(anyhow::anyhow!("Multiple objects satisfy the label. Ambiguous which one to pick."));
+            }
+            let object: &SingleColorObject = match found_object {
+                Some(value) => value,
+                None => {
+                    return Err(anyhow::anyhow!("Didn't find any object that satisfy the label."));
+                }
+            };
+
+            if pair.pair_type == PairType::Train {
+                if object.bounding_box.size() != pair.output.image.size() {
+                    return Err(anyhow::anyhow!("This object cannot not explain the output size."));
+                }
+            }
+
+            predicted_sizes.insert(pair_index, object.bounding_box.size());
+        }
+
+
+        if predicted_sizes.len() != self.pairs.len() {
+            return Err(anyhow::anyhow!("Unable to predict sizes for all pairs"));
+        }
+
+        // Don't attempt predicting the output size when data is too poor
+        let mut bigger_than_2px = false;
+        for (_pair_index, predicted_size) in &predicted_sizes {
+            if predicted_size.width >= 2 || predicted_size.height >= 2 {
+                bigger_than_2px = true;
+                break;
+            }
+        }
+        if !bigger_than_2px {
+            // If the object sizes are all 1x1 then it's useless for predicting the output size.
+            return Err(anyhow::anyhow!("All the objects are too small for doing predictions about the output size"));
+        }
+
+        // Go ahead and assign predictions. In first stage, then do nothing. In second state, then assign labels.
+        if !execute {
+            return Ok(());
+        }
+
+        // Future experiment: 
+        // if the object sizes varies a lot and it corresponds with the output size then it's a strong connection.
+        // Assign a confidence score to the predicted size.
+
+        for (pair_index, pair) in self.pairs.iter_mut().enumerate() {
+            let predicted_size: ImageSize = match predicted_sizes.get(&pair_index) {
+                Some(value) => *value,
+                None => {
+                    return Err(anyhow::anyhow!("Missing predicted size for all pairs"));
+                }
+            };
+            let label = Prediction::OutputSize {
+                size: predicted_size,
+            };
+            pair.prediction_set.insert(label);
+        }
+
+        for pair in &mut self.pairs {
+            let action_label = ActionLabel::OutputSizeIsTheSameAsSingleColorObject { label: single_color_object_label.clone() };
+            pair.action_label_set.insert(action_label);
+        }
+
+        Ok(())
+    }
+
     pub fn assign_labels(&mut self) -> anyhow::Result<()> {
-        self.update_input_properties_for_all_pairs();
+        self.update_input_properties_for_all_pairs()?;
         self.update_input_properties_intersection();
         self.update_input_label_set_intersection();
         self.assign_input_properties_related_to_removal_histogram();
         self.assign_input_properties_related_to_input_histogram_intersection();
         self.assign_action_labels_for_output_for_train();
+        _ = self.assign_action_labels_related_to_single_color_objects_and_output_size();
 
         let input_properties: [PropertyInput; 25] = [
             PropertyInput::InputWidth, 
@@ -688,6 +891,14 @@ impl arc_work_model::Task {
             match label {
                 ActionLabel::OutputImageIsTheObjectWithObjectLabel { object_label } => {
                     return format!("{:?}", object_label);
+                },
+                _ => {}
+            }
+        }
+        for action_label in &self.action_label_set_intersection {
+            match action_label {
+                ActionLabel::OutputSizeIsTheSameAsSingleColorObject { label } => {
+                    return format!("{:?}", label);
                 },
                 _ => {}
             }
@@ -1282,6 +1493,14 @@ impl arc_work_model::Task {
         }
 
         // Don't care wether it succeeds or fails
+        _ = self.compute_input_enumerated_objects_based_on_same_structure();
+
+        // Reset all enumerated_objects if one or more is missing.
+        if !self.has_enumerated_objects() {
+            self.reset_input_enumerated_objects();
+        }
+
+        // Don't care wether it succeeds or fails
         _ = self.compute_input_enumerated_objects_using_grid();
 
         // Reset all enumerated_objects if one or more is missing.
@@ -1312,6 +1531,60 @@ impl arc_work_model::Task {
         for pair in self.pairs.iter_mut() {
             pair.input.enumerated_objects = None;
         }
+    }
+
+    fn compute_input_enumerated_objects_based_on_same_structure(&mut self) -> anyhow::Result<()> {
+        if self.has_enumerated_objects() {
+            return Ok(());
+        }
+
+        if !self.action_label_set_intersection.contains(&ActionLabel::OutputImageHasSameStructureAsInputImage) {
+            return Ok(());
+        }
+
+        let mut ambiguity_count0: usize = 0;
+        let mut ambiguity_count1: usize = 0;
+        let mut found_color0 = u8::MAX;
+        let mut found_color1 = u8::MAX;
+        for action_label in &self.action_label_set_intersection {
+            match action_label {
+                ActionLabel::OutputImageIsInputImageWithNoChangesToPixelsWithColor { color } => {
+                    ambiguity_count0 += 1;
+                    found_color0 = *color;
+                },
+                ActionLabel::InputImageIsOutputImageWithNoChangesToPixelsWithColor { color } => {
+                    ambiguity_count1 += 1;
+                    found_color1 = *color;
+                },
+                _ => {}
+            }
+        }
+        if ambiguity_count0 != 1 || ambiguity_count1 != 1 {
+            return Ok(());
+        }
+        if found_color0 != found_color1 {
+            return Ok(());
+        }
+        // Agreement on a single color
+        let background_color: u8 = found_color0;
+
+        for pair in &mut self.pairs {
+            let image_mask: Image = pair.input.image.to_mask_where_color_is_different(background_color);
+            let ignore_mask: Image = image_mask.to_mask_where_color_is(0);
+
+            let result = image_mask.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask);
+            let object_images: Vec<Image> = match result {
+                Ok(images) => images,
+                Err(_) => {
+                    continue;
+                }
+            };
+            let object_images_sorted: Vec<Image> = ObjectsSortByProperty::sort_by_mass_descending(&object_images)?;
+            let enumerated_objects: Image = Image::object_enumerate(&object_images_sorted)?;
+            pair.input.enumerated_objects = Some(enumerated_objects);
+        }
+
+        return Ok(());
     }
 
     fn compute_input_enumerated_objects_based_on_size_of_primary_object_after_single_intersection_color(&mut self) -> anyhow::Result<()> {

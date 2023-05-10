@@ -1,4 +1,4 @@
-use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet, Symmetry, Grid, GridPattern};
+use super::{Image, ImageSize, Histogram, ObjectLabel, ActionLabelSet, PropertyInput, InputLabelSet, Symmetry, Grid, GridPattern, SingleColorObjects};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
@@ -52,6 +52,8 @@ pub struct Input {
     pub enumerated_objects: Option<Image>,
 
     pub substitution_rule_applied: Option<Image>,
+    
+    pub single_color_objects: Option<SingleColorObjects>,
 
     // Future experiments to do.
     // Resolving these properties is similar to a package manager, a DAG (directed acyclic graph).

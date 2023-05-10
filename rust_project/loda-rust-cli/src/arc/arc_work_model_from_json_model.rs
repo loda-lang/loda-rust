@@ -55,6 +55,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     grid_pattern: None,
                     enumerated_objects: None,
                     substitution_rule_applied: None,
+                    single_color_objects: None,
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},train", task_id, index),
@@ -94,6 +95,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     grid_pattern: None,
                     enumerated_objects: None,
                     substitution_rule_applied: None,
+                    single_color_objects: None,
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},test", task_id, index),

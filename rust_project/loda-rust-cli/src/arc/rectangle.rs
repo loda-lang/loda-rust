@@ -1,3 +1,5 @@
+use super::ImageSize;
+
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Rectangle {
@@ -33,6 +35,10 @@ impl Rectangle {
 
     pub fn height(&self) -> u8 {
         self.height
+    }
+
+    pub fn size(&self) -> ImageSize {
+        ImageSize { width: self.width, height: self.height }
     }
 
     pub fn is_empty(&self) -> bool {

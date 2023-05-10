@@ -1,8 +1,8 @@
 use super::arc_work_model;
 use super::arc_work_model::Object;
-use super::{PropertyInput, InputLabel, GridLabel};
+use super::{PropertyInput, InputLabel, GridLabel, SingleColorObjectLabel};
 use super::{Symmetry, Grid, GridToLabel, Image, Rectangle, SymmetryLabel, SymmetryToLabel};
-use super::{ImageSegment, ImageSegmentAlgorithm, ImageMask, ImageCrop};
+use super::{ImageSegment, ImageSegmentAlgorithm, ImageMask, ImageCrop, SingleColorObjects};
 use std::collections::{HashMap, HashSet};
 
 impl arc_work_model::Input {
@@ -202,11 +202,13 @@ impl arc_work_model::Input {
         self.grid = Some(grid);
     }
 
-    pub fn update_input_label_set(&mut self) {
+    pub fn update_input_label_set(&mut self) -> anyhow::Result<()> {
         self.resolve_symmetry();
         self.resolve_grid();
         self.assign_symmetry_labels();
         self.assign_grid_labels();
+        self.assign_single_color_objects()?;
+        Ok(())
     }
 
     pub fn assign_symmetry_labels(&mut self) {
@@ -239,6 +241,52 @@ impl arc_work_model::Input {
             let label = InputLabel::InputGrid { label: grid_label.clone() };
             self.input_label_set.insert(label);
         }
+    }
+
+    pub fn assign_single_color_objects(&mut self) -> anyhow::Result<()> {
+        let single_color_objects: SingleColorObjects = match SingleColorObjects::find_objects(&self.image) {
+            Ok(value) => value,
+            Err(_) => {
+                return Ok(());
+            }
+        };
+        for object in &single_color_objects.single_color_object_vec {
+            {
+                let label = SingleColorObjectLabel::RectangleWithColor { color: object.color };
+                let input_label = InputLabel::InputSingleColorObject { label };
+                self.input_label_set.insert(input_label);
+            }
+            {
+                let label = SingleColorObjectLabel::RectangleWithSomeColor;
+                let input_label = InputLabel::InputSingleColorObject { label };
+                self.input_label_set.insert(input_label);
+            }
+            if object.is_square {
+                {
+                    let label = SingleColorObjectLabel::SquareWithColor { color: object.color };
+                    let input_label = InputLabel::InputSingleColorObject { label };
+                    self.input_label_set.insert(input_label);
+                }
+                {
+                    let label = SingleColorObjectLabel::SquareWithSomeColor;
+                    let input_label = InputLabel::InputSingleColorObject { label };
+                    self.input_label_set.insert(input_label);
+                }
+            } else {
+                {
+                    let label = SingleColorObjectLabel::NonSquareWithColor { color: object.color };
+                    let input_label = InputLabel::InputSingleColorObject { label };
+                    self.input_label_set.insert(input_label);
+                }
+                {
+                    let label = SingleColorObjectLabel::NonSquareWithSomeColor;
+                    let input_label = InputLabel::InputSingleColorObject { label };
+                    self.input_label_set.insert(input_label);
+                }
+            }
+        }
+        self.single_color_objects = Some(single_color_objects);
+        Ok(())
     }
 
     pub fn find_object_masks_using_histogram_most_popular_color(&self) -> anyhow::Result<Vec<Image>> {

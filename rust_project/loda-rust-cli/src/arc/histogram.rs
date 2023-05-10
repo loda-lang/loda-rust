@@ -280,18 +280,28 @@ impl Histogram {
         self.least_popular().count_allow_ambiguous()
     }
 
-    /// The least frequent occurring comes first.
+    /// The pairs ordered by their color value.
     /// 
-    /// The medium frequent occurring comes middle.
+    /// The lowest color value comes first.
     /// 
-    /// The most frequent occurring comes last.
-    pub fn pairs_ascending(&self) -> Vec<(u32,u8)> {
+    /// The highest color value comes last.
+    pub fn pairs_ordered_by_color(&self) -> Vec<(u32,u8)> {
         let mut pairs = Vec::<(u32, u8)>::with_capacity(256);
         for (index, number_of_occurences) in self.counters.iter().enumerate() {
             if *number_of_occurences > 0 {
                 pairs.push((*number_of_occurences, (index & 255) as u8));
             }
         }
+        pairs
+    }
+
+    /// The least frequent occurring comes first.
+    /// 
+    /// The medium frequent occurring comes middle.
+    /// 
+    /// The most frequent occurring comes last.
+    pub fn pairs_ascending(&self) -> Vec<(u32,u8)> {
+        let mut pairs = self.pairs_ordered_by_color();
         pairs.sort();
         pairs
     }
@@ -693,7 +703,24 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_pairs_descending() {
+    fn test_50000_pairs_ordered_by_color() {
+        // Arrange
+        let mut h = Histogram::new();
+        let values: [u8; 8] = [3, 42, 42, 3, 2, 3, 4, 5];
+        for value in values {
+            h.increment(value);
+        }
+
+        // Act
+        let pairs: Vec<(u32, u8)> = h.pairs_ordered_by_color();
+
+        // Assert
+        let expected: Vec<(u32, u8)> = vec![(1, 2), (3, 3), (1, 4), (1, 5), (2, 42)];
+        assert_eq!(pairs, expected);
+    }
+
+    #[test]
+    fn test_50001_pairs_descending() {
         // Arrange
         let mut h = Histogram::new();
         let values: [u8; 8] = [3, 42, 42, 3, 2, 3, 4, 5];
@@ -710,7 +737,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50001_pairs_ascending() {
+    fn test_50002_pairs_ascending() {
         // Arrange
         let mut h = Histogram::new();
         let values: [u8; 8] = [3, 42, 42, 3, 2, 3, 4, 5];

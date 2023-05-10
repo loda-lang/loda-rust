@@ -36,7 +36,11 @@ static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 /// There is a penalty if the ARCathon executable is running longer than 24 hours.
 /// Some of the solutions takes minutes to evaluate, so the executable cannot stop instantly. 
 /// Thus the limit is several minutes shorter so we are sure that the executable has stopped.
-static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = ((23 * 60) + 30) * 60;
+/// Originally I ran for 23h30m. I had to wait an entire day for an answer.
+/// 
+/// I suspect that most of the discovered solutions happens within the first few minutes.
+/// Lets try run for 10 hours. Then I can submit a solution before I go to bed and check status next morning.
+static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = (10 * 60) * 60;
 
 static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 4;
 
@@ -379,7 +383,7 @@ impl TraverseProgramsAndModels {
         let mut indexes = HashSet::<usize>::new();
         for (index, task) in task_vec.iter().enumerate() {
             if task.occur_in_solutions_csv {
-                // continue;
+                continue;
             }
             // if task.input_histogram_union.number_of_counters_greater_than_zero() > 3 {
             //     continue;
@@ -388,12 +392,21 @@ impl TraverseProgramsAndModels {
             //     continue;
             // }
             let mut found: bool = false;
+            found = true;
+            // for action_label in &task.action_label_set_intersection {
+            //     match action_label {
+            //         ActionLabel::OutputSizeIsTheSameAsSingleColorObject { label } => {
+            //             println!("output_size: {:?}", label);
+            //             found = true;
+            //         },
+            //         _ => {}
+            //     }
+            // }
             // if let Some(count) = task.input_properties_intersection.get(&PropertyInput::InputUniqueColorCount) {
             //     if *count == 2 {
             //         found = true;
             //     }
             // }
-            // found = true;
             // if task.has_repaired_image() {
             //     found = true;
             // }
@@ -420,9 +433,12 @@ impl TraverseProgramsAndModels {
             //         },
             //     }
             // }
-            if task.has_enumerated_objects() {
-                found = true;
-            }
+            // if task.has_enumerated_objects() {
+            //     found = true;
+            // }
+            // if task.has_substitution_rule_applied() {
+            //     found = true;
+            // }
             // if task.has_grid_pattern() {
                 // found = true;
                 // found = false;
