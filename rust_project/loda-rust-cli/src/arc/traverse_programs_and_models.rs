@@ -392,7 +392,7 @@ impl TraverseProgramsAndModels {
             //     continue;
             // }
             let mut found: bool = false;
-            found = true;
+            // found = true;
             // for action_label in &task.action_label_set_intersection {
             //     match action_label {
             //         ActionLabel::OutputSizeIsTheSameAsSingleColorObject { label } => {
@@ -449,9 +449,9 @@ impl TraverseProgramsAndModels {
             //         },
             //     }
             // }
-            // if task.has_enumerated_objects() {
-            //     found = true;
-            // }
+            if task.has_enumerated_objects() {
+                found = true;
+            }
             // if task.has_substitution_rule_applied() {
             //     found = true;
             // }
