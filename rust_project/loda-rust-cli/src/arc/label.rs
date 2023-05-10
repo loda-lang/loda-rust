@@ -117,6 +117,11 @@ pub enum InputLabel {
     InputSingleColorObject { label: SingleColorObjectLabel },
 
     // Ideas for more
+    // SplitColor { color: u8 },
+    // SplitRowColor { color: u8 },
+    // SplitColumnColor { color: u8 },
+    // Split2Color { color: u8 },
+    // Split3Color { color: u8 },
     // InputImageIsSingleColorObjectsMaybeWithBackgroundColor,
     // InputImageIsSingleColorObjectsWithBackgroundColor,
     // InputImageIsSingleColorObjectsWithoutBackgroundColor,
@@ -146,12 +151,29 @@ pub enum ObjectLabel {
     // Number of holes
     // Has holes
     // Has no holes
+    // BarChart
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PropertyOutput {
     OutputWidth,
     OutputHeight,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ImageEdge {
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ImageCorner {
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -193,6 +215,9 @@ pub enum ActionLabel {
     OutputImageIsInputImageWithNoChangesToPixelsWithColor { color: u8 },
     InputImageIsOutputImageWithNoChangesToPixelsWithColor { color: u8 },
     
+    OutputImagePreserveInputImageEdge { edge: ImageEdge },
+    OutputImagePreserveInputImageCorner { corner: ImageCorner },
+
     // Ideas for more
     // OutputImageContainAllSingleColorObjectsAtTheirPosition,
     // OutputImageHasSameStructureAsInputImageWithColorPair { color0: u8, color1: u8 },

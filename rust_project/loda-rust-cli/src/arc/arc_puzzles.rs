@@ -8,7 +8,7 @@ mod tests {
     use crate::arc::{ImageFind, ImageOutline, ImageRotate, ImageBorder, ImageCompare, ImageCrop, ImageResize};
     use crate::arc::{Image, PopularObjects, ImageNeighbour, ImageNeighbourDirection, ImageRepairPattern};
     use crate::arc::{ObjectsMeasureMass, ObjectsUniqueColorCount, ObjectWithSmallestValue, ObjectWithDifferentColor};
-    use crate::arc::{ObjectsToGrid, ObjectsToGridMode, SubstitutionRule, ReverseColorPopularity};
+    use crate::arc::{ObjectsToGrid, ObjectsToGridMode, SubstitutionRule, ReverseColorPopularity, ObjectsAndMass};
     use crate::arc::{ImageTrim, ImageRemoveDuplicates, ImageStack, ImageMaskCount, ImageSetPixelWhere, GridPattern};
     use crate::arc::{ImageReplaceColor, ImageSymmetry, ImageOffset, ImageColorProfile, ImageCreatePalette, ImageDrawLineWhere};
     use crate::arc::{ImageHistogram, ImageDenoise, ImageDetectHole, ImageTile, ImagePadding, Rectangle, ImageObjectEnumerate};
@@ -4081,5 +4081,141 @@ mod tests {
     fn test_790001_puzzle_45737921_loda() {
         let result: String = run_advanced("45737921", PROGRAM_45737921).expect("String");
         assert_eq!(result, "3 1");
+    }
+
+    mod solve_6e82a1ae {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let enumerated_objects: &Image = match &pair.input.enumerated_objects {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("missing enumerated_object"));
+                    }
+                };
+                let oam: ObjectsAndMass = ObjectsAndMass::new(enumerated_objects)?;
+                let result_image: Image = oam.group3_small_medium_big(false)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_800000_puzzle_6e82a1ae() {
+        let mut instance = solve_6e82a1ae::MySolution {};
+        let result: String = run_analyze_and_solve("6e82a1ae", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_6E82A1AE: &'static str = "
+    mov $80,$99
+    mov $81,110 ; address of vector[0].EnumeratedObjects
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $0,$$81 ; enumerated objects
+        mov $1,0 ; reverse = false
+        f21 $0,104200 ; Group the objects into 3 bins based on mass: small=1, medium=2, big=3.
+        mov $$82,$0
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_800001_puzzle_6e82a1ae_loda() {
+        let result: String = run_advanced("6e82a1ae", PROGRAM_6E82A1AE).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_d2abd087 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let enumerated_objects: &Image = match &pair.input.enumerated_objects {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("missing enumerated_object"));
+                    }
+                };
+                let oam: ObjectsAndMass = ObjectsAndMass::new(enumerated_objects)?;
+                let result_image: Image = oam.group2_mass_different(6, false)?;
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_810000_puzzle_d2abd087() {
+        let mut instance = solve_d2abd087::MySolution {};
+        let result: String = run_analyze_and_solve("d2abd087", &mut instance).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    const PROGRAM_D2ABD087: &'static str = "
+    mov $80,$99
+    mov $81,110 ; address of vector[0].EnumeratedObjects
+    mov $82,102 ; address of vector[0].ComputedOutputImage
+    lps $80
+        mov $0,$$81 ; enumerated objects
+        mov $1,6 ; objects with 'mass = 6'
+        mov $2,0 ; reverse = false
+        f31 $0,104201 ; Group the objects into 2 bins based on mass: objects that has the matching mass=1, objects that have a different mass=2.
+        mov $$82,$0
+        add $81,100
+        add $82,100
+    lpe
+    ";
+
+    #[test]
+    fn test_810000_puzzle_d2abd087_loda() {
+        let result: String = run_advanced("d2abd087", PROGRAM_D2ABD087).expect("String");
+        assert_eq!(result, "3 1");
+    }
+
+    mod solve_d631b094 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let image: &Image = match &pair.input.predicted_single_color_image {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("missing enumerated_object"));
+                    }
+                };
+                let result_image: Image = image.clone();
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_820000_puzzle_d631b094() {
+        let mut instance = solve_d631b094::MySolution {};
+        let result: String = run_analyze_and_solve("d631b094", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
     }
 }

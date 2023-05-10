@@ -1,4 +1,4 @@
-use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount};
+use super::{arc_work_model, ImageCompare, Image, ImageHistogram, ImageNoiseColor, ImageMaskCount, ImageEdge, ImageExtractRowColumn, ImageCorner, Rectangle};
 use super::arc_work_model::{Object, ObjectType};
 use super::{ActionLabel, ObjectLabel, PropertyOutput};
 use super::{ImageFind, ImageSize, ImageSymmetry, Histogram};
@@ -91,6 +91,9 @@ impl arc_work_model::Pair {
             }
         }
 
+        _ = self.analyze_preservation_of_corners();
+        _ = self.analyze_preservation_of_edges();
+
         if width_input == width_output && height_input == height_output {
             _ = self.analyze_3x3_structure();
             _ = self.analyze_if_color_is_sticky();
@@ -99,6 +102,100 @@ impl arc_work_model::Pair {
         _ = self.analyze_object_why_is_the_output_present_once_in_input();
         _ = self.analyze_output_image_is_input_image_with_changes_to_pixels_with_color();
         _ = self.analyze_output_colors();
+    }
+
+    fn analyze_preservation_of_corners(&mut self) -> anyhow::Result<()> {
+        let input: &Image = &self.input.image;
+        let output: &Image = &self.output.image;
+        let corners = [
+            ImageCorner::TopLeft,
+            ImageCorner::TopRight,
+            ImageCorner::BottomLeft,
+            ImageCorner::BottomRight,
+        ];
+        let rect0 = Rectangle::new(0, 0, input.width(), input.height());
+        let rect1 = Rectangle::new(0, 0, output.width(), output.height());
+        for corner in corners {
+            let x0: i32;
+            let y0: i32;
+            let x1: i32;
+            let y1: i32;
+            match corner {
+                ImageCorner::TopLeft => {
+                    x0 = rect0.min_x();
+                    y0 = rect0.min_y();
+                    x1 = rect1.min_x();
+                    y1 = rect1.min_y();
+                },
+                ImageCorner::TopRight => {
+                    x0 = rect0.max_x();
+                    y0 = rect0.min_y();
+                    x1 = rect1.max_x();
+                    y1 = rect1.min_y();
+                },
+                ImageCorner::BottomLeft => {
+                    x0 = rect0.min_x();
+                    y0 = rect0.max_y();
+                    x1 = rect1.min_x();
+                    y1 = rect1.max_y();
+                },
+                ImageCorner::BottomRight => {
+                    x0 = rect0.max_x();
+                    y0 = rect0.max_y();
+                    x1 = rect1.max_x();
+                    y1 = rect1.max_y();
+                }
+            }
+            let color0 = input.get(x0, y0).unwrap_or(255);
+            let color1 = output.get(x1, y1).unwrap_or(255);
+            if color0 == color1 {
+                self.action_label_set.insert(ActionLabel::OutputImagePreserveInputImageCorner { corner });
+            }
+        }
+        Ok(())
+    }
+
+    fn analyze_preservation_of_edges(&mut self) -> anyhow::Result<()> {
+        let input: &Image = &self.input.image;
+        let output: &Image = &self.output.image;
+        if input.width() != output.width() && input.height() != output.height() {
+            // Neither width nor height are the same.
+            // In order to compare the top/bottom row, both images must have the same width. In this case we don't care about the height.
+            // In order to compare the left/right column, both images must have the same height. In this case we don't care about the width.
+            return Ok(());
+        }
+        let edges = [
+            ImageEdge::Top,
+            ImageEdge::Bottom,
+            ImageEdge::Left,
+            ImageEdge::Right,
+        ];
+        for edge in edges {
+            let image0: Image;
+            let image1: Image;
+            match edge {
+                ImageEdge::Top => {
+                    image0 = input.top_rows(1)?;
+                    image1 = output.top_rows(1)?;
+                },
+                ImageEdge::Bottom => {
+                    image0 = input.bottom_rows(1)?;
+                    image1 = output.bottom_rows(1)?;
+                },
+                ImageEdge::Left => {
+                    image0 = input.left_columns(1)?;
+                    image1 = output.left_columns(1)?;
+                },
+                ImageEdge::Right => {
+                    image0 = input.right_columns(1)?;
+                    image1 = output.right_columns(1)?;
+                }
+            }
+            if image0 == image1 {
+                self.action_label_set.insert(ActionLabel::OutputImagePreserveInputImageEdge { edge });
+            }
+        }
+        Ok(())
     }
 
     fn analyze_3x3_structure(&mut self) -> anyhow::Result<()> {

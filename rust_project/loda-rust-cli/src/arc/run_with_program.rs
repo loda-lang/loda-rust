@@ -99,6 +99,13 @@ enum MemoryLayoutItem {
     /// When it's not available then the value is `-1`.
     SubstitutionRuleApplied = 11,
 
+    /// When there is a predicted output size, and there is a single color in the predicted palette
+    /// 
+    /// Then this contains an image with the size and the color
+    ///
+    /// When it's not available then the value is `-1`.
+    PredictedSingleColorImage = 12,
+
     // Ideas for more
     // Number of cells horizontal
     // Number of cells vertical
@@ -493,6 +500,19 @@ impl RunWithProgram {
                 }
             }
             
+            // memory[x*100+112] = train[x].predicted_single_color_image
+            {
+                if let Some(image) = &pair.input.predicted_single_color_image {
+                    let image_number_uint: BigUint = image.to_number().context("predicted_single_color_image image to number")?;
+                    let image_number_int: BigInt = image_number_uint.to_bigint().context("predicted_single_color_image BigUint to BigInt")?;
+                    state.set_u64(address + MemoryLayoutItem::PredictedSingleColorImage as u64, image_number_int).context("predicted_single_color_image, set_u64")?;
+                } else {
+                    if let Some(value) = (-1i16).to_bigint() {
+                        state.set_u64(address + MemoryLayoutItem::PredictedSingleColorImage as u64, value).context("predicted_single_color_image, set_u64 with -1")?;
+                    }
+                }
+            }
+            
             // Ideas for data to make available to the program.
             // output_palette
             // substitutions, replace this color with that color
@@ -641,6 +661,19 @@ impl RunWithProgram {
                 } else {
                     if let Some(value) = (-1i16).to_bigint() {
                         state.set_u64(address + MemoryLayoutItem::SubstitutionRuleApplied as u64, value).context("substitution_rule_applied, set_u64 with -1")?;
+                    }
+                }
+            }
+            
+            // memory[x*100+112] = test[x].predicted_single_color_image
+            {
+                if let Some(image) = &pair.input.predicted_single_color_image {
+                    let image_number_uint: BigUint = image.to_number().context("predicted_single_color_image image to number")?;
+                    let image_number_int: BigInt = image_number_uint.to_bigint().context("predicted_single_color_image BigUint to BigInt")?;
+                    state.set_u64(address + MemoryLayoutItem::PredictedSingleColorImage as u64, image_number_int).context("predicted_single_color_image, set_u64")?;
+                } else {
+                    if let Some(value) = (-1i16).to_bigint() {
+                        state.set_u64(address + MemoryLayoutItem::PredictedSingleColorImage as u64, value).context("predicted_single_color_image, set_u64 with -1")?;
                     }
                 }
             }

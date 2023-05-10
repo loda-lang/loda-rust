@@ -385,6 +385,8 @@ impl Histogram {
     }
 
     /// Add all the counters together.
+    /// 
+    /// Usecase: Compute the mass of a multicolored object.
     pub fn sum(&self) -> u32 {
         self.counters.iter().sum()
     }

@@ -1,6 +1,6 @@
 use super::{Image, ImagePadding, convolution3x3};
 
-pub trait ImageCorner {
+pub trait ImageCornerAnalyze {
     /// Detect corners
     /// 
     /// Compare the center pixel with the pixels above,below,left,right.
@@ -18,7 +18,7 @@ pub trait ImageCorner {
     fn corners(&self) -> anyhow::Result<Image>;
 }
 
-impl ImageCorner for Image {
+impl ImageCornerAnalyze for Image {
     fn corners(&self) -> anyhow::Result<Image> {
         let padding_color: u8 = u8::MAX;
         let image_padded: Image = self.padding_with_color(1, padding_color)?;

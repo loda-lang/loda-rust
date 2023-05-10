@@ -56,6 +56,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     enumerated_objects: None,
                     substitution_rule_applied: None,
                     single_color_objects: None,
+                    predicted_single_color_image: None,
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},train", task_id, index),
@@ -96,6 +97,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
                     enumerated_objects: None,
                     substitution_rule_applied: None,
                     single_color_objects: None,
+                    predicted_single_color_image: None,
                 };
                 let buffer_output = arc_work_model::Output {
                     id: format!("{},output{},test", task_id, index),
@@ -131,10 +133,7 @@ impl TryFrom<&arc_json_model::Task> for arc_work_model::Task {
             input_label_set_intersection: HashSet::new(),
             occur_in_solutions_csv: false,
         };
-        task.assign_labels()?;
-        task.assign_predicted_output_size();
-        task.assign_predicted_output_palette();
-        task.assign_predicted_output_image_is_input_image_with_changes_limited_to_pixels_with_color();
-        return Ok(task);
+        task.populate()?;
+        Ok(task)
     }
 }

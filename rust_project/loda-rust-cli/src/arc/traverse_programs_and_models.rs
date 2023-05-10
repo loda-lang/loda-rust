@@ -40,7 +40,10 @@ static SOLUTIONS_FILENAME: &str = "solution_notXORdinary.json";
 /// 
 /// I suspect that most of the discovered solutions happens within the first few minutes.
 /// Lets try run for 10 hours. Then I can submit a solution before I go to bed and check status next morning.
-static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = (10 * 60) * 60;
+/// Three days later. yes. The score is the same. The solutions gets found within the 10 hour time frame.
+///
+/// Can I lower the time limit even more? Let's try 4 hours.
+static ARC_COMPETITION_EXECUTE_DURATION_SECONDS: u64 = (4 * 60) * 60;
 
 static ARC_COMPETITION_INITIAL_RANDOM_SEED: u64 = 4;
 
@@ -402,6 +405,22 @@ impl TraverseProgramsAndModels {
             //         _ => {}
             //     }
             // }
+            // for action_label in &task.action_label_set_intersection {
+            //     match action_label {
+            //         ActionLabel::OutputImagePreserveInputImageEdge { edge: _ } => {
+            //             found = true;
+            //         },
+            //         _ => {}
+            //     }
+            // }
+            // for action_label in &task.action_label_set_intersection {
+            //     match action_label {
+            //         ActionLabel::OutputImagePreserveInputImageCorner { corner: _ } => {
+            //             found = true;
+            //         },
+            //         _ => {}
+            //     }
+            // }
             // if let Some(count) = task.input_properties_intersection.get(&PropertyInput::InputUniqueColorCount) {
             //     if *count == 2 {
             //         found = true;
@@ -410,6 +429,9 @@ impl TraverseProgramsAndModels {
             // if task.has_repaired_image() {
             //     found = true;
             // }
+            if task.has_predicted_single_color_image() {
+                found = true;
+            }
             // if task.is_output_size_same_as_input_size() {
             //     found = true;
             // }
@@ -433,9 +455,9 @@ impl TraverseProgramsAndModels {
             //         },
             //     }
             // }
-            if task.has_enumerated_objects() {
-                found = true;
-            }
+            // if task.has_enumerated_objects() {
+            //     found = true;
+            // }
             // if task.has_substitution_rule_applied() {
             //     found = true;
             // }
