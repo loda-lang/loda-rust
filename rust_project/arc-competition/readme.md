@@ -133,11 +133,15 @@ Check that this amount of json files are roughly also what is shows up when runn
 ```
 PROMPT> rake run
 1984-01-01T12:06:54Z - Start of program
+env::consts::ARCH: x86_64
+env::consts::OS: linux
 initial program_item_vec: 66
 initial model_item_vec.len: 63
 snip output
 Press CTRL-C to stop it.
 ```
+
+Verify that the architecture is `x86_64`. This is the only platform that is accepted for ARCathon.
 
 Great this looks like the content of the `secret_data` has been mounted correct and the file has been discovered correct.
 
