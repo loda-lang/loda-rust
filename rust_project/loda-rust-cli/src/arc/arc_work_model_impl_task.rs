@@ -1232,7 +1232,10 @@ impl arc_work_model::Task {
         // Future experiments:
         // What are the scenarios where this histogram is a bad prediction.
         // Are there scenarios where the histogram is "Undecided"
-
+        //
+        // There are tasks where the output colors depends on the shape of the object.
+        // So one kind of shape gets assigned green.
+        // Another kind of shape gets assigned blue.
         Ok(histogram)
     }
 
