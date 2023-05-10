@@ -4187,4 +4187,35 @@ mod tests {
         let result: String = run_advanced("d2abd087", PROGRAM_D2ABD087).expect("String");
         assert_eq!(result, "3 1");
     }
+
+    mod solve_d631b094 {
+        use super::*;
+
+        pub struct MySolution;
+    
+        impl AnalyzeAndSolve for MySolution {
+            fn analyze(&mut self, _task: &arc_work_model::Task) -> anyhow::Result<()> {
+                Ok(())   
+            }
+    
+            fn solve(&self, data: &SolutionSimpleData, task: &arc_work_model::Task) -> anyhow::Result<Image> {
+                let pair: &arc_work_model::Pair = &task.pairs[data.index];
+                let image: &Image = match &pair.input.predicted_single_color_image {
+                    Some(value) => value,
+                    None => {
+                        return Err(anyhow::anyhow!("missing enumerated_object"));
+                    }
+                };
+                let result_image: Image = image.clone();
+                Ok(result_image)
+            }
+        }
+    }
+
+    #[test]
+    fn test_820000_puzzle_d631b094() {
+        let mut instance = solve_d631b094::MySolution {};
+        let result: String = run_analyze_and_solve("d631b094", &mut instance).expect("String");
+        assert_eq!(result, "4 1");
+    }
 }
