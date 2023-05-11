@@ -40,10 +40,6 @@ pub struct SingleColorObjectSparse {
     // then it may be because it's the background color.
     // compare the background color across all the single objects if it's the same.
     // 
-    // Verify that the every pixel in the image are fully explained by the 
-    // rectangle_vec and the sparse_vec. If one or more pixels isn't accounted for,
-    // then something must have gone wrong while analyzing the pixels.
-    //
     // Segment the mask into objects.
     // Identify each object.
     //
@@ -104,6 +100,9 @@ impl SingleColorObjects {
         Ok(instance)
     }
 
+    /// Verify that the every pixel in the image are fully explained by the 
+    /// `rectangle_vec` and the `sparse_vec`. If one or more pixels isn't accounted for,
+    /// then something must have gone wrong while analyzing the pixels.
     fn verify_all_pixels_are_accounted_for(&self) -> anyhow::Result<()> {
         let mut result_mask = Image::zero(self.image_size.width, self.image_size.height);
         for object in &self.rectangle_vec {
