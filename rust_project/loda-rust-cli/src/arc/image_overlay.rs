@@ -9,14 +9,11 @@ pub trait ImageOverlay {
 
 impl ImageOverlay for Image {
     fn overlay_with_mask_color(&self, other: &Image, mask_color: u8) -> anyhow::Result<Image> {
+        if self.size() != other.size() {
+            return Err(anyhow::anyhow!("overlay_with_operation: Both images must have same size."));
+        }
         if self.is_empty() {
             return Ok(Image::empty());
-        }
-        if self.width() != other.width() {
-            return Err(anyhow::anyhow!("overlay_with_mask_color: Both images must have same size. Width is different."));
-        }
-        if self.height() != other.height() {
-            return Err(anyhow::anyhow!("overlay_with_mask_color: Both images must have same size. Height is different."));
         }
         let mut result_image: Image = self.clone();
         for y in 0..self.height() {
@@ -33,7 +30,7 @@ impl ImageOverlay for Image {
                 }
             }
         }
-        return Ok(result_image);
+        Ok(result_image)
     }
 
     fn overlay_with_position(&self, other: &Image, x: i32, y: i32) -> anyhow::Result<Image> {
@@ -52,7 +49,7 @@ impl ImageOverlay for Image {
                 let _ = image.set(set_x, set_y, pixel_value);
             }
         }
-        return Ok(image);
+        Ok(image)
     }
 }
 
