@@ -1,4 +1,4 @@
-use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectLabel, SingleColorObjects, SingleColorObject};
+use super::{arc_work_model, GridLabel, GridPattern, HtmlFromTask, InputLabel, SymmetryLabel, AutoRepairSymmetry, ImageObjectEnumerate, SingleColorObjectLabel, SingleColorObjects, SingleColorObjectRectangle};
 use super::arc_work_model::{Input, PairType, Object, Prediction};
 use super::{Image, ImageMask, ImageMaskCount, ImageSegment, ImageSegmentAlgorithm, ImageSize, ImageTrim, Histogram, ImageHistogram, ObjectsSortByProperty};
 use super::{SubstitutionRule, SingleColorObjectSatisfiesLabel};
@@ -600,8 +600,8 @@ impl arc_work_model::Task {
                 }
             };
             let mut ambiguity_count: usize = 0;
-            let mut found_object: Option<&SingleColorObject> = None;
-            for object in &single_color_objects.single_color_object_vec {
+            let mut found_object: Option<&SingleColorObjectRectangle> = None;
+            for object in &single_color_objects.rectangle_vec {
                 if !object.satisfies_label(single_color_object_label) {
                     continue;
                 }
@@ -612,7 +612,7 @@ impl arc_work_model::Task {
                 // Reject ambiguous scenarios with 2 or more objects that satisfy the label.
                 return Err(anyhow::anyhow!("Multiple objects satisfy the label. Ambiguous which one to pick."));
             }
-            let object: &SingleColorObject = match found_object {
+            let object: &SingleColorObjectRectangle = match found_object {
                 Some(value) => value,
                 None => {
                     return Err(anyhow::anyhow!("Didn't find any object that satisfy the label."));

@@ -1,10 +1,10 @@
-use super::{SingleColorObject, SingleColorObjectLabel};
+use super::{SingleColorObjectRectangle, SingleColorObjectLabel};
 
 pub trait SingleColorObjectSatisfiesLabel {
     fn satisfies_label(&self, label: &SingleColorObjectLabel) -> bool;
 }
 
-impl SingleColorObjectSatisfiesLabel for SingleColorObject {
+impl SingleColorObjectSatisfiesLabel for SingleColorObjectRectangle {
     fn satisfies_label(&self, label: &SingleColorObjectLabel) -> bool {
         match label {
             SingleColorObjectLabel::SquareWithColor { color } => {
@@ -44,7 +44,7 @@ mod tests {
         ];
         let mask: Image = Image::try_create(4, 3, pixels).expect("image");
 
-        let object = SingleColorObject {
+        let object = SingleColorObjectRectangle {
             color: 7,
             mask,
             bounding_box: Rectangle::new(1, 0, 2, 2),
@@ -82,7 +82,7 @@ mod tests {
         ];
         let mask: Image = Image::try_create(4, 3, pixels).expect("image");
 
-        let object = SingleColorObject {
+        let object = SingleColorObjectRectangle {
             color: 7,
             mask,
             bounding_box: Rectangle::new(1, 0, 2, 3),

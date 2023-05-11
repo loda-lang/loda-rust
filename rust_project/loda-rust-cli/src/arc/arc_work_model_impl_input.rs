@@ -250,7 +250,7 @@ impl arc_work_model::Input {
                 return Ok(());
             }
         };
-        for object in &single_color_objects.single_color_object_vec {
+        for object in &single_color_objects.rectangle_vec {
             {
                 let label = SingleColorObjectLabel::RectangleWithColor { color: object.color };
                 let input_label = InputLabel::InputSingleColorObject { label };
