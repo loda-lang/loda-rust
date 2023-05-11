@@ -1,4 +1,4 @@
-use super::{Histogram, Image, ImageHistogram, ImageMask, Rectangle, ImageMix, ImageSize, MixMode, ImageMaskCount};
+use super::{Histogram, Image, ImageHistogram, ImageMask, Rectangle, ImageMix, ImageSize, MixMode, ImageMaskCount, ImageCrop};
 
 /// A rectangle filled with a single solid color and no other colors are present inside the object.
 #[derive(Clone, Debug)]
@@ -22,8 +22,18 @@ pub struct SingleColorObjectRectangle {
 pub struct SingleColorObjectSparse {
     pub color: u8,
     pub mask: Image,
+
+    /// Bounding box of the mask
     pub bounding_box: Rectangle,
-    pub mass: u16,
+
+    /// Number of pixels with same value as `color`
+    pub mass_object: u16,
+
+    /// Number of pixels different than `color`
+    pub mass_non_object: u16,
+
+    /// Histogram of the non-object pixels 
+    pub histogram_non_object: Histogram,
 
     // Future experiments:
     // shape type: L shape, T shape, + shape, diagonal shape, other shape
@@ -31,8 +41,6 @@ pub struct SingleColorObjectSparse {
     // is a box
     // outermost pixels have same color
     // number of holes
-    // mass of non-object
-    // histogram of non-object pixels
     // are the non-object pixels a single color
     // child objects
     // surrounding objects
@@ -58,10 +66,10 @@ impl SingleColorObjects {
         if image.is_empty() {
             return Err(anyhow::anyhow!("The image must be 1x1 or bigger"));
         }
-        let histogram: Histogram = image.histogram_all();
+        let image_histogram: Histogram = image.histogram_all();
         let mut rectangle_vec = Vec::<SingleColorObjectRectangle>::new();
         let mut sparse_vec = Vec::<SingleColorObjectSparse>::new();
-        for (count, color) in histogram.pairs_ordered_by_color() {
+        for (count, color) in image_histogram.pairs_ordered_by_color() {
             let mask: Image = image.to_mask_where_color_is(color);
             let rect: Rectangle = match mask.bounding_box() {
                 Some(value) => value,
@@ -71,11 +79,18 @@ impl SingleColorObjects {
             };
             let mass: u16 = (rect.width() as u16) * (rect.height() as u16);
             if count != (mass as u32) {
+                let cropped_object: Image = image.crop(rect)?;
+                let mut histogram: Histogram = cropped_object.histogram_all();
+                let mass_object: u16 = histogram.get(color).min(u16::MAX as u32) as u16;
+                histogram.set_counter_to_zero(color);
+                let mass_non_object: u16 = histogram.sum().min(u16::MAX as u32) as u16;
                 let item = SingleColorObjectSparse {
                     color,
                     mask,
                     bounding_box: rect,
-                    mass,
+                    mass_object,
+                    mass_non_object,
+                    histogram_non_object: histogram,
                 };
                 sparse_vec.push(item);
                 continue;
@@ -126,7 +141,7 @@ mod tests {
     use crate::arc::ImageTryCreate;
 
     #[test]
-    fn test_10000_find_objects() {
+    fn test_10000_object_rectangle() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 2, 3,
@@ -143,11 +158,11 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_find_objects() {
+    fn test_20000_object_sparse() {
         // Arrange
         let pixels: Vec<u8> = vec![
-            5, 5, 1,
-            1, 3, 3,
+            5, 5, 6,
+            6, 3, 3,
         ];
         let input: Image = Image::try_create(3, 2, pixels).expect("image");
 
@@ -157,5 +172,27 @@ mod tests {
         // Assert
         assert_eq!(actual.rectangle_vec.len(), 2);
         assert_eq!(actual.sparse_vec.len(), 1);
+
+        let object: &SingleColorObjectSparse = actual.sparse_vec.first().expect("1 instance");
+        assert_eq!(object.bounding_box, Rectangle::new(0, 0, 3, 2));
+
+        let expected_pixels: Vec<u8> = vec![
+            0, 0, 1,
+            1, 0, 0,
+        ];
+        let expected_mask: Image = Image::try_create(3, 2, expected_pixels).expect("image");
+        assert_eq!(object.mask, expected_mask);
+
+        assert_eq!(object.mass_object, 2);
+        assert_eq!(object.mass_non_object, 4);
+
+        {
+            let mut histogram = Histogram::new();
+            histogram.increment(5);
+            histogram.increment(5);
+            histogram.increment(3);
+            histogram.increment(3);
+            assert_eq!(object.histogram_non_object, histogram);
+        }
     }
 }
