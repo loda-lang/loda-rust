@@ -1,4 +1,4 @@
-use super::Image;
+use super::{Image, ImageMix, MixMode};
 
 pub trait ImageCompare {
     /// Find differences. The parameter order does not matter. Yields the same result.
@@ -25,25 +25,7 @@ pub trait ImageCompare {
 
 impl ImageCompare for Image {
     fn diff(&self, image: &Image) -> anyhow::Result<Image> {
-        let self_width: u8 = self.width();
-        let self_height: u8 = self.height();
-        if self_width != image.width() || self_height != image.height() {
-            return Err(anyhow::anyhow!("Both images must have same size. mask: {}x{} image: {}x{}", self_width, self_height, image.width(), image.height()));
-        }
-        if self.is_empty() {
-            return Ok(Image::empty());
-        }
-        let mut result_image = Image::zero(self_width, self_height);
-        for y in 0..(self_height as i32) {
-            for x in 0..(self_width as i32) {
-                let pixel_value0: u8 = self.get(x, y).unwrap_or(255);
-                let pixel_value1: u8 = image.get(x, y).unwrap_or(255);
-                if pixel_value0 != pixel_value1 {
-                    let _ = result_image.set(x, y, 1);
-                }
-            }
-        }
-        Ok(result_image)
+        self.mix(image, MixMode::IsDifferent)
     }
 
     fn diff_color(&self, other: &Image, color: u8) -> anyhow::Result<Image> {
