@@ -2,26 +2,30 @@ use super::Image;
 
 #[allow(dead_code)]
 pub enum MixMode {
-    // Add two values, clamp to 255.
+    /// Add two values, clamp to 255.
     Plus,
 
-    // Subtract two values, clamp to 0.
+    /// Subtract two values, clamp to 0.
     Minus,
 
-    // Maximum of two values
+    /// Maximum of two values
     Max,
 
-    // Minimum of two values
+    /// Minimum of two values
     Min,
 
-    // Multiply two values, clamp to 255.
+    /// Multiply two values, clamp to 255.
     Multiply,
 
-    // When the colors are identical then return 1. When the colors differ then return 0.
+    /// When the colors are identical then return 1. When the colors differ then return 0.
     IsSame,
 
-    // When the colors are different then return 1. When the colors are identical then return 0.
+    /// When the colors are different then return 1. When the colors are identical then return 0.
     IsDifferent,
+
+    /// When the colors are identical then return the color. 
+    /// When the colors differ then return the `disagreement_color`.
+    AgreeOrColor { disagreement_color: u8 },
 
     // Future experiments:
     // And
@@ -60,6 +64,9 @@ impl MixMode {
             },
             MixMode::IsDifferent => {
                 if color0 != color1 { 1 } else { 0 }
+            },
+            MixMode::AgreeOrColor { disagreement_color } => {
+                if color0 == color1 { color0 } else { *disagreement_color }
             },
         };
         Ok(result_color)
@@ -256,6 +263,31 @@ mod tests {
         ];
         // Act
         let mode = MixMode::IsDifferent;
+        let actual: Vec<u8> = items.iter().map(|(color0, color1, _expected)| mode.compute(*color0, *color1).expect("ok") ).collect();
+
+        // Arrange
+        let expected: Vec<u8> = items.iter().map(|(_color0, _color1, expected)| *expected ).collect();
+        assert_eq!(actual, expected);
+    }
+
+
+    #[test]
+    fn test_10008_mixmode_agreeorcolor() {
+        // Arrange
+        let items: Vec<(u8, u8, u8)> = vec![
+            (0, 0, 0),
+            (1, 1, 1),
+            (39, 3, 255),
+            (3, 39, 255),
+            (39, 39, 39),
+            (254, 1, 255),
+            (1, 254, 255),
+            (255, 1, 255),
+            (1, 255, 255),
+            (255, 255, 255),
+        ];
+        // Act
+        let mode = MixMode::AgreeOrColor { disagreement_color: 255 };
         let actual: Vec<u8> = items.iter().map(|(color0, color1, _expected)| mode.compute(*color0, *color1).expect("ok") ).collect();
 
         // Arrange
