@@ -76,10 +76,16 @@ pub enum MixMode {
     /// Performs an XOR operation between the values.
     BooleanXor,
 
+    /// Performs a bitwise AND operation between the values.
+    BitwiseAnd,
+
+    /// Performs a bitwise OR operation between the values.
+    BitwiseOr,
+
+    /// Performs a bitwise XOR operation between the values.
+    BitwiseXor,
+
     // Future experiments:
-    // BitwiseAnd
-    // BitwiseOr
-    // BitwiseXor
     // Absolute difference
     // Divide
     // IsGreaterThan,
@@ -138,12 +144,20 @@ impl MixMode {
             MixMode::BooleanXor => {
                 if (color0 > 0) ^ (color1 > 0) { 1 } else { 0 }
             },
+            MixMode::BitwiseAnd => {
+                color0 & color1
+            },
+            MixMode::BitwiseOr => {
+                color0 | color1
+            },
+            MixMode::BitwiseXor => {
+                color0 ^ color1
+            },
         };
         Ok(result_color)
     }
 }
 
-#[allow(dead_code)]
 pub trait ImageMix {
     /// Combine colors from 2 images using the `mode`.
     fn mix(&self, other: &Image, mode: MixMode) -> anyhow::Result<Image>;
@@ -541,6 +555,82 @@ mod tests {
         ];
         // Act
         let mode = MixMode::BooleanXor;
+        let actual: Vec<u8> = items.iter().map(|(color0, color1, _expected)| mode.compute(*color0, *color1).expect("ok") ).collect();
+
+        // Arrange
+        let expected: Vec<u8> = items.iter().map(|(_color0, _color1, expected)| *expected ).collect();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10016_mixmode_bitwise_and() {
+        // Arrange
+        let items: Vec<(u8, u8, u8)> = vec![
+            (0, 0, 0),
+            (0, 1, 0),
+            (1, 0, 0),
+            (1, 1, 1),
+            (0, 42, 0),
+            (42, 0, 0),
+            (42, 42, 42),
+            (7, 3, 3),
+            (3, 7, 3),
+            (7, 5, 5),
+            (5, 7, 5),
+            (8, 7, 0),
+            (255, 7, 7),
+        ];
+        // Act
+        let mode = MixMode::BitwiseAnd;
+        let actual: Vec<u8> = items.iter().map(|(color0, color1, _expected)| mode.compute(*color0, *color1).expect("ok") ).collect();
+
+        // Arrange
+        let expected: Vec<u8> = items.iter().map(|(_color0, _color1, expected)| *expected ).collect();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10017_mixmode_bitwise_or() {
+        // Arrange
+        let items: Vec<(u8, u8, u8)> = vec![
+            (0, 0, 0),
+            (0, 1, 1),
+            (1, 0, 1),
+            (1, 1, 1),
+            (0, 42, 42),
+            (42, 0, 42),
+            (42, 42, 42),
+            (7, 3, 7),
+            (3, 7, 7),
+            (7, 5, 7),
+            (5, 7, 7),
+            (8, 7, 15),
+            (255, 7, 255),
+        ];
+        // Act
+        let mode = MixMode::BitwiseOr;
+        let actual: Vec<u8> = items.iter().map(|(color0, color1, _expected)| mode.compute(*color0, *color1).expect("ok") ).collect();
+
+        // Arrange
+        let expected: Vec<u8> = items.iter().map(|(_color0, _color1, expected)| *expected ).collect();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10018_mixmode_bitwise_xor() {
+        // Arrange
+        let items: Vec<(u8, u8, u8)> = vec![
+            (0, 0, 0),
+            (0, 1, 1),
+            (1, 0, 1),
+            (1, 1, 0),
+            (7, 6, 1),
+            (5, 7, 2),
+            (3, 12, 15),
+            (255, 255, 0),
+        ];
+        // Act
+        let mode = MixMode::BitwiseXor;
         let actual: Vec<u8> = items.iter().map(|(color0, color1, _expected)| mode.compute(*color0, *color1).expect("ok") ).collect();
 
         // Arrange
