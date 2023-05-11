@@ -8,7 +8,7 @@ pub trait ImageCompare {
     /// Set `value=0` where the two images agree.
     /// 
     /// The two images must have the same size. Otherwise an `Err` is returned.
-    fn diff(&self, image: &Image) -> anyhow::Result<Image>;
+    fn diff(&self, other: &Image) -> anyhow::Result<Image>;
     
     /// Find differences, considers only pixels with `color` in the `self` image.
     /// 
@@ -24,33 +24,12 @@ pub trait ImageCompare {
 }
 
 impl ImageCompare for Image {
-    fn diff(&self, image: &Image) -> anyhow::Result<Image> {
-        self.mix(image, MixMode::IsDifferent)
+    fn diff(&self, other: &Image) -> anyhow::Result<Image> {
+        self.mix(other, MixMode::IsDifferent)
     }
 
     fn diff_color(&self, other: &Image, color: u8) -> anyhow::Result<Image> {
-        let self_width: u8 = self.width();
-        let self_height: u8 = self.height();
-        if self_width != other.width() || self_height != other.height() {
-            return Err(anyhow::anyhow!("Both images must have same size. mask: {}x{} image: {}x{}", self_width, self_height, other.width(), other.height()));
-        }
-        if self.is_empty() {
-            return Ok(Image::empty());
-        }
-        let mut result_image = Image::zero(self_width, self_height);
-        for y in 0..(self_height as i32) {
-            for x in 0..(self_width as i32) {
-                let pixel_value0: u8 = self.get(x, y).unwrap_or(255);
-                if pixel_value0 != color {
-                    continue;
-                }
-                let pixel_value1: u8 = other.get(x, y).unwrap_or(255);
-                if pixel_value0 != pixel_value1 {
-                    let _ = result_image.set(x, y, 1);
-                }
-            }
-        }
-        Ok(result_image)
+        self.mix(other, MixMode::IsDifferentOnlyConsideringColor0 { color })
     }
 }
 

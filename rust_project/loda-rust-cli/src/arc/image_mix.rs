@@ -1,6 +1,7 @@
 use super::Image;
 
 #[allow(dead_code)]
+#[derive(Clone, Debug)]
 pub enum MixMode {
     /// Add two values, clamp to 255.
     Plus,
@@ -22,6 +23,12 @@ pub enum MixMode {
 
     /// When the colors are different then return 1. When the colors are identical then return 0.
     IsDifferent,
+
+    /// Find differences, only where color0 is the specified `color`.
+    /// When the colors are different then return 1. When the colors are identical then return 0.
+    /// 
+    /// If `color0` is different than the specified `color` then return 0.
+    IsDifferentOnlyConsideringColor0 { color: u8 },
 
     /// When the colors are identical then return the color. 
     /// When the colors differ then return the `disagreement_color`.
@@ -64,6 +71,9 @@ impl MixMode {
             },
             MixMode::IsDifferent => {
                 if color0 != color1 { 1 } else { 0 }
+            },
+            MixMode::IsDifferentOnlyConsideringColor0 { color } => {
+                if color0 == *color && color0 != color1 { 1 } else { 0 }
             },
             MixMode::AgreeOrColor { disagreement_color } => {
                 if color0 == color1 { color0 } else { *disagreement_color }
@@ -270,9 +280,33 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
+    #[test]
+    fn test_10008_mixmode_isdifferentonlyconsideringcolor0() {
+        // Arrange
+        let items: Vec<(u8, u8, u8)> = vec![
+            (0, 0, 0),
+            (1, 1, 0),
+            (39, 3, 0),
+            (3, 39, 1), // the only place where color0 is 3, and there is a difference
+            (3, 3, 0),
+            (39, 39, 0),
+            (254, 1, 0),
+            (1, 254, 0),
+            (255, 1, 0),
+            (1, 255, 0),
+            (255, 255, 0),
+        ];
+        // Act
+        let mode = MixMode::IsDifferentOnlyConsideringColor0 { color: 3 };
+        let actual: Vec<u8> = items.iter().map(|(color0, color1, _expected)| mode.compute(*color0, *color1).expect("ok") ).collect();
+
+        // Arrange
+        let expected: Vec<u8> = items.iter().map(|(_color0, _color1, expected)| *expected ).collect();
+        assert_eq!(actual, expected);
+    }
 
     #[test]
-    fn test_10008_mixmode_agreeorcolor() {
+    fn test_10009_mixmode_agreeorcolor() {
         // Arrange
         let items: Vec<(u8, u8, u8)> = vec![
             (0, 0, 0),
