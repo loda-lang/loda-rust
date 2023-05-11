@@ -1,4 +1,4 @@
-use super::Image;
+use super::{Image, ImageMix, MixMode};
 
 pub trait ImageOverlay {
     fn overlay_with_mask_color(&self, other: &Image, mask_color: u8) -> anyhow::Result<Image>;
@@ -9,28 +9,8 @@ pub trait ImageOverlay {
 
 impl ImageOverlay for Image {
     fn overlay_with_mask_color(&self, other: &Image, mask_color: u8) -> anyhow::Result<Image> {
-        if self.size() != other.size() {
-            return Err(anyhow::anyhow!("overlay_with_operation: Both images must have same size."));
-        }
-        if self.is_empty() {
-            return Ok(Image::empty());
-        }
-        let mut result_image: Image = self.clone();
-        for y in 0..self.height() {
-            for x in 0..self.width() {
-                let pixel_value: u8 = other.get(x as i32, y as i32).unwrap_or(255); 
-                if pixel_value == mask_color {
-                    continue;
-                }
-                match result_image.set(x as i32, y as i32, pixel_value) {
-                    Some(()) => {},
-                    None => {
-                        return Err(anyhow::anyhow!("overlay_with_mask_color: Unable to set pixel inside the result bitmap"));
-                    }
-                }
-            }
-        }
-        Ok(result_image)
+        let mode = MixMode::PickColor1WhenColor0IsDifferent { color0_filter: mask_color };
+        other.mix(self, mode)
     }
 
     fn overlay_with_position(&self, other: &Image, x: i32, y: i32) -> anyhow::Result<Image> {

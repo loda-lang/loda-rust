@@ -34,6 +34,13 @@ pub enum MixMode {
     /// When the colors differ then return the `disagreement_color`.
     AgreeOrColor { disagreement_color: u8 },
 
+    /// Overlay another image on top.
+    /// 
+    /// Pick `color1` as the overlay when `color0` is the same as the `color0_filter`.
+    /// 
+    /// Pick `color0` as the backdrop when `color0` is different than the `color0_filter`.
+    PickColor1WhenColor0IsDifferent { color0_filter: u8 },
+
     // Future experiments:
     // And
     // Or
@@ -77,6 +84,9 @@ impl MixMode {
             },
             MixMode::AgreeOrColor { disagreement_color } => {
                 if color0 == color1 { color0 } else { *disagreement_color }
+            },
+            MixMode::PickColor1WhenColor0IsDifferent { color0_filter } => {
+                if color0 == *color0_filter { color1 } else { color0 }
             },
         };
         Ok(result_color)
@@ -322,6 +332,32 @@ mod tests {
         ];
         // Act
         let mode = MixMode::AgreeOrColor { disagreement_color: 255 };
+        let actual: Vec<u8> = items.iter().map(|(color0, color1, _expected)| mode.compute(*color0, *color1).expect("ok") ).collect();
+
+        // Arrange
+        let expected: Vec<u8> = items.iter().map(|(_color0, _color1, expected)| *expected ).collect();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10010_mixmode_pickcolor1whencolor0isdifferent() {
+        // Arrange
+        let items: Vec<(u8, u8, u8)> = vec![
+            (0, 0, 0),
+            (1, 1, 1),
+            (39, 3, 39),
+            (3, 0, 0),
+            (3, 39, 39),
+            (3, 255, 255),
+            (39, 39, 39),
+            (254, 1, 254),
+            (1, 254, 1),
+            (255, 1, 255),
+            (1, 255, 1),
+            (255, 255, 255),
+        ];
+        // Act
+        let mode = MixMode::PickColor1WhenColor0IsDifferent { color0_filter: 3 };
         let actual: Vec<u8> = items.iter().map(|(color0, color1, _expected)| mode.compute(*color0, *color1).expect("ok") ).collect();
 
         // Arrange
