@@ -49,10 +49,37 @@ pub enum MixMode {
     /// Otherwise use the specified `color`.
     PickColor1WhenColor0IsNonZero { color: u8 },
 
+    /// When both colors are non-zero then `1` is returned.
+    /// Otherwise `0` is returned.
+    /// 
+    /// Consider color values that are non-zero as true.
+    /// Consider color values that are zero as false.
+    /// 
+    /// Performs an AND operation between the values.
+    BooleanAnd,
+
+    /// If both colors are zero then `0` is returned.
+    /// Otherwise `1` is returned.
+    /// 
+    /// Consider color values that are non-zero as true.
+    /// Consider color values that are zero as false.
+    /// 
+    /// Performs an OR operation between the values.
+    BooleanOr,
+
+    /// When one of the colors are non-zero and the other color is zero then `1` is returned.
+    /// Otherwise `0` is returned.
+    /// 
+    /// Consider color values that are non-zero as true.
+    /// Consider color values that are zero as false.
+    /// 
+    /// Performs an XOR operation between the values.
+    BooleanXor,
+
     // Future experiments:
-    // And
-    // Or
-    // Xor
+    // BitwiseAnd
+    // BitwiseOr
+    // BitwiseXor
     // Absolute difference
     // Divide
     // IsGreaterThan,
@@ -101,7 +128,16 @@ impl MixMode {
             },
             MixMode::PickColor1WhenColor0IsNonZero { color } => {
                 if color0 == 0 { *color } else { color1 }
-            }
+            },
+            MixMode::BooleanAnd => {
+                if (color0 > 0) & (color1 > 0) { 1 } else { 0 }
+            },
+            MixMode::BooleanOr => {
+                if (color0 > 0) | (color1 > 0) { 1 } else { 0 }
+            },
+            MixMode::BooleanXor => {
+                if (color0 > 0) ^ (color1 > 0) { 1 } else { 0 }
+            },
         };
         Ok(result_color)
     }
@@ -424,6 +460,87 @@ mod tests {
         ];
         // Act
         let mode = MixMode::PickColor1WhenColor0IsNonZero { color: 42 };
+        let actual: Vec<u8> = items.iter().map(|(color0, color1, _expected)| mode.compute(*color0, *color1).expect("ok") ).collect();
+
+        // Arrange
+        let expected: Vec<u8> = items.iter().map(|(_color0, _color1, expected)| *expected ).collect();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10013_mixmode_boolean_and() {
+        // Arrange
+        let items: Vec<(u8, u8, u8)> = vec![
+            (0, 0, 0),
+            (0, 1, 0),
+            (1, 0, 0),
+            (1, 1, 1),
+            (0, 42, 0),
+            (42, 0, 0),
+            (42, 42, 1),
+            (0, 3, 0),
+            (0, 255, 0),
+            (39, 3, 1),
+            (3, 0, 0),
+            (3, 39, 1),
+            (3, 255, 1),
+        ];
+        // Act
+        let mode = MixMode::BooleanAnd;
+        let actual: Vec<u8> = items.iter().map(|(color0, color1, _expected)| mode.compute(*color0, *color1).expect("ok") ).collect();
+
+        // Arrange
+        let expected: Vec<u8> = items.iter().map(|(_color0, _color1, expected)| *expected ).collect();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10014_mixmode_boolean_or() {
+        // Arrange
+        let items: Vec<(u8, u8, u8)> = vec![
+            (0, 0, 0),
+            (0, 1, 1),
+            (1, 0, 1),
+            (1, 1, 1),
+            (0, 42, 1),
+            (42, 0, 1),
+            (42, 42, 1),
+            (0, 3, 1),
+            (0, 255, 1),
+            (39, 3, 1),
+            (3, 0, 1),
+            (3, 39, 1),
+            (3, 255, 1),
+        ];
+        // Act
+        let mode = MixMode::BooleanOr;
+        let actual: Vec<u8> = items.iter().map(|(color0, color1, _expected)| mode.compute(*color0, *color1).expect("ok") ).collect();
+
+        // Arrange
+        let expected: Vec<u8> = items.iter().map(|(_color0, _color1, expected)| *expected ).collect();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_10015_mixmode_boolean_xor() {
+        // Arrange
+        let items: Vec<(u8, u8, u8)> = vec![
+            (0, 0, 0),
+            (0, 1, 1),
+            (1, 0, 1),
+            (1, 1, 0),
+            (0, 42, 1),
+            (42, 0, 1),
+            (42, 42, 0),
+            (0, 3, 1),
+            (0, 255, 1),
+            (39, 3, 0),
+            (3, 0, 1),
+            (3, 39, 0),
+            (3, 255, 0),
+        ];
+        // Act
+        let mode = MixMode::BooleanXor;
         let actual: Vec<u8> = items.iter().map(|(color0, color1, _expected)| mode.compute(*color0, *color1).expect("ok") ).collect();
 
         // Arrange
