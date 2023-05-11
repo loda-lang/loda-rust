@@ -1,4 +1,4 @@
-use super::{Histogram, Image, ImageHistogram, ImageMask, Rectangle};
+use super::{Histogram, Image, ImageHistogram, ImageMask, Rectangle, ImageMix, ImageSize, MixMode, ImageMaskCount};
 
 /// A rectangle filled with a single solid color and no other colors are present inside the object.
 #[derive(Clone, Debug)]
@@ -52,6 +52,7 @@ pub struct SingleColorObjectSparse {
 
 #[derive(Clone, Debug)]
 pub struct SingleColorObjects {
+    pub image_size: ImageSize,
     pub rectangle_vec: Vec<SingleColorObjectRectangle>,
     pub sparse_vec: Vec<SingleColorObjectSparse>,
 }
@@ -94,14 +95,29 @@ impl SingleColorObjects {
             };
             rectangle_vec.push(item);
         }
-        if rectangle_vec.is_empty() {
-            return Err(anyhow::anyhow!("Unable to find any objects of single color"));
-        }
-        let instance = Self { 
+        let instance = Self {
+            image_size: image.size(),
             rectangle_vec,
             sparse_vec,
         };
+        instance.verify_all_pixels_are_accounted_for()?;
         Ok(instance)
+    }
+
+    fn verify_all_pixels_are_accounted_for(&self) -> anyhow::Result<()> {
+        let mut result_mask = Image::zero(self.image_size.width, self.image_size.height);
+        for object in &self.rectangle_vec {
+            result_mask = result_mask.mix(&object.mask, MixMode::Plus)?;
+        }
+        for object in &self.sparse_vec {
+            result_mask = result_mask.mix(&object.mask, MixMode::Plus)?;
+        }
+        let actual_mass: u16 = result_mask.mask_count_one();
+        let expected_mass: u16 = (self.image_size.width as u16) * (self.image_size.height as u16);
+        if actual_mass != expected_mass {
+            return Err(anyhow::anyhow!("The objects doesn't cover the image correctly. Each pixel is supposed to be counted once, but was either not counted at all, or counted multiple times. Cannot explain all the pixels in the image."));
+        }
+        Ok(())
     }
 }
 
@@ -124,6 +140,7 @@ mod tests {
 
         // Assert
         assert_eq!(actual.rectangle_vec.len(), 6);
+        assert_eq!(actual.sparse_vec.len(), 0);
     }
 
     #[test]
@@ -140,5 +157,6 @@ mod tests {
 
         // Assert
         assert_eq!(actual.rectangle_vec.len(), 2);
+        assert_eq!(actual.sparse_vec.len(), 1);
     }
 }
