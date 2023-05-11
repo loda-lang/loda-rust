@@ -122,6 +122,51 @@ mod tests {
     }
 
     #[test]
+    fn test_10002_overlay_with_mask_color_and_overlap() {
+        // Arrange
+        let pixels0: Vec<u8> = vec![
+            1, 2,
+            3, 4,
+            5, 6,
+            0, 0,
+            0, 0,
+            0, 0,
+            0, 0,
+            0, 0,
+        ];
+        let input0: Image = Image::try_create(2, 8, pixels0).expect("image");
+
+        let pixels1: Vec<u8> = vec![
+            42, 0,
+            42, 0,
+            42, 0,
+            42, 0,
+            42, 0,
+            5, 6,
+            3, 4,
+            1, 2,
+        ];
+        let input1: Image = Image::try_create(2, 8, pixels1).expect("image");
+
+        // Act
+        let actual: Image = input0.overlay_with_mask_color(&input1, 0).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            42, 2,
+            42, 4,
+            42, 6,
+            42, 0,
+            42, 0,
+            5, 6,
+            3, 4,
+            1, 2,
+        ];
+        let expected: Image = Image::try_create(2, 8, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
     fn test_20000_overlay_with_position_inside() {
         // Arrange
         let a_pixels: Vec<u8> = vec![
