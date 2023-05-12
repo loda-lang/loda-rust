@@ -36,6 +36,8 @@ pub struct SingleColorObjectSparse {
     pub histogram_non_object: Histogram,
 
     // Future experiments:
+    // vector with clusters, number of clusters, enumerated clusters
+    // number of holes in each cluster
     // shape type: L shape, T shape, + shape, diagonal shape, other shape
     // symmetry
     // is a box
@@ -52,6 +54,25 @@ pub struct SingleColorObjectSparse {
     // Identify each object.
     //
     // Detect objects with multiple colors
+}
+
+impl SingleColorObjectSparse {
+    fn create(color: u8, image: &Image, mask: Image, rect: Rectangle) -> anyhow::Result<Self> {
+        let cropped_object: Image = image.crop(rect)?;
+        let mut histogram: Histogram = cropped_object.histogram_all();
+        let mass_object: u16 = histogram.get(color).min(u16::MAX as u32) as u16;
+        histogram.set_counter_to_zero(color);
+        let mass_non_object: u16 = histogram.sum().min(u16::MAX as u32) as u16;
+        let instance = SingleColorObjectSparse {
+            color,
+            mask,
+            bounding_box: rect,
+            mass_object,
+            mass_non_object,
+            histogram_non_object: histogram,
+        };
+        Ok(instance)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -79,19 +100,7 @@ impl SingleColorObjects {
             };
             let mass: u16 = (rect.width() as u16) * (rect.height() as u16);
             if count != (mass as u32) {
-                let cropped_object: Image = image.crop(rect)?;
-                let mut histogram: Histogram = cropped_object.histogram_all();
-                let mass_object: u16 = histogram.get(color).min(u16::MAX as u32) as u16;
-                histogram.set_counter_to_zero(color);
-                let mass_non_object: u16 = histogram.sum().min(u16::MAX as u32) as u16;
-                let item = SingleColorObjectSparse {
-                    color,
-                    mask,
-                    bounding_box: rect,
-                    mass_object,
-                    mass_non_object,
-                    histogram_non_object: histogram,
-                };
+                let item: SingleColorObjectSparse = SingleColorObjectSparse::create(color, image, mask, rect)?;
                 sparse_vec.push(item);
                 continue;
             }
