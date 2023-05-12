@@ -4234,20 +4234,15 @@ mod tests {
                 let input: &Image = &pair.input.image;
                 let background_color: u8 = input.most_popular_color().expect("color");
                 let background_ignore_mask: Image = input.to_mask_where_color_is(background_color);
-                // println!("background_ignore_mask: {:?}", background_ignore_mask);
 
                 // Objects that is not the background
-                let object_mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &background_ignore_mask)
-                    .expect("find_objects_with_ignore_mask");
-
-                let mut objects_with_hole_vec = Vec::<Image>::new();
+                let object_mask_vec: Vec<Image> = input.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &background_ignore_mask)?;
+                let mut result_image: Image = Image::zero(input.width(), input.height());
                 for object in &object_mask_vec {
-                    // println!("object: {:?}", object);
-
                     let rect: Rectangle = object.bounding_box().expect("some");
-                    let mut object_image: Image = object.crop(rect)?;
-
+                    
                     // flood fill at every border pixel around the object
+                    let mut object_image: Image = object.crop(rect)?;
                     let x1: i32 = (object_image.width() as i32) - 1;
                     let y1: i32 = (object_image.height() as i32) - 1;
                     for y in 0..(object_image.height() as i32) {
@@ -4257,8 +4252,6 @@ mod tests {
                             }
                             let pixel: u8 = object_image.get(x, y).unwrap_or(255);
                             if pixel == 0 {
-                                // println!("found hole at x={}, y={}", x, y);
-                                // TODO: distinguish between 4-connected and 8-connected
                                 object_image.flood_fill4(x, y, 0, 1);
                             }
                         }
@@ -4267,23 +4260,20 @@ mod tests {
                     // if there are unfilled areas, then it's because there is one or more holes
                     let count: u16 = object_image.mask_count_zero();
                     if count > 0 {
-                        println!("found hole with count={}", count);
-                        objects_with_hole_vec.push(object.clone());
+                        // object with one or more holes
+                        result_image = object.select_from_image_and_color(&result_image, 1)?;
+                    } else {
+                        // object without any holes
+                        result_image = object.select_from_image_and_color(&result_image, 2)?;
                     }
                 }
 
-                // let enumerated_objects: Image = Image::object_enumerate(&object_mask_vec).expect("image");
-                let enumerated_objects: Image = Image::object_enumerate(&objects_with_hole_vec).expect("image");
-
-                // TODO: detect objects with a hole
-
-                let result_image: Image = enumerated_objects;
                 Ok(result_image)
             }
         }
     }
 
-    // #[test]
+    #[test]
     fn test_830000_puzzle_810b9b61() {
         let mut instance = solve_810b9b61::MySolution {};
         let result: String = run_analyze_and_solve("810b9b61", &mut instance).expect("String");
