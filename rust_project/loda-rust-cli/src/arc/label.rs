@@ -117,6 +117,8 @@ pub enum InputLabel {
     InputSingleColorObject { label: SingleColorObjectLabel },
 
     // Ideas for more
+    // UnambiguousEnumeratedObjects, // in the 3x3, are the 8 neighbours the same as the 4 neighbours 
+    // AmbiguousEnumeratedObjects, // in the 3x3, does the segmentation algorithm variants yield different results
     // SplitColor { color: u8 },
     // SplitRowColor { color: u8 },
     // SplitColumnColor { color: u8 },
