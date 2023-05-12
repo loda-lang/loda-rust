@@ -1,3 +1,4 @@
+use super::{ImageSegment, ImageSegmentAlgorithm, ImageOverlay};
 use super::{Histogram, Image, ImageHistogram, ImageMask, Rectangle, ImageMix, ImageSize, MixMode, ImageMaskCount, ImageCrop};
 
 /// A rectangle filled with a single solid color and no other colors are present inside the object.
@@ -71,7 +72,59 @@ impl SingleColorObjectSparse {
             mass_non_object,
             histogram_non_object: histogram,
         };
+        // instance.detect_holes()?;
         Ok(instance)
+    }
+
+    fn detect_holes(&self) -> anyhow::Result<()> {
+        // Objects that is not the background
+        let blank = Image::zero(self.mask.width(), self.mask.height());
+        let ignore_mask: Image = self.mask.invert_mask();
+
+        // TODO: perform the same operation with both 4-connected and 8-connected.
+        let object_mask_vec: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask)?;
+
+        let mut objects_with_hole_vec = Vec::<Image>::new();
+        let mut result_image = Image::zero(self.mask.width(), self.mask.height());
+        for object in &object_mask_vec {
+            let rect: Rectangle = object.bounding_box().expect("some");
+            let cropped_object: Image = object.crop(rect)?;
+            let mut object_image: Image = cropped_object.clone();
+
+            // flood fill at every border pixel around the object
+            let x1: i32 = (object_image.width() as i32) - 1;
+            let y1: i32 = (object_image.height() as i32) - 1;
+            for y in 0..(object_image.height() as i32) {
+                for x in 0..(object_image.width() as i32) {
+                    if x > 0 && x < x1 && y > 0 && y < y1 { 
+                        continue;
+                    }
+                    let pixel: u8 = object_image.get(x, y).unwrap_or(255);
+                    if pixel == 0 {
+                        // TODO: distinguish between 4-connected and 8-connected
+                        object_image.flood_fill4(x, y, 0, 1);
+                    }
+                }
+            }
+
+            // if there are unfilled areas, then it's because there is one or more holes
+            let count: u16 = object_image.mask_count_zero();
+            if count > 0 {
+                println!("found hole with count={}", count);
+                objects_with_hole_vec.push(object.clone());
+            }
+
+            // how do I identify the number of clusters?
+            let inverted_mask: Image = object_image.invert_mask();
+            let combined: Image = cropped_object.mix(&inverted_mask, MixMode::BooleanOr)?;
+            result_image = result_image.overlay_with_position(&combined, rect.x() as i32, rect.y() as i32)?;
+        }
+
+        let ignore_mask: Image = result_image.invert_mask();
+        let object_mask_vec2: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask)?;
+
+        println!("number of clusters: {}", object_mask_vec2.len());
+        Ok(())
     }
 }
 
