@@ -4259,7 +4259,7 @@ mod tests {
                             if pixel == 0 {
                                 // println!("found hole at x={}, y={}", x, y);
                                 // TODO: distinguish between 4-connected and 8-connected
-                                object_image.flood_fill_neighbors(x, y, 0, 1);
+                                object_image.flood_fill4(x, y, 0, 1);
                             }
                         }
                     }

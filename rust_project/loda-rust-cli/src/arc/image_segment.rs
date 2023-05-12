@@ -48,13 +48,20 @@ pub enum ImageSegmentAlgorithm {
 
 pub trait ImageSegment {
     /// Replace color with another color
-    fn flood_fill_neighbors(&mut self, x: i32, y: i32, from_color: u8, to_color: u8);
+    /// 
+    /// Visit 4 neighbors around a pixel.
+    fn flood_fill4(&mut self, x: i32, y: i32, from_color: u8, to_color: u8);
+
+    /// Replace color with another color
+    /// 
+    /// Visit 8 neighbors around a pixel.
+    fn flood_fill8(&mut self, x: i32, y: i32, from_color: u8, to_color: u8);
 
     /// Build a mask of connected pixels that has the same color
-    fn flood_fill_visit_neighbors(&mut self, image: &Image, x: i32, y: i32, color: u8);
+    fn flood_fill_visit4(&mut self, image: &Image, x: i32, y: i32, color: u8);
 
     /// Build a mask of connected pixels that has the same color
-    fn flood_fill_visit_all(&mut self, image: &Image, x: i32, y: i32, color: u8);
+    fn flood_fill_visit8(&mut self, image: &Image, x: i32, y: i32, color: u8);
 
     /// Identify clusters of connected pixels with an `ignore_mask` of areas to be ignored
     /// 
@@ -75,7 +82,7 @@ pub trait ImageSegment {
 }
 
 impl ImageSegment for Image {
-    fn flood_fill_neighbors(&mut self, x: i32, y: i32, from_color: u8, to_color: u8) {
+    fn flood_fill4(&mut self, x: i32, y: i32, from_color: u8, to_color: u8) {
         if x < 0 || y < 0 || x >= (self.width() as i32) || y >= (self.height() as i32) {
             return;
         }
@@ -84,13 +91,32 @@ impl ImageSegment for Image {
             return;
         }
         let _ = self.set(x, y, to_color);
-        self.flood_fill_neighbors(x-1, y, from_color, to_color);
-        self.flood_fill_neighbors(x+1, y, from_color, to_color);
-        self.flood_fill_neighbors(x, y-1, from_color, to_color);
-        self.flood_fill_neighbors(x, y+1, from_color, to_color);
+        self.flood_fill4(x-1, y, from_color, to_color);
+        self.flood_fill4(x+1, y, from_color, to_color);
+        self.flood_fill4(x, y-1, from_color, to_color);
+        self.flood_fill4(x, y+1, from_color, to_color);
     }
 
-    fn flood_fill_visit_neighbors(&mut self, image: &Image, x: i32, y: i32, color: u8) {
+    fn flood_fill8(&mut self, x: i32, y: i32, from_color: u8, to_color: u8) {
+        if x < 0 || y < 0 || x >= (self.width() as i32) || y >= (self.height() as i32) {
+            return;
+        }
+        let value: u8 = self.get(x, y).unwrap_or(255);
+        if value != from_color {
+            return;
+        }
+        let _ = self.set(x, y, to_color);
+        self.flood_fill8(x-1, y-1, from_color, to_color);
+        self.flood_fill8(x, y-1, from_color, to_color);
+        self.flood_fill8(x+1, y-1, from_color, to_color);
+        self.flood_fill8(x-1, y, from_color, to_color);
+        self.flood_fill8(x+1, y, from_color, to_color);
+        self.flood_fill8(x-1, y+1, from_color, to_color);
+        self.flood_fill8(x, y+1, from_color, to_color);
+        self.flood_fill8(x+1, y+1, from_color, to_color);
+    }
+
+    fn flood_fill_visit4(&mut self, image: &Image, x: i32, y: i32, color: u8) {
         assert!(self.width() == image.width());
         assert!(self.height() == image.height());
         if x < 0 || y < 0 || x >= (self.width() as i32) || y >= (self.height() as i32) {
@@ -106,13 +132,13 @@ impl ImageSegment for Image {
             return;
         }
         let _ = self.set(x, y, 1); // flag as visited
-        self.flood_fill_visit_neighbors(image, x-1, y, color);
-        self.flood_fill_visit_neighbors(image, x+1, y, color);
-        self.flood_fill_visit_neighbors(image, x, y-1, color);
-        self.flood_fill_visit_neighbors(image, x, y+1, color);
+        self.flood_fill_visit4(image, x-1, y, color);
+        self.flood_fill_visit4(image, x+1, y, color);
+        self.flood_fill_visit4(image, x, y-1, color);
+        self.flood_fill_visit4(image, x, y+1, color);
     }
 
-    fn flood_fill_visit_all(&mut self, image: &Image, x: i32, y: i32, color: u8) {
+    fn flood_fill_visit8(&mut self, image: &Image, x: i32, y: i32, color: u8) {
         assert!(self.width() == image.width());
         assert!(self.height() == image.height());
         if x < 0 || y < 0 || x >= (self.width() as i32) || y >= (self.height() as i32) {
@@ -128,14 +154,14 @@ impl ImageSegment for Image {
             return;
         }
         let _ = self.set(x, y, 1); // flag as visited
-        self.flood_fill_visit_all(image, x-1, y-1, color);
-        self.flood_fill_visit_all(image, x, y-1, color);
-        self.flood_fill_visit_all(image, x+1, y-1, color);
-        self.flood_fill_visit_all(image, x-1, y, color);
-        self.flood_fill_visit_all(image, x+1, y, color);
-        self.flood_fill_visit_all(image, x-1, y+1, color);
-        self.flood_fill_visit_all(image, x, y+1, color);
-        self.flood_fill_visit_all(image, x+1, y+1, color);
+        self.flood_fill_visit8(image, x-1, y-1, color);
+        self.flood_fill_visit8(image, x, y-1, color);
+        self.flood_fill_visit8(image, x+1, y-1, color);
+        self.flood_fill_visit8(image, x-1, y, color);
+        self.flood_fill_visit8(image, x+1, y, color);
+        self.flood_fill_visit8(image, x-1, y+1, color);
+        self.flood_fill_visit8(image, x, y+1, color);
+        self.flood_fill_visit8(image, x+1, y+1, color);
     }
 
     fn find_objects_with_ignore_mask_inner(&self, algorithm: ImageSegmentAlgorithm, ignore_mask: &Image) -> anyhow::Result<Vec<ImageSegmentItem>> {
@@ -158,10 +184,10 @@ impl ImageSegment for Image {
                 let mut object_mask = ignore_mask.clone();
                 match algorithm {
                     ImageSegmentAlgorithm::Neighbors => {
-                        object_mask.flood_fill_visit_neighbors(&self, x, y, color);
+                        object_mask.flood_fill_visit4(&self, x, y, color);
                     },
                     ImageSegmentAlgorithm::All => {
-                        object_mask.flood_fill_visit_all(&self, x, y, color);
+                        object_mask.flood_fill_visit8(&self, x, y, color);
                     },
                 }
 
@@ -230,7 +256,7 @@ mod tests {
     use crate::arc::ImageStack;
 
     #[test]
-    fn test_10000_flood_fill_neighbors() {
+    fn test_10000_flood_fill4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,
@@ -242,7 +268,7 @@ mod tests {
 
         // Act
         let mut output: Image = input.clone();
-        output.flood_fill_neighbors(0, 0, 5, 3);
+        output.flood_fill4(0, 0, 5, 3);
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -256,7 +282,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10001_flood_fill_neighbors() {
+    fn test_10001_flood_fill4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,
@@ -268,7 +294,7 @@ mod tests {
 
         // Act
         let mut output: Image = input.clone();
-        output.flood_fill_neighbors(1, 1, 8, 1);
+        output.flood_fill4(1, 1, 8, 1);
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -282,7 +308,7 @@ mod tests {
     }
 
     #[test]
-    fn test_10002_flood_fill_neighbors() {
+    fn test_10002_flood_fill4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,
@@ -294,7 +320,7 @@ mod tests {
 
         // Act
         let mut output: Image = input.clone();
-        output.flood_fill_neighbors(4, 1, 8, 1);
+        output.flood_fill4(4, 1, 8, 1);
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -308,7 +334,33 @@ mod tests {
     }
 
     #[test]
-    fn test_20000_flood_fill_visit_neighbors() {
+    fn test_20000_flood_fill8() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            5, 3, 3, 3, 3, 5,
+            3, 5, 3, 5, 3, 3,
+            3, 3, 5, 3, 5, 3,
+            5, 3, 3, 3, 3, 5,
+        ];
+        let input: Image = Image::try_create(6, 4, pixels).expect("image");
+
+        // Act
+        let mut output: Image = input.clone();
+        output.flood_fill8(3, 1, 5, 0);
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            0, 3, 3, 3, 3, 5,
+            3, 0, 3, 0, 3, 3,
+            3, 3, 0, 3, 0, 3,
+            5, 3, 3, 3, 3, 0,
+        ];
+        let expected = Image::create_raw(6, 4, expected_pixels);
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_30000_flood_fill_visit4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,
@@ -321,7 +373,7 @@ mod tests {
         let color: u8 = input.get(0, 0).unwrap_or(255);
 
         // Act
-        output.flood_fill_visit_neighbors(&input, 0, 0, color);
+        output.flood_fill_visit4(&input, 0, 0, color);
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -335,7 +387,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20001_flood_fill_visit_neighbors() {
+    fn test_30001_flood_fill_visit4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,
@@ -348,7 +400,7 @@ mod tests {
         let color: u8 = input.get(1, 1).unwrap_or(255);
 
         // Act
-        output.flood_fill_visit_neighbors(&input, 1, 1, color);
+        output.flood_fill_visit4(&input, 1, 1, color);
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -362,7 +414,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20002_flood_fill_visit_neighbors() {
+    fn test_30002_flood_fill_visit4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,
@@ -375,7 +427,7 @@ mod tests {
         let color: u8 = input.get(4, 1).unwrap_or(255);
 
         // Act
-        output.flood_fill_visit_neighbors(&input, 4, 1, color);
+        output.flood_fill_visit4(&input, 4, 1, color);
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -389,7 +441,7 @@ mod tests {
     }
 
     #[test]
-    fn test_20003_flood_fill_visit_neighbors() {
+    fn test_30003_flood_fill_visit4() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 5, 5, 
@@ -401,7 +453,7 @@ mod tests {
         let color: u8 = input.get(2, 0).unwrap_or(255);
 
         // Act
-        output.flood_fill_visit_neighbors(&input, 2, 0, color);
+        output.flood_fill_visit4(&input, 2, 0, color);
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -414,7 +466,7 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_flood_fill_visit_all() {
+    fn test_40000_flood_fill_visit8() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 5, 5, 
@@ -426,7 +478,7 @@ mod tests {
         let color: u8 = input.get(2, 0).unwrap_or(255);
 
         // Act
-        output.flood_fill_visit_all(&input, 2, 0, color);
+        output.flood_fill_visit8(&input, 2, 0, color);
 
         // Assert
         let expected_pixels: Vec<u8> = vec![
@@ -439,7 +491,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40000_find_objects_neighbors() {
+    fn test_50000_find_objects_neighbors() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,
@@ -476,7 +528,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40001_find_objects_neighbors() {
+    fn test_50001_find_objects_neighbors() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5, 5,
@@ -517,7 +569,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40002_find_objects_neighbors() {
+    fn test_50002_find_objects_neighbors() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 5, 5, 
@@ -558,7 +610,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40003_find_objects_neighbors() {
+    fn test_50003_find_objects_neighbors() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 
@@ -587,7 +639,7 @@ mod tests {
     }
 
     #[test]
-    fn test_40004_find_objects_neighbors() {
+    fn test_50004_find_objects_neighbors() {
         // Arrange
         let pixels: Vec<u8> = vec![
             1, 1, 1,
@@ -616,7 +668,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50000_find_objects_with_ignore_mask_inner() {
+    fn test_60000_find_objects_with_ignore_mask_inner() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 5, 5, 
@@ -665,7 +717,7 @@ mod tests {
     }
 
     #[test]
-    fn test_50001_find_objects_with_ignore_mask_inner() {
+    fn test_60001_find_objects_with_ignore_mask_inner() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 5, 5,
@@ -723,7 +775,7 @@ mod tests {
     }
 
     #[test]
-    fn test_60000_find_objects_all() {
+    fn test_70000_find_objects_all() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 5, 5, 
@@ -752,7 +804,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70000_find_objects_with_ignore_mask() {
+    fn test_80000_find_objects_with_ignore_mask() {
         // Arrange
         let pixels: Vec<u8> = vec![
             9, 5, 5, 
@@ -787,7 +839,7 @@ mod tests {
     }
 
     #[test]
-    fn test_70001_find_objects_with_ignore_mask() {
+    fn test_80001_find_objects_with_ignore_mask() {
         // Arrange
         let pixels: Vec<u8> = vec![
             5, 5, 6, 6, 
