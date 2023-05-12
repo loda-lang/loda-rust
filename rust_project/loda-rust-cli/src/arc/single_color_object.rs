@@ -78,14 +78,16 @@ impl SingleColorObjectSparse {
 
     fn detect_holes(&self) -> anyhow::Result<()> {
         // Objects that is not the background
-        let blank = Image::zero(self.mask.width(), self.mask.height());
-        let ignore_mask: Image = self.mask.invert_mask();
+        let cropped_mask: Image = self.mask.crop(self.bounding_box)?;
+        let ignore_mask: Image = cropped_mask.invert_mask();
+
+        let blank = Image::zero(cropped_mask.width(), cropped_mask.height());
 
         // TODO: perform the same operation with both 4-connected and 8-connected.
         let object_mask_vec: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask)?;
 
         let mut objects_with_hole_vec = Vec::<Image>::new();
-        let mut result_image = Image::zero(self.mask.width(), self.mask.height());
+        let mut result_image = Image::zero(cropped_mask.width(), cropped_mask.height());
         for object in &object_mask_vec {
             let rect: Rectangle = object.bounding_box().expect("some");
             let cropped_object: Image = object.crop(rect)?;
@@ -256,5 +258,40 @@ mod tests {
             histogram.increment(3);
             assert_eq!(object.histogram_non_object, histogram);
         }
+    }
+
+    #[test]
+    fn test_30000_sparse_object_detect_clusters_and_holes() {
+        // Arrange
+        let pixels: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 7, 7, 7, 0, 0, 0, 0,
+            0, 0, 7, 0, 7, 0, 0, 0, 0,
+            0, 0, 7, 7, 7, 0, 7, 0, 0,
+            0, 0, 0, 0, 0, 0, 7, 0, 0,
+            0, 0, 0, 0, 0, 7, 7, 0, 0,
+            0, 0, 0, 7, 7, 7, 7, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let input: Image = Image::try_create(9, 8, pixels).expect("image");
+        let actual: SingleColorObjects = SingleColorObjects::find_objects(&input).expect("ColorIsObject");
+        assert_eq!(actual.rectangle_vec.len(), 0);
+        assert_eq!(actual.sparse_vec.len(), 2);
+        {
+            let object: &SingleColorObjectSparse = &actual.sparse_vec[0];
+            assert_eq!(object.color, 0);
+            assert_eq!(object.bounding_box, Rectangle::new(0, 0, 9, 8));
+        }
+        {
+            let object: &SingleColorObjectSparse = &actual.sparse_vec[1];
+            assert_eq!(object.color, 7);
+            assert_eq!(object.bounding_box, Rectangle::new(2, 1, 5, 6));
+        }
+
+        // Act
+        let object: &SingleColorObjectSparse = &actual.sparse_vec[1];
+        object.detect_holes().expect("ok");
+
+        // Assert
     }
 }
