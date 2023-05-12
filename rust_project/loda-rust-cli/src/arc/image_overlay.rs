@@ -5,6 +5,11 @@ pub trait ImageOverlay {
 
     /// Copy rectangle of pixels
     fn overlay_with_position(&self, other: &Image, x: i32, y: i32) -> anyhow::Result<Image>;
+
+    /// Copy pixels where the mask is not zero.
+    /// 
+    /// Ignore the pixels where the mask is zero.
+    fn overlay_with_mask_and_position(&self, other: &Image, mask: &Image, x: i32, y: i32) -> anyhow::Result<Image>;
 }
 
 impl ImageOverlay for Image {
@@ -23,6 +28,32 @@ impl ImageOverlay for Image {
         let mut image: Image = self.clone();
         for yy in 0..(other.height() as i32) {
             for xx in 0..(other.width() as i32) {
+                let pixel_value: u8 = other.get(xx, yy).unwrap_or(255); 
+                let set_x = x + xx;
+                let set_y = y + yy;
+                let _ = image.set(set_x, set_y, pixel_value);
+            }
+        }
+        Ok(image)
+    }
+
+    fn overlay_with_mask_and_position(&self, other: &Image, mask: &Image, x: i32, y: i32) -> anyhow::Result<Image> {
+        if other.size() != mask.size() {
+            return Err(anyhow::anyhow!("overlay_with_mask_and_position: Expected other.size to be the same as mask.size"));
+        }
+        if self.is_empty() {
+            return Ok(Image::empty());
+        }
+        if other.is_empty() {
+            return Ok(self.clone());
+        }
+        let mut image: Image = self.clone();
+        for yy in 0..(other.height() as i32) {
+            for xx in 0..(other.width() as i32) {
+                let mask_value: u8 = mask.get(xx, yy).unwrap_or(255); 
+                if mask_value == 0 {
+                    continue;
+                }
                 let pixel_value: u8 = other.get(xx, yy).unwrap_or(255); 
                 let set_x = x + xx;
                 let set_y = y + yy;
@@ -272,5 +303,44 @@ mod tests {
             let actual: Image = a.overlay_with_position(&b, 0, -2).expect("image");
             assert_eq!(actual, a);
         }
+    }
+
+    #[test]
+    fn test_30000_overlay_with_mask_and_position() {
+        // Arrange
+        let a_pixels: Vec<u8> = vec![
+            5, 5, 5, 5, 5,
+            5, 5, 5, 5, 5,
+            7, 7, 7, 7, 7,
+            6, 6, 6, 6, 6,
+            6, 6, 6, 6, 6,
+        ];
+        let a: Image = Image::try_create(5, 5, a_pixels).expect("image");
+        let b_pixels: Vec<u8> = vec![
+            2, 3, 4,
+            5, 6, 7,
+            8, 9, 10,
+        ];
+        let b: Image = Image::try_create(3, 3, b_pixels).expect("image");
+        let mask_pixels: Vec<u8> = vec![
+            0, 1, 0,
+            1, 1, 1,
+            0, 1, 0,
+        ];
+        let mask: Image = Image::try_create(3, 3, mask_pixels).expect("image");
+
+        // Act
+        let actual: Image = a.overlay_with_mask_and_position(&b, &mask, 1, 1).expect("image");
+
+        // Assert
+        let expected_pixels: Vec<u8> = vec![
+            5, 5, 5, 5, 5,
+            5, 5, 3, 5, 5,
+            7, 5, 6, 7, 7,
+            6, 6, 9, 6, 6,
+            6, 6, 6, 6, 6,
+        ];
+        let expected: Image = Image::try_create(5, 5, expected_pixels).expect("image");
+        assert_eq!(actual, expected);
     }
 }
