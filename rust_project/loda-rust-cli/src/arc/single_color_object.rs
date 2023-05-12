@@ -1,4 +1,4 @@
-use super::{ImageSegment, ImageSegmentAlgorithm, ImageOverlay};
+use super::{ImageSegment, ImageSegmentAlgorithm, ImageOverlay, ImageObjectEnumerate};
 use super::{Histogram, Image, ImageHistogram, ImageMask, Rectangle, ImageMix, ImageSize, MixMode, ImageMaskCount, ImageCrop};
 
 /// A rectangle filled with a single solid color and no other colors are present inside the object.
@@ -36,6 +36,8 @@ pub struct SingleColorObjectSparse {
     /// Histogram of the non-object pixels 
     pub histogram_non_object: Histogram,
 
+    pub cluster_vec: Vec::<SingleColorObjectCluster>,
+
     // Future experiments:
     // vector with clusters, number of clusters, enumerated clusters
     // number of holes in each cluster
@@ -71,12 +73,14 @@ impl SingleColorObjectSparse {
             mass_object,
             mass_non_object,
             histogram_non_object: histogram,
+            cluster_vec: vec!(),
         };
-        // instance.detect_holes()?;
+        // instance.analyze()?;
         Ok(instance)
     }
 
-    fn detect_holes(&self) -> anyhow::Result<()> {
+    // TODO: parameter for choosing between 4-connected and 8-connected.
+    fn analyze(&mut self) -> anyhow::Result<()> {
         // Objects that is not the background
         let cropped_mask: Image = self.mask.crop(self.bounding_box)?;
         let ignore_mask: Image = cropped_mask.invert_mask();
@@ -89,8 +93,15 @@ impl SingleColorObjectSparse {
         let mut objects_with_hole_vec = Vec::<Image>::new();
         let mut result_image = Image::zero(cropped_mask.width(), cropped_mask.height());
         for object in &object_mask_vec {
-            let rect: Rectangle = object.bounding_box().expect("some");
+            // println!("object: {:?}", object);
+            let rect: Rectangle = match object.bounding_box() {
+                Some(value) => value,
+                None => {
+                    continue;
+                }
+            };
             let cropped_object: Image = object.crop(rect)?;
+            // println!("cropped_object: {:?}", cropped_object);
             let mut object_image: Image = cropped_object.clone();
 
             // flood fill at every border pixel around the object
@@ -108,25 +119,55 @@ impl SingleColorObjectSparse {
                     }
                 }
             }
+            // println!("object_image: {:?}", object_image);
 
             // if there are unfilled areas, then it's because there is one or more holes
             let count: u16 = object_image.mask_count_zero();
             if count > 0 {
-                println!("found hole with count={}", count);
+                // println!("found hole with count={}", count);
                 objects_with_hole_vec.push(object.clone());
             }
 
-            // how do I identify the number of clusters?
+            // fill out the holes
             let inverted_mask: Image = object_image.invert_mask();
+            // println!("inverted_mask: {:?}", inverted_mask);
             let combined: Image = cropped_object.mix(&inverted_mask, MixMode::BooleanOr)?;
-            result_image = result_image.overlay_with_position(&combined, rect.x() as i32, rect.y() as i32)?;
+
+            result_image = result_image.overlay_with_mask_and_position(&combined, &combined, rect.x() as i32, rect.y() as i32)?;
         }
 
+        // Find the clusters
         let ignore_mask: Image = result_image.invert_mask();
         let object_mask_vec2: Vec<Image> = blank.find_objects_with_ignore_mask(ImageSegmentAlgorithm::All, &ignore_mask)?;
 
-        println!("number of clusters: {}", object_mask_vec2.len());
+        // println!("number of clusters: {}", object_mask_vec2.len());
+        let mut cluster_vec = Vec::<SingleColorObjectCluster>::new();
+        for object in &object_mask_vec2 {
+            let item = SingleColorObjectCluster {
+                mask: object.clone(),
+            };
+            cluster_vec.push(item);
+        }
+
+        self.cluster_vec = cluster_vec;
         Ok(())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SingleColorObjectCluster {
+    pub mask: Image,
+
+    // Future experiments:
+    // number of holes in this cluster
+    // shape of cluster
+}
+
+impl SingleColorObjectCluster {
+    #[allow(dead_code)]
+    fn enumerate_clusters(cluster_vec: &Vec<SingleColorObjectCluster>) -> anyhow::Result<Image> {
+        let masks: Vec<Image> = cluster_vec.iter().map(|cluster| cluster.mask.clone()).collect();
+        Image::object_enumerate(&masks)
     }
 }
 
@@ -261,14 +302,14 @@ mod tests {
     }
 
     #[test]
-    fn test_30000_sparse_object_detect_clusters_and_holes() {
+    fn test_30000_cluster() {
         // Arrange
         let pixels: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 7, 7, 7, 0, 0, 0, 0,
+            0, 0, 7, 7, 7, 7, 0, 0, 0,
             0, 0, 7, 0, 7, 0, 0, 0, 0,
             0, 0, 7, 7, 7, 0, 7, 0, 0,
-            0, 0, 0, 0, 0, 0, 7, 0, 0,
+            0, 0, 7, 0, 0, 0, 7, 0, 0,
             0, 0, 0, 0, 0, 7, 7, 0, 0,
             0, 0, 0, 7, 7, 7, 7, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -286,12 +327,26 @@ mod tests {
             let object: &SingleColorObjectSparse = &actual.sparse_vec[1];
             assert_eq!(object.color, 7);
             assert_eq!(object.bounding_box, Rectangle::new(2, 1, 5, 6));
+            assert_eq!(object.mass_object, 18);
         }
 
         // Act
-        let object: &SingleColorObjectSparse = &actual.sparse_vec[1];
-        object.detect_holes().expect("ok");
+        let mut object: SingleColorObjectSparse = actual.sparse_vec[1].clone();
+        object.analyze().expect("ok");
 
         // Assert
+        assert_eq!(object.cluster_vec.len(), 2);
+        let cluster_image: Image = SingleColorObjectCluster::enumerate_clusters(&object.cluster_vec).expect("ok");
+
+        let expected_pixels: Vec<u8> = vec![
+            1, 1, 1, 1, 0,
+            1, 1, 1, 0, 0,
+            1, 1, 1, 0, 2,
+            1, 0, 0, 0, 2,
+            0, 0, 0, 2, 2,
+            0, 2, 2, 2, 2,
+        ];
+        let expected: Image = Image::try_create(5, 6, expected_pixels).expect("image");
+        assert_eq!(cluster_image, expected);
     }
 }
